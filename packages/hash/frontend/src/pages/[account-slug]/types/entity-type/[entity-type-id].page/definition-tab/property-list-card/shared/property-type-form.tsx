@@ -24,7 +24,14 @@ import {
   PopupState,
 } from "material-ui-popup-state/hooks";
 import { ComponentProps, ReactNode, useEffect, useMemo, useState } from "react";
-import { FormProvider, useForm, UseFormTrigger } from "react-hook-form";
+import {
+  FieldValues,
+  FormProvider,
+  Path,
+  useForm,
+  useFormContext,
+  UseFormTrigger,
+} from "react-hook-form";
 import { useBlockProtocolGetPropertyType } from "../../../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
 import { Modal } from "../../../../../../../../components/Modals/Modal";
 import { useRouteNamespace } from "../../../../../../shared/use-route-namespace";
@@ -74,65 +81,20 @@ export const formDataToPropertyType = (data: PropertyTypeFormValues) => ({
   kind: "propertyType" as const,
 });
 
-const PropertyTypeFormInner = ({
-  onClose,
-  modalTitle,
-  popupState,
-  onSubmit,
-  submitButtonProps,
-  getDefaultValues,
-  fieldProps = {},
+const PropertyTypeFormNameField = ({
+  fieldDisabled,
 }: {
-  onClose?: () => void;
-  modalTitle: ReactNode;
-  popupState: PopupState;
-  onSubmit: (data: PropertyTypeFormValues) => Promise<void>;
-  submitButtonProps: PropertyTypeFormSubmitProps;
-  getDefaultValues?: () => Partial<PropertyTypeFormValues>;
-  fieldProps?: Partial<
-    Record<keyof PropertyTypeFormValues, { disabled?: boolean }>
-  >;
+  fieldDisabled: boolean;
 }) => {
-  const defaultValues = getDefaultValues?.() ?? {};
-
-  const formMethods = useForm<PropertyTypeFormValues>({
-    defaultValues: {
-      name: defaultValues.name ?? "",
-      description: defaultValues.description ?? "",
-      expectedValues: defaultValues.expectedValues ?? [],
-    },
-    shouldFocusError: true,
-    mode: "onBlur",
-    reValidateMode: "onChange",
-  });
-
   const {
     register,
-    handleSubmit: wrapHandleSubmit,
     formState: {
       isSubmitting,
-      errors: { name: nameError, description: descriptionError },
-      touchedFields: { description: descriptionTouched },
-      isValid,
+      errors: { name: nameError },
     },
     getValues,
     clearErrors,
-    setFocus,
-    trigger,
-  } = formMethods;
-
-  const defaultField = defaultValues.name ? "description" : "name";
-
-  useEffect(() => {
-    setFocus(defaultField);
-  }, [setFocus, defaultField]);
-
-  const disabledFields = new Set(
-    (Object.keys(fieldProps) as any as (keyof typeof fieldProps)[]).filter(
-      (key) => fieldProps[key]?.disabled,
-    ),
-  );
-  useTriggerValidation(defaultValues, disabledFields, trigger);
+  } = useFormContext<PropertyTypeFormValues>();
 
   const { routeNamespace } = useRouteNamespace();
 
@@ -151,13 +113,79 @@ const PropertyTypeFormInner = ({
     });
   };
 
-  const handleSubmit = wrapHandleSubmit(onSubmit);
-
   /**
    * Frustratingly, we have to track this ourselves
    * @see https://github.com/react-hook-form/react-hook-form/discussions/2633
    */
   const [titleValid, setTitleValid] = useState(false);
+
+  return (
+    <TextField
+      fullWidth
+      label="Singular name"
+      required
+      placeholder="e.g. Stock Price"
+      disabled={fieldDisabled ?? isSubmitting}
+      {...(!fieldDisabled && {
+        error: !!nameError,
+        helperText: nameError?.message,
+        success: titleValid,
+      })}
+      {...register("name", {
+        required: true,
+        onChange() {
+          clearErrors("name");
+          setTitleValid(false);
+        },
+        async validate(value) {
+          if (fieldDisabled) {
+            setTitleValid(true);
+            return true;
+          }
+
+          const propertyTypeId = generateInitialPropertyTypeId(
+            generatePropertyTypeBaseUriForUser(value),
+          );
+
+          const res = await getPropertyType({
+            data: {
+              propertyTypeId,
+              graphResolveDepths: {
+                constrainsValuesOn: { outgoing: 0 },
+                constrainsPropertiesOn: { outgoing: 0 },
+              },
+            },
+          });
+
+          const exists =
+            !res.data || !!getPropertyTypeById(res.data, propertyTypeId);
+
+          setTitleValid(getValues("name") === value && !exists);
+
+          return exists ? "Property type name must be unique" : true;
+        },
+      })}
+    />
+  );
+};
+
+const PropertyTypeFormDescriptionField = ({
+  defaultValues,
+  fieldDisabled,
+}: {
+  defaultValues: { description?: string };
+  fieldDisabled: boolean;
+}) => {
+  const {
+    register,
+    formState: {
+      isSubmitting,
+      errors: { description: descriptionError },
+      touchedFields: { description: descriptionTouched },
+    },
+    clearErrors,
+  } = useFormContext<PropertyTypeFormValues>();
+
   const [descriptionValid, setDescriptionValid] = useState(false);
 
   /**
@@ -170,7 +198,99 @@ const PropertyTypeFormInner = ({
     !("description" in defaultValues) || !!defaultValues.description;
 
   return (
-    <FormProvider {...formMethods}>
+    <TextField
+      multiline
+      fullWidth
+      inputProps={{ minRows: 1 }}
+      label={
+        <>
+          Description{" "}
+          <Tooltip
+            placement="top"
+            title="Descriptions help people understand what property types can be used for, and help make them more discoverable (allowing for reuse)."
+            PopperProps={{
+              modifiers: [
+                {
+                  name: "offset",
+                  options: {
+                    offset: [0, 8],
+                  },
+                },
+              ],
+            }}
+          >
+            <Box
+              sx={{
+                order: 1,
+                ml: 0.75,
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <QuestionIcon />
+            </Box>
+          </Tooltip>
+        </>
+      }
+      required={descriptionRequired}
+      placeholder="Describe this property type in one or two sentences"
+      disabled={fieldDisabled ?? isSubmitting}
+      {...(!fieldDisabled &&
+        descriptionTouched && {
+          success: descriptionValid,
+          error: !!descriptionError,
+        })}
+      {...register("description", {
+        required: descriptionRequired,
+        onChange() {
+          clearErrors("description");
+          setDescriptionValid(false);
+        },
+        validate(value) {
+          const valid = !descriptionRequired || !!value;
+
+          setDescriptionValid(valid);
+          return valid ? true : "You must choose a description";
+        },
+      })}
+    />
+  );
+};
+
+type PropertyTypeFromWrapperProps<T extends FieldValues> = {
+  onClose?: () => void;
+  modalTitle: ReactNode;
+  popupState: PopupState;
+  onSubmit: (data: T) => Promise<void>;
+  submitButtonProps: PropertyTypeFormSubmitProps;
+};
+
+const PropertyTypeFormWrapper = <T extends FieldValues>({
+  children,
+  defaultField,
+  onClose,
+  modalTitle,
+  popupState,
+  onSubmit,
+  submitButtonProps,
+}: {
+  children: ReactNode;
+  defaultField: Path<T>;
+} & PropertyTypeFromWrapperProps<T>) => {
+  const {
+    handleSubmit: wrapHandleSubmit,
+    formState: { isSubmitting, isValid },
+    setFocus,
+  } = useFormContext<T>();
+
+  useEffect(() => {
+    setFocus(defaultField);
+  }, [setFocus, defaultField]);
+
+  const handleSubmit = wrapHandleSubmit(onSubmit);
+
+  return (
+    <>
       <Box
         sx={(theme) => ({
           px: 2.5,
@@ -224,109 +344,7 @@ const PropertyTypeFormInner = ({
             },
           }}
         >
-          <TextField
-            fullWidth
-            label="Singular name"
-            required
-            placeholder="e.g. Stock Price"
-            disabled={fieldProps.name?.disabled ?? isSubmitting}
-            {...(!fieldProps.name?.disabled && {
-              error: !!nameError,
-              helperText: nameError?.message,
-              success: titleValid,
-            })}
-            {...register("name", {
-              required: true,
-              onChange() {
-                clearErrors("name");
-                setTitleValid(false);
-              },
-              async validate(value) {
-                if (fieldProps.name?.disabled) {
-                  setTitleValid(true);
-                  return true;
-                }
-
-                const propertyTypeId = generateInitialPropertyTypeId(
-                  generatePropertyTypeBaseUriForUser(value),
-                );
-
-                const res = await getPropertyType({
-                  data: {
-                    propertyTypeId,
-                    graphResolveDepths: {
-                      constrainsValuesOn: { outgoing: 0 },
-                      constrainsPropertiesOn: { outgoing: 0 },
-                    },
-                  },
-                });
-
-                const exists =
-                  !res.data || !!getPropertyTypeById(res.data, propertyTypeId);
-
-                setTitleValid(getValues("name") === value && !exists);
-
-                return exists ? "Property type name must be unique" : true;
-              },
-            })}
-          />
-          <TextField
-            multiline
-            fullWidth
-            inputProps={{ minRows: 1 }}
-            label={
-              <>
-                Description{" "}
-                <Tooltip
-                  placement="top"
-                  title="Descriptions help people understand what property types can be used for, and help make them more discoverable (allowing for reuse)."
-                  PopperProps={{
-                    modifiers: [
-                      {
-                        name: "offset",
-                        options: {
-                          offset: [0, 8],
-                        },
-                      },
-                    ],
-                  }}
-                >
-                  <Box
-                    sx={{
-                      order: 1,
-                      ml: 0.75,
-                      display: "flex",
-                      alignItems: "center",
-                    }}
-                  >
-                    <QuestionIcon />
-                  </Box>
-                </Tooltip>
-              </>
-            }
-            required={descriptionRequired}
-            placeholder="Describe this property type in one or two sentences"
-            disabled={fieldProps.description?.disabled ?? isSubmitting}
-            {...(!fieldProps.description?.disabled &&
-              descriptionTouched && {
-                success: descriptionValid,
-                error: !!descriptionError,
-              })}
-            {...register("description", {
-              required: descriptionRequired,
-              onChange() {
-                clearErrors("description");
-                setDescriptionValid(false);
-              },
-              validate(value) {
-                const valid = !descriptionRequired || !!value;
-
-                setDescriptionValid(valid);
-                return valid ? true : "You must choose a description";
-              },
-            })}
-          />
-          <ExpectedValueSelector />
+          {children}
         </Stack>
         <Divider sx={{ mt: 2, mb: 3 }} />
         <Stack direction="row" spacing={1.25}>
@@ -349,6 +367,58 @@ const PropertyTypeFormInner = ({
           </Button>
         </Stack>
       </Box>
+    </>
+  );
+};
+
+const PropertyTypeFormInner = ({
+  getDefaultValues,
+  fieldProps = {},
+  ...props
+}: {
+  getDefaultValues?: () => Partial<PropertyTypeFormValues>;
+  fieldProps?: Partial<
+    Record<keyof PropertyTypeFormValues, { disabled?: boolean }>
+  >;
+} & PropertyTypeFromWrapperProps<PropertyTypeFormValues>) => {
+  const defaultValues = getDefaultValues?.() ?? {};
+
+  const formMethods = useForm<PropertyTypeFormValues>({
+    defaultValues: {
+      name: defaultValues.name ?? "",
+      description: defaultValues.description ?? "",
+      expectedValues: defaultValues.expectedValues ?? [],
+    },
+    shouldFocusError: true,
+    mode: "onBlur",
+    reValidateMode: "onChange",
+  });
+
+  const { trigger } = formMethods;
+
+  const defaultField = defaultValues.name ? "description" : "name";
+
+  const disabledFields = new Set(
+    (Object.keys(fieldProps) as any as (keyof typeof fieldProps)[]).filter(
+      (key) => fieldProps[key]?.disabled,
+    ),
+  );
+
+  // @todo move into wrapper
+  useTriggerValidation(defaultValues, disabledFields, trigger);
+
+  return (
+    <FormProvider {...formMethods}>
+      <PropertyTypeFormWrapper defaultField={defaultField} {...props}>
+        <PropertyTypeFormNameField
+          fieldDisabled={fieldProps?.name?.disabled ?? false}
+        />
+        <PropertyTypeFormDescriptionField
+          defaultValues={defaultValues}
+          fieldDisabled={fieldProps.description?.disabled ?? false}
+        />
+        <ExpectedValueSelector />
+      </PropertyTypeFormWrapper>
     </FormProvider>
   );
 };
