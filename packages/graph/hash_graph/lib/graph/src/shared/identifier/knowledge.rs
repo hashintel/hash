@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
-use postgres_types::{FromSql, ToSql};
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
+use tokio_postgres::types::ToSql;
 use utoipa::{
     openapi,
     openapi::{KnownFormat, SchemaFormat},
@@ -9,7 +9,7 @@ use utoipa::{
 };
 
 use crate::{
-    identifier::{account::AccountId, Timestamp},
+    identifier::{account::AccountId, DecisionTimespan, TransactionTimespan, TransactionTimestamp},
     knowledge::EntityUuid,
     provenance::OwnedById,
 };
@@ -83,22 +83,23 @@ impl ToSchema for EntityId {
     }
 }
 
-#[derive(
-    Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, FromSql, ToSql,
-)]
-#[repr(transparent)]
-#[postgres(transparent)]
-pub struct EntityVersion(Timestamp);
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EntityVersion {
+    decision_time: DecisionTimespan,
+    transaction_time: TransactionTimespan,
+}
 
-impl EntityVersion {
-    #[must_use]
-    pub const fn new(inner: Timestamp) -> Self {
-        Self(inner)
-    }
-
-    #[must_use]
-    pub const fn inner(&self) -> Timestamp {
-        self.0
+impl Serialize for EntityVersion {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // TODO: Expose temporal versions to backend
+        //   see https://app.asana.com/0/0/1203444301722133/f
+        self.transaction_time()
+            .as_start_bound_timestamp()
+            .serialize(serializer)
     }
 }
 
@@ -111,20 +112,64 @@ impl ToSchema for EntityVersion {
     }
 }
 
-#[derive(
-    Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, ToSchema,
-)]
+impl EntityVersion {
+    #[must_use]
+    pub const fn new(
+        decision_time: DecisionTimespan,
+        transaction_time: TransactionTimespan,
+    ) -> Self {
+        Self {
+            decision_time,
+            transaction_time,
+        }
+    }
+
+    #[must_use]
+    pub const fn decision_time(&self) -> DecisionTimespan {
+        self.decision_time
+    }
+
+    #[must_use]
+    pub const fn transaction_time(&self) -> TransactionTimespan {
+        self.transaction_time
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, ToSql, ToSchema)]
+#[postgres(transparent)]
+#[repr(transparent)]
+pub struct EntityRecordId(i64);
+
+impl EntityRecordId {
+    #[must_use]
+    pub const fn new(id: i64) -> Self {
+        Self(id)
+    }
+
+    #[must_use]
+    pub const fn as_i64(&self) -> i64 {
+        self.0
+    }
+}
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityEditionId {
     base_id: EntityId,
+    record_id: EntityRecordId,
     version: EntityVersion,
 }
 
 impl EntityEditionId {
     #[must_use]
-    pub const fn new(entity_id: EntityId, version: EntityVersion) -> Self {
+    pub const fn new(
+        entity_id: EntityId,
+        record_id: EntityRecordId,
+        version: EntityVersion,
+    ) -> Self {
         Self {
             base_id: entity_id,
+            record_id,
             version,
         }
     }
@@ -132,6 +177,11 @@ impl EntityEditionId {
     #[must_use]
     pub const fn base_id(&self) -> EntityId {
         self.base_id
+    }
+
+    #[must_use]
+    pub const fn record_id(&self) -> EntityRecordId {
+        self.record_id
     }
 
     #[must_use]
@@ -144,12 +194,12 @@ impl EntityEditionId {
 #[serde(rename_all = "camelCase")]
 pub struct EntityIdAndTimestamp {
     base_id: EntityId,
-    timestamp: Timestamp,
+    timestamp: TransactionTimestamp,
 }
 
 impl EntityIdAndTimestamp {
     #[must_use]
-    pub const fn new(entity_id: EntityId, timestamp: Timestamp) -> Self {
+    pub const fn new(entity_id: EntityId, timestamp: TransactionTimestamp) -> Self {
         Self {
             base_id: entity_id,
             timestamp,
@@ -162,7 +212,7 @@ impl EntityIdAndTimestamp {
     }
 
     #[must_use]
-    pub const fn timestamp(&self) -> Timestamp {
+    pub const fn timestamp(&self) -> TransactionTimestamp {
         self.timestamp
     }
 }

@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "0.0.18",
+    "@blockprotocol/hook": "0.0.8",
     "twind": "0.16.17"
   },
   "devDependencies": {

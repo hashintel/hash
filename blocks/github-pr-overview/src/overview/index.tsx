@@ -1,3 +1,5 @@
+/* eslint-disable canonical/filename-no-index -- @todo rename file */
+
 import { FunctionComponent } from "react";
 import Avatar from "@mui/material/Avatar";
 import Stack from "@mui/material/Stack";

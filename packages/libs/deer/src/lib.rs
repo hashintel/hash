@@ -18,7 +18,7 @@
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::redundant_pub_crate)]
 #![allow(clippy::missing_errors_doc)]
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 
 use alloc::{string::String, vec::Vec};
 
@@ -60,7 +60,7 @@ pub trait ArrayAccess<'de> {
     where
         T: Deserialize<'de>;
 
-    fn finish(self) -> Result<(), ArrayAccessError>;
+    fn end(self) -> Result<(), ArrayAccessError>;
 }
 
 // Reason: We error out on every `visit_*`, which means we do not use the value, but(!) IDEs like to
@@ -339,7 +339,7 @@ pub trait Deserializer<'de>: Sized {
     /// # Errors
     ///
     /// Current value is not of type null
-    fn deserialize_null<V>(self, visitor: V) -> Result<V, DeserializerError>
+    fn deserialize_null<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>;
 
@@ -475,6 +475,9 @@ pub trait Deserialize<'de>: Reflection + Sized {
     /// Deserialization was unsuccessful
     fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError>;
 }
+
+pub trait DeserializeOwned: for<'de> Deserialize<'de> {}
+impl<T> DeserializeOwned for T where T: for<'de> Deserialize<'de> {}
 
 #[cfg(test)]
 pub(crate) mod test {
