@@ -73,8 +73,21 @@ const LinkTypeRow = ({
           control={control}
           render={({ field: { ref, onChange, value } }) => (
             <HashSelectorAutocomplete
-              onChange={(_, chosenTypes) => {
-                onChange(chosenTypes.map((type) => type.$id));
+              autoFocus={false}
+              onChange={(evt, chosenTypes) => {
+                if (
+                  chosenTypes.length === 0 &&
+                  evt.target !== document.activeElement
+                ) {
+                  onRemove();
+                } else {
+                  onChange(chosenTypes.map((type) => type.$id));
+                }
+              }}
+              onBlur={() => {
+                if (!value.length) {
+                  onRemove();
+                }
               }}
               value={
                 // @todo tidy

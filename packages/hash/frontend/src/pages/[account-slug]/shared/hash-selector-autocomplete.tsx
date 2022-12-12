@@ -111,6 +111,7 @@ type HashSelectorAutocompleteProps<
   optionToRenderData: (option: T) => OptionRenderData;
   dropdownProps: TypeListSelectorDropdownProps;
   multiple?: M;
+  autoFocus?: boolean;
 };
 
 export const HashSelectorAutocomplete = <
@@ -123,8 +124,9 @@ export const HashSelectorAutocomplete = <
   inputRef,
   inputPlaceholder,
   dropdownProps,
+  autoFocus = true,
   ...rest
-}: HashSelectorAutocompleteProps<T, M>) => {
+}: HashSelectorAutocompleteProps<T extends any[] ? T[number] : T, M>) => {
   const modifiers = useMemo(
     (): PopperProps["modifiers"] => [
       {
@@ -155,7 +157,7 @@ export const HashSelectorAutocomplete = <
       renderInput={(props) => (
         <TextField
           {...props}
-          autoFocus
+          autoFocus={autoFocus}
           inputRef={inputRef}
           placeholder={inputPlaceholder}
           sx={{
