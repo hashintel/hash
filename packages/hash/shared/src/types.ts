@@ -2,7 +2,7 @@
 
 export type Uuid = string;
 export type AccountId = Uuid;
-export type ownedById = Uuid;
-export type updatedById = Uuid;
+export type OwnedById = Uuid;
+export type UpdatedById = Uuid;
 
 export type EntityUuid = Uuid;
