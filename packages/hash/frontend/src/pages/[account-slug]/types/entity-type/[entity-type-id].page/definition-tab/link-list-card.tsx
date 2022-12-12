@@ -42,7 +42,6 @@ const LinkTypeRow = ({
     useFormContext<EntityTypeEditorForm>();
   const linkTypes = useLinkEntityTypes();
   const entityTypes = useEntityTypes();
-
   // @todo watch more specific
   const linkData = useWatch({
     control,
@@ -72,7 +71,7 @@ const LinkTypeRow = ({
         <Controller
           name={`links.${linkIndex}.entityTypes`}
           control={control}
-          render={({ field: { ref, onChange, value } }) => (
+          render={({ field: { onChange, value, ref } }) => (
             <HashSelectorAutocomplete
               autoFocus={false}
               onChange={(evt, chosenTypes) => {
@@ -267,12 +266,15 @@ export const LinkListCard = () => {
             onCancel={cancelAddingNewLink}
             onAdd={(link) => {
               cancelAddingNewLink();
-              append({
-                $id: link.$id,
-                entityTypes: [],
-                minValue: 0,
-                maxValue: 1,
-              });
+              append(
+                {
+                  $id: link.$id,
+                  entityTypes: [],
+                  minValue: 0,
+                  maxValue: 1,
+                },
+                { focusName: `links.${fields.length}.entityTypes` },
+              );
             }}
             searchText={searchText}
             onSearchTextChange={setSearchText}
