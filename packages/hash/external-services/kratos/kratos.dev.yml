@@ -10,6 +10,10 @@ serve:
   admin:
     base_url: http://kratos:4434/
 
+session:
+  # Let sessions live for 3 years
+  lifespan: 26280h # 24 h * 365 days * 3 years
+
 selfservice:
   default_browser_return_url: http://localhost:3000/
   allowed_return_urls:
