@@ -5,17 +5,22 @@ import {
   IconButton,
   MenuItem,
 } from "@hashintel/hash-design-system";
+import { VersionedUri } from "@hashintel/hash-subgraph";
 import {
   Divider,
+  iconButtonClasses,
   ListItem,
   listItemClasses,
   ListItemText,
   listItemTextClasses,
   Menu,
   menuItemClasses,
+  TableCell,
+  tableRowClasses,
   Tooltip,
   Typography,
 } from "@mui/material";
+import { Version } from "@ory/client";
 import {
   bindMenu,
   bindTrigger,
@@ -28,22 +33,35 @@ import {
   parseUriForOntologyChip,
 } from "../../../../../shared/ontology-chip";
 
-export const PropertyMenu = ({
+export const PROPERTY_MENU_CELL_WIDTH = 70;
+
+export const PropertyMenuCell = ({
+  typeId,
   editButtonProps,
   onRemove,
-  property,
   popupState,
+  description,
 }: {
+  typeId: VersionedUri;
   editButtonProps: MenuItemProps;
   onRemove?: () => void;
-  property: PropertyType;
   popupState: PopupState;
+  description: "property" | "link";
 }) => {
-  const version = extractVersion(property.$id);
-  const ontology = parseUriForOntologyChip(property.$id);
+  const version = extractVersion(typeId);
+  const ontology = parseUriForOntologyChip(typeId);
 
   return (
-    <>
+    <TableCell
+      sx={{
+        [`.${iconButtonClasses.root}`]: {
+          opacity: 0,
+          [`.${tableRowClasses.root}:hover &`]: {
+            opacity: 1,
+          },
+        },
+      }}
+    >
       <IconButton {...bindTrigger(popupState)}>
         <FontAwesomeIcon
           icon={faEllipsis}
@@ -100,7 +118,7 @@ export const PropertyMenu = ({
             editButtonProps.onTouchStart?.(evt);
           }}
         >
-          <ListItemText primary="Edit property" />
+          <ListItemText primary={<>Edit {description}</>} />
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -108,7 +126,7 @@ export const PropertyMenu = ({
             onRemove?.();
           }}
         >
-          <ListItemText primary="Remove property" />
+          <ListItemText primary={<>Remove {description}</>} />
         </MenuItem>
         <Divider />
         <Typography component={ListItem} variant="smallCaps">
@@ -155,6 +173,6 @@ export const PropertyMenu = ({
           />
         </ListItem>
       </Menu>
-    </>
+    </TableCell>
   );
 };

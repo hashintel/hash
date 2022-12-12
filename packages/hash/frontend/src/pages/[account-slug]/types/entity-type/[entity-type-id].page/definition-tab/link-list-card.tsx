@@ -1,6 +1,7 @@
 import { Chip } from "@hashintel/hash-design-system";
 import { TableBody, TableCell, TableFooter, TableHead } from "@mui/material";
-import { useContext, useRef } from "react";
+import { usePopupState } from "material-ui-popup-state/hooks";
+import { useContext, useId, useRef } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { LinkIcon } from "../../../../../../shared/icons/link";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
@@ -11,6 +12,10 @@ import {
   useLinkEntityTypes,
 } from "../shared/entity-types-context";
 import { EntityTypeEditorForm } from "../shared/form-types";
+import {
+  PROPERTY_MENU_CELL_WIDTH,
+  PropertyMenuCell,
+} from "./property-list-card/property-menu-cell";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
@@ -22,7 +27,13 @@ import {
 import { QuestionIcon } from "./shared/question-icon";
 import { useStateCallback } from "./shared/use-state-callback";
 
-const LinkTypeRow = ({ linkIndex }: { linkIndex: number }) => {
+const LinkTypeRow = ({
+  linkIndex,
+  onRemove,
+}: {
+  linkIndex: number;
+  onRemove: () => void;
+}) => {
   const { control } = useFormContext<EntityTypeEditorForm>();
   const linkTypes = useLinkEntityTypes();
   const entityTypes = useEntityTypes();
@@ -34,6 +45,12 @@ const LinkTypeRow = ({ linkIndex }: { linkIndex: number }) => {
   });
 
   const link = linkTypes[linkData.$id];
+
+  const popupId = useId();
+  const menuPopupState = usePopupState({
+    variant: "popover",
+    popupId: `property-menu-${popupId}`,
+  });
 
   if (!link) {
     throw new Error("Missing link");
@@ -64,13 +81,20 @@ const LinkTypeRow = ({ linkIndex }: { linkIndex: number }) => {
       <TableCell>
         <input type="checkbox" checked={linkData.maxValue > 1} />
       </TableCell>
+      <PropertyMenuCell
+        typeId={linkData.$id}
+        editButtonProps={{}}
+        popupState={menuPopupState}
+        description="link"
+        onRemove={onRemove}
+      />
     </EntityTypeTableRow>
   );
 };
 
 export const LinkListCard = () => {
   const { control } = useFormContext<EntityTypeEditorForm>();
-  const { fields, append } = useFieldArray({ control, name: "links" });
+  const { fields, append, remove } = useFieldArray({ control, name: "links" });
   const loading = useEntityTypesLoading();
 
   // @todo remove this
@@ -133,11 +157,18 @@ export const LinkListCard = () => {
           <TableCell>
             Allowed number of links <QuestionIcon />
           </TableCell>
+          <TableCell width={PROPERTY_MENU_CELL_WIDTH} />
         </EntityTypeTableHeaderRow>
       </TableHead>
       <TableBody>
         {fields.map((type, index) => (
-          <LinkTypeRow key={type.id} linkIndex={index} />
+          <LinkTypeRow
+            key={type.id}
+            linkIndex={index}
+            onRemove={() => {
+              remove(index);
+            }}
+          />
         ))}
       </TableBody>
       <TableFooter>

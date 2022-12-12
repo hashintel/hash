@@ -28,7 +28,10 @@ import {
 import { InsertPropertyRow } from "./property-list-card/insert-property-row";
 import { MultipleValuesCell } from "./property-list-card/multiple-values-cell";
 import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
-import { PropertyMenu } from "./property-list-card/property-menu";
+import {
+  PropertyMenuCell,
+  PROPERTY_MENU_CELL_WIDTH,
+} from "./property-list-card/property-menu-cell";
 import {
   formDataToPropertyType,
   PropertyTypeForm,
@@ -116,23 +119,13 @@ export const PropertyTypeRow = ({
           />
         </EntityTypeTableCenteredCell>
 
-        <TableCell
-          sx={{
-            [`.${iconButtonClasses.root}`]: {
-              opacity: 0,
-              [`.${tableRowClasses.root}:hover &`]: {
-                opacity: 1,
-              },
-            },
-          }}
-        >
-          <PropertyMenu
-            editButtonProps={bindTrigger(editModalPopupState)}
-            onRemove={onRemove}
-            property={property}
-            popupState={menuPopupState}
-          />
-        </TableCell>
+        <PropertyMenuCell
+          editButtonProps={bindTrigger(editModalPopupState)}
+          onRemove={onRemove}
+          typeId={property.$id}
+          popupState={menuPopupState}
+          description="property"
+        />
       </EntityTypeTableRow>
       <PropertyTypeForm
         popupState={editModalPopupState}
@@ -227,7 +220,7 @@ export const PropertyListCard = () => {
           <EntityTypeTableCenteredCell width={100}>
             Required
           </EntityTypeTableCenteredCell>
-          <TableCell width={70} />
+          <TableCell width={PROPERTY_MENU_CELL_WIDTH} />
         </EntityTypeTableHeaderRow>
       </TableHead>
       <TableBody>
