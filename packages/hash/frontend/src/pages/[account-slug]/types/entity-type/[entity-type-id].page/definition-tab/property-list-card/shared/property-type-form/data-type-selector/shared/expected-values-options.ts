@@ -50,6 +50,7 @@ export const expectedValuesOptions = {
     title: "Array",
     icon: faList.icon,
     colors: chipColors.blue,
+    allowMultiple: true,
   },
   dataTypeArray: {
     title: "Data Type Array",
@@ -63,6 +64,11 @@ export const expectedValuesOptions = {
   },
   mixedArray: {
     title: "Mixed Array",
+    icon: faList.icon,
+    colors: chipColors.turquoise,
+  },
+  arrayArray: {
+    title: "Array of Arrays",
     icon: faList.icon,
     colors: chipColors.turquoise,
   },

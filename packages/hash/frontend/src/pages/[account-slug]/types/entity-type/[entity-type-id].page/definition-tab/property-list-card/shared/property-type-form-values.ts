@@ -4,6 +4,7 @@ export enum ArrayType {
   dataTypeArray = "dataTypeArray",
   propertyObjectArray = "propertyObjectArray",
   mixedArray = "mixedArray",
+  arrayArray = "arrayArray",
 }
 
 interface PrimitiveTypeData {
