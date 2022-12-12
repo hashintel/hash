@@ -28,11 +28,10 @@ import { FormProvider, useForm, UseFormTrigger } from "react-hook-form";
 import { useBlockProtocolGetPropertyType } from "../../../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
 import { Modal } from "../../../../../../../../components/Modals/Modal";
 import { useRouteNamespace } from "../../../../../../shared/use-route-namespace";
+import { QuestionIcon } from "../../shared/question-icon";
 import { PropertyTypeFormValues } from "./property-type-form-values";
 import { ExpectedValueSelector } from "./property-type-form/expected-value-selector";
 import { getPropertyTypeSchema } from "./property-type-form/property-type-schema";
-import { CustomExpectedValueBuilderContext } from "./property-type-form/shared/custom-expected-value-builder-context";
-import { QuestionIcon } from "../../shared/question-icon";
 import { withHandler } from "./with-handler";
 
 const generateInitialPropertyTypeId = (baseUri: string) =>
@@ -120,26 +119,7 @@ const PropertyTypeFormInner = ({
     clearErrors,
     setFocus,
     trigger,
-    setValue,
   } = formMethods;
-
-  const [creatingCustomExpectedValue, setCreatingCustomExpectedValue] =
-    useState(false);
-
-  const customExpectedValueBuilderContextValue = useMemo(
-    () => ({
-      customExpectedValueBuilderOpen: creatingCustomExpectedValue,
-      openCustomExpectedValueBuilder: () =>
-        setCreatingCustomExpectedValue(true),
-      closeCustomExpectedValueBuilder: () => {
-        setValue("editingExpectedValueIndex", undefined);
-        setValue("customExpectedValueId", undefined);
-        setValue("flattenedCustomExpectedValueList", {});
-        setCreatingCustomExpectedValue(false);
-      },
-    }),
-    [creatingCustomExpectedValue, setCreatingCustomExpectedValue, setValue],
-  );
 
   const defaultField = defaultValues.name ? "description" : "name";
 
@@ -190,7 +170,7 @@ const PropertyTypeFormInner = ({
     !("description" in defaultValues) || !!defaultValues.description;
 
   return (
-    <>
+    <FormProvider {...formMethods}>
       <Box
         sx={(theme) => ({
           px: 2.5,
@@ -346,14 +326,7 @@ const PropertyTypeFormInner = ({
               },
             })}
           />
-
-          <FormProvider {...formMethods}>
-            <CustomExpectedValueBuilderContext.Provider
-              value={customExpectedValueBuilderContextValue}
-            >
-              <ExpectedValueSelector />
-            </CustomExpectedValueBuilderContext.Provider>
-          </FormProvider>
+          <ExpectedValueSelector />
         </Stack>
         <Divider sx={{ mt: 2, mb: 3 }} />
         <Stack direction="row" spacing={1.25}>
@@ -376,7 +349,7 @@ const PropertyTypeFormInner = ({
           </Button>
         </Stack>
       </Box>
-    </>
+    </FormProvider>
   );
 };
 
