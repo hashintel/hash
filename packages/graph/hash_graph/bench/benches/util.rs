@@ -73,8 +73,7 @@ impl StoreWrapper {
 
             assert!(
                 !(fail_on_exists && exists),
-                "database `{}` exists, and `fails_on_exists` was set to true",
-                bench_db_name
+                "database `{bench_db_name}` exists, and `fails_on_exists` was set to true",
             );
 
             if !(exists) {
