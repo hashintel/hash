@@ -16,7 +16,7 @@ import { CommentBlock } from "./CommentBlock";
 import styles from "./style.module.css";
 import { useCreateComment } from "../../../components/hooks/useCreateComment";
 import { CommentActionButtons } from "./CommentActionButtons";
-import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
+import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
 
 const UNCOLLAPSIBLE_REPLIES_NUMBER = 2;
 

@@ -15,10 +15,10 @@ import {
   bindMenu,
 } from "material-ui-popup-state/hooks";
 import { Avatar, FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
 import { Button, MenuItem } from "../../ui";
 import { useLogoutFlow } from "../../../components/hooks/useLogoutFlow";
 import { WorkspaceContext } from "../../../pages/shared/workspace-context";
+import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
 
 type WorkspaceSwitcherProps = {};
 
@@ -35,14 +35,11 @@ export const WorkspaceSwitcher: FunctionComponent<
     useContext(WorkspaceContext);
 
   const activeWorkspaceName = useMemo(() => {
-    if (
-      authenticatedUser &&
-      activeWorkspaceAccountId === authenticatedUser.userAccountId
-    ) {
+    if (activeWorkspaceAccountId === authenticatedUser.userAccountId) {
       // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle empty preferredName
       return authenticatedUser.preferredName || authenticatedUser.shortname!;
     } else {
-      const activeOrg = authenticatedUser?.memberOf.find(
+      const activeOrg = authenticatedUser.memberOf.find(
         ({ orgAccountId }) => orgAccountId === activeWorkspaceAccountId,
       );
 
@@ -55,10 +52,6 @@ export const WorkspaceSwitcher: FunctionComponent<
   }, [activeWorkspaceAccountId, authenticatedUser]);
 
   const workspaceList = useMemo(() => {
-    if (!authenticatedUser) {
-      return [];
-    }
-
     return [
       {
         accountId: authenticatedUser.userAccountId,

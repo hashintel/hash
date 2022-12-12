@@ -1,7 +1,6 @@
 import { validateVersionedUri } from "@blockprotocol/type-system";
 import { useRouter } from "next/router";
 import { useContext, useEffect, useState } from "react";
-import { useLoggedInUser } from "../../components/hooks/useAuthenticatedUser";
 import { PageErrorState } from "../../components/page-error-state";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
@@ -30,9 +29,6 @@ const Page: NextPageWithLayout = () => {
   } else if (entityTypeInvalid && creatingEntity) {
     setCreatingEntity(false);
   }
-
-  // @todo better way to force login when using active workspace?
-  useLoggedInUser();
 
   /**
    * This shouldn't be an effect, because we're relying on React re-renders after

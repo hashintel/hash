@@ -24,3 +24,8 @@ export const systemUserShortname =
   // you cannot access process.env in NextJS by variable, thus the repetition of keys in this section
   process.env.NEXT_PUBLIC_SYSTEM_USER_SHORTNAME ??
   "example-org";
+
+/**
+ * Note this is not available in the browser.
+ */
+export const oryKratosPublicUrl = process.env.ORY_KRATOS_PUBLIC_URL;

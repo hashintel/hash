@@ -1,3 +1,4 @@
+import { oryKratosPublicUrl } from "@hashintel/hash-shared/environment";
 import {
   Configuration,
   ErrorAuthenticatorAssuranceLevelNotSatisfied,
@@ -15,6 +16,7 @@ import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { AxiosError } from "axios";
 import { NextRouter } from "next/router";
 import { Dispatch, SetStateAction } from "react";
+import { isBrowser } from "../../lib/config";
 
 export const oryKratosClient = new FrontendApi(
   new Configuration({
@@ -28,12 +30,21 @@ export const oryKratosClient = new FrontendApi(
      * Therefore requests to the ory kratos public endpoint are made on the server in a
      * Next.js API handler.
      */
-    basePath: "/api/ory",
+    basePath: isBrowser ? "/api/ory" : oryKratosPublicUrl,
     baseOptions: {
       withCredentials: true,
     },
   }),
 );
+
+export const fetchKratosSession = async (cookieString?: string) => {
+  const kratosSession = await oryKratosClient
+    .toSession({ cookie: cookieString })
+    .then(({ data }) => data)
+    .catch(() => undefined);
+
+  return kratosSession;
+};
 
 /**
  * A helper type representing the traits defined by the kratos identity schema at `packages/hash/external-services/kratos/identity.schema.json`
