@@ -1,6 +1,6 @@
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { ApolloError, UserInputError } from "apollo-server-express";
-import { types } from "@hashintel/hash-shared/types";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import { VersionedUri } from "@blockprotocol/type-system";
 import { PropertyObject } from "@hashintel/hash-subgraph";
 import { SYSTEM_TYPES } from "../../../../graph/system-types";

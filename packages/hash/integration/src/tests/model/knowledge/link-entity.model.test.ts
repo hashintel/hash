@@ -16,7 +16,7 @@ import {
   generateSystemEntityTypeSchema,
   linkEntityTypeUri,
 } from "@hashintel/hash-api/src/model/util";
-import { generateTypeId } from "@hashintel/hash-shared/types";
+import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { createTestUser } from "../../util";
 

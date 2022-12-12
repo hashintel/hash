@@ -1,4 +1,4 @@
-import { types } from "@hashintel/hash-shared/types";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import { Box, Container } from "@mui/material";
 import { useCallback, useState } from "react";
 import {

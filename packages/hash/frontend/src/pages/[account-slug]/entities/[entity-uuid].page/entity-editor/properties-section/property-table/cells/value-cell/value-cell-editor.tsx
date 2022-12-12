@@ -1,4 +1,4 @@
-import { types } from "@hashintel/hash-shared/types";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import { ValueCellEditorComponent } from "./types";
 import { ArrayEditor } from "./value-cell-editor/array-editor";
 import { BooleanEditor } from "./value-cell-editor/boolean-editor";
