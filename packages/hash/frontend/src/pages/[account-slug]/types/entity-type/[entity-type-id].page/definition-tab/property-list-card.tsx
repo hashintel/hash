@@ -27,12 +27,9 @@ import {
 } from "../shared/property-types-context";
 import { MultipleValuesCell } from "./property-list-card/multiple-values-cell";
 import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
-import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
-import {
-  formDataToPropertyType,
-  PropertyTypeForm,
-} from "./property-list-card/shared/property-type-form";
+import { PropertyTypeForm } from "./property-list-card/shared/property-type-form";
 import { PropertyTypeFormValues } from "./property-list-card/shared/property-type-form-values";
+import { getPropertyTypeSchema } from "./property-list-card/shared/property-type-form/property-type-schema";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
@@ -44,7 +41,15 @@ import {
 } from "./shared/entity-type-table";
 import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
 import { QuestionIcon } from "./shared/question-icon";
+import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { useStateCallback } from "./shared/use-state-callback";
+
+const formDataToPropertyType = (data: PropertyTypeFormValues) => ({
+  oneOf: getPropertyTypeSchema(data.expectedValues),
+  description: data.description,
+  title: data.name,
+  kind: "propertyType" as const,
+});
 
 export const PropertyTypeRow = ({
   propertyIndex,

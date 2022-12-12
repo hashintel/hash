@@ -1,53 +1,21 @@
-import { faClose } from "@fortawesome/free-solid-svg-icons";
-import {
-  Button,
-  ButtonProps,
-  FontAwesomeIcon,
-  IconButton,
-  TextField,
-} from "@hashintel/hash-design-system";
 import { frontendUrl } from "@hashintel/hash-shared/environment";
 import { generateBaseTypeId } from "@hashintel/hash-shared/ontology-types";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
-import {
-  Box,
-  Divider,
-  inputLabelClasses,
-  Stack,
-  Tooltip,
-  Typography,
-} from "@mui/material";
-import {
-  bindDialog,
-  bindToggle,
-  PopupState,
-} from "material-ui-popup-state/hooks";
-import { ComponentProps, ReactNode, useEffect, useMemo, useState } from "react";
-import {
-  FieldValues,
-  FormProvider,
-  Path,
-  useForm,
-  useFormContext,
-  UseFormTrigger,
-} from "react-hook-form";
+import { bindDialog } from "material-ui-popup-state/hooks";
+import { ComponentProps, useEffect, useMemo } from "react";
+import { FormProvider, useForm, UseFormTrigger } from "react-hook-form";
 import { useBlockProtocolGetPropertyType } from "../../../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
 import { Modal } from "../../../../../../../../components/Modals/Modal";
 import { useRouteNamespace } from "../../../../../../shared/use-route-namespace";
-import { QuestionIcon } from "../../shared/question-icon";
+import {
+  TypeFormDescriptionField,
+  TypeFormNameField,
+  TypeFormWrapper,
+  TypeFormWrapperProps,
+} from "../../shared/type-form";
 import { PropertyTypeFormValues } from "./property-type-form-values";
 import { ExpectedValueSelector } from "./property-type-form/expected-value-selector";
-import { getPropertyTypeSchema } from "./property-type-form/property-type-schema";
-import { withHandler } from "./with-handler";
-
-const generateInitialPropertyTypeId = (baseUri: string) =>
-  versionedUriFromComponents(baseUri, 1);
-
-type PropertyTypeFormSubmitProps = Omit<
-  ButtonProps,
-  "size" | "variant" | "disabled" | "type" | "loading"
->;
 
 const useTriggerValidation = (
   defaultValues: Partial<PropertyTypeFormValues>,
@@ -73,28 +41,39 @@ const useTriggerValidation = (
   }, [trigger, defaultValuesKeys]);
 };
 
-// @todo consider calling for consumer
-export const formDataToPropertyType = (data: PropertyTypeFormValues) => ({
-  oneOf: getPropertyTypeSchema(data.expectedValues),
-  description: data.description,
-  title: data.name,
-  kind: "propertyType" as const,
-});
+const generateInitialPropertyTypeId = (baseUri: string) =>
+  versionedUriFromComponents(baseUri, 1);
 
-const PropertyTypeFormNameField = ({
-  fieldDisabled,
+const PropertyTypeFormInner = ({
+  getDefaultValues,
+  fieldProps = {},
+  ...props
 }: {
-  fieldDisabled: boolean;
-}) => {
-  const {
-    register,
-    formState: {
-      isSubmitting,
-      errors: { name: nameError },
+  getDefaultValues?: () => Partial<PropertyTypeFormValues>;
+  fieldProps?: Partial<
+    Record<keyof PropertyTypeFormValues, { disabled?: boolean }>
+  >;
+} & TypeFormWrapperProps<PropertyTypeFormValues>) => {
+  const defaultValues = getDefaultValues?.() ?? {};
+
+  const formMethods = useForm<PropertyTypeFormValues>({
+    defaultValues: {
+      name: defaultValues.name ?? "",
+      description: defaultValues.description ?? "",
+      expectedValues: defaultValues.expectedValues ?? [],
     },
-    getValues,
-    clearErrors,
-  } = useFormContext<PropertyTypeFormValues>();
+    shouldFocusError: true,
+    mode: "onBlur",
+    reValidateMode: "onChange",
+  });
+
+  // @todo move into wrapper
+  const disabledFields = new Set(
+    (Object.keys(fieldProps) as any as (keyof typeof fieldProps)[]).filter(
+      (key) => fieldProps[key]?.disabled,
+    ),
+  );
+  useTriggerValidation(defaultValues, disabledFields, formMethods.trigger);
 
   const { routeNamespace } = useRouteNamespace();
 
@@ -113,312 +92,40 @@ const PropertyTypeFormNameField = ({
     });
   };
 
-  /**
-   * Frustratingly, we have to track this ourselves
-   * @see https://github.com/react-hook-form/react-hook-form/discussions/2633
-   */
-  const [titleValid, setTitleValid] = useState(false);
+  const nameExists = async (name: string) => {
+    const propertyTypeId = generateInitialPropertyTypeId(
+      generatePropertyTypeBaseUriForUser(name),
+    );
 
-  return (
-    <TextField
-      fullWidth
-      label="Singular name"
-      required
-      placeholder="e.g. Stock Price"
-      disabled={fieldDisabled ?? isSubmitting}
-      {...(!fieldDisabled && {
-        error: !!nameError,
-        helperText: nameError?.message,
-        success: titleValid,
-      })}
-      {...register("name", {
-        required: true,
-        onChange() {
-          clearErrors("name");
-          setTitleValid(false);
+    const res = await getPropertyType({
+      data: {
+        propertyTypeId,
+        graphResolveDepths: {
+          constrainsValuesOn: { outgoing: 0 },
+          constrainsPropertiesOn: { outgoing: 0 },
         },
-        async validate(value) {
-          if (fieldDisabled) {
-            setTitleValid(true);
-            return true;
-          }
+      },
+    });
 
-          const propertyTypeId = generateInitialPropertyTypeId(
-            generatePropertyTypeBaseUriForUser(value),
-          );
-
-          const res = await getPropertyType({
-            data: {
-              propertyTypeId,
-              graphResolveDepths: {
-                constrainsValuesOn: { outgoing: 0 },
-                constrainsPropertiesOn: { outgoing: 0 },
-              },
-            },
-          });
-
-          const exists =
-            !res.data || !!getPropertyTypeById(res.data, propertyTypeId);
-
-          setTitleValid(getValues("name") === value && !exists);
-
-          return exists ? "Property type name must be unique" : true;
-        },
-      })}
-    />
-  );
-};
-
-const PropertyTypeFormDescriptionField = ({
-  defaultValues,
-  fieldDisabled,
-}: {
-  defaultValues: { description?: string };
-  fieldDisabled: boolean;
-}) => {
-  const {
-    register,
-    formState: {
-      isSubmitting,
-      errors: { description: descriptionError },
-      touchedFields: { description: descriptionTouched },
-    },
-    clearErrors,
-  } = useFormContext<PropertyTypeFormValues>();
-
-  const [descriptionValid, setDescriptionValid] = useState(false);
-
-  /**
-   * Some default property types don't have descriptions. We don't want to have
-   * to enter one if you pass a preset value for description which is falsey
-   *
-   * @todo remove this when all property types have descriptions
-   */
-  const descriptionRequired =
-    !("description" in defaultValues) || !!defaultValues.description;
-
-  return (
-    <TextField
-      multiline
-      fullWidth
-      inputProps={{ minRows: 1 }}
-      label={
-        <>
-          Description{" "}
-          <Tooltip
-            placement="top"
-            title="Descriptions help people understand what property types can be used for, and help make them more discoverable (allowing for reuse)."
-            PopperProps={{
-              modifiers: [
-                {
-                  name: "offset",
-                  options: {
-                    offset: [0, 8],
-                  },
-                },
-              ],
-            }}
-          >
-            <Box
-              sx={{
-                order: 1,
-                ml: 0.75,
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              <QuestionIcon />
-            </Box>
-          </Tooltip>
-        </>
-      }
-      required={descriptionRequired}
-      placeholder="Describe this property type in one or two sentences"
-      disabled={fieldDisabled ?? isSubmitting}
-      {...(!fieldDisabled &&
-        descriptionTouched && {
-          success: descriptionValid,
-          error: !!descriptionError,
-        })}
-      {...register("description", {
-        required: descriptionRequired,
-        onChange() {
-          clearErrors("description");
-          setDescriptionValid(false);
-        },
-        validate(value) {
-          const valid = !descriptionRequired || !!value;
-
-          setDescriptionValid(valid);
-          return valid ? true : "You must choose a description";
-        },
-      })}
-    />
-  );
-};
-
-type PropertyTypeFromWrapperProps<T extends FieldValues> = {
-  onClose?: () => void;
-  modalTitle: ReactNode;
-  popupState: PopupState;
-  onSubmit: (data: T) => Promise<void>;
-  submitButtonProps: PropertyTypeFormSubmitProps;
-};
-
-const PropertyTypeFormWrapper = <T extends FieldValues>({
-  children,
-  defaultField,
-  onClose,
-  modalTitle,
-  popupState,
-  onSubmit,
-  submitButtonProps,
-}: {
-  children: ReactNode;
-  defaultField: Path<T>;
-} & PropertyTypeFromWrapperProps<T>) => {
-  const {
-    handleSubmit: wrapHandleSubmit,
-    formState: { isSubmitting, isValid },
-    setFocus,
-  } = useFormContext<T>();
-
-  useEffect(() => {
-    setFocus(defaultField);
-  }, [setFocus, defaultField]);
-
-  const handleSubmit = wrapHandleSubmit(onSubmit);
-
-  return (
-    <>
-      <Box
-        sx={(theme) => ({
-          px: 2.5,
-          pr: 1.5,
-          pb: 1.5,
-          pt: 2,
-          borderBottom: 1,
-          borderColor: theme.palette.gray[20],
-          alignItems: "center",
-          display: "flex",
-        })}
-      >
-        <Typography
-          variant="regularTextLabels"
-          sx={{ fontWeight: 500, display: "flex", alignItems: "center" }}
-        >
-          {modalTitle}
-        </Typography>
-        <IconButton
-          {...withHandler(bindToggle(popupState), onClose)}
-          sx={(theme) => ({
-            ml: "auto",
-            svg: {
-              color: theme.palette.gray[50],
-              fontSize: 20,
-            },
-          })}
-          disabled={isSubmitting}
-        >
-          <FontAwesomeIcon icon={faClose} />
-        </IconButton>
-      </Box>
-      <Box
-        minWidth={500}
-        p={3}
-        component="form"
-        display="block"
-        onSubmit={(event) => {
-          event.stopPropagation(); // stop the entity type's submit being triggered
-
-          void handleSubmit(event);
-        }}
-      >
-        <Stack
-          alignItems="flex-start"
-          spacing={3}
-          sx={{
-            [`.${inputLabelClasses.root}`]: {
-              display: "flex",
-              alignItems: "center",
-            },
-          }}
-        >
-          {children}
-        </Stack>
-        <Divider sx={{ mt: 2, mb: 3 }} />
-        <Stack direction="row" spacing={1.25}>
-          <Button
-            {...submitButtonProps}
-            loading={isSubmitting}
-            disabled={isSubmitting || !isValid}
-            type="submit"
-            size="small"
-          >
-            {submitButtonProps.children}
-          </Button>
-          <Button
-            {...withHandler(bindToggle(popupState), onClose)}
-            disabled={isSubmitting}
-            size="small"
-            variant="tertiary"
-          >
-            Discard draft
-          </Button>
-        </Stack>
-      </Box>
-    </>
-  );
-};
-
-const PropertyTypeFormInner = ({
-  getDefaultValues,
-  fieldProps = {},
-  ...props
-}: {
-  getDefaultValues?: () => Partial<PropertyTypeFormValues>;
-  fieldProps?: Partial<
-    Record<keyof PropertyTypeFormValues, { disabled?: boolean }>
-  >;
-} & PropertyTypeFromWrapperProps<PropertyTypeFormValues>) => {
-  const defaultValues = getDefaultValues?.() ?? {};
-
-  const formMethods = useForm<PropertyTypeFormValues>({
-    defaultValues: {
-      name: defaultValues.name ?? "",
-      description: defaultValues.description ?? "",
-      expectedValues: defaultValues.expectedValues ?? [],
-    },
-    shouldFocusError: true,
-    mode: "onBlur",
-    reValidateMode: "onChange",
-  });
-
-  const { trigger } = formMethods;
-
-  const defaultField = defaultValues.name ? "description" : "name";
-
-  const disabledFields = new Set(
-    (Object.keys(fieldProps) as any as (keyof typeof fieldProps)[]).filter(
-      (key) => fieldProps[key]?.disabled,
-    ),
-  );
-
-  // @todo move into wrapper
-  useTriggerValidation(defaultValues, disabledFields, trigger);
+    return !res.data || !!getPropertyTypeById(res.data, propertyTypeId);
+  };
 
   return (
     <FormProvider {...formMethods}>
-      <PropertyTypeFormWrapper defaultField={defaultField} {...props}>
-        <PropertyTypeFormNameField
+      <TypeFormWrapper
+        defaultField={defaultValues.name ? "description" : "name"}
+        {...props}
+      >
+        <TypeFormNameField
           fieldDisabled={fieldProps?.name?.disabled ?? false}
+          typeExists={nameExists}
         />
-        <PropertyTypeFormDescriptionField
+        <TypeFormDescriptionField
           defaultValues={defaultValues}
           fieldDisabled={fieldProps.description?.disabled ?? false}
         />
         <ExpectedValueSelector />
-      </PropertyTypeFormWrapper>
+      </TypeFormWrapper>
     </FormProvider>
   );
 };
