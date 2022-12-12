@@ -128,8 +128,12 @@ impl_ontology_column!(EntityTypes);
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Entities<'p> {
     EntityUuid,
-    Version,
-    LatestVersion,
+    RecordId,
+    DecisionTime,
+    TransactionTime,
+    // TODO: Remove when adjusting structural queries
+    //   see https://app.asana.com/0/0/1203491211535116/f
+    LowerTransactionTime,
     Archived,
     OwnedById,
     UpdatedById,
@@ -147,8 +151,10 @@ impl Entities<'_> {
     pub const fn nullable(self) -> bool {
         match self {
             Self::EntityUuid
-            | Self::Version
-            | Self::LatestVersion
+            | Self::RecordId
+            | Self::DecisionTime
+            | Self::TransactionTime
+            | Self::LowerTransactionTime
             | Self::Archived
             | Self::OwnedById
             | Self::UpdatedById
@@ -168,8 +174,9 @@ impl Transpile for Entities<'_> {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
             Self::EntityUuid => "entity_uuid",
-            Self::Version => "version",
-            Self::LatestVersion => "latest_version",
+            Self::RecordId => "entity_record_id",
+            Self::DecisionTime => "decision_time",
+            Self::TransactionTime | Self::LowerTransactionTime => "transaction_time",
             Self::Archived => "archived",
             Self::OwnedById => "owned_by_id",
             Self::UpdatedById => "updated_by_id",

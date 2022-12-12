@@ -1,3 +1,5 @@
+/* eslint-disable canonical/filename-no-index -- @todo rename file */
+
 import express from "express";
 import { json } from "body-parser";
 import { readFileSync, writeFileSync } from "fs";

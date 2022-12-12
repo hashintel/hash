@@ -73,15 +73,15 @@ services:
       - "4000:4000"
 
   kratos-migrate:
-    image: oryd/kratos:v0.10.1
+    build:
+      context: ./kratos
+      args:
+        ENV: prod
+        SECRET: "${KRATOS_API_KEY}"
     depends_on:
       postgres:
         condition: service_healthy
     read_only: true
-    volumes:
-      - type: bind
-        source: ./kratos
-        target: /etc/config/kratos
     environment:
       - DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${HASH_KRATOS_PG_DEV_DATABASE}
     command: -c /etc/config/kratos/kratos.dev.yml migrate sql -e --yes
@@ -89,7 +89,11 @@ services:
       - no-new-privileges:true
 
   kratos:
-    image: oryd/kratos:v0.10.1
+    build:
+      context: ./kratos
+      args:
+        ENV: prod
+        SECRET: "${KRATOS_API_KEY}"
     depends_on:
       - kratos-migrate
     read_only: true
@@ -103,7 +107,6 @@ services:
       SECRETS_CIPHER: "${KRATOS_SECRETS_CIPHER}"
       COURIER_SMTP_CONNECTION_URI: "smtps://test:test@mailslurper:1025/?skip_ssl_verify=true"
       DSN: "postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@postgres:5432/${HASH_KRATOS_PG_DEV_DATABASE}"
-      # KRATOS_API_KEY: "${KRATOS_API_KEY}" Currently this cannot be set as an env variable :(
       LOG_LEVEL: "warning"
       COOKIES_PATH: "/"
       COOKIES_DOMAIN: "${KRATOS_COOKIE_DOMAIN}"
@@ -120,10 +123,6 @@ services:
       - no-new-privileges:true
     extra_hosts:
       - host.docker.internal:host-gateway
-    volumes:
-      - type: bind
-        source: ./kratos
-        target: /etc/config/kratos
 
   mailslurper:
     image: oryd/mailslurper:latest-smtps
@@ -167,8 +166,9 @@ services:
       API_ORIGIN: "${API_ORIGIN}"
       SYSTEM_ACCOUNT_NAME: "${SYSTEM_ACCOUNT_NAME}"
       SYSTEM_USER_SHORTNAME: "${SYSTEM_USER_SHORTNAME}"
-      SYSTEM_EMAIL_ADDRESS: "${SYSTEM_EMAIL_ADDRESS}"
-      SYSTEM_EMAIL_SENDER_NAME: "${SYSTEM_EMAIL_SENDER_NAME}"
+      SYSTEM_USER_PREFERRED_NAME: "${SYSTEM_USER_PREFERRED_NAME}"
+      SYSTEM_USER_PASSWORD: "${SYSTEM_USER_PASSWORD}"
+      SYSTEM_USER_EMAIL_ADDRESS: "${SYSTEM_USER_EMAIL_ADDRESS}"
       HASH_SEED_USERS: "${HASH_SEED_USERS}"
 
       HASH_GRAPH_API_HOST: "hash-graph"
@@ -196,7 +196,7 @@ services:
       args:
         FRONTEND_URL: "${FRONTEND_URL}"
         API_ORIGIN: "${API_ORIGIN}"
-        SYSTEM_ACCOUNT_NAME: "${SYSTEM_ACCOUNT_NAME}"
+        SYSTEM_USER_PREFERRED_NAME: "${SYSTEM_USER_PREFERRED_NAME}"
         SYSTEM_USER_SHORTNAME: "${SYSTEM_USER_SHORTNAME}"
     depends_on:
       hash-api:
@@ -208,7 +208,7 @@ services:
       FRONTEND_URL: "${FRONTEND_URL}"
       API_ORIGIN: "${API_ORIGIN}"
       ORY_KRATOS_PUBLIC_URL: "http://kratos:4433"
-      SYSTEM_ACCOUNT_NAME: "${SYSTEM_ACCOUNT_NAME}"
+      SYSTEM_USER_PREFERRED_NAME: "${SYSTEM_USER_PREFERRED_NAME}"
       SYSTEM_USER_SHORTNAME: "${SYSTEM_USER_SHORTNAME}"
 
     ports:
