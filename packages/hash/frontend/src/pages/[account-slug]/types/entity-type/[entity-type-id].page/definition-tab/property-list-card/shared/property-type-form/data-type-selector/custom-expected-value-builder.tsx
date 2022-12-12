@@ -28,6 +28,7 @@ import {
 import { dataTypeOptions } from "../shared/data-type-options";
 import { useCustomExpectedValueBuilderContext } from "../shared/custom-expected-value-builder-context";
 import { ArrayExpectedValueBuilder } from "./custom-expected-value-builder/array-expected-value-builder";
+import { ObjectExpectedValueBuilder } from "./custom-expected-value-builder/object-expected-value-builder";
 
 const CustomChip: FunctionComponent<ChipProps & { borderColor?: string }> = ({
   borderColor,
@@ -41,6 +42,42 @@ const CustomChip: FunctionComponent<ChipProps & { borderColor?: string }> = ({
     }}
   />
 );
+export interface ExpectedValueBuilderProps {
+  expectedValueId: string;
+}
+
+const ExpectedValueBuilder: FunctionComponent<ExpectedValueBuilderProps> = ({
+  expectedValueId,
+}) => {
+  const { control } = useFormContext<PropertyTypeFormValues>();
+
+  const { closeCustomExpectedValueBuilder } =
+    useCustomExpectedValueBuilderContext();
+
+  const customDataType = useWatch({
+    control,
+    name: `flattenedCustomExpectedValueList.${expectedValueId}.data.typeId`,
+  });
+
+  switch (customDataType) {
+    case "array":
+      return (
+        <ArrayExpectedValueBuilder
+          expectedValueId={expectedValueId}
+          onDelete={closeCustomExpectedValueBuilder}
+        />
+      );
+    case "object":
+      return (
+        <ObjectExpectedValueBuilder
+          expectedValueId={expectedValueId}
+          onDelete={closeCustomExpectedValueBuilder}
+        />
+      );
+    default:
+      return null;
+  }
+};
 
 type CustomExpectedValueBuilderProps = {
   closeMenu: () => void;
@@ -155,6 +192,17 @@ export const CustomExpectedValueBuilder: FunctionComponent<
                 size="small"
                 variant="tertiary"
                 endIcon={<FontAwesomeIcon icon={{ icon: faCube }} />}
+                onClick={() => {
+                  const id = uniqueId();
+
+                  setValue("customExpectedValueId", id);
+                  setValue("flattenedCustomExpectedValueList", {
+                    [id]: {
+                      id,
+                      data: getDefaultExpectedValue("object"),
+                    },
+                  });
+                }}
               >
                 Create a property object
               </Button>
@@ -216,7 +264,7 @@ export const CustomExpectedValueBuilder: FunctionComponent<
             </Stack>
           </>
         ) : (
-          <ArrayExpectedValueBuilder expectedValueId={customExpectedValueId} />
+          <ExpectedValueBuilder expectedValueId={customExpectedValueId} />
         )}
       </Stack>
 
@@ -240,14 +288,15 @@ export const CustomExpectedValueBuilder: FunctionComponent<
               const customExpectedValue =
                 flattenedExpectedValues[customExpectedValueId];
 
+              let expectedValue: ExpectedValue;
+
               if (
                 customExpectedValue?.data &&
                 "itemIds" in customExpectedValue.data
               ) {
                 const containsObject = customExpectedValue.data.itemIds.some(
                   (itemId) =>
-                    flattenedExpectedValues[itemId]?.data?.typeId ===
-                    types.dataType.object.dataTypeId,
+                    flattenedExpectedValues[itemId]?.data?.typeId === "object",
                 );
 
                 const containsDataType = customExpectedValue.data.itemIds.some(
@@ -255,7 +304,9 @@ export const CustomExpectedValueBuilder: FunctionComponent<
                     const typeId =
                       flattenedExpectedValues[itemId]?.data?.typeId!;
                     return (
-                      typeId !== "array" && dataTypeOptions.includes(typeId)
+                      typeId !== "array" &&
+                      typeId !== "object" &&
+                      dataTypeOptions.includes(typeId)
                     );
                   },
                 );
@@ -271,21 +322,27 @@ export const CustomExpectedValueBuilder: FunctionComponent<
                   return;
                 }
 
-                const expectedValue: ExpectedValue = {
+                expectedValue = {
                   typeId: "array",
                   arrayType,
                   id: customExpectedValueId,
                   flattenedExpectedValues,
                 };
-
-                const newExpectedValues = [...getValues("expectedValues")];
-                if (editingExpectedValueIndex !== undefined) {
-                  newExpectedValues[editingExpectedValueIndex] = expectedValue;
-                } else {
-                  newExpectedValues.push(expectedValue);
-                }
-                setValue(`expectedValues`, newExpectedValues);
+              } else {
+                expectedValue = {
+                  typeId: "object",
+                  id: customExpectedValueId,
+                  flattenedExpectedValues,
+                };
               }
+
+              const newExpectedValues = [...getValues("expectedValues")];
+              if (editingExpectedValueIndex !== undefined) {
+                newExpectedValues[editingExpectedValueIndex] = expectedValue;
+              } else {
+                newExpectedValues.push(expectedValue);
+              }
+              setValue(`expectedValues`, newExpectedValues);
 
               closeCustomExpectedValueBuilder();
             }}

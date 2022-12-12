@@ -17,11 +17,22 @@ interface ArrayExpectedValue {
   itemIds: string[];
 }
 
+export interface Property {
+  id: string;
+  required: boolean;
+  allowArrays: boolean;
+}
+
+interface ObjectExpectedValue {
+  typeId: "object";
+  properties: Property[];
+}
+
 export interface CustomExpectedValue {
   id: string;
   parentId?: string;
   animatingOut?: boolean;
-  data?: PrimitiveExpectedValue | ArrayExpectedValue;
+  data?: PrimitiveExpectedValue | ArrayExpectedValue | ObjectExpectedValue;
 }
 
 export type ExpectedValue =
@@ -29,6 +40,11 @@ export type ExpectedValue =
   | {
       typeId: "array";
       arrayType: ArrayType;
+      id: string;
+      flattenedExpectedValues: Record<string, CustomExpectedValue>;
+    }
+  | {
+      typeId: "object";
       id: string;
       flattenedExpectedValues: Record<string, CustomExpectedValue>;
     };
@@ -42,12 +58,17 @@ export type PropertyTypeFormValues = {
   flattenedCustomExpectedValueList: Record<string, CustomExpectedValue>;
 };
 
-export type DefaultExpectedValueTypeId = VersionedUri | "array";
+export type DefaultExpectedValueTypeId = VersionedUri | "array" | "object";
 
 export const getDefaultExpectedValue = (
   typeId: DefaultExpectedValueTypeId,
-): PrimitiveExpectedValue | ArrayExpectedValue => {
-  if (typeId === "array") {
+): PrimitiveExpectedValue | ArrayExpectedValue | ObjectExpectedValue => {
+  if (typeId === "object") {
+    return {
+      typeId: "object",
+      properties: [],
+    };
+  } else if (typeId === "array") {
     return {
       typeId: "array",
       minItems: 0,

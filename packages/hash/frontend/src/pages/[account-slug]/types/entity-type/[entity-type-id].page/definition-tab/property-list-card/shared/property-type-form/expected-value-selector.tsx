@@ -4,15 +4,11 @@ import {
   FontAwesomeIcon,
   TextField,
 } from "@hashintel/hash-design-system";
-import { types } from "@hashintel/hash-shared/types";
 import { Autocomplete, Box, PaperProps, Typography } from "@mui/material";
 import { forwardRef, ForwardRefRenderFunction, useState } from "react";
 import { useController, useFormContext, useWatch } from "react-hook-form";
 import { AutocompleteDropdown } from "../../../../../../../shared/autocomplete-dropdown";
-import {
-  ArrayType,
-  PropertyTypeFormValues,
-} from "../property-type-form-values";
+import { PropertyTypeFormValues } from "../property-type-form-values";
 import { ExpectedValueChip } from "./data-type-selector/expected-value-chip";
 import { expectedValuesOptions } from "./data-type-selector/shared/expected-values-options";
 import { dataTypeOptions } from "./shared/data-type-options";
@@ -121,17 +117,21 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
         expectedValues.map((expectedValue, index) => {
           const typeId =
             typeof expectedValue === "object"
-              ? expectedValue.arrayType
+              ? expectedValue.typeId
               : expectedValue;
 
-          const editable =
-            typeId in ArrayType || typeId === types.dataType.object.dataTypeId;
+          const editable = typeId === "array" || typeId === "object";
 
           return (
             <ExpectedValueChip
               {...getTagProps({ index })}
               key={typeId}
-              expectedValueType={typeId}
+              expectedValueType={
+                typeof expectedValue === "object" &&
+                "arrayType" in expectedValue
+                  ? expectedValue.arrayType
+                  : typeId
+              }
               editable={editable}
               onEdit={() => {
                 if (typeof expectedValue === "object") {
