@@ -5,12 +5,10 @@ require("setimmediate");
 import { ApolloProvider } from "@apollo/client/react";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
-import * as Sentry from "@sentry/nextjs";
-import { NextComponentType } from "next";
 import { FunctionComponent, useEffect, useState } from "react";
 import { ModalProvider } from "react-modal-hook";
 import { configureScope } from "@sentry/nextjs";
-import { AppContext, AppProps as NextAppProps } from "next/app";
+import { AppProps as NextAppProps } from "next/app";
 import { useRouter } from "next/router";
 import { CacheProvider, EmotionCache } from "@emotion/react";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
@@ -32,6 +30,8 @@ import { meQuery } from "../graphql/queries/user.queries";
 import { AuthenticatedUser, constructAuthenticatedUser } from "../lib/user";
 import { fetchKratosSession } from "./shared/ory-kratos";
 import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
+import { setSentryUser } from "./shared/sentry";
+import { AppPage, redirectInGetInitialProps } from "./shared/_app.util";
 
 const clientSideEmotionCache = createEmotionCache();
 
@@ -65,23 +65,7 @@ const App: FunctionComponent<AppProps> = ({
   const { authenticatedUser } = useAuthInfo();
 
   useEffect(() => {
-    Sentry.configureScope((scope) => {
-      const sentryUser = scope.getUser();
-      if (!authenticatedUser && sentryUser) {
-        scope.setUser(null);
-      } else if (
-        authenticatedUser &&
-        sentryUser?.id !== authenticatedUser.entityEditionId.baseId
-      ) {
-        const primaryEmail = authenticatedUser.emails.find(
-          (email) => email.primary,
-        );
-        Sentry.setUser({
-          id: authenticatedUser.entityEditionId.baseId,
-          email: primaryEmail?.address,
-        });
-      }
-    });
+    setSentryUser({ authenticatedUser });
   }, [authenticatedUser]);
 
   // App UI often depends on [account-slug] and other query params. However,
@@ -132,9 +116,6 @@ const App: FunctionComponent<AppProps> = ({
   );
 };
 
-// Based on the definition of `NextPage`
-export type AppPage<P = {}, IP = P> = NextComponentType<AppContext, IP, P>;
-
 const AppWithTypeSystemContextProvider: AppPage<AppProps, AppInitialProps> = (
   props,
 ) => {
@@ -149,30 +130,6 @@ const AppWithTypeSystemContextProvider: AppPage<AppProps, AppInitialProps> = (
       </ApolloProvider>
     </TypeSystemContextProvider>
   );
-};
-
-const redirectInGetInitialProps = (params: {
-  appContext: AppContext;
-  location: string;
-}) => {
-  const {
-    appContext: {
-      ctx: { req, res },
-      router,
-    },
-    location,
-  } = params;
-
-  if (req && res) {
-    if (!res.writeHead) {
-      // `res.writeHead` is not a function whilst building next, so return instead.
-      return;
-    }
-    res.writeHead(307, { Location: location });
-    res.end();
-  } else {
-    void router.push(location);
-  }
 };
 
 // The list of page pathnames that should be accessible whether or not the user is authenticated
