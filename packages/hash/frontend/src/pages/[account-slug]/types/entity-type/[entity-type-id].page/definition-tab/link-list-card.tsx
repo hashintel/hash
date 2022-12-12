@@ -2,11 +2,12 @@ import { EntityType } from "@blockprotocol/type-system";
 import { Chip } from "@hashintel/hash-design-system";
 import { TableBody, TableCell, TableFooter, TableHead } from "@mui/material";
 import { usePopupState } from "material-ui-popup-state/hooks";
-import { useId, useRef, useState } from "react";
+import { useContext, useId, useRef, useState } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { LinkIcon } from "../../../../../../shared/icons/link";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
 import {
+  EntityTypesContext,
   useEntityTypes,
   useEntityTypesLoading,
   useLinkEntityTypes,
@@ -125,6 +126,8 @@ export const LinkListCard = () => {
   const addingNewLinkRef = useRef<HTMLInputElement>(null);
   const [searchText, setSearchText] = useState("");
 
+  const ctx = useContext(EntityTypesContext);
+
   const cancelAddingNewLink = () => {
     setAddingNewLink(false);
     setSearchText("");
@@ -196,8 +199,10 @@ export const LinkListCard = () => {
               cancelAddingNewLink();
               append({
                 $id: link.$id,
-                entityTypes: [],
-                minValue: 1,
+                entityTypes: [
+                  Object.values(ctx?.entityTypes ?? {})[0]!.schema.$id,
+                ],
+                minValue: 0,
                 maxValue: 1,
               });
             }}
