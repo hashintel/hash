@@ -10,7 +10,7 @@ import {
   HashInstanceModel,
 } from "..";
 import {
-  adminKratosSdk,
+  kratosIdentityApi,
   KratosUserIdentity,
   KratosUserIdentityTraits,
 } from "../../auth/ory-kratos";
@@ -226,7 +226,7 @@ export default class extends EntityModel {
    */
   async getKratosIdentity(): Promise<KratosUserIdentity> {
     const kratosIdentityId = this.getKratosIdentityId();
-    const { data: kratosIdentity } = await adminKratosSdk.getIdentity({
+    const { data: kratosIdentity } = await kratosIdentityApi.getIdentity({
       id: kratosIdentityId,
     });
 
@@ -248,7 +248,7 @@ export default class extends EntityModel {
       throw new Error("Previous user identity state is undefined");
     }
 
-    await adminKratosSdk.updateIdentity({
+    await kratosIdentityApi.updateIdentity({
       id: kratosIdentityId,
       updateIdentityBody: {
         schema_id,

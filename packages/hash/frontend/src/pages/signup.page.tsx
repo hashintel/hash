@@ -105,7 +105,7 @@ const KratosRegistrationFlowForm: FunctionComponent = () => {
       .then(() =>
         oryKratosClient
           .updateRegistrationFlow({
-            flow: String(flow?.id),
+            flow: flow.id,
             updateRegistrationFlowBody: {
               csrf_token,
               traits,

@@ -8,13 +8,13 @@ import { getRequiredEnv } from "../util";
 
 const publicUrl = getRequiredEnv("ORY_KRATOS_PUBLIC_URL");
 
-export const publicKratosSdk = new FrontendApi(
+export const kratosFrontendApi = new FrontendApi(
   new Configuration({ basePath: publicUrl }),
 );
 
 const adminUrl = getRequiredEnv("ORY_KRATOS_ADMIN_URL");
 
-export const adminKratosSdk = new IdentityApi(
+export const kratosIdentityApi = new IdentityApi(
   new Configuration({ basePath: adminUrl }),
 );
 
@@ -32,7 +32,7 @@ export const createKratosIdentity = async (
     traits: KratosUserIdentityTraits;
   },
 ): Promise<KratosUserIdentity> => {
-  const { data: kratosUserIdentity } = await adminKratosSdk.createIdentity({
+  const { data: kratosUserIdentity } = await kratosIdentityApi.createIdentity({
     createIdentityBody: {
       schema_id: "default",
       ...params,

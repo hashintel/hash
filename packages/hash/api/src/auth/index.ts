@@ -4,7 +4,7 @@ import { Session } from "@ory/client";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
-import { KratosUserIdentity, publicKratosSdk } from "./ory-kratos";
+import { KratosUserIdentity, kratosFrontendApi } from "./ory-kratos";
 import { HashInstanceModel, UserModel } from "../model";
 import { systemUserAccountId } from "../graph/system-user";
 
@@ -107,7 +107,7 @@ const setupAuth = (params: {
         ? authHeader.slice(7, authHeader.length)
         : undefined;
 
-    const kratosSession = await publicKratosSdk
+    const kratosSession = await kratosFrontendApi
       .toSession({
         cookie: req.header("cookie"),
         xSessionToken: sessionToken,
