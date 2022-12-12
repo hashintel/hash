@@ -5,7 +5,6 @@ import {
   ChipProps,
   FontAwesomeIcon,
 } from "@hashintel/hash-design-system";
-import { types } from "@hashintel/hash-shared/types";
 import {
   Box,
   buttonClasses,
@@ -294,6 +293,14 @@ export const CustomExpectedValueBuilder: FunctionComponent<
                 customExpectedValue?.data &&
                 "itemIds" in customExpectedValue.data
               ) {
+                const containsArray = customExpectedValue.data.itemIds.some(
+                  (itemId) => {
+                    const typeId =
+                      flattenedExpectedValues[itemId]?.data?.typeId!;
+                    return typeId === "array";
+                  },
+                );
+
                 const containsObject = customExpectedValue.data.itemIds.some(
                   (itemId) =>
                     flattenedExpectedValues[itemId]?.data?.typeId === "object",
@@ -312,14 +319,22 @@ export const CustomExpectedValueBuilder: FunctionComponent<
                 );
 
                 let arrayType: ArrayType;
-                if (containsObject && containsDataType) {
-                  arrayType = ArrayType.mixedArray;
-                } else if (containsObject) {
+                if (containsArray && !containsObject && !containsDataType) {
+                  arrayType = ArrayType.arrayArray;
+                } else if (
+                  containsObject &&
+                  !containsArray &&
+                  !containsDataType
+                ) {
                   arrayType = ArrayType.propertyObjectArray;
-                } else if (containsDataType) {
+                } else if (
+                  containsDataType &&
+                  !containsArray &&
+                  !containsObject
+                ) {
                   arrayType = ArrayType.dataTypeArray;
                 } else {
-                  return;
+                  arrayType = ArrayType.mixedArray;
                 }
 
                 expectedValue = {

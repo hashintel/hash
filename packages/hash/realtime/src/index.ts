@@ -1,3 +1,5 @@
+/* eslint-disable canonical/filename-no-index -- @todo rename file */
+
 import * as crypto from "crypto";
 import * as http from "http";
 

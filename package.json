@@ -56,7 +56,7 @@
     "seed-data": "concurrently \"yarn:seed-data:*\"",
     "test:backend-integration": "yarn workspace @hashintel/hash-integration test",
     "test:playwright": "yarn workspace @hashintel/hash-playwright playwright test",
-    "test:unit": "yarn workspace @hashintel/hash-api test && yarn workspace @hashintel/hash-backend-utils test && yarn workspace @hashintel/hash-shared test && yarn workspace @hashintel/hash-frontend test"
+    "test:unit": "yarn workspace @hashintel/hash-api test && yarn workspace @hashintel/hash-backend-utils test && yarn workspace @hashintel/hash-shared test"
   },
   "lint-staged": {
     "**": [
@@ -80,7 +80,7 @@
     "npm-run-all": "4.1.5",
     "patch-package": "6.5.0",
     "postinstall-postinstall": "2.1.0",
-    "prettier": "2.8.0",
+    "prettier": "2.8.1",
     "prettier-plugin-packagejson": "2.3.0",
     "prettier-plugin-sh": "0.12.8",
     "suppress-exit-code": "3.1.0",

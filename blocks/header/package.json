@@ -20,8 +20,7 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "0.0.18",
-    "@blockprotocol/hook": "0.0.8",
-    "@rooks/use-fork-ref": "4.11.2"
+    "@blockprotocol/hook": "0.0.8"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",

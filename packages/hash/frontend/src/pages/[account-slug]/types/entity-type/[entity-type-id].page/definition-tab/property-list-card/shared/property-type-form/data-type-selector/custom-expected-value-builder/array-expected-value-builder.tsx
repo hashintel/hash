@@ -1,5 +1,4 @@
 import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { types } from "@hashintel/hash-shared/types";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { uniqueId } from "lodash";
 import { usePopupState } from "material-ui-popup-state/hooks";
@@ -75,8 +74,6 @@ const ArrayExpectedValueChild: FunctionComponent<
     return null;
   }
 
-  const isObject = arrayChild.data.typeId === types.dataType.object.dataTypeId;
-
   const hasContents =
     "itemIds" in arrayChild.data && arrayChild.data.itemIds.length;
 
@@ -115,7 +112,7 @@ const ArrayExpectedValueChild: FunctionComponent<
             typeId={arrayChild.data.typeId}
             prefix={`${
               onlyChild ? "CONTAINING" : firstChild ? "CONTAINING EITHER" : "OR"
-            }${isObject ? " A" : ""}`}
+            }`}
             deleteTooltip="Remove data type"
             onDelete={deleteChild}
           />
@@ -153,12 +150,8 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
       (childId) => flattenedExpectedValues[childId]?.data?.typeId === "array",
     ).length;
 
-    // TODO: change this to flattenedDataTypes[itemId]?.data?.typeId === "object"
-    // when object creation is implemented
     const objects = itemIds.filter(
-      (childId) =>
-        flattenedExpectedValues[childId]?.data?.typeId ===
-        types.dataType.object.dataTypeId,
+      (childId) => flattenedExpectedValues[childId]?.data?.typeId === "object",
     ).length;
 
     const dataTypes = itemIds.length - arrays - objects;
@@ -275,9 +268,15 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
           onChange={(_evt, _data, reason, details) => {
             const typeId = details?.option;
             if (typeId) {
+              const allowMultiple =
+                expectedValuesOptions[typeId]?.allowMultiple;
+
               const defaultData = getDefaultExpectedValue(typeId);
 
-              if (reason === "selectOption") {
+              if (
+                reason === "selectOption" ||
+                (reason === "removeOption" && allowMultiple)
+              ) {
                 const childId = uniqueId();
 
                 setValue(`flattenedCustomExpectedValueList`, {
