@@ -6,7 +6,7 @@ import {
   useMemo,
   useContext,
 } from "react";
-import { SelfServiceLoginFlow } from "@ory/client";
+import { LoginFlow } from "@ory/client";
 import { Typography, Container, Box } from "@mui/material";
 import { TextField } from "@hashintel/hash-design-system";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
@@ -42,7 +42,7 @@ const LoginPage: NextPageWithLayout = () => {
     aal,
   } = router.query;
 
-  const [flow, setFlow] = useState<SelfServiceLoginFlow>();
+  const [flow, setFlow] = useState<LoginFlow>();
 
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -72,7 +72,7 @@ const LoginPage: NextPageWithLayout = () => {
     // If ?flow=.. was in the URL, we fetch it
     if (flowId) {
       oryKratosClient
-        .getSelfServiceLoginFlow(String(flowId))
+        .getLoginFlow({ id: String(flowId) })
         .then(({ data }) => setFlow(data))
         .catch(handleFlowError);
       return;
@@ -80,11 +80,11 @@ const LoginPage: NextPageWithLayout = () => {
 
     // Otherwise we initialize it
     oryKratosClient
-      .initializeSelfServiceLoginFlowForBrowsers(
-        Boolean(refresh),
-        aal ? String(aal) : undefined,
-        returnTo ? String(returnTo) : undefined,
-      )
+      .createBrowserLoginFlow({
+        refresh: Boolean(refresh),
+        aal: aal ? String(aal) : undefined,
+        returnTo: returnTo ? String(returnTo) : undefined,
+      })
       .then(({ data }) => setFlow(data))
       .catch(handleFlowError);
   }, [
@@ -113,11 +113,14 @@ const LoginPage: NextPageWithLayout = () => {
       .push(`/login?flow=${flow.id}`, undefined, { shallow: true })
       .then(() =>
         oryKratosClient
-          .submitSelfServiceLoginFlow(String(flow.id), {
-            csrf_token,
-            method: "password",
-            identifier: email,
-            password,
+          .updateLoginFlow({
+            flow: String(flow?.id),
+            updateLoginFlowBody: {
+              csrf_token,
+              method: "password",
+              identifier: email,
+              password,
+            },
           })
           // We logged in successfully! Let's redirect the user.
           .then(async () => {
@@ -151,7 +154,7 @@ const LoginPage: NextPageWithLayout = () => {
             void router.push("/");
           })
           .catch(handleFlowError)
-          .catch((err: AxiosError<SelfServiceLoginFlow>) => {
+          .catch((err: AxiosError<LoginFlow>) => {
             // If the previous handler did not catch the error it's most likely a form validation error
             if (err.response?.status === 400) {
               // Yup, it is!

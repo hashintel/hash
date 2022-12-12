@@ -14,6 +14,7 @@ import {
   UpdateEntityData,
 } from "@blockprotocol/graph";
 import { useGraphBlockService } from "@blockprotocol/graph/react";
+import { tw } from "twind";
 import {
   Dispatch,
   SetStateAction,
@@ -320,7 +321,7 @@ export const Media: FunctionComponent<
     if (draftUrl.trim()) {
       handleImageUpload({ url: draftUrl });
     } else {
-      setErrorString("Please enter a valid image URL or select a file below");
+      setErrorString("Please enter a valid video URL or select a file below");
     }
   };
 
@@ -339,7 +340,7 @@ export const Media: FunctionComponent<
   };
 
   return (
-    <div ref={blockRef}>
+    <div ref={blockRef} className={tw`font-sans box-border`}>
       {draftSrc ? (
         <MediaWithCaption
           src={draftSrc}

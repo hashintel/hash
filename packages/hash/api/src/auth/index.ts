@@ -4,11 +4,7 @@ import { Session } from "@ory/client";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
-import {
-  adminKratosSdk,
-  KratosUserIdentity,
-  publicKratosSdk,
-} from "./ory-kratos";
+import { KratosUserIdentity, kratosFrontendApi } from "./ory-kratos";
 import { HashInstanceModel, UserModel } from "../model";
 import { systemUserAccountId } from "../graph/system-user";
 
@@ -30,7 +26,7 @@ const kratosAfterRegistrationHookHandler =
   (params: {
     graphApi: GraphApi;
   }): RequestHandler<{}, {}, { identity: KratosUserIdentity }> =>
-  (req, res, next) => {
+  (req, res) => {
     const { graphApi } = params;
 
     const {
@@ -71,14 +67,20 @@ const kratosAfterRegistrationHookHandler =
 
         res.status(200).end();
       } catch (error) {
-        /**
-         * @todo: instead of manually cleaning up after the registration flow,
-         * use a "pre-persist" after registration kratos hook when the following
-         * PR is merged: https://github.com/ory/kratos/pull/2343
-         */
-        await adminKratosSdk.adminDeleteIdentity(kratosIdentityId);
+        // The kratos hook can interrupt creation on 4xx and 5xx responses.
+        // We pass context as an error to not leak any kratos implementation details.
 
-        next(error);
+        res.status(400).send(
+          JSON.stringify({
+            messages: [
+              {
+                type: "error",
+                error: "Error creating user",
+                context: error,
+              },
+            ],
+          }),
+        );
       }
     })();
   };
@@ -88,7 +90,7 @@ const setupAuth = (params: {
   graphApi: GraphApi;
   logger: Logger;
 }) => {
-  const { app, graphApi } = params;
+  const { app, graphApi, logger } = params;
 
   // Kratos hook handlers
   app.post(
@@ -98,14 +100,27 @@ const setupAuth = (params: {
 
   // eslint-disable-next-line @typescript-eslint/no-misused-promises -- https://github.com/DefinitelyTyped/DefinitelyTyped/issues/50871
   app.use(async (req, _res, next) => {
-    const kratosSession = await publicKratosSdk
-      .toSession(undefined, req.header("cookie"))
+    const authHeader = req.header("authorization");
+    const hasAuthHeader = authHeader?.startsWith("Bearer ") ?? false;
+    const sessionToken =
+      hasAuthHeader && typeof authHeader === "string"
+        ? authHeader.slice(7, authHeader.length)
+        : undefined;
+
+    const kratosSession = await kratosFrontendApi
+      .toSession({
+        cookie: req.header("cookie"),
+        xSessionToken: sessionToken,
+      })
       .then(({ data }) => data)
       .catch((err: AxiosError) => {
         // 403 on toSession means that we need to request 2FA
         if (err.response && err.response.status === 403) {
           /** @todo: figure out if this should be handled here, or in the next.js app (when implementing 2FA) */
         }
+        logger.error(
+          `Could not fetch session, got error: [${err.response?.status}] ${err.response?.data}`,
+        );
         return undefined;
       });
 
