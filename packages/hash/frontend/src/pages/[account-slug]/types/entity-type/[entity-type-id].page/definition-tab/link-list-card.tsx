@@ -1,12 +1,12 @@
+import { EntityType } from "@blockprotocol/type-system";
 import { Chip } from "@hashintel/hash-design-system";
 import { TableBody, TableCell, TableFooter, TableHead } from "@mui/material";
 import { usePopupState } from "material-ui-popup-state/hooks";
-import { useContext, useId, useRef } from "react";
+import { useId, useRef, useState } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { LinkIcon } from "../../../../../../shared/icons/link";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
 import {
-  EntityTypesContext,
   useEntityTypes,
   useEntityTypesLoading,
   useLinkEntityTypes,
@@ -24,6 +24,7 @@ import {
   EntityTypeTableRow,
   EntityTypeTableTitleCellText,
 } from "./shared/entity-type-table";
+import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
 import { QuestionIcon } from "./shared/question-icon";
 import { useStateCallback } from "./shared/use-state-callback";
 
@@ -85,10 +86,33 @@ const LinkTypeRow = ({
         typeId={linkData.$id}
         editButtonProps={{}}
         popupState={menuPopupState}
-        description="link"
+        variant="link"
         onRemove={onRemove}
       />
     </EntityTypeTableRow>
+  );
+};
+
+const InsertLinkRow = (
+  props: Omit<
+    InsertTypeRowProps<EntityType>,
+    "options" | "variant" | "createButtonProps"
+  >,
+) => {
+  const { control } = useFormContext<EntityTypeEditorForm>();
+  const links = useWatch({ control, name: "links" });
+
+  const linkTypes = Object.values(useLinkEntityTypes()).map(
+    (link) => link.schema,
+  );
+
+  // @todo make more efficient
+  const filteredLinkTypes = linkTypes.filter(
+    (type) => !links.some((includedLink) => includedLink.$id === type.$id),
+  );
+
+  return (
+    <InsertTypeRow {...props} options={filteredLinkTypes} variant="link" />
   );
 };
 
@@ -97,35 +121,27 @@ export const LinkListCard = () => {
   const { fields, append, remove } = useFieldArray({ control, name: "links" });
   const loading = useEntityTypesLoading();
 
-  // @todo remove this
-  const val = useContext(EntityTypesContext);
-
   const [addingNewLink, setAddingNewLink] = useStateCallback(false);
   const addingNewLinkRef = useRef<HTMLInputElement>(null);
+  const [searchText, setSearchText] = useState("");
+
+  const cancelAddingNewLink = () => {
+    setAddingNewLink(false);
+    setSearchText("");
+  };
 
   // @todo loading state
   if (loading) {
     return null;
   }
 
-  const addFirstLink = () => {
-    const link = Object.values(val!.linkTypes).find(
-      (linkType) => !fields.some((field) => field.$id === linkType.schema.$id),
-    )!;
-
-    append({
-      $id: link.schema.$id,
-      entityTypes: [Object.values(val!.entityTypes)[0]!.schema.$id],
-      minValue: 1,
-      maxValue: 1,
-    });
-  };
-
   if (!addingNewLink && fields.length === 0) {
     return (
       <EmptyListCard
         onClick={() => {
-          addFirstLink();
+          setAddingNewLink(true, () => {
+            addingNewLinkRef.current?.focus();
+          });
         }}
         icon={<LinkIcon />}
         headline={<>Add a link</>}
@@ -172,14 +188,34 @@ export const LinkListCard = () => {
         ))}
       </TableBody>
       <TableFooter>
-        <EntityTypeTableButtonRow
-          icon={<StyledPlusCircleIcon />}
-          onClick={() => {
-            addFirstLink();
-          }}
-        >
-          Add a link
-        </EntityTypeTableButtonRow>
+        {addingNewLink ? (
+          <InsertLinkRow
+            inputRef={addingNewLinkRef}
+            onCancel={cancelAddingNewLink}
+            onAdd={(link) => {
+              cancelAddingNewLink();
+              append({
+                $id: link.$id,
+                entityTypes: [],
+                minValue: 1,
+                maxValue: 1,
+              });
+            }}
+            searchText={searchText}
+            onSearchTextChange={setSearchText}
+          />
+        ) : (
+          <EntityTypeTableButtonRow
+            icon={<StyledPlusCircleIcon />}
+            onClick={() => {
+              setAddingNewLink(true, () => {
+                addingNewLinkRef.current?.focus();
+              });
+            }}
+          >
+            Add a link
+          </EntityTypeTableButtonRow>
+        )}
       </TableFooter>
     </EntityTypeTable>
   );

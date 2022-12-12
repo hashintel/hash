@@ -25,8 +25,8 @@ const TYPE_SELECTOR_HEIGHT = 57;
 
 export type TypeListSelectorDropdownProps = {
   query: string;
-  createButtonProps: Omit<ButtonProps, "children" | "variant" | "size">;
-  variant: "entityType" | "propertyType" | "entity";
+  createButtonProps: Omit<ButtonProps, "children" | "variant" | "size"> | null;
+  variant: "entityType" | "propertyType" | "entity" | "linkType";
 };
 
 const TypeListSelectorDropdown = ({
@@ -39,48 +39,52 @@ const TypeListSelectorDropdown = ({
   return (
     <AutocompleteDropdown buttonHeight={TYPE_SELECTOR_HEIGHT} {...props}>
       {children}
-      <Button
-        variant="tertiary"
-        startIcon={<StyledPlusCircleIcon />}
-        sx={{
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          mt: 1,
-        }}
-        {...createButtonProps}
-      >
-        <Typography
-          variant="smallTextLabels"
-          sx={(theme) => ({
-            color: theme.palette.gray[60],
-            fontWeight: 500,
-          })}
+      {createButtonProps ? (
+        <Button
+          variant="tertiary"
+          startIcon={<StyledPlusCircleIcon />}
+          sx={{
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            mt: 1,
+          }}
+          {...createButtonProps}
         >
-          Create
-        </Typography>
-        {query ? (
-          <>
-            &nbsp;
-            <Typography
-              variant="smallTextLabels"
-              sx={(theme) => ({
-                color: theme.palette.gray[60],
-                fontWeight: 600,
-              })}
-            >
-              {query}
-            </Typography>
-          </>
-        ) : null}
-        {variant === "entityType" ? (
-          <Chip color="teal" label="ENTITY TYPE" sx={{ ml: 1.5 }} />
-        ) : variant === "entity" ? (
-          <Chip color="teal" label="ENTITY" sx={{ ml: 1.5 }} />
-        ) : (
-          <Chip color="purple" label="PROPERTY TYPE" sx={{ ml: 1.5 }} />
-        )}
-      </Button>
+          <Typography
+            variant="smallTextLabels"
+            sx={(theme) => ({
+              color: theme.palette.gray[60],
+              fontWeight: 500,
+            })}
+          >
+            Create
+          </Typography>
+          {query ? (
+            <>
+              &nbsp;
+              <Typography
+                variant="smallTextLabels"
+                sx={(theme) => ({
+                  color: theme.palette.gray[60],
+                  fontWeight: 600,
+                })}
+              >
+                {query}
+              </Typography>
+            </>
+          ) : null}
+          {variant === "entityType" ? (
+            <Chip color="teal" label="ENTITY TYPE" sx={{ ml: 1.5 }} />
+          ) : variant === "entity" ? (
+            <Chip color="teal" label="ENTITY" sx={{ ml: 1.5 }} />
+          ) : variant === "linkType" ? (
+            <Chip color="turquoise" label="LINK TYPE" sx={{ ml: 1.5 }} />
+          ) : (
+            <Chip color="purple" label="PROPERTY TYPE" sx={{ ml: 1.5 }} />
+          )}
+        </Button>
+      ) : null}
     </AutocompleteDropdown>
   );
 };

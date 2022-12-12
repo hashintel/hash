@@ -1,41 +1,41 @@
-import { VersionedUri } from "@blockprotocol/type-system";
+import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
 import { faList } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import {
   Checkbox,
-  iconButtonClasses,
   TableBody,
   TableCell,
   TableFooter,
   TableHead,
-  tableRowClasses,
 } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import { useId, useLayoutEffect, useRef } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import {
   Controller,
   useFieldArray,
   useFormContext,
   useWatch,
 } from "react-hook-form";
+import { useBlockProtocolCreatePropertyType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
 import { useBlockProtocolUpdatePropertyType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdatePropertyType";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
+import { useRouteNamespace } from "../../../../shared/use-route-namespace";
 import { EntityTypeEditorForm } from "../shared/form-types";
 import {
   usePropertyTypes,
   useRefetchPropertyTypes,
 } from "../shared/property-types-context";
-import { InsertPropertyRow } from "./property-list-card/insert-property-row";
 import { MultipleValuesCell } from "./property-list-card/multiple-values-cell";
 import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
 import {
-  PropertyMenuCell,
   PROPERTY_MENU_CELL_WIDTH,
+  PropertyMenuCell,
 } from "./property-list-card/property-menu-cell";
 import {
   formDataToPropertyType,
   PropertyTypeForm,
 } from "./property-list-card/shared/property-type-form";
+import { PropertyTypeFormValues } from "./property-list-card/shared/property-type-form-values";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
@@ -45,6 +45,7 @@ import {
   EntityTypeTableRow,
   EntityTypeTableTitleCellText,
 } from "./shared/entity-type-table";
+import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
 import { QuestionIcon } from "./shared/question-icon";
 import { useStateCallback } from "./shared/use-state-callback";
 
@@ -124,7 +125,7 @@ export const PropertyTypeRow = ({
           onRemove={onRemove}
           typeId={property.$id}
           popupState={menuPopupState}
-          description="property"
+          variant="property"
         />
       </EntityTypeTableRow>
       <PropertyTypeForm
@@ -170,6 +171,30 @@ export const PropertyTypeRow = ({
   );
 };
 
+const InsertPropertyRow = (
+  props: Omit<InsertTypeRowProps<PropertyType>, "options" | "variant">,
+) => {
+  const { control } = useFormContext<EntityTypeEditorForm>();
+  const properties = useWatch({ control, name: "properties" });
+
+  const propertyTypesObj = usePropertyTypes();
+  const propertyTypes = Object.values(propertyTypesObj ?? {});
+
+  // @todo make more efficient
+  const filteredPropertyTypes = propertyTypes.filter(
+    (type) =>
+      !properties.some((includedProperty) => includedProperty.$id === type.$id),
+  );
+
+  return (
+    <InsertTypeRow
+      {...props}
+      options={filteredPropertyTypes}
+      variant="property"
+    />
+  );
+};
+
 export const PropertyListCard = () => {
   const { control, getValues, setValue } =
     useFormContext<EntityTypeEditorForm>();
@@ -179,7 +204,56 @@ export const PropertyListCard = () => {
   });
 
   const [addingNewProperty, setAddingNewProperty] = useStateCallback(false);
+  const [searchText, setSearchText] = useState("");
   const addingNewPropertyRef = useRef<HTMLInputElement>(null);
+
+  const cancelAddingNewProperty = () => {
+    setAddingNewProperty(false);
+    setSearchText("");
+  };
+
+  const { routeNamespace } = useRouteNamespace();
+  const { createPropertyType } = useBlockProtocolCreatePropertyType(
+    routeNamespace?.accountId ?? "",
+  );
+
+  const refetchPropertyTypes = useRefetchPropertyTypes();
+  const modalTooltipId = useId();
+  const createModalPopupState = usePopupState({
+    variant: "popover",
+    popupId: `createProperty-${modalTooltipId}`,
+  });
+
+  const handleAddPropertyType = (propertyType: PropertyType) => {
+    cancelAddingNewProperty();
+    if (!getValues("properties").some(({ $id }) => $id === propertyType.$id)) {
+      append({
+        $id: propertyType.$id,
+        required: false,
+        array: false,
+        minValue: 0,
+        maxValue: 1,
+        infinity: true,
+      });
+    }
+  };
+
+  const handleSubmit = async (data: PropertyTypeFormValues) => {
+    const res = await createPropertyType({
+      data: {
+        propertyType: formDataToPropertyType(data),
+      },
+    });
+
+    if (res.errors?.length || !res.data) {
+      // @todo handle this
+      throw new Error("Could not create");
+    }
+
+    await refetchPropertyTypes?.();
+
+    handleAddPropertyType(res.data.schema);
+  };
 
   if (!addingNewProperty && fields.length === 0) {
     return (
@@ -241,29 +315,34 @@ export const PropertyListCard = () => {
       </TableBody>
       <TableFooter>
         {addingNewProperty ? (
-          <InsertPropertyRow
-            inputRef={addingNewPropertyRef}
-            onCancel={() => {
-              setAddingNewProperty(false);
-            }}
-            onAdd={(propertyType) => {
-              setAddingNewProperty(false);
-              if (
-                !getValues("properties").some(
-                  ({ $id }) => $id === propertyType.$id,
-                )
-              ) {
-                append({
-                  $id: propertyType.$id,
-                  required: false,
-                  array: false,
-                  minValue: 0,
-                  maxValue: 1,
-                  infinity: true,
-                });
+          <>
+            <InsertPropertyRow
+              inputRef={addingNewPropertyRef}
+              onCancel={cancelAddingNewProperty}
+              onAdd={handleAddPropertyType}
+              createModalPopupState={createModalPopupState}
+              searchText={searchText}
+              onSearchTextChange={setSearchText}
+            />
+            <PropertyTypeForm
+              modalTitle={
+                <>
+                  Create new property type
+                  <QuestionIcon
+                    sx={{
+                      ml: 1.25,
+                    }}
+                  />
+                </>
               }
-            }}
-          />
+              popupState={createModalPopupState}
+              onSubmit={handleSubmit}
+              submitButtonProps={{ children: <>Create new property type</> }}
+              getDefaultValues={() =>
+                searchText.length ? { name: searchText } : {}
+              }
+            />
+          </>
         ) : (
           <EntityTypeTableButtonRow
             icon={<StyledPlusCircleIcon />}

@@ -40,13 +40,13 @@ export const PropertyMenuCell = ({
   editButtonProps,
   onRemove,
   popupState,
-  description,
+  variant,
 }: {
   typeId: VersionedUri;
   editButtonProps: MenuItemProps;
   onRemove?: () => void;
   popupState: PopupState;
-  description: "property" | "link";
+  variant: "property" | "link";
 }) => {
   const version = extractVersion(typeId);
   const ontology = parseUriForOntologyChip(typeId);
@@ -118,7 +118,7 @@ export const PropertyMenuCell = ({
             editButtonProps.onTouchStart?.(evt);
           }}
         >
-          <ListItemText primary={<>Edit {description}</>} />
+          <ListItemText primary={<>Edit {variant}</>} />
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -126,7 +126,7 @@ export const PropertyMenuCell = ({
             onRemove?.();
           }}
         >
-          <ListItemText primary={<>Remove {description}</>} />
+          <ListItemText primary={<>Remove {variant}</>} />
         </MenuItem>
         <Divider />
         <Typography component={ListItem} variant="smallCaps">
