@@ -1,6 +1,6 @@
 # Based on the quick-start example https://github.com/ory/kratos/blob/master/contrib/quickstart/kratos/email-password/kratos.yml
 
-version: v0.10.1
+version: v0.11.0
 
 serve:
   public:
@@ -9,6 +9,10 @@ serve:
       enabled: true
   admin:
     base_url: http://kratos:4434/
+
+session:
+  # Let sessions live for 3 years
+  lifespan: 26280h # 24 h * 365 days * 3 years
 
 selfservice:
   default_browser_return_url: http://localhost:3000/
@@ -42,6 +46,7 @@ selfservice:
             # supported by kratos.
             - hook: web_hook
               config:
+                can_interrupt: true
                 url: http://host.docker.internal:5001/kratos-after-registration
                 method: POST
                 body: file:///etc/config/kratos/hooks/after.registration.jsonnet

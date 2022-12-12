@@ -4,7 +4,7 @@ import {
   FontAwesomeIcon,
   TextField,
 } from "@hashintel/hash-design-system";
-import { types } from "@hashintel/hash-shared/types";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import {
   Autocomplete,
   autocompleteClasses,
@@ -274,9 +274,15 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
           onChange={(_evt, _data, reason, details) => {
             const typeId = details?.option;
             if (typeId) {
+              const allowMultiple =
+                expectedValuesOptions[typeId]?.allowMultiple;
+
               const defaultData = getDefaultExpectedValue(typeId);
 
-              if (reason === "selectOption") {
+              if (
+                reason === "selectOption" ||
+                (reason === "removeOption" && allowMultiple)
+              ) {
                 const childId = uniqueId();
 
                 setValue(`flattenedCustomExpectedValueList`, {

@@ -7,7 +7,7 @@ import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { UserModel } from "@hashintel/hash-api/src/model";
 import {
-  adminKratosSdk,
+  kratosIdentityApi,
   createKratosIdentity,
 } from "@hashintel/hash-api/src/auth/ory-kratos";
 import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
@@ -127,6 +127,6 @@ describe("User model class", () => {
   });
 
   afterAll(async () => {
-    await adminKratosSdk.adminDeleteIdentity(kratosIdentityId);
+    await kratosIdentityApi.deleteIdentity({ id: kratosIdentityId });
   });
 });

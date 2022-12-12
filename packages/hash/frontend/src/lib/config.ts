@@ -13,3 +13,5 @@ export const resetLocalStorage = () => {
     localStorage.removeItem(localStorageKey);
   }
 };
+
+export const isBrowser = typeof window !== "undefined";

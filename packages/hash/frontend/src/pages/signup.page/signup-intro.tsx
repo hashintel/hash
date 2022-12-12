@@ -10,10 +10,10 @@ import { useRouter } from "next/router";
 import { Box } from "@mui/material";
 import { LogoIcon, SpinnerIcon } from "../../shared/icons";
 import { TextInput } from "../../components/forms/TextInput";
-import { useAuthenticatedUser } from "../../components/hooks/useAuthenticatedUser";
 import { InviteHeader } from "../shared/invite-header";
 import { InvitationInfo } from "../shared/auth-utils";
 import { Link } from "../../shared/ui";
+import { useAuthInfo } from "../shared/auth-info-context";
 
 type SignupIntroProps = {
   handleSubmit: (email: string) => void;
@@ -30,7 +30,7 @@ export const SignupIntro: FunctionComponent<SignupIntroProps> = ({
 }) => {
   const [email, setEmail] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const { authenticatedUser } = useAuthenticatedUser();
+  const { authenticatedUser } = useAuthInfo();
   const router = useRouter();
 
   useEffect(() => {

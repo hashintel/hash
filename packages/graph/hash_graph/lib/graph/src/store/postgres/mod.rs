@@ -26,12 +26,7 @@ use uuid::Uuid;
 use self::context::OntologyRecord;
 pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
-    identifier::{
-        account::AccountId,
-        knowledge::{EntityEditionId, EntityId},
-        ontology::OntologyTypeEditionId,
-    },
-    knowledge::{EntityMetadata, EntityProperties, EntityUuid, LinkData},
+    identifier::{account::AccountId, knowledge::EntityEditionId, ontology::OntologyTypeEditionId},
     ontology::OntologyElementMetadata,
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
@@ -43,6 +38,14 @@ use crate::{
         UpdateError,
     },
     subgraph::edges::GraphResolveDepths,
+};
+#[cfg(feature = "__internal_bench")]
+use crate::{
+    identifier::{
+        knowledge::{EntityId, EntityRecordId, EntityVersion},
+        DecisionTimespan, DecisionTimestamp, TransactionTimespan,
+    },
+    knowledge::{EntityProperties, LinkOrder},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -110,13 +113,6 @@ pub struct PostgresStore<C> {
     client: C,
 }
 
-/// Describes what context the historic move is done in.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum HistoricMove {
-    ForNewVersion,
-    ForArchival,
-}
-
 impl<C> PostgresStore<C>
 where
     C: AsClient,
@@ -180,29 +176,6 @@ where
             .change_context(QueryError)
             .attach_printable_lazy(|| uri.clone())?
             .get(0))
-    }
-
-    /// Inserts the specified [`EntityUuid`] into the database.
-    ///
-    /// # Errors
-    ///
-    /// - if inserting the [`EntityUuid`] failed.
-    async fn insert_entity_uuid(&self, entity_uuid: EntityUuid) -> Result<(), InsertionError> {
-        self.as_client()
-            .query_one(
-                r#"
-                    INSERT INTO entity_uuids (entity_uuid)
-                    VALUES ($1)
-                    RETURNING entity_uuid;
-                "#,
-                &[&entity_uuid.as_uuid()],
-            )
-            .await
-            .into_report()
-            .change_context(InsertionError)
-            .attach_printable(entity_uuid)?;
-
-        Ok(())
     }
 
     /// Inserts the specified [`VersionedUri`] into the database.
@@ -619,223 +592,6 @@ where
         Ok(ids)
     }
 
-    async fn insert_entity(
-        &self,
-        entity_id: EntityId,
-        properties: EntityProperties,
-        entity_type_id: VersionedUri,
-        updated_by_id: UpdatedById,
-        link_data: Option<LinkData>,
-    ) -> Result<EntityMetadata, InsertionError> {
-        let entity_type_version_id = self
-            .version_id_by_uri(&entity_type_id)
-            .await
-            .change_context(InsertionError)?;
-
-        // TODO: Validate entity against entity type
-        //  https://app.asana.com/0/0/1202629282579257/f
-
-        let value = serde_json::to_value(properties)
-            .into_report()
-            .change_context(InsertionError)?;
-        let version = self
-            .as_client()
-            .query_one(
-                r#"
-                INSERT INTO latest_entities (
-                    owned_by_id, entity_uuid, version,
-                    entity_type_version_id,
-                    properties,
-                    left_owned_by_id, left_entity_uuid,
-                    right_owned_by_id, right_entity_uuid,
-                    left_to_right_order, right_to_left_order,
-                    updated_by_id
-                )
-                VALUES ($1, $2, clock_timestamp(), $3, $4, $5, $6, $7, $8, $9, $10, $11)
-                RETURNING version;
-                "#,
-                &[
-                    &entity_id.owned_by_id().as_account_id(),
-                    &entity_id.entity_uuid().as_uuid(),
-                    &entity_type_version_id,
-                    &value,
-                    &link_data
-                        .as_ref()
-                        .map(|metadata| metadata.left_entity_id().owned_by_id().as_account_id()),
-                    &link_data
-                        .as_ref()
-                        .map(|metadata| metadata.left_entity_id().entity_uuid().as_uuid()),
-                    &link_data
-                        .as_ref()
-                        .map(|metadata| metadata.right_entity_id().owned_by_id().as_account_id()),
-                    &link_data
-                        .as_ref()
-                        .map(|metadata| metadata.right_entity_id().entity_uuid().as_uuid()),
-                    &link_data.as_ref().map(LinkData::left_to_right_order),
-                    &link_data.as_ref().map(LinkData::right_to_left_order),
-                    &updated_by_id.as_account_id(),
-                ],
-            )
-            .await
-            .into_report()
-            .change_context(InsertionError)?
-            .get(0);
-
-        Ok(EntityMetadata::new(
-            EntityEditionId::new(entity_id, version),
-            entity_type_id,
-            ProvenanceMetadata::new(updated_by_id),
-            // TODO: only the historic table would have an `archived` field.
-            //   Consider what we should do about that.
-            false,
-        ))
-    }
-
-    async fn lock_latest_entity_for_update(&self, entity_id: EntityId) -> Result<(), QueryError> {
-        // TODO - address potential serializability issue.
-        //   We don't have a data race per se, but the transaction isolation level of postgres would
-        //   make new entries of the `entities` table inaccessible to peer lock-waiters.
-        //   https://www.postgresql.org/docs/9.2/transaction-iso.html#XACT-READ-COMMITTED
-        //   https://app.asana.com/0/1202805690238892/1203201674100967/f
-
-        self.as_client()
-            .query_one(
-                // TODO: consider if this row locking is problematic with Citus.
-                //   `FOR UPDATE` is only allowed in single-shard queries.
-                //   https://docs.citusdata.com/en/stable/develop/reference_workarounds.html#sql-support-and-workarounds
-                //   see: https://app.asana.com/0/0/1203284257408542/f
-                r#"
-                SELECT * FROM latest_entities
-                WHERE entity_uuid = $1 AND owned_by_id = $2
-                FOR UPDATE;
-                "#,
-                &[
-                    &entity_id.entity_uuid().as_uuid(),
-                    &entity_id.owned_by_id().as_account_id(),
-                ],
-            )
-            .await
-            .into_report()
-            .change_context(QueryError)?;
-
-        Ok(())
-    }
-
-    #[expect(
-        clippy::too_many_lines,
-        reason = "The query is long, but it's a single query"
-    )]
-    async fn move_latest_entity_to_histories(
-        &self,
-        entity_id: EntityId,
-        historic_move: HistoricMove,
-    ) -> Result<Option<LinkData>, InsertionError> {
-        let historic_entity = self
-            .as_client()
-            .query_one(
-                r#"
-                -- First we delete the _latest_ entity from the entities table.
-                WITH to_move_to_historic AS (
-                    DELETE FROM latest_entities
-                    WHERE entity_uuid = $1 AND owned_by_id = $2
-                    RETURNING
-                        owned_by_id, entity_uuid, version,
-                        entity_type_version_id,
-                        properties,
-                        left_owned_by_id, left_entity_uuid,
-                        right_owned_by_id, right_entity_uuid,
-                        left_to_right_order, right_to_left_order,
-                        updated_by_id
-                ),
-                inserted_in_historic AS (
-                    -- We immediately put this deleted entity into the historic table.
-                    -- As this should be done in a transaction, we should be safe that this move
-                    -- doesn't produce invalid state.
-                    INSERT INTO entity_histories(
-                        owned_by_id, entity_uuid, version,
-                        entity_type_version_id,
-                        properties,
-                        left_owned_by_id, left_entity_uuid,
-                        right_owned_by_id, right_entity_uuid,
-                        left_to_right_order, right_to_left_order,
-                        updated_by_id,
-                        archived
-                    )
-                    SELECT
-                        owned_by_id, entity_uuid, version,
-                        entity_type_version_id,
-                        properties,
-                        left_owned_by_id, left_entity_uuid,
-                        right_owned_by_id, right_entity_uuid,
-                        left_to_right_order, right_to_left_order,
-                        updated_by_id,
-                        $3::boolean
-                    FROM to_move_to_historic
-                    -- We only return metadata
-                    RETURNING
-                        owned_by_id, entity_uuid, version,
-                        entity_type_version_id,
-                        left_owned_by_id, left_entity_uuid,
-                        right_owned_by_id, right_entity_uuid,
-                        left_to_right_order, right_to_left_order,
-                        updated_by_id
-                )
-                SELECT
-                    owned_by_id, entity_uuid, inserted_in_historic.version,
-                    base_uri, type_ids.version,
-                    left_owned_by_id, left_entity_uuid,
-                    right_owned_by_id, right_entity_uuid,
-                    left_to_right_order, right_to_left_order,
-                    updated_by_id
-                FROM inserted_in_historic
-                INNER JOIN type_ids ON inserted_in_historic.entity_type_version_id = type_ids.version_id;
-                "#,
-                &[
-                    &entity_id.entity_uuid().as_uuid(),
-                    &entity_id.owned_by_id().as_account_id(),
-                    &(historic_move == HistoricMove::ForArchival),
-                ],
-            )
-            .await
-            .into_report()
-            .change_context(InsertionError)?;
-
-        let link_data = match (
-            historic_entity.get(5),
-            historic_entity.get(6),
-            historic_entity.get(7),
-            historic_entity.get(8),
-            historic_entity.get(9),
-            historic_entity.get(10),
-        ) {
-            (
-                Some(left_owned_by_id),
-                Some(left_entity_uuid),
-                Some(right_owned_by_id),
-                Some(right_entity_uuid),
-                left_to_right_order,
-                right_to_left_order,
-            ) => Some(LinkData::new(
-                EntityId::new(
-                    OwnedById::new(left_owned_by_id),
-                    EntityUuid::new(left_entity_uuid),
-                ),
-                EntityId::new(
-                    OwnedById::new(right_owned_by_id),
-                    EntityUuid::new(right_entity_uuid),
-                ),
-                left_to_right_order,
-                right_to_left_order,
-            )),
-            (None, None, None, None, None, None) => None,
-            _ => {
-                unreachable!("incomplete link information was found in the DB table, this is fatal")
-            }
-        };
-
-        Ok(link_data)
-    }
-
     /// Fetches the [`VersionId`] of the specified [`VersionedUri`].
     ///
     /// # Errors:
@@ -871,27 +627,53 @@ where
 impl PostgresStore<Transaction<'_>> {
     #[doc(hidden)]
     #[cfg(feature = "__internal_bench")]
-    async fn insert_entity_uuids(
+    async fn insert_entity_ids(
         &self,
-        entity_uuids: impl IntoIterator<Item = EntityUuid, IntoIter: Send> + Send,
+        entity_uuids: impl IntoIterator<
+            Item = (EntityId, Option<EntityId>, Option<EntityId>),
+            IntoIter: Send,
+        > + Send,
     ) -> Result<u64, InsertionError> {
         let sink = self
             .client
-            .copy_in("COPY entity_uuids (entity_uuid) FROM STDIN BINARY")
+            .copy_in(
+                "COPY entity_ids (
+                    owned_by_id,
+                    entity_uuid,
+                    left_owned_by_id,
+                    left_entity_uuid,
+                    right_owned_by_id,
+                    right_entity_uuid
+                ) FROM STDIN BINARY",
+            )
             .await
             .into_report()
             .change_context(InsertionError)?;
-        let writer = BinaryCopyInWriter::new(sink, &[Type::UUID]);
+        let writer = BinaryCopyInWriter::new(sink, &[
+            Type::UUID,
+            Type::UUID,
+            Type::UUID,
+            Type::UUID,
+            Type::UUID,
+            Type::UUID,
+        ]);
 
         futures::pin_mut!(writer);
-        for entity_uuid in entity_uuids {
+        for (entity_id, left_entity_id, right_entity_id) in entity_uuids {
             writer
                 .as_mut()
-                .write(&[&entity_uuid.as_uuid()])
+                .write(&[
+                    &entity_id.owned_by_id(),
+                    &entity_id.entity_uuid(),
+                    &left_entity_id.as_ref().map(EntityId::owned_by_id),
+                    &left_entity_id.as_ref().map(EntityId::entity_uuid),
+                    &right_entity_id.as_ref().map(EntityId::owned_by_id),
+                    &right_entity_id.as_ref().map(EntityId::entity_uuid),
+                ])
                 .await
                 .into_report()
                 .change_context(InsertionError)
-                .attach_printable(entity_uuid)?;
+                .attach_printable(entity_id.entity_uuid())?;
         }
 
         writer
@@ -903,22 +685,149 @@ impl PostgresStore<Transaction<'_>> {
 
     #[doc(hidden)]
     #[cfg(feature = "__internal_bench")]
-    async fn insert_entity_batch_by_type(
+    async fn insert_entity_records(
         &self,
-        entity_uuids: impl IntoIterator<Item = EntityUuid, IntoIter: Send> + Send,
-        entities: impl IntoIterator<Item = EntityProperties, IntoIter: Send> + Send,
-        link_datas: impl IntoIterator<Item = Option<LinkData>, IntoIter: Send> + Send,
+        entities: impl IntoIterator<
+            Item = (EntityProperties, Option<LinkOrder>, Option<LinkOrder>),
+            IntoIter: Send,
+        > + Send,
         entity_type_version_id: VersionId,
-        owned_by_id: OwnedById,
-        updated_by_id: UpdatedById,
-    ) -> Result<u64, InsertionError> {
+        actor_id: UpdatedById,
+    ) -> Result<Vec<EntityRecordId>, InsertionError> {
+        self.client
+            .simple_query(
+                "CREATE TEMPORARY TABLE entity_editions_temp (
+                    updated_by_id UUID NOT NULL,
+                    archived BOOLEAN NOT NULL,
+                    entity_type_version_id UUID NOT NULL,
+                    properties JSONB NOT NULL,
+                    left_to_right_order INT,
+                    right_to_left_order INT
+                );",
+            )
+            .await
+            .into_report()
+            .change_context(InsertionError)?;
+
         let sink = self
             .client
             .copy_in(
-                "COPY latest_entities (entity_uuid, entity_type_version_id, properties, \
-                 owned_by_id, updated_by_id, left_owned_by_id, left_entity_uuid, \
-                 right_owned_by_id, right_entity_uuid, left_to_right_order, right_to_left_order) \
-                 FROM STDIN BINARY",
+                "COPY entity_editions_temp (
+                    updated_by_id,
+                    archived,
+                    entity_type_version_id,
+                    properties,
+                    left_to_right_order,
+                    right_to_left_order
+                ) FROM STDIN BINARY",
+            )
+            .await
+            .into_report()
+            .change_context(InsertionError)?;
+        let writer = BinaryCopyInWriter::new(sink, &[
+            Type::UUID,
+            Type::BOOL,
+            Type::UUID,
+            Type::JSONB,
+            Type::INT4,
+            Type::INT4,
+        ]);
+        futures::pin_mut!(writer);
+        for (properties, left_to_right_order, right_to_left_order) in entities {
+            let properties = serde_json::to_value(properties)
+                .into_report()
+                .change_context(InsertionError)?;
+
+            writer
+                .as_mut()
+                .write(&[
+                    &actor_id,
+                    &false,
+                    &entity_type_version_id,
+                    &properties,
+                    &left_to_right_order,
+                    &right_to_left_order,
+                ])
+                .await
+                .into_report()
+                .change_context(InsertionError)?;
+        }
+
+        writer
+            .finish()
+            .await
+            .into_report()
+            .change_context(InsertionError)?;
+
+        let entity_record_ids = self
+            .client
+            .query(
+                "INSERT INTO entity_editions (
+                    updated_by_id,
+                    archived,
+                    entity_type_version_id,
+                    properties,
+                    left_to_right_order,
+                    right_to_left_order
+                )
+                SELECT
+                    updated_by_id,
+                    archived,
+                    entity_type_version_id,
+                    properties,
+                    left_to_right_order,
+                    right_to_left_order
+                FROM entity_editions_temp
+                RETURNING entity_record_id;",
+                &[],
+            )
+            .await
+            .into_report()
+            .change_context(InsertionError)?
+            .into_iter()
+            .map(|row| EntityRecordId::new(row.get::<_, i64>(0)))
+            .collect();
+
+        self.client
+            .simple_query("DROP TABLE entity_editions_temp;")
+            .await
+            .into_report()
+            .change_context(InsertionError)?;
+
+        Ok(entity_record_ids)
+    }
+
+    #[doc(hidden)]
+    #[cfg(feature = "__internal_bench")]
+    async fn insert_entity_versions(
+        &self,
+        entities: impl IntoIterator<
+            Item = (EntityId, EntityRecordId, Option<DecisionTimestamp>),
+            IntoIter: Send,
+        > + Send,
+    ) -> Result<Vec<EntityVersion>, InsertionError> {
+        self.client
+            .simple_query(
+                "CREATE TEMPORARY TABLE entity_versions_temp (
+                    owned_by_id UUID NOT NULL,
+                    entity_uuid UUID NOT NULL,
+                    entity_record_id BIGINT NOT NULL,
+                    decision_time TIMESTAMP WITH TIME ZONE
+                );",
+            )
+            .await
+            .into_report()
+            .change_context(InsertionError)?;
+
+        let sink = self
+            .client
+            .copy_in(
+                "COPY entity_versions_temp (
+                    owned_by_id,
+                    entity_uuid,
+                    entity_record_id,
+                    decision_time
+                ) FROM STDIN BINARY",
             )
             .await
             .into_report()
@@ -926,57 +835,72 @@ impl PostgresStore<Transaction<'_>> {
         let writer = BinaryCopyInWriter::new(sink, &[
             Type::UUID,
             Type::UUID,
-            Type::JSONB,
-            Type::UUID,
-            Type::UUID,
-            Type::UUID,
-            Type::UUID,
-            Type::UUID,
-            Type::UUID,
-            Type::INT4,
-            Type::INT4,
+            Type::INT8,
+            Type::TIMESTAMPTZ,
         ]);
         futures::pin_mut!(writer);
-        for ((entity_uuid, entity), link_data) in
-            entity_uuids.into_iter().zip(entities).zip(link_datas)
-        {
-            let value = serde_json::to_value(entity)
-                .into_report()
-                .change_context(InsertionError)?;
+        for (entity_id, entity_record_id, decision_time) in entities {
             writer
                 .as_mut()
                 .write(&[
-                    &entity_uuid.as_uuid(),
-                    &entity_type_version_id,
-                    &value,
-                    &owned_by_id.as_account_id(),
-                    &updated_by_id.as_account_id(),
-                    &link_data
-                        .as_ref()
-                        .map(|metadata| metadata.left_entity_id().owned_by_id().as_account_id()),
-                    &link_data
-                        .as_ref()
-                        .map(|metadata| metadata.left_entity_id().entity_uuid().as_uuid()),
-                    &link_data
-                        .as_ref()
-                        .map(|metadata| metadata.right_entity_id().owned_by_id().as_account_id()),
-                    &link_data
-                        .as_ref()
-                        .map(|metadata| metadata.right_entity_id().entity_uuid().as_uuid()),
-                    &link_data.as_ref().and_then(LinkData::left_to_right_order),
-                    &link_data.as_ref().and_then(LinkData::right_to_left_order),
+                    &entity_id.owned_by_id(),
+                    &entity_id.entity_uuid(),
+                    &entity_record_id,
+                    &decision_time,
                 ])
                 .await
                 .into_report()
-                .change_context(InsertionError)
-                .attach_printable(entity_uuid)?;
+                .change_context(InsertionError)?;
         }
 
         writer
             .finish()
             .await
             .into_report()
-            .change_context(InsertionError)
+            .change_context(InsertionError)?;
+
+        let entity_versions = self
+            .client
+            .query(
+                "INSERT INTO entity_versions (
+                    owned_by_id,
+                    entity_uuid,
+                    entity_record_id,
+                    decision_time,
+                    transaction_time
+                ) SELECT
+                    owned_by_id,
+                    entity_uuid,
+                    entity_record_id,
+                    tstzrange(
+                        CASE WHEN decision_time IS NULL THEN now() ELSE decision_time END,
+                        'infinity',
+                        '[)'
+                    ),
+                    tstzrange(now(), 'infinity', '[)')
+                FROM entity_versions_temp
+                RETURNING decision_time, transaction_time;",
+                &[],
+            )
+            .await
+            .into_report()
+            .change_context(InsertionError)?
+            .into_iter()
+            .map(|row| {
+                EntityVersion::new(
+                    DecisionTimespan::new(row.get(0)),
+                    TransactionTimespan::new(row.get(1)),
+                )
+            })
+            .collect();
+
+        self.client
+            .simple_query("DROP TABLE entity_versions_temp;")
+            .await
+            .into_report()
+            .change_context(InsertionError)?;
+
+        Ok(entity_versions)
     }
 }
 

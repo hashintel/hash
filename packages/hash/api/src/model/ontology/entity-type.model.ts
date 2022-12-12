@@ -10,7 +10,7 @@ import {
   OntologyElementMetadata,
   ontologyTypeEditionIdToVersionedUri,
 } from "@hashintel/hash-subgraph";
-import { generateTypeId, types } from "@hashintel/hash-shared/types";
+import { generateTypeId, types } from "@hashintel/hash-shared/ontology-types";
 import { EntityTypeModel, PropertyTypeModel } from "../index";
 import { getNamespaceOfAccountOwner } from "./util";
 import { SYSTEM_TYPES } from "../../graph/system-types";

@@ -5,6 +5,7 @@ use std::{
     str::FromStr,
 };
 
+use chrono::{DateTime, Utc};
 use error_stack::{bail, ensure, Context, IntoReport, Report, ResultExt};
 use serde::Deserialize;
 use type_system::uri::VersionedUri;
@@ -14,7 +15,6 @@ use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId},
         ontology::OntologyTypeEditionId,
-        Timestamp,
     },
     knowledge::{Entity, EntityQueryPath, EntityUuid},
     store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
@@ -103,7 +103,9 @@ impl<'q> Filter<'q, Entity> {
     #[must_use]
     pub const fn for_all_latest_entities() -> Self {
         Self::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::Version)),
+            Some(FilterExpression::Path(
+                EntityQueryPath::LowerTransactionTime,
+            )),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "latest",
             )))),
@@ -169,6 +171,8 @@ impl<'q> Filter<'q, Entity> {
     /// [`EntityEditionId`].
     #[must_use]
     pub fn for_entity_by_edition_id(edition_id: EntityEditionId) -> Self {
+        // TODO: Adjust structural queries for temporal versioning
+        //   see https://app.asana.com/0/0/1203491211535116/f
         Self::All(vec![
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
@@ -183,9 +187,9 @@ impl<'q> Filter<'q, Entity> {
                 ))),
             ),
             Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::Version)),
-                Some(FilterExpression::Parameter(Parameter::Timestamp(
-                    edition_id.version().inner(),
+                Some(FilterExpression::Path(EntityQueryPath::RecordId)),
+                Some(FilterExpression::Parameter(Parameter::SignedInteger(
+                    edition_id.record_id().as_i64(),
                 ))),
             ),
         ])
@@ -194,6 +198,8 @@ impl<'q> Filter<'q, Entity> {
     /// TODO
     #[must_use]
     pub fn for_outgoing_link_by_source_entity_edition_id(edition_id: EntityEditionId) -> Self {
+        // TODO: Adjust structural queries for temporal versioning
+        //   see https://app.asana.com/0/0/1203491211535116/f
         Self::All(vec![
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
@@ -213,10 +219,10 @@ impl<'q> Filter<'q, Entity> {
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
-                    Box::new(EntityQueryPath::Version),
+                    Box::new(EntityQueryPath::RecordId),
                 ))),
-                Some(FilterExpression::Parameter(Parameter::Timestamp(
-                    edition_id.version().inner(),
+                Some(FilterExpression::Parameter(Parameter::SignedInteger(
+                    edition_id.record_id().as_i64(),
                 ))),
             ),
         ])
@@ -225,6 +231,8 @@ impl<'q> Filter<'q, Entity> {
     /// TODO
     #[must_use]
     pub fn for_incoming_link_by_source_entity_edition_id(edition_id: EntityEditionId) -> Self {
+        // TODO: Adjust structural queries for temporal versioning
+        //   see https://app.asana.com/0/0/1203491211535116/f
         Self::All(vec![
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::RightEntity(
@@ -244,10 +252,10 @@ impl<'q> Filter<'q, Entity> {
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::RightEntity(
-                    Box::new(EntityQueryPath::Version),
+                    Box::new(EntityQueryPath::RecordId),
                 ))),
-                Some(FilterExpression::Parameter(Parameter::Timestamp(
-                    edition_id.version().inner(),
+                Some(FilterExpression::Parameter(Parameter::SignedInteger(
+                    edition_id.record_id().as_i64(),
                 ))),
             ),
         ])
@@ -256,6 +264,8 @@ impl<'q> Filter<'q, Entity> {
     /// TODO
     #[must_use]
     pub fn for_left_entity_by_entity_edition_id(edition_id: EntityEditionId) -> Self {
+        // TODO: Adjust structural queries for temporal versioning
+        //   see https://app.asana.com/0/0/1203491211535116/f
         Self::All(vec![
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
@@ -275,10 +285,10 @@ impl<'q> Filter<'q, Entity> {
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
-                    Box::new(EntityQueryPath::Version),
+                    Box::new(EntityQueryPath::RecordId),
                 ))),
-                Some(FilterExpression::Parameter(Parameter::Timestamp(
-                    edition_id.version().inner(),
+                Some(FilterExpression::Parameter(Parameter::SignedInteger(
+                    edition_id.record_id().as_i64(),
                 ))),
             ),
         ])
@@ -287,6 +297,8 @@ impl<'q> Filter<'q, Entity> {
     /// TODO
     #[must_use]
     pub fn for_right_entity_by_entity_edition_id(edition_id: EntityEditionId) -> Self {
+        // TODO: Adjust structural queries for temporal versioning
+        //   see https://app.asana.com/0/0/1203491211535116/f
         Self::All(vec![
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
@@ -306,10 +318,10 @@ impl<'q> Filter<'q, Entity> {
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
-                    Box::new(EntityQueryPath::Version),
+                    Box::new(EntityQueryPath::RecordId),
                 ))),
-                Some(FilterExpression::Parameter(Parameter::Timestamp(
-                    edition_id.version().inner(),
+                Some(FilterExpression::Parameter(Parameter::SignedInteger(
+                    edition_id.record_id().as_i64(),
                 ))),
             ),
         ])
@@ -437,7 +449,7 @@ pub enum Parameter<'q> {
     #[serde(skip)]
     SignedInteger(i64),
     #[serde(skip)]
-    Timestamp(Timestamp),
+    Timestamp(DateTime<Utc>),
 }
 
 impl Parameter<'_> {
@@ -462,11 +474,16 @@ pub struct ParameterConversionError {
 
 impl fmt::Display for ParameterConversionError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            fmt,
-            "could not convert `{}` to {}",
-            self.actual, self.expected
-        )
+        let actual = match &self.actual {
+            Parameter::Boolean(boolean) => boolean.to_string(),
+            Parameter::Number(number) => number.to_string(),
+            Parameter::Text(text) => text.to_string(),
+            Parameter::Uuid(uuid) => uuid.to_string(),
+            Parameter::SignedInteger(integer) => integer.to_string(),
+            Parameter::Timestamp(timestamp) => timestamp.to_string(),
+        };
+
+        write!(fmt, "could not convert {actual} to {}", self.expected)
     }
 }
 
@@ -492,10 +509,12 @@ impl Parameter<'_> {
                 // TODO: validate versioned uri
                 //   see https://app.asana.com/0/1202805690238892/1203225514907875/f
             }
+            // TODO: Reevaluate if we need this after https://app.asana.com/0/0/1203491211535116/f
+            //       Most probably, we won't need this anymore
             (Parameter::Text(text), ParameterType::Timestamp) => {
                 if text != "latest" {
                     *self = Parameter::Timestamp(
-                        Timestamp::from_str(&*text)
+                        DateTime::from_str(&*text)
                             .into_report()
                             .change_context_lazy(|| ParameterConversionError {
                                 actual: self.to_owned(),
@@ -537,27 +556,21 @@ impl Parameter<'_> {
     }
 }
 
-impl fmt::Display for Parameter<'_> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Parameter::Boolean(boolean) => fmt::Display::fmt(boolean, fmt),
-            Parameter::Number(number) => fmt::Display::fmt(number, fmt),
-            Parameter::Text(text) => fmt::Display::fmt(text, fmt),
-            Parameter::Uuid(uuid) => fmt::Display::fmt(uuid, fmt),
-            Parameter::SignedInteger(integer) => fmt::Display::fmt(integer, fmt),
-            Parameter::Timestamp(timestamp) => fmt::Display::fmt(timestamp, fmt),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use std::time::SystemTime;
+
     use serde_json::json;
     use type_system::uri::BaseUri;
 
     use super::*;
     use crate::{
-        identifier::{account::AccountId, knowledge::EntityVersion, ontology::OntologyTypeVersion},
+        identifier::{
+            account::AccountId,
+            knowledge::{EntityRecordId, EntityVersion},
+            ontology::OntologyTypeVersion,
+            DecisionTimespan, TransactionTimespan,
+        },
         ontology::{DataTypeQueryPath, DataTypeWithMetadata},
         provenance::OwnedById,
     };
@@ -740,7 +753,11 @@ mod tests {
                 OwnedById::new(AccountId::new(Uuid::new_v4())),
                 EntityUuid::new(Uuid::new_v4()),
             ),
-            EntityVersion::new(Timestamp::default()),
+            EntityRecordId::new(0),
+            EntityVersion::new(
+                DecisionTimespan::from(DateTime::default()..),
+                TransactionTimespan::from(DateTime::from(SystemTime::now())..),
+            ),
         );
 
         let expected = json! {{
@@ -754,8 +771,8 @@ mod tests {
               { "parameter": entity_edition_id.base_id().entity_uuid() }
             ]},
             { "equal": [
-              { "path": ["version"] },
-              { "parameter": entity_edition_id.version() }
+              { "path": ["recordId"] },
+              { "parameter": entity_edition_id.record_id() }
             ]}
           ]
         }};
@@ -773,7 +790,11 @@ mod tests {
                 OwnedById::new(AccountId::new(Uuid::new_v4())),
                 EntityUuid::new(Uuid::new_v4()),
             ),
-            EntityVersion::new(Timestamp::default()),
+            EntityRecordId::new(0),
+            EntityVersion::new(
+                DecisionTimespan::from(DateTime::default()..),
+                TransactionTimespan::from(DateTime::from(SystemTime::now())..),
+            ),
         );
 
         let expected = json! {{
@@ -787,8 +808,8 @@ mod tests {
               { "parameter": entity_edition_id.base_id().entity_uuid() }
             ]},
             { "equal": [
-              { "path": ["leftEntity", "version"] },
-              { "parameter": entity_edition_id.version() }
+              { "path": ["leftEntity", "recordId"] },
+              { "parameter": entity_edition_id.record_id() }
             ]}
           ]
         }};
@@ -806,7 +827,11 @@ mod tests {
                 OwnedById::new(AccountId::new(Uuid::new_v4())),
                 EntityUuid::new(Uuid::new_v4()),
             ),
-            EntityVersion::new(Timestamp::default()),
+            EntityRecordId::new(0),
+            EntityVersion::new(
+                DecisionTimespan::from(DateTime::default()..),
+                TransactionTimespan::from(DateTime::from(SystemTime::now())..),
+            ),
         );
 
         let expected = json! {{
@@ -820,8 +845,8 @@ mod tests {
               { "parameter": entity_edition_id.base_id().entity_uuid() }
             ]},
             { "equal": [
-              { "path": ["outgoingLinks", "version"] },
-              { "parameter": entity_edition_id.version() }
+              { "path": ["outgoingLinks", "recordId"] },
+              { "parameter": entity_edition_id.record_id() }
             ]}
           ]
         }};
@@ -839,7 +864,11 @@ mod tests {
                 OwnedById::new(AccountId::new(Uuid::new_v4())),
                 EntityUuid::new(Uuid::new_v4()),
             ),
-            EntityVersion::new(Timestamp::default()),
+            EntityRecordId::new(0),
+            EntityVersion::new(
+                DecisionTimespan::from(DateTime::default()..),
+                TransactionTimespan::from(DateTime::from(SystemTime::now())..),
+            ),
         );
 
         let expected = json! {{
@@ -853,8 +882,8 @@ mod tests {
               { "parameter": entity_edition_id.base_id().entity_uuid() }
             ]},
             { "equal": [
-              { "path": ["incomingLinks", "version"] },
-              { "parameter": entity_edition_id.version() }
+              { "path": ["incomingLinks", "recordId"] },
+              { "parameter": entity_edition_id.record_id() }
             ]}
           ]
         }};
