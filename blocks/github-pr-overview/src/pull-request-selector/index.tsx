@@ -1,3 +1,5 @@
+/* eslint-disable canonical/filename-no-index -- @todo rename file */
+
 import { FunctionComponent, useMemo, useState } from "react";
 import { Box, Typography } from "@mui/material";
 

@@ -3,12 +3,9 @@ extend = { path = "../../../.github/scripts/rust/Makefile.toml" }
 [env]
 CARGO_CLIPPY_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default"
 CARGO_TEST_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default"
+CARGO_RUSTDOC_FLAGS = "--all-features -Zunstable-options -Zrustdoc-scrape-examples=examples -- -Zunstable-options"
 CARGO_RUSTDOC_HACK_FLAGS = ""
 CARGO_DOC_HACK_FLAGS = ""
-
-# unsafe code is prohibited (by lint) in deer, therefore we do not need to test for miri
-[tasks.miri]
-disabled = true
 
 [tasks.test]
 dependencies = ['install-rust-src']

@@ -23,7 +23,9 @@ use crate::{
         },
     },
     identifier::{
-        knowledge::{EntityEditionId, EntityId, EntityIdAndTimestamp, EntityVersion},
+        knowledge::{
+            EntityEditionId, EntityId, EntityIdAndTimestamp, EntityRecordId, EntityVersion,
+        },
         GraphElementEditionId, GraphElementId,
     },
     knowledge::{
@@ -32,7 +34,7 @@ use crate::{
     },
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
-        error::{EntityDoesNotExist, QueryError},
+        error::{EntityDoesNotExist, RaceConditionOnUpdate},
         query::Filter,
         EntityStore, StorePool,
     },
@@ -72,6 +74,7 @@ use crate::{
             Entity,
             EntityLinkOrder,
             EntityProperties,
+            EntityRecordId,
             EntityVersion,
             EntityStructuralQuery,
             EntityQueryToken,
@@ -119,7 +122,11 @@ impl RoutedResource for EntityResource {
                         .get(get_latest_entities::<P>)
                         .put(update_entity::<P>),
                 )
-                .route("/archive", post(archive_entity::<P>))
+                .route(
+                    "/archive",
+                    #[expect(deprecated)]
+                    post(archive_entity::<P>),
+                )
                 .route("/query", post(get_entities_by_query::<P>))
                 .route("/:entity_uuid", get(get_entity::<P>)),
         )
@@ -174,11 +181,13 @@ async fn create_entity<P: StorePool + Send>(
 
     store
         .create_entity(
-            properties,
-            entity_type_id,
             owned_by_id,
             entity_uuid,
+            None,
             actor_id,
+            false,
+            entity_type_id,
+            properties,
             link_data,
         )
         .await
@@ -211,6 +220,7 @@ struct ArchiveEntityRequest {
         (status = 500, description = "Store error occurred"),
     ),
 )]
+#[deprecated = "use `/entities/update` instead"]
 async fn archive_entity<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<ArchiveEntityRequest>,
@@ -220,24 +230,47 @@ async fn archive_entity<P: StorePool + Send>(
         actor_id,
     }) = body;
 
+    // TODO: Expose temporal versions to backend
+    //   see https://app.asana.com/0/0/1203444301722133/f
+    let entity: Entity = read_from_store(
+        pool.as_ref(),
+        &Filter::for_latest_entity_by_entity_id(entity_id),
+    )
+    .await
+    .and_then(|mut entities| entities.pop().ok_or(StatusCode::NOT_FOUND))?;
+
     let mut store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
     store
-        .archive_entity(entity_id, actor_id)
+        .update_entity(
+            entity_id,
+            None,
+            actor_id,
+            true,
+            entity.metadata().entity_type_id().clone(),
+            entity.properties().clone(),
+            EntityLinkOrder::new(
+                entity
+                    .link_data()
+                    .as_ref()
+                    .and_then(LinkData::left_to_right_order),
+                entity
+                    .link_data()
+                    .as_ref()
+                    .and_then(LinkData::right_to_left_order),
+            ),
+        )
         .await
         .map_err(|report| {
-            if report.contains::<QueryError>() {
-                return StatusCode::NOT_FOUND;
-            }
-
-            tracing::error!(error=?report, "Could not archive entity");
+            tracing::error!(error=?report, "Could not update entity");
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
-        })
+        })?;
+    Ok(())
 }
 
 #[utoipa::path(
@@ -334,6 +367,10 @@ struct UpdateEntityRequest {
     actor_id: UpdatedById,
     #[serde(flatten)]
     order: EntityLinkOrder,
+    // TODO: Remove default value when exposing temporal versions to backend
+    //   see https://app.asana.com/0/0/1203444301722133/f
+    #[serde(default)]
+    archived: bool,
 }
 
 #[utoipa::path(
@@ -343,6 +380,7 @@ struct UpdateEntityRequest {
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated entity", body = EntityMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+        (status = 423, content_type = "text/plain", description = "The entity that should be updated was unexpectedly updated at the same time"),
 
         (status = 404, description = "Entity ID or Entity Type URI was not found"),
         (status = 500, description = "Store error occurred"),
@@ -359,6 +397,7 @@ async fn update_entity<P: StorePool + Send>(
         entity_type_id,
         actor_id,
         order,
+        archived,
     }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -367,17 +406,27 @@ async fn update_entity<P: StorePool + Send>(
     })?;
 
     store
-        .update_entity(entity_id, properties, entity_type_id, actor_id, order)
+        .update_entity(
+            entity_id,
+            None,
+            actor_id,
+            archived,
+            entity_type_id,
+            properties,
+            order,
+        )
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity");
 
-            if report.contains::<QueryError>() || report.contains::<EntityDoesNotExist>() {
-                return StatusCode::NOT_FOUND;
+            if report.contains::<EntityDoesNotExist>() {
+                StatusCode::NOT_FOUND
+            } else if report.contains::<RaceConditionOnUpdate>() {
+                StatusCode::LOCKED
+            } else {
+                // Insertion/update errors are considered internal server errors.
+                StatusCode::INTERNAL_SERVER_ERROR
             }
-
-            // Insertion/update errors are considered internal server errors.
-            StatusCode::INTERNAL_SERVER_ERROR
         })
         .map(Json)
 }
