@@ -21,9 +21,15 @@ selfservice:
 
     link:
       config:
-        enabled: true
+        # The URL for verification emails are set through the link method
+        # but we're using the code method, so we disable this method for usage.
+        enabled: false
         # Set through SELFSERVICE_METHODS_LINK_CONFIG_BASE_URL
-        base_url: http://localhost:4433/
+        base_url: http://localhost:3000/api/ory
+    code:
+      config:
+        # and make sure to enable the code method.
+        enabled: true
 
   flows:
     error:
@@ -62,8 +68,9 @@ selfservice:
             - hook: session
 
     verification:
-      use: link
-      lifespan: 24h
+      use: code
+      lifespan: 48h
+      # Set though SELFSERVICE_FLOWS_VERIFICATION_UI_URL
       ui_url: http://localhost:3000/verification
       enabled: true
 

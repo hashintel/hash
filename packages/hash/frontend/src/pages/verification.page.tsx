@@ -1,7 +1,13 @@
 import { useRouter } from "next/router";
 import { useEffect, FormEventHandler, useState, useMemo } from "react";
-import { VerificationFlow } from "@ory/client";
+import {
+  UpdateVerificationFlowWithCodeMethodBody,
+  VerificationFlow,
+} from "@ory/client";
+import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { Typography, Container, Box } from "@mui/material";
+import { TextField } from "@hashintel/hash-design-system";
+
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import {
   createFlowErrorHandler,
@@ -27,6 +33,7 @@ const VerificationPage: NextPageWithLayout = () => {
   } = router.query;
 
   const [flow, setFlow] = useState<VerificationFlow>();
+  const [code, setCode] = useState<string>();
   const [errorMessage, setErrorMessage] = useState<string>();
 
   const handleFlowError = useMemo(
@@ -44,6 +51,16 @@ const VerificationPage: NextPageWithLayout = () => {
   // to sign out if they are performing two-factor authentication!
   const { logout } = useLogoutFlow([aal, refresh]);
 
+  const extractFlowCodeValue = (flowToSearch: VerificationFlow | undefined) => {
+    const uiCode = flowToSearch?.ui?.nodes.find(
+      ({ attributes }) =>
+        isUiNodeInputAttributes(attributes) && attributes.name === "code",
+    );
+    if (uiCode?.attributes && "value" in uiCode.attributes) {
+      setCode(String(uiCode.attributes.value));
+    }
+  };
+
   useEffect(() => {
     // If the router is not ready yet, or we already have a flow, do nothing.
     if (!router.isReady || flow) {
@@ -56,6 +73,7 @@ const VerificationPage: NextPageWithLayout = () => {
         .getVerificationFlow({ id: String(flowId) })
         .then(({ data }) => {
           setFlow(data);
+          extractFlowCodeValue(data);
         })
         .catch(handleFlowError);
       return;
@@ -68,6 +86,7 @@ const VerificationPage: NextPageWithLayout = () => {
       })
       .then(({ data }) => {
         setFlow(data);
+        extractFlowCodeValue(data);
       })
       .catch(handleFlowError);
   }, [
@@ -97,8 +116,11 @@ const VerificationPage: NextPageWithLayout = () => {
     oryKratosClient
       .updateVerificationFlow({
         flow: String(flow?.id),
-        updateVerificationFlowBody:
-          gatherUiNodeValuesFromFlow<"verification">(flow),
+        updateVerificationFlowBody: {
+          ...gatherUiNodeValuesFromFlow<"verification">(flow),
+          code,
+          // @TODO remove this assertion when the UpdateVerificationFlowBody type is updated.
+        } as UpdateVerificationFlowWithCodeMethodBody as any,
       })
       .then(({ data }) => {
         // Form submission was successful, show the message to the user!
@@ -107,6 +129,11 @@ const VerificationPage: NextPageWithLayout = () => {
       })
       .catch(handleFlowError);
   };
+
+  const codeInputUiNode = flow?.ui?.nodes.find(
+    ({ attributes }) =>
+      isUiNodeInputAttributes(attributes) && attributes.name === "code",
+  );
 
   return (
     <Container sx={{ pt: 10 }}>
@@ -125,6 +152,21 @@ const VerificationPage: NextPageWithLayout = () => {
           },
         }}
       >
+        <TextField
+          label="Verification code"
+          type="text"
+          autoComplete="off"
+          placeholder="Enter your verification code"
+          value={code}
+          onChange={({ target }) => setCode(target.value)}
+          error={
+            !!codeInputUiNode?.messages.find(({ type }) => type === "error")
+          }
+          helperText={codeInputUiNode?.messages.map(({ id, text }) => (
+            <Typography key={id}>{text}</Typography>
+          ))}
+          required
+        />
         <Button type="submit">Verify account</Button>
         {flow?.ui?.messages?.map(({ text, id }) => (
           <Typography key={id}>{text}</Typography>
