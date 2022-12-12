@@ -1,6 +1,5 @@
 import { EntityType } from "@blockprotocol/type-system";
 import { Chip } from "@hashintel/hash-design-system";
-import { types } from "@hashintel/hash-shared/types";
 import { TableBody, TableCell, TableFooter, TableHead } from "@mui/material";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { useId, useRef, useState } from "react";
@@ -23,8 +22,6 @@ import {
   PROPERTY_MENU_CELL_WIDTH,
   PropertyMenuCell,
 } from "./property-list-card/property-menu-cell";
-import { ArrayType } from "./property-list-card/shared/property-type-form-values";
-import { ExpectedValueChip } from "./property-list-card/shared/property-type-form/data-type-selector/expected-value-chip";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
@@ -44,7 +41,7 @@ const LinkTypeRow = ({
   linkIndex: number;
   onRemove: () => void;
 }) => {
-  const { control, setValue } = useFormContext<EntityTypeEditorForm>();
+  const { control } = useFormContext<EntityTypeEditorForm>();
   const linkTypes = useLinkEntityTypes();
   const entityTypes = useEntityTypes();
 
@@ -62,21 +59,9 @@ const LinkTypeRow = ({
     popupId: `property-menu-${popupId}`,
   });
 
-  const [search, setSearch] = useState("");
-
   if (!link) {
     throw new Error("Missing link");
   }
-
-  const linkedEntityTypes = linkData.entityTypes.map((id) => {
-    const entityType = entityTypes[id];
-
-    if (!entityType) {
-      throw new Error("Missing entity type");
-    }
-
-    return entityType;
-  });
 
   return (
     <EntityTypeTableRow>
@@ -91,12 +76,8 @@ const LinkTypeRow = ({
           control={control}
           render={({ field: { ref, onChange, value } }) => (
             <HashSelectorAutocomplete
-              onChange={(_, data) => {
-                setValue(
-                  `links.${linkIndex}.entityTypes`,
-                  data.map((d) => d.$id),
-                  { shouldDirty: true },
-                );
+              onChange={(_, chosenTypes) => {
+                onChange(chosenTypes.map((type) => type.$id));
               }}
               value={
                 // @todo tidy
@@ -109,7 +90,7 @@ const LinkTypeRow = ({
                 description,
               })}
               dropdownProps={{
-                query: search,
+                query: "",
                 createButtonProps: null,
                 variant: "entityType",
               }}
@@ -118,9 +99,10 @@ const LinkTypeRow = ({
               renderTags={(tags, getTagProps) => {
                 return tags.map((tag, index) => (
                   <Chip
+                    {...getTagProps({ index })}
                     color="blue"
                     label={tag.title}
-                    {...getTagProps({ index })}
+                    key={tag.$id}
                   />
                 ));
               }}
