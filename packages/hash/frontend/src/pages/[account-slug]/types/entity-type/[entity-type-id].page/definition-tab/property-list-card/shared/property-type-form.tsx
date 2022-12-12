@@ -25,10 +25,15 @@ import {
 } from "material-ui-popup-state/hooks";
 import { ComponentProps, ReactNode, useEffect, useMemo, useState } from "react";
 import { FormProvider, useForm, UseFormTrigger } from "react-hook-form";
+import { FieldValues } from "react-hook-form/dist/types/fields";
+import { DefaultValues } from "react-hook-form/dist/types/form";
 import { useBlockProtocolGetPropertyType } from "../../../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
 import { Modal } from "../../../../../../../../components/Modals/Modal";
 import { useRouteNamespace } from "../../../../../../shared/use-route-namespace";
-import { PropertyTypeFormValues } from "./property-type-form-values";
+import {
+  BaseTypeFormValues,
+  PropertyTypeFormValues,
+} from "./property-type-form-values";
 import { ExpectedValueSelector } from "./property-type-form/expected-value-selector";
 import { getPropertyTypeSchema } from "./property-type-form/property-type-schema";
 import { CustomExpectedValueBuilderContext } from "./property-type-form/shared/custom-expected-value-builder-context";
@@ -43,20 +48,18 @@ type PropertyTypeFormSubmitProps = Omit<
   "size" | "variant" | "disabled" | "type" | "loading"
 >;
 
-const useTriggerValidation = (
-  defaultValues: Partial<PropertyTypeFormValues>,
-  disabledFields: Set<keyof PropertyTypeFormValues>,
-  trigger: UseFormTrigger<PropertyTypeFormValues>,
+const useTriggerValidation = <FormValues extends FieldValues>(
+  defaultValues: Partial<FormValues>,
+  disabledFields: Set<string>,
+  trigger: UseFormTrigger<FormValues>,
 ) => {
-  const keys = (
-    Object.keys(defaultValues) as any as (keyof typeof defaultValues)[]
-  ).filter(
+  const keys = Object.keys(defaultValues).filter(
     (key) =>
       typeof defaultValues[key] !== "undefined" && !disabledFields.has(key),
   );
   const stringifiedKeys = JSON.stringify(keys);
   const defaultValuesKeys = useMemo(
-    () => JSON.parse(stringifiedKeys) as typeof keys,
+    () => JSON.parse(stringifiedKeys) as (keyof FormValues)[],
     [stringifiedKeys],
   );
 
@@ -75,7 +78,18 @@ export const formDataToPropertyType = (data: PropertyTypeFormValues) => ({
   kind: "propertyType" as const,
 });
 
-const PropertyTypeFormInner = ({
+type PropertyTypeFormInnerProps<TypeFormValues extends BaseTypeFormValues> = {
+  mode: "property" | "link";
+  onClose?: () => void;
+  modalTitle: ReactNode;
+  popupState: PopupState;
+  onSubmit: (data: TypeFormValues) => Promise<void>;
+  submitButtonProps: PropertyTypeFormSubmitProps;
+  getDefaultValues?: () => DefaultValues<TypeFormValues>;
+  fieldProps?: Partial<Record<keyof TypeFormValues, { disabled?: boolean }>>;
+};
+
+const PropertyTypeFormInner = <TypeFormValues extends BaseTypeFormValues>({
   onClose,
   modalTitle,
   popupState,
@@ -83,24 +97,14 @@ const PropertyTypeFormInner = ({
   submitButtonProps,
   getDefaultValues,
   fieldProps = {},
-}: {
-  onClose?: () => void;
-  modalTitle: ReactNode;
-  popupState: PopupState;
-  onSubmit: (data: PropertyTypeFormValues) => Promise<void>;
-  submitButtonProps: PropertyTypeFormSubmitProps;
-  getDefaultValues?: () => Partial<PropertyTypeFormValues>;
-  fieldProps?: Partial<
-    Record<keyof PropertyTypeFormValues, { disabled?: boolean }>
-  >;
-}) => {
-  const defaultValues = getDefaultValues?.() ?? {};
+}: PropertyTypeFormInnerProps<TypeFormValues>) => {
+  const defaultValues = getDefaultValues?.();
 
-  const formMethods = useForm<PropertyTypeFormValues>({
+  const formMethods = useForm<TypeFormValues>({
     defaultValues: {
-      name: defaultValues.name ?? "",
-      description: defaultValues.description ?? "",
-      expectedValues: defaultValues.expectedValues ?? [],
+      name: defaultValues?.name ?? "",
+      description: defaultValues?.description ?? "",
+      ...defaultValues,
     },
     shouldFocusError: true,
     mode: "onBlur",
@@ -141,18 +145,19 @@ const PropertyTypeFormInner = ({
     [creatingCustomExpectedValue, setCreatingCustomExpectedValue, setValue],
   );
 
-  const defaultField = defaultValues.name ? "description" : "name";
+  const defaultField = defaultValues?.name ? "description" : "name";
 
   useEffect(() => {
     setFocus(defaultField);
   }, [setFocus, defaultField]);
 
   const disabledFields = new Set(
-    (Object.keys(fieldProps) as any as (keyof typeof fieldProps)[]).filter(
-      (key) => fieldProps[key]?.disabled,
-    ),
+    Object.entries(fieldProps)
+      .filter(([key, value]) => value?.disabled)
+      .map(([key]) => key),
   );
-  useTriggerValidation(defaultValues, disabledFields, trigger);
+
+  useTriggerValidation(defaultValues ?? {}, disabledFields, trigger);
 
   const { routeNamespace } = useRouteNamespace();
 
