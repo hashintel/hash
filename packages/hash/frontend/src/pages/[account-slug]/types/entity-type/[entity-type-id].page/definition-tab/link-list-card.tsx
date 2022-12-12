@@ -18,7 +18,6 @@ import {
   useLinkEntityTypes,
 } from "../shared/entity-types-context";
 import { EntityTypeEditorForm } from "../shared/form-types";
-import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
@@ -29,6 +28,7 @@ import {
 } from "./shared/entity-type-table";
 import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
 import { QuestionIcon } from "./shared/question-icon";
+import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { useStateCallback } from "./shared/use-state-callback";
 
 const LinkTypeRow = ({
@@ -38,7 +38,8 @@ const LinkTypeRow = ({
   linkIndex: number;
   onRemove: () => void;
 }) => {
-  const { control } = useFormContext<EntityTypeEditorForm>();
+  const { control, register, setValue } =
+    useFormContext<EntityTypeEditorForm>();
   const linkTypes = useLinkEntityTypes();
   const entityTypes = useEntityTypes();
 
@@ -122,7 +123,36 @@ const LinkTypeRow = ({
         />
       </TableCell>
       <TableCell>
-        <input type="checkbox" checked={linkData.maxValue > 1} />
+        <input
+          type="number"
+          {...register(`links.${linkIndex}.minValue`, {
+            valueAsNumber: true,
+            onChange(evt) {
+              const value = evt.target.value;
+              if (value > linkData.maxValue) {
+                setValue(`links.${linkIndex}.maxValue`, value, {
+                  shouldDirty: true,
+                });
+              }
+            },
+          })}
+          min={0}
+        />
+        <input
+          type="number"
+          {...register(`links.${linkIndex}.maxValue`, {
+            valueAsNumber: true,
+            onChange(evt) {
+              const value = evt.target.value;
+              if (value < linkData.minValue) {
+                setValue(`links.${linkIndex}.minValue`, value, {
+                  shouldDirty: true,
+                });
+              }
+            },
+          })}
+          min={1}
+        />
       </TableCell>
       <TypeMenuCell
         typeId={linkData.$id}
