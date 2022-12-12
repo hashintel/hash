@@ -18,10 +18,7 @@ import {
   useLinkEntityTypes,
 } from "../shared/entity-types-context";
 import { EntityTypeEditorForm } from "../shared/form-types";
-import {
-  PROPERTY_MENU_CELL_WIDTH,
-  PropertyMenuCell,
-} from "./property-list-card/property-menu-cell";
+import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
@@ -114,12 +111,13 @@ const LinkTypeRow = ({
       <TableCell>
         <input type="checkbox" checked={linkData.maxValue > 1} />
       </TableCell>
-      <PropertyMenuCell
+      <TypeMenuCell
         typeId={linkData.$id}
         editButtonProps={{}}
         popupState={menuPopupState}
         variant="link"
         onRemove={onRemove}
+        canEdit={false}
       />
     </EntityTypeTableRow>
   );
@@ -205,7 +203,7 @@ export const LinkListCard = () => {
           <TableCell>
             Allowed number of links <QuestionIcon />
           </TableCell>
-          <TableCell width={PROPERTY_MENU_CELL_WIDTH} />
+          <TableCell width={TYPE_MENU_CELL_WIDTH} />
         </EntityTypeTableHeaderRow>
       </TableHead>
       <TableBody>

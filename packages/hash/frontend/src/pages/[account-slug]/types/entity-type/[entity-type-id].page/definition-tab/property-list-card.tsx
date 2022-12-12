@@ -27,10 +27,7 @@ import {
 } from "../shared/property-types-context";
 import { MultipleValuesCell } from "./property-list-card/multiple-values-cell";
 import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
-import {
-  PROPERTY_MENU_CELL_WIDTH,
-  PropertyMenuCell,
-} from "./property-list-card/property-menu-cell";
+import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import {
   formDataToPropertyType,
   PropertyTypeForm,
@@ -120,7 +117,7 @@ export const PropertyTypeRow = ({
           />
         </EntityTypeTableCenteredCell>
 
-        <PropertyMenuCell
+        <TypeMenuCell
           editButtonProps={bindTrigger(editModalPopupState)}
           onRemove={onRemove}
           typeId={property.$id}
@@ -294,7 +291,7 @@ export const PropertyListCard = () => {
           <EntityTypeTableCenteredCell width={100}>
             Required
           </EntityTypeTableCenteredCell>
-          <TableCell width={PROPERTY_MENU_CELL_WIDTH} />
+          <TableCell width={TYPE_MENU_CELL_WIDTH} />
         </EntityTypeTableHeaderRow>
       </TableHead>
       <TableBody>

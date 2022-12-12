@@ -1,4 +1,4 @@
-import { extractVersion, PropertyType } from "@blockprotocol/type-system";
+import { extractVersion } from "@blockprotocol/type-system";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
@@ -20,7 +20,6 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { Version } from "@ory/client";
 import {
   bindMenu,
   bindTrigger,
@@ -33,20 +32,22 @@ import {
   parseUriForOntologyChip,
 } from "../../../../../shared/ontology-chip";
 
-export const PROPERTY_MENU_CELL_WIDTH = 70;
+export const TYPE_MENU_CELL_WIDTH = 70;
 
-export const PropertyMenuCell = ({
+export const TypeMenuCell = ({
   typeId,
   editButtonProps,
   onRemove,
   popupState,
   variant,
+  canEdit = true,
 }: {
   typeId: VersionedUri;
   editButtonProps: MenuItemProps;
   onRemove?: () => void;
   popupState: PopupState;
   variant: "property" | "link";
+  canEdit?: boolean;
 }) => {
   const version = extractVersion(typeId);
   const ontology = parseUriForOntologyChip(typeId);
@@ -107,19 +108,21 @@ export const PropertyMenuCell = ({
           Actions
         </Typography>
 
-        <MenuItem
-          {...editButtonProps}
-          onClick={(evt) => {
-            popupState.close();
-            editButtonProps.onClick?.(evt);
-          }}
-          onTouchStart={(evt) => {
-            popupState.close();
-            editButtonProps.onTouchStart?.(evt);
-          }}
-        >
-          <ListItemText primary={<>Edit {variant}</>} />
-        </MenuItem>
+        {canEdit ? (
+          <MenuItem
+            {...editButtonProps}
+            onClick={(evt) => {
+              popupState.close();
+              editButtonProps.onClick?.(evt);
+            }}
+            onTouchStart={(evt) => {
+              popupState.close();
+              editButtonProps.onTouchStart?.(evt);
+            }}
+          >
+            <ListItemText primary={<>Edit {variant}</>} />
+          </MenuItem>
+        ) : null}
         <MenuItem
           onClick={() => {
             popupState.close();
