@@ -19,7 +19,6 @@
 mod error;
 
 extern crate alloc;
-extern crate core;
 
 #[cfg(feature = "arbitrary-precision")]
 use alloc::format;
