@@ -26,7 +26,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { bindTrigger } from "material-ui-popup-state";
-import { types } from "@hashintel/hash-shared/types";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import { extractBaseUri } from "@blockprotocol/type-system";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { isEqual } from "lodash";

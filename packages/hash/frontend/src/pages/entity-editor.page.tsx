@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Container, Typography } from "@mui/material";
 import { ValueOrArray, Array } from "@blockprotocol/type-system";
 import { Button } from "@hashintel/hash-design-system";
-import { types } from "@hashintel/hash-shared/types";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";

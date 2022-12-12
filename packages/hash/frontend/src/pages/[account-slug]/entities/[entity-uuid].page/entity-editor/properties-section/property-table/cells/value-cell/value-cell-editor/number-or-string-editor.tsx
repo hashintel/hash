@@ -1,5 +1,5 @@
 import { TextField } from "@hashintel/hash-design-system";
-import { types } from "@hashintel/hash-shared/types";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import produce from "immer";
 import { ValueCellEditorComponent } from "../types";
 

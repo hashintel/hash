@@ -5,7 +5,7 @@ import { Button } from "@hashintel/hash-design-system";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { extractBaseUri } from "@blockprotocol/type-system";
-import { types } from "@hashintel/hash-shared/types";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import {
   EntityId,
   extractEntityUuidFromEntityId,

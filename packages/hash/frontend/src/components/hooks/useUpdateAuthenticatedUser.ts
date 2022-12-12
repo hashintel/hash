@@ -1,7 +1,7 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
 import { useCallback, useState } from "react";
 
-import { types } from "@hashintel/hash-shared/types";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import { extractBaseUri } from "@blockprotocol/type-system";
 import { GraphQLError } from "graphql";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
