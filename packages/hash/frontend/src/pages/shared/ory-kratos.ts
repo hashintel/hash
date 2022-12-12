@@ -39,7 +39,7 @@ export const oryKratosClient = new FrontendApi(
 
 export const fetchKratosSession = async (cookieString?: string) => {
   const kratosSession = await oryKratosClient
-    .toSession(undefined, cookieString)
+    .toSession({ cookie: cookieString })
     .then(({ data }) => data)
     .catch(() => undefined);
 
