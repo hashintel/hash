@@ -103,4 +103,5 @@ identity:
 # courier:
 #   template_override_path: /etc/config/kratos/templates
 #   smtp:
+#     # Set through COURIER_SMTP_CONNECTION_URI
 #     connection_uri: set-through-env-arg-COURIER_SMTP_CONNECTION_URI
