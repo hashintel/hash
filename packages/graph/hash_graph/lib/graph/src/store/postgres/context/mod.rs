@@ -1,7 +1,7 @@
 mod ontology;
 
 use async_trait::async_trait;
-use error_stack::{Context, Result, ResultExt};
+use error_stack::{Result, ResultExt};
 use type_system::uri::BaseUri;
 
 pub use self::ontology::OntologyRecord;
@@ -21,7 +21,7 @@ pub trait PostgresContext {
         base_uri: &BaseUri,
     ) -> Result<OntologyRecord<T>, QueryError>
     where
-        T: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context>;
+        T: OntologyDatabaseType;
 }
 
 #[async_trait]
@@ -31,7 +31,7 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
         base_uri: &BaseUri,
     ) -> Result<OntologyRecord<T>, QueryError>
     where
-        T: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context>,
+        T: OntologyDatabaseType,
     {
         ontology::read_latest_type(&self.client, base_uri)
             .await

@@ -11,7 +11,7 @@ use axum::{
 use error_stack::IntoReport;
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
-use type_system::{uri::VersionedUri, EntityType};
+use type_system::{repr, uri::VersionedUri, EntityType};
 use utoipa::{OpenApi, ToSchema};
 
 use crate::{
@@ -109,7 +109,7 @@ impl RoutedResource for EntityTypeResource {
 #[serde(rename_all = "camelCase")]
 struct CreateEntityTypeRequest {
     #[schema(value_type = VAR_ENTITY_TYPE)]
-    schema: serde_json::Value,
+    schema: repr::EntityType,
     owned_by_id: OwnedById,
     actor_id: UpdatedById,
 }

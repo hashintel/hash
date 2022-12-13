@@ -11,7 +11,7 @@ use axum::{
 use error_stack::IntoReport;
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
-use type_system::{uri::VersionedUri, DataType};
+use type_system::{repr, uri::VersionedUri, DataType};
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
@@ -99,7 +99,7 @@ impl RoutedResource for DataTypeResource {
 #[serde(rename_all = "camelCase")]
 struct CreateDataTypeRequest {
     #[schema(value_type = VAR_DATA_TYPE)]
-    schema: serde_json::Value,
+    schema: repr::DataType,
     owned_by_id: OwnedById,
     actor_id: UpdatedById,
 }

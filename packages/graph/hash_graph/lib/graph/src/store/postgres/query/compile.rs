@@ -472,6 +472,19 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
                     // We don't have a join statement for this column yet, so we need to create one.
                     current_table = join_expression.join.table();
                     self.statement.joins.push(join_expression);
+
+                    // TODO: Remove special casing when adjusting structural queries
+                    //   see https://app.asana.com/0/0/1203491211535116/f
+                    if matches!(current_column.column, Column::Entities(_)) {
+                        self.statement
+                            .where_expression
+                            .add_condition(Condition::RangeContains(
+                                Expression::Column(
+                                    Column::Entities(Entities::DecisionTime).aliased(current_alias),
+                                ),
+                                Expression::Function(Function::Now),
+                            ));
+                    }
                 }
             }
             self.add_special_relation_conditions(relation, current_alias, current_table);
