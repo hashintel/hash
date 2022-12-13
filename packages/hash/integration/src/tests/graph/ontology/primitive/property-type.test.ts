@@ -6,10 +6,18 @@ import {
   PropertyType,
   TypeSystemInitializer,
 } from "@blockprotocol/type-system";
-import { PropertyTypeModel, UserModel } from "@hashintel/hash-api/src/model";
-import { DataTypeWithMetadata } from "@hashintel/hash-subgraph";
+import { UserModel } from "@hashintel/hash-api/src/model";
+import {
+  createPropertyType,
+  getPropertyType,
+  updatePropertyType,
+} from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
+import {
+  DataTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@hashintel/hash-subgraph";
 import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
-import { createTestUser } from "../../util";
+import { createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -62,44 +70,50 @@ beforeAll(async () => {
 });
 
 describe("Property type CRU", () => {
-  let createdPropertyTypeModel: PropertyTypeModel;
+  let createdPropertyType: PropertyTypeWithMetadata;
 
   it("can create a property type", async () => {
-    createdPropertyTypeModel = await PropertyTypeModel.create(graphApi, {
-      ownedById: testUser.getEntityUuid(),
-      schema: propertyTypeSchema,
-      actorId: testUser.getEntityUuid(),
-    });
+    createdPropertyType = await createPropertyType(
+      { graphApi },
+      {
+        ownedById: testUser.getEntityUuid(),
+        schema: propertyTypeSchema,
+        actorId: testUser.getEntityUuid(),
+      },
+    );
   });
 
   it("can read a property type", async () => {
-    const fetchedPropertyType = await PropertyTypeModel.get(graphApi, {
-      propertyTypeId: createdPropertyTypeModel.getSchema().$id,
-    });
-
-    expect(fetchedPropertyType.getSchema()).toEqual(
-      createdPropertyTypeModel.getSchema(),
+    const fetchedPropertyType = await getPropertyType(
+      { graphApi },
+      {
+        propertyTypeId: createdPropertyType.schema.$id,
+      },
     );
+
+    expect(fetchedPropertyType.schema).toEqual(createdPropertyType.schema);
   });
 
   const updatedTitle = "New test!";
 
   it("can update a property type", async () => {
-    expect(createdPropertyTypeModel.getMetadata().provenance.updatedById).toBe(
+    expect(createdPropertyType.metadata.provenance.updatedById).toBe(
       testUser.getEntityUuid(),
     );
 
-    createdPropertyTypeModel = await createdPropertyTypeModel
-      .update(graphApi, {
+    createdPropertyType = await updatePropertyType(
+      { graphApi },
+      {
+        propertyTypeId: createdPropertyType.schema.$id,
         schema: {
           ...propertyTypeSchema,
           title: updatedTitle,
         },
         actorId: testUser2.getEntityUuid(),
-      })
-      .catch((err) => Promise.reject(err.data));
+      },
+    ).catch((err) => Promise.reject(err.data));
 
-    expect(createdPropertyTypeModel.getMetadata().provenance.updatedById).toBe(
+    expect(createdPropertyType.metadata.provenance.updatedById).toBe(
       testUser2.getEntityUuid(),
     );
   });

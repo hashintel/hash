@@ -77,12 +77,15 @@ export default class extends EntityModel {
     const index = generateKeyBetween(prevIndex ?? null, null);
 
     const properties: PropertyObject = {
-      [SYSTEM_TYPES.propertyType.title.getBaseUri()]: title,
+      [SYSTEM_TYPES.propertyType.title.metadata.editionId.baseId]: title,
       ...(summary
-        ? { [SYSTEM_TYPES.propertyType.summary.getBaseUri()]: summary }
+        ? {
+            [SYSTEM_TYPES.propertyType.summary.metadata.editionId.baseId]:
+              summary,
+          }
         : {}),
       ...(index !== undefined
-        ? { [SYSTEM_TYPES.propertyType.index.getBaseUri()]: index }
+        ? { [SYSTEM_TYPES.propertyType.index.metadata.editionId.baseId]: index }
         : {}),
     };
 
@@ -107,7 +110,8 @@ export default class extends EntityModel {
               blockData: await EntityModel.create(graphApi, {
                 ownedById,
                 properties: {
-                  [SYSTEM_TYPES.propertyType.tokens.getBaseUri()]: [],
+                  [SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId]:
+                    [],
                 },
                 entityTypeModel: SYSTEM_TYPES.entityType.text,
                 actorId,
@@ -173,7 +177,7 @@ export default class extends EntityModel {
    */
   getTitle(): string {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.title.getBaseUri()
+      SYSTEM_TYPES.propertyType.title.metadata.editionId.baseId
     ];
   }
 
@@ -182,7 +186,7 @@ export default class extends EntityModel {
    */
   getSummary(): string | undefined {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.summary.getBaseUri()
+      SYSTEM_TYPES.propertyType.summary.metadata.editionId.baseId
     ];
   }
 
@@ -191,7 +195,7 @@ export default class extends EntityModel {
    */
   getIndex(): string | undefined {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.index.getBaseUri()
+      SYSTEM_TYPES.propertyType.index.metadata.editionId.baseId
     ];
   }
 
@@ -200,7 +204,7 @@ export default class extends EntityModel {
    */
   getIcon(): string | undefined {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.icon.getBaseUri()
+      SYSTEM_TYPES.propertyType.icon.metadata.editionId.baseId
     ];
   }
 
@@ -209,7 +213,7 @@ export default class extends EntityModel {
    */
   getArchived(): boolean | undefined {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.archived.getBaseUri()
+      SYSTEM_TYPES.propertyType.archived.metadata.editionId.baseId
     ];
   }
 
@@ -359,7 +363,8 @@ export default class extends EntityModel {
 
     if (this.getIndex() !== newIndex) {
       const updatedPageEntityModel = await this.updateProperty(graphApi, {
-        propertyTypeBaseUri: SYSTEM_TYPES.propertyType.index.getBaseUri(),
+        propertyTypeBaseUri:
+          SYSTEM_TYPES.propertyType.index.metadata.editionId.baseId,
         value: newIndex,
         actorId,
       });

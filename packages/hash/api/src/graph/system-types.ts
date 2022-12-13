@@ -1,9 +1,10 @@
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { types } from "@hashintel/hash-shared/ontology-types";
+import { PropertyTypeWithMetadata } from "@hashintel/hash-subgraph";
 import { logger } from "../logger";
 
-import { EntityTypeModel, PropertyTypeModel } from "../model";
+import { EntityTypeModel } from "../model";
 import { propertyTypeInitializer, entityTypeInitializer } from "../model/util";
 
 // eslint-disable-next-line import/no-mutable-exports
@@ -11,42 +12,42 @@ export let SYSTEM_TYPES: {
   dataType: {};
   propertyType: {
     // General account related
-    shortName: PropertyTypeModel;
+    shortName: PropertyTypeWithMetadata;
 
     // User-related
-    email: PropertyTypeModel;
-    kratosIdentityId: PropertyTypeModel;
-    preferredName: PropertyTypeModel;
+    email: PropertyTypeWithMetadata;
+    kratosIdentityId: PropertyTypeWithMetadata;
+    preferredName: PropertyTypeWithMetadata;
 
     // Org-related
-    orgName: PropertyTypeModel;
-    orgSize: PropertyTypeModel;
-    orgProvidedInfo: PropertyTypeModel;
+    orgName: PropertyTypeWithMetadata;
+    orgSize: PropertyTypeWithMetadata;
+    orgProvidedInfo: PropertyTypeWithMetadata;
 
     // OrgMembership-related
-    responsibility: PropertyTypeModel;
+    responsibility: PropertyTypeWithMetadata;
 
     // Block-related
-    componentId: PropertyTypeModel;
+    componentId: PropertyTypeWithMetadata;
 
     // Page-related
-    archived: PropertyTypeModel;
-    summary: PropertyTypeModel;
-    title: PropertyTypeModel;
-    index: PropertyTypeModel;
-    icon: PropertyTypeModel;
+    archived: PropertyTypeWithMetadata;
+    summary: PropertyTypeWithMetadata;
+    title: PropertyTypeWithMetadata;
+    index: PropertyTypeWithMetadata;
+    icon: PropertyTypeWithMetadata;
 
     // Text-related
-    tokens: PropertyTypeModel;
+    tokens: PropertyTypeWithMetadata;
 
     // Comment-related
-    resolvedAt: PropertyTypeModel;
-    deletedAt: PropertyTypeModel;
+    resolvedAt: PropertyTypeWithMetadata;
+    deletedAt: PropertyTypeWithMetadata;
 
     // HASH Instance related
-    userSelfRegistrationIsEnabled: PropertyTypeModel;
-    userRegistrationByInviteIsEnabled: PropertyTypeModel;
-    orgSelfRegistrationIsEnabled: PropertyTypeModel;
+    userSelfRegistrationIsEnabled: PropertyTypeWithMetadata;
+    userRegistrationByInviteIsEnabled: PropertyTypeWithMetadata;
+    orgSelfRegistrationIsEnabled: PropertyTypeWithMetadata;
   };
   entityType: {
     hashInstance: EntityTypeModel;
@@ -107,17 +108,17 @@ export const adminLinkEntityTypeInitializer = entityTypeInitializer(
 export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
 
-  const userSelfRegistrationIsEnabledPropertyTypeModel =
+  const userSelfRegistrationIsEnabledPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.userSelfRegistrationIsEnabled(
       graphApi,
     );
 
-  const orgSelfRegistrationIsEnabledPropertyTypeModel =
+  const orgSelfRegistrationIsEnabledPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.orgSelfRegistrationIsEnabled(
       graphApi,
     );
 
-  const userRegistrationByInviteIsEnabledPropertyTypeModel =
+  const userRegistrationByInviteIsEnabledPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.userRegistrationByInviteIsEnabled(
       graphApi,
     );
@@ -135,15 +136,15 @@ export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
     ...types.entityType.hashInstance,
     properties: [
       {
-        propertyTypeModel: userSelfRegistrationIsEnabledPropertyTypeModel,
+        propertyType: userSelfRegistrationIsEnabledPropertyType,
         required: true,
       },
       {
-        propertyTypeModel: orgSelfRegistrationIsEnabledPropertyTypeModel,
+        propertyType: orgSelfRegistrationIsEnabledPropertyType,
         required: true,
       },
       {
-        propertyTypeModel: userRegistrationByInviteIsEnabledPropertyTypeModel,
+        propertyType: userRegistrationByInviteIsEnabledPropertyType,
         required: true,
       },
     ],
@@ -160,11 +161,11 @@ export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
 export const orgProvidedInfoPropertyTypeInitializer = async (
   graphApi: GraphApi,
 ) => {
-  const orgSizePropertyTypeModel =
+  const orgSizePropertyType =
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     await SYSTEM_TYPES_INITIALIZERS.propertyType.orgSize(graphApi);
 
-  const orgSizeBaseUri = orgSizePropertyTypeModel.getBaseUri();
+  const orgSizeBaseUri = orgSizePropertyType.metadata.editionId.baseId;
 
   return propertyTypeInitializer({
     ...types.propertyType.orgProvidedInfo,
@@ -172,7 +173,7 @@ export const orgProvidedInfoPropertyTypeInitializer = async (
       {
         propertyTypeObjectProperties: {
           [orgSizeBaseUri]: {
-            $ref: orgSizePropertyTypeModel.getSchema().$id,
+            $ref: orgSizePropertyType.schema.$id,
           },
         },
       },
@@ -183,13 +184,13 @@ export const orgProvidedInfoPropertyTypeInitializer = async (
 // Generate the schema for the org entity type
 export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
-  const shortnamePropertyTypeModel =
+  const shortnamePropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.shortName(graphApi);
 
-  const orgNamePropertyTypeModel =
+  const orgNamePropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.orgName(graphApi);
 
-  const orgProvidedInfoPropertyTypeModel =
+  const orgProvidedInfoPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.orgProvidedInfo(graphApi);
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
@@ -197,15 +198,15 @@ export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
     ...types.entityType.org,
     properties: [
       {
-        propertyTypeModel: shortnamePropertyTypeModel,
+        propertyType: shortnamePropertyType,
         required: true,
       },
       {
-        propertyTypeModel: orgNamePropertyTypeModel,
+        propertyType: orgNamePropertyType,
         required: true,
       },
       {
-        propertyTypeModel: orgProvidedInfoPropertyTypeModel,
+        propertyType: orgProvidedInfoPropertyType,
         required: false,
       },
     ],
@@ -249,7 +250,7 @@ const responsibilityPropertyTypeInitializer = propertyTypeInitializer({
 
 const orgMembershipLinkEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
-  const responsibilityPropertyTypeModel =
+  const responsibilityPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.responsibility(graphApi);
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
@@ -257,7 +258,7 @@ const orgMembershipLinkEntityTypeInitializer = async (graphApi: GraphApi) => {
     ...types.linkEntityType.orgMembership,
     properties: [
       {
-        propertyTypeModel: responsibilityPropertyTypeModel,
+        propertyType: responsibilityPropertyType,
         required: true,
       },
     ],
@@ -266,16 +267,17 @@ const orgMembershipLinkEntityTypeInitializer = async (graphApi: GraphApi) => {
 
 const userEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
-  const shortnamePropertyTypeModel =
+  const shortnamePropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.shortName(graphApi);
 
-  const emailPropertyTypeModel =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.email(graphApi);
+  const emailPropertyType = await SYSTEM_TYPES_INITIALIZERS.propertyType.email(
+    graphApi,
+  );
 
-  const kratosIdentityIdPropertyTypeModel =
+  const kratosIdentityIdPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.kratosIdentityId(graphApi);
 
-  const preferredNamePropertyTypeModel =
+  const preferredNamePropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.preferredName(graphApi);
 
   const orgEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.org(
@@ -291,19 +293,19 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
     ...types.entityType.user,
     properties: [
       {
-        propertyTypeModel: shortnamePropertyTypeModel,
+        propertyType: shortnamePropertyType,
       },
       {
-        propertyTypeModel: emailPropertyTypeModel,
+        propertyType: emailPropertyType,
         required: true,
         array: { minItems: 1 },
       },
       {
-        propertyTypeModel: kratosIdentityIdPropertyTypeModel,
+        propertyType: kratosIdentityIdPropertyType,
         required: true,
       },
       {
-        propertyTypeModel: preferredNamePropertyTypeModel,
+        propertyType: preferredNamePropertyType,
         required: true,
       },
     ],
@@ -329,7 +331,7 @@ const blockDataLinkEntityTypeInitializer = entityTypeInitializer(
 const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
 
-  const componentIdPropertyTypeModel =
+  const componentIdPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.componentId(graphApi);
 
   const blockDataLinkEntityTypeModel =
@@ -345,7 +347,7 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
     ...types.entityType.block,
     properties: [
       {
-        propertyTypeModel: componentIdPropertyTypeModel,
+        propertyType: componentIdPropertyType,
         required: true,
       },
     ],
@@ -376,7 +378,7 @@ const tokensPropertyTypeInitializer = propertyTypeInitializer({
 const textEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
 
-  const tokensPropertyTypeModel =
+  const tokensPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.tokens(graphApi);
 
   /* eslint-enable @typescript-eslint/no-use-before-define */
@@ -384,7 +386,7 @@ const textEntityTypeInitializer = async (graphApi: GraphApi) => {
     ...types.entityType.text,
     properties: [
       {
-        propertyTypeModel: tokensPropertyTypeModel,
+        propertyType: tokensPropertyType,
         required: true,
         array: true,
       },
@@ -439,20 +441,23 @@ const parentLinkEntityTypeInitializer = entityTypeInitializer(
 const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
 
-  const summaryPropertyTypeModel =
+  const summaryPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.summary(graphApi);
 
-  const archivedPropertyTypeModel =
+  const archivedPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.archived(graphApi);
 
-  const titlePropertyTypeModel =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.title(graphApi);
+  const titlePropertyType = await SYSTEM_TYPES_INITIALIZERS.propertyType.title(
+    graphApi,
+  );
 
-  const indexPropertyTypeModel =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.index(graphApi);
+  const indexPropertyType = await SYSTEM_TYPES_INITIALIZERS.propertyType.index(
+    graphApi,
+  );
 
-  const iconPropertyTypeModel =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.icon(graphApi);
+  const iconPropertyType = await SYSTEM_TYPES_INITIALIZERS.propertyType.icon(
+    graphApi,
+  );
 
   const containsLinkEntityTypeModel =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.contains(graphApi);
@@ -470,20 +475,20 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
     ...types.entityType.page,
     properties: [
       {
-        propertyTypeModel: summaryPropertyTypeModel,
+        propertyType: summaryPropertyType,
       },
       {
-        propertyTypeModel: archivedPropertyTypeModel,
+        propertyType: archivedPropertyType,
       },
       {
-        propertyTypeModel: iconPropertyTypeModel,
+        propertyType: iconPropertyType,
       },
       {
-        propertyTypeModel: titlePropertyTypeModel,
+        propertyType: titlePropertyType,
         required: true,
       },
       {
-        propertyTypeModel: indexPropertyTypeModel,
+        propertyType: indexPropertyType,
         required: true,
       },
     ],
@@ -524,10 +529,10 @@ const authorLinkEntityTypeInitializer = entityTypeInitializer(
 const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
 
-  const resolvedAtPropertyTypeModel =
+  const resolvedAtPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.resolvedAt(graphApi);
 
-  const deletedAtPropertyTypeModel =
+  const deletedAtPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.deletedAt(graphApi);
 
   const hasTextLinkEntityTypeModel =
@@ -557,10 +562,10 @@ const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
     ...types.entityType.comment,
     properties: [
       {
-        propertyTypeModel: resolvedAtPropertyTypeModel,
+        propertyType: resolvedAtPropertyType,
       },
       {
-        propertyTypeModel: deletedAtPropertyTypeModel,
+        propertyType: deletedAtPropertyType,
       },
     ],
     outgoingLinks: [
@@ -685,7 +690,9 @@ export const ensureSystemTypesExist = async (params: {
       string,
       (
         graphApi: GraphApi,
-      ) => Promise<PropertyTypeModel | EntityTypeModel | EntityTypeModel>,
+      ) => Promise<
+        PropertyTypeWithMetadata | EntityTypeModel | EntityTypeModel
+      >,
     ][]) {
       logger.debug(`Checking system type: [${key}] exists`);
       const model = await typeInitializer(graphApi);

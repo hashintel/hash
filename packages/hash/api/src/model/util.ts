@@ -14,10 +14,15 @@ import {
   PrimitiveDataTypeKey,
   types,
 } from "@hashintel/hash-shared/ontology-types";
+import { PropertyTypeWithMetadata } from "@hashintel/hash-subgraph";
 import { AxiosError } from "axios";
-import { EntityTypeModel, PropertyTypeModel } from ".";
+import { EntityTypeModel } from ".";
 import { GraphApi } from "../graph";
 import { systemUserAccountId } from "../graph/system-user";
+import {
+  createPropertyType,
+  getPropertyType,
+} from "../graph/ontology/primitive/property-type";
 import { logger } from "../logger";
 
 /** @todo: enable admins to expand upon restricted shortnames block list */
@@ -142,34 +147,40 @@ export const generateSystemPropertyTypeSchema = (
  * likely to cause problems if we introduce circular dependencies)
  *
  * @param params the data required to create a new property type
- * @returns an async function which can be called to initialize the property type, returning its PropertyTypeModel
+ * @returns an async function which can be called to initialize the property type, returning its property type
  */
 export const propertyTypeInitializer = (
   params: PropertyTypeCreatorParams,
-): ((graphApi: GraphApi) => Promise<PropertyTypeModel>) => {
-  let propertyTypeModel: PropertyTypeModel;
+): ((graphApi: GraphApi) => Promise<PropertyTypeWithMetadata>) => {
+  let propertyType: PropertyTypeWithMetadata;
 
   return async (graphApi?: GraphApi) => {
-    if (propertyTypeModel) {
-      return propertyTypeModel;
+    if (propertyType) {
+      return propertyType;
     } else if (!graphApi) {
       throw new Error(
         `property type ${params.title} was uninitialized, and function was called without passing a graphApi object`,
       );
     } else {
-      const propertyType = generateSystemPropertyTypeSchema(params);
+      const propertyTypeSchema = generateSystemPropertyTypeSchema(params);
 
       // initialize
-      propertyTypeModel = await PropertyTypeModel.get(graphApi, {
-        propertyTypeId: propertyType.$id,
-      }).catch(async (error: AxiosError) => {
+      propertyType = await getPropertyType(
+        { graphApi },
+        {
+          propertyTypeId: propertyTypeSchema.$id,
+        },
+      ).catch(async (error: AxiosError) => {
         if (error.response?.status === 404) {
           // The type was missing, try and create it
-          return await PropertyTypeModel.create(graphApi, {
-            ownedById: systemUserAccountId,
-            schema: propertyType,
-            actorId: systemUserAccountId,
-          }).catch((createError: AxiosError) => {
+          return await createPropertyType(
+            { graphApi },
+            {
+              ownedById: systemUserAccountId,
+              schema: propertyTypeSchema,
+              actorId: systemUserAccountId,
+            },
+          ).catch((createError: AxiosError) => {
             logger.warn(`Failed to create property type: ${params.title}`);
             throw createError;
           });
@@ -181,7 +192,7 @@ export const propertyTypeInitializer = (
         }
       });
 
-      return propertyTypeModel;
+      return propertyType;
     }
   };
 };
@@ -191,7 +202,7 @@ export type EntityTypeCreatorParams = {
   title: string;
   description?: string;
   properties?: {
-    propertyTypeModel: PropertyTypeModel;
+    propertyType: PropertyTypeWithMetadata;
     required?: boolean;
     array?: { minItems?: number; maxItems?: number } | boolean;
   }[];
@@ -218,22 +229,22 @@ export const generateSystemEntityTypeSchema = (
   /** @todo - clean this up to be more readable: https://app.asana.com/0/1202805690238892/1202931031833226/f */
   const properties =
     params.properties?.reduce(
-      (prev, { propertyTypeModel, array }) => ({
+      (prev, { propertyType, array }) => ({
         ...prev,
-        [propertyTypeModel.getBaseUri()]: array
+        [propertyType.metadata.editionId.baseId]: array
           ? {
               type: "array",
-              items: { $ref: propertyTypeModel.getSchema().$id },
+              items: { $ref: propertyType.schema.$id },
               ...(array === true ? {} : array),
             }
-          : { $ref: propertyTypeModel.getSchema().$id },
+          : { $ref: propertyType.schema.$id },
       }),
       {},
     ) ?? {};
 
   const requiredProperties = params.properties
     ?.filter(({ required }) => !!required)
-    .map(({ propertyTypeModel }) => propertyTypeModel.getBaseUri());
+    .map(({ propertyType }) => propertyType.metadata.editionId.baseId);
 
   const links =
     params.outgoingLinks?.reduce<EntityType["links"]>(

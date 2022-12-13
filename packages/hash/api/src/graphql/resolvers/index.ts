@@ -22,10 +22,10 @@ import {
 import { getLinkedAggregation } from "./linkedAggregation/getLinkedAggregation";
 import { getAllLatestDataTypes, getDataType } from "./ontology/data-type";
 import {
-  createPropertyType,
-  getAllLatestPropertyTypes,
-  getPropertyType,
-  updatePropertyType,
+  createPropertyTypeResolver,
+  getAllLatestPropertyTypesResolver,
+  getPropertyTypeResolver,
+  updatePropertyTypeResolver,
 } from "./ontology/property-type";
 
 import {
@@ -82,8 +82,10 @@ export const resolvers = {
     // Ontology
     getAllLatestDataTypes: loggedInAndSignedUp(getAllLatestDataTypes),
     getDataType,
-    getAllLatestPropertyTypes: loggedInAndSignedUp(getAllLatestPropertyTypes),
-    getPropertyType,
+    getAllLatestPropertyTypes: loggedInAndSignedUp(
+      getAllLatestPropertyTypesResolver,
+    ),
+    getPropertyType: getPropertyTypeResolver,
     getAllLatestEntityTypes: loggedInAndSignedUp(getAllLatestEntityTypes),
     getEntityType,
     // Knowledge
@@ -112,8 +114,8 @@ export const resolvers = {
     executeGithubDiscoverTask: loggedInAndSignedUp(executeGithubDiscoverTask),
     executeGithubReadTask: loggedInAndSignedUp(executeGithubReadTask),
     // Ontology
-    createPropertyType: loggedInAndSignedUp(createPropertyType),
-    updatePropertyType: loggedInAndSignedUp(updatePropertyType),
+    createPropertyType: loggedInAndSignedUp(createPropertyTypeResolver),
+    updatePropertyType: loggedInAndSignedUp(updatePropertyTypeResolver),
     createEntityType: loggedInAndSignedUp(createEntityType),
     updateEntityType: loggedInAndSignedUp(updateEntityType),
     // Knowledge

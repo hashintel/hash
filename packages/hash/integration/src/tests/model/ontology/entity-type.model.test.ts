@@ -2,15 +2,15 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
-import {
-  EntityTypeModel,
-  PropertyTypeModel,
-  UserModel,
-} from "@hashintel/hash-api/src/model";
+import { EntityTypeModel, UserModel } from "@hashintel/hash-api/src/model";
 import { EntityType, TypeSystemInitializer } from "@blockprotocol/type-system";
 import { linkEntityTypeUri } from "@hashintel/hash-api/src/model/util";
-import { DataTypeWithMetadata } from "@hashintel/hash-subgraph";
+import {
+  DataTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@hashintel/hash-subgraph";
 import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
+import { createPropertyType } from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -34,8 +34,8 @@ let testUser2: UserModel;
 let entityTypeSchema: Omit<EntityType, "$id">;
 let workerEntityTypeModel: EntityTypeModel;
 let textDataType: DataTypeWithMetadata;
-let namePropertyTypeModel: PropertyTypeModel;
-let favoriteBookPropertyTypeModel: PropertyTypeModel;
+let namePropertyType: PropertyTypeWithMetadata;
+let favoriteBookPropertyType: PropertyTypeWithMetadata;
 let knowsLinkEntityTypeModel: EntityTypeModel;
 let previousAddressLinkEntityTypeModel: EntityTypeModel;
 let addressEntityTypeModel: EntityTypeModel;
@@ -83,27 +83,33 @@ beforeAll(async () => {
     }).then((val) => {
       addressEntityTypeModel = val;
     }),
-    PropertyTypeModel.create(graphApi, {
-      ownedById: testUser.getEntityUuid(),
-      schema: {
-        kind: "propertyType",
-        title: "Favorite Book",
-        oneOf: [{ $ref: textDataType.schema.$id }],
+    createPropertyType(
+      { graphApi },
+      {
+        ownedById: testUser.getEntityUuid(),
+        schema: {
+          kind: "propertyType",
+          title: "Favorite Book",
+          oneOf: [{ $ref: textDataType.schema.$id }],
+        },
+        actorId: testUser.getEntityUuid(),
       },
-      actorId: testUser.getEntityUuid(),
-    }).then((val) => {
-      favoriteBookPropertyTypeModel = val;
+    ).then((val) => {
+      favoriteBookPropertyType = val;
     }),
-    PropertyTypeModel.create(graphApi, {
-      ownedById: testUser.getEntityUuid(),
-      schema: {
-        kind: "propertyType",
-        title: "Name",
-        oneOf: [{ $ref: textDataType.schema.$id }],
+    createPropertyType(
+      { graphApi },
+      {
+        ownedById: testUser.getEntityUuid(),
+        schema: {
+          kind: "propertyType",
+          title: "Name",
+          oneOf: [{ $ref: textDataType.schema.$id }],
+        },
+        actorId: testUser.getEntityUuid(),
       },
-      actorId: testUser.getEntityUuid(),
-    }).then((val) => {
-      namePropertyTypeModel = val;
+    ).then((val) => {
+      namePropertyType = val;
     }),
     EntityTypeModel.create(graphApi, {
       ownedById: testUser.getEntityUuid(),
@@ -140,11 +146,11 @@ beforeAll(async () => {
     title: "Some",
     type: "object",
     properties: {
-      [favoriteBookPropertyTypeModel.getBaseUri()]: {
-        $ref: favoriteBookPropertyTypeModel.getSchema().$id,
+      [favoriteBookPropertyType.metadata.editionId.baseId]: {
+        $ref: favoriteBookPropertyType.schema.$id,
       },
-      [namePropertyTypeModel.getBaseUri()]: {
-        $ref: namePropertyTypeModel.getSchema().$id,
+      [namePropertyType.metadata.editionId.baseId]: {
+        $ref: namePropertyType.schema.$id,
       },
     },
     links: {
@@ -239,14 +245,12 @@ describe("Entity type CRU", () => {
     expect(propertyTypes).toHaveLength(2);
 
     const propertyTypeVersioned$ids = propertyTypes.map(
-      (pt) => pt.getSchema().$id,
+      ({ schema }) => schema.$id,
     );
 
+    expect(propertyTypeVersioned$ids).toContain(namePropertyType.schema.$id);
     expect(propertyTypeVersioned$ids).toContain(
-      namePropertyTypeModel.getSchema().$id,
-    );
-    expect(propertyTypeVersioned$ids).toContain(
-      favoriteBookPropertyTypeModel.getSchema().$id,
+      favoriteBookPropertyType.schema.$id,
     );
   });
 

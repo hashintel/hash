@@ -5,9 +5,6 @@
 // import File from "./file.model";
 import Aggregation from "./aggregation.model";
 
-export * from "./ontology/property-type.model";
-export { default as PropertyTypeModel } from "./ontology/property-type.model";
-
 export * from "./ontology/entity-type.model";
 export { default as EntityTypeModel } from "./ontology/entity-type.model";
 

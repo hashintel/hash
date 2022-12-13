@@ -64,7 +64,8 @@ export default class extends EntityModel {
     const { componentId, blockData, ownedById, actorId } = params;
 
     const properties: PropertyObject = {
-      [SYSTEM_TYPES.propertyType.componentId.getBaseUri()]: componentId,
+      [SYSTEM_TYPES.propertyType.componentId.metadata.editionId.baseId]:
+        componentId,
     };
 
     const entityTypeModel = SYSTEM_TYPES.entityType.block;
@@ -91,7 +92,7 @@ export default class extends EntityModel {
    */
   getComponentId(): string {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.componentId.getBaseUri()
+      SYSTEM_TYPES.propertyType.componentId.metadata.editionId.baseId
     ];
   }
 

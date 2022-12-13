@@ -78,7 +78,7 @@ export default class extends EntityModel {
     const textEntity = await EntityModel.create(graphApi, {
       ownedById,
       properties: {
-        [SYSTEM_TYPES.propertyType.tokens.getBaseUri()]: tokens,
+        [SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId]: tokens,
       },
       entityTypeModel: SYSTEM_TYPES.entityType.text,
       actorId,
@@ -132,7 +132,8 @@ export default class extends EntityModel {
     const textEntityModel = await this.getHasText(graphApi);
 
     await textEntityModel.updateProperty(graphApi, {
-      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.tokens.getBaseUri(),
+      propertyTypeBaseUri:
+        SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId,
       value: tokens,
       actorId,
     });
@@ -173,7 +174,7 @@ export default class extends EntityModel {
       updatedProperties: [
         {
           propertyTypeBaseUri:
-            SYSTEM_TYPES.propertyType.resolvedAt.getBaseUri(),
+            SYSTEM_TYPES.propertyType.resolvedAt.metadata.editionId.baseId,
           value: new Date().toISOString(),
         },
       ],
@@ -206,7 +207,8 @@ export default class extends EntityModel {
     await this.updateProperties(graphApi, {
       updatedProperties: [
         {
-          propertyTypeBaseUri: SYSTEM_TYPES.propertyType.deletedAt.getBaseUri(),
+          propertyTypeBaseUri:
+            SYSTEM_TYPES.propertyType.deletedAt.metadata.editionId.baseId,
           value: new Date().toISOString(),
         },
       ],
@@ -221,7 +223,7 @@ export default class extends EntityModel {
    */
   getResolvedAt(): string {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.resolvedAt.getBaseUri()
+      SYSTEM_TYPES.propertyType.resolvedAt.metadata.editionId.baseId
     ];
   }
 
@@ -230,7 +232,7 @@ export default class extends EntityModel {
    */
   getDeletedAt(): string {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.deletedAt.getBaseUri()
+      SYSTEM_TYPES.propertyType.deletedAt.metadata.editionId.baseId
     ];
   }
 

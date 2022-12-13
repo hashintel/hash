@@ -79,7 +79,8 @@ export default class extends LinkEntityModel {
     const { responsibility, org, user, actorId } = params;
 
     const properties: PropertyObject = {
-      [SYSTEM_TYPES.propertyType.responsibility.getBaseUri()]: responsibility,
+      [SYSTEM_TYPES.propertyType.responsibility.metadata.editionId.baseId]:
+        responsibility,
     };
 
     const entity = await user.createOutgoingLink(graphApi, {

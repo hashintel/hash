@@ -9,12 +9,14 @@ import {
   EntityTypeWithMetadata,
   OntologyElementMetadata,
   ontologyTypeEditionIdToVersionedUri,
+  PropertyTypeWithMetadata,
 } from "@hashintel/hash-subgraph";
 import { generateTypeId, types } from "@hashintel/hash-shared/ontology-types";
-import { EntityTypeModel, PropertyTypeModel } from "../index";
+import { EntityTypeModel } from "../index";
 import { getNamespaceOfAccountOwner } from "./util";
 import { SYSTEM_TYPES } from "../../graph/system-types";
 import { linkEntityTypeUri } from "../util";
+import { getPropertyType } from "../../graph/ontology/primitive/property-type";
 
 export type EntityTypeModelConstructorParams = {
   entityType: EntityTypeWithMetadata;
@@ -229,7 +231,9 @@ export default class {
   /**
    * Get all property types of the entity type.
    */
-  async getPropertyTypes(graphApi: GraphApi): Promise<PropertyTypeModel[]> {
+  async getPropertyTypes(
+    graphApi: GraphApi,
+  ): Promise<PropertyTypeWithMetadata[]> {
     const propertyTypeIds = Object.entries(this.getSchema().properties).map(
       ([property, valueOrArray]) => {
         if ("$ref" in valueOrArray) {
@@ -248,9 +252,12 @@ export default class {
 
     return await Promise.all(
       propertyTypeIds.map((propertyTypeId) =>
-        PropertyTypeModel.get(graphApi, {
-          propertyTypeId,
-        }),
+        getPropertyType(
+          { graphApi },
+          {
+            propertyTypeId,
+          },
+        ),
       ),
     );
   }

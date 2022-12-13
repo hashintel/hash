@@ -8,7 +8,6 @@ import { Logger } from "@hashintel/hash-backend-utils/logger";
 import {
   EntityModel,
   EntityTypeModel,
-  PropertyTypeModel,
   UserModel,
 } from "@hashintel/hash-api/src/model";
 import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
@@ -18,7 +17,11 @@ import {
 } from "@hashintel/hash-api/src/model/util";
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import { DataTypeWithMetadata } from "@hashintel/hash-subgraph";
+import {
+  DataTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@hashintel/hash-subgraph";
+import { createPropertyType } from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -42,8 +45,8 @@ describe("Entity CRU", () => {
   let testUser2: UserModel;
   let entityTypeModel: EntityTypeModel;
   let textDataType: DataTypeWithMetadata;
-  let namePropertyTypeModel: PropertyTypeModel;
-  let favoriteBookPropertyTypeModel: PropertyTypeModel;
+  let namePropertyType: PropertyTypeWithMetadata;
+  let favoriteBookPropertyType: PropertyTypeWithMetadata;
   let linkEntityTypeFriendModel: EntityTypeModel;
 
   beforeAll(async () => {
@@ -89,34 +92,39 @@ describe("Entity CRU", () => {
           logger.error("Something went wrong making link type Friends", err);
           throw err;
         }),
-
-      PropertyTypeModel.create(graphApi, {
-        ownedById: testUser.getEntityUuid(),
-        schema: {
-          kind: "propertyType",
-          title: "Favorite Book",
-          oneOf: [{ $ref: textDataType.schema.$id }],
+      createPropertyType(
+        { graphApi },
+        {
+          ownedById: testUser.getEntityUuid(),
+          schema: {
+            kind: "propertyType",
+            title: "Favorite Book",
+            oneOf: [{ $ref: textDataType.schema.$id }],
+          },
+          actorId: testUser.getEntityUuid(),
         },
-        actorId: testUser.getEntityUuid(),
-      })
+      )
         .then((val) => {
-          favoriteBookPropertyTypeModel = val;
+          favoriteBookPropertyType = val;
         })
         .catch((err) => {
           logger.error("Something went wrong making Favorite Book", err);
           throw err;
         }),
-      PropertyTypeModel.create(graphApi, {
-        ownedById: testUser.getEntityUuid(),
-        schema: {
-          kind: "propertyType",
-          title: "Name",
-          oneOf: [{ $ref: textDataType.schema.$id }],
+      createPropertyType(
+        { graphApi },
+        {
+          ownedById: testUser.getEntityUuid(),
+          schema: {
+            kind: "propertyType",
+            title: "Name",
+            oneOf: [{ $ref: textDataType.schema.$id }],
+          },
+          actorId: testUser.getEntityUuid(),
         },
-        actorId: testUser.getEntityUuid(),
-      })
+      )
         .then((val) => {
-          namePropertyTypeModel = val;
+          namePropertyType = val;
         })
         .catch((err) => {
           logger.error("Something went wrong making Names", err);
@@ -134,8 +142,8 @@ describe("Entity CRU", () => {
         }),
         title: "Person",
         properties: [
-          { propertyTypeModel: favoriteBookPropertyTypeModel },
-          { propertyTypeModel: namePropertyTypeModel },
+          { propertyType: favoriteBookPropertyType },
+          { propertyType: namePropertyType },
         ],
         outgoingLinks: [
           {
@@ -153,8 +161,8 @@ describe("Entity CRU", () => {
     createdEntityModel = await EntityModel.create(graphApi, {
       ownedById: testUser.getEntityUuid(),
       properties: {
-        [namePropertyTypeModel.getBaseUri()]: "Bob",
-        [favoriteBookPropertyTypeModel.getBaseUri()]: "some text",
+        [namePropertyType.metadata.editionId.baseId]: "Bob",
+        [favoriteBookPropertyType.metadata.editionId.baseId]: "some text",
       },
       entityTypeModel,
       actorId: testUser.getEntityUuid(),
@@ -183,8 +191,8 @@ describe("Entity CRU", () => {
     updatedEntityModel = await createdEntityModel
       .update(graphApi, {
         properties: {
-          [namePropertyTypeModel.getBaseUri()]: "Updated Bob",
-          [favoriteBookPropertyTypeModel.getBaseUri()]:
+          [namePropertyType.metadata.editionId.baseId]: "Updated Bob",
+          [favoriteBookPropertyType.metadata.editionId.baseId]:
             "Even more text than before",
         },
         actorId: testUser2.getEntityUuid(),
@@ -219,11 +227,11 @@ describe("Entity CRU", () => {
     );
     expect(
       (newlyUpdatedModel!.getProperties() as any)[
-        namePropertyTypeModel.getBaseUri()
+        namePropertyType.metadata.editionId.baseId
       ],
     ).toEqual(
       (updatedEntityModel.getProperties() as any)[
-        namePropertyTypeModel.getBaseUri()
+        namePropertyType.metadata.editionId.baseId
       ],
     );
   });
@@ -234,8 +242,8 @@ describe("Entity CRU", () => {
       // First create a new entity given the following definition
       entityTypeId: entityTypeModel.getSchema().$id,
       properties: {
-        [namePropertyTypeModel.getBaseUri()]: "Alice",
-        [favoriteBookPropertyTypeModel.getBaseUri()]: "some text",
+        [namePropertyType.metadata.editionId.baseId]: "Alice",
+        [favoriteBookPropertyType.metadata.editionId.baseId]: "some text",
       },
       linkedEntities: [
         {
