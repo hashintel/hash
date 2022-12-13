@@ -16,6 +16,6 @@ module.exports = {
   },
   testMatch: [
     "<rootDir>/src/tests/model/knowledge/**",
-    "<rootDir>/src/tests/model/ontology/**",
+    "<rootDir>/src/tests/graph/**",
   ],
 };
