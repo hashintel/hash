@@ -11,7 +11,7 @@ import { ResolverMiddleware } from "./middlewareTypes";
 export const canAccessAccount: ResolverMiddleware<
   GraphQLContext,
   {
-    ownedById: Scalars["ID"];
+    ownedById: Scalars["AccountId"];
   },
   LoggedInGraphQLContext
 > = (next) =>

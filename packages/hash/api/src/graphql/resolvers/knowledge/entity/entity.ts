@@ -5,12 +5,9 @@ import {
   ForbiddenError,
   UserInputError,
 } from "apollo-server-express";
-import {
-  Entity,
-  isEntityId,
-  splitEntityId,
-  Subgraph,
-} from "@hashintel/hash-subgraph";
+import { Entity, isEntityId, Subgraph } from "@hashintel/hash-subgraph";
+import { splitEntityId } from "@hashintel/hash-shared/types";
+
 import {
   EntityModel,
   EntityTypeModel,

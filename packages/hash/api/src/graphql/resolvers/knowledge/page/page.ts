@@ -72,7 +72,9 @@ export const pages: ResolverFn<
   QueryPagesArgs
 > = async (_, { ownedById }, { dataSources: { graphApi }, userModel }) => {
   const accountEntityId = ownedById
-    ? entityIdFromOwnedByIdAndEntityUuid(systemUserAccountId, ownedById)
+    ? // When type branding, we would need to cast `ownedById` to an `EntityUuid`.
+      // We may want to special-case this casting and have an explicit function to do it.
+      entityIdFromOwnedByIdAndEntityUuid(systemUserAccountId, ownedById)
     : undefined;
 
   const accountModel = accountEntityId

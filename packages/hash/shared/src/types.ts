@@ -2,6 +2,7 @@ import {
   EntityId,
   extractEntityUuidFromEntityId as extractEntityUuidFromEntityIdSubGraph,
   extractOwnedByIdFromEntityId as extractOwnedByIdFromEntityIdSubGraph,
+  splitEntityId as splitEntityIdSubGraph,
 } from "@hashintel/hash-subgraph";
 
 type Branded<Base, Kind extends string> = {
@@ -29,6 +30,10 @@ export type EntityUuid = Brand<string, "EntityUuid">;
 export type Uuid = Brand<string, "Uuid"> | AccountId | EntityUuid;
 
 // These type overwrites are centralized for being able to swap out implementations.
+
+export const splitEntityId = splitEntityIdSubGraph as (
+  entityId: EntityId,
+) => [OwnedById, EntityUuid];
 
 export const extractOwnedByIdFromEntityId =
   extractOwnedByIdFromEntityIdSubGraph as (entityId: EntityId) => OwnedById;
