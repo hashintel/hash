@@ -92,8 +92,8 @@ impl<C: AsClient> PostgresStore<C> {
                             .collect::<Vec<_>>()
                     });
 
-                let inherts_from_type_ref_uris = (current_resolve_depth.inherits_from.outgoing > 0)
-                    .then(|| {
+                let inherits_from_type_ref_uris =
+                    (current_resolve_depth.inherits_from.outgoing > 0).then(|| {
                         entity_type
                             .inner()
                             .inherits_from()
@@ -158,21 +158,21 @@ impl<C: AsClient> PostgresStore<C> {
                     }
                 }
 
-                if let Some(inherts_from_type_ref_uris) = inherts_from_type_ref_uris {
-                    for inherts_from_type_ref_uri in inherts_from_type_ref_uris {
+                if let Some(inherits_from_type_ref_uris) = inherits_from_type_ref_uris {
+                    for inherits_from_type_ref_uri in inherits_from_type_ref_uris {
                         subgraph.edges.insert(Edge::Ontology {
                             edition_id: entity_type_id.clone(),
                             outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
                                 kind: OntologyEdgeKind::InheritsFrom,
                                 reversed: false,
                                 right_endpoint: OntologyTypeEditionId::from(
-                                    &inherts_from_type_ref_uri,
+                                    &inherits_from_type_ref_uri,
                                 ),
                             }),
                         });
 
                         self.traverse_entity_type(
-                            &OntologyTypeEditionId::from(&inherts_from_type_ref_uri),
+                            &OntologyTypeEditionId::from(&inherits_from_type_ref_uri),
                             dependency_context,
                             subgraph,
                             GraphResolveDepths {

@@ -2019,7 +2019,7 @@ dependencies = [
 [[package]]
 name = "type-system"
 version = "0.0.0"
-source = "git+https://github.com/blockprotocol/blockprotocol?rev=494d445#494d4453453a481b295dd7d3e90e0a47b58fc6d4"
+source = "git+https://github.com/blockprotocol/blockprotocol?rev=2ea406f#2ea406f632972635cc47aa5a45fd2981533037a7"
 dependencies = [
  "console_error_panic_hook",
  "regex",
