@@ -3,7 +3,7 @@ import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { DataType } from "@blockprotocol/type-system";
 import { DataTypeWithMetadata, VersionedUri } from "@hashintel/hash-subgraph";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
-import { getNamespaceOfAccountOwner } from "../../../model/ontology/util";
+import { getNamespaceOfAccountOwner } from "./util";
 import { GraphContext } from "../..";
 
 /**

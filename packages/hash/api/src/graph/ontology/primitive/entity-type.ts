@@ -8,7 +8,7 @@ import {
 } from "@hashintel/hash-subgraph";
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { GraphContext } from "../..";
-import { getNamespaceOfAccountOwner } from "../../../model/ontology/util";
+import { getNamespaceOfAccountOwner } from "./util";
 import { linkEntityTypeUri } from "../../../model/util";
 
 export type EntityTypeModelCreateParams = {

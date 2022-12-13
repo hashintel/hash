@@ -1,8 +1,8 @@
 import { systemUserShortname } from "@hashintel/hash-shared/environment";
 import { entityIdFromOwnedByIdAndEntityUuid } from "@hashintel/hash-subgraph";
-import { OrgModel, UserModel } from "..";
-import { GraphApi } from "../../graph";
-import { systemUserAccountId } from "../../graph/system-user";
+import { OrgModel, UserModel } from "../../../model";
+import { GraphApi } from "../..";
+import { systemUserAccountId } from "../../system-user";
 
 /**
  * Get the namespace of an account owner by its id

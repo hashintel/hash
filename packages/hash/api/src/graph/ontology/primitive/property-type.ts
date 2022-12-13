@@ -5,7 +5,7 @@ import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { GraphContext } from "../..";
-import { getNamespaceOfAccountOwner } from "../../../model/ontology/util";
+import { getNamespaceOfAccountOwner } from "./util";
 
 /**
  * Create a property type.
