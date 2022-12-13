@@ -8,16 +8,17 @@ import { Logger } from "@hashintel/hash-backend-utils/logger";
 import {
   EntityModel,
   EntityTypeModel,
-  DataTypeModel,
   PropertyTypeModel,
   UserModel,
 } from "@hashintel/hash-api/src/model";
+import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
 import {
   generateSystemEntityTypeSchema,
   linkEntityTypeUri,
 } from "@hashintel/hash-api/src/model/util";
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import { DataTypeWithMetadata } from "@hashintel/hash-subgraph";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -40,7 +41,7 @@ describe("Entity CRU", () => {
   let testUser: UserModel;
   let testUser2: UserModel;
   let entityTypeModel: EntityTypeModel;
-  let textDataTypeModel: DataTypeModel;
+  let textDataType: DataTypeWithMetadata;
   let namePropertyTypeModel: PropertyTypeModel;
   let favoriteBookPropertyTypeModel: PropertyTypeModel;
   let linkEntityTypeFriendModel: EntityTypeModel;
@@ -52,15 +53,18 @@ describe("Entity CRU", () => {
     testUser = await createTestUser(graphApi, "entitytest", logger);
     testUser2 = await createTestUser(graphApi, "entitytest", logger);
 
-    textDataTypeModel = await DataTypeModel.create(graphApi, {
-      ownedById: testUser.getEntityUuid(),
-      schema: {
-        kind: "dataType",
-        title: "Text",
-        type: "string",
+    textDataType = await createDataType(
+      { graphApi },
+      {
+        ownedById: testUser.getEntityUuid(),
+        schema: {
+          kind: "dataType",
+          title: "Text",
+          type: "string",
+        },
+        actorId: testUser.getEntityUuid(),
       },
-      actorId: testUser.getEntityUuid(),
-    }).catch((err) => {
+    ).catch((err) => {
       logger.error("Something went wrong making Text", err);
       throw err;
     });
@@ -91,7 +95,7 @@ describe("Entity CRU", () => {
         schema: {
           kind: "propertyType",
           title: "Favorite Book",
-          oneOf: [{ $ref: textDataTypeModel.getSchema().$id }],
+          oneOf: [{ $ref: textDataType.schema.$id }],
         },
         actorId: testUser.getEntityUuid(),
       })
@@ -107,7 +111,7 @@ describe("Entity CRU", () => {
         schema: {
           kind: "propertyType",
           title: "Name",
-          oneOf: [{ $ref: textDataTypeModel.getSchema().$id }],
+          oneOf: [{ $ref: textDataType.schema.$id }],
         },
         actorId: testUser.getEntityUuid(),
       })

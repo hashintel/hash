@@ -4,12 +4,13 @@ import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import {
   EntityTypeModel,
-  DataTypeModel,
   PropertyTypeModel,
   UserModel,
 } from "@hashintel/hash-api/src/model";
 import { EntityType, TypeSystemInitializer } from "@blockprotocol/type-system";
 import { linkEntityTypeUri } from "@hashintel/hash-api/src/model/util";
+import { DataTypeWithMetadata } from "@hashintel/hash-subgraph";
+import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -32,7 +33,7 @@ let testUser: UserModel;
 let testUser2: UserModel;
 let entityTypeSchema: Omit<EntityType, "$id">;
 let workerEntityTypeModel: EntityTypeModel;
-let textDataTypeModel: DataTypeModel;
+let textDataType: DataTypeWithMetadata;
 let namePropertyTypeModel: PropertyTypeModel;
 let favoriteBookPropertyTypeModel: PropertyTypeModel;
 let knowsLinkEntityTypeModel: EntityTypeModel;
@@ -44,15 +45,18 @@ beforeAll(async () => {
   testUser = await createTestUser(graphApi, "entity-type-test-1", logger);
   testUser2 = await createTestUser(graphApi, "entity-type-test-2", logger);
 
-  textDataTypeModel = await DataTypeModel.create(graphApi, {
-    ownedById: testUser.getEntityUuid(),
-    schema: {
-      kind: "dataType",
-      title: "Text",
-      type: "string",
+  textDataType = await createDataType(
+    { graphApi },
+    {
+      ownedById: testUser.getEntityUuid(),
+      schema: {
+        kind: "dataType",
+        title: "Text",
+        type: "string",
+      },
+      actorId: testUser.getEntityUuid(),
     },
-    actorId: testUser.getEntityUuid(),
-  });
+  );
 
   await Promise.all([
     EntityTypeModel.create(graphApi, {
@@ -84,7 +88,7 @@ beforeAll(async () => {
       schema: {
         kind: "propertyType",
         title: "Favorite Book",
-        oneOf: [{ $ref: textDataTypeModel.getSchema().$id }],
+        oneOf: [{ $ref: textDataType.schema.$id }],
       },
       actorId: testUser.getEntityUuid(),
     }).then((val) => {
@@ -95,7 +99,7 @@ beforeAll(async () => {
       schema: {
         kind: "propertyType",
         title: "Name",
-        oneOf: [{ $ref: textDataTypeModel.getSchema().$id }],
+        oneOf: [{ $ref: textDataType.schema.$id }],
       },
       actorId: testUser.getEntityUuid(),
     }).then((val) => {

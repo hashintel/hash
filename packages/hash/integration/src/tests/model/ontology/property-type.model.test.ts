@@ -6,11 +6,9 @@ import {
   PropertyType,
   TypeSystemInitializer,
 } from "@blockprotocol/type-system";
-import {
-  DataTypeModel,
-  PropertyTypeModel,
-  UserModel,
-} from "@hashintel/hash-api/src/model";
+import { PropertyTypeModel, UserModel } from "@hashintel/hash-api/src/model";
+import { DataTypeWithMetadata } from "@hashintel/hash-subgraph";
+import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -31,7 +29,7 @@ const graphApi = createGraphClient(logger, {
 
 let testUser: UserModel;
 let testUser2: UserModel;
-let textDataTypeModel: DataTypeModel;
+let textDataType: DataTypeWithMetadata;
 let propertyTypeSchema: Omit<PropertyType, "$id">;
 
 beforeAll(async () => {
@@ -39,22 +37,25 @@ beforeAll(async () => {
   testUser = await createTestUser(graphApi, "pt-test-1", logger);
   testUser2 = await createTestUser(graphApi, "pt-test-2", logger);
 
-  textDataTypeModel = await DataTypeModel.create(graphApi, {
-    ownedById: testUser.getEntityUuid(),
-    schema: {
-      kind: "dataType",
-      title: "Text",
-      type: "string",
+  textDataType = await createDataType(
+    { graphApi },
+    {
+      ownedById: testUser.getEntityUuid(),
+      schema: {
+        kind: "dataType",
+        title: "Text",
+        type: "string",
+      },
+      actorId: testUser.getEntityUuid(),
     },
-    actorId: testUser.getEntityUuid(),
-  });
+  );
 
   propertyTypeSchema = {
     kind: "propertyType",
     title: "A property type",
     oneOf: [
       {
-        $ref: textDataTypeModel.getSchema().$id,
+        $ref: textDataType.schema.$id,
       },
     ],
   };

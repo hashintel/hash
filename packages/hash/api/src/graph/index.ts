@@ -13,6 +13,11 @@ import {
 import { ensureSystemTypesExist } from "./system-types";
 import { ensureSystemEntitiesExists } from "./system-entities";
 
+export type GraphContext = {
+  graphApi: GraphApi;
+  /** @todo: add logger? */
+};
+
 const agentConfig = {
   maxSockets: 128,
   maxFreeSockets: 20,
