@@ -111,7 +111,7 @@ const VerificationPage: NextPageWithLayout = () => {
     void router
       // On submission, add the flow ID to the URL but do not navigate. This prevents the user loosing
       // their data when they reload the page.
-      .push(`/verification?flow=${flow?.id}`, undefined, { shallow: true });
+      .push(`/verification`, { query: { flow: flow?.id } }, { shallow: true });
 
     oryKratosClient
       .updateVerificationFlow({
