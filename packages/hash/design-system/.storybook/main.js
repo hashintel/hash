@@ -8,5 +8,6 @@ module.exports = {
   framework: "@storybook/react",
   core: {
     builder: "@storybook/builder-webpack5",
+    disableTelemetry: true,
   },
 };
