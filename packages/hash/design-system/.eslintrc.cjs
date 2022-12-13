@@ -22,6 +22,10 @@ module.exports = {
         ],
       },
     ],
+    "storybook/no-uninstalled-addons": [
+      "error",
+      { packageJsonLocation: `${__dirname}/package.json` },
+    ],
   },
   overrides: [
     {
