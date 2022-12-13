@@ -10,7 +10,10 @@ use core::fmt;
 use error_stack::{Context, IntoReport, Result, ResultExt};
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json;
-use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
+use type_system::{
+    repr, uri::VersionedUri, DataType, EntityType, ParseDataTypeError, ParseEntityTypeError,
+    ParsePropertyTypeError, PropertyType,
+};
 use utoipa::ToSchema;
 
 pub use self::{
@@ -50,13 +53,10 @@ impl fmt::Display for PatchAndParseError {
 ///   - "$id" already existed
 ///   - the [`serde_json::Value`] wasn't an 'Object'
 ///   - deserializing into `T` failed
-pub fn patch_id_and_parse<T>(
+pub fn patch_id_and_parse<T: OntologyType>(
     id: &VersionedUri,
     mut value: serde_json::Value,
-) -> Result<T, PatchAndParseError>
-where
-    T: TryFrom<serde_json::Value, Error: Context>,
-{
+) -> Result<T, PatchAndParseError> {
     if let Some(object) = value.as_object_mut() {
         if let Some(previous_val) = object.insert(
             "$id".to_owned(),
@@ -74,7 +74,10 @@ where
             .attach_printable(value);
     }
 
-    let ontology_type: T = value
+    let ontology_type_repr: T::Representation = serde_json::from_value(value)
+        .into_report()
+        .change_context(PatchAndParseError)?;
+    let ontology_type: T = ontology_type_repr
         .try_into()
         .into_report()
         .change_context(PatchAndParseError)?;
@@ -87,13 +90,12 @@ fn serialize_ontology_type<T, S>(
     serializer: S,
 ) -> std::result::Result<S::Ok, S::Error>
 where
-    T: Clone,
-    serde_json::Value: From<T>,
+    T: OntologyType + Clone,
     S: Serializer,
 {
     // This clone is necessary because `Serialize` requires us to take the param by reference here
     //  even though we only use it in places where we could move
-    serde_json::Value::from(ontology_type.clone()).serialize(serializer)
+    T::Representation::from(ontology_type.clone()).serialize(serializer)
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
@@ -195,8 +197,30 @@ impl EntityTypeWithMetadata {
     }
 }
 
-pub trait PersistedOntologyType {
-    type OntologyType;
+pub trait OntologyType:
+    Sized + TryFrom<Self::Representation, Error = Self::ConversionError>
+{
+    type ConversionError: Context;
+    type Representation: From<Self> + Serialize + for<'de> Deserialize<'de>;
+}
+
+impl OntologyType for DataType {
+    type ConversionError = ParseDataTypeError;
+    type Representation = repr::DataType;
+}
+
+impl OntologyType for PropertyType {
+    type ConversionError = ParsePropertyTypeError;
+    type Representation = repr::PropertyType;
+}
+
+impl OntologyType for EntityType {
+    type ConversionError = ParseEntityTypeError;
+    type Representation = repr::EntityType;
+}
+
+pub trait PersistedOntologyType: Sized {
+    type OntologyType: OntologyType;
 
     fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self;
 }
