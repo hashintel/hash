@@ -36,20 +36,22 @@ import {
   ReactNode,
   Ref,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import {
   DeepPartial,
   FieldValues,
-  Path,
+  FormProvider,
   useForm,
   useFormContext,
+  UseFormTrigger,
 } from "react-hook-form";
 import { Modal } from "../../../../../../../components/Modals/Modal";
 import { withHandler } from "../property-list-card/shared/with-handler";
 import { QuestionIcon } from "./question-icon";
 
-type TypeFormWrapperSubmitButtonProps = Omit<
+type TypeFormSubmitProps = Omit<
   ButtonProps,
   "size" | "variant" | "disabled" | "type" | "loading"
 >;
@@ -200,34 +202,72 @@ export const TypeFormDescriptionField = ({
   );
 };
 
-export type TypeFormProps<T extends FieldValues> = {
+const keys = <T extends {}>(obj: T): (keyof T)[] => Object.keys(obj) as any;
+
+export const useTriggerValidation = <T extends FieldValues>(
+  defaultValues: Partial<T>,
+  disabledFields: (keyof T)[],
+  trigger: UseFormTrigger<T>,
+) => {
+  const triggerKeys = keys(defaultValues).filter(
+    (key) =>
+      typeof defaultValues[key] !== "undefined" &&
+      !disabledFields.includes(key),
+  );
+  const stringifiedKeys = JSON.stringify(triggerKeys);
+  const memoKeys: typeof triggerKeys = useMemo(
+    () => JSON.parse(stringifiedKeys),
+    [stringifiedKeys],
+  );
+
+  useEffect(() => {
+    for (const key of memoKeys) {
+      void trigger(
+        // @ts-expect-error trigger expects Path<T>, but key is already equivalent
+        key,
+      );
+    }
+  }, [trigger, memoKeys]);
+};
+
+export type TypeFormProps<T extends Record<string, any>> = {
   onClose?: () => void;
   modalTitle: ReactNode;
   popupState: PopupState;
   onSubmit: (data: T) => Promise<void>;
-  submitButtonProps: TypeFormWrapperSubmitButtonProps;
+  submitButtonProps: TypeFormSubmitProps;
+  disabledFields?: (keyof T)[];
 };
 
-export const TypeForm = <T extends FieldValues>({
+export const TypeForm = <T extends {}>({
   children,
-  defaultField,
   onClose,
   modalTitle,
   popupState,
   onSubmit,
   submitButtonProps,
+  defaultValues = {},
+  disabledFields = [],
+  defaultField,
 }: {
   children: ReactNode;
-  defaultField: Path<T>;
+  defaultValues?: Partial<T>;
+  defaultField: keyof T;
 } & TypeFormProps<T>) => {
   const {
     handleSubmit: wrapHandleSubmit,
     formState: { isSubmitting, isValid },
     setFocus,
+    trigger,
   } = useFormContext<T>();
 
+  useTriggerValidation(defaultValues, disabledFields, trigger);
+
   useEffect(() => {
-    setFocus(defaultField);
+    setFocus(
+      // @ts-expect-error trigger expects Path<T>, but key is already equivalent
+      defaultField,
+    );
   }, [setFocus, defaultField]);
 
   const handleSubmit = wrapHandleSubmit(onSubmit);
@@ -390,3 +430,45 @@ export const TypeFormModal: PolymorphicComponent<{}, "div"> = forwardRef(
     );
   },
 );
+
+export type GenericTypeFormProps<
+  T extends { name: string; description: string },
+> = TypeFormProps<T> & {
+  getDefaultValues: () => DeepPartial<T>;
+};
+
+export const GenericTypeForm = <
+  T extends { name: string; description: string },
+>({
+  children,
+  nameExists,
+  disabledFields,
+  getDefaultValues,
+  ...props
+}: {
+  children?: ReactNode;
+  nameExists: (name: string) => Promise<boolean>;
+} & GenericTypeFormProps<T>) => {
+  const defaultValues = getDefaultValues();
+  const formMethods = useTypeForm<T>(defaultValues);
+
+  return (
+    <FormProvider {...formMethods}>
+      <TypeForm
+        defaultField={defaultValues.name ? "description" : "name"}
+        disabledFields={disabledFields}
+        {...props}
+      >
+        <TypeFormNameField
+          fieldDisabled={disabledFields?.includes("name") ?? false}
+          typeExists={nameExists}
+        />
+        <TypeFormDescriptionField
+          defaultValues={defaultValues}
+          fieldDisabled={disabledFields?.includes("description") ?? false}
+        />
+        {children}
+      </TypeForm>
+    </FormProvider>
+  );
+};

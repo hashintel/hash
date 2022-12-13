@@ -158,7 +158,7 @@ export const PropertyTypeRow = ({
           editModalPopupState.close();
         }}
         submitButtonProps={{ children: <>Edit property type</> }}
-        fieldProps={{ name: { disabled: true } }}
+        disabledFields={["name"]}
         getDefaultValues={() => ({
           name: property.title,
           description: property.description,
