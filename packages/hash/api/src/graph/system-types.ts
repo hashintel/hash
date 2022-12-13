@@ -1,10 +1,13 @@
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { types } from "@hashintel/hash-shared/ontology-types";
-import { PropertyTypeWithMetadata } from "@hashintel/hash-subgraph";
+import {
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@hashintel/hash-subgraph";
 import { logger } from "../logger";
 
-import { EntityTypeModel } from "../model";
 import { propertyTypeInitializer, entityTypeInitializer } from "../model/util";
 
 // eslint-disable-next-line import/no-mutable-exports
@@ -50,36 +53,36 @@ export let SYSTEM_TYPES: {
     orgSelfRegistrationIsEnabled: PropertyTypeWithMetadata;
   };
   entityType: {
-    hashInstance: EntityTypeModel;
-    user: EntityTypeModel;
-    org: EntityTypeModel;
-    block: EntityTypeModel;
-    comment: EntityTypeModel;
-    page: EntityTypeModel;
-    text: EntityTypeModel;
+    hashInstance: EntityTypeWithMetadata;
+    user: EntityTypeWithMetadata;
+    org: EntityTypeWithMetadata;
+    block: EntityTypeWithMetadata;
+    comment: EntityTypeWithMetadata;
+    page: EntityTypeWithMetadata;
+    text: EntityTypeWithMetadata;
     /**
      * @todo: deprecate all uses of this dummy entity type
      * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
      */
-    dummy: EntityTypeModel;
+    dummy: EntityTypeWithMetadata;
   };
   linkEntityType: {
     // HASHInstance-related
-    admin: EntityTypeModel;
+    admin: EntityTypeWithMetadata;
 
     // User-related
-    orgMembership: EntityTypeModel;
+    orgMembership: EntityTypeWithMetadata;
 
     // Block-related
-    blockData: EntityTypeModel;
+    blockData: EntityTypeWithMetadata;
 
     // Page-related
-    contains: EntityTypeModel;
-    parent: EntityTypeModel;
+    contains: EntityTypeWithMetadata;
+    parent: EntityTypeWithMetadata;
 
     // Comment-related
-    hasText: EntityTypeModel;
-    author: EntityTypeModel;
+    hasText: EntityTypeWithMetadata;
+    author: EntityTypeWithMetadata;
   };
 };
 
@@ -123,10 +126,10 @@ export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
       graphApi,
     );
 
-  const adminLinkEntityTypeModel =
+  const adminLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.admin(graphApi);
 
-  const userEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.user(
+  const userEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.user(
     graphApi,
   );
 
@@ -150,8 +153,8 @@ export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
     ],
     outgoingLinks: [
       {
-        linkEntityTypeModel: adminLinkEntityTypeModel,
-        destinationEntityTypeModels: [userEntityTypeModel],
+        linkEntityType: adminLinkEntityType,
+        destinationEntityTypes: [userEntityType],
       },
     ],
   })(graphApi);
@@ -280,11 +283,11 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
   const preferredNamePropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.preferredName(graphApi);
 
-  const orgEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.org(
+  const orgEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.org(
     graphApi,
   );
 
-  const orgMembershipLinkEntityTypeModel =
+  const orgMembershipLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.orgMembership(graphApi);
 
   /* eslint-enable @typescript-eslint/no-use-before-define */
@@ -311,8 +314,8 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
     ],
     outgoingLinks: [
       {
-        linkEntityTypeModel: orgMembershipLinkEntityTypeModel,
-        destinationEntityTypeModels: [orgEntityTypeModel],
+        linkEntityType: orgMembershipLinkEntityType,
+        destinationEntityTypes: [orgEntityType],
         maxItems: 1,
       },
     ],
@@ -334,10 +337,10 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
   const componentIdPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.componentId(graphApi);
 
-  const blockDataLinkEntityTypeModel =
+  const blockDataLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.blockData(graphApi);
 
-  const dummyEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.dummy(
+  const dummyEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.dummy(
     graphApi,
   );
 
@@ -353,12 +356,12 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
     ],
     outgoingLinks: [
       {
-        linkEntityTypeModel: blockDataLinkEntityTypeModel,
+        linkEntityType: blockDataLinkEntityType,
         /**
          * @todo: unset this when the destination entity type can be undefined
          * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
          */
-        destinationEntityTypeModels: [dummyEntityTypeModel],
+        destinationEntityTypes: [dummyEntityType],
         required: true,
         maxItems: 1,
       },
@@ -459,13 +462,13 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
     graphApi,
   );
 
-  const containsLinkEntityTypeModel =
+  const containsLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.contains(graphApi);
 
   const parentLinkTypeTypeModel =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.parent(graphApi);
 
-  const blockEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.block(
+  const blockEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.block(
     graphApi,
   );
 
@@ -494,14 +497,14 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
     ],
     outgoingLinks: [
       {
-        linkEntityTypeModel: containsLinkEntityTypeModel,
-        destinationEntityTypeModels: [blockEntityTypeModel],
+        linkEntityType: containsLinkEntityType,
+        destinationEntityTypes: [blockEntityType],
         required: true,
         ordered: true,
       },
       {
-        linkEntityTypeModel: parentLinkTypeTypeModel,
-        destinationEntityTypeModels: ["SELF_REFERENCE"],
+        linkEntityType: parentLinkTypeTypeModel,
+        destinationEntityTypes: ["SELF_REFERENCE"],
         maxItems: 1,
       },
     ],
@@ -535,7 +538,7 @@ const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
   const deletedAtPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.deletedAt(graphApi);
 
-  const hasTextLinkEntityTypeModel =
+  const hasTextLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasText(graphApi);
 
   const parentLinkTypeTypeModel =
@@ -544,15 +547,15 @@ const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
   const authorLinkTypeTypeModel =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.author(graphApi);
 
-  const userEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.user(
+  const userEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.user(
     graphApi,
   );
 
-  const textEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.text(
+  const textEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.text(
     graphApi,
   );
 
-  const blockEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.block(
+  const blockEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.block(
     graphApi,
   );
 
@@ -570,20 +573,20 @@ const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
     ],
     outgoingLinks: [
       {
-        linkEntityTypeModel: hasTextLinkEntityTypeModel,
-        destinationEntityTypeModels: [textEntityTypeModel],
+        linkEntityType: hasTextLinkEntityType,
+        destinationEntityTypes: [textEntityType],
         required: true,
         maxItems: 1,
       },
       {
-        linkEntityTypeModel: parentLinkTypeTypeModel,
-        destinationEntityTypeModels: ["SELF_REFERENCE", blockEntityTypeModel],
+        linkEntityType: parentLinkTypeTypeModel,
+        destinationEntityTypes: ["SELF_REFERENCE", blockEntityType],
         required: true,
         maxItems: 1,
       },
       {
-        linkEntityTypeModel: authorLinkTypeTypeModel,
-        destinationEntityTypeModels: [userEntityTypeModel],
+        linkEntityType: authorLinkTypeTypeModel,
+        destinationEntityTypes: [userEntityType],
         required: true,
         maxItems: 1,
       },
@@ -691,7 +694,7 @@ export const ensureSystemTypesExist = async (params: {
       (
         graphApi: GraphApi,
       ) => Promise<
-        PropertyTypeWithMetadata | EntityTypeModel | EntityTypeModel
+        PropertyTypeWithMetadata | DataTypeWithMetadata | EntityTypeWithMetadata
       >,
     ][]) {
       logger.debug(`Checking system type: [${key}] exists`);

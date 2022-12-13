@@ -16,7 +16,7 @@ import { EntityTypeMismatchError } from "../../lib/error";
 
 type PageModelCreateParams = Omit<
   EntityModelCreateParams,
-  "properties" | "entityTypeModel"
+  "properties" | "entityType"
 > & {
   title: string;
   summary?: string;
@@ -30,13 +30,13 @@ type PageModelCreateParams = Omit<
 export default class extends EntityModel {
   static fromEntityModel(entityModel: EntityModel): PageModel {
     if (
-      entityModel.entityTypeModel.getSchema().$id !==
-      SYSTEM_TYPES.entityType.page.getSchema().$id
+      entityModel.entityType.schema.$id !==
+      SYSTEM_TYPES.entityType.page.schema.$id
     ) {
       throw new EntityTypeMismatchError(
         entityModel.getBaseId(),
-        SYSTEM_TYPES.entityType.page.getSchema().$id,
-        entityModel.entityTypeModel.getSchema().$id,
+        SYSTEM_TYPES.entityType.page.schema.$id,
+        entityModel.entityType.schema.$id,
       );
     }
 
@@ -89,12 +89,12 @@ export default class extends EntityModel {
         : {}),
     };
 
-    const entityTypeModel = SYSTEM_TYPES.entityType.page;
+    const entityType = SYSTEM_TYPES.entityType.page;
 
     const entity = await EntityModel.create(graphApi, {
       ownedById,
       properties,
-      entityTypeModel,
+      entityType,
       actorId,
     });
 
@@ -113,7 +113,7 @@ export default class extends EntityModel {
                   [SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId]:
                     [],
                 },
-                entityTypeModel: SYSTEM_TYPES.entityType.text,
+                entityType: SYSTEM_TYPES.entityType.text,
                 actorId,
               }),
               actorId,
@@ -144,7 +144,7 @@ export default class extends EntityModel {
         {
           equal: [
             { path: ["type", "versionedUri"] },
-            { parameter: SYSTEM_TYPES.entityType.page.getSchema().$id },
+            { parameter: SYSTEM_TYPES.entityType.page.schema.$id },
           ],
         },
       ],
@@ -235,7 +235,7 @@ export default class extends EntityModel {
    */
   async getParentPage(graphApi: GraphApi): Promise<PageModel | null> {
     const parentPageLinks = await this.getOutgoingLinks(graphApi, {
-      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.parent,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
     });
 
     const [parentPageLink, ...unexpectedParentPageLinks] = parentPageLinks;
@@ -295,7 +295,7 @@ export default class extends EntityModel {
     },
   ): Promise<void> {
     const parentPageLinks = await this.getOutgoingLinks(graphApi, {
-      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.parent,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
     });
 
     const [parentPageLink, ...unexpectedParentPageLinks] = parentPageLinks;
@@ -354,7 +354,7 @@ export default class extends EntityModel {
       }
 
       await this.createOutgoingLink(graphApi, {
-        linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.parent,
+        linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
         rightEntityModel: parentPageModel,
         ownedById: actorId,
         actorId,
@@ -380,7 +380,7 @@ export default class extends EntityModel {
    */
   async getBlocks(graphApi: GraphApi): Promise<BlockModel[]> {
     const outgoingBlockDataLinks = await this.getOutgoingLinks(graphApi, {
-      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.contains,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.contains,
     });
 
     return outgoingBlockDataLinks
@@ -432,7 +432,7 @@ export default class extends EntityModel {
 
     await this.createOutgoingLink(graphApi, {
       rightEntityModel: block,
-      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.contains,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.contains,
       leftToRightOrder:
         specifiedPosition ??
         // if position is not specified and there are no blocks currently in the page, specify the index of the link is `0`
@@ -461,7 +461,7 @@ export default class extends EntityModel {
     const { currentPosition, newPosition, actorId } = params;
 
     const contentLinks = await this.getOutgoingLinks(graphApi, {
-      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.contains,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.contains,
     });
 
     if (currentPosition < 0 || currentPosition >= contentLinks.length) {
@@ -510,7 +510,7 @@ export default class extends EntityModel {
     const { allowRemovingFinal = false, position, actorId } = params;
 
     const contentLinkEntityModels = await this.getOutgoingLinks(graphApi, {
-      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.contains,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.contains,
     });
 
     /**

@@ -22,7 +22,7 @@ type QualifiedEmail = { address: string; verified: boolean; primary: boolean };
 
 type UserModelCreateParams = Omit<
   EntityModelCreateParams,
-  "properties" | "entityTypeModel" | "ownedById"
+  "properties" | "entityType" | "ownedById"
 > & {
   emails: string[];
   kratosIdentityId: string;
@@ -38,13 +38,13 @@ type UserModelCreateParams = Omit<
 export default class extends EntityModel {
   static fromEntityModel(entityModel: EntityModel): UserModel {
     if (
-      entityModel.entityTypeModel.getSchema().$id !==
-      SYSTEM_TYPES.entityType.user.getSchema().$id
+      entityModel.entityType.schema.$id !==
+      SYSTEM_TYPES.entityType.user.schema.$id
     ) {
       throw new EntityTypeMismatchError(
         entityModel.getBaseId(),
-        SYSTEM_TYPES.entityType.user.getSchema().$id,
-        entityModel.entityTypeModel.getSchema().$id,
+        SYSTEM_TYPES.entityType.user.schema.$id,
+        entityModel.entityType.schema.$id,
       );
     }
 
@@ -86,7 +86,7 @@ export default class extends EntityModel {
         {
           equal: [
             { path: ["type", "versionedUri"] },
-            { parameter: SYSTEM_TYPES.entityType.user.getSchema().$id },
+            { parameter: SYSTEM_TYPES.entityType.user.schema.$id },
           ],
         },
       ],
@@ -118,7 +118,7 @@ export default class extends EntityModel {
         {
           equal: [
             { path: ["type", "versionedUri"] },
-            { parameter: SYSTEM_TYPES.entityType.user.getSchema().$id },
+            { parameter: SYSTEM_TYPES.entityType.user.schema.$id },
           ],
         },
       ],
@@ -202,12 +202,12 @@ export default class extends EntityModel {
         : {}),
     };
 
-    const entityTypeModel = SYSTEM_TYPES.entityType.user;
+    const entityType = SYSTEM_TYPES.entityType.user;
 
     const entity = await EntityModel.create(graphApi, {
       ownedById: systemUserAccountId,
       properties,
-      entityTypeModel,
+      entityType,
       entityUuid: userAccountId,
       actorId,
     });
@@ -446,7 +446,7 @@ export default class extends EntityModel {
   async getOrgMemberships(graphApi: GraphApi): Promise<OrgMembershipModel[]> {
     const outgoingOrgMembershipLinkEntityModels = await this.getOutgoingLinks(
       graphApi,
-      { linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.orgMembership },
+      { linkEntityType: SYSTEM_TYPES.linkEntityType.orgMembership },
     );
 
     return outgoingOrgMembershipLinkEntityModels.map((orgLinkEntityModel) =>

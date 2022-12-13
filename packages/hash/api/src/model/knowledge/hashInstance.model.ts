@@ -11,7 +11,7 @@ import { systemUserAccountId } from "../../graph/system-user";
 
 export type HashInstanceModelCreateParams = Omit<
   EntityModelCreateParams,
-  "properties" | "entityTypeModel" | "ownedById"
+  "properties" | "entityType" | "ownedById"
 > & {
   userSelfRegistrationIsEnabled?: boolean;
   userRegistrationByInviteIsEnabled?: boolean;
@@ -24,13 +24,13 @@ export type HashInstanceModelCreateParams = Omit<
 export default class extends EntityModel {
   static fromEntityModel(entityModel: EntityModel): HashInstanceModel {
     if (
-      entityModel.entityTypeModel.getSchema().$id !==
-      SYSTEM_TYPES.entityType.hashInstance.getSchema().$id
+      entityModel.entityType.schema.$id !==
+      SYSTEM_TYPES.entityType.hashInstance.schema.$id
     ) {
       throw new EntityTypeMismatchError(
         entityModel.getBaseId(),
-        SYSTEM_TYPES.entityType.hashInstance.getSchema().$id,
-        entityModel.entityTypeModel.getSchema().$id,
+        SYSTEM_TYPES.entityType.hashInstance.schema.$id,
+        entityModel.entityType.schema.$id,
       );
     }
 
@@ -62,7 +62,7 @@ export default class extends EntityModel {
 
     const { actorId } = params;
 
-    const entityTypeModel = SYSTEM_TYPES.entityType.hashInstance;
+    const entityType = SYSTEM_TYPES.entityType.hashInstance;
 
     const entityModel = await EntityModel.create(graphApi, {
       ownedById: systemUserAccountId,
@@ -74,7 +74,7 @@ export default class extends EntityModel {
         [SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.metadata
           .editionId.baseId]: params.orgSelfRegistrationIsEnabled ?? true,
       },
-      entityTypeModel,
+      entityType,
       actorId,
     });
 
@@ -94,7 +94,7 @@ export default class extends EntityModel {
           equal: [
             { path: ["type", "versionedUri"] },
             {
-              parameter: SYSTEM_TYPES.entityType.hashInstance.getSchema().$id,
+              parameter: SYSTEM_TYPES.entityType.hashInstance.schema.$id,
             },
           ],
         },
@@ -128,7 +128,7 @@ export default class extends EntityModel {
     const outgoingAdminLinkEntityModels = await this.getOutgoingLinks(
       graphApi,
       {
-        linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.admin,
+        linkEntityType: SYSTEM_TYPES.linkEntityType.admin,
         rightEntityModel: userModel,
       },
     );
@@ -165,7 +165,7 @@ export default class extends EntityModel {
 
     await this.createOutgoingLink(graphApi, {
       ownedById: systemUserAccountId,
-      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.admin,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.admin,
       rightEntityModel: userModel,
       actorId,
     });
@@ -185,7 +185,7 @@ export default class extends EntityModel {
     const outgoingAdminLinkEntityModels = await this.getOutgoingLinks(
       graphApi,
       {
-        linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.admin,
+        linkEntityType: SYSTEM_TYPES.linkEntityType.admin,
         rightEntityModel: userModel,
       },
     );

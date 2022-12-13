@@ -47,7 +47,7 @@ describe("Comment model class", () => {
       properties: {
         [SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId]: [],
       },
-      entityTypeModel: SYSTEM_TYPES.entityType.text,
+      entityType: SYSTEM_TYPES.entityType.text,
       actorId: testUser.getOwnedById(),
     });
 

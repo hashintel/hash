@@ -11,11 +11,7 @@ import {
   splitEntityId,
   Subgraph,
 } from "@hashintel/hash-subgraph";
-import {
-  EntityModel,
-  EntityTypeModel,
-  LinkEntityModel,
-} from "../../../../model";
+import { EntityModel, LinkEntityModel } from "../../../../model";
 import {
   QueryGetEntityArgs,
   MutationCreateEntityArgs,
@@ -27,11 +23,12 @@ import {
 import { mapEntityModelToGQL } from "../model-mapping";
 import { LoggedInGraphQLContext } from "../../../context";
 import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
+import { getEntityType } from "../../../../graph/ontology/primitive/entity-type";
 
 /**
  * @todo - Remove this when the Subgraph is appropriately queryable for a timestamp
  *   at the moment, (not in the roots) all versions of linked entities are returned,
- *   and with the lack of an `endTime`, this breaks the queryability of the graph to
+ *   and with the lack of an `endTime`, this breaks the query ability of the graph to
  *   find the correct version of an entity.
  *   https://app.asana.com/0/1201095311341924/1203331904553375/f
  *
@@ -49,7 +46,7 @@ const removeNonLatestEntities = (subgraph: Subgraph) => {
   }
 };
 
-export const createEntity: ResolverFn<
+export const createEntityResolver: ResolverFn<
   Promise<Entity>,
   {},
   LoggedInGraphQLContext,
@@ -72,7 +69,7 @@ export const createEntity: ResolverFn<
     const { leftEntityId, leftToRightOrder, rightEntityId, rightToLeftOrder } =
       linkData;
 
-    const [leftEntityModel, rightEntityModel, linkEntityTypeModel] =
+    const [leftEntityModel, rightEntityModel, linkEntityType] =
       await Promise.all([
         EntityModel.getLatest(graphApi, {
           entityId: leftEntityId,
@@ -80,7 +77,7 @@ export const createEntity: ResolverFn<
         EntityModel.getLatest(graphApi, {
           entityId: rightEntityId,
         }),
-        EntityTypeModel.get(graphApi, { entityTypeId }),
+        getEntityType({ graphApi }, { entityTypeId }),
       ]);
 
     entityModel = await LinkEntityModel.createLinkEntity(graphApi, {
@@ -89,7 +86,7 @@ export const createEntity: ResolverFn<
       rightEntityModel,
       rightToLeftOrder: rightToLeftOrder ?? undefined,
       properties,
-      linkEntityTypeModel,
+      linkEntityType,
       ownedById: ownedById ?? userModel.getEntityUuid(),
       actorId: userModel.getEntityUuid(),
     });
@@ -106,7 +103,7 @@ export const createEntity: ResolverFn<
   return mapEntityModelToGQL(entityModel);
 };
 
-export const getAllLatestEntities: ResolverFn<
+export const getAllLatestEntitiesResolver: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
@@ -175,7 +172,7 @@ export const getAllLatestEntities: ResolverFn<
   return entitySubgraph as Subgraph;
 };
 
-export const getEntity: ResolverFn<
+export const getEntityResolver: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
@@ -241,7 +238,7 @@ export const getEntity: ResolverFn<
   return entitySubgraph as Subgraph;
 };
 
-export const updateEntity: ResolverFn<
+export const updateEntityResolver: ResolverFn<
   Promise<Entity>,
   {},
   LoggedInGraphQLContext,
@@ -264,10 +261,7 @@ export const updateEntity: ResolverFn<
   const entityModel = await EntityModel.getLatest(graphApi, { entityId });
 
   for (const beforeUpdateHook of beforeUpdateEntityHooks) {
-    if (
-      beforeUpdateHook.entityTypeId ===
-      entityModel.entityTypeModel.getSchema().$id
-    ) {
+    if (beforeUpdateHook.entityTypeId === entityModel.entityType.schema.$id) {
       await beforeUpdateHook.callback({
         graphApi,
         entityModel,

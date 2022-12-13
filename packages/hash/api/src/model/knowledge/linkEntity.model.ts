@@ -10,14 +10,19 @@ import {
   EntityMetadata,
   PropertyObject,
   Entity,
+  EntityTypeWithMetadata,
 } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+import {
+  getEntityType,
+  isEntityTypeLinkEntityType,
+} from "../../graph/ontology/primitive/entity-type";
 
-import { EntityModel, EntityTypeModel, LinkEntityModel } from "../index";
+import { EntityModel, LinkEntityModel } from "../index";
 
 export type LinkModelConstructorParams = {
   linkEntity: Entity;
-  linkEntityTypeModel: EntityTypeModel;
+  linkEntityType: EntityTypeWithMetadata;
   leftEntityModel: EntityModel;
   rightEntityModel: EntityModel;
 };
@@ -25,7 +30,7 @@ export type LinkModelConstructorParams = {
 export type LinkModelCreateParams = {
   ownedById: string;
   properties?: PropertyObject;
-  linkEntityTypeModel: EntityTypeModel;
+  linkEntityType: EntityTypeWithMetadata;
   leftEntityModel: EntityModel;
   leftToRightOrder?: number;
   rightEntityModel: EntityModel;
@@ -43,11 +48,11 @@ export default class extends EntityModel {
 
   constructor({
     linkEntity,
-    linkEntityTypeModel,
+    linkEntityType,
     leftEntityModel,
     rightEntityModel,
   }: LinkModelConstructorParams) {
-    super({ entity: linkEntity, entityTypeModel: linkEntityTypeModel });
+    super({ entity: linkEntity, entityType: linkEntityType });
     this.leftEntityModel = leftEntityModel;
     this.rightEntityModel = rightEntityModel;
   }
@@ -68,11 +73,14 @@ export default class extends EntityModel {
 
     const { entityTypeId } = linkEntity.metadata;
 
-    const [linkEntityTypeModel, leftEntityModel, rightEntityModel] =
+    const [linkEntityType, leftEntityModel, rightEntityModel] =
       await Promise.all([
-        EntityTypeModel.get(graphApi, {
-          entityTypeId,
-        }),
+        getEntityType(
+          { graphApi },
+          {
+            entityTypeId,
+          },
+        ),
         EntityModel.getLatest(graphApi, {
           entityId: linkEntity.linkData.leftEntityId,
         }),
@@ -83,7 +91,7 @@ export default class extends EntityModel {
 
     return new LinkEntityModel({
       linkEntity,
-      linkEntityTypeModel,
+      linkEntityType,
       leftEntityModel,
       rightEntityModel,
     });
@@ -120,7 +128,7 @@ export default class extends EntityModel {
    * Create a link entity between a left and a right entity.
    *
    * @param params.ownedById - the id of the account who owns the new link entity
-   * @param params.linkEntityTypeModel - the link entity type of the link entity
+   * @param params.linkEntityType - the link entity type of the link entity
    * @param params.leftEntityModel - the left entity of the link
    * @param params.leftToRightOrder (optional) - the left to right order of the link entity
    * @param params.rightEntityModel - the right entity of the link
@@ -133,7 +141,7 @@ export default class extends EntityModel {
   ): Promise<LinkEntityModel> {
     const {
       ownedById,
-      linkEntityTypeModel,
+      linkEntityType,
       actorId,
       leftEntityModel,
       leftToRightOrder,
@@ -142,11 +150,9 @@ export default class extends EntityModel {
       properties = {},
     } = params;
 
-    if (!linkEntityTypeModel.isLinkEntityType()) {
+    if (!isEntityTypeLinkEntityType({ entityType: linkEntityType })) {
       throw new Error(
-        `Entity type with ID "${
-          linkEntityTypeModel.getSchema().$id
-        }" is not a link entity type.`,
+        `Entity type with ID "${linkEntityType.schema.$id}" is not a link entity type.`,
       );
     }
 
@@ -160,7 +166,7 @@ export default class extends EntityModel {
       ownedById,
       linkData,
       actorId,
-      entityTypeId: linkEntityTypeModel.getSchema().$id,
+      entityTypeId: linkEntityType.schema.$id,
       properties,
     });
 
@@ -191,7 +197,7 @@ export default class extends EntityModel {
     const { data: metadata } = await graphApi.updateEntity({
       actorId,
       entityId: this.getBaseId(),
-      entityTypeId: this.entityTypeModel.getSchema().$id,
+      entityTypeId: this.entityType.schema.$id,
       properties,
       leftToRightOrder,
       rightToLeftOrder,
@@ -228,7 +234,7 @@ export default class extends EntityModel {
     const { data: metadata } = await graphApi.updateEntity({
       actorId,
       entityId: this.getBaseId(),
-      entityTypeId: this.entityTypeModel.getSchema().$id,
+      entityTypeId: this.entityType.schema.$id,
       properties,
       leftToRightOrder: linkOrder.leftToRightOrder,
       rightToLeftOrder: linkOrder.rightToLeftOrder,

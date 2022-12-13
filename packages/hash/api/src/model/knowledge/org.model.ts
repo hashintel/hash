@@ -28,7 +28,7 @@ export type OrgProvidedInfo = {
 
 export type OrgModelCreateParams = Omit<
   EntityModelCreateParams,
-  "properties" | "entityTypeModel" | "ownedById"
+  "properties" | "entityType" | "ownedById"
 > & {
   shortname: string;
   name: string;
@@ -83,12 +83,12 @@ export default class extends EntityModel {
         : {}),
     };
 
-    const entityTypeModel = SYSTEM_TYPES.entityType.org;
+    const entityType = SYSTEM_TYPES.entityType.org;
 
     const entity = await EntityModel.create(graphApi, {
       ownedById: systemUserAccountId,
       properties,
-      entityTypeModel,
+      entityType,
       entityUuid: orgAccountId,
       actorId,
     });
@@ -98,13 +98,13 @@ export default class extends EntityModel {
 
   static fromEntityModel(entityModel: EntityModel): OrgModel {
     if (
-      entityModel.entityTypeModel.getSchema().$id !==
-      SYSTEM_TYPES.entityType.org.getSchema().$id
+      entityModel.entityType.schema.$id !==
+      SYSTEM_TYPES.entityType.org.schema.$id
     ) {
       throw new EntityTypeMismatchError(
         entityModel.getBaseId(),
-        SYSTEM_TYPES.entityType.org.getSchema().$id,
-        entityModel.entityTypeModel.getSchema().$id,
+        SYSTEM_TYPES.entityType.org.schema.$id,
+        entityModel.entityType.schema.$id,
       );
     }
 
@@ -143,7 +143,7 @@ export default class extends EntityModel {
         {
           equal: [
             { path: ["type", "versionedUri"] },
-            { parameter: SYSTEM_TYPES.entityType.org.getSchema().$id },
+            { parameter: SYSTEM_TYPES.entityType.org.schema.$id },
           ],
         },
       ],

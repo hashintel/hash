@@ -12,7 +12,7 @@ import { EntityTypeMismatchError } from "../../lib/error";
 
 type CommentModelCreateParams = Omit<
   EntityModelCreateParams,
-  "properties" | "entityTypeModel"
+  "properties" | "entityType"
 > & {
   author: UserModel;
   parent: EntityModel;
@@ -25,13 +25,13 @@ type CommentModelCreateParams = Omit<
 export default class extends EntityModel {
   static fromEntityModel(entityModel: EntityModel): CommentModel {
     if (
-      entityModel.entityTypeModel.getSchema().$id !==
-      SYSTEM_TYPES.entityType.comment.getSchema().$id
+      entityModel.entityType.schema.$id !==
+      SYSTEM_TYPES.entityType.comment.schema.$id
     ) {
       throw new EntityTypeMismatchError(
         entityModel.getBaseId(),
-        SYSTEM_TYPES.entityType.comment.getSchema().$id,
-        entityModel.entityTypeModel.getSchema().$id,
+        SYSTEM_TYPES.entityType.comment.schema.$id,
+        entityModel.entityType.schema.$id,
       );
     }
 
@@ -66,12 +66,12 @@ export default class extends EntityModel {
   ): Promise<CommentModel> {
     const { ownedById, actorId, tokens, parent, author } = params;
 
-    const entityTypeModel = SYSTEM_TYPES.entityType.comment;
+    const entityType = SYSTEM_TYPES.entityType.comment;
 
     const entity = await EntityModel.create(graphApi, {
       ownedById,
       properties: {},
-      entityTypeModel,
+      entityType,
       actorId,
     });
 
@@ -80,26 +80,26 @@ export default class extends EntityModel {
       properties: {
         [SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId]: tokens,
       },
-      entityTypeModel: SYSTEM_TYPES.entityType.text,
+      entityType: SYSTEM_TYPES.entityType.text,
       actorId,
     });
 
     await entity.createOutgoingLink(graphApi, {
-      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.hasText,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.hasText,
       rightEntityModel: textEntity,
       ownedById,
       actorId,
     });
 
     await entity.createOutgoingLink(graphApi, {
-      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.parent,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
       rightEntityModel: parent,
       ownedById,
       actorId,
     });
 
     await entity.createOutgoingLink(graphApi, {
-      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.author,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.author,
       rightEntityModel: author,
       ownedById,
       actorId,
@@ -161,8 +161,8 @@ export default class extends EntityModel {
     // or the author of the block the comment is attached to
     if (
       actorId !== authorModel.getEntityUuid() &&
-      parentModel.entityTypeModel.getSchema().$id ===
-        SYSTEM_TYPES.entityType.block.getSchema().$id &&
+      parentModel.entityType.schema.$id ===
+        SYSTEM_TYPES.entityType.block.schema.$id &&
       actorId !== parentModel.getOwnedById()
     ) {
       throw new Error(
@@ -241,7 +241,7 @@ export default class extends EntityModel {
    */
   async getHasText(graphApi: GraphApi): Promise<EntityModel> {
     const hasTextLinks = await this.getOutgoingLinks(graphApi, {
-      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.hasText,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.hasText,
     });
 
     const [hasTextLink, ...unexpectedHasTextLinks] = hasTextLinks;
@@ -266,7 +266,7 @@ export default class extends EntityModel {
    */
   async getParent(graphApi: GraphApi): Promise<EntityModel> {
     const parentLinks = await this.getOutgoingLinks(graphApi, {
-      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.parent,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
     });
 
     const [parentLink, ...unexpectedParentLinks] = parentLinks;
@@ -291,7 +291,7 @@ export default class extends EntityModel {
    */
   async getAuthor(graphApi: GraphApi): Promise<UserModel> {
     const authorLinks = await this.getOutgoingLinks(graphApi, {
-      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.author,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.author,
     });
 
     const [authorLink, ...unexpectedAuthorLinks] = authorLinks;
@@ -316,7 +316,7 @@ export default class extends EntityModel {
    */
   async getReplies(graphApi: GraphApi): Promise<CommentModel[]> {
     const replyLinks = await this.getIncomingLinks(graphApi, {
-      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.parent,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
     });
 
     return replyLinks.map((reply) =>

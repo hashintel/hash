@@ -14,9 +14,11 @@ import {
   PrimitiveDataTypeKey,
   types,
 } from "@hashintel/hash-shared/ontology-types";
-import { PropertyTypeWithMetadata } from "@hashintel/hash-subgraph";
+import {
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@hashintel/hash-subgraph";
 import { AxiosError } from "axios";
-import { EntityTypeModel } from ".";
 import { GraphApi } from "../graph";
 import { systemUserAccountId } from "../graph/system-user";
 import {
@@ -24,6 +26,10 @@ import {
   getPropertyType,
 } from "../graph/ontology/primitive/property-type";
 import { logger } from "../logger";
+import {
+  createEntityType,
+  getEntityType,
+} from "../graph/ontology/primitive/entity-type";
 
 /** @todo: enable admins to expand upon restricted shortnames block list */
 export const RESTRICTED_SHORTNAMES = [
@@ -207,9 +213,9 @@ export type EntityTypeCreatorParams = {
     array?: { minItems?: number; maxItems?: number } | boolean;
   }[];
   outgoingLinks?: {
-    linkEntityTypeModel: EntityTypeModel;
-    destinationEntityTypeModels: (
-      | EntityTypeModel
+    linkEntityType: EntityTypeWithMetadata;
+    destinationEntityTypes: (
+      | EntityTypeWithMetadata
       // Some models may reference themselves. This marker is used to stop infinite loops during initialization by telling the initializer to use a self reference
       | "SELF_REFERENCE"
     )[];
@@ -251,26 +257,24 @@ export const generateSystemEntityTypeSchema = (
       (
         prev,
         {
-          linkEntityTypeModel,
-          destinationEntityTypeModels,
+          linkEntityType,
+          destinationEntityTypes,
           ordered = false,
           minItems,
           maxItems,
         },
       ): EntityType["links"] => ({
         ...prev,
-        [linkEntityTypeModel.getSchema().$id]: {
+        [linkEntityType.schema.$id]: {
           type: "array",
           ordered,
           items: {
-            oneOf: destinationEntityTypeModels.map(
-              (entityTypeModelOrReference) => ({
-                $ref:
-                  entityTypeModelOrReference === "SELF_REFERENCE"
-                    ? params.entityTypeId
-                    : entityTypeModelOrReference.getSchema().$id,
-              }),
-            ),
+            oneOf: destinationEntityTypes.map((entityTypeOrReference) => ({
+              $ref:
+                entityTypeOrReference === "SELF_REFERENCE"
+                  ? params.entityTypeId
+                  : entityTypeOrReference.schema.$id,
+            })),
           },
           minItems,
           maxItems,
@@ -281,7 +285,7 @@ export const generateSystemEntityTypeSchema = (
 
   const requiredLinks = params.outgoingLinks
     ?.filter(({ required }) => !!required)
-    .map(({ linkEntityTypeModel }) => linkEntityTypeModel.getSchema().$id);
+    .map(({ linkEntityType }) => linkEntityType.schema.$id);
 
   return {
     $id: params.entityTypeId,
@@ -325,37 +329,43 @@ export const generateSystemLinkEntityTypeSchema = (
  * likely to cause problems if we introduce circular dependencies)
  *
  * @param params the data required to create a new entity type
- * @returns an async function which can be called to initialize the entity type, returning its EntityTypeModel
+ * @returns an async function which can be called to initialize the entity type, returning its entity type
  */
 export const entityTypeInitializer = (
   params: EntityTypeCreatorParams | LinkEntityTypeCreatorParams,
-): ((graphApi: GraphApi) => Promise<EntityTypeModel>) => {
-  let entityTypeModel: EntityTypeModel;
+): ((graphApi: GraphApi) => Promise<EntityTypeWithMetadata>) => {
+  let entityType: EntityTypeWithMetadata;
 
   return async (graphApi?: GraphApi) => {
-    if (entityTypeModel) {
-      return entityTypeModel;
+    if (entityType) {
+      return entityType;
     } else if (!graphApi) {
       throw new Error(
         `entity type ${params.title} was uninitialized, and function was called without passing a graphApi object`,
       );
     } else {
-      const entityType =
+      const entityTypeSchema =
         "linkEntityTypeId" in params
           ? generateSystemLinkEntityTypeSchema(params)
           : generateSystemEntityTypeSchema(params);
 
       // initialize
-      entityTypeModel = await EntityTypeModel.get(graphApi, {
-        entityTypeId: entityType.$id,
-      }).catch(async (error: AxiosError) => {
+      entityType = await getEntityType(
+        { graphApi },
+        {
+          entityTypeId: entityTypeSchema.$id,
+        },
+      ).catch(async (error: AxiosError) => {
         if (error.response?.status === 404) {
           // The type was missing, try and create it
-          return await EntityTypeModel.create(graphApi, {
-            ownedById: systemUserAccountId,
-            schema: entityType,
-            actorId: systemUserAccountId,
-          }).catch((createError: AxiosError) => {
+          return await createEntityType(
+            { graphApi },
+            {
+              ownedById: systemUserAccountId,
+              schema: entityTypeSchema,
+              actorId: systemUserAccountId,
+            },
+          ).catch((createError: AxiosError) => {
             logger.warn(`Failed to create entity type: ${params.title}`);
             throw createError;
           });
@@ -367,7 +377,7 @@ export const entityTypeInitializer = (
         }
       });
 
-      return entityTypeModel;
+      return entityType;
     }
   };
 };

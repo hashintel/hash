@@ -13,7 +13,7 @@ import { EntityTypeMismatchError } from "../../lib/error";
 
 export type OrgMembershipModelCreateParams = Omit<
   EntityModelCreateParams,
-  "properties" | "entityTypeModel" | "ownedById"
+  "properties" | "entityType" | "ownedById"
 > & {
   responsibility: string;
   org: OrgModel;
@@ -23,23 +23,23 @@ export type OrgMembershipModelCreateParams = Omit<
 export default class extends LinkEntityModel {
   constructor({
     linkEntity,
-    linkEntityTypeModel,
+    linkEntityType,
     leftEntityModel,
     rightEntityModel,
   }: LinkModelConstructorParams) {
     if (
-      linkEntityTypeModel.getSchema().$id !==
-      SYSTEM_TYPES.linkEntityType.orgMembership.getSchema().$id
+      linkEntityType.schema.$id !==
+      SYSTEM_TYPES.linkEntityType.orgMembership.schema.$id
     ) {
       throw new EntityTypeMismatchError(
         linkEntity.metadata.editionId.baseId,
-        SYSTEM_TYPES.linkEntityType.orgMembership.getSchema().$id,
-        linkEntityTypeModel.getSchema().$id,
+        SYSTEM_TYPES.linkEntityType.orgMembership.schema.$id,
+        linkEntityType.schema.$id,
       );
     }
     super({
       linkEntity,
-      linkEntityTypeModel,
+      linkEntityType,
       leftEntityModel,
       rightEntityModel,
     });
@@ -49,20 +49,20 @@ export default class extends LinkEntityModel {
     linkEntityModel: LinkEntityModel,
   ): OrgMembershipModel {
     if (
-      linkEntityModel.entityTypeModel.getSchema().$id !==
-      SYSTEM_TYPES.linkEntityType.orgMembership.getSchema().$id
+      linkEntityModel.entityType.schema.$id !==
+      SYSTEM_TYPES.linkEntityType.orgMembership.schema.$id
     ) {
       throw new EntityTypeMismatchError(
         linkEntityModel.getBaseId(),
-        SYSTEM_TYPES.linkEntityType.orgMembership.getSchema().$id,
-        linkEntityModel.entityTypeModel.getSchema().$id,
+        SYSTEM_TYPES.linkEntityType.orgMembership.schema.$id,
+        linkEntityModel.entityType.schema.$id,
       );
     }
 
     return new OrgMembershipModel({
       ...linkEntityModel,
       linkEntity: linkEntityModel.entity,
-      linkEntityTypeModel: linkEntityModel.entityTypeModel,
+      linkEntityType: linkEntityModel.entityType,
     });
   }
 
@@ -85,7 +85,7 @@ export default class extends LinkEntityModel {
 
     const entity = await user.createOutgoingLink(graphApi, {
       ownedById: org.getEntityUuid(),
-      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.orgMembership,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.orgMembership,
       rightEntityModel: org,
       properties,
       actorId,

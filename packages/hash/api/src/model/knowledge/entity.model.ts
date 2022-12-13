@@ -14,30 +14,30 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   splitEntityId,
+  EntityTypeWithMetadata,
 } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import { VersionedUri } from "@blockprotocol/type-system";
-import {
-  EntityModel,
-  EntityTypeModel,
-  LinkEntityModel,
-  LinkModelCreateParams,
-} from "..";
+import { EntityModel, LinkEntityModel, LinkModelCreateParams } from "..";
 import {
   LinkedEntityDefinition,
   EntityDefinition,
 } from "../../graphql/apiTypes.gen";
 import { linkedTreeFlatten } from "../../util";
+import {
+  getEntityType,
+  isEntityTypeLinkEntityType,
+} from "../../graph/ontology/primitive/entity-type";
 
 export type EntityModelConstructorParams = {
   entity: Entity;
-  entityTypeModel: EntityTypeModel;
+  entityType: EntityTypeWithMetadata;
 };
 
 export type EntityModelCreateParams = {
   ownedById: string;
   properties: PropertyObject;
-  entityTypeModel: EntityTypeModel;
+  entityType: EntityTypeWithMetadata;
   entityUuid?: string;
   actorId: string;
 };
@@ -48,11 +48,11 @@ export type EntityModelCreateParams = {
 export default class {
   entity: Entity;
 
-  entityTypeModel: EntityTypeModel;
+  entityType: EntityTypeWithMetadata;
 
-  constructor({ entity, entityTypeModel }: EntityModelConstructorParams) {
+  constructor({ entity, entityType }: EntityModelConstructorParams) {
     this.entity = entity;
-    this.entityTypeModel = entityTypeModel;
+    this.entityType = entityType;
   }
 
   getVersion(): string {
@@ -82,33 +82,33 @@ export default class {
   static async fromEntity(
     graphApi: GraphApi,
     entity: Entity,
-    cachedEntityTypeModels?: Map<string, EntityTypeModel>,
+    cachedEntityTypes?: Map<string, EntityTypeWithMetadata>,
   ): Promise<EntityModel> {
     const {
       metadata: { entityTypeId },
     } = entity;
 
-    const cachedEntityTypeModel = cachedEntityTypeModels?.get(entityTypeId);
+    const cachedEntityType = cachedEntityTypes?.get(entityTypeId);
 
-    let entityTypeModel: EntityTypeModel;
+    let entityType: EntityTypeWithMetadata;
 
-    if (cachedEntityTypeModel) {
-      entityTypeModel = cachedEntityTypeModel;
+    if (cachedEntityType) {
+      entityType = cachedEntityType;
     } else {
-      entityTypeModel = await EntityTypeModel.get(graphApi, { entityTypeId });
-      if (cachedEntityTypeModels) {
-        cachedEntityTypeModels.set(entityTypeId, entityTypeModel);
+      entityType = await getEntityType({ graphApi }, { entityTypeId });
+      if (cachedEntityTypes) {
+        cachedEntityTypes.set(entityTypeId, entityType);
       }
     }
 
-    return new EntityModel({ entity, entityTypeModel });
+    return new EntityModel({ entity, entityType });
   }
 
   /**
    * Create an entity.
    *
    * @param params.ownedById - the id of the account who owns the entity
-   * @param params.entityTypeModel - the type of the entity
+   * @param params.entityType - the type of the entity
    * @param params.properties - the properties object of the entity
    * @param params.actorId - the id of the account that is creating the entity
    * @param params.entityUuid (optional) - the uuid of the entity, automatically generated if left undefined
@@ -119,7 +119,7 @@ export default class {
   ): Promise<EntityModel> {
     const {
       ownedById,
-      entityTypeModel,
+      entityType,
       properties,
       actorId,
       entityUuid: overrideEntityUuid,
@@ -127,7 +127,7 @@ export default class {
 
     const { data: metadata } = await graphApi.createEntity({
       ownedById,
-      entityTypeId: entityTypeModel.getSchema().$id,
+      entityTypeId: entityType.schema.$id,
       properties,
       entityUuid: overrideEntityUuid,
       actorId,
@@ -218,13 +218,16 @@ export default class {
           if (!parentEntity) {
             throw new ApolloError("Could not find parent entity");
           }
-          const linkEntityTypeModel = await EntityTypeModel.get(graphApi, {
-            entityTypeId: link.meta.linkEntityTypeId,
-          });
+          const linkEntityType = await getEntityType(
+            { graphApi },
+            {
+              entityTypeId: link.meta.linkEntityTypeId,
+            },
+          );
 
           // links are created as an outgoing link from the parent entity to the children.
           await parentEntity.entity.createOutgoingLink(graphApi, {
-            linkEntityTypeModel,
+            linkEntityType,
             rightEntityModel: entity,
             leftToRightOrder: link.meta.index ?? undefined,
             ownedById,
@@ -278,13 +281,16 @@ export default class {
         );
       }
 
-      const entityTypeModel = await EntityTypeModel.get(graphApi, {
-        entityTypeId,
-      });
+      const entityType = await getEntityType(
+        { graphApi },
+        {
+          entityTypeId,
+        },
+      );
 
       entity = await EntityModel.create(graphApi, {
         ownedById,
-        entityTypeModel,
+        entityType,
         properties: entityProperties,
         actorId,
       });
@@ -368,7 +374,7 @@ export default class {
       );
     }
 
-    return entityModel.entityTypeModel.isLinkEntityType()
+    return isEntityTypeLinkEntityType({ entityType: entityModel.entityType })
       ? await LinkEntityModel.fromEntity(graphApi, entity as Entity)
       : entityModel;
   }
@@ -405,13 +411,13 @@ export default class {
     },
   ): Promise<EntityModel> {
     const { properties, actorId } = params;
-    const { entityTypeModel } = this;
+    const { entityType } = this;
 
     const { data: metadata } = await graphApi.updateEntity({
       actorId,
       entityId: this.getBaseId(),
       /** @todo: make this argument optional */
-      entityTypeId: entityTypeModel.getSchema().$id,
+      entityTypeId: entityType.schema.$id,
       properties,
     });
 
@@ -499,11 +505,11 @@ export default class {
   /**
    * Get the incoming links of an entity.
    *
-   * @param params.linkEntityTypeModel (optional) - the specific link entity type of the incoming links
+   * @param params.linkEntityType (optional) - the specific link entity type of the incoming links
    */
   async getIncomingLinks(
     graphApi: GraphApi,
-    params?: { linkEntityTypeModel?: EntityTypeModel },
+    params?: { linkEntityType?: EntityTypeWithMetadata },
   ): Promise<LinkEntityModel[]> {
     const filter: Filter = {
       all: [
@@ -528,12 +534,12 @@ export default class {
       ],
     };
 
-    if (params?.linkEntityTypeModel) {
+    if (params?.linkEntityType) {
       filter.all.push({
         equal: [
           { path: ["type", "versionedUri"] },
           {
-            parameter: params.linkEntityTypeModel.getSchema().$id,
+            parameter: params.linkEntityType.schema.$id,
           },
         ],
       });
@@ -554,12 +560,12 @@ export default class {
   /**
    * Get the outgoing links of an entity.
    *
-   * @param params.linkEntityTypeModel (optional) - the specific link type of the outgoing links
+   * @param params.linkEntityType (optional) - the specific link type of the outgoing links
    */
   async getOutgoingLinks(
     graphApi: GraphApi,
     params?: {
-      linkEntityTypeModel?: EntityTypeModel;
+      linkEntityType?: EntityTypeWithMetadata;
       rightEntityModel?: EntityModel;
     },
   ): Promise<LinkEntityModel[]> {
@@ -586,12 +592,12 @@ export default class {
       ],
     };
 
-    if (params?.linkEntityTypeModel) {
+    if (params?.linkEntityType) {
       filter.all.push({
         equal: [
           { path: ["type", "versionedUri"] },
           {
-            parameter: params.linkEntityTypeModel.getSchema().$id,
+            parameter: params.linkEntityType.schema.$id,
           },
         ],
       });

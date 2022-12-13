@@ -29,10 +29,10 @@ import {
 } from "./ontology/property-type";
 
 import {
-  createEntityType,
-  getAllLatestEntityTypes,
-  getEntityType,
-  updateEntityType,
+  createEntityTypeResolver,
+  getAllLatestEntityTypesResolver,
+  getEntityTypeResolver,
+  updateEntityTypeResolver,
 } from "./ontology/entity-type";
 import { updatePageContents, pageContents } from "./knowledge/page";
 import {
@@ -46,10 +46,10 @@ import { createComment } from "./knowledge/comment/comment";
 import { blocks } from "./knowledge/block/block";
 import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
 import {
-  createEntity,
-  getEntity,
-  getAllLatestEntities,
-  updateEntity,
+  createEntityResolver,
+  getEntityResolver,
+  getAllLatestEntitiesResolver,
+  updateEntityResolver,
   archiveEntity,
 } from "./knowledge/entity/entity";
 import { setParentPage } from "./knowledge/page/set-parent-page";
@@ -86,15 +86,17 @@ export const resolvers = {
       getAllLatestPropertyTypesResolver,
     ),
     getPropertyType: getPropertyTypeResolver,
-    getAllLatestEntityTypes: loggedInAndSignedUp(getAllLatestEntityTypes),
-    getEntityType,
+    getAllLatestEntityTypes: loggedInAndSignedUp(
+      getAllLatestEntityTypesResolver,
+    ),
+    getEntityType: getEntityTypeResolver,
     // Knowledge
     page,
     pages: loggedInAndSignedUp(pages),
     pageComments: loggedInAndSignedUp(pageComments),
     blocks: loggedInAndSignedUp(blocks),
-    getEntity: loggedInAndSignedUp(getEntity),
-    getAllLatestEntities: loggedInAndSignedUp(getAllLatestEntities),
+    getEntity: loggedInAndSignedUp(getEntityResolver),
+    getAllLatestEntities: loggedInAndSignedUp(getAllLatestEntitiesResolver),
     hashInstanceEntity,
   },
 
@@ -116,11 +118,11 @@ export const resolvers = {
     // Ontology
     createPropertyType: loggedInAndSignedUp(createPropertyTypeResolver),
     updatePropertyType: loggedInAndSignedUp(updatePropertyTypeResolver),
-    createEntityType: loggedInAndSignedUp(createEntityType),
-    updateEntityType: loggedInAndSignedUp(updateEntityType),
+    createEntityType: loggedInAndSignedUp(createEntityTypeResolver),
+    updateEntityType: loggedInAndSignedUp(updateEntityTypeResolver),
     // Knowledge
-    createEntity: loggedInAndSignedUp(createEntity),
-    updateEntity: loggedIn(updateEntity),
+    createEntity: loggedInAndSignedUp(createEntityResolver),
+    updateEntity: loggedIn(updateEntityResolver),
     archiveEntity: loggedIn(archiveEntity),
     createPage: loggedInAndSignedUp(createPage),
     setParentPage: loggedInAndSignedUp(setParentPage),
