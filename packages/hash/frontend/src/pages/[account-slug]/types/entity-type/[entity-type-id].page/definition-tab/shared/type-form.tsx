@@ -114,6 +114,7 @@ export const TypeFormNameField = ({
   );
 };
 
+// @todo handle this field having a different description
 export const TypeFormDescriptionField = ({
   defaultValues,
   fieldDisabled,
@@ -431,15 +432,14 @@ export const TypeFormModal: PolymorphicComponent<{}, "div"> = forwardRef(
   },
 );
 
+type GenericTypeFormDefaults = { name: string; description: string };
 export type GenericTypeFormProps<
-  T extends { name: string; description: string },
+  T extends GenericTypeFormDefaults = GenericTypeFormDefaults,
 > = TypeFormProps<T> & {
   getDefaultValues: () => DeepPartial<T>;
 };
 
-export const GenericTypeForm = <
-  T extends { name: string; description: string },
->({
+export const GenericTypeForm = <T extends GenericTypeFormDefaults>({
   children,
   nameExists,
   disabledFields,

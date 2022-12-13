@@ -1,5 +1,6 @@
 import { EntityType } from "@blockprotocol/type-system";
 import { Chip } from "@hashintel/hash-design-system";
+import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { TableBody, TableCell, TableFooter, TableHead } from "@mui/material";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { useId, useRef, useState } from "react";
@@ -9,6 +10,7 @@ import {
   useFormContext,
   useWatch,
 } from "react-hook-form";
+import { useBlockProtocolGetEntityType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { LinkIcon } from "../../../../../../shared/icons/link";
 import { HashSelectorAutocomplete } from "../../../../shared/hash-selector-autocomplete";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
@@ -28,7 +30,13 @@ import {
 } from "./shared/entity-type-table";
 import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
 import { QuestionIcon } from "./shared/question-icon";
-import { TypeForm, TypeFormModal } from "./shared/type-form";
+import {
+  generateInitialTypeUri,
+  GenericTypeForm,
+  GenericTypeFormProps,
+  TypeFormModal,
+  useGenerateTypeBaseUri,
+} from "./shared/type-form";
 import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { useStateCallback } from "./shared/use-state-callback";
 
@@ -189,6 +197,29 @@ const InsertLinkRow = (
   );
 };
 
+export const LinkTypeForm = (props: GenericTypeFormProps) => {
+  const { getEntityType } = useBlockProtocolGetEntityType();
+  const generateTypeBaseUri = useGenerateTypeBaseUri("entity-type");
+
+  const nameExists = async (name: string) => {
+    const entityTypeId = generateInitialTypeUri(generateTypeBaseUri(name));
+
+    const res = await getEntityType({
+      data: {
+        entityTypeId,
+        graphResolveDepths: {
+          constrainsValuesOn: { outgoing: 0 },
+          constrainsPropertiesOn: { outgoing: 0 },
+        },
+      },
+    });
+
+    return !res.data || !!getEntityTypeById(res.data, entityTypeId);
+  };
+
+  return <GenericTypeForm nameExists={nameExists} {...props} />;
+};
+
 export const LinkListCard = () => {
   const { control } = useFormContext<EntityTypeEditorForm>();
   const { fields, append, remove } = useFieldArray({ control, name: "links" });
@@ -287,7 +318,27 @@ export const LinkListCard = () => {
               onSearchTextChange={setSearchText}
               createModalPopupState={createModalPopupState}
             />
-            <TypeFormModal popupState={createModalPopupState} />
+            <TypeFormModal
+              as={LinkTypeForm}
+              popupState={createModalPopupState}
+              modalTitle={
+                <>
+                  Create new link
+                  <QuestionIcon
+                    sx={{
+                      ml: 1.25,
+                    }}
+                  />
+                </>
+              }
+              onSubmit={async (values) => {
+                console.log(values);
+              }}
+              submitButtonProps={{ children: <>Create new link</> }}
+              getDefaultValues={() =>
+                searchText.length ? { name: searchText } : {}
+              }
+            />
           </>
         ) : (
           <EntityTypeTableButtonRow
