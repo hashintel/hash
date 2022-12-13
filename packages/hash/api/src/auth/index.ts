@@ -118,8 +118,10 @@ const setupAuth = (params: {
         if (err.response && err.response.status === 403) {
           /** @todo: figure out if this should be handled here, or in the next.js app (when implementing 2FA) */
         }
-        logger.error(
-          `Could not fetch session, got error: [${err.response?.status}] ${err.response?.data}`,
+        logger.debug(
+          `Kratos response error: Could not fetch session, got: [${
+            err.response?.status
+          }] ${JSON.stringify(err.response?.data)}`,
         );
         return undefined;
       });

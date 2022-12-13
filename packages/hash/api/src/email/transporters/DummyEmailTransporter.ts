@@ -19,16 +19,6 @@ interface PlainEmailDump {
 type DerivedPayload =
   | { payloadType: "unknown" }
   | {
-      payloadType: "loginVerification";
-      verificationCode: string;
-      magicLink: string;
-    }
-  | {
-      payloadType: "signupVerification";
-      verificationCode: string;
-      magicLink: string;
-    }
-  | {
       payloadType: "orgInvitation";
       orgName: string;
       invitationLink: string;
@@ -59,22 +49,6 @@ const yamlFileHeader = dedent`
 const derivePayload = (plainEmailDump: PlainEmailDump): DerivedPayload => {
   try {
     const { subject, html } = plainEmailDump;
-    if (subject === "Your HASH verification code") {
-      return {
-        payloadType: "loginVerification",
-        verificationCode: html!.match(/<code>(.*)<\/code>/)![1]!,
-        magicLink: html!.match(/href="(.*)"/)![1]!,
-      };
-    }
-
-    if (subject === "Please verify your HASH email address") {
-      return {
-        payloadType: "signupVerification",
-        verificationCode: html!.match(/<code>(.*)<\/code>/)![1]!,
-        magicLink: html!.match(/href="(.*)"/)![1]!,
-      };
-    }
-
     if (subject === "You've been invited to join an organization at HASH") {
       const invitationLink = html!.match(/href="(.*)"/)![1]!;
 
@@ -181,24 +155,6 @@ export class DummyEmailTransporter implements EmailTransporter {
     const rowsToDisplay: string[] = [`New email to ${emailDump.to}!`, ""];
 
     switch (emailDump.derivedPayload.payloadType) {
-      case "loginVerification":
-        rowsToDisplay.push(
-          "Login link:",
-          emailDump.derivedPayload.magicLink,
-          "",
-          "Verification code:",
-          emailDump.derivedPayload.verificationCode,
-        );
-        break;
-      case "signupVerification":
-        rowsToDisplay.push(
-          "Signup link:",
-          emailDump.derivedPayload.magicLink,
-          "",
-          "Verification code:",
-          emailDump.derivedPayload.verificationCode,
-        );
-        break;
       case "orgInvitation":
         rowsToDisplay.push(
           "Org invitation link:",
