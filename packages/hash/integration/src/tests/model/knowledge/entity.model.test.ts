@@ -4,6 +4,7 @@ import {
   ensureSystemGraphIsInitialized,
 } from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { extractAccountIdAsEntityUuid } from "@hashintel/hash-shared/types";
 
 import {
   EntityModel,
@@ -236,7 +237,9 @@ describe("Entity CRU", () => {
       linkedEntities: [
         {
           // Then create an entity + link
-          destinationAccountId: testUser.getBaseId(),
+          destinationAccountId: extractAccountIdAsEntityUuid(
+            testUser.getBaseId(),
+          ),
           linkEntityTypeId: linkEntityTypeFriendModel.getSchema().$id,
           entity: {
             // The "new" entity is in fact just an existing entity, so only a link will be created.

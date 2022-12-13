@@ -35,7 +35,7 @@ export const getAllLatestPropertyTypesQuery = gql`
 
 export const createPropertyTypeMutation = gql`
   mutation createPropertyType(
-    $ownedById: ID!
+    $ownedById: AccountId!
     $propertyType: PropertyTypeWithoutId!
   ) {
     # This is a scalar, which has no selection.
