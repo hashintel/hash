@@ -5,65 +5,9 @@
 // @ts-nocheck
 import dedent from "dedent";
 import { URLSearchParams } from "url";
-import { VerificationCode } from "../model";
 import { EmailTransporter } from "./transporters";
 
 const { FRONTEND_URL } = require("../lib/config");
-
-export const sendLoginCodeToEmailAddress =
-  (emailTransporter: EmailTransporter) =>
-  async (params: {
-    verificationCode: VerificationCode;
-    emailAddress: string;
-    redirectPath?: string;
-  }): Promise<void> => {
-    const { verificationCode, emailAddress, redirectPath } = params;
-
-    const queryParams = new URLSearchParams({
-      verificationId: verificationCode.id,
-      verificationCode: verificationCode.code,
-      ...(redirectPath ? { redirectPath } : {}),
-    }).toString();
-
-    const magicLink = `${FRONTEND_URL}/login?${queryParams}`;
-
-    await emailTransporter.sendMail({
-      to: emailAddress,
-      subject: "Your HASH verification code",
-      html: dedent`
-        <p>To log in, copy and paste your verification code or <a href="${magicLink}">click here</a>.</p>
-        <code>${verificationCode.code}</code>
-      `,
-    });
-  };
-
-export const sendEmailVerificationCodeToEmailAddress =
-  (emailTransporter: EmailTransporter) =>
-  async (params: {
-    verificationCode: VerificationCode;
-    emailAddress: string;
-    magicLinkQueryParams?: string;
-  }): Promise<void> => {
-    const { verificationCode, emailAddress, magicLinkQueryParams } = params;
-
-    const queryParams = new URLSearchParams({
-      verificationId: verificationCode.id,
-      verificationCode: verificationCode.code,
-    }).toString();
-
-    const magicLink = `${FRONTEND_URL}/signup?${queryParams}${
-      magicLinkQueryParams || ""
-    }`;
-
-    await emailTransporter.sendMail({
-      to: emailAddress,
-      subject: "Please verify your HASH email address",
-      html: dedent`
-        <p>To verify your email address, copy and paste your verification code or <a href="${magicLink}">click here</a>.</p>
-        <code>${verificationCode.code}</code>
-      `,
-    });
-  };
 
 export const sendOrgEmailInvitationToEmailAddress =
   (emailTransporter: EmailTransporter) =>
