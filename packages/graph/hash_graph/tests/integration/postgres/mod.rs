@@ -36,7 +36,7 @@ use graph::{
     },
 };
 use tokio_postgres::{NoTls, Transaction};
-use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
+use type_system::{repr, uri::VersionedUri, DataType, EntityType, PropertyType};
 use uuid::Uuid;
 
 pub struct DatabaseTestWrapper {
@@ -106,30 +106,37 @@ impl DatabaseTestWrapper {
             .await
             .expect("could not insert account id");
 
-        for data_type in data_types {
+        for data_type_str in data_types {
+            let data_type_repr: repr::DataType = serde_json::from_str(data_type_str)
+                .expect("could not parse data type representation");
             store
                 .create_data_type(
-                    DataType::from_str(data_type).expect("could not parse data type"),
+                    DataType::try_from(data_type_repr).expect("could not parse data type"),
                     OwnedById::new(account_id),
                     UpdatedById::new(account_id),
                 )
                 .await?;
         }
 
-        for property_type in property_types {
+        for property_type_str in property_types {
+            let property_type_repr: repr::PropertyType = serde_json::from_str(property_type_str)
+                .expect("could not parse property type representation");
             store
                 .create_property_type(
-                    PropertyType::from_str(property_type).expect("could not parse property type"),
+                    PropertyType::try_from(property_type_repr)
+                        .expect("could not parse property type"),
                     OwnedById::new(account_id),
                     UpdatedById::new(account_id),
                 )
                 .await?;
         }
 
-        for entity_type in entity_types {
+        for entity_type_str in entity_types {
+            let entity_type_repr: repr::EntityType = serde_json::from_str(entity_type_str)
+                .expect("could not parse entity type representation");
             store
                 .create_entity_type(
-                    EntityType::from_str(entity_type).expect("could not parse entity type"),
+                    EntityType::try_from(entity_type_repr).expect("could not parse entity type"),
                     OwnedById::new(account_id),
                     UpdatedById::new(account_id),
                 )
