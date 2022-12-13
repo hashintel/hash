@@ -7,9 +7,11 @@
   "main": "./src/ui.ts",
   "types": "./src/ui.ts",
   "scripts": {
+    "build-storybook": "build-storybook",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
+    "storybook": "start-storybook -p 6006",
     "test": "jest"
   },
   "dependencies": {
@@ -22,11 +24,22 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@babel/core": "^7.20.5",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
+    "@storybook/addon-actions": "^6.5.14",
+    "@storybook/addon-essentials": "^6.5.14",
+    "@storybook/addon-interactions": "^6.5.14",
+    "@storybook/addon-links": "^6.5.14",
+    "@storybook/builder-webpack5": "^6.5.14",
+    "@storybook/manager-webpack5": "^6.5.14",
+    "@storybook/react": "^6.5.14",
+    "@storybook/testing-library": "^0.0.13",
     "@types/react": "18.0.25",
     "@types/react-dom": "18.0.8",
+    "babel-loader": "^8.3.0",
     "eslint": "8.29.0",
+    "eslint-plugin-storybook": "0.6.8",
     "typescript": "4.9.4"
   },
   "peerDependencies": {
