@@ -24,7 +24,6 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.5",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@storybook/addon-essentials": "^7.0.0-beta.6",
@@ -33,10 +32,9 @@
     "@storybook/blocks": "^7.0.0-beta.6",
     "@storybook/react": "^7.0.0-beta.6",
     "@storybook/react-webpack5": "^7.0.0-beta.6",
-    "@storybook/testing-library": "^0.0.13",
+    "@storybook/testing-library": "^0.0.14-next.1",
     "@types/react": "18.0.25",
     "@types/react-dom": "18.0.8",
-    "babel-loader": "^9.1.0",
     "eslint": "8.29.0",
     "eslint-plugin-storybook": "0.6.8",
     "storybook": "^7.0.0-beta.6",
