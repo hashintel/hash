@@ -28,6 +28,7 @@ import {
 } from "./shared/entity-type-table";
 import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
 import { QuestionIcon } from "./shared/question-icon";
+import { TypeForm, TypeFormModal } from "./shared/type-form";
 import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { useStateCallback } from "./shared/use-state-callback";
 
@@ -196,6 +197,11 @@ export const LinkListCard = () => {
   const [addingNewLink, setAddingNewLink] = useStateCallback(false);
   const addingNewLinkRef = useRef<HTMLInputElement>(null);
   const [searchText, setSearchText] = useState("");
+  const modalTooltipId = useId();
+  const createModalPopupState = usePopupState({
+    variant: "popover",
+    popupId: `createLink-${modalTooltipId}`,
+  });
 
   const cancelAddingNewLink = () => {
     setAddingNewLink(false);
@@ -261,24 +267,28 @@ export const LinkListCard = () => {
       </TableBody>
       <TableFooter>
         {addingNewLink ? (
-          <InsertLinkRow
-            inputRef={addingNewLinkRef}
-            onCancel={cancelAddingNewLink}
-            onAdd={(link) => {
-              cancelAddingNewLink();
-              append(
-                {
-                  $id: link.$id,
-                  entityTypes: [],
-                  minValue: 0,
-                  maxValue: 1,
-                },
-                { focusName: `links.${fields.length}.entityTypes` },
-              );
-            }}
-            searchText={searchText}
-            onSearchTextChange={setSearchText}
-          />
+          <>
+            <InsertLinkRow
+              inputRef={addingNewLinkRef}
+              onCancel={cancelAddingNewLink}
+              onAdd={(link) => {
+                cancelAddingNewLink();
+                append(
+                  {
+                    $id: link.$id,
+                    entityTypes: [],
+                    minValue: 0,
+                    maxValue: 1,
+                  },
+                  { focusName: `links.${fields.length}.entityTypes` },
+                );
+              }}
+              searchText={searchText}
+              onSearchTextChange={setSearchText}
+              createModalPopupState={createModalPopupState}
+            />
+            <TypeFormModal popupState={createModalPopupState} />
+          </>
         ) : (
           <EntityTypeTableButtonRow
             icon={<StyledPlusCircleIcon />}
