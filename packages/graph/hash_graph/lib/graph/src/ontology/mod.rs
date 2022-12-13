@@ -219,7 +219,7 @@ impl OntologyType for EntityType {
     type Representation = repr::EntityType;
 }
 
-pub trait PersistedOntologyType: Sized {
+pub trait PersistedOntologyType {
     type OntologyType: OntologyType;
 
     fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self;
