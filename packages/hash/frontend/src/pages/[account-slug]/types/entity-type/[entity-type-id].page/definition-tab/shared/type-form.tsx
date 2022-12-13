@@ -235,7 +235,7 @@ export type TypeFormProps<T extends Record<string, any>> = {
   onClose?: () => void;
   modalTitle: ReactNode;
   popupState: PopupState;
-  onSubmit: (data: T) => Promise<void>;
+  onSubmit: (data: T) => Promise<void> | void;
   submitButtonProps: TypeFormSubmitProps;
   disabledFields?: (keyof T)[];
 };

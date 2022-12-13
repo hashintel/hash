@@ -331,7 +331,7 @@ export const LinkListCard = () => {
                   />
                 </>
               }
-              onSubmit={async (values) => {
+              onSubmit={(values) => {
                 console.log(values);
               }}
               submitButtonProps={{ children: <>Create new link</> }}
