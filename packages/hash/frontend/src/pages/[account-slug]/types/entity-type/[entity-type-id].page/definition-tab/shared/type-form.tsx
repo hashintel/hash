@@ -6,6 +6,12 @@ import {
   IconButton,
   TextField,
 } from "@hashintel/hash-design-system";
+import { frontendUrl } from "@hashintel/hash-shared/environment";
+import {
+  generateBaseTypeId,
+  SchemaKind,
+} from "@hashintel/hash-shared/ontology-types";
+import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import {
   Box,
   Divider,
@@ -14,9 +20,32 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { bindToggle, PopupState } from "material-ui-popup-state/es/hooks";
-import { ReactNode, useEffect, useState } from "react";
-import { FieldValues, Path, useFormContext } from "react-hook-form";
+import {
+  bindDialog,
+  bindToggle,
+  PopupState,
+} from "material-ui-popup-state/hooks";
+import { useRouter } from "next/router";
+import {
+  ComponentPropsWithoutRef,
+  ComponentPropsWithRef,
+  createElement,
+  ElementType,
+  forwardRef,
+  ReactElement,
+  ReactNode,
+  Ref,
+  useEffect,
+  useState,
+} from "react";
+import {
+  DeepPartial,
+  FieldValues,
+  Path,
+  useForm,
+  useFormContext,
+} from "react-hook-form";
+import { Modal } from "../../../../../../../components/Modals/Modal";
 import { withHandler } from "../property-list-card/shared/with-handler";
 import { QuestionIcon } from "./question-icon";
 
@@ -171,7 +200,7 @@ export const TypeFormDescriptionField = ({
   );
 };
 
-export type TypeFormWrapperProps<T extends FieldValues> = {
+export type TypeFormProps<T extends FieldValues> = {
   onClose?: () => void;
   modalTitle: ReactNode;
   popupState: PopupState;
@@ -179,7 +208,7 @@ export type TypeFormWrapperProps<T extends FieldValues> = {
   submitButtonProps: TypeFormWrapperSubmitButtonProps;
 };
 
-export const TypeFormWrapper = <T extends FieldValues>({
+export const TypeForm = <T extends FieldValues>({
   children,
   defaultField,
   onClose,
@@ -190,7 +219,7 @@ export const TypeFormWrapper = <T extends FieldValues>({
 }: {
   children: ReactNode;
   defaultField: Path<T>;
-} & TypeFormWrapperProps<T>) => {
+} & TypeFormProps<T>) => {
   const {
     handleSubmit: wrapHandleSubmit,
     formState: { isSubmitting, isValid },
@@ -284,3 +313,80 @@ export const TypeFormWrapper = <T extends FieldValues>({
     </>
   );
 };
+
+export const generateInitialTypeUri = (baseUri: string) =>
+  versionedUriFromComponents(baseUri, 1);
+
+export const useGenerateTypeBaseUri = (kind: SchemaKind) => {
+  const router = useRouter();
+  const shortname = router.query["account-slug"]?.toString().slice(1) ?? "";
+
+  return (value: string) => {
+    if (!shortname) {
+      throw new Error("Shortname must exist");
+    }
+
+    return generateBaseTypeId({
+      domain: frontendUrl,
+      namespace: shortname,
+      kind,
+      title: value,
+    });
+  };
+};
+
+export const useTypeForm = <T extends FieldValues>(
+  defaultValues: DeepPartial<T>,
+) => {
+  return useForm<T>({
+    defaultValues,
+    shouldFocusError: true,
+    mode: "onBlur",
+    reValidateMode: "onChange",
+  });
+};
+
+type TypeFormModalProps<T extends ElementType = "div"> =
+  ComponentPropsWithoutRef<T> & {
+    as?: T;
+    popupState: PopupState;
+    ref?: Ref<ComponentPropsWithRef<T>["ref"]> | null;
+  };
+
+type PolymorphicProps<P, T extends ElementType> = P & TypeFormModalProps<T>;
+
+type PolymorphicComponent<P, D extends ElementType = "div"> = <
+  T extends ElementType = D,
+>(
+  props: PolymorphicProps<P, T>,
+) => ReactElement | null;
+
+export const TypeFormModal: PolymorphicComponent<{}, "div"> = forwardRef(
+  <T extends ElementType>(
+    props: TypeFormModalProps<T>,
+    ref: Ref<HTMLElement>,
+  ) => {
+    const { as = "div", popupState, ...restProps } = props;
+
+    const inner = createElement(as, {
+      ...restProps,
+      ref,
+      // We want to pass the popupState to the inner component, but seems impossible to do so in a typesafe way
+      ...({ popupState } as any),
+    });
+
+    return (
+      <Modal
+        {...bindDialog(popupState)}
+        disableEscapeKeyDown
+        contentStyle={(theme) => ({
+          p: "0px !important",
+          border: 1,
+          borderColor: theme.palette.gray[20],
+        })}
+      >
+        {inner}
+      </Modal>
+    );
+  },
+);

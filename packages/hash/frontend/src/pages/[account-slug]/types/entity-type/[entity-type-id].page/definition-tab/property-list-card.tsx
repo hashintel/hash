@@ -41,6 +41,7 @@ import {
 } from "./shared/entity-type-table";
 import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
 import { QuestionIcon } from "./shared/question-icon";
+import { TypeFormModal } from "./shared/type-form";
 import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { useStateCallback } from "./shared/use-state-callback";
 
@@ -130,7 +131,8 @@ export const PropertyTypeRow = ({
           variant="property"
         />
       </EntityTypeTableRow>
-      <PropertyTypeForm
+      <TypeFormModal
+        as={PropertyTypeForm}
         popupState={editModalPopupState}
         modalTitle={<>Edit Property Type</>}
         onSubmit={async (data) => {
@@ -326,7 +328,8 @@ export const PropertyListCard = () => {
               searchText={searchText}
               onSearchTextChange={setSearchText}
             />
-            <PropertyTypeForm
+            <TypeFormModal
+              as={PropertyTypeForm}
               modalTitle={
                 <>
                   Create new property type
