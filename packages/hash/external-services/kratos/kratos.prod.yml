@@ -23,6 +23,19 @@ selfservice:
     password:
       enabled: true
 
+    # Email sending diabled in production for now
+    # link:
+    #   config:
+    #     # The URL for verification emails are set through the link method
+    #     # but we're using the code method, so we disable this method for usage.
+    #     enabled: false
+    #     # Set through SELFSERVICE_METHODS_LINK_CONFIG_BASE_URL
+    #     base_url: http://localhost:3000/api/ory
+    # code:
+    #   config:
+    #     # and make sure to enable the code method.
+    #     enabled: true
+
   flows:
     error:
       ui_url: http://localhost:3000/error
@@ -59,6 +72,14 @@ selfservice:
                     in: header
             - hook: session
 
+    # Email sending diabled in production for now
+    # verification:
+    #   use: code
+    #   lifespan: 48h
+    #   # Set though SELFSERVICE_FLOWS_VERIFICATION_UI_URL
+    #   ui_url: http://localhost:3000/verification
+    #   enabled: true
+
 log:
   level: info
   format: json
@@ -78,3 +99,9 @@ identity:
   schemas:
     - id: default
       url: file:///etc/config/kratos/identity.schema.json
+# Email sending diabled in production for now
+# courier:
+#   template_override_path: /etc/config/kratos/templates
+#   smtp:
+#     # Set through COURIER_SMTP_CONNECTION_URI
+#     connection_uri: set-through-env-arg-COURIER_SMTP_CONNECTION_URI
