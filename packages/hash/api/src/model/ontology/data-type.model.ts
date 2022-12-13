@@ -5,7 +5,7 @@ import {
   DataTypeWithMetadata,
   OntologyElementMetadata,
 } from "@hashintel/hash-subgraph";
-import { generateTypeId } from "@hashintel/hash-shared/types";
+import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { DataTypeModel } from "../index";
 import { getNamespaceOfAccountOwner } from "./util";

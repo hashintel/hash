@@ -9,7 +9,6 @@ import {
 } from "@hashintel/hash-subgraph";
 import Head from "next/head";
 import { useBlockProtocolGetEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
-import { useLoggedInUser } from "../../../components/hooks/useAuthenticatedUser";
 import {
   getLayoutWithSidebar,
   NextPageWithLayout,
@@ -29,7 +28,6 @@ const Page: NextPageWithLayout = () => {
   const router = useRouter();
   const entityUuid = router.query["entity-uuid"] as string;
   const { routeNamespace } = useRouteNamespace();
-  const { authenticatedUser } = useLoggedInUser();
   const { getEntity } = useBlockProtocolGetEntity();
   const { getEntityType } = useBlockProtocolGetEntityType();
 
@@ -82,10 +80,6 @@ const Page: NextPageWithLayout = () => {
 
     setEntitySubgraph(subgraph);
   };
-
-  if (!authenticatedUser) {
-    return null;
-  }
 
   if (loading) {
     return <EntityPageLoadingState />;

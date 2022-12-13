@@ -5,7 +5,7 @@ import {
   ChipProps,
   FontAwesomeIcon,
 } from "@hashintel/hash-design-system";
-import { types } from "@hashintel/hash-shared/types";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import {
   Box,
   buttonClasses,

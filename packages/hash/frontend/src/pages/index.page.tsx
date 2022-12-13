@@ -1,7 +1,6 @@
 import { Box, Typography, Container } from "@mui/material";
 import { faWarning } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
-
 import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
 import { Link } from "../shared/ui";
 

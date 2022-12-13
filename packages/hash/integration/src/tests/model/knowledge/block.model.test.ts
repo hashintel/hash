@@ -11,7 +11,7 @@ import {
 } from "@hashintel/hash-api/src/model";
 import { generateSystemEntityTypeSchema } from "@hashintel/hash-api/src/model/util";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { generateTypeId } from "@hashintel/hash-shared/types";
+import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { createTestUser } from "../../util";
 
