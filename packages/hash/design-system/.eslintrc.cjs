@@ -1,6 +1,10 @@
 /** @type {import("eslint").Linter.Config} */
 module.exports = {
   ...require("@local/eslint-config/generate-workspace-config.cjs")(__dirname),
+  extends: [
+    "plugin:storybook/recommended",
+    "@local/eslint-config/legacy-base-eslintrc-to-refactor.cjs",
+  ],
   rules: {
     ...require("@local/eslint-config/temporarily-disable-rules.cjs")([
       /* 2022-11-29:  14 */ "@typescript-eslint/no-unsafe-assignment",
@@ -19,5 +23,12 @@ module.exports = {
       },
     ],
   },
-  extends: ["plugin:storybook/recommended"],
+  overrides: [
+    {
+      files: ["*.stories.ts", "*.stories.tsx"],
+      rules: {
+        "import/no-default-export": "off",
+      },
+    },
+  ],
 };

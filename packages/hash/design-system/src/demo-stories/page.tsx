@@ -1,14 +1,13 @@
-import React from "react";
-
-import { Header } from "./Header";
+import { FunctionComponent, useState } from "react";
+import { Header } from "./header";
 import "./page.css";
 
 type User = {
   name: string;
 };
 
-export const Page: React.VFC = () => {
-  const [user, setUser] = React.useState<User>();
+export const Page: FunctionComponent = () => {
+  const [user, setUser] = useState<User>();
 
   return (
     <article>
