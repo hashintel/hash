@@ -19,16 +19,17 @@ import {
   oryKratosClient,
 } from "./shared/ory-kratos";
 import { Button } from "../shared/ui";
-import { useAuthenticatedUser } from "../components/hooks/useAuthenticatedUser";
 import { AccountSetupForm } from "./signup.page/account-setup-form";
 
 import { parseGraphQLError } from "./shared/auth-utils";
 import { useUpdateAuthenticatedUser } from "../components/hooks/useUpdateAuthenticatedUser";
 import { useHashInstance } from "../components/hooks/useHashInstance";
+import { useAuthInfo } from "./shared/auth-info-context";
 
 const KratosRegistrationFlowForm: FunctionComponent = () => {
   const router = useRouter();
   const { hashInstance } = useHashInstance();
+  const { refetch } = useAuthInfo();
 
   useEffect(() => {
     // If user registration is disabled, redirect the user to the login page
@@ -113,14 +114,10 @@ const KratosRegistrationFlowForm: FunctionComponent = () => {
               method: "password",
             },
           })
-          .then(({ data }) => {
-            // If we ended up here, it means we are successfully signed up!
-            //
-            // You can do cool stuff here, like having access to the identity which just signed up:
-            const { identity: _kratosIdentity } = data;
-
-            // For now however we just want to redirect home!
-            return router.push(flow.return_to ?? "/");
+          .then(() => {
+            // If the user has successfully logged in, refetch the authenticated user which should transition
+            // the user to the next step of the signup flow.
+            void refetch();
           })
           .catch(handleFlowError)
           .catch((err: AxiosError<RegistrationFlow>) => {
@@ -213,7 +210,7 @@ const KratosVerificationFlowForm: FunctionComponent = () => {
 const SignupPage: NextPageWithLayout = () => {
   const router = useRouter();
 
-  const { authenticatedUser } = useAuthenticatedUser();
+  const { authenticatedUser } = useAuthInfo();
 
   const [updateAuthenticatedUser, { loading: updateUserLoading }] =
     useUpdateAuthenticatedUser();

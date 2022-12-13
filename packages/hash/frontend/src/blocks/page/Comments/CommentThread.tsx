@@ -5,7 +5,7 @@ import { Button } from "@hashintel/hash-design-system";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { extractBaseUri } from "@blockprotocol/type-system";
-import { types } from "@hashintel/hash-shared/types";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import {
   EntityId,
   extractEntityUuidFromEntityId,
@@ -16,7 +16,7 @@ import { CommentBlock } from "./CommentBlock";
 import styles from "./style.module.css";
 import { useCreateComment } from "../../../components/hooks/useCreateComment";
 import { CommentActionButtons } from "./CommentActionButtons";
-import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
+import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
 
 const UNCOLLAPSIBLE_REPLIES_NUMBER = 2;
 

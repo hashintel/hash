@@ -7,10 +7,10 @@ import {
   useState,
   FunctionComponent,
 } from "react";
-import { useAuthenticatedUser } from "../../components/hooks/useAuthenticatedUser";
 import { localStorageKeys } from "../../lib/config";
 import { MinimalOrg } from "../../lib/org";
 import { User } from "../../lib/user";
+import { useAuthInfo } from "./auth-info-context";
 
 export type WorkspaceContextValue = {
   activeWorkspace?: User | MinimalOrg;
@@ -32,7 +32,7 @@ export const WorkspaceContext = createContext<WorkspaceContextValue>(
 export const WorkspaceContextProvider: FunctionComponent<{
   children: ReactElement;
 }> = ({ children }) => {
-  const { authenticatedUser } = useAuthenticatedUser();
+  const { authenticatedUser } = useAuthInfo();
 
   const [activeWorkspaceAccountId, setActiveWorkspaceAccountId] =
     useState<string>();

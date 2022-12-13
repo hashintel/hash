@@ -1,4 +1,4 @@
-import { types } from "@hashintel/hash-shared/types";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import { Box, Container } from "@mui/material";
 import { useCallback, useState } from "react";
 import {
@@ -6,11 +6,11 @@ import {
   AggregateEntityTypesMessageCallback,
   AggregatePropertyTypesMessageCallback,
 } from "../../components/hooks/blockProtocolFunctions/ontology/ontology-types-shim";
-import { useLoggedInUser } from "../../components/hooks/useAuthenticatedUser";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { NextPageWithLayout } from "../../shared/layout";
 
 import { Button } from "../../shared/ui";
+import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { useBlockProtocolFunctionsWithOntology } from "./blockprotocol-ontology-functions-hook";
 
 /**
@@ -104,10 +104,10 @@ const ExampleUsage = ({ accountId }: { accountId: string }) => {
 const Page: NextPageWithLayout = () => {
   // The user is important to allow using Block Protocol functions
   // such as: `const functions = useBlockProtocolFunctionsWithOntology(user.accountId);`
-  const { authenticatedUser, loading: loadingUser } = useLoggedInUser();
+  const { authenticatedUser } = useAuthenticatedUser();
   const loadingTypeSystem = useInitTypeSystem();
 
-  return loadingUser || !authenticatedUser || loadingTypeSystem ? (
+  return loadingTypeSystem ? (
     <Container sx={{ pt: 10 }}>Loading...</Container>
   ) : (
     <Container sx={{ pt: 10 }}>

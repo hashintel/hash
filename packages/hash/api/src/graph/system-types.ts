@@ -1,6 +1,6 @@
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { GraphApi } from "@hashintel/hash-graph-client";
-import { types } from "@hashintel/hash-shared/types";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import { logger } from "../logger";
 
 import { EntityTypeModel, PropertyTypeModel } from "../model";

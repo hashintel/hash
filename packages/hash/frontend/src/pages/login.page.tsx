@@ -11,7 +11,6 @@ import { Typography, Container, Box } from "@mui/material";
 import { TextField } from "@hashintel/hash-design-system";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { AxiosError } from "axios";
-import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import {
   createFlowErrorHandler,
@@ -21,13 +20,13 @@ import {
 import { Button } from "../shared/ui";
 import { useLogoutFlow } from "../components/hooks/useLogoutFlow";
 import { useHashInstance } from "../components/hooks/useHashInstance";
-import { useAuthenticatedUser } from "../components/hooks/useAuthenticatedUser";
 import { WorkspaceContext } from "./shared/workspace-context";
+import { useAuthInfo } from "./shared/auth-info-context";
 
 const LoginPage: NextPageWithLayout = () => {
   // Get ?flow=... from the URL
   const router = useRouter();
-  const { refetch } = useAuthenticatedUser();
+  const { refetch } = useAuthInfo();
   const { updateActiveWorkspaceAccountId } = useContext(WorkspaceContext);
   const { hashInstance } = useHashInstance();
 
@@ -131,25 +130,15 @@ const LoginPage: NextPageWithLayout = () => {
             }
 
             // Otherwise, redirect the user to their workspace.
-            const [
-              {
-                data: { me: meSubgraph },
-              },
-            ] = await refetch();
+            const { authenticatedUser } = await refetch();
 
-            const userEntityId = meSubgraph.roots[0]?.baseId;
-
-            const userAccountId = userEntityId
-              ? extractEntityUuidFromEntityId(userEntityId)
-              : undefined;
-
-            if (!userAccountId) {
+            if (!authenticatedUser) {
               throw new Error(
-                "Could not find account ID of logged in user in me subgraph.",
+                "Could not fetch authenticated user after logging in.",
               );
             }
 
-            updateActiveWorkspaceAccountId(userAccountId);
+            updateActiveWorkspaceAccountId(authenticatedUser.userAccountId);
 
             void router.push("/");
           })

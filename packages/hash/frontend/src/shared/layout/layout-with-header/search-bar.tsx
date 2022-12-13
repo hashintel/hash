@@ -13,11 +13,11 @@ import { Box, Theme, useTheme, useMediaQuery, SxProps } from "@mui/material";
 
 import { IconButton } from "@hashintel/hash-design-system";
 import { getBlockDomId } from "../../../blocks/page/BlockView";
-import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
 import { HASH_OPENSEARCH_ENABLED } from "../../../lib/public-env";
 import { SearchInput } from "./search-bar/search-input";
 import { Button, Link } from "../../ui";
 import { SearchIcon } from "../../icons";
+import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
 
 /** finds the query's words in the result and chops it into parts at the words' boundaries */
 const splitByMatches = (result: string, query: string) => {

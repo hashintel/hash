@@ -10,7 +10,10 @@ import {
   Array,
   VersionedUri,
 } from "@blockprotocol/type-system";
-import { PrimitiveDataTypeKey, types } from "@hashintel/hash-shared/types";
+import {
+  PrimitiveDataTypeKey,
+  types,
+} from "@hashintel/hash-shared/ontology-types";
 import { AxiosError } from "axios";
 import { EntityTypeModel, PropertyTypeModel } from ".";
 import { GraphApi } from "../graph";
