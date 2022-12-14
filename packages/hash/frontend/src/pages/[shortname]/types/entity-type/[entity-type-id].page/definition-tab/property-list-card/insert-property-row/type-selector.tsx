@@ -10,6 +10,7 @@ export type TypeSelectorType = {
   title: string;
   description?: string;
 };
+
 export const TypeSelector = <T extends TypeSelectorType>({
   searchText,
   onSearchTextChange,
@@ -36,7 +37,6 @@ export const TypeSelector = <T extends TypeSelectorType>({
 
   return (
     <HashSelectorAutocomplete
-      open={open}
       dropdownProps={dropdownProps}
       inputPlaceholder={`Search for a ${variant} type`}
       inputRef={inputRef}
@@ -45,6 +45,7 @@ export const TypeSelector = <T extends TypeSelectorType>({
         title,
         description,
       })}
+      open={open}
       onOpen={() => setOpen(true)}
       onClose={(_, reason) => {
         if (reason !== "toggleInput") {

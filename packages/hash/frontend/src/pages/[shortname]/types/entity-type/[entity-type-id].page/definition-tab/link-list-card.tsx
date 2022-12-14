@@ -30,11 +30,13 @@ import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
   EntityTypeTableButtonRow,
+  EntityTypeTableCenteredCell,
   EntityTypeTableHeaderRow,
   EntityTypeTableRow,
   EntityTypeTableTitleCellText,
 } from "./shared/entity-type-table";
 import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
+import { MultipleValuesCell } from "./shared/multiple-values-cell";
 import { QuestionIcon } from "./shared/question-icon";
 import {
   generateInitialTypeUri,
@@ -97,8 +99,10 @@ const LinkTypeRow = ({
   onRemove: () => void;
   onUpdateVersion: (nextId: VersionedUri) => void;
 }) => {
-  const { control, register, setValue, getValues } =
-    useFormContext<EntityTypeEditorForm>();
+  const { control } = useFormContext<EntityTypeEditorForm>();
+
+  const [entityTypeSelectorOpen, setEntityTypeSelectorOpen] = useState(false);
+
   const linkTypes = useLinkEntityTypes();
   const entityTypes = useEntityTypes();
   const linkId = useWatch({
@@ -164,6 +168,14 @@ const LinkTypeRow = ({
             control={control}
             render={({ field: { onChange, value, ref } }) => (
               <HashSelectorAutocomplete
+                open={entityTypeSelectorOpen}
+                onOpen={() => setEntityTypeSelectorOpen(true)}
+                onClose={(_, reason) => {
+                  // @todo check this
+                  if (reason !== "toggleInput") {
+                    setEntityTypeSelectorOpen(false);
+                  }
+                }}
                 autoFocus={false}
                 onChange={(evt, chosenTypes) => {
                   if (
@@ -212,41 +224,7 @@ const LinkTypeRow = ({
             )}
           />
         </TableCell>
-        <TableCell>
-          <input
-            type="number"
-            {...register(`links.${linkIndex}.minValue`, {
-              valueAsNumber: true,
-              onChange(evt) {
-                const value = evt.target.value;
-                const maxValuePath = `links.${linkIndex}.maxValue` as const;
-                if (value > getValues(maxValuePath)) {
-                  setValue(maxValuePath, value, {
-                    shouldDirty: true,
-                  });
-                }
-              },
-            })}
-            min={0}
-          />
-          <input
-            type="number"
-            {...register(`links.${linkIndex}.maxValue`, {
-              valueAsNumber: true,
-              onChange(evt) {
-                const value = evt.target.value;
-                const minValuePath = `links.${linkIndex}.minValue` as const;
-
-                if (value < getValues(minValuePath)) {
-                  setValue(minValuePath, value, {
-                    shouldDirty: true,
-                  });
-                }
-              },
-            })}
-            min={1}
-          />
-        </TableCell>
+        <MultipleValuesCell index={linkIndex} variant="link" />
         <TypeMenuCell
           typeId={linkId}
           editButtonProps={bindTrigger(editModalPopupState)}
@@ -336,6 +314,8 @@ export const LinkListCard = () => {
         entityTypes: [],
         minValue: 0,
         maxValue: 1,
+        infinity: true,
+        array: true,
       },
       { focusName: `links.${fields.length}.entityTypes` },
     );
@@ -398,9 +378,9 @@ export const LinkListCard = () => {
           <TableCell>
             Expected entity types <QuestionIcon />
           </TableCell>
-          <TableCell>
+          <EntityTypeTableCenteredCell width={200}>
             Allowed number of links <QuestionIcon />
-          </TableCell>
+          </EntityTypeTableCenteredCell>
           <TableCell width={TYPE_MENU_CELL_WIDTH} />
         </EntityTypeTableHeaderRow>
       </TableHead>

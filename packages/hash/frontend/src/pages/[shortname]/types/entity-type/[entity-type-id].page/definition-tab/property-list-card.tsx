@@ -26,7 +26,7 @@ import {
   usePropertyTypes,
   useRefetchPropertyTypes,
 } from "../shared/property-types-context";
-import { MultipleValuesCell } from "./property-list-card/multiple-values-cell";
+import { MultipleValuesCell } from "./shared/multiple-values-cell";
 import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
 import { PropertyTypeForm } from "./property-list-card/shared/property-type-form";
 import { PropertyTypeFormValues } from "./property-list-card/shared/property-type-form-values";
@@ -111,7 +111,7 @@ export const PropertyTypeRow = ({
           <PropertyExpectedValues property={property} />
         </TableCell>
 
-        <MultipleValuesCell propertyIndex={propertyIndex} />
+        <MultipleValuesCell index={propertyIndex} variant="property" />
 
         <EntityTypeTableCenteredCell>
           <Controller
