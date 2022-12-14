@@ -12,9 +12,16 @@ import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
 import { configureScope } from "@sentry/nextjs";
 import { AppProps as NextAppProps } from "next/app";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { SnackbarProvider } from "notistack";
-import { FunctionComponent, useEffect, useState } from "react";
+import {
+  FunctionComponent,
+  PropsWithChildren,
+  Suspense,
+  useEffect,
+  useState,
+} from "react";
 import { ModalProvider } from "react-modal-hook";
 
 import { MeQuery } from "../graphql/api-types.gen";
@@ -35,6 +42,20 @@ import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
 import { fetchKratosSession } from "./shared/ory-kratos";
 import { setSentryUser } from "./shared/sentry";
 import { WorkspaceContextProvider } from "./shared/workspace-context";
+
+// eslint-disable-next-line react/jsx-no-useless-fragment
+const RenderChildren = ({ children }: PropsWithChildren) => <>{children}</>;
+
+const InitTypeSystem = dynamic(
+  async () => {
+    await TypeSystemInitializer.initialize();
+
+    return { default: RenderChildren };
+  },
+  {
+    suspense: true,
+  },
+);
 
 const clientSideEmotionCache = createEmotionCache();
 
@@ -76,33 +97,38 @@ const App: FunctionComponent<AppProps> = ({
   // getServerSideProps. By showing app skeleton on the server, we avoid UI
   // mismatches during rehydration and improve type-safety of param extraction.
   if (ssr || !router.isReady) {
-    return null; // Replace with app skeleton
+    return (
+      <Suspense>
+        <InitTypeSystem />
+      </Suspense>
+    ); // Replace with app skeleton
   }
 
   const getLayout = Component.getLayout ?? getPlainLayout;
 
   return (
-    <>
-      <CacheProvider value={emotionCache}>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <ModalProvider>
-            <RouteWorkspaceInfoProvider>
-              <RoutePageInfoProvider>
-                <WorkspaceContextProvider>
-                  <SnackbarProvider maxSnack={3}>
-                    {getLayout(<Component {...pageProps} />)}
-                  </SnackbarProvider>
-                </WorkspaceContextProvider>
-              </RoutePageInfoProvider>
-            </RouteWorkspaceInfoProvider>
-          </ModalProvider>
-        </ThemeProvider>
-      </CacheProvider>
-      {/* "spin" is used in some inline styles which have been temporarily introduced in https://github.com/hashintel/hash/pull/1471 */}
-      {/* @todo remove when inline styles are replaced with MUI styles */}
-      <GlobalStyles
-        styles={`
+    <Suspense>
+      <InitTypeSystem>
+        <CacheProvider value={emotionCache}>
+          <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <ModalProvider>
+              <RouteWorkspaceInfoProvider>
+                <RoutePageInfoProvider>
+                  <WorkspaceContextProvider>
+                    <SnackbarProvider maxSnack={3}>
+                      {getLayout(<Component {...pageProps} />)}
+                    </SnackbarProvider>
+                  </WorkspaceContextProvider>
+                </RoutePageInfoProvider>
+              </RouteWorkspaceInfoProvider>
+            </ModalProvider>
+          </ThemeProvider>
+        </CacheProvider>
+        {/* "spin" is used in some inline styles which have been temporarily introduced in https://github.com/hashintel/hash/pull/1471 */}
+        {/* @todo remove when inline styles are replaced with MUI styles */}
+        <GlobalStyles
+          styles={`
         @keyframes spin {
           from {
             transform: rotate(0deg);
@@ -112,8 +138,9 @@ const App: FunctionComponent<AppProps> = ({
           }
         };
       `}
-      />
-    </>
+        />
+      </InitTypeSystem>
+    </Suspense>
   );
 };
 

@@ -1,4 +1,3 @@
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   createContext,
   ReactNode,
@@ -30,9 +29,7 @@ export const TypeSystemContextProvider = ({
     }
 
     loadingPromise.current = (async () => {
-      await TypeSystemInitializer.initialize().then(() => {
-        setLoadingTypeSystem(false);
-      });
+      setLoadingTypeSystem(false);
     })();
 
     return loadingPromise.current;
