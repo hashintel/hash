@@ -206,8 +206,8 @@ export const TypeFormDescriptionField = ({
 const keys = <T extends {}>(obj: T): (keyof T)[] => Object.keys(obj) as any;
 
 export const useTriggerValidation = <T extends FieldValues>(
-  defaultValues: Partial<T>,
-  disabledFields: (keyof T)[],
+  defaultValues: DeepPartial<T>,
+  disabledFields: (keyof DeepPartial<T>)[],
   trigger: UseFormTrigger<T>,
 ) => {
   const triggerKeys = keys(defaultValues).filter(
@@ -231,38 +231,116 @@ export const useTriggerValidation = <T extends FieldValues>(
   }, [trigger, memoKeys]);
 };
 
-export type TypeFormProps<T extends Record<string, any>> = {
+export const generateInitialTypeUri = (baseUri: string) =>
+  versionedUriFromComponents(baseUri, 1);
+
+export const useGenerateTypeBaseUri = (kind: SchemaKind) => {
+  const router = useRouter();
+  const shortname = router.query["account-slug"]?.toString().slice(1) ?? "";
+
+  return (value: string) => {
+    if (!shortname) {
+      throw new Error("Shortname must exist");
+    }
+
+    return generateBaseTypeId({
+      domain: frontendUrl,
+      namespace: shortname,
+      kind,
+      title: value,
+    });
+  };
+};
+
+type TypeFormModalProps<T extends ElementType = "div"> =
+  ComponentPropsWithoutRef<T> & {
+    as?: T;
+    popupState: PopupState;
+    ref?: Ref<ComponentPropsWithRef<T>["ref"]> | null;
+  };
+
+type PolymorphicProps<P, T extends ElementType> = P & TypeFormModalProps<T>;
+
+type PolymorphicComponent<P, D extends ElementType = "div"> = <
+  T extends ElementType = D,
+>(
+  props: PolymorphicProps<P, T>,
+) => ReactElement | null;
+
+export const TypeFormModal: PolymorphicComponent<{}, "div"> = forwardRef(
+  <T extends ElementType>(
+    props: TypeFormModalProps<T>,
+    ref: Ref<HTMLElement>,
+  ) => {
+    const { as = "div", popupState, ...restProps } = props;
+
+    const inner = createElement(as, {
+      ...restProps,
+      ref,
+      popupState,
+    });
+
+    return (
+      <Modal
+        {...bindDialog(popupState)}
+        disableEscapeKeyDown
+        contentStyle={(theme) => ({
+          p: "0px !important",
+          border: 1,
+          borderColor: theme.palette.gray[20],
+        })}
+      >
+        {inner}
+      </Modal>
+    );
+  },
+);
+
+type TypeFormDefaults = { name: string; description: string };
+
+export type TypeFormProps<T extends TypeFormDefaults = TypeFormDefaults> = {
   onClose?: () => void;
   modalTitle: ReactNode;
   popupState: PopupState;
   onSubmit: (data: T) => Promise<void> | void;
   submitButtonProps: TypeFormSubmitProps;
-  disabledFields?: (keyof T)[];
+  disabledFields?: (keyof DeepPartial<T>)[];
+  getDefaultValues: () => DeepPartial<T>;
 };
 
-export const TypeForm = <T extends {}>({
+export const TypeForm = <T extends TypeFormDefaults>({
   children,
+  nameExists,
+  disabledFields = [],
+  getDefaultValues,
   onClose,
   modalTitle,
   popupState,
   onSubmit,
   submitButtonProps,
-  defaultValues = {},
-  disabledFields = [],
-  defaultField,
 }: {
-  children: ReactNode;
-  defaultValues?: Partial<T>;
-  defaultField: keyof T;
+  children?: ReactNode;
+  nameExists: (name: string) => Promise<boolean>;
 } & TypeFormProps<T>) => {
+  const defaultValues = getDefaultValues() ?? {};
+
+  const formMethods = useForm<T>({
+    defaultValues,
+    shouldFocusError: true,
+    mode: "onBlur",
+    reValidateMode: "onChange",
+  });
+
   const {
     handleSubmit: wrapHandleSubmit,
     formState: { isSubmitting, isValid },
     setFocus,
     trigger,
-  } = useFormContext<T>();
+  } = formMethods;
 
   useTriggerValidation(defaultValues, disabledFields, trigger);
+
+  const defaultField = defaultValues.name ? "description" : "name";
 
   useEffect(() => {
     setFocus(
@@ -274,7 +352,7 @@ export const TypeForm = <T extends {}>({
   const handleSubmit = wrapHandleSubmit(onSubmit);
 
   return (
-    <>
+    <FormProvider {...formMethods}>
       <Box
         sx={(theme) => ({
           px: 2.5,
@@ -328,6 +406,14 @@ export const TypeForm = <T extends {}>({
             },
           }}
         >
+          <TypeFormNameField
+            fieldDisabled={disabledFields?.includes("name") ?? false}
+            typeExists={nameExists}
+          />
+          <TypeFormDescriptionField
+            defaultValues={defaultValues}
+            fieldDisabled={disabledFields?.includes("description") ?? false}
+          />
           {children}
         </Stack>
         <Divider sx={{ mt: 2, mb: 3 }} />
@@ -351,124 +437,6 @@ export const TypeForm = <T extends {}>({
           </Button>
         </Stack>
       </Box>
-    </>
-  );
-};
-
-export const generateInitialTypeUri = (baseUri: string) =>
-  versionedUriFromComponents(baseUri, 1);
-
-export const useGenerateTypeBaseUri = (kind: SchemaKind) => {
-  const router = useRouter();
-  const shortname = router.query["account-slug"]?.toString().slice(1) ?? "";
-
-  return (value: string) => {
-    if (!shortname) {
-      throw new Error("Shortname must exist");
-    }
-
-    return generateBaseTypeId({
-      domain: frontendUrl,
-      namespace: shortname,
-      kind,
-      title: value,
-    });
-  };
-};
-
-export const useTypeForm = <T extends FieldValues>(
-  defaultValues: DeepPartial<T>,
-) => {
-  return useForm<T>({
-    defaultValues,
-    shouldFocusError: true,
-    mode: "onBlur",
-    reValidateMode: "onChange",
-  });
-};
-
-type TypeFormModalProps<T extends ElementType = "div"> =
-  ComponentPropsWithoutRef<T> & {
-    as?: T;
-    popupState: PopupState;
-    ref?: Ref<ComponentPropsWithRef<T>["ref"]> | null;
-  };
-
-type PolymorphicProps<P, T extends ElementType> = P & TypeFormModalProps<T>;
-
-type PolymorphicComponent<P, D extends ElementType = "div"> = <
-  T extends ElementType = D,
->(
-  props: PolymorphicProps<P, T>,
-) => ReactElement | null;
-
-export const TypeFormModal: PolymorphicComponent<{}, "div"> = forwardRef(
-  <T extends ElementType>(
-    props: TypeFormModalProps<T>,
-    ref: Ref<HTMLElement>,
-  ) => {
-    const { as = "div", popupState, ...restProps } = props;
-
-    const inner = createElement(as, {
-      ...restProps,
-      ref,
-      // We want to pass the popupState to the inner component, but seems impossible to do so in a typesafe way
-      ...({ popupState } as any),
-    });
-
-    return (
-      <Modal
-        {...bindDialog(popupState)}
-        disableEscapeKeyDown
-        contentStyle={(theme) => ({
-          p: "0px !important",
-          border: 1,
-          borderColor: theme.palette.gray[20],
-        })}
-      >
-        {inner}
-      </Modal>
-    );
-  },
-);
-
-type GenericTypeFormDefaults = { name: string; description: string };
-export type GenericTypeFormProps<
-  T extends GenericTypeFormDefaults = GenericTypeFormDefaults,
-> = TypeFormProps<T> & {
-  getDefaultValues: () => DeepPartial<T>;
-};
-
-export const GenericTypeForm = <T extends GenericTypeFormDefaults>({
-  children,
-  nameExists,
-  disabledFields,
-  getDefaultValues,
-  ...props
-}: {
-  children?: ReactNode;
-  nameExists: (name: string) => Promise<boolean>;
-} & GenericTypeFormProps<T>) => {
-  const defaultValues = getDefaultValues();
-  const formMethods = useTypeForm<T>(defaultValues);
-
-  return (
-    <FormProvider {...formMethods}>
-      <TypeForm
-        defaultField={defaultValues.name ? "description" : "name"}
-        disabledFields={disabledFields}
-        {...props}
-      >
-        <TypeFormNameField
-          fieldDisabled={disabledFields?.includes("name") ?? false}
-          typeExists={nameExists}
-        />
-        <TypeFormDescriptionField
-          defaultValues={defaultValues}
-          fieldDisabled={disabledFields?.includes("description") ?? false}
-        />
-        {children}
-      </TypeForm>
     </FormProvider>
   );
 };

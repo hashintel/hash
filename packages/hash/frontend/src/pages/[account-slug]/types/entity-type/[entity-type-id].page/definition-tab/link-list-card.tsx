@@ -32,8 +32,8 @@ import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
 import { QuestionIcon } from "./shared/question-icon";
 import {
   generateInitialTypeUri,
-  GenericTypeForm,
-  GenericTypeFormProps,
+  TypeForm,
+  TypeFormProps,
   TypeFormModal,
   useGenerateTypeBaseUri,
 } from "./shared/type-form";
@@ -197,7 +197,7 @@ const InsertLinkRow = (
   );
 };
 
-export const LinkTypeForm = (props: GenericTypeFormProps) => {
+export const LinkTypeForm = (props: TypeFormProps) => {
   const { getEntityType } = useBlockProtocolGetEntityType();
   const generateTypeBaseUri = useGenerateTypeBaseUri("entity-type");
 
@@ -217,7 +217,7 @@ export const LinkTypeForm = (props: GenericTypeFormProps) => {
     return !res.data || !!getEntityTypeById(res.data, entityTypeId);
   };
 
-  return <GenericTypeForm nameExists={nameExists} {...props} />;
+  return <TypeForm nameExists={nameExists} {...props} />;
 };
 
 export const LinkListCard = () => {

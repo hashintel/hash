@@ -2,15 +2,15 @@ import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element
 import { useBlockProtocolGetPropertyType } from "../../../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
 import {
   generateInitialTypeUri,
-  GenericTypeForm,
-  GenericTypeFormProps,
+  TypeForm,
+  TypeFormProps,
   useGenerateTypeBaseUri,
 } from "../../shared/type-form";
 import { PropertyTypeFormValues } from "./property-type-form-values";
 import { ExpectedValueSelector } from "./property-type-form/expected-value-selector";
 
 export const PropertyTypeForm = (
-  props: GenericTypeFormProps<PropertyTypeFormValues>,
+  props: TypeFormProps<PropertyTypeFormValues>,
 ) => {
   const { getPropertyType } = useBlockProtocolGetPropertyType();
   const generateTypeBaseUri = useGenerateTypeBaseUri("property-type");
@@ -32,8 +32,8 @@ export const PropertyTypeForm = (
   };
 
   return (
-    <GenericTypeForm nameExists={nameExists} {...props}>
+    <TypeForm nameExists={nameExists} {...props}>
       <ExpectedValueSelector />
-    </GenericTypeForm>
+    </TypeForm>
   );
 };
