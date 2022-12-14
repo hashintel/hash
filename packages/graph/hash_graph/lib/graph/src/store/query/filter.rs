@@ -86,18 +86,8 @@ where
     #[must_use]
     pub fn for_versioned_uri(versioned_uri: &'p VersionedUri) -> Self {
         Self::All(vec![
-            Self::Equal(
-                Some(FilterExpression::Path(<R::QueryPath<'p>>::base_uri())),
-                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                    versioned_uri.base_uri().as_str(),
-                )))),
-            ),
-            Self::Equal(
-                Some(FilterExpression::Path(<R::QueryPath<'p>>::version())),
-                Some(FilterExpression::Parameter(Parameter::SignedInteger(
-                    versioned_uri.version().into(),
-                ))),
-            ),
+            Self::for_base_uri(versioned_uri.base_uri()),
+            Self::for_version(versioned_uri.version()),
         ])
     }
 
@@ -108,18 +98,8 @@ where
         ontology_type_edition_id: &'p OntologyTypeEditionId,
     ) -> Self {
         Self::All(vec![
-            Self::Equal(
-                Some(FilterExpression::Path(<R::QueryPath<'p>>::base_uri())),
-                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                    ontology_type_edition_id.base_id().as_str(),
-                )))),
-            ),
-            Self::Equal(
-                Some(FilterExpression::Path(<R::QueryPath<'p>>::version())),
-                Some(FilterExpression::Parameter(Parameter::SignedInteger(
-                    ontology_type_edition_id.version().inner().into(),
-                ))),
-            ),
+            Self::for_base_uri(ontology_type_edition_id.base_id()),
+            Self::for_version(ontology_type_edition_id.version().inner()),
         ])
     }
 }
