@@ -2,6 +2,7 @@ import { DataSource } from "apollo-datasource";
 import {
   Configuration,
   GraphApi as GraphApiClient,
+  GraphResolveDepths,
 } from "@hashintel/hash-graph-client";
 import HttpAgent, { HttpsAgent } from "agentkeepalive";
 import axios from "axios";
@@ -16,6 +17,17 @@ import { ensureSystemEntitiesExists } from "./system-entities";
 export type GraphContext = {
   graphApi: GraphApi;
   /** @todo: add logger? */
+};
+
+export const zeroedGraphResolveDepths: GraphResolveDepths = {
+  inheritsFrom: { outgoing: 0 },
+  constrainsValuesOn: { outgoing: 0 },
+  constrainsPropertiesOn: { outgoing: 0 },
+  constrainsLinksOn: { outgoing: 0 },
+  constrainsLinkDestinationsOn: { outgoing: 0 },
+  isOfType: { outgoing: 0 },
+  hasLeftEntity: { incoming: 0, outgoing: 0 },
+  hasRightEntity: { incoming: 0, outgoing: 0 },
 };
 
 const agentConfig = {

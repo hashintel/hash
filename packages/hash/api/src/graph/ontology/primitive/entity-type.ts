@@ -5,12 +5,16 @@ import { UpdateEntityTypeRequest } from "@hashintel/hash-graph-client";
 import {
   EntityTypeWithMetadata,
   ontologyTypeEditionIdToVersionedUri,
+  Subgraph,
+  SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
-import { GraphContext } from "../..";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { GraphContext, zeroedGraphResolveDepths } from "../..";
 import { getNamespaceOfAccountOwner } from "./util";
 import { linkEntityTypeUri } from "../../../model/util";
+import { NotFoundError } from "../../../lib/error";
 
 export type EntityTypeModelCreateParams = {
   ownedById: OwnedById;
@@ -70,9 +74,25 @@ export const getEntityType = async (
   },
 ): Promise<EntityTypeWithMetadata> => {
   const { entityTypeId } = params;
-  const { data: entityType } = await graphApi.getEntityType(entityTypeId);
 
-  return entityType as EntityTypeWithMetadata;
+  const entityTypeSubgraph = await graphApi
+    .getEntityTypesByQuery({
+      filter: {
+        equal: [{ path: ["versionedUri"] }, { parameter: entityTypeId }],
+      },
+      graphResolveDepths: zeroedGraphResolveDepths,
+    })
+    .then(({ data }) => data as Subgraph<SubgraphRootTypes["entityType"]>);
+
+  const [entityType] = getRoots(entityTypeSubgraph);
+
+  if (!entityType) {
+    throw new NotFoundError(
+      `Could not find entity type with ID "${entityTypeId}"`,
+    );
+  }
+
+  return entityType;
 };
 
 /**

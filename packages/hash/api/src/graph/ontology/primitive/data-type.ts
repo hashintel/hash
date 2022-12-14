@@ -1,11 +1,18 @@
 import { AxiosError } from "axios";
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { DataType } from "@blockprotocol/type-system";
-import { DataTypeWithMetadata, VersionedUri } from "@hashintel/hash-subgraph";
+import {
+  DataTypeWithMetadata,
+  Subgraph,
+  SubgraphRootTypes,
+  VersionedUri,
+} from "@hashintel/hash-subgraph";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { getNamespaceOfAccountOwner } from "./util";
-import { GraphContext } from "../..";
+import { GraphContext, zeroedGraphResolveDepths } from "../..";
+import { NotFoundError } from "../../../lib/error";
 
 /**
  * Create a data type.
@@ -73,9 +80,23 @@ export const getDataType = async (
   },
 ): Promise<DataTypeWithMetadata> => {
   const { dataTypeId } = params;
-  const { data: dataType } = await graphApi.getDataType(dataTypeId);
 
-  return dataType as DataTypeWithMetadata;
+  const dataTypeSubgraph = await graphApi
+    .getDataTypesByQuery({
+      filter: {
+        equal: [{ path: ["versionedUri"] }, { parameter: dataTypeId }],
+      },
+      graphResolveDepths: zeroedGraphResolveDepths,
+    })
+    .then(({ data }) => data as Subgraph<SubgraphRootTypes["dataType"]>);
+
+  const [dataType] = getRoots(dataTypeSubgraph);
+
+  if (!dataType) {
+    throw new NotFoundError(`Could not find data type with ID "${dataTypeId}"`);
+  }
+
+  return dataType;
 };
 
 /**

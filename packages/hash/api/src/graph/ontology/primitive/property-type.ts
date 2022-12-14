@@ -1,12 +1,18 @@
 import { AxiosError } from "axios";
 import { UpdatePropertyTypeRequest } from "@hashintel/hash-graph-client";
-import { PropertyTypeWithMetadata } from "@hashintel/hash-subgraph";
+import {
+  PropertyTypeWithMetadata,
+  Subgraph,
+  SubgraphRootTypes,
+} from "@hashintel/hash-subgraph";
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
-import { GraphContext } from "../..";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { GraphContext, zeroedGraphResolveDepths } from "../..";
 import { getNamespaceOfAccountOwner } from "./util";
+import { NotFoundError } from "../../../lib/error";
 
 /**
  * Create a property type.
@@ -66,9 +72,24 @@ export const getPropertyType = async (
   },
 ): Promise<PropertyTypeWithMetadata> => {
   const { propertyTypeId } = params;
-  const { data: propertyType } = await graphApi.getPropertyType(propertyTypeId);
+  const propertyTypeSubgraph = await graphApi
+    .getPropertyTypesByQuery({
+      filter: {
+        equal: [{ path: ["versionedUri"] }, { parameter: propertyTypeId }],
+      },
+      graphResolveDepths: zeroedGraphResolveDepths,
+    })
+    .then(({ data }) => data as Subgraph<SubgraphRootTypes["propertyType"]>);
 
-  return propertyType as PropertyTypeWithMetadata;
+  const [propertyType] = getRoots(propertyTypeSubgraph);
+
+  if (!propertyType) {
+    throw new NotFoundError(
+      `Could not find property type with ID "${propertyTypeId}"`,
+    );
+  }
+
+  return propertyType;
 };
 
 /**
