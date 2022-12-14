@@ -7,16 +7,14 @@ import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { EntityModel, UserModel } from "@hashintel/hash-api/src/model";
 import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
-import {
-  generateSystemEntityTypeSchema,
-  linkEntityTypeUri,
-} from "@hashintel/hash-api/src/model/util";
+import { generateSystemEntityTypeSchema } from "@hashintel/hash-api/src/model/util";
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
+  linkEntityTypeUri,
 } from "@hashintel/hash-subgraph";
 import { createPropertyType } from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
 import { createEntityType } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";

@@ -1,10 +1,9 @@
-import { OntologyTypeEditionId } from "@hashintel/hash-graph-client";
-import { validate as validateUuid } from "uuid";
-
 // For strange behavior we haven't found the cause of, we are unable to export
 // directly here, and have to import as alias before re-exporting the type
 // if we don't, the `api` package is unable to use this library.
 import { VersionedUri as TVersionedUri } from "@blockprotocol/type-system";
+import { OntologyTypeEditionId } from "@hashintel/hash-graph-client";
+import { validate as validateUuid } from "uuid";
 
 export type VersionedUri = TVersionedUri;
 
@@ -125,3 +124,6 @@ export const isEntityAndTimestamp = (
     !Number.isNaN(Date.parse(editionId.timestamp))
   );
 };
+
+export const linkEntityTypeUri: VersionedUri =
+  "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";

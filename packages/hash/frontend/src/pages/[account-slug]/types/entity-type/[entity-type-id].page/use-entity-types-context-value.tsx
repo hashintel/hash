@@ -1,3 +1,4 @@
+import { linkEntityTypeUri } from "@hashintel/hash-subgraph";
 import { getEntityTypes } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useBlockProtocolAggregateEntityTypes } from "../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateEntityTypes";
@@ -26,9 +27,7 @@ export const useEntityTypesContextValue =
       for (const entityType of entityTypes) {
         const target =
           entityType.schema.allOf?.length === 1 &&
-          // Don't hardcode
-          entityType.schema.allOf[0]?.$ref ===
-            "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1"
+          entityType.schema.allOf[0]?.$ref === linkEntityTypeUri
             ? linkEntityTypesRecord
             : nonLinkEntityTypesRecord;
 

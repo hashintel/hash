@@ -13,11 +13,13 @@ import {
 import {
   EntityTypeCreatorParams,
   generateSystemEntityTypeSchema,
-  linkEntityTypeUri,
 } from "@hashintel/hash-api/src/model/util";
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import { EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
+import {
+  EntityTypeWithMetadata,
+  linkEntityTypeUri,
+} from "@hashintel/hash-subgraph";
 import { createEntityType } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
 import { createTestUser } from "../../util";
 

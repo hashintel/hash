@@ -1,5 +1,6 @@
 import { EntityType, VersionedUri } from "@blockprotocol/type-system";
 import { Chip } from "@hashintel/hash-design-system";
+import { linkEntityTypeUri } from "@hashintel/hash-subgraph";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { TableBody, TableCell, TableFooter, TableHead } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
@@ -52,7 +53,7 @@ const formDataToEntityType = (data: TypeFormDefaults) => ({
   description: data.description,
   allOf: [
     {
-      $ref: "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1" as const,
+      $ref: linkEntityTypeUri,
     },
   ],
   properties: {},
