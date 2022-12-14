@@ -1,5 +1,13 @@
 /// # Example:
+/// ```
+/// use error_stack::Report;
+/// use error_stack_macros::impl_error;
 /// impl_error!(MyError, "This is my error!");
+/// assert_eq!(
+///     format!("{}", Report::new(MyError)),
+///     "MyError: This is my error!"
+/// );
+/// ```
 
 #[macro_export]
 macro_rules! impl_error {
@@ -14,17 +22,4 @@ macro_rules! impl_error {
         }
         impl error_stack::Context for $etype {}
     };
-}
-
-#[cfg(test)]
-mod test {
-    use error_stack::Report;
-    #[test]
-    fn test_display() {
-        impl_error!(MyError, "This is my error");
-        assert_eq!(
-            format!("{}", Report::new(MyError)),
-            "MyError: This is my error"
-        );
-    }
 }
