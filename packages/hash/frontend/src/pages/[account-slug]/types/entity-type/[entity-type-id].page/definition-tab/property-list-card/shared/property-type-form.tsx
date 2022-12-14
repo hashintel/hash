@@ -32,7 +32,7 @@ import { PropertyTypeFormValues } from "./property-type-form-values";
 import { DataTypeSelector } from "./property-type-form/data-type-selector";
 import { getPropertyTypeSchema } from "./property-type-form/property-type-schema";
 import { DataTypeSelectorDropdownContext } from "./property-type-form/shared/data-type-selector-dropdown-context";
-import { QuestionIcon } from "./question-icon";
+import { QuestionIcon } from "../../shared/question-icon";
 import { withHandler } from "./with-handler";
 
 const generateInitialPropertyTypeId = (baseUri: string) =>
