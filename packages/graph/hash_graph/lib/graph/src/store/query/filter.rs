@@ -8,7 +8,7 @@ use std::{
 use chrono::{DateTime, Utc};
 use error_stack::{bail, ensure, Context, IntoReport, Report, ResultExt};
 use serde::Deserialize;
-use type_system::uri::VersionedUri;
+use type_system::uri::{BaseUri, VersionedUri};
 use uuid::Uuid;
 
 use crate::{
@@ -54,6 +54,18 @@ where
             Some(FilterExpression::Path(<R::QueryPath<'p>>::version())),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "latest",
+            )))),
+        )
+    }
+
+    /// Creates a `Filter` to search for a specific ontology type of kind `R`, identified by its
+    /// [`BaseUri`].
+    #[must_use]
+    pub fn for_base_uri(base_uri: &'p BaseUri) -> Self {
+        Self::Equal(
+            Some(FilterExpression::Path(<R::QueryPath<'p>>::base_uri())),
+            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                base_uri.as_str(),
             )))),
         )
     }
