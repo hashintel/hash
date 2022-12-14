@@ -6,7 +6,8 @@ import { getEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity"
 import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import {
   AccountId,
-  extractAccountIdAsEntityUuid,
+  brand,
+  extractAccountId,
 } from "@hashintel/hash-shared/types";
 
 import { extractBaseUri } from "@blockprotocol/type-system";
@@ -63,8 +64,8 @@ export const ensureSystemUserAccountIdExists = async (params: {
   );
 
   if (existingSystemUserEntity) {
-    systemUserAccountId = extractAccountIdAsEntityUuid(
-      existingSystemUserEntity.metadata.editionId.baseId,
+    systemUserAccountId = extractAccountId(
+      brand(existingSystemUserEntity.metadata.editionId.baseId),
     );
     logger.info(
       `Using existing system user account id: ${systemUserAccountId}`,

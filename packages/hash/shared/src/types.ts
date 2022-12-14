@@ -51,6 +51,9 @@ export type UpdatedById = Brand<AccountId, "UpdatedById">;
 /** A Uuuid that points to an Entity without any edition */
 export type EntityUuid = Brand<Uuid, "EntityUuid">;
 
+/** A Uuuid that points to an Account Entity without any edition */
+export type AccountEntityId = Brand<EntityId, "AccountEntityId">;
+
 // These type overwrites are centralized for being able to swap out implementations.
 
 export const splitEntityId = splitEntityIdSubgraph as (
@@ -64,5 +67,7 @@ export const extractEntityUuidFromEntityId =
   extractEntityUuidFromEntityIdSubgraph as (entityId: EntityId) => EntityUuid;
 
 /** If the underlying entityUuid is an accountId, use this cast to convert the type */
-export const extractAccountIdAsEntityUuid =
-  extractEntityUuidFromEntityIdSubgraph as (entityId: EntityId) => AccountId;
+export const extractAccountId = extractEntityUuidFromEntityIdSubgraph as (
+  entityId: AccountEntityId,
+  // The type cannot be cast directly to AccountId, so we do it over two casts, but without `unknown`
+) => string as (entityId: AccountEntityId) => AccountId;
