@@ -11,7 +11,7 @@ import { BlockConfigMenu } from "./BlockConfigMenu/BlockConfigMenu";
 import { BlockContextMenu } from "./BlockContextMenu/BlockContextMenu";
 import { useBlockView } from "./BlockView";
 import { useBlockContext } from "./BlockContext";
-import { useReadonlyMode } from "../../shared/readonly-mode";
+import { useIsReadonlyMode } from "../../shared/readonly-mode";
 
 type BlockHandleProps = {
   deleteBlock: () => void;
@@ -36,7 +36,7 @@ const BlockHandle: ForwardRefRenderFunction<
   },
   ref,
 ) => {
-  const { readonlyMode } = useReadonlyMode();
+  const isReadonlyMode = useIsReadonlyMode();
   const contextMenuPopupState = usePopupState({
     variant: "popover",
     popupId: "block-context-menu",
@@ -83,7 +83,7 @@ const BlockHandle: ForwardRefRenderFunction<
 
   const blockContext = useBlockContext();
 
-  if (readonlyMode) {
+  if (isReadonlyMode) {
     return null;
   }
 

@@ -22,7 +22,6 @@ import {
   RouteAccountInfoProvider,
   RoutePageInfoProvider,
 } from "../shared/routing";
-import { ReadonlyModeProvider } from "../shared/readonly-mode";
 import { WorkspaceContextProvider } from "./shared/workspace-context";
 import { apolloClient } from "../lib/apollo-client";
 import { MeQuery } from "../graphql/apiTypes.gen";
@@ -90,11 +89,9 @@ const App: FunctionComponent<AppProps> = ({
             <RouteAccountInfoProvider>
               <RoutePageInfoProvider>
                 <WorkspaceContextProvider>
-                  <ReadonlyModeProvider>
-                    <SnackbarProvider maxSnack={3}>
-                      {getLayout(<Component {...pageProps} />)}
-                    </SnackbarProvider>
-                  </ReadonlyModeProvider>
+                  <SnackbarProvider maxSnack={3}>
+                    {getLayout(<Component {...pageProps} />)}
+                  </SnackbarProvider>
                 </WorkspaceContextProvider>
               </RoutePageInfoProvider>
             </RouteAccountInfoProvider>
