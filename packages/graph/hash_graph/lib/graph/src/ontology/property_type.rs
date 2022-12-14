@@ -323,7 +323,7 @@ mod tests {
 
     use super::*;
 
-    fn deserialize<'q>(segments: impl IntoIterator<Item = &'q str>) -> PropertyTypeQueryPath {
+    fn deserialize<'p>(segments: impl IntoIterator<Item = &'p str>) -> PropertyTypeQueryPath {
         PropertyTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
             segments.into_iter(),
         ))

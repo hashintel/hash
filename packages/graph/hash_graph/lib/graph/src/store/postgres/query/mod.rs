@@ -29,7 +29,7 @@ use crate::store::{
     Record,
 };
 
-pub trait PostgresRecord: for<'q> Record<QueryPath<'q>: PostgresQueryPath> {
+pub trait PostgresRecord: for<'p> Record<QueryPath<'p>: PostgresQueryPath> {
     /// The [`Table`] used for this `Query`.
     fn base_table() -> Table;
 }

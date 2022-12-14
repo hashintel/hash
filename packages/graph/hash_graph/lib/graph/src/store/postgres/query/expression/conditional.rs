@@ -3,15 +3,15 @@ use std::fmt::{self, Write};
 use crate::store::postgres::query::{AliasedColumn, Transpile, WindowStatement};
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub enum Function<'q> {
-    Min(Box<Expression<'q>>),
-    Max(Box<Expression<'q>>),
-    JsonExtractPath(Vec<Expression<'q>>),
-    JsonContains(Box<Expression<'q>>, Box<Expression<'q>>),
-    JsonBuildArray(Vec<Expression<'q>>),
-    JsonBuildObject(Vec<(Expression<'q>, Expression<'q>)>),
-    Lower(Box<Expression<'q>>),
-    Upper(Box<Expression<'q>>),
+pub enum Function<'p> {
+    Min(Box<Expression<'p>>),
+    Max(Box<Expression<'p>>),
+    JsonExtractPath(Vec<Expression<'p>>),
+    JsonContains(Box<Expression<'p>>, Box<Expression<'p>>),
+    JsonBuildArray(Vec<Expression<'p>>),
+    JsonBuildObject(Vec<(Expression<'p>, Expression<'p>)>),
+    Lower(Box<Expression<'p>>),
+    Upper(Box<Expression<'p>>),
     Now,
 }
 
@@ -99,16 +99,16 @@ impl Transpile for Constant {
 
 /// A compiled expression in Postgres.
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub enum Expression<'q> {
+pub enum Expression<'p> {
     Asterisk,
-    Column(AliasedColumn<'q>),
+    Column(AliasedColumn<'p>),
     /// A parameter are transpiled as a placeholder, e.g. `$1`, in order to prevent SQL injection.
     Parameter(usize),
     /// [`Constant`]s are directly transpiled into the SQL query. Caution has to be taken to
     /// prevent SQL injection and no user input should ever be used as a [`Constant`].
     Constant(Constant),
-    Function(Function<'q>),
-    Window(Box<Self>, WindowStatement<'q>),
+    Function(Function<'p>),
+    Window(Box<Self>, WindowStatement<'p>),
 }
 
 impl Transpile for Expression<'_> {

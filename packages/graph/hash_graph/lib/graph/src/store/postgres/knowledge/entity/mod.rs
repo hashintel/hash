@@ -590,10 +590,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .collect())
     }
 
-    async fn get_entity<'f: 'q, 'q>(
-        &self,
-        query: &'f StructuralQuery<'q, Entity>,
-    ) -> Result<Subgraph, QueryError> {
+    async fn get_entity(&self, query: &StructuralQuery<Entity>) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,
             graph_resolve_depths,

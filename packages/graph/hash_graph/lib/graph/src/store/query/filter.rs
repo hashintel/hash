@@ -27,31 +27,31 @@ use crate::{
 #[derive(Deserialize)]
 #[serde(
     rename_all = "camelCase",
-    bound = "'de: 'q, T::QueryPath<'q>: Deserialize<'de>"
+    bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>"
 )]
-pub enum Filter<'q, T: Record> {
+pub enum Filter<'p, R: Record> {
     All(Vec<Self>),
     Any(Vec<Self>),
     Not(Box<Self>),
     Equal(
-        Option<FilterExpression<'q, T>>,
-        Option<FilterExpression<'q, T>>,
+        Option<FilterExpression<'p, R>>,
+        Option<FilterExpression<'p, R>>,
     ),
     NotEqual(
-        Option<FilterExpression<'q, T>>,
-        Option<FilterExpression<'q, T>>,
+        Option<FilterExpression<'p, R>>,
+        Option<FilterExpression<'p, R>>,
     ),
 }
 
-impl<'q, T> Filter<'q, T>
+impl<'p, R> Filter<'p, R>
 where
-    T: Record<QueryPath<'q>: OntologyQueryPath>,
+    R: Record<QueryPath<'p>: OntologyQueryPath>,
 {
     /// Creates a `Filter` to search for all ontology types of kind `T` at their latest version.
     #[must_use]
     pub fn for_latest_version() -> Self {
         Self::Equal(
-            Some(FilterExpression::Path(<T::QueryPath<'q>>::version())),
+            Some(FilterExpression::Path(<R::QueryPath<'p>>::version())),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "latest",
             )))),
@@ -61,16 +61,16 @@ where
     /// Creates a `Filter` to search for a specific ontology type of kind `T`, identified by its
     /// [`VersionedUri`].
     #[must_use]
-    pub fn for_versioned_uri(versioned_uri: &'q VersionedUri) -> Self {
+    pub fn for_versioned_uri(versioned_uri: &'p VersionedUri) -> Self {
         Self::All(vec![
             Self::Equal(
-                Some(FilterExpression::Path(<T::QueryPath<'q>>::base_uri())),
+                Some(FilterExpression::Path(<R::QueryPath<'p>>::base_uri())),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     versioned_uri.base_uri().as_str(),
                 )))),
             ),
             Self::Equal(
-                Some(FilterExpression::Path(<T::QueryPath<'q>>::version())),
+                Some(FilterExpression::Path(<R::QueryPath<'p>>::version())),
                 Some(FilterExpression::Parameter(Parameter::SignedInteger(
                     versioned_uri.version().into(),
                 ))),
@@ -82,17 +82,17 @@ where
     /// [`OntologyTypeEditionId`].
     #[must_use]
     pub fn for_ontology_type_edition_id(
-        ontology_type_edition_id: &'q OntologyTypeEditionId,
+        ontology_type_edition_id: &'p OntologyTypeEditionId,
     ) -> Self {
         Self::All(vec![
             Self::Equal(
-                Some(FilterExpression::Path(<T::QueryPath<'q>>::base_uri())),
+                Some(FilterExpression::Path(<R::QueryPath<'p>>::base_uri())),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     ontology_type_edition_id.base_id().as_str(),
                 )))),
             ),
             Self::Equal(
-                Some(FilterExpression::Path(<T::QueryPath<'q>>::version())),
+                Some(FilterExpression::Path(<R::QueryPath<'p>>::version())),
                 Some(FilterExpression::Parameter(Parameter::SignedInteger(
                     ontology_type_edition_id.version().inner().into(),
                 ))),
@@ -101,7 +101,7 @@ where
     }
 }
 
-impl<'q> Filter<'q, Entity> {
+impl<'p> Filter<'p, Entity> {
     /// Creates a `Filter` to search for all entities at their latest version.
     #[must_use]
     pub const fn for_all_latest_entities() -> Self {
@@ -331,9 +331,9 @@ impl<'q> Filter<'q, Entity> {
     }
 }
 
-impl<'q, T: Record> Filter<'q, T>
+impl<'p, R: Record> Filter<'p, R>
 where
-    T::QueryPath<'q>: Display,
+    R::QueryPath<'p>: Display,
 {
     /// Converts the contained [`Parameter`]s to match the type of a `T::Path`.
     ///
@@ -365,9 +365,9 @@ where
 
 // TODO: Derive traits when bounds are generated correctly
 //   see https://github.com/rust-lang/rust/issues/26925
-impl<'q, T> Debug for Filter<'q, T>
+impl<'p, R> Debug for Filter<'p, R>
 where
-    T: Record<QueryPath<'q>: Debug>,
+    R: Record<QueryPath<'p>: Debug>,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -382,9 +382,9 @@ where
 
 // TODO: Derive traits when bounds are generated correctly
 //   see https://github.com/rust-lang/rust/issues/26925
-impl<'q, T> PartialEq for Filter<'q, T>
+impl<'p, R> PartialEq for Filter<'p, R>
 where
-    T: Record<QueryPath<'q>: PartialEq>,
+    R: Record<QueryPath<'p>: PartialEq>,
 {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -405,18 +405,18 @@ where
 #[derive(Deserialize)]
 #[serde(
     rename_all = "camelCase",
-    bound = "'de: 'q, T::QueryPath<'q>: Deserialize<'de>"
+    bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>"
 )]
-pub enum FilterExpression<'q, T: Record> {
-    Path(T::QueryPath<'q>),
-    Parameter(Parameter<'q>),
+pub enum FilterExpression<'p, R: Record> {
+    Path(R::QueryPath<'p>),
+    Parameter(Parameter<'p>),
 }
 
 // TODO: Derive traits when bounds are generated correctly
 //   see https://github.com/rust-lang/rust/issues/26925
-impl<'q, T> Debug for FilterExpression<'q, T>
+impl<'p, R> Debug for FilterExpression<'p, R>
 where
-    T: Record<QueryPath<'q>: Debug>,
+    R: Record<QueryPath<'p>: Debug>,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -428,9 +428,9 @@ where
 
 // TODO: Derive traits when bounds are generated correctly
 //   see https://github.com/rust-lang/rust/issues/26925
-impl<'q, T> PartialEq for FilterExpression<'q, T>
+impl<'p, R> PartialEq for FilterExpression<'p, R>
 where
-    T: Record<QueryPath<'q>: PartialEq>,
+    R: Record<QueryPath<'p>: PartialEq>,
 {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -443,10 +443,10 @@ where
 
 #[derive(Debug, PartialEq, Deserialize)]
 #[serde(untagged)]
-pub enum Parameter<'q> {
+pub enum Parameter<'p> {
     Boolean(bool),
     Number(f64),
-    Text(Cow<'q, str>),
+    Text(Cow<'p, str>),
     #[serde(skip)]
     Uuid(Uuid),
     #[serde(skip)]
@@ -578,12 +578,12 @@ mod tests {
         provenance::OwnedById,
     };
 
-    fn test_filter_representation<'de, T>(actual: &Filter<'de, T>, expected: &'de serde_json::Value)
+    fn test_filter_representation<'de, R>(actual: &Filter<'de, R>, expected: &'de serde_json::Value)
     where
-        T: Record<QueryPath<'de>: Debug + Display + PartialEq + Deserialize<'de>>,
+        R: Record<QueryPath<'de>: Debug + Display + PartialEq + Deserialize<'de>>,
     {
         let mut expected =
-            Filter::<T>::deserialize(expected).expect("Could not deserialize filter");
+            Filter::<R>::deserialize(expected).expect("Could not deserialize filter");
         expected.convert_parameters().expect("invalid filter");
         assert_eq!(*actual, expected);
     }

@@ -158,17 +158,17 @@ use crate::{
     EntityTypeStructuralQuery = StructuralQuery<'static, EntityTypeWithMetadata>,
     EntityStructuralQuery = StructuralQuery<'static, Entity>,
 )]
-pub struct StructuralQuery<'q, T: Record> {
-    #[serde(bound = "'de: 'q, T::QueryPath<'q>: Deserialize<'de>")]
-    pub filter: Filter<'q, T>,
+pub struct StructuralQuery<'p, R: Record> {
+    #[serde(bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>")]
+    pub filter: Filter<'p, R>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
 
 // TODO: Derive traits when bounds are generated correctly
 //   see https://github.com/rust-lang/rust/issues/26925
-impl<'q, T> Debug for StructuralQuery<'q, T>
+impl<'p, R> Debug for StructuralQuery<'p, R>
 where
-    T: Record<QueryPath<'q>: Debug>,
+    R: Record<QueryPath<'p>: Debug>,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("StructuralQuery")

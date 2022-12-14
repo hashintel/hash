@@ -3,20 +3,20 @@ use std::{borrow::Cow, fmt};
 use crate::store::postgres::query::{AliasedColumn, Expression, Transpile};
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub struct SelectExpression<'q> {
-    expression: Expression<'q>,
-    alias: Option<Cow<'q, str>>,
+pub struct SelectExpression<'p> {
+    expression: Expression<'p>,
+    alias: Option<Cow<'p, str>>,
 }
 
-impl<'q> SelectExpression<'q> {
+impl<'p> SelectExpression<'p> {
     #[must_use]
     #[inline]
-    pub const fn new(expression: Expression<'q>, alias: Option<Cow<'q, str>>) -> Self {
+    pub const fn new(expression: Expression<'p>, alias: Option<Cow<'p, str>>) -> Self {
         Self { expression, alias }
     }
 
     #[must_use]
-    pub const fn from_column(column: AliasedColumn<'q>, alias: Option<Cow<'q, str>>) -> Self {
+    pub const fn from_column(column: AliasedColumn<'p>, alias: Option<Cow<'p, str>>) -> Self {
         Self::new(Expression::Column(column), alias)
     }
 }

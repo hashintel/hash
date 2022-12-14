@@ -9,12 +9,12 @@ pub enum Ordering {
 }
 
 #[derive(Debug, Default, PartialEq, Eq, Hash)]
-pub struct OrderByExpression<'q> {
-    columns: Vec<(AliasedColumn<'q>, Ordering)>,
+pub struct OrderByExpression<'p> {
+    columns: Vec<(AliasedColumn<'p>, Ordering)>,
 }
 
-impl<'q> OrderByExpression<'q> {
-    pub fn push(&mut self, column: AliasedColumn<'q>, ordering: Ordering) {
+impl<'p> OrderByExpression<'p> {
+    pub fn push(&mut self, column: AliasedColumn<'p>, ordering: Ordering) {
         self.columns.push((column, ordering));
     }
 

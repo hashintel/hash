@@ -196,7 +196,7 @@ pub struct DataTypeWithMetadata {
 
 impl Record for DataTypeWithMetadata {
     type Metadata = OntologyElementMetadata;
-    type QueryPath<'q> = DataTypeQueryPath;
+    type QueryPath<'p> = DataTypeQueryPath;
 
     fn metadata(&self) -> &OntologyElementMetadata {
         &self.metadata
@@ -228,7 +228,7 @@ pub struct PropertyTypeWithMetadata {
 
 impl Record for PropertyTypeWithMetadata {
     type Metadata = OntologyElementMetadata;
-    type QueryPath<'q> = PropertyTypeQueryPath;
+    type QueryPath<'p> = PropertyTypeQueryPath;
 
     fn metadata(&self) -> &OntologyElementMetadata {
         &self.metadata
@@ -260,7 +260,7 @@ pub struct EntityTypeWithMetadata {
 
 impl Record for EntityTypeWithMetadata {
     type Metadata = OntologyElementMetadata;
-    type QueryPath<'q> = EntityTypeQueryPath;
+    type QueryPath<'p> = EntityTypeQueryPath;
 
     fn metadata(&self) -> &OntologyElementMetadata {
         &self.metadata

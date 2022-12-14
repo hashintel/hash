@@ -17,17 +17,17 @@ use crate::store::{query::Filter, QueryError, Record};
 // TODO: Use queries, which are passed to the query-endpoint
 //   see https://app.asana.com/0/1202805690238892/1202979057056097/f
 #[async_trait]
-pub trait Read<T: Record + Send>: Sync {
-    // TODO: Return a stream of `T` instead
+pub trait Read<R: Record + Send>: Sync {
+    // TODO: Return a stream of `R` instead
     //   see https://app.asana.com/0/1202805690238892/1202923536131158/f
     /// Returns a value from the [`Store`] specified by the passed `query`.
     ///
     /// [`Store`]: crate::store::Store
-    async fn read(&self, query: &Filter<T>) -> Result<Vec<T>, QueryError>;
+    async fn read(&self, query: &Filter<R>) -> Result<Vec<R>, QueryError>;
 
-    async fn read_one(&self, query: &Filter<T>) -> Result<T, QueryError>
+    async fn read_one(&self, query: &Filter<R>) -> Result<R, QueryError>
     where
-        for<'p> T::QueryPath<'p>: Sync,
+        for<'p> R::QueryPath<'p>: Sync,
     {
         let mut records = self.read(query).await?;
         ensure!(

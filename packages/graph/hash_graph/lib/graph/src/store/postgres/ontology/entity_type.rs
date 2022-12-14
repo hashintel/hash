@@ -311,9 +311,9 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         Ok(metadata)
     }
 
-    async fn get_entity_type<'f: 'q, 'q>(
+    async fn get_entity_type(
         &self,
-        query: &'f StructuralQuery<'q, EntityTypeWithMetadata>,
+        query: &StructuralQuery<EntityTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,

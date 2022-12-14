@@ -73,13 +73,13 @@ fn report_to_status_code<C>(report: &Report<C>) -> StatusCode {
     status_code
 }
 
-async fn read_from_store<'pool, 'q, P, T>(
+async fn read_from_store<'pool, 'p, P, R>(
     pool: &'pool P,
-    query: &'q Filter<'q, T>,
-) -> Result<Vec<T>, StatusCode>
+    query: &Filter<'p, R>,
+) -> Result<Vec<R>, StatusCode>
 where
-    P: StorePool<Store<'pool>: Read<T>>,
-    T: Record<QueryPath<'q>: Sync + Debug> + Send,
+    P: StorePool<Store<'pool>: Read<R>>,
+    R: Record<QueryPath<'p>: Sync + Debug> + Send,
 {
     pool.acquire()
         .map_err(|report| {

@@ -106,9 +106,9 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         Ok(metadata)
     }
 
-    async fn get_data_type<'f: 'q, 'q>(
+    async fn get_data_type(
         &self,
-        query: &'f StructuralQuery<'q, DataTypeWithMetadata>,
+        query: &StructuralQuery<DataTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,

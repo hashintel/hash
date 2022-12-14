@@ -26,7 +26,7 @@ impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
     T: OntologyTypeWithMetadata + PostgresRecord + Send,
     T::OntologyType: OntologyDatabaseType,
-    for<'q> T::QueryPath<'q>: Send + Sync + OntologyQueryPath,
+    for<'p> T::QueryPath<'p>: Send + Sync + OntologyQueryPath,
 {
     async fn read(&self, filter: &Filter<T>) -> Result<Vec<T>, QueryError> {
         let versioned_uri_path = <T::QueryPath<'static> as OntologyQueryPath>::versioned_uri();
