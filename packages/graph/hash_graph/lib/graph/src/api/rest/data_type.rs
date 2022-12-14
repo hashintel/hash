@@ -78,6 +78,7 @@ pub struct DataTypeResource;
 
 impl RoutedResource for DataTypeResource {
     /// Create routes for interacting with data types.
+    #[expect(deprecated)]
     fn routes<P: StorePool + Send + 'static>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
@@ -212,6 +213,7 @@ async fn get_data_types_by_query<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     )
 )]
+#[deprecated = "use `/data-types/query` instead"]
 async fn get_latest_data_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<DataTypeWithMetadata>>, StatusCode> {
@@ -235,6 +237,7 @@ async fn get_latest_data_types<P: StorePool + Send>(
         ("uri" = String, Path, description = "The URI of the data type"),
     )
 )]
+#[deprecated = "use `/data-types/query` instead"]
 async fn get_data_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
