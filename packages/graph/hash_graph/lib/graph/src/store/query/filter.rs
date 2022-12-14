@@ -70,6 +70,17 @@ where
         )
     }
 
+    /// Creates a `Filter` to filter by a version.
+    #[must_use]
+    fn for_version(version: u32) -> Self {
+        Self::Equal(
+            Some(FilterExpression::Path(<R::QueryPath<'p>>::version())),
+            Some(FilterExpression::Parameter(Parameter::SignedInteger(
+                version.into(),
+            ))),
+        )
+    }
+
     /// Creates a `Filter` to search for a specific ontology type of kind `R`, identified by its
     /// [`VersionedUri`].
     #[must_use]
