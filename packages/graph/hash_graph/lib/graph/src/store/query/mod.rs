@@ -8,10 +8,10 @@ pub use self::filter::{Filter, FilterExpression, Parameter, ParameterConversionE
 ///
 /// [`store`]: crate::store
 pub trait Record {
-    type Path<'q>: RecordPath;
+    type Path<'q>: QueryPath;
 }
 
-pub trait RecordPath {
+pub trait QueryPath {
     /// Returns what type this resolved `Path` has.
     fn expected_type(&self) -> ParameterType;
 }

@@ -8,7 +8,7 @@ use utoipa::ToSchema;
 
 use crate::{
     ontology::DataTypeWithMetadata,
-    store::query::{OntologyPath, ParameterType, Record, RecordPath},
+    store::query::{OntologyPath, ParameterType, QueryPath, Record},
 };
 
 /// A path to a [`DataType`] field.
@@ -187,7 +187,7 @@ impl OntologyPath for DataTypeQueryPath {
     }
 }
 
-impl RecordPath for DataTypeQueryPath {
+impl QueryPath for DataTypeQueryPath {
     fn expected_type(&self) -> ParameterType {
         match self {
             Self::VersionId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,

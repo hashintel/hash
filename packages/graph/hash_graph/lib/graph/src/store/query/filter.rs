@@ -17,7 +17,7 @@ use crate::{
         ontology::OntologyTypeEditionId,
     },
     knowledge::{Entity, EntityQueryPath, EntityUuid},
-    store::query::{OntologyPath, ParameterType, Record, RecordPath},
+    store::query::{OntologyPath, ParameterType, QueryPath, Record},
 };
 
 /// A set of conditions used for queries.

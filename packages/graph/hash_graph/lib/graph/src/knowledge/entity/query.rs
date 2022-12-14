@@ -9,7 +9,7 @@ use utoipa::ToSchema;
 use crate::{
     knowledge::Entity,
     ontology::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
-    store::query::{ParameterType, Record, RecordPath},
+    store::query::{ParameterType, QueryPath, Record},
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -256,7 +256,7 @@ impl fmt::Display for EntityQueryPath<'_> {
     }
 }
 
-impl RecordPath for EntityQueryPath<'_> {
+impl QueryPath for EntityQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
             Self::Uuid | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,

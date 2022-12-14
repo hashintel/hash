@@ -148,7 +148,7 @@ use crate::{
 /// }
 /// ```
 ///
-/// [`RecordPath`]: crate::store::query::RecordPath
+/// [`RecordPath`]: crate::store::query::QueryPath
 /// [`Parameter`]: crate::store::query::Parameter
 #[derive(Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]

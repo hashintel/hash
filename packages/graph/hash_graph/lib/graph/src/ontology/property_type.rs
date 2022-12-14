@@ -10,7 +10,7 @@ use crate::{
     ontology::{
         data_type::DataTypeQueryPathVisitor, DataTypeQueryPath, PropertyTypeWithMetadata, Selector,
     },
-    store::query::{OntologyPath, ParameterType, Record, RecordPath},
+    store::query::{OntologyPath, ParameterType, QueryPath, Record},
 };
 
 /// A path to a [`PropertyType`] field.
@@ -202,7 +202,7 @@ impl OntologyPath for PropertyTypeQueryPath {
     }
 }
 
-impl RecordPath for PropertyTypeQueryPath {
+impl QueryPath for PropertyTypeQueryPath {
     fn expected_type(&self) -> ParameterType {
         match self {
             Self::VersionId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
