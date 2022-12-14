@@ -1,4 +1,4 @@
-import { Dialog } from "@headlessui/react";
+import { Dialog } from "@mui/material";
 import { ReactNode, FunctionComponent } from "react";
 import { AuthLayout } from "./auth-layout";
 
@@ -16,7 +16,6 @@ export const AuthModalLayout: FunctionComponent<AuthModalLayoutProps> = ({
   loading,
 }) => (
   <Dialog
-    as="div"
     open={show}
     onClose={onClose ?? (() => {})}
     style={{
