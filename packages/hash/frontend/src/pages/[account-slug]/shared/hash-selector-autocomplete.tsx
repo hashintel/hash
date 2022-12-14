@@ -96,10 +96,10 @@ type OptionRenderData = {
 };
 
 type HashSelectorAutocompleteProps<
-  T extends unknown,
-  M extends boolean = false,
+  T,
+  Multiple extends boolean | undefined = undefined,
 > = Omit<
-  AutocompleteProps<T, M, false, false>,
+  AutocompleteProps<T, Multiple, false, false>,
   | "renderInput"
   | "renderOption"
   | "getOptionLabel"
@@ -110,13 +110,12 @@ type HashSelectorAutocompleteProps<
   inputPlaceholder?: string;
   optionToRenderData: (option: T) => OptionRenderData;
   dropdownProps: TypeListSelectorDropdownProps;
-  multiple?: M;
   autoFocus?: boolean;
 };
 
 export const HashSelectorAutocomplete = <
-  T extends unknown,
-  M extends boolean = false,
+  T,
+  Multiple extends boolean | undefined = undefined,
 >({
   open,
   optionToRenderData,
@@ -126,7 +125,7 @@ export const HashSelectorAutocomplete = <
   dropdownProps,
   autoFocus = true,
   ...rest
-}: HashSelectorAutocompleteProps<T extends any[] ? T[number] : T, M>) => {
+}: HashSelectorAutocompleteProps<T, Multiple>) => {
   const modifiers = useMemo(
     (): PopperProps["modifiers"] => [
       {
