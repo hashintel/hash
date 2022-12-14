@@ -6,7 +6,7 @@ use serde::{
 };
 use utoipa::ToSchema;
 
-use crate::store::query::{OntologyPath, ParameterType, QueryPath};
+use crate::store::query::{OntologyQueryPath, ParameterType, QueryPath};
 
 /// A path to a [`DataType`] field.
 ///
@@ -154,7 +154,7 @@ pub enum DataTypeQueryPath {
     Schema,
 }
 
-impl OntologyPath for DataTypeQueryPath {
+impl OntologyQueryPath for DataTypeQueryPath {
     fn base_uri() -> Self {
         Self::BaseUri
     }

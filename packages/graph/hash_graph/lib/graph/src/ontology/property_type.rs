@@ -8,7 +8,7 @@ use utoipa::ToSchema;
 
 use crate::{
     ontology::{data_type::DataTypeQueryPathVisitor, DataTypeQueryPath, Selector},
-    store::query::{OntologyPath, ParameterType, QueryPath},
+    store::query::{OntologyQueryPath, ParameterType, QueryPath},
 };
 
 /// A path to a [`PropertyType`] field.
@@ -170,7 +170,7 @@ pub enum PropertyTypeQueryPath {
     Schema,
 }
 
-impl OntologyPath for PropertyTypeQueryPath {
+impl OntologyQueryPath for PropertyTypeQueryPath {
     fn base_uri() -> Self {
         Self::BaseUri
     }

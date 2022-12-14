@@ -42,7 +42,7 @@ impl fmt::Display for ParameterType {
     }
 }
 
-pub trait OntologyPath {
+pub trait OntologyQueryPath {
     /// Returns the path identifying the [`BaseUri`].
     ///
     /// [`BaseUri`]: type_system::uri::BaseUri

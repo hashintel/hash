@@ -18,7 +18,7 @@ use crate::{
     },
     knowledge::{Entity, EntityQueryPath, EntityUuid},
     store::{
-        query::{OntologyPath, ParameterType, QueryPath},
+        query::{OntologyQueryPath, ParameterType, QueryPath},
         Record,
     },
 };
@@ -45,7 +45,7 @@ pub enum Filter<'q, T: Record> {
 
 impl<'q, T> Filter<'q, T>
 where
-    T: Record<QueryPath<'q>: OntologyPath>,
+    T: Record<QueryPath<'q>: OntologyQueryPath>,
 {
     /// Creates a `Filter` to search for all ontology types of kind `T` at their latest version.
     #[must_use]

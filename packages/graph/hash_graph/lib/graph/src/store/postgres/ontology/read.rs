@@ -16,7 +16,7 @@ use crate::{
             ontology::OntologyDatabaseType,
             query::{Distinctness, PostgresRecord, SelectCompiler},
         },
-        query::{Filter, OntologyPath},
+        query::{Filter, OntologyQueryPath},
         AsClient, PostgresStore, QueryError,
     },
 };
@@ -26,13 +26,13 @@ impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
     T: OntologyTypeWithMetadata + PostgresRecord + Send,
     T::OntologyType: OntologyDatabaseType,
-    for<'q> T::QueryPath<'q>: Send + Sync + OntologyPath,
+    for<'q> T::QueryPath<'q>: Send + Sync + OntologyQueryPath,
 {
     async fn read(&self, filter: &Filter<T>) -> Result<Vec<T>, QueryError> {
-        let versioned_uri_path = <T::QueryPath<'static> as OntologyPath>::versioned_uri();
-        let schema_path = <T::QueryPath<'static> as OntologyPath>::schema();
-        let owned_by_id_path = <T::QueryPath<'static> as OntologyPath>::owned_by_id();
-        let updated_by_id_path = <T::QueryPath<'static> as OntologyPath>::updated_by_id();
+        let versioned_uri_path = <T::QueryPath<'static> as OntologyQueryPath>::versioned_uri();
+        let schema_path = <T::QueryPath<'static> as OntologyQueryPath>::schema();
+        let owned_by_id_path = <T::QueryPath<'static> as OntologyQueryPath>::owned_by_id();
+        let updated_by_id_path = <T::QueryPath<'static> as OntologyQueryPath>::updated_by_id();
 
         let mut compiler = SelectCompiler::new();
 
