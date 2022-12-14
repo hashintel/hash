@@ -92,7 +92,7 @@ export const resolvers = {
     pageComments: loggedInAndSignedUp(pageComments),
     blocks: loggedInAndSignedUp(blocks),
     getEntity: loggedInAndSignedUp(getEntity),
-    getAllLatestEntities: loggedInAndSignedUp(getAllLatestEntities),
+    getAllLatestEntities,
     hashInstanceEntity,
   },
 
