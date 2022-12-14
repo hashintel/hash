@@ -26,10 +26,10 @@ pub use self::{
 };
 use crate::store::{
     postgres::query::table::{Column, Relation},
-    query::QueryRecord,
+    query::Record,
 };
 
-pub trait PostgresQueryRecord: for<'q> QueryRecord<Path<'q>: Path> {
+pub trait PostgresQueryRecord: for<'q> Record<Path<'q>: Path> {
     /// The [`Table`] used for this `Query`.
     fn base_table() -> Table;
 }

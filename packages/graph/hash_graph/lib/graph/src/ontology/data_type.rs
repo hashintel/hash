@@ -8,7 +8,7 @@ use utoipa::ToSchema;
 
 use crate::{
     ontology::DataTypeWithMetadata,
-    store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
+    store::query::{OntologyPath, ParameterType, Record, RecordPath},
 };
 
 /// A path to a [`DataType`] field.
@@ -157,7 +157,7 @@ pub enum DataTypeQueryPath {
     Schema,
 }
 
-impl QueryRecord for DataTypeWithMetadata {
+impl Record for DataTypeWithMetadata {
     type Path<'q> = DataTypeQueryPath;
 }
 

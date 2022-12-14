@@ -9,7 +9,7 @@ use utoipa::ToSchema;
 use crate::{
     knowledge::Entity,
     ontology::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
-    store::query::{ParameterType, QueryRecord, RecordPath},
+    store::query::{ParameterType, Record, RecordPath},
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -228,7 +228,7 @@ pub enum EntityQueryPath<'q> {
     Properties(Option<Cow<'q, str>>),
 }
 
-impl QueryRecord for Entity {
+impl Record for Entity {
     type Path<'q> = EntityQueryPath<'q>;
 }
 

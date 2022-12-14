@@ -17,7 +17,7 @@ use crate::{
         ontology::OntologyTypeEditionId,
     },
     knowledge::{Entity, EntityQueryPath, EntityUuid},
-    store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
+    store::query::{OntologyPath, ParameterType, Record, RecordPath},
 };
 
 /// A set of conditions used for queries.
@@ -26,7 +26,7 @@ use crate::{
     rename_all = "camelCase",
     bound = "'de: 'q, T::Path<'q>: Deserialize<'de>"
 )]
-pub enum Filter<'q, T: QueryRecord> {
+pub enum Filter<'q, T: Record> {
     All(Vec<Self>),
     Any(Vec<Self>),
     Not(Box<Self>),
@@ -42,7 +42,7 @@ pub enum Filter<'q, T: QueryRecord> {
 
 impl<'q, T> Filter<'q, T>
 where
-    T: QueryRecord<Path<'q>: OntologyPath>,
+    T: Record<Path<'q>: OntologyPath>,
 {
     /// Creates a `Filter` to search for all ontology types of kind `T` at their latest version.
     #[must_use]
@@ -328,7 +328,7 @@ impl<'q> Filter<'q, Entity> {
     }
 }
 
-impl<'q, T: QueryRecord> Filter<'q, T>
+impl<'q, T: Record> Filter<'q, T>
 where
     T::Path<'q>: Display,
 {
@@ -364,7 +364,7 @@ where
 //   see https://github.com/rust-lang/rust/issues/26925
 impl<'q, T> Debug for Filter<'q, T>
 where
-    T: QueryRecord<Path<'q>: Debug>,
+    T: Record<Path<'q>: Debug>,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -381,7 +381,7 @@ where
 //   see https://github.com/rust-lang/rust/issues/26925
 impl<'q, T> PartialEq for Filter<'q, T>
 where
-    T: QueryRecord<Path<'q>: PartialEq>,
+    T: Record<Path<'q>: PartialEq>,
 {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -404,7 +404,7 @@ where
     rename_all = "camelCase",
     bound = "'de: 'q, T::Path<'q>: Deserialize<'de>"
 )]
-pub enum FilterExpression<'q, T: QueryRecord> {
+pub enum FilterExpression<'q, T: Record> {
     Path(T::Path<'q>),
     Parameter(Parameter<'q>),
 }
@@ -413,7 +413,7 @@ pub enum FilterExpression<'q, T: QueryRecord> {
 //   see https://github.com/rust-lang/rust/issues/26925
 impl<'q, T> Debug for FilterExpression<'q, T>
 where
-    T: QueryRecord<Path<'q>: Debug>,
+    T: Record<Path<'q>: Debug>,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -427,7 +427,7 @@ where
 //   see https://github.com/rust-lang/rust/issues/26925
 impl<'q, T> PartialEq for FilterExpression<'q, T>
 where
-    T: QueryRecord<Path<'q>: PartialEq>,
+    T: Record<Path<'q>: PartialEq>,
 {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -577,7 +577,7 @@ mod tests {
 
     fn test_filter_representation<'de, T>(actual: &Filter<'de, T>, expected: &'de serde_json::Value)
     where
-        T: QueryRecord<Path<'de>: Debug + Display + PartialEq + Deserialize<'de>>,
+        T: Record<Path<'de>: Debug + Display + PartialEq + Deserialize<'de>>,
     {
         let mut expected =
             Filter::<T>::deserialize(expected).expect("Could not deserialize filter");

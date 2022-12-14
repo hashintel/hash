@@ -6,7 +6,7 @@ use utoipa::ToSchema;
 use crate::{
     knowledge::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
-    store::query::{Filter, QueryRecord},
+    store::query::{Filter, Record},
     subgraph::edges::GraphResolveDepths,
 };
 
@@ -32,7 +32,7 @@ use crate::{
 /// as a root vertex.
 ///
 /// Depending on the type of the [`StructuralQuery`], different [`RecordPath`]s are valid. Please
-/// see the documentation on the implementation of [`QueryRecord::Path`] for the valid paths for
+/// see the documentation on the implementation of [`Record::Path`] for the valid paths for
 /// each type.
 ///
 /// # Depth
@@ -158,7 +158,7 @@ use crate::{
     EntityTypeStructuralQuery = StructuralQuery<'static, EntityTypeWithMetadata>,
     EntityStructuralQuery = StructuralQuery<'static, Entity>,
 )]
-pub struct StructuralQuery<'q, T: QueryRecord> {
+pub struct StructuralQuery<'q, T: Record> {
     #[serde(bound = "'de: 'q, T::Path<'q>: Deserialize<'de>")]
     pub filter: Filter<'q, T>,
     pub graph_resolve_depths: GraphResolveDepths,
@@ -168,7 +168,7 @@ pub struct StructuralQuery<'q, T: QueryRecord> {
 //   see https://github.com/rust-lang/rust/issues/26925
 impl<'q, T> Debug for StructuralQuery<'q, T>
 where
-    T: QueryRecord<Path<'q>: Debug>,
+    T: Record<Path<'q>: Debug>,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("StructuralQuery")

@@ -40,7 +40,7 @@ use crate::{
     ontology::{domain_validator::DomainValidator, Selector},
     store::{
         crud::Read,
-        query::{Filter, QueryRecord},
+        query::{Filter, Record},
         QueryError, StorePool,
     },
 };
@@ -83,7 +83,7 @@ async fn read_from_store<'pool, 'q, P, T>(
 ) -> Result<Vec<T>, StatusCode>
 where
     P: StorePool<Store<'pool>: Read<T>>,
-    T: QueryRecord<Path<'q>: Sync + Debug> + Send,
+    T: Record<Path<'q>: Sync + Debug> + Send,
 {
     pool.acquire()
         .map_err(|report| {

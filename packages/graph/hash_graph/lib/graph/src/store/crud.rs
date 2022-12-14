@@ -10,7 +10,7 @@ use async_trait::async_trait;
 use error_stack::{ensure, Report, Result};
 
 use crate::store::{
-    query::{Filter, QueryRecord},
+    query::{Filter, Record},
     QueryError,
 };
 
@@ -20,7 +20,7 @@ use crate::store::{
 // TODO: Use queries, which are passed to the query-endpoint
 //   see https://app.asana.com/0/1202805690238892/1202979057056097/f
 #[async_trait]
-pub trait Read<T: QueryRecord + Send>: Sync {
+pub trait Read<T: Record + Send>: Sync {
     // TODO: Return a stream of `T` instead
     //   see https://app.asana.com/0/1202805690238892/1202923536131158/f
     /// Returns a value from the [`Store`] specified by the passed `query`.

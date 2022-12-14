@@ -11,7 +11,7 @@ use crate::{
         property_type::PropertyTypeQueryPathVisitor, EntityTypeWithMetadata, PropertyTypeQueryPath,
         Selector,
     },
-    store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
+    store::query::{OntologyPath, ParameterType, Record, RecordPath},
 };
 
 /// A path to a [`EntityType`] field.
@@ -265,7 +265,7 @@ pub enum EntityTypeQueryPath {
     Schema,
 }
 
-impl QueryRecord for EntityTypeWithMetadata {
+impl Record for EntityTypeWithMetadata {
     type Path<'q> = EntityTypeQueryPath;
 }
 

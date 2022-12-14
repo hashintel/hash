@@ -10,7 +10,7 @@ use crate::{
     ontology::{
         data_type::DataTypeQueryPathVisitor, DataTypeQueryPath, PropertyTypeWithMetadata, Selector,
     },
-    store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
+    store::query::{OntologyPath, ParameterType, Record, RecordPath},
 };
 
 /// A path to a [`PropertyType`] field.
@@ -172,7 +172,7 @@ pub enum PropertyTypeQueryPath {
     Schema,
 }
 
-impl QueryRecord for PropertyTypeWithMetadata {
+impl Record for PropertyTypeWithMetadata {
     type Path<'q> = PropertyTypeQueryPath;
 }
 
