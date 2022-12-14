@@ -236,7 +236,7 @@ impl OntologyType for EntityType {
     type WithMetadata = EntityTypeWithMetadata;
 }
 
-pub trait OntologyTypeWithMetadata {
+pub trait OntologyTypeWithMetadata: Record<Metadata = OntologyElementMetadata> {
     type OntologyType: OntologyType<WithMetadata = Self>;
 
     fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self;
