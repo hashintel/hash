@@ -33,6 +33,9 @@ use crate::{
 /// [`store`]: crate::store
 pub trait Record {
     type Path<'q>: QueryPath;
+    type Metadata;
+
+    fn metadata(&self) -> &Self::Metadata;
 }
 
 #[derive(Debug)]

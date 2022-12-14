@@ -24,7 +24,7 @@ use crate::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
         postgres::{DependencyContext, DependencyStatus},
         query::Filter,
-        AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
+        AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{
         edges::{

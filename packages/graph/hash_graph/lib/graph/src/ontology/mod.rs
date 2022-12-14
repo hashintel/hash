@@ -112,15 +112,15 @@ impl DataTypeWithMetadata {
     pub const fn inner(&self) -> &DataType {
         &self.inner
     }
-
-    #[must_use]
-    pub const fn metadata(&self) -> &OntologyElementMetadata {
-        &self.metadata
-    }
 }
 
 impl Record for DataTypeWithMetadata {
+    type Metadata = OntologyElementMetadata;
     type Path<'q> = DataTypeQueryPath;
+
+    fn metadata(&self) -> &OntologyElementMetadata {
+        &self.metadata
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
@@ -136,15 +136,15 @@ impl PropertyTypeWithMetadata {
     pub const fn inner(&self) -> &PropertyType {
         &self.inner
     }
-
-    #[must_use]
-    pub const fn metadata(&self) -> &OntologyElementMetadata {
-        &self.metadata
-    }
 }
 
 impl Record for PropertyTypeWithMetadata {
+    type Metadata = OntologyElementMetadata;
     type Path<'q> = PropertyTypeQueryPath;
+
+    fn metadata(&self) -> &OntologyElementMetadata {
+        &self.metadata
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
@@ -199,15 +199,15 @@ impl EntityTypeWithMetadata {
     pub const fn inner(&self) -> &EntityType {
         &self.inner
     }
-
-    #[must_use]
-    pub const fn metadata(&self) -> &OntologyElementMetadata {
-        &self.metadata
-    }
 }
 
 impl Record for EntityTypeWithMetadata {
+    type Metadata = OntologyElementMetadata;
     type Path<'q> = EntityTypeQueryPath;
+
+    fn metadata(&self) -> &OntologyElementMetadata {
+        &self.metadata
+    }
 }
 
 pub trait OntologyType:

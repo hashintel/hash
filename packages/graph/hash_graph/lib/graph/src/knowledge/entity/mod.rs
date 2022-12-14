@@ -256,15 +256,15 @@ impl Entity {
     pub const fn link_data(&self) -> Option<LinkData> {
         self.link_data
     }
-
-    #[must_use]
-    pub const fn metadata(&self) -> &EntityMetadata {
-        &self.metadata
-    }
 }
 
 impl Record for Entity {
+    type Metadata = EntityMetadata;
     type Path<'q> = EntityQueryPath<'q>;
+
+    fn metadata(&self) -> &EntityMetadata {
+        &self.metadata
+    }
 }
 
 #[cfg(test)]
