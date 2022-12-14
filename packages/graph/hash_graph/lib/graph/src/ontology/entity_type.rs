@@ -7,14 +7,8 @@ use serde::{
 use utoipa::ToSchema;
 
 use crate::{
-    ontology::{
-        property_type::PropertyTypeQueryPathVisitor, EntityTypeWithMetadata, PropertyTypeQueryPath,
-        Selector,
-    },
-    store::{
-        query::{OntologyPath, ParameterType, QueryPath},
-        Record,
-    },
+    ontology::{property_type::PropertyTypeQueryPathVisitor, PropertyTypeQueryPath, Selector},
+    store::query::{OntologyPath, ParameterType, QueryPath},
 };
 
 /// A path to a [`EntityType`] field.
@@ -266,10 +260,6 @@ pub enum EntityTypeQueryPath {
     VersionId,
     /// Only used internally and not available for deserialization.
     Schema,
-}
-
-impl Record for EntityTypeWithMetadata {
-    type Path<'q> = EntityTypeQueryPath;
 }
 
 impl OntologyPath for EntityTypeQueryPath {

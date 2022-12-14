@@ -6,13 +6,7 @@ use serde::{
 };
 use utoipa::ToSchema;
 
-use crate::{
-    ontology::DataTypeWithMetadata,
-    store::{
-        query::{OntologyPath, ParameterType, QueryPath},
-        Record,
-    },
-};
+use crate::store::query::{OntologyPath, ParameterType, QueryPath};
 
 /// A path to a [`DataType`] field.
 ///
@@ -158,10 +152,6 @@ pub enum DataTypeQueryPath {
     VersionId,
     /// Only used internally and not available for deserialization.
     Schema,
-}
-
-impl Record for DataTypeWithMetadata {
-    type Path<'q> = DataTypeQueryPath;
 }
 
 impl OntologyPath for DataTypeQueryPath {

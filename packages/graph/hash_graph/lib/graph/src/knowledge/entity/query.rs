@@ -7,12 +7,8 @@ use serde::{
 use utoipa::ToSchema;
 
 use crate::{
-    knowledge::Entity,
     ontology::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
-    store::{
-        query::{ParameterType, QueryPath},
-        Record,
-    },
+    store::query::{ParameterType, QueryPath},
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -229,10 +225,6 @@ pub enum EntityQueryPath<'q> {
     /// [`Entity`]: crate::knowledge::Entity
     /// [`Entity::properties()`]: crate::knowledge::Entity::properties
     Properties(Option<Cow<'q, str>>),
-}
-
-impl Record for Entity {
-    type Path<'q> = EntityQueryPath<'q>;
 }
 
 impl fmt::Display for EntityQueryPath<'_> {

@@ -24,6 +24,7 @@ pub use self::{
 use crate::{
     identifier::ontology::OntologyTypeEditionId,
     provenance::{OwnedById, ProvenanceMetadata},
+    store::Record,
 };
 
 #[derive(Deserialize, ToSchema)]
@@ -118,6 +119,10 @@ impl DataTypeWithMetadata {
     }
 }
 
+impl Record for DataTypeWithMetadata {
+    type Path<'q> = DataTypeQueryPath;
+}
+
 #[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
 pub struct PropertyTypeWithMetadata {
     #[schema(value_type = VAR_PROPERTY_TYPE)]
@@ -136,6 +141,10 @@ impl PropertyTypeWithMetadata {
     pub const fn metadata(&self) -> &OntologyElementMetadata {
         &self.metadata
     }
+}
+
+impl Record for PropertyTypeWithMetadata {
+    type Path<'q> = PropertyTypeQueryPath;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
@@ -195,6 +204,10 @@ impl EntityTypeWithMetadata {
     pub const fn metadata(&self) -> &OntologyElementMetadata {
         &self.metadata
     }
+}
+
+impl Record for EntityTypeWithMetadata {
+    type Path<'q> = EntityTypeQueryPath;
 }
 
 pub trait OntologyType:
