@@ -36,7 +36,7 @@ mod tests {
     use super::*;
     use crate::{
         ontology::DataTypeQueryPath,
-        store::postgres::query::{Alias, Function, Path, WindowStatement},
+        store::postgres::query::{Alias, Function, PostgresQueryPath, WindowStatement},
     };
 
     #[test]

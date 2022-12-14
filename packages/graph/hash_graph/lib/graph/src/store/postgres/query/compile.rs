@@ -8,9 +8,9 @@ use crate::store::{
         expression::Constant,
         table::{Entities, EntityTypes, JsonField, Relation, TypeIds},
         Alias, AliasedColumn, AliasedTable, Column, Condition, Distinctness, EqualityOperator,
-        Expression, Function, JoinExpression, OrderByExpression, Ordering, Path, PostgresRecord,
-        SelectExpression, SelectStatement, Table, Transpile, WhereExpression, WindowStatement,
-        WithExpression,
+        Expression, Function, JoinExpression, OrderByExpression, Ordering, PostgresQueryPath,
+        PostgresRecord, SelectExpression, SelectStatement, Table, Transpile, WhereExpression,
+        WindowStatement, WithExpression,
     },
     query::{Filter, FilterExpression, Parameter},
 };

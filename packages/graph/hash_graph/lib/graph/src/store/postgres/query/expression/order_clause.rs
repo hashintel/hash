@@ -50,7 +50,7 @@ mod tests {
     use super::*;
     use crate::{
         ontology::DataTypeQueryPath,
-        store::postgres::query::{test_helper::trim_whitespace, Alias, Path},
+        store::postgres::query::{test_helper::trim_whitespace, Alias, PostgresQueryPath},
     };
 
     #[test]

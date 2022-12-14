@@ -4,7 +4,7 @@ use crate::{
     ontology::{EntityTypeQueryPath, EntityTypeWithMetadata},
     store::postgres::query::{
         table::{Column, EntityTypes, JsonField, Relation, TypeIds},
-        Path, PostgresRecord, Table,
+        PostgresQueryPath, PostgresRecord, Table,
     },
 };
 
@@ -14,7 +14,7 @@ impl PostgresRecord for EntityTypeWithMetadata {
     }
 }
 
-impl Path for EntityTypeQueryPath {
+impl PostgresQueryPath for EntityTypeQueryPath {
     /// Returns the relations that are required to access the path.
     fn relations(&self) -> Vec<Relation> {
         match self {

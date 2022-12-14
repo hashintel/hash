@@ -27,7 +27,7 @@ use crate::{
 #[derive(Deserialize)]
 #[serde(
     rename_all = "camelCase",
-    bound = "'de: 'q, T::Path<'q>: Deserialize<'de>"
+    bound = "'de: 'q, T::QueryPath<'q>: Deserialize<'de>"
 )]
 pub enum Filter<'q, T: Record> {
     All(Vec<Self>),
@@ -405,7 +405,7 @@ where
 #[derive(Deserialize)]
 #[serde(
     rename_all = "camelCase",
-    bound = "'de: 'q, T::Path<'q>: Deserialize<'de>"
+    bound = "'de: 'q, T::QueryPath<'q>: Deserialize<'de>"
 )]
 pub enum FilterExpression<'q, T: Record> {
     Path(T::QueryPath<'q>),

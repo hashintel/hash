@@ -29,13 +29,13 @@ use crate::store::{
     Record,
 };
 
-pub trait PostgresRecord: for<'q> Record<QueryPath<'q>: Path> {
+pub trait PostgresRecord: for<'q> Record<QueryPath<'q>: PostgresQueryPath> {
     /// The [`Table`] used for this `Query`.
     fn base_table() -> Table;
 }
 
 /// An absolute path inside of a query pointing to an attribute.
-pub trait Path {
+pub trait PostgresQueryPath {
     /// Returns a list of [`Relation`]s required to traverse this path.
     fn relations(&self) -> Vec<Relation>;
 
@@ -64,7 +64,7 @@ pub trait Transpile {
 mod test_helper {
     use crate::{
         ontology::DataTypeQueryPath,
-        store::postgres::query::{Alias, Expression, Function, Path, WindowStatement},
+        store::postgres::query::{Alias, Expression, Function, PostgresQueryPath, WindowStatement},
     };
 
     pub fn trim_whitespace(string: impl Into<String>) -> String {

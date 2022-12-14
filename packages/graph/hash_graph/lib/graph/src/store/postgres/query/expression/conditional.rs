@@ -143,7 +143,7 @@ mod tests {
     use super::*;
     use crate::{
         ontology::DataTypeQueryPath,
-        store::postgres::query::{test_helper::max_version_expression, Alias, Path},
+        store::postgres::query::{test_helper::max_version_expression, Alias, PostgresQueryPath},
     };
 
     #[test]

@@ -159,7 +159,7 @@ use crate::{
     EntityStructuralQuery = StructuralQuery<'static, Entity>,
 )]
 pub struct StructuralQuery<'q, T: Record> {
-    #[serde(bound = "'de: 'q, T::Path<'q>: Deserialize<'de>")]
+    #[serde(bound = "'de: 'q, T::QueryPath<'q>: Deserialize<'de>")]
     pub filter: Filter<'q, T>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
