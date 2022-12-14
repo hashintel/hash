@@ -30,6 +30,7 @@ import {
   createEntityType,
   getEntityType,
 } from "../graph/ontology/primitive/entity-type";
+import { NotFoundError } from "../lib/error";
 
 /** @todo: enable admins to expand upon restricted shortnames block list */
 export const RESTRICTED_SHORTNAMES = [
@@ -176,8 +177,8 @@ export const propertyTypeInitializer = (
         {
           propertyTypeId: propertyTypeSchema.$id,
         },
-      ).catch(async (error: AxiosError) => {
-        if (error.response?.status === 404) {
+      ).catch(async (error: Error) => {
+        if (error instanceof NotFoundError) {
           // The type was missing, try and create it
           return await createPropertyType(
             { graphApi },
@@ -355,8 +356,8 @@ export const entityTypeInitializer = (
         {
           entityTypeId: entityTypeSchema.$id,
         },
-      ).catch(async (error: AxiosError) => {
-        if (error.response?.status === 404) {
+      ).catch(async (error: Error) => {
+        if (error instanceof NotFoundError) {
           // The type was missing, try and create it
           return await createEntityType(
             { graphApi },

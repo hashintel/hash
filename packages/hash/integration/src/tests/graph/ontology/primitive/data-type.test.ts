@@ -1,5 +1,8 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
-import { createGraphClient } from "@hashintel/hash-api/src/graph";
+import {
+  createGraphClient,
+  ensureSystemGraphIsInitialized,
+} from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { DataType, TypeSystemInitializer } from "@blockprotocol/type-system";
@@ -46,6 +49,8 @@ const dataTypeSchema: Pick<
 
 beforeAll(async () => {
   await TypeSystemInitializer.initialize();
+  await ensureSystemGraphIsInitialized({ graphApi, logger });
+
   testUser = await createTestUser(graphApi, "data-type-test-1", logger);
   testUser2 = await createTestUser(graphApi, "data-type-test-2", logger);
 });
