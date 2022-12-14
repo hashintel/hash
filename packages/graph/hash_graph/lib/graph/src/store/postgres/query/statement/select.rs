@@ -595,7 +595,9 @@ mod tests {
               ON "entities_0_1_0"."left_entity_uuid" = "entities_0_0_0"."entity_uuid"
             RIGHT OUTER JOIN "entities" AS "entities_0_2_0"
               ON "entities_0_2_0"."entity_uuid" = "entities_0_1_0"."right_entity_uuid"
-            WHERE "entities_0_2_0"."decision_time" @> now()
+            WHERE "entities_0_0_0"."decision_time" @> now()
+              AND "entities_0_1_0"."decision_time" @> now()
+              AND "entities_0_2_0"."decision_time" @> now()
               AND "entities_0_2_0"."transaction_time" @> now()
             "#,
             &[],
@@ -627,7 +629,9 @@ mod tests {
               ON "entities_0_1_0"."right_entity_uuid" = "entities_0_0_0"."entity_uuid"
             RIGHT OUTER JOIN "entities" AS "entities_0_2_0"
               ON "entities_0_2_0"."entity_uuid" = "entities_0_1_0"."left_entity_uuid"
-            WHERE "entities_0_2_0"."decision_time" @> now()
+            WHERE "entities_0_0_0"."decision_time" @> now()
+              AND "entities_0_1_0"."decision_time" @> now()
+              AND "entities_0_2_0"."decision_time" @> now()
               AND "entities_0_2_0"."transaction_time" @> now()
             "#,
             &[],
@@ -977,7 +981,8 @@ mod tests {
                 FROM "entities" AS "entities_0_0_0"
                 LEFT OUTER JOIN "entities" AS "entities_0_1_0"
                   ON "entities_0_1_0"."left_entity_uuid" = "entities_0_0_0"."entity_uuid"
-                WHERE "entities_0_1_0"."decision_time" @> now()
+                WHERE "entities_0_0_0"."decision_time" @> now()
+                  AND "entities_0_1_0"."decision_time" @> now()
                   AND ("entities_0_1_0"."owned_by_id" = $1)
                   AND ("entities_0_1_0"."entity_uuid" = $2)
                   AND ("entities_0_1_0"."entity_record_id" = $3)
@@ -1016,7 +1021,8 @@ mod tests {
                 FROM "entities" AS "entities_0_0_0"
                 LEFT OUTER JOIN "entities" AS "entities_0_1_0"
                   ON "entities_0_1_0"."right_entity_uuid" = "entities_0_0_0"."entity_uuid"
-                WHERE "entities_0_1_0"."decision_time" @> now()
+                WHERE "entities_0_0_0"."decision_time" @> now()
+                  AND "entities_0_1_0"."decision_time" @> now()
                   AND ("entities_0_1_0"."owned_by_id" = $1)
                   AND ("entities_0_1_0"."entity_uuid" = $2)
                   AND ("entities_0_1_0"."entity_record_id" = $3)

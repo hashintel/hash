@@ -13,7 +13,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use error_stack::{Context, IntoReport, Report, Result, ResultExt};
+use error_stack::{IntoReport, Report, Result, ResultExt};
 #[cfg(feature = "__internal_bench")]
 use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
 use tokio_postgres::{GenericClient, Transaction};
@@ -272,7 +272,7 @@ where
         updated_by_id: UpdatedById,
     ) -> Result<(VersionId, OntologyElementMetadata), InsertionError>
     where
-        T: OntologyDatabaseType + Send + Sync + Into<serde_json::Value>,
+        T: OntologyDatabaseType<Representation: Send> + Send + Sync,
     {
         let uri = database_type.versioned_uri().clone();
 
@@ -331,11 +331,7 @@ where
         updated_by_id: UpdatedById,
     ) -> Result<(VersionId, OntologyElementMetadata), UpdateError>
     where
-        T: OntologyDatabaseType
-            + Send
-            + Sync
-            + Into<serde_json::Value>
-            + TryFrom<serde_json::Value, Error: Context>,
+        T: OntologyDatabaseType<Representation: Send> + Send + Sync,
     {
         let uri = database_type.versioned_uri().clone();
 
@@ -396,9 +392,12 @@ where
         updated_by_id: UpdatedById,
     ) -> Result<(), InsertionError>
     where
-        T: OntologyDatabaseType + Send + Sync + Into<serde_json::Value>,
+        T: OntologyDatabaseType<Representation: Send> + Send + Sync,
     {
-        let value: serde_json::Value = database_type.into();
+        let value_repr = T::Representation::from(database_type);
+        let value = serde_json::to_value(value_repr)
+            .into_report()
+            .change_context(InsertionError)?;
         // Generally bad practice to construct a query without preparation, but it's not possible to
         // pass a table name as a parameter and `T::table()` is well-defined, so this is a safe
         // usage.
