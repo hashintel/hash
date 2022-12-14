@@ -4,14 +4,9 @@ import {
   MenuItem,
   TextField,
 } from "@hashintel/hash-design-system";
-import produce from "immer";
-import { ValueCellEditorComponent } from "../types";
+import { CellInputProps } from "./types";
 
-export const BooleanEditor: ValueCellEditorComponent = ({
-  value: cell,
-  onFinishedEditing,
-}) => {
-  const { value } = cell.data.propertyRow;
+export const BooleanInput = ({ onChange, value }: CellInputProps<boolean>) => {
   const numberValue = value ? 1 : 0;
 
   return (
@@ -20,13 +15,7 @@ export const BooleanEditor: ValueCellEditorComponent = ({
       select
       SelectProps={{ defaultOpen: true }}
       value={numberValue}
-      onChange={({ target }) => {
-        const newCell = produce(cell, (draftCell) => {
-          draftCell.data.propertyRow.value = !!target.value;
-        });
-
-        onFinishedEditing(newCell);
-      }}
+      onChange={({ target }) => onChange(!!target.value)}
     >
       {[0, 1].map((option) => (
         <MenuItem

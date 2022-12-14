@@ -15,7 +15,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { ValueCellEditorComponent } from "../types";
+import { ValueCellEditorComponent } from "./types";
 import { SortableItem } from "./array-editor/types";
 import { SortableRow } from "./array-editor/sortable-row";
 import { AddAnotherButton } from "./array-editor/add-another-button";

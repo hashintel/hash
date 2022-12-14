@@ -9,7 +9,7 @@ import { useBlockProtocolCreateEntity } from "../../../../../../../../../compone
 import { generateEntityLabel } from "../../../../../../../../../lib/entities";
 import { WorkspaceContext } from "../../../../../../../../shared/workspace-context";
 import { useEntityEditor } from "../../../../entity-editor-context";
-import { AddAnotherButton } from "../../../../properties-section/property-table/cells/value-cell/value-cell-editor/array-editor/add-another-button";
+import { AddAnotherButton } from "../../../../properties-section/property-table/cells/value-cell/array-editor/add-another-button";
 import { LinkedWithCell } from "../linked-with-cell";
 import { sortLinkAndTargetEntities } from "../sort-link-and-target-entities";
 import { EntitySelector } from "./entity-selector";

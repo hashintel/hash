@@ -14,7 +14,8 @@ import {
 import { drawTextWithIcon } from "../../../../../../../../components/grid/utils/draw-text-with-icon";
 import { isValueEmpty } from "../../is-value-empty";
 import { ValueCell } from "./value-cell/types";
-import { ValueCellEditor } from "./value-cell/value-cell-editor";
+import { SingleValueEditor } from "./value-cell/single-value-editor";
+import { ArrayEditor } from "./value-cell/array-editor";
 
 export const renderValueCell: CustomRenderer<ValueCell> = {
   kind: GridCellKind.Custom,
@@ -57,11 +58,11 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     const tooltipInteractables = drawInteractableTooltipIcons(args);
     InteractableManager.setInteractablesForCell(args, tooltipInteractables);
   },
-  provideEditor: () => {
+  provideEditor: ({ data }) => {
     return {
       styleOverride: { boxShadow: "none", background: "transparent" },
       disablePadding: true,
-      editor: ValueCellEditor,
+      editor: data.propertyRow.isArray ? ArrayEditor : SingleValueEditor,
     };
   },
 };

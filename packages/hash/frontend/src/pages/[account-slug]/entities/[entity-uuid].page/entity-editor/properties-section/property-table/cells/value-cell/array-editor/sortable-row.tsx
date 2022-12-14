@@ -13,7 +13,7 @@ import { SortableItem } from "./types";
 import { ValueChip } from "./value-chip";
 import { RowAction } from "./row-action";
 import { InlineTextEditor } from "./inline-text-editor";
-import { faText } from "../../../../../../../../../../../shared/icons/pro/fa-text";
+import { faText } from "../../../../../../../../../../shared/icons/pro/fa-text";
 
 interface SortableRowProps {
   item: SortableItem;
