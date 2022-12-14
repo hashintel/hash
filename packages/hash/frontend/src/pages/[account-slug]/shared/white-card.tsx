@@ -5,6 +5,8 @@ import {
   CardActionAreaProps,
   CardContent,
   CardContentProps,
+  SxProps,
+  Theme,
 } from "@mui/material";
 import { Link } from "../../../shared/ui/link";
 
@@ -12,10 +14,12 @@ export const WhiteCard = ({
   onClick,
   href,
   children,
+  actionSx = [],
 }: {
   onClick?: CardActionAreaProps["onClick"];
   href?: string;
   children: CardContentProps["children"];
+  actionSx?: SxProps<Theme>;
 }) => {
   const cardContent = (
     <CardContent
@@ -57,11 +61,14 @@ export const WhiteCard = ({
           LinkComponent={Link}
           disableRipple
           disableTouchRipple
-          sx={{
-            [`&:hover .${cardActionAreaClasses.focusHighlight}`]: {
-              opacity: 0,
+          sx={[
+            {
+              [`&:hover .${cardActionAreaClasses.focusHighlight}`]: {
+                opacity: 0,
+              },
             },
-          }}
+            ...(Array.isArray(actionSx) ? actionSx : [actionSx]),
+          ]}
         >
           {cardContent}
         </CardActionArea>

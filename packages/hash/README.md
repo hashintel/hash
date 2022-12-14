@@ -104,7 +104,12 @@ You'll be able to sign in to these users with the password `password`.
 
 ## Sending emails
 
-By default, the API server uses `DummyEmailTransporter` which simulates email sending for local development and testing.
+Mails in the HASH application is managed through either Kratos (for everything related to authentication) or through the HASH API Email Transport (for everything else).
+
+These emails templates are located in the following locations:
+
+- Kratos emails in [`./external-services/kratos/templates/`](./external-services/kratos//templates/)
+- HASH emails in [`./api/src/email/index.ts`](./api/src/email/index.ts)
 
 To use `AwsSesEmailTransporter` instead, set `export HASH_EMAIL_TRANSPORTER=aws_ses` in your terminal before running the app.
 Note that you will need valid AWS credentials for this email transporter to work.
