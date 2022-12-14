@@ -7,7 +7,10 @@ use graph::{
     knowledge::{EntityMetadata, EntityProperties, LinkData},
     provenance::{OwnedById, UpdatedById},
     store::{query::Filter, AccountStore, AsClient, EntityStore, PostgresStore},
-    subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
+    subgraph::{
+        edges::{EdgeResolveDepths, GraphResolveDepths},
+        query::StructuralQuery,
+    },
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use rand::{prelude::IteratorRandom, thread_rng};
@@ -21,6 +24,9 @@ const DB_NAME: &str = "entity_scale";
 
 struct DatastoreEntitiesMetadata {
     pub entity_metadata_list: Vec<EntityMetadata>,
+    // TODO: we should also check average query time for link entities, but combining them here
+    //   would affect the distribution within sampling
+    #[expect(dead_code, reason = "See TODO")]
     pub link_entity_metadata_list: Vec<EntityMetadata>,
 }
 
@@ -90,22 +96,23 @@ async fn seed_db(
         .insert_entities_batched_by_type(
             entity_metadata_list
                 .iter()
-                .zip(entity_metadata_list.iter())
-                .map(|(entity_a_metadata, entity_b_metadata)| {
-                    (
-                        owned_by_id,
-                        None,
-                        properties.clone(),
-                        Some(LinkData::new(
-                            entity_a_metadata.edition_id().base_id(),
-                            entity_b_metadata.edition_id().base_id(),
+                .flat_map(|entity_a_metadata| {
+                    entity_metadata_list.iter().map(|entity_b_metadata| {
+                        (
+                            owned_by_id,
                             None,
+                            properties.clone(),
+                            Some(LinkData::new(
+                                entity_a_metadata.edition_id().base_id(),
+                                entity_b_metadata.edition_id().base_id(),
+                                None,
+                                None,
+                            )),
                             None,
-                        )),
-                        None,
-                    )
+                        )
+                    })
                 })
-                .collect(),
+                .collect::<Vec<_>>(),
             actor_id,
             &entity_type_id,
         )
@@ -137,6 +144,7 @@ pub fn bench_get_entity_by_id(
     runtime: &Runtime,
     store: &Store,
     entity_metadata_list: &[EntityMetadata],
+    graph_resolve_depths: GraphResolveDepths,
 ) {
     b.to_async(runtime).iter_batched(
         || {
@@ -152,7 +160,7 @@ pub fn bench_get_entity_by_id(
             store
                 .get_entity(&StructuralQuery {
                     filter: Filter::for_entity_by_entity_id(entity_edition_id.base_id()),
-                    graph_resolve_depths: GraphResolveDepths::default(),
+                    graph_resolve_depths,
                 })
                 .await
                 .expect("failed to read entity from store");
@@ -162,34 +170,98 @@ pub fn bench_get_entity_by_id(
 }
 
 #[criterion]
-fn bench_scaling_read_entity(c: &mut Criterion) {
-    let mut group = c.benchmark_group("scaling_read_entity_complete");
+fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
+    let mut group = c.benchmark_group("scaling_read_entity_complete_zero_depth");
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
     let account_id =
         AccountId::new(Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").unwrap());
 
     for size in [1, 10, 100] {
+        // TODO: reuse the database if it already exists like we do for representative_read
         let (runtime, mut store_wrapper) = setup(DB_NAME, true, true);
 
         let DatastoreEntitiesMetadata {
             entity_metadata_list,
-            link_entity_metadata_list,
+            ..
         } = runtime.block_on(seed_db(account_id, &mut store_wrapper, size));
         let store = &store_wrapper.store;
-
-        let entities_metadata = entity_metadata_list
-            .into_iter()
-            .chain(link_entity_metadata_list);
 
         group.bench_with_input(
             BenchmarkId::new(
                 "get_entity_by_id",
                 format!("Account ID: `{account_id}`, Number Of Entities: `{size}`"),
             ),
-            &(account_id, entity_uuids),
-            |b, (_account_id, entities_metadata)| {
-                bench_get_entity_by_id(b, &runtime, store, entities_metadata)
+            &(account_id, entity_metadata_list),
+            |b, (_account_id, entity_metadata_list)| {
+                bench_get_entity_by_id(
+                    b,
+                    &runtime,
+                    store,
+                    entity_metadata_list,
+                    GraphResolveDepths {
+                        inherits_from: Default::default(),
+                        constrains_values_on: Default::default(),
+                        constrains_properties_on: Default::default(),
+                        constrains_links_on: Default::default(),
+                        constrains_link_destinations_on: Default::default(),
+                        is_of_type: Default::default(),
+                        has_left_entity: Default::default(),
+                        has_right_entity: Default::default(),
+                    },
+                )
+            },
+        );
+    }
+}
+
+#[criterion]
+fn bench_scaling_read_entity_one_depth(c: &mut Criterion) {
+    let mut group = c.benchmark_group("scaling_read_entity_complete_one_depth");
+    // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
+    // parameter argument to criterion and get comparison analysis
+    let account_id =
+        AccountId::new(Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").unwrap());
+
+    for size in [1, 10, 100] {
+        // TODO: reuse the database if it already exists like we do for representative_read
+        let (runtime, mut store_wrapper) = setup(DB_NAME, true, true);
+
+        let DatastoreEntitiesMetadata {
+            entity_metadata_list,
+            ..
+        } = runtime.block_on(seed_db(account_id, &mut store_wrapper, size));
+        let store = &store_wrapper.store;
+
+        group.bench_with_input(
+            BenchmarkId::new(
+                "get_entity_by_id",
+                format!("Account ID: `{account_id}`, Number Of Entities: `{size}`"),
+            ),
+            &(account_id, entity_metadata_list),
+            |b, (_account_id, entity_metadata_list)| {
+                bench_get_entity_by_id(
+                    b,
+                    &runtime,
+                    store,
+                    entity_metadata_list,
+                    GraphResolveDepths {
+                        inherits_from: Default::default(),
+                        constrains_values_on: Default::default(),
+                        constrains_properties_on: Default::default(),
+                        constrains_links_on: Default::default(),
+                        constrains_link_destinations_on: Default::default(),
+                        is_of_type: Default::default(),
+                        has_left_entity: EdgeResolveDepths {
+                            incoming: 1,
+                            outgoing: 1,
+                        },
+                        has_right_entity: EdgeResolveDepths {
+                            incoming: 1,
+                            outgoing: 1,
+                        },
+                    },
+                )
             },
         );
     }
