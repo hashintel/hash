@@ -97,17 +97,14 @@ const LinkTypeRow = ({
   onRemove: () => void;
   onUpdateVersion: (nextId: VersionedUri) => void;
 }) => {
-  const { control, register, setValue } =
+  const { control, register, setValue, getValues } =
     useFormContext<EntityTypeEditorForm>();
   const linkTypes = useLinkEntityTypes();
   const entityTypes = useEntityTypes();
-  // @todo watch more specific
-  const linkData = useWatch({
+  const linkId = useWatch({
     control,
-    name: `links.${linkIndex}`,
+    name: `links.${linkIndex}.$id`,
   });
-
-  const link = linkTypes[linkData.$id];
 
   const popupId = useId();
   const menuPopupState = usePopupState({
@@ -131,7 +128,7 @@ const LinkTypeRow = ({
   const handleSubmit = async (data: TypeFormDefaults) => {
     const res = await updateEntityType({
       data: {
-        entityTypeId: linkData.$id,
+        entityTypeId: linkId,
         entityType: formDataToEntityType(data),
       },
     });
@@ -146,6 +143,8 @@ const LinkTypeRow = ({
 
     editModalPopupState.close();
   };
+
+  const link = linkTypes[linkId];
 
   if (!link) {
     throw new Error("Missing link");
@@ -220,8 +219,9 @@ const LinkTypeRow = ({
               valueAsNumber: true,
               onChange(evt) {
                 const value = evt.target.value;
-                if (value > linkData.maxValue) {
-                  setValue(`links.${linkIndex}.maxValue`, value, {
+                const maxValuePath = `links.${linkIndex}.maxValue` as const;
+                if (value > getValues(maxValuePath)) {
+                  setValue(maxValuePath, value, {
                     shouldDirty: true,
                   });
                 }
@@ -235,8 +235,10 @@ const LinkTypeRow = ({
               valueAsNumber: true,
               onChange(evt) {
                 const value = evt.target.value;
-                if (value < linkData.minValue) {
-                  setValue(`links.${linkIndex}.minValue`, value, {
+                const minValuePath = `links.${linkIndex}.minValue` as const;
+
+                if (value < getValues(minValuePath)) {
+                  setValue(minValuePath, value, {
                     shouldDirty: true,
                   });
                 }
@@ -246,7 +248,7 @@ const LinkTypeRow = ({
           />
         </TableCell>
         <TypeMenuCell
-          typeId={linkData.$id}
+          typeId={linkId}
           editButtonProps={bindTrigger(editModalPopupState)}
           popupState={menuPopupState}
           variant="link"
