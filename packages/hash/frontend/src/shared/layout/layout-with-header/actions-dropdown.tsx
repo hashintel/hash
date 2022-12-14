@@ -20,6 +20,8 @@ import {
   useMemo,
   useState,
 } from "react";
+import { AccountId } from "@hashintel/hash-shared/types";
+
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { useCreatePage } from "../../../components/hooks/useCreatePage";
 import { WorkspaceContext } from "../../../pages/shared/workspace-context";
@@ -27,7 +29,7 @@ import { MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
 
 export const ActionsDropdownInner: FunctionComponent<{
-  accountId: string;
+  accountId: AccountId;
 }> = ({ accountId }) => {
   const theme = useTheme();
   const { activeWorkspace } = useContext(WorkspaceContext);

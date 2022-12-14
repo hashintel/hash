@@ -3,10 +3,14 @@ import { types } from "@hashintel/hash-shared/ontology-types";
 import {
   Subgraph,
   EntityEditionId,
-  extractEntityUuidFromEntityId,
   entityEditionIdToString,
   EntityEditionIdString,
 } from "@hashintel/hash-subgraph";
+import {
+  AccountId,
+  extractAccountIdAsEntityUuid,
+} from "@hashintel/hash-shared/types";
+
 import { getEntityByEditionId } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import {
   getIncomingLinksForEntityAtMoment,
@@ -17,7 +21,7 @@ import { constructUser, User } from "./user";
 export type MinimalOrg = {
   kind: "org";
   entityEditionId: EntityEditionId;
-  orgAccountId: string;
+  orgAccountId: AccountId;
   shortname: string;
   name: string;
 };
@@ -47,7 +51,7 @@ export const constructMinimalOrg = (params: {
   return {
     kind: "org",
     entityEditionId: orgEntityEditionId,
-    orgAccountId: extractEntityUuidFromEntityId(orgEntityEditionId.baseId),
+    orgAccountId: extractAccountIdAsEntityUuid(orgEntityEditionId.baseId),
     shortname,
     name,
   };

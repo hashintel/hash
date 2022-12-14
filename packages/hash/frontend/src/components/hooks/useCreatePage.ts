@@ -5,6 +5,8 @@ import {
   extractOwnedByIdFromEntityId,
   splitEntityId,
 } from "@hashintel/hash-subgraph";
+import { AccountId } from "@hashintel/hash-shared/types";
+
 import {
   CreatePageMutation,
   CreatePageMutationVariables,
@@ -12,7 +14,7 @@ import {
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 import { createPage } from "../../graphql/queries/page.queries";
 
-export const useCreatePage = (ownedById: string) => {
+export const useCreatePage = (ownedById: AccountId) => {
   const router = useRouter();
 
   const [createPageFn, { loading: createPageLoading }] = useMutation<

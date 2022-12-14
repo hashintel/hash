@@ -2,6 +2,8 @@ import { useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
 import { EntityId, splitEntityId } from "@hashintel/hash-subgraph";
+import { AccountId } from "@hashintel/hash-shared/types";
+
 import {
   CreatePageMutation,
   CreatePageMutationVariables,
@@ -11,7 +13,7 @@ import {
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 import { createPage, setParentPage } from "../../graphql/queries/page.queries";
 
-export const useCreateSubPage = (ownedById: string) => {
+export const useCreateSubPage = (ownedById: AccountId) => {
   const router = useRouter();
 
   const [createPageFn, { loading: createPageLoading }] = useMutation<

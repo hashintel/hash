@@ -1,6 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { EntityId } from "@hashintel/hash-subgraph";
 import { useMemo } from "react";
+import { AccountId } from "@hashintel/hash-shared/types";
 
 import {
   GetAccountPagesTreeQuery,
@@ -20,7 +21,7 @@ export type AccountPagesInfo = {
   loading: boolean;
 };
 
-export const useAccountPages = (ownedById: string): AccountPagesInfo => {
+export const useAccountPages = (ownedById: AccountId): AccountPagesInfo => {
   const { data, loading } = useQuery<
     GetAccountPagesTreeQuery,
     GetAccountPagesTreeQueryVariables

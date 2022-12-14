@@ -19,8 +19,9 @@ import { keyBy } from "lodash";
 import { GetStaticPaths, GetStaticProps } from "next";
 import Head from "next/head";
 import { Router } from "next/router";
-
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
+import { AccountId } from "@hashintel/hash-shared/types";
+
 // import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
 // import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 // import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
@@ -177,7 +178,8 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   // pageEntityId is the consistent identifier for pages (across all versions)
   const { pageEntityId } = useRoutePageInfo();
 
-  const { data: accountPages } = useAccountPages(routeAccountId);
+  // TODO BEFORE MERGE: make sure we're using the right value here
+  const { data: accountPages } = useAccountPages(routeAccountId as AccountId);
 
   const blocksMap = useMemo(() => {
     return keyBy(blocks, (block) => block.meta.componentId);
@@ -362,7 +364,8 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
 
         <CollabPositionProvider value={[]}>
           <PageBlock
-            accountId={routeAccountId}
+            // TODO BEFORE MERGE: ensure this is right
+            accountId={routeAccountId as AccountId}
             contents={contents}
             blocks={blocksMap}
             pageComments={pageComments}

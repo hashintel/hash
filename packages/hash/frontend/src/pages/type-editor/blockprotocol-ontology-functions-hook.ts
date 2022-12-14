@@ -7,6 +7,8 @@
  * relevant for the type editors.
  */
 import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
+import { AccountId } from "@hashintel/hash-shared/types";
+
 import { OntologyCallbacks } from "../../components/hooks/blockProtocolFunctions/ontology/ontology-types-shim";
 import { KnowledgeCallbacks } from "../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 
@@ -62,7 +64,7 @@ export type GraphMessageCallbacks = Omit<
 
 /** @todo Consider if we should move this out of the page and into the hooks directory. */
 export const useBlockProtocolFunctionsWithOntology = (
-  ownedById: string | null,
+  ownedById: AccountId | null,
 ): GraphMessageCallbacks => {
   const isReadonlyMode = useIsReadonlyMode();
 

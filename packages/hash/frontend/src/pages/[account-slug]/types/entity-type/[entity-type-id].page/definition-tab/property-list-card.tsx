@@ -211,7 +211,7 @@ export const PropertyListCard = () => {
 
   const { routeNamespace } = useRouteNamespace();
   const { createPropertyType } = useBlockProtocolCreatePropertyType(
-    routeNamespace?.accountId ?? "",
+    routeNamespace?.accountId ?? null,
   );
 
   const refetchPropertyTypes = useRefetchPropertyTypes();

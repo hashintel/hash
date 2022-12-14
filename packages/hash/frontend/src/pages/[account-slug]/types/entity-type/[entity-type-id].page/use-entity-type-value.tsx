@@ -1,6 +1,8 @@
 import { EntityType, extractBaseUri } from "@blockprotocol/type-system";
 import { getEntityTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { useRouter } from "next/router";
+import { AccountId } from "@hashintel/hash-shared/types";
+
 import {
   useCallback,
   useEffect,
@@ -15,7 +17,7 @@ import { useAdvancedInitTypeSystem } from "../../../../../lib/use-init-type-syst
 
 export const useEntityTypeValue = (
   entityTypeBaseUri: string | null,
-  accountId: string | null,
+  accountId: AccountId | null,
   onCompleted?: (entityType: EntityType) => void,
 ) => {
   const router = useRouter();

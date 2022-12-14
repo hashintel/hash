@@ -6,6 +6,8 @@ import {
   extractEntityUuidFromEntityId,
 } from "@hashintel/hash-subgraph";
 import { systemUserShortname } from "@hashintel/hash-shared/environment";
+import { AccountId } from "@hashintel/hash-shared/types";
+
 import { useUsers } from "../../../components/hooks/useUsers";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { Link } from "../../../shared/ui";
@@ -13,7 +15,7 @@ import { Link } from "../../../shared/ui";
 interface MentionDisplayProps {
   entityId: EntityId;
   mentionType: "page" | "user";
-  accountId: string;
+  accountId: AccountId;
 }
 
 export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
