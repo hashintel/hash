@@ -27,10 +27,7 @@ use crate::{
 #[async_trait]
 impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
     #[expect(clippy::too_many_lines)]
-    async fn read<'f: 'q, 'q>(
-        &self,
-        filter: &'f Filter<'q, Entity>,
-    ) -> Result<Vec<Entity>, QueryError> {
+    async fn read(&self, filter: &Filter<Entity>) -> Result<Vec<Entity>, QueryError> {
         // We can't define these inline otherwise we'll drop while borrowed
         let left_entity_uuid_path = EntityQueryPath::LeftEntity(Box::new(EntityQueryPath::Uuid));
         let left_owned_by_id_query_path =

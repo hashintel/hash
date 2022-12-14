@@ -13,25 +13,27 @@ import {
   ArrayType,
   PropertyTypeFormValues,
 } from "../property-type-form-values";
-import { CustomDataTypeMenu } from "./data-type-selector/custom-data-type-menu";
 import { ExpectedValueChip } from "./data-type-selector/expected-value-chip";
 import { expectedValuesOptions } from "./data-type-selector/shared/expected-values-options";
 import { dataTypeOptions } from "./shared/data-type-options";
 
 import { StyledPlusCircleIcon } from "../../../../../../../shared/styled-plus-circle-icon";
-import { useDataTypeSelectorDropdownContext } from "./shared/data-type-selector-dropdown-context";
+import { useCustomExpectedValueBuilderContext } from "./shared/custom-expected-value-builder-context";
+import { CustomExpectedValueBuilder } from "./data-type-selector/custom-expected-value-builder";
 
-const DataTypeSelectorDropdown = ({ children, ...props }: PaperProps) => {
+const ExpectedValueSelectorDropdown = ({ children, ...props }: PaperProps) => {
   const {
-    customDataTypeMenuOpen,
-    openCustomDataTypeMenu,
-    closeCustomDataTypeMenu,
-  } = useDataTypeSelectorDropdownContext();
+    customExpectedValueBuilderOpen,
+    openCustomExpectedValueBuilder,
+    closeCustomExpectedValueBuilder,
+  } = useCustomExpectedValueBuilderContext();
 
   return (
     <AutocompleteDropdown {...props}>
-      {customDataTypeMenuOpen ? (
-        <CustomDataTypeMenu closeMenu={closeCustomDataTypeMenu} />
+      {customExpectedValueBuilderOpen ? (
+        <CustomExpectedValueBuilder
+          closeMenu={closeCustomExpectedValueBuilder}
+        />
       ) : (
         <>
           {children}
@@ -49,7 +51,7 @@ const DataTypeSelectorDropdown = ({ children, ...props }: PaperProps) => {
               // prevent dropdown from closing
               event.preventDefault();
             }}
-            onClick={openCustomDataTypeMenu}
+            onClick={openCustomExpectedValueBuilder}
           >
             <Typography
               variant="smallTextLabels"
@@ -69,7 +71,10 @@ const DataTypeSelectorDropdown = ({ children, ...props }: PaperProps) => {
   );
 };
 
-const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
+const ExpectedValueSelector: ForwardRefRenderFunction<
+  HTMLInputElement,
+  {}
+> = () => {
   const { control, setValue } = useFormContext<PropertyTypeFormValues>();
 
   const {
@@ -80,18 +85,21 @@ const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
     name: "expectedValues",
   });
 
-  const { customDataTypeMenuOpen, openCustomDataTypeMenu } =
-    useDataTypeSelectorDropdownContext();
+  const { customExpectedValueBuilderOpen, openCustomExpectedValueBuilder } =
+    useCustomExpectedValueBuilderContext();
 
-  const creatingProperty = useWatch({ control, name: "customDataTypeId" });
+  const creatingExpectedValue = useWatch({
+    control,
+    name: "customExpectedValueId",
+  });
 
   const [autocompleteFocused, setAutocompleteFocused] = useState(false);
 
   return (
     <Autocomplete
-      disabled={!!creatingProperty}
-      open={autocompleteFocused || customDataTypeMenuOpen}
-      PaperComponent={DataTypeSelectorDropdown}
+      disabled={!!creatingExpectedValue}
+      open={autocompleteFocused || customExpectedValueBuilderOpen}
+      PaperComponent={ExpectedValueSelectorDropdown}
       multiple
       popupIcon={null}
       clearIcon={null}
@@ -127,13 +135,13 @@ const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
               editable={editable}
               onEdit={() => {
                 if (typeof expectedValue === "object") {
-                  setValue("editingDataTypeIndex", index);
-                  setValue("customDataTypeId", expectedValue.id);
+                  setValue("editingExpectedValueIndex", index);
+                  setValue("customExpectedValueId", expectedValue.id);
                   setValue(
-                    "flattenedDataTypeList",
-                    expectedValue.flattenedDataTypes,
+                    "flattenedCustomExpectedValueList",
+                    expectedValue.flattenedExpectedValues,
                   );
-                  openCustomDataTypeMenu();
+                  openCustomExpectedValueBuilder();
                 }
               }}
             />
@@ -195,6 +203,6 @@ const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
   );
 };
 
-const DataTypeSelectorForwardedRef = forwardRef(DataTypeSelector);
+const ExpectedValueSelectorForwardedRef = forwardRef(ExpectedValueSelector);
 
-export { DataTypeSelectorForwardedRef as DataTypeSelector };
+export { ExpectedValueSelectorForwardedRef as ExpectedValueSelector };
