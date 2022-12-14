@@ -215,25 +215,29 @@ pub trait OntologyType:
 {
     type ConversionError: Context;
     type Representation: From<Self> + Serialize + for<'de> Deserialize<'de>;
+    type WithMetadata: OntologyTypeWithMetadata<OntologyType = Self>;
 }
 
 impl OntologyType for DataType {
     type ConversionError = ParseDataTypeError;
     type Representation = repr::DataType;
+    type WithMetadata = DataTypeWithMetadata;
 }
 
 impl OntologyType for PropertyType {
     type ConversionError = ParsePropertyTypeError;
     type Representation = repr::PropertyType;
+    type WithMetadata = PropertyTypeWithMetadata;
 }
 
 impl OntologyType for EntityType {
     type ConversionError = ParseEntityTypeError;
     type Representation = repr::EntityType;
+    type WithMetadata = EntityTypeWithMetadata;
 }
 
 pub trait OntologyTypeWithMetadata {
-    type OntologyType: OntologyType;
+    type OntologyType: OntologyType<WithMetadata = Self>;
 
     fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self;
 }
