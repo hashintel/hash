@@ -6,6 +6,7 @@ export type EntityTypesSet = Record<VersionedUri, EntityTypeWithMetadata>;
 export type EntityTypesContextValue = {
   entityTypes: EntityTypesSet;
   linkTypes: EntityTypesSet;
+  refetch: () => Promise<void>;
 };
 export const EntityTypesContext = createContext<EntityTypesContextValue | null>(
   null,
@@ -25,3 +26,4 @@ const useEntityTypesContext = () => {
 
 export const useLinkEntityTypes = () => useEntityTypesContext().linkTypes;
 export const useEntityTypes = () => useEntityTypesContext().entityTypes;
+export const useFetchEntityTypes = () => useEntityTypesContext().refetch;

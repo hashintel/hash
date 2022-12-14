@@ -10,16 +10,20 @@ import {
   useFormContext,
   useWatch,
 } from "react-hook-form";
+import { useBlockProtocolCreateEntityType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreateEntityType";
 import { useBlockProtocolGetEntityType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { LinkIcon } from "../../../../../../shared/icons/link";
 import { HashSelectorAutocomplete } from "../../../../shared/hash-selector-autocomplete";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
+import { useRouteNamespace } from "../../../../shared/use-route-namespace";
 import {
   useEntityTypes,
   useEntityTypesLoading,
+  useFetchEntityTypes,
   useLinkEntityTypes,
 } from "../shared/entity-types-context";
 import { EntityTypeEditorForm } from "../shared/form-types";
+import { PropertyTypeFormValues } from "./property-list-card/shared/property-type-form-values";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
@@ -36,6 +40,7 @@ import {
   TypeFormProps,
   TypeFormModal,
   useGenerateTypeBaseUri,
+  TypeFormDefaults,
 } from "./shared/type-form";
 import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { useStateCallback } from "./shared/use-state-callback";
@@ -234,9 +239,56 @@ export const LinkListCard = () => {
     popupId: `createLink-${modalTooltipId}`,
   });
 
+  const { routeNamespace } = useRouteNamespace();
+  const refetchEntityTypes = useFetchEntityTypes();
+  const { createEntityType } = useBlockProtocolCreateEntityType(
+    routeNamespace?.accountId ?? "",
+  );
+
   const cancelAddingNewLink = () => {
     setAddingNewLink(false);
     setSearchText("");
+  };
+
+  const handleAddEntityType = (link: EntityType) => {
+    cancelAddingNewLink();
+    append(
+      {
+        $id: link.$id,
+        entityTypes: [],
+        minValue: 0,
+        maxValue: 1,
+      },
+      { focusName: `links.${fields.length}.entityTypes` },
+    );
+  };
+
+  const handleSubmit = async (data: TypeFormDefaults) => {
+    const res = await createEntityType({
+      data: {
+        entityType: {
+          type: "object",
+          kind: "entityType",
+          title: data.name,
+          description: data.description,
+          allOf: [
+            {
+              $ref: "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+            },
+          ],
+          properties: {},
+        },
+      },
+    });
+
+    if (res.errors?.length || !res.data) {
+      // @todo handle this
+      throw new Error("Could not create");
+    }
+
+    await refetchEntityTypes?.();
+
+    handleAddEntityType(res.data.schema);
   };
 
   // @todo loading state
@@ -302,18 +354,7 @@ export const LinkListCard = () => {
             <InsertLinkRow
               inputRef={addingNewLinkRef}
               onCancel={cancelAddingNewLink}
-              onAdd={(link) => {
-                cancelAddingNewLink();
-                append(
-                  {
-                    $id: link.$id,
-                    entityTypes: [],
-                    minValue: 0,
-                    maxValue: 1,
-                  },
-                  { focusName: `links.${fields.length}.entityTypes` },
-                );
-              }}
+              onAdd={handleAddEntityType}
               searchText={searchText}
               onSearchTextChange={setSearchText}
               createModalPopupState={createModalPopupState}
@@ -331,9 +372,7 @@ export const LinkListCard = () => {
                   />
                 </>
               }
-              onSubmit={(values) => {
-                console.log(values);
-              }}
+              onSubmit={handleSubmit}
               submitButtonProps={{ children: <>Create new link</> }}
               getDefaultValues={() =>
                 searchText.length ? { name: searchText } : {}

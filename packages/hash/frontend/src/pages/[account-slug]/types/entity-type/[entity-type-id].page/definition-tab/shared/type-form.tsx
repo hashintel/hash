@@ -296,7 +296,7 @@ export const TypeFormModal: PolymorphicComponent = forwardRef(
   },
 );
 
-type TypeFormDefaults = { name: string; description: string };
+export type TypeFormDefaults = { name: string; description: string };
 
 export type TypeFormProps<T extends TypeFormDefaults = TypeFormDefaults> = {
   onClose?: () => void;
