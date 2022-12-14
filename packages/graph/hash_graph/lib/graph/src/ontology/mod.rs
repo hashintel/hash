@@ -99,6 +99,54 @@ where
     T::Representation::from(ontology_type.clone()).serialize(serializer)
 }
 
+pub trait OntologyType:
+    Sized + TryFrom<Self::Representation, Error = Self::ConversionError>
+{
+    type ConversionError: Context;
+    type Representation: From<Self> + Serialize + for<'de> Deserialize<'de>;
+    type WithMetadata: OntologyTypeWithMetadata<OntologyType = Self>;
+
+    fn id(&self) -> &VersionedUri;
+}
+
+impl OntologyType for DataType {
+    type ConversionError = ParseDataTypeError;
+    type Representation = repr::DataType;
+    type WithMetadata = DataTypeWithMetadata;
+
+    fn id(&self) -> &VersionedUri {
+        self.id()
+    }
+}
+
+impl OntologyType for PropertyType {
+    type ConversionError = ParsePropertyTypeError;
+    type Representation = repr::PropertyType;
+    type WithMetadata = PropertyTypeWithMetadata;
+
+    fn id(&self) -> &VersionedUri {
+        self.id()
+    }
+}
+
+impl OntologyType for EntityType {
+    type ConversionError = ParseEntityTypeError;
+    type Representation = repr::EntityType;
+    type WithMetadata = EntityTypeWithMetadata;
+
+    fn id(&self) -> &VersionedUri {
+        self.id()
+    }
+}
+
+pub trait OntologyTypeWithMetadata: Record<Metadata = OntologyElementMetadata> {
+    type OntologyType: OntologyType<WithMetadata = Self>;
+
+    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self;
+
+    fn inner(&self) -> &Self::OntologyType;
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct OntologyElementMetadata {
@@ -155,6 +203,21 @@ impl Record for DataTypeWithMetadata {
     }
 }
 
+impl OntologyTypeWithMetadata for DataTypeWithMetadata {
+    type OntologyType = DataType;
+
+    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self {
+        Self {
+            inner: record,
+            metadata,
+        }
+    }
+
+    fn inner(&self) -> &Self::OntologyType {
+        &self.inner
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
 pub struct PropertyTypeWithMetadata {
     #[schema(value_type = VAR_PROPERTY_TYPE)]
@@ -172,6 +235,21 @@ impl Record for PropertyTypeWithMetadata {
     }
 }
 
+impl OntologyTypeWithMetadata for PropertyTypeWithMetadata {
+    type OntologyType = PropertyType;
+
+    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self {
+        Self {
+            inner: record,
+            metadata,
+        }
+    }
+
+    fn inner(&self) -> &Self::OntologyType {
+        &self.inner
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
 pub struct EntityTypeWithMetadata {
     #[schema(value_type = VAR_ENTITY_TYPE)]
@@ -186,84 +264,6 @@ impl Record for EntityTypeWithMetadata {
 
     fn metadata(&self) -> &OntologyElementMetadata {
         &self.metadata
-    }
-}
-
-pub trait OntologyType:
-    Sized + TryFrom<Self::Representation, Error = Self::ConversionError>
-{
-    type ConversionError: Context;
-    type Representation: From<Self> + Serialize + for<'de> Deserialize<'de>;
-    type WithMetadata: OntologyTypeWithMetadata<OntologyType = Self>;
-
-    fn id(&self) -> &VersionedUri;
-}
-
-impl OntologyType for DataType {
-    type ConversionError = ParseDataTypeError;
-    type Representation = repr::DataType;
-    type WithMetadata = DataTypeWithMetadata;
-
-    fn id(&self) -> &VersionedUri {
-        self.id()
-    }
-}
-
-impl OntologyType for PropertyType {
-    type ConversionError = ParsePropertyTypeError;
-    type Representation = repr::PropertyType;
-    type WithMetadata = PropertyTypeWithMetadata;
-
-    fn id(&self) -> &VersionedUri {
-        self.id()
-    }
-}
-
-impl OntologyType for EntityType {
-    type ConversionError = ParseEntityTypeError;
-    type Representation = repr::EntityType;
-    type WithMetadata = EntityTypeWithMetadata;
-
-    fn id(&self) -> &VersionedUri {
-        self.id()
-    }
-}
-
-pub trait OntologyTypeWithMetadata: Record<Metadata = OntologyElementMetadata> {
-    type OntologyType: OntologyType<WithMetadata = Self>;
-
-    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self;
-
-    fn inner(&self) -> &Self::OntologyType;
-}
-
-impl OntologyTypeWithMetadata for DataTypeWithMetadata {
-    type OntologyType = DataType;
-
-    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self {
-        Self {
-            inner: record,
-            metadata,
-        }
-    }
-
-    fn inner(&self) -> &Self::OntologyType {
-        &self.inner
-    }
-}
-
-impl OntologyTypeWithMetadata for PropertyTypeWithMetadata {
-    type OntologyType = PropertyType;
-
-    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self {
-        Self {
-            inner: record,
-            metadata,
-        }
-    }
-
-    fn inner(&self) -> &Self::OntologyType {
-        &self.inner
     }
 }
 

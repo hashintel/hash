@@ -8,7 +8,7 @@ use type_system::{EntityType, EntityTypeReference, PropertyTypeReference};
 
 use crate::{
     identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId},
-    ontology::{EntityTypeWithMetadata, OntologyElementMetadata},
+    ontology::{EntityTypeWithMetadata, OntologyElementMetadata, OntologyTypeWithMetadata},
     provenance::{OwnedById, UpdatedById},
     store::{
         crud::Read,
