@@ -287,8 +287,8 @@ export const PropertyListCard = () => {
     <EntityTypeTable>
       <TableHead>
         <EntityTypeTableHeaderRow>
-          <TableCell>Property name</TableCell>
-          <TableCell width={180}>Expected values</TableCell>
+          <TableCell width={260}>Property name</TableCell>
+          <TableCell>Expected values</TableCell>
           <EntityTypeTableCenteredCell width={170}>
             Allow multiple values <QuestionIcon />
           </EntityTypeTableCenteredCell>

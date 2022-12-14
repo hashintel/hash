@@ -177,20 +177,8 @@ const LinkTypeRow = ({
                   }
                 }}
                 autoFocus={false}
-                onChange={(evt, chosenTypes) => {
-                  if (
-                    chosenTypes.length === 0 &&
-                    evt.target !== document.activeElement
-                  ) {
-                    onRemove();
-                  } else {
-                    onChange(chosenTypes.map((type) => type.$id));
-                  }
-                }}
-                onBlur={() => {
-                  if (!value.length) {
-                    onRemove();
-                  }
+                onChange={(_, chosenTypes) => {
+                  onChange(chosenTypes.map((type) => type.$id));
                 }}
                 value={
                   // @todo tidy
@@ -222,6 +210,9 @@ const LinkTypeRow = ({
                 inputRef={ref}
               />
             )}
+            rules={{
+              required: true,
+            }}
           />
         </TableCell>
         <MultipleValuesCell index={linkIndex} variant="link" />
@@ -317,7 +308,7 @@ export const LinkListCard = () => {
         infinity: true,
         array: true,
       },
-      { focusName: `links.${fields.length}.entityTypes` },
+      { shouldFocus: false },
     );
   };
 
@@ -374,7 +365,7 @@ export const LinkListCard = () => {
     <EntityTypeTable>
       <TableHead>
         <EntityTypeTableHeaderRow>
-          <TableCell>Link name</TableCell>
+          <TableCell width={260}>Link name</TableCell>
           <TableCell>
             Expected entity types{" "}
             <QuestionIcon tooltip="When specified, only entities whose types are listed in this column will be able to be associated with a link" />
