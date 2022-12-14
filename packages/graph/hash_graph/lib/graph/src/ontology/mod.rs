@@ -99,6 +99,45 @@ where
     T::Representation::from(ontology_type.clone()).serialize(serializer)
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct OntologyElementMetadata {
+    edition_id: OntologyTypeEditionId,
+    #[serde(rename = "provenance")]
+    provenance_metadata: ProvenanceMetadata,
+    owned_by_id: OwnedById,
+}
+
+impl OntologyElementMetadata {
+    #[must_use]
+    pub const fn new(
+        edition_id: OntologyTypeEditionId,
+        provenance_metadata: ProvenanceMetadata,
+        owned_by_id: OwnedById,
+    ) -> Self {
+        Self {
+            edition_id,
+            provenance_metadata,
+            owned_by_id,
+        }
+    }
+
+    #[must_use]
+    pub const fn edition_id(&self) -> &OntologyTypeEditionId {
+        &self.edition_id
+    }
+
+    #[must_use]
+    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
+        self.provenance_metadata
+    }
+
+    #[must_use]
+    pub const fn owned_by_id(&self) -> OwnedById {
+        self.owned_by_id
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
 pub struct DataTypeWithMetadata {
     #[schema(value_type = VAR_DATA_TYPE)]
@@ -144,45 +183,6 @@ impl Record for PropertyTypeWithMetadata {
 
     fn metadata(&self) -> &OntologyElementMetadata {
         &self.metadata
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct OntologyElementMetadata {
-    edition_id: OntologyTypeEditionId,
-    #[serde(rename = "provenance")]
-    provenance_metadata: ProvenanceMetadata,
-    owned_by_id: OwnedById,
-}
-
-impl OntologyElementMetadata {
-    #[must_use]
-    pub const fn new(
-        edition_id: OntologyTypeEditionId,
-        provenance_metadata: ProvenanceMetadata,
-        owned_by_id: OwnedById,
-    ) -> Self {
-        Self {
-            edition_id,
-            provenance_metadata,
-            owned_by_id,
-        }
-    }
-
-    #[must_use]
-    pub const fn edition_id(&self) -> &OntologyTypeEditionId {
-        &self.edition_id
-    }
-
-    #[must_use]
-    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
-        self.provenance_metadata
-    }
-
-    #[must_use]
-    pub const fn owned_by_id(&self) -> OwnedById {
-        self.owned_by_id
     }
 }
 
