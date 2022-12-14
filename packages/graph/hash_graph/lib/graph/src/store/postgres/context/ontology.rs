@@ -1,4 +1,4 @@
-use error_stack::{Context, IntoReport, Result, ResultExt};
+use error_stack::{IntoReport, Result, ResultExt};
 use tokio_postgres::GenericClient;
 use type_system::uri::BaseUri;
 
@@ -24,7 +24,7 @@ pub async fn read_latest_type<T>(
     base_uri: &BaseUri,
 ) -> Result<OntologyRecord<T>, QueryError>
 where
-    T: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context>,
+    T: OntologyDatabaseType,
 {
     let row = client
         .as_client()
@@ -49,7 +49,10 @@ where
         .into_report()
         .change_context(QueryError)?;
 
-    let record = T::try_from(row.get(0))
+    let record_repr: T::Representation = serde_json::from_value(row.get(0))
+        .into_report()
+        .change_context(QueryError)?;
+    let record = T::try_from(record_repr)
         .into_report()
         .change_context(QueryError)?;
     let owned_by_id = OwnedById::new(row.get(1));

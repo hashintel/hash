@@ -5,10 +5,12 @@ mod read;
 
 use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
 
+use crate::ontology::OntologyType;
+
 /// Provides an abstraction over elements of the Type System stored in the Database.
 ///
 /// [`PostgresDatabase`]: crate::store::PostgresDatabase
-pub trait OntologyDatabaseType {
+pub trait OntologyDatabaseType: OntologyType {
     /// Returns the name of the table where this type is stored.
     fn table() -> &'static str;
 

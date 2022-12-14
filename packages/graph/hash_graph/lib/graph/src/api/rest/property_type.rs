@@ -11,7 +11,7 @@ use axum::{
 use error_stack::IntoReport;
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
-use type_system::{uri::VersionedUri, PropertyType};
+use type_system::{repr, uri::VersionedUri, PropertyType};
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
@@ -102,7 +102,7 @@ impl RoutedResource for PropertyTypeResource {
 #[serde(rename_all = "camelCase")]
 struct CreatePropertyTypeRequest {
     #[schema(value_type = VAR_PROPERTY_TYPE)]
-    schema: serde_json::Value,
+    schema: repr::PropertyType,
     owned_by_id: OwnedById,
     actor_id: UpdatedById,
 }
