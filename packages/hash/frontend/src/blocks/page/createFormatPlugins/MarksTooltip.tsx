@@ -1,5 +1,6 @@
+import { faCaretDown } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { CSSProperties, FunctionComponent } from "react";
-import { DropdownIcon } from "../../../shared/icons";
 
 interface MarksTooltipProps {
   activeMarks: { name: string; attrs?: Record<string, string> }[];
@@ -104,9 +105,11 @@ export const MarksTooltip: FunctionComponent<MarksTooltipProps> = ({
           >
             {text}
             {name === "link" && (
-              <DropdownIcon
+              <FontAwesomeIcon
+                icon={faCaretDown}
                 style={{
                   marginLeft: "0.5rem",
+                  fontSize: 10,
                 }}
               />
             )}
