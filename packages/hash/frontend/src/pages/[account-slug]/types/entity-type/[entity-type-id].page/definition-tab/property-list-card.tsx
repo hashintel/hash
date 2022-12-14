@@ -55,11 +55,11 @@ const formDataToPropertyType = (data: PropertyTypeFormValues) => ({
 export const PropertyTypeRow = ({
   propertyIndex,
   onRemove,
-  onUpdatePropertyTypeVersion,
+  onUpdateVersion,
 }: {
   propertyIndex: number;
   onRemove: () => void;
-  onUpdatePropertyTypeVersion: (nextId: VersionedUri) => void;
+  onUpdateVersion: (nextId: VersionedUri) => void;
 }) => {
   const { control } = useFormContext<EntityTypeEditorForm>();
 
@@ -82,14 +82,13 @@ export const PropertyTypeRow = ({
 
   const { updatePropertyType } = useBlockProtocolUpdatePropertyType();
   const refetchPropertyTypes = useRefetchPropertyTypes();
+  const onUpdateVersionRef = useRef(onUpdateVersion);
+  useLayoutEffect(() => {
+    onUpdateVersionRef.current = onUpdateVersion;
+  });
 
   const propertyTypes = usePropertyTypes();
   const property = propertyTypes?.[$id];
-
-  const onUpdatePropertyTypeVersionRef = useRef(onUpdatePropertyTypeVersion);
-  useLayoutEffect(() => {
-    onUpdatePropertyTypeVersionRef.current = onUpdatePropertyTypeVersion;
-  });
 
   if (!property) {
     if (propertyTypes) {
@@ -136,7 +135,6 @@ export const PropertyTypeRow = ({
         popupState={editModalPopupState}
         modalTitle={<>Edit Property Type</>}
         onSubmit={async (data) => {
-          // @todo verify this works
           const res = await updatePropertyType({
             data: {
               propertyTypeId: $id,
@@ -150,7 +148,7 @@ export const PropertyTypeRow = ({
 
           await refetchPropertyTypes?.();
 
-          onUpdatePropertyTypeVersionRef.current(
+          onUpdateVersionRef.current(
             // @todo temporary bug fix
             res.data.schema.$id.replace("//v", "/v") as VersionedUri,
           );
@@ -309,7 +307,7 @@ export const PropertyListCard = () => {
             onRemove={() => {
               remove(index);
             }}
-            onUpdatePropertyTypeVersion={(nextId) => {
+            onUpdateVersion={(nextId) => {
               setValue(`properties.${index}.$id`, nextId, {
                 shouldDirty: true,
               });
