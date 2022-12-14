@@ -13,7 +13,6 @@ import {
 import { useBlockProtocolAggregateEntityTypes } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-entity-types";
 import { useBlockProtocolCreateEntityType } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
 import { useBlockProtocolUpdateEntityType } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-entity-type";
-import { useAdvancedInitTypeSystem } from "../../../../../lib/use-init-type-system";
 
 export const useEntityTypeValue = (
   entityTypeBaseUri: string | null,
@@ -26,7 +25,6 @@ export const useEntityTypeValue = (
   const { createEntityType } = useBlockProtocolCreateEntityType(
     accountId as OwnedById | null,
   );
-  const [, loadTypeSystem] = useAdvancedInitTypeSystem();
 
   const [entityType, setEntityType] = useState<EntityType | null>(null);
   const entityTypeRef = useRef(entityType);
@@ -62,8 +60,6 @@ export const useEntityTypeValue = (
             ? relevantEntityTypes[0]!.schema
             : null;
 
-        await loadTypeSystem();
-
         if (!cancelled) {
           setLoading(false);
           setEntityType(relevantEntityType);
@@ -78,7 +74,7 @@ export const useEntityTypeValue = (
         setLoading(false);
       };
     }
-  }, [aggregateEntityTypes, entityType, entityTypeBaseUri, loadTypeSystem]);
+  }, [aggregateEntityTypes, entityType, entityTypeBaseUri]);
 
   const updateCallback = useCallback(
     async (partialEntityType: Partial<Omit<EntityType, "$id">>) => {

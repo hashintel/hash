@@ -27,7 +27,6 @@ import { ModalProvider } from "react-modal-hook";
 import { MeQuery } from "../graphql/api-types.gen";
 import { meQuery } from "../graphql/queries/user.queries";
 import { apolloClient } from "../lib/apollo-client";
-import { TypeSystemContextProvider } from "../lib/use-init-type-system";
 import {
   AuthenticatedUser,
   constructAuthenticatedUser,
@@ -150,13 +149,11 @@ const AppWithTypeSystemContextProvider: AppPage<AppProps, AppInitialProps> = (
   const { initialAuthenticatedUser } = props;
 
   return (
-    <TypeSystemContextProvider>
-      <ApolloProvider client={apolloClient}>
-        <AuthInfoProvider initialAuthenticatedUser={initialAuthenticatedUser}>
-          <App {...props} />
-        </AuthInfoProvider>
-      </ApolloProvider>
-    </TypeSystemContextProvider>
+    <ApolloProvider client={apolloClient}>
+      <AuthInfoProvider initialAuthenticatedUser={initialAuthenticatedUser}>
+        <App {...props} />
+      </AuthInfoProvider>
+    </ApolloProvider>
   );
 };
 
