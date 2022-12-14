@@ -1,7 +1,6 @@
 mod knowledge;
 mod ontology;
 
-mod context;
 mod pool;
 mod query;
 mod version_id;
@@ -23,19 +22,18 @@ use type_system::{
 };
 use uuid::Uuid;
 
-use self::context::OntologyRecord;
 pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
     identifier::{account::AccountId, knowledge::EntityEditionId, ontology::OntologyTypeEditionId},
     ontology::OntologyElementMetadata,
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
+        crud::Read,
         error::VersionedUriAlreadyExists,
-        postgres::{
-            context::PostgresContext, ontology::OntologyDatabaseType, version_id::VersionId,
-        },
+        postgres::{ontology::OntologyDatabaseType, query::PostgresRecord, version_id::VersionId},
+        query::{Filter, OntologyQueryPath},
         AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError,
-        UpdateError,
+        Record, UpdateError,
     },
     subgraph::edges::GraphResolveDepths,
 };
@@ -332,6 +330,8 @@ where
     ) -> Result<(VersionId, OntologyElementMetadata), UpdateError>
     where
         T: OntologyDatabaseType<Representation: Send> + Send + Sync,
+        T::WithMetadata: PostgresRecord + Send,
+        for<'p> <T::WithMetadata as Record>::QueryPath<'p>: OntologyQueryPath + Send + Sync,
     {
         let uri = database_type.id().clone();
 
@@ -345,17 +345,14 @@ where
                 .change_context(UpdateError));
         }
 
-        let base_uri = uri.base_uri();
-
         // TODO - address potential race condition
         //  https://app.asana.com/0/1202805690238892/1203201674100967/f
+        let previous_ontology_type =
+            <Self as Read<T::WithMetadata>>::read_one(self, &Filter::for_base_uri(uri.base_uri()))
+                .await
+                .change_context(UpdateError)?;
 
-        let previous_ontology_type = self
-            .read_latest_ontology_type::<T>(base_uri)
-            .await
-            .change_context(UpdateError)?;
-
-        let OntologyRecord { owned_by_id, .. } = previous_ontology_type;
+        let owned_by_id = previous_ontology_type.metadata().owned_by_id();
 
         let version_id = VersionId::new(Uuid::new_v4());
         self.insert_version_id(version_id)
