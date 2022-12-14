@@ -8,7 +8,7 @@ use type_system::uri::VersionedUri;
 
 use crate::{
     identifier::ontology::OntologyTypeEditionId,
-    ontology::{OntologyElementMetadata, OntologyType, PersistedOntologyType},
+    ontology::{OntologyElementMetadata, OntologyType, OntologyTypeWithMetadata},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         crud::Read,
@@ -24,7 +24,7 @@ use crate::{
 #[async_trait]
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
-    T: PersistedOntologyType + PostgresQueryRecord + Send,
+    T: OntologyTypeWithMetadata + PostgresQueryRecord + Send,
     T::OntologyType: OntologyDatabaseType,
     for<'q> T::Path<'q>: Send + Sync + OntologyPath,
 {

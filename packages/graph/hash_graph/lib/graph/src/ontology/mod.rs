@@ -232,13 +232,13 @@ impl OntologyType for EntityType {
     type Representation = repr::EntityType;
 }
 
-pub trait PersistedOntologyType {
+pub trait OntologyTypeWithMetadata {
     type OntologyType: OntologyType;
 
     fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self;
 }
 
-impl PersistedOntologyType for DataTypeWithMetadata {
+impl OntologyTypeWithMetadata for DataTypeWithMetadata {
     type OntologyType = DataType;
 
     fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self {
@@ -249,7 +249,7 @@ impl PersistedOntologyType for DataTypeWithMetadata {
     }
 }
 
-impl PersistedOntologyType for PropertyTypeWithMetadata {
+impl OntologyTypeWithMetadata for PropertyTypeWithMetadata {
     type OntologyType = PropertyType;
 
     fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self {
@@ -260,7 +260,7 @@ impl PersistedOntologyType for PropertyTypeWithMetadata {
     }
 }
 
-impl PersistedOntologyType for EntityTypeWithMetadata {
+impl OntologyTypeWithMetadata for EntityTypeWithMetadata {
     type OntologyType = EntityType;
 
     fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self {
