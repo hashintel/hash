@@ -19,9 +19,9 @@ import { ValueCellEditorComponent } from "./types";
 import { SortableItem } from "./array-editor/types";
 import { SortableRow } from "./array-editor/sortable-row";
 import { AddAnotherButton } from "./array-editor/add-another-button";
-import { InlineTextEditor } from "./array-editor/inline-text-editor";
+import { DraftRow } from "./array-editor/draft-row";
 
-const NEW_ROW_KEY = "new";
+export const DRAFT_ROW_KEY = "draft";
 
 export const ArrayEditor: ValueCellEditorComponent = ({
   value: cell,
@@ -42,15 +42,26 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     return itemsArray;
   }, [cell]);
 
-  const [input, setInput] = useState("");
   const [selectedRow, setSelectedRow] = useState("");
-  const [editingRow, setEditingRow] = useState(items.length ? "" : NEW_ROW_KEY);
+  const [editingRow, setEditingRow] = useState(
+    items.length ? "" : DRAFT_ROW_KEY,
+  );
 
-  const addItem = (text: string) => {
+  const addItem = (value: unknown) => {
+    setEditingRow("");
+
+    /** @todo re-enable this code below to scroll down after a value is added */
+    // using setImmediate, so scroll happens after item is rendered
+    // setImmediate(() => {
+    //   scrollableContainer.current?.scrollTo({
+    //     top: scrollableContainer.current.scrollHeight,
+    //   });
+    // });
+
     const newCell = produce(cell, (draftCell) => {
       draftCell.data.propertyRow.value = [
-        ...items.map(({ value }) => value),
-        text,
+        ...items.map((item) => item.value),
+        value,
       ];
     });
     onChange(newCell);
@@ -65,12 +76,13 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     onChange(newCell);
   };
 
-  const updateItem = (indexToUpdate: number, value: string) => {
+  const updateItem = (indexToUpdate: number, value: unknown) => {
     setEditingRow("");
 
-    if (!value.trim().length) {
-      return removeItem(indexToUpdate);
-    }
+    /** @todo consider this? */
+    // if (!value.trim().length) {
+    //   return removeItem(indexToUpdate);
+    // }
 
     const newCell = produce(cell, (draftCell) => {
       draftCell.data.propertyRow.value = items.map((item, index) =>
@@ -138,45 +150,35 @@ export const ArrayEditor: ValueCellEditorComponent = ({
                 item={item}
                 onRemove={removeItem}
                 onEditClicked={(id) => setEditingRow(id)}
-                onEditFinished={updateItem}
+                onSaveChanges={updateItem}
+                onDiscardChanges={() => setEditingRow("")}
                 editing={editingRow === item.id}
                 selected={selectedRow === item.id}
                 onSelect={(id) =>
                   setSelectedRow((prevId) => (id === prevId ? "" : id))
                 }
+                expectedTypes={cell.data.propertyRow.expectedTypes}
               />
             ))}
           </SortableContext>
         </DndContext>
       </Box>
 
-      {editingRow !== NEW_ROW_KEY ? (
+      {editingRow !== DRAFT_ROW_KEY ? (
         <AddAnotherButton
           title="Add Another Value"
           onClick={() => {
-            setEditingRow(NEW_ROW_KEY);
+            setEditingRow(DRAFT_ROW_KEY);
             setSelectedRow("");
           }}
         />
       ) : (
-        <InlineTextEditor
-          value={input}
-          onChange={(value) => setInput(value)}
-          onEnterPressed={() => {
-            if (input.trim().length) {
-              addItem(input);
-            }
-
-            setInput("");
-            setEditingRow("");
-
-            // using setImmediate, so scroll happens after item is rendered
-            setImmediate(() => {
-              scrollableContainer.current?.scrollTo({
-                top: scrollableContainer.current.scrollHeight,
-              });
-            });
+        <DraftRow
+          propertyRow={cell.data.propertyRow}
+          onDraftSaved={(val) => {
+            addItem(val);
           }}
+          onDraftDiscarded={() => setEditingRow("")}
         />
       )}
     </Box>

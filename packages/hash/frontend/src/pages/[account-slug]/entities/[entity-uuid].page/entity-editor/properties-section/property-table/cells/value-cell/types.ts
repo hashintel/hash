@@ -9,4 +9,8 @@ export interface ValueCellProps extends TooltipCellProps {
 
 export type ValueCell = CustomCell<ValueCellProps>;
 
+export type EditorType = "boolean" | "number" | "string";
+
+export type OnTypeChange = (type: EditorType) => void;
+
 export type ValueCellEditorComponent = ProvideEditorComponent<ValueCell>;

@@ -5,10 +5,17 @@ export const NumberOrStringInput = ({
   onChange,
   value,
   isNumber,
-}: CellInputProps<number | string> & { isNumber: boolean }) => {
+  onEnterPressed,
+}: CellInputProps<number | string> & {
+  isNumber: boolean;
+  onEnterPressed?: () => void;
+}) => {
+  /** @todo BUG: edit-re-editing number values make them text values again */
   return (
     <TextField
-      sx={{ my: "1px" }}
+      sx={{ width: "100%" }}
+      variant="standard"
+      InputProps={{ disableUnderline: true }}
       autoFocus
       value={value}
       type={isNumber ? "number" : "text"}
@@ -21,6 +28,12 @@ export const NumberOrStringInput = ({
           isNumber && !isEmptyString ? Number(target.value) : target.value;
 
         onChange(newValue);
+      }}
+      onKeyDown={(event) => {
+        if (onEnterPressed && event.key === "Enter") {
+          event.stopPropagation();
+          onEnterPressed();
+        }
       }}
     />
   );

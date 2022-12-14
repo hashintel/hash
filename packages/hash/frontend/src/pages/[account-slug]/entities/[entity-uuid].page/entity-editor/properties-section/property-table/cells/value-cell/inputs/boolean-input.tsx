@@ -11,7 +11,7 @@ export const BooleanInput = ({ onChange, value }: CellInputProps<boolean>) => {
 
   return (
     <TextField
-      sx={{ my: "1px" }}
+      sx={{ width: "100%" }}
       select
       SelectProps={{ defaultOpen: true }}
       value={numberValue}

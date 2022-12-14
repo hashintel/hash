@@ -60,7 +60,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
   },
   provideEditor: ({ data }) => {
     return {
-      styleOverride: { boxShadow: "none", background: "transparent" },
+      disableStyling: true,
       disablePadding: true,
       editor: data.propertyRow.isArray ? ArrayEditor : SingleValueEditor,
     };
