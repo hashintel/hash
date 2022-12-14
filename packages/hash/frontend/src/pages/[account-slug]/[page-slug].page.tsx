@@ -12,7 +12,7 @@ import {
   getPageInfoQuery,
   getPageQuery,
 } from "@hashintel/hash-shared/queries/page.queries";
-import { types } from "@hashintel/hash-shared/types";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import { isSafariBrowser } from "@hashintel/hash-shared/util";
 import {
   EntityId,

@@ -1,6 +1,6 @@
 import { extractBaseUri } from "@blockprotocol/type-system";
 import { systemUserShortname } from "@hashintel/hash-shared/environment";
-import { types } from "@hashintel/hash-shared/types";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import { entityIdFromOwnedByIdAndEntityUuid } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import { useEffect, useMemo, useState } from "react";
