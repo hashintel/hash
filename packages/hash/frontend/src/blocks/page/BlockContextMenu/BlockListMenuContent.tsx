@@ -13,7 +13,7 @@ import { useRef, useState, FunctionComponent, useEffect } from "react";
 import { TextField, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { useFilteredBlocks } from "../createSuggester/useFilteredBlocks";
 import { MenuItem } from "../../../shared/ui";
-import { useBlockView } from "../BlockViewContext";
+import { useBlockView } from "../BlockView";
 
 type BlockListMenuContentProps = {
   popupState?: PopupState;

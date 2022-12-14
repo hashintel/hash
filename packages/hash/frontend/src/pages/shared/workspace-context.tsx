@@ -8,8 +8,7 @@ import {
   FunctionComponent,
 } from "react";
 import { localStorageKeys } from "../../lib/config";
-import { MinimalOrg } from "../../lib/org";
-import { User } from "../../lib/user";
+import { MinimalOrg, User } from "../../lib/user-and-org";
 import { useAuthInfo } from "./auth-info-context";
 
 export type WorkspaceContextValue = {

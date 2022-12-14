@@ -1,6 +1,6 @@
 import { EditorState } from "prosemirror-state";
 import { DirectEditorProps, EditorView } from "prosemirror-view";
-import { RenderPortal } from "./usePortals";
+import { RenderPortal } from "./BlockPortals";
 import { mentionNodeView } from "./MentionView/MentionNodeView";
 import { clipboardTextSerializer } from "./clipboardTextSerializer";
 

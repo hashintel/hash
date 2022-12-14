@@ -23,7 +23,7 @@ import {
   getPageSectionContainerStyles,
   PageSectionContainer,
 } from "./PageSectionContainer";
-import { usePortals } from "./usePortals";
+import { usePortals } from "./BlockPortals";
 
 type PageBlockProps = {
   contents: BlockEntity[];

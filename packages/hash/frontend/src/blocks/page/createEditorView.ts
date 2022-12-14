@@ -26,7 +26,7 @@ import { createPlaceholderPlugin } from "./createPlaceholderPlugin/createPlaceho
 import { createSuggester } from "./createSuggester/createSuggester";
 import { createFocusPageTitlePlugin } from "./focusPageTitlePlugin";
 import styles from "./style.module.css";
-import { RenderPortal } from "./usePortals";
+import { RenderPortal } from "./BlockPortals";
 import { createTextEditorView } from "./createTextEditorView";
 
 export type BlocksMap = Record<string, HashBlock>;
