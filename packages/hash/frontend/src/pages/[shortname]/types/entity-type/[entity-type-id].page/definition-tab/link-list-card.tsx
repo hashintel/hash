@@ -142,10 +142,7 @@ const LinkTypeRow = ({
 
     await refetchEntityTypes();
 
-    onUpdateVersionRef.current(
-      // @todo temporary bug fix
-      res.data.schema.$id.replace("//v", "/v") as VersionedUri,
-    );
+    onUpdateVersionRef.current(res.data.schema.$id);
 
     editModalPopupState.close();
   };
