@@ -1,4 +1,4 @@
-/// # Example:
+/// # impl_error! generates simple error_stack errors.
 /// ```
 /// use error_stack::Report;
 /// use error_stack_macros::impl_error;
