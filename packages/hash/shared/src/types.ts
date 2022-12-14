@@ -5,29 +5,51 @@ import {
   splitEntityId as splitEntityIdSubgraph,
 } from "@hashintel/hash-subgraph";
 
-type Branded<Base, Kind extends string> = {
+type BrandedBase<Base, Kind extends {}> = Base & {
+  // The property prefixes are chosen such that they shouldn't appear in intellisense.
+
   /** The type of the value space that is branded */
-  readonly _base: Base;
-  /** The unique name for the branded type. */
-  readonly _kind: Kind;
+  readonly "#base": Base;
+  /** The unique name for the branded type */
+  readonly "#kind": Kind;
 };
 
 /**
- * The type-branding type to support nominal (name based) types.
+ * The type-branding type to support nominal (name based) types
  */
-export type Brand<Base, Kind extends string> = Base & Branded<Base, Kind>;
+export type Brand<Base, Kind extends string> = Base extends BrandedBase<
+  infer NestedBase,
+  infer NestedKind
+>
+  ? BrandedBase<NestedBase, NestedKind & { [_ in Kind]: void }>
+  : BrandedBase<Base, { [_ in Kind]: void }>;
+
+/**
+ * An optional function to brand the type instead of explicitly casting it
+ */
+export const brand = <
+  Kind extends string,
+  Base,
+  BrandType extends Brand<Base, Kind>,
+>(
+  value: Base,
+) => {
+  return value as unknown as BrandType;
+};
+
+/** Valid Uuids of the system */
+export type Uuid = Brand<string, "Uuid">;
+
+/** An ID to uniquely identify an account (e.g. a User or an Org) */
+export type AccountId = Brand<Uuid, "AccountId">;
 
 /** An account ID of an actor that is the owner of something */
-export type OwnedById = Brand<string, "OwnedById">;
+export type OwnedById = Brand<AccountId, "OwnedById">;
 /** An account ID of an actor that has updated something */
-export type UpdatedById = Brand<string, "UpdatedById">;
-/** An ID to uniquely identify an account (e.g. a User or an Org) */
-export type AccountId = Brand<string, "AccountId"> | OwnedById | UpdatedById;
+export type UpdatedById = Brand<AccountId, "UpdatedById">;
 
 /** A Uuuid that points to an Entity without any edition */
-export type EntityUuid = Brand<string, "EntityUuid">;
-/** Valid Uuids of the system */
-export type Uuid = Brand<string, "Uuid"> | AccountId | EntityUuid;
+export type EntityUuid = Brand<Uuid, "EntityUuid">;
 
 // These type overwrites are centralized for being able to swap out implementations.
 
