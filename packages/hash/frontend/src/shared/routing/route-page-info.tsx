@@ -46,11 +46,7 @@ export const RoutePageInfoProvider: FunctionComponent<{
   }, [router]);
 
   const routePageEntityId = useMemo(() => {
-    const routeOwnedById = routeWorkspace
-      ? routeWorkspace.kind === "user"
-        ? routeWorkspace.userAccountId
-        : routeWorkspace.orgAccountId
-      : undefined;
+    const routeOwnedById = routeWorkspace?.accountId;
 
     return routeOwnedById && routePageEntityUuid
       ? entityIdFromOwnedByIdAndEntityUuid(routeOwnedById, routePageEntityUuid)

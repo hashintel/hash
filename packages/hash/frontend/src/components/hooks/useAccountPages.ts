@@ -37,8 +37,8 @@ export const useAccountPages = (ownedById: string): AccountPagesInfo => {
   const ownerShortname = useMemo(
     () =>
       (
-        orgs?.find(({ orgAccountId }) => orgAccountId === ownedById) ??
-        users?.find(({ userAccountId }) => userAccountId === ownedById)
+        orgs?.find(({ accountId }) => accountId === ownedById) ??
+        users?.find(({ accountId }) => accountId === ownedById)
       )?.shortname,
     [users, orgs, ownedById],
   );

@@ -166,10 +166,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
     );
   }
 
-  const pageOwnedById =
-    pageWorkspace.kind === "user"
-      ? pageWorkspace.userAccountId
-      : pageWorkspace.orgAccountId;
+  const pageOwnedById = pageWorkspace?.accountId;
 
   const pageEntityId = entityIdFromOwnedByIdAndEntityUuid(
     pageOwnedById,
@@ -464,11 +461,7 @@ const Page: NextPageWithLayout<PageProps> = ({
 
         <CollabPositionProvider value={[]}>
           <PageBlock
-            accountId={
-              pageWorkspace.kind === "user"
-                ? pageWorkspace.userAccountId
-                : pageWorkspace.orgAccountId
-            }
+            accountId={pageWorkspace.accountId}
             contents={contents}
             blocks={blocksMap}
             pageComments={pageComments}

@@ -65,7 +65,7 @@ export const WorkspaceContextProvider: FunctionComponent<{
          * Initialize the `activeWorkspaceAccountId` to the account ID of the
          * currently authenticated user
          */
-        updateActiveWorkspaceAccountId(authenticatedUser.userAccountId);
+        updateActiveWorkspaceAccountId(authenticatedUser.accountId);
       }
     }
   }, [
@@ -77,10 +77,10 @@ export const WorkspaceContextProvider: FunctionComponent<{
   const workspaceContextValue = useMemo<WorkspaceContextValue>(() => {
     const activeWorkspace =
       authenticatedUser &&
-      authenticatedUser.userAccountId === activeWorkspaceAccountId
+      authenticatedUser.accountId === activeWorkspaceAccountId
         ? authenticatedUser
         : authenticatedUser?.memberOf?.find(
-            ({ orgAccountId }) => orgAccountId === activeWorkspaceAccountId,
+            ({ accountId }) => accountId === activeWorkspaceAccountId,
           );
 
     /**
@@ -89,7 +89,7 @@ export const WorkspaceContextProvider: FunctionComponent<{
      * authenticated user's account ID
      */
     if (activeWorkspaceAccountId && authenticatedUser && !activeWorkspace) {
-      updateActiveWorkspaceAccountId(authenticatedUser.userAccountId);
+      updateActiveWorkspaceAccountId(authenticatedUser.accountId);
     }
 
     return {
