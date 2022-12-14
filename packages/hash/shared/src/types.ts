@@ -1,8 +1,8 @@
 import {
   EntityId,
-  extractEntityUuidFromEntityId as extractEntityUuidFromEntityIdSubGraph,
-  extractOwnedByIdFromEntityId as extractOwnedByIdFromEntityIdSubGraph,
-  splitEntityId as splitEntityIdSubGraph,
+  extractEntityUuidFromEntityId as extractEntityUuidFromEntityIdSubgraph,
+  extractOwnedByIdFromEntityId as extractOwnedByIdFromEntityIdSubgraph,
+  splitEntityId as splitEntityIdSubgraph,
 } from "@hashintel/hash-subgraph";
 
 type Branded<Base, Kind extends string> = {
@@ -31,16 +31,16 @@ export type Uuid = Brand<string, "Uuid"> | AccountId | EntityUuid;
 
 // These type overwrites are centralized for being able to swap out implementations.
 
-export const splitEntityId = splitEntityIdSubGraph as (
+export const splitEntityId = splitEntityIdSubgraph as (
   entityId: EntityId,
 ) => [OwnedById, EntityUuid];
 
 export const extractOwnedByIdFromEntityId =
-  extractOwnedByIdFromEntityIdSubGraph as (entityId: EntityId) => OwnedById;
+  extractOwnedByIdFromEntityIdSubgraph as (entityId: EntityId) => OwnedById;
 
 export const extractEntityUuidFromEntityId =
-  extractEntityUuidFromEntityIdSubGraph as (entityId: EntityId) => EntityUuid;
+  extractEntityUuidFromEntityIdSubgraph as (entityId: EntityId) => EntityUuid;
 
 /** If the underlying entityUuid is an accountId, use this cast to convert the type */
 export const extractAccountIdAsEntityUuid =
-  extractEntityUuidFromEntityIdSubGraph as (entityId: EntityId) => AccountId;
+  extractEntityUuidFromEntityIdSubgraph as (entityId: EntityId) => AccountId;
