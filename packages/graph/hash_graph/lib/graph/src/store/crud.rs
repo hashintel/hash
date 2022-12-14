@@ -9,10 +9,7 @@
 use async_trait::async_trait;
 use error_stack::{ensure, Report, Result};
 
-use crate::store::{
-    query::{Filter, Record},
-    QueryError,
-};
+use crate::store::{query::Filter, QueryError, Record};
 
 /// Read access to a [`Store`].
 ///

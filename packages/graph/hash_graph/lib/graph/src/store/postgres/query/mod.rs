@@ -26,7 +26,7 @@ pub use self::{
 };
 use crate::store::{
     postgres::query::table::{Column, Relation},
-    query::Record,
+    Record,
 };
 
 pub trait PostgresQueryRecord: for<'q> Record<Path<'q>: Path> {

@@ -11,7 +11,10 @@ use crate::{
         property_type::PropertyTypeQueryPathVisitor, EntityTypeWithMetadata, PropertyTypeQueryPath,
         Selector,
     },
-    store::query::{OntologyPath, ParameterType, QueryPath, Record},
+    store::{
+        query::{OntologyPath, ParameterType, QueryPath},
+        Record,
+    },
 };
 
 /// A path to a [`EntityType`] field.

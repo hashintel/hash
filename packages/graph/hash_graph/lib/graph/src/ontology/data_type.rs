@@ -8,7 +8,10 @@ use utoipa::ToSchema;
 
 use crate::{
     ontology::DataTypeWithMetadata,
-    store::query::{OntologyPath, ParameterType, QueryPath, Record},
+    store::{
+        query::{OntologyPath, ParameterType, QueryPath},
+        Record,
+    },
 };
 
 /// A path to a [`DataType`] field.

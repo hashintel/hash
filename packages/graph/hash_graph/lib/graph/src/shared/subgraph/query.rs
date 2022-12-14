@@ -6,7 +6,7 @@ use utoipa::ToSchema;
 use crate::{
     knowledge::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
-    store::query::{Filter, Record},
+    store::{query::Filter, Record},
     subgraph::edges::GraphResolveDepths,
 };
 

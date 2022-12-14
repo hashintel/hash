@@ -24,8 +24,16 @@ use crate::{
         PropertyTypeWithMetadata,
     },
     provenance::{OwnedById, UpdatedById},
+    store::query::QueryPath,
     subgraph::{query::StructuralQuery, Subgraph},
 };
+
+/// A record stored in the [`store`].
+///
+/// [`store`]: crate::store
+pub trait Record {
+    type Path<'q>: QueryPath;
+}
 
 #[derive(Debug)]
 pub struct StoreError;

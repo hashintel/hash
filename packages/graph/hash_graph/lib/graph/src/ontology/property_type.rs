@@ -10,7 +10,10 @@ use crate::{
     ontology::{
         data_type::DataTypeQueryPathVisitor, DataTypeQueryPath, PropertyTypeWithMetadata, Selector,
     },
-    store::query::{OntologyPath, ParameterType, QueryPath, Record},
+    store::{
+        query::{OntologyPath, ParameterType, QueryPath},
+        Record,
+    },
 };
 
 /// A path to a [`PropertyType`] field.

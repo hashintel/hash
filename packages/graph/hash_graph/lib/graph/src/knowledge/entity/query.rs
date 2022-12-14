@@ -9,7 +9,10 @@ use utoipa::ToSchema;
 use crate::{
     knowledge::Entity,
     ontology::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
-    store::query::{ParameterType, QueryPath, Record},
+    store::{
+        query::{ParameterType, QueryPath},
+        Record,
+    },
 };
 
 #[derive(Debug, PartialEq, Eq)]

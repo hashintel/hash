@@ -38,11 +38,7 @@ use self::api_resource::RoutedResource;
 use crate::{
     api::rest::middleware::log_request_and_response,
     ontology::{domain_validator::DomainValidator, Selector},
-    store::{
-        crud::Read,
-        query::{Filter, Record},
-        QueryError, StorePool,
-    },
+    store::{crud::Read, query::Filter, QueryError, Record, StorePool},
 };
 
 static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/json_schemas");
