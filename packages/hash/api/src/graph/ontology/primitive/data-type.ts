@@ -11,7 +11,7 @@ import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/
 import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { getNamespaceOfAccountOwner } from "./util";
-import { GraphContext, zeroedGraphResolveDepths } from "../..";
+import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
 import { NotFoundError } from "../../../lib/error";
 
 /**
@@ -27,9 +27,8 @@ import { NotFoundError } from "../../../lib/error";
  * @param params.schema - the `DataType`
  * @param params.actorId - the id of the account that is creating the data type
  */
-export const createDataType = async (
-  { graphApi }: GraphContext,
-  params: {
+export const createDataType: ImpureGraphFunction<
+  {
     ownedById: OwnedById;
     // we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
     //  https://github.com/microsoft/TypeScript/issues/50638
@@ -38,7 +37,8 @@ export const createDataType = async (
       Record<string, any>;
     actorId: AccountId;
   },
-): Promise<DataTypeWithMetadata> => {
+  Promise<DataTypeWithMetadata>
+> = async ({ graphApi }, params) => {
   const { ownedById, actorId } = params;
   const namespace = await getNamespaceOfAccountOwner(graphApi, {
     ownerId: params.ownedById,
@@ -73,12 +73,12 @@ export const createDataType = async (
  *
  * @param params.dataTypeId the unique versioned URI for a data type.
  */
-export const getDataType = async (
-  { graphApi }: GraphContext,
-  params: {
+export const getDataType: ImpureGraphFunction<
+  {
     dataTypeId: VersionedUri;
   },
-): Promise<DataTypeWithMetadata> => {
+  Promise<DataTypeWithMetadata>
+> = async ({ graphApi }, params) => {
   const { dataTypeId } = params;
 
   const dataTypeSubgraph = await graphApi
@@ -111,9 +111,8 @@ export const getDataType = async (
  * @param params.schema - the updated `DataType`
  * @param params.actorId - the id of the account that is updating the data type
  */
-export const updateDataType = async (
-  { graphApi }: GraphContext,
-  params: {
+export const updateDataType: ImpureGraphFunction<
+  {
     dataTypeId: VersionedUri;
     // we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
     //  https://github.com/microsoft/TypeScript/issues/50638
@@ -122,7 +121,8 @@ export const updateDataType = async (
       Record<string, any>;
     actorId: AccountId;
   },
-) => {
+  Promise<DataTypeWithMetadata>
+> = async ({ graphApi }, params) => {
   const { dataTypeId, schema, actorId } = params;
 
   const { data: metadata } = await graphApi.updateDataType({

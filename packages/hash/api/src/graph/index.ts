@@ -14,10 +14,19 @@ import {
 import { ensureSystemTypesExist } from "./system-types";
 import { ensureSystemEntitiesExists } from "./system-entities";
 
-export type GraphContext = {
+export type ImpureGraphContext = {
   graphApi: GraphApi;
   /** @todo: add logger? */
 };
+
+export type ImpureGraphFunction<Parameters, ReturnType> = (
+  ctx: ImpureGraphContext,
+  params: Parameters,
+) => ReturnType;
+
+export type PureGraphFunction<Parameters, ReturnType> = (
+  params: Parameters,
+) => ReturnType;
 
 export const zeroedGraphResolveDepths: GraphResolveDepths = {
   inheritsFrom: { outgoing: 0 },

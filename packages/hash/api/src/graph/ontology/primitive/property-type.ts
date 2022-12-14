@@ -10,7 +10,7 @@ import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
-import { GraphContext, zeroedGraphResolveDepths } from "../..";
+import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
 import { getNamespaceOfAccountOwner } from "./util";
 import { NotFoundError } from "../../../lib/error";
 
@@ -21,14 +21,14 @@ import { NotFoundError } from "../../../lib/error";
  * @param params.schema - the `PropertyType`
  * @param params.actorId - the id of the account that is creating the property type
  */
-export const createPropertyType = async (
-  { graphApi }: GraphContext,
-  params: {
+export const createPropertyType: ImpureGraphFunction<
+  {
     ownedById: OwnedById;
     schema: Omit<PropertyType, "$id">;
     actorId: AccountId;
   },
-): Promise<PropertyTypeWithMetadata> => {
+  Promise<PropertyTypeWithMetadata>
+> = async ({ graphApi }, params) => {
   const { ownedById, actorId } = params;
 
   const namespace = await getNamespaceOfAccountOwner(graphApi, {
@@ -65,12 +65,12 @@ export const createPropertyType = async (
  *
  * @param params.propertyTypeId the unique versioned URI for a property type.
  */
-export const getPropertyType = async (
-  { graphApi }: GraphContext,
-  params: {
+export const getPropertyType: ImpureGraphFunction<
+  {
     propertyTypeId: VersionedUri;
   },
-): Promise<PropertyTypeWithMetadata> => {
+  Promise<PropertyTypeWithMetadata>
+> = async ({ graphApi }, params) => {
   const { propertyTypeId } = params;
   const propertyTypeSubgraph = await graphApi
     .getPropertyTypesByQuery({
@@ -98,14 +98,14 @@ export const getPropertyType = async (
  * @param params.schema - the updated `PropertyType`
  * @param params.actorId - the id of the account that is updating the type
  */
-export const updatePropertyType = async (
-  { graphApi }: GraphContext,
-  params: {
+export const updatePropertyType: ImpureGraphFunction<
+  {
     propertyTypeId: VersionedUri;
     schema: Omit<PropertyType, "$id">;
     actorId: AccountId;
   },
-): Promise<PropertyTypeWithMetadata> => {
+  Promise<PropertyTypeWithMetadata>
+> = async ({ graphApi }, params) => {
   const { schema, actorId, propertyTypeId } = params;
   const updateArguments: UpdatePropertyTypeRequest = {
     typeToUpdate: propertyTypeId,

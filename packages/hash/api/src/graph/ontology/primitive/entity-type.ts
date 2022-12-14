@@ -11,7 +11,11 @@ import {
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
-import { GraphContext, zeroedGraphResolveDepths } from "../..";
+import {
+  ImpureGraphFunction,
+  PureGraphFunction,
+  zeroedGraphResolveDepths,
+} from "../..";
 import { getNamespaceOfAccountOwner } from "./util";
 import { linkEntityTypeUri } from "../../../model/util";
 import { NotFoundError } from "../../../lib/error";
@@ -29,10 +33,10 @@ export type EntityTypeModelCreateParams = {
  * @param params.schema - the `EntityType`
  * @param params.actorId - the id of the account that is creating the entity type
  */
-export const createEntityType = async (
-  { graphApi }: GraphContext,
-  params: EntityTypeModelCreateParams,
-): Promise<EntityTypeWithMetadata> => {
+export const createEntityType: ImpureGraphFunction<
+  EntityTypeModelCreateParams,
+  Promise<EntityTypeWithMetadata>
+> = async ({ graphApi }, params) => {
   const { ownedById, actorId } = params;
   const namespace = await getNamespaceOfAccountOwner(graphApi, {
     ownerId: params.ownedById,
@@ -67,12 +71,12 @@ export const createEntityType = async (
  *
  * @param params.entityTypeId the unique versioned URI for an entity type.
  */
-export const getEntityType = async (
-  { graphApi }: GraphContext,
-  params: {
+export const getEntityType: ImpureGraphFunction<
+  {
     entityTypeId: VersionedUri;
   },
-): Promise<EntityTypeWithMetadata> => {
+  Promise<EntityTypeWithMetadata>
+> = async ({ graphApi }, params) => {
   const { entityTypeId } = params;
 
   const entityTypeSubgraph = await graphApi
@@ -101,14 +105,14 @@ export const getEntityType = async (
  * @param params.schema - the updated `EntityType`
  * @param params.actorId - the id of the account that is updating the entity type
  */
-export const updateEntityType = async (
-  { graphApi }: GraphContext,
-  params: {
+export const updateEntityType: ImpureGraphFunction<
+  {
     entityTypeId: VersionedUri;
     schema: Omit<EntityType, "$id">;
     actorId: AccountId;
   },
-): Promise<EntityTypeWithMetadata> => {
+  Promise<EntityTypeWithMetadata>
+> = async ({ graphApi }, params) => {
   const { entityTypeId, schema, actorId } = params;
   const updateArguments: UpdateEntityTypeRequest = {
     actorId,
@@ -129,9 +133,12 @@ export const updateEntityType = async (
   };
 };
 
-export const isEntityTypeLinkEntityType = (params: {
-  entityType: EntityTypeWithMetadata;
-}): boolean => {
+export const isEntityTypeLinkEntityType: PureGraphFunction<
+  {
+    entityType: EntityTypeWithMetadata;
+  },
+  boolean
+> = (params) => {
   /**
    * @todo: account for link entity types being able to inherit from other link entity types
    * @see https://app.asana.com/0/1200211978612931/1201726402115269/f
