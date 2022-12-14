@@ -146,13 +146,6 @@ pub struct DataTypeWithMetadata {
     metadata: OntologyElementMetadata,
 }
 
-impl DataTypeWithMetadata {
-    #[must_use]
-    pub const fn inner(&self) -> &DataType {
-        &self.inner
-    }
-}
-
 impl Record for DataTypeWithMetadata {
     type Metadata = OntologyElementMetadata;
     type QueryPath<'q> = DataTypeQueryPath;
@@ -170,13 +163,6 @@ pub struct PropertyTypeWithMetadata {
     metadata: OntologyElementMetadata,
 }
 
-impl PropertyTypeWithMetadata {
-    #[must_use]
-    pub const fn inner(&self) -> &PropertyType {
-        &self.inner
-    }
-}
-
 impl Record for PropertyTypeWithMetadata {
     type Metadata = OntologyElementMetadata;
     type QueryPath<'q> = PropertyTypeQueryPath;
@@ -192,13 +178,6 @@ pub struct EntityTypeWithMetadata {
     #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
     inner: EntityType,
     metadata: OntologyElementMetadata,
-}
-
-impl EntityTypeWithMetadata {
-    #[must_use]
-    pub const fn inner(&self) -> &EntityType {
-        &self.inner
-    }
 }
 
 impl Record for EntityTypeWithMetadata {
@@ -254,6 +233,8 @@ pub trait OntologyTypeWithMetadata: Record<Metadata = OntologyElementMetadata> {
     type OntologyType: OntologyType<WithMetadata = Self>;
 
     fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self;
+
+    fn inner(&self) -> &Self::OntologyType;
 }
 
 impl OntologyTypeWithMetadata for DataTypeWithMetadata {
@@ -264,6 +245,10 @@ impl OntologyTypeWithMetadata for DataTypeWithMetadata {
             inner: record,
             metadata,
         }
+    }
+
+    fn inner(&self) -> &Self::OntologyType {
+        &self.inner
     }
 }
 
@@ -276,6 +261,10 @@ impl OntologyTypeWithMetadata for PropertyTypeWithMetadata {
             metadata,
         }
     }
+
+    fn inner(&self) -> &Self::OntologyType {
+        &self.inner
+    }
 }
 
 impl OntologyTypeWithMetadata for EntityTypeWithMetadata {
@@ -286,5 +275,9 @@ impl OntologyTypeWithMetadata for EntityTypeWithMetadata {
             inner: record,
             metadata,
         }
+    }
+
+    fn inner(&self) -> &Self::OntologyType {
+        &self.inner
     }
 }
