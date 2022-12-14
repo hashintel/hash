@@ -1,6 +1,6 @@
 use std::{iter::repeat, str::FromStr};
 
-use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
+use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion, SamplingMode};
 use criterion_macro::criterion;
 use graph::{
     identifier::account::AccountId,
@@ -172,12 +172,16 @@ pub fn bench_get_entity_by_id(
 #[criterion]
 fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
     let mut group = c.benchmark_group("scaling_read_entity_complete_zero_depth");
+
+    group.sample_size(10);
+    group.sampling_mode(SamplingMode::Flat);
+
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
     let account_id =
         AccountId::new(Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").unwrap());
 
-    for size in [1, 10, 100] {
+    for size in [1, 5, 10, 25, 50] {
         // TODO: reuse the database if it already exists like we do for representative_read
         let (runtime, mut store_wrapper) = setup(DB_NAME, true, true);
 
@@ -218,12 +222,16 @@ fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
 #[criterion]
 fn bench_scaling_read_entity_one_depth(c: &mut Criterion) {
     let mut group = c.benchmark_group("scaling_read_entity_complete_one_depth");
+
+    group.sample_size(10);
+    group.sampling_mode(SamplingMode::Flat);
+
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
     let account_id =
         AccountId::new(Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").unwrap());
 
-    for size in [1, 10, 100] {
+    for size in [1, 5, 10, 25, 50] {
         // TODO: reuse the database if it already exists like we do for representative_read
         let (runtime, mut store_wrapper) = setup(DB_NAME, true, true);
 
