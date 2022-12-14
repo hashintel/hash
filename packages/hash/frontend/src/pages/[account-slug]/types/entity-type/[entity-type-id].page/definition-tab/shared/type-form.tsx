@@ -71,7 +71,7 @@ export const TypeFormNameField = ({
     },
     getValues,
     clearErrors,
-  } = useFormContext<{ name: string }>();
+  } = useFormContext<TypeFormDefaults>();
 
   /**
    * Frustratingly, we have to track this ourselves
@@ -130,7 +130,7 @@ export const TypeFormDescriptionField = ({
       touchedFields: { description: descriptionTouched },
     },
     clearErrors,
-  } = useFormContext<{ description: string }>();
+  } = useFormContext<TypeFormDefaults>();
 
   const [descriptionValid, setDescriptionValid] = useState(false);
 
@@ -261,13 +261,13 @@ type TypeFormModalProps<T extends ElementType = "div"> =
 
 type PolymorphicProps<P, T extends ElementType> = P & TypeFormModalProps<T>;
 
-type PolymorphicComponent<P, D extends ElementType = "div"> = <
+type PolymorphicComponent<P = {}, D extends ElementType = "div"> = <
   T extends ElementType = D,
 >(
   props: PolymorphicProps<P, T>,
 ) => ReactElement | null;
 
-export const TypeFormModal: PolymorphicComponent<{}, "div"> = forwardRef(
+export const TypeFormModal: PolymorphicComponent = forwardRef(
   <T extends ElementType>(
     props: TypeFormModalProps<T>,
     ref: Ref<HTMLElement>,
