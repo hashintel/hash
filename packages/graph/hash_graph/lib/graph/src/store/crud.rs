@@ -26,11 +26,11 @@ pub trait Read<T: QueryRecord + Send>: Sync {
     /// Returns a value from the [`Store`] specified by the passed `query`.
     ///
     /// [`Store`]: crate::store::Store
-    async fn read<'f: 'q, 'q>(&self, query: &'f Filter<'q, T>) -> Result<Vec<T>, QueryError>;
+    async fn read(&self, query: &Filter<T>) -> Result<Vec<T>, QueryError>;
 
-    async fn read_one<'f: 'q, 'q>(&self, query: &'f Filter<'q, T>) -> Result<T, QueryError>
+    async fn read_one(&self, query: &Filter<T>) -> Result<T, QueryError>
     where
-        for<'a> Filter<'a, T>: Sync,
+        for<'p> T::Path<'p>: Sync,
     {
         let mut records = self.read(query).await?;
         ensure!(
