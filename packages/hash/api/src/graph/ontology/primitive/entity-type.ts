@@ -7,14 +7,15 @@ import {
   ontologyTypeEditionIdToVersionedUri,
 } from "@hashintel/hash-subgraph";
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import { GraphContext } from "../..";
 import { getNamespaceOfAccountOwner } from "./util";
 import { linkEntityTypeUri } from "../../../model/util";
 
 export type EntityTypeModelCreateParams = {
-  ownedById: string;
+  ownedById: OwnedById;
   schema: Omit<EntityType, "$id">;
-  actorId: string;
+  actorId: AccountId;
 };
 
 /**
@@ -85,7 +86,7 @@ export const updateEntityType = async (
   params: {
     entityTypeId: VersionedUri;
     schema: Omit<EntityType, "$id">;
-    actorId: string;
+    actorId: AccountId;
   },
 ): Promise<EntityTypeWithMetadata> => {
   const { entityTypeId, schema, actorId } = params;

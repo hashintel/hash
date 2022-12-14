@@ -4,6 +4,7 @@ import { PropertyTypeWithMetadata } from "@hashintel/hash-subgraph";
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import { GraphContext } from "../..";
 import { getNamespaceOfAccountOwner } from "./util";
 
@@ -17,9 +18,9 @@ import { getNamespaceOfAccountOwner } from "./util";
 export const createPropertyType = async (
   { graphApi }: GraphContext,
   params: {
-    ownedById: string;
+    ownedById: OwnedById;
     schema: Omit<PropertyType, "$id">;
-    actorId: string;
+    actorId: AccountId;
   },
 ): Promise<PropertyTypeWithMetadata> => {
   const { ownedById, actorId } = params;
@@ -81,7 +82,7 @@ export const updatePropertyType = async (
   params: {
     propertyTypeId: VersionedUri;
     schema: Omit<PropertyType, "$id">;
-    actorId: string;
+    actorId: AccountId;
   },
 ): Promise<PropertyTypeWithMetadata> => {
   const { schema, actorId, propertyTypeId } = params;

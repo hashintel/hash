@@ -1,5 +1,6 @@
 import { systemUserShortname } from "@hashintel/hash-shared/environment";
 import { entityIdFromOwnedByIdAndEntityUuid } from "@hashintel/hash-subgraph";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import { OrgModel, UserModel } from "../../../model";
 import { GraphApi } from "../..";
 import { systemUserAccountId } from "../../system-user";
@@ -11,7 +12,7 @@ import { systemUserAccountId } from "../../system-user";
  */
 export const getNamespaceOfAccountOwner = async (
   graphApi: GraphApi,
-  params: { ownerId: string },
+  params: { ownerId: OwnedById },
 ) => {
   const namespace =
     params.ownerId === systemUserAccountId

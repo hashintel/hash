@@ -3,6 +3,7 @@ import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { DataType } from "@blockprotocol/type-system";
 import { DataTypeWithMetadata, VersionedUri } from "@hashintel/hash-subgraph";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import { getNamespaceOfAccountOwner } from "./util";
 import { GraphContext } from "../..";
 
@@ -22,13 +23,13 @@ import { GraphContext } from "../..";
 export const createDataType = async (
   { graphApi }: GraphContext,
   params: {
-    ownedById: string;
+    ownedById: OwnedById;
     // we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
     //  https://github.com/microsoft/TypeScript/issues/50638
     //  this is needed for as long as DataType extends Record
     schema: Pick<DataType, "kind" | "title" | "description" | "type"> &
       Record<string, any>;
-    actorId: string;
+    actorId: AccountId;
   },
 ): Promise<DataTypeWithMetadata> => {
   const { ownedById, actorId } = params;
@@ -98,7 +99,7 @@ export const updateDataType = async (
     //  this is needed for as long as DataType extends Record
     schema: Pick<DataType, "kind" | "title" | "description" | "type"> &
       Record<string, any>;
-    actorId: string;
+    actorId: AccountId;
   },
 ) => {
   const { dataTypeId, schema, actorId } = params;
