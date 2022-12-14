@@ -114,7 +114,7 @@ export const TypeFormNameField = ({
   );
 };
 
-// @todo handle this field having a different description
+// @todo handle this field having a different type than property
 export const TypeFormDescriptionField = ({
   defaultValues,
   fieldDisabled,
@@ -151,31 +151,16 @@ export const TypeFormDescriptionField = ({
       label={
         <>
           Description{" "}
-          <Tooltip
-            placement="top"
-            title="Descriptions help people understand what property types can be used for, and help make them more discoverable (allowing for reuse)."
-            PopperProps={{
-              modifiers: [
-                {
-                  name: "offset",
-                  options: {
-                    offset: [0, 8],
-                  },
-                },
-              ],
+          <Box
+            sx={{
+              order: 1,
+              ml: 0.75,
+              display: "flex",
+              alignItems: "center",
             }}
           >
-            <Box
-              sx={{
-                order: 1,
-                ml: 0.75,
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              <QuestionIcon />
-            </Box>
-          </Tooltip>
+            <QuestionIcon tooltip="Descriptions help people understand what property types can be used for, and help make them more discoverable (allowing for reuse)." />
+          </Box>
         </>
       }
       required={descriptionRequired}

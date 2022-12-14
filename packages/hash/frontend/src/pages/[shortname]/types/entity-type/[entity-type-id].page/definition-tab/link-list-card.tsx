@@ -376,10 +376,12 @@ export const LinkListCard = () => {
         <EntityTypeTableHeaderRow>
           <TableCell>Link name</TableCell>
           <TableCell>
-            Expected entity types <QuestionIcon />
+            Expected entity types{" "}
+            <QuestionIcon tooltip="When specified, only entities whose types are listed in this column will be able to be associated with a link" />
           </TableCell>
           <EntityTypeTableCenteredCell width={200}>
-            Allowed number of links <QuestionIcon />
+            Allowed number of links{" "}
+            <QuestionIcon tooltip="Require entities to specify a minimum or maximum number of links. A minimum value of 1 or more means that a link is required." />
           </EntityTypeTableCenteredCell>
           <TableCell width={TYPE_MENU_CELL_WIDTH} />
         </EntityTypeTableHeaderRow>
