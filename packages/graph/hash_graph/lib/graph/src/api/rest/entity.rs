@@ -111,6 +111,7 @@ pub struct EntityResource;
 
 impl RoutedResource for EntityResource {
     /// Create routes for interacting with entities.
+    #[expect(deprecated)]
     fn routes<P: StorePool + Send + 'static>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
@@ -122,11 +123,7 @@ impl RoutedResource for EntityResource {
                         .get(get_latest_entities::<P>)
                         .put(update_entity::<P>),
                 )
-                .route(
-                    "/archive",
-                    #[expect(deprecated)]
-                    post(archive_entity::<P>),
-                )
+                .route("/archive", post(archive_entity::<P>))
                 .route("/query", post(get_entities_by_query::<P>))
                 .route("/:entity_uuid", get(get_entity::<P>)),
         )
@@ -321,6 +318,7 @@ async fn get_entities_by_query<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     )
 )]
+#[deprecated = "use `/entities/query` instead"]
 async fn get_latest_entities<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<Entity>>, StatusCode> {
@@ -344,6 +342,7 @@ async fn get_latest_entities<P: StorePool + Send>(
         ("entityId" = EntityId, Path, description = "The EntityId"),
     )
 )]
+#[deprecated = "use `/entities/query` instead"]
 async fn get_entity<P: StorePool + Send>(
     Path(entity_id): Path<EntityId>,
     pool: Extension<Arc<P>>,
