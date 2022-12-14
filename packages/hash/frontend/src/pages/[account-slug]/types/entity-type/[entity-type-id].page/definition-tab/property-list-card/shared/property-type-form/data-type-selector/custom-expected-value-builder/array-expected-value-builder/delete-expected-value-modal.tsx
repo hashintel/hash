@@ -29,7 +29,7 @@ const CountGroup = ({ items }: { items: CountItemProps[] }) => (
   </>
 );
 
-interface DeleteDataTypeModalProps {
+interface DeleteExpectedValueModalProps {
   popupState: PopupState;
   onClose: () => void;
   onDelete?: () => void;
@@ -38,14 +38,14 @@ interface DeleteDataTypeModalProps {
   propertyObjectCount: number;
 }
 
-export const DeleteDataTypeModal = ({
+export const DeleteExpectedValueModal = ({
   popupState,
   onClose,
   onDelete,
   dataTypeCount,
   arrayCount,
   propertyObjectCount,
-}: DeleteDataTypeModalProps) => {
+}: DeleteExpectedValueModalProps) => {
   const countArray = [
     { label: "data type", count: dataTypeCount },
     { label: "array", count: arrayCount },
