@@ -9,6 +9,14 @@ export type EntityTypeEditorPropertyData = {
   infinity: boolean;
 };
 
+export type EntityTypeEditorLinkData = {
+  $id: VersionedUri;
+  minValue: number;
+  maxValue: number;
+  entityTypes: VersionedUri[];
+};
+
 export type EntityTypeEditorForm = {
   properties: EntityTypeEditorPropertyData[];
+  links: EntityTypeEditorLinkData[];
 };
