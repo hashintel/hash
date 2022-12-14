@@ -22,12 +22,12 @@ import { faCube } from "../../../../../../../../../../shared/icons/pro/fa-cube";
 import {
   ArrayType,
   ExpectedValue,
-  getDefaultData,
+  getDefaultExpectedValue,
   PropertyTypeFormValues,
 } from "../../property-type-form-values";
 import { dataTypeOptions } from "../shared/data-type-options";
-import { useDataTypeSelectorDropdownContext } from "../shared/data-type-selector-dropdown-context";
-import { ArrayDataTypeMenu } from "./custom-data-type-menu/array-data-type-menu";
+import { useCustomExpectedValueBuilderContext } from "../shared/custom-expected-value-builder-context";
+import { ArrayExpectedValueBuilder } from "./custom-expected-value-builder/array-expected-value-builder";
 
 const CustomChip: FunctionComponent<ChipProps & { borderColor?: string }> = ({
   borderColor,
@@ -42,23 +42,27 @@ const CustomChip: FunctionComponent<ChipProps & { borderColor?: string }> = ({
   />
 );
 
-type CustomDataTypeMenuProps = {
+type CustomExpectedValueBuilderProps = {
   closeMenu: () => void;
 };
 
-export const CustomDataTypeMenu: FunctionComponent<CustomDataTypeMenuProps> = ({
-  closeMenu,
-}) => {
-  const { closeCustomDataTypeMenu } = useDataTypeSelectorDropdownContext();
+export const CustomExpectedValueBuilder: FunctionComponent<
+  CustomExpectedValueBuilderProps
+> = ({ closeMenu }) => {
+  const { closeCustomExpectedValueBuilder } =
+    useCustomExpectedValueBuilderContext();
 
   const { getValues, setValue, control } =
     useFormContext<PropertyTypeFormValues>();
 
-  const customDataTypeId = useWatch({ control, name: "customDataTypeId" });
-
-  const editingDataTypeIndex = useWatch({
+  const customExpectedValueId = useWatch({
     control,
-    name: "editingDataTypeIndex",
+    name: "customExpectedValueId",
+  });
+
+  const editingExpectedValueIndex = useWatch({
+    control,
+    name: "editingExpectedValueIndex",
   });
 
   return (
@@ -136,7 +140,7 @@ export const CustomDataTypeMenu: FunctionComponent<CustomDataTypeMenuProps> = ({
           paddingX: 1.5,
           background: palette.gray[20],
           border: `1px solid ${palette.gray[30]}`,
-          ...(!customDataTypeId
+          ...(!customExpectedValueId
             ? {
                 borderBottomRightRadius: 4,
                 borderBottomLeftRadius: 4,
@@ -144,7 +148,7 @@ export const CustomDataTypeMenu: FunctionComponent<CustomDataTypeMenuProps> = ({
             : { borderBottomWidth: 0 }),
         })}
       >
-        {!customDataTypeId ? (
+        {!customExpectedValueId ? (
           <>
             <Stack direction="row" gap={1.75}>
               <Button
@@ -181,11 +185,11 @@ export const CustomDataTypeMenu: FunctionComponent<CustomDataTypeMenuProps> = ({
                 onClick={() => {
                   const id = uniqueId();
 
-                  setValue("customDataTypeId", id);
-                  setValue("flattenedDataTypeList", {
+                  setValue("customExpectedValueId", id);
+                  setValue("flattenedCustomExpectedValueList", {
                     [id]: {
                       id,
-                      data: getDefaultData("array"),
+                      data: getDefaultExpectedValue("array"),
                     },
                   });
                 }}
@@ -212,11 +216,11 @@ export const CustomDataTypeMenu: FunctionComponent<CustomDataTypeMenuProps> = ({
             </Stack>
           </>
         ) : (
-          <ArrayDataTypeMenu dataTypeId={customDataTypeId} />
+          <ArrayExpectedValueBuilder expectedValueId={customExpectedValueId} />
         )}
       </Stack>
 
-      {customDataTypeId ? (
+      {customExpectedValueId ? (
         <Box
           sx={({ palette }) => ({
             background: palette.gray[10],
@@ -230,26 +234,31 @@ export const CustomDataTypeMenu: FunctionComponent<CustomDataTypeMenuProps> = ({
           <Button
             size="small"
             onClick={() => {
-              const flattenedDataTypes = getValues("flattenedDataTypeList");
-              const dataType = flattenedDataTypes[customDataTypeId];
+              const flattenedExpectedValues = getValues(
+                "flattenedCustomExpectedValueList",
+              );
+              const customExpectedValue =
+                flattenedExpectedValues[customExpectedValueId];
 
-              if (dataType?.data && "expectedValues" in dataType.data) {
-                const containsArray = dataType.data.expectedValues.some(
-                  (childId) => {
-                    const typeId = flattenedDataTypes[childId]?.data?.typeId!;
-                    return typeId === "array";
-                  },
+              if (
+                customExpectedValue?.data &&
+                "itemIds" in customExpectedValue.data
+              ) {
+                const containsArray = customExpectedValue.data.itemIds.some(
+                  (itemId) =>
+                    flattenedExpectedValues[itemId]?.data?.typeId === "array",
                 );
 
-                const containsObject = dataType.data.expectedValues.some(
-                  (childId) =>
-                    flattenedDataTypes[childId]?.data?.typeId ===
+                const containsObject = customExpectedValue.data.itemIds.some(
+                  (itemId) =>
+                    flattenedExpectedValues[itemId]?.data?.typeId ===
                     types.dataType.object.dataTypeId,
                 );
 
-                const containsDataType = dataType.data.expectedValues.some(
-                  (childId) => {
-                    const typeId = flattenedDataTypes[childId]?.data?.typeId!;
+                const containsDataType = customExpectedValue.data.itemIds.some(
+                  (itemId) => {
+                    const typeId =
+                      flattenedExpectedValues[itemId]?.data?.typeId!;
                     return (
                       typeId !== "array" && dataTypeOptions.includes(typeId)
                     );
@@ -278,20 +287,20 @@ export const CustomDataTypeMenu: FunctionComponent<CustomDataTypeMenuProps> = ({
                 const expectedValue: ExpectedValue = {
                   typeId: "array",
                   arrayType,
-                  id: customDataTypeId,
-                  flattenedDataTypes,
+                  id: customExpectedValueId,
+                  flattenedExpectedValues,
                 };
 
                 const newExpectedValues = [...getValues("expectedValues")];
-                if (editingDataTypeIndex !== undefined) {
-                  newExpectedValues[editingDataTypeIndex] = expectedValue;
+                if (editingExpectedValueIndex !== undefined) {
+                  newExpectedValues[editingExpectedValueIndex] = expectedValue;
                 } else {
                   newExpectedValues.push(expectedValue);
                 }
                 setValue(`expectedValues`, newExpectedValues);
               }
 
-              closeCustomDataTypeMenu();
+              closeCustomExpectedValueBuilder();
             }}
           >
             Save expected value
