@@ -47,7 +47,7 @@ impl<'p, R> Filter<'p, R>
 where
     R: Record<QueryPath<'p>: OntologyQueryPath>,
 {
-    /// Creates a `Filter` to search for all ontology types of kind `T` at their latest version.
+    /// Creates a `Filter` to search for all ontology types of kind `R` at their latest version.
     #[must_use]
     pub fn for_latest_version() -> Self {
         Self::Equal(
@@ -58,7 +58,7 @@ where
         )
     }
 
-    /// Creates a `Filter` to search for a specific ontology type of kind `T`, identified by its
+    /// Creates a `Filter` to search for a specific ontology type of kind `R`, identified by its
     /// [`VersionedUri`].
     #[must_use]
     pub fn for_versioned_uri(versioned_uri: &'p VersionedUri) -> Self {
@@ -78,7 +78,7 @@ where
         ])
     }
 
-    /// Creates a `Filter` to search for a specific ontology type of kind `T`, identified by its
+    /// Creates a `Filter` to search for a specific ontology type of kind `R`, identified by its
     /// [`OntologyTypeEditionId`].
     #[must_use]
     pub fn for_ontology_type_edition_id(
