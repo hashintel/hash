@@ -13,9 +13,9 @@ keywords = ["errorstack", "error-handling", "macro", "derive", "no_std"]
 categories = ["rust-patterns", "no-std"]
 
 [lib]
-proc-macro = true
+proc-macro = false
 
 [dependencies]
+error-stack = { version = "0.2.4", default-features = false }
 
 [dev-dependencies]
-error-stack = { version = "0.2.4", default-features = false }
