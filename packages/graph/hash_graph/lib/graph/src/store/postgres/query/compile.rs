@@ -72,7 +72,10 @@ impl<'c, 'p: 'c, T: PostgresRecord> SelectCompiler<'c, 'p, T> {
     ///
     /// Optionally, the added selection can be distinct or ordered by providing [`Distinctness`]
     /// and [`Ordering`].
-    pub fn add_selection_path(&mut self, path: &'c T::Path<'_>) -> impl RowIndex + Display + Copy {
+    pub fn add_selection_path(
+        &mut self,
+        path: &'c T::QueryPath<'_>,
+    ) -> impl RowIndex + Display + Copy {
         let alias = self.add_join_statements(path);
         self.statement.selects.push(SelectExpression::from_column(
             path.terminating_column().aliased(alias),
@@ -87,7 +90,7 @@ impl<'c, 'p: 'c, T: PostgresRecord> SelectCompiler<'c, 'p, T> {
     /// and [`Ordering`].
     pub fn add_distinct_selection_with_ordering(
         &mut self,
-        path: &'c T::Path<'_>,
+        path: &'c T::QueryPath<'_>,
         distinctness: Distinctness,
         ordering: Option<Ordering>,
     ) -> impl RowIndex + Display + Copy {
@@ -162,7 +165,7 @@ impl<'c, 'p: 'c, T: PostgresRecord> SelectCompiler<'c, 'p, T> {
     //          ensure compatibility
     fn compile_latest_ontology_version_filter(
         &mut self,
-        path: &T::Path<'_>,
+        path: &T::QueryPath<'_>,
         operator: EqualityOperator,
     ) -> Condition<'c> {
         let version_column = Column::TypeIds(TypeIds::Version).aliased(Alias {
@@ -216,7 +219,7 @@ impl<'c, 'p: 'c, T: PostgresRecord> SelectCompiler<'c, 'p, T> {
 
     fn compile_latest_entity_version_filter(
         &mut self,
-        path: &T::Path<'_>,
+        path: &T::QueryPath<'_>,
         operator: EqualityOperator,
     ) -> Condition<'c> {
         let alias = self.add_join_statements(path);
@@ -284,7 +287,7 @@ impl<'c, 'p: 'c, T: PostgresRecord> SelectCompiler<'c, 'p, T> {
         }
     }
 
-    pub fn compile_path_column(&mut self, path: &'p T::Path<'_>) -> AliasedColumn<'c> {
+    pub fn compile_path_column(&mut self, path: &'p T::QueryPath<'_>) -> AliasedColumn<'c> {
         let column = path.terminating_column();
         let column =
             if let Column::Entities(Entities::Properties(Some(JsonField::Text(field)))) = column {
@@ -405,7 +408,7 @@ impl<'c, 'p: 'c, T: PostgresRecord> SelectCompiler<'c, 'p, T> {
     /// compiled, each subsequent call will result in a new join-chain.
     ///
     /// [`Relation`]: super::table::Relation
-    fn add_join_statements(&mut self, path: &T::Path<'_>) -> Alias {
+    fn add_join_statements(&mut self, path: &T::QueryPath<'_>) -> Alias {
         let mut current_table = self.statement.from;
 
         for relation in path.relations() {

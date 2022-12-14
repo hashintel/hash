@@ -155,7 +155,7 @@ impl DataTypeWithMetadata {
 
 impl Record for DataTypeWithMetadata {
     type Metadata = OntologyElementMetadata;
-    type Path<'q> = DataTypeQueryPath;
+    type QueryPath<'q> = DataTypeQueryPath;
 
     fn metadata(&self) -> &OntologyElementMetadata {
         &self.metadata
@@ -179,7 +179,7 @@ impl PropertyTypeWithMetadata {
 
 impl Record for PropertyTypeWithMetadata {
     type Metadata = OntologyElementMetadata;
-    type Path<'q> = PropertyTypeQueryPath;
+    type QueryPath<'q> = PropertyTypeQueryPath;
 
     fn metadata(&self) -> &OntologyElementMetadata {
         &self.metadata
@@ -203,7 +203,7 @@ impl EntityTypeWithMetadata {
 
 impl Record for EntityTypeWithMetadata {
     type Metadata = OntologyElementMetadata;
-    type Path<'q> = EntityTypeQueryPath;
+    type QueryPath<'q> = EntityTypeQueryPath;
 
     fn metadata(&self) -> &OntologyElementMetadata {
         &self.metadata

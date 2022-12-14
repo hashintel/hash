@@ -32,7 +32,7 @@ use crate::{
 /// as a root vertex.
 ///
 /// Depending on the type of the [`StructuralQuery`], different [`RecordPath`]s are valid. Please
-/// see the documentation on the implementation of [`Record::Path`] for the valid paths for
+/// see the documentation on the implementation of [`Record::QueryPath`] for the valid paths for
 /// each type.
 ///
 /// # Depth
@@ -168,7 +168,7 @@ pub struct StructuralQuery<'q, T: Record> {
 //   see https://github.com/rust-lang/rust/issues/26925
 impl<'q, T> Debug for StructuralQuery<'q, T>
 where
-    T: Record<Path<'q>: Debug>,
+    T: Record<QueryPath<'q>: Debug>,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("StructuralQuery")

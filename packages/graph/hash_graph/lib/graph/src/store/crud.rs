@@ -27,7 +27,7 @@ pub trait Read<T: Record + Send>: Sync {
 
     async fn read_one(&self, query: &Filter<T>) -> Result<T, QueryError>
     where
-        for<'p> T::Path<'p>: Sync,
+        for<'p> T::QueryPath<'p>: Sync,
     {
         let mut records = self.read(query).await?;
         ensure!(

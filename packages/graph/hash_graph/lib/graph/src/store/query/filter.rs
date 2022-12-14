@@ -45,13 +45,13 @@ pub enum Filter<'q, T: Record> {
 
 impl<'q, T> Filter<'q, T>
 where
-    T: Record<Path<'q>: OntologyPath>,
+    T: Record<QueryPath<'q>: OntologyPath>,
 {
     /// Creates a `Filter` to search for all ontology types of kind `T` at their latest version.
     #[must_use]
     pub fn for_latest_version() -> Self {
         Self::Equal(
-            Some(FilterExpression::Path(<T::Path<'q>>::version())),
+            Some(FilterExpression::Path(<T::QueryPath<'q>>::version())),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "latest",
             )))),
@@ -64,13 +64,13 @@ where
     pub fn for_versioned_uri(versioned_uri: &'q VersionedUri) -> Self {
         Self::All(vec![
             Self::Equal(
-                Some(FilterExpression::Path(<T::Path<'q>>::base_uri())),
+                Some(FilterExpression::Path(<T::QueryPath<'q>>::base_uri())),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     versioned_uri.base_uri().as_str(),
                 )))),
             ),
             Self::Equal(
-                Some(FilterExpression::Path(<T::Path<'q>>::version())),
+                Some(FilterExpression::Path(<T::QueryPath<'q>>::version())),
                 Some(FilterExpression::Parameter(Parameter::SignedInteger(
                     versioned_uri.version().into(),
                 ))),
@@ -86,13 +86,13 @@ where
     ) -> Self {
         Self::All(vec![
             Self::Equal(
-                Some(FilterExpression::Path(<T::Path<'q>>::base_uri())),
+                Some(FilterExpression::Path(<T::QueryPath<'q>>::base_uri())),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     ontology_type_edition_id.base_id().as_str(),
                 )))),
             ),
             Self::Equal(
-                Some(FilterExpression::Path(<T::Path<'q>>::version())),
+                Some(FilterExpression::Path(<T::QueryPath<'q>>::version())),
                 Some(FilterExpression::Parameter(Parameter::SignedInteger(
                     ontology_type_edition_id.version().inner().into(),
                 ))),
@@ -333,7 +333,7 @@ impl<'q> Filter<'q, Entity> {
 
 impl<'q, T: Record> Filter<'q, T>
 where
-    T::Path<'q>: Display,
+    T::QueryPath<'q>: Display,
 {
     /// Converts the contained [`Parameter`]s to match the type of a `T::Path`.
     ///
@@ -367,7 +367,7 @@ where
 //   see https://github.com/rust-lang/rust/issues/26925
 impl<'q, T> Debug for Filter<'q, T>
 where
-    T: Record<Path<'q>: Debug>,
+    T: Record<QueryPath<'q>: Debug>,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -384,7 +384,7 @@ where
 //   see https://github.com/rust-lang/rust/issues/26925
 impl<'q, T> PartialEq for Filter<'q, T>
 where
-    T: Record<Path<'q>: PartialEq>,
+    T: Record<QueryPath<'q>: PartialEq>,
 {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -408,7 +408,7 @@ where
     bound = "'de: 'q, T::Path<'q>: Deserialize<'de>"
 )]
 pub enum FilterExpression<'q, T: Record> {
-    Path(T::Path<'q>),
+    Path(T::QueryPath<'q>),
     Parameter(Parameter<'q>),
 }
 
@@ -416,7 +416,7 @@ pub enum FilterExpression<'q, T: Record> {
 //   see https://github.com/rust-lang/rust/issues/26925
 impl<'q, T> Debug for FilterExpression<'q, T>
 where
-    T: Record<Path<'q>: Debug>,
+    T: Record<QueryPath<'q>: Debug>,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -430,7 +430,7 @@ where
 //   see https://github.com/rust-lang/rust/issues/26925
 impl<'q, T> PartialEq for FilterExpression<'q, T>
 where
-    T: Record<Path<'q>: PartialEq>,
+    T: Record<QueryPath<'q>: PartialEq>,
 {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -580,7 +580,7 @@ mod tests {
 
     fn test_filter_representation<'de, T>(actual: &Filter<'de, T>, expected: &'de serde_json::Value)
     where
-        T: Record<Path<'de>: Debug + Display + PartialEq + Deserialize<'de>>,
+        T: Record<QueryPath<'de>: Debug + Display + PartialEq + Deserialize<'de>>,
     {
         let mut expected =
             Filter::<T>::deserialize(expected).expect("Could not deserialize filter");

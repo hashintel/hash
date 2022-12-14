@@ -260,7 +260,7 @@ impl Entity {
 
 impl Record for Entity {
     type Metadata = EntityMetadata;
-    type Path<'q> = EntityQueryPath<'q>;
+    type QueryPath<'q> = EntityQueryPath<'q>;
 
     fn metadata(&self) -> &EntityMetadata {
         &self.metadata
