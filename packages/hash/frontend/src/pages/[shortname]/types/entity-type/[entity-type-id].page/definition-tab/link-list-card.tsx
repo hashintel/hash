@@ -2,7 +2,14 @@ import { EntityType, VersionedUri } from "@blockprotocol/type-system";
 import { Chip } from "@hashintel/hash-design-system";
 import { linkEntityTypeUri } from "@hashintel/hash-subgraph";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
-import { TableBody, TableCell, TableFooter, TableHead } from "@mui/material";
+import {
+  outlinedInputClasses,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  tableRowClasses,
+} from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import {
@@ -162,7 +169,22 @@ const LinkTypeRow = ({
             {link.schema.title}
           </EntityTypeTableTitleCellText>
         </TableCell>
-        <TableCell>
+        <TableCell
+          sx={
+            !entityTypeSelectorOpen
+              ? {
+                  [`.${tableRowClasses.root}:not(:hover) &`]: {
+                    [`.${outlinedInputClasses.root}`]: {
+                      boxShadow: "none",
+                    },
+                    [`.${outlinedInputClasses.notchedOutline}`]: {
+                      borderColor: "transparent !important",
+                    },
+                  },
+                }
+              : {}
+          }
+        >
           <Controller
             name={`links.${linkIndex}.entityTypes`}
             control={control}
