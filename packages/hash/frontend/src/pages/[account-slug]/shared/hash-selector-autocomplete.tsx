@@ -125,7 +125,10 @@ export const HashSelectorAutocomplete = <
   dropdownProps,
   autoFocus = true,
   ...rest
-}: HashSelectorAutocompleteProps<T, Multiple>) => {
+}: HashSelectorAutocompleteProps<
+  Multiple extends true ? (T extends any[] ? T[number] : T) : T,
+  Multiple
+>) => {
   const modifiers = useMemo(
     (): PopperProps["modifiers"] => [
       {
