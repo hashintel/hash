@@ -4,11 +4,11 @@ use crate::{
     ontology::{EntityTypeQueryPath, EntityTypeWithMetadata},
     store::postgres::query::{
         table::{Column, EntityTypes, JsonField, Relation, TypeIds},
-        Path, PostgresQueryRecord, Table,
+        Path, PostgresRecord, Table,
     },
 };
 
-impl PostgresQueryRecord for EntityTypeWithMetadata {
+impl PostgresRecord for EntityTypeWithMetadata {
     fn base_table() -> Table {
         Table::EntityTypes
     }

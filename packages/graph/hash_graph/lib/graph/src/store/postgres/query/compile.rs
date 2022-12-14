@@ -8,9 +8,9 @@ use crate::store::{
         expression::Constant,
         table::{Entities, EntityTypes, JsonField, Relation, TypeIds},
         Alias, AliasedColumn, AliasedTable, Column, Condition, Distinctness, EqualityOperator,
-        Expression, Function, JoinExpression, OrderByExpression, Ordering, Path,
-        PostgresQueryRecord, SelectExpression, SelectStatement, Table, Transpile, WhereExpression,
-        WindowStatement, WithExpression,
+        Expression, Function, JoinExpression, OrderByExpression, Ordering, Path, PostgresRecord,
+        SelectExpression, SelectStatement, Table, Transpile, WhereExpression, WindowStatement,
+        WithExpression,
     },
     query::{Filter, FilterExpression, Parameter},
 };
@@ -32,7 +32,7 @@ pub struct SelectCompiler<'c, 'p, T> {
     _marker: PhantomData<fn(*const T)>,
 }
 
-impl<'c, 'p: 'c, T: PostgresQueryRecord> SelectCompiler<'c, 'p, T> {
+impl<'c, 'p: 'c, T: PostgresRecord> SelectCompiler<'c, 'p, T> {
     /// Creates a new, empty compiler.
     pub fn new() -> Self {
         Self {

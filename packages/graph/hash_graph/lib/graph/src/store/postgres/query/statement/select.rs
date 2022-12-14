@@ -88,14 +88,14 @@ mod tests {
         },
         store::{
             postgres::query::{
-                test_helper::trim_whitespace, Distinctness, Ordering, PostgresQueryRecord,
+                test_helper::trim_whitespace, Distinctness, Ordering, PostgresRecord,
                 SelectCompiler,
             },
             query::{Filter, FilterExpression, Parameter},
         },
     };
 
-    fn test_compilation<'f, 'q: 'f, T: PostgresQueryRecord + 'static>(
+    fn test_compilation<'f, 'q: 'f, T: PostgresRecord + 'static>(
         compiler: &SelectCompiler<'f, 'q, T>,
         expected_statement: &'static str,
         expected_parameters: &[&'f dyn ToSql],

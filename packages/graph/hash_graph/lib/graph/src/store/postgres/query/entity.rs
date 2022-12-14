@@ -4,11 +4,11 @@ use crate::{
     knowledge::{Entity, EntityQueryPath},
     store::postgres::query::{
         table::{Column, Entities, JsonField, Relation},
-        Path, PostgresQueryRecord, Table,
+        Path, PostgresRecord, Table,
     },
 };
 
-impl PostgresQueryRecord for Entity {
+impl PostgresRecord for Entity {
     fn base_table() -> Table {
         Table::Entities
     }

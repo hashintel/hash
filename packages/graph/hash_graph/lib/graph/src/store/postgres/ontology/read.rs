@@ -14,7 +14,7 @@ use crate::{
         crud::Read,
         postgres::{
             ontology::OntologyDatabaseType,
-            query::{Distinctness, PostgresQueryRecord, SelectCompiler},
+            query::{Distinctness, PostgresRecord, SelectCompiler},
         },
         query::{Filter, OntologyPath},
         AsClient, PostgresStore, QueryError,
@@ -24,7 +24,7 @@ use crate::{
 #[async_trait]
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
-    T: OntologyTypeWithMetadata + PostgresQueryRecord + Send,
+    T: OntologyTypeWithMetadata + PostgresRecord + Send,
     T::OntologyType: OntologyDatabaseType,
     for<'q> T::Path<'q>: Send + Sync + OntologyPath,
 {
