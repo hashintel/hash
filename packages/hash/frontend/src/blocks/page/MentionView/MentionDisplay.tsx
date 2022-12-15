@@ -9,6 +9,7 @@ import { systemUserShortname } from "@hashintel/hash-shared/environment";
 import { useUsers } from "../../../components/hooks/useUsers";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { Link } from "../../../shared/ui";
+import { constructPageRelativeUrl } from "../../../lib/routes";
 
 interface MentionDisplayProps {
   entityId: EntityId;
@@ -77,11 +78,16 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
           pageTitle = page?.title ?? "Unknown Page";
         }
 
+        const pageEntityUuid = extractEntityUuidFromEntityId(entityId);
+
         return {
           title: pageTitle,
-          href: `/@${page?.ownerShortname}/${extractEntityUuidFromEntityId(
-            entityId,
-          )}`,
+          href: page
+            ? constructPageRelativeUrl({
+                workspaceShortname: page.ownerShortname,
+                pageEntityUuid,
+              })
+            : "",
           icon: <ArticleIcon style={{ fontSize: "1em" }} />,
         };
       }

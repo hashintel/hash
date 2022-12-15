@@ -14,6 +14,7 @@ import {
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 import { createPage, setParentPage } from "../../graphql/queries/page.queries";
 import { useWorkspaceShortnameByEntityUuid } from "./use-workspace-shortname-by-entity-uuid";
+import { constructPageRelativeUrl } from "../../lib/routes";
 
 export const useCreateSubPage = (ownedById: string) => {
   const router = useRouter();
@@ -54,9 +55,11 @@ export const useCreateSubPage = (ownedById: string) => {
           },
         });
 
-        if (pageEntityId) {
+        if (workspaceShortname && pageEntityId) {
           const pageEntityUuid = extractEntityUuidFromEntityId(pageEntityId);
-          return router.push(`/@${workspaceShortname}/${pageEntityUuid}`);
+          return router.push(
+            constructPageRelativeUrl({ workspaceShortname, pageEntityUuid }),
+          );
         }
       }
     },

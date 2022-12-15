@@ -66,6 +66,7 @@ import {
   TOP_CONTEXT_BAR_HEIGHT,
   TopContextBar,
 } from "../shared/top-context-bar";
+import { constructPageRelativeUrl } from "../../lib/routes";
 
 type PageProps = {
   pageWorkspace: MinimalUser | MinimalOrg;
@@ -251,10 +252,13 @@ const generateCrumbsFromPages = ({
   let arr = [];
 
   while (currentPage) {
-    const entityUuid = extractEntityUuidFromEntityId(currentPage.entityId);
+    const pageEntityUuid = extractEntityUuidFromEntityId(currentPage.entityId);
     arr.push({
       title: currentPage.title,
-      href: `/@${ownerShortname}/${entityUuid}`,
+      href: constructPageRelativeUrl({
+        workspaceShortname: ownerShortname,
+        pageEntityUuid,
+      }),
       id: currentPage.entityId,
       icon: <PageIcon entityId={currentPage.entityId} size="small" />,
     });

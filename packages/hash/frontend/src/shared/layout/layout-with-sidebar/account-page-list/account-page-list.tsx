@@ -47,6 +47,7 @@ import {
 } from "./utils";
 import { IDENTATION_WIDTH } from "./page-tree-item";
 import { PagesLoadingState } from "./pages-loading-state";
+import { constructPageRelativeUrl } from "../../../../lib/routes";
 
 type AccountPageListProps = {
   accountId: string;
@@ -260,14 +261,17 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
         const expandable = !!children.length;
         const collapsed = collapsedPageIds.includes(entityId);
 
-        const entityUuid = extractEntityUuidFromEntityId(entityId);
+        const pageEntityUuid = extractEntityUuidFromEntityId(entityId);
 
         const item = (
           <AccountPageListItem
             key={entityId}
             title={title}
             pageEntityId={entityId}
-            pagePath={`/@${ownerShortname}/${entityUuid}`}
+            pagePath={constructPageRelativeUrl({
+              workspaceShortname: ownerShortname,
+              pageEntityUuid,
+            })}
             depth={entityId === activeId && projected ? projected.depth : depth}
             onCollapse={expandable ? () => handleToggle(entityId) : undefined}
             selected={
