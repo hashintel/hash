@@ -12,7 +12,7 @@ import {
 import { UserModel } from "@hashintel/hash-api/src/model";
 import {
   createPropertyType,
-  getPropertyType,
+  getPropertyTypeById,
   updatePropertyType,
 } from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
 import {
@@ -89,7 +89,7 @@ describe("Property type CRU", () => {
   });
 
   it("can read a property type", async () => {
-    const fetchedPropertyType = await getPropertyType(
+    const fetchedPropertyType = await getPropertyTypeById(
       { graphApi },
       {
         propertyTypeId: createdPropertyType.schema.$id,

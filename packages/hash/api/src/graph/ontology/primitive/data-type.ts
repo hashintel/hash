@@ -73,7 +73,7 @@ export const createDataType: ImpureGraphFunction<
  *
  * @param params.dataTypeId the unique versioned URI for a data type.
  */
-export const getDataType: ImpureGraphFunction<
+export const getDataTypeById: ImpureGraphFunction<
   {
     dataTypeId: VersionedUri;
   },

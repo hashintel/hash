@@ -16,7 +16,7 @@ import {
 import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
 import {
   createEntityType,
-  getEntityType,
+  getEntityTypeById,
   updateEntityType,
 } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
@@ -210,7 +210,7 @@ describe("Entity type CRU", () => {
   });
 
   it("can read an entity type", async () => {
-    const fetchedEntityType = await getEntityType(
+    const fetchedEntityType = await getEntityTypeById(
       { graphApi },
       {
         entityTypeId: createdEntityType.schema.$id,

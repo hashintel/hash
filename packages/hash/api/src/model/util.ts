@@ -23,12 +23,12 @@ import { GraphApi } from "../graph";
 import { systemUserAccountId } from "../graph/system-user";
 import {
   createPropertyType,
-  getPropertyType,
+  getPropertyTypeById,
 } from "../graph/ontology/primitive/property-type";
 import { logger } from "../logger";
 import {
   createEntityType,
-  getEntityType,
+  getEntityTypeById,
 } from "../graph/ontology/primitive/entity-type";
 import { NotFoundError } from "../lib/error";
 
@@ -172,7 +172,7 @@ export const propertyTypeInitializer = (
       const propertyTypeSchema = generateSystemPropertyTypeSchema(params);
 
       // initialize
-      propertyType = await getPropertyType(
+      propertyType = await getPropertyTypeById(
         { graphApi },
         {
           propertyTypeId: propertyTypeSchema.$id,
@@ -351,7 +351,7 @@ export const entityTypeInitializer = (
           : generateSystemEntityTypeSchema(params);
 
       // initialize
-      entityType = await getEntityType(
+      entityType = await getEntityTypeById(
         { graphApi },
         {
           entityTypeId: entityTypeSchema.$id,

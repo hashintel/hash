@@ -25,7 +25,7 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { linkedTreeFlatten } from "../../util";
 import {
-  getEntityType,
+  getEntityTypeById,
   isEntityTypeLinkEntityType,
 } from "../../graph/ontology/primitive/entity-type";
 
@@ -95,7 +95,7 @@ export default class {
     if (cachedEntityType) {
       entityType = cachedEntityType;
     } else {
-      entityType = await getEntityType({ graphApi }, { entityTypeId });
+      entityType = await getEntityTypeById({ graphApi }, { entityTypeId });
       if (cachedEntityTypes) {
         cachedEntityTypes.set(entityTypeId, entityType);
       }
@@ -218,7 +218,7 @@ export default class {
           if (!parentEntity) {
             throw new ApolloError("Could not find parent entity");
           }
-          const linkEntityType = await getEntityType(
+          const linkEntityType = await getEntityTypeById(
             { graphApi },
             {
               entityTypeId: link.meta.linkEntityTypeId,
@@ -281,7 +281,7 @@ export default class {
         );
       }
 
-      const entityType = await getEntityType(
+      const entityType = await getEntityTypeById(
         { graphApi },
         {
           entityTypeId,

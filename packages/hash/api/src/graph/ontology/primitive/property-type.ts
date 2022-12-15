@@ -65,7 +65,7 @@ export const createPropertyType: ImpureGraphFunction<
  *
  * @param params.propertyTypeId the unique versioned URI for a property type.
  */
-export const getPropertyType: ImpureGraphFunction<
+export const getPropertyTypeById: ImpureGraphFunction<
   {
     propertyTypeId: VersionedUri;
   },

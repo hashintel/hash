@@ -12,7 +12,7 @@ import {
 import { LoggedInGraphQLContext } from "../../context";
 import {
   createPropertyType,
-  getPropertyType,
+  getPropertyTypeById,
   updatePropertyType,
 } from "../../../graph/ontology/primitive/property-type";
 
@@ -133,7 +133,7 @@ export const updatePropertyTypeResolver: ResolverFn<
   const { propertyTypeId, updatedPropertyType: updatedPropertyTypeSchema } =
     params;
 
-  const propertyType = await getPropertyType(
+  const propertyType = await getPropertyTypeById(
     { graphApi },
     {
       propertyTypeId,

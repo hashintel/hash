@@ -9,7 +9,7 @@ import { DataType, TypeSystemInitializer } from "@blockprotocol/type-system";
 import { UserModel } from "@hashintel/hash-api/src/model";
 import {
   createDataType,
-  getDataType,
+  getDataTypeById,
   updateDataType,
 } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
 import { DataTypeWithMetadata } from "@hashintel/hash-subgraph";
@@ -70,7 +70,7 @@ describe("Data type CRU", () => {
   });
 
   it("can read a data type", async () => {
-    const fetchedDataType = await getDataType(
+    const fetchedDataType = await getDataTypeById(
       { graphApi },
       {
         dataTypeId: createdDataType.schema.$id,

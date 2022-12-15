@@ -14,7 +14,7 @@ import {
 } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import {
-  getEntityType,
+  getEntityTypeById,
   isEntityTypeLinkEntityType,
 } from "../../graph/ontology/primitive/entity-type";
 
@@ -75,7 +75,7 @@ export default class extends EntityModel {
 
     const [linkEntityType, leftEntityModel, rightEntityModel] =
       await Promise.all([
-        getEntityType(
+        getEntityTypeById(
           { graphApi },
           {
             entityTypeId,

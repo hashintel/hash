@@ -23,7 +23,7 @@ import {
 import { mapEntityModelToGQL } from "../model-mapping";
 import { LoggedInGraphQLContext } from "../../../context";
 import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
-import { getEntityType } from "../../../../graph/ontology/primitive/entity-type";
+import { getEntityTypeById } from "../../../../graph/ontology/primitive/entity-type";
 
 /**
  * @todo - Remove this when the Subgraph is appropriately queryable for a timestamp
@@ -77,7 +77,7 @@ export const createEntityResolver: ResolverFn<
         EntityModel.getLatest(graphApi, {
           entityId: rightEntityId,
         }),
-        getEntityType({ graphApi }, { entityTypeId }),
+        getEntityTypeById({ graphApi }, { entityTypeId }),
       ]);
 
     entityModel = await LinkEntityModel.createLinkEntity(graphApi, {

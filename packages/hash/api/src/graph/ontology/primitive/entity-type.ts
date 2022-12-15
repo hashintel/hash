@@ -71,7 +71,7 @@ export const createEntityType: ImpureGraphFunction<
  *
  * @param params.entityTypeId the unique versioned URI for an entity type.
  */
-export const getEntityType: ImpureGraphFunction<
+export const getEntityTypeById: ImpureGraphFunction<
   {
     entityTypeId: VersionedUri;
   },
