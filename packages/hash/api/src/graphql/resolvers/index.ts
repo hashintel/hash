@@ -22,17 +22,17 @@ import {
 import { getLinkedAggregation } from "./linkedAggregation/getLinkedAggregation";
 import { getAllLatestDataTypes, getDataType } from "./ontology/data-type";
 import {
-  createPropertyType,
-  getAllLatestPropertyTypes,
-  getPropertyType,
-  updatePropertyType,
+  createPropertyTypeResolver,
+  getAllLatestPropertyTypesResolver,
+  getPropertyTypeResolver,
+  updatePropertyTypeResolver,
 } from "./ontology/property-type";
 
 import {
-  createEntityType,
-  getAllLatestEntityTypes,
-  getEntityType,
-  updateEntityType,
+  createEntityTypeResolver,
+  getAllLatestEntityTypesResolver,
+  getEntityTypeResolver,
+  updateEntityTypeResolver,
 } from "./ontology/entity-type";
 import { updatePageContents, pageContents } from "./knowledge/page";
 import {
@@ -46,10 +46,10 @@ import { createComment } from "./knowledge/comment/comment";
 import { blocks } from "./knowledge/block/block";
 import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
 import {
-  createEntity,
-  getEntity,
-  getAllLatestEntities,
-  updateEntity,
+  createEntityResolver,
+  getEntityResolver,
+  getAllLatestEntitiesResolver,
+  updateEntityResolver,
   archiveEntity,
 } from "./knowledge/entity/entity";
 import { setParentPage } from "./knowledge/page/set-parent-page";
@@ -82,17 +82,21 @@ export const resolvers = {
     // Ontology
     getAllLatestDataTypes: loggedInAndSignedUp(getAllLatestDataTypes),
     getDataType,
-    getAllLatestPropertyTypes: loggedInAndSignedUp(getAllLatestPropertyTypes),
-    getPropertyType,
-    getAllLatestEntityTypes: loggedInAndSignedUp(getAllLatestEntityTypes),
-    getEntityType,
+    getAllLatestPropertyTypes: loggedInAndSignedUp(
+      getAllLatestPropertyTypesResolver,
+    ),
+    getPropertyType: getPropertyTypeResolver,
+    getAllLatestEntityTypes: loggedInAndSignedUp(
+      getAllLatestEntityTypesResolver,
+    ),
+    getEntityType: getEntityTypeResolver,
     // Knowledge
     page,
     pages: loggedInAndSignedUp(pages),
     pageComments: loggedInAndSignedUp(pageComments),
     blocks: loggedInAndSignedUp(blocks),
-    getEntity: loggedInAndSignedUp(getEntity),
-    getAllLatestEntities,
+    getEntity: loggedInAndSignedUp(getEntityResolver),
+    getAllLatestEntities: getAllLatestEntitiesResolver,
     hashInstanceEntity,
   },
 
@@ -112,13 +116,13 @@ export const resolvers = {
     executeGithubDiscoverTask: loggedInAndSignedUp(executeGithubDiscoverTask),
     executeGithubReadTask: loggedInAndSignedUp(executeGithubReadTask),
     // Ontology
-    createPropertyType: loggedInAndSignedUp(createPropertyType),
-    updatePropertyType: loggedInAndSignedUp(updatePropertyType),
-    createEntityType: loggedInAndSignedUp(createEntityType),
-    updateEntityType: loggedInAndSignedUp(updateEntityType),
+    createPropertyType: loggedInAndSignedUp(createPropertyTypeResolver),
+    updatePropertyType: loggedInAndSignedUp(updatePropertyTypeResolver),
+    createEntityType: loggedInAndSignedUp(createEntityTypeResolver),
+    updateEntityType: loggedInAndSignedUp(updateEntityTypeResolver),
     // Knowledge
-    createEntity: loggedInAndSignedUp(createEntity),
-    updateEntity: loggedIn(updateEntity),
+    createEntity: loggedInAndSignedUp(createEntityResolver),
+    updateEntity: loggedIn(updateEntityResolver),
     archiveEntity: loggedIn(archiveEntity),
     createPage: loggedInAndSignedUp(createPage),
     setParentPage: loggedInAndSignedUp(setParentPage),
