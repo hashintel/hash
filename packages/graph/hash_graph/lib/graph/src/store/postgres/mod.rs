@@ -130,6 +130,7 @@ where
     /// - if checking for the [`BaseUri`] failed.
     ///
     /// [`BaseUri`]: type_system::uri::BaseUri
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn contains_base_uri(&self, base_uri: &BaseUri) -> Result<bool, QueryError> {
         Ok(self
             .client
@@ -156,6 +157,7 @@ where
     /// # Errors
     ///
     /// - if checking for the [`VersionedUri`] failed.
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn contains_uri(&self, uri: &VersionedUri) -> Result<bool, QueryError> {
         let version = i64::from(uri.version());
         Ok(self
@@ -183,6 +185,7 @@ where
     /// # Errors
     ///
     /// - if inserting the [`VersionedUri`] failed.
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn insert_uri(
         &self,
         uri: &VersionedUri,
@@ -213,6 +216,7 @@ where
     /// - if inserting the [`BaseUri`] failed.
     ///
     /// [`BaseUri`]: type_system::uri::BaseUri
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn insert_base_uri(&self, base_uri: &BaseUri) -> Result<(), InsertionError> {
         self.as_client()
             .query_one(
@@ -236,6 +240,7 @@ where
     /// # Errors
     ///
     /// - if inserting the [`VersionId`] failed.
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn insert_version_id(&self, version_id: VersionId) -> Result<(), InsertionError> {
         self.as_client()
             .query_one(
@@ -265,6 +270,7 @@ where
     /// - If the [`BaseUri`] already exists
     ///
     /// [`BaseUri`]: type_system::uri::BaseUri
+    #[tracing::instrument(level = "info", skip(self, database_type))]
     async fn create<T>(
         &self,
         database_type: T,
@@ -325,6 +331,7 @@ where
     /// - If the [`BaseUri`] does not already exist
     ///
     /// [`BaseUri`]: type_system::uri::BaseUri
+    #[tracing::instrument(level = "info", skip(self, database_type))]
     async fn update<T>(
         &self,
         database_type: T,
@@ -384,6 +391,7 @@ where
     /// # Errors
     ///
     /// - if inserting failed.
+    #[tracing::instrument(level = "debug", skip(self, database_type))]
     async fn insert_with_id<T>(
         &self,
         version_id: VersionId,
@@ -425,6 +433,7 @@ where
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip(self, property_type))]
     async fn insert_property_type_references(
         &self,
         property_type: &PropertyType,
@@ -473,6 +482,7 @@ where
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip(self, entity_type))]
     async fn insert_entity_type_references(
         &self,
         entity_type: &EntityType,
@@ -543,6 +553,7 @@ where
     }
 
     // TODO: Tidy these up by having an `Into<VersionedUri>` method or something for the references
+    #[tracing::instrument(level = "debug", skip(self, referenced_entity_types))]
     async fn entity_type_reference_ids<'p, I>(
         &self,
         referenced_entity_types: I,
@@ -559,6 +570,7 @@ where
         Ok(ids)
     }
 
+    #[tracing::instrument(level = "debug", skip(self, referenced_property_types))]
     async fn property_type_reference_ids<'p, I>(
         &self,
         referenced_property_types: I,
@@ -575,6 +587,7 @@ where
         Ok(ids)
     }
 
+    #[tracing::instrument(level = "debug", skip(self, referenced_data_types))]
     async fn data_type_reference_ids<'p, I>(
         &self,
         referenced_data_types: I,
@@ -596,6 +609,7 @@ where
     /// # Errors:
     ///
     /// - if the entry referred to by `uri` does not exist.
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn version_id_by_uri(&self, uri: &VersionedUri) -> Result<VersionId, QueryError> {
         let version = i64::from(uri.version());
         Ok(self
@@ -905,6 +919,7 @@ impl PostgresStore<Transaction<'_>> {
 
 #[async_trait]
 impl<C: AsClient> AccountStore for PostgresStore<C> {
+    #[tracing::instrument(level = "info", skip(self))]
     async fn insert_account_id(&mut self, account_id: AccountId) -> Result<(), InsertionError> {
         self.as_client()
             .query_one(
