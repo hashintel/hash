@@ -56,8 +56,12 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../../lib/apollo-client";
-import { constructMinimalOrg, MinimalOrg } from "../../lib/org";
-import { constructMinimalUser, MinimalUser } from "../../lib/user";
+import {
+  constructMinimalOrg,
+  MinimalOrg,
+  constructMinimalUser,
+  MinimalUser,
+} from "../../lib/user-and-org";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { useIsReadonlyMode } from "../../shared/readonly-mode";
