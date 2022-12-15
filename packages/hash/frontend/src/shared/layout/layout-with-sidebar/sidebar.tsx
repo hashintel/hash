@@ -21,8 +21,7 @@ export const PageSidebar: FunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
   const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
-  /** @todo: re-use the `pageEntityId` provided by `getServerSideProps` */
-  const { routePageEntityId } =
+  const { routePageEntityUuid } =
     useRoutePageInfo({ allowUndefined: true }) ?? {};
 
   return (
@@ -96,7 +95,7 @@ export const PageSidebar: FunctionComponent = () => {
           <>
             {/* PAGES */}
             <AccountPageList
-              currentPageEntityId={routePageEntityId}
+              currentPageEntityUuid={routePageEntityUuid}
               accountId={activeWorkspaceAccountId}
             />
             {/* TYPES */}

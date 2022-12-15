@@ -1,7 +1,3 @@
-import {
-  EntityId,
-  entityIdFromOwnedByIdAndEntityUuid,
-} from "@hashintel/hash-subgraph";
 import { useRouter } from "next/router";
 import {
   createContext,
@@ -14,11 +10,9 @@ import {
   parsePageUrlQueryParams,
   tbdIsPageParsedUrlQuery,
 } from "../../pages/[account-slug]/[page-slug].page";
-import { useRouteWorkspaceInfo } from "./route-workspace-info";
 
 type RoutePageInfo = {
   routePageEntityUuid: string;
-  routePageEntityId?: EntityId;
 };
 
 const RoutePageInfoContext = createContext<RoutePageInfo | undefined>(
@@ -35,9 +29,6 @@ export const RoutePageInfoProvider: FunctionComponent<{
 }> = ({ children }) => {
   const router = useRouter();
 
-  const routeWorkspaceInfo = useRouteWorkspaceInfo({ allowUndefined: true });
-  const { routeWorkspace } = routeWorkspaceInfo ?? {};
-
   const routePageEntityUuid = useMemo(() => {
     if (tbdIsPageParsedUrlQuery(router.query)) {
       return parsePageUrlQueryParams(router.query).pageEntityUuid;
@@ -45,20 +36,9 @@ export const RoutePageInfoProvider: FunctionComponent<{
     return undefined;
   }, [router]);
 
-  const routePageEntityId = useMemo(() => {
-    const routeOwnedById = routeWorkspace?.accountId;
-
-    return routeOwnedById && routePageEntityUuid
-      ? entityIdFromOwnedByIdAndEntityUuid(routeOwnedById, routePageEntityUuid)
-      : undefined;
-  }, [routeWorkspace, routePageEntityUuid]);
-
   const contextValue = useMemo<RoutePageInfo | undefined>(
-    () =>
-      routePageEntityUuid
-        ? { routePageEntityUuid, routePageEntityId }
-        : undefined,
-    [routePageEntityUuid, routePageEntityId],
+    () => (routePageEntityUuid ? { routePageEntityUuid } : undefined),
+    [routePageEntityUuid],
   );
 
   return (

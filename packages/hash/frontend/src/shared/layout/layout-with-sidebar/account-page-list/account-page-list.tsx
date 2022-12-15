@@ -26,7 +26,6 @@ import {
   DragStartEvent,
 } from "@dnd-kit/core";
 import {
-  EntityId,
   extractEntityUuidFromEntityId,
   isEntityId,
 } from "@hashintel/hash-subgraph";
@@ -51,7 +50,7 @@ import { PagesLoadingState } from "./pages-loading-state";
 
 type AccountPageListProps = {
   accountId: string;
-  currentPageEntityId?: EntityId;
+  currentPageEntityUuid?: string;
 };
 
 const measuringConfig = {
@@ -61,7 +60,7 @@ const measuringConfig = {
 };
 
 export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
-  currentPageEntityId,
+  currentPageEntityUuid,
   accountId,
 }) => {
   const { data, loading: pagesLoading } = useAccountPages(accountId);
@@ -271,7 +270,9 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
             pagePath={`/@${ownerShortname}/${entityUuid}`}
             depth={entityId === activeId && projected ? projected.depth : depth}
             onCollapse={expandable ? () => handleToggle(entityId) : undefined}
-            selected={currentPageEntityId === entityId}
+            selected={
+              currentPageEntityUuid === extractEntityUuidFromEntityId(entityId)
+            }
             expandable={expandable}
             expanded={expanded}
             collapsed={collapsed}
