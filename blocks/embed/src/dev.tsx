@@ -65,9 +65,22 @@ const AppComponent: FunctionComponent = () => {
     useState(initialVariantIndex);
 
   return (
-    <div className={tw`mt-4 w-1/2 mx-auto`}>
+    <div
+      style={{
+        marginLeft: "auto",
+        marginRight: "auto",
+        marginTop: "1rem",
+        width: "50%",
+      }}
+    >
       <select
-        className={tw`text-base border-1 border-gray-300 rounded-md p-1`}
+        style={{
+          borderColor: "#D1D5DB",
+          borderRadius: "0.375rem",
+          fontSize: "1rem",
+          lineHeight: "1.5rem",
+          padding: "0.25rem",
+        }}
         value={selectedVariantIndex}
         onChange={(event) =>
           setSelectedVariantIndex(parseInt(event.target.value, 10))

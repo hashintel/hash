@@ -314,7 +314,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
       !!embedType && PROVIDER_NAMES_THAT_CANT_BE_RESIZED.has(embedType);
 
     return (
-      <div className={tw`flex justify-center`}>
+      <div style={{ display: "flex", justifyContent: "center" }}>
         <div>
           {shouldNotBeResized ? (
             <HtmlBlock
@@ -336,7 +336,19 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         <button
           onClick={resetData}
           type="button"
-          className={tw`border-solid bg-gray-100 w-10 h-10 flex items-center justify-center ml-1 border-1 border-gray-300 rounded-sm self-start`}
+          style={{
+            alignItems: "center",
+            alignSelf: "flex-start",
+            backgroundColor: "#F3F4F6",
+            borderColor: "#D1D5DB",
+            borderRadius: "0.125rem",
+            borderStyle: "solid",
+            display: "flex",
+            height: "2.5rem",
+            justifyContent: "center",
+            marginLeft: "0.25rem",
+            width: "2.5rem",
+          }}
         >
           <Pencil />
         </button>
@@ -345,7 +357,14 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   };
 
   return (
-    <div className={tw`w-full font-sans`} ref={containerRef}>
+    <div
+      style={{
+        fontFamily:
+          'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"',
+        width: "100%",
+      }}
+      ref={containerRef}
+    >
       {renderContent()}
     </div>
   );

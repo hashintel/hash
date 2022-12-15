@@ -75,10 +75,10 @@ export const ResizeImageBlock: FunctionComponent<ResizeBlockProps> = ({
   };
 
   return (
-    <div className={tw`relative flex group`}>
+    <div style={{ display: "flex", position: "relative" }}>
       {/* eslint-disable-next-line jsx-a11y/img-redundant-alt */}
       <img
-        className={tw`mx-auto max-w-full`}
+        style={{ marginLeft: "auto", marginRight: "auto", maxWidth: "100%" }}
         ref={imageRef}
         src={imageSrc}
         alt="Image block"
@@ -88,7 +88,7 @@ export const ResizeImageBlock: FunctionComponent<ResizeBlockProps> = ({
         <div
           key={position}
           style={{ maxHeight: "50%" }}
-          className={tw`transition-all absolute ${
+          style={tw`transition-all absolute ${
             position === "left" ? "left-1" : "right-1"
           } top-1/2 -translate-y-1/2 h-12 w-1.5 rounded-full bg-black bg-opacity-70 cursor-col-resize opacity-0 group-hover:opacity-100`}
           onMouseDown={(evt) => handleResize(evt, position)}

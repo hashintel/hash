@@ -209,9 +209,15 @@ export const ResizeBlock: FunctionComponent<ResizeBlockProps> = ({
   );
 
   return (
-    <div ref={divRef} className={tw`relative flex group`}>
+    <div ref={divRef} style={{ display: "flex", position: "relative" }}>
       <div
-        className={tw`absolute top-0 left-0 w-full h-full`}
+        style={{
+          position: "absolute",
+          top: "0",
+          left: "0",
+          width: "100%",
+          height: "100%",
+        }}
         ref={childrenWrapperRef}
       >
         {children}
@@ -222,7 +228,7 @@ export const ResizeBlock: FunctionComponent<ResizeBlockProps> = ({
             <button
               key={position}
               type="button"
-              className={tw`transition-all absolute z-10 opacity-0 group-hover:opacity-100 focus:outline-none ${className}`}
+              style={tw`transition-all absolute z-10 opacity-0 group-hover:opacity-100 focus:outline-none ${className}`}
               onMouseDown={(evt) => handleResize(evt, position)}
             >
               <CornerResize position={position} />
@@ -236,7 +242,7 @@ export const ResizeBlock: FunctionComponent<ResizeBlockProps> = ({
             style={{ maxHeight: "50%" }}
             aria-label={`${position} resize button`}
             type="button"
-            className={tw`transition-all absolute border-1 border-white rounded-full bg-black bg-opacity-70 z-10 opacity-0 focus:outline-none group-hover:opacity-100 ${className}`}
+            style={tw`transition-all absolute border-1 border-white rounded-full bg-black bg-opacity-70 z-10 opacity-0 focus:outline-none group-hover:opacity-100 ${className}`}
             onMouseDown={(evt) => handleResize(evt, position)}
           />
         );

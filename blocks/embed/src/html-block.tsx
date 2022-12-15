@@ -38,11 +38,20 @@ export const HtmlBlock: FunctionComponent<HtmlBlockProps> = ({
   return (
     <div
       ref={divRef}
-      className={tw`${
-        !dimensions ? "absolute top-0 left-0 h-full w-full" : "relative"
-      }`}
       style={
-        dimensions ? { width: dimensions.width, height: dimensions.height } : {}
+        dimensions
+          ? {
+              position: "relative",
+              width: dimensions.width,
+              height: dimensions.height,
+            }
+          : {
+              height: "100%",
+              left: "0",
+              position: "absolute",
+              top: "0",
+              width: "100%",
+            }
       }
       {...props}
     />

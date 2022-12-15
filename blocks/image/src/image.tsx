@@ -25,7 +25,14 @@ export const Image: BlockComponent<BlockEntityProperties> = (props) => {
   );
 
   return (
-    <div ref={blockRef} className={tw`font-sans box-border`}>
+    <div
+      ref={blockRef}
+      style={{
+        boxSizing: "border-box",
+        fontFamily:
+          'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"',
+      }}
+    >
       {showFallback && (
         <Media {...props} blockRef={blockRef} mediaType="image" />
       )}

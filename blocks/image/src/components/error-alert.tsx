@@ -8,18 +8,34 @@ export const ErrorAlert: FunctionComponent<ImageErrorAlertProps> = ({
   onClearError,
 }) => (
   <div
-    className={tw`w-96 mx-auto mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative border-solid`}
+    style={{
+      position: "relative",
+      paddingTop: "0.75rem",
+      paddingBottom: "0.75rem",
+      paddingLeft: "1rem",
+      paddingRight: "1rem",
+      marginLeft: "auto",
+      marginRight: "auto",
+      marginBottom: "1rem",
+      backgroundColor: "#FEE2E2",
+      color: "#B91C1C",
+      width: "24rem",
+      borderRadius: "0.25rem",
+      borderWidth: "1px",
+      borderColor: "#F87171",
+      borderStyle: "solid",
+    }}
     role="alert"
   >
-    <div className={tw`mr-5`}>
-      <strong className={tw`font-bold`}>Error</strong>
-      <span className={tw`block sm:inline ml-2 `}>{error}</span>
+    <div style={{ marginRight: "1.25rem" }}>
+      <strong style={{ fontWeight: "700" }}>Error</strong>
+      <span style={tw`block sm:inline ml-2 `}>{error}</span>
     </div>
 
     <button
       type="button"
       onClick={onClearError}
-      className={tw`absolute top-0 bottom-0 right-0 px-4 py-3 border-0 focus:outline-none bg-transparent box-border cursor-pointer`}
+      style={tw`absolute top-0 bottom-0 right-0 px-4 py-3 border-0 focus:outline-none bg-transparent box-border cursor-pointer`}
     >
       <Cross />
     </button>

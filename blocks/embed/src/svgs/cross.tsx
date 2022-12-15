@@ -3,7 +3,12 @@ import { FunctionComponent } from "react";
 const Cross: FunctionComponent = () => {
   return (
     <svg
-      className={tw`fill-current h-6 w-6 text-red-500`}
+      style={{
+        color: "#EF4444",
+        width: "1.5rem",
+        height: "1.5rem",
+        fill: "currentColor",
+      }}
       role="button"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 20 20"

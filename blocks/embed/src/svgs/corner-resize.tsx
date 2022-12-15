@@ -12,9 +12,14 @@ export const CornerResize: FunctionComponent<CornerResizeProps> = ({
       viewBox="0 0 16 16"
       stroke="rgba(255,255,255,0.6)"
       strokeLinecap="round"
-      className={tw`h-5 w-5 fill-current text-black text-opacity-70 ${
-        position === "bottom-left" ? "rotate-90" : ""
-      }`}
+      style={{
+        color: "#000000",
+        opacity: "0.7",
+        width: "1.25rem",
+        height: "1.25rem",
+        fill: "currentColor",
+        ...(position === "bottom-left" ? { transform: "rotate(90deg)" } : {}),
+      }}
     >
       <path
         fillRule="evenodd"

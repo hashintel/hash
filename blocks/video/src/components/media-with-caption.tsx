@@ -33,7 +33,7 @@ export const MediaWithCaption: FunctionComponent<MediaWithCaptionProps> = ({
   const captionNode = (
     <input
       placeholder="Add a caption"
-      className={tw`border-none bg-transparent focus:outline-none text-center mt-3`}
+      style={tw`border-none bg-transparent focus:outline-none text-center mt-3`}
       type="text"
       value={caption}
       disabled={readonly}
@@ -42,9 +42,16 @@ export const MediaWithCaption: FunctionComponent<MediaWithCaptionProps> = ({
     />
   );
   return (
-    <div className={tw`flex justify-center text-center w-full`}>
+    <div
+      style={{
+        display: "flex",
+        textAlign: "center",
+        justifyContent: "center",
+        width: "100%",
+      }}
+    >
       {props.type === "image" ? (
-        <div className={tw`flex flex-col`}>
+        <div style={{ display: "flex", flexDirection: "column" }}>
           <ResizeImageBlock
             imageSrc={src}
             width={props.width}
@@ -54,7 +61,7 @@ export const MediaWithCaption: FunctionComponent<MediaWithCaptionProps> = ({
           {captionNode}
         </div>
       ) : (
-        <div className={tw`max-w-full`}>
+        <div style={{ maxWidth: "100%" }}>
           {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
           <video
             controls
@@ -70,7 +77,15 @@ export const MediaWithCaption: FunctionComponent<MediaWithCaptionProps> = ({
         <button
           type="button"
           onClick={onReset}
-          className={tw`ml-2 bg-gray-100 p-1.5 border-1 border-gray-300 rounded-sm self-start border-solid`}
+          style={{
+            padding: "0.375rem",
+            marginLeft: "0.5rem",
+            backgroundColor: "#F3F4F6",
+            alignSelf: "flex-start",
+            borderRadius: "0.125rem",
+            borderColor: "#D1D5DB",
+            borderStyle: "solid",
+          }}
         >
           <Pencil />
         </button>
