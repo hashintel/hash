@@ -19,7 +19,7 @@ import { Session } from "@ory/client";
 export type MinimalUser = {
   kind: "user";
   entityEditionId: EntityEditionId;
-  userAccountId: string;
+  accountId: string;
   accountSignupComplete: boolean;
   shortname?: string;
   preferredName?: string;
@@ -52,7 +52,7 @@ export const constructMinimalUser = (params: {
   return {
     kind: "user",
     entityEditionId: userEntityEditionId,
-    userAccountId: extractEntityUuidFromEntityId(userEntityEditionId.baseId),
+    accountId: extractEntityUuidFromEntityId(userEntityEditionId.baseId),
     shortname,
     preferredName,
     accountSignupComplete,
@@ -187,7 +187,7 @@ export const constructAuthenticatedUser = (params: {
 export type MinimalOrg = {
   kind: "org";
   entityEditionId: EntityEditionId;
-  orgAccountId: string;
+  accountId: string;
   shortname: string;
   name: string;
 };
@@ -217,7 +217,7 @@ export const constructMinimalOrg = (params: {
   return {
     kind: "org",
     entityEditionId: orgEntityEditionId,
-    orgAccountId: extractEntityUuidFromEntityId(orgEntityEditionId.baseId),
+    accountId: extractEntityUuidFromEntityId(orgEntityEditionId.baseId),
     shortname,
     name,
   };

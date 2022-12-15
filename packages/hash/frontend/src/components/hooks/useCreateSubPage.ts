@@ -1,7 +1,10 @@
 import { useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
-import { EntityId, splitEntityId } from "@hashintel/hash-subgraph";
+import {
+  EntityId,
+  extractEntityUuidFromEntityId,
+} from "@hashintel/hash-subgraph";
 import {
   CreatePageMutation,
   CreatePageMutationVariables,
@@ -10,9 +13,14 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 import { createPage, setParentPage } from "../../graphql/queries/page.queries";
+import { useWorkspaceShortnameByEntityUuid } from "./use-workspace-shortname-by-entity-uuid";
+import { constructPageRelativeUrl } from "../../lib/routes";
 
 export const useCreateSubPage = (ownedById: string) => {
   const router = useRouter();
+  const { workspaceShortname } = useWorkspaceShortnameByEntityUuid({
+    entityUuid: ownedById,
+  });
 
   const [createPageFn, { loading: createPageLoading }] = useMutation<
     CreatePageMutation,
@@ -47,13 +55,15 @@ export const useCreateSubPage = (ownedById: string) => {
           },
         });
 
-        if (pageEntityId) {
-          const [pageOwnedById, pageEntityUuid] = splitEntityId(pageEntityId);
-          return router.push(`/${pageOwnedById}/${pageEntityUuid}`);
+        if (workspaceShortname && pageEntityId) {
+          const pageEntityUuid = extractEntityUuidFromEntityId(pageEntityId);
+          return router.push(
+            constructPageRelativeUrl({ workspaceShortname, pageEntityUuid }),
+          );
         }
       }
     },
-    [createPageFn, ownedById, setParentPageFn, router],
+    [createPageFn, ownedById, setParentPageFn, router, workspaceShortname],
   );
 
   return [
