@@ -12,7 +12,6 @@ import {
 import { LoggedInGraphQLContext } from "../../context";
 import {
   createPropertyType,
-  getPropertyTypeById,
   updatePropertyType,
 } from "../../../graph/ontology/primitive/property-type";
 
@@ -133,22 +132,10 @@ export const updatePropertyTypeResolver: ResolverFn<
   const { propertyTypeId, updatedPropertyType: updatedPropertyTypeSchema } =
     params;
 
-  const propertyType = await getPropertyTypeById(
-    { graphApi },
-    {
-      propertyTypeId,
-    },
-  ).catch((err: AxiosError) => {
-    throw new ApolloError(
-      `Unable to retrieve property type. ${err.response?.data} [URI=${propertyTypeId}]`,
-      "GET_ERROR",
-    );
-  });
-
   const updatedPropertyType = await updatePropertyType(
     { graphApi },
     {
-      propertyTypeId: propertyType.schema.$id,
+      propertyTypeId,
       schema: updatedPropertyTypeSchema,
       actorId: userModel.getEntityUuid(),
     },
