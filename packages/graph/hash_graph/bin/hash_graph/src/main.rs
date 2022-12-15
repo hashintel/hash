@@ -245,7 +245,7 @@ async fn main() -> Result<(), GraphError> {
 
     tracing::info!("Listening on {api_address}");
     axum::Server::bind(&addr)
-        .serve(rest_router.into_make_service())
+        .serve(rest_router.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .unwrap();
 
