@@ -35,6 +35,7 @@ impl<C: AsClient> PostgresStore<C> {
         clippy::too_many_lines,
         reason = "https://app.asana.com/0/1203363157432081/1203444301722127/f"
     )]
+    #[tracing::instrument(level = "trace", skip(self, dependency_context, subgraph))]
     pub(crate) fn traverse_property_type<'a>(
         &'a self,
         property_type_id: &'a OntologyTypeEditionId,
@@ -170,6 +171,7 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
+    #[tracing::instrument(level = "info", skip(self, property_type))]
     async fn create_property_type(
         &mut self,
         property_type: PropertyType,
@@ -213,6 +215,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         Ok(metadata)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     async fn get_property_type<'f: 'q, 'q>(
         &self,
         query: &'f StructuralQuery<'q, PropertyTypeWithMetadata>,
@@ -250,6 +253,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         Ok(subgraph)
     }
 
+    #[tracing::instrument(level = "info", skip(self, property_type))]
     async fn update_property_type(
         &mut self,
         property_type: PropertyType,
