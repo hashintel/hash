@@ -11,7 +11,7 @@ import { systemUserAccountId } from "../../graph/system-user";
 
 export type HashInstanceModelCreateParams = Omit<
   EntityModelCreateParams,
-  "properties" | "entityTypeModel" | "ownedById"
+  "properties" | "entityType" | "ownedById"
 > & {
   userSelfRegistrationIsEnabled?: boolean;
   userRegistrationByInviteIsEnabled?: boolean;
@@ -24,13 +24,13 @@ export type HashInstanceModelCreateParams = Omit<
 export default class extends EntityModel {
   static fromEntityModel(entityModel: EntityModel): HashInstanceModel {
     if (
-      entityModel.entityTypeModel.getSchema().$id !==
-      SYSTEM_TYPES.entityType.hashInstance.getSchema().$id
+      entityModel.entityType.schema.$id !==
+      SYSTEM_TYPES.entityType.hashInstance.schema.$id
     ) {
       throw new EntityTypeMismatchError(
         entityModel.getBaseId(),
-        SYSTEM_TYPES.entityType.hashInstance.getSchema().$id,
-        entityModel.entityTypeModel.getSchema().$id,
+        SYSTEM_TYPES.entityType.hashInstance.schema.$id,
+        entityModel.entityType.schema.$id,
       );
     }
 
@@ -62,19 +62,19 @@ export default class extends EntityModel {
 
     const { actorId } = params;
 
-    const entityTypeModel = SYSTEM_TYPES.entityType.hashInstance;
+    const entityType = SYSTEM_TYPES.entityType.hashInstance;
 
     const entityModel = await EntityModel.create(graphApi, {
       ownedById: systemUserAccountId,
       properties: {
-        [SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.getBaseUri()]:
-          params.userSelfRegistrationIsEnabled ?? true,
-        [SYSTEM_TYPES.propertyType.userRegistrationByInviteIsEnabled.getBaseUri()]:
-          params.userRegistrationByInviteIsEnabled ?? true,
-        [SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.getBaseUri()]:
-          params.orgSelfRegistrationIsEnabled ?? true,
+        [SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.metadata
+          .editionId.baseId]: params.userSelfRegistrationIsEnabled ?? true,
+        [SYSTEM_TYPES.propertyType.userRegistrationByInviteIsEnabled.metadata
+          .editionId.baseId]: params.userRegistrationByInviteIsEnabled ?? true,
+        [SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.metadata
+          .editionId.baseId]: params.orgSelfRegistrationIsEnabled ?? true,
       },
-      entityTypeModel,
+      entityType,
       actorId,
     });
 
@@ -94,7 +94,7 @@ export default class extends EntityModel {
           equal: [
             { path: ["type", "versionedUri"] },
             {
-              parameter: SYSTEM_TYPES.entityType.hashInstance.getSchema().$id,
+              parameter: SYSTEM_TYPES.entityType.hashInstance.schema.$id,
             },
           ],
         },
@@ -128,7 +128,7 @@ export default class extends EntityModel {
     const outgoingAdminLinkEntityModels = await this.getOutgoingLinks(
       graphApi,
       {
-        linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.admin,
+        linkEntityType: SYSTEM_TYPES.linkEntityType.admin,
         rightEntityModel: userModel,
       },
     );
@@ -165,7 +165,7 @@ export default class extends EntityModel {
 
     await this.createOutgoingLink(graphApi, {
       ownedById: systemUserAccountId,
-      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.admin,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.admin,
       rightEntityModel: userModel,
       actorId,
     });
@@ -185,7 +185,7 @@ export default class extends EntityModel {
     const outgoingAdminLinkEntityModels = await this.getOutgoingLinks(
       graphApi,
       {
-        linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.admin,
+        linkEntityType: SYSTEM_TYPES.linkEntityType.admin,
         rightEntityModel: userModel,
       },
     );
@@ -209,19 +209,22 @@ export default class extends EntityModel {
 
   isUserSelfRegistrationEnabled(): boolean {
     return this.getProperties()[
-      SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.getBaseUri()
+      SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.metadata.editionId
+        .baseId
     ] as boolean;
   }
 
   isUserRegistrationByInviteEnabled(): boolean {
     return this.getProperties()[
-      SYSTEM_TYPES.propertyType.userRegistrationByInviteIsEnabled.getBaseUri()
+      SYSTEM_TYPES.propertyType.userRegistrationByInviteIsEnabled.metadata
+        .editionId.baseId
     ] as boolean;
   }
 
   isOrgSelfRegistrationEnabled(): boolean {
     return this.getProperties()[
-      SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.getBaseUri()
+      SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.metadata.editionId
+        .baseId
     ] as boolean;
   }
 }
