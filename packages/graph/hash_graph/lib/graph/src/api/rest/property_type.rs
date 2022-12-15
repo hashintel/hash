@@ -99,7 +99,7 @@ impl RoutedResource for PropertyTypeResource {
     }
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreatePropertyTypeRequest {
     #[schema(value_type = VAR_PROPERTY_TYPE)]
@@ -122,6 +122,7 @@ struct CreatePropertyTypeRequest {
     ),
     request_body = CreatePropertyTypeRequest,
 )]
+#[tracing::instrument(level = "info", skip(pool, domain_validator))]
 async fn create_property_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
@@ -180,6 +181,7 @@ async fn create_property_type<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     )
 )]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn get_property_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(query): Json<serde_json::Value>,
@@ -221,6 +223,7 @@ async fn get_property_types_by_query<P: StorePool + Send>(
     )
 )]
 #[deprecated = "use `/property-types/query` instead"]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn get_latest_property_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<PropertyTypeWithMetadata>>, StatusCode> {
@@ -245,6 +248,7 @@ async fn get_latest_property_types<P: StorePool + Send>(
     )
 )]
 #[deprecated = "use `/property-types/query` instead"]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn get_property_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
@@ -255,7 +259,7 @@ async fn get_property_type<P: StorePool + Send>(
         .map(Json)
 }
 
-#[derive(ToSchema, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct UpdatePropertyTypeRequest {
     #[schema(value_type = VAR_UPDATE_PROPERTY_TYPE)]
@@ -278,6 +282,7 @@ struct UpdatePropertyTypeRequest {
     ),
     request_body = UpdatePropertyTypeRequest,
 )]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn update_property_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<UpdatePropertyTypeRequest>,
