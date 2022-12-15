@@ -96,7 +96,7 @@ export const resolvers = {
     pageComments: loggedInAndSignedUp(pageComments),
     blocks: loggedInAndSignedUp(blocks),
     getEntity: loggedInAndSignedUp(getEntityResolver),
-    getAllLatestEntities: loggedInAndSignedUp(getAllLatestEntitiesResolver),
+    getAllLatestEntities: getAllLatestEntitiesResolver,
     hashInstanceEntity,
   },
 

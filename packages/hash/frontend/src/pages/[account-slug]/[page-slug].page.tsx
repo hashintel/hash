@@ -12,11 +12,19 @@ import {
   getPageInfoQuery,
   getPageQuery,
 } from "@hashintel/hash-shared/queries/page.queries";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import { isSafariBrowser } from "@hashintel/hash-shared/util";
-import { EntityId, splitEntityId } from "@hashintel/hash-subgraph";
+import {
+  EntityId,
+  entityIdFromOwnedByIdAndEntityUuid,
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@hashintel/hash-subgraph";
+import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import { alpha, Box, Collapse } from "@mui/material";
 import { keyBy } from "lodash";
-import { GetStaticPaths, GetStaticProps } from "next";
+import { GetServerSideProps } from "next";
+import { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import Head from "next/head";
 import { Router } from "next/router";
 
@@ -25,7 +33,10 @@ import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 // import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 // import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
 import { PageBlock } from "../../blocks/page/PageBlock";
-import { PageContextProvider } from "../../blocks/page/PageContext";
+import {
+  PageContextProvider,
+  usePageContext,
+} from "../../blocks/page/PageContext";
 import { PageSectionContainer } from "../../blocks/page/PageSectionContainer";
 import { PageTitle } from "../../blocks/page/PageTitle/PageTitle";
 import {
@@ -39,27 +50,47 @@ import { PageIconButton } from "../../components/PageIconButton";
 import { PageLoadingState } from "../../components/PageLoadingState";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import {
+  GetAllLatestEntitiesQuery,
   GetPageInfoQuery,
   GetPageInfoQueryVariables,
 } from "../../graphql/apiTypes.gen";
+import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { apolloClient } from "../../lib/apollo-client";
+import { constructMinimalOrg, MinimalOrg } from "../../lib/org";
+import { constructMinimalUser, MinimalUser } from "../../lib/user";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { useIsReadonlyMode } from "../../shared/readonly-mode";
-import { useRouteAccountInfo, useRoutePageInfo } from "../../shared/routing";
 import { Button } from "../../shared/ui/button";
 import {
   TOP_CONTEXT_BAR_HEIGHT,
   TopContextBar,
 } from "../shared/top-context-bar";
-
-// Apparently defining this is necessary in order to get server rendered props?
-export const getStaticPaths: GetStaticPaths<{ slug: string }> = () => ({
-  paths: [], // indicates that no page needs be created at build time
-  fallback: "blocking", // indicates the type of fallback
-});
+import { constructPageRelativeUrl } from "../../lib/routes";
 
 type PageProps = {
+  pageWorkspace: MinimalUser | MinimalOrg;
+  pageEntityId: EntityId;
   blocks: HashBlock[];
+};
+
+type PageParsedUrlQuery = {
+  "account-slug": string;
+  "page-slug": string;
+};
+
+export const isPageParsedUrlQuery = (
+  queryParams: NextParsedUrlQuery,
+): queryParams is PageParsedUrlQuery =>
+  typeof queryParams["account-slug"] === "string" &&
+  typeof queryParams["page-slug"] === "string";
+
+export const parsePageUrlQueryParams = (params: PageParsedUrlQuery) => {
+  const workspaceShortname = params["account-slug"].slice(1);
+
+  const pageEntityUuid = params["page-slug"];
+
+  return { workspaceShortname, pageEntityUuid };
 };
 
 /**
@@ -68,21 +99,92 @@ type PageProps = {
  *
  * @todo Include blocks present in the document in this
  */
-export const getStaticProps: GetStaticProps<PageProps> = async () => {
+export const getServerSideProps: GetServerSideProps<PageProps> = async ({
+  req,
+  params,
+}) => {
   const fetchedBlocks = await Promise.all(
     defaultBlockComponentIds.map((componentId) => fetchBlock(componentId)),
   );
 
+  if (!params || !isPageParsedUrlQuery(params)) {
+    throw new Error(
+      "Invalid page URL query params passed to `getServerSideProps`.",
+    );
+  }
+
+  const { workspaceShortname, pageEntityUuid } =
+    parsePageUrlQueryParams(params);
+
+  const { cookie } = req?.headers ?? {};
+
+  const workspacesSubgraph = await apolloClient
+    .query<GetAllLatestEntitiesQuery>({
+      query: getAllLatestEntitiesQuery,
+      variables: {
+        rootEntityTypeIds: [
+          types.entityType.user.entityTypeId,
+          types.entityType.org.entityTypeId,
+        ],
+        constrainsValuesOn: { outgoing: 0 },
+        constrainsPropertiesOn: { outgoing: 0 },
+        constrainsLinksOn: { outgoing: 0 },
+        constrainsLinkDestinationsOn: { outgoing: 0 },
+        isOfType: { outgoing: 1 },
+        hasLeftEntity: { incoming: 1, outgoing: 1 },
+        hasRightEntity: { incoming: 1, outgoing: 1 },
+      },
+      context: { headers: { cookie } },
+    })
+    .then(({ data }) => data.getAllLatestEntities);
+
+  const workspaces = getRootsAsEntities(workspacesSubgraph).map((entity) =>
+    entity.metadata.entityTypeId === types.entityType.user.entityTypeId
+      ? constructMinimalUser({
+          userEntityEditionId: entity.metadata.editionId,
+          subgraph: workspacesSubgraph,
+        })
+      : constructMinimalOrg({
+          orgEntityEditionId: entity.metadata.editionId,
+          subgraph: workspacesSubgraph,
+        }),
+  );
+
+  /**
+   * @todo: filtering all workspaces by their shortname should not be happening
+   * client side. This could be addressed by exposing structural querying
+   * to the frontend.
+   *
+   * @see https://app.asana.com/0/1201095311341924/1202863271046362/f
+   */
+  const pageWorkspace = workspaces.find(
+    (workspace) => workspace.shortname === workspaceShortname,
+  );
+
+  if (!pageWorkspace) {
+    throw new Error(
+      `Could not find page workspace with shortname "${workspaceShortname}".`,
+    );
+  }
+
+  const pageOwnedById = pageWorkspace?.accountId;
+
+  const pageEntityId = entityIdFromOwnedByIdAndEntityUuid(
+    pageOwnedById,
+    pageEntityUuid,
+  );
+
   return {
     props: {
+      pageWorkspace,
       blocks: fetchedBlocks,
+      pageEntityId,
     },
   };
 };
 
 export const PageNotificationBanner: FunctionComponent = () => {
-  const { pageEntityId } = useRoutePageInfo();
-
+  const { pageEntityId } = usePageContext();
   const [archivePage] = useArchivePage();
 
   const { data } = useQuery<GetPageInfoQuery, GetPageInfoQueryVariables>(
@@ -138,9 +240,11 @@ export const PageNotificationBanner: FunctionComponent = () => {
 const generateCrumbsFromPages = ({
   pages = [],
   pageEntityId,
+  ownerShortname,
 }: {
   pageEntityId: EntityId;
   pages: AccountPagesInfo["data"];
+  ownerShortname: string;
 }) => {
   const pageMap = new Map(pages.map((page) => [page.entityId, page]));
 
@@ -148,10 +252,13 @@ const generateCrumbsFromPages = ({
   let arr = [];
 
   while (currentPage) {
-    const [ownedById, entityUuid] = splitEntityId(currentPage.entityId);
+    const pageEntityUuid = extractEntityUuidFromEntityId(currentPage.entityId);
     arr.push({
       title: currentPage.title,
-      href: `/${ownedById}/${entityUuid}`,
+      href: constructPageRelativeUrl({
+        workspaceShortname: ownerShortname,
+        pageEntityUuid,
+      }),
       id: currentPage.entityId,
       icon: <PageIcon entityId={currentPage.entityId} size="small" />,
     });
@@ -168,16 +275,14 @@ const generateCrumbsFromPages = ({
   return arr;
 };
 
-const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
-  /**
-   * @todo: this will need to be reworked once pages can't rely on the `accountId` being
-   * in the URL.
-   */
-  const { routeAccountSlug: routeAccountId } = useRouteAccountInfo();
-  // pageEntityId is the consistent identifier for pages (across all versions)
-  const { pageEntityId } = useRoutePageInfo();
+const Page: NextPageWithLayout<PageProps> = ({
+  blocks,
+  pageEntityId,
+  pageWorkspace,
+}) => {
+  const pageOwnedById = extractOwnedByIdFromEntityId(pageEntityId);
 
-  const { data: accountPages } = useAccountPages(routeAccountId);
+  const { data: accountPages } = useAccountPages(pageOwnedById);
 
   const blocksMap = useMemo(() => {
     return keyBy(blocks, (block) => block.meta.componentId);
@@ -190,11 +295,8 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   const { data, error, loading } = useQuery<
     GetPageQuery,
     GetPageQueryVariables
-  >(getPageQuery, {
-    variables: {
-      entityId: pageEntityId,
-    },
-  });
+  >(getPageQuery, { variables: { entityId: pageEntityId } });
+
   const pageHeaderRef = useRef<HTMLElement>();
   const isReadonlyMode = useIsReadonlyMode();
 
@@ -268,9 +370,9 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
       <Head>
         <title>{pageTitle} | Page | HASH</title>
 
-        {/* 
+        {/*
           Rendering favicon.png again even if it's already defined on _document.page.tsx,
-          because client-side navigation does not fallback to the default icon when visiting a page without an icon 
+          because client-side navigation does not fallback to the default icon when visiting a page without an icon
         */}
         {icon ? (
           <link
@@ -283,7 +385,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
         )}
       </Head>
 
-      <PageContextProvider>
+      <PageContextProvider pageEntityId={pageEntityId}>
         <Box
           sx={({ zIndex, palette }) => ({
             position: "sticky",
@@ -296,6 +398,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
             crumbs={generateCrumbsFromPages({
               pages: accountPages,
               pageEntityId: data.page.metadata.editionId.baseId,
+              ownerShortname: pageWorkspace.shortname!,
             })}
             scrollToTop={scrollToTop}
           />
@@ -329,7 +432,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
               <PageTitle value={title} pageEntityId={pageEntityId} />
               {/*
             Commented out Version Dropdown and Transfer Page buttons.
-            They will most likely be added back when new designs 
+            They will most likely be added back when new designs
             for them have been added
           */}
               {/* <div style={{"marginRight":"1rem"}}>
@@ -340,7 +443,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
                 versions={data.page.history ?? []}
                 onChange={(changedVersionId) => {
                   void router.push(
-                    `/${accountId}/${pageEntityId}?version=${changedVersionId}`,
+                    `/@${ownerShortname}/${pageEntityId}?version=${changedVersionId}`,
                   );
                 }}
               />
@@ -362,7 +465,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
 
         <CollabPositionProvider value={[]}>
           <PageBlock
-            accountId={routeAccountId}
+            accountId={pageWorkspace.accountId}
             contents={contents}
             blocks={blocksMap}
             pageComments={pageComments}

@@ -42,7 +42,8 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
         entityId: user.entityEditionId.baseId,
         mentionType: "user",
         isActiveOrgMember: user.memberOf.some(
-          ({ orgAccountId }) => orgAccountId === activeWorkspaceAccountId,
+          ({ accountId: userAccountId }) =>
+            userAccountId === activeWorkspaceAccountId,
         ),
       })) ?? [];
 

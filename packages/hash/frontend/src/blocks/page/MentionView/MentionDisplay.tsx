@@ -9,6 +9,7 @@ import { systemUserShortname } from "@hashintel/hash-shared/environment";
 import { useUsers } from "../../../components/hooks/useUsers";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { Link } from "../../../shared/ui";
+import { constructPageRelativeUrl } from "../../../lib/routes";
 
 interface MentionDisplayProps {
   entityId: EntityId;
@@ -63,6 +64,10 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
         }
       }
       case "page": {
+        const page = pages.find(
+          (potentialPage) => potentialPage.entityId === entityId,
+        );
+
         let pageTitle = "";
 
         // Only set the title to "Page" if the query hasn't returned yet
@@ -70,29 +75,26 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
           pageTitle = "Page";
         } else {
           // Once the query loads, either display the found title, or display "Unknown Page" if the page doesn't exist in the page array
-          pageTitle =
-            pages.find((page) => page.entityId === entityId)?.title ??
-            "Unknown Page";
+          pageTitle = page?.title ?? "Unknown Page";
         }
+
+        const pageEntityUuid = extractEntityUuidFromEntityId(entityId);
 
         return {
           title: pageTitle,
-          href: `/${accountId}/${extractEntityUuidFromEntityId(entityId)}`,
+          href: page
+            ? constructPageRelativeUrl({
+                workspaceShortname: page.ownerShortname,
+                pageEntityUuid,
+              })
+            : "",
           icon: <ArticleIcon style={{ fontSize: "1em" }} />,
         };
       }
       default:
         return { title: "", href: "", icon: "@" };
     }
-  }, [
-    accountId,
-    entityId,
-    mentionType,
-    users,
-    pages,
-    pagesLoading,
-    usersLoading,
-  ]);
+  }, [entityId, mentionType, users, pages, pagesLoading, usersLoading]);
 
   return (
     <Link noLinkStyle href={href} sx={{ fontWeight: 500, color: "#9ca3af" }}>

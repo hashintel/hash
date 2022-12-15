@@ -19,8 +19,8 @@ import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 
 import "./globals.scss";
 import {
-  RouteAccountInfoProvider,
   RoutePageInfoProvider,
+  RouteWorkspaceInfoProvider,
 } from "../shared/routing";
 import { WorkspaceContextProvider } from "./shared/workspace-context";
 import { apolloClient } from "../lib/apollo-client";
@@ -83,7 +83,7 @@ const App: FunctionComponent<AppProps> = ({
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <ModalProvider>
-            <RouteAccountInfoProvider>
+            <RouteWorkspaceInfoProvider>
               <RoutePageInfoProvider>
                 <WorkspaceContextProvider>
                   <SnackbarProvider maxSnack={3}>
@@ -91,7 +91,7 @@ const App: FunctionComponent<AppProps> = ({
                   </SnackbarProvider>
                 </WorkspaceContextProvider>
               </RoutePageInfoProvider>
-            </RouteAccountInfoProvider>
+            </RouteWorkspaceInfoProvider>
           </ModalProvider>
         </ThemeProvider>
       </CacheProvider>
@@ -141,17 +141,17 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
     ctx: { req, pathname },
   } = appContext;
 
-  const cookieString = req?.headers.cookie;
+  const { cookie } = req?.headers ?? {};
 
   const [subgraph, kratosSession] = await Promise.all([
     apolloClient
       .query<MeQuery>({
         query: meQuery,
-        context: { headers: { cookie: cookieString } },
+        context: { headers: { cookie } },
       })
       .then(({ data }) => data.me)
       .catch(() => undefined),
-    fetchKratosSession(cookieString),
+    fetchKratosSession(cookie),
   ]);
 
   /** @todo: make additional pages publicly accessible */
