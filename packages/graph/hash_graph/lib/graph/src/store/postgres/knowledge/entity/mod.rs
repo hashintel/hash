@@ -161,7 +161,7 @@ impl<C: AsClient> PostgresStore<C> {
                         });
 
                         let outgoing_link_entity_edition_id =
-                            outgoing_link_entity.metadata().edition_id().clone();
+                            outgoing_link_entity.metadata().edition_id();
                         subgraph.vertices.knowledge_graph.insert(
                             outgoing_link_entity_edition_id,
                             KnowledgeGraphVertex::Entity(outgoing_link_entity),
@@ -241,7 +241,7 @@ impl<C: AsClient> PostgresStore<C> {
                         });
 
                         let incoming_link_entity_edition_id =
-                            incoming_link_entity.metadata().edition_id().clone();
+                            incoming_link_entity.metadata().edition_id();
 
                         subgraph.vertices.knowledge_graph.insert(
                             incoming_link_entity_edition_id,
@@ -318,7 +318,7 @@ impl<C: AsClient> PostgresStore<C> {
                             ),
                         });
 
-                        let left_entity_edition_id = left_entity.metadata().edition_id().clone();
+                        let left_entity_edition_id = left_entity.metadata().edition_id();
 
                         subgraph.vertices.knowledge_graph.insert(
                             left_entity_edition_id,
@@ -395,7 +395,7 @@ impl<C: AsClient> PostgresStore<C> {
                             ),
                         });
 
-                        let right_entity_edition_id = right_entity.metadata().edition_id().clone();
+                        let right_entity_edition_id = right_entity.metadata().edition_id();
 
                         subgraph.vertices.knowledge_graph.insert(
                             right_entity_edition_id,
