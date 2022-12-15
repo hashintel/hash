@@ -70,7 +70,7 @@ where
         )
     }
 
-    /// Creates a `Filter` to filter by a version.
+    /// Creates a `Filter` to filter by a given version.
     #[must_use]
     fn for_version(version: u32) -> Self {
         Self::Equal(
