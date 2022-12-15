@@ -5,9 +5,9 @@ import { entityIdFromOwnedByIdAndEntityUuid } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import { useEffect, useMemo, useState } from "react";
 import { useBlockProtocolGetEntity } from "./blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
-import { useGetWorkspaceByShortname } from "./use-get-workspace-by-shortname";
+import { useWorkspaceByShortname } from "./use-get-workspace-by-shortname";
 
-export const useGetWorkspaceShortnameByEntityUuid = (params: {
+export const useWorkspaceShortnameByEntityUuid = (params: {
   entityUuid: string;
 }): { workspaceShortname?: string; loading: boolean } => {
   const { entityUuid } = params;
@@ -20,7 +20,7 @@ export const useGetWorkspaceShortnameByEntityUuid = (params: {
   const {
     workspace: systemUserWorkspace,
     loading: loadingSystemUserWorkspace,
-  } = useGetWorkspaceByShortname(systemUserShortname);
+  } = useWorkspaceByShortname(systemUserShortname);
 
   const systemUserOwnedById = useMemo(
     () => systemUserWorkspace?.accountId,

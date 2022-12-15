@@ -13,11 +13,11 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 import { createPage, setParentPage } from "../../graphql/queries/page.queries";
-import { useGetWorkspaceShortnameByEntityUuid } from "./use-get-workspace-shortname-by-entity-uuid";
+import { useWorkspaceShortnameByEntityUuid } from "./use-get-workspace-shortname-by-entity-uuid";
 
 export const useCreateSubPage = (ownedById: string) => {
   const router = useRouter();
-  const { workspaceShortname } = useGetWorkspaceShortnameByEntityUuid({
+  const { workspaceShortname } = useWorkspaceShortnameByEntityUuid({
     entityUuid: ownedById,
   });
 

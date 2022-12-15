@@ -6,7 +6,7 @@ import {
   useMemo,
   ReactNode,
 } from "react";
-import { useGetWorkspaceByShortname } from "../../components/hooks/use-get-workspace-by-shortname";
+import { useWorkspaceByShortname } from "../../components/hooks/use-get-workspace-by-shortname";
 import { MinimalOrg } from "../../lib/org";
 import { User } from "../../lib/user";
 
@@ -32,7 +32,7 @@ export const RouteWorkspaceInfoProvider: FunctionComponent<{
       : paramsAccountSlug.slice(1);
   }, [router]);
 
-  const { workspace: routeWorkspace } = useGetWorkspaceByShortname(
+  const { workspace: routeWorkspace } = useWorkspaceByShortname(
     routeWorkspaceShortname,
   );
 

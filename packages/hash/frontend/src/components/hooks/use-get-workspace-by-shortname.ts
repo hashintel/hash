@@ -4,7 +4,7 @@ import { User } from "../../lib/user";
 import { useOrgs } from "./useOrgs";
 import { useUsers } from "./useUsers";
 
-export const useGetWorkspaceByShortname = (
+export const useWorkspaceByShortname = (
   shortname?: string,
 ): { workspace?: User | Org; loading: boolean } => {
   /**
