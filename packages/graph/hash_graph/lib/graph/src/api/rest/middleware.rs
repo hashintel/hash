@@ -1,8 +1,17 @@
 use axum::{
     body::{Body, Bytes, HttpBody},
-    http::{Request, StatusCode},
+    http::{self, Request, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
+};
+use opentelemetry::{
+    propagation::Extractor,
+    sdk::trace::{IdGenerator, RandomIdGenerator},
+    trace::{SpanContext, SpanId, TraceContextExt},
+};
+use tower_http::{
+    classify::{ServerErrorsAsFailures, SharedClassifier},
+    trace::TraceLayer,
 };
 use tracing::{enabled, Level};
 
@@ -73,4 +82,49 @@ where
     }
 
     Ok(bytes)
+}
+
+struct HeaderExtractor<'a>(&'a http::HeaderMap);
+// Let OpenTelemetry pick the field names to make our headers "standardized".
+// We would have to set `traceparent` and
+impl<'a> Extractor for HeaderExtractor<'a> {
+    fn get(&self, key: &str) -> Option<&str> {
+        self.0.get(key).and_then(|value| value.to_str().ok())
+    }
+
+    fn keys(&self) -> Vec<&str> {
+        self.0
+            .keys()
+            .map(hyper::header::HeaderName::as_str)
+            .collect()
+    }
+}
+
+fn extract_header_remote_context(headers: &http::HeaderMap) -> opentelemetry::Context {
+    let extractor = HeaderExtractor(headers);
+    let ctx =
+        opentelemetry::global::get_text_map_propagator(|propagator| propagator.extract(&extractor));
+
+    if ctx.span().span_context().is_valid() {
+        // Remote context
+        ctx
+    } else {
+        // New, local context
+        ctx.with_remote_span_context(SpanContext::new(
+            RandomIdGenerator::default().new_trace_id(),
+            SpanId::INVALID,
+            ctx.span().span_context().trace_flags(),
+            // explicitly make it non-remote
+            false,
+            ctx.span().span_context().trace_state().clone(),
+        ))
+    }
+}
+
+// Based on https://github.com/tokio-rs/axum/pull/769
+pub fn span_maker(request: &hyper::Request<hyper::Body>) -> tracing::Span {
+    let span = tracing::info_span!("http-request", http.status_method = %request.method(), http.target = %request.uri());
+    let remote_context = extract_header_remote_context(request.headers());
+    tracing_opentelemetry::OpenTelemetrySpanExt::set_parent(&span, remote_context);
+    span
 }

@@ -1,6 +1,18 @@
 use std::{io, path::Path};
 
+use opentelemetry::{
+    global,
+    sdk::{
+        propagation::TraceContextPropagator,
+        trace::{RandomIdGenerator, Sampler, Tracer},
+        Resource,
+    },
+    KeyValue,
+};
+use opentelemetry_otlp::WithExportConfig;
+use tonic::metadata::MetadataMap;
 use tracing::{Event, Subscriber};
+use tracing_opentelemetry::OpenTelemetryLayer;
 use tracing_subscriber::{
     filter::{Directive, LevelFilter},
     fmt::{
@@ -10,10 +22,10 @@ use tracing_subscriber::{
         writer::BoxMakeWriter,
         FmtContext, FormatEvent, FormatFields,
     },
-    layer::SubscriberExt,
+    layer::{Layered, SubscriberExt},
     registry::LookupSpan,
     util::{SubscriberInitExt, TryInitError},
-    EnvFilter,
+    EnvFilter, Registry,
 };
 
 use crate::logging::args::{LogFormat, LogLevel};
@@ -44,6 +56,37 @@ where
             Self::Compact(fmt) => fmt.format_event(ctx, writer, event),
         }
     }
+}
+
+fn configure_opentelemetry_layer() -> OpenTelemetryLayer<Layered<EnvFilter, Registry>, Tracer> {
+    // Allow correlating trace IDs
+    global::set_text_map_propagator(TraceContextPropagator::new());
+    // If we need to set any tokens in the header for the tracing collector, this would be the place
+    // we do so.
+    let map = MetadataMap::new();
+    let tracer = opentelemetry_otlp::new_pipeline()
+        .tracing()
+        .with_exporter(
+            opentelemetry_otlp::new_exporter()
+                .tonic()
+                .with_endpoint("http://localhost:4317")
+                .with_timeout(std::time::Duration::from_secs(3))
+                .with_metadata(map),
+        )
+        .with_trace_config(
+            opentelemetry::sdk::trace::config()
+                // This can be changed to ratio-based sampling
+                .with_sampler(Sampler::AlwaysOn)
+                .with_id_generator(RandomIdGenerator::default())
+                .with_max_events_per_span(64)
+                .with_max_attributes_per_span(16)
+                .with_max_events_per_span(16)
+                .with_resource(Resource::new(vec![KeyValue::new("service.name", "graph")])),
+        )
+        .install_batch(opentelemetry::runtime::Tokio)
+        .expect("pipeline creation");
+
+    tracing_opentelemetry::layer().with_tracer(tracer)
 }
 
 /// Initialize the `tracing` logging setup.
@@ -122,8 +165,11 @@ pub fn init_logger<P: AsRef<Path>>(
         .fmt_fields(JsonFields::new())
         .with_writer(non_blocking);
 
+    let opentelemetry_layer = configure_opentelemetry_layer();
+
     tracing_subscriber::registry()
         .with(filter)
+        .with(opentelemetry_layer)
         .with(output_layer)
         .with(json_output_layer)
         .with(json_file_layer)
