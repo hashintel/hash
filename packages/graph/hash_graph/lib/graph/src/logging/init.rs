@@ -58,33 +58,37 @@ where
     }
 }
 
-fn configure_opentelemetry_layer() -> OpenTelemetryLayer<Layered<EnvFilter, Registry>, Tracer> {
+fn configure_opentelemetry_layer(
+    otlp_endpoint: &str,
+) -> OpenTelemetryLayer<Layered<EnvFilter, Registry>, Tracer> {
     // Allow correlating trace IDs
     global::set_text_map_propagator(TraceContextPropagator::new());
     // If we need to set any tokens in the header for the tracing collector, this would be the place
     // we do so.
     let map = MetadataMap::new();
+
+    let pipeline = opentelemetry_otlp::new_exporter()
+        .tonic()
+        .with_endpoint(otlp_endpoint)
+        .with_timeout(std::time::Duration::from_secs(3))
+        .with_metadata(map);
+
+    // This can be changed to ratio-based sampling
+    let trace_config = opentelemetry::sdk::trace::config()
+        .with_sampler(Sampler::AlwaysOn)
+        .with_id_generator(RandomIdGenerator::default())
+        .with_max_events_per_span(64)
+        .with_max_attributes_per_span(16)
+        .with_max_events_per_span(16)
+        .with_resource(Resource::new(vec![KeyValue::new("service.name", "graph")]));
+
     let tracer = opentelemetry_otlp::new_pipeline()
         .tracing()
-        .with_exporter(
-            opentelemetry_otlp::new_exporter()
-                .tonic()
-                .with_endpoint("http://localhost:4317")
-                .with_timeout(std::time::Duration::from_secs(3))
-                .with_metadata(map),
-        )
-        .with_trace_config(
-            opentelemetry::sdk::trace::config()
-                // This can be changed to ratio-based sampling
-                .with_sampler(Sampler::AlwaysOn)
-                .with_id_generator(RandomIdGenerator::default())
-                .with_max_events_per_span(64)
-                .with_max_attributes_per_span(16)
-                .with_max_events_per_span(16)
-                .with_resource(Resource::new(vec![KeyValue::new("service.name", "graph")])),
-        )
+        .with_exporter(pipeline)
+        .with_trace_config(trace_config)
+        // Batch send traces asynchronously instead of per-span
         .install_batch(opentelemetry::runtime::Tokio)
-        .expect("pipeline creation");
+        .expect("failed to create OTLP tracer, check configuration values");
 
     tracing_opentelemetry::layer().with_tracer(tracer)
 }
@@ -99,6 +103,7 @@ pub fn init_logger<P: AsRef<Path>>(
     log_folder: P,
     log_level: Option<LogLevel>,
     log_file_name: &str,
+    otlp_endpoint: Option<&str>,
 ) -> Result<impl Drop, TryInitError> {
     let log_folder = log_folder.as_ref();
 
@@ -165,7 +170,7 @@ pub fn init_logger<P: AsRef<Path>>(
         .fmt_fields(JsonFields::new())
         .with_writer(non_blocking);
 
-    let opentelemetry_layer = configure_opentelemetry_layer();
+    let opentelemetry_layer = otlp_endpoint.map(configure_opentelemetry_layer);
 
     tracing_subscriber::registry()
         .with(filter)

@@ -220,6 +220,7 @@ async fn main() -> Result<(), GraphError> {
         args.log_config.log_folder,
         args.log_config.log_level,
         &args.log_config.log_file_prefix,
+        args.otlp_endpoint.as_deref(),
     );
 
     let pool = PostgresStorePool::new(&args.db_info, NoTls)

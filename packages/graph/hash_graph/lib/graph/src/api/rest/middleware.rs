@@ -2,8 +2,8 @@ use std::{borrow::Cow, net::SocketAddr};
 
 use axum::{
     body::{Body, Bytes, HttpBody},
-    extract::ConnectInfo,
-    http::{self, Request, StatusCode},
+    extract::{ConnectInfo, MatchedPath, OriginalUri},
+    http::{self, uri::Scheme, Request, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -134,8 +134,31 @@ fn parse_x_forwarded_for(headers: &http::HeaderMap) -> Option<Cow<'_, str>> {
 
 // Based on https://github.com/tokio-rs/axum/pull/769
 pub fn span_maker(request: &hyper::Request<hyper::Body>) -> tracing::Span {
+    let target = request.uri();
+    let scheme: Cow<'static, str> = target.scheme().map_or_else(
+        || "HTTP".into(),
+        |scheme| {
+            if scheme == &Scheme::HTTP {
+                "http".into()
+            } else if scheme == &Scheme::HTTPS {
+                "https".into()
+            } else {
+                scheme.to_string().into()
+            }
+        },
+    );
+
     let method = request.method();
-    let route = request.uri();
+
+    let route = request.extensions().get::<MatchedPath>().map_or_else(
+        || {
+            request.extensions().get::<OriginalUri>().map_or_else(
+                || request.uri().path().to_owned(),
+                |uri| uri.0.path().to_owned(),
+            )
+        },
+        |matched_path| matched_path.as_str().to_owned(),
+    );
 
     let user_agent = request
         .headers()
@@ -159,15 +182,20 @@ pub fn span_maker(request: &hyper::Request<hyper::Body>) -> tracing::Span {
     let remote_context = extract_header_remote_context(request.headers());
     let trace_id = remote_context.span().span_context().trace_id();
 
+    // Implementing the args outlined by
+    // - https://github.com/open-telemetry/opentelemetry-specification/blob/5b6d22512ef72214f7cbd52747a1fbfe49f8121f/specification/trace/semantic_conventions/http.md#http-server-semantic-conventions
+    // - https://github.com/open-telemetry/opentelemetry-specification/blob/5b6d22512ef72214f7cbd52747a1fbfe49f8121f/specification/trace/semantic_conventions/http.md#common-attributes
     let span = tracing::info_span!("http-request",
         trace_id = %trace_id,
         otel.kind = "server",
         otel.name = %format!("{method} {route}"),
-        http.method = %method,
+        http.scheme = %scheme,
+        http.target = %target,
         http.route = %route,
+        http.method = %method,
+        http.client_ip = %client_ip,
         http.user_agent = %user_agent,
         http.host = %host,
-        http.client_ip = %client_ip,
     );
     tracing_opentelemetry::OpenTelemetrySpanExt::set_parent(&span, remote_context);
     span

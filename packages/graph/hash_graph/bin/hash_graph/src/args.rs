@@ -41,6 +41,10 @@ pub struct Args {
     )]
     pub allowed_url_domain: Regex,
 
+    /// The OpenTelemetry protocol endpoint for sending traces.
+    #[clap(long, default_value = None, env = "HASH_GRAPH_OTLP_ENDPOINT")]
+    pub otlp_endpoint: Option<String>,
+
     /// Generate a completion script for the given shell and outputs it to stdout.
     #[clap(long, value_enum, exclusive = true)]
     generate_completion: Option<Shell>,
