@@ -130,7 +130,7 @@ impl RoutedResource for EntityResource {
     }
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreateEntityRequest {
     properties: EntityProperties,
@@ -158,6 +158,7 @@ struct CreateEntityRequest {
         (status = 500, description = "Store error occurred"),
     ),
 )]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn create_entity<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<CreateEntityRequest>,
@@ -197,7 +198,7 @@ async fn create_entity<P: StorePool + Send>(
         .map(Json)
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct ArchiveEntityRequest {
     entity_id: EntityId,
@@ -218,6 +219,7 @@ struct ArchiveEntityRequest {
     ),
 )]
 #[deprecated = "use `/entities/update` instead"]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn archive_entity<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<ArchiveEntityRequest>,
@@ -281,6 +283,7 @@ async fn archive_entity<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     )
 )]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn get_entities_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(query): Json<serde_json::Value>,
@@ -319,6 +322,7 @@ async fn get_entities_by_query<P: StorePool + Send>(
     )
 )]
 #[deprecated = "use `/entities/query` instead"]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn get_latest_entities<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<Entity>>, StatusCode> {
@@ -343,6 +347,7 @@ async fn get_latest_entities<P: StorePool + Send>(
     )
 )]
 #[deprecated = "use `/entities/query` instead"]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn get_entity<P: StorePool + Send>(
     Path(entity_id): Path<EntityId>,
     pool: Extension<Arc<P>>,
@@ -356,7 +361,7 @@ async fn get_entity<P: StorePool + Send>(
     .map(Json)
 }
 
-#[derive(ToSchema, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct UpdateEntityRequest {
     properties: EntityProperties,
@@ -386,6 +391,7 @@ struct UpdateEntityRequest {
     ),
     request_body = UpdateEntityRequest,
 )]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn update_entity<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<UpdateEntityRequest>,
