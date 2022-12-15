@@ -7,8 +7,7 @@ import {
   GetAccountPagesTreeQueryVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
-import { useOrgs } from "./useOrgs";
-import { useUsers } from "./useUsers";
+import { useWorkspaceShortnameByAccountId } from "./use-workspace-shortname-by-account-id";
 
 export type AccountPage = {
   title: string;
@@ -31,17 +30,9 @@ export const useAccountPages = (ownedById: string): AccountPagesInfo => {
     variables: { ownedById },
   });
 
-  const { users } = useUsers();
-  const { orgs } = useOrgs();
-
-  const ownerShortname = useMemo(
-    () =>
-      (
-        orgs?.find(({ accountId }) => accountId === ownedById) ??
-        users?.find(({ accountId }) => accountId === ownedById)
-      )?.shortname,
-    [users, orgs, ownedById],
-  );
+  const { shortname: ownerShortname } = useWorkspaceShortnameByAccountId({
+    accountId: ownedById,
+  });
 
   const accountPages = useMemo(() => {
     if (!data || !ownerShortname) {
