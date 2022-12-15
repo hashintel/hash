@@ -1,6 +1,7 @@
 import { ApolloError } from "apollo-server-express";
 import { AxiosError } from "axios";
 import { PropertyTypeWithMetadata, Subgraph } from "@hashintel/hash-subgraph";
+import { brand } from "@hashintel/hash-shared/types";
 
 import {
   MutationCreatePropertyTypeArgs,
@@ -27,9 +28,9 @@ export const createPropertyTypeResolver: ResolverFn<
   const createdPropertyType = await createPropertyType(
     { graphApi },
     {
-      ownedById: ownedById ?? userModel.getEntityUuid(),
+      ownedById: brand(ownedById ?? userModel.getEntityUuid()),
       schema: propertyType,
-      actorId: userModel.getEntityUuid(),
+      actorId: brand(userModel.getEntityUuid()),
     },
   ).catch((err) => {
     throw new ApolloError(err, "CREATION_ERROR");
@@ -137,7 +138,7 @@ export const updatePropertyTypeResolver: ResolverFn<
     {
       propertyTypeId,
       schema: updatedPropertyTypeSchema,
-      actorId: userModel.getEntityUuid(),
+      actorId: brand(userModel.getEntityUuid()),
     },
   ).catch((err: AxiosError) => {
     const msg =

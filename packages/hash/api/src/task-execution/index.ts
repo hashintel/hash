@@ -2,6 +2,8 @@ import { DataSource } from "apollo-datasource";
 import fetch from "node-fetch";
 import { EntityType } from "@blockprotocol/type-system";
 import { EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
+import { brand } from "@hashintel/hash-shared/types";
+
 import { UserModel } from "../model";
 import { GraphApi } from "../graph";
 import { createEntityType } from "../graph/ontology/primitive/entity-type";
@@ -90,8 +92,8 @@ export const CachedEntityTypes = async (
       const entityType = await createEntityType(
         { graphApi },
         {
-          ownedById: user.getEntityUuid(),
-          actorId: user.getEntityUuid(),
+          ownedById: brand(user.getEntityUuid()),
+          actorId: brand(user.getEntityUuid()),
           schema: { ...jsonSchema, title: entityTypeTitle },
         },
       );
