@@ -6,10 +6,10 @@ import {
   Subgraph,
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { UserModel } from "../model";
 import { GraphApi } from "../graph";
 import { createEntityType } from "../graph/ontology/primitive/entity-type";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 
 /** @todo: When task scheduling is more mature and we move away from the temporary `hash-task-executor` we should have a single source of */
 //  truth for available tasks, likely importable.
