@@ -35,6 +35,7 @@ impl<C: AsClient> PostgresStore<C> {
         clippy::too_many_lines,
         reason = "There is quite a few code duplication, which has to be resolved"
     )]
+    #[tracing::instrument(level = "trace", skip(self, dependency_context, subgraph))]
     pub(crate) fn traverse_entity_type<'a>(
         &'a self,
         entity_type_id: &'a OntologyTypeEditionId,
@@ -268,6 +269,7 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
+    #[tracing::instrument(level = "info", skip(self, entity_type))]
     async fn create_entity_type(
         &mut self,
         entity_type: EntityType,
@@ -311,6 +313,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         Ok(metadata)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     async fn get_entity_type<'f: 'q, 'q>(
         &self,
         query: &'f StructuralQuery<'q, EntityTypeWithMetadata>,
@@ -348,6 +351,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         Ok(subgraph)
     }
 
+    #[tracing::instrument(level = "info", skip(self, entity_type))]
     async fn update_entity_type(
         &mut self,
         entity_type: EntityType,
