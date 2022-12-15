@@ -27,7 +27,6 @@ import Head from "next/head";
 import { Router } from "next/router";
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 import {
-  AccountId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@hashintel/hash-shared/types";

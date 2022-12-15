@@ -25,9 +25,10 @@ import {
   DragEndEvent,
   DragStartEvent,
 } from "@dnd-kit/core";
-import { EntityId, isEntityId } from "@hashintel/hash-subgraph";
+import { isEntityId } from "@hashintel/hash-subgraph";
 import {
   AccountId,
+  EntityUuid,
   extractEntityUuidFromEntityId,
 } from "@hashintel/hash-shared/types";
 
@@ -52,7 +53,7 @@ import { constructPageRelativeUrl } from "../../../../lib/routes";
 
 type AccountPageListProps = {
   accountId: AccountId;
-  currentPageEntityUuid?: EntityId;
+  currentPageEntityUuid?: EntityUuid;
 };
 
 const measuringConfig = {
