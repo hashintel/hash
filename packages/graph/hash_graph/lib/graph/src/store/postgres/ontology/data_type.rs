@@ -24,6 +24,7 @@ impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`DataTypeWithMetadata`] into a [`DependencyContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
+    #[tracing::instrument(level = "trace", skip(self, dependency_context, subgraph))]
     pub(crate) async fn traverse_data_type(
         &self,
         data_type_id: &OntologyTypeEditionId,
@@ -78,6 +79,7 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> DataTypeStore for PostgresStore<C> {
+    #[tracing::instrument(level = "info", skip(self, data_type))]
     async fn create_data_type(
         &mut self,
         data_type: DataType,
@@ -106,6 +108,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         Ok(metadata)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     async fn get_data_type<'f: 'q, 'q>(
         &self,
         query: &'f StructuralQuery<'q, DataTypeWithMetadata>,
@@ -143,6 +146,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         Ok(subgraph)
     }
 
+    #[tracing::instrument(level = "info", skip(self, data_type))]
     async fn update_data_type(
         &mut self,
         data_type: DataType,
