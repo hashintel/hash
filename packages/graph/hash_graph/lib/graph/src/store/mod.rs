@@ -5,7 +5,11 @@ pub mod query;
 mod pool;
 mod postgres;
 
-use std::fmt;
+use std::{
+    collections::hash_map::{RandomState, RawEntryMut},
+    fmt,
+    hash::Hash,
+};
 
 use async_trait::async_trait;
 use error_stack::{Context, Result};
@@ -31,13 +35,18 @@ use crate::{
 /// A record stored in the [`store`].
 ///
 /// [`store`]: crate::store
-pub trait Record {
-    type EditionId;
-    type QueryPath<'p>: QueryPath;
+pub trait Record: Sized {
+    type EditionId: Clone + PartialEq + Eq + Hash + Send + Sync;
+    type QueryPath<'p>: QueryPath + Send + Sync;
 
     fn edition_id(&self) -> &Self::EditionId;
 
     fn create_filter_for_edition_id(edition_id: &Self::EditionId) -> Filter<Self>;
+
+    fn subgraph_entry<'s>(
+        subgraph: &'s mut Subgraph,
+        edition_id: &Self::EditionId,
+    ) -> RawEntryMut<'s, Self::EditionId, Self, RandomState>;
 }
 
 #[derive(Debug)]

@@ -1,6 +1,12 @@
 mod query;
 
-use std::{collections::HashMap, fmt};
+use std::{
+    collections::{
+        hash_map::{RandomState, RawEntryMut},
+        HashMap,
+    },
+    fmt,
+};
 
 use serde::{Deserialize, Serialize};
 use tokio_postgres::types::{FromSql, ToSql};
@@ -13,6 +19,7 @@ use crate::{
     identifier::knowledge::{EntityEditionId, EntityId},
     provenance::ProvenanceMetadata,
     store::{query::Filter, Record},
+    subgraph::Subgraph,
 };
 
 #[derive(
@@ -273,6 +280,17 @@ impl Record for Entity {
 
     fn create_filter_for_edition_id(edition_id: &Self::EditionId) -> Filter<Self> {
         Filter::for_entity_by_edition_id(*edition_id)
+    }
+
+    fn subgraph_entry<'s>(
+        subgraph: &'s mut Subgraph,
+        edition_id: &Self::EditionId,
+    ) -> RawEntryMut<'s, Self::EditionId, Self, RandomState> {
+        subgraph
+            .vertices
+            .entities
+            .raw_entry_mut()
+            .from_key(edition_id)
     }
 }
 

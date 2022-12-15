@@ -25,10 +25,7 @@ pub trait Read<R: Record + Send>: Sync {
     /// [`Store`]: crate::store::Store
     async fn read(&self, query: &Filter<R>) -> Result<Vec<R>, QueryError>;
 
-    async fn read_one(&self, query: &Filter<R>) -> Result<R, QueryError>
-    where
-        for<'p> R::QueryPath<'p>: Sync,
-    {
+    async fn read_one(&self, query: &Filter<R>) -> Result<R, QueryError> {
         let mut records = self.read(query).await?;
         ensure!(
             records.len() <= 1,
