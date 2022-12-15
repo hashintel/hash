@@ -42,6 +42,7 @@ impl<C: AsClient> PostgresStore<C> {
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     #[expect(clippy::too_many_lines)]
+    #[tracing::instrument(level = "trace", skip(self, dependency_context, subgraph))]
     pub(crate) fn traverse_entity<'a>(
         &'a self,
         entity_edition_id: EntityEditionId,
@@ -398,6 +399,7 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> EntityStore for PostgresStore<C> {
+    #[tracing::instrument(level = "info", skip(self, properties))]
     async fn create_entity(
         &mut self,
         owned_by_id: OwnedById,
@@ -590,6 +592,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .collect())
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     async fn get_entity<'f: 'q, 'q>(
         &self,
         query: &'f StructuralQuery<'q, Entity>,
@@ -627,6 +630,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(subgraph)
     }
 
+    #[tracing::instrument(level = "info", skip(self, properties))]
     async fn update_entity(
         &mut self,
         entity_id: EntityId,
