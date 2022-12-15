@@ -10,6 +10,7 @@ import {
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { DataTypeWithoutId } from "@hashintel/hash-shared/graphql/types";
 import { getNamespaceOfAccountOwner } from "./util";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
 import { NotFoundError } from "../../../lib/error";
@@ -118,7 +119,7 @@ export const updateDataType: ImpureGraphFunction<
     // we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
     //  https://github.com/microsoft/TypeScript/issues/50638
     //  this is needed for as long as DataType extends Record
-    schema: Pick<DataType, "kind" | "title" | "description" | "type"> &
+    schema: Pick<DataTypeWithoutId, "kind" | "title" | "description" | "type"> &
       Record<string, any>;
     actorId: AccountId;
   },

@@ -11,6 +11,7 @@ import {
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { EntityTypeWithoutId } from "@hashintel/hash-shared/graphql/types";
 import {
   ImpureGraphFunction,
   PureGraphFunction,
@@ -30,7 +31,7 @@ import { NotFoundError } from "../../../lib/error";
 export const createEntityType: ImpureGraphFunction<
   {
     ownedById: OwnedById;
-    schema: Omit<EntityType, "$id">;
+    schema: EntityTypeWithoutId;
     actorId: AccountId;
   },
   Promise<EntityTypeWithMetadata>
