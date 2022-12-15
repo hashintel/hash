@@ -1,4 +1,7 @@
-use graph::knowledge::{EntityLinkOrder, EntityProperties};
+use graph::{
+    knowledge::{EntityLinkOrder, EntityProperties},
+    store::Metadata,
+};
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::uri::{BaseUri, VersionedUri};
 
@@ -35,7 +38,7 @@ async fn insert() {
         .expect("could not create entity");
 
     let entity = api
-        .get_entity(metadata.edition_id())
+        .get_entity(*metadata.edition_id())
         .await
         .expect("could not get entity");
 
@@ -71,7 +74,7 @@ async fn query() {
         .expect("could not create entity");
 
     let queried_organization = api
-        .get_entity(metadata.edition_id())
+        .get_entity(*metadata.edition_id())
         .await
         .expect("could not get entity");
 
@@ -121,7 +124,7 @@ async fn update() {
         .expect("could not update entity");
 
     let entity_v2 = api
-        .get_entity(v2_metadata.edition_id())
+        .get_entity(*v2_metadata.edition_id())
         .await
         .expect("could not get entity");
 

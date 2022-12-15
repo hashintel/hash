@@ -1,6 +1,6 @@
 use graph::{
     knowledge::{EntityLinkOrder, EntityProperties},
-    store::Record,
+    store::{Metadata, Record},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::uri::{BaseUri, VersionedUri};
