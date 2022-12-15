@@ -28,6 +28,7 @@ export const useWorkspaceShortnameByEntityUuid = (params: {
   );
 
   useEffect(() => {
+    let cancelled = false;
     if (systemUserOwnedById) {
       void (async () => {
         setLoading(true);
@@ -60,10 +61,15 @@ export const useWorkspaceShortnameByEntityUuid = (params: {
           );
         }
 
-        setWorkspaceShortname(shortname as string);
-        setLoading(false);
+        if (!cancelled) {
+          setWorkspaceShortname(shortname as string);
+          setLoading(false);
+        }
       })();
     }
+    return () => {
+      cancelled = true;
+    };
   }, [entityUuid, getEntity, systemUserOwnedById]);
 
   return { workspaceShortname, loading: loadingSystemUserWorkspace || loading };
