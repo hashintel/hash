@@ -1833,7 +1833,7 @@ export interface UpdateEntityRequest {
    * @type {boolean}
    * @memberof UpdateEntityRequest
    */
-  archived?: boolean;
+  archived: boolean;
   /**
    *
    * @type {string}
@@ -1870,7 +1870,7 @@ export interface UpdateEntityRequestAllOf {
    * @type {boolean}
    * @memberof UpdateEntityRequestAllOf
    */
-  archived?: boolean;
+  archived: boolean;
   /**
    *
    * @type {string}

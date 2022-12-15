@@ -227,9 +227,6 @@ struct UpdateEntityRequest {
     actor_id: UpdatedById,
     #[serde(flatten)]
     order: EntityLinkOrder,
-    // TODO: Remove default value when exposing temporal versions to backend
-    //   see https://app.asana.com/0/0/1203444301722133/f
-    #[serde(default)]
     archived: bool,
 }
 
