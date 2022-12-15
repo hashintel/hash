@@ -6,7 +6,7 @@ import {
   useMemo,
   ReactNode,
 } from "react";
-import { useWorkspaceByShortname } from "../../components/hooks/use-get-workspace-by-shortname";
+import { useWorkspaceByShortname } from "../../components/hooks/use-workspace-by-shortname";
 import { MinimalOrg } from "../../lib/org";
 import { User } from "../../lib/user";
 

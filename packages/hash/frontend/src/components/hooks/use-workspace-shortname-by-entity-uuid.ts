@@ -5,7 +5,7 @@ import { entityIdFromOwnedByIdAndEntityUuid } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import { useEffect, useMemo, useState } from "react";
 import { useBlockProtocolGetEntity } from "./blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
-import { useWorkspaceByShortname } from "./use-get-workspace-by-shortname";
+import { useWorkspaceByShortname } from "./use-workspace-by-shortname";
 
 export const useWorkspaceShortnameByEntityUuid = (params: {
   entityUuid: string;
