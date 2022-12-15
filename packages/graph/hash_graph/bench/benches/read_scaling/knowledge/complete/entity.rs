@@ -6,7 +6,7 @@ use graph::{
     identifier::account::AccountId,
     knowledge::{EntityMetadata, EntityProperties, LinkData},
     provenance::{OwnedById, UpdatedById},
-    store::{query::Filter, AccountStore, AsClient, EntityStore, Metadata, PostgresStore},
+    store::{query::Filter, AccountStore, AsClient, EntityStore, PostgresStore},
     subgraph::{
         edges::{EdgeResolveDepths, GraphResolveDepths},
         query::StructuralQuery,

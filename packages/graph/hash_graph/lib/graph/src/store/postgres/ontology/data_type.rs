@@ -7,14 +7,13 @@ use type_system::DataType;
 
 use crate::{
     identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId},
-    ontology::{DataTypeWithMetadata, OntologyElementMetadata},
+    ontology::{DataTypeWithMetadata, OntologyElementMetadata, OntologyTypeWithMetadata},
     provenance::{OwnedById, UpdatedById},
     store::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
         query::Filter,
-        AsClient, DataTypeStore, InsertionError, Metadata, PostgresStore, QueryError, Record,
-        UpdateError,
+        AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
     subgraph::{edges::GraphResolveDepths, query::StructuralQuery, Subgraph},
 };
