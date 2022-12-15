@@ -60,7 +60,7 @@ import { constructMinimalOrg, MinimalOrg } from "../../lib/org";
 import { constructMinimalUser, MinimalUser } from "../../lib/user";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
-import { useReadonlyMode } from "../../shared/readonly-mode";
+import { useIsReadonlyMode } from "../../shared/readonly-mode";
 import { Button } from "../../shared/ui/button";
 import {
   TOP_CONTEXT_BAR_HEIGHT,
@@ -294,7 +294,7 @@ const Page: NextPageWithLayout<PageProps> = ({
   >(getPageQuery, { variables: { entityId: pageEntityId } });
 
   const pageHeaderRef = useRef<HTMLElement>();
-  const { readonlyMode } = useReadonlyMode();
+  const isReadonlyMode = useIsReadonlyMode();
 
   // Collab position tracking is disabled.
   // const collabPositions = useCollabPositions(accountId, pageEntityId);
@@ -405,7 +405,7 @@ const Page: NextPageWithLayout<PageProps> = ({
           <Box position="relative">
             <PageIconButton
               entityId={pageEntityId}
-              readonly={readonlyMode}
+              readonly={isReadonlyMode}
               sx={({ breakpoints }) => ({
                 mb: 2,
                 [breakpoints.up(pageComments?.length ? "xl" : "lg")]: {

@@ -1,20 +1,23 @@
 import { PropertyValues, VersionedUri } from "@blockprotocol/type-system";
-import { DataType, ExpectedValue } from "../property-type-form-values";
+import {
+  CustomExpectedValue,
+  ExpectedValue,
+} from "../property-type-form-values";
 
 export const getArraySchema = (
-  expectedValues: string[],
-  flattenedDataTypes: Record<string, DataType>,
+  itemIds: string[],
+  flattenedExpectedValues: Record<string, CustomExpectedValue>,
 ): [PropertyValues, ...PropertyValues[]] =>
-  expectedValues.map((value) => {
-    const property = flattenedDataTypes[value];
+  itemIds.map((itemId) => {
+    const property = flattenedExpectedValues[itemId];
 
-    if (property?.data && "expectedValues" in property.data) {
+    if (property?.data && "itemIds" in property.data) {
       const { data } = property;
 
       return {
         type: "array",
         items: {
-          oneOf: getArraySchema(data.expectedValues, flattenedDataTypes),
+          oneOf: getArraySchema(data.itemIds, flattenedExpectedValues),
         },
         minItems: data?.minItems,
         maxItems: data?.maxItems,
@@ -29,16 +32,16 @@ export const getArraySchema = (
 export const getPropertyTypeSchema = (values: ExpectedValue[]) =>
   values.map((value) => {
     if (typeof value === "object") {
-      const { id, flattenedDataTypes } = value;
-      const property = flattenedDataTypes[id];
+      const { id, flattenedExpectedValues } = value;
+      const property = flattenedExpectedValues[id];
 
-      if (property?.data && "expectedValues" in property.data) {
+      if (property?.data && "itemIds" in property.data) {
         return {
           type: "array",
           items: {
             oneOf: getArraySchema(
-              property.data.expectedValues,
-              flattenedDataTypes,
+              property.data.itemIds,
+              flattenedExpectedValues,
             ),
           },
           minItems: property.data.minItems,

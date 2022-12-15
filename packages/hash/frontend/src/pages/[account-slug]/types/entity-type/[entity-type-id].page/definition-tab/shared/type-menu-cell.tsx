@@ -1,18 +1,22 @@
-import { extractVersion, PropertyType } from "@blockprotocol/type-system";
+import { extractVersion } from "@blockprotocol/type-system";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
   IconButton,
   MenuItem,
 } from "@hashintel/hash-design-system";
+import { VersionedUri } from "@hashintel/hash-subgraph";
 import {
   Divider,
+  iconButtonClasses,
   ListItem,
   listItemClasses,
   ListItemText,
   listItemTextClasses,
   Menu,
   menuItemClasses,
+  TableCell,
+  tableRowClasses,
   Tooltip,
   Typography,
 } from "@mui/material";
@@ -28,22 +32,37 @@ import {
   parseUriForOntologyChip,
 } from "../../../../../shared/ontology-chip";
 
-export const PropertyMenu = ({
+export const TYPE_MENU_CELL_WIDTH = 70;
+
+export const TypeMenuCell = ({
+  typeId,
   editButtonProps,
   onRemove,
-  property,
   popupState,
+  variant,
+  canEdit = true,
 }: {
+  typeId: VersionedUri;
   editButtonProps: MenuItemProps;
   onRemove?: () => void;
-  property: PropertyType;
   popupState: PopupState;
+  variant: "property" | "link";
+  canEdit?: boolean;
 }) => {
-  const version = extractVersion(property.$id);
-  const ontology = parseUriForOntologyChip(property.$id);
+  const version = extractVersion(typeId);
+  const ontology = parseUriForOntologyChip(typeId);
 
   return (
-    <>
+    <TableCell
+      sx={{
+        [`.${iconButtonClasses.root}`]: {
+          opacity: 0,
+          [`.${tableRowClasses.root}:hover &`]: {
+            opacity: 1,
+          },
+        },
+      }}
+    >
       <IconButton {...bindTrigger(popupState)}>
         <FontAwesomeIcon
           icon={faEllipsis}
@@ -89,26 +108,28 @@ export const PropertyMenu = ({
           Actions
         </Typography>
 
-        <MenuItem
-          {...editButtonProps}
-          onClick={(evt) => {
-            popupState.close();
-            editButtonProps.onClick?.(evt);
-          }}
-          onTouchStart={(evt) => {
-            popupState.close();
-            editButtonProps.onTouchStart?.(evt);
-          }}
-        >
-          <ListItemText primary="Edit property" />
-        </MenuItem>
+        {canEdit ? (
+          <MenuItem
+            {...editButtonProps}
+            onClick={(evt) => {
+              popupState.close();
+              editButtonProps.onClick?.(evt);
+            }}
+            onTouchStart={(evt) => {
+              popupState.close();
+              editButtonProps.onTouchStart?.(evt);
+            }}
+          >
+            <ListItemText primary={<>Edit {variant}</>} />
+          </MenuItem>
+        ) : null}
         <MenuItem
           onClick={() => {
             popupState.close();
             onRemove?.();
           }}
         >
-          <ListItemText primary="Remove property" />
+          <ListItemText primary={<>Remove {variant}</>} />
         </MenuItem>
         <Divider />
         <Typography component={ListItem} variant="smallCaps">
@@ -155,6 +176,6 @@ export const PropertyMenu = ({
           />
         </ListItem>
       </Menu>
-    </>
+    </TableCell>
   );
 };

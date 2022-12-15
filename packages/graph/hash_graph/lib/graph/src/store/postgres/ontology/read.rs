@@ -1,4 +1,4 @@
-use std::{fmt::Debug, str::FromStr};
+use std::str::FromStr;
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
@@ -16,7 +16,7 @@ use crate::{
             ontology::OntologyDatabaseType,
             query::{Distinctness, PostgresQueryRecord, SelectCompiler},
         },
-        query::{Filter, OntologyPath, QueryRecord},
+        query::{Filter, OntologyPath},
         AsClient, PostgresStore, QueryError,
     },
 };
@@ -24,17 +24,15 @@ use crate::{
 #[async_trait]
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
-    T: PersistedOntologyType
-        + for<'q> PostgresQueryRecord<Path<'q>: Debug + Send + Sync + OntologyPath>
-        + Send
-        + 'static,
+    T: PersistedOntologyType + PostgresQueryRecord + Send,
     T::OntologyType: OntologyDatabaseType,
+    for<'q> T::Path<'q>: Send + Sync + OntologyPath,
 {
-    async fn read<'f: 'q, 'q>(&self, filter: &'f Filter<'q, T>) -> Result<Vec<T>, QueryError> {
-        let versioned_uri_path = <<T as QueryRecord>::Path<'q> as OntologyPath>::versioned_uri();
-        let schema_path = <<T as QueryRecord>::Path<'q> as OntologyPath>::schema();
-        let owned_by_id_path = <<T as QueryRecord>::Path<'q> as OntologyPath>::owned_by_id();
-        let updated_by_id_path = <<T as QueryRecord>::Path<'q> as OntologyPath>::updated_by_id();
+    async fn read(&self, filter: &Filter<T>) -> Result<Vec<T>, QueryError> {
+        let versioned_uri_path = <T::Path<'static> as OntologyPath>::versioned_uri();
+        let schema_path = <T::Path<'static> as OntologyPath>::schema();
+        let owned_by_id_path = <T::Path<'static> as OntologyPath>::owned_by_id();
+        let updated_by_id_path = <T::Path<'static> as OntologyPath>::updated_by_id();
 
         let mut compiler = SelectCompiler::new();
 
