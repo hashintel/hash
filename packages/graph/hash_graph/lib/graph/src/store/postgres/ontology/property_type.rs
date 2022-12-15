@@ -8,13 +8,14 @@ use type_system::{DataTypeReference, PropertyType, PropertyTypeReference};
 
 use crate::{
     identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId},
-    ontology::{OntologyElementMetadata, PropertyTypeWithMetadata},
+    ontology::{OntologyElementMetadata, OntologyTypeWithMetadata, PropertyTypeWithMetadata},
     provenance::{OwnedById, UpdatedById},
     store::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
         query::Filter,
-        AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
+        AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, Record,
+        UpdateError,
     },
     subgraph::{
         edges::{
@@ -213,9 +214,9 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         Ok(metadata)
     }
 
-    async fn get_property_type<'f: 'q, 'q>(
+    async fn get_property_type(
         &self,
-        query: &'f StructuralQuery<'q, PropertyTypeWithMetadata>,
+        query: &StructuralQuery<PropertyTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,

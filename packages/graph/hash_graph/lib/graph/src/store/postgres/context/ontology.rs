@@ -12,19 +12,19 @@ use crate::{
 ///
 /// This is used for filtering by the latest version.
 #[derive(Debug)]
-pub struct OntologyRecord<T> {
-    pub record: T,
+pub struct OntologyRecord<R> {
+    pub record: R,
     pub owned_by_id: OwnedById,
     pub updated_by_id: UpdatedById,
     pub is_latest: bool,
 }
 
-pub async fn read_latest_type<T>(
+pub async fn read_latest_type<R>(
     client: &impl AsClient,
     base_uri: &BaseUri,
-) -> Result<OntologyRecord<T>, QueryError>
+) -> Result<OntologyRecord<R>, QueryError>
 where
-    T: OntologyDatabaseType,
+    R: OntologyDatabaseType,
 {
     let row = client
         .as_client()
@@ -41,7 +41,7 @@ where
                     WHERE base_uri = $1
                 );
                 "#,
-                T::table()
+                R::table()
             ),
             &[&base_uri.as_str()],
         )
@@ -49,10 +49,10 @@ where
         .into_report()
         .change_context(QueryError)?;
 
-    let record_repr: T::Representation = serde_json::from_value(row.get(0))
+    let record_repr: R::Representation = serde_json::from_value(row.get(0))
         .into_report()
         .change_context(QueryError)?;
-    let record = T::try_from(record_repr)
+    let record = R::try_from(record_repr)
         .into_report()
         .change_context(QueryError)?;
     let owned_by_id = OwnedById::new(row.get(1));

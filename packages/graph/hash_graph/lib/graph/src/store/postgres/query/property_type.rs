@@ -4,17 +4,17 @@ use crate::{
     ontology::{PropertyTypeQueryPath, PropertyTypeWithMetadata},
     store::postgres::query::{
         table::{Column, JsonField, PropertyTypes, Relation, TypeIds},
-        Path, PostgresQueryRecord, Table,
+        PostgresQueryPath, PostgresRecord, Table,
     },
 };
 
-impl PostgresQueryRecord for PropertyTypeWithMetadata {
+impl PostgresRecord for PropertyTypeWithMetadata {
     fn base_table() -> Table {
         Table::PropertyTypes
     }
 }
 
-impl Path for PropertyTypeQueryPath {
+impl PostgresQueryPath for PropertyTypeQueryPath {
     fn relations(&self) -> Vec<Relation> {
         match self {
             Self::BaseUri | Self::Version => vec![Relation::PropertyTypeIds],

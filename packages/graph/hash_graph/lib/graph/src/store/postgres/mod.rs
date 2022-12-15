@@ -274,7 +274,7 @@ where
     where
         T: OntologyDatabaseType<Representation: Send> + Send + Sync,
     {
-        let uri = database_type.versioned_uri().clone();
+        let uri = database_type.id().clone();
 
         if self
             .contains_base_uri(uri.base_uri())
@@ -333,7 +333,7 @@ where
     where
         T: OntologyDatabaseType<Representation: Send> + Send + Sync,
     {
-        let uri = database_type.versioned_uri().clone();
+        let uri = database_type.id().clone();
 
         if !self
             .contains_base_uri(uri.base_uri())
