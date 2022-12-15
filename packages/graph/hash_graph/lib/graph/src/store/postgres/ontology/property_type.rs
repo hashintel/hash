@@ -8,13 +8,14 @@ use type_system::{DataTypeReference, PropertyType, PropertyTypeReference};
 
 use crate::{
     identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId},
-    ontology::{OntologyElementMetadata, PropertyTypeWithMetadata},
+    ontology::{OntologyElementMetadata, OntologyTypeWithMetadata, PropertyTypeWithMetadata},
     provenance::{OwnedById, UpdatedById},
     store::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
         query::Filter,
-        AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
+        AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, Record,
+        UpdateError,
     },
     subgraph::{
         edges::{
@@ -216,9 +217,9 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    async fn get_property_type<'f: 'q, 'q>(
+    async fn get_property_type(
         &self,
-        query: &'f StructuralQuery<'q, PropertyTypeWithMetadata>,
+        query: &StructuralQuery<PropertyTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,
@@ -271,7 +272,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         // We can only insert them after the type has been created, and so we currently extract them
         // after as well. See `insert_property_type_references` taking `&property_type`
         let (version_id, metadata) = transaction
-            .update(property_type.clone(), updated_by)
+            .update::<PropertyType>(property_type.clone(), updated_by)
             .await?;
 
         transaction

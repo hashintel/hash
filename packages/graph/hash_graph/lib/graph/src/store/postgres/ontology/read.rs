@@ -8,15 +8,15 @@ use type_system::uri::VersionedUri;
 
 use crate::{
     identifier::ontology::OntologyTypeEditionId,
-    ontology::{OntologyElementMetadata, OntologyType, PersistedOntologyType},
+    ontology::{OntologyElementMetadata, OntologyType, OntologyTypeWithMetadata},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         crud::Read,
         postgres::{
             ontology::OntologyDatabaseType,
-            query::{Distinctness, PostgresQueryRecord, SelectCompiler},
+            query::{Distinctness, PostgresRecord, SelectCompiler},
         },
-        query::{Filter, OntologyPath},
+        query::{Filter, OntologyQueryPath},
         AsClient, PostgresStore, QueryError,
     },
 };
@@ -24,16 +24,16 @@ use crate::{
 #[async_trait]
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
-    T: PersistedOntologyType + PostgresQueryRecord + Send,
+    T: OntologyTypeWithMetadata + PostgresRecord + Send,
     T::OntologyType: OntologyDatabaseType,
-    for<'q> T::Path<'q>: Send + Sync + OntologyPath + std::fmt::Debug,
+    for<'p> T::QueryPath<'p>: Send + Sync + OntologyQueryPath,
 {
-    #[tracing::instrument(level = "info", skip(self))]
+    #[tracing::instrument(level = "info", skip(self, filter))]
     async fn read(&self, filter: &Filter<T>) -> Result<Vec<T>, QueryError> {
-        let versioned_uri_path = <T::Path<'static> as OntologyPath>::versioned_uri();
-        let schema_path = <T::Path<'static> as OntologyPath>::schema();
-        let owned_by_id_path = <T::Path<'static> as OntologyPath>::owned_by_id();
-        let updated_by_id_path = <T::Path<'static> as OntologyPath>::updated_by_id();
+        let versioned_uri_path = <T::QueryPath<'static> as OntologyQueryPath>::versioned_uri();
+        let schema_path = <T::QueryPath<'static> as OntologyQueryPath>::schema();
+        let owned_by_id_path = <T::QueryPath<'static> as OntologyQueryPath>::owned_by_id();
+        let updated_by_id_path = <T::QueryPath<'static> as OntologyQueryPath>::updated_by_id();
 
         let mut compiler = SelectCompiler::new();
 

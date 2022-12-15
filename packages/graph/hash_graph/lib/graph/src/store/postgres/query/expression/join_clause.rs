@@ -3,14 +3,14 @@ use std::fmt;
 use crate::store::postgres::query::{AliasedColumn, Transpile};
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub struct JoinExpression<'q> {
-    pub join: AliasedColumn<'q>,
-    pub on: AliasedColumn<'q>,
+pub struct JoinExpression<'p> {
+    pub join: AliasedColumn<'p>,
+    pub on: AliasedColumn<'p>,
 }
 
-impl<'q> JoinExpression<'q> {
+impl<'p> JoinExpression<'p> {
     #[must_use]
-    pub const fn new(join: AliasedColumn<'q>, on: AliasedColumn<'q>) -> Self {
+    pub const fn new(join: AliasedColumn<'p>, on: AliasedColumn<'p>) -> Self {
         Self { join, on }
     }
 }

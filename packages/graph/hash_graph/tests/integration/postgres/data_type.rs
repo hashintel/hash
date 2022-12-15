@@ -1,3 +1,4 @@
+use graph::ontology::OntologyTypeWithMetadata;
 use type_system::{repr, DataType};
 
 use crate::postgres::DatabaseTestWrapper;

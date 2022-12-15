@@ -24,7 +24,7 @@ use crate::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
         postgres::{DependencyContext, DependencyStatus},
         query::Filter,
-        AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
+        AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{
         edges::{
@@ -161,8 +161,15 @@ impl<C: AsClient> PostgresStore<C> {
                             ),
                         });
 
+                        let outgoing_link_entity_edition_id =
+                            outgoing_link_entity.metadata().edition_id();
+                        subgraph.vertices.knowledge_graph.insert(
+                            outgoing_link_entity_edition_id,
+                            KnowledgeGraphVertex::Entity(outgoing_link_entity),
+                        );
+
                         self.traverse_entity(
-                            outgoing_link_entity.metadata().edition_id(),
+                            outgoing_link_entity_edition_id,
                             dependency_context,
                             subgraph,
                             GraphResolveDepths {
@@ -234,8 +241,16 @@ impl<C: AsClient> PostgresStore<C> {
                             ),
                         });
 
+                        let incoming_link_entity_edition_id =
+                            incoming_link_entity.metadata().edition_id();
+
+                        subgraph.vertices.knowledge_graph.insert(
+                            incoming_link_entity_edition_id,
+                            KnowledgeGraphVertex::Entity(incoming_link_entity),
+                        );
+
                         self.traverse_entity(
-                            incoming_link_entity.metadata().edition_id(),
+                            incoming_link_entity_edition_id,
                             dependency_context,
                             subgraph,
                             GraphResolveDepths {
@@ -304,8 +319,15 @@ impl<C: AsClient> PostgresStore<C> {
                             ),
                         });
 
+                        let left_entity_edition_id = left_entity.metadata().edition_id();
+
+                        subgraph.vertices.knowledge_graph.insert(
+                            left_entity_edition_id,
+                            KnowledgeGraphVertex::Entity(left_entity),
+                        );
+
                         self.traverse_entity(
-                            left_entity.metadata().edition_id(),
+                            left_entity_edition_id,
                             dependency_context,
                             subgraph,
                             GraphResolveDepths {
@@ -374,8 +396,15 @@ impl<C: AsClient> PostgresStore<C> {
                             ),
                         });
 
+                        let right_entity_edition_id = right_entity.metadata().edition_id();
+
+                        subgraph.vertices.knowledge_graph.insert(
+                            right_entity_edition_id,
+                            KnowledgeGraphVertex::Entity(right_entity),
+                        );
+
                         self.traverse_entity(
-                            right_entity.metadata().edition_id(),
+                            right_entity_edition_id,
                             dependency_context,
                             subgraph,
                             GraphResolveDepths {
@@ -593,10 +622,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    async fn get_entity<'f: 'q, 'q>(
-        &self,
-        query: &'f StructuralQuery<'q, Entity>,
-    ) -> Result<Subgraph, QueryError> {
+    async fn get_entity(&self, query: &StructuralQuery<Entity>) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,
             graph_resolve_depths,

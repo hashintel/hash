@@ -37,11 +37,7 @@ use self::{api_resource::RoutedResource, middleware::span_maker};
 use crate::{
     api::rest::middleware::log_request_and_response,
     ontology::{domain_validator::DomainValidator, Selector},
-    store::{
-        crud::Read,
-        query::{Filter, QueryRecord},
-        QueryError, StorePool,
-    },
+    store::{crud::Read, query::Filter, QueryError, Record, StorePool},
 };
 
 static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/json_schemas");
@@ -76,13 +72,13 @@ fn report_to_status_code<C>(report: &Report<C>) -> StatusCode {
     status_code
 }
 
-async fn read_from_store<'pool, 'q, P, T>(
+async fn read_from_store<'pool, 'p, P, R>(
     pool: &'pool P,
-    query: &'q Filter<'q, T>,
-) -> Result<Vec<T>, StatusCode>
+    query: &Filter<'p, R>,
+) -> Result<Vec<R>, StatusCode>
 where
-    P: StorePool<Store<'pool>: Read<T>>,
-    T: QueryRecord<Path<'q>: Sync + Debug> + Send,
+    P: StorePool<Store<'pool>: Read<R>>,
+    R: Record<QueryPath<'p>: Sync + Debug> + Send,
 {
     pool.acquire()
         .map_err(|report| {
