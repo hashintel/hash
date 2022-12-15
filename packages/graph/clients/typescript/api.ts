@@ -2658,6 +2658,60 @@ export const EntityApiAxiosParamCreator = function (
   return {
     /**
      *
+     * @param {ArchiveEntityRequest} archiveEntityRequest
+     * @param {*} [options] Override http request option.
+     * @deprecated
+     * @throws {RequiredError}
+     */
+    archiveEntity: async (
+      archiveEntityRequest: ArchiveEntityRequest,
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'archiveEntityRequest' is not null or undefined
+      assertParamExists(
+        "archiveEntity",
+        "archiveEntityRequest",
+        archiveEntityRequest,
+      );
+      const localVarPath = `/entities/archive`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "POST",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      localVarHeaderParameter["Content-Type"] = "application/json";
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+      localVarRequestOptions.data = serializeDataIfNeeded(
+        archiveEntityRequest,
+        localVarRequestOptions,
+        configuration,
+      );
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
      * @param {CreateEntityRequest} createEntityRequest
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -2764,6 +2818,91 @@ export const EntityApiAxiosParamCreator = function (
     },
     /**
      *
+     * @param {string} entityId The EntityId
+     * @param {*} [options] Override http request option.
+     * @deprecated
+     * @throws {RequiredError}
+     */
+    getEntity: async (
+      entityId: string,
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'entityId' is not null or undefined
+      assertParamExists("getEntity", "entityId", entityId);
+      const localVarPath = `/entities/{entityId}`.replace(
+        `{${"entityId"}}`,
+        encodeURIComponent(String(entityId)),
+      );
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "GET",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @param {*} [options] Override http request option.
+     * @deprecated
+     * @throws {RequiredError}
+     */
+    getLatestEntities: async (
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      const localVarPath = `/entities`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "GET",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
      * @param {UpdateEntityRequest} updateEntityRequest
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -2827,6 +2966,30 @@ export const EntityApiFp = function (configuration?: Configuration) {
   return {
     /**
      *
+     * @param {ArchiveEntityRequest} archiveEntityRequest
+     * @param {*} [options] Override http request option.
+     * @deprecated
+     * @throws {RequiredError}
+     */
+    async archiveEntity(
+      archiveEntityRequest: ArchiveEntityRequest,
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.archiveEntity(
+        archiveEntityRequest,
+        options,
+      );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
      * @param {CreateEntityRequest} createEntityRequest
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -2874,6 +3037,50 @@ export const EntityApiFp = function (configuration?: Configuration) {
     },
     /**
      *
+     * @param {string} entityId The EntityId
+     * @param {*} [options] Override http request option.
+     * @deprecated
+     * @throws {RequiredError}
+     */
+    async getEntity(
+      entityId: string,
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Entity>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.getEntity(
+        entityId,
+        options,
+      );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
+     * @param {*} [options] Override http request option.
+     * @deprecated
+     * @throws {RequiredError}
+     */
+    async getLatestEntities(
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<Entity>>
+    > {
+      const localVarAxiosArgs =
+        await localVarAxiosParamCreator.getLatestEntities(options);
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
      * @param {UpdateEntityRequest} updateEntityRequest
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -2911,6 +3118,21 @@ export const EntityApiFactory = function (
   return {
     /**
      *
+     * @param {ArchiveEntityRequest} archiveEntityRequest
+     * @param {*} [options] Override http request option.
+     * @deprecated
+     * @throws {RequiredError}
+     */
+    archiveEntity(
+      archiveEntityRequest: ArchiveEntityRequest,
+      options?: any,
+    ): AxiosPromise<void> {
+      return localVarFp
+        .archiveEntity(archiveEntityRequest, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
      * @param {CreateEntityRequest} createEntityRequest
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -2939,6 +3161,29 @@ export const EntityApiFactory = function (
     },
     /**
      *
+     * @param {string} entityId The EntityId
+     * @param {*} [options] Override http request option.
+     * @deprecated
+     * @throws {RequiredError}
+     */
+    getEntity(entityId: string, options?: any): AxiosPromise<Entity> {
+      return localVarFp
+        .getEntity(entityId, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @param {*} [options] Override http request option.
+     * @deprecated
+     * @throws {RequiredError}
+     */
+    getLatestEntities(options?: any): AxiosPromise<Array<Entity>> {
+      return localVarFp
+        .getLatestEntities(options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
      * @param {UpdateEntityRequest} updateEntityRequest
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -2960,6 +3205,19 @@ export const EntityApiFactory = function (
  * @interface EntityApi
  */
 export interface EntityApiInterface {
+  /**
+   *
+   * @param {ArchiveEntityRequest} archiveEntityRequest
+   * @param {*} [options] Override http request option.
+   * @deprecated
+   * @throws {RequiredError}
+   * @memberof EntityApiInterface
+   */
+  archiveEntity(
+    archiveEntityRequest: ArchiveEntityRequest,
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<void>;
+
   /**
    *
    * @param {CreateEntityRequest} createEntityRequest
@@ -2986,6 +3244,28 @@ export interface EntityApiInterface {
 
   /**
    *
+   * @param {string} entityId The EntityId
+   * @param {*} [options] Override http request option.
+   * @deprecated
+   * @throws {RequiredError}
+   * @memberof EntityApiInterface
+   */
+  getEntity(
+    entityId: string,
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<Entity>;
+
+  /**
+   *
+   * @param {*} [options] Override http request option.
+   * @deprecated
+   * @throws {RequiredError}
+   * @memberof EntityApiInterface
+   */
+  getLatestEntities(options?: AxiosRequestConfig): AxiosPromise<Array<Entity>>;
+
+  /**
+   *
    * @param {UpdateEntityRequest} updateEntityRequest
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -3004,6 +3284,23 @@ export interface EntityApiInterface {
  * @extends {BaseAPI}
  */
 export class EntityApi extends BaseAPI implements EntityApiInterface {
+  /**
+   *
+   * @param {ArchiveEntityRequest} archiveEntityRequest
+   * @param {*} [options] Override http request option.
+   * @deprecated
+   * @throws {RequiredError}
+   * @memberof EntityApi
+   */
+  public archiveEntity(
+    archiveEntityRequest: ArchiveEntityRequest,
+    options?: AxiosRequestConfig,
+  ) {
+    return EntityApiFp(this.configuration)
+      .archiveEntity(archiveEntityRequest, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
   /**
    *
    * @param {CreateEntityRequest} createEntityRequest
@@ -3033,6 +3330,33 @@ export class EntityApi extends BaseAPI implements EntityApiInterface {
   ) {
     return EntityApiFp(this.configuration)
       .getEntitiesByQuery(entityStructuralQuery, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {string} entityId The EntityId
+   * @param {*} [options] Override http request option.
+   * @deprecated
+   * @throws {RequiredError}
+   * @memberof EntityApi
+   */
+  public getEntity(entityId: string, options?: AxiosRequestConfig) {
+    return EntityApiFp(this.configuration)
+      .getEntity(entityId, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {*} [options] Override http request option.
+   * @deprecated
+   * @throws {RequiredError}
+   * @memberof EntityApi
+   */
+  public getLatestEntities(options?: AxiosRequestConfig) {
+    return EntityApiFp(this.configuration)
+      .getLatestEntities(options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -3477,6 +3801,60 @@ export const GraphApiAxiosParamCreator = function (
   return {
     /**
      *
+     * @param {ArchiveEntityRequest} archiveEntityRequest
+     * @param {*} [options] Override http request option.
+     * @deprecated
+     * @throws {RequiredError}
+     */
+    archiveEntity: async (
+      archiveEntityRequest: ArchiveEntityRequest,
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'archiveEntityRequest' is not null or undefined
+      assertParamExists(
+        "archiveEntity",
+        "archiveEntityRequest",
+        archiveEntityRequest,
+      );
+      const localVarPath = `/entities/archive`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "POST",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      localVarHeaderParameter["Content-Type"] = "application/json";
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+      localVarRequestOptions.data = serializeDataIfNeeded(
+        archiveEntityRequest,
+        localVarRequestOptions,
+        configuration,
+      );
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -3833,6 +4211,52 @@ export const GraphApiAxiosParamCreator = function (
     },
     /**
      *
+     * @param {string} entityId The EntityId
+     * @param {*} [options] Override http request option.
+     * @deprecated
+     * @throws {RequiredError}
+     */
+    getEntity: async (
+      entityId: string,
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'entityId' is not null or undefined
+      assertParamExists("getEntity", "entityId", entityId);
+      const localVarPath = `/entities/{entityId}`.replace(
+        `{${"entityId"}}`,
+        encodeURIComponent(String(entityId)),
+      );
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "GET",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
      * @param {EntityTypeStructuralQuery} entityTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -3878,6 +4302,45 @@ export const GraphApiAxiosParamCreator = function (
         localVarRequestOptions,
         configuration,
       );
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @param {*} [options] Override http request option.
+     * @deprecated
+     * @throws {RequiredError}
+     */
+    getLatestEntities: async (
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      const localVarPath = `/entities`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "GET",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
 
       return {
         url: toPathString(localVarUrlObj),
@@ -4161,6 +4624,30 @@ export const GraphApiFp = function (configuration?: Configuration) {
   return {
     /**
      *
+     * @param {ArchiveEntityRequest} archiveEntityRequest
+     * @param {*} [options] Override http request option.
+     * @deprecated
+     * @throws {RequiredError}
+     */
+    async archiveEntity(
+      archiveEntityRequest: ArchiveEntityRequest,
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.archiveEntity(
+        archiveEntityRequest,
+        options,
+      );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -4332,6 +4819,30 @@ export const GraphApiFp = function (configuration?: Configuration) {
     },
     /**
      *
+     * @param {string} entityId The EntityId
+     * @param {*} [options] Override http request option.
+     * @deprecated
+     * @throws {RequiredError}
+     */
+    async getEntity(
+      entityId: string,
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Entity>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.getEntity(
+        entityId,
+        options,
+      );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
      * @param {EntityTypeStructuralQuery} entityTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -4347,6 +4858,26 @@ export const GraphApiFp = function (configuration?: Configuration) {
           entityTypeStructuralQuery,
           options,
         );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
+     * @param {*} [options] Override http request option.
+     * @deprecated
+     * @throws {RequiredError}
+     */
+    async getLatestEntities(
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<Entity>>
+    > {
+      const localVarAxiosArgs =
+        await localVarAxiosParamCreator.getLatestEntities(options);
       return createRequestFunction(
         localVarAxiosArgs,
         globalAxios,
@@ -4497,6 +5028,21 @@ export const GraphApiFactory = function (
   return {
     /**
      *
+     * @param {ArchiveEntityRequest} archiveEntityRequest
+     * @param {*} [options] Override http request option.
+     * @deprecated
+     * @throws {RequiredError}
+     */
+    archiveEntity(
+      archiveEntityRequest: ArchiveEntityRequest,
+      options?: any,
+    ): AxiosPromise<void> {
+      return localVarFp
+        .archiveEntity(archiveEntityRequest, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -4591,6 +5137,18 @@ export const GraphApiFactory = function (
     },
     /**
      *
+     * @param {string} entityId The EntityId
+     * @param {*} [options] Override http request option.
+     * @deprecated
+     * @throws {RequiredError}
+     */
+    getEntity(entityId: string, options?: any): AxiosPromise<Entity> {
+      return localVarFp
+        .getEntity(entityId, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
      * @param {EntityTypeStructuralQuery} entityTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -4601,6 +5159,17 @@ export const GraphApiFactory = function (
     ): AxiosPromise<Subgraph> {
       return localVarFp
         .getEntityTypesByQuery(entityTypeStructuralQuery, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
+     * @param {*} [options] Override http request option.
+     * @deprecated
+     * @throws {RequiredError}
+     */
+    getLatestEntities(options?: any): AxiosPromise<Array<Entity>> {
+      return localVarFp
+        .getLatestEntities(options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -4684,6 +5253,19 @@ export const GraphApiFactory = function (
 export interface GraphApiInterface {
   /**
    *
+   * @param {ArchiveEntityRequest} archiveEntityRequest
+   * @param {*} [options] Override http request option.
+   * @deprecated
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  archiveEntity(
+    archiveEntityRequest: ArchiveEntityRequest,
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<void>;
+
+  /**
+   *
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApiInterface
@@ -4764,6 +5346,19 @@ export interface GraphApiInterface {
 
   /**
    *
+   * @param {string} entityId The EntityId
+   * @param {*} [options] Override http request option.
+   * @deprecated
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  getEntity(
+    entityId: string,
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<Entity>;
+
+  /**
+   *
    * @param {EntityTypeStructuralQuery} entityTypeStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -4773,6 +5368,15 @@ export interface GraphApiInterface {
     entityTypeStructuralQuery: EntityTypeStructuralQuery,
     options?: AxiosRequestConfig,
   ): AxiosPromise<Subgraph>;
+
+  /**
+   *
+   * @param {*} [options] Override http request option.
+   * @deprecated
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  getLatestEntities(options?: AxiosRequestConfig): AxiosPromise<Array<Entity>>;
 
   /**
    *
@@ -4842,6 +5446,23 @@ export interface GraphApiInterface {
  * @extends {BaseAPI}
  */
 export class GraphApi extends BaseAPI implements GraphApiInterface {
+  /**
+   *
+   * @param {ArchiveEntityRequest} archiveEntityRequest
+   * @param {*} [options] Override http request option.
+   * @deprecated
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public archiveEntity(
+    archiveEntityRequest: ArchiveEntityRequest,
+    options?: AxiosRequestConfig,
+  ) {
+    return GraphApiFp(this.configuration)
+      .archiveEntity(archiveEntityRequest, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
   /**
    *
    * @param {*} [options] Override http request option.
@@ -4952,6 +5573,20 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
 
   /**
    *
+   * @param {string} entityId The EntityId
+   * @param {*} [options] Override http request option.
+   * @deprecated
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public getEntity(entityId: string, options?: AxiosRequestConfig) {
+    return GraphApiFp(this.configuration)
+      .getEntity(entityId, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
    * @param {EntityTypeStructuralQuery} entityTypeStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -4963,6 +5598,19 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
   ) {
     return GraphApiFp(this.configuration)
       .getEntityTypesByQuery(entityTypeStructuralQuery, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
+  /**
+   *
+   * @param {*} [options] Override http request option.
+   * @deprecated
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public getLatestEntities(options?: AxiosRequestConfig) {
+    return GraphApiFp(this.configuration)
+      .getLatestEntities(options)
       .then((request) => request(this.axios, this.basePath));
   }
 
