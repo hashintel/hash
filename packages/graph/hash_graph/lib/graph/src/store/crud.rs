@@ -47,6 +47,10 @@ pub trait Read<R: Record + Send>: Sync {
         Ok(record)
     }
 
+    /// Looks up a single [`Record`] in the subgraph or reads it from the [`Store`] and inserts it
+    /// if it is not yet in the subgraph.
+    ///
+    /// [`Store`]: crate::store::Store
     async fn read_into_subgraph<'r>(
         &self,
         subgraph: &'r mut Subgraph,
