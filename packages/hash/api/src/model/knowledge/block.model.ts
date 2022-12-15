@@ -11,7 +11,7 @@ import { EntityTypeMismatchError } from "../../lib/error";
 
 type BlockModelCreateParams = Omit<
   EntityModelCreateParams,
-  "properties" | "entityTypeModel"
+  "properties" | "entityType"
 > & {
   componentId: string;
   blockData: EntityModel;
@@ -23,13 +23,13 @@ type BlockModelCreateParams = Omit<
 export default class extends EntityModel {
   static fromEntityModel(entityModel: EntityModel): BlockModel {
     if (
-      entityModel.entityTypeModel.getSchema().$id !==
-      SYSTEM_TYPES.entityType.block.getSchema().$id
+      entityModel.entityType.schema.$id !==
+      SYSTEM_TYPES.entityType.block.schema.$id
     ) {
       throw new EntityTypeMismatchError(
         entityModel.getBaseId(),
-        SYSTEM_TYPES.entityType.block.getSchema().$id,
-        entityModel.entityTypeModel.getSchema().$id,
+        SYSTEM_TYPES.entityType.block.schema.$id,
+        entityModel.entityType.schema.$id,
       );
     }
 
@@ -64,20 +64,21 @@ export default class extends EntityModel {
     const { componentId, blockData, ownedById, actorId } = params;
 
     const properties: PropertyObject = {
-      [SYSTEM_TYPES.propertyType.componentId.getBaseUri()]: componentId,
+      [SYSTEM_TYPES.propertyType.componentId.metadata.editionId.baseId]:
+        componentId,
     };
 
-    const entityTypeModel = SYSTEM_TYPES.entityType.block;
+    const entityType = SYSTEM_TYPES.entityType.block;
 
     const entity = await EntityModel.create(graphApi, {
       ownedById,
       properties,
-      entityTypeModel,
+      entityType,
       actorId,
     });
 
     await entity.createOutgoingLink(graphApi, {
-      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.blockData,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.blockData,
       rightEntityModel: blockData,
       ownedById,
       actorId,
@@ -91,7 +92,7 @@ export default class extends EntityModel {
    */
   getComponentId(): string {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.componentId.getBaseUri()
+      SYSTEM_TYPES.propertyType.componentId.metadata.editionId.baseId
     ];
   }
 
@@ -100,7 +101,7 @@ export default class extends EntityModel {
    */
   async getBlockData(graphApi: GraphApi): Promise<EntityModel> {
     const outgoingBlockDataLinks = await this.getOutgoingLinks(graphApi, {
-      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.blockData,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.blockData,
     });
 
     const outgoingBlockDataLink = outgoingBlockDataLinks[0];
@@ -116,7 +117,7 @@ export default class extends EntityModel {
 
   async getBlockComments(graphApi: GraphApi): Promise<CommentModel[]> {
     const blockCommentLinks = await this.getIncomingLinks(graphApi, {
-      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.parent,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
     });
 
     const comments = blockCommentLinks.map((link) =>
@@ -141,7 +142,7 @@ export default class extends EntityModel {
   ): Promise<void> {
     const { newBlockDataEntity, actorId } = params;
     const outgoingBlockDataLinks = await this.getOutgoingLinks(graphApi, {
-      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.blockData,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.blockData,
     });
 
     const outgoingBlockDataLink = outgoingBlockDataLinks[0];
@@ -164,7 +165,7 @@ export default class extends EntityModel {
     await outgoingBlockDataLink.archive(graphApi, { actorId });
 
     await this.createOutgoingLink(graphApi, {
-      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.blockData,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.blockData,
       rightEntityModel: newBlockDataEntity,
       ownedById: this.getOwnedById(),
       actorId,

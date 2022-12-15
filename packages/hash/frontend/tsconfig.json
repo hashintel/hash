@@ -13,7 +13,8 @@
     "next-env.d.ts",
     "theme-override.d.ts",
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx",
+    "codegen.config.ts"
   ],
   "exclude": ["node_modules", ".next"]
 }

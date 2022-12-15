@@ -6,14 +6,14 @@ use crate::store::postgres::query::{
 };
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub struct SelectStatement<'q> {
-    pub with: WithExpression<'q>,
-    pub distinct: Vec<AliasedColumn<'q>>,
-    pub selects: Vec<SelectExpression<'q>>,
+pub struct SelectStatement<'p> {
+    pub with: WithExpression<'p>,
+    pub distinct: Vec<AliasedColumn<'p>>,
+    pub selects: Vec<SelectExpression<'p>>,
     pub from: AliasedTable,
-    pub joins: Vec<JoinExpression<'q>>,
-    pub where_expression: WhereExpression<'q>,
-    pub order_by_expression: OrderByExpression<'q>,
+    pub joins: Vec<JoinExpression<'p>>,
+    pub where_expression: WhereExpression<'p>,
+    pub order_by_expression: OrderByExpression<'p>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -88,15 +88,15 @@ mod tests {
         },
         store::{
             postgres::query::{
-                test_helper::trim_whitespace, Distinctness, Ordering, PostgresQueryRecord,
+                test_helper::trim_whitespace, Distinctness, Ordering, PostgresRecord,
                 SelectCompiler,
             },
             query::{Filter, FilterExpression, Parameter},
         },
     };
 
-    fn test_compilation<'f, 'q: 'f, T: PostgresQueryRecord + 'static>(
-        compiler: &SelectCompiler<'f, 'q, T>,
+    fn test_compilation<'f, 'p: 'f, T: PostgresRecord + 'static>(
+        compiler: &SelectCompiler<'f, 'p, T>,
         expected_statement: &'static str,
         expected_parameters: &[&'f dyn ToSql],
     ) {
