@@ -18,7 +18,7 @@ use super::api_resource::RoutedResource;
 use crate::{
     api::rest::{
         read_from_store, report_to_status_code,
-        utoipa_typedef::subgraph::{Edges, Subgraph, Vertices},
+        utoipa_typedef::subgraph::{Edges, Subgraph, Vertex, Vertices},
     },
     identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId, GraphElementId},
     ontology::{
@@ -36,7 +36,6 @@ use crate::{
             SharedEdgeKind,
         },
         query::{PropertyTypeStructuralQuery, StructuralQuery},
-        vertices::Vertex,
     },
 };
 

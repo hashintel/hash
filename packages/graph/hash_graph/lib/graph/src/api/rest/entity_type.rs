@@ -19,7 +19,7 @@ use crate::{
         api_resource::RoutedResource,
         read_from_store, report_to_status_code,
         utoipa_typedef::subgraph::{
-            Edges, OntologyRootedEdges, OntologyVertices, Subgraph, Vertices,
+            Edges, OntologyRootedEdges, OntologyVertices, Subgraph, Vertex, Vertices,
         },
     },
     identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId, GraphElementId},
@@ -39,7 +39,6 @@ use crate::{
             OutgoingEdgeResolveDepth, SharedEdgeKind,
         },
         query::{EntityTypeStructuralQuery, StructuralQuery},
-        vertices::Vertex,
     },
 };
 
