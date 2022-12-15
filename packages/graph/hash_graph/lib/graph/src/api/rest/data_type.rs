@@ -96,7 +96,7 @@ impl RoutedResource for DataTypeResource {
     }
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreateDataTypeRequest {
     #[schema(value_type = VAR_DATA_TYPE)]
@@ -119,6 +119,7 @@ struct CreateDataTypeRequest {
     ),
     request_body = CreateDataTypeRequest,
 )]
+#[tracing::instrument(level = "info", skip(pool, domain_validator))]
 async fn create_data_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
@@ -176,6 +177,7 @@ async fn create_data_type<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     )
 )]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn get_data_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(query): Json<serde_json::Value>,
@@ -214,6 +216,7 @@ async fn get_data_types_by_query<P: StorePool + Send>(
     )
 )]
 #[deprecated = "use `/data-types/query` instead"]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn get_latest_data_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<DataTypeWithMetadata>>, StatusCode> {
@@ -238,6 +241,7 @@ async fn get_latest_data_types<P: StorePool + Send>(
     )
 )]
 #[deprecated = "use `/data-types/query` instead"]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn get_data_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
@@ -248,7 +252,7 @@ async fn get_data_type<P: StorePool + Send>(
         .map(Json)
 }
 
-#[derive(ToSchema, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct UpdateDataTypeRequest {
     #[schema(value_type = VAR_UPDATE_DATA_TYPE)]
@@ -271,6 +275,7 @@ struct UpdateDataTypeRequest {
     ),
     request_body = UpdateDataTypeRequest,
 )]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn update_data_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<UpdateDataTypeRequest>,
