@@ -13,7 +13,8 @@ use crate::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
         query::Filter,
-        AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
+        AsClient, DataTypeStore, InsertionError, Metadata, PostgresStore, QueryError, Record,
+        UpdateError,
     },
     subgraph::{edges::GraphResolveDepths, query::StructuralQuery, Subgraph},
 };

@@ -12,7 +12,7 @@ pub use self::query::{EntityQueryPath, EntityQueryPathVisitor, EntityQueryToken}
 use crate::{
     identifier::knowledge::{EntityEditionId, EntityId},
     provenance::ProvenanceMetadata,
-    store::Record,
+    store::{Metadata, Record},
 };
 
 #[derive(
@@ -194,23 +194,25 @@ impl EntityMetadata {
     }
 
     #[must_use]
-    pub const fn edition_id(&self) -> EntityEditionId {
-        self.edition_id
-    }
-
-    #[must_use]
     pub const fn entity_type_id(&self) -> &VersionedUri {
         &self.entity_type_id
     }
 
     #[must_use]
-    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
-        self.provenance_metadata
-    }
-
-    #[must_use]
     pub const fn archived(&self) -> bool {
         self.archived
+    }
+}
+
+impl Metadata for EntityMetadata {
+    type EditionId = EntityEditionId;
+
+    fn edition_id(&self) -> &Self::EditionId {
+        &self.edition_id
+    }
+
+    fn provenance_metadata(&self) -> ProvenanceMetadata {
+        self.provenance_metadata
     }
 }
 

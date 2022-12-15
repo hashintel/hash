@@ -24,7 +24,7 @@ pub use self::{
 use crate::{
     identifier::ontology::OntologyTypeEditionId,
     provenance::{OwnedById, ProvenanceMetadata},
-    store::Record,
+    store::{Metadata, Record},
 };
 
 #[derive(Deserialize, ToSchema)]
@@ -171,18 +171,20 @@ impl OntologyElementMetadata {
     }
 
     #[must_use]
-    pub const fn edition_id(&self) -> &OntologyTypeEditionId {
+    pub const fn owned_by_id(&self) -> OwnedById {
+        self.owned_by_id
+    }
+}
+
+impl Metadata for OntologyElementMetadata {
+    type EditionId = OntologyTypeEditionId;
+
+    fn edition_id(&self) -> &Self::EditionId {
         &self.edition_id
     }
 
-    #[must_use]
-    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
+    fn provenance_metadata(&self) -> ProvenanceMetadata {
         self.provenance_metadata
-    }
-
-    #[must_use]
-    pub const fn owned_by_id(&self) -> OwnedById {
-        self.owned_by_id
     }
 }
 

@@ -24,7 +24,8 @@ use crate::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
         postgres::{DependencyContext, DependencyStatus},
         query::Filter,
-        AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
+        AsClient, EntityStore, InsertionError, Metadata, PostgresStore, QueryError, Record,
+        UpdateError,
     },
     subgraph::{
         edges::{
@@ -75,7 +76,7 @@ impl<C: AsClient> PostgresStore<C> {
             if let Some(entity) = entity {
                 let entity_type_id =
                     OntologyTypeEditionId::from(entity.metadata().entity_type_id());
-                let entity_edition_id = entity.metadata().edition_id();
+                let entity_edition_id = *entity.metadata().edition_id();
 
                 if current_resolve_depth.is_of_type.outgoing > 0 {
                     subgraph.edges.insert(Edge::KnowledgeGraph {
@@ -160,7 +161,7 @@ impl<C: AsClient> PostgresStore<C> {
                         });
 
                         let outgoing_link_entity_edition_id =
-                            outgoing_link_entity.metadata().edition_id();
+                            *outgoing_link_entity.metadata().edition_id();
                         subgraph
                             .vertices
                             .entities
@@ -240,7 +241,7 @@ impl<C: AsClient> PostgresStore<C> {
                         });
 
                         let incoming_link_entity_edition_id =
-                            incoming_link_entity.metadata().edition_id();
+                            *incoming_link_entity.metadata().edition_id();
 
                         subgraph
                             .vertices
@@ -317,7 +318,7 @@ impl<C: AsClient> PostgresStore<C> {
                             ),
                         });
 
-                        let left_entity_edition_id = left_entity.metadata().edition_id();
+                        let left_entity_edition_id = *left_entity.metadata().edition_id();
 
                         subgraph
                             .vertices
@@ -394,7 +395,7 @@ impl<C: AsClient> PostgresStore<C> {
                             ),
                         });
 
-                        let right_entity_edition_id = right_entity.metadata().edition_id();
+                        let right_entity_edition_id = *right_entity.metadata().edition_id();
 
                         subgraph
                             .vertices
@@ -628,7 +629,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let mut dependency_context = DependencyContext::default();
 
         for entity in Read::<Entity>::read(self, filter).await? {
-            let entity_edition_id = entity.metadata().edition_id();
+            let entity_edition_id = *entity.metadata().edition_id();
 
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
             subgraph.vertices.entities.insert(entity_edition_id, entity);

@@ -23,17 +23,25 @@ use crate::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
         PropertyTypeWithMetadata,
     },
-    provenance::{OwnedById, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::query::QueryPath,
     subgraph::{query::StructuralQuery, Subgraph},
 };
+
+pub trait Metadata: Sized {
+    type EditionId;
+
+    fn edition_id(&self) -> &Self::EditionId;
+
+    fn provenance_metadata(&self) -> ProvenanceMetadata;
+}
 
 /// A record stored in the [`store`].
 ///
 /// [`store`]: crate::store
 pub trait Record {
     type QueryPath<'p>: QueryPath;
-    type Metadata;
+    type Metadata: Metadata;
 
     fn metadata(&self) -> &Self::Metadata;
 }
