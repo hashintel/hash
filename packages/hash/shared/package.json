@@ -15,7 +15,7 @@
     }
   },
   "scripts": {
-    "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.yml",
+    "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",

@@ -3,18 +3,18 @@ use std::fmt::{self, Write};
 use crate::store::postgres::query::{Statement, Table, Transpile};
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub struct CommonTableExpression<'q> {
+pub struct CommonTableExpression<'p> {
     table: Table,
-    statement: Statement<'q>,
+    statement: Statement<'p>,
 }
 
 #[derive(Default, Debug, PartialEq, Eq, Hash)]
-pub struct WithExpression<'q> {
-    common_table_expressions: Vec<CommonTableExpression<'q>>,
+pub struct WithExpression<'p> {
+    common_table_expressions: Vec<CommonTableExpression<'p>>,
 }
 
-impl<'q> WithExpression<'q> {
-    pub fn add_statement(&mut self, table: Table, statement: impl Into<Statement<'q>>) {
+impl<'p> WithExpression<'p> {
+    pub fn add_statement(&mut self, table: Table, statement: impl Into<Statement<'p>>) {
         self.common_table_expressions.push(CommonTableExpression {
             table,
             statement: statement.into(),

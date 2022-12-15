@@ -100,10 +100,10 @@ mod tests {
         },
     };
 
-    fn test_condition<'q, 'f: 'q>(
-        filter: &'f Filter<'q, DataTypeWithMetadata>,
+    fn test_condition<'p, 'f: 'p>(
+        filter: &'f Filter<'p, DataTypeWithMetadata>,
         rendered: &'static str,
-        parameters: &[&'q dyn ToSql],
+        parameters: &[&'p dyn ToSql],
     ) {
         let mut compiler = SelectCompiler::new();
         let condition = compiler.compile_filter(filter);
