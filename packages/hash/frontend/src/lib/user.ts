@@ -22,7 +22,7 @@ import { constructOrg, Org } from "./org";
 export type MinimalUser = {
   kind: "user";
   entityEditionId: EntityEditionId;
-  userAccountId: AccountId;
+  accountId: AccountId;
   accountSignupComplete: boolean;
   shortname?: string;
   preferredName?: string;
@@ -56,7 +56,7 @@ export const constructMinimalUser = (params: {
     kind: "user",
     entityEditionId: userEntityEditionId,
     // Cast reason: The EntityUuid of a User's baseId is an AccountId
-    userAccountId: extractAccountId(brand(userEntityEditionId.baseId)),
+    accountId: extractAccountId(brand(userEntityEditionId.baseId)),
     shortname,
     preferredName,
     accountSignupComplete,

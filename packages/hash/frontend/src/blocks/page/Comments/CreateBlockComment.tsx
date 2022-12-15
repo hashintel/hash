@@ -6,8 +6,8 @@ import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { EntityId } from "@hashintel/hash-subgraph";
 import { CommentTextField } from "./CommentTextField";
 import styles from "./style.module.css";
-import { useRoutePageInfo } from "../../../shared/routing";
 import { useCreateComment } from "../../../components/hooks/useCreateComment";
+import { usePageContext } from "../PageContext";
 
 type CreateBlockCommentProps = {
   blockEntityId: EntityId | null;
@@ -18,7 +18,7 @@ export const CreateBlockComment: FunctionComponent<CreateBlockCommentProps> = ({
   blockEntityId,
   onClose,
 }) => {
-  const { pageEntityId } = useRoutePageInfo();
+  const { pageEntityId } = usePageContext();
   const [createComment, { loading }] = useCreateComment(pageEntityId);
   const [inputValue, setInputValue] = useState<TextToken[]>([]);
 

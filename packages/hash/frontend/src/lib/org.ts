@@ -22,7 +22,7 @@ import { constructUser, User } from "./user";
 export type MinimalOrg = {
   kind: "org";
   entityEditionId: EntityEditionId;
-  orgAccountId: AccountId;
+  accountId: AccountId;
   shortname: string;
   name: string;
 };
@@ -52,7 +52,7 @@ export const constructMinimalOrg = (params: {
   return {
     kind: "org",
     entityEditionId: orgEntityEditionId,
-    orgAccountId: extractAccountId(brand(orgEntityEditionId.baseId)),
+    accountId: extractAccountId(brand(orgEntityEditionId.baseId)),
     shortname,
     name,
   };

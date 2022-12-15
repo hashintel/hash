@@ -8,10 +8,12 @@ import {
   GetAccountPagesTreeQueryVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
+import { useWorkspaceShortnameByAccountId } from "./use-workspace-shortname-by-account-id";
 
 export type AccountPage = {
   title: string;
   entityId: EntityId;
+  ownerShortname: string;
   parentPageEntityId?: EntityId | null;
   index: string;
 };
@@ -29,8 +31,12 @@ export const useAccountPages = (ownedById: AccountId): AccountPagesInfo => {
     variables: { ownedById },
   });
 
+  const { shortname: ownerShortname } = useWorkspaceShortnameByAccountId({
+    accountId: ownedById,
+  });
+
   const accountPages = useMemo(() => {
-    if (!data) {
+    if (!data || !ownerShortname) {
       return [];
     }
 
@@ -50,11 +56,12 @@ export const useAccountPages = (ownedById: AccountId): AccountPagesInfo => {
           entityId: pageEntityId,
           parentPageEntityId,
           title,
+          ownerShortname,
           index: index ?? "",
         };
       },
     );
-  }, [data]);
+  }, [data, ownerShortname]);
 
   return { data: accountPages, loading };
 };
