@@ -25,7 +25,10 @@ import {
   DragEndEvent,
   DragStartEvent,
 } from "@dnd-kit/core";
-import { EntityId, isEntityId, splitEntityId } from "@hashintel/hash-subgraph";
+import {
+  extractEntityUuidFromEntityId,
+  isEntityId,
+} from "@hashintel/hash-subgraph";
 
 import { Box, Collapse } from "@mui/material";
 import { useAccountPages } from "../../../../components/hooks/useAccountPages";
@@ -44,10 +47,11 @@ import {
 } from "./utils";
 import { IDENTATION_WIDTH } from "./page-tree-item";
 import { PagesLoadingState } from "./pages-loading-state";
+import { constructPageRelativeUrl } from "../../../../lib/routes";
 
 type AccountPageListProps = {
   accountId: string;
-  currentPageEntityId?: EntityId;
+  currentPageEntityUuid?: string;
 };
 
 const measuringConfig = {
@@ -57,7 +61,7 @@ const measuringConfig = {
 };
 
 export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
-  currentPageEntityId,
+  currentPageEntityUuid,
   accountId,
 }) => {
   const { data, loading: pagesLoading } = useAccountPages(accountId);
@@ -250,24 +254,29 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   ) => {
     return treeItemList
       .filter(({ page }) => page.parentPageEntityId === parentId)
-      .map(({ page: { entityId, title }, depth }) => {
+      .map(({ page: { entityId, title, ownerShortname }, depth }) => {
         const expanded =
           expandedPageIds.includes(entityId) && activeId !== entityId;
         const children = renderPageTree(treeItemList, entityId);
         const expandable = !!children.length;
         const collapsed = collapsedPageIds.includes(entityId);
 
-        const [ownedById, entityUuid] = splitEntityId(entityId);
+        const pageEntityUuid = extractEntityUuidFromEntityId(entityId);
 
         const item = (
           <AccountPageListItem
             key={entityId}
             title={title}
             pageEntityId={entityId}
-            pagePath={`/${ownedById}/${entityUuid}`}
+            pagePath={constructPageRelativeUrl({
+              workspaceShortname: ownerShortname,
+              pageEntityUuid,
+            })}
             depth={entityId === activeId && projected ? projected.depth : depth}
             onCollapse={expandable ? () => handleToggle(entityId) : undefined}
-            selected={currentPageEntityId === entityId}
+            selected={
+              currentPageEntityUuid === extractEntityUuidFromEntityId(entityId)
+            }
             expandable={expandable}
             expanded={expanded}
             collapsed={collapsed}

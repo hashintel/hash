@@ -27,7 +27,7 @@ test("user can create page", async ({ page }) => {
   await sleep(500);
   await page.locator(createPageButtonSelector).click();
 
-  await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+\/[\w-]+$/));
+  await page.waitForURL((url) => !!url.pathname.match(/^\/@[\w-]+\/[\w-]+$/));
 
   const blockRegion = page.locator("#root");
   const listOfPages = page.locator(listOfPagesSelector);
@@ -166,7 +166,7 @@ test("user can rename page", async ({ page }) => {
   await sleep(500);
   await page.locator(createPageButtonSelector).click();
 
-  await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+\/[\w-]+$/));
+  await page.waitForURL((url) => !!url.pathname.match(/^\/@[\w-]+\/[\w-]+$/));
 
   const listOfPages = page.locator(listOfPagesSelector);
   const pageTitle = page.locator(pageTitleInputSelector);
