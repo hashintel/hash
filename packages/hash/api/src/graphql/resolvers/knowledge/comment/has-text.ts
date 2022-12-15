@@ -20,7 +20,7 @@ export const commentHasText: ResolverFn<
   // @todo implement `TextModel` class so that a `TextModel.getTokens()` method can be used here
   return (
     (textEntityModel.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.tokens.getBaseUri()
+      SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId
     ] ?? []
   );
 };
