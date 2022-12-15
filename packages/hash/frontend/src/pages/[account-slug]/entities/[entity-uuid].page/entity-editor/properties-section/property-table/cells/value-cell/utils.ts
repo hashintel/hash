@@ -44,3 +44,15 @@ export const guessEditorTypeFromExpectedType = (type: string): EditorType => {
 
   return "text";
 };
+
+export const findDataTypeDefinitionByTitle = (title: string) => {
+  const foundDataTypeDef = Object.values(types.dataType).find(
+    (val) => val.title === title,
+  );
+
+  if (!foundDataTypeDef) {
+    throw new Error(`Not found matching data type definition with ${title}`);
+  }
+
+  return foundDataTypeDef;
+};

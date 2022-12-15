@@ -22,10 +22,7 @@ import { faSquareCheck } from "../../../../../../../../../../shared/icons/pro/fa
 import { BooleanInput } from "../inputs/boolean-input";
 import { NumberOrTextInput } from "../inputs/number-or-text-input";
 
-/** @todo find a better name, and possibly move this to somewhere else,
- * also reuse this in more places probably
- * */
-const editorOptions: Record<
+const editorSpecs: Record<
   EditorType,
   { icon: IconDefinition["icon"]; title: string }
 > = {
@@ -45,10 +42,10 @@ const editorOptions: Record<
 
 interface SortableRowProps {
   item: SortableItem;
-  selected: boolean;
-  onRemove: (index: number) => void;
-  onSelect: (id: string) => void;
-  onEditClicked: (id: string) => void;
+  selected?: boolean;
+  onRemove?: (index: number) => void;
+  onSelect?: (id: string) => void;
+  onEditClicked?: (id: string) => void;
   editing: boolean;
   expectedTypes: string[];
   onSaveChanges: (index: number, value: unknown) => void;
@@ -95,8 +92,7 @@ export const SortableRow = ({
   const editorType =
     overriddenEditorType ?? guessEditorTypeFromValue(value, expectedTypes);
 
-  /** @todo naming could be better */
-  const editorData = editorOptions[editorType];
+  const editorSpec = editorSpecs[editorType];
 
   return (
     <Box
@@ -114,7 +110,7 @@ export const SortableRow = ({
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      onClick={() => onSelect(id)}
+      onClick={() => onSelect?.(id)}
     >
       <Box
         {...listeners}
@@ -154,9 +150,9 @@ export const SortableRow = ({
       ) : (
         <ValueChip
           value={value}
-          selected={selected}
-          icon={{ icon: editorData.icon }}
-          tooltip={editorData.title}
+          selected={!!selected}
+          icon={{ icon: editorSpec.icon }}
+          tooltip={editorSpec.title}
         />
       )}
 
@@ -196,13 +192,13 @@ export const SortableRow = ({
                 <RowAction
                   tooltip="Edit"
                   icon={faPencil}
-                  onClick={() => onEditClicked(id)}
+                  onClick={() => onEditClicked?.(id)}
                 />
                 <Divider orientation="vertical" />
                 <RowAction
                   tooltip="Delete"
                   icon={faTrash}
-                  onClick={() => onRemove(index)}
+                  onClick={() => onRemove?.(index)}
                 />
               </>
             )}

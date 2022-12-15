@@ -49,13 +49,8 @@ export const DraftRow = ({
         value: null,
         overriddenEditorType: editorType,
       }}
-      onEditClicked={() => {}}
       onSaveChanges={(_, value) => onDraftSaved(value)}
       onDiscardChanges={onDraftDiscarded}
-      /** @todo instead of passing empty functions, make these optional */
-      onRemove={() => {}}
-      onSelect={() => {}}
-      selected={false}
       expectedTypes={expectedTypes}
     />
   );

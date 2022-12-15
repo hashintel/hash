@@ -4,6 +4,6 @@ export interface SortableItem {
   value: unknown;
   id: string;
   index: number;
-  /** @todo explain why/how overriddenEditorType is used */
+  // if overriddenEditorType is defined, sortable item's editor type will be this editor type
   overriddenEditorType?: EditorType;
 }
