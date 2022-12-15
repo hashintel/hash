@@ -90,7 +90,7 @@ where
 
 struct HeaderExtractor<'a>(&'a http::HeaderMap);
 // Let OpenTelemetry pick the field names to make our headers "standardized".
-// We would have to set `traceparent` and
+// We would have to set `traceparent` in a header to correlate spans.
 impl<'a> Extractor for HeaderExtractor<'a> {
     fn get(&self, key: &str) -> Option<&str> {
         self.0.get(key).and_then(|value| value.to_str().ok())
