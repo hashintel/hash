@@ -8,7 +8,7 @@ use std::{
 use chrono::{DateTime, Utc};
 use error_stack::{bail, ensure, Context, IntoReport, Report, ResultExt};
 use serde::Deserialize;
-use type_system::uri::VersionedUri;
+use type_system::uri::{BaseUri, VersionedUri};
 use uuid::Uuid;
 
 use crate::{
@@ -59,22 +59,35 @@ where
     }
 
     /// Creates a `Filter` to search for a specific ontology type of kind `R`, identified by its
+    /// [`BaseUri`].
+    #[must_use]
+    pub fn for_base_uri(base_uri: &'p BaseUri) -> Self {
+        Self::Equal(
+            Some(FilterExpression::Path(<R::QueryPath<'p>>::base_uri())),
+            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                base_uri.as_str(),
+            )))),
+        )
+    }
+
+    /// Creates a `Filter` to filter by a given version.
+    #[must_use]
+    fn for_version(version: u32) -> Self {
+        Self::Equal(
+            Some(FilterExpression::Path(<R::QueryPath<'p>>::version())),
+            Some(FilterExpression::Parameter(Parameter::SignedInteger(
+                version.into(),
+            ))),
+        )
+    }
+
+    /// Creates a `Filter` to search for a specific ontology type of kind `R`, identified by its
     /// [`VersionedUri`].
     #[must_use]
     pub fn for_versioned_uri(versioned_uri: &'p VersionedUri) -> Self {
         Self::All(vec![
-            Self::Equal(
-                Some(FilterExpression::Path(<R::QueryPath<'p>>::base_uri())),
-                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                    versioned_uri.base_uri().as_str(),
-                )))),
-            ),
-            Self::Equal(
-                Some(FilterExpression::Path(<R::QueryPath<'p>>::version())),
-                Some(FilterExpression::Parameter(Parameter::SignedInteger(
-                    versioned_uri.version().into(),
-                ))),
-            ),
+            Self::for_base_uri(versioned_uri.base_uri()),
+            Self::for_version(versioned_uri.version()),
         ])
     }
 
@@ -85,18 +98,8 @@ where
         ontology_type_edition_id: &'p OntologyTypeEditionId,
     ) -> Self {
         Self::All(vec![
-            Self::Equal(
-                Some(FilterExpression::Path(<R::QueryPath<'p>>::base_uri())),
-                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                    ontology_type_edition_id.base_id().as_str(),
-                )))),
-            ),
-            Self::Equal(
-                Some(FilterExpression::Path(<R::QueryPath<'p>>::version())),
-                Some(FilterExpression::Parameter(Parameter::SignedInteger(
-                    ontology_type_edition_id.version().inner().into(),
-                ))),
-            ),
+            Self::for_base_uri(ontology_type_edition_id.base_id()),
+            Self::for_version(ontology_type_edition_id.version().inner()),
         ])
     }
 }
