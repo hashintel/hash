@@ -60,7 +60,7 @@ export const WorkspaceSwitcher: FunctionComponent<
         avatarTitle: authenticatedUser.preferredName ?? "U",
       },
       ...authenticatedUser.memberOf.map(({ accountId, name, members }) => ({
-        accountId: accountId,
+        accountId,
         title: name,
         subText: `${members.length} members`,
         avatarTitle: name,
