@@ -1,4 +1,4 @@
-/// An "complete" graph is a graph where every vertex pair is connected by a unique edge.
+/// A "complete" graph is a graph where every vertex pair is connected by a unique edge.
 ///
 /// These benchmarks are for a datastore where the knowledge-graph component is a complete graph,
 /// meaning that for every two non-link entities, there is a link entity connecting them. There is
