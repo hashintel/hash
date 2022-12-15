@@ -26,8 +26,9 @@ impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
     T: PersistedOntologyType + PostgresQueryRecord + Send,
     T::OntologyType: OntologyDatabaseType,
-    for<'q> T::Path<'q>: Send + Sync + OntologyPath,
+    for<'q> T::Path<'q>: Send + Sync + OntologyPath + std::fmt::Debug,
 {
+    #[tracing::instrument(level = "info", skip(self))]
     async fn read(&self, filter: &Filter<T>) -> Result<Vec<T>, QueryError> {
         let versioned_uri_path = <T::Path<'static> as OntologyPath>::versioned_uri();
         let schema_path = <T::Path<'static> as OntologyPath>::schema();
