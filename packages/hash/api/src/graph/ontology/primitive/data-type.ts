@@ -108,6 +108,7 @@ export const getDataTypeById: ImpureGraphFunction<
  *   Depends on the RFC captured by:
  *   https://app.asana.com/0/1200211978612931/1202464168422955/f
  *
+ * @param params.dataTypeId - the id of the data type that's being updated
  * @param params.schema - the updated `DataType`
  * @param params.actorId - the id of the account that is updating the data type
  */

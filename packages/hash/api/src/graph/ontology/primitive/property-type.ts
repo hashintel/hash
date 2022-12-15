@@ -95,6 +95,7 @@ export const getPropertyTypeById: ImpureGraphFunction<
 /**
  * Update a property type.
  *
+ * @param params.propertyTypeId - the id of the property type that's being updated
  * @param params.schema - the updated `PropertyType`
  * @param params.actorId - the id of the account that is updating the type
  */

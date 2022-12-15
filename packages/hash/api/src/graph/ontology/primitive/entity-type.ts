@@ -102,6 +102,7 @@ export const getEntityTypeById: ImpureGraphFunction<
 /**
  * Update an entity type.
  *
+ * @param params.entityTypeId - the id of the entity type that's being updated
  * @param params.schema - the updated `EntityType`
  * @param params.actorId - the id of the account that is updating the entity type
  */
