@@ -106,7 +106,7 @@ impl RoutedResource for EntityTypeResource {
     }
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreateEntityTypeRequest {
     #[schema(value_type = VAR_ENTITY_TYPE)]
@@ -129,6 +129,7 @@ struct CreateEntityTypeRequest {
     ),
     request_body = CreateEntityTypeRequest,
 )]
+#[tracing::instrument(level = "info", skip(pool, domain_validator))]
 async fn create_entity_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
@@ -181,11 +182,12 @@ async fn create_entity_type<P: StorePool + Send>(
     tag = "EntityType",
     responses(
         (status = 200, content_type = "application/json", body = Subgraph, description = "A subgraph rooted at entity types that satisfy the given query, each resolved to the requested depth."),
-
+        
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
     )
 )]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn get_entity_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(query): Json<serde_json::Value>,
@@ -227,6 +229,7 @@ async fn get_entity_types_by_query<P: StorePool + Send>(
     )
 )]
 #[deprecated = "use `/entity-types/query` instead"]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn get_latest_entity_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<EntityTypeWithMetadata>>, StatusCode> {
@@ -251,6 +254,7 @@ async fn get_latest_entity_types<P: StorePool + Send>(
     )
 )]
 #[deprecated = "use `/entity-types/query` instead"]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn get_entity_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
@@ -261,7 +265,7 @@ async fn get_entity_type<P: StorePool + Send>(
         .map(Json)
 }
 
-#[derive(ToSchema, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct UpdateEntityTypeRequest {
     #[schema(value_type = VAR_UPDATE_ENTITY_TYPE)]
@@ -284,6 +288,7 @@ struct UpdateEntityTypeRequest {
     ),
     request_body = UpdateEntityTypeRequest,
 )]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn update_entity_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<UpdateEntityTypeRequest>,
