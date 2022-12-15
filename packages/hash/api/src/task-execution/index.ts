@@ -1,10 +1,15 @@
 import { DataSource } from "apollo-datasource";
 import fetch from "node-fetch";
 import { EntityType } from "@blockprotocol/type-system";
-import { EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
+import {
+  EntityTypeWithMetadata,
+  Subgraph,
+  SubgraphRootTypes,
+} from "@hashintel/hash-subgraph";
 import { UserModel } from "../model";
 import { GraphApi } from "../graph";
 import { createEntityType } from "../graph/ontology/primitive/entity-type";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 
 /** @todo: When task scheduling is more mature and we move away from the temporary `hash-task-executor` we should have a single source of */
 //  truth for available tasks, likely importable.
@@ -69,7 +74,24 @@ export const CachedEntityTypes = async (
   user: UserModel,
 ) => {
   const streamsWithEntityTypes: Map<string, EntityTypeWithMetadata> = new Map();
-  const { data: entityTypes } = await graphApi.getLatestEntityTypes();
+  const entityTypeSubgraph = await graphApi
+    .getEntityTypesByQuery({
+      filter: {
+        equal: [{ path: ["version"] }, { parameter: "latest" }],
+      },
+      graphResolveDepths: {
+        inheritsFrom: { outgoing: 0 },
+        constrainsValuesOn: { outgoing: 0 },
+        constrainsPropertiesOn: { outgoing: 0 },
+        constrainsLinksOn: { outgoing: 0 },
+        constrainsLinkDestinationsOn: { outgoing: 0 },
+        isOfType: { outgoing: 0 },
+        hasLeftEntity: { incoming: 0, outgoing: 0 },
+        hasRightEntity: { incoming: 0, outgoing: 0 },
+      },
+    })
+    .then(({ data }) => data as Subgraph<SubgraphRootTypes["entityType"]>);
+  const entityTypes = getRoots(entityTypeSubgraph);
 
   return {
     getExisting: (entityTypeTitle: string) => {
