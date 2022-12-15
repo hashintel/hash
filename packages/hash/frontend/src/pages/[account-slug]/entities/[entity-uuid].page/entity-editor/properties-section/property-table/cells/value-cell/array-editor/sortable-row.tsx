@@ -20,7 +20,7 @@ import { EditorType } from "../types";
 import { fa100 } from "../../../../../../../../../../shared/icons/pro/fa-100";
 import { faSquareCheck } from "../../../../../../../../../../shared/icons/pro/fa-square-check";
 import { BooleanInput } from "../inputs/boolean-input";
-import { NumberOrStringInput } from "../inputs/number-or-string-input";
+import { NumberOrTextInput } from "../inputs/number-or-text-input";
 
 /** @todo find a better name, and possibly move this to somewhere else,
  * also reuse this in more places probably
@@ -37,7 +37,7 @@ const editorOptions: Record<
     icon: fa100,
     title: types.dataType.number.title,
   },
-  string: {
+  text: {
     icon: faText,
     title: types.dataType.text.title,
   },
@@ -143,7 +143,7 @@ export const SortableRow = ({
         editorType === "boolean" ? (
           <BooleanInput value={!!draftValue} onChange={setDraftValue} />
         ) : (
-          <NumberOrStringInput
+          <NumberOrTextInput
             isNumber={editorType === "number"}
             /** @todo is this casting ok? */
             value={draftValue as number | string}

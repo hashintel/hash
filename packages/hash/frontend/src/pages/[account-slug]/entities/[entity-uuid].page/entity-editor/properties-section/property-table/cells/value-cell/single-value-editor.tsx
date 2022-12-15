@@ -2,7 +2,7 @@ import { types } from "@hashintel/hash-shared/ontology-types";
 import { Box, experimental_sx as sx, styled } from "@mui/material";
 import produce from "immer";
 import { BooleanInput } from "./inputs/boolean-input";
-import { NumberOrStringInput } from "./inputs/number-or-string-input";
+import { NumberOrTextInput } from "./inputs/number-or-text-input";
 import { ValueCellEditorComponent } from "./types";
 
 /**
@@ -48,7 +48,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
 
   return (
     <SEditorWrapper>
-      <NumberOrStringInput
+      <NumberOrTextInput
         isNumber={isNumber}
         value={value as string | number}
         onChange={(newValue) => {

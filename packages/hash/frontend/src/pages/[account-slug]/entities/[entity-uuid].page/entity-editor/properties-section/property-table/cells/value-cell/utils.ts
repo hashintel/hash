@@ -9,7 +9,7 @@ export const guessEditorTypeFromValue = (
     typeof value === "string" &&
     expectedTypes.includes(types.dataType.text.title)
   ) {
-    return "string";
+    return "text";
   }
 
   if (
@@ -26,12 +26,12 @@ export const guessEditorTypeFromValue = (
     return "number";
   }
 
-  return "string";
+  return "text";
 };
 
 export const guessEditorTypeFromExpectedType = (type: string): EditorType => {
   if (type === types.dataType.text.title) {
-    return "string";
+    return "text";
   }
 
   if (type === types.dataType.boolean.title) {
@@ -42,5 +42,5 @@ export const guessEditorTypeFromExpectedType = (type: string): EditorType => {
     return "number";
   }
 
-  return "string";
+  return "text";
 };
