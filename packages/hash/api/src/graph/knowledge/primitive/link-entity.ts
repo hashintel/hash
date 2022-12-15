@@ -26,6 +26,9 @@ export type LinkEntity = Entity & {
   linkData: NonNullable<Entity["linkData"]>;
 };
 
+export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
+  !!entity.linkData;
+
 /**
  * Create a link entity between a left and a right entity.
  *
