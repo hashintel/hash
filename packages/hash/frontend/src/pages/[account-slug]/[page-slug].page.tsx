@@ -115,7 +115,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   const { workspaceShortname, pageEntityUuid } =
     parsePageUrlQueryParams(params);
 
-  const cookieString = req?.headers.cookie;
+  const { cookie } = req?.headers ?? {};
 
   const workspacesSubgraph = await apolloClient
     .query<GetAllLatestEntitiesQuery>({
@@ -133,7 +133,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
         hasLeftEntity: { incoming: 1, outgoing: 1 },
         hasRightEntity: { incoming: 1, outgoing: 1 },
       },
-      context: { headers: { cookie: cookieString } },
+      context: { headers: { cookie } },
     })
     .then(({ data }) => data.getAllLatestEntities);
 

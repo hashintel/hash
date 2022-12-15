@@ -141,17 +141,17 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
     ctx: { req, pathname },
   } = appContext;
 
-  const cookieString = req?.headers.cookie;
+  const { cookie } = req?.headers ?? {};
 
   const [subgraph, kratosSession] = await Promise.all([
     apolloClient
       .query<MeQuery>({
         query: meQuery,
-        context: { headers: { cookie: cookieString } },
+        context: { headers: { cookie } },
       })
       .then(({ data }) => data.me)
       .catch(() => undefined),
-    fetchKratosSession(cookieString),
+    fetchKratosSession(cookie),
   ]);
 
   /** @todo: make additional pages publicly accessible */
