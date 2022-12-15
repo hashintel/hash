@@ -62,7 +62,7 @@ impl<C: AsClient> PostgresStore<C> {
                         Entry::Vacant(entry) => {
                             let entity = Read::<Entity>::read_one(
                                 self,
-                                &Filter::for_entity_by_edition_id(entity_edition_id),
+                                &Entity::create_filter_for_edition_id(&entity_edition_id),
                             )
                             .await?;
                             Some(entry.insert(entity))

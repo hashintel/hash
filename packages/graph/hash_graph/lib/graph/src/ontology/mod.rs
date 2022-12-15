@@ -24,7 +24,7 @@ pub use self::{
 use crate::{
     identifier::ontology::OntologyTypeEditionId,
     provenance::{OwnedById, ProvenanceMetadata},
-    store::Record,
+    store::{query::Filter, Record},
 };
 
 #[derive(Deserialize, ToSchema)]
@@ -203,6 +203,10 @@ impl Record for DataTypeWithMetadata {
     fn edition_id(&self) -> &Self::EditionId {
         self.metadata().edition_id()
     }
+
+    fn create_filter_for_edition_id(edition_id: &Self::EditionId) -> Filter<Self> {
+        Filter::for_ontology_type_edition_id(edition_id)
+    }
 }
 
 impl OntologyTypeWithMetadata for DataTypeWithMetadata {
@@ -239,6 +243,10 @@ impl Record for PropertyTypeWithMetadata {
     fn edition_id(&self) -> &Self::EditionId {
         self.metadata().edition_id()
     }
+
+    fn create_filter_for_edition_id(edition_id: &Self::EditionId) -> Filter<Self> {
+        Filter::for_ontology_type_edition_id(edition_id)
+    }
 }
 
 impl OntologyTypeWithMetadata for PropertyTypeWithMetadata {
@@ -274,6 +282,10 @@ impl Record for EntityTypeWithMetadata {
 
     fn edition_id(&self) -> &Self::EditionId {
         self.metadata().edition_id()
+    }
+
+    fn create_filter_for_edition_id(edition_id: &Self::EditionId) -> Filter<Self> {
+        Filter::for_ontology_type_edition_id(edition_id)
     }
 }
 

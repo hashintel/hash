@@ -13,8 +13,7 @@ use crate::{
     store::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
-        query::Filter,
-        AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
+        AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{
         edges::{
@@ -60,7 +59,9 @@ impl<C: AsClient> PostgresStore<C> {
                         RawEntryMut::Vacant(entry) => {
                             let entity_type = Read::<EntityTypeWithMetadata>::read_one(
                                 self,
-                                &Filter::for_ontology_type_edition_id(entity_type_id),
+                                &EntityTypeWithMetadata::create_filter_for_edition_id(
+                                    entity_type_id,
+                                ),
                             )
                             .await?;
                             Some(entry.insert(entity_type_id.clone(), entity_type).1)
