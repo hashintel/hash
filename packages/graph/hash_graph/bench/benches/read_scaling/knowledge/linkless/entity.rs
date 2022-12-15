@@ -125,7 +125,7 @@ pub fn bench_get_entity_by_id(
 
 #[criterion]
 fn bench_scaling_read_entity(c: &mut Criterion) {
-    let mut group = c.benchmark_group("scaling_read_entity");
+    let mut group = c.benchmark_group("scaling_read_entity_linkless");
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
     let account_id =
