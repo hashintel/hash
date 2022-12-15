@@ -10,9 +10,12 @@ import {
   ResolverFn,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
-import { PropertyTypeModel } from "../../../model";
+import {
+  createPropertyType,
+  updatePropertyType,
+} from "../../../graph/ontology/primitive/property-type";
 
-export const createPropertyType: ResolverFn<
+export const createPropertyTypeResolver: ResolverFn<
   Promise<PropertyTypeWithMetadata>,
   {},
   LoggedInGraphQLContext,
@@ -21,18 +24,21 @@ export const createPropertyType: ResolverFn<
   const { graphApi } = dataSources;
   const { ownedById, propertyType } = params;
 
-  const createdPropertyTypeModel = await PropertyTypeModel.create(graphApi, {
-    ownedById: ownedById ?? userModel.getEntityUuid(),
-    schema: propertyType,
-    actorId: userModel.getEntityUuid(),
-  }).catch((err) => {
+  const createdPropertyType = await createPropertyType(
+    { graphApi },
+    {
+      ownedById: ownedById ?? userModel.getEntityUuid(),
+      schema: propertyType,
+      actorId: userModel.getEntityUuid(),
+    },
+  ).catch((err) => {
     throw new ApolloError(err, "CREATION_ERROR");
   });
 
-  return createdPropertyTypeModel.propertyType;
+  return createdPropertyType;
 };
 
-export const getAllLatestPropertyTypes: ResolverFn<
+export const getAllLatestPropertyTypesResolver: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
@@ -77,7 +83,7 @@ export const getAllLatestPropertyTypes: ResolverFn<
   return propertyTypeSubgraph as Subgraph;
 };
 
-export const getPropertyType: ResolverFn<
+export const getPropertyTypeResolver: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
@@ -116,37 +122,31 @@ export const getPropertyType: ResolverFn<
   return propertyTypeSubgraph as Subgraph;
 };
 
-export const updatePropertyType: ResolverFn<
+export const updatePropertyTypeResolver: ResolverFn<
   Promise<PropertyTypeWithMetadata>,
   {},
   LoggedInGraphQLContext,
   MutationUpdatePropertyTypeArgs
 > = async (_, params, { dataSources, userModel }) => {
   const { graphApi } = dataSources;
-  const { propertyTypeId, updatedPropertyType } = params;
+  const { propertyTypeId, updatedPropertyType: updatedPropertyTypeSchema } =
+    params;
 
-  const propertyTypeModel = await PropertyTypeModel.get(graphApi, {
-    propertyTypeId,
-  }).catch((err: AxiosError) => {
-    throw new ApolloError(
-      `Unable to retrieve property type. ${err.response?.data} [URI=${propertyTypeId}]`,
-      "GET_ERROR",
-    );
+  const updatedPropertyType = await updatePropertyType(
+    { graphApi },
+    {
+      propertyTypeId,
+      schema: updatedPropertyTypeSchema,
+      actorId: userModel.getEntityUuid(),
+    },
+  ).catch((err: AxiosError) => {
+    const msg =
+      err.response?.status === 409
+        ? `Property type URI doesn't exist, unable to update. [URI=${propertyTypeId}]`
+        : `Couldn't update property type.`;
+
+    throw new ApolloError(msg, "CREATION_ERROR");
   });
 
-  const updatedPropertyTypeModel = await propertyTypeModel
-    .update(graphApi, {
-      schema: updatedPropertyType,
-      actorId: userModel.getEntityUuid(),
-    })
-    .catch((err: AxiosError) => {
-      const msg =
-        err.response?.status === 409
-          ? `Property type URI doesn't exist, unable to update. [URI=${propertyTypeId}]`
-          : `Couldn't update property type.`;
-
-      throw new ApolloError(msg, "CREATION_ERROR");
-    });
-
-  return updatedPropertyTypeModel.propertyType;
+  return updatedPropertyType;
 };

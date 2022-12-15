@@ -4,14 +4,7 @@ use std::fmt;
 
 pub use self::filter::{Filter, FilterExpression, Parameter, ParameterConversionError};
 
-/// A record stored in the [`store`].
-///
-/// [`store`]: crate::store
-pub trait QueryRecord {
-    type Path<'q>: RecordPath;
-}
-
-pub trait RecordPath {
+pub trait QueryPath {
     /// Returns what type this resolved `Path` has.
     fn expected_type(&self) -> ParameterType;
 }
@@ -49,7 +42,7 @@ impl fmt::Display for ParameterType {
     }
 }
 
-pub trait OntologyPath: 'static {
+pub trait OntologyQueryPath {
     /// Returns the path identifying the [`BaseUri`].
     ///
     /// [`BaseUri`]: type_system::uri::BaseUri

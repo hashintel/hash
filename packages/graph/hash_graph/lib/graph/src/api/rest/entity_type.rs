@@ -11,7 +11,7 @@ use axum::{
 use error_stack::IntoReport;
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
-use type_system::{uri::VersionedUri, EntityType};
+use type_system::{repr, uri::VersionedUri, EntityType};
 use utoipa::{OpenApi, ToSchema};
 
 use crate::{
@@ -88,6 +88,7 @@ pub struct EntityTypeResource;
 
 impl RoutedResource for EntityTypeResource {
     /// Create routes for interacting with entity types.
+    #[expect(deprecated)]
     fn routes<P: StorePool + Send + 'static>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
@@ -109,7 +110,7 @@ impl RoutedResource for EntityTypeResource {
 #[serde(rename_all = "camelCase")]
 struct CreateEntityTypeRequest {
     #[schema(value_type = VAR_ENTITY_TYPE)]
-    schema: serde_json::Value,
+    schema: repr::EntityType,
     owned_by_id: OwnedById,
     actor_id: UpdatedById,
 }
@@ -225,6 +226,7 @@ async fn get_entity_types_by_query<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     )
 )]
+#[deprecated = "use `/entity-types/query` instead"]
 async fn get_latest_entity_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<EntityTypeWithMetadata>>, StatusCode> {
@@ -248,6 +250,7 @@ async fn get_latest_entity_types<P: StorePool + Send>(
         ("uri" = String, Path, description = "The URI of the entity type"),
     )
 )]
+#[deprecated = "use `/entity-types/query` instead"]
 async fn get_entity_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,

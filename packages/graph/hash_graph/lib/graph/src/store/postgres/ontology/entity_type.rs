@@ -8,13 +8,13 @@ use type_system::{EntityType, EntityTypeReference, PropertyTypeReference};
 
 use crate::{
     identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId},
-    ontology::{EntityTypeWithMetadata, OntologyElementMetadata},
+    ontology::{EntityTypeWithMetadata, OntologyElementMetadata, OntologyTypeWithMetadata},
     provenance::{OwnedById, UpdatedById},
     store::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
         query::Filter,
-        AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
+        AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{
         edges::{
@@ -92,8 +92,8 @@ impl<C: AsClient> PostgresStore<C> {
                             .collect::<Vec<_>>()
                     });
 
-                let inherts_from_type_ref_uris = (current_resolve_depth.inherits_from.outgoing > 0)
-                    .then(|| {
+                let inherits_from_type_ref_uris =
+                    (current_resolve_depth.inherits_from.outgoing > 0).then(|| {
                         entity_type
                             .inner()
                             .inherits_from()
@@ -158,21 +158,21 @@ impl<C: AsClient> PostgresStore<C> {
                     }
                 }
 
-                if let Some(inherts_from_type_ref_uris) = inherts_from_type_ref_uris {
-                    for inherts_from_type_ref_uri in inherts_from_type_ref_uris {
+                if let Some(inherits_from_type_ref_uris) = inherits_from_type_ref_uris {
+                    for inherits_from_type_ref_uri in inherits_from_type_ref_uris {
                         subgraph.edges.insert(Edge::Ontology {
                             edition_id: entity_type_id.clone(),
                             outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
                                 kind: OntologyEdgeKind::InheritsFrom,
                                 reversed: false,
                                 right_endpoint: OntologyTypeEditionId::from(
-                                    &inherts_from_type_ref_uri,
+                                    &inherits_from_type_ref_uri,
                                 ),
                             }),
                         });
 
                         self.traverse_entity_type(
-                            &OntologyTypeEditionId::from(&inherts_from_type_ref_uri),
+                            &OntologyTypeEditionId::from(&inherits_from_type_ref_uri),
                             dependency_context,
                             subgraph,
                             GraphResolveDepths {
@@ -311,9 +311,9 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         Ok(metadata)
     }
 
-    async fn get_entity_type<'f: 'q, 'q>(
+    async fn get_entity_type(
         &self,
-        query: &'f StructuralQuery<'q, EntityTypeWithMetadata>,
+        query: &StructuralQuery<EntityTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,
@@ -364,7 +364,9 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         // This clone is currently necessary because we extract the references as we insert them.
         // We can only insert them after the type has been created, and so we currently extract them
         // after as well. See `insert_entity_type_references` taking `&entity_type`
-        let (version_id, metadata) = transaction.update(entity_type.clone(), updated_by).await?;
+        let (version_id, metadata) = transaction
+            .update::<EntityType>(entity_type.clone(), updated_by)
+            .await?;
 
         transaction
             .insert_entity_type_references(&entity_type, version_id)

@@ -43,6 +43,7 @@ export const generatePropertyRowRecursively = ({
   entitySubgraph,
   requiredPropertyTypes,
   depth = 0,
+  isAllowMultiple = false,
 }: {
   propertyTypeBaseUri: BaseUri;
   propertyKeyChain: BaseUri[];
@@ -50,6 +51,7 @@ export const generatePropertyRowRecursively = ({
   entitySubgraph: Subgraph<SubgraphRootTypes["entity"]>;
   requiredPropertyTypes: BaseUri[];
   depth?: number;
+  isAllowMultiple?: boolean;
 }): PropertyRow => {
   const propertyTypeVersions = getPropertyTypesByBaseUri(
     entitySubgraph,
@@ -64,10 +66,10 @@ export const generatePropertyRowRecursively = ({
 
   const propertyType = propertyTypeVersions[0]!.schema;
 
-  const { isArray, expectedTypes } = getExpectedTypesOfPropertyType(
-    propertyType,
-    entitySubgraph,
-  );
+  const { isArray: isPropertyTypeArray, expectedTypes } =
+    getExpectedTypesOfPropertyType(propertyType, entitySubgraph);
+
+  const isArray = isPropertyTypeArray || isAllowMultiple;
 
   const required = !!requiredPropertyTypes?.includes(propertyTypeBaseUri);
 

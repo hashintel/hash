@@ -45,9 +45,9 @@ describe("Comment model class", () => {
     const textEntity = await EntityModel.create(graphApi, {
       ownedById: testUser.getOwnedById(),
       properties: {
-        [SYSTEM_TYPES.propertyType.tokens.getBaseUri()]: [],
+        [SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId]: [],
       },
-      entityTypeModel: SYSTEM_TYPES.entityType.text,
+      entityType: SYSTEM_TYPES.entityType.text,
       actorId: testUser.getOwnedById(),
     });
 
@@ -71,7 +71,7 @@ describe("Comment model class", () => {
     const hasText = await comment.getHasText(graphApi);
     expect(
       (hasText.getProperties() as any)[
-        SYSTEM_TYPES.propertyType.tokens.getBaseUri()
+        SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId
       ],
     ).toEqual([]);
 

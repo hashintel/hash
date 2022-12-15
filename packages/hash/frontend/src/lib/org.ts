@@ -17,7 +17,7 @@ import { constructUser, User } from "./user";
 export type MinimalOrg = {
   kind: "org";
   entityEditionId: EntityEditionId;
-  orgAccountId: string;
+  accountId: string;
   shortname: string;
   name: string;
 };
@@ -47,7 +47,7 @@ export const constructMinimalOrg = (params: {
   return {
     kind: "org",
     entityEditionId: orgEntityEditionId,
-    orgAccountId: extractEntityUuidFromEntityId(orgEntityEditionId.baseId),
+    accountId: extractEntityUuidFromEntityId(orgEntityEditionId.baseId),
     shortname,
     name,
   };

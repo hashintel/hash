@@ -32,7 +32,7 @@ import { PropertyTypeFormValues } from "./property-type-form-values";
 import { ExpectedValueSelector } from "./property-type-form/expected-value-selector";
 import { getPropertyTypeSchema } from "./property-type-form/property-type-schema";
 import { CustomExpectedValueBuilderContext } from "./property-type-form/shared/custom-expected-value-builder-context";
-import { QuestionIcon } from "./question-icon";
+import { QuestionIcon } from "../../shared/question-icon";
 import { withHandler } from "./with-handler";
 
 const generateInitialPropertyTypeId = (baseUri: string) =>

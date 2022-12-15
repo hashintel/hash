@@ -6,7 +6,7 @@
   "license": "AGPL-3.0",
   "scripts": {
     "build": "yarn codegen; next build",
-    "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.yml",
+    "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "dev": "next dev",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
@@ -32,7 +32,6 @@
     "@hashintel/hash-design-system": "0.0.0-private",
     "@hashintel/hash-shared": "0.0.0-private",
     "@hashintel/hash-subgraph": "0.0.0-private",
-    "@headlessui/react": "1.4.1",
     "@lit-labs/react": "1.0.6",
     "@mui/icons-material": "5.10.6",
     "@mui/material": "5.10.6",

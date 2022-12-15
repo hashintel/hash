@@ -7,10 +7,8 @@ use serde::{
 use utoipa::ToSchema;
 
 use crate::{
-    ontology::{
-        data_type::DataTypeQueryPathVisitor, DataTypeQueryPath, PropertyTypeWithMetadata, Selector,
-    },
-    store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
+    ontology::{data_type::DataTypeQueryPathVisitor, DataTypeQueryPath, Selector},
+    store::query::{OntologyQueryPath, ParameterType, QueryPath},
 };
 
 /// A path to a [`PropertyType`] field.
@@ -172,11 +170,7 @@ pub enum PropertyTypeQueryPath {
     Schema,
 }
 
-impl QueryRecord for PropertyTypeWithMetadata {
-    type Path<'q> = PropertyTypeQueryPath;
-}
-
-impl OntologyPath for PropertyTypeQueryPath {
+impl OntologyQueryPath for PropertyTypeQueryPath {
     fn base_uri() -> Self {
         Self::BaseUri
     }
@@ -202,7 +196,7 @@ impl OntologyPath for PropertyTypeQueryPath {
     }
 }
 
-impl RecordPath for PropertyTypeQueryPath {
+impl QueryPath for PropertyTypeQueryPath {
     fn expected_type(&self) -> ParameterType {
         match self {
             Self::VersionId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
@@ -329,7 +323,7 @@ mod tests {
 
     use super::*;
 
-    fn deserialize<'q>(segments: impl IntoIterator<Item = &'q str>) -> PropertyTypeQueryPath {
+    fn deserialize<'p>(segments: impl IntoIterator<Item = &'p str>) -> PropertyTypeQueryPath {
         PropertyTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
             segments.into_iter(),
         ))

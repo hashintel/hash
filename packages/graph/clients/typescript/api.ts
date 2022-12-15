@@ -301,7 +301,7 @@ export interface DataTypeReferenceUpdate {
   $ref: string;
 }
 /**
- * Structural queries are the main entry point to read data from the Graph.  They are used to query the graph for a set of vertices and edges that match a set of filters. Alongside the filters, the query can specify the depth of the query, which determines how many edges the query will follow from the root vertices. The root vertices are determined by the filters. For example, if the query is for all entities of a certain type, the root vertices will be the entities of that type.  # Filters  [`Filter`]s are used to specify which root vertices to include in the query. They consist of a variety of different types of filters, which are described in the [`Filter`] documentation. At the leaf level, filters are composed of [`RecordPath`]s and [`Parameter`]s, which identify the root vertices to include in the query.  Each [`RecordPath`] is a sequence of tokens, which are used to traverse the graph. For example, a `StructuralQuery<Entity>` with the path `[\"type\", \"version\"]` will traverse the graph from an entity to its type to the version. When associating the above path with a [`Parameter`] with the value `1` in an equality filter, the query will return all entities whose type has version `1` as a root vertex.  Depending on the type of the [`StructuralQuery`], different [`RecordPath`]s are valid. Please see the documentation on the implementation of [`QueryRecord::Path`] for the valid paths for each type.  # Depth  The depth of a query determines how many edges the query will follow from the root vertices. For an in-depth explanation of the depth of a query, please see the documentation on [`GraphResolveDepths`].  # Examples  Typically, a structural will be deserialized from a JSON request. The following examples assume, that the type of the request body is `StructuralQuery<Entity>`.  This will return all entities with the latest version of the `foo` type:  ```json { \"filter\": { \"all\": [ { \"equal\": [ { \"path\": [\"type\", \"baseUri\"] }, { \"parameter\": \"foo\" } ] }, { \"equal\": [ { \"path\": [\"type\", \"version\"] }, { \"parameter\": \"latest\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } ```  This query will return any entity, which was either created by or is owned by the account `12345678-90ab-cdef-1234-567890abcdef`:  ```json { \"filter\": { \"any\": [ { \"equal\": [ { \"path\": [\"updatedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] }, { \"equal\": [ { \"path\": [\"ownedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } } ```  [`RecordPath`]: crate::store::query::RecordPath [`Parameter`]: crate::store::query::Parameter
+ * Structural queries are the main entry point to read data from the Graph.  They are used to query the graph for a set of vertices and edges that match a set of filters. Alongside the filters, the query can specify the depth of the query, which determines how many edges the query will follow from the root vertices. The root vertices are determined by the filters. For example, if the query is for all entities of a certain type, the root vertices will be the entities of that type.  # Filters  [`Filter`]s are used to specify which root vertices to include in the query. They consist of a variety of different types of filters, which are described in the [`Filter`] documentation. At the leaf level, filters are composed of [`RecordPath`]s and [`Parameter`]s, which identify the root vertices to include in the query.  Each [`RecordPath`] is a sequence of tokens, which are used to traverse the graph. For example, a `StructuralQuery<Entity>` with the path `[\"type\", \"version\"]` will traverse the graph from an entity to its type to the version. When associating the above path with a [`Parameter`] with the value `1` in an equality filter, the query will return all entities whose type has version `1` as a root vertex.  Depending on the type of the [`StructuralQuery`], different [`RecordPath`]s are valid. Please see the documentation on the implementation of [`Record::QueryPath`] for the valid paths for each type.  # Depth  The depth of a query determines how many edges the query will follow from the root vertices. For an in-depth explanation of the depth of a query, please see the documentation on [`GraphResolveDepths`].  # Examples  Typically, a structural will be deserialized from a JSON request. The following examples assume, that the type of the request body is `StructuralQuery<Entity>`.  This will return all entities with the latest version of the `foo` type:  ```json { \"filter\": { \"all\": [ { \"equal\": [ { \"path\": [\"type\", \"baseUri\"] }, { \"parameter\": \"foo\" } ] }, { \"equal\": [ { \"path\": [\"type\", \"version\"] }, { \"parameter\": \"latest\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } ```  This query will return any entity, which was either created by or is owned by the account `12345678-90ab-cdef-1234-567890abcdef`:  ```json { \"filter\": { \"any\": [ { \"equal\": [ { \"path\": [\"updatedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] }, { \"equal\": [ { \"path\": [\"ownedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } } ```  [`RecordPath`]: crate::store::query::QueryPath [`Parameter`]: crate::store::query::Parameter
  * @export
  * @interface DataTypeStructuralQuery
  */
@@ -519,7 +519,7 @@ export type EntityQueryToken =
   typeof EntityQueryToken[keyof typeof EntityQueryToken];
 
 /**
- * Structural queries are the main entry point to read data from the Graph.  They are used to query the graph for a set of vertices and edges that match a set of filters. Alongside the filters, the query can specify the depth of the query, which determines how many edges the query will follow from the root vertices. The root vertices are determined by the filters. For example, if the query is for all entities of a certain type, the root vertices will be the entities of that type.  # Filters  [`Filter`]s are used to specify which root vertices to include in the query. They consist of a variety of different types of filters, which are described in the [`Filter`] documentation. At the leaf level, filters are composed of [`RecordPath`]s and [`Parameter`]s, which identify the root vertices to include in the query.  Each [`RecordPath`] is a sequence of tokens, which are used to traverse the graph. For example, a `StructuralQuery<Entity>` with the path `[\"type\", \"version\"]` will traverse the graph from an entity to its type to the version. When associating the above path with a [`Parameter`] with the value `1` in an equality filter, the query will return all entities whose type has version `1` as a root vertex.  Depending on the type of the [`StructuralQuery`], different [`RecordPath`]s are valid. Please see the documentation on the implementation of [`QueryRecord::Path`] for the valid paths for each type.  # Depth  The depth of a query determines how many edges the query will follow from the root vertices. For an in-depth explanation of the depth of a query, please see the documentation on [`GraphResolveDepths`].  # Examples  Typically, a structural will be deserialized from a JSON request. The following examples assume, that the type of the request body is `StructuralQuery<Entity>`.  This will return all entities with the latest version of the `foo` type:  ```json { \"filter\": { \"all\": [ { \"equal\": [ { \"path\": [\"type\", \"baseUri\"] }, { \"parameter\": \"foo\" } ] }, { \"equal\": [ { \"path\": [\"type\", \"version\"] }, { \"parameter\": \"latest\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } ```  This query will return any entity, which was either created by or is owned by the account `12345678-90ab-cdef-1234-567890abcdef`:  ```json { \"filter\": { \"any\": [ { \"equal\": [ { \"path\": [\"updatedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] }, { \"equal\": [ { \"path\": [\"ownedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } } ```  [`RecordPath`]: crate::store::query::RecordPath [`Parameter`]: crate::store::query::Parameter
+ * Structural queries are the main entry point to read data from the Graph.  They are used to query the graph for a set of vertices and edges that match a set of filters. Alongside the filters, the query can specify the depth of the query, which determines how many edges the query will follow from the root vertices. The root vertices are determined by the filters. For example, if the query is for all entities of a certain type, the root vertices will be the entities of that type.  # Filters  [`Filter`]s are used to specify which root vertices to include in the query. They consist of a variety of different types of filters, which are described in the [`Filter`] documentation. At the leaf level, filters are composed of [`RecordPath`]s and [`Parameter`]s, which identify the root vertices to include in the query.  Each [`RecordPath`] is a sequence of tokens, which are used to traverse the graph. For example, a `StructuralQuery<Entity>` with the path `[\"type\", \"version\"]` will traverse the graph from an entity to its type to the version. When associating the above path with a [`Parameter`] with the value `1` in an equality filter, the query will return all entities whose type has version `1` as a root vertex.  Depending on the type of the [`StructuralQuery`], different [`RecordPath`]s are valid. Please see the documentation on the implementation of [`Record::QueryPath`] for the valid paths for each type.  # Depth  The depth of a query determines how many edges the query will follow from the root vertices. For an in-depth explanation of the depth of a query, please see the documentation on [`GraphResolveDepths`].  # Examples  Typically, a structural will be deserialized from a JSON request. The following examples assume, that the type of the request body is `StructuralQuery<Entity>`.  This will return all entities with the latest version of the `foo` type:  ```json { \"filter\": { \"all\": [ { \"equal\": [ { \"path\": [\"type\", \"baseUri\"] }, { \"parameter\": \"foo\" } ] }, { \"equal\": [ { \"path\": [\"type\", \"version\"] }, { \"parameter\": \"latest\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } ```  This query will return any entity, which was either created by or is owned by the account `12345678-90ab-cdef-1234-567890abcdef`:  ```json { \"filter\": { \"any\": [ { \"equal\": [ { \"path\": [\"updatedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] }, { \"equal\": [ { \"path\": [\"ownedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } } ```  [`RecordPath`]: crate::store::query::QueryPath [`Parameter`]: crate::store::query::Parameter
  * @export
  * @interface EntityStructuralQuery
  */
@@ -651,7 +651,7 @@ export type EntityTypeQueryToken =
   typeof EntityTypeQueryToken[keyof typeof EntityTypeQueryToken];
 
 /**
- * Structural queries are the main entry point to read data from the Graph.  They are used to query the graph for a set of vertices and edges that match a set of filters. Alongside the filters, the query can specify the depth of the query, which determines how many edges the query will follow from the root vertices. The root vertices are determined by the filters. For example, if the query is for all entities of a certain type, the root vertices will be the entities of that type.  # Filters  [`Filter`]s are used to specify which root vertices to include in the query. They consist of a variety of different types of filters, which are described in the [`Filter`] documentation. At the leaf level, filters are composed of [`RecordPath`]s and [`Parameter`]s, which identify the root vertices to include in the query.  Each [`RecordPath`] is a sequence of tokens, which are used to traverse the graph. For example, a `StructuralQuery<Entity>` with the path `[\"type\", \"version\"]` will traverse the graph from an entity to its type to the version. When associating the above path with a [`Parameter`] with the value `1` in an equality filter, the query will return all entities whose type has version `1` as a root vertex.  Depending on the type of the [`StructuralQuery`], different [`RecordPath`]s are valid. Please see the documentation on the implementation of [`QueryRecord::Path`] for the valid paths for each type.  # Depth  The depth of a query determines how many edges the query will follow from the root vertices. For an in-depth explanation of the depth of a query, please see the documentation on [`GraphResolveDepths`].  # Examples  Typically, a structural will be deserialized from a JSON request. The following examples assume, that the type of the request body is `StructuralQuery<Entity>`.  This will return all entities with the latest version of the `foo` type:  ```json { \"filter\": { \"all\": [ { \"equal\": [ { \"path\": [\"type\", \"baseUri\"] }, { \"parameter\": \"foo\" } ] }, { \"equal\": [ { \"path\": [\"type\", \"version\"] }, { \"parameter\": \"latest\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } ```  This query will return any entity, which was either created by or is owned by the account `12345678-90ab-cdef-1234-567890abcdef`:  ```json { \"filter\": { \"any\": [ { \"equal\": [ { \"path\": [\"updatedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] }, { \"equal\": [ { \"path\": [\"ownedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } } ```  [`RecordPath`]: crate::store::query::RecordPath [`Parameter`]: crate::store::query::Parameter
+ * Structural queries are the main entry point to read data from the Graph.  They are used to query the graph for a set of vertices and edges that match a set of filters. Alongside the filters, the query can specify the depth of the query, which determines how many edges the query will follow from the root vertices. The root vertices are determined by the filters. For example, if the query is for all entities of a certain type, the root vertices will be the entities of that type.  # Filters  [`Filter`]s are used to specify which root vertices to include in the query. They consist of a variety of different types of filters, which are described in the [`Filter`] documentation. At the leaf level, filters are composed of [`RecordPath`]s and [`Parameter`]s, which identify the root vertices to include in the query.  Each [`RecordPath`] is a sequence of tokens, which are used to traverse the graph. For example, a `StructuralQuery<Entity>` with the path `[\"type\", \"version\"]` will traverse the graph from an entity to its type to the version. When associating the above path with a [`Parameter`] with the value `1` in an equality filter, the query will return all entities whose type has version `1` as a root vertex.  Depending on the type of the [`StructuralQuery`], different [`RecordPath`]s are valid. Please see the documentation on the implementation of [`Record::QueryPath`] for the valid paths for each type.  # Depth  The depth of a query determines how many edges the query will follow from the root vertices. For an in-depth explanation of the depth of a query, please see the documentation on [`GraphResolveDepths`].  # Examples  Typically, a structural will be deserialized from a JSON request. The following examples assume, that the type of the request body is `StructuralQuery<Entity>`.  This will return all entities with the latest version of the `foo` type:  ```json { \"filter\": { \"all\": [ { \"equal\": [ { \"path\": [\"type\", \"baseUri\"] }, { \"parameter\": \"foo\" } ] }, { \"equal\": [ { \"path\": [\"type\", \"version\"] }, { \"parameter\": \"latest\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } ```  This query will return any entity, which was either created by or is owned by the account `12345678-90ab-cdef-1234-567890abcdef`:  ```json { \"filter\": { \"any\": [ { \"equal\": [ { \"path\": [\"updatedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] }, { \"equal\": [ { \"path\": [\"ownedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } } ```  [`RecordPath`]: crate::store::query::QueryPath [`Parameter`]: crate::store::query::Parameter
  * @export
  * @interface EntityTypeStructuralQuery
  */
@@ -1634,7 +1634,7 @@ export type PropertyTypeQueryToken =
   typeof PropertyTypeQueryToken[keyof typeof PropertyTypeQueryToken];
 
 /**
- * Structural queries are the main entry point to read data from the Graph.  They are used to query the graph for a set of vertices and edges that match a set of filters. Alongside the filters, the query can specify the depth of the query, which determines how many edges the query will follow from the root vertices. The root vertices are determined by the filters. For example, if the query is for all entities of a certain type, the root vertices will be the entities of that type.  # Filters  [`Filter`]s are used to specify which root vertices to include in the query. They consist of a variety of different types of filters, which are described in the [`Filter`] documentation. At the leaf level, filters are composed of [`RecordPath`]s and [`Parameter`]s, which identify the root vertices to include in the query.  Each [`RecordPath`] is a sequence of tokens, which are used to traverse the graph. For example, a `StructuralQuery<Entity>` with the path `[\"type\", \"version\"]` will traverse the graph from an entity to its type to the version. When associating the above path with a [`Parameter`] with the value `1` in an equality filter, the query will return all entities whose type has version `1` as a root vertex.  Depending on the type of the [`StructuralQuery`], different [`RecordPath`]s are valid. Please see the documentation on the implementation of [`QueryRecord::Path`] for the valid paths for each type.  # Depth  The depth of a query determines how many edges the query will follow from the root vertices. For an in-depth explanation of the depth of a query, please see the documentation on [`GraphResolveDepths`].  # Examples  Typically, a structural will be deserialized from a JSON request. The following examples assume, that the type of the request body is `StructuralQuery<Entity>`.  This will return all entities with the latest version of the `foo` type:  ```json { \"filter\": { \"all\": [ { \"equal\": [ { \"path\": [\"type\", \"baseUri\"] }, { \"parameter\": \"foo\" } ] }, { \"equal\": [ { \"path\": [\"type\", \"version\"] }, { \"parameter\": \"latest\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } ```  This query will return any entity, which was either created by or is owned by the account `12345678-90ab-cdef-1234-567890abcdef`:  ```json { \"filter\": { \"any\": [ { \"equal\": [ { \"path\": [\"updatedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] }, { \"equal\": [ { \"path\": [\"ownedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } } ```  [`RecordPath`]: crate::store::query::RecordPath [`Parameter`]: crate::store::query::Parameter
+ * Structural queries are the main entry point to read data from the Graph.  They are used to query the graph for a set of vertices and edges that match a set of filters. Alongside the filters, the query can specify the depth of the query, which determines how many edges the query will follow from the root vertices. The root vertices are determined by the filters. For example, if the query is for all entities of a certain type, the root vertices will be the entities of that type.  # Filters  [`Filter`]s are used to specify which root vertices to include in the query. They consist of a variety of different types of filters, which are described in the [`Filter`] documentation. At the leaf level, filters are composed of [`RecordPath`]s and [`Parameter`]s, which identify the root vertices to include in the query.  Each [`RecordPath`] is a sequence of tokens, which are used to traverse the graph. For example, a `StructuralQuery<Entity>` with the path `[\"type\", \"version\"]` will traverse the graph from an entity to its type to the version. When associating the above path with a [`Parameter`] with the value `1` in an equality filter, the query will return all entities whose type has version `1` as a root vertex.  Depending on the type of the [`StructuralQuery`], different [`RecordPath`]s are valid. Please see the documentation on the implementation of [`Record::QueryPath`] for the valid paths for each type.  # Depth  The depth of a query determines how many edges the query will follow from the root vertices. For an in-depth explanation of the depth of a query, please see the documentation on [`GraphResolveDepths`].  # Examples  Typically, a structural will be deserialized from a JSON request. The following examples assume, that the type of the request body is `StructuralQuery<Entity>`.  This will return all entities with the latest version of the `foo` type:  ```json { \"filter\": { \"all\": [ { \"equal\": [ { \"path\": [\"type\", \"baseUri\"] }, { \"parameter\": \"foo\" } ] }, { \"equal\": [ { \"path\": [\"type\", \"version\"] }, { \"parameter\": \"latest\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } ```  This query will return any entity, which was either created by or is owned by the account `12345678-90ab-cdef-1234-567890abcdef`:  ```json { \"filter\": { \"any\": [ { \"equal\": [ { \"path\": [\"updatedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] }, { \"equal\": [ { \"path\": [\"ownedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } } ```  [`RecordPath`]: crate::store::query::QueryPath [`Parameter`]: crate::store::query::Parameter
  * @export
  * @interface PropertyTypeStructuralQuery
  */
@@ -2302,6 +2302,7 @@ export const DataTypeApiAxiosParamCreator = function (
      *
      * @param {string} uri The URI of the data type
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getDataType: async (
@@ -2399,6 +2400,7 @@ export const DataTypeApiAxiosParamCreator = function (
     /**
      *
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getLatestDataTypes: async (
@@ -2527,6 +2529,7 @@ export const DataTypeApiFp = function (configuration?: Configuration) {
      *
      * @param {string} uri The URI of the data type
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     async getDataType(
@@ -2576,6 +2579,7 @@ export const DataTypeApiFp = function (configuration?: Configuration) {
     /**
      *
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     async getLatestDataTypes(
@@ -2653,6 +2657,7 @@ export const DataTypeApiFactory = function (
      *
      * @param {string} uri The URI of the data type
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getDataType(
@@ -2680,6 +2685,7 @@ export const DataTypeApiFactory = function (
     /**
      *
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getLatestDataTypes(
@@ -2728,6 +2734,7 @@ export interface DataTypeApiInterface {
    *
    * @param {string} uri The URI of the data type
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof DataTypeApiInterface
    */
@@ -2751,6 +2758,7 @@ export interface DataTypeApiInterface {
   /**
    *
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof DataTypeApiInterface
    */
@@ -2798,6 +2806,7 @@ export class DataTypeApi extends BaseAPI implements DataTypeApiInterface {
    *
    * @param {string} uri The URI of the data type
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof DataTypeApi
    */
@@ -2826,6 +2835,7 @@ export class DataTypeApi extends BaseAPI implements DataTypeApiInterface {
   /**
    *
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof DataTypeApi
    */
@@ -3024,6 +3034,7 @@ export const EntityApiAxiosParamCreator = function (
      *
      * @param {string} entityId The EntityId
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getEntity: async (
@@ -3068,6 +3079,7 @@ export const EntityApiAxiosParamCreator = function (
     /**
      *
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getLatestEntities: async (
@@ -3241,6 +3253,7 @@ export const EntityApiFp = function (configuration?: Configuration) {
      *
      * @param {string} entityId The EntityId
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     async getEntity(
@@ -3263,6 +3276,7 @@ export const EntityApiFp = function (configuration?: Configuration) {
     /**
      *
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     async getLatestEntities(
@@ -3363,6 +3377,7 @@ export const EntityApiFactory = function (
      *
      * @param {string} entityId The EntityId
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getEntity(entityId: string, options?: any): AxiosPromise<Entity> {
@@ -3373,6 +3388,7 @@ export const EntityApiFactory = function (
     /**
      *
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getLatestEntities(options?: any): AxiosPromise<Array<Entity>> {
@@ -3444,6 +3460,7 @@ export interface EntityApiInterface {
    *
    * @param {string} entityId The EntityId
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof EntityApiInterface
    */
@@ -3455,6 +3472,7 @@ export interface EntityApiInterface {
   /**
    *
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof EntityApiInterface
    */
@@ -3533,6 +3551,7 @@ export class EntityApi extends BaseAPI implements EntityApiInterface {
    *
    * @param {string} entityId The EntityId
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof EntityApi
    */
@@ -3545,6 +3564,7 @@ export class EntityApi extends BaseAPI implements EntityApiInterface {
   /**
    *
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof EntityApi
    */
@@ -3636,6 +3656,7 @@ export const EntityTypeApiAxiosParamCreator = function (
      *
      * @param {string} uri The URI of the entity type
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getEntityType: async (
@@ -3733,6 +3754,7 @@ export const EntityTypeApiAxiosParamCreator = function (
     /**
      *
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getLatestEntityTypes: async (
@@ -3863,6 +3885,7 @@ export const EntityTypeApiFp = function (configuration?: Configuration) {
      *
      * @param {string} uri The URI of the entity type
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     async getEntityType(
@@ -3912,6 +3935,7 @@ export const EntityTypeApiFp = function (configuration?: Configuration) {
     /**
      *
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     async getLatestEntityTypes(
@@ -3990,6 +4014,7 @@ export const EntityTypeApiFactory = function (
      *
      * @param {string} uri The URI of the entity type
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getEntityType(
@@ -4017,6 +4042,7 @@ export const EntityTypeApiFactory = function (
     /**
      *
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getLatestEntityTypes(
@@ -4065,6 +4091,7 @@ export interface EntityTypeApiInterface {
    *
    * @param {string} uri The URI of the entity type
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof EntityTypeApiInterface
    */
@@ -4088,6 +4115,7 @@ export interface EntityTypeApiInterface {
   /**
    *
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof EntityTypeApiInterface
    */
@@ -4135,6 +4163,7 @@ export class EntityTypeApi extends BaseAPI implements EntityTypeApiInterface {
    *
    * @param {string} uri The URI of the entity type
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof EntityTypeApi
    */
@@ -4163,6 +4192,7 @@ export class EntityTypeApi extends BaseAPI implements EntityTypeApiInterface {
   /**
    *
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof EntityTypeApi
    */
@@ -4505,6 +4535,7 @@ export const GraphApiAxiosParamCreator = function (
      *
      * @param {string} uri The URI of the data type
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getDataType: async (
@@ -4656,6 +4687,7 @@ export const GraphApiAxiosParamCreator = function (
      *
      * @param {string} entityId The EntityId
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getEntity: async (
@@ -4701,6 +4733,7 @@ export const GraphApiAxiosParamCreator = function (
      *
      * @param {string} uri The URI of the entity type
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getEntityType: async (
@@ -4798,6 +4831,7 @@ export const GraphApiAxiosParamCreator = function (
     /**
      *
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getLatestDataTypes: async (
@@ -4836,6 +4870,7 @@ export const GraphApiAxiosParamCreator = function (
     /**
      *
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getLatestEntities: async (
@@ -4874,6 +4909,7 @@ export const GraphApiAxiosParamCreator = function (
     /**
      *
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getLatestEntityTypes: async (
@@ -4912,6 +4948,7 @@ export const GraphApiAxiosParamCreator = function (
     /**
      *
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getLatestPropertyTypes: async (
@@ -4951,6 +4988,7 @@ export const GraphApiAxiosParamCreator = function (
      *
      * @param {string} uri The URI of the property type
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getPropertyType: async (
@@ -5418,6 +5456,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
      *
      * @param {string} uri The URI of the data type
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     async getDataType(
@@ -5492,6 +5531,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
      *
      * @param {string} entityId The EntityId
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     async getEntity(
@@ -5515,6 +5555,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
      *
      * @param {string} uri The URI of the entity type
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     async getEntityType(
@@ -5564,6 +5605,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
     /**
      *
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     async getLatestDataTypes(
@@ -5586,6 +5628,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
     /**
      *
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     async getLatestEntities(
@@ -5605,6 +5648,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
     /**
      *
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     async getLatestEntityTypes(
@@ -5627,6 +5671,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
     /**
      *
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     async getLatestPropertyTypes(
@@ -5650,6 +5695,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
      *
      * @param {string} uri The URI of the property type
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     async getPropertyType(
@@ -5898,6 +5944,7 @@ export const GraphApiFactory = function (
      *
      * @param {string} uri The URI of the data type
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getDataType(
@@ -5940,6 +5987,7 @@ export const GraphApiFactory = function (
      *
      * @param {string} entityId The EntityId
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getEntity(entityId: string, options?: any): AxiosPromise<Entity> {
@@ -5951,6 +5999,7 @@ export const GraphApiFactory = function (
      *
      * @param {string} uri The URI of the entity type
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getEntityType(
@@ -5978,6 +6027,7 @@ export const GraphApiFactory = function (
     /**
      *
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getLatestDataTypes(
@@ -5990,6 +6040,7 @@ export const GraphApiFactory = function (
     /**
      *
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getLatestEntities(options?: any): AxiosPromise<Array<Entity>> {
@@ -6000,6 +6051,7 @@ export const GraphApiFactory = function (
     /**
      *
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getLatestEntityTypes(
@@ -6012,6 +6064,7 @@ export const GraphApiFactory = function (
     /**
      *
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getLatestPropertyTypes(
@@ -6025,6 +6078,7 @@ export const GraphApiFactory = function (
      *
      * @param {string} uri The URI of the property type
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getPropertyType(
@@ -6187,6 +6241,7 @@ export interface GraphApiInterface {
    *
    * @param {string} uri The URI of the data type
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
@@ -6223,6 +6278,7 @@ export interface GraphApiInterface {
    *
    * @param {string} entityId The EntityId
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
@@ -6235,6 +6291,7 @@ export interface GraphApiInterface {
    *
    * @param {string} uri The URI of the entity type
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
@@ -6258,6 +6315,7 @@ export interface GraphApiInterface {
   /**
    *
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
@@ -6268,6 +6326,7 @@ export interface GraphApiInterface {
   /**
    *
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
@@ -6276,6 +6335,7 @@ export interface GraphApiInterface {
   /**
    *
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
@@ -6286,6 +6346,7 @@ export interface GraphApiInterface {
   /**
    *
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
@@ -6297,6 +6358,7 @@ export interface GraphApiInterface {
    *
    * @param {string} uri The URI of the property type
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
@@ -6470,6 +6532,7 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
    *
    * @param {string} uri The URI of the data type
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof GraphApi
    */
@@ -6515,6 +6578,7 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
    *
    * @param {string} entityId The EntityId
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof GraphApi
    */
@@ -6528,6 +6592,7 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
    *
    * @param {string} uri The URI of the entity type
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof GraphApi
    */
@@ -6556,6 +6621,7 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
   /**
    *
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof GraphApi
    */
@@ -6568,6 +6634,7 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
   /**
    *
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof GraphApi
    */
@@ -6580,6 +6647,7 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
   /**
    *
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof GraphApi
    */
@@ -6592,6 +6660,7 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
   /**
    *
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof GraphApi
    */
@@ -6605,6 +6674,7 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
    *
    * @param {string} uri The URI of the property type
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof GraphApi
    */
@@ -6759,6 +6829,7 @@ export const PropertyTypeApiAxiosParamCreator = function (
     /**
      *
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getLatestPropertyTypes: async (
@@ -6798,6 +6869,7 @@ export const PropertyTypeApiAxiosParamCreator = function (
      *
      * @param {string} uri The URI of the property type
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getPropertyType: async (
@@ -6986,6 +7058,7 @@ export const PropertyTypeApiFp = function (configuration?: Configuration) {
     /**
      *
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     async getLatestPropertyTypes(
@@ -7009,6 +7082,7 @@ export const PropertyTypeApiFp = function (configuration?: Configuration) {
      *
      * @param {string} uri The URI of the property type
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     async getPropertyType(
@@ -7113,6 +7187,7 @@ export const PropertyTypeApiFactory = function (
     /**
      *
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getLatestPropertyTypes(
@@ -7126,6 +7201,7 @@ export const PropertyTypeApiFactory = function (
      *
      * @param {string} uri The URI of the property type
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getPropertyType(
@@ -7188,6 +7264,7 @@ export interface PropertyTypeApiInterface {
   /**
    *
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof PropertyTypeApiInterface
    */
@@ -7199,6 +7276,7 @@ export interface PropertyTypeApiInterface {
    *
    * @param {string} uri The URI of the property type
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof PropertyTypeApiInterface
    */
@@ -7261,6 +7339,7 @@ export class PropertyTypeApi
   /**
    *
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof PropertyTypeApi
    */
@@ -7274,6 +7353,7 @@ export class PropertyTypeApi
    *
    * @param {string} uri The URI of the property type
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof PropertyTypeApi
    */
