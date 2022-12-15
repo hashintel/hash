@@ -24,8 +24,19 @@ use crate::{
         PropertyTypeWithMetadata,
     },
     provenance::{OwnedById, UpdatedById},
+    store::query::QueryPath,
     subgraph::{query::StructuralQuery, Subgraph},
 };
+
+/// A record stored in the [`store`].
+///
+/// [`store`]: crate::store
+pub trait Record {
+    type QueryPath<'p>: QueryPath;
+    type Metadata;
+
+    fn metadata(&self) -> &Self::Metadata;
+}
 
 #[derive(Debug)]
 pub struct StoreError;
@@ -214,9 +225,9 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
     /// # Errors
     ///
     /// - if the requested [`DataType`] doesn't exist.
-    async fn get_data_type<'f: 'q, 'q>(
+    async fn get_data_type(
         &self,
-        query: &'f StructuralQuery<'q, DataTypeWithMetadata>,
+        query: &StructuralQuery<DataTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError>;
 
     /// Update the definition of an existing [`DataType`].
@@ -254,9 +265,9 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
     /// # Errors
     ///
     /// - if the requested [`PropertyType`] doesn't exist.
-    async fn get_property_type<'f: 'q, 'q>(
+    async fn get_property_type(
         &self,
-        query: &'f StructuralQuery<'q, PropertyTypeWithMetadata>,
+        query: &StructuralQuery<PropertyTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError>;
 
     /// Update the definition of an existing [`PropertyType`].
@@ -294,9 +305,9 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
     /// # Errors
     ///
     /// - if the requested [`EntityType`] doesn't exist.
-    async fn get_entity_type<'f: 'q, 'q>(
+    async fn get_entity_type(
         &self,
-        query: &'f StructuralQuery<'q, EntityTypeWithMetadata>,
+        query: &StructuralQuery<EntityTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError>;
 
     /// Update the definition of an existing [`EntityType`].
@@ -377,10 +388,7 @@ pub trait EntityStore: crud::Read<Entity> {
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
-    async fn get_entity<'f: 'q, 'q>(
-        &self,
-        query: &'f StructuralQuery<'q, Entity>,
-    ) -> Result<Subgraph, QueryError>;
+    async fn get_entity(&self, query: &StructuralQuery<Entity>) -> Result<Subgraph, QueryError>;
 
     /// Update an existing [`Entity`].
     ///
