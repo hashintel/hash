@@ -86,7 +86,7 @@ export const SortableRow = ({
 
   if (prevEditing !== editing) {
     setPrevEditing(editing);
-    setDraftValue(String(value));
+    setDraftValue(value);
   }
 
   const editorType =

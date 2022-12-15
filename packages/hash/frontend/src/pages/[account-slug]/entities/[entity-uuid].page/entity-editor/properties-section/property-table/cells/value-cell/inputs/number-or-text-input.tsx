@@ -10,7 +10,6 @@ export const NumberOrTextInput = ({
   isNumber: boolean;
   onEnterPressed?: () => void;
 }) => {
-  /** @todo BUG: edit-re-editing number values make them text values again */
   return (
     <TextField
       sx={{ width: "100%" }}
