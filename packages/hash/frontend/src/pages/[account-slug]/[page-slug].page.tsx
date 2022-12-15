@@ -78,7 +78,7 @@ type PageParsedUrlQuery = {
   "page-slug": string;
 };
 
-export const tbdIsPageParsedUrlQuery = (
+export const isPageParsedUrlQuery = (
   queryParams: NextParsedUrlQuery,
 ): queryParams is PageParsedUrlQuery =>
   typeof queryParams["account-slug"] === "string" &&
@@ -106,7 +106,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
     defaultBlockComponentIds.map((componentId) => fetchBlock(componentId)),
   );
 
-  if (!params || !tbdIsPageParsedUrlQuery(params)) {
+  if (!params || !isPageParsedUrlQuery(params)) {
     throw new Error(
       "Invalid page URL query params passed to `getServerSideProps`.",
     );

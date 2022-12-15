@@ -8,7 +8,7 @@ import {
 } from "react";
 import {
   parsePageUrlQueryParams,
-  tbdIsPageParsedUrlQuery,
+  isPageParsedUrlQuery,
 } from "../../pages/[account-slug]/[page-slug].page";
 
 type RoutePageInfo = {
@@ -30,7 +30,7 @@ export const RoutePageInfoProvider: FunctionComponent<{
   const router = useRouter();
 
   const routePageEntityUuid = useMemo(() => {
-    if (tbdIsPageParsedUrlQuery(router.query)) {
+    if (isPageParsedUrlQuery(router.query)) {
       return parsePageUrlQueryParams(router.query).pageEntityUuid;
     }
     return undefined;
