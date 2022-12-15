@@ -452,16 +452,89 @@ Accept: application/json
         client.assert(response.status === 200, "Response status is not 200");
     });
     client.global.set("person_a_entity_id", response.body.editionId.baseId);
+    client.global.set("person_a_owned_by_id", response.body.editionId.baseId.split("%")[0])
     client.global.set("person_a_entity_uuid", response.body.editionId.baseId.split("%")[1])
-    client.global.set("encoded_person_a_entity_id", encodeURIComponent(response.body.editionId.baseId));
 %}
 
-### Get Person entity
-GET http://127.0.0.1:4000/entities/{{encoded_person_a_entity_id}}
+### Get latest Person entity
+POST http://127.0.0.1:4000/entities/query
+Content-Type: application/json
+
+{
+  "filter": {
+  "all": [
+      {
+        "equal": [
+          {
+            "path": [
+              "uuid"
+            ]
+          },
+          {
+            "parameter": "{{person_a_entity_uuid}}"
+          }
+        ]
+      },
+      {
+        "equal": [
+          {
+            "path": [
+              "ownedById"
+            ]
+          },
+          {
+            "parameter": "{{person_a_owned_by_id}}"
+          }
+        ]
+      },
+      {
+        "equal": [
+          {
+            "path": [
+              "version"
+            ]
+          },
+          {
+            "parameter": "latest"
+          }
+        ]
+      }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    }
+  }
+}
 
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 1, "Unexpected number of entities");
     });
 %}
 
@@ -476,7 +549,8 @@ Accept: application/json
  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
  "properties": {
    "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison"
- }
+ },
+ "archived": false
 }
 
 > {%
@@ -505,16 +579,6 @@ Accept: application/json
     });
     client.global.set("person_b_entity_id", response.body.editionId.baseId);
     client.global.set("person_b_entity_uuid", response.body.editionId.baseId.split("%")[1])
-%}
-
-### Get all latest entities
-GET http://127.0.0.1:4000/entities
-
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.length === 2, "Unexpected number of entities");
-    });
 %}
 
 ### Get all latest entities by using a query
@@ -671,14 +735,18 @@ Content-Type: application/json
 %}
 
 ### Archive an entity
-POST http://127.0.0.1:4000/entities/archive
+PUT http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
 
 {
-  "entityId": "{{person_b_entity_id}}",
-  "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}"
+ "actorId": "{{account_id}}",
+ "entityId": "{{person_b_entity_id}}",
+ "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
+ "properties": {
+   "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison"
+ },
+ "archived": true
 }
 
 > {%
