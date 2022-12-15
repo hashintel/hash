@@ -268,7 +268,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         // We can only insert them after the type has been created, and so we currently extract them
         // after as well. See `insert_property_type_references` taking `&property_type`
         let (version_id, metadata) = transaction
-            .update(property_type.clone(), updated_by)
+            .update::<PropertyType>(property_type.clone(), updated_by)
             .await?;
 
         transaction

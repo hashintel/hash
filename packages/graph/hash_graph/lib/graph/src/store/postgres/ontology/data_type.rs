@@ -156,7 +156,9 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                 .change_context(UpdateError)?,
         );
 
-        let (_, metadata) = transaction.update(data_type, updated_by_id).await?;
+        let (_, metadata) = transaction
+            .update::<DataType>(data_type, updated_by_id)
+            .await?;
 
         transaction
             .client
