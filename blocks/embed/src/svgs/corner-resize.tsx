@@ -1,5 +1,4 @@
 import { FunctionComponent } from "react";
-import { tw } from "twind";
 
 type CornerResizeProps = {
   position: string;

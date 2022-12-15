@@ -1,5 +1,4 @@
 import { FunctionComponent } from "react";
-import { tw } from "twind";
 
 const Loader: FunctionComponent = () => {
   return (

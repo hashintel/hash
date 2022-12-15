@@ -1,5 +1,4 @@
 import { ChangeEvent, FunctionComponent } from "react";
-import { tw } from "twind";
 import Loader from "../svgs/loader";
 
 type UploadMediaFormProps = {

@@ -14,7 +14,6 @@ import {
   UpdateEntityData,
 } from "@blockprotocol/graph";
 import { useGraphBlockService } from "@blockprotocol/graph/react";
-import { tw } from "twind";
 import {
   Dispatch,
   SetStateAction,

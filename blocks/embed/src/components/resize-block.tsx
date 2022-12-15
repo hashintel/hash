@@ -7,7 +7,6 @@ import {
   useRef,
   MouseEvent,
 } from "react";
-import { tw } from "twind";
 import { throttle } from "lodash";
 import { MIN_WIDTH, MIN_HEIGHT } from "../constants";
 import { CornerResize } from "../svgs/corner-resize";

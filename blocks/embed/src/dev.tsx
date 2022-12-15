@@ -4,7 +4,6 @@
  */
 import { FunctionComponent, useState } from "react";
 import { render } from "react-dom";
-import { tw } from "twind";
 import { MockBlockDock } from "mock-block-dock";
 
 import Component from "./index";

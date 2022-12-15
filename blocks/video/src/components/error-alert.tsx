@@ -1,5 +1,4 @@
 import { FunctionComponent } from "react";
-import { tw } from "twind";
 import Cross from "../svgs/cross";
 
 type ImageErrorAlertProps = { error: string | null; onClearError: () => void };

@@ -7,8 +7,6 @@ import {
   Reducer,
 } from "react";
 
-import { tw, setup } from "twind";
-
 import { BlockComponent } from "blockprotocol/react";
 
 import { BlockProtocolUpdateEntitiesAction } from "blockprotocol";
@@ -79,8 +77,6 @@ const reducer = (state: AppState, action: Actions): AppState => {
       return state;
   }
 };
-
-setup({ preflight: false });
 
 export const App: BlockComponent<BlockEntityProperties> = ({
   accountId,

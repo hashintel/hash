@@ -1,5 +1,4 @@
 import { FunctionComponent, MouseEvent, useLayoutEffect, useRef } from "react";
-import { tw } from "twind";
 
 type ResizeBlockProps = {
   imageSrc: string;

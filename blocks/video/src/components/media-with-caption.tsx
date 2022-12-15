@@ -1,5 +1,4 @@
 import { FunctionComponent } from "react";
-import { tw } from "twind";
 import Pencil from "../svgs/pencil";
 import { ResizeImageBlock } from "./resize-image-block";
 

@@ -1,12 +1,9 @@
 import { BlockComponent } from "@blockprotocol/graph/react";
 import { useRef, useState } from "react";
 import { useHook, useHookBlockService } from "@blockprotocol/hook/react";
-import { tw, setup } from "twind";
 import { Media, MediaEntityProperties } from "./components/media";
 
 export type BlockEntityProperties = MediaEntityProperties;
-
-setup({ preflight: false });
 
 export const Image: BlockComponent<BlockEntityProperties> = (props) => {
   const [showFallback, setShowFallback] = useState(false);
