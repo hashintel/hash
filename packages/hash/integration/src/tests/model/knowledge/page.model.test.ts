@@ -46,7 +46,7 @@ describe("Page model class", () => {
       componentId: "text",
       blockData: await EntityModel.create(graphApi, {
         ownedById: testUser.getEntityUuid(),
-        entityTypeModel: SYSTEM_TYPES.entityType.dummy,
+        entityType: SYSTEM_TYPES.entityType.dummy,
         properties: {},
         actorId: testUser.getEntityUuid(),
       }),
