@@ -13,10 +13,6 @@ use opentelemetry::{
     sdk::trace::{IdGenerator, RandomIdGenerator},
     trace::{SpanContext, SpanId, TraceContextExt},
 };
-use tower_http::{
-    classify::{ServerErrorsAsFailures, SharedClassifier},
-    trace::TraceLayer,
-};
 use tracing::{enabled, Level};
 
 // *Heavily* inspired by
