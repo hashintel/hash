@@ -20,12 +20,6 @@ import { getNamespaceOfAccountOwner } from "./util";
 import { linkEntityTypeUri } from "../../../model/util";
 import { NotFoundError } from "../../../lib/error";
 
-export type CreateEntityTypeParams = {
-  ownedById: OwnedById;
-  schema: Omit<EntityType, "$id">;
-  actorId: AccountId;
-};
-
 /**
  * Create an entity type.
  *
@@ -34,7 +28,11 @@ export type CreateEntityTypeParams = {
  * @param params.actorId - the id of the account that is creating the entity type
  */
 export const createEntityType: ImpureGraphFunction<
-  CreateEntityTypeParams,
+  {
+    ownedById: OwnedById;
+    schema: Omit<EntityType, "$id">;
+    actorId: AccountId;
+  },
   Promise<EntityTypeWithMetadata>
 > = async ({ graphApi }, params) => {
   const { ownedById, actorId } = params;
