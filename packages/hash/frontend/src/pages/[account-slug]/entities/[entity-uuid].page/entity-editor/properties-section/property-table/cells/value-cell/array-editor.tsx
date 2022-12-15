@@ -20,6 +20,7 @@ import { SortableItem } from "./array-editor/types";
 import { SortableRow } from "./array-editor/sortable-row";
 import { AddAnotherButton } from "./array-editor/add-another-button";
 import { DraftRow } from "./array-editor/draft-row";
+import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
 
 export const DRAFT_ROW_KEY = "draft";
 
@@ -111,15 +112,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
   );
 
   return (
-    <Box
-      sx={(theme) => ({
-        border: "1px solid",
-        borderColor: "gray.30",
-        borderRadius: theme.borderRadii.lg,
-        background: "white",
-        overflow: "hidden",
-      })}
-    >
+    <GridEditorWrapper>
       <Box
         ref={scrollableContainer}
         sx={{
@@ -181,6 +174,6 @@ export const ArrayEditor: ValueCellEditorComponent = ({
           onDraftDiscarded={() => setEditingRow("")}
         />
       )}
-    </Box>
+    </GridEditorWrapper>
   );
 };

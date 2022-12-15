@@ -12,25 +12,9 @@ interface EditorTypePickerProps {
 export const EditorTypePicker = ({
   expectedTypes,
   onTypeChange,
-}: /** @todo maybe don't show the current type, or show the current type as already selected? */
-
-EditorTypePickerProps) => {
+}: EditorTypePickerProps) => {
   return (
-    <Box
-      sx={{
-        background: "white",
-        px: 2,
-        py: 1.5,
-        border: "1px solid",
-        borderColor: "gray.30",
-        /**
-         * @todo consider removing the border style from here, but provide it via a wrapper,
-         * because it looks weird to have this border inside another border
-         * (this happens when we're adding new values to an array with existing values)
-         * */
-        borderRadius: 1,
-      }}
-    >
+    <Box sx={{ px: 2, py: 1.5 }}>
       <Typography variant="smallCaps" mr={1}>
         Choose data type
       </Typography>
