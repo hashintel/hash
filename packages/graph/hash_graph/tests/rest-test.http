@@ -742,9 +742,9 @@ Accept: application/json
 {
  "actorId": "{{account_id}}",
  "entityId": "{{person_b_entity_id}}",
- "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
+ "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1",
  "properties": {
-   "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison"
+   "http://localhost:3000/@alice/types/property-type/name/": "Bob"
  },
  "archived": true
 }
