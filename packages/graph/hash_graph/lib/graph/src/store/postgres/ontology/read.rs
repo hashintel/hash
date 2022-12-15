@@ -12,10 +12,7 @@ use crate::{
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         crud::Read,
-        postgres::{
-            ontology::OntologyDatabaseType,
-            query::{Distinctness, PostgresRecord, SelectCompiler},
-        },
+        postgres::query::{Distinctness, PostgresRecord, SelectCompiler},
         query::{Filter, OntologyQueryPath},
         AsClient, PostgresStore, QueryError,
     },
@@ -24,9 +21,8 @@ use crate::{
 #[async_trait]
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
-    T: OntologyTypeWithMetadata + PostgresRecord + Send,
-    T::OntologyType: OntologyDatabaseType,
-    for<'p> T::QueryPath<'p>: Send + Sync + OntologyQueryPath,
+    T: OntologyTypeWithMetadata + PostgresRecord,
+    for<'p> T::QueryPath<'p>: OntologyQueryPath,
 {
     async fn read(&self, filter: &Filter<T>) -> Result<Vec<T>, QueryError> {
         let versioned_uri_path = <T::QueryPath<'static> as OntologyQueryPath>::versioned_uri();

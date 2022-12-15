@@ -5,12 +5,12 @@ mod read;
 
 use type_system::{DataType, EntityType, PropertyType};
 
-use crate::ontology::OntologyType;
+use crate::{ontology::OntologyType, store::postgres::query::PostgresRecord};
 
 /// Provides an abstraction over elements of the Type System stored in the Database.
 ///
 /// [`PostgresDatabase`]: crate::store::PostgresDatabase
-pub trait OntologyDatabaseType: OntologyType {
+pub trait OntologyDatabaseType: OntologyType<WithMetadata: PostgresRecord> {
     /// Returns the name of the table where this type is stored.
     fn table() -> &'static str;
 }
