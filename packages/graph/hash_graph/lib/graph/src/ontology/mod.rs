@@ -139,12 +139,14 @@ impl OntologyType for EntityType {
     }
 }
 
-pub trait OntologyTypeWithMetadata: Record<Metadata = OntologyElementMetadata> {
+pub trait OntologyTypeWithMetadata: Record {
     type OntologyType: OntologyType<WithMetadata = Self>;
 
     fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self;
 
     fn inner(&self) -> &Self::OntologyType;
+
+    fn metadata(&self) -> &OntologyElementMetadata;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
@@ -171,6 +173,11 @@ impl OntologyElementMetadata {
     }
 
     #[must_use]
+    pub const fn owned_by_id(&self) -> OwnedById {
+        self.owned_by_id
+    }
+
+    #[must_use]
     pub const fn edition_id(&self) -> &OntologyTypeEditionId {
         &self.edition_id
     }
@@ -178,11 +185,6 @@ impl OntologyElementMetadata {
     #[must_use]
     pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
         self.provenance_metadata
-    }
-
-    #[must_use]
-    pub const fn owned_by_id(&self) -> OwnedById {
-        self.owned_by_id
     }
 }
 
@@ -195,11 +197,11 @@ pub struct DataTypeWithMetadata {
 }
 
 impl Record for DataTypeWithMetadata {
-    type Metadata = OntologyElementMetadata;
+    type EditionId = OntologyTypeEditionId;
     type QueryPath<'p> = DataTypeQueryPath;
 
-    fn metadata(&self) -> &OntologyElementMetadata {
-        &self.metadata
+    fn edition_id(&self) -> &Self::EditionId {
+        self.metadata().edition_id()
     }
 }
 
@@ -216,6 +218,10 @@ impl OntologyTypeWithMetadata for DataTypeWithMetadata {
     fn inner(&self) -> &Self::OntologyType {
         &self.inner
     }
+
+    fn metadata(&self) -> &OntologyElementMetadata {
+        &self.metadata
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
@@ -227,11 +233,11 @@ pub struct PropertyTypeWithMetadata {
 }
 
 impl Record for PropertyTypeWithMetadata {
-    type Metadata = OntologyElementMetadata;
+    type EditionId = OntologyTypeEditionId;
     type QueryPath<'p> = PropertyTypeQueryPath;
 
-    fn metadata(&self) -> &OntologyElementMetadata {
-        &self.metadata
+    fn edition_id(&self) -> &Self::EditionId {
+        self.metadata().edition_id()
     }
 }
 
@@ -248,6 +254,10 @@ impl OntologyTypeWithMetadata for PropertyTypeWithMetadata {
     fn inner(&self) -> &Self::OntologyType {
         &self.inner
     }
+
+    fn metadata(&self) -> &OntologyElementMetadata {
+        &self.metadata
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
@@ -259,11 +269,11 @@ pub struct EntityTypeWithMetadata {
 }
 
 impl Record for EntityTypeWithMetadata {
-    type Metadata = OntologyElementMetadata;
+    type EditionId = OntologyTypeEditionId;
     type QueryPath<'p> = EntityTypeQueryPath;
 
-    fn metadata(&self) -> &OntologyElementMetadata {
-        &self.metadata
+    fn edition_id(&self) -> &Self::EditionId {
+        self.metadata().edition_id()
     }
 }
 
@@ -279,5 +289,9 @@ impl OntologyTypeWithMetadata for EntityTypeWithMetadata {
 
     fn inner(&self) -> &Self::OntologyType {
         &self.inner
+    }
+
+    fn metadata(&self) -> &OntologyElementMetadata {
+        &self.metadata
     }
 }

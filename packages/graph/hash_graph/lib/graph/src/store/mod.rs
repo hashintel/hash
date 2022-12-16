@@ -32,10 +32,10 @@ use crate::{
 ///
 /// [`store`]: crate::store
 pub trait Record {
+    type EditionId;
     type QueryPath<'p>: QueryPath;
-    type Metadata;
 
-    fn metadata(&self) -> &Self::Metadata;
+    fn edition_id(&self) -> &Self::EditionId;
 }
 
 #[derive(Debug)]

@@ -14,8 +14,7 @@ use crate::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
         query::Filter,
-        AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, Record,
-        UpdateError,
+        AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
     },
     subgraph::{
         edges::{

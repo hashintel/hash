@@ -36,7 +36,7 @@ use crate::{
     store::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
         query::Filter,
-        EntityStore, Record, StorePool,
+        EntityStore, StorePool,
     },
     subgraph::{
         edges::{
