@@ -3,7 +3,10 @@ import { PropertyRow } from "../../../types";
 import { DRAFT_ROW_KEY } from "../array-editor";
 import { EditorTypePicker } from "../editor-type-picker";
 import { EditorType } from "../types";
-import { guessEditorTypeFromExpectedType } from "../utils";
+import {
+  guessEditorTypeFromExpectedType,
+  isBlankStringOrNullish,
+} from "../utils";
 import { SortableRow } from "./sortable-row";
 
 interface DraftRowProps {
@@ -49,7 +52,13 @@ export const DraftRow = ({
         value: null,
         overriddenEditorType: editorType,
       }}
-      onSaveChanges={(_, value) => onDraftSaved(value)}
+      onSaveChanges={(_, value) => {
+        if (isBlankStringOrNullish(value)) {
+          return onDraftDiscarded();
+        }
+
+        onDraftSaved(value);
+      }}
       onDiscardChanges={onDraftDiscarded}
       expectedTypes={expectedTypes}
     />

@@ -21,6 +21,7 @@ import { SortableRow } from "./array-editor/sortable-row";
 import { AddAnotherButton } from "./array-editor/add-another-button";
 import { DraftRow } from "./array-editor/draft-row";
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
+import { isBlankStringOrNullish } from "./utils";
 
 export const DRAFT_ROW_KEY = "draft";
 
@@ -80,11 +81,6 @@ export const ArrayEditor: ValueCellEditorComponent = ({
   const updateItem = (indexToUpdate: number, value: unknown) => {
     setEditingRow("");
 
-    /** @todo consider this? */
-    // if (!value.trim().length) {
-    //   return removeItem(indexToUpdate);
-    // }
-
     const newCell = produce(cell, (draftCell) => {
       draftCell.data.propertyRow.value = items.map((item, index) =>
         indexToUpdate === index ? value : item.value,
@@ -143,7 +139,13 @@ export const ArrayEditor: ValueCellEditorComponent = ({
                 item={item}
                 onRemove={removeItem}
                 onEditClicked={(id) => setEditingRow(id)}
-                onSaveChanges={updateItem}
+                onSaveChanges={(index, value) => {
+                  if (isBlankStringOrNullish(value)) {
+                    return removeItem(index);
+                  }
+
+                  updateItem(index, value);
+                }}
                 onDiscardChanges={() => setEditingRow("")}
                 editing={editingRow === item.id}
                 selected={selectedRow === item.id}
