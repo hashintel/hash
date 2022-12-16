@@ -3,11 +3,16 @@ import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
 } from "@hashintel/hash-api/src/graph";
-import { OrgModel } from "@hashintel/hash-api/src/model";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
-import { createTestOrg, generateRandomShortname } from "../../util";
+import {
+  getOrgByShortname,
+  Org,
+  updateOrgName,
+  updateOrgShortname,
+} from "@hashintel/hash-api/src/graph/knowledge/system-types/org";
+import { createTestOrg, generateRandomShortname } from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -25,44 +30,55 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-describe("Org model class", () => {
+describe("Org", () => {
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
     await ensureSystemGraphIsInitialized({ graphApi, logger });
   });
 
-  let createdOrg: OrgModel;
+  let createdOrg: Org;
   let shortname: string;
   it("can create an org", async () => {
-    createdOrg = await createTestOrg(graphApi, "orgModelTest", logger);
+    createdOrg = await createTestOrg(graphApi, "orgTest", logger);
 
-    shortname = createdOrg.getShortname();
+    shortname = createdOrg.shortname;
   });
 
   it("can get the account id", () => {
-    expect(createdOrg.getEntityUuid()).toBeDefined();
+    expect(createdOrg.entity.metadata.editionId.baseId).toBeDefined();
   });
 
   it("can update the shortname of an org", async () => {
     shortname = generateRandomShortname("orgTest");
 
-    createdOrg = await createdOrg.updateShortname(graphApi, {
-      updatedShortname: shortname,
-      actorId: systemUserAccountId,
-    });
+    createdOrg = await updateOrgShortname(
+      { graphApi },
+      {
+        org: createdOrg,
+        updatedShortname: shortname,
+        actorId: systemUserAccountId,
+      },
+    );
   });
 
   it("can update the preferred name of an org", async () => {
-    createdOrg = await createdOrg.updateOrgName(graphApi, {
-      updatedOrgName: "The testing org",
-      actorId: systemUserAccountId,
-    });
+    createdOrg = await updateOrgName(
+      { graphApi },
+      {
+        org: createdOrg,
+        updatedOrgName: "The testing org",
+        actorId: systemUserAccountId,
+      },
+    );
   });
 
   it("can get an org by its shortname", async () => {
-    const fetchedOrg = await OrgModel.getOrgByShortname(graphApi, {
-      shortname,
-    });
+    const fetchedOrg = await getOrgByShortname(
+      { graphApi },
+      {
+        shortname,
+      },
+    );
 
     expect(fetchedOrg).toEqual(createdOrg);
   });

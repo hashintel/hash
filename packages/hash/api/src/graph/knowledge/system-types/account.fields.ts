@@ -1,7 +1,7 @@
-import { OrgModel } from "../../../model";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { RESTRICTED_SHORTNAMES } from "../../../model/util";
 import { getUserByShortname } from "./user";
+import { getOrgByShortname } from "./org";
 
 // Validations for shortnames
 /**
@@ -40,7 +40,7 @@ export const shortnameIsTaken: ImpureGraphFunction<
    */
   return (
     (await getUserByShortname(ctx, params)) !== null ||
-    (await OrgModel.getOrgByShortname(ctx, params)) !== null
+    (await getOrgByShortname(ctx, params)) !== null
   );
 };
 
