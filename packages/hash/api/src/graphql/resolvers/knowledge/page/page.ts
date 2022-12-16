@@ -1,4 +1,9 @@
-import { entityIdFromOwnedByIdAndEntityUuid } from "@hashintel/hash-subgraph";
+import {
+  brand,
+  entityIdFromOwnedByIdAndEntityUuid,
+  Uuid,
+} from "@hashintel/hash-shared/types";
+
 import { systemUserAccountId } from "../../../../graph/system-user";
 import { EntityTypeMismatchError } from "../../../../lib/error";
 import { OrgModel, PageModel, UserModel } from "../../../../model";
@@ -72,9 +77,10 @@ export const pages: ResolverFn<
   QueryPagesArgs
 > = async (_, { ownedById }, { dataSources: { graphApi }, userModel }) => {
   const accountEntityId = ownedById
-    ? // When type branding, we would need to cast `ownedById` to an `EntityUuid`.
-      // We may want to special-case this casting and have an explicit function to do it.
-      entityIdFromOwnedByIdAndEntityUuid(systemUserAccountId, ownedById)
+    ? entityIdFromOwnedByIdAndEntityUuid(
+        brand(systemUserAccountId),
+        brand(ownedById as Uuid),
+      )
     : undefined;
 
   const accountModel = accountEntityId

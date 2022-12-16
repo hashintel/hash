@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
 import { useCallback } from "react";
-import { AccountId } from "@hashintel/hash-shared/types";
+import { OwnedById } from "@hashintel/hash-shared/types";
 
 import {
   CreatePropertyTypeMutation,
@@ -10,7 +10,7 @@ import { createPropertyTypeMutation } from "../../../../graphql/queries/ontology
 import { CreatePropertyTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolCreatePropertyType = (
-  ownedById: AccountId | null,
+  ownedById: OwnedById | null,
   readonly?: boolean,
 ): {
   createPropertyType: CreatePropertyTypeMessageCallback;

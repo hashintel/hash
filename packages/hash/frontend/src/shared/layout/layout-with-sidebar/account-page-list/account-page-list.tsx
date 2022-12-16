@@ -28,6 +28,7 @@ import {
 import { isEntityId } from "@hashintel/hash-subgraph";
 import {
   AccountId,
+  brand,
   EntityUuid,
   extractEntityUuidFromEntityId,
 } from "@hashintel/hash-shared/types";
@@ -66,12 +67,13 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   currentPageEntityUuid,
   accountId,
 }) => {
-  const { data, loading: pagesLoading } = useAccountPages(accountId);
+  const { data, loading: pagesLoading } = useAccountPages(brand(accountId));
 
   const [createUntitledPage, { loading: createUntitledPageLoading }] =
-    useCreatePage(accountId);
-  const [createSubPage, { loading: createSubpageLoading }] =
-    useCreateSubPage(accountId);
+    useCreatePage(brand(accountId));
+  const [createSubPage, { loading: createSubpageLoading }] = useCreateSubPage(
+    brand(accountId),
+  );
   const [reorderPage, { loading: reorderLoading }] = useReorderPage();
   const [archivePage, { loading: archivePageLoading }] = useArchivePage();
 

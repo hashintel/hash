@@ -58,7 +58,7 @@ export const pageTypedef = gql`
       """
       The account owning the pages. Defaults to the logged in user.
       """
-      ownedById: AccountId
+      ownedById: OwnedById
     ): [Page!]!
 
     pageComments(
@@ -76,7 +76,7 @@ export const pageTypedef = gql`
     """
     The account ID to create the block and associated entity in.
     """
-    ownedById: AccountId!
+    ownedById: OwnedById!
     """
     The position in the page to place the block.
     """
@@ -162,14 +162,14 @@ export const pageTypedef = gql`
   input CreateEntityAction {
     entity: EntityDefinition!
     entityPlaceholderId: ID
-    ownedById: AccountId!
+    ownedById: OwnedById!
   }
 
   """
   Create an entity type, which you can then reference in future CreateEntityActions
   """
   input CreateEntityTypeAction {
-    ownedById: AccountId!
+    ownedById: OwnedById!
     """
     The name for the type. Must be unique in the given account.
     """
@@ -245,7 +245,7 @@ export const pageTypedef = gql`
       """
       The new page's account ID.
       """
-      ownedById: AccountId!
+      ownedById: OwnedById!
       """
       Initial properties to set for the new page.
       """

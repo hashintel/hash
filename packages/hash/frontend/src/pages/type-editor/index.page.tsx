@@ -1,7 +1,7 @@
 import { types } from "@hashintel/hash-shared/ontology-types";
 import { Box, Container } from "@mui/material";
 import { useCallback, useState } from "react";
-import { AccountId } from "@hashintel/hash-shared/types";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 
 import {
   AggregateDataTypesMessageCallback,
@@ -22,7 +22,9 @@ import { useBlockProtocolFunctionsWithOntology } from "./blockprotocol-ontology-
 const ExampleUsage = ({ accountId }: { accountId: AccountId }) => {
   const [content, setContent] = useState<string>();
 
-  const functions = useBlockProtocolFunctionsWithOntology(accountId);
+  const functions = useBlockProtocolFunctionsWithOntology(
+    accountId as OwnedById,
+  );
 
   const getType = useCallback(
     (

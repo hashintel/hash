@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import { useCallback } from "react";
 import { EntityId } from "@hashintel/hash-subgraph";
 import {
-  AccountId,
+  OwnedById,
   extractEntityUuidFromEntityId,
 } from "@hashintel/hash-shared/types";
 
@@ -18,7 +18,7 @@ import { createPage, setParentPage } from "../../graphql/queries/page.queries";
 import { useWorkspaceShortnameByEntityUuid } from "./use-workspace-shortname-by-entity-uuid";
 import { constructPageRelativeUrl } from "../../lib/routes";
 
-export const useCreateSubPage = (ownedById: AccountId) => {
+export const useCreateSubPage = (ownedById: OwnedById) => {
   const router = useRouter();
   const { workspaceShortname } = useWorkspaceShortnameByEntityUuid({
     entityUuid: ownedById,

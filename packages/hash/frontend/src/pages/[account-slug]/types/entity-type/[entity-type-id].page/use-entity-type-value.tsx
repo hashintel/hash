@@ -1,7 +1,7 @@
 import { EntityType, extractBaseUri } from "@blockprotocol/type-system";
 import { getEntityTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { useRouter } from "next/router";
-import { AccountId } from "@hashintel/hash-shared/types";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 
 import {
   useCallback,
@@ -23,7 +23,9 @@ export const useEntityTypeValue = (
   const router = useRouter();
   const [loading, setLoading] = useState(true);
 
-  const { createEntityType } = useBlockProtocolCreateEntityType(accountId);
+  const { createEntityType } = useBlockProtocolCreateEntityType(
+    accountId as OwnedById | null,
+  );
   const [, loadTypeSystem] = useAdvancedInitTypeSystem();
 
   const [entityType, setEntityType] = useState<EntityType | null>(null);

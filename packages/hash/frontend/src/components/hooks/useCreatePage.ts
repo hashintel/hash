@@ -5,7 +5,7 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@hashintel/hash-subgraph";
-import { AccountId } from "@hashintel/hash-shared/types";
+import { OwnedById } from "@hashintel/hash-shared/types";
 
 import {
   CreatePageMutation,
@@ -16,7 +16,7 @@ import { createPage } from "../../graphql/queries/page.queries";
 import { useWorkspaceShortnameByEntityUuid } from "./use-workspace-shortname-by-entity-uuid";
 import { constructPageRelativeUrl } from "../../lib/routes";
 
-export const useCreatePage = (ownedById: AccountId) => {
+export const useCreatePage = (ownedById: OwnedById) => {
   const router = useRouter();
 
   const { workspaceShortname } = useWorkspaceShortnameByEntityUuid({
