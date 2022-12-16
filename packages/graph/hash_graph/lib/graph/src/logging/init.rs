@@ -1,4 +1,4 @@
-use std::{io, path::Path};
+use std::{io, path::Path, time::Duration};
 
 use opentelemetry::{
     global,
@@ -29,6 +29,8 @@ use tracing_subscriber::{
 };
 
 use crate::logging::args::{LogFormat, LogLevel};
+
+const OPENTELEMETRY_TIMEOUT_DURATION: Duration = Duration::from_secs(5);
 
 enum OutputFormatter<T> {
     Full(Format<fmt::format::Full, T>),
@@ -70,7 +72,7 @@ fn configure_opentelemetry_layer(
     let pipeline = opentelemetry_otlp::new_exporter()
         .tonic()
         .with_endpoint(otlp_endpoint)
-        .with_timeout(std::time::Duration::from_secs(3))
+        .with_timeout(OPENTELEMETRY_TIMEOUT_DURATION)
         .with_metadata(map);
 
     // This can be changed to ratio-based sampling
