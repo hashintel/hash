@@ -1,4 +1,7 @@
-use std::str::FromStr;
+use std::{
+    collections::hash_map::{RandomState, RawEntryMut},
+    str::FromStr,
+};
 
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use tokio_postgres::types::ToSql;
@@ -10,8 +13,9 @@ use utoipa::{
 
 use crate::{
     identifier::{account::AccountId, DecisionTimespan, TransactionTimespan, TransactionTimestamp},
-    knowledge::EntityUuid,
+    knowledge::{Entity, EntityUuid},
     provenance::OwnedById,
+    subgraph::{Subgraph, SubgraphIndex},
 };
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -158,6 +162,15 @@ pub struct EntityEditionId {
     base_id: EntityId,
     record_id: EntityRecordId,
     version: EntityVersion,
+}
+
+impl SubgraphIndex<Entity> for EntityEditionId {
+    fn subgraph_entry<'r>(
+        &self,
+        subgraph: &'r mut Subgraph,
+    ) -> RawEntryMut<'r, Self, Entity, RandomState> {
+        subgraph.vertices.entities.raw_entry_mut().from_key(self)
+    }
 }
 
 impl EntityEditionId {

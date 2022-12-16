@@ -5,7 +5,7 @@ use type_system::DataType;
 
 use crate::{
     identifier::ontology::OntologyTypeEditionId,
-    ontology::{DataTypeWithMetadata, OntologyElementMetadata, OntologyTypeWithMetadata},
+    ontology::{DataTypeWithMetadata, OntologyElementMetadata},
     provenance::{OwnedById, UpdatedById},
     store::{
         crud::Read,
@@ -33,12 +33,9 @@ impl<C: AsClient> PostgresStore<C> {
 
         let _data_type = match dependency_status {
             DependencyStatus::Unresolved => {
-                <Self as Read<DataTypeWithMetadata>>::read_into_subgraph(
-                    self,
-                    subgraph,
-                    data_type_id,
-                )
-                .await?
+                subgraph
+                    .get_or_read::<DataTypeWithMetadata>(self, data_type_id)
+                    .await?
             }
             DependencyStatus::Resolved => return Ok(()),
         };
@@ -96,11 +93,13 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         let mut dependency_context = DependencyContext::default();
 
         for data_type in Read::<DataTypeWithMetadata>::read(self, filter).await? {
+            let edition_id = data_type.edition_id().clone();
+
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
-            let data_type = data_type.insert_into_subgraph_as_root(&mut subgraph);
+            subgraph.insert(data_type);
 
             self.traverse_data_type(
-                &data_type.metadata().edition_id().clone(),
+                &edition_id,
                 &mut dependency_context,
                 &mut subgraph,
                 graph_resolve_depths,

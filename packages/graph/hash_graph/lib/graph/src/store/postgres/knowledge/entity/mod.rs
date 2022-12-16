@@ -55,7 +55,8 @@ impl<C: AsClient> PostgresStore<C> {
 
             let entity = match dependency_status {
                 DependencyStatus::Unresolved => {
-                    <Self as Read<Entity>>::read_into_subgraph(self, subgraph, &entity_edition_id)
+                    subgraph
+                        .get_or_read::<Entity>(self, &entity_edition_id)
                         .await?
                 }
 
@@ -145,7 +146,7 @@ impl<C: AsClient> PostgresStore<C> {
                     });
 
                     let outgoing_link_entity_edition_id = *outgoing_link_entity.edition_id();
-                    outgoing_link_entity.insert_into_subgraph(subgraph);
+                    subgraph.insert(outgoing_link_entity);
 
                     self.traverse_entity(
                         outgoing_link_entity_edition_id,
@@ -219,7 +220,7 @@ impl<C: AsClient> PostgresStore<C> {
                     });
 
                     let incoming_link_entity_edition_id = *incoming_link_entity.edition_id();
-                    incoming_link_entity.insert_into_subgraph(subgraph);
+                    subgraph.insert(incoming_link_entity);
 
                     self.traverse_entity(
                         incoming_link_entity_edition_id,
@@ -290,7 +291,7 @@ impl<C: AsClient> PostgresStore<C> {
                     });
 
                     let left_entity_edition_id = *left_entity.edition_id();
-                    left_entity.insert_into_subgraph(subgraph);
+                    subgraph.insert(left_entity);
 
                     self.traverse_entity(
                         left_entity_edition_id,
@@ -361,7 +362,7 @@ impl<C: AsClient> PostgresStore<C> {
                     });
 
                     let right_entity_edition_id = *right_entity.edition_id();
-                    right_entity.insert_into_subgraph(subgraph);
+                    subgraph.insert(right_entity);
 
                     self.traverse_entity(
                         right_entity_edition_id,
@@ -591,11 +592,12 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let mut dependency_context = DependencyContext::default();
 
         for entity in Read::<Entity>::read(self, filter).await? {
+            let edition_id = *entity.edition_id();
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
-            let entity = entity.insert_into_subgraph_as_root(&mut subgraph);
+            subgraph.insert_as_root(entity);
 
             self.traverse_entity(
-                *entity.edition_id(),
+                edition_id,
                 &mut dependency_context,
                 &mut subgraph,
                 graph_resolve_depths,
