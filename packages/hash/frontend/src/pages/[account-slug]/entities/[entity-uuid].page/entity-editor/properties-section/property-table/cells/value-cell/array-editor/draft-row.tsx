@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { PropertyRow } from "../../../types";
 import { DRAFT_ROW_KEY } from "../array-editor";
 import { EditorTypePicker } from "../editor-type-picker";
 import { EditorType } from "../types";
@@ -10,18 +9,18 @@ import {
 import { SortableRow } from "./sortable-row";
 
 interface DraftRowProps {
-  propertyRow: PropertyRow;
+  expectedTypes: string[];
+  existingItemCount: number;
   onDraftSaved: (value: unknown) => void;
   onDraftDiscarded: () => void;
 }
 
 export const DraftRow = ({
-  propertyRow,
+  expectedTypes,
+  existingItemCount,
   onDraftSaved,
   onDraftDiscarded,
 }: DraftRowProps) => {
-  const { expectedTypes } = propertyRow;
-
   const [editorType, setEditorType] = useState<EditorType | null>(() => {
     if (expectedTypes.length > 1) {
       return null;
@@ -48,7 +47,7 @@ export const DraftRow = ({
       editing
       item={{
         id: DRAFT_ROW_KEY,
-        index: 0,
+        index: existingItemCount,
         value: null,
         overriddenEditorType: editorType,
       }}

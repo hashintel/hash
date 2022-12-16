@@ -30,10 +30,10 @@ export const ArrayEditor: ValueCellEditorComponent = ({
   onChange,
 }) => {
   const scrollableContainer = useRef<HTMLDivElement>(null);
+  const { value: propertyValue, expectedTypes } = cell.data.propertyRow;
 
   const items = useMemo(() => {
-    const propertyVal = cell.data.propertyRow.value;
-    const values = Array.isArray(propertyVal) ? propertyVal : [];
+    const values = Array.isArray(propertyValue) ? propertyValue : [];
 
     const itemsArray: SortableItem[] = values.map((value, index) => ({
       index,
@@ -42,7 +42,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     }));
 
     return itemsArray;
-  }, [cell]);
+  }, [propertyValue]);
 
   const [selectedRow, setSelectedRow] = useState("");
   const [editingRow, setEditingRow] = useState(
@@ -52,13 +52,12 @@ export const ArrayEditor: ValueCellEditorComponent = ({
   const addItem = (value: unknown) => {
     setEditingRow("");
 
-    /** @todo re-enable this code below to scroll down after a value is added */
     // using setImmediate, so scroll happens after item is rendered
-    // setImmediate(() => {
-    //   scrollableContainer.current?.scrollTo({
-    //     top: scrollableContainer.current.scrollHeight,
-    //   });
-    // });
+    setImmediate(() => {
+      scrollableContainer.current?.scrollTo({
+        top: scrollableContainer.current.scrollHeight,
+      });
+    });
 
     const newCell = produce(cell, (draftCell) => {
       draftCell.data.propertyRow.value = [
@@ -152,7 +151,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
                 onSelect={(id) =>
                   setSelectedRow((prevId) => (id === prevId ? "" : id))
                 }
-                expectedTypes={cell.data.propertyRow.expectedTypes}
+                expectedTypes={expectedTypes}
               />
             ))}
           </SortableContext>
@@ -169,10 +168,9 @@ export const ArrayEditor: ValueCellEditorComponent = ({
         />
       ) : (
         <DraftRow
-          propertyRow={cell.data.propertyRow}
-          onDraftSaved={(val) => {
-            addItem(val);
-          }}
+          existingItemCount={items.length}
+          expectedTypes={expectedTypes}
+          onDraftSaved={addItem}
           onDraftDiscarded={() => setEditingRow("")}
         />
       )}
