@@ -75,13 +75,17 @@ fn configure_opentelemetry_layer(
         .with_timeout(OPENTELEMETRY_TIMEOUT_DURATION)
         .with_metadata(map);
 
-    // This can be changed to ratio-based sampling
+    // Configure sampler args with the following environment variables:
+    //   - OTEL_TRACES_SAMPLER_ARG
+    //   - OTEL_TRACES_SAMPLER
+    //
+    // Configure span options with the following environment variables:
+    //   - OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT
+    //   - OTEL_SPAN_EVENT_COUNT_LIMIT
+    //   - OTEL_SPAN_LINK_COUNT_LIMIT
     let trace_config = opentelemetry::sdk::trace::config()
         .with_sampler(Sampler::AlwaysOn)
         .with_id_generator(RandomIdGenerator::default())
-        .with_max_events_per_span(64)
-        .with_max_attributes_per_span(16)
-        .with_max_events_per_span(16)
         .with_resource(Resource::new(vec![KeyValue::new("service.name", "graph")]));
 
     // The tracer batch sends traces asynchronously instead of per-span.
