@@ -146,6 +146,10 @@ pub fn span_maker(request: &hyper::Request<hyper::Body>) -> tracing::Span {
 
     let method = request.method();
 
+    // Because of https://github.com/tokio-rs/axum/issues/1441 and our usage of nested routes we
+    // need to fall back to using the `OriginalUri`.
+    // As we are to remove any routes that have URI path parameters, we shouldn't run into
+    // high-cardinality name problems in the OpenTelemetry traces we send.
     let route = request.extensions().get::<MatchedPath>().map_or_else(
         || {
             request.extensions().get::<OriginalUri>().map_or_else(
