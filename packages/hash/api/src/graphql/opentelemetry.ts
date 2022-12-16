@@ -1,0 +1,62 @@
+import { Resource } from "@opentelemetry/resources";
+import { SimpleSpanProcessor } from "@opentelemetry/sdk-trace-base";
+import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
+import { registerInstrumentations } from "@opentelemetry/instrumentation";
+import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
+import { ExpressInstrumentation } from "@opentelemetry/instrumentation-express";
+import { GraphQLInstrumentation } from "@opentelemetry/instrumentation-graphql";
+import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
+
+import { logger } from "../logger";
+
+const traceTimeout = 5000;
+
+const unregisterInstrumentations = registerInstrumentations({
+  instrumentations: [
+    new HttpInstrumentation(),
+    new ExpressInstrumentation(),
+    new GraphQLInstrumentation({
+      allowValues: true,
+      depth: 2,
+    }),
+  ],
+});
+
+export const registerOpenTelemetryTracing = (
+  otlpGrpcEndpoint: string | null,
+) => {
+  if (!otlpGrpcEndpoint) {
+    logger.info(
+      "No OpenTelemetry Protocol endpoint given. Not sending tracespans anywhere.",
+    );
+    return () => {};
+  }
+
+  // Register server-related instrumentation
+
+  const collectorOptions = {
+    timeoutMillis: traceTimeout,
+    url: otlpGrpcEndpoint,
+  };
+
+  const exporter = new OTLPTraceExporter(collectorOptions);
+
+  const provider = new NodeTracerProvider({
+    resource: Resource.default().merge(
+      new Resource({ "service.name": "hash-api" }),
+    ),
+  });
+
+  provider.addSpanProcessor(new SimpleSpanProcessor(exporter));
+
+  provider.register();
+
+  logger.info(
+    `Registered OpenTelemetry trace exporter at endpoint ${otlpGrpcEndpoint}`,
+  );
+
+  return () => {
+    provider.shutdown().catch(logger.error);
+    unregisterInstrumentations();
+  };
+};

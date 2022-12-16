@@ -29,6 +29,7 @@ import {
 } from "./email/transporters";
 import { createGraphClient, ensureSystemGraphIsInitialized } from "./graph";
 import { createApolloServer } from "./graphql/create-apollo-server";
+import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
 import { getAwsRegion } from "./lib/aws-config";
 import { CORS_CONFIG, FILE_UPLOAD_PROVIDER } from "./lib/config";
 import {
@@ -50,6 +51,8 @@ const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 const main = async () => {
   await TypeSystemInitializer.initialize();
   logger.info("Type System initialized");
+
+  registerOpenTelemetryTracing(process.env.HASH_OTLP_ENDPOINT ?? null);
 
   if (process.env.HASH_TELEMETRY_ENABLED === "true") {
     logger.info("Starting [Snowplow] telemetry");
