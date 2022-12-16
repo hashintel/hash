@@ -6,6 +6,8 @@ import {
   extractEntityUuidFromEntityId,
 } from "@hashintel/hash-subgraph";
 import { systemUserShortname } from "@hashintel/hash-shared/environment";
+import { AccountId, brand } from "@hashintel/hash-shared/types";
+
 import { useUsers } from "../../../components/hooks/useUsers";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { Link } from "../../../shared/ui";
@@ -14,7 +16,7 @@ import { constructPageRelativeUrl } from "../../../lib/routes";
 interface MentionDisplayProps {
   entityId: EntityId;
   mentionType: "page" | "user";
-  accountId: string;
+  accountId: AccountId;
 }
 
 export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
@@ -23,7 +25,9 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   accountId,
 }) => {
   const { users, loading: usersLoading } = useUsers(true);
-  const { data: pages, loading: pagesLoading } = useAccountPages(accountId);
+  const { data: pages, loading: pagesLoading } = useAccountPages(
+    brand(accountId),
+  );
 
   const { title, href, icon } = useMemo(() => {
     switch (mentionType) {

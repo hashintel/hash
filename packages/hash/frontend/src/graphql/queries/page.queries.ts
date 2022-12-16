@@ -23,7 +23,7 @@ export const setParentPage = gql`
 `;
 
 export const createPage = gql`
-  mutation createPage($ownedById: ID!, $properties: PageCreationData!) {
+  mutation createPage($ownedById: OwnedById!, $properties: PageCreationData!) {
     createPage(ownedById: $ownedById, properties: $properties) {
       metadata
     }

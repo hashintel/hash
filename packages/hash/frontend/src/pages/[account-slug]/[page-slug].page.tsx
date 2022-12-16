@@ -17,8 +17,6 @@ import { isSafariBrowser } from "@hashintel/hash-shared/util";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
 } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import { alpha, Box, Collapse } from "@mui/material";
@@ -27,8 +25,12 @@ import { GetServerSideProps } from "next";
 import { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import Head from "next/head";
 import { Router } from "next/router";
-
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@hashintel/hash-shared/types";
+
 // import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
 // import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 // import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";

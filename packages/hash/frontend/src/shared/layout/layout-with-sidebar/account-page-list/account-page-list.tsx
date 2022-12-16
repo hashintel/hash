@@ -25,10 +25,13 @@ import {
   DragEndEvent,
   DragStartEvent,
 } from "@dnd-kit/core";
+import { isEntityId } from "@hashintel/hash-subgraph";
 import {
+  AccountId,
+  brand,
+  EntityUuid,
   extractEntityUuidFromEntityId,
-  isEntityId,
-} from "@hashintel/hash-subgraph";
+} from "@hashintel/hash-shared/types";
 
 import { Box, Collapse } from "@mui/material";
 import { useAccountPages } from "../../../../components/hooks/useAccountPages";
@@ -50,8 +53,8 @@ import { PagesLoadingState } from "./pages-loading-state";
 import { constructPageRelativeUrl } from "../../../../lib/routes";
 
 type AccountPageListProps = {
-  accountId: string;
-  currentPageEntityUuid?: string;
+  accountId: AccountId;
+  currentPageEntityUuid?: EntityUuid;
 };
 
 const measuringConfig = {
@@ -64,12 +67,13 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   currentPageEntityUuid,
   accountId,
 }) => {
-  const { data, loading: pagesLoading } = useAccountPages(accountId);
+  const { data, loading: pagesLoading } = useAccountPages(brand(accountId));
 
   const [createUntitledPage, { loading: createUntitledPageLoading }] =
-    useCreatePage(accountId);
-  const [createSubPage, { loading: createSubpageLoading }] =
-    useCreateSubPage(accountId);
+    useCreatePage(brand(accountId));
+  const [createSubPage, { loading: createSubpageLoading }] = useCreateSubPage(
+    brand(accountId),
+  );
   const [reorderPage, { loading: reorderLoading }] = useReorderPage();
   const [archivePage, { loading: archivePageLoading }] = useArchivePage();
 

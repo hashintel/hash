@@ -1,9 +1,13 @@
 import { extractBaseUri } from "@blockprotocol/type-system";
 import { types } from "@hashintel/hash-shared/ontology-types";
 import {
+  AccountEntityId,
+  AccountId,
+  extractAccountId,
+} from "@hashintel/hash-shared/types";
+import {
   Subgraph,
   EntityEditionId,
-  extractEntityUuidFromEntityId,
   EntityEditionIdString,
   entityEditionIdToString,
 } from "@hashintel/hash-subgraph";
@@ -18,7 +22,7 @@ import { constructOrg, Org } from "./org";
 export type MinimalUser = {
   kind: "user";
   entityEditionId: EntityEditionId;
-  accountId: string;
+  accountId: AccountId;
   accountSignupComplete: boolean;
   shortname?: string;
   preferredName?: string;
@@ -51,7 +55,8 @@ export const constructMinimalUser = (params: {
   return {
     kind: "user",
     entityEditionId: userEntityEditionId,
-    accountId: extractEntityUuidFromEntityId(userEntityEditionId.baseId),
+    // Cast reason: The EntityUuid of a User's baseId is an AccountId
+    accountId: extractAccountId(userEntityEditionId.baseId as AccountEntityId),
     shortname,
     preferredName,
     accountSignupComplete,
