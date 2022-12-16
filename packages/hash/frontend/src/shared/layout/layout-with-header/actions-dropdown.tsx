@@ -20,7 +20,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { AccountId, brand } from "@hashintel/hash-shared/types";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { useCreatePage } from "../../../components/hooks/useCreatePage";
@@ -34,8 +34,8 @@ export const ActionsDropdownInner: FunctionComponent<{
   const theme = useTheme();
   const { activeWorkspace } = useContext(WorkspaceContext);
   const [loading, setLoading] = useState(false);
-  const { data } = useAccountPages(brand(accountId));
-  const [createUntitledPage] = useCreatePage(brand(accountId));
+  const { data } = useAccountPages(accountId as OwnedById);
+  const [createUntitledPage] = useCreatePage(accountId as OwnedById);
   const popupState = usePopupState({
     variant: "popover",
     popupId: "actions-dropdown-menu",

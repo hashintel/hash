@@ -13,7 +13,7 @@ import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
-import { brand } from "@hashintel/hash-shared/types";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 
 import { createEntityType } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
 import { createTestUser } from "../../util";
@@ -58,7 +58,7 @@ describe("Block model class", () => {
     dummyEntityType = await createEntityType(
       { graphApi },
       {
-        ownedById: brand(testUser.getEntityUuid()),
+        ownedById: testUser.getEntityUuid() as OwnedById,
         schema: generateSystemEntityTypeSchema({
           entityTypeId: generateTypeId({
             namespace: testUser.getShortname()!,
@@ -69,7 +69,7 @@ describe("Block model class", () => {
           properties: [],
           outgoingLinks: [],
         }),
-        actorId: brand(testUser.getEntityUuid()),
+        actorId: testUser.getEntityUuid() as AccountId,
       },
     );
 
