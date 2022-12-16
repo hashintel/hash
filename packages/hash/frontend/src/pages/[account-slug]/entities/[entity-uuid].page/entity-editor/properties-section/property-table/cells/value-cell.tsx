@@ -23,7 +23,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     (cell.data as any).kind === "value-cell",
   draw: (args, cell) => {
     const { ctx, rect, theme } = args;
-    const { value, expectedTypes } = cell.data.propertyRow;
+    const { value, expectedTypes, isArray } = cell.data.propertyRow;
 
     ctx.fillStyle = theme.textHeader;
     ctx.font = theme.baseFontStyle;
@@ -38,7 +38,8 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
       // draw empty value
       ctx.fillStyle = customColors.gray[50];
       ctx.font = "italic 14px Inter";
-      ctx.fillText("No value", left, yCenter);
+      const emptyText = isArray ? "No value" : "No values";
+      ctx.fillText(emptyText, left, yCenter);
     } else if (isBoolean) {
       // draw boolean
       return drawTextWithIcon({
