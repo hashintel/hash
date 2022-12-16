@@ -3,10 +3,7 @@ import { ApolloError } from "apollo-server-express";
 import { upperFirst, camelCase } from "lodash";
 import { singular } from "pluralize";
 import { EntityType } from "@blockprotocol/type-system";
-import {
-  EntityTypeWithMetadata,
-  PropertyObject,
-} from "@hashintel/hash-subgraph";
+import { PropertyObject } from "@hashintel/hash-subgraph";
 import { CachedEntityTypes, Task } from "../../../task-execution";
 import {
   MutationExecuteGithubCheckTaskArgs,
@@ -204,7 +201,7 @@ export const executeGithubReadTask: ResolverFn<
         const entityModel = await EntityModel.create(graphApi, {
           ownedById: userModel.getEntityUuid(),
           actorId: userModel.getEntityUuid(),
-          entityType: entityType as EntityTypeWithMetadata,
+          entityType,
           properties: record.data as PropertyObject,
         });
 
