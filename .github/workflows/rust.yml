@@ -85,7 +85,10 @@ jobs:
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
+        if: matrix.directory == 'packages/graph/hash_graph'
         uses: arduino/setup-protoc@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check formatting
         working-directory: ${{ matrix.directory }}
@@ -149,7 +152,10 @@ jobs:
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
+        if: matrix.directory == 'packages/graph/hash_graph'
         uses: arduino/setup-protoc@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Python
         if: matrix.directory == 'packages/engine'
@@ -230,7 +236,10 @@ jobs:
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
+        if: matrix.directory == 'packages/graph/hash_graph'
         uses: arduino/setup-protoc@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run tests
         working-directory: ${{ matrix.directory }}
