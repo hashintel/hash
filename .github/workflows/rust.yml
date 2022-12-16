@@ -83,6 +83,10 @@ jobs:
           cargo quickinstall cargo-make --version 0.35.15
           cargo quickinstall cargo-hack --version 0.5.15
 
+      # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
+
       - name: Check formatting
         working-directory: ${{ matrix.directory }}
         run: cargo +${{ matrix.toolchain }} make format -- --check
