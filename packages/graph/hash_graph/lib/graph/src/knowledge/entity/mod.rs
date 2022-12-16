@@ -12,7 +12,7 @@ pub use self::query::{EntityQueryPath, EntityQueryPathVisitor, EntityQueryToken}
 use crate::{
     identifier::knowledge::{EntityEditionId, EntityId},
     provenance::ProvenanceMetadata,
-    store::Record,
+    store::{query::Filter, Record},
 };
 
 #[derive(
@@ -269,6 +269,10 @@ impl Record for Entity {
 
     fn edition_id(&self) -> &Self::EditionId {
         &self.metadata.edition_id
+    }
+
+    fn create_filter_for_edition_id(edition_id: &Self::EditionId) -> Filter<Self> {
+        Filter::for_entity_by_edition_id(*edition_id)
     }
 }
 

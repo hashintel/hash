@@ -24,7 +24,7 @@ use crate::{
         PropertyTypeWithMetadata,
     },
     provenance::{OwnedById, UpdatedById},
-    store::query::QueryPath,
+    store::query::{Filter, QueryPath},
     subgraph::{query::StructuralQuery, Subgraph},
 };
 
@@ -36,6 +36,8 @@ pub trait Record {
     type QueryPath<'p>: QueryPath;
 
     fn edition_id(&self) -> &Self::EditionId;
+
+    fn create_filter_for_edition_id(edition_id: &Self::EditionId) -> Filter<Self>;
 }
 
 #[derive(Debug)]
