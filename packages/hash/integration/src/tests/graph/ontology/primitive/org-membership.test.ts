@@ -2,15 +2,19 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
+  ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
 import {
-  OrgMembershipModel,
-  OrgModel,
-  UserModel,
-} from "@hashintel/hash-api/src/model";
+  createOrgMembership,
+  getOrgMembershipOrg,
+  getOrgMembershipUser,
+  OrgMembership,
+} from "@hashintel/hash-api/src/graph/knowledge/system-types/org-membership";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import { createTestOrg, createTestUser } from "../../util";
+import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
+import { Org } from "@hashintel/hash-api/src/graph/knowledge/system-types/org";
+import { createTestOrg, createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -28,10 +32,12 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-describe("OrgMembership model class", () => {
-  let testUser: UserModel;
+const ctx: ImpureGraphContext = { graphApi };
 
-  let testOrg: OrgModel;
+describe("OrgMembership", () => {
+  let testUser: User;
+
+  let testOrg: Org;
 
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
@@ -42,25 +48,29 @@ describe("OrgMembership model class", () => {
     testOrg = await createTestOrg(graphApi, "orgMembershipTest", logger);
   });
 
-  let testOrgMembership: OrgMembershipModel;
+  let testOrgMembership: OrgMembership;
 
   it("can create an OrgMembership", async () => {
-    testOrgMembership = await OrgMembershipModel.createOrgMembership(graphApi, {
+    testOrgMembership = await createOrgMembership(ctx, {
       responsibility: "test",
       org: testOrg,
-      actorId: testUser.getEntityUuid(),
+      actorId: testUser.accountId,
       user: testUser,
     });
   });
 
-  it("can get the org of an org membership", () => {
-    const fetchedOrg = testOrgMembership.getOrg();
+  it("can get the org of an org membership", async () => {
+    const fetchedOrg = await getOrgMembershipOrg(ctx, {
+      orgMembership: testOrgMembership,
+    });
 
     expect(fetchedOrg).toEqual(testOrg);
   });
 
-  it("can get the user of an org membership", () => {
-    const fetchedUser = testOrgMembership.getUser();
+  it("can get the user of an org membership", async () => {
+    const fetchedUser = await getOrgMembershipUser(ctx, {
+      orgMembership: testOrgMembership,
+    });
 
     expect(fetchedUser?.entity).toEqual(testUser.entity);
   });
