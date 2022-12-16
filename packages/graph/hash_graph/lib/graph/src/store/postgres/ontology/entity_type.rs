@@ -22,7 +22,6 @@ use crate::{
             OutgoingEdgeResolveDepth, OutwardEdge,
         },
         query::StructuralQuery,
-        vertices::OntologyVertex,
         Subgraph,
     },
 };
@@ -49,11 +48,11 @@ impl<C: AsClient> PostgresStore<C> {
 
             // Explicitly converting the unique reference to a shared reference to the vertex to
             // avoid mutating it by accident
-            let entity_type: Option<&OntologyVertex> = match dependency_status {
+            let entity_type: Option<&EntityTypeWithMetadata> = match dependency_status {
                 DependencyStatus::Unresolved => {
                     match subgraph
                         .vertices
-                        .ontology
+                        .entity_types
                         .raw_entry_mut()
                         .from_key(entity_type_id)
                     {
@@ -64,21 +63,14 @@ impl<C: AsClient> PostgresStore<C> {
                                 &Filter::for_ontology_type_edition_id(entity_type_id),
                             )
                             .await?;
-                            Some(
-                                entry
-                                    .insert(
-                                        entity_type_id.clone(),
-                                        OntologyVertex::EntityType(Box::new(entity_type)),
-                                    )
-                                    .1,
-                            )
+                            Some(entry.insert(entity_type_id.clone(), entity_type).1)
                         }
                     }
                 }
                 DependencyStatus::Resolved => None,
             };
 
-            if let Some(OntologyVertex::EntityType(entity_type)) = entity_type {
+            if let Some(entity_type) = entity_type {
                 // Collecting references before traversing further to avoid having a shared
                 // reference to the subgraph when borrowing it mutably
                 let property_type_ref_uris =
@@ -327,10 +319,10 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             let entity_type_id = entity_type.metadata().edition_id().clone();
 
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
-            subgraph.vertices.ontology.insert(
-                entity_type_id.clone(),
-                OntologyVertex::EntityType(Box::new(entity_type)),
-            );
+            subgraph
+                .vertices
+                .entity_types
+                .insert(entity_type_id.clone(), entity_type);
 
             self.traverse_entity_type(
                 &entity_type_id,
