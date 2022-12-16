@@ -4,17 +4,17 @@ use crate::{
     knowledge::{Entity, EntityQueryPath},
     store::postgres::query::{
         table::{Column, Entities, JsonField, Relation},
-        Path, PostgresQueryRecord, Table,
+        PostgresQueryPath, PostgresRecord, Table,
     },
 };
 
-impl PostgresQueryRecord for Entity {
+impl PostgresRecord for Entity {
     fn base_table() -> Table {
         Table::Entities
     }
 }
 
-impl Path for EntityQueryPath<'_> {
+impl PostgresQueryPath for EntityQueryPath<'_> {
     fn relations(&self) -> Vec<Relation> {
         match self {
             Self::LeftEntity(path) | Self::RightEntity(path)

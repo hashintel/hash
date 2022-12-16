@@ -12,6 +12,7 @@ pub use self::query::{EntityQueryPath, EntityQueryPathVisitor, EntityQueryToken}
 use crate::{
     identifier::knowledge::{EntityEditionId, EntityId},
     provenance::ProvenanceMetadata,
+    store::Record,
 };
 
 #[derive(
@@ -255,9 +256,13 @@ impl Entity {
     pub const fn link_data(&self) -> Option<LinkData> {
         self.link_data
     }
+}
 
-    #[must_use]
-    pub const fn metadata(&self) -> &EntityMetadata {
+impl Record for Entity {
+    type Metadata = EntityMetadata;
+    type QueryPath<'p> = EntityQueryPath<'p>;
+
+    fn metadata(&self) -> &EntityMetadata {
         &self.metadata
     }
 }
