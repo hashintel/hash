@@ -3,7 +3,7 @@ import { FunctionComponent } from "react";
 const Loader: FunctionComponent = () => {
   return (
     <svg
-      style={tw`animate-spin h-4 text-white mr-2`}
+      className={tw`animate-spin h-4 text-white mr-2`}
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"

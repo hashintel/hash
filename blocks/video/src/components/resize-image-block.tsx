@@ -88,7 +88,7 @@ export const ResizeImageBlock: FunctionComponent<ResizeBlockProps> = ({
         <div
           key={position}
           style={{ maxHeight: "50%" }}
-          style={tw`transition-all absolute ${
+          className={tw`transition-all absolute ${
             position === "left" ? "left-1" : "right-1"
           } top-1/2 -translate-y-1/2 h-12 w-1.5 rounded-full bg-black bg-opacity-70 cursor-col-resize opacity-0 group-hover:opacity-100`}
           onMouseDown={(evt) => handleResize(evt, position)}

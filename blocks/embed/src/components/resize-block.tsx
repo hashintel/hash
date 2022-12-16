@@ -228,7 +228,7 @@ export const ResizeBlock: FunctionComponent<ResizeBlockProps> = ({
             <button
               key={position}
               type="button"
-              style={tw`transition-all absolute z-10 opacity-0 group-hover:opacity-100 focus:outline-none ${className}`}
+              className={tw`transition-all absolute z-10 opacity-0 group-hover:opacity-100 focus:outline-none ${className}`}
               onMouseDown={(evt) => handleResize(evt, position)}
             >
               <CornerResize position={position} />
@@ -242,7 +242,7 @@ export const ResizeBlock: FunctionComponent<ResizeBlockProps> = ({
             style={{ maxHeight: "50%" }}
             aria-label={`${position} resize button`}
             type="button"
-            style={tw`transition-all absolute border-1 border-white rounded-full bg-black bg-opacity-70 z-10 opacity-0 focus:outline-none group-hover:opacity-100 ${className}`}
+            className={tw`transition-all absolute border-1 border-white rounded-full bg-black bg-opacity-70 z-10 opacity-0 focus:outline-none group-hover:opacity-100 ${className}`}
             onMouseDown={(evt) => handleResize(evt, position)}
           />
         );

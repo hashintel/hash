@@ -29,13 +29,13 @@ export const ErrorAlert: FunctionComponent<ImageErrorAlertProps> = ({
   >
     <div style={{ marginRight: "1.25rem" }}>
       <strong style={{ fontWeight: "700" }}>Error</strong>
-      <span style={tw`block sm:inline ml-2 `}>{error}</span>
+      <span className={tw`block sm:inline ml-2 `}>{error}</span>
     </div>
 
     <button
       type="button"
       onClick={onClearError}
-      style={tw`absolute top-0 bottom-0 right-0 px-4 py-3 border-0 focus:outline-none bg-transparent box-border cursor-pointer`}
+      className={tw`absolute top-0 bottom-0 right-0 px-4 py-3 border-0 focus:outline-none bg-transparent box-border cursor-pointer`}
     >
       <Cross />
     </button>

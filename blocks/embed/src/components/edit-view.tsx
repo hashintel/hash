@@ -55,12 +55,12 @@ export const EditView: FunctionComponent<EditViewProps> = ({
         >
           <div style={{ marginRight: "1.25rem" }}>
             <strong style={{ fontWeight: "700" }}>Error</strong>
-            <span style={tw`block sm:inline ml-2 `}>{errorString}</span>
+            <span className={tw`block sm:inline ml-2 `}>{errorString}</span>
           </div>
           <button
             onClick={() => setErrorString("")}
             type="button"
-            style={tw`absolute focus:outline-none top-0 bottom-0 right-0 px-4 py-3`}
+            className={tw`absolute focus:outline-none top-0 bottom-0 right-0 px-4 py-3`}
           >
             <Cross />
           </button>
@@ -68,13 +68,13 @@ export const EditView: FunctionComponent<EditViewProps> = ({
       )}
 
       <div
-        style={tw`w-96 mx-auto bg-white rounded-sm shadow-md overflow-hidden text-center p-4 border-2 border-gray-200`}
+        className={tw`w-96 mx-auto bg-white rounded-sm shadow-md overflow-hidden text-center p-4 border-2 border-gray-200`}
       >
         <form style={{ marginBottom: "0" }} onSubmit={handleSubmit}>
           <div>
             <input
               required
-              style={tw`border-solid text-base px-1.5 py-1 rounded-sm border-2 border-gray-200 bg-gray-50 focus:outline-none focus:ring focus:border-blue-300 w-full`}
+              className={tw`border-solid text-base px-1.5 py-1 rounded-sm border-2 border-gray-200 bg-gray-50 focus:outline-none focus:ring focus:border-blue-300 w-full`}
               onChange={(event) => onChangeEmbedUrl(event.target.value)}
               value={embedUrl}
               type="url"
@@ -83,7 +83,7 @@ export const EditView: FunctionComponent<EditViewProps> = ({
           </div>
           <div style={{ marginTop: "1rem" }}>
             <button
-              style={tw`border-none text-base bg-blue-400 rounded-sm hover:bg-blue-500 focus:bg-blue-600 py-1 text-white w-full flex items-center justify-center`}
+              className={tw`border-none text-base bg-blue-400 rounded-sm hover:bg-blue-500 focus:bg-blue-600 py-1 text-white w-full flex items-center justify-center`}
               type="submit"
             >
               {loading && <Loader />}
