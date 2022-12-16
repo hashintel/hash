@@ -4,6 +4,8 @@ import produce from "immer";
 
 import { EntityId } from "@hashintel/hash-subgraph";
 import { VersionedUri } from "@blockprotocol/type-system";
+import { AccountId } from "@hashintel/hash-shared/types";
+
 import { BlockModel, EntityModel, UserModel } from "../../../../model";
 import {
   CreateEntityAction,
@@ -16,7 +18,7 @@ import {
 
 export const createEntityWithPlaceholdersFn =
   (graphApi: GraphApi, placeholderResults: PlaceholderResultsMap) =>
-  async (originalDefinition: EntityDefinition, entityActorId: string) => {
+  async (originalDefinition: EntityDefinition, entityActorId: AccountId) => {
     const entityDefinition = produce(originalDefinition, (draft) => {
       if (draft.existingEntityId) {
         draft.existingEntityId = placeholderResults.get(
@@ -121,7 +123,7 @@ export const handleCreateNewEntity = async (params: {
   placeholderResults: PlaceholderResultsMap;
   createEntityWithPlaceholders: (
     originalDefinition: EntityDefinition,
-    entityActorId: string,
+    entityActorId: AccountId,
   ) => Promise<EntityModel>;
 }): Promise<void> => {
   try {
@@ -161,7 +163,7 @@ export const handleInsertNewBlock = async (
     index: number;
     createEntityWithPlaceholders: (
       originalDefinition: EntityDefinition,
-      entityActorId: string,
+      entityActorId: AccountId,
     ) => Promise<EntityModel>;
     placeholderResults: PlaceholderResultsMap;
   },

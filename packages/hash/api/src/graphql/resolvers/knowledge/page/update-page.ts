@@ -22,7 +22,7 @@ export const updatePage: ResolverFn<
         propertyTypeBaseUri:
           SYSTEM_TYPES.propertyType[
             propertyName as keyof MutationUpdatePageArgs["updatedProperties"]
-          ].getBaseUri(),
+          ].metadata.editionId.baseId,
         value,
       }),
     ),

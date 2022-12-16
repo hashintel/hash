@@ -11,6 +11,7 @@ export type VersionedUri = TVersionedUri;
 // `${AccountId}%${EntityUuid}`
 export type EntityId = `${string}%${string}`;
 
+/** @todo - consider Type Branding this */
 export const entityIdFromOwnedByIdAndEntityUuid = (
   ownedById: string,
   entityUuid: string,

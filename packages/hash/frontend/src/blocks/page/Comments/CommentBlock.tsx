@@ -341,7 +341,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
       ) : null}
 
       <CommentBlockMenu popupState={commentMenuPopupState}>
-        {authenticatedUser.userAccountId === commentCreatedById ? (
+        {authenticatedUser.accountId === commentCreatedById ? (
           <CommentBlockMenuItem
             title={editable ? "Cancel Edit" : "Edit"}
             icon={
@@ -367,7 +367,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
             commentMenuPopupState.close();
           }}
         />
-        {authenticatedUser.userAccountId === commentCreatedById ? (
+        {authenticatedUser.accountId === commentCreatedById ? (
           <CommentBlockMenuItem
             title="Delete Comment"
             icon={<FontAwesomeIcon icon={faTrash} />}

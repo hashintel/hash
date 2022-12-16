@@ -19,8 +19,8 @@ export const useGetOwnerForEntity = () => {
       );
 
       const owner =
-        users.find((user) => ownerUuid === user.userAccountId) ??
-        orgs.find((org) => ownerUuid === org.orgAccountId);
+        users.find((user) => ownerUuid === user.accountId) ??
+        orgs.find((org) => ownerUuid === org.accountId);
 
       if (!owner) {
         throw new Error(
@@ -31,7 +31,7 @@ export const useGetOwnerForEntity = () => {
       const isUser = "userAccountId" in owner;
 
       return {
-        accountId: isUser ? owner.userAccountId : owner.orgAccountId,
+        accountId: isUser ? owner.userAccountId : owner.accountId,
         shortname: owner.shortname ?? "incomplete-user-account",
       };
     },

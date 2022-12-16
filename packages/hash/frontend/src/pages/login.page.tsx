@@ -138,7 +138,7 @@ const LoginPage: NextPageWithLayout = () => {
               );
             }
 
-            updateActiveWorkspaceAccountId(authenticatedUser.userAccountId);
+            updateActiveWorkspaceAccountId(authenticatedUser.accountId);
 
             void router.push("/");
           })
