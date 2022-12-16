@@ -11,7 +11,7 @@ import {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-  linkEntityTypeUri
+  linkEntityTypeUri,
 } from "@hashintel/hash-subgraph";
 import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
 import {
