@@ -290,7 +290,15 @@ export const PropertyListCard = () => {
           <TableCell width={260}>Property name</TableCell>
           <TableCell>Expected values</TableCell>
           <EntityTypeTableCenteredCell width={170}>
-            Allow multiple values <QuestionIcon />
+            Allow arrays{" "}
+            <QuestionIcon
+              tooltip={
+                <>
+                  Allowing arrays permits the entry of more than one value for a
+                  given property
+                </>
+              }
+            />
           </EntityTypeTableCenteredCell>
           <EntityTypeTableCenteredCell width={100}>
             Required
@@ -334,6 +342,13 @@ export const PropertyListCard = () => {
                     sx={{
                       ml: 1.25,
                     }}
+                    tooltip={
+                      <>
+                        You should only create a new property type if you can't
+                        find an existing one which corresponds to the
+                        information you're trying to capture.
+                      </>
+                    }
                   />
                 </>
               }

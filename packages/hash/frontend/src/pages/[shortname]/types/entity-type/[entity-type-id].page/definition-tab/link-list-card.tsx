@@ -249,16 +249,7 @@ const LinkTypeRow = ({
       <TypeFormModal
         as={LinkTypeForm}
         popupState={editModalPopupState}
-        modalTitle={
-          <>
-            Edit link
-            <QuestionIcon
-              sx={{
-                ml: 1.25,
-              }}
-            />
-          </>
-        }
+        modalTitle={<>Edit link</>}
         onSubmit={handleSubmit}
         submitButtonProps={{ children: <>Edit link</> }}
         disabledFields={["name"]}
@@ -436,6 +427,13 @@ export const LinkListCard = () => {
                     sx={{
                       ml: 1.25,
                     }}
+                    tooltip={
+                      <>
+                        You should only create a new link type if you can't find
+                        an existing one which corresponds to the relationship
+                        you're trying to capture.
+                      </>
+                    }
                   />
                 </>
               }
