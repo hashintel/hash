@@ -1,6 +1,7 @@
 import {
-  brand,
   entityIdFromOwnedByIdAndEntityUuid,
+  EntityUuid,
+  OwnedById,
   Uuid,
 } from "@hashintel/hash-shared/types";
 
@@ -78,8 +79,8 @@ export const pages: ResolverFn<
 > = async (_, { ownedById }, { dataSources: { graphApi }, userModel }) => {
   const accountEntityId = ownedById
     ? entityIdFromOwnedByIdAndEntityUuid(
-        brand(systemUserAccountId),
-        brand(ownedById as Uuid),
+        systemUserAccountId as OwnedById,
+        ownedById as Uuid as EntityUuid,
       )
     : undefined;
 

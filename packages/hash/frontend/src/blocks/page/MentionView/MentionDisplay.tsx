@@ -6,7 +6,7 @@ import {
   extractEntityUuidFromEntityId,
 } from "@hashintel/hash-subgraph";
 import { systemUserShortname } from "@hashintel/hash-shared/environment";
-import { AccountId, brand } from "@hashintel/hash-shared/types";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 
 import { useUsers } from "../../../components/hooks/useUsers";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
@@ -26,7 +26,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
 }) => {
   const { users, loading: usersLoading } = useUsers(true);
   const { data: pages, loading: pagesLoading } = useAccountPages(
-    brand(accountId),
+    accountId as OwnedById,
   );
 
   const { title, href, icon } = useMemo(() => {

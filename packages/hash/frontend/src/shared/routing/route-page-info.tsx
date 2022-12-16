@@ -6,7 +6,7 @@ import {
   useMemo,
   ReactNode,
 } from "react";
-import { brand, EntityUuid } from "@hashintel/hash-shared/types";
+import { EntityUuid } from "@hashintel/hash-shared/types";
 
 import {
   parsePageUrlQueryParams,
@@ -41,7 +41,7 @@ export const RoutePageInfoProvider: FunctionComponent<{
   const contextValue = useMemo<RoutePageInfo | undefined>(
     () =>
       routePageEntityUuid
-        ? { routePageEntityUuid: brand(routePageEntityUuid) }
+        ? { routePageEntityUuid: routePageEntityUuid as EntityUuid }
         : undefined,
     [routePageEntityUuid],
   );

@@ -25,19 +25,6 @@ export type Brand<Base, Kind extends string> = Base extends BrandedBase<
   ? BrandedBase<NestedBase, NestedKind & { [_ in Kind]: void }>
   : BrandedBase<Base, { [_ in Kind]: void }>;
 
-/**
- * An optional function to brand the type instead of explicitly casting it
- */
-export const brand = <
-  Kind extends string,
-  Base,
-  BrandType extends Brand<Base, Kind>,
->(
-  value: Base,
-) => {
-  return value as unknown as BrandType;
-};
-
 /** Valid Uuids of the system */
 export type Uuid = Brand<string, "Uuid">;
 

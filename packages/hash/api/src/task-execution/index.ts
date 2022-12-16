@@ -7,7 +7,7 @@ import {
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
-import { brand } from "@hashintel/hash-shared/types";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 
 import { UserModel } from "../model";
 import { GraphApi } from "../graph";
@@ -114,8 +114,8 @@ export const CachedEntityTypes = async (
       const entityType = await createEntityType(
         { graphApi },
         {
-          ownedById: brand(user.getEntityUuid()),
-          actorId: brand(user.getEntityUuid()),
+          ownedById: user.getEntityUuid() as OwnedById,
+          actorId: user.getEntityUuid() as AccountId,
           schema: { ...jsonSchema, title: entityTypeTitle },
         },
       );
