@@ -3,18 +3,20 @@ import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { types } from "@hashintel/hash-shared/ontology-types";
 import { getEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import {
-  extractEntityUuidFromEntityId,
-  Subgraph,
-  SubgraphRootTypes,
-} from "@hashintel/hash-subgraph";
+  AccountEntityId,
+  AccountId,
+  extractAccountId,
+} from "@hashintel/hash-shared/types";
+
 import { extractBaseUri } from "@blockprotocol/type-system";
 import { UserModel } from "../model";
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { getRequiredEnv } from "../util";
 
 // eslint-disable-next-line import/no-mutable-exports
-export let systemUserAccountId: string;
+export let systemUserAccountId: AccountId;
 
 /**
  * Ensure the `systemUserAccountId` exists by fetching it or creating it. Note this
@@ -62,14 +64,15 @@ export const ensureSystemUserAccountIdExists = async (params: {
   );
 
   if (existingSystemUserEntity) {
-    systemUserAccountId = extractEntityUuidFromEntityId(
-      existingSystemUserEntity.metadata.editionId.baseId,
+    systemUserAccountId = extractAccountId(
+      existingSystemUserEntity.metadata.editionId.baseId as AccountEntityId,
     );
     logger.info(
       `Using existing system user account id: ${systemUserAccountId}`,
     );
   } else {
-    systemUserAccountId = (await graphApi.createAccountId()).data;
+    // The account id generated here is the very origin on all `AccountId` instances.
+    systemUserAccountId = (await graphApi.createAccountId()).data as AccountId;
     logger.info(`Created system user account id: ${systemUserAccountId}`);
   }
 };

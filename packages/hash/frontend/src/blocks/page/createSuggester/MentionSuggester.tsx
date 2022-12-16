@@ -2,6 +2,8 @@ import { useMemo, FunctionComponent, useContext } from "react";
 import ArticleIcon from "@mui/icons-material/Article";
 
 import { EntityId } from "@hashintel/hash-subgraph";
+import { AccountId, brand } from "@hashintel/hash-shared/types";
+
 import { useUsers } from "../../../components/hooks/useUsers";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { fuzzySearchBy } from "./fuzzySearchBy";
@@ -11,7 +13,7 @@ import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 export interface MentionSuggesterProps {
   search?: string;
   onChange(entityId: EntityId, mentionType: "user" | "page"): void;
-  accountId: string;
+  accountId: AccountId;
 }
 
 type SearchableItem = {
@@ -28,7 +30,9 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   accountId,
 }) => {
   const { users, loading: usersLoading } = useUsers();
-  const { data: pages, loading: pagesLoading } = useAccountPages(accountId);
+  const { data: pages, loading: pagesLoading } = useAccountPages(
+    brand(accountId),
+  );
 
   const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
 
