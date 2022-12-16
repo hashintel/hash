@@ -300,6 +300,8 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 graph_resolve_depths,
             )
             .await?;
+
+            subgraph.roots.insert(edition_id.into());
         }
 
         Ok(subgraph)

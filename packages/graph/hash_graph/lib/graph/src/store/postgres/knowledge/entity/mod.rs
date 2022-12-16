@@ -594,7 +594,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         for entity in Read::<Entity>::read(self, filter).await? {
             let edition_id = *entity.edition_id();
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
-            subgraph.insert_as_root(entity);
+            subgraph.insert(entity);
 
             self.traverse_entity(
                 edition_id,
@@ -603,6 +603,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 graph_resolve_depths,
             )
             .await?;
+
+            subgraph.roots.insert(edition_id.into());
         }
 
         Ok(subgraph)

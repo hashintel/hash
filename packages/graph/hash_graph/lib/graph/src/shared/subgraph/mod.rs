@@ -56,19 +56,6 @@ impl Subgraph {
         }
     }
 
-    pub fn insert_as_root<R: Record>(&mut self, record: R) -> Option<R> {
-        let edition_id = record.edition_id().clone();
-        let record = match self.entry(&edition_id) {
-            RawEntryMut::Occupied(mut entry) => Some(entry.insert(record)),
-            RawEntryMut::Vacant(entry) => {
-                entry.insert(edition_id.clone(), record);
-                None
-            }
-        };
-        self.roots.insert(edition_id.into());
-        record
-    }
-
     /// Looks up a single [`Record`] in the subgraph or reads it from the [`Store`] and inserts it
     /// if it is not yet in the subgraph.
     ///
