@@ -25,7 +25,7 @@ use uuid::Uuid;
 pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
     identifier::{account::AccountId, knowledge::EntityEditionId, ontology::OntologyTypeEditionId},
-    ontology::OntologyElementMetadata,
+    ontology::{OntologyElementMetadata, OntologyTypeWithMetadata},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         crud::Read,
