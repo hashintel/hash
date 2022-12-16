@@ -85,7 +85,7 @@ impl RoutedResource for PropertyTypeResource {
     }
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreatePropertyTypeRequest {
     #[schema(value_type = VAR_PROPERTY_TYPE)]
@@ -108,6 +108,7 @@ struct CreatePropertyTypeRequest {
     ),
     request_body = CreatePropertyTypeRequest,
 )]
+#[tracing::instrument(level = "info", skip(pool, domain_validator))]
 async fn create_property_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
@@ -166,6 +167,7 @@ async fn create_property_type<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     )
 )]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn get_property_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(query): Json<serde_json::Value>,
@@ -196,7 +198,7 @@ async fn get_property_types_by_query<P: StorePool + Send>(
         .map(|subgraph| Json(subgraph.into()))
 }
 
-#[derive(ToSchema, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct UpdatePropertyTypeRequest {
     #[schema(value_type = VAR_UPDATE_PROPERTY_TYPE)]
@@ -219,6 +221,7 @@ struct UpdatePropertyTypeRequest {
     ),
     request_body = UpdatePropertyTypeRequest,
 )]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn update_property_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<UpdatePropertyTypeRequest>,

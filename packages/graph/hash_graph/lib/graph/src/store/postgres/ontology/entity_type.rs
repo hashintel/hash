@@ -29,10 +29,7 @@ impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`EntityTypeWithMetadata`] into four [`DependencyContext`]s.
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[expect(
-        clippy::too_many_lines,
-        reason = "There is quite a few code duplication, which has to be resolved"
-    )]
+    #[tracing::instrument(level = "trace", skip(self, dependency_context, subgraph))]
     pub(crate) fn traverse_entity_type<'a>(
         &'a self,
         entity_type_id: &'a OntologyTypeEditionId,
@@ -236,6 +233,7 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
+    #[tracing::instrument(level = "info", skip(self, entity_type))]
     async fn create_entity_type(
         &mut self,
         entity_type: EntityType,
@@ -279,6 +277,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         Ok(metadata)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     async fn get_entity_type(
         &self,
         query: &StructuralQuery<EntityTypeWithMetadata>,
@@ -307,6 +306,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         Ok(subgraph)
     }
 
+    #[tracing::instrument(level = "info", skip(self, entity_type))]
     async fn update_entity_type(
         &mut self,
         entity_type: EntityType,
