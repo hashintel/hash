@@ -31,10 +31,6 @@ impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`EntityTypeWithMetadata`] into four [`DependencyContext`]s.
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[expect(
-        clippy::too_many_lines,
-        reason = "There is quite a few code duplication, which has to be resolved"
-    )]
     #[tracing::instrument(level = "trace", skip(self, dependency_context, subgraph))]
     pub(crate) fn traverse_entity_type<'a>(
         &'a self,

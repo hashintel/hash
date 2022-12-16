@@ -42,7 +42,6 @@ impl<C: AsClient> PostgresStore<C> {
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     #[tracing::instrument(level = "trace", skip(self, dependency_context, subgraph))]
-    #[expect(clippy::too_many_lines)]
     pub(crate) fn traverse_entity<'a>(
         &'a self,
         entity_edition_id: EntityEditionId,

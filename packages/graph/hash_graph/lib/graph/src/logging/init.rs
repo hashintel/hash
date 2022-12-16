@@ -82,11 +82,11 @@ fn configure_opentelemetry_layer(
         .with_max_events_per_span(16)
         .with_resource(Resource::new(vec![KeyValue::new("service.name", "graph")]));
 
+    // The tracer batch sends traces asynchronously instead of per-span.
     let tracer = opentelemetry_otlp::new_pipeline()
         .tracing()
         .with_exporter(pipeline)
         .with_trace_config(trace_config)
-        // Batch send traces asynchronously instead of per-span
         .install_batch(opentelemetry::runtime::Tokio)
         .expect("failed to create OTLP tracer, check configuration values");
 

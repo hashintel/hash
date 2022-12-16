@@ -32,10 +32,6 @@ impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`PropertyTypeWithMetadata`] into two [`DependencyContext`]s.
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[expect(
-        clippy::too_many_lines,
-        reason = "https://app.asana.com/0/1203363157432081/1203444301722127/f"
-    )]
     #[tracing::instrument(level = "trace", skip(self, dependency_context, subgraph))]
     pub(crate) fn traverse_property_type<'a>(
         &'a self,
