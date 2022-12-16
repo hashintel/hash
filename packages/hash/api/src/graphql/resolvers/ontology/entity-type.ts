@@ -1,7 +1,7 @@
 import { ApolloError } from "apollo-server-express";
 import { AxiosError } from "axios";
 import { EntityTypeWithMetadata, Subgraph } from "@hashintel/hash-subgraph";
-import { brand } from "@hashintel/hash-shared/types";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 
 import {
   MutationCreateEntityTypeArgs,
@@ -28,9 +28,9 @@ export const createEntityTypeResolver: ResolverFn<
   const createdEntityType = await createEntityType(
     { graphApi },
     {
-      ownedById: brand(ownedById) ?? userModel.getEntityUuid(),
+      ownedById: (ownedById as OwnedById) ?? userModel.getEntityUuid(),
       schema: entityType,
-      actorId: brand(userModel.getEntityUuid()),
+      actorId: userModel.getEntityUuid() as AccountId,
     },
   ).catch((err) => {
     throw new ApolloError(err, "CREATION_ERROR");
@@ -142,7 +142,7 @@ export const updateEntityTypeResolver: ResolverFn<
     {
       entityTypeId,
       schema: updatedEntityTypeSchema,
-      actorId: brand(userModel.getEntityUuid()),
+      actorId: userModel.getEntityUuid() as AccountId,
     },
   ).catch((err: AxiosError) => {
     const msg =

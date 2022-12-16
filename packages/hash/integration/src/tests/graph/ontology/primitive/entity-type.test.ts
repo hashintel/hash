@@ -20,7 +20,7 @@ import {
   updateEntityType,
 } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
-import { brand } from "@hashintel/hash-shared/types";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 
 import { createTestUser } from "../../../util";
 
@@ -61,13 +61,13 @@ beforeAll(async () => {
   textDataType = await createDataType(
     { graphApi },
     {
-      ownedById: brand(testUser.getEntityUuid()),
+      ownedById: testUser.getEntityUuid() as OwnedById,
       schema: {
         kind: "dataType",
         title: "Text",
         type: "string",
       },
-      actorId: brand(testUser.getEntityUuid()),
+      actorId: testUser.getEntityUuid() as AccountId,
     },
   );
 
@@ -75,14 +75,14 @@ beforeAll(async () => {
     createEntityType(
       { graphApi },
       {
-        ownedById: brand(testUser.getEntityUuid()),
+        ownedById: testUser.getEntityUuid() as OwnedById,
         schema: {
           kind: "entityType",
           title: "Worker",
           type: "object",
           properties: {},
         },
-        actorId: brand(testUser.getEntityUuid()),
+        actorId: testUser.getEntityUuid() as AccountId,
       },
     ).then((val) => {
       workerEntityType = val;
@@ -90,14 +90,14 @@ beforeAll(async () => {
     createEntityType(
       { graphApi },
       {
-        ownedById: brand(testUser.getEntityUuid()),
+        ownedById: testUser.getEntityUuid() as OwnedById,
         schema: {
           kind: "entityType",
           title: "Address",
           type: "object",
           properties: {},
         },
-        actorId: brand(testUser.getEntityUuid()),
+        actorId: testUser.getEntityUuid() as AccountId,
       },
     ).then((val) => {
       addressEntityType = val;
@@ -105,13 +105,13 @@ beforeAll(async () => {
     createPropertyType(
       { graphApi },
       {
-        ownedById: brand(testUser.getEntityUuid()),
+        ownedById: testUser.getEntityUuid() as OwnedById,
         schema: {
           kind: "propertyType",
           title: "Favorite Book",
           oneOf: [{ $ref: textDataType.schema.$id }],
         },
-        actorId: brand(testUser.getEntityUuid()),
+        actorId: testUser.getEntityUuid() as AccountId,
       },
     ).then((val) => {
       favoriteBookPropertyType = val;
@@ -119,13 +119,13 @@ beforeAll(async () => {
     createPropertyType(
       { graphApi },
       {
-        ownedById: brand(testUser.getEntityUuid()),
+        ownedById: testUser.getEntityUuid() as OwnedById,
         schema: {
           kind: "propertyType",
           title: "Name",
           oneOf: [{ $ref: textDataType.schema.$id }],
         },
-        actorId: brand(testUser.getEntityUuid()),
+        actorId: testUser.getEntityUuid() as AccountId,
       },
     ).then((val) => {
       namePropertyType = val;
@@ -133,7 +133,7 @@ beforeAll(async () => {
     createEntityType(
       { graphApi },
       {
-        ownedById: brand(testUser.getEntityUuid()),
+        ownedById: testUser.getEntityUuid() as OwnedById,
         schema: {
           kind: "entityType",
           title: "Knows",
@@ -142,7 +142,7 @@ beforeAll(async () => {
           properties: {},
           allOf: [{ $ref: linkEntityTypeUri }],
         },
-        actorId: brand(testUser.getEntityUuid()),
+        actorId: testUser.getEntityUuid() as AccountId,
       },
     ).then((val) => {
       knowsLinkEntityType = val;
@@ -150,7 +150,7 @@ beforeAll(async () => {
     createEntityType(
       { graphApi },
       {
-        ownedById: brand(testUser.getEntityUuid()),
+        ownedById: testUser.getEntityUuid() as OwnedById,
         schema: {
           kind: "entityType",
           title: "Previous Address",
@@ -159,7 +159,7 @@ beforeAll(async () => {
           properties: {},
           allOf: [{ $ref: linkEntityTypeUri }],
         },
-        actorId: brand(testUser.getEntityUuid()),
+        actorId: testUser.getEntityUuid() as AccountId,
       },
     ).then((val) => {
       previousAddressLinkEntityType = val;
@@ -204,9 +204,9 @@ describe("Entity type CRU", () => {
     createdEntityType = await createEntityType(
       { graphApi },
       {
-        ownedById: brand(testUser.getEntityUuid()),
+        ownedById: testUser.getEntityUuid() as OwnedById,
         schema: entityTypeSchema,
-        actorId: brand(testUser.getEntityUuid()),
+        actorId: testUser.getEntityUuid() as AccountId,
       },
     );
   });
@@ -234,7 +234,7 @@ describe("Entity type CRU", () => {
       {
         entityTypeId: createdEntityType.schema.$id,
         schema: { ...entityTypeSchema, title: updatedTitle },
-        actorId: brand(testUser2.getEntityUuid()),
+        actorId: testUser2.getEntityUuid() as AccountId,
       },
     ).catch((err) => Promise.reject(err.data));
 

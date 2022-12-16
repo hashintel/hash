@@ -12,7 +12,7 @@ import {
   entityStorePluginState,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { EntityId } from "@hashintel/hash-subgraph";
-import { AccountId, brand, OwnedById } from "@hashintel/hash-shared/types";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 
 // import applyDevTools from "prosemirror-dev-tools";
 import { Plugin } from "prosemirror-state";
@@ -156,7 +156,7 @@ export const createEditorView = (
   const plugins: Plugin<unknown>[] = readonly
     ? []
     : [
-        createSavePlugin(brand(accountId), pageEntityId, client),
+        createSavePlugin(accountId as OwnedById, pageEntityId, client),
         ...createFormatPlugins(renderPortal),
         createSuggester(renderPortal, accountId, renderNode, () => manager),
         createPlaceholderPlugin(renderPortal),
