@@ -9,7 +9,7 @@ import {
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
+import { AccountId } from "@hashintel/hash-shared/types";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { EntityTypeWithoutId } from "@hashintel/hash-shared/graphql/types";
 import {
@@ -30,7 +30,7 @@ import { NotFoundError } from "../../../lib/error";
  */
 export const createEntityType: ImpureGraphFunction<
   {
-    ownedById: OwnedById;
+    ownedById: AccountId;
     schema: EntityTypeWithoutId;
     actorId: AccountId;
   },
