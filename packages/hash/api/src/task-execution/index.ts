@@ -1,8 +1,10 @@
 import { DataSource } from "apollo-datasource";
 import fetch from "node-fetch";
 import { EntityType } from "@blockprotocol/type-system";
-import { EntityTypeModel, UserModel } from "../model";
+import { EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
+import { UserModel } from "../model";
 import { GraphApi } from "../graph";
+import { createEntityType } from "../graph/ontology/primitive/entity-type";
 
 /** @todo: When task scheduling is more mature and we move away from the temporary `hash-task-executor` we should have a single source of */
 //  truth for available tasks, likely importable.
@@ -66,31 +68,35 @@ export const CachedEntityTypes = async (
   graphApi: GraphApi,
   user: UserModel,
 ) => {
-  const streamsWithEntityTypes: Map<string, EntityTypeModel> = new Map();
-  const entityTypes = await EntityTypeModel.getAllLatest(graphApi);
+  const streamsWithEntityTypes: Map<string, EntityTypeWithMetadata> = new Map();
+  const { data: entityTypes } = await graphApi.getLatestEntityTypes();
 
   return {
     getExisting: (entityTypeTitle: string) => {
       // check the map to find the entityTypeId associated with the stream if we've already encountered it
-      let entityTypeModel = streamsWithEntityTypes.get(entityTypeTitle);
+      const entityType = streamsWithEntityTypes.get(entityTypeTitle);
 
-      if (entityTypeModel === undefined) {
+      if (entityType === undefined) {
         // check all entityTypes to see if there's one with the same name as the stream
-        entityTypeModel = entityTypes.find(
-          (entityType) => entityType.getSchema().title === entityTypeTitle,
+        return entityTypes.find(
+          ({ schema }) => schema.title === entityTypeTitle,
         );
       }
-      return entityTypeModel;
+
+      return entityType;
     },
 
     createNew: async (entityTypeTitle: string, jsonSchema: EntityType) => {
-      const entityTypeModel = await EntityTypeModel.create(graphApi, {
-        ownedById: user.getEntityUuid(),
-        actorId: user.getEntityUuid(),
-        schema: { ...jsonSchema, title: entityTypeTitle },
-      });
+      const entityType = await createEntityType(
+        { graphApi },
+        {
+          ownedById: user.getEntityUuid(),
+          actorId: user.getEntityUuid(),
+          schema: { ...jsonSchema, title: entityTypeTitle },
+        },
+      );
 
-      streamsWithEntityTypes.set(entityTypeTitle, entityTypeModel);
+      streamsWithEntityTypes.set(entityTypeTitle, entityType);
     },
   };
 };

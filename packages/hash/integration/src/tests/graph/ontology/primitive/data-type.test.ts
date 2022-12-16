@@ -1,10 +1,19 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
-import { createGraphClient } from "@hashintel/hash-api/src/graph";
+import {
+  createGraphClient,
+  ensureSystemGraphIsInitialized,
+} from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { DataType, TypeSystemInitializer } from "@blockprotocol/type-system";
-import { DataTypeModel, UserModel } from "@hashintel/hash-api/src/model";
-import { createTestUser } from "../../util";
+import { UserModel } from "@hashintel/hash-api/src/model";
+import {
+  createDataType,
+  getDataTypeById,
+  updateDataType,
+} from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
+import { DataTypeWithMetadata } from "@hashintel/hash-subgraph";
+import { createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -40,45 +49,53 @@ const dataTypeSchema: Pick<
 
 beforeAll(async () => {
   await TypeSystemInitializer.initialize();
+  await ensureSystemGraphIsInitialized({ graphApi, logger });
+
   testUser = await createTestUser(graphApi, "data-type-test-1", logger);
   testUser2 = await createTestUser(graphApi, "data-type-test-2", logger);
 });
 
 describe("Data type CRU", () => {
-  let createdDataTypeModel: DataTypeModel;
+  let createdDataType: DataTypeWithMetadata;
 
   it("can create a data type", async () => {
-    createdDataTypeModel = await DataTypeModel.create(graphApi, {
-      ownedById: testUser.getEntityUuid(),
-      schema: dataTypeSchema,
-      actorId: testUser.getEntityUuid(),
-    });
+    createdDataType = await createDataType(
+      { graphApi },
+      {
+        ownedById: testUser.getEntityUuid(),
+        schema: dataTypeSchema,
+        actorId: testUser.getEntityUuid(),
+      },
+    );
   });
 
   it("can read a data type", async () => {
-    const fetchedDataType = await DataTypeModel.get(graphApi, {
-      dataTypeId: createdDataTypeModel.getSchema().$id,
-    });
-
-    expect(fetchedDataType.getSchema()).toEqual(
-      createdDataTypeModel.getSchema(),
+    const fetchedDataType = await getDataTypeById(
+      { graphApi },
+      {
+        dataTypeId: createdDataType.schema.$id,
+      },
     );
+
+    expect(fetchedDataType.schema).toEqual(createdDataType.schema);
   });
 
   const updatedTitle = "New text!";
   it("can update a data type", async () => {
-    expect(createdDataTypeModel.getMetadata().provenance.updatedById).toBe(
+    expect(createdDataType.metadata.provenance.updatedById).toBe(
       testUser.getEntityUuid(),
     );
 
-    createdDataTypeModel = await createdDataTypeModel
-      .update(graphApi, {
+    createdDataType = await updateDataType(
+      { graphApi },
+      {
+        dataTypeId: createdDataType.schema.$id,
         schema: { ...dataTypeSchema, title: updatedTitle },
         actorId: testUser2.getEntityUuid(),
-      })
-      .catch((err) => Promise.reject(err.data));
+      },
+    ).catch((err) => Promise.reject(err.data));
 
-    expect(createdDataTypeModel.getMetadata().provenance.updatedById).toBe(
+    expect(createdDataType.metadata.provenance.updatedById).toBe(
       testUser2.getEntityUuid(),
     );
   });
