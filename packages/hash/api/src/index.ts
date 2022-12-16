@@ -20,31 +20,34 @@ import {
 } from "@hashintel/hash-backend-utils/environment";
 
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import setupAuth from "./auth";
-import { RedisCache } from "./cache";
+import setupAuth from "./index/auth";
+import { RedisCache } from "./index/cache";
 // import { createCollabApp } from "./collab/collabApp";
 import {
   AwsSesEmailTransporter,
   DummyEmailTransporter,
   EmailTransporter,
-} from "./email/transporters";
-import { createApolloServer } from "./graphql/createApolloServer";
-import { CORS_CONFIG, FILE_UPLOAD_PROVIDER } from "./lib/config";
+} from "./index/transporters";
+import { createApolloServer } from "./index/createApolloServer";
+import { CORS_CONFIG, FILE_UPLOAD_PROVIDER } from "./index/config";
 import {
   isDevEnv,
   isProdEnv,
   isStatsDEnabled,
   isTestEnv,
   port,
-} from "./lib/env-config";
-import { logger } from "./logger";
-import { getRequiredEnv } from "./util";
-import { setupStorageProviders } from "./storage/storage-provider-lookup";
-import { getAwsRegion } from "./lib/aws-config";
-import { setupTelemetry } from "./telemetry/snowplow-setup";
-import { connectToTaskExecutor } from "./task-execution";
-import { createGraphClient, ensureSystemGraphIsInitialized } from "./graph";
-import { seedOrgsAndUsers } from "./seed-data";
+} from "./index/auth/model/entity.model/entity-type/graph/system-types/logger/env-config";
+import { logger } from "./index/auth/model/entity.model/entity-type/graph/system-types/logger";
+import { getRequiredEnv } from "./index/auth/ory-kratos/util";
+import { setupStorageProviders } from "./index/storage-provider-lookup";
+import { getAwsRegion } from "./index/storage-provider-lookup/aws-config";
+import { setupTelemetry } from "./index/snowplow-setup";
+import { connectToTaskExecutor } from "./index/createApolloServer/resolvers/embed/context/task-execution";
+import {
+  createGraphClient,
+  ensureSystemGraphIsInitialized,
+} from "./index/auth/model/entity.model/entity-type/graph";
+import { seedOrgsAndUsers } from "./index/seed-data";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
