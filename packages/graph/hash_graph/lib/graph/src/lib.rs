@@ -65,8 +65,6 @@
     reason = "This encourages importing `as` which breaks IDEs"
 )]
 
-extern crate core;
-
 pub mod api;
 
 pub mod knowledge;
