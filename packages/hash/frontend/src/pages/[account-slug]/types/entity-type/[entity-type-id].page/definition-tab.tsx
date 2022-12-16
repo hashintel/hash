@@ -20,7 +20,7 @@ export const DefinitionTab: FunctionComponent = () => {
       <Typography variant="h5" mb={2}>
         Links defined on{" "}
         <Box component="span" sx={{ fontWeight: "bold" }}>
-          {entityType?.title}
+          {entityType.title}
         </Box>
       </Typography>
       <LinkListCard />

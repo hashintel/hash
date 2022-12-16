@@ -61,6 +61,7 @@ export const useWorkspaceShortnameByEntityUuid = (params: {
           );
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false-positive (because of await)
         if (!cancelled) {
           setWorkspaceShortname(shortname as string);
           setLoading(false);
