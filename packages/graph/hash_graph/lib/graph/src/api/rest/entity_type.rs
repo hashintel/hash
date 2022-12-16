@@ -2,12 +2,7 @@
 
 use std::sync::Arc;
 
-use axum::{
-    extract::Path,
-    http::StatusCode,
-    routing::{get, post},
-    Extension, Json, Router,
-};
+use axum::{http::StatusCode, routing::post, Extension, Json, Router};
 use error_stack::IntoReport;
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
@@ -17,7 +12,7 @@ use utoipa::{OpenApi, ToSchema};
 use crate::{
     api::rest::{
         api_resource::RoutedResource,
-        read_from_store, report_to_status_code,
+        report_to_status_code,
         utoipa_typedef::subgraph::{
             Edges, OntologyRootedEdges, OntologyVertices, Subgraph, Vertices,
         },
@@ -30,7 +25,6 @@ use crate::{
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
-        query::Filter,
         EntityTypeStore, StorePool,
     },
     subgraph::{
@@ -48,8 +42,6 @@ use crate::{
     paths(
         create_entity_type,
         get_entity_types_by_query,
-        get_entity_type,
-        get_latest_entity_types,
         update_entity_type
     ),
     components(
@@ -88,7 +80,6 @@ pub struct EntityTypeResource;
 
 impl RoutedResource for EntityTypeResource {
     /// Create routes for interacting with entity types.
-    #[expect(deprecated)]
     fn routes<P: StorePool + Send + 'static>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
@@ -96,12 +87,9 @@ impl RoutedResource for EntityTypeResource {
             Router::new()
                 .route(
                     "/",
-                    post(create_entity_type::<P>)
-                        .get(get_latest_entity_types::<P>)
-                        .put(update_entity_type::<P>),
+                    post(create_entity_type::<P>).put(update_entity_type::<P>),
                 )
-                .route("/query", post(get_entity_types_by_query::<P>))
-                .route("/:version_id", get(get_entity_type::<P>)),
+                .route("/query", post(get_entity_types_by_query::<P>)),
         )
     }
 }
@@ -214,51 +202,6 @@ async fn get_entity_types_by_query<P: StorePool + Send>(
         })
         .await
         .map(|subgraph| Json(subgraph.into()))
-}
-
-#[utoipa::path(
-    get,
-    path = "/entity-types",
-    tag = "EntityType",
-    responses(
-        (status = 200, content_type = "application/json", description = "List of all entity types at their latest versions", body = [EntityTypeWithMetadata]),
-
-        (status = 500, description = "Store error occurred"),
-    )
-)]
-#[deprecated = "use `/entity-types/query` instead"]
-async fn get_latest_entity_types<P: StorePool + Send>(
-    pool: Extension<Arc<P>>,
-) -> Result<Json<Vec<EntityTypeWithMetadata>>, StatusCode> {
-    read_from_store(pool.as_ref(), &Filter::for_latest_version())
-        .await
-        .map(Json)
-}
-
-#[utoipa::path(
-    get,
-    path = "/entity-types/{uri}",
-    tag = "EntityType",
-    responses(
-        (status = 200, content_type = "application/json", description = "The schema of the requested entity type", body = EntityTypeWithMetadata),
-        (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
-
-        (status = 404, description = "Entity type was not found"),
-        (status = 500, description = "Store error occurred"),
-    ),
-    params(
-        ("uri" = String, Path, description = "The URI of the entity type"),
-    )
-)]
-#[deprecated = "use `/entity-types/query` instead"]
-async fn get_entity_type<P: StorePool + Send>(
-    uri: Path<VersionedUri>,
-    pool: Extension<Arc<P>>,
-) -> Result<Json<EntityTypeWithMetadata>, StatusCode> {
-    read_from_store(pool.as_ref(), &Filter::for_versioned_uri(&uri.0))
-        .await
-        .and_then(|mut entity_types| entity_types.pop().ok_or(StatusCode::NOT_FOUND))
-        .map(Json)
 }
 
 #[derive(ToSchema, Serialize, Deserialize)]
