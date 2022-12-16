@@ -29,11 +29,7 @@ use graph::{
         EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool, PropertyTypeStore,
         QueryError, StorePool, UpdateError,
     },
-    subgraph::{
-        edges::GraphResolveDepths,
-        query::StructuralQuery,
-        vertices::{KnowledgeGraphVertex, OntologyVertex, Vertex},
-    },
+    subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
 };
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{repr, uri::VersionedUri, DataType, EntityType, PropertyType};
@@ -166,7 +162,7 @@ impl DatabaseApi<'_> {
         &mut self,
         uri: &VersionedUri,
     ) -> Result<DataTypeWithMetadata, QueryError> {
-        let vertex = self
+        Ok(self
             .store
             .get_data_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
@@ -174,14 +170,9 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementEditionId::Ontology(
-                OntologyTypeEditionId::from(uri),
-            ))
-            .expect("no data type found");
-
-        let Vertex::Ontology(vertex) = vertex else { unreachable!() };
-        let OntologyVertex::DataType(data_type) = *vertex else { unreachable!() };
-        Ok(*data_type)
+            .data_types
+            .remove(&OntologyTypeEditionId::from(uri))
+            .expect("no data type found"))
     }
 
     pub async fn update_data_type(
@@ -210,7 +201,7 @@ impl DatabaseApi<'_> {
         &mut self,
         uri: &VersionedUri,
     ) -> Result<PropertyTypeWithMetadata, QueryError> {
-        let vertex = self
+        Ok(self
             .store
             .get_property_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
@@ -218,14 +209,9 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementEditionId::Ontology(
-                OntologyTypeEditionId::from(uri),
-            ))
-            .expect("no property type found");
-
-        let Vertex::Ontology(vertex) = vertex else { unreachable!() };
-        let OntologyVertex::PropertyType(property_type) = *vertex else { unreachable!() };
-        Ok(*property_type)
+            .property_types
+            .remove(&OntologyTypeEditionId::from(uri))
+            .expect("no property type found"))
     }
 
     pub async fn update_property_type(
@@ -254,7 +240,7 @@ impl DatabaseApi<'_> {
         &mut self,
         uri: &VersionedUri,
     ) -> Result<EntityTypeWithMetadata, QueryError> {
-        let vertex = self
+        Ok(self
             .store
             .get_entity_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
@@ -262,14 +248,9 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementEditionId::Ontology(
-                OntologyTypeEditionId::from(uri),
-            ))
-            .expect("no entity type found");
-
-        let Vertex::Ontology(vertex) = vertex else { unreachable!() };
-        let OntologyVertex::EntityType(entity_type) = *vertex else { unreachable!() };
-        Ok(*entity_type)
+            .entity_types
+            .remove(&OntologyTypeEditionId::from(uri))
+            .expect("no entity type found"))
     }
 
     pub async fn update_entity_type(
@@ -305,7 +286,7 @@ impl DatabaseApi<'_> {
         &self,
         entity_edition_id: EntityEditionId,
     ) -> Result<Entity, QueryError> {
-        let vertex = self
+        Ok(self
             .store
             .get_entity(&StructuralQuery {
                 filter: Filter::for_entity_by_edition_id(entity_edition_id),
@@ -313,12 +294,9 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementEditionId::KnowledgeGraph(entity_edition_id))
-            .expect("no entity found");
-
-        let Vertex::KnowledgeGraph(vertex) = vertex else { unreachable!() };
-        let KnowledgeGraphVertex::Entity(persisted_entity) = *vertex;
-        Ok(persisted_entity)
+            .entities
+            .remove(&entity_edition_id)
+            .expect("no entity found"))
     }
 
     pub async fn update_entity(
@@ -414,11 +392,11 @@ impl DatabaseApi<'_> {
         let roots = subgraph
             .roots
             .into_iter()
-            .filter_map(|edition_id| subgraph.vertices.remove(&edition_id))
-            .map(|vertex| {
-                let Vertex::KnowledgeGraph(vertex) = vertex else { unreachable!() };
-                let KnowledgeGraphVertex::Entity(persisted_entity) = *vertex;
-                persisted_entity
+            .filter_map(|edition_id| match edition_id {
+                GraphElementEditionId::Ontology(_) => None,
+                GraphElementEditionId::KnowledgeGraph(edition_id) => {
+                    subgraph.vertices.entities.remove(&edition_id)
+                }
             })
             .collect::<Vec<_>>();
 
@@ -474,11 +452,11 @@ impl DatabaseApi<'_> {
         Ok(subgraph
             .roots
             .into_iter()
-            .filter_map(|edition_id| subgraph.vertices.remove(&edition_id))
-            .map(|vertex| {
-                let Vertex::KnowledgeGraph(vertex) = vertex else { unreachable!() };
-                let KnowledgeGraphVertex::Entity(persisted_entity) = *vertex;
-                persisted_entity
+            .filter_map(|edition_id| match edition_id {
+                GraphElementEditionId::Ontology(_) => None,
+                GraphElementEditionId::KnowledgeGraph(edition_id) => {
+                    subgraph.vertices.entities.remove(&edition_id)
+                }
             })
             .collect())
     }

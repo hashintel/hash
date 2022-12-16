@@ -14,8 +14,7 @@ use crate::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
         query::Filter,
-        AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, Record,
-        UpdateError,
+        AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
     },
     subgraph::{
         edges::{
@@ -23,7 +22,6 @@ use crate::{
             OutgoingEdgeResolveDepth, OutwardEdge,
         },
         query::StructuralQuery,
-        vertices::OntologyVertex,
         Subgraph,
     },
 };
@@ -50,11 +48,11 @@ impl<C: AsClient> PostgresStore<C> {
 
             // Explicitly converting the unique reference to a shared reference to the vertex to
             // avoid mutating it by accident
-            let property_type: Option<&OntologyVertex> = match dependency_status {
+            let property_type: Option<&PropertyTypeWithMetadata> = match dependency_status {
                 DependencyStatus::Unresolved => {
                     match subgraph
                         .vertices
-                        .ontology
+                        .property_types
                         .raw_entry_mut()
                         .from_key(property_type_id)
                     {
@@ -65,21 +63,14 @@ impl<C: AsClient> PostgresStore<C> {
                                 &Filter::for_ontology_type_edition_id(property_type_id),
                             )
                             .await?;
-                            Some(
-                                entry
-                                    .insert(
-                                        property_type_id.clone(),
-                                        OntologyVertex::PropertyType(Box::new(property_type)),
-                                    )
-                                    .1,
-                            )
+                            Some(entry.insert(property_type_id.clone(), property_type).1)
                         }
                     }
                 }
                 DependencyStatus::Resolved => None,
             };
 
-            if let Some(OntologyVertex::PropertyType(property_type)) = property_type {
+            if let Some(property_type) = property_type {
                 // Collecting references before traversing further to avoid having a shared
                 // reference to the subgraph when borrowing it mutably
                 let data_type_ref_uris = (current_resolve_depth.constrains_values_on.outgoing > 0)
@@ -230,10 +221,10 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             let property_type_id = property_type.metadata().edition_id().clone();
 
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
-            subgraph.vertices.ontology.insert(
-                property_type_id.clone(),
-                OntologyVertex::PropertyType(Box::new(property_type)),
-            );
+            subgraph
+                .vertices
+                .property_types
+                .insert(property_type_id.clone(), property_type);
 
             self.traverse_property_type(
                 &property_type_id,

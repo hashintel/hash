@@ -32,7 +32,6 @@ use crate::{
             KnowledgeGraphOutwardEdges, OutgoingEdgeResolveDepth, OutwardEdge, SharedEdgeKind,
         },
         query::StructuralQuery,
-        vertices::KnowledgeGraphVertex,
         Subgraph,
     },
 };
@@ -56,9 +55,9 @@ impl<C: AsClient> PostgresStore<C> {
 
             // Explicitly converting the unique reference to a shared reference to the vertex to
             // avoid mutating it by accident
-            let entity: Option<&KnowledgeGraphVertex> = match dependency_status {
+            let entity: Option<&Entity> = match dependency_status {
                 DependencyStatus::Unresolved => {
-                    match subgraph.vertices.knowledge_graph.entry(entity_edition_id) {
+                    match subgraph.vertices.entities.entry(entity_edition_id) {
                         Entry::Occupied(entry) => Some(entry.into_mut()),
                         Entry::Vacant(entry) => {
                             let entity = Read::<Entity>::read_one(
@@ -66,17 +65,17 @@ impl<C: AsClient> PostgresStore<C> {
                                 &Filter::for_entity_by_edition_id(entity_edition_id),
                             )
                             .await?;
-                            Some(entry.insert(KnowledgeGraphVertex::Entity(entity)))
+                            Some(entry.insert(entity))
                         }
                     }
                 }
                 DependencyStatus::Resolved => None,
             };
 
-            if let Some(KnowledgeGraphVertex::Entity(entity)) = entity {
+            if let Some(entity) = entity {
                 let entity_type_id =
                     OntologyTypeEditionId::from(entity.metadata().entity_type_id());
-                let entity_edition_id = entity.metadata().edition_id();
+                let entity_edition_id = *entity.edition_id();
 
                 if current_resolve_depth.is_of_type.outgoing > 0 {
                     subgraph.edges.insert(Edge::KnowledgeGraph {
@@ -160,12 +159,11 @@ impl<C: AsClient> PostgresStore<C> {
                             ),
                         });
 
-                        let outgoing_link_entity_edition_id =
-                            outgoing_link_entity.metadata().edition_id();
-                        subgraph.vertices.knowledge_graph.insert(
-                            outgoing_link_entity_edition_id,
-                            KnowledgeGraphVertex::Entity(outgoing_link_entity),
-                        );
+                        let outgoing_link_entity_edition_id = *outgoing_link_entity.edition_id();
+                        subgraph
+                            .vertices
+                            .entities
+                            .insert(outgoing_link_entity_edition_id, outgoing_link_entity);
 
                         self.traverse_entity(
                             outgoing_link_entity_edition_id,
@@ -240,13 +238,12 @@ impl<C: AsClient> PostgresStore<C> {
                             ),
                         });
 
-                        let incoming_link_entity_edition_id =
-                            incoming_link_entity.metadata().edition_id();
+                        let incoming_link_entity_edition_id = *incoming_link_entity.edition_id();
 
-                        subgraph.vertices.knowledge_graph.insert(
-                            incoming_link_entity_edition_id,
-                            KnowledgeGraphVertex::Entity(incoming_link_entity),
-                        );
+                        subgraph
+                            .vertices
+                            .entities
+                            .insert(incoming_link_entity_edition_id, incoming_link_entity);
 
                         self.traverse_entity(
                             incoming_link_entity_edition_id,
@@ -318,12 +315,12 @@ impl<C: AsClient> PostgresStore<C> {
                             ),
                         });
 
-                        let left_entity_edition_id = left_entity.metadata().edition_id();
+                        let left_entity_edition_id = *left_entity.edition_id();
 
-                        subgraph.vertices.knowledge_graph.insert(
-                            left_entity_edition_id,
-                            KnowledgeGraphVertex::Entity(left_entity),
-                        );
+                        subgraph
+                            .vertices
+                            .entities
+                            .insert(left_entity_edition_id, left_entity);
 
                         self.traverse_entity(
                             left_entity_edition_id,
@@ -395,12 +392,12 @@ impl<C: AsClient> PostgresStore<C> {
                             ),
                         });
 
-                        let right_entity_edition_id = right_entity.metadata().edition_id();
+                        let right_entity_edition_id = *right_entity.edition_id();
 
-                        subgraph.vertices.knowledge_graph.insert(
-                            right_entity_edition_id,
-                            KnowledgeGraphVertex::Entity(right_entity),
-                        );
+                        subgraph
+                            .vertices
+                            .entities
+                            .insert(right_entity_edition_id, right_entity);
 
                         self.traverse_entity(
                             right_entity_edition_id,
@@ -629,13 +626,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let mut dependency_context = DependencyContext::default();
 
         for entity in Read::<Entity>::read(self, filter).await? {
-            let entity_edition_id = entity.metadata().edition_id();
+            let entity_edition_id = *entity.edition_id();
 
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
-            subgraph
-                .vertices
-                .knowledge_graph
-                .insert(entity_edition_id, KnowledgeGraphVertex::Entity(entity));
+            subgraph.vertices.entities.insert(entity_edition_id, entity);
 
             self.traverse_entity(
                 entity_edition_id,

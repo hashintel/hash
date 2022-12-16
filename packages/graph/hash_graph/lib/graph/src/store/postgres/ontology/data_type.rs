@@ -7,17 +7,15 @@ use type_system::DataType;
 
 use crate::{
     identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId},
-    ontology::{DataTypeWithMetadata, OntologyElementMetadata},
+    ontology::{DataTypeWithMetadata, OntologyElementMetadata, OntologyTypeWithMetadata},
     provenance::{OwnedById, UpdatedById},
     store::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
         query::Filter,
-        AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
+        AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
-    subgraph::{
-        edges::GraphResolveDepths, query::StructuralQuery, vertices::OntologyVertex, Subgraph,
-    },
+    subgraph::{edges::GraphResolveDepths, query::StructuralQuery, Subgraph},
 };
 
 impl<C: AsClient> PostgresStore<C> {
@@ -37,11 +35,11 @@ impl<C: AsClient> PostgresStore<C> {
 
         // Explicitly converting the unique reference to a shared reference to the vertex to
         // avoid mutating it by accident
-        let data_type: Option<&OntologyVertex> = match dependency_status {
+        let data_type: Option<&DataTypeWithMetadata> = match dependency_status {
             DependencyStatus::Unresolved => {
                 match subgraph
                     .vertices
-                    .ontology
+                    .data_types
                     .raw_entry_mut()
                     .from_key(data_type_id)
                 {
@@ -52,21 +50,14 @@ impl<C: AsClient> PostgresStore<C> {
                             &Filter::for_ontology_type_edition_id(data_type_id),
                         )
                         .await?;
-                        Some(
-                            entry
-                                .insert(
-                                    data_type_id.clone(),
-                                    OntologyVertex::DataType(Box::new(data_type)),
-                                )
-                                .1,
-                        )
+                        Some(entry.insert(data_type_id.clone(), data_type).1)
                     }
                 }
             }
             DependencyStatus::Resolved => None,
         };
 
-        if let Some(OntologyVertex::DataType(_data_type)) = data_type {
+        if let Some(_data_type) = data_type {
             // TODO: data types currently have no references to other types, so we don't need to do
             //       anything here
             //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
@@ -122,10 +113,10 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             let data_type_id = data_type.metadata().edition_id().clone();
 
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
-            subgraph.vertices.ontology.insert(
-                data_type_id.clone(),
-                OntologyVertex::DataType(Box::new(data_type)),
-            );
+            subgraph
+                .vertices
+                .data_types
+                .insert(data_type_id.clone(), data_type);
 
             self.traverse_data_type(
                 &data_type_id,
