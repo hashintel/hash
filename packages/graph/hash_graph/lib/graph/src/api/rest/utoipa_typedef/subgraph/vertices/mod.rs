@@ -7,13 +7,13 @@ use utoipa::{
     ToSchema,
 };
 
-use crate::{
-    identifier::{
-        knowledge::{EntityId, EntityVersion},
-        ontology::OntologyTypeVersion,
-    },
-    subgraph::vertices::{KnowledgeGraphVertex, OntologyVertex},
+pub use self::vertex::*;
+use crate::identifier::{
+    knowledge::{EntityId, EntityVersion},
+    ontology::OntologyTypeVersion,
 };
+
+pub mod vertex;
 
 #[derive(Serialize, ToSchema)]
 #[serde(transparent)]
@@ -34,8 +34,20 @@ pub struct Vertices {
 
 impl From<crate::subgraph::vertices::Vertices> for Vertices {
     fn from(vertices: crate::subgraph::vertices::Vertices) -> Self {
+        let data_types = vertices
+            .data_types
+            .into_iter()
+            .map(|(id, data_type)| (id, data_type.into()));
+        let property_types = vertices
+            .property_types
+            .into_iter()
+            .map(|(id, property_type)| (id, property_type.into()));
+        let entity_types = vertices
+            .entity_types
+            .into_iter()
+            .map(|(id, entity_type)| (id, entity_type.into()));
         Self {
-            ontology: OntologyVertices(vertices.ontology.into_iter().fold(
+            ontology: OntologyVertices(data_types.chain(property_types).chain(entity_types).fold(
                 HashMap::new(),
                 |mut map, (id, vertex)| {
                     match map.entry(id.base_id().clone()) {
@@ -49,15 +61,20 @@ impl From<crate::subgraph::vertices::Vertices> for Vertices {
                     map
                 },
             )),
-            knowledge_graph: KnowledgeGraphVertices(vertices.knowledge_graph.into_iter().fold(
+            knowledge_graph: KnowledgeGraphVertices(vertices.entities.into_iter().fold(
                 HashMap::new(),
                 |mut map, (id, vertex)| {
                     match map.entry(id.base_id()) {
                         Entry::Occupied(entry) => {
-                            entry.into_mut().insert(id.version(), vertex);
+                            entry
+                                .into_mut()
+                                .insert(id.version(), KnowledgeGraphVertex::Entity(vertex));
                         }
                         Entry::Vacant(entry) => {
-                            entry.insert(HashMap::from([(id.version(), vertex)]));
+                            entry.insert(HashMap::from([(
+                                id.version(),
+                                KnowledgeGraphVertex::Entity(vertex),
+                            )]));
                         }
                     }
                     map

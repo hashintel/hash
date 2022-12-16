@@ -19,6 +19,8 @@ import {
   PropertyTypeWithMetadata,
 } from "@hashintel/hash-subgraph";
 import { AxiosError } from "axios";
+import { OwnedById } from "@hashintel/hash-shared/types";
+
 import { GraphApi } from "../graph";
 import { systemUserAccountId } from "../graph/system-user";
 import {
@@ -183,7 +185,7 @@ export const propertyTypeInitializer = (
           return await createPropertyType(
             { graphApi },
             {
-              ownedById: systemUserAccountId,
+              ownedById: systemUserAccountId as OwnedById,
               schema: propertyTypeSchema,
               actorId: systemUserAccountId,
             },
@@ -362,7 +364,7 @@ export const entityTypeInitializer = (
           return await createEntityType(
             { graphApi },
             {
-              ownedById: systemUserAccountId,
+              ownedById: systemUserAccountId as OwnedById,
               schema: entityTypeSchema,
               actorId: systemUserAccountId,
             },

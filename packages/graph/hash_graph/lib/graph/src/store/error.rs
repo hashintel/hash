@@ -3,6 +3,17 @@ use std::fmt;
 use error_stack::Context;
 
 #[derive(Debug)]
+pub struct StoreError;
+
+impl Context for StoreError {}
+
+impl fmt::Display for StoreError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("The store encountered an error")
+    }
+}
+
+#[derive(Debug)]
 #[must_use]
 pub struct InsertionError;
 
