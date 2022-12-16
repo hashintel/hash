@@ -28,7 +28,7 @@ export const createPropertyTypeResolver: ResolverFn<
   const createdPropertyType = await createPropertyType(
     { graphApi },
     {
-      ownedById: brand(ownedById ?? userModel.getEntityUuid()),
+      ownedById: brand(ownedById) ?? userModel.getEntityUuid(),
       schema: propertyType,
       actorId: brand(userModel.getEntityUuid()),
     },

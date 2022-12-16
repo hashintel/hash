@@ -28,7 +28,7 @@ export const createEntityTypeResolver: ResolverFn<
   const createdEntityType = await createEntityType(
     { graphApi },
     {
-      ownedById: brand(ownedById ?? userModel.getEntityUuid()),
+      ownedById: brand(ownedById) ?? userModel.getEntityUuid(),
       schema: entityType,
       actorId: brand(userModel.getEntityUuid()),
     },
