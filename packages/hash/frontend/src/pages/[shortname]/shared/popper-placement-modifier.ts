@@ -30,23 +30,25 @@ export const addPopperPositionClassPopperModifier: NonNullable<
 };
 
 export const popperPlacementInputNoRadius: SystemStyleObject<Theme> = {
-  [`&${popperPlacementSelectors.bottom}, ${popperPlacementSelectors.bottom} &`]:
+  [`&${popperPlacementSelectors.bottom}, &${popperPlacementSelectors.bottomStart}, ${popperPlacementSelectors.bottom} &, ${popperPlacementSelectors.bottomStart} &`]:
     {
       borderBottomLeftRadius: 0,
       borderBottomRightRadius: 0,
     },
-  [`&${popperPlacementSelectors.top}, ${popperPlacementSelectors.top} &`]: {
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-  },
+  [`&${popperPlacementSelectors.top}, &${popperPlacementSelectors.topStart}, ${popperPlacementSelectors.top} &, ${popperPlacementSelectors.topStart} &`]:
+    {
+      borderTopLeftRadius: 0,
+      borderTopRightRadius: 0,
+    },
 };
 
 export const popperPlacementPopperNoRadius: SystemStyleObject<Theme> = {
-  [`&${popperPlacementSelectors.top}, ${popperPlacementSelectors.top} &`]: {
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-  },
-  [`&${popperPlacementSelectors.bottom}, ${popperPlacementSelectors.bottom} &`]:
+  [`&${popperPlacementSelectors.top}, &${popperPlacementSelectors.topStart}, ${popperPlacementSelectors.top} &, ${popperPlacementSelectors.topStart} &`]:
+    {
+      borderBottomLeftRadius: 0,
+      borderBottomRightRadius: 0,
+    },
+  [`&${popperPlacementSelectors.bottom}, &${popperPlacementSelectors.bottomStart}, ${popperPlacementSelectors.bottom} &, ${popperPlacementSelectors.bottomStart} &`]:
     {
       borderTopLeftRadius: 0,
       borderTopRightRadius: 0,

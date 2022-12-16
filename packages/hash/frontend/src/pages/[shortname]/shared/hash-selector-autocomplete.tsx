@@ -141,6 +141,8 @@ export const HashSelectorAutocomplete = <
         name: "preventOverflow",
         enabled: false,
       },
+      { name: "flip", enabled: false },
+      { name: "preventOverflow", enabled: false },
     ],
     [],
   );
