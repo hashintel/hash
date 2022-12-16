@@ -6,10 +6,15 @@
 //!
 //! [`Store`]: crate::store::Store
 
+use std::collections::hash_map::RawEntryMut;
+
 use async_trait::async_trait;
 use error_stack::{ensure, Report, Result};
 
-use crate::store::{query::Filter, QueryError, Record};
+use crate::{
+    store::{query::Filter, QueryError, Record},
+    subgraph::Subgraph,
+};
 
 /// Read access to a [`Store`].
 ///
@@ -25,10 +30,7 @@ pub trait Read<R: Record + Send>: Sync {
     /// [`Store`]: crate::store::Store
     async fn read(&self, query: &Filter<R>) -> Result<Vec<R>, QueryError>;
 
-    async fn read_one(&self, query: &Filter<R>) -> Result<R, QueryError>
-    where
-        for<'p> R::QueryPath<'p>: Sync,
-    {
+    async fn read_one(&self, query: &Filter<R>) -> Result<R, QueryError> {
         let mut records = self.read(query).await?;
         ensure!(
             records.len() <= 1,
@@ -37,12 +39,34 @@ pub trait Read<R: Record + Send>: Sync {
                 records.len(),
             ))
         );
-        let record = records.pop().ok_or_else(|| {
+        records.pop().ok_or_else(|| {
             Report::new(QueryError).attach_printable(
                 "Expected exactly one record to be returned from the query but none was returned",
             )
-        })?;
-        Ok(record)
+        })
+    }
+
+    /// Looks up a single [`Record`] in the subgraph or reads it from the [`Store`] and inserts it
+    /// if it is not yet in the subgraph.
+    ///
+    /// [`Store`]: crate::store::Store
+    async fn read_into_subgraph<'r>(
+        &self,
+        subgraph: &'r mut Subgraph,
+        edition_id: &R::EditionId,
+    ) -> Result<&'r R, QueryError> {
+        Ok(match R::subgraph_entry(subgraph, edition_id) {
+            RawEntryMut::Occupied(entry) => entry.into_mut(),
+            RawEntryMut::Vacant(entry) => {
+                entry
+                    .insert(
+                        edition_id.clone(),
+                        self.read_one(&R::create_filter_for_edition_id(edition_id))
+                            .await?,
+                    )
+                    .1
+            }
+        })
     }
 }
 

@@ -248,6 +248,18 @@ pub enum GraphElementEditionId {
     KnowledgeGraph(EntityEditionId),
 }
 
+impl From<OntologyTypeEditionId> for GraphElementEditionId {
+    fn from(id: OntologyTypeEditionId) -> Self {
+        Self::Ontology(id)
+    }
+}
+
+impl From<EntityEditionId> for GraphElementEditionId {
+    fn from(id: EntityEditionId) -> Self {
+        Self::KnowledgeGraph(id)
+    }
+}
+
 // WARNING: This MUST be kept up to date with the enum variants.
 //   We have to do this because utoipa doesn't understand serde untagged:
 //   https://github.com/juhaku/utoipa/issues/320

@@ -9,7 +9,7 @@ export const entityTypedef = gql`
   scalar LinkData
 
   input LinkedEntityDefinition {
-    destinationAccountId: ID!
+    destinationAccountId: AccountId!
     linkEntityTypeId: VersionedUri!
     """
     The index of the link (if any)
@@ -87,7 +87,7 @@ export const entityTypedef = gql`
       """
       The owner of the create entity. Defaults to the user calling the mutation.
       """
-      ownedById: ID
+      ownedById: OwnedById
       """
       The type of which to instantiate the new entity.
       """
