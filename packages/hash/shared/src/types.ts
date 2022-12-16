@@ -49,7 +49,7 @@ export type OwnedById = Brand<AccountId, "OwnedById">;
 /** An account ID of an actor that has updated something */
 export type UpdatedById = Brand<AccountId, "UpdatedById">;
 
-/** A Uuuid that points to an Entity without any edition */
+/** A `Uuid` that points to an Entity without any edition */
 export type EntityUuid = Brand<Uuid, "EntityUuid">;
 
 /** A Uuuid that points to an Account Entity without any edition */
