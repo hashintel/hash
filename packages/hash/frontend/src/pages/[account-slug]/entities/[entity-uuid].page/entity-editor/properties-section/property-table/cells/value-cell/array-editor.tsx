@@ -1,9 +1,9 @@
-import { Box } from "@mui/material";
 import produce from "immer";
 import { useMemo, useRef, useState } from "react";
 import {
   closestCenter,
   DndContext,
+  DragEndEvent,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -22,6 +22,7 @@ import { AddAnotherButton } from "./array-editor/add-another-button";
 import { DraftRow } from "./array-editor/draft-row";
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
 import { isBlankStringOrNullish } from "./utils";
+import { ListWrapper } from "./array-editor/list-wrapper";
 
 export const DRAFT_ROW_KEY = "draft";
 
@@ -29,7 +30,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
   value: cell,
   onChange,
 }) => {
-  const scrollableContainer = useRef<HTMLDivElement>(null);
+  const listWrapperRef = useRef<HTMLDivElement>(null);
   const { value: propertyValue, expectedTypes } = cell.data.propertyRow;
 
   const items = useMemo(() => {
@@ -46,18 +47,16 @@ export const ArrayEditor: ValueCellEditorComponent = ({
 
   const [selectedRow, setSelectedRow] = useState("");
   const [editingRow, setEditingRow] = useState(
+    // if there is no item, start in add item state
     items.length ? "" : DRAFT_ROW_KEY,
   );
 
+  const toggleSelectedRow = (id: string) => {
+    setSelectedRow((prevId) => (id === prevId ? "" : id));
+  };
+
   const addItem = (value: unknown) => {
     setEditingRow("");
-
-    // using setImmediate, so scroll happens after item is rendered
-    setImmediate(() => {
-      scrollableContainer.current?.scrollTo({
-        top: scrollableContainer.current.scrollHeight,
-      });
-    });
 
     const newCell = produce(cell, (draftCell) => {
       draftCell.data.propertyRow.value = [
@@ -66,6 +65,13 @@ export const ArrayEditor: ValueCellEditorComponent = ({
       ];
     });
     onChange(newCell);
+
+    // using setImmediate, so scroll happens after item is rendered
+    setImmediate(() => {
+      listWrapperRef.current?.scrollTo({
+        top: listWrapperRef.current.scrollHeight,
+      });
+    });
   };
 
   const removeItem = (indexToRemove: number) => {
@@ -106,30 +112,39 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     }),
   );
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (active.id !== over?.id) {
+      const oldIndex = items.findIndex(({ id }) => id === active.id);
+      const newIndex = items.findIndex(({ id }) => id === over?.id);
+      moveItem(oldIndex, newIndex);
+    }
+  };
+
+  const handleAddAnotherClick = () => {
+    setEditingRow(DRAFT_ROW_KEY);
+    setSelectedRow("");
+  };
+
+  const handleSaveChanges = (index: number, value: unknown) => {
+    if (isBlankStringOrNullish(value)) {
+      return removeItem(index);
+    }
+
+    updateItem(index, value);
+  };
+
   return (
     <GridEditorWrapper>
-      <Box
-        ref={scrollableContainer}
-        sx={{
-          maxHeight: 300,
-          overflowY: "auto",
-          overflowX: "hidden",
-          borderBottom: "1px solid",
-          borderColor: "gray.20",
-        }}
+      <ListWrapper
+        ref={listWrapperRef}
+        display={items.length ? "initial" : "none"}
       >
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
-          onDragEnd={(event) => {
-            const { active, over } = event;
-
-            if (active.id !== over?.id) {
-              const oldIndex = items.findIndex(({ id }) => id === active.id);
-              const newIndex = items.findIndex(({ id }) => id === over?.id);
-              moveItem(oldIndex, newIndex);
-            }
-          }}
+          onDragEnd={handleDragEnd}
         >
           <SortableContext items={items} strategy={verticalListSortingStrategy}>
             {items.map((item) => (
@@ -138,33 +153,22 @@ export const ArrayEditor: ValueCellEditorComponent = ({
                 item={item}
                 onRemove={removeItem}
                 onEditClicked={(id) => setEditingRow(id)}
-                onSaveChanges={(index, value) => {
-                  if (isBlankStringOrNullish(value)) {
-                    return removeItem(index);
-                  }
-
-                  updateItem(index, value);
-                }}
+                onSaveChanges={handleSaveChanges}
                 onDiscardChanges={() => setEditingRow("")}
                 editing={editingRow === item.id}
                 selected={selectedRow === item.id}
-                onSelect={(id) =>
-                  setSelectedRow((prevId) => (id === prevId ? "" : id))
-                }
+                onSelect={toggleSelectedRow}
                 expectedTypes={expectedTypes}
               />
             ))}
           </SortableContext>
         </DndContext>
-      </Box>
+      </ListWrapper>
 
       {editingRow !== DRAFT_ROW_KEY ? (
         <AddAnotherButton
           title="Add Another Value"
-          onClick={() => {
-            setEditingRow(DRAFT_ROW_KEY);
-            setSelectedRow("");
-          }}
+          onClick={handleAddAnotherClick}
         />
       ) : (
         <DraftRow
