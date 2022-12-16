@@ -1,8 +1,13 @@
-use std::collections::hash_map::{RandomState, RawEntryMut};
-use std::hash::Hash;
-use crate::identifier::GraphElementEditionId;
-use crate::store::query::{Filter, QueryPath};
-use crate::subgraph::Subgraph;
+use std::{
+    collections::hash_map::{RandomState, RawEntryMut},
+    hash::Hash,
+};
+
+use crate::{
+    identifier::GraphElementEditionId,
+    store::query::{Filter, QueryPath},
+    subgraph::Subgraph,
+};
 
 /// A record stored in the [`store`].
 ///
