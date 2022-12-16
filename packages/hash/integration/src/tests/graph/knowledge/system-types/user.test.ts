@@ -2,17 +2,29 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
+  ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
-import { UserModel } from "@hashintel/hash-api/src/model";
 import {
   kratosIdentityApi,
   createKratosIdentity,
 } from "@hashintel/hash-api/src/auth/ory-kratos";
 import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
+import {
+  createUser,
+  getUserByKratosIdentityId,
+  getUserByShortname,
+  isUserMemberOfOrg,
+  joinOrg,
+  updateUserPreferredName,
+  updateUserShortname,
+  User,
+} from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import { createTestOrg, generateRandomShortname } from "../../util";
+import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
+import { EntityUuid } from "@hashintel/hash-shared/types";
+import { createTestOrg, generateRandomShortname } from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -32,13 +44,15 @@ const graphApi = createGraphClient(logger, {
 
 const shortname = generateRandomShortname("userTest");
 
+const ctx: ImpureGraphContext = { graphApi };
+
 describe("User model class", () => {
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
     await ensureSystemGraphIsInitialized({ graphApi, logger });
   });
 
-  let createdUser: UserModel;
+  let createdUser: User;
 
   let kratosIdentityId: string;
 
@@ -51,7 +65,7 @@ describe("User model class", () => {
 
     kratosIdentityId = identity.id;
 
-    createdUser = await UserModel.createUser(graphApi, {
+    createdUser = await createUser(ctx, {
       emails: ["alice@example.com"],
       kratosIdentityId,
       actorId: systemUserAccountId,
@@ -60,7 +74,7 @@ describe("User model class", () => {
 
   it("cannot create a user with a kratos identity id that is already taken", async () => {
     await expect(
-      UserModel.createUser(graphApi, {
+      createUser(ctx, {
         emails: ["bob@example.com"],
         kratosIdentityId,
         actorId: systemUserAccountId,
@@ -68,26 +82,24 @@ describe("User model class", () => {
     ).rejects.toThrowError(`"${kratosIdentityId}" already exists.`);
   });
 
-  it("can get the account id", () => {
-    expect(createdUser.getEntityUuid()).toBeDefined();
-  });
-
   it("can update the shortname of a user", async () => {
-    createdUser = await createdUser.updateShortname(graphApi, {
+    createdUser = await updateUserShortname(ctx, {
+      user: createdUser,
       updatedShortname: shortname,
-      actorId: createdUser.getEntityUuid(),
+      actorId: createdUser.accountId,
     });
   });
 
   it("can update the preferred name of a user", async () => {
-    createdUser = await createdUser.updatePreferredName(graphApi, {
+    createdUser = await updateUserPreferredName(ctx, {
+      user: createdUser,
       updatedPreferredName: "Alice",
-      actorId: createdUser.getEntityUuid(),
+      actorId: createdUser.accountId,
     });
   });
 
   it("can get a user by its shortname", async () => {
-    const fetchedUser = await UserModel.getUserByShortname(graphApi, {
+    const fetchedUser = await getUserByShortname(ctx, {
       shortname,
     });
 
@@ -97,7 +109,7 @@ describe("User model class", () => {
   });
 
   it("can get a user by its kratos identity id", async () => {
-    const fetchedUser = await UserModel.getUserByKratosIdentityId(graphApi, {
+    const fetchedUser = await getUserByKratosIdentityId(ctx, {
       kratosIdentityId,
     });
 
@@ -109,21 +121,24 @@ describe("User model class", () => {
   it("can join an org", async () => {
     const testOrg = await createTestOrg(graphApi, "userModelTest", logger);
 
-    const orgEntityUuid = testOrg.getEntityUuid();
+    const orgEntityUuid = extractEntityUuidFromEntityId(
+      testOrg.entity.metadata.editionId.baseId,
+    ) as EntityUuid;
 
-    expect(await createdUser.isMemberOfOrg(graphApi, { orgEntityUuid })).toBe(
-      false,
-    );
+    expect(
+      await isUserMemberOfOrg(ctx, { user: createdUser, orgEntityUuid }),
+    ).toBe(false);
 
-    await createdUser.joinOrg(graphApi, {
+    await joinOrg(ctx, {
+      user: createdUser,
       org: testOrg,
       responsibility: "developer",
       actorId: systemUserAccountId,
     });
 
-    expect(await createdUser.isMemberOfOrg(graphApi, { orgEntityUuid })).toBe(
-      true,
-    );
+    expect(
+      await isUserMemberOfOrg(ctx, { user: createdUser, orgEntityUuid }),
+    ).toBe(true);
   });
 
   afterAll(async () => {

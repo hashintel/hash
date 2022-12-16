@@ -3,10 +3,15 @@ import {
   ensureSystemGraphIsInitialized,
   GraphApi,
 } from "@hashintel/hash-api/src/graph";
-import { OrgModel, UserModel } from "@hashintel/hash-api/src/model";
 import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
+import {
+  createUser,
+  updateUserShortname,
+} from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
+import { createOrg } from "@hashintel/hash-api/src/graph/knowledge/system-types/org";
+import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
 import { OrgSize } from "../graphql/apiTypes.gen";
 
 const randomStringSuffix = () => {
@@ -42,24 +47,31 @@ export const createTestUser = async (
 
   const kratosIdentityId = identity.id;
 
-  const createdUser = await UserModel.createUser(graphApi, {
-    emails: [`${shortname}@example.com`],
-    kratosIdentityId,
-    actorId: systemUserAccountId,
-  }).catch((err) => {
+  const createdUser = await createUser(
+    { graphApi },
+    {
+      emails: [`${shortname}@example.com`],
+      kratosIdentityId,
+      actorId: systemUserAccountId,
+    },
+  ).catch((err) => {
     logger.error(`Error making UserModel for ${shortname}`);
     throw err;
   });
 
-  return await createdUser
-    .updateShortname(graphApi, {
+  return await updateUserShortname(
+    { graphApi },
+    {
+      user: createdUser,
       updatedShortname: shortname,
-      actorId: createdUser.getEntityUuid(),
-    })
-    .catch((err) => {
-      logger.error(`Error updating shortname for UserModel to ${shortname}`);
-      throw err;
-    });
+      actorId: extractEntityUuidFromEntityId(
+        createdUser.entity.metadata.editionId.baseId,
+      ),
+    },
+  ).catch((err) => {
+    logger.error(`Error updating shortname for UserModel to ${shortname}`);
+    throw err;
+  });
 };
 
 export const createTestOrg = async (
@@ -71,12 +83,15 @@ export const createTestOrg = async (
 
   const shortname = generateRandomShortname(shortNamePrefix);
 
-  return await OrgModel.createOrg(graphApi, {
-    name: "Test org",
-    shortname,
-    providedInfo: {
-      orgSize: OrgSize.ElevenToFifty,
+  return await createOrg(
+    { graphApi },
+    {
+      name: "Test org",
+      shortname,
+      providedInfo: {
+        orgSize: OrgSize.ElevenToFifty,
+      },
+      actorId: systemUserAccountId,
     },
-    actorId: systemUserAccountId,
-  });
+  );
 };
