@@ -11,6 +11,7 @@ import {
 } from "prosemirror-state";
 import { ReactElement } from "react";
 import { EntityId } from "@hashintel/hash-subgraph";
+import { AccountId } from "@hashintel/hash-shared/types";
 import { ensureMounted } from "../../../lib/dom";
 import { RenderPortal } from "../BlockPortals";
 import { BlockSuggester } from "./BlockSuggester";
@@ -127,7 +128,7 @@ const docChangedInTransaction = (tr: Transaction) => {
  */
 export const createSuggester = (
   renderPortal: RenderPortal,
-  accountId: string,
+  accountId: AccountId,
   documentRoot: HTMLElement,
   getManager?: () => ProsemirrorManager,
 ) =>

@@ -27,7 +27,7 @@ use graph::{
         query::{Filter, FilterExpression, Parameter},
         AccountStore, AsClient, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityStore,
         EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool, PropertyTypeStore,
-        QueryError, StorePool, UpdateError,
+        QueryError, Record, StorePool, UpdateError,
     },
     subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
 };
@@ -289,7 +289,7 @@ impl DatabaseApi<'_> {
         Ok(self
             .store
             .get_entity(&StructuralQuery {
-                filter: Filter::for_entity_by_edition_id(entity_edition_id),
+                filter: Entity::create_filter_for_edition_id(&entity_edition_id),
                 graph_resolve_depths: GraphResolveDepths::default(),
             })
             .await?
