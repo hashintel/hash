@@ -8,7 +8,7 @@ import {
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
-import { AccountId } from "@hashintel/hash-shared/types";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { PropertyTypeWithoutId } from "@hashintel/hash-shared/graphql/types";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
@@ -24,7 +24,7 @@ import { NotFoundError } from "../../../lib/error";
  */
 export const createPropertyType: ImpureGraphFunction<
   {
-    ownedById: AccountId;
+    ownedById: OwnedById;
     schema: PropertyTypeWithoutId;
     actorId: AccountId;
   },

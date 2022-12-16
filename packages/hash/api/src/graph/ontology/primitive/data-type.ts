@@ -8,7 +8,7 @@ import {
   VersionedUri,
 } from "@hashintel/hash-subgraph";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
-import { AccountId } from "@hashintel/hash-shared/types";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { getNamespaceOfAccountOwner } from "./util";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
@@ -29,7 +29,7 @@ import { NotFoundError } from "../../../lib/error";
  */
 export const createDataType: ImpureGraphFunction<
   {
-    ownedById: AccountId;
+    ownedById: OwnedById;
     // we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
     //  https://github.com/microsoft/TypeScript/issues/50638
     //  this is needed for as long as DataType extends Record
