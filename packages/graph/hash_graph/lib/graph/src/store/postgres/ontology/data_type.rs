@@ -4,13 +4,13 @@ use tokio_postgres::GenericClient;
 use type_system::DataType;
 
 use crate::{
-    identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId},
+    identifier::ontology::OntologyTypeEditionId,
     ontology::{DataTypeWithMetadata, OntologyElementMetadata, OntologyTypeWithMetadata},
     provenance::{OwnedById, UpdatedById},
     store::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
-        AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
+        AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{edges::GraphResolveDepths, query::StructuralQuery, Subgraph},
 };
@@ -93,25 +93,16 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         let mut dependency_context = DependencyContext::default();
 
         for data_type in Read::<DataTypeWithMetadata>::read(self, filter).await? {
-            let data_type_id = data_type.metadata().edition_id().clone();
-
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
-            subgraph
-                .vertices
-                .data_types
-                .insert(data_type_id.clone(), data_type);
+            let data_type = data_type.insert_into_subgraph_as_root(&mut subgraph);
 
             self.traverse_data_type(
-                &data_type_id,
+                &data_type.metadata().edition_id().clone(),
                 &mut dependency_context,
                 &mut subgraph,
                 graph_resolve_depths,
             )
             .await?;
-
-            subgraph
-                .roots
-                .insert(GraphElementEditionId::Ontology(data_type_id));
         }
 
         Ok(subgraph)

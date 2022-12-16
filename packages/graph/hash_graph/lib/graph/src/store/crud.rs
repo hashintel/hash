@@ -39,12 +39,11 @@ pub trait Read<R: Record + Send>: Sync {
                 records.len(),
             ))
         );
-        let record = records.pop().ok_or_else(|| {
+        records.pop().ok_or_else(|| {
             Report::new(QueryError).attach_printable(
                 "Expected exactly one record to be returned from the query but none was returned",
             )
-        })?;
-        Ok(record)
+        })
     }
 
     /// Looks up a single [`Record`] in the subgraph or reads it from the [`Store`] and inserts it

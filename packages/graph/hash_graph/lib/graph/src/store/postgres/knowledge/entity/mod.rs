@@ -15,7 +15,7 @@ use crate::{
             EntityEditionId, EntityId, EntityIdAndTimestamp, EntityRecordId, EntityVersion,
         },
         ontology::OntologyTypeEditionId,
-        DecisionTimespan, DecisionTimestamp, GraphElementEditionId, TransactionTimespan,
+        DecisionTimespan, DecisionTimestamp, TransactionTimespan,
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
@@ -62,10 +62,9 @@ impl<C: AsClient> PostgresStore<C> {
                 DependencyStatus::Resolved => return Ok(()),
             };
 
-            let entity_type_id = OntologyTypeEditionId::from(entity.metadata().entity_type_id());
-            let entity_edition_id = *entity.edition_id();
-
             if current_resolve_depth.is_of_type.outgoing > 0 {
+                let entity_type_id =
+                    OntologyTypeEditionId::from(entity.metadata().entity_type_id());
                 subgraph.edges.insert(Edge::KnowledgeGraph {
                     edition_id: entity_edition_id,
                     outward_edge: KnowledgeGraphOutwardEdges::ToOntology(OutwardEdge {
@@ -146,10 +145,7 @@ impl<C: AsClient> PostgresStore<C> {
                     });
 
                     let outgoing_link_entity_edition_id = *outgoing_link_entity.edition_id();
-                    subgraph
-                        .vertices
-                        .entities
-                        .insert(outgoing_link_entity_edition_id, outgoing_link_entity);
+                    outgoing_link_entity.insert_into_subgraph(subgraph);
 
                     self.traverse_entity(
                         outgoing_link_entity_edition_id,
@@ -223,11 +219,7 @@ impl<C: AsClient> PostgresStore<C> {
                     });
 
                     let incoming_link_entity_edition_id = *incoming_link_entity.edition_id();
-
-                    subgraph
-                        .vertices
-                        .entities
-                        .insert(incoming_link_entity_edition_id, incoming_link_entity);
+                    incoming_link_entity.insert_into_subgraph(subgraph);
 
                     self.traverse_entity(
                         incoming_link_entity_edition_id,
@@ -298,11 +290,7 @@ impl<C: AsClient> PostgresStore<C> {
                     });
 
                     let left_entity_edition_id = *left_entity.edition_id();
-
-                    subgraph
-                        .vertices
-                        .entities
-                        .insert(left_entity_edition_id, left_entity);
+                    left_entity.insert_into_subgraph(subgraph);
 
                     self.traverse_entity(
                         left_entity_edition_id,
@@ -373,11 +361,7 @@ impl<C: AsClient> PostgresStore<C> {
                     });
 
                     let right_entity_edition_id = *right_entity.edition_id();
-
-                    subgraph
-                        .vertices
-                        .entities
-                        .insert(right_entity_edition_id, right_entity);
+                    right_entity.insert_into_subgraph(subgraph);
 
                     self.traverse_entity(
                         right_entity_edition_id,
@@ -605,22 +589,16 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let mut dependency_context = DependencyContext::default();
 
         for entity in Read::<Entity>::read(self, filter).await? {
-            let entity_edition_id = *entity.edition_id();
-
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
-            subgraph.vertices.entities.insert(entity_edition_id, entity);
+            let entity = entity.insert_into_subgraph_as_root(&mut subgraph);
 
             self.traverse_entity(
-                entity_edition_id,
+                *entity.edition_id(),
                 &mut dependency_context,
                 &mut subgraph,
                 graph_resolve_depths,
             )
             .await?;
-
-            subgraph
-                .roots
-                .insert(GraphElementEditionId::KnowledgeGraph(entity_edition_id));
         }
 
         Ok(subgraph)

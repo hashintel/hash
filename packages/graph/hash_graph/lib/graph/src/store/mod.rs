@@ -21,7 +21,9 @@ pub use self::{
     postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 use crate::{
-    identifier::{account::AccountId, knowledge::EntityId, DecisionTimestamp},
+    identifier::{
+        account::AccountId, knowledge::EntityId, DecisionTimestamp, GraphElementEditionId,
+    },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     ontology::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
@@ -35,8 +37,8 @@ use crate::{
 /// A record stored in the [`store`].
 ///
 /// [`store`]: crate::store
-pub trait Record: Sized {
-    type EditionId: Clone + PartialEq + Eq + Hash + Send + Sync;
+pub trait Record: Sized + Send {
+    type EditionId: Clone + PartialEq + Eq + Hash + Send + Sync + Into<GraphElementEditionId>;
     type QueryPath<'p>: QueryPath + Send + Sync;
 
     fn edition_id(&self) -> &Self::EditionId;
@@ -47,6 +49,21 @@ pub trait Record: Sized {
         subgraph: &'s mut Subgraph,
         edition_id: &Self::EditionId,
     ) -> RawEntryMut<'s, Self::EditionId, Self, RandomState>;
+
+    fn insert_into_subgraph(self, subgraph: &mut Subgraph) -> &Self {
+        let edition_id = self.edition_id();
+        Self::subgraph_entry(subgraph, edition_id)
+            .or_insert(edition_id.clone(), self)
+            .1
+    }
+
+    fn insert_into_subgraph_as_root(self, subgraph: &mut Subgraph) -> &Self {
+        let edition_id = self.edition_id();
+        subgraph.roots.insert(edition_id.clone().into());
+        Self::subgraph_entry(subgraph, edition_id)
+            .or_insert(edition_id.clone(), self)
+            .1
+    }
 }
 
 #[derive(Debug)]
