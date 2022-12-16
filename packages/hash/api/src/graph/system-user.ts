@@ -5,8 +5,8 @@ import { types } from "@hashintel/hash-shared/ontology-types";
 import { getEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import {
+  AccountEntityId,
   AccountId,
-  brand,
   extractAccountId,
 } from "@hashintel/hash-shared/types";
 
@@ -65,7 +65,7 @@ export const ensureSystemUserAccountIdExists = async (params: {
 
   if (existingSystemUserEntity) {
     systemUserAccountId = extractAccountId(
-      brand(existingSystemUserEntity.metadata.editionId.baseId),
+      existingSystemUserEntity.metadata.editionId.baseId as AccountEntityId,
     );
     logger.info(
       `Using existing system user account id: ${systemUserAccountId}`,

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import {
+  AccountEntityId,
   AccountId,
-  brand,
   extractAccountId,
 } from "@hashintel/hash-shared/types";
 
@@ -19,7 +19,7 @@ export const useGetAccountIdForShortname = (
     const userBaseId = users?.find((user) => user.shortname === shortname)
       ?.entityEditionId.baseId;
     const userAccountId = userBaseId
-      ? extractAccountId(brand(userBaseId))
+      ? extractAccountId(userBaseId as AccountEntityId)
       : undefined;
 
     if (userAccountId !== undefined) {
@@ -29,7 +29,7 @@ export const useGetAccountIdForShortname = (
     const orgBaseId = orgs?.find((org) => org.shortname === shortname)
       ?.entityEditionId.baseId;
     const orgAccountId = orgBaseId
-      ? extractAccountId(brand(orgBaseId))
+      ? extractAccountId(orgBaseId as AccountEntityId)
       : undefined;
 
     if (orgAccountId !== undefined) {

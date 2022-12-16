@@ -7,8 +7,8 @@ import {
   EntityEditionIdString,
 } from "@hashintel/hash-subgraph";
 import {
+  AccountEntityId,
   AccountId,
-  brand,
   extractAccountId,
 } from "@hashintel/hash-shared/types";
 
@@ -52,7 +52,7 @@ export const constructMinimalOrg = (params: {
   return {
     kind: "org",
     entityEditionId: orgEntityEditionId,
-    accountId: extractAccountId(brand(orgEntityEditionId.baseId)),
+    accountId: extractAccountId(orgEntityEditionId.baseId as AccountEntityId),
     shortname,
     name,
   };
