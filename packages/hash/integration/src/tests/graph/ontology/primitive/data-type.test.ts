@@ -13,6 +13,8 @@ import {
   updateDataType,
 } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
 import { DataTypeWithMetadata } from "@hashintel/hash-subgraph";
+import { brand } from "@hashintel/hash-shared/types";
+
 import { createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
@@ -62,9 +64,9 @@ describe("Data type CRU", () => {
     createdDataType = await createDataType(
       { graphApi },
       {
-        ownedById: testUser.getEntityUuid(),
+        ownedById: brand(testUser.getEntityUuid()),
         schema: dataTypeSchema,
-        actorId: testUser.getEntityUuid(),
+        actorId: brand(testUser.getEntityUuid()),
       },
     );
   });
@@ -91,7 +93,7 @@ describe("Data type CRU", () => {
       {
         dataTypeId: createdDataType.schema.$id,
         schema: { ...dataTypeSchema, title: updatedTitle },
-        actorId: testUser2.getEntityUuid(),
+        actorId: brand(testUser2.getEntityUuid()),
       },
     ).catch((err) => Promise.reject(err.data));
 

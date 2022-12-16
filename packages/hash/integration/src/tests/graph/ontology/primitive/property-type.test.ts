@@ -19,6 +19,7 @@ import {
   DataTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@hashintel/hash-subgraph";
+import { brand } from "@hashintel/hash-shared/types";
 import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
 import { createTestUser } from "../../../util";
 
@@ -53,13 +54,13 @@ beforeAll(async () => {
   textDataType = await createDataType(
     { graphApi },
     {
-      ownedById: testUser.getEntityUuid(),
+      ownedById: brand(testUser.getEntityUuid()),
       schema: {
         kind: "dataType",
         title: "Text",
         type: "string",
       },
-      actorId: testUser.getEntityUuid(),
+      actorId: brand(testUser.getEntityUuid()),
     },
   );
 
@@ -81,9 +82,9 @@ describe("Property type CRU", () => {
     createdPropertyType = await createPropertyType(
       { graphApi },
       {
-        ownedById: testUser.getEntityUuid(),
+        ownedById: brand(testUser.getEntityUuid()),
         schema: propertyTypeSchema,
-        actorId: testUser.getEntityUuid(),
+        actorId: brand(testUser.getEntityUuid()),
       },
     );
   });
@@ -114,7 +115,7 @@ describe("Property type CRU", () => {
           ...propertyTypeSchema,
           title: updatedTitle,
         },
-        actorId: testUser2.getEntityUuid(),
+        actorId: brand(testUser2.getEntityUuid()),
       },
     ).catch((err) => Promise.reject(err.data));
 
