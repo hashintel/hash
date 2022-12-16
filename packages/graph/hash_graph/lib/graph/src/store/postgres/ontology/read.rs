@@ -24,6 +24,7 @@ where
     T: OntologyTypeWithMetadata + PostgresRecord,
     for<'p> T::QueryPath<'p>: OntologyQueryPath,
 {
+    #[tracing::instrument(level = "info", skip(self, filter))]
     async fn read(&self, filter: &Filter<T>) -> Result<Vec<T>, QueryError> {
         let versioned_uri_path = <T::QueryPath<'static> as OntologyQueryPath>::versioned_uri();
         let schema_path = <T::QueryPath<'static> as OntologyQueryPath>::schema();

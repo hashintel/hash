@@ -30,6 +30,7 @@ pub trait Read<R: Record + Send>: Sync {
     /// [`Store`]: crate::store::Store
     async fn read(&self, query: &Filter<R>) -> Result<Vec<R>, QueryError>;
 
+    #[tracing::instrument(level = "info", skip(self, query))]
     async fn read_one(&self, query: &Filter<R>) -> Result<R, QueryError> {
         let mut records = self.read(query).await?;
         ensure!(
