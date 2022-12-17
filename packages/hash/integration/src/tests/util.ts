@@ -11,7 +11,6 @@ import {
   updateUserShortname,
 } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
 import { createOrg } from "@hashintel/hash-api/src/graph/knowledge/system-types/org";
-import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
 import { OrgSize } from "../graphql/apiTypes.gen";
 
 const randomStringSuffix = () => {
@@ -64,9 +63,7 @@ export const createTestUser = async (
     {
       user: createdUser,
       updatedShortname: shortname,
-      actorId: extractEntityUuidFromEntityId(
-        createdUser.entity.metadata.editionId.baseId,
-      ),
+      actorId: createdUser.accountId,
     },
   ).catch((err) => {
     logger.error(`Error updating shortname for UserModel to ${shortname}`);

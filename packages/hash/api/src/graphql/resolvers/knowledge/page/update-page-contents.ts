@@ -1,14 +1,19 @@
 import { ApolloError, UserInputError } from "apollo-server-errors";
+import {
+  addBlockToPage,
+  getPageById,
+  moveBlockInPage,
+  removeBlockFromPage,
+} from "../../../../graph/knowledge/system-types/page";
 
 import { exactlyOne } from "../../../../util";
-import { PageModel } from "../../../../model";
 import {
   UpdatePageContentsResult,
   MutationUpdatePageContentsArgs,
   ResolverFn,
 } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { mapPageModelToGQL, UnresolvedPageGQL } from "../model-mapping";
+import { mapPageToGQL, UnresolvedPageGQL } from "../graphql-mapping";
 import {
   PlaceholderResultsMap,
   filterForAction,
@@ -35,11 +40,7 @@ export const updatePageContents: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationUpdatePageContentsArgs
-> = async (
-  _,
-  { entityId: pageEntityId, actions },
-  { dataSources, userModel },
-) => {
+> = async (_, { entityId: pageEntityId, actions }, { dataSources, user }) => {
   for (const [i, action] of actions.entries()) {
     if (
       !exactlyOne(
@@ -95,7 +96,7 @@ export const updatePageContents: ResolverFn<
   const insertedBlocks = await Promise.all(
     filterForAction(actions, "insertBlock").map(({ action, index }) =>
       handleInsertNewBlock(graphApi, {
-        userModel,
+        user,
         insertBlockAction: action,
         index,
         createEntityWithPlaceholders,
@@ -108,7 +109,7 @@ export const updatePageContents: ResolverFn<
   await Promise.all(
     filterForAction(actions, "swapBlockData").map(({ action }) =>
       handleSwapBlockData(graphApi, {
-        userModel,
+        user,
         swapBlockDataAction: action,
       }),
     ),
@@ -117,15 +118,18 @@ export const updatePageContents: ResolverFn<
   // Perform any entity updates.
   await Promise.all(
     filterForAction(actions, "updateEntity").map(async ({ action }) =>
-      handleUpdateEntity(graphApi, { userModel, action, placeholderResults }),
+      handleUpdateEntity(graphApi, { user, action, placeholderResults }),
     ),
   );
 
-  const pageModel = await PageModel.getPageById(graphApi, {
-    entityId: pageEntityId,
-  });
+  const page = await getPageById(
+    { graphApi },
+    {
+      entityId: pageEntityId,
+    },
+  );
 
-  if (!pageModel) {
+  if (!page) {
     const msg = `Page with Entity ID ${pageEntityId}`;
     throw new ApolloError(msg, "NOT_FOUND");
   }
@@ -134,25 +138,37 @@ export const updatePageContents: ResolverFn<
   for (const [i, action] of actions.entries()) {
     try {
       if (action.insertBlock) {
-        await pageModel.insertBlock(graphApi, {
-          block: insertedBlocks[insertCount]!,
-          position: action.insertBlock.position,
-          actorId: userModel.getEntityUuid(),
-        });
+        await addBlockToPage(
+          { graphApi },
+          {
+            page,
+            block: insertedBlocks[insertCount]!,
+            position: action.insertBlock.position,
+            actorId: user.accountId,
+          },
+        );
         insertCount += 1;
       } else if (action.moveBlock) {
-        await pageModel.moveBlock(graphApi, {
-          ...action.moveBlock,
-          actorId: userModel.getEntityUuid(),
-        });
+        await moveBlockInPage(
+          { graphApi },
+          {
+            ...action.moveBlock,
+            page,
+            actorId: user.accountId,
+          },
+        );
       } else if (action.removeBlock) {
-        await pageModel.removeBlock(graphApi, {
-          position: action.removeBlock.position,
-          actorId: userModel.getEntityUuid(),
-          allowRemovingFinal: actions
-            .slice(i + 1)
-            .some((actionToFollow) => actionToFollow.insertBlock),
-        });
+        await removeBlockFromPage(
+          { graphApi },
+          {
+            page,
+            position: action.removeBlock.position,
+            actorId: user.accountId,
+            allowRemovingFinal: actions
+              .slice(i + 1)
+              .some((actionToFollow) => actionToFollow.insertBlock),
+          },
+        );
       }
     } catch (error) {
       if (error instanceof UserInputError) {
@@ -166,7 +182,7 @@ export const updatePageContents: ResolverFn<
   }
 
   return {
-    page: mapPageModelToGQL(pageModel),
+    page: mapPageToGQL(page),
     placeholders: placeholderResults.getResults(),
   };
 };

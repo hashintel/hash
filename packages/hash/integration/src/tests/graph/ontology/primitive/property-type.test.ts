@@ -9,7 +9,6 @@ import {
   PropertyType,
   TypeSystemInitializer,
 } from "@blockprotocol/type-system";
-import { UserModel } from "@hashintel/hash-api/src/model";
 import {
   createPropertyType,
   getPropertyTypeById,
@@ -19,8 +18,9 @@ import {
   DataTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@hashintel/hash-subgraph";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
+import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import { createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
@@ -39,8 +39,8 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-let testUser: UserModel;
-let testUser2: UserModel;
+let testUser: User;
+let testUser2: User;
 let textDataType: DataTypeWithMetadata;
 let propertyTypeSchema: Omit<PropertyType, "$id">;
 
@@ -54,13 +54,13 @@ beforeAll(async () => {
   textDataType = await createDataType(
     { graphApi },
     {
-      ownedById: testUser.getEntityUuid() as OwnedById,
+      ownedById: testUser.accountId as OwnedById,
       schema: {
         kind: "dataType",
         title: "Text",
         type: "string",
       },
-      actorId: testUser.getEntityUuid() as AccountId,
+      actorId: testUser.accountId,
     },
   );
 
@@ -82,9 +82,9 @@ describe("Property type CRU", () => {
     createdPropertyType = await createPropertyType(
       { graphApi },
       {
-        ownedById: testUser.getEntityUuid() as OwnedById,
+        ownedById: testUser.accountId as OwnedById,
         schema: propertyTypeSchema,
-        actorId: testUser.getEntityUuid() as AccountId,
+        actorId: testUser.accountId,
       },
     );
   });
@@ -104,7 +104,7 @@ describe("Property type CRU", () => {
 
   it("can update a property type", async () => {
     expect(createdPropertyType.metadata.provenance.updatedById).toBe(
-      testUser.getEntityUuid(),
+      testUser.accountId,
     );
 
     createdPropertyType = await updatePropertyType(
@@ -115,12 +115,12 @@ describe("Property type CRU", () => {
           ...propertyTypeSchema,
           title: updatedTitle,
         },
-        actorId: testUser2.getEntityUuid() as AccountId,
+        actorId: testUser2.accountId,
       },
     ).catch((err) => Promise.reject(err.data));
 
     expect(createdPropertyType.metadata.provenance.updatedById).toBe(
-      testUser2.getEntityUuid(),
+      testUser2.accountId,
     );
   });
 });

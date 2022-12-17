@@ -5,9 +5,8 @@ import {
 } from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
-import { UserModel } from "@hashintel/hash-api/src/model";
 import { EntityType, TypeSystemInitializer } from "@blockprotocol/type-system";
-import { linkEntityTypeUri } from "@hashintel/hash-api/src/model/util";
+import { linkEntityTypeUri } from "@hashintel/hash-api/src/graph/util";
 import {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -20,8 +19,8 @@ import {
   updateEntityType,
 } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
-
+import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import { createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
@@ -40,8 +39,8 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-let testUser: UserModel;
-let testUser2: UserModel;
+let testUser: User;
+let testUser2: User;
 let entityTypeSchema: Omit<EntityType, "$id">;
 let workerEntityType: EntityTypeWithMetadata;
 let textDataType: DataTypeWithMetadata;
@@ -61,13 +60,13 @@ beforeAll(async () => {
   textDataType = await createDataType(
     { graphApi },
     {
-      ownedById: testUser.getEntityUuid() as OwnedById,
+      ownedById: testUser.accountId as OwnedById,
       schema: {
         kind: "dataType",
         title: "Text",
         type: "string",
       },
-      actorId: testUser.getEntityUuid() as AccountId,
+      actorId: testUser.accountId,
     },
   );
 
@@ -75,14 +74,14 @@ beforeAll(async () => {
     createEntityType(
       { graphApi },
       {
-        ownedById: testUser.getEntityUuid() as OwnedById,
+        ownedById: testUser.accountId as OwnedById,
         schema: {
           kind: "entityType",
           title: "Worker",
           type: "object",
           properties: {},
         },
-        actorId: testUser.getEntityUuid() as AccountId,
+        actorId: testUser.accountId,
       },
     ).then((val) => {
       workerEntityType = val;
@@ -90,14 +89,14 @@ beforeAll(async () => {
     createEntityType(
       { graphApi },
       {
-        ownedById: testUser.getEntityUuid() as OwnedById,
+        ownedById: testUser.accountId as OwnedById,
         schema: {
           kind: "entityType",
           title: "Address",
           type: "object",
           properties: {},
         },
-        actorId: testUser.getEntityUuid() as AccountId,
+        actorId: testUser.accountId,
       },
     ).then((val) => {
       addressEntityType = val;
@@ -105,13 +104,13 @@ beforeAll(async () => {
     createPropertyType(
       { graphApi },
       {
-        ownedById: testUser.getEntityUuid() as OwnedById,
+        ownedById: testUser.accountId as OwnedById,
         schema: {
           kind: "propertyType",
           title: "Favorite Book",
           oneOf: [{ $ref: textDataType.schema.$id }],
         },
-        actorId: testUser.getEntityUuid() as AccountId,
+        actorId: testUser.accountId,
       },
     ).then((val) => {
       favoriteBookPropertyType = val;
@@ -119,13 +118,13 @@ beforeAll(async () => {
     createPropertyType(
       { graphApi },
       {
-        ownedById: testUser.getEntityUuid() as OwnedById,
+        ownedById: testUser.accountId as OwnedById,
         schema: {
           kind: "propertyType",
           title: "Name",
           oneOf: [{ $ref: textDataType.schema.$id }],
         },
-        actorId: testUser.getEntityUuid() as AccountId,
+        actorId: testUser.accountId,
       },
     ).then((val) => {
       namePropertyType = val;
@@ -133,7 +132,7 @@ beforeAll(async () => {
     createEntityType(
       { graphApi },
       {
-        ownedById: testUser.getEntityUuid() as OwnedById,
+        ownedById: testUser.accountId as OwnedById,
         schema: {
           kind: "entityType",
           title: "Knows",
@@ -142,7 +141,7 @@ beforeAll(async () => {
           properties: {},
           allOf: [{ $ref: linkEntityTypeUri }],
         },
-        actorId: testUser.getEntityUuid() as AccountId,
+        actorId: testUser.accountId,
       },
     ).then((val) => {
       knowsLinkEntityType = val;
@@ -150,7 +149,7 @@ beforeAll(async () => {
     createEntityType(
       { graphApi },
       {
-        ownedById: testUser.getEntityUuid() as OwnedById,
+        ownedById: testUser.accountId as OwnedById,
         schema: {
           kind: "entityType",
           title: "Previous Address",
@@ -159,7 +158,7 @@ beforeAll(async () => {
           properties: {},
           allOf: [{ $ref: linkEntityTypeUri }],
         },
-        actorId: testUser.getEntityUuid() as AccountId,
+        actorId: testUser.accountId,
       },
     ).then((val) => {
       previousAddressLinkEntityType = val;
@@ -204,9 +203,9 @@ describe("Entity type CRU", () => {
     createdEntityType = await createEntityType(
       { graphApi },
       {
-        ownedById: testUser.getEntityUuid() as OwnedById,
+        ownedById: testUser.accountId as OwnedById,
         schema: entityTypeSchema,
-        actorId: testUser.getEntityUuid() as AccountId,
+        actorId: testUser.accountId,
       },
     );
   });
@@ -226,7 +225,7 @@ describe("Entity type CRU", () => {
 
   it("can update an entity type", async () => {
     expect(createdEntityType.metadata.provenance.updatedById).toBe(
-      testUser.getEntityUuid(),
+      testUser.accountId,
     );
 
     const updatedEntityType = await updateEntityType(
@@ -234,12 +233,12 @@ describe("Entity type CRU", () => {
       {
         entityTypeId: createdEntityType.schema.$id,
         schema: { ...entityTypeSchema, title: updatedTitle },
-        actorId: testUser2.getEntityUuid() as AccountId,
+        actorId: testUser2.accountId,
       },
     ).catch((err) => Promise.reject(err.data));
 
     expect(updatedEntityType.metadata.provenance.updatedById).toBe(
-      testUser2.getEntityUuid(),
+      testUser2.accountId,
     );
   });
 });

@@ -465,7 +465,7 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
   const containsLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.contains(graphApi);
 
-  const parentLinkTypeTypeModel =
+  const parentLinkTypeType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.parent(graphApi);
 
   const blockEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.block(
@@ -503,7 +503,7 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
         ordered: true,
       },
       {
-        linkEntityType: parentLinkTypeTypeModel,
+        linkEntityType: parentLinkTypeType,
         destinationEntityTypes: ["SELF_REFERENCE"],
         maxItems: 1,
       },
@@ -541,10 +541,10 @@ const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
   const hasTextLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasText(graphApi);
 
-  const parentLinkTypeTypeModel =
+  const parentLinkTypeType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.parent(graphApi);
 
-  const authorLinkTypeTypeModel =
+  const authorLinkTypeType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.author(graphApi);
 
   const userEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.user(
@@ -579,13 +579,13 @@ const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
         maxItems: 1,
       },
       {
-        linkEntityType: parentLinkTypeTypeModel,
+        linkEntityType: parentLinkTypeType,
         destinationEntityTypes: ["SELF_REFERENCE", blockEntityType],
         required: true,
         maxItems: 1,
       },
       {
-        linkEntityType: authorLinkTypeTypeModel,
+        linkEntityType: authorLinkTypeType,
         destinationEntityTypes: [userEntityType],
         required: true,
         maxItems: 1,
@@ -698,8 +698,8 @@ export const ensureSystemTypesExist = async (params: {
       >,
     ][]) {
       logger.debug(`Checking system type: [${key}] exists`);
-      const model = await typeInitializer(graphApi);
-      initializedSystemTypes[typeKind][key] = model;
+      const type = await typeInitializer(graphApi);
+      initializedSystemTypes[typeKind][key] = type;
     }
   }
 
