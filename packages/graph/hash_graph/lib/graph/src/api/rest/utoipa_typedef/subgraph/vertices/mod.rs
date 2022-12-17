@@ -8,9 +8,13 @@ use utoipa::{
 };
 
 pub use self::vertex::*;
-use crate::identifier::{
-    knowledge::{EntityId, EntityVersion},
-    ontology::OntologyTypeVersion,
+use crate::{
+    identifier::{
+        knowledge::{EntityId, EntityVersion},
+        ontology::OntologyTypeVersion,
+    },
+    knowledge::Entity,
+    store::Record,
 };
 
 pub mod vertex;
@@ -32,6 +36,23 @@ pub struct Vertices {
     pub ontology: OntologyVertices,
     #[serde(flatten)]
     pub knowledge_graph: KnowledgeGraphVertices,
+}
+
+impl Vertices {
+    pub fn find_earliest_entity(&self, id: &EntityId) -> Option<&Entity> {
+        self.knowledge_graph
+            .0
+            .get(id)?
+            .values()
+            .map(|KnowledgeGraphVertex::Entity(entity)| entity)
+            .min_by_key(|entity| {
+                entity
+                    .edition_id()
+                    .version()
+                    .transaction_time()
+                    .as_start_bound_timestamp()
+            })
+    }
 }
 
 impl From<crate::subgraph::vertices::Vertices> for Vertices {

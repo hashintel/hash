@@ -88,24 +88,34 @@ impl Edges {
                             crate::subgraph::edges::KnowledgeGraphOutwardEdges::ToKnowledgeGraph(
                                 edge,
                             ) => {
-                                let earliest_entity = vertices
-                                    .knowledge_graph
-                                    .0
-                                    .get(&edge.right_endpoint)
-                                    .expect("Vertex must exist")
-                                    .values()
-                                    .map(|KnowledgeGraphVertex::Entity(entity)| entity.edition_id().version().transaction_time().as_start_bound_timestamp())
-                                    .min()
-                                    .expect("Vertex must exist");
+
+                                let earliest_timestamp = if edge.reversed {
+                                    // We want to log the time the link entity was *first* added
+                                    // from this entity. We therefore need to find the timestamp of
+                                    // the first link entity
+                                    vertices.find_earliest_entity(&edge.right_endpoint)
+                                } else {
+                                    // We want to log the time _this_ link entity was *first* added
+                                    // from the source entity. We therefore need to find the
+                                    // timestamp of this entity
+                                    vertices.find_earliest_entity(&id.base_id())
+                                }
+                                    .expect("entity must exist in subgraph")
+                                    .edition_id()
+                                    .version()
+                                    .transaction_time()
+                                    .as_start_bound_timestamp();
+
                                 KnowledgeGraphOutwardEdges::ToKnowledgeGraph(
                                     OutwardEdge {
                                         kind: edge.kind,
                                         reversed: edge.reversed,
                                         right_endpoint: EntityIdAndTimestamp {
                                             base_id: edge.right_endpoint,
-                                            timestamp: earliest_entity
+                                            timestamp: earliest_timestamp
                                         },
-                                    })
+                                    }
+                                )
                             }
                         }
                     }).collect();
