@@ -8,10 +8,7 @@ use utoipa::{
 };
 
 use crate::{
-    api::rest::utoipa_typedef::{
-        subgraph::{KnowledgeGraphVertex, Vertices},
-        EntityIdAndTimestamp,
-    },
+    api::rest::utoipa_typedef::{subgraph::Vertices, EntityIdAndTimestamp},
     identifier::{
         knowledge::{EntityId, EntityVersion},
         ontology::{OntologyTypeEditionId, OntologyTypeVersion},
@@ -112,7 +109,7 @@ impl Edges {
                                         base_id: edge.right_endpoint,
                                         timestamp: earliest_timestamp,
                                     },
-                                });
+                                })
                             }
                         }
                     }).collect();

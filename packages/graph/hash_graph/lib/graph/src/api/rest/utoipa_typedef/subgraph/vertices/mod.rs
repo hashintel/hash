@@ -25,17 +25,15 @@ pub struct OntologyVertices(pub HashMap<BaseUri, HashMap<OntologyTypeVersion, On
 
 #[derive(Serialize, ToSchema)]
 #[serde(transparent)]
-pub struct KnowledgeGraphVertices(
-    pub HashMap<EntityId, HashMap<EntityVersion, KnowledgeGraphVertex>>,
-);
+pub struct KnowledgeGraphVertices(HashMap<EntityId, HashMap<EntityVersion, KnowledgeGraphVertex>>);
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Vertices {
     #[serde(flatten)]
-    pub ontology: OntologyVertices,
+    ontology: OntologyVertices,
     #[serde(flatten)]
-    pub knowledge_graph: KnowledgeGraphVertices,
+    knowledge_graph: KnowledgeGraphVertices,
 }
 
 impl Vertices {
@@ -106,6 +104,7 @@ impl From<crate::subgraph::vertices::Vertices> for Vertices {
         }
     }
 }
+
 // Utoipa generates `Edges` as an empty object if we don't manually do it, and we can't use
 // allOf because the generator can't handle it
 impl ToSchema for Vertices {
