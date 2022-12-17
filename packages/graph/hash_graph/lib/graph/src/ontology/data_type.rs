@@ -6,10 +6,7 @@ use serde::{
 };
 use utoipa::ToSchema;
 
-use crate::{
-    ontology::DataTypeWithMetadata,
-    store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
-};
+use crate::store::query::{OntologyQueryPath, ParameterType, QueryPath};
 
 /// A path to a [`DataType`] field.
 ///
@@ -157,11 +154,7 @@ pub enum DataTypeQueryPath {
     Schema,
 }
 
-impl QueryRecord for DataTypeWithMetadata {
-    type Path<'q> = DataTypeQueryPath;
-}
-
-impl OntologyPath for DataTypeQueryPath {
+impl OntologyQueryPath for DataTypeQueryPath {
     fn base_uri() -> Self {
         Self::BaseUri
     }
@@ -187,7 +180,7 @@ impl OntologyPath for DataTypeQueryPath {
     }
 }
 
-impl RecordPath for DataTypeQueryPath {
+impl QueryPath for DataTypeQueryPath {
     fn expected_type(&self) -> ParameterType {
         match self {
             Self::VersionId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
@@ -292,7 +285,7 @@ mod tests {
 
     use super::*;
 
-    fn deserialize<'q>(segments: impl IntoIterator<Item = &'q str>) -> DataTypeQueryPath {
+    fn deserialize<'p>(segments: impl IntoIterator<Item = &'p str>) -> DataTypeQueryPath {
         DataTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
             segments.into_iter(),
         ))

@@ -8,7 +8,7 @@ import {
 } from "react";
 import { EntityId } from "@hashintel/hash-subgraph";
 import { useUpdatePageTitle } from "../../../components/hooks/useUpdatePageTitle";
-import { useReadonlyMode } from "../../../shared/readonly-mode";
+import { useIsReadonlyMode } from "../../../shared/readonly-mode";
 import { usePageContext } from "../PageContext";
 import { cleanUpTitle, focusEditorBeginning } from "./utils";
 
@@ -51,7 +51,7 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
   value,
 }) => {
   // TODO: Display update error once expected UX is discussed
-  const { readonlyMode } = useReadonlyMode();
+  const isReadonlyMode = useIsReadonlyMode();
 
   const [updatePageTitle, { updatePageTitleLoading }] = useUpdatePageTitle();
 
@@ -104,7 +104,7 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
     <StyledTextarea
       ref={pageTitleRef}
       placeholder={PAGE_TITLE_PLACEHOLDER}
-      disabled={updatePageTitleLoading || readonlyMode}
+      disabled={updatePageTitleLoading || isReadonlyMode}
       onChange={handleInputChange}
       onKeyDown={handleInputKeyDown}
       onBlur={handleInputBlur}

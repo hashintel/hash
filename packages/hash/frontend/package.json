@@ -6,7 +6,7 @@
   "license": "AGPL-3.0",
   "scripts": {
     "build": "yarn codegen; next build",
-    "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.yml",
+    "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "dev": "next dev",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",

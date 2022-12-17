@@ -7,6 +7,8 @@ import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
+import { OwnedById } from "@hashintel/hash-shared/types";
+
 import { NextPageWithLayout } from "../shared/layout";
 import { useBlockProtocolFunctionsWithOntology } from "./type-editor/blockprotocol-ontology-functions-hook";
 import { useAdvancedInitTypeSystem } from "../lib/use-init-type-system";
@@ -25,7 +27,7 @@ const isArrayDefinition = <T,>(input: ValueOrArray<T>): input is Array<T> =>
  * This component is an example usage of the `getEntity` BP function.
  * This is meant to be removed as soon as it's unneeded.
  */
-const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
+const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
   const { authenticatedUser } = useAuthenticatedUser();
   const [userSubgraph, setUserSubgraph] =
     useState<Subgraph<SubgraphRootTypes["entity"]>>();
@@ -157,7 +159,7 @@ const ExampleEntityEditorPage: NextPageWithLayout = () => {
     <Container sx={{ pt: 10 }}>Loading...</Container>
   ) : (
     <Container sx={{ pt: 10 }}>
-      <ExampleUsage ownedById={authenticatedUser.userAccountId} />
+      <ExampleUsage ownedById={authenticatedUser.accountId as OwnedById} />
     </Container>
   );
 };

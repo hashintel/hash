@@ -7,13 +7,12 @@ use serde::{
 use utoipa::ToSchema;
 
 use crate::{
-    knowledge::Entity,
     ontology::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
-    store::query::{ParameterType, QueryRecord, RecordPath},
+    store::query::{ParameterType, QueryPath},
 };
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum EntityQueryPath<'q> {
+pub enum EntityQueryPath<'p> {
     /// The [`EntityUuid`] of the [`EntityId`] belonging to the [`Entity`].
     ///
     /// ```rust
@@ -225,11 +224,7 @@ pub enum EntityQueryPath<'q> {
     ///
     /// [`Entity`]: crate::knowledge::Entity
     /// [`Entity::properties()`]: crate::knowledge::Entity::properties
-    Properties(Option<Cow<'q, str>>),
-}
-
-impl QueryRecord for Entity {
-    type Path<'q> = EntityQueryPath<'q>;
+    Properties(Option<Cow<'p, str>>),
 }
 
 impl fmt::Display for EntityQueryPath<'_> {
@@ -256,7 +251,7 @@ impl fmt::Display for EntityQueryPath<'_> {
     }
 }
 
-impl RecordPath for EntityQueryPath<'_> {
+impl QueryPath for EntityQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
             Self::Uuid | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
@@ -364,7 +359,7 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
     }
 }
 
-impl<'de: 'q, 'q> Deserialize<'de> for EntityQueryPath<'q> {
+impl<'de: 'p, 'p> Deserialize<'de> for EntityQueryPath<'p> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -379,7 +374,7 @@ mod tests {
 
     use super::*;
 
-    fn deserialize<'q>(segments: impl IntoIterator<Item = &'q str>) -> EntityQueryPath<'q> {
+    fn deserialize<'p>(segments: impl IntoIterator<Item = &'p str>) -> EntityQueryPath<'p> {
         EntityQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
             segments.into_iter(),
         ))

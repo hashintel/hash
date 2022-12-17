@@ -14,11 +14,25 @@ import {
   PrimitiveDataTypeKey,
   types,
 } from "@hashintel/hash-shared/ontology-types";
+import {
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@hashintel/hash-subgraph";
 import { AxiosError } from "axios";
-import { EntityTypeModel, PropertyTypeModel } from ".";
+import { OwnedById } from "@hashintel/hash-shared/types";
+
 import { GraphApi } from "../graph";
 import { systemUserAccountId } from "../graph/system-user";
+import {
+  createPropertyType,
+  getPropertyTypeById,
+} from "../graph/ontology/primitive/property-type";
 import { logger } from "../logger";
+import {
+  createEntityType,
+  getEntityTypeById,
+} from "../graph/ontology/primitive/entity-type";
+import { NotFoundError } from "../lib/error";
 
 /** @todo: enable admins to expand upon restricted shortnames block list */
 export const RESTRICTED_SHORTNAMES = [
@@ -142,34 +156,40 @@ export const generateSystemPropertyTypeSchema = (
  * likely to cause problems if we introduce circular dependencies)
  *
  * @param params the data required to create a new property type
- * @returns an async function which can be called to initialize the property type, returning its PropertyTypeModel
+ * @returns an async function which can be called to initialize the property type, returning its property type
  */
 export const propertyTypeInitializer = (
   params: PropertyTypeCreatorParams,
-): ((graphApi: GraphApi) => Promise<PropertyTypeModel>) => {
-  let propertyTypeModel: PropertyTypeModel;
+): ((graphApi: GraphApi) => Promise<PropertyTypeWithMetadata>) => {
+  let propertyType: PropertyTypeWithMetadata;
 
   return async (graphApi?: GraphApi) => {
-    if (propertyTypeModel) {
-      return propertyTypeModel;
+    if (propertyType) {
+      return propertyType;
     } else if (!graphApi) {
       throw new Error(
         `property type ${params.title} was uninitialized, and function was called without passing a graphApi object`,
       );
     } else {
-      const propertyType = generateSystemPropertyTypeSchema(params);
+      const propertyTypeSchema = generateSystemPropertyTypeSchema(params);
 
       // initialize
-      propertyTypeModel = await PropertyTypeModel.get(graphApi, {
-        propertyTypeId: propertyType.$id,
-      }).catch(async (error: AxiosError) => {
-        if (error.response?.status === 404) {
+      propertyType = await getPropertyTypeById(
+        { graphApi },
+        {
+          propertyTypeId: propertyTypeSchema.$id,
+        },
+      ).catch(async (error: Error) => {
+        if (error instanceof NotFoundError) {
           // The type was missing, try and create it
-          return await PropertyTypeModel.create(graphApi, {
-            ownedById: systemUserAccountId,
-            schema: propertyType,
-            actorId: systemUserAccountId,
-          }).catch((createError: AxiosError) => {
+          return await createPropertyType(
+            { graphApi },
+            {
+              ownedById: systemUserAccountId as OwnedById,
+              schema: propertyTypeSchema,
+              actorId: systemUserAccountId,
+            },
+          ).catch((createError: AxiosError) => {
             logger.warn(`Failed to create property type: ${params.title}`);
             throw createError;
           });
@@ -181,7 +201,7 @@ export const propertyTypeInitializer = (
         }
       });
 
-      return propertyTypeModel;
+      return propertyType;
     }
   };
 };
@@ -191,14 +211,14 @@ export type EntityTypeCreatorParams = {
   title: string;
   description?: string;
   properties?: {
-    propertyTypeModel: PropertyTypeModel;
+    propertyType: PropertyTypeWithMetadata;
     required?: boolean;
     array?: { minItems?: number; maxItems?: number } | boolean;
   }[];
   outgoingLinks?: {
-    linkEntityTypeModel: EntityTypeModel;
-    destinationEntityTypeModels: (
-      | EntityTypeModel
+    linkEntityType: EntityTypeWithMetadata;
+    destinationEntityTypes: (
+      | EntityTypeWithMetadata
       // Some models may reference themselves. This marker is used to stop infinite loops during initialization by telling the initializer to use a self reference
       | "SELF_REFERENCE"
     )[];
@@ -218,48 +238,46 @@ export const generateSystemEntityTypeSchema = (
   /** @todo - clean this up to be more readable: https://app.asana.com/0/1202805690238892/1202931031833226/f */
   const properties =
     params.properties?.reduce(
-      (prev, { propertyTypeModel, array }) => ({
+      (prev, { propertyType, array }) => ({
         ...prev,
-        [propertyTypeModel.getBaseUri()]: array
+        [propertyType.metadata.editionId.baseId]: array
           ? {
               type: "array",
-              items: { $ref: propertyTypeModel.getSchema().$id },
+              items: { $ref: propertyType.schema.$id },
               ...(array === true ? {} : array),
             }
-          : { $ref: propertyTypeModel.getSchema().$id },
+          : { $ref: propertyType.schema.$id },
       }),
       {},
     ) ?? {};
 
   const requiredProperties = params.properties
     ?.filter(({ required }) => !!required)
-    .map(({ propertyTypeModel }) => propertyTypeModel.getBaseUri());
+    .map(({ propertyType }) => propertyType.metadata.editionId.baseId);
 
   const links =
     params.outgoingLinks?.reduce<EntityType["links"]>(
       (
         prev,
         {
-          linkEntityTypeModel,
-          destinationEntityTypeModels,
+          linkEntityType,
+          destinationEntityTypes,
           ordered = false,
           minItems,
           maxItems,
         },
       ): EntityType["links"] => ({
         ...prev,
-        [linkEntityTypeModel.getSchema().$id]: {
+        [linkEntityType.schema.$id]: {
           type: "array",
           ordered,
           items: {
-            oneOf: destinationEntityTypeModels.map(
-              (entityTypeModelOrReference) => ({
-                $ref:
-                  entityTypeModelOrReference === "SELF_REFERENCE"
-                    ? params.entityTypeId
-                    : entityTypeModelOrReference.getSchema().$id,
-              }),
-            ),
+            oneOf: destinationEntityTypes.map((entityTypeOrReference) => ({
+              $ref:
+                entityTypeOrReference === "SELF_REFERENCE"
+                  ? params.entityTypeId
+                  : entityTypeOrReference.schema.$id,
+            })),
           },
           minItems,
           maxItems,
@@ -270,7 +288,7 @@ export const generateSystemEntityTypeSchema = (
 
   const requiredLinks = params.outgoingLinks
     ?.filter(({ required }) => !!required)
-    .map(({ linkEntityTypeModel }) => linkEntityTypeModel.getSchema().$id);
+    .map(({ linkEntityType }) => linkEntityType.schema.$id);
 
   return {
     $id: params.entityTypeId,
@@ -314,37 +332,43 @@ export const generateSystemLinkEntityTypeSchema = (
  * likely to cause problems if we introduce circular dependencies)
  *
  * @param params the data required to create a new entity type
- * @returns an async function which can be called to initialize the entity type, returning its EntityTypeModel
+ * @returns an async function which can be called to initialize the entity type, returning its entity type
  */
 export const entityTypeInitializer = (
   params: EntityTypeCreatorParams | LinkEntityTypeCreatorParams,
-): ((graphApi: GraphApi) => Promise<EntityTypeModel>) => {
-  let entityTypeModel: EntityTypeModel;
+): ((graphApi: GraphApi) => Promise<EntityTypeWithMetadata>) => {
+  let entityType: EntityTypeWithMetadata;
 
   return async (graphApi?: GraphApi) => {
-    if (entityTypeModel) {
-      return entityTypeModel;
+    if (entityType) {
+      return entityType;
     } else if (!graphApi) {
       throw new Error(
         `entity type ${params.title} was uninitialized, and function was called without passing a graphApi object`,
       );
     } else {
-      const entityType =
+      const entityTypeSchema =
         "linkEntityTypeId" in params
           ? generateSystemLinkEntityTypeSchema(params)
           : generateSystemEntityTypeSchema(params);
 
       // initialize
-      entityTypeModel = await EntityTypeModel.get(graphApi, {
-        entityTypeId: entityType.$id,
-      }).catch(async (error: AxiosError) => {
-        if (error.response?.status === 404) {
+      entityType = await getEntityTypeById(
+        { graphApi },
+        {
+          entityTypeId: entityTypeSchema.$id,
+        },
+      ).catch(async (error: Error) => {
+        if (error instanceof NotFoundError) {
           // The type was missing, try and create it
-          return await EntityTypeModel.create(graphApi, {
-            ownedById: systemUserAccountId,
-            schema: entityType,
-            actorId: systemUserAccountId,
-          }).catch((createError: AxiosError) => {
+          return await createEntityType(
+            { graphApi },
+            {
+              ownedById: systemUserAccountId as OwnedById,
+              schema: entityTypeSchema,
+              actorId: systemUserAccountId,
+            },
+          ).catch((createError: AxiosError) => {
             logger.warn(`Failed to create entity type: ${params.title}`);
             throw createError;
           });
@@ -356,7 +380,7 @@ export const entityTypeInitializer = (
         }
       });
 
-      return entityTypeModel;
+      return entityType;
     }
   };
 };
