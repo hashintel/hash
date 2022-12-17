@@ -21,15 +21,17 @@ pub struct OntologyVertices(pub HashMap<BaseUri, HashMap<OntologyTypeVersion, On
 
 #[derive(Serialize, ToSchema)]
 #[serde(transparent)]
-pub struct KnowledgeGraphVertices(HashMap<EntityId, HashMap<EntityVersion, KnowledgeGraphVertex>>);
+pub struct KnowledgeGraphVertices(
+    pub HashMap<EntityId, HashMap<EntityVersion, KnowledgeGraphVertex>>,
+);
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Vertices {
     #[serde(flatten)]
-    ontology: OntologyVertices,
+    pub ontology: OntologyVertices,
     #[serde(flatten)]
-    knowledge_graph: KnowledgeGraphVertices,
+    pub knowledge_graph: KnowledgeGraphVertices,
 }
 
 impl From<crate::subgraph::vertices::Vertices> for Vertices {

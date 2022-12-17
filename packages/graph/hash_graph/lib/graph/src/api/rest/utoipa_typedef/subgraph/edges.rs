@@ -8,12 +8,36 @@ use utoipa::{
 };
 
 use crate::{
+    api::rest::utoipa_typedef::{
+        subgraph::{KnowledgeGraphVertex, Vertices},
+        EntityIdAndTimestamp,
+    },
     identifier::{
         knowledge::{EntityId, EntityVersion},
-        ontology::OntologyTypeVersion,
+        ontology::{OntologyTypeEditionId, OntologyTypeVersion},
     },
-    subgraph::edges::{KnowledgeGraphOutwardEdges, OntologyOutwardEdges},
+    store::Record,
+    subgraph::edges::{KnowledgeGraphEdgeKind, OntologyOutwardEdges, OutwardEdge, SharedEdgeKind},
 };
+
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+pub enum KnowledgeGraphOutwardEdges {
+    ToKnowledgeGraph(OutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>),
+    ToOntology(OutwardEdge<SharedEdgeKind, OntologyTypeEditionId>),
+}
+
+// WARNING: This MUST be kept up to date with the enum variants.
+//   We have to do this because utoipa doesn't understand serde untagged:
+//   https://github.com/juhaku/utoipa/issues/320
+impl ToSchema for KnowledgeGraphOutwardEdges {
+    fn schema() -> Schema {
+        OneOfBuilder::new()
+            .item(<OutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>>::schema())
+            .item(<OutwardEdge<SharedEdgeKind, OntologyTypeEditionId>>::schema())
+            .into()
+    }
+}
 
 #[derive(Default, Debug, Serialize, ToSchema)]
 #[serde(transparent)]
@@ -35,8 +59,8 @@ pub struct Edges {
     pub knowledge_graph: KnowledgeGraphRootedEdges,
 }
 
-impl From<crate::subgraph::edges::Edges> for Edges {
-    fn from(edges: crate::subgraph::edges::Edges) -> Self {
+impl Edges {
+    pub fn from_store_subgraph(edges: crate::subgraph::edges::Edges, vertices: &Vertices) -> Self {
         Self {
             ontology: OntologyRootedEdges(edges.ontology.into_iter().fold(
                 HashMap::new(),
@@ -56,7 +80,35 @@ impl From<crate::subgraph::edges::Edges> for Edges {
             knowledge_graph: KnowledgeGraphRootedEdges(edges.knowledge_graph.into_iter().fold(
                 HashMap::new(),
                 |mut map, (id, edges)| {
-                    let edges = edges.into_iter().collect();
+                    let edges = edges.into_iter().map(|edge| {
+                        match edge {
+                            crate::subgraph::edges::KnowledgeGraphOutwardEdges::ToOntology(edge) => {
+                                KnowledgeGraphOutwardEdges::ToOntology(edge)
+                            }
+                            crate::subgraph::edges::KnowledgeGraphOutwardEdges::ToKnowledgeGraph(
+                                edge,
+                            ) => {
+                                let earliest_entity = vertices
+                                    .knowledge_graph
+                                    .0
+                                    .get(&edge.right_endpoint)
+                                    .expect("Vertex must exist")
+                                    .values()
+                                    .map(|KnowledgeGraphVertex::Entity(entity)| entity.edition_id().version().transaction_time().as_start_bound_timestamp())
+                                    .min()
+                                    .expect("Vertex must exist");
+                                KnowledgeGraphOutwardEdges::ToKnowledgeGraph(
+                                    OutwardEdge {
+                                        kind: edge.kind,
+                                        reversed: edge.reversed,
+                                        right_endpoint: EntityIdAndTimestamp {
+                                            base_id: edge.right_endpoint,
+                                            timestamp: earliest_entity
+                                        },
+                                    })
+                            }
+                        }
+                    }).collect();
                     match map.entry(id.base_id()) {
                         Entry::Occupied(entry) => {
                             entry.into_mut().insert(id.version(), edges);
