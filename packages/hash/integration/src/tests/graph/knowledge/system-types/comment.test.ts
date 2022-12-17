@@ -2,17 +2,25 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
+  ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
 import { SYSTEM_TYPES } from "@hashintel/hash-api/src/graph/system-types";
-import {
-  BlockModel,
-  EntityModel,
-  UserModel,
-  CommentModel,
-} from "@hashintel/hash-api/src/model";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import { createTestUser } from "../../util";
+import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
+import { createEntity } from "@hashintel/hash-api/src/graph/knowledge/primitive/entity";
+import {
+  createBlock,
+  Block,
+} from "@hashintel/hash-api/src/graph/knowledge/system-types/block";
+import {
+  createComment,
+  getCommentAuthor,
+  getCommentParent,
+  getCommentText,
+} from "@hashintel/hash-api/src/graph/knowledge/system-types/comment";
+import { OwnedById } from "@hashintel/hash-shared/types";
+import { createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -30,9 +38,11 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-describe("Comment model class", () => {
-  let testUser: UserModel;
-  let testBlock: BlockModel;
+const ctx: ImpureGraphContext = { graphApi };
+
+describe("Comment", () => {
+  let testUser: User;
+  let testBlock: Block;
 
   const testBlockComponentId = "test-component-id";
 
@@ -40,45 +50,45 @@ describe("Comment model class", () => {
     await TypeSystemInitializer.initialize();
     await ensureSystemGraphIsInitialized({ graphApi, logger });
 
-    testUser = await createTestUser(graphApi, "commentModelTest", logger);
+    testUser = await createTestUser(graphApi, "commentTest", logger);
 
-    const textEntity = await EntityModel.create(graphApi, {
-      ownedById: testUser.getOwnedById(),
+    const textEntity = await createEntity(ctx, {
+      ownedById: testUser.accountId as OwnedById,
       properties: {
         [SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId]: [],
       },
       entityType: SYSTEM_TYPES.entityType.text,
-      actorId: testUser.getOwnedById(),
+      actorId: testUser.accountId,
     });
 
-    testBlock = await BlockModel.createBlock(graphApi, {
-      ownedById: testUser.getOwnedById(),
+    testBlock = await createBlock(ctx, {
+      ownedById: testUser.accountId as OwnedById,
       componentId: testBlockComponentId,
       blockData: textEntity,
-      actorId: testUser.getOwnedById(),
+      actorId: testUser.accountId,
     });
   });
 
   it("createComment method can create a comment", async () => {
-    const comment = await CommentModel.createComment(graphApi, {
-      ownedById: testUser.getOwnedById(),
-      parent: testBlock,
+    const comment = await createComment(ctx, {
+      ownedById: testUser.accountId as OwnedById,
+      parent: testBlock.entity,
       tokens: [],
       author: testUser,
-      actorId: testUser.getOwnedById(),
+      actorId: testUser.accountId,
     });
 
-    const hasText = await comment.getHasText(graphApi);
+    const hasText = await getCommentText(ctx, { comment });
     expect(
-      (hasText.getProperties() as any)[
+      hasText.properties[
         SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId
       ],
     ).toEqual([]);
 
-    const commentAuthor = await comment.getAuthor(graphApi);
+    const commentAuthor = await getCommentAuthor(ctx, { comment });
     expect(commentAuthor.entity).toEqual(testUser.entity);
 
-    const parentBlock = await comment.getParent(graphApi);
-    expect(parentBlock.entity).toEqual(testBlock.entity);
+    const parentBlock = await getCommentParent(ctx, { comment });
+    expect(parentBlock).toEqual(testBlock.entity);
   });
 });
