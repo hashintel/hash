@@ -88,7 +88,6 @@ impl Edges {
                             crate::subgraph::edges::KnowledgeGraphOutwardEdges::ToKnowledgeGraph(
                                 edge,
                             ) => {
-
                                 let earliest_timestamp = if edge.reversed {
                                     // We want to log the time the link entity was *first* added
                                     // from this entity. We therefore need to find the timestamp of
@@ -106,16 +105,14 @@ impl Edges {
                                     .transaction_time()
                                     .as_start_bound_timestamp();
 
-                                KnowledgeGraphOutwardEdges::ToKnowledgeGraph(
-                                    OutwardEdge {
-                                        kind: edge.kind,
-                                        reversed: edge.reversed,
-                                        right_endpoint: EntityIdAndTimestamp {
-                                            base_id: edge.right_endpoint,
-                                            timestamp: earliest_timestamp
-                                        },
-                                    }
-                                )
+                                KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
+                                    kind: edge.kind,
+                                    reversed: edge.reversed,
+                                    right_endpoint: EntityIdAndTimestamp {
+                                        base_id: edge.right_endpoint,
+                                        timestamp: earliest_timestamp,
+                                    },
+                                });
                             }
                         }
                     }).collect();
