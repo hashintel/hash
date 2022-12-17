@@ -11,7 +11,7 @@ struct HookContextInner {
 }
 
 #[repr(transparent)]
-struct HookContext<T> {
+pub struct HookContext<T> {
     inner: HookContextInner,
     _marker: PhantomData<fn() -> *const T>,
 }
@@ -87,7 +87,7 @@ impl Hook {
 }
 
 pub(crate) struct Hooks {
-    pub(crate) inner: Vec<Hook>,
+    inner: Vec<Hook>,
 }
 
 impl Hooks {
@@ -96,7 +96,7 @@ impl Hooks {
 
         // make sure that previous hooks of the same TypeId are deleted
         self.inner.retain(|hook| hook.ty != type_id);
-        self.inner.push(Hook::new_static::<T>())
+        self.inner.push(Hook::new_static::<T>());
     }
 
     pub(crate) fn insert_dynamic<T: Send + Sync + 'static, U: serde::Serialize, F>(
@@ -109,7 +109,7 @@ impl Hooks {
 
         // make sure that previous hooks of the same TypeId are deleted
         self.inner.retain(|hook| hook.ty != type_id);
-        self.inner.push(Hook::new_dynamic(closure))
+        self.inner.push(Hook::new_dynamic(closure));
     }
 
     pub(crate) fn call<'a>(
@@ -117,6 +117,8 @@ impl Hooks {
         frame: &'a Frame,
         context: &'a mut HookContext<Frame>,
     ) -> impl Iterator<Item = Box<dyn erased_serde::Serialize + 'a>> + 'a + '_ {
-        self.inner.iter().flat_map(|hook| hook.call(frame, context))
+        self.inner
+            .iter()
+            .filter_map(|hook| hook.call(frame, context))
     }
 }
