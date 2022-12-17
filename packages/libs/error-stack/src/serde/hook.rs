@@ -24,7 +24,7 @@ impl<T> HookContext<T> {
     }
 }
 
-fn serialize<'a, T: serde::Serialize>(
+fn serialize<'a, T: serde::Serialize + Send + Sync + 'static>(
     frame: &'a Frame,
 ) -> Option<Box<dyn erased_serde::Serialize + 'a>> {
     let value: &T = frame.request_ref()?;
@@ -59,17 +59,29 @@ impl Hook {
     where
         for<'a> F: Fn(&'a T, &mut HookContext<T>) -> U + 'a,
     {
-        let closure = Box::new(|frame: &Frame, context: &mut HookContext<Frame>| {
-            let value: &T = frame.request_ref()?;
+        todo!()
+        // let closure = Box::new(|frame: &Frame, context: &mut HookContext<Frame>| {
+        //     let value: &T = frame.request_ref()?;
+        //
+        //     let value = Box::new(closure(value, context.cast()));
+        //
+        //     Some(value)
+        // });
+        //
+        // Self {
+        //     ty: TypeId::of::<T>(),
+        //     hook: HookFn::Dynamic(closure),
+        // }
+    }
 
-            let value = Box::new(closure(value, context.cast()));
-
-            Some(value)
-        });
-
-        Self {
-            ty: TypeId::of::<T>(),
-            hook: HookFn::Dynamic(closure),
+    fn call<'a>(
+        &self,
+        frame: &'a Frame,
+        context: &mut HookContext<Frame>,
+    ) -> Option<Box<dyn erased_serde::Serialize + 'a>> {
+        match &self.hook {
+            HookFn::Static(hook) => hook(frame),
+            HookFn::Dynamic(hook) => hook(frame, context),
         }
     }
 }
@@ -98,5 +110,13 @@ impl Hooks {
         // make sure that previous hooks of the same TypeId are deleted
         self.inner.retain(|hook| hook.ty != type_id);
         self.inner.push(Hook::new_dynamic(closure))
+    }
+
+    pub(crate) fn call<'a>(
+        &'a self,
+        frame: &'a Frame,
+        context: &'a mut HookContext<Frame>,
+    ) -> impl Iterator<Item = Box<dyn erased_serde::Serialize + 'a>> + 'a + '_ {
+        self.inner.iter().flat_map(|hook| hook.call(frame, context))
     }
 }
