@@ -1,6 +1,6 @@
 import { PropertyType } from "@blockprotocol/type-system";
 import { Chip } from "@hashintel/hash-design-system";
-import { types } from "@hashintel/hash-shared/types";
+import { types } from "@hashintel/hash-shared/ontology-types";
 
 const dataTypeIdToTitle = Object.values(types.dataType).reduce<
   Record<string, string>

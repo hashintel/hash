@@ -6,13 +6,16 @@ import {
 import {
   BlockModel,
   EntityModel,
-  EntityTypeModel,
   UserModel,
 } from "@hashintel/hash-api/src/model";
 import { generateSystemEntityTypeSchema } from "@hashintel/hash-api/src/model/util";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { generateTypeId } from "@hashintel/hash-shared/types";
+import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import { EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
+
+import { createEntityType } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -40,7 +43,7 @@ describe("Block model class", () => {
 
   let testBlockDataEntity: EntityModel;
 
-  let dummyEntityType: EntityTypeModel;
+  let dummyEntityType: EntityTypeWithMetadata;
 
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
@@ -52,25 +55,28 @@ describe("Block model class", () => {
      * @todo: rename to something more representative of a real-world use-case,
      * once the exact role of the block data entity's entity type is known.
      */
-    dummyEntityType = await EntityTypeModel.create(graphApi, {
-      ownedById: testUser.getEntityUuid(),
-      schema: generateSystemEntityTypeSchema({
-        entityTypeId: generateTypeId({
-          namespace: testUser.getShortname()!,
-          kind: "entity-type",
+    dummyEntityType = await createEntityType(
+      { graphApi },
+      {
+        ownedById: testUser.getEntityUuid() as OwnedById,
+        schema: generateSystemEntityTypeSchema({
+          entityTypeId: generateTypeId({
+            namespace: testUser.getShortname()!,
+            kind: "entity-type",
+            title: "Dummy",
+          }),
           title: "Dummy",
+          properties: [],
+          outgoingLinks: [],
         }),
-        title: "Dummy",
-        properties: [],
-        outgoingLinks: [],
-      }),
-      actorId: testUser.getEntityUuid(),
-    });
+        actorId: testUser.getEntityUuid() as AccountId,
+      },
+    );
 
     testBlockDataEntity = await EntityModel.create(graphApi, {
       ownedById: testUser.getEntityUuid(),
       properties: {},
-      entityTypeModel: dummyEntityType,
+      entityType: dummyEntityType,
       actorId: testUser.getEntityUuid(),
     });
   });
@@ -104,7 +110,7 @@ describe("Block model class", () => {
     const newBlockDataEntity = await EntityModel.create(graphApi, {
       ownedById: testUser.getEntityUuid(),
       properties: {},
-      entityTypeModel: dummyEntityType,
+      entityType: dummyEntityType,
       actorId: testUser.getEntityUuid(),
     });
 

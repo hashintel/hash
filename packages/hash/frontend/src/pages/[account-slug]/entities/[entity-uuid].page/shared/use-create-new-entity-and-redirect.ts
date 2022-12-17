@@ -3,6 +3,7 @@ import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { useRouter } from "next/router";
 import { useCallback, useContext } from "react";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import { useBlockProtocolCreateEntity } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
 import { useBlockProtocolGetEntityType } from "../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { WorkspaceContext } from "../../../../shared/workspace-context";
@@ -12,7 +13,7 @@ export const useCreateNewEntityAndRedirect = () => {
   const { activeWorkspace, activeWorkspaceAccountId } =
     useContext(WorkspaceContext);
   const { createEntity } = useBlockProtocolCreateEntity(
-    activeWorkspaceAccountId ?? null,
+    (activeWorkspaceAccountId as OwnedById) ?? null,
   );
   const { getEntityType } = useBlockProtocolGetEntityType();
 

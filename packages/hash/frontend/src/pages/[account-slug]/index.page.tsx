@@ -1,21 +1,32 @@
-import { useMemo } from "react";
+import { useRouter } from "next/router";
+import { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import { Typography, Container, Grid, Skeleton, Box } from "@mui/material";
 import { Avatar } from "@hashintel/hash-design-system";
+import { useMemo } from "react";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
-import { useOrgs } from "../../components/hooks/useOrgs";
 import { useUsers } from "../../components/hooks/useUsers";
-import { useRouteAccountInfo } from "../../shared/routing";
+import { useOrgs } from "../../components/hooks/useOrgs";
 
 const menuBarHeight = 60;
 
-const Page: NextPageWithLayout = () => {
-  /**
-   * @todo: this will need to be reworked once pages can't rely on the `accountId` being
-   * in the URL.
-   */
-  const { routeAccountSlug: routeAccountIdOrShortname } = useRouteAccountInfo();
+export const parseProfilePageUrlQueryParams = (
+  queryParams: NextParsedUrlQuery | undefined,
+) => {
+  const paramsAccountSlug = queryParams?.["account-slug"];
 
-  const shortname = routeAccountIdOrShortname.slice(1);
+  if (!paramsAccountSlug || typeof paramsAccountSlug !== "string") {
+    throw new Error("Could not parse `account-slug` from query params.");
+  }
+
+  const profileShortname = paramsAccountSlug.slice(1);
+
+  return { profileShortname };
+};
+
+const Page: NextPageWithLayout = () => {
+  const router = useRouter();
+
+  const { profileShortname } = parseProfilePageUrlQueryParams(router.query);
 
   /**
    * @todo: getting an org or user by their shortname should not be happening
@@ -29,9 +40,9 @@ const Page: NextPageWithLayout = () => {
 
   const profile = useMemo(() => {
     return [...(users ?? []), ...(orgs ?? [])].find(
-      (userOrOrg) => userOrOrg.shortname === shortname,
+      (userOrOrg) => userOrOrg.shortname === profileShortname,
     );
-  }, [shortname, users, orgs]);
+  }, [profileShortname, users, orgs]);
 
   const profileNotFound = !profile && !loadingOrgs && !loadingUsers;
 

@@ -3,6 +3,7 @@ import { EntityId, VersionedUri } from "@hashintel/hash-subgraph";
 import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
+import { OwnedById } from "@hashintel/hash-shared/types";
 
 import { BlockEntity, isDraftTextEntity } from "./entity";
 import {
@@ -36,7 +37,7 @@ type EntityTypeForComponentResult = [VersionedUri, UpdatePageAction[]];
  */
 const calculateSaveActions = async (
   store: EntityStore,
-  ownedById: string,
+  ownedById: OwnedById,
   textEntityTypeId: VersionedUri,
   blocks: BlockEntity[],
   doc: Node,
@@ -370,7 +371,7 @@ const getDraftEntityIds = (
 
 export const save = async (
   apolloClient: ApolloClient<unknown>,
-  ownedById: string,
+  ownedById: OwnedById,
   pageEntityId: EntityId,
   doc: Node,
   store: EntityStore,

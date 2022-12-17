@@ -10,7 +10,7 @@ import {
   HashInstanceModel,
 } from "..";
 import {
-  adminKratosSdk,
+  kratosIdentityApi,
   KratosUserIdentity,
   KratosUserIdentityTraits,
 } from "../../auth/ory-kratos";
@@ -22,7 +22,7 @@ type QualifiedEmail = { address: string; verified: boolean; primary: boolean };
 
 type UserModelCreateParams = Omit<
   EntityModelCreateParams,
-  "properties" | "entityTypeModel" | "ownedById"
+  "properties" | "entityType" | "ownedById"
 > & {
   emails: string[];
   kratosIdentityId: string;
@@ -38,13 +38,13 @@ type UserModelCreateParams = Omit<
 export default class extends EntityModel {
   static fromEntityModel(entityModel: EntityModel): UserModel {
     if (
-      entityModel.entityTypeModel.getSchema().$id !==
-      SYSTEM_TYPES.entityType.user.getSchema().$id
+      entityModel.entityType.schema.$id !==
+      SYSTEM_TYPES.entityType.user.schema.$id
     ) {
       throw new EntityTypeMismatchError(
         entityModel.getBaseId(),
-        SYSTEM_TYPES.entityType.user.getSchema().$id,
-        entityModel.entityTypeModel.getSchema().$id,
+        SYSTEM_TYPES.entityType.user.schema.$id,
+        entityModel.entityType.schema.$id,
       );
     }
 
@@ -86,7 +86,7 @@ export default class extends EntityModel {
         {
           equal: [
             { path: ["type", "versionedUri"] },
-            { parameter: SYSTEM_TYPES.entityType.user.getSchema().$id },
+            { parameter: SYSTEM_TYPES.entityType.user.schema.$id },
           ],
         },
       ],
@@ -118,7 +118,7 @@ export default class extends EntityModel {
         {
           equal: [
             { path: ["type", "versionedUri"] },
-            { parameter: SYSTEM_TYPES.entityType.user.getSchema().$id },
+            { parameter: SYSTEM_TYPES.entityType.user.schema.$id },
           ],
         },
       ],
@@ -185,26 +185,29 @@ export default class extends EntityModel {
       params.userAccountId ?? (await graphApi.createAccountId()).data;
 
     const properties: PropertyObject = {
-      [SYSTEM_TYPES.propertyType.email.getBaseUri()]: emails,
-      [SYSTEM_TYPES.propertyType.kratosIdentityId.getBaseUri()]:
+      [SYSTEM_TYPES.propertyType.email.metadata.editionId.baseId]: emails,
+      [SYSTEM_TYPES.propertyType.kratosIdentityId.metadata.editionId.baseId]:
         kratosIdentityId,
       ...(shortname
-        ? { [SYSTEM_TYPES.propertyType.shortName.getBaseUri()]: shortname }
+        ? {
+            [SYSTEM_TYPES.propertyType.shortName.metadata.editionId.baseId]:
+              shortname,
+          }
         : {}),
       ...(preferredName
         ? {
-            [SYSTEM_TYPES.propertyType.preferredName.getBaseUri()]:
+            [SYSTEM_TYPES.propertyType.preferredName.metadata.editionId.baseId]:
               preferredName,
           }
         : {}),
     };
 
-    const entityTypeModel = SYSTEM_TYPES.entityType.user;
+    const entityType = SYSTEM_TYPES.entityType.user;
 
     const entity = await EntityModel.create(graphApi, {
       ownedById: systemUserAccountId,
       properties,
-      entityTypeModel,
+      entityType,
       entityUuid: userAccountId,
       actorId,
     });
@@ -226,9 +229,9 @@ export default class extends EntityModel {
    */
   async getKratosIdentity(): Promise<KratosUserIdentity> {
     const kratosIdentityId = this.getKratosIdentityId();
-    const { data: kratosIdentity } = await adminKratosSdk.adminGetIdentity(
-      kratosIdentityId,
-    );
+    const { data: kratosIdentity } = await kratosIdentityApi.getIdentity({
+      id: kratosIdentityId,
+    });
 
     return kratosIdentity;
   }
@@ -248,19 +251,22 @@ export default class extends EntityModel {
       throw new Error("Previous user identity state is undefined");
     }
 
-    await adminKratosSdk.adminUpdateIdentity(kratosIdentityId, {
-      schema_id,
-      state,
-      traits: {
-        ...currentKratosTraits,
-        ...updatedTraits,
+    await kratosIdentityApi.updateIdentity({
+      id: kratosIdentityId,
+      updateIdentityBody: {
+        schema_id,
+        state,
+        traits: {
+          ...currentKratosTraits,
+          ...updatedTraits,
+        },
       },
     });
   }
 
   async getQualifiedEmails(): Promise<QualifiedEmail[]> {
     const emails: string[] = (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.email.getBaseUri()
+      SYSTEM_TYPES.propertyType.email.metadata.editionId.baseId
     ];
 
     const kratosIdentity = await this.getKratosIdentity();
@@ -289,7 +295,7 @@ export default class extends EntityModel {
 
   getEmails(): string[] {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.email.getBaseUri()
+      SYSTEM_TYPES.propertyType.email.metadata.editionId.baseId
     ];
   }
 
@@ -302,7 +308,7 @@ export default class extends EntityModel {
    */
   getShortname(): string | undefined {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.shortName.getBaseUri()
+      SYSTEM_TYPES.propertyType.shortName.metadata.editionId.baseId
     ];
   }
 
@@ -336,7 +342,8 @@ export default class extends EntityModel {
     const previousShortname = this.getShortname();
 
     const updatedUser = await this.updateProperty(graphApi, {
-      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.shortName.getBaseUri(),
+      propertyTypeBaseUri:
+        SYSTEM_TYPES.propertyType.shortName.metadata.editionId.baseId,
       value: updatedShortname,
       actorId,
     }).then((updatedEntity) => UserModel.fromEntityModel(updatedEntity));
@@ -346,7 +353,8 @@ export default class extends EntityModel {
     }).catch(async (error) => {
       // If an error occurred updating the entity, set the property to have the previous shortname
       await this.updateProperty(graphApi, {
-        propertyTypeBaseUri: SYSTEM_TYPES.propertyType.shortName.getBaseUri(),
+        propertyTypeBaseUri:
+          SYSTEM_TYPES.propertyType.shortName.metadata.editionId.baseId,
         value: previousShortname,
         actorId,
       });
@@ -359,7 +367,7 @@ export default class extends EntityModel {
 
   getPreferredName(): string | undefined {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.preferredName.getBaseUri()
+      SYSTEM_TYPES.propertyType.preferredName.metadata.editionId.baseId
     ];
   }
 
@@ -381,7 +389,8 @@ export default class extends EntityModel {
       );
     }
     const updatedEntity = await this.updateProperty(graphApi, {
-      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.preferredName.getBaseUri(),
+      propertyTypeBaseUri:
+        SYSTEM_TYPES.propertyType.preferredName.metadata.editionId.baseId,
       value: updatedPreferredName,
       actorId,
     });
@@ -391,7 +400,7 @@ export default class extends EntityModel {
 
   getKratosIdentityId(): string {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.kratosIdentityId.getBaseUri()
+      SYSTEM_TYPES.propertyType.kratosIdentityId.metadata.editionId.baseId
     ];
   }
 
@@ -437,7 +446,7 @@ export default class extends EntityModel {
   async getOrgMemberships(graphApi: GraphApi): Promise<OrgMembershipModel[]> {
     const outgoingOrgMembershipLinkEntityModels = await this.getOutgoingLinks(
       graphApi,
-      { linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.orgMembership },
+      { linkEntityType: SYSTEM_TYPES.linkEntityType.orgMembership },
     );
 
     return outgoingOrgMembershipLinkEntityModels.map((orgLinkEntityModel) =>

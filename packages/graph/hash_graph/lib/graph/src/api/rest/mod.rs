@@ -24,7 +24,6 @@ use axum::{
 use error_stack::Report;
 use futures::TryFutureExt;
 use include_dir::{include_dir, Dir};
-use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 use utoipa::{
     openapi::{
@@ -34,15 +33,11 @@ use utoipa::{
     Modify, OpenApi,
 };
 
-use self::api_resource::RoutedResource;
+use self::{api_resource::RoutedResource, middleware::span_maker};
 use crate::{
     api::rest::middleware::log_request_and_response,
     ontology::{domain_validator::DomainValidator, Selector},
-    store::{
-        crud::Read,
-        query::{Filter, QueryRecord},
-        QueryError, StorePool,
-    },
+    store::{crud::Read, query::Filter, QueryError, Record, StorePool},
 };
 
 static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/json_schemas");
@@ -77,13 +72,13 @@ fn report_to_status_code<C>(report: &Report<C>) -> StatusCode {
     status_code
 }
 
-async fn read_from_store<'pool, 'q, P, T>(
+async fn read_from_store<'pool, 'p, P, R>(
     pool: &'pool P,
-    query: &'q Filter<'q, T>,
-) -> Result<Vec<T>, StatusCode>
+    query: &Filter<'p, R>,
+) -> Result<Vec<R>, StatusCode>
 where
-    P: StorePool<Store<'pool>: Read<T>>,
-    T: QueryRecord<Path<'q>: Sync + Debug> + Send,
+    P: StorePool<Store<'pool>: Read<R>>,
+    R: Record<QueryPath<'p>: Sync + Debug> + Send,
 {
     pool.acquire()
         .map_err(|report| {
@@ -125,7 +120,7 @@ pub fn rest_api_router<P: StorePool + Send + 'static>(
         .layer(Extension(store))
         .layer(Extension(domain_regex))
         .layer(axum::middleware::from_fn(log_request_and_response))
-        .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()))
+        .layer(TraceLayer::new_for_http().make_span_with(span_maker))
         .nest(
             "/api-doc",
             Router::new()

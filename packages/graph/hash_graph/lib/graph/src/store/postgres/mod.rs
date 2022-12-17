@@ -1,7 +1,6 @@
 mod knowledge;
 mod ontology;
 
-mod context;
 mod pool;
 mod query;
 mod version_id;
@@ -13,7 +12,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use error_stack::{Context, IntoReport, Report, Result, ResultExt};
+use error_stack::{IntoReport, Report, Result, ResultExt};
 #[cfg(feature = "__internal_bench")]
 use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
 use tokio_postgres::{GenericClient, Transaction};
@@ -23,19 +22,18 @@ use type_system::{
 };
 use uuid::Uuid;
 
-use self::context::OntologyRecord;
 pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
     identifier::{account::AccountId, knowledge::EntityEditionId, ontology::OntologyTypeEditionId},
-    ontology::OntologyElementMetadata,
+    ontology::{OntologyElementMetadata, OntologyTypeWithMetadata},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
+        crud::Read,
         error::VersionedUriAlreadyExists,
-        postgres::{
-            context::PostgresContext, ontology::OntologyDatabaseType, version_id::VersionId,
-        },
+        postgres::{ontology::OntologyDatabaseType, query::PostgresRecord, version_id::VersionId},
+        query::{Filter, OntologyQueryPath},
         AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError,
-        UpdateError,
+        Record, UpdateError,
     },
     subgraph::edges::GraphResolveDepths,
 };
@@ -130,6 +128,7 @@ where
     /// - if checking for the [`BaseUri`] failed.
     ///
     /// [`BaseUri`]: type_system::uri::BaseUri
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn contains_base_uri(&self, base_uri: &BaseUri) -> Result<bool, QueryError> {
         Ok(self
             .client
@@ -156,6 +155,7 @@ where
     /// # Errors
     ///
     /// - if checking for the [`VersionedUri`] failed.
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn contains_uri(&self, uri: &VersionedUri) -> Result<bool, QueryError> {
         let version = i64::from(uri.version());
         Ok(self
@@ -183,6 +183,7 @@ where
     /// # Errors
     ///
     /// - if inserting the [`VersionedUri`] failed.
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn insert_uri(
         &self,
         uri: &VersionedUri,
@@ -213,6 +214,7 @@ where
     /// - if inserting the [`BaseUri`] failed.
     ///
     /// [`BaseUri`]: type_system::uri::BaseUri
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn insert_base_uri(&self, base_uri: &BaseUri) -> Result<(), InsertionError> {
         self.as_client()
             .query_one(
@@ -236,6 +238,7 @@ where
     /// # Errors
     ///
     /// - if inserting the [`VersionId`] failed.
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn insert_version_id(&self, version_id: VersionId) -> Result<(), InsertionError> {
         self.as_client()
             .query_one(
@@ -265,6 +268,7 @@ where
     /// - If the [`BaseUri`] already exists
     ///
     /// [`BaseUri`]: type_system::uri::BaseUri
+    #[tracing::instrument(level = "info", skip(self, database_type))]
     async fn create<T>(
         &self,
         database_type: T,
@@ -272,9 +276,9 @@ where
         updated_by_id: UpdatedById,
     ) -> Result<(VersionId, OntologyElementMetadata), InsertionError>
     where
-        T: OntologyDatabaseType + Send + Sync + Into<serde_json::Value>,
+        T: OntologyDatabaseType<Representation: Send> + Send + Sync,
     {
-        let uri = database_type.versioned_uri().clone();
+        let uri = database_type.id().clone();
 
         if self
             .contains_base_uri(uri.base_uri())
@@ -325,19 +329,18 @@ where
     /// - If the [`BaseUri`] does not already exist
     ///
     /// [`BaseUri`]: type_system::uri::BaseUri
+    #[tracing::instrument(level = "info", skip(self, database_type))]
     async fn update<T>(
         &self,
         database_type: T,
         updated_by_id: UpdatedById,
     ) -> Result<(VersionId, OntologyElementMetadata), UpdateError>
     where
-        T: OntologyDatabaseType
-            + Send
-            + Sync
-            + Into<serde_json::Value>
-            + TryFrom<serde_json::Value, Error: Context>,
+        T: OntologyDatabaseType<Representation: Send> + Send + Sync,
+        T::WithMetadata: PostgresRecord + Send,
+        for<'p> <T::WithMetadata as Record>::QueryPath<'p>: OntologyQueryPath + Send + Sync,
     {
-        let uri = database_type.versioned_uri().clone();
+        let uri = database_type.id().clone();
 
         if !self
             .contains_base_uri(uri.base_uri())
@@ -349,17 +352,14 @@ where
                 .change_context(UpdateError));
         }
 
-        let base_uri = uri.base_uri();
-
         // TODO - address potential race condition
         //  https://app.asana.com/0/1202805690238892/1203201674100967/f
+        let previous_ontology_type =
+            <Self as Read<T::WithMetadata>>::read_one(self, &Filter::for_base_uri(uri.base_uri()))
+                .await
+                .change_context(UpdateError)?;
 
-        let previous_ontology_type = self
-            .read_latest_ontology_type::<T>(base_uri)
-            .await
-            .change_context(UpdateError)?;
-
-        let OntologyRecord { owned_by_id, .. } = previous_ontology_type;
+        let owned_by_id = previous_ontology_type.metadata().owned_by_id();
 
         let version_id = VersionId::new(Uuid::new_v4());
         self.insert_version_id(version_id)
@@ -388,6 +388,7 @@ where
     /// # Errors
     ///
     /// - if inserting failed.
+    #[tracing::instrument(level = "debug", skip(self, database_type))]
     async fn insert_with_id<T>(
         &self,
         version_id: VersionId,
@@ -396,9 +397,12 @@ where
         updated_by_id: UpdatedById,
     ) -> Result<(), InsertionError>
     where
-        T: OntologyDatabaseType + Send + Sync + Into<serde_json::Value>,
+        T: OntologyDatabaseType<Representation: Send> + Send + Sync,
     {
-        let value: serde_json::Value = database_type.into();
+        let value_repr = T::Representation::from(database_type);
+        let value = serde_json::to_value(value_repr)
+            .into_report()
+            .change_context(InsertionError)?;
         // Generally bad practice to construct a query without preparation, but it's not possible to
         // pass a table name as a parameter and `T::table()` is well-defined, so this is a safe
         // usage.
@@ -426,6 +430,7 @@ where
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip(self, property_type))]
     async fn insert_property_type_references(
         &self,
         property_type: &PropertyType,
@@ -474,6 +479,7 @@ where
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip(self, entity_type))]
     async fn insert_entity_type_references(
         &self,
         entity_type: &EntityType,
@@ -544,6 +550,7 @@ where
     }
 
     // TODO: Tidy these up by having an `Into<VersionedUri>` method or something for the references
+    #[tracing::instrument(level = "debug", skip(self, referenced_entity_types))]
     async fn entity_type_reference_ids<'p, I>(
         &self,
         referenced_entity_types: I,
@@ -560,6 +567,7 @@ where
         Ok(ids)
     }
 
+    #[tracing::instrument(level = "debug", skip(self, referenced_property_types))]
     async fn property_type_reference_ids<'p, I>(
         &self,
         referenced_property_types: I,
@@ -576,6 +584,7 @@ where
         Ok(ids)
     }
 
+    #[tracing::instrument(level = "debug", skip(self, referenced_data_types))]
     async fn data_type_reference_ids<'p, I>(
         &self,
         referenced_data_types: I,
@@ -597,6 +606,7 @@ where
     /// # Errors:
     ///
     /// - if the entry referred to by `uri` does not exist.
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn version_id_by_uri(&self, uri: &VersionedUri) -> Result<VersionId, QueryError> {
         let version = i64::from(uri.version());
         Ok(self
@@ -906,6 +916,7 @@ impl PostgresStore<Transaction<'_>> {
 
 #[async_trait]
 impl<C: AsClient> AccountStore for PostgresStore<C> {
+    #[tracing::instrument(level = "info", skip(self))]
     async fn insert_account_id(&mut self, account_id: AccountId) -> Result<(), InsertionError> {
         self.as_client()
             .query_one(

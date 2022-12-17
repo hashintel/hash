@@ -5,7 +5,7 @@ import { Button } from "@hashintel/hash-design-system";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { extractBaseUri } from "@blockprotocol/type-system";
-import { types } from "@hashintel/hash-shared/types";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import {
   EntityId,
   extractEntityUuidFromEntityId,
@@ -16,7 +16,7 @@ import { CommentBlock } from "./CommentBlock";
 import styles from "./style.module.css";
 import { useCreateComment } from "../../../components/hooks/useCreateComment";
 import { CommentActionButtons } from "./CommentActionButtons";
-import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
+import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
 
 const UNCOLLAPSIBLE_REPLIES_NUMBER = 2;
 
@@ -104,8 +104,8 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
         resolvable={
           // TODO: The provenance fields shouldn't be used for this
           //   see https://app.asana.com/0/1201095311341924/1203466351235289/f
-          authenticatedUser?.userAccountId === authorId ||
-          authenticatedUser?.userAccountId ===
+          authenticatedUser?.accountId === authorId ||
+          authenticatedUser?.accountId ===
             comment.parent.metadata.provenance.updatedById
         }
       />

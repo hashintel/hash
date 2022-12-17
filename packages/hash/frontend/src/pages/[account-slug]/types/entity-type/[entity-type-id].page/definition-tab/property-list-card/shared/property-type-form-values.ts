@@ -4,24 +4,25 @@ export enum ArrayType {
   dataTypeArray = "dataTypeArray",
   propertyObjectArray = "propertyObjectArray",
   mixedArray = "mixedArray",
+  arrayArray = "arrayArray",
 }
 
-interface PrimitiveTypeData {
+interface PrimitiveExpectedValue {
   typeId: VersionedUri;
 }
 
-interface ArrayTypeData {
+interface ArrayExpectedValue {
   typeId: "array";
   minItems: number;
   maxItems?: number;
-  expectedValues: string[];
+  itemIds: string[];
 }
 
-export interface DataType {
+export interface CustomExpectedValue {
   id: string;
   parentId?: string;
   animatingOut?: boolean;
-  data?: PrimitiveTypeData | ArrayTypeData;
+  data?: PrimitiveExpectedValue | ArrayExpectedValue;
 }
 
 export type ExpectedValue =
@@ -30,28 +31,29 @@ export type ExpectedValue =
       typeId: "array";
       arrayType: ArrayType;
       id: string;
-      flattenedDataTypes: Record<string, DataType>;
+      flattenedExpectedValues: Record<string, CustomExpectedValue>;
     };
 
 export type PropertyTypeFormValues = {
   name: string;
   description: string;
   expectedValues: ExpectedValue[];
-  customDataTypeId?: string;
-  editingDataTypeIndex?: number;
-  flattenedDataTypeList: Record<string, DataType>;
+  customExpectedValueId?: string;
+  editingExpectedValueIndex?: number;
+  flattenedCustomExpectedValueList: Record<string, CustomExpectedValue>;
 };
 
-export type DefaultDataTypeId = VersionedUri | "array";
-export const getDefaultData = (
-  typeId: DefaultDataTypeId,
-): PrimitiveTypeData | ArrayTypeData => {
+export type DefaultExpectedValueTypeId = VersionedUri | "array";
+
+export const getDefaultExpectedValue = (
+  typeId: DefaultExpectedValueTypeId,
+): PrimitiveExpectedValue | ArrayExpectedValue => {
   if (typeId === "array") {
     return {
       typeId: "array",
       minItems: 0,
       maxItems: 0,
-      expectedValues: [],
+      itemIds: [],
     };
   }
 

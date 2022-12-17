@@ -26,7 +26,7 @@ test.skip("user can view page in read-only mode but not update", async ({
   await sleep(500);
   await page.locator('[data-testid="create-page-btn"]').click();
 
-  await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+\/[\w-]+$/));
+  await page.waitForURL((url) => !!url.pathname.match(/^\/@[\w-]+\/[\w-]+$/));
 
   await expect(page.locator('[data-testid="page-sidebar"]')).toBeVisible();
 

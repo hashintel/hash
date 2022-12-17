@@ -2,24 +2,19 @@
 
 use std::sync::Arc;
 
-use axum::{
-    extract::Path,
-    http::StatusCode,
-    routing::{get, post},
-    Extension, Json, Router,
-};
+use axum::{http::StatusCode, routing::post, Extension, Json, Router};
 use error_stack::IntoReport;
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
-use type_system::{uri::VersionedUri, EntityType};
+use type_system::{repr, uri::VersionedUri, EntityType};
 use utoipa::{OpenApi, ToSchema};
 
 use crate::{
     api::rest::{
         api_resource::RoutedResource,
-        read_from_store, report_to_status_code,
+        report_to_status_code,
         utoipa_typedef::subgraph::{
-            Edges, OntologyRootedEdges, OntologyVertices, Subgraph, Vertices,
+            Edges, OntologyRootedEdges, OntologyVertices, Subgraph, Vertex, Vertices,
         },
     },
     identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId, GraphElementId},
@@ -30,7 +25,6 @@ use crate::{
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
-        query::Filter,
         EntityTypeStore, StorePool,
     },
     subgraph::{
@@ -39,7 +33,6 @@ use crate::{
             OutgoingEdgeResolveDepth, SharedEdgeKind,
         },
         query::{EntityTypeStructuralQuery, StructuralQuery},
-        vertices::Vertex,
     },
 };
 
@@ -48,8 +41,6 @@ use crate::{
     paths(
         create_entity_type,
         get_entity_types_by_query,
-        get_entity_type,
-        get_latest_entity_types,
         update_entity_type
     ),
     components(
@@ -95,21 +86,18 @@ impl RoutedResource for EntityTypeResource {
             Router::new()
                 .route(
                     "/",
-                    post(create_entity_type::<P>)
-                        .get(get_latest_entity_types::<P>)
-                        .put(update_entity_type::<P>),
+                    post(create_entity_type::<P>).put(update_entity_type::<P>),
                 )
-                .route("/query", post(get_entity_types_by_query::<P>))
-                .route("/:version_id", get(get_entity_type::<P>)),
+                .route("/query", post(get_entity_types_by_query::<P>)),
         )
     }
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreateEntityTypeRequest {
     #[schema(value_type = VAR_ENTITY_TYPE)]
-    schema: serde_json::Value,
+    schema: repr::EntityType,
     owned_by_id: OwnedById,
     actor_id: UpdatedById,
 }
@@ -128,6 +116,7 @@ struct CreateEntityTypeRequest {
     ),
     request_body = CreateEntityTypeRequest,
 )]
+#[tracing::instrument(level = "info", skip(pool, domain_validator))]
 async fn create_entity_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
@@ -180,11 +169,11 @@ async fn create_entity_type<P: StorePool + Send>(
     tag = "EntityType",
     responses(
         (status = 200, content_type = "application/json", body = Subgraph, description = "A subgraph rooted at entity types that satisfy the given query, each resolved to the requested depth."),
-
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
     )
 )]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn get_entity_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(query): Json<serde_json::Value>,
@@ -215,50 +204,7 @@ async fn get_entity_types_by_query<P: StorePool + Send>(
         .map(|subgraph| Json(subgraph.into()))
 }
 
-#[utoipa::path(
-    get,
-    path = "/entity-types",
-    tag = "EntityType",
-    responses(
-        (status = 200, content_type = "application/json", description = "List of all entity types at their latest versions", body = [EntityTypeWithMetadata]),
-
-        (status = 500, description = "Store error occurred"),
-    )
-)]
-async fn get_latest_entity_types<P: StorePool + Send>(
-    pool: Extension<Arc<P>>,
-) -> Result<Json<Vec<EntityTypeWithMetadata>>, StatusCode> {
-    read_from_store(pool.as_ref(), &Filter::for_latest_version())
-        .await
-        .map(Json)
-}
-
-#[utoipa::path(
-    get,
-    path = "/entity-types/{uri}",
-    tag = "EntityType",
-    responses(
-        (status = 200, content_type = "application/json", description = "The schema of the requested entity type", body = EntityTypeWithMetadata),
-        (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
-
-        (status = 404, description = "Entity type was not found"),
-        (status = 500, description = "Store error occurred"),
-    ),
-    params(
-        ("uri" = String, Path, description = "The URI of the entity type"),
-    )
-)]
-async fn get_entity_type<P: StorePool + Send>(
-    uri: Path<VersionedUri>,
-    pool: Extension<Arc<P>>,
-) -> Result<Json<EntityTypeWithMetadata>, StatusCode> {
-    read_from_store(pool.as_ref(), &Filter::for_versioned_uri(&uri.0))
-        .await
-        .and_then(|mut entity_types| entity_types.pop().ok_or(StatusCode::NOT_FOUND))
-        .map(Json)
-}
-
-#[derive(ToSchema, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct UpdateEntityTypeRequest {
     #[schema(value_type = VAR_UPDATE_ENTITY_TYPE)]
@@ -281,6 +227,7 @@ struct UpdateEntityTypeRequest {
     ),
     request_body = UpdateEntityTypeRequest,
 )]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn update_entity_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<UpdateEntityTypeRequest>,

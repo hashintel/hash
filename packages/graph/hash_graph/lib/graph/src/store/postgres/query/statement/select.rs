@@ -6,14 +6,14 @@ use crate::store::postgres::query::{
 };
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub struct SelectStatement<'q> {
-    pub with: WithExpression<'q>,
-    pub distinct: Vec<AliasedColumn<'q>>,
-    pub selects: Vec<SelectExpression<'q>>,
+pub struct SelectStatement<'p> {
+    pub with: WithExpression<'p>,
+    pub distinct: Vec<AliasedColumn<'p>>,
+    pub selects: Vec<SelectExpression<'p>>,
     pub from: AliasedTable,
-    pub joins: Vec<JoinExpression<'q>>,
-    pub where_expression: WhereExpression<'q>,
-    pub order_by_expression: OrderByExpression<'q>,
+    pub joins: Vec<JoinExpression<'p>>,
+    pub where_expression: WhereExpression<'p>,
+    pub order_by_expression: OrderByExpression<'p>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -88,15 +88,15 @@ mod tests {
         },
         store::{
             postgres::query::{
-                test_helper::trim_whitespace, Distinctness, Ordering, PostgresQueryRecord,
+                test_helper::trim_whitespace, Distinctness, Ordering, PostgresRecord,
                 SelectCompiler,
             },
             query::{Filter, FilterExpression, Parameter},
         },
     };
 
-    fn test_compilation<'f, 'q: 'f, T: PostgresQueryRecord + 'static>(
-        compiler: &SelectCompiler<'f, 'q, T>,
+    fn test_compilation<'f, 'p: 'f, T: PostgresRecord + 'static>(
+        compiler: &SelectCompiler<'f, 'p, T>,
         expected_statement: &'static str,
         expected_parameters: &[&'f dyn ToSql],
     ) {
@@ -595,7 +595,9 @@ mod tests {
               ON "entities_0_1_0"."left_entity_uuid" = "entities_0_0_0"."entity_uuid"
             RIGHT OUTER JOIN "entities" AS "entities_0_2_0"
               ON "entities_0_2_0"."entity_uuid" = "entities_0_1_0"."right_entity_uuid"
-            WHERE "entities_0_2_0"."decision_time" @> now()
+            WHERE "entities_0_0_0"."decision_time" @> now()
+              AND "entities_0_1_0"."decision_time" @> now()
+              AND "entities_0_2_0"."decision_time" @> now()
               AND "entities_0_2_0"."transaction_time" @> now()
             "#,
             &[],
@@ -627,7 +629,9 @@ mod tests {
               ON "entities_0_1_0"."right_entity_uuid" = "entities_0_0_0"."entity_uuid"
             RIGHT OUTER JOIN "entities" AS "entities_0_2_0"
               ON "entities_0_2_0"."entity_uuid" = "entities_0_1_0"."left_entity_uuid"
-            WHERE "entities_0_2_0"."decision_time" @> now()
+            WHERE "entities_0_0_0"."decision_time" @> now()
+              AND "entities_0_1_0"."decision_time" @> now()
+              AND "entities_0_2_0"."decision_time" @> now()
               AND "entities_0_2_0"."transaction_time" @> now()
             "#,
             &[],
@@ -977,7 +981,8 @@ mod tests {
                 FROM "entities" AS "entities_0_0_0"
                 LEFT OUTER JOIN "entities" AS "entities_0_1_0"
                   ON "entities_0_1_0"."left_entity_uuid" = "entities_0_0_0"."entity_uuid"
-                WHERE "entities_0_1_0"."decision_time" @> now()
+                WHERE "entities_0_0_0"."decision_time" @> now()
+                  AND "entities_0_1_0"."decision_time" @> now()
                   AND ("entities_0_1_0"."owned_by_id" = $1)
                   AND ("entities_0_1_0"."entity_uuid" = $2)
                   AND ("entities_0_1_0"."entity_record_id" = $3)
@@ -1016,7 +1021,8 @@ mod tests {
                 FROM "entities" AS "entities_0_0_0"
                 LEFT OUTER JOIN "entities" AS "entities_0_1_0"
                   ON "entities_0_1_0"."right_entity_uuid" = "entities_0_0_0"."entity_uuid"
-                WHERE "entities_0_1_0"."decision_time" @> now()
+                WHERE "entities_0_0_0"."decision_time" @> now()
+                  AND "entities_0_1_0"."decision_time" @> now()
                   AND ("entities_0_1_0"."owned_by_id" = $1)
                   AND ("entities_0_1_0"."entity_uuid" = $2)
                   AND ("entities_0_1_0"."entity_record_id" = $3)

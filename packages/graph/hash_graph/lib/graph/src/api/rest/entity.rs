@@ -18,8 +18,8 @@ use crate::{
         api_resource::RoutedResource,
         read_from_store, report_to_status_code,
         utoipa_typedef::subgraph::{
-            Edges, KnowledgeGraphRootedEdges, KnowledgeGraphVertices, OntologyRootedEdges,
-            OntologyVertices, Subgraph, Vertices,
+            Edges, KnowledgeGraphRootedEdges, KnowledgeGraphVertex, KnowledgeGraphVertices,
+            OntologyRootedEdges, OntologyVertex, OntologyVertices, Subgraph, Vertex, Vertices,
         },
     },
     identifier::{
@@ -45,7 +45,6 @@ use crate::{
             OutgoingEdgeResolveDepth, SharedEdgeKind,
         },
         query::{EntityStructuralQuery, StructuralQuery},
-        vertices::{KnowledgeGraphVertex, OntologyVertex, Vertex},
     },
 };
 
@@ -111,6 +110,7 @@ pub struct EntityResource;
 
 impl RoutedResource for EntityResource {
     /// Create routes for interacting with entities.
+    #[expect(deprecated)]
     fn routes<P: StorePool + Send + 'static>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
@@ -122,18 +122,14 @@ impl RoutedResource for EntityResource {
                         .get(get_latest_entities::<P>)
                         .put(update_entity::<P>),
                 )
-                .route(
-                    "/archive",
-                    #[expect(deprecated)]
-                    post(archive_entity::<P>),
-                )
+                .route("/archive", post(archive_entity::<P>))
                 .route("/query", post(get_entities_by_query::<P>))
                 .route("/:entity_uuid", get(get_entity::<P>)),
         )
     }
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreateEntityRequest {
     properties: EntityProperties,
@@ -161,6 +157,7 @@ struct CreateEntityRequest {
         (status = 500, description = "Store error occurred"),
     ),
 )]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn create_entity<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<CreateEntityRequest>,
@@ -200,7 +197,7 @@ async fn create_entity<P: StorePool + Send>(
         .map(Json)
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct ArchiveEntityRequest {
     entity_id: EntityId,
@@ -221,6 +218,7 @@ struct ArchiveEntityRequest {
     ),
 )]
 #[deprecated = "use `/entities/update` instead"]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn archive_entity<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<ArchiveEntityRequest>,
@@ -284,6 +282,7 @@ async fn archive_entity<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     )
 )]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn get_entities_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(query): Json<serde_json::Value>,
@@ -321,6 +320,8 @@ async fn get_entities_by_query<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     )
 )]
+#[deprecated = "use `/entities/query` instead"]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn get_latest_entities<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<Entity>>, StatusCode> {
@@ -344,6 +345,8 @@ async fn get_latest_entities<P: StorePool + Send>(
         ("entityId" = EntityId, Path, description = "The EntityId"),
     )
 )]
+#[deprecated = "use `/entities/query` instead"]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn get_entity<P: StorePool + Send>(
     Path(entity_id): Path<EntityId>,
     pool: Extension<Arc<P>>,
@@ -357,7 +360,7 @@ async fn get_entity<P: StorePool + Send>(
     .map(Json)
 }
 
-#[derive(ToSchema, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct UpdateEntityRequest {
     properties: EntityProperties,
@@ -387,6 +390,7 @@ struct UpdateEntityRequest {
     ),
     request_body = UpdateEntityRequest,
 )]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn update_entity<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<UpdateEntityRequest>,

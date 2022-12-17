@@ -1,5 +1,7 @@
 import { Node } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
+import { AccountId } from "@hashintel/hash-shared/types";
+
 import { RenderPortal } from "../usePortals";
 import { MentionDisplay } from "./MentionDisplay";
 
@@ -11,7 +13,7 @@ export class MentionView implements NodeView {
     public view: EditorView,
     public getPos: () => number,
     public renderPortal: RenderPortal,
-    public accountId: string,
+    public accountId: AccountId,
   ) {
     this.dom = document.createElement("span");
     this.dom.classList.add("mention-stuff");
