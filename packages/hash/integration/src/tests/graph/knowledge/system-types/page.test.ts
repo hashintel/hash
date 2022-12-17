@@ -2,17 +2,31 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
+  ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
 import { SYSTEM_TYPES } from "@hashintel/hash-api/src/graph/system-types";
-import {
-  BlockModel,
-  EntityModel,
-  PageModel,
-  UserModel,
-} from "@hashintel/hash-api/src/model";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import { createTestUser } from "../../util";
+import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
+import { createEntity } from "@hashintel/hash-api/src/graph/knowledge/primitive/entity";
+import {
+  Page,
+  createPage,
+  getPageBlocks,
+  getPageById,
+  getAllPagesInWorkspace,
+  getPageParentPage,
+  setPageParentPage,
+  addBlockToPage,
+  moveBlockInPage,
+  removeBlockFromPage,
+} from "@hashintel/hash-api/src/graph/knowledge/system-types/page";
+import {
+  Block,
+  createBlock,
+} from "@hashintel/hash-api/src/graph/knowledge/system-types/block";
+import { OwnedById } from "@hashintel/hash-shared/types";
+import { createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -30,60 +44,62 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-describe("Page model class", () => {
-  let testUser: UserModel;
+const ctx: ImpureGraphContext = { graphApi };
+
+describe("Page", () => {
+  let testUser: User;
 
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
     await ensureSystemGraphIsInitialized({ graphApi, logger });
 
-    testUser = await createTestUser(graphApi, "pageModelTest", logger);
+    testUser = await createTestUser(graphApi, "pageTest", logger);
   });
 
-  const createBlock = async () =>
-    await BlockModel.createBlock(graphApi, {
-      ownedById: testUser.getEntityUuid(),
+  const createTestBlock = async () =>
+    await createBlock(ctx, {
+      ownedById: testUser.accountId as OwnedById,
       componentId: "text",
-      blockData: await EntityModel.create(graphApi, {
-        ownedById: testUser.getEntityUuid(),
+      blockData: await createEntity(ctx, {
+        ownedById: testUser.accountId as OwnedById,
         entityType: SYSTEM_TYPES.entityType.dummy,
         properties: {},
-        actorId: testUser.getEntityUuid(),
+        actorId: testUser.accountId,
       }),
-      actorId: testUser.getEntityUuid(),
+      actorId: testUser.accountId,
     });
 
-  let testPage: PageModel;
+  let testPage: Page;
 
   it("can create a page", async () => {
-    testPage = await PageModel.createPage(graphApi, {
-      ownedById: testUser.getEntityUuid(),
+    testPage = await createPage(ctx, {
+      ownedById: testUser.accountId as OwnedById,
       title: "Test Page",
-      actorId: testUser.getEntityUuid(),
+      actorId: testUser.accountId,
     });
 
-    const initialBlocks = await testPage.getBlocks(graphApi);
+    const initialBlocks = await getPageBlocks(ctx, { page: testPage });
 
     expect(initialBlocks).toHaveLength(1);
   });
 
-  let testPage2: PageModel;
+  let testPage2: Page;
 
   it("can create a page with initial blocks", async () => {
     const [initialBlock1, initialBlock2] = await Promise.all([
-      createBlock(),
-      createBlock(),
+      createTestBlock(),
+      createTestBlock(),
     ]);
 
-    testPage2 = await PageModel.createPage(graphApi, {
-      ownedById: testUser.getEntityUuid(),
+    testPage2 = await createPage(ctx, {
+      ownedById: testUser.accountId as OwnedById,
       title: "Test Page 2",
       summary: "Test page 2 summary",
       initialBlocks: [initialBlock1, initialBlock2],
-      actorId: testUser.getEntityUuid(),
+      actorId: testUser.accountId,
     });
 
-    const initialBlocks = await testPage2.getBlocks(graphApi);
+    const initialBlocks = await getPageBlocks(ctx, { page: testPage2 });
     const expectedInitialBlocks = [initialBlock1, initialBlock2];
 
     expect(initialBlocks).toHaveLength(expectedInitialBlocks.length);
@@ -93,83 +109,90 @@ describe("Page model class", () => {
   });
 
   it("can get a page by its entity id", async () => {
-    const fetchedPage = await PageModel.getPageById(graphApi, {
-      entityId: testPage.getBaseId(),
+    const fetchedPage = await getPageById(ctx, {
+      entityId: testPage.entity.metadata.editionId.baseId,
     });
 
     expect(fetchedPage).toEqual(testPage);
   });
 
-  it("can get all pages in an account", async () => {
-    const allPages = await PageModel.getAllPagesInAccount(graphApi, {
-      accountModel: testUser,
+  it("can get all pages in a workspace", async () => {
+    const allPages = await getAllPagesInWorkspace(ctx, {
+      workspace: testUser,
     });
 
     expect(
       allPages.sort((a, b) =>
-        a.getEntityUuid().localeCompare(b.getEntityUuid()),
+        a.entity.metadata.editionId.baseId.localeCompare(
+          b.entity.metadata.editionId.baseId,
+        ),
       ),
     ).toEqual(
       [testPage, testPage2].sort((a, b) =>
-        a.getEntityUuid().localeCompare(b.getEntityUuid()),
+        a.entity.metadata.editionId.baseId.localeCompare(
+          b.entity.metadata.editionId.baseId,
+        ),
       ),
     );
   });
 
-  let parentPageModel: PageModel;
+  let parentPage: Page;
 
   it("can get/set a parent page", async () => {
-    parentPageModel = await PageModel.createPage(graphApi, {
-      ownedById: testUser.getEntityUuid(),
+    parentPage = await createPage(ctx, {
+      ownedById: testUser.accountId as OwnedById,
       title: "Test Parent Page",
       summary: "Test page summary",
-      actorId: testUser.getEntityUuid(),
+      actorId: testUser.accountId,
     });
 
-    expect(await testPage.getParentPage(graphApi)).toBeNull();
+    expect(await getPageParentPage(ctx, { page: testPage })).toBeNull();
 
-    await testPage.setParentPage(graphApi, {
-      parentPageModel,
-      actorId: testUser.getEntityUuid(),
+    await setPageParentPage(ctx, {
+      page: testPage,
+      parentPage,
+      actorId: testUser.accountId,
       prevIndex: null,
       nextIndex: null,
     });
-
-    expect(await testPage.getParentPage(graphApi)).toEqual(parentPageModel);
+    expect(await getPageParentPage(ctx, { page: testPage })).toEqual(
+      parentPage,
+    );
   });
 
-  let testBlock1: BlockModel;
+  let testBlock1: Block;
 
-  let testBlock2: BlockModel;
+  let testBlock2: Block;
 
-  let testBlock3: BlockModel;
+  let testBlock3: Block;
 
   it("can insert blocks", async () => {
-    const existingBlocks = await testPage.getBlocks(graphApi);
+    const existingBlocks = await getPageBlocks(ctx, { page: testPage });
 
     expect(existingBlocks).toHaveLength(1);
 
     testBlock1 = existingBlocks[0]!;
 
     [testBlock2, testBlock3] = await Promise.all([
-      createBlock(),
-      createBlock(),
+      createTestBlock(),
+      createTestBlock(),
     ]);
 
     // insert block at un-specified position
-    await testPage.insertBlock(graphApi, {
+    await addBlockToPage(ctx, {
+      page: testPage,
       block: testBlock3,
-      actorId: testUser.getEntityUuid(),
+      actorId: testUser.accountId,
     });
-
     // insert block at specified position
-    await testPage.insertBlock(graphApi, {
+    await addBlockToPage(ctx, {
+      page: testPage,
       block: testBlock2,
       position: 1,
-      actorId: testUser.getEntityUuid(),
+      actorId: testUser.accountId,
     });
 
-    const blocks = await testPage.getBlocks(graphApi);
+    const blocks = await getPageBlocks(ctx, { page: testPage });
     const expectedBlocks = [testBlock1, testBlock2, testBlock3];
 
     expect(blocks).toHaveLength(expectedBlocks.length);
@@ -177,13 +200,14 @@ describe("Page model class", () => {
   });
 
   it("can move a block", async () => {
-    await testPage.moveBlock(graphApi, {
+    await moveBlockInPage(ctx, {
+      page: testPage,
       currentPosition: 0,
       newPosition: 2,
-      actorId: testUser.getEntityUuid(),
+      actorId: testUser.accountId,
     });
 
-    const initialBlocks = await testPage.getBlocks(graphApi);
+    const initialBlocks = await getPageBlocks(ctx, { page: testPage });
     const expectedInitialBlocks = [testBlock2, testBlock3, testBlock1];
 
     expect(initialBlocks).toHaveLength(expectedInitialBlocks.length);
@@ -191,13 +215,14 @@ describe("Page model class", () => {
       expect.arrayContaining(expectedInitialBlocks),
     );
 
-    await testPage.moveBlock(graphApi, {
+    await moveBlockInPage(ctx, {
+      page: testPage,
       currentPosition: 2,
       newPosition: 0,
-      actorId: testUser.getEntityUuid(),
+      actorId: testUser.accountId,
     });
 
-    const updatedBlocks = await testPage.getBlocks(graphApi);
+    const updatedBlocks = await getPageBlocks(ctx, { page: testPage });
     const expectedUpdatedBlocks = [testBlock1, testBlock2, testBlock3];
     expect(updatedBlocks).toHaveLength(expectedUpdatedBlocks.length);
     expect(updatedBlocks).toEqual(
@@ -206,12 +231,13 @@ describe("Page model class", () => {
   });
 
   it("can remove blocks", async () => {
-    await testPage.removeBlock(graphApi, {
+    await removeBlockFromPage(ctx, {
+      page: testPage,
       position: 0,
-      actorId: testUser.getEntityUuid(),
+      actorId: testUser.accountId,
     });
 
-    const blocks = await testPage.getBlocks(graphApi);
+    const blocks = await getPageBlocks(ctx, { page: testPage });
     const expectedBlocks = [testBlock2, testBlock3];
 
     expect(blocks).toHaveLength(expectedBlocks.length);
