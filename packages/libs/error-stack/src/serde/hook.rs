@@ -1,40 +1,102 @@
-use std::any::{Any, TypeId};
-
-use serde::{Serialize, Serializer as _};
+use std::{
+    any::{Any, TypeId},
+    collections::BTreeMap,
+    marker::PhantomData,
+};
 
 use crate::Frame;
 
-struct HookContext {}
-
-struct Serializer {
-    inner: Box<dyn Any + Send + Sync>,
-    consume: fn(Box<dyn Any + Send + Sync>),
+struct HookContextInner {
+    storage: BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>,
 }
 
-impl Serializer {
-    fn serialize<S: Serialize>(self, value: S) -> Result<(), ()> {}
+#[repr(transparent)]
+struct HookContext<T> {
+    inner: HookContextInner,
+    _marker: PhantomData<fn() -> *const T>,
 }
 
-fn serialize<T: serde::Serialize>(
-    frame: &Frame,
-    serializer: Box<dyn erased_serde::Serializer>,
-) -> Option<erased_serde::Result<()>> {
+impl<T> HookContext<T> {
+    pub fn cast<U>(&mut self) -> &mut HookContext<U> {
+        // SAFETY: `HookContext` is marked as repr(transparent) and the generic is only used inside
+        // of the `PhantomData`
+        unsafe { &mut *(self as *mut Self).cast::<HookContext<U>>() }
+    }
+}
+
+fn serialize<'a, T: serde::Serialize>(
+    frame: &'a Frame,
+) -> Option<Box<dyn erased_serde::Serialize + 'a>> {
     let value: &T = frame.request_ref()?;
-    Some(value.serialize(serializer))
+    Some(Box::new(value))
 }
 
 // TODO: Storage coming later
 
+type HookFnReturn<'a> = Option<Box<dyn erased_serde::Serialize + 'a>>;
+type StaticHookFn = for<'a> fn(&'a Frame) -> HookFnReturn<'a>;
+type DynamicHookFn = Box<dyn for<'a> Fn(&'a Frame, &mut HookContext<Frame>) -> HookFnReturn<'a>>;
+
 enum HookFn {
-    Static(fn(&Frame, Box<dyn erased_serde::Serializer>) -> Option<erased_serde::Result<()>>),
-    Dynamic(Box<dyn Fn(&Frame, &mut HookContext, Box<dyn erased_serde::Serializer>) -> ()>),
+    Static(StaticHookFn),
+    Dynamic(DynamicHookFn),
 }
 
 struct Hook {
     ty: TypeId,
-    hook: fn(&Frame),
+    hook: HookFn,
+}
+
+impl Hook {
+    fn new_static<T: serde::Serialize + Send + Sync + 'static>() -> Self {
+        Self {
+            ty: TypeId::of::<T>(),
+            hook: HookFn::Static(serialize::<T>),
+        }
+    }
+
+    fn new_dynamic<T: Send + Sync + 'static, U: serde::Serialize, F>(closure: F) -> Self
+    where
+        for<'a> F: Fn(&'a T, &mut HookContext<T>) -> U + 'a,
+    {
+        let closure = Box::new(|frame: &Frame, context: &mut HookContext<Frame>| {
+            let value: &T = frame.request_ref()?;
+
+            let value = Box::new(closure(value, context.cast()));
+
+            Some(value)
+        });
+
+        Self {
+            ty: TypeId::of::<T>(),
+            hook: HookFn::Dynamic(closure),
+        }
+    }
 }
 
 pub(crate) struct Hooks {
-    pub(crate) inner: Vec<TypeId>,
+    pub(crate) inner: Vec<Hook>,
+}
+
+impl Hooks {
+    pub(crate) fn insert_static<T: serde::Serialize + Send + Sync + 'static>(&mut self) {
+        let type_id = TypeId::of::<T>();
+
+        // make sure that previous hooks of the same TypeId are deleted
+        self.inner.retain(|hook| hook.ty != type_id);
+        self.inner.push(Hook::new_static::<T>())
+    }
+
+    pub(crate) fn insert_dynamic<T: Send + Sync + 'static, U: serde::Serialize, F>(
+        &mut self,
+        closure: F,
+    ) where
+        for<'a> F: Fn(&'a T, &mut HookContext<T>) -> U + 'a,
+    {
+        let type_id = TypeId::of::<T>();
+
+        // make sure that previous hooks of the same TypeId are deleted
+        self.inner.retain(|hook| hook.ty != type_id);
+        self.inner.push(Hook::new_dynamic(closure))
+    }
 }
