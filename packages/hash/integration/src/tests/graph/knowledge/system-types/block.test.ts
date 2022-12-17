@@ -2,21 +2,25 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
+  ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
-import {
-  BlockModel,
-  EntityModel,
-  UserModel,
-} from "@hashintel/hash-api/src/model";
-import { generateSystemEntityTypeSchema } from "@hashintel/hash-api/src/model/util";
+import { generateSystemEntityTypeSchema } from "@hashintel/hash-api/src/graph/util";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import { EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
-
+import { Entity, EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
 import { createEntityType } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
-import { createTestUser } from "../../util";
+import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
+import {
+  Block,
+  createBlock,
+  getBlockById,
+  getBlockData,
+  updateBlockDataEntity,
+} from "@hashintel/hash-api/src/graph/knowledge/system-types/block";
+import { createEntity } from "@hashintel/hash-api/src/graph/knowledge/primitive/entity";
+import { OwnedById } from "@hashintel/hash-shared/types";
+import { createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -34,14 +38,16 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-describe("Block model class", () => {
-  let testUser: UserModel;
+const ctx: ImpureGraphContext = { graphApi };
 
-  let testBlock: BlockModel;
+describe("Block", () => {
+  let testUser: User;
+
+  let testBlock: Block;
 
   const testBlockComponentId = "test-component-id";
 
-  let testBlockDataEntity: EntityModel;
+  let testBlockDataEntity: Entity;
 
   let dummyEntityType: EntityTypeWithMetadata;
 
@@ -49,7 +55,7 @@ describe("Block model class", () => {
     await TypeSystemInitializer.initialize();
     await ensureSystemGraphIsInitialized({ graphApi, logger });
 
-    testUser = await createTestUser(graphApi, "blockModelTest", logger);
+    testUser = await createTestUser(graphApi, "blockTest", logger);
 
     /**
      * @todo: rename to something more representative of a real-world use-case,
@@ -58,10 +64,10 @@ describe("Block model class", () => {
     dummyEntityType = await createEntityType(
       { graphApi },
       {
-        ownedById: testUser.getEntityUuid() as OwnedById,
+        ownedById: testUser.accountId as OwnedById,
         schema: generateSystemEntityTypeSchema({
           entityTypeId: generateTypeId({
-            namespace: testUser.getShortname()!,
+            namespace: testUser.shortname!,
             kind: "entity-type",
             title: "Dummy",
           }),
@@ -69,30 +75,30 @@ describe("Block model class", () => {
           properties: [],
           outgoingLinks: [],
         }),
-        actorId: testUser.getEntityUuid() as AccountId,
+        actorId: testUser.accountId,
       },
     );
 
-    testBlockDataEntity = await EntityModel.create(graphApi, {
-      ownedById: testUser.getEntityUuid(),
+    testBlockDataEntity = await createEntity(ctx, {
+      ownedById: testUser.accountId as OwnedById,
       properties: {},
       entityType: dummyEntityType,
-      actorId: testUser.getEntityUuid(),
+      actorId: testUser.accountId,
     });
   });
 
   it("can create a Block", async () => {
-    testBlock = await BlockModel.createBlock(graphApi, {
-      ownedById: testUser.getEntityUuid(),
+    testBlock = await createBlock(ctx, {
+      ownedById: testUser.accountId as OwnedById,
       componentId: testBlockComponentId,
       blockData: testBlockDataEntity,
-      actorId: testUser.getEntityUuid(),
+      actorId: testUser.accountId,
     });
   });
 
   it("can get a block by its entity id", async () => {
-    const fetchedBlock = await BlockModel.getBlockById(graphApi, {
-      entityId: testBlock.getBaseId(),
+    const fetchedBlock = await getBlockById(ctx, {
+      entityId: testBlock.entity.metadata.editionId.baseId,
     });
 
     expect(fetchedBlock).not.toBeNull();
@@ -101,41 +107,43 @@ describe("Block model class", () => {
   });
 
   it("can get the block's data entity", async () => {
-    const fetchedBlockData = await testBlock.getBlockData(graphApi);
+    const fetchedBlockData = await getBlockData(ctx, { block: testBlock });
 
-    expect(fetchedBlockData.entity).toEqual(testBlockDataEntity.entity);
+    expect(fetchedBlockData).toEqual(testBlockDataEntity);
   });
 
   it("can update the block data entity", async () => {
-    const newBlockDataEntity = await EntityModel.create(graphApi, {
-      ownedById: testUser.getEntityUuid(),
+    const newBlockDataEntity = await createEntity(ctx, {
+      ownedById: testUser.accountId as OwnedById,
       properties: {},
       entityType: dummyEntityType,
-      actorId: testUser.getEntityUuid(),
+      actorId: testUser.accountId,
     });
 
     expect(testBlockDataEntity).not.toEqual(newBlockDataEntity);
-    expect((await testBlock.getBlockData(graphApi)).entity).toEqual(
-      testBlockDataEntity.entity,
+    expect(await getBlockData(ctx, { block: testBlock })).toEqual(
+      testBlockDataEntity,
     );
 
-    await testBlock.updateBlockDataEntity(graphApi, {
+    await updateBlockDataEntity(ctx, {
+      block: testBlock,
       newBlockDataEntity,
-      actorId: testUser.getEntityUuid(),
+      actorId: testUser.accountId,
     });
 
-    expect((await testBlock.getBlockData(graphApi)).entity).toEqual(
-      newBlockDataEntity.entity,
+    expect(await getBlockData(ctx, { block: testBlock })).toEqual(
+      newBlockDataEntity,
     );
   });
 
   it("cannot update the block data entity to the same data entity", async () => {
-    const currentDataEntity = await testBlock.getBlockData(graphApi);
+    const currentDataEntity = await getBlockData(ctx, { block: testBlock });
 
     await expect(
-      testBlock.updateBlockDataEntity(graphApi, {
+      updateBlockDataEntity(ctx, {
+        block: testBlock,
         newBlockDataEntity: currentDataEntity,
-        actorId: testUser.getEntityUuid(),
+        actorId: testUser.accountId,
       }),
     ).rejects.toThrow(/already has a linked block data entity with entity id/);
   });
