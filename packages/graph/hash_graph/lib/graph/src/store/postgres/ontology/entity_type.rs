@@ -293,7 +293,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
             subgraph.insert(entity_type);
 
-            self.traverse_data_type(
+            self.traverse_entity_type(
                 &edition_id,
                 &mut dependency_context,
                 &mut subgraph,

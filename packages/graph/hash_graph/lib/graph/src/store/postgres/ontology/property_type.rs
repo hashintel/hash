@@ -202,7 +202,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
             subgraph.insert(property_type);
 
-            self.traverse_data_type(
+            self.traverse_property_type(
                 &edition_id,
                 &mut dependency_context,
                 &mut subgraph,
