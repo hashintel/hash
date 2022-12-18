@@ -166,7 +166,7 @@ pub(crate) use hook::{install_builtin_hooks, Hooks};
 #[cfg(feature = "pretty-print")]
 use owo_colors::{OwoColorize, Stream, Style as OwOStyle};
 
-use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
+use crate::{fmt::hook::Extra, AttachmentKind, Context, Frame, FrameKind, Report};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum Symbol {
@@ -947,7 +947,7 @@ fn debug_frame(
 impl<C> Debug for Report<C> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         #[cfg(any(feature = "std", feature = "hooks"))]
-        let mut context = HookContext::new(fmt.alternate());
+        let mut context = HookContext::new(Extra::new(fmt.alternate())).cast();
 
         #[cfg_attr(not(any(feature = "std", feature = "hooks")), allow(unused_mut))]
         let mut lines = self
