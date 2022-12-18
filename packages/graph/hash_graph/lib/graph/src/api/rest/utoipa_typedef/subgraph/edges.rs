@@ -10,7 +10,7 @@ use utoipa::{
 use crate::{
     api::rest::utoipa_typedef::{subgraph::Vertices, EntityIdAndTimestamp},
     identifier::{
-        knowledge::{EntityId, EntityVersion},
+        knowledge::EntityId,
         ontology::{OntologyTypeEditionId, OntologyTypeVersion},
         TransactionTimestamp,
     },
