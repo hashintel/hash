@@ -18,7 +18,7 @@ import {
   zeroedGraphResolveDepths,
 } from "../..";
 import { getNamespaceOfAccountOwner } from "./util";
-import { linkEntityTypeUri } from "../../../model/util";
+import { linkEntityTypeUri } from "../../util";
 import { NotFoundError } from "../../../lib/error";
 
 /**

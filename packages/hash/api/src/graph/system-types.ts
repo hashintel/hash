@@ -8,7 +8,7 @@ import {
 } from "@hashintel/hash-subgraph";
 import { logger } from "../logger";
 
-import { propertyTypeInitializer, entityTypeInitializer } from "../model/util";
+import { propertyTypeInitializer, entityTypeInitializer } from "./util";
 
 // eslint-disable-next-line import/no-mutable-exports
 export let SYSTEM_TYPES: {

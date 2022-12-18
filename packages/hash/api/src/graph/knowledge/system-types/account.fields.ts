@@ -1,5 +1,5 @@
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
-import { RESTRICTED_SHORTNAMES } from "../../../model/util";
+import { RESTRICTED_SHORTNAMES } from "../../util";
 import { getUserByShortname } from "./user";
 import { getOrgByShortname } from "./org";
 
