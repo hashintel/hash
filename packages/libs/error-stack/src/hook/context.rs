@@ -29,13 +29,13 @@ impl Counter {
     }
 }
 
-struct Inner<T> {
+pub(crate) struct Inner<T> {
     storage: Storage,
     extra: T,
 }
 
 impl<T> Inner<T> {
-    pub fn new(extra: T) -> Self {
+    pub(crate) fn new(extra: T) -> Self {
         Self {
             storage: Storage::new(),
             extra,
@@ -44,7 +44,7 @@ impl<T> Inner<T> {
 }
 
 impl<T> Inner<T> {
-    pub(crate) fn storage(&self) -> &Storage {
+    pub(crate) const fn storage(&self) -> &Storage {
         &self.storage
     }
 
@@ -52,7 +52,7 @@ impl<T> Inner<T> {
         &mut self.storage
     }
 
-    pub(crate) fn extra(&self) -> &T {
+    pub(crate) const fn extra(&self) -> &T {
         &self.extra
     }
 
@@ -61,184 +61,7 @@ impl<T> Inner<T> {
     }
 }
 
-/// Carrier for contextual information used across hook invocations.
-///
-/// `HookContext` has two fundamental use-cases:
-/// 1) Adding body entries and appendix entries
-/// 2) Storage
-///
-/// ## Adding body entries and appendix entries
-///
-/// A [`Debug`] backtrace consists of two different sections, a rendered tree of objects (the
-/// **body**) and additional text/information that is too large to fit into the tree (the
-/// **appendix**).
-///
-/// Entries for the body can be attached to the rendered tree of objects via
-/// [`HookContext::push_body`]. An appendix entry can be attached via
-/// [`HookContext::push_appendix`].
-///
-/// [`Debug`]: core::fmt::Debug
-///
-/// ### Example
-///
-/// ```rust
-/// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
-/// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
-/// use std::io::{Error, ErrorKind};
-///
-/// use error_stack::Report;
-///
-/// struct Warning(&'static str);
-/// struct HttpResponseStatusCode(u64);
-/// struct Suggestion(&'static str);
-/// struct Secret(&'static str);
-///
-/// Report::install_debug_hook::<HttpResponseStatusCode>(|HttpResponseStatusCode(value), context| {
-///     // Create a new appendix, which is going to be displayed when someone requests the alternate
-///     // version (`:#?`) of the report.
-///     if context.alternate() {
-///         context.push_appendix(format!("error {value}: {} error", if *value < 500 {"client"} else {"server"}))
-///     }
-///
-///     // This will push a new entry onto the body with the specified value
-///     context.push_body(format!("error code: {value}"));
-/// });
-///
-/// Report::install_debug_hook::<Suggestion>(|Suggestion(value), context| {
-///     let idx = context.increment_counter();
-///
-///     // Create a new appendix, which is going to be displayed when someone requests the alternate
-///     // version (`:#?`) of the report.
-///     if context.alternate() {
-///         context.push_body(format!("suggestion {idx}:\n  {value}"));
-///     }
-///
-///     // This will push a new entry onto the body with the specified value
-///     context.push_body(format!("suggestion ({idx})"));
-/// });
-///
-/// Report::install_debug_hook::<Warning>(|Warning(value), context| {
-///     // You can add multiples entries to the body (and appendix) in the same hook.
-///     context.push_body("abnormal program execution detected");
-///     context.push_body(format!("warning: {value}"));
-/// });
-///
-/// // By not adding anything you are able to hide an attachment
-/// // (it will still be counted towards opaque attachments)
-/// Report::install_debug_hook::<Secret>(|_, _| {});
-///
-/// let report = Report::new(Error::from(ErrorKind::InvalidInput))
-///     .attach(HttpResponseStatusCode(404))
-///     .attach(Suggestion("do you have a connection to the internet?"))
-///     .attach(HttpResponseStatusCode(405))
-///     .attach(Warning("unable to determine environment"))
-///     .attach(Secret("pssst, don't tell anyone else c;"))
-///     .attach(Suggestion("execute the program from the fish shell"))
-///     .attach(HttpResponseStatusCode(501))
-///     .attach(Suggestion("try better next time!"));
-///
-/// # owo_colors::set_override(true);
-/// # fn render(value: String) -> String {
-/// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-/// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
-/// #
-/// #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
-/// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
-/// #
-/// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
-/// # }
-/// #
-/// # #[cfg(rust_1_65)]
-/// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap")].assert_eq(&render(format!("{report:?}")));
-/// #
-/// println!("{report:?}");
-///
-/// # #[cfg(rust_1_65)]
-/// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit_alt.snap")].assert_eq(&render(format!("{report:#?}")));
-/// #
-/// println!("{report:#?}");
-/// ```
-///
-/// The output of `println!("{report:?}")`:
-///
-/// <pre>
-#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap"))]
-/// </pre>
-///
-/// The output of `println!("{report:#?}")`:
-///
-/// <pre>
-#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit_alt.snap"))]
-/// </pre>
-///
-/// ## Storage
-///
-/// `HookContext` can be used to store and retrieve values that are going to be used on multiple
-/// hook invocations in a single [`Debug`] call.
-///
-/// Every hook can request their corresponding `HookContext`.
-/// This is especially useful for incrementing/decrementing values, but can also be used to store
-/// any arbitrary value for the duration of the [`Debug`] invocation.
-///
-/// All data stored in `HookContext` is completely separated from all other hooks and can store
-/// any arbitrary data of any type, and even data of multiple types at the same time.
-///
-/// ### Example
-///
-/// ```rust
-/// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
-/// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
-/// use std::io::ErrorKind;
-///
-/// use error_stack::Report;
-///
-/// struct Computation(u64);
-///
-/// Report::install_debug_hook::<Computation>(|Computation(value), context| {
-///     // Get a value of type `u64`, if we didn't insert one yet, default to 0
-///     let mut acc = context.get::<u64>().copied().unwrap_or(0);
-///     acc += *value;
-///
-///     // Get a value of type `f64`, if we didn't insert one yet, default to 1.0
-///     let mut div = context.get::<f32>().copied().unwrap_or(1.0);
-///     div /= *value as f32;
-///
-///     // Insert the calculated `u64` and `f32` back into storage, so that we can use them
-///     // in the invocations following this one (for the same `Debug` call)
-///     context.insert(acc);
-///     context.insert(div);
-///
-///     context.push_body(format!(
-///         "computation for {value} (acc = {acc}, div = {div})"
-///     ));
-/// });
-///
-/// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
-///     .attach(Computation(2))
-///     .attach(Computation(3));
-///
-/// # owo_colors::set_override(true);
-/// # fn render(value: String) -> String {
-/// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
-/// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
-/// #
-/// #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
-/// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
-/// #
-/// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
-/// # }
-/// #
-/// # #[cfg(rust_1_65)]
-/// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_storage.snap")].assert_eq(&render(format!("{report:?}")));
-/// #
-/// println!("{report:?}");
-/// ```
-///
-/// <pre>
-#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_storage.snap"))]
-/// </pre>
-///
-/// [`Debug`]: core::fmt::Debug
+/// Internal version that is generic over the `T`, which is extra information supplied.
 // TODO: ideally we would want to make `HookContextInner` private, as it is an implementation
 //  detail, but "attribute privacy" as outlined in https://github.com/rust-lang/rust/pull/61969
 //  is currently not implemented for repr(transparent).
@@ -258,7 +81,7 @@ impl<T> HookContext<T, ()> {
 }
 
 impl<T, U> HookContext<T, U> {
-    pub(crate) fn inner(&self) -> &Inner<T> {
+    pub(crate) const fn inner(&self) -> &Inner<T> {
         &self.inner
     }
 
@@ -279,8 +102,8 @@ impl<T, U> HookContext<T, U> {
     /// Cast the [`HookContext`] to a new type `U`.
     ///
     /// The storage of [`HookContext`] is partitioned, meaning that if `T` and `U` are different
-    /// types the values stored in [`HookContext<T>`] will be separated from values in
-    /// [`HookContext<U>`].
+    /// types the values stored in [`HookContext<_, T>`] will be separated from values in
+    /// [`HookContext<_, U>`].
     ///
     /// In most situations this functions isn't needed, as it transparently casts between different
     /// partitions of the storage. Only hooks that share storage with hooks of different types
@@ -348,30 +171,30 @@ impl<T, U> HookContext<T, U> {
 impl<T, U: 'static> HookContext<T, U> {
     /// Return a reference to a value of type `U`, if a value of that type exists.
     ///
-    /// Values returned are isolated and "bound" to `T`, this means that [`HookContext<Warning>`]
-    /// and [`HookContext<Error>`] do not share the same values. Values are only retained during the
-    /// invocation of [`Debug`].
+    /// Values returned are isolated and "bound" to `T`, this means that [`HookContext<_, Warning>`]
+    /// and [`HookContext<_, Error>`] do not share the same values. Values are only valid during the
+    /// invocation of the corresponding call (e.g. [`Debug`]).
     ///
     /// [`Debug`]: core::fmt::Debug
     #[must_use]
-    pub fn get<U: 'static>(&self) -> Option<&U> {
+    pub fn get<V: 'static>(&self) -> Option<&V> {
         self.storage()
-            .get(&TypeId::of::<T>())?
             .get(&TypeId::of::<U>())?
+            .get(&TypeId::of::<V>())?
             .downcast_ref()
     }
 
     /// Return a mutable reference to a value of type `U`, if a value of that type exists.
     ///
-    /// Values returned are isolated and "bound" to `T`, this means that [`HookContext<Warning>`]
-    /// and [`HookContext<Error>`] do not share the same values. Values are only retained during the
-    /// invocation of [`Debug`].
+    /// Values returned are isolated and "bound" to `T`, this means that [`HookContext<_, Warning>`]
+    /// and [`HookContext<_, Error>`] do not share the same values. Values are only valid during the
+    /// invocation of the corresponding call (e.g. [`Debug`]).
     ///
     /// [`Debug`]: core::fmt::Debug
-    pub fn get_mut<U: 'static>(&mut self) -> Option<&mut U> {
+    pub fn get_mut<V: 'static>(&mut self) -> Option<&mut V> {
         self.storage_mut()
-            .get_mut(&TypeId::of::<T>())?
             .get_mut(&TypeId::of::<U>())?
+            .get_mut(&TypeId::of::<V>())?
             .downcast_mut()
     }
 
@@ -379,11 +202,11 @@ impl<T, U: 'static> HookContext<T, U> {
     ///
     /// The returned value will the previously stored value of the same type `U` scoped over type
     /// `T`, if it existed, did no such value exist it will return [`None`].
-    pub fn insert<U: 'static>(&mut self, value: U) -> Option<U> {
+    pub fn insert<V: 'static>(&mut self, value: V) -> Option<V> {
         self.storage_mut()
-            .entry(TypeId::of::<T>())
+            .entry(TypeId::of::<U>())
             .or_default()
-            .insert(TypeId::of::<U>(), Box::new(value))?
+            .insert(TypeId::of::<V>(), Box::new(value))?
             .downcast()
             .map(|boxed| *boxed)
             .ok()
@@ -393,10 +216,10 @@ impl<T, U: 'static> HookContext<T, U> {
     ///
     /// The returned value will be the previously stored value of the same type `U` if it existed in
     /// the scope of `T`, did no such value exist, it will return [`None`].
-    pub fn remove<U: 'static>(&mut self) -> Option<U> {
+    pub fn remove<V: 'static>(&mut self) -> Option<V> {
         self.storage_mut()
-            .get_mut(&TypeId::of::<T>())?
-            .remove(&TypeId::of::<U>())?
+            .get_mut(&TypeId::of::<U>())?
+            .remove(&TypeId::of::<V>())?
             .downcast()
             .map(|boxed| *boxed)
             .ok()
