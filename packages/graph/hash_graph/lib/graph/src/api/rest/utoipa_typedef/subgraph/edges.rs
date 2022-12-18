@@ -57,7 +57,10 @@ pub struct Edges {
 }
 
 impl Edges {
-    pub fn from_store_subgraph(edges: crate::subgraph::edges::Edges, vertices: &Vertices) -> Self {
+    pub fn from_vertices_and_store_edges(
+        edges: crate::subgraph::edges::Edges,
+        vertices: &Vertices,
+    ) -> Self {
         Self {
             ontology: OntologyRootedEdges(edges.ontology.into_iter().fold(
                 HashMap::new(),
