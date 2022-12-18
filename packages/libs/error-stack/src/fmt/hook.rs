@@ -14,14 +14,14 @@ pub(crate) use default::install_builtin_hooks;
 
 use crate::fmt::Frame;
 
-pub struct Extra {
+pub struct Format {
     alternate: bool,
 
     body: Vec<String>,
     appendix: Vec<String>,
 }
 
-impl Extra {
+impl Format {
     pub(crate) const fn new(alternate: bool) -> Self {
         Self {
             alternate,
@@ -221,7 +221,7 @@ impl Extra {
 /// </pre>
 ///
 /// [`Debug`]: core::fmt::Debug
-pub type HookContext<T> = crate::hook::context::HookContext<Extra, T>;
+pub type HookContext<T> = crate::hook::context::HookContext<Format, T>;
 
 impl<T> HookContext<T> {
     pub(crate) fn appendix(&self) -> &[String] {

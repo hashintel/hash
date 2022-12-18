@@ -66,7 +66,7 @@ impl<T> Inner<T> {
 /// This is an implementation detail and cannot be used directly. This is only exposed for
 /// documentation purposes and cannot be directly imported.
 ///
-/// Instead use [`error_stack::fmt::HookContext`] for [`Debug`] hooks.
+/// Instead use [`crate::fmt::HookContext`] for [`Debug`] hooks.
 // TODO: add link to serde hooks once implemented
 // TODO: ideally we would want to make `HookContextInner` private, as it is an implementation
 //  detail, but "attribute privacy" as outlined in https://github.com/rust-lang/rust/pull/61969
