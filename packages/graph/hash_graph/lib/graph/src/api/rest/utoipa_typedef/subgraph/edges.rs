@@ -1,4 +1,4 @@
-use std::collections::{hash_map::Entry, HashMap};
+use std::collections::{hash_map::Entry, BTreeMap, HashMap};
 
 use serde::Serialize;
 use type_system::uri::BaseUri;
@@ -12,6 +12,7 @@ use crate::{
     identifier::{
         knowledge::{EntityId, EntityVersion},
         ontology::{OntologyTypeEditionId, OntologyTypeVersion},
+        TransactionTimestamp,
     },
     store::Record,
     subgraph::edges::{KnowledgeGraphEdgeKind, OntologyOutwardEdges, OutwardEdge, SharedEdgeKind},
@@ -39,13 +40,13 @@ impl ToSchema for KnowledgeGraphOutwardEdges {
 #[derive(Default, Debug, Serialize, ToSchema)]
 #[serde(transparent)]
 pub struct KnowledgeGraphRootedEdges(
-    pub HashMap<EntityId, HashMap<EntityVersion, Vec<KnowledgeGraphOutwardEdges>>>,
+    pub HashMap<EntityId, BTreeMap<TransactionTimestamp, Vec<KnowledgeGraphOutwardEdges>>>,
 );
 
 #[derive(Default, Debug, Serialize, ToSchema)]
 #[serde(transparent)]
 pub struct OntologyRootedEdges(
-    pub HashMap<BaseUri, HashMap<OntologyTypeVersion, Vec<OntologyOutwardEdges>>>,
+    pub HashMap<BaseUri, BTreeMap<OntologyTypeVersion, Vec<OntologyOutwardEdges>>>,
 );
 
 #[derive(Serialize)]
@@ -71,7 +72,7 @@ impl Edges {
                             entry.into_mut().insert(id.version(), edges);
                         }
                         Entry::Vacant(entry) => {
-                            entry.insert(HashMap::from([(id.version(), edges)]));
+                            entry.insert(BTreeMap::from([(id.version(), edges)]));
                         }
                     }
                     map
@@ -88,16 +89,29 @@ impl Edges {
                             crate::subgraph::edges::KnowledgeGraphOutwardEdges::ToKnowledgeGraph(
                                 edge,
                             ) => {
+                                // We only want to store one edge per link and in order to easily
+                                // look the corresponding link up in the vertices we store the the
+                                // earliest timestamp when a link was added to the entity.
+                                //
+                                // As the vertices are sorted by timestamp, it's possible to get all
+                                // vertices starting with the provided earliest timestamp without
+                                // further filtering.
+                                //
+                                // We have four different permutations of a knowledge-knowledge
+                                // edge:
+                                //   1. `HAS_LEFT_ENTITY`, `reversed = false`
+                                //   2. `HAS_RIGHT_ENTITY`, `reversed = false`
+                                //   3. `HAS_LEFT_ENTITY`, `reversed = true`
+                                //   4. `HAS_RIGHT_ENTITY`, `reversed = true`
+                                //
+                                // For 1. and 2., the entity is a link and we want to store the
+                                // earliest version of this link as the earliest timestamp.
+                                // For 3. and 4., the endpoint of the edge is a link and we want to
+                                // store the earliest of that endpoint as the earliest timestamp.
                                 let earliest_timestamp = if edge.reversed {
-                                    // We want to log the time the link entity was *first* added
-                                    // from this entity. We therefore need to find the timestamp of
-                                    // the first link entity
-                                    vertices.find_earliest_entity(&edge.right_endpoint)
+                                    vertices.earliest_entity_by_id(&edge.right_endpoint)
                                 } else {
-                                    // We want to log the time _this_ link entity was *first* added
-                                    // from the source entity. We therefore need to find the
-                                    // timestamp of this entity
-                                    vertices.find_earliest_entity(&id.base_id())
+                                    vertices.earliest_entity_by_id(&id.base_id())
                                 }
                                     .expect("entity must exist in subgraph")
                                     .edition_id()
@@ -118,10 +132,16 @@ impl Edges {
                     }).collect();
                     match map.entry(id.base_id()) {
                         Entry::Occupied(entry) => {
-                            entry.into_mut().insert(id.version(), edges);
+                            entry.into_mut().insert(
+                                id.version().transaction_time().as_start_bound_timestamp(),
+                                edges
+                            );
                         }
                         Entry::Vacant(entry) => {
-                            entry.insert(HashMap::from([(id.version(), edges)]));
+                            entry.insert(BTreeMap::from([(
+                                id.version().transaction_time().as_start_bound_timestamp(),
+                                edges
+                            )]));
                         }
                     }
                     map
