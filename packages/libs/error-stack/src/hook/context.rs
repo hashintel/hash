@@ -61,14 +61,20 @@ impl<T> Inner<T> {
     }
 }
 
-/// Internal version that is generic over the `T`, which is extra information supplied.
+/// Internal [`HookContext`]
+///
+/// This is an implementation detail and cannot be used directly. This is only exposed for
+/// documentation purposes and cannot be directly imported.
+///
+/// Instead use [`error_stack::fmt::HookContext`] for [`Debug`] hooks.
+// TODO: add link to serde hooks once implemented
 // TODO: ideally we would want to make `HookContextInner` private, as it is an implementation
 //  detail, but "attribute privacy" as outlined in https://github.com/rust-lang/rust/pull/61969
 //  is currently not implemented for repr(transparent).
 #[cfg_attr(not(doc), repr(transparent))]
-pub struct HookContext<T, U> {
-    inner: Inner<T>,
-    _marker: PhantomData<fn(&U)>,
+pub struct HookContext<Extra, T> {
+    inner: Inner<Extra>,
+    _marker: PhantomData<fn(&T)>,
 }
 
 impl<T> HookContext<T, ()> {
@@ -80,12 +86,12 @@ impl<T> HookContext<T, ()> {
     }
 }
 
-impl<T, U> HookContext<T, U> {
-    pub(crate) const fn inner(&self) -> &Inner<T> {
+impl<Extra, T> HookContext<Extra, T> {
+    pub(crate) const fn inner(&self) -> &Inner<Extra> {
         &self.inner
     }
 
-    pub(crate) fn inner_mut(&mut self) -> &mut Inner<T> {
+    pub(crate) fn inner_mut(&mut self) -> &mut Inner<Extra> {
         &mut self.inner
     }
 
@@ -98,7 +104,7 @@ impl<T, U> HookContext<T, U> {
     }
 }
 
-impl<T, U> HookContext<T, U> {
+impl<Extra, T> HookContext<Extra, T> {
     /// Cast the [`HookContext`] to a new type `U`.
     ///
     /// The storage of [`HookContext`] is partitioned, meaning that if `T` and `U` are different
@@ -161,14 +167,14 @@ impl<T, U> HookContext<T, U> {
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_cast.snap"))]
     /// </pre>
     #[must_use]
-    pub fn cast<V>(&mut self) -> &mut HookContext<T, V> {
+    pub fn cast<U>(&mut self) -> &mut HookContext<Extra, U> {
         // SAFETY: `HookContext` is marked as repr(transparent) and the changed generic is only used
         // inside of the `PhantomData`
-        unsafe { &mut *(self as *mut Self).cast::<HookContext<T, V>>() }
+        unsafe { &mut *(self as *mut Self).cast::<HookContext<Extra, U>>() }
     }
 }
 
-impl<T, U: 'static> HookContext<T, U> {
+impl<I, T: 'static> HookContext<I, T> {
     /// Return a reference to a value of type `U`, if a value of that type exists.
     ///
     /// Values returned are isolated and "bound" to `T`, this means that [`HookContext<_, Warning>`]
@@ -177,10 +183,10 @@ impl<T, U: 'static> HookContext<T, U> {
     ///
     /// [`Debug`]: core::fmt::Debug
     #[must_use]
-    pub fn get<V: 'static>(&self) -> Option<&V> {
+    pub fn get<U: 'static>(&self) -> Option<&U> {
         self.storage()
+            .get(&TypeId::of::<T>())?
             .get(&TypeId::of::<U>())?
-            .get(&TypeId::of::<V>())?
             .downcast_ref()
     }
 
@@ -191,10 +197,10 @@ impl<T, U: 'static> HookContext<T, U> {
     /// invocation of the corresponding call (e.g. [`Debug`]).
     ///
     /// [`Debug`]: core::fmt::Debug
-    pub fn get_mut<V: 'static>(&mut self) -> Option<&mut V> {
+    pub fn get_mut<U: 'static>(&mut self) -> Option<&mut U> {
         self.storage_mut()
+            .get_mut(&TypeId::of::<T>())?
             .get_mut(&TypeId::of::<U>())?
-            .get_mut(&TypeId::of::<V>())?
             .downcast_mut()
     }
 
@@ -202,11 +208,11 @@ impl<T, U: 'static> HookContext<T, U> {
     ///
     /// The returned value will the previously stored value of the same type `U` scoped over type
     /// `T`, if it existed, did no such value exist it will return [`None`].
-    pub fn insert<V: 'static>(&mut self, value: V) -> Option<V> {
+    pub fn insert<U: 'static>(&mut self, value: U) -> Option<U> {
         self.storage_mut()
-            .entry(TypeId::of::<U>())
+            .entry(TypeId::of::<T>())
             .or_default()
-            .insert(TypeId::of::<V>(), Box::new(value))?
+            .insert(TypeId::of::<U>(), Box::new(value))?
             .downcast()
             .map(|boxed| *boxed)
             .ok()
@@ -216,10 +222,10 @@ impl<T, U: 'static> HookContext<T, U> {
     ///
     /// The returned value will be the previously stored value of the same type `U` if it existed in
     /// the scope of `T`, did no such value exist, it will return [`None`].
-    pub fn remove<V: 'static>(&mut self) -> Option<V> {
+    pub fn remove<U: 'static>(&mut self) -> Option<U> {
         self.storage_mut()
-            .get_mut(&TypeId::of::<U>())?
-            .remove(&TypeId::of::<V>())?
+            .get_mut(&TypeId::of::<T>())?
+            .remove(&TypeId::of::<U>())?
             .downcast()
             .map(|boxed| *boxed)
             .ok()

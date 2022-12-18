@@ -485,6 +485,9 @@ mod hook;
 #[cfg(feature = "serde")]
 mod serde;
 
+#[cfg(all(doc, any(feature = "std", feature = "hooks")))]
+pub use hook::context::HookContext;
+
 pub use self::{
     compat::IntoReportCompat,
     context::Context,

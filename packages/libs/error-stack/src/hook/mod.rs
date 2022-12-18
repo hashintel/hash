@@ -3,7 +3,7 @@ pub(crate) mod context;
 use alloc::vec::Vec;
 
 use crate::{
-    fmt::{install_builtin_hooks, HookContext, Hooks},
+    fmt::{install_builtin_hooks, Hooks},
     Report,
 };
 
@@ -151,7 +151,7 @@ impl Report<()> {
     /// [`Error::provide`]: std::error::Error::provide
     #[cfg(any(feature = "std", feature = "hooks"))]
     pub fn install_debug_hook<T: Send + Sync + 'static>(
-        hook: impl Fn(&T, &mut HookContext<T>) + Send + Sync + 'static,
+        hook: impl Fn(&T, &mut crate::fmt::HookContext<T>) + Send + Sync + 'static,
     ) {
         install_builtin_hooks();
 
