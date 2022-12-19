@@ -307,6 +307,7 @@ impl Modify for OperationGraphTagAddon {
 struct FilterSchemaAddon;
 
 impl Modify for FilterSchemaAddon {
+    #[expect(clippy::too_many_lines)]
     fn modify(&self, openapi: &mut openapi::OpenApi) {
         if let Some(ref mut components) = openapi.components {
             components.schemas.insert(
