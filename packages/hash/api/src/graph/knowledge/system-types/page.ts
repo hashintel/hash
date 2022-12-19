@@ -63,7 +63,7 @@ export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
   }
 
   const title = entity.properties[
-    SYSTEM_TYPES.propertyType.componentId.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.title.metadata.editionId.baseId
   ] as string;
 
   const summary = entity.properties[
