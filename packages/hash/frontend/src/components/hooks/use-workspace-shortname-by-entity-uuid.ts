@@ -1,14 +1,18 @@
 import { extractBaseUri } from "@blockprotocol/type-system";
 import { systemUserShortname } from "@hashintel/hash-shared/environment";
 import { types } from "@hashintel/hash-shared/ontology-types";
-import { entityIdFromOwnedByIdAndEntityUuid } from "@hashintel/hash-subgraph";
+import {
+  entityIdFromOwnedByIdAndEntityUuid,
+  EntityUuid,
+  OwnedById,
+} from "@hashintel/hash-shared/types";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import { useEffect, useMemo, useState } from "react";
 import { useBlockProtocolGetEntity } from "./blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
 import { useWorkspaceByShortname } from "./use-workspace-by-shortname";
 
 export const useWorkspaceShortnameByEntityUuid = (params: {
-  entityUuid: string;
+  entityUuid: EntityUuid;
 }): { workspaceShortname?: string; loading: boolean } => {
   const { entityUuid } = params;
 
@@ -23,7 +27,7 @@ export const useWorkspaceShortnameByEntityUuid = (params: {
   } = useWorkspaceByShortname(systemUserShortname);
 
   const systemUserOwnedById = useMemo(
-    () => systemUserWorkspace?.accountId,
+    () => systemUserWorkspace?.accountId as OwnedById,
     [systemUserWorkspace],
   );
 

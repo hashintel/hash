@@ -6,7 +6,7 @@ import {
   useState,
   FunctionComponent,
 } from "react";
-import { EntityId } from "@hashintel/hash-subgraph";
+import { EntityId } from "@hashintel/hash-shared/types";
 import { useUpdatePageTitle } from "../../../components/hooks/useUpdatePageTitle";
 import { useIsReadonlyMode } from "../../../shared/readonly-mode";
 import { usePageContext } from "../PageContext";

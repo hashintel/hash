@@ -1,7 +1,7 @@
 import { ApolloError } from "apollo-server-express";
 import { AxiosError } from "axios";
 import { EntityTypeWithMetadata, Subgraph } from "@hashintel/hash-subgraph";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
+import { OwnedById } from "@hashintel/hash-shared/types";
 
 import {
   MutationCreateEntityTypeArgs,
@@ -21,16 +21,16 @@ export const createEntityTypeResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationCreateEntityTypeArgs
-> = async (_, params, { dataSources, userModel }) => {
+> = async (_, params, { dataSources, user }) => {
   const { graphApi } = dataSources;
   const { ownedById, entityType } = params;
 
   const createdEntityType = await createEntityType(
     { graphApi },
     {
-      ownedById: (ownedById as OwnedById) ?? userModel.getEntityUuid(),
+      ownedById: (ownedById as OwnedById) ?? user.accountId,
       schema: entityType,
-      actorId: userModel.getEntityUuid() as AccountId,
+      actorId: user.accountId,
     },
   ).catch((err) => {
     throw new ApolloError(err, "CREATION_ERROR");
@@ -133,7 +133,7 @@ export const updateEntityTypeResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationUpdateEntityTypeArgs
-> = async (_, params, { dataSources, userModel }) => {
+> = async (_, params, { dataSources, user }) => {
   const { graphApi } = dataSources;
   const { entityTypeId, updatedEntityType: updatedEntityTypeSchema } = params;
 
@@ -142,7 +142,7 @@ export const updateEntityTypeResolver: ResolverFn<
     {
       entityTypeId,
       schema: updatedEntityTypeSchema,
-      actorId: userModel.getEntityUuid() as AccountId,
+      actorId: user.accountId,
     },
   ).catch((err: AxiosError) => {
     const msg =
