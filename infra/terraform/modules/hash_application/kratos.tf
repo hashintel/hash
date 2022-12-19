@@ -90,7 +90,7 @@ locals {
     {
       name   = "COURIER_SMTP_CONNECTION_URI"
       secret = true,
-      value  = sensitive("smtps://${aws_iam_access_key.email_access_key.0.id}:${aws_iam_access_key.email_access_key.0.ses_smtp_password_v4}@email-smtp.eu-central-1.amazonaws.com:587/?skip_ssl_verify=true")
+      value  = sensitive("smtp://${aws_iam_access_key.email_access_key.0.id}:${aws_iam_access_key.email_access_key.0.ses_smtp_password_v4}@email-smtp.${var.region}.amazonaws.com:587/?skip_ssl_verify=true")
     }
   ] : []
 }
