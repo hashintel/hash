@@ -17,16 +17,18 @@ use crate::{
     api::rest::{
         api_resource::RoutedResource,
         read_from_store, report_to_status_code,
-        utoipa_typedef::subgraph::{
-            Edges, KnowledgeGraphRootedEdges, KnowledgeGraphVertex, KnowledgeGraphVertices,
-            OntologyRootedEdges, OntologyVertex, OntologyVertices, Subgraph, Vertex, Vertices,
+        utoipa_typedef::{
+            subgraph::{
+                Edges, KnowledgeGraphOutwardEdges, KnowledgeGraphRootedEdges, KnowledgeGraphVertex,
+                KnowledgeGraphVertices, OntologyRootedEdges, OntologyVertex, OntologyVertices,
+                Subgraph, Vertex, Vertices,
+            },
+            EntityIdAndTimestamp,
         },
     },
     identifier::{
-        knowledge::{
-            EntityEditionId, EntityId, EntityIdAndTimestamp, EntityRecordId, EntityVersion,
-        },
-        GraphElementEditionId, GraphElementId,
+        knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
+        GraphElementEditionId, GraphElementId, TransactionTimestamp,
     },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryToken, EntityUuid,
@@ -40,9 +42,8 @@ use crate::{
     },
     subgraph::{
         edges::{
-            EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind,
-            KnowledgeGraphOutwardEdges, OntologyEdgeKind, OntologyOutwardEdges,
-            OutgoingEdgeResolveDepth, SharedEdgeKind,
+            EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
+            OntologyOutwardEdges, OutgoingEdgeResolveDepth, SharedEdgeKind,
         },
         query::{EntityStructuralQuery, StructuralQuery},
     },
@@ -77,6 +78,7 @@ use crate::{
             EntityVersion,
             EntityStructuralQuery,
             EntityQueryToken,
+            TransactionTimestamp,
             LinkData,
             LinkOrder,
             ProvenanceMetadata,
