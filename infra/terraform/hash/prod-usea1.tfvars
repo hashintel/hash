@@ -1,8 +1,10 @@
 region          = "us-east-1"
 region_az_count = 2
 
+ses_verified_domain_identity = "hash.ai"
+
+
 kratos_env_vars = [
-  { name = "COURIER_SMTP_CONNECTION_URI", secret = false, value = "smtps://test:test@mailslurper:1025/?skip_ssl_verify=true" },
   { name = "LOG_LEVEL", secret = false, value = "info" },
   { name = "COOKIES_PATH", secret = false, value = "/" },
   { name = "COOKIES_DOMAIN", secret = false, value = "hash.ai" },
@@ -16,7 +18,9 @@ kratos_env_vars = [
   { name = "SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL", secret = false, value = "https://alpha.hash.ai/login" },
   { name = "SELFSERVICE_FLOWS_LOGIN_UI_URL", secret = false, value = "https://alpha.hash.ai/login" },
   { name = "SELFSERVICE_FLOWS_REGISTRATION_UI_URL", secret = false, value = "https://alpha.hash.ai/signup" },
-  { name = "LOG_LEAK_SENSITIVE_VALUES", secret = false, value = "false" }
+  { name = "LOG_LEAK_SENSITIVE_VALUES", secret = false, value = "false" },
+  { name = "COURIER_SMTP_FROM_ADDRESS", secret = false, value = "noreply@hash.ai" },
+  { name = "COURIER_SMTP_FROM_NAME", secret = false, value = "HASH" },
 ]
 
 hash_graph_env_vars = [

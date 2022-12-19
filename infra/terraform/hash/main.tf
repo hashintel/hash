@@ -49,7 +49,7 @@ module "bastion" {
 }
 
 module "postgres" {
-  depends_on            = [module.networking]
+  depends_on            = [module.networking, module.bastion]
   source                = "../modules/postgres"
   prefix                = local.prefix
   subnets               = module.networking.snpriv
@@ -65,7 +65,6 @@ module "postgres" {
 
 
 module "tunnel" {
-  depends_on         = [module.bastion]
   source             = "../modules/tunnel"
   ssh_host           = module.bastion.ssh_info.host
   ssh_port           = 22
@@ -86,7 +85,7 @@ provider "postgresql" {
 }
 
 module "postgres_roles" {
-  depends_on            = [module.postgres, module.bastion, module.tunnel.host]
+  depends_on            = [module.postgres, module.bastion, module.tunnel]
   providers             = { postgresql = postgresql }
   source                = "../modules/postgres_roles"
   pg_db_name            = module.postgres.pg_db_name
@@ -134,17 +133,18 @@ module "api_ecr" {
 }
 
 module "application" {
-  depends_on   = [module.networking, module.postgres]
-  source       = "../modules/hash_application"
-  subnets      = module.networking.snpub
-  env          = local.env
-  region       = local.region
-  vpc          = module.networking.vpc
-  prefix       = local.prefix
-  param_prefix = local.param_prefix
-  cpu          = 1024
-  memory       = 2048
-  graph_image  = module.graph_ecr
+  depends_on                   = [module.networking, module.postgres]
+  source                       = "../modules/hash_application"
+  subnets                      = module.networking.snpub
+  env                          = local.env
+  region                       = local.region
+  vpc                          = module.networking.vpc
+  prefix                       = local.prefix
+  param_prefix                 = local.param_prefix
+  cpu                          = 1024
+  memory                       = 2048
+  graph_image                  = module.graph_ecr
+  ses_verified_domain_identity = var.ses_verified_domain_identity
   graph_env_vars = concat(var.hash_graph_env_vars, [
     { name = "HASH_GRAPH_PG_USER", secret = false, value = "graph" },
     { name = "HASH_GRAPH_PG_PASSWORD", secret = true, value = sensitive(var.pg_graph_user_password.raw) },
