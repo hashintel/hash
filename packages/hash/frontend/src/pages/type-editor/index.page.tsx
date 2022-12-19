@@ -1,26 +1,30 @@
-import { types } from "@hashintel/hash-shared/types";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import { Box, Container } from "@mui/material";
 import { useCallback, useState } from "react";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
+
 import {
   AggregateDataTypesMessageCallback,
   AggregateEntityTypesMessageCallback,
   AggregatePropertyTypesMessageCallback,
 } from "../../components/hooks/blockProtocolFunctions/ontology/ontology-types-shim";
-import { useLoggedInUser } from "../../components/hooks/useAuthenticatedUser";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { NextPageWithLayout } from "../../shared/layout";
 
 import { Button } from "../../shared/ui";
+import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { useBlockProtocolFunctionsWithOntology } from "./blockprotocol-ontology-functions-hook";
 
 /**
  * This component is an example usage of the new functions.
  * This is meant to be removed as soon as it's unneeded.
  */
-const ExampleUsage = ({ accountId }: { accountId: string }) => {
+const ExampleUsage = ({ accountId }: { accountId: AccountId }) => {
   const [content, setContent] = useState<string>();
 
-  const functions = useBlockProtocolFunctionsWithOntology(accountId);
+  const functions = useBlockProtocolFunctionsWithOntology(
+    accountId as OwnedById,
+  );
 
   const getType = useCallback(
     (
@@ -104,15 +108,15 @@ const ExampleUsage = ({ accountId }: { accountId: string }) => {
 const Page: NextPageWithLayout = () => {
   // The user is important to allow using Block Protocol functions
   // such as: `const functions = useBlockProtocolFunctionsWithOntology(user.accountId);`
-  const { authenticatedUser, loading: loadingUser } = useLoggedInUser();
+  const { authenticatedUser } = useAuthenticatedUser();
   const loadingTypeSystem = useInitTypeSystem();
 
-  return loadingUser || !authenticatedUser || loadingTypeSystem ? (
+  return loadingTypeSystem ? (
     <Container sx={{ pt: 10 }}>Loading...</Container>
   ) : (
     <Container sx={{ pt: 10 }}>
       Hello!
-      <ExampleUsage accountId={authenticatedUser.userAccountId} />
+      <ExampleUsage accountId={authenticatedUser.accountId} />
     </Container>
   );
 };

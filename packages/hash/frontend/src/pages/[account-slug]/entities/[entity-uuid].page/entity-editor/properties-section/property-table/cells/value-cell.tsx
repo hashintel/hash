@@ -3,7 +3,7 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
-import { types } from "@hashintel/hash-shared/types";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import { customColors } from "@hashintel/hash-design-system/src/theme/palette";
 import { InteractableManager } from "../../../../../../../../components/grid/utils/interactable-manager";
 import { drawInteractableTooltipIcons } from "../../../../../../../../components/grid/utils/use-grid-tooltip/draw-interactable-tooltip-icons";

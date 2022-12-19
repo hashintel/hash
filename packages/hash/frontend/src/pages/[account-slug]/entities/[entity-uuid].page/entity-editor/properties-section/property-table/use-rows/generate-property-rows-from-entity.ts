@@ -20,13 +20,20 @@ export const generatePropertyRowsFromEntity = (
 
   const requiredPropertyTypes = entityType.schema.required ?? [];
 
-  return Object.keys(entityType.schema.properties).map((propertyTypeBaseUri) =>
-    generatePropertyRowRecursively({
-      propertyTypeBaseUri,
-      propertyKeyChain: [propertyTypeBaseUri],
-      entity,
-      entitySubgraph,
-      requiredPropertyTypes,
-    }),
+  return Object.keys(entityType.schema.properties).map(
+    (propertyTypeBaseUri) => {
+      const property = entityType.schema.properties[propertyTypeBaseUri] ?? {};
+
+      const isAllowMultiple = "type" in property && property.type === "array";
+
+      return generatePropertyRowRecursively({
+        propertyTypeBaseUri,
+        propertyKeyChain: [propertyTypeBaseUri],
+        entity,
+        entitySubgraph,
+        requiredPropertyTypes,
+        isAllowMultiple,
+      });
+    },
   );
 };

@@ -1,6 +1,7 @@
 import { ApolloError } from "apollo-server-express";
 import { AxiosError } from "axios";
 import { EntityTypeWithMetadata, Subgraph } from "@hashintel/hash-subgraph";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 
 import {
   MutationCreateEntityTypeArgs,
@@ -10,9 +11,12 @@ import {
   ResolverFn,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
-import { EntityTypeModel } from "../../../model";
+import {
+  createEntityType,
+  updateEntityType,
+} from "../../../graph/ontology/primitive/entity-type";
 
-export const createEntityType: ResolverFn<
+export const createEntityTypeResolver: ResolverFn<
   Promise<EntityTypeWithMetadata>,
   {},
   LoggedInGraphQLContext,
@@ -21,18 +25,21 @@ export const createEntityType: ResolverFn<
   const { graphApi } = dataSources;
   const { ownedById, entityType } = params;
 
-  const createdEntityTypeModel = await EntityTypeModel.create(graphApi, {
-    ownedById: ownedById ?? userModel.getEntityUuid(),
-    schema: entityType,
-    actorId: userModel.getEntityUuid(),
-  }).catch((err) => {
+  const createdEntityType = await createEntityType(
+    { graphApi },
+    {
+      ownedById: (ownedById as OwnedById) ?? userModel.getEntityUuid(),
+      schema: entityType,
+      actorId: userModel.getEntityUuid() as AccountId,
+    },
+  ).catch((err) => {
     throw new ApolloError(err, "CREATION_ERROR");
   });
 
-  return createdEntityTypeModel.entityType;
+  return createdEntityType;
 };
 
-export const getAllLatestEntityTypes: ResolverFn<
+export const getAllLatestEntityTypesResolver: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
@@ -76,7 +83,7 @@ export const getAllLatestEntityTypes: ResolverFn<
   return entityTypeSubgraph as Subgraph;
 };
 
-export const getEntityType: ResolverFn<
+export const getEntityTypeResolver: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
@@ -121,37 +128,30 @@ export const getEntityType: ResolverFn<
   return entityTypeSubgraph as Subgraph;
 };
 
-export const updateEntityType: ResolverFn<
+export const updateEntityTypeResolver: ResolverFn<
   Promise<EntityTypeWithMetadata>,
   {},
   LoggedInGraphQLContext,
   MutationUpdateEntityTypeArgs
 > = async (_, params, { dataSources, userModel }) => {
   const { graphApi } = dataSources;
-  const { entityTypeId, updatedEntityType } = params;
+  const { entityTypeId, updatedEntityType: updatedEntityTypeSchema } = params;
 
-  const entityTypeModel = await EntityTypeModel.get(graphApi, {
-    entityTypeId,
-  }).catch((err: AxiosError) => {
-    throw new ApolloError(
-      `Unable to retrieve entity type. ${err.response?.data} [URI=${entityTypeId}]`,
-      "GET_ERROR",
-    );
+  const updatedEntityType = await updateEntityType(
+    { graphApi },
+    {
+      entityTypeId,
+      schema: updatedEntityTypeSchema,
+      actorId: userModel.getEntityUuid() as AccountId,
+    },
+  ).catch((err: AxiosError) => {
+    const msg =
+      err.response?.status === 409
+        ? `Entity type URI doesn't exist, unable to update. [URI=${entityTypeId}]`
+        : `Couldn't update entity type.`;
+
+    throw new ApolloError(msg, "CREATION_ERROR");
   });
 
-  const updatedEntityTypeModel = await entityTypeModel
-    .update(graphApi, {
-      schema: updatedEntityType,
-      actorId: userModel.getEntityUuid(),
-    })
-    .catch((err: AxiosError) => {
-      const msg =
-        err.response?.status === 409
-          ? `Entity type URI doesn't exist, unable to update. [URI=${entityTypeId}]`
-          : `Couldn't update entity type.`;
-
-      throw new ApolloError(msg, "CREATION_ERROR");
-    });
-
-  return updatedEntityTypeModel.entityType;
+  return updatedEntityType;
 };

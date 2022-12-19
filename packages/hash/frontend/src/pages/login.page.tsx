@@ -6,12 +6,11 @@ import {
   useMemo,
   useContext,
 } from "react";
-import { SelfServiceLoginFlow } from "@ory/client";
+import { LoginFlow } from "@ory/client";
 import { Typography, Container, Box } from "@mui/material";
 import { TextField } from "@hashintel/hash-design-system";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { AxiosError } from "axios";
-import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import {
   createFlowErrorHandler,
@@ -21,13 +20,13 @@ import {
 import { Button } from "../shared/ui";
 import { useLogoutFlow } from "../components/hooks/useLogoutFlow";
 import { useHashInstance } from "../components/hooks/useHashInstance";
-import { useAuthenticatedUser } from "../components/hooks/useAuthenticatedUser";
 import { WorkspaceContext } from "./shared/workspace-context";
+import { useAuthInfo } from "./shared/auth-info-context";
 
 const LoginPage: NextPageWithLayout = () => {
   // Get ?flow=... from the URL
   const router = useRouter();
-  const { refetch } = useAuthenticatedUser();
+  const { refetch } = useAuthInfo();
   const { updateActiveWorkspaceAccountId } = useContext(WorkspaceContext);
   const { hashInstance } = useHashInstance();
 
@@ -42,7 +41,7 @@ const LoginPage: NextPageWithLayout = () => {
     aal,
   } = router.query;
 
-  const [flow, setFlow] = useState<SelfServiceLoginFlow>();
+  const [flow, setFlow] = useState<LoginFlow>();
 
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -72,7 +71,7 @@ const LoginPage: NextPageWithLayout = () => {
     // If ?flow=.. was in the URL, we fetch it
     if (flowId) {
       oryKratosClient
-        .getSelfServiceLoginFlow(String(flowId))
+        .getLoginFlow({ id: String(flowId) })
         .then(({ data }) => setFlow(data))
         .catch(handleFlowError);
       return;
@@ -80,11 +79,11 @@ const LoginPage: NextPageWithLayout = () => {
 
     // Otherwise we initialize it
     oryKratosClient
-      .initializeSelfServiceLoginFlowForBrowsers(
-        Boolean(refresh),
-        aal ? String(aal) : undefined,
-        returnTo ? String(returnTo) : undefined,
-      )
+      .createBrowserLoginFlow({
+        refresh: Boolean(refresh),
+        aal: aal ? String(aal) : undefined,
+        returnTo: returnTo ? String(returnTo) : undefined,
+      })
       .then(({ data }) => setFlow(data))
       .catch(handleFlowError);
   }, [
@@ -113,11 +112,14 @@ const LoginPage: NextPageWithLayout = () => {
       .push(`/login?flow=${flow?.id}`, undefined, { shallow: true })
       .then(() =>
         oryKratosClient
-          .submitSelfServiceLoginFlow(String(flow?.id), {
-            csrf_token,
-            method: "password",
-            identifier: email,
-            password,
+          .updateLoginFlow({
+            flow: String(flow?.id),
+            updateLoginFlowBody: {
+              csrf_token,
+              method: "password",
+              identifier: email,
+              password,
+            },
           })
           // We logged in successfully! Let's redirect the user.
           .then(async () => {
@@ -128,30 +130,20 @@ const LoginPage: NextPageWithLayout = () => {
             }
 
             // Otherwise, redirect the user to their workspace.
-            const [
-              {
-                data: { me: meSubgraph },
-              },
-            ] = await refetch();
+            const { authenticatedUser } = await refetch();
 
-            const userEntityId = meSubgraph.roots[0]?.baseId;
-
-            const userAccountId = userEntityId
-              ? extractEntityUuidFromEntityId(userEntityId)
-              : undefined;
-
-            if (!userAccountId) {
+            if (!authenticatedUser) {
               throw new Error(
-                "Could not find account ID of logged in user in me subgraph.",
+                "Could not fetch authenticated user after logging in.",
               );
             }
 
-            updateActiveWorkspaceAccountId(userAccountId);
+            updateActiveWorkspaceAccountId(authenticatedUser.accountId);
 
             void router.push("/");
           })
           .catch(handleFlowError)
-          .catch((err: AxiosError<SelfServiceLoginFlow>) => {
+          .catch((err: AxiosError<LoginFlow>) => {
             // If the previous handler did not catch the error it's most likely a form validation error
             if (err.response?.status === 400) {
               // Yup, it is!

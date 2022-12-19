@@ -28,7 +28,7 @@ export type OrgProvidedInfo = {
 
 export type OrgModelCreateParams = Omit<
   EntityModelCreateParams,
-  "properties" | "entityTypeModel" | "ownedById"
+  "properties" | "entityType" | "ownedById"
 > & {
   shortname: string;
   name: string;
@@ -69,24 +69,26 @@ export default class extends EntityModel {
       params.orgAccountId ?? (await graphApi.createAccountId()).data;
 
     const properties: PropertyObject = {
-      [SYSTEM_TYPES.propertyType.shortName.getBaseUri()]: shortname,
-      [SYSTEM_TYPES.propertyType.orgName.getBaseUri()]: name,
+      [SYSTEM_TYPES.propertyType.shortName.metadata.editionId.baseId]:
+        shortname,
+      [SYSTEM_TYPES.propertyType.orgName.metadata.editionId.baseId]: name,
       ...(providedInfo
         ? {
-            [SYSTEM_TYPES.propertyType.orgProvidedInfo.getBaseUri()]: {
-              [SYSTEM_TYPES.propertyType.orgSize.getBaseUri()]:
+            [SYSTEM_TYPES.propertyType.orgProvidedInfo.metadata.editionId
+              .baseId]: {
+              [SYSTEM_TYPES.propertyType.orgSize.metadata.editionId.baseId]:
                 providedInfo.orgSize,
             },
           }
         : {}),
     };
 
-    const entityTypeModel = SYSTEM_TYPES.entityType.org;
+    const entityType = SYSTEM_TYPES.entityType.org;
 
     const entity = await EntityModel.create(graphApi, {
       ownedById: systemUserAccountId,
       properties,
-      entityTypeModel,
+      entityType,
       entityUuid: orgAccountId,
       actorId,
     });
@@ -96,13 +98,13 @@ export default class extends EntityModel {
 
   static fromEntityModel(entityModel: EntityModel): OrgModel {
     if (
-      entityModel.entityTypeModel.getSchema().$id !==
-      SYSTEM_TYPES.entityType.org.getSchema().$id
+      entityModel.entityType.schema.$id !==
+      SYSTEM_TYPES.entityType.org.schema.$id
     ) {
       throw new EntityTypeMismatchError(
         entityModel.getBaseId(),
-        SYSTEM_TYPES.entityType.org.getSchema().$id,
-        entityModel.entityTypeModel.getSchema().$id,
+        SYSTEM_TYPES.entityType.org.schema.$id,
+        entityModel.entityType.schema.$id,
       );
     }
 
@@ -141,7 +143,7 @@ export default class extends EntityModel {
         {
           equal: [
             { path: ["type", "versionedUri"] },
-            { parameter: SYSTEM_TYPES.entityType.org.getSchema().$id },
+            { parameter: SYSTEM_TYPES.entityType.org.schema.$id },
           ],
         },
       ],
@@ -156,7 +158,7 @@ export default class extends EntityModel {
 
   getShortname(): string {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.shortName.getBaseUri()
+      SYSTEM_TYPES.propertyType.shortName.metadata.editionId.baseId
     ];
   }
 
@@ -188,7 +190,8 @@ export default class extends EntityModel {
     }
 
     return await this.updateProperty(graphApi, {
-      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.shortName.getBaseUri(),
+      propertyTypeBaseUri:
+        SYSTEM_TYPES.propertyType.shortName.metadata.editionId.baseId,
       value: updatedShortname,
       actorId,
     }).then((updatedEntity) => OrgModel.fromEntityModel(updatedEntity));
@@ -196,7 +199,7 @@ export default class extends EntityModel {
 
   getOrgName(): string {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.orgName.getBaseUri()
+      SYSTEM_TYPES.propertyType.orgName.metadata.editionId.baseId
     ];
   }
 
@@ -221,7 +224,8 @@ export default class extends EntityModel {
     }
 
     const updatedEntity = await this.updateProperty(graphApi, {
-      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.orgName.getBaseUri(),
+      propertyTypeBaseUri:
+        SYSTEM_TYPES.propertyType.orgName.metadata.editionId.baseId,
       value: updatedOrgName,
       actorId,
     });

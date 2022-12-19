@@ -3,12 +3,12 @@ use std::fmt;
 use crate::store::postgres::query::{AliasedColumn, Expression, Transpile};
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub struct WindowStatement<'q> {
-    partition: Vec<Expression<'q>>,
+pub struct WindowStatement<'p> {
+    partition: Vec<Expression<'p>>,
 }
 
-impl<'q> WindowStatement<'q> {
-    pub fn partition_by(column: AliasedColumn<'q>) -> Self {
+impl<'p> WindowStatement<'p> {
+    pub fn partition_by(column: AliasedColumn<'p>) -> Self {
         Self {
             partition: vec![Expression::Column(column)],
         }

@@ -1,4 +1,4 @@
-FROM oryd/kratos:v0.10.1
+FROM oryd/kratos:v0.11.0
 
 USER root
 
@@ -15,6 +15,7 @@ ENV API_SECRET=$API_SECRET
 RUN mkdir -p /etc/config/kratos && \
     mkdir -p /home/ory/.postgresql
 
+COPY ./templates /etc/config/kratos/templates
 COPY ./hooks /etc/config/kratos/hooks
 COPY ./identity.schema.json /etc/config/kratos/
 COPY kratos.$ENV.yml /etc/config/kratos/kratos.$ENV.yml

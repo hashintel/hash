@@ -10,7 +10,7 @@ import {
 
 import { generateDraftIdForEntity } from "./entityStorePlugin";
 import { BlockEntity } from "./entity";
-import { types } from "./types";
+import { types } from "./ontology-types";
 
 export type EntityStoreType = BlockEntity | BlockEntity["blockChildEntity"];
 

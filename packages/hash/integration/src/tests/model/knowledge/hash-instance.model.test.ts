@@ -57,7 +57,7 @@ describe("HashInstance model class", () => {
     const hashOutgoingAdminLinks = await hashInstanceModel.getOutgoingLinks(
       graphApi,
       {
-        linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.admin,
+        linkEntityType: SYSTEM_TYPES.linkEntityType.admin,
       },
     );
 
@@ -86,7 +86,7 @@ describe("HashInstance model class", () => {
 
     const hashInstanceOutgoingAdminLinks =
       await hashInstanceModel.getOutgoingLinks(graphApi, {
-        linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.admin,
+        linkEntityType: SYSTEM_TYPES.linkEntityType.admin,
       });
 
     expect(hashInstanceOutgoingAdminLinks).toHaveLength(0);

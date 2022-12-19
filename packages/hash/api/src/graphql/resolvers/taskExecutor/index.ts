@@ -189,9 +189,8 @@ export const executeGithubReadTask: ResolverFn<
       for (const record of airbyteRecords) {
         const entityTypeName = streamNameToEntityTypeName(record.stream);
         /** @todo - Check if entity already exists */
-        const entityTypeModel =
-          existingEntityChecker.getExisting(entityTypeName);
-        if (!entityTypeModel) {
+        const entityType = existingEntityChecker.getExisting(entityTypeName);
+        if (!entityType) {
           throw new Error(
             `Couldn't find EntityType for ingested data with name: ${entityTypeName}`,
           );
@@ -202,7 +201,7 @@ export const executeGithubReadTask: ResolverFn<
         const entityModel = await EntityModel.create(graphApi, {
           ownedById: userModel.getEntityUuid(),
           actorId: userModel.getEntityUuid(),
-          entityTypeModel,
+          entityType,
           properties: record.data as PropertyObject,
         });
 

@@ -133,3 +133,6 @@ seed-users.json
 *.tfstate.*
 *.secrets.tfvars
 *.pem
+
+# Workspace-specific
+/packages/hash/design-system/storybook-static

@@ -7,7 +7,7 @@ import {
   TextField,
 } from "@hashintel/hash-design-system";
 import { frontendUrl } from "@hashintel/hash-shared/environment";
-import { generateBaseTypeId } from "@hashintel/hash-shared/types";
+import { generateBaseTypeId } from "@hashintel/hash-shared/ontology-types";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 import {
@@ -29,10 +29,10 @@ import { useBlockProtocolGetPropertyType } from "../../../../../../../../compone
 import { Modal } from "../../../../../../../../components/Modals/Modal";
 import { useRouteNamespace } from "../../../../../../shared/use-route-namespace";
 import { PropertyTypeFormValues } from "./property-type-form-values";
-import { DataTypeSelector } from "./property-type-form/data-type-selector";
+import { ExpectedValueSelector } from "./property-type-form/expected-value-selector";
 import { getPropertyTypeSchema } from "./property-type-form/property-type-schema";
-import { DataTypeSelectorDropdownContext } from "./property-type-form/shared/data-type-selector-dropdown-context";
-import { QuestionIcon } from "./question-icon";
+import { CustomExpectedValueBuilderContext } from "./property-type-form/shared/custom-expected-value-builder-context";
+import { QuestionIcon } from "../../shared/question-icon";
 import { withHandler } from "./with-handler";
 
 const generateInitialPropertyTypeId = (baseUri: string) =>
@@ -123,20 +123,22 @@ const PropertyTypeFormInner = ({
     setValue,
   } = formMethods;
 
-  const [creatingCustomDataType, setCreatingCustomDataType] = useState(false);
+  const [creatingCustomExpectedValue, setCreatingCustomExpectedValue] =
+    useState(false);
 
-  const dataTypeSelectorDropdownContextValue = useMemo(
+  const customExpectedValueBuilderContextValue = useMemo(
     () => ({
-      customDataTypeMenuOpen: creatingCustomDataType,
-      openCustomDataTypeMenu: () => setCreatingCustomDataType(true),
-      closeCustomDataTypeMenu: () => {
-        setValue("editingDataTypeIndex", undefined);
-        setValue("customDataTypeId", undefined);
-        setValue("flattenedDataTypeList", {});
-        setCreatingCustomDataType(false);
+      customExpectedValueBuilderOpen: creatingCustomExpectedValue,
+      openCustomExpectedValueBuilder: () =>
+        setCreatingCustomExpectedValue(true),
+      closeCustomExpectedValueBuilder: () => {
+        setValue("editingExpectedValueIndex", undefined);
+        setValue("customExpectedValueId", undefined);
+        setValue("flattenedCustomExpectedValueList", {});
+        setCreatingCustomExpectedValue(false);
       },
     }),
-    [creatingCustomDataType, setCreatingCustomDataType, setValue],
+    [creatingCustomExpectedValue, setCreatingCustomExpectedValue, setValue],
   );
 
   const defaultField = defaultValues.name ? "description" : "name";
@@ -346,11 +348,11 @@ const PropertyTypeFormInner = ({
           />
 
           <FormProvider {...formMethods}>
-            <DataTypeSelectorDropdownContext.Provider
-              value={dataTypeSelectorDropdownContextValue}
+            <CustomExpectedValueBuilderContext.Provider
+              value={customExpectedValueBuilderContextValue}
             >
-              <DataTypeSelector />
-            </DataTypeSelectorDropdownContext.Provider>
+              <ExpectedValueSelector />
+            </CustomExpectedValueBuilderContext.Provider>
           </FormProvider>
         </Stack>
         <Divider sx={{ mt: 2, mb: 3 }} />

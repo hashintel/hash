@@ -1,22 +1,19 @@
-use std::{fmt::Debug, str::FromStr};
+use std::str::FromStr;
 
 use async_trait::async_trait;
-use error_stack::{Context, IntoReport, Result, ResultExt};
+use error_stack::{IntoReport, Result, ResultExt};
 use futures::{StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
 use type_system::uri::VersionedUri;
 
 use crate::{
     identifier::ontology::OntologyTypeEditionId,
-    ontology::{OntologyElementMetadata, PersistedOntologyType},
+    ontology::{OntologyElementMetadata, OntologyType, OntologyTypeWithMetadata},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         crud::Read,
-        postgres::{
-            ontology::OntologyDatabaseType,
-            query::{Distinctness, PostgresQueryRecord, SelectCompiler},
-        },
-        query::{Filter, OntologyPath, QueryRecord},
+        postgres::query::{Distinctness, PostgresRecord, SelectCompiler},
+        query::{Filter, OntologyQueryPath},
         AsClient, PostgresStore, QueryError,
     },
 };
@@ -24,17 +21,15 @@ use crate::{
 #[async_trait]
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
-    T: PersistedOntologyType
-        + for<'q> PostgresQueryRecord<Path<'q>: Debug + Send + Sync + OntologyPath>
-        + Send
-        + 'static,
-    T::OntologyType: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context>,
+    T: OntologyTypeWithMetadata + PostgresRecord,
+    for<'p> T::QueryPath<'p>: OntologyQueryPath,
 {
-    async fn read<'f: 'q, 'q>(&self, filter: &'f Filter<'q, T>) -> Result<Vec<T>, QueryError> {
-        let versioned_uri_path = <<T as QueryRecord>::Path<'q> as OntologyPath>::versioned_uri();
-        let schema_path = <<T as QueryRecord>::Path<'q> as OntologyPath>::schema();
-        let owned_by_id_path = <<T as QueryRecord>::Path<'q> as OntologyPath>::owned_by_id();
-        let updated_by_id_path = <<T as QueryRecord>::Path<'q> as OntologyPath>::updated_by_id();
+    #[tracing::instrument(level = "info", skip(self, filter))]
+    async fn read(&self, filter: &Filter<T>) -> Result<Vec<T>, QueryError> {
+        let versioned_uri_path = <T::QueryPath<'static> as OntologyQueryPath>::versioned_uri();
+        let schema_path = <T::QueryPath<'static> as OntologyQueryPath>::schema();
+        let owned_by_id_path = <T::QueryPath<'static> as OntologyQueryPath>::owned_by_id();
+        let updated_by_id_path = <T::QueryPath<'static> as OntologyQueryPath>::updated_by_id();
 
         let mut compiler = SelectCompiler::new();
 
@@ -60,10 +55,13 @@ where
                 let versioned_uri = VersionedUri::from_str(row.get(versioned_uri_index))
                     .into_report()
                     .change_context(QueryError)?;
-                let record =
-                    <T::OntologyType>::try_from(row.get::<_, serde_json::Value>(schema_index))
+                let record_repr: <T::OntologyType as OntologyType>::Representation =
+                    serde_json::from_value(row.get(schema_index))
                         .into_report()
                         .change_context(QueryError)?;
+                let record = T::OntologyType::try_from(record_repr)
+                    .into_report()
+                    .change_context(QueryError)?;
                 let owned_by_id = OwnedById::new(row.get(owned_by_id_index));
                 let updated_by_id = UpdatedById::new(row.get(updated_by_id_path_index));
 

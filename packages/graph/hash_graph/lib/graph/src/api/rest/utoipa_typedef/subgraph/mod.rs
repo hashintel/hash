@@ -6,7 +6,10 @@ use utoipa::ToSchema;
 
 pub use self::{
     edges::{Edges, KnowledgeGraphRootedEdges, OntologyRootedEdges},
-    vertices::{KnowledgeGraphVertices, OntologyVertices, Vertices},
+    vertices::{
+        KnowledgeGraphVertex, KnowledgeGraphVertices, OntologyVertex, OntologyVertices, Vertex,
+        Vertices,
+    },
 };
 use crate::{identifier::GraphElementEditionId, subgraph::edges::GraphResolveDepths};
 
