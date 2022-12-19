@@ -186,58 +186,6 @@ export const createPage: ImpureGraphFunction<
 };
 
 /**
- * Get all the pages in a workspace.
- *
- * @param params.workspace - the user or org whose pages will be returned
- */
-export const getAllPagesInWorkspace: ImpureGraphFunction<
-  {
-    workspace: User | Org;
-  },
-  Promise<Page[]>
-> = async ({ graphApi }, params) => {
-  const pageEntities = await graphApi
-    .getEntitiesByQuery({
-      filter: {
-        all: [
-          { equal: [{ path: ["version"] }, { parameter: "latest" }] },
-          {
-            equal: [
-              { path: ["type", "versionedUri"] },
-              { parameter: SYSTEM_TYPES.entityType.page.schema.$id },
-            ],
-          },
-        ],
-      },
-      graphResolveDepths: zeroedGraphResolveDepths,
-    })
-    .then(({ data: subgraph }) =>
-      getEntities(subgraph as Subgraph<SubgraphRootTypes["entity"]>),
-    );
-
-  const pages = pageEntities
-    /**
-     * @todo: filter the pages by their ownedById in the query instead once it's supported
-     * @see https://app.asana.com/0/1202805690238892/1203015527055374/f
-     */
-    .filter(
-      (pageEntity) =>
-        extractOwnedByIdFromEntityId(pageEntity.metadata.editionId.baseId) ===
-        params.workspace.accountId,
-    )
-    .map((entity) => getPageFromEntity({ entity }));
-
-  return await Promise.all(
-    pages.map(async (page) => {
-      if (!page) {
-        return [];
-      }
-      return page;
-    }),
-  ).then((filteredPages) => filteredPages.flat());
-};
-
-/**
  * Get the parent page of the page.
  *
  * @param params.page - the page
@@ -286,6 +234,59 @@ export const isPageArchived: ImpureGraphFunction<
   const parentPage = await getPageParentPage(ctx, { page });
 
   return parentPage ? await isPageArchived(ctx, { page: parentPage }) : false;
+};
+
+/**
+ * Get all the pages in a workspace.
+ *
+ * @param params.workspace - the user or org whose pages will be returned
+ */
+export const getAllPagesInWorkspace: ImpureGraphFunction<
+  {
+    workspace: User | Org;
+  },
+  Promise<Page[]>
+> = async (ctx, params) => {
+  const { graphApi } = ctx;
+  const pageEntities = await graphApi
+    .getEntitiesByQuery({
+      filter: {
+        all: [
+          { equal: [{ path: ["version"] }, { parameter: "latest" }] },
+          {
+            equal: [
+              { path: ["type", "versionedUri"] },
+              { parameter: SYSTEM_TYPES.entityType.page.schema.$id },
+            ],
+          },
+        ],
+      },
+      graphResolveDepths: zeroedGraphResolveDepths,
+    })
+    .then(({ data: subgraph }) =>
+      getEntities(subgraph as Subgraph<SubgraphRootTypes["entity"]>),
+    );
+
+  const pages = pageEntities
+    /**
+     * @todo: filter the pages by their ownedById in the query instead once it's supported
+     * @see https://app.asana.com/0/1202805690238892/1203015527055374/f
+     */
+    .filter(
+      (pageEntity) =>
+        extractOwnedByIdFromEntityId(pageEntity.metadata.editionId.baseId) ===
+        params.workspace.accountId,
+    )
+    .map((entity) => getPageFromEntity({ entity }));
+
+  return await Promise.all(
+    pages.map(async (page) => {
+      if (await isPageArchived(ctx, { page })) {
+        return [];
+      }
+      return page;
+    }),
+  ).then((filteredPages) => filteredPages.flat());
 };
 
 /**
