@@ -111,6 +111,7 @@ export const updateLinkEntity: ImpureGraphFunction<
     entityId: linkEntity.metadata.editionId.baseId,
     entityTypeId: linkEntity.metadata.entityTypeId,
     properties,
+    archived: linkEntity.metadata.archived,
     leftToRightOrder,
     rightToLeftOrder,
   });
