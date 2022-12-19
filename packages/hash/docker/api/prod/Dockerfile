@@ -17,14 +17,14 @@ COPY packages/hash/backend-utils/package.json packages/hash/backend-utils/
 COPY packages/graph/clients/typescript/package.json packages/graph/clients/typescript/
 RUN yarn workspace @hashintel/hash-api install --frozen-lockfile --ignore-scripts --prefer-offline
 
-COPY packages/hash/api/codegen.yml packages/hash/api/codegen.yml
+COPY packages/hash/api/codegen.config.ts packages/hash/api/codegen.config.ts
 COPY packages/hash/api/src/graphql/typeDefs packages/hash/api/src/graphql/typeDefs
 COPY packages/hash/shared/src/queries packages/hash/shared/src/queries
+COPY packages/hash/shared/src/graphql packages/hash/shared/src/graphql
 
 RUN yarn workspace @hashintel/hash-api codegen
 
-COPY packages/hash/shared/codegen.yml packages/hash/shared/codegen.yml
-COPY packages/hash/shared/src/queries packages/hash/shared/src/queries
+COPY packages/hash/shared/codegen.config.ts packages/hash/shared/codegen.config.ts
 
 RUN yarn workspace @hashintel/hash-shared codegen
 
