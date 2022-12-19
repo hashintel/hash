@@ -65,7 +65,9 @@ export class BlockView implements NodeView {
 
     const draftEntity = this.store.draft[blockEntityNode.attrs.draftId];
 
-    return (draftEntity?.metadata.editionId.baseId as EntityId) ?? null;
+    return (
+      (draftEntity?.metadata.editionId.baseId as EntityId | undefined) ?? null
+    );
   };
 
   private getBlockDraftId() {

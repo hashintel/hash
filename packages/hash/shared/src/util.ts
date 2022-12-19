@@ -145,7 +145,11 @@ export const treeFromParentReferences = <
 ) => {
   const topologicallySorted = topologicalSort(
     elements
-      .filter((element) => element[reference] != null)
+      .filter(
+        (element) =>
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
+          element[reference] != null,
+      )
       .map((element) => [element[key] as string, element[reference]]),
   );
 
@@ -176,6 +180,7 @@ export const treeFromParentReferences = <
      *  }
      * */
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     if (existingParent[recursive]) {
       existingParent[recursive].push(current);
     } else {
@@ -184,6 +189,7 @@ export const treeFromParentReferences = <
   }
 
   return Array.from(mapping.values()).filter(
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     (element) => element[reference] == null,
   );
 };
@@ -206,6 +212,7 @@ export const flatMapTree = <T>(graph: object, fn: (a: unknown) => T[]) => {
     result.push(...fn(currentNode));
 
     // Traverse direct descendants of all nodes in the current depth
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     if (typeof currentNode === "object" && currentNode !== null) {
       for (const current of Object.values(currentNode)) {
         queue.push(current);

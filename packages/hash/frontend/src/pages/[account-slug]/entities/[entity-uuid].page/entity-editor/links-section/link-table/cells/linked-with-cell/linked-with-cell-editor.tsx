@@ -17,6 +17,7 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
   const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
   const { entitySubgraph, refetch } = useEntityEditor();
   const { createEntity } = useBlockProtocolCreateEntity(
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     (activeWorkspaceAccountId as OwnedById) ?? null,
   );
   const { archiveEntity } = useBlockProtocolArchiveEntity();

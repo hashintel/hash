@@ -39,7 +39,7 @@ export const useAccountPages = (ownedById: OwnedById): AccountPagesInfo => {
       return [];
     }
 
-    return data?.pages.map(
+    return data.pages.map(
       ({
         metadata: {
           editionId: { baseId },

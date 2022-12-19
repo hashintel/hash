@@ -25,6 +25,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
 
   const { entitySubgraph, refetch } = useEntityEditor();
   const { createEntity } = useBlockProtocolCreateEntity(
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     (activeWorkspaceAccountId as OwnedById) ?? null,
   );
   const { archiveEntity } = useBlockProtocolArchiveEntity();
@@ -66,6 +67,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
       },
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
     if (!linkEntity || linkEntity === undefined) {
       throw new Error("failed to create link");
     }

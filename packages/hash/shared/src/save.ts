@@ -266,7 +266,7 @@ const calculateSaveActions = async (
       const oldChildEntityForBlock = savedEntity.blockChildEntity;
 
       if (
-        oldChildEntityForBlock?.metadata.editionId.baseId !==
+        oldChildEntityForBlock.metadata.editionId.baseId !==
         newChildEntityForBlock?.metadata.editionId.baseId
       ) {
         if (!newChildEntityForBlock?.metadata.editionId.baseId) {

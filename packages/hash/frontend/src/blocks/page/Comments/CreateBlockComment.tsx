@@ -23,7 +23,7 @@ export const CreateBlockComment: FunctionComponent<CreateBlockCommentProps> = ({
   const [inputValue, setInputValue] = useState<TextToken[]>([]);
 
   const handleCommentSubmit = async () => {
-    if (!loading && blockEntityId && inputValue?.length) {
+    if (!loading && blockEntityId && inputValue.length) {
       await createComment(blockEntityId, inputValue);
       onClose?.();
     }

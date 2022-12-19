@@ -96,7 +96,7 @@ function getLinkedEntities(params: {
     sourceEntityId,
   });
 
-  if (!matchingLinkGroup?.links?.[0]) {
+  if (!matchingLinkGroup?.links[0]) {
     return null;
   }
 
@@ -113,6 +113,7 @@ function getLinkedEntities(params: {
       linkedEntity.entityId === destinationEntityId && "url" in linkedEntity,
   );
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
   if (!matchingLinkedEntities) {
     return null;
   }
@@ -147,7 +148,8 @@ export const Media: FunctionComponent<
   const { graphService } = useGraphBlockService(blockRef);
 
   const matchingLinkedEntities = useMemo(() => {
-    if (blockGraph?.linkGroups && blockGraph?.linkedEntities && entityId) {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
+    if (blockGraph?.linkGroups && blockGraph.linkedEntities && entityId) {
       return getLinkedEntities({
         sourceEntityId: entityId,
         path: "$.file",
@@ -202,7 +204,7 @@ export const Media: FunctionComponent<
             updateEntityData.properties.initialWidth = width;
           }
 
-          void graphService?.updateEntity({ data: updateEntityData });
+          void graphService.updateEntity({ data: updateEntityData });
         }
 
         unstable_batchedUpdates(() => {
@@ -240,7 +242,9 @@ export const Media: FunctionComponent<
         !loading &&
         entityId &&
         graphService?.createLink &&
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
         graphService.deleteLink &&
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
         graphService.uploadFile
       ) {
         unstable_batchedUpdates(() => {
@@ -272,7 +276,7 @@ export const Media: FunctionComponent<
               });
             }
 
-            await graphService?.createLink({
+            await graphService.createLink({
               data: {
                 sourceEntityId: entityId,
                 destinationEntityId: file.entityId,
@@ -311,7 +315,7 @@ export const Media: FunctionComponent<
       return;
     }
 
-    if (draftUrl?.trim()) {
+    if (draftUrl.trim()) {
       handleImageUpload({ url: draftUrl });
     } else {
       setErrorString("Please enter a valid image URL or select a file below");

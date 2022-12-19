@@ -112,6 +112,7 @@ export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
       // @ts-expect-error -- Args is a tuple but the compiler doesn't know. why?
       fn(...args)
         .then((response) => {
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
           sendMessage({ ...responseMsg, payload: { data: response ?? "ok" } });
         })
         .catch((error) => {

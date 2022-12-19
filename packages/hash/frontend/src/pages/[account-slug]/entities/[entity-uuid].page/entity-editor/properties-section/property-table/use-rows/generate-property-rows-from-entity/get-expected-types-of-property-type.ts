@@ -41,6 +41,7 @@ export const getExpectedTypesOfPropertyType = (
 
   const firstType = propertyType.oneOf[0];
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
   if (!firstType) {
     throw new Error("There is no type in this property");
   }
