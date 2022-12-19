@@ -49,7 +49,7 @@ module "bastion" {
 }
 
 module "postgres" {
-  depends_on            = [module.networking, module.bastion]
+  depends_on            = [module.networking]
   source                = "../modules/postgres"
   prefix                = local.prefix
   subnets               = module.networking.snpriv
@@ -85,7 +85,7 @@ provider "postgresql" {
 }
 
 module "postgres_roles" {
-  depends_on            = [module.postgres, module.bastion, module.tunnel]
+  depends_on            = [module.postgres, module.bastion, module.tunnel.host]
   providers             = { postgresql = postgresql }
   source                = "../modules/postgres_roles"
   pg_db_name            = module.postgres.pg_db_name

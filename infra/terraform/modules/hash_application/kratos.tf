@@ -95,24 +95,23 @@ locals {
   ] : []
 }
 
+# Below we create an IAM user with an access key to be used as a SMTP user.
+
 data "aws_ses_domain_identity" "domain" {
   count  = local.ses_enabled
   domain = local.ses_identity
 }
 
-# Provides an IAM access key. This is a set of credentials that allow API requests to be made as an IAM user.
 resource "aws_iam_user" "email_user" {
   count = local.ses_enabled
   name  = "${local.prefix}email"
 }
 
-# Provides an IAM access key. This is a set of credentials that allow API requests to be made as an IAM user.
 resource "aws_iam_access_key" "email_access_key" {
   count = local.ses_enabled
   user  = aws_iam_user.email_user.0.name
 }
 
-# Attaches a Managed IAM Policy to SES Email Identity resource
 data "aws_iam_policy_document" "email_policy_document" {
   count = local.ses_enabled
   statement {
@@ -121,27 +120,14 @@ data "aws_iam_policy_document" "email_policy_document" {
   }
 }
 
-# Provides an IAM policy attached to a user.
 resource "aws_iam_policy" "email_policy" {
   count  = local.ses_enabled
   name   = "${local.prefix}emailpolicy"
   policy = data.aws_iam_policy_document.email_policy_document.0.json
 }
 
-# Attaches a Managed IAM Policy to an IAM user
 resource "aws_iam_user_policy_attachment" "email_user_policy" {
   count      = local.ses_enabled
   user       = aws_iam_user.email_user.0.name
   policy_arn = aws_iam_policy.email_policy.0.arn
 }
-
-
-# IAM user credentials output
-# output "smtp_username" {
-#   value = aws_iam_access_key.user.id
-# }
-
-# output "smtp_password" {
-#   value     = aws_iam_access_key.access_key.ses_smtp_password_v4
-#   sensitive = true
-# }

@@ -122,7 +122,7 @@ You can simultaneously run the migrations for Kratos:
 ```console
 $ DOCKER_BUILDKIT=1 docker build ./packages/hash/external-services/kratos --build-arg ENV=prod -t kratos:latest
 ..
-$ docker run --network host --rm -e "LOG_LEVEL=info" -e "DSN=postgres://kratos:changeme@localhost:5554/kratos" kratos:latest migrate sql -e --yes
+$ docker run --network host --rm -e "DSN=postgres://kratos:changeme@localhost:5554/kratos" kratos:latest migrate sql -e --yes
 ..
 ```
 
