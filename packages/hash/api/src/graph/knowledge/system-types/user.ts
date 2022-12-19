@@ -507,58 +507,6 @@ export const isUserMemberOfOrg: ImpureGraphFunction<
 };
 
 /**
- * Whether or not a user's account signup is completed.
- *
- * @param params.user - the user
- */
-export const isUserAccountSignupComplete: PureGraphFunction<
-  { user: User },
-  boolean
-> = ({ user }) => {
-  /** @todo: check they have a verified email address */
-  return !!user.shortname && !!user.preferredName;
-};
-
-type QualifiedEmail = { address: string; verified: boolean; primary: boolean };
-
-/**
- * Get the qualified emails of a user.
- *
- * @param params.user - the user
- */
-export const getQualifiedEmails: ImpureGraphFunction<
-  { user: User },
-  Promise<QualifiedEmail[]>
-> = async (ctx, { user }) => {
-  const emails = user.entity.properties[
-    SYSTEM_TYPES.propertyType.email.metadata.editionId.baseId
-  ] as string[];
-
-  const kratosIdentity = await getUserKratosIdentity(ctx, { user });
-
-  return emails.map((address) => {
-    const kratosEmail = kratosIdentity.verifiable_addresses?.find(
-      ({ value }) => value === address,
-    );
-
-    if (!kratosEmail) {
-      throw new Error(
-        "Could not find verifiable email address in kratos identity",
-      );
-    }
-
-    const { verified } = kratosEmail;
-
-    return {
-      address,
-      verified,
-      /** @todo: stop hardcoding this */
-      primary: true,
-    };
-  });
-};
-
-/**
  * Check whether or not the user is a hash instance admin.
  *
  * @param params.user - the user that may be a hash instance admin.
