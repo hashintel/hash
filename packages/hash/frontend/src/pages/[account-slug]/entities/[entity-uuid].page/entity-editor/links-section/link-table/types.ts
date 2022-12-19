@@ -1,8 +1,8 @@
 import { VersionedUri } from "@blockprotocol/type-system";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
+import { EntityId } from "@hashintel/hash-shared/types";
 import {
   Entity,
-  EntityId,
   EntityTypeWithMetadata,
   Subgraph,
   SubgraphRootTypes,

@@ -2,13 +2,25 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
+  ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
 import { SYSTEM_TYPES } from "@hashintel/hash-api/src/graph/system-types";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { UserModel, HashInstanceModel } from "@hashintel/hash-api/src/model";
 import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import { createTestUser } from "../../util";
+import {
+  addHashInstanceAdmin,
+  getHashInstance,
+  HashInstance,
+  removeHashInstanceAdmin,
+} from "@hashintel/hash-api/src/graph/knowledge/system-types/hash-instance";
+import {
+  isUserHashInstanceAdmin,
+  User,
+} from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
+import { getEntityOutgoingLinks } from "@hashintel/hash-api/src/graph/knowledge/primitive/entity";
+import { getLinkEntityRightEntity } from "@hashintel/hash-api/src/graph/knowledge/primitive/link-entity";
+import { createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -26,21 +38,23 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-describe("HashInstance model class", () => {
+const graphContext: ImpureGraphContext = { graphApi };
+
+describe("Hash Instance", () => {
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
     await ensureSystemGraphIsInitialized({ graphApi, logger });
   });
 
-  let hashInstanceModel: HashInstanceModel;
+  let hashInstance: HashInstance;
 
   it("can get the hash instance", async () => {
-    hashInstanceModel = await HashInstanceModel.getHashInstanceModel(graphApi);
+    hashInstance = await getHashInstance(graphContext, {});
 
-    expect(hashInstanceModel).toBeTruthy();
+    expect(hashInstance).toBeTruthy();
   });
 
-  let testHashInstanceAdmin: UserModel;
+  let testHashInstanceAdmin: User;
 
   it("can add a hash instance admin", async () => {
     testHashInstanceAdmin = await createTestUser(
@@ -49,45 +63,48 @@ describe("HashInstance model class", () => {
       logger,
     );
 
-    await hashInstanceModel.addAdmin(graphApi, {
-      userModel: testHashInstanceAdmin,
+    await addHashInstanceAdmin(graphContext, {
+      user: testHashInstanceAdmin,
       actorId: systemUserAccountId,
     });
 
-    const hashOutgoingAdminLinks = await hashInstanceModel.getOutgoingLinks(
-      graphApi,
-      {
-        linkEntityType: SYSTEM_TYPES.linkEntityType.admin,
-      },
-    );
+    const hashOutgoingAdminLinks = await getEntityOutgoingLinks(graphContext, {
+      entity: hashInstance.entity,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.admin,
+    });
 
     expect(hashOutgoingAdminLinks).toHaveLength(1);
 
     const [hashOutgoingAdminLink] = hashOutgoingAdminLinks;
 
-    expect(hashOutgoingAdminLink?.rightEntityModel.entity).toEqual(
-      testHashInstanceAdmin.entity,
-    );
+    expect(
+      await getLinkEntityRightEntity(graphContext, {
+        linkEntity: hashOutgoingAdminLink!,
+      }),
+    ).toEqual(testHashInstanceAdmin.entity);
   });
 
   it("can determine if user is hash admin", async () => {
-    const hasHashInstanceAdmin = await hashInstanceModel.hasAdmin(graphApi, {
-      userModel: testHashInstanceAdmin,
+    const hasHashInstanceAdmin = await isUserHashInstanceAdmin(graphContext, {
+      user: testHashInstanceAdmin,
     });
 
     expect(hasHashInstanceAdmin).toBeTruthy();
   });
 
   it("can remove a hash instance admin", async () => {
-    await hashInstanceModel.removeAdmin(graphApi, {
-      userModel: testHashInstanceAdmin,
+    await removeHashInstanceAdmin(graphContext, {
+      user: testHashInstanceAdmin,
       actorId: systemUserAccountId,
     });
 
-    const hashInstanceOutgoingAdminLinks =
-      await hashInstanceModel.getOutgoingLinks(graphApi, {
+    const hashInstanceOutgoingAdminLinks = await getEntityOutgoingLinks(
+      graphContext,
+      {
+        entity: hashInstance.entity,
         linkEntityType: SYSTEM_TYPES.linkEntityType.admin,
-      });
+      },
+    );
 
     expect(hashInstanceOutgoingAdminLinks).toHaveLength(0);
   });

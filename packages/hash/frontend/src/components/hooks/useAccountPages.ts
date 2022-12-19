@@ -1,7 +1,6 @@
 import { useQuery } from "@apollo/client";
-import { EntityId } from "@hashintel/hash-subgraph";
 import { useMemo } from "react";
-import { OwnedById } from "@hashintel/hash-shared/types";
+import { OwnedById, EntityId } from "@hashintel/hash-shared/types";
 
 import {
   GetAccountPagesTreeQuery,
@@ -43,14 +42,16 @@ export const useAccountPages = (ownedById: OwnedById): AccountPagesInfo => {
     return data.pages.map(
       ({
         metadata: {
-          editionId: { baseId: pageEntityId },
+          editionId: { baseId },
         },
         parentPage,
         title,
         index,
       }): AccountPage => {
+        const pageEntityId = baseId as EntityId;
         const parentPageEntityId =
-          parentPage?.metadata.editionId.baseId ?? null;
+          (parentPage?.metadata.editionId.baseId as EntityId | undefined) ??
+          null;
 
         return {
           entityId: pageEntityId,

@@ -6,6 +6,7 @@ import {
 import { useCallback } from "react";
 import { cloneDeep, set } from "lodash";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { EntityId } from "@hashintel/hash-shared/types";
 import { useSnackbar } from "../../../../../../../components/hooks/useSnackbar";
 import { useEntityEditor } from "../../entity-editor-context";
 import { useBlockProtocolUpdateEntity } from "../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolUpdateEntity";
@@ -77,7 +78,7 @@ export const useCreateOnCellEdited = () => {
         try {
           await updateEntity({
             data: {
-              entityId: entity.metadata.editionId.baseId,
+              entityId: entity.metadata.editionId.baseId as EntityId,
               updatedProperties,
             },
           });

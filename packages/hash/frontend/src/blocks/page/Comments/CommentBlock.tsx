@@ -31,7 +31,7 @@ import { extractBaseUri } from "@blockprotocol/type-system";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { isEqual } from "lodash";
 import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
-import { EntityId } from "@hashintel/hash-subgraph";
+import { EntityId } from "@hashintel/hash-shared/types";
 import { PageComment } from "../../../components/hooks/usePageComments";
 import { CommentTextField } from "./CommentTextField";
 import { CommentBlockMenu } from "./CommentBlockMenu";
@@ -86,7 +86,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
 }) => {
   const {
     metadata: {
-      editionId: { baseId: commentEntityId },
+      editionId: { baseId },
       // TODO: The provenance fields shouldn't be used for this
       //   see https://app.asana.com/0/1201095311341924/1203466351235289/f
       provenance: { updatedById: commentCreatedById },
@@ -95,6 +95,8 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
     author,
     textUpdatedAt,
   } = comment;
+
+  const commentEntityId = baseId as EntityId;
 
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [collapsed, setCollapsed] = useState(true);
