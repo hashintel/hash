@@ -56,5 +56,5 @@ hash_api_env_vars = [
   { name = "SYSTEM_ACCOUNT_NAME", secret = false, value = "HASH" },
   { name = "SYSTEM_ACCOUNT_SHORTNAME", secret = false, value = "hash" },
   { name = "SYSTEM_EMAIL_ADDRESS", secret = false, value = "noreply@hash.ai" },
-  { name = "SYSTEM_EMAIL_SENDER_NAME", secret = false, value = "HASH Support" },
+  { name = "SYSTEM_EMAIL_SENDER_NAME", secret = false, value = "HASH" },
 ]

@@ -160,6 +160,7 @@ module "application" {
   ])
   api_image = module.api_ecr
   api_env_vars = concat(var.hash_api_env_vars, [
+    { name = "AWS_REGION", secret = false, value = local.region },
     { name = "SYSTEM_USER_PASSWORD", secret = true, value = sensitive(var.hash_system_user_password) },
     { name = "KRATOS_API_KEY", secret = true, value = sensitive(var.kratos_api_key) },
     { name = "HASH_SEED_USERS", secret = true, value = sensitive(jsonencode(var.hash_seed_users)) },
