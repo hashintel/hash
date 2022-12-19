@@ -5,8 +5,9 @@ import {
 } from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import {
+  AccountId,
+  OwnedById,
   extractAccountId,
-  brand,
   AccountEntityId,
 } from "@hashintel/hash-shared/types";
 
@@ -63,13 +64,13 @@ describe("Entity CRU", () => {
     textDataType = await createDataType(
       { graphApi },
       {
-        ownedById: brand(testUser.getEntityUuid()),
+        ownedById: testUser.getEntityUuid() as OwnedById,
         schema: {
           kind: "dataType",
           title: "Text",
           type: "string",
         },
-        actorId: brand(testUser.getEntityUuid()),
+        actorId: testUser.getEntityUuid() as AccountId,
       },
     ).catch((err) => {
       logger.error("Something went wrong making Text", err);
@@ -80,7 +81,7 @@ describe("Entity CRU", () => {
       createEntityType(
         { graphApi },
         {
-          ownedById: brand(testUser.getEntityUuid()),
+          ownedById: testUser.getEntityUuid() as OwnedById,
           schema: {
             kind: "entityType",
             title: "Friends",
@@ -89,7 +90,7 @@ describe("Entity CRU", () => {
             properties: {},
             allOf: [{ $ref: linkEntityTypeUri }],
           },
-          actorId: brand(testUser.getEntityUuid()),
+          actorId: testUser.getEntityUuid() as AccountId,
         },
       )
         .then((val) => {
@@ -102,13 +103,13 @@ describe("Entity CRU", () => {
       createPropertyType(
         { graphApi },
         {
-          ownedById: brand(testUser.getEntityUuid()),
+          ownedById: testUser.getEntityUuid() as OwnedById,
           schema: {
             kind: "propertyType",
             title: "Favorite Book",
             oneOf: [{ $ref: textDataType.schema.$id }],
           },
-          actorId: brand(testUser.getEntityUuid()),
+          actorId: testUser.getEntityUuid() as AccountId,
         },
       )
         .then((val) => {
@@ -121,13 +122,13 @@ describe("Entity CRU", () => {
       createPropertyType(
         { graphApi },
         {
-          ownedById: brand(testUser.getEntityUuid()),
+          ownedById: testUser.getEntityUuid() as OwnedById,
           schema: {
             kind: "propertyType",
             title: "Name",
             oneOf: [{ $ref: textDataType.schema.$id }],
           },
-          actorId: brand(testUser.getEntityUuid()),
+          actorId: testUser.getEntityUuid() as AccountId,
         },
       )
         .then((val) => {
@@ -142,7 +143,7 @@ describe("Entity CRU", () => {
     entityType = await createEntityType(
       { graphApi },
       {
-        ownedById: brand(testUser.getEntityUuid()),
+        ownedById: testUser.getEntityUuid() as OwnedById,
         schema: generateSystemEntityTypeSchema({
           entityTypeId: generateTypeId({
             namespace: testUser.getShortname()!,
@@ -161,7 +162,7 @@ describe("Entity CRU", () => {
             },
           ],
         }),
-        actorId: brand(testUser.getEntityUuid()),
+        actorId: testUser.getEntityUuid() as AccountId,
       },
     );
   });
@@ -169,13 +170,13 @@ describe("Entity CRU", () => {
   let createdEntityModel: EntityModel;
   it("can create an entity", async () => {
     createdEntityModel = await EntityModel.create(graphApi, {
-      ownedById: brand(testUser.getEntityUuid()),
+      ownedById: testUser.getEntityUuid() as OwnedById,
       properties: {
         [namePropertyType.metadata.editionId.baseId]: "Bob",
         [favoriteBookPropertyType.metadata.editionId.baseId]: "some text",
       },
       entityType,
-      actorId: brand(testUser.getEntityUuid()),
+      actorId: testUser.getEntityUuid() as AccountId,
     });
   });
 
@@ -205,7 +206,7 @@ describe("Entity CRU", () => {
           [favoriteBookPropertyType.metadata.editionId.baseId]:
             "Even more text than before",
         },
-        actorId: brand(testUser2.getEntityUuid()),
+        actorId: testUser2.getEntityUuid() as AccountId,
       })
       .catch((err) => Promise.reject(err.data));
 
@@ -248,7 +249,7 @@ describe("Entity CRU", () => {
 
   it("can create entity with linked entities from an entity definition", async () => {
     const aliceEntityModel = await EntityModel.createEntityWithLinks(graphApi, {
-      ownedById: brand(testUser.getEntityUuid()),
+      ownedById: testUser.getEntityUuid() as OwnedById,
       // First create a new entity given the following definition
       entityTypeId: entityType.schema.$id,
       properties: {
@@ -268,7 +269,7 @@ describe("Entity CRU", () => {
           },
         },
       ],
-      actorId: brand(testUser.getEntityUuid()),
+      actorId: testUser.getEntityUuid() as AccountId,
     });
 
     const linkEntityModel = (

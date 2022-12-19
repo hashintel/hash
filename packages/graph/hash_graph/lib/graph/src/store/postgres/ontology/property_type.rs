@@ -30,6 +30,7 @@ impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`PropertyTypeWithMetadata`] into two [`DependencyContext`]s.
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
+    #[tracing::instrument(level = "trace", skip(self, dependency_context, subgraph))]
     pub(crate) fn traverse_property_type<'a>(
         &'a self,
         property_type_id: &'a OntologyTypeEditionId,
@@ -141,6 +142,7 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
+    #[tracing::instrument(level = "info", skip(self, property_type))]
     async fn create_property_type(
         &mut self,
         property_type: PropertyType,
@@ -184,6 +186,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         Ok(metadata)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     async fn get_property_type(
         &self,
         query: &StructuralQuery<PropertyTypeWithMetadata>,
@@ -212,6 +215,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         Ok(subgraph)
     }
 
+    #[tracing::instrument(level = "info", skip(self, property_type))]
     async fn update_property_type(
         &mut self,
         property_type: PropertyType,

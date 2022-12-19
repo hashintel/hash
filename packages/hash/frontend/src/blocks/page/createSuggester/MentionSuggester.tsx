@@ -2,7 +2,7 @@ import { useMemo, FunctionComponent, useContext } from "react";
 import ArticleIcon from "@mui/icons-material/Article";
 
 import { EntityId } from "@hashintel/hash-subgraph";
-import { AccountId, brand } from "@hashintel/hash-shared/types";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 
 import { useUsers } from "../../../components/hooks/useUsers";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
@@ -31,7 +31,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
 }) => {
   const { users, loading: usersLoading } = useUsers();
   const { data: pages, loading: pagesLoading } = useAccountPages(
-    brand(accountId),
+    accountId as OwnedById,
   );
 
   const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
