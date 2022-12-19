@@ -33,10 +33,10 @@ export const shortnameIsTaken: ImpureGraphFunction<
   Promise<boolean>
 > = async (ctx, params) => {
   /**
-   * @todo currently these method calls create circular dependencies on the User
-   *   and Org model classes. We should revisit model class interaction to see
-   *   if we can get around this.
-   *   https://app.asana.com/0/1202805690238892/1202890446280565/f
+   * @todo this creates a circular dependencies between `org.ts` and `user.ts`
+   * and this file.
+   *
+   * @see https://app.asana.com/0/1203363157432084/1203568198115111/f
    */
   return (
     (await getUserByShortname(ctx, params)) !== null ||
