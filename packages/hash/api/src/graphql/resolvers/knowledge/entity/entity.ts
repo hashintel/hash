@@ -272,7 +272,10 @@ export const updateEntityResolver: ResolverFn<
   { dataSources: { graphApi }, user },
 ) => {
   // The user needs to be signed up if they aren't updating their own user entity
-  if (entityId !== user.accountId && !user.isAccountSignupComplete) {
+  if (
+    entityId !== user.entity.metadata.editionId.baseId &&
+    !user.isAccountSignupComplete
+  ) {
     throw new ForbiddenError(
       "You must complete the sign-up process to perform this action.",
     );
