@@ -380,7 +380,11 @@ impl Modify for FilterSchemaAddon {
                                             .item(Ref::from_schema_name("PropertyTypeQueryToken"))
                                             .item(Ref::from_schema_name("EntityTypeQueryToken"))
                                             .item(Ref::from_schema_name("EntityQueryToken"))
-                                            .item(Ref::from_schema_name("Selector")),
+                                            .item(Ref::from_schema_name("Selector"))
+                                            .item(
+                                                ObjectBuilder::new()
+                                                    .schema_type(SchemaType::String),
+                                            ),
                                     ),
                                 )
                                 .required("path"),
