@@ -4,7 +4,7 @@ import produce from "immer";
 
 import { EntityId } from "@hashintel/hash-subgraph";
 import { VersionedUri } from "@blockprotocol/type-system";
-import { AccountId } from "@hashintel/hash-shared/types";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 
 import { BlockModel, EntityModel, UserModel } from "../../../../model";
 import {
@@ -137,7 +137,10 @@ export const handleCreateNewEntity = async (params: {
     } = params;
     placeholderResults.set(entityPlaceholderId, {
       entityId: (
-        await createEntityWithPlaceholders(entityDefinition, entityOwnedById)
+        await createEntityWithPlaceholders(
+          entityDefinition,
+          entityOwnedById as OwnedById,
+        )
       ).getBaseId(),
     });
   } catch (error) {
@@ -185,7 +188,7 @@ export const handleInsertNewBlock = async (
     const blockData = await createEntityWithPlaceholders(
       entity,
       // assume that the "block entity" is in the same account as the block itself
-      blockOwnedById,
+      blockOwnedById as OwnedById,
     );
 
     placeholderResults.set(entityPlaceholderId, {

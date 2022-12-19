@@ -11,6 +11,7 @@ import {
   useFormContext,
   useWatch,
 } from "react-hook-form";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import { useBlockProtocolCreateEntityType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreateEntityType";
 import { useBlockProtocolGetEntityType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { useBlockProtocolUpdateEntityType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";
@@ -76,6 +77,7 @@ export const LinkTypeForm = (props: TypeFormProps) => {
       },
     });
 
+    // @todo question from CiaranMn: Why does an absence of data mean we assume that the name exists?
     return !res.data || !!getEntityTypeById(res.data, entityTypeId);
   };
 
@@ -315,7 +317,7 @@ export const LinkListCard = () => {
   const { routeNamespace } = useRouteNamespace();
   const refetchEntityTypes = useFetchEntityTypes();
   const { createEntityType } = useBlockProtocolCreateEntityType(
-    routeNamespace?.accountId ?? "",
+    routeNamespace?.accountId as OwnedById,
   );
 
   const cancelAddingNewLink = () => {
