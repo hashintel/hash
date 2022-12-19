@@ -5,6 +5,7 @@ import {
 } from "@glideapps/glide-data-grid";
 
 import { customColors } from "@hashintel/hash-design-system/src/theme/palette";
+import { EntityId } from "@hashintel/hash-shared/types";
 import {
   getCellHorizontalPadding,
   getYCenter,
@@ -102,7 +103,8 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       },
       onClick: () => {
         void deleteLink(
-          linkAndTargetEntities[0]?.linkEntity.metadata.editionId.baseId!,
+          linkAndTargetEntities[0]?.linkEntity.metadata.editionId
+            .baseId! as EntityId,
         );
       },
     });

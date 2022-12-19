@@ -4,6 +4,7 @@ import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { Box } from "@mui/material";
 import produce from "immer";
 import { useContext, useMemo, useState } from "react";
+import { EntityId, OwnedById } from "@hashintel/hash-shared/types";
 import { useBlockProtocolArchiveEntity } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolArchiveEntity";
 import { useBlockProtocolCreateEntity } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
 import { generateEntityLabel } from "../../../../../../../../../lib/entities";
@@ -23,7 +24,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
 
   const { entitySubgraph, refetch } = useEntityEditor();
   const { createEntity } = useBlockProtocolCreateEntity(
-    activeWorkspaceAccountId ?? null,
+    (activeWorkspaceAccountId as OwnedById) ?? null,
   );
   const { archiveEntity } = useBlockProtocolArchiveEntity();
 
@@ -135,7 +136,9 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
                 onChange(newCell);
 
                 await archiveEntity({
-                  data: { entityId: linkEntity.metadata.editionId.baseId },
+                  data: {
+                    entityId: linkEntity.metadata.editionId.baseId as EntityId,
+                  },
                 });
 
                 await refetch();

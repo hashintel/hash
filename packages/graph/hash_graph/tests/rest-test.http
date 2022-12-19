@@ -11,12 +11,47 @@ POST http://127.0.0.1:4000/accounts
 %}
 
 ### Get all data types
-GET http://127.0.0.1:4000/data-types
+POST http://127.0.0.1:4000/data-types/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "all": []
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    },
+    "hasRightEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    }
+  }
+}
 
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.length === 6, "Unexpected number of data types"); // The number of primitive data types
+        client.assert(response.body.roots.length === 6, "Unexpected number of data types"); // The number of primitive data types
     });
 %}
 
@@ -40,15 +75,60 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("text_data_type_id", encodeURIComponent(`${response.body.editionId.baseId}v/${response.body.editionId.version}`));
+    client.global.set("text_data_type_id", `${response.body.editionId.baseId}v/${response.body.editionId.version}`);
 %}
 
 ### Get Text data type
-GET http://127.0.0.1:4000/data-types/{{text_data_type_id}}
+POST http://127.0.0.1:4000/data-types/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "equal": [
+      {
+        "path": [
+          "versionedUri"
+        ]
+      },
+      {
+        "parameter": "{{text_data_type_id}}"
+      }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    },
+    "hasRightEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    }
+  }
+}
 
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 1, "Unexpected number of data types");
     });
 %}
 
@@ -98,15 +178,54 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_property_type_id", encodeURIComponent(`${response.body.editionId.baseId}v/${response.body.editionId.version}`));
+    client.global.set("person_property_type_id", `${response.body.editionId.baseId}v/${response.body.editionId.version}`);
 %}
 
 ### Get Name property type
-GET http://127.0.0.1:4000/property-types/{{person_property_type_id}}
+POST http://127.0.0.1:4000/property-types/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "equal": [
+      { "path": ["versionedUri"] },
+      { "parameter": "{{person_property_type_id}}" }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    },
+    "hasRightEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    }
+  }
+}
 
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 1, "Unexpected number of property types");
     });
 %}
 
@@ -135,13 +254,51 @@ Accept: application/json
     });
 %}
 
-### Get all property types
-GET http://127.0.0.1:4000/property-types
+### Get all latest property types
+POST http://127.0.0.1:4000/property-types/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "equal": [
+      { "path": ["version"] },
+      { "parameter": "latest" }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    },
+    "hasRightEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    }
+  }
+}
 
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.length === 1, "Unexpected number of property types");
+        client.assert(response.body.roots.length === 1, "Unexpected number of property types");
     });
 %}
 
@@ -253,16 +410,54 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_entity_type_id", encodeURIComponent(`${response.body.editionId.baseId}v/${response.body.editionId.version}`));
-    client.global.set("encoded_person_entity_type_id", encodeURIComponent(`${response.body.editionId.baseId}v/${response.body.editionId.version}`));
+    client.global.set("person_entity_type_id", `${response.body.editionId.baseId}v/${response.body.editionId.version}`);
 %}
 
 ### Get Person entity type
-GET http://127.0.0.1:4000/entity-types/{{encoded_person_entity_type_id}}
+POST http://127.0.0.1:4000/entity-types/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "equal": [
+      { "path": ["versionedUri"] },
+      { "parameter": "{{person_entity_type_id}}" }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    },
+    "hasRightEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    }
+  }
+}
 
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 1, "Unexpected number of entity types");
     });
 %}
 
@@ -305,13 +500,51 @@ Accept: application/json
     });
 %}
 
-### Get all entity types
-GET http://127.0.0.1:4000/entity-types
+### Get all latest entity types
+POST http://127.0.0.1:4000/entity-types/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "equal": [
+      { "path": ["version"] },
+      { "parameter": "latest" }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    },
+    "hasRightEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    }
+  }
+}
 
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.length === 3, "Unexpected number of entity types");
+        client.assert(response.body.roots.length === 3, "Unexpected number of entity types");
     });
 %}
 
@@ -367,7 +600,7 @@ Content-Type: application/json
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.roots.length === 1, "Unexpected number of entities");
+        client.assert(response.body.roots.length === 1, "Unexpected number of entity types");
     });
 %}
 
@@ -427,7 +660,7 @@ Content-Type: application/json
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.roots.length === 0, "Unexpected number of entities");
+        client.assert(response.body.roots.length === 0, "Unexpected number of entity types");
     });
 %}
 

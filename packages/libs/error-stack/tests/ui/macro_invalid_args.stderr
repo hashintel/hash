@@ -3,24 +3,48 @@ error: unexpected end of macro invocation
    |
 23 |     let _ = report!();
    |             ^^^^^^^^^ missing tokens in macro arguments
+   |
+note: while trying to match meta-variable `$err:expr`
+  --> src/macros.rs
+   |
+   |     ($err:expr $(,)?) => {{
+   |      ^^^^^^^^^
 
 error: unexpected end of macro invocation
   --> tests/ui/macro_invalid_args.rs:33:5
    |
 33 |     bail!()
    |     ^^^^^^^ missing tokens in macro arguments
+   |
+note: while trying to match meta-variable `$err:expr`
+  --> src/macros.rs
+   |
+   |     ($err:expr $(,)?) => {{
+   |      ^^^^^^^^^
 
 error: unexpected end of macro invocation
   --> tests/ui/macro_invalid_args.rs:49:25
    |
 49 |     let _ = ensure!(true);
    |                         ^ missing tokens in macro arguments
+   |
+note: while trying to match `,`
+  --> src/macros.rs
+   |
+   |     ($cond:expr, $err:expr $(,)?) => {{
+   |                ^
 
 error: unexpected end of macro invocation
   --> tests/ui/macro_invalid_args.rs:55:13
    |
 55 |     let _ = ensure!();
    |             ^^^^^^^^^ missing tokens in macro arguments
+   |
+note: while trying to match meta-variable `$cond:expr`
+  --> src/macros.rs
+   |
+   |     ($cond:expr, $err:expr $(,)?) => {{
+   |      ^^^^^^^^^^
 
 error[E0599]: the method `__kind` exists for reference `&&str`, but its trait bounds were not satisfied
   --> tests/ui/macro_invalid_args.rs:17:13

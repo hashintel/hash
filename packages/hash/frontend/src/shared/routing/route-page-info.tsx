@@ -6,13 +6,15 @@ import {
   useMemo,
   ReactNode,
 } from "react";
+import { EntityUuid } from "@hashintel/hash-shared/types";
+
 import {
   parsePageUrlQueryParams,
   isPageParsedUrlQuery,
 } from "../../pages/[account-slug]/[page-slug].page";
 
 type RoutePageInfo = {
-  routePageEntityUuid: string;
+  routePageEntityUuid: EntityUuid;
 };
 
 const RoutePageInfoContext = createContext<RoutePageInfo | undefined>(

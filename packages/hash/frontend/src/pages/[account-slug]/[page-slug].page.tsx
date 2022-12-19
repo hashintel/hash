@@ -14,12 +14,6 @@ import {
 } from "@hashintel/hash-shared/queries/page.queries";
 import { types } from "@hashintel/hash-shared/ontology-types";
 import { isSafariBrowser } from "@hashintel/hash-shared/util";
-import {
-  EntityId,
-  entityIdFromOwnedByIdAndEntityUuid,
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import { alpha, Box, Collapse } from "@mui/material";
 import { keyBy } from "lodash";
@@ -27,8 +21,16 @@ import { GetServerSideProps } from "next";
 import { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import Head from "next/head";
 import { Router } from "next/router";
-
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+  entityIdFromOwnedByIdAndEntityUuid,
+  EntityId,
+  OwnedById,
+  EntityUuid,
+} from "@hashintel/hash-shared/types";
+
 // import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
 // import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 // import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
@@ -88,7 +90,7 @@ export const isPageParsedUrlQuery = (
 export const parsePageUrlQueryParams = (params: PageParsedUrlQuery) => {
   const workspaceShortname = params["account-slug"].slice(1);
 
-  const pageEntityUuid = params["page-slug"];
+  const pageEntityUuid = params["page-slug"] as EntityUuid;
 
   return { workspaceShortname, pageEntityUuid };
 };
@@ -167,7 +169,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
     );
   }
 
-  const pageOwnedById = pageWorkspace?.accountId;
+  const pageOwnedById = pageWorkspace?.accountId as OwnedById;
 
   const pageEntityId = entityIdFromOwnedByIdAndEntityUuid(
     pageOwnedById,
@@ -397,7 +399,7 @@ const Page: NextPageWithLayout<PageProps> = ({
           <TopContextBar
             crumbs={generateCrumbsFromPages({
               pages: accountPages,
-              pageEntityId: data.page.metadata.editionId.baseId,
+              pageEntityId: data.page.metadata.editionId.baseId as EntityId,
               ownerShortname: pageWorkspace.shortname!,
             })}
             scrollToTop={scrollToTop}

@@ -3,10 +3,8 @@ import { ApolloError } from "apollo-server-express";
 import { upperFirst, camelCase } from "lodash";
 import { singular } from "pluralize";
 import { EntityType } from "@blockprotocol/type-system";
-import {
-  EntityTypeWithMetadata,
-  PropertyObject,
-} from "@hashintel/hash-subgraph";
+import { PropertyObject } from "@hashintel/hash-subgraph";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import { CachedEntityTypes, Task } from "../../../task-execution";
 import {
   MutationExecuteGithubCheckTaskArgs,
@@ -15,7 +13,7 @@ import {
   ResolverFn,
 } from "../../apiTypes.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
-import { EntityModel } from "../../../model";
+import { createEntity } from "../../../graph/knowledge/primitive/entity";
 
 export const executeDemoTask: ResolverFn<
   Promise<string>,
@@ -118,7 +116,7 @@ export const executeGithubDiscoverTask: ResolverFn<
 > = async (
   _,
   { config },
-  { dataSources: { graphApi, taskExecutor }, userModel, logger },
+  { dataSources: { graphApi, taskExecutor }, user, logger },
 ) => {
   if (!taskExecutor) {
     throw new ApolloError(
@@ -131,10 +129,7 @@ export const executeGithubDiscoverTask: ResolverFn<
         config,
       );
 
-      const existingEntityChecker = await CachedEntityTypes(
-        graphApi,
-        userModel,
-      );
+      const existingEntityChecker = await CachedEntityTypes(graphApi, user);
 
       for (const message of catalog) {
         if (!message.name || !message.json_schema) {
@@ -170,7 +165,7 @@ export const executeGithubReadTask: ResolverFn<
 > = async (
   _,
   { config },
-  { dataSources: { graphApi, taskExecutor }, userModel, logger },
+  { dataSources: { graphApi, taskExecutor }, user, logger },
 ) => {
   if (!taskExecutor) {
     throw new ApolloError(
@@ -185,10 +180,7 @@ export const executeGithubReadTask: ResolverFn<
       );
       logger.debug(`Received ${airbyteRecords.length} records from Github`);
 
-      const existingEntityChecker = await CachedEntityTypes(
-        graphApi,
-        userModel,
-      );
+      const existingEntityChecker = await CachedEntityTypes(graphApi, user);
       for (const record of airbyteRecords) {
         const entityTypeName = streamNameToEntityTypeName(record.stream);
         /** @todo - Check if entity already exists */
@@ -201,14 +193,17 @@ export const executeGithubReadTask: ResolverFn<
 
         /** @todo - check primary key to see if entity already exists */
         // Insert the entity
-        const entityModel = await EntityModel.create(graphApi, {
-          ownedById: userModel.getEntityUuid(),
-          actorId: userModel.getEntityUuid(),
-          entityType: entityType as EntityTypeWithMetadata,
-          properties: record.data as PropertyObject,
-        });
+        const entity = await createEntity(
+          { graphApi },
+          {
+            ownedById: user.accountId as OwnedById,
+            actorId: user.accountId,
+            entityType,
+            properties: record.data as PropertyObject,
+          },
+        );
 
-        createdEntities.push(entityModel.getBaseId());
+        createdEntities.push(entity.metadata.editionId.baseId);
       }
 
       logger.debug(`Inserted ${createdEntities.length} entities from Github`);

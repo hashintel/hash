@@ -297,6 +297,15 @@ module.exports = {
       },
     },
     {
+      files: [".storybook/*", "**/*.stories.{j,t}s{x,}"],
+      rules: {
+        "import/no-extraneous-dependencies": [
+          "error",
+          { devDependencies: true },
+        ],
+      },
+    },
+    {
       files: ["*.config.{c,m,}{j,t}s", "*.d.ts", "*rc.{c,m,}js"],
       rules: {
         "global-require": "off",

@@ -5,14 +5,19 @@ import { GraphApi } from "@hashintel/hash-graph-client";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { KratosUserIdentity, kratosFrontendApi } from "./ory-kratos";
-import { HashInstanceModel, UserModel } from "../model";
 import { systemUserAccountId } from "../graph/system-user";
+import { getHashInstance } from "../graph/knowledge/system-types/hash-instance";
+import {
+  createUser,
+  getUserByKratosIdentityId,
+  User,
+} from "../graph/knowledge/system-types/user";
 
 declare global {
   namespace Express {
     interface Request {
       session: Session | undefined;
-      userModel: UserModel | undefined;
+      user: User | undefined;
     }
   }
 }
@@ -51,19 +56,20 @@ const kratosAfterRegistrationHookHandler =
       try {
         const { emails } = traits;
 
-        const hashInstanceModel = await HashInstanceModel.getHashInstanceModel(
-          graphApi,
-        );
+        const hashInstance = await getHashInstance({ graphApi }, {});
 
-        if (!hashInstanceModel.isUserSelfRegistrationEnabled()) {
+        if (!hashInstance.userSelfRegistrationIsEnabled) {
           throw new Error("User registration is disabled.");
         }
 
-        await UserModel.createUser(graphApi, {
-          emails,
-          kratosIdentityId,
-          actorId: systemUserAccountId,
-        });
+        await createUser(
+          { graphApi },
+          {
+            emails,
+            kratosIdentityId,
+            actorId: systemUserAccountId,
+          },
+        );
 
         res.status(200).end();
       } catch (error) {
@@ -133,17 +139,20 @@ const setupAuth = (params: {
 
       const { id: kratosIdentityId } = identity;
 
-      const userModel = await UserModel.getUserByKratosIdentityId(graphApi, {
-        kratosIdentityId,
-      });
+      const user = await getUserByKratosIdentityId(
+        { graphApi },
+        {
+          kratosIdentityId,
+        },
+      );
 
-      if (!userModel) {
+      if (!user) {
         throw new Error(
           `Could not find user with kratos identity id "${kratosIdentityId}"`,
         );
       }
 
-      req.userModel = userModel;
+      req.user = user;
     }
 
     next();

@@ -5,6 +5,7 @@ import { types } from "@hashintel/hash-shared/ontology-types";
 import { extractBaseUri } from "@blockprotocol/type-system";
 import { GraphQLError } from "graphql";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+import { EntityId } from "@hashintel/hash-shared/types";
 import {
   MeQuery,
   UpdateEntityMutation,
@@ -71,7 +72,7 @@ export const useUpdateAuthenticatedUser = () => {
 
         const { errors } = await updateEntity({
           variables: {
-            entityId: latestUserEntity.metadata.editionId.baseId,
+            entityId: latestUserEntity.metadata.editionId.baseId as EntityId,
             updatedProperties: {
               ...currentProperties,
               ...(params.shortname

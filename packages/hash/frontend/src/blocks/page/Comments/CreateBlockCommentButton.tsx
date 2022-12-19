@@ -2,7 +2,7 @@ import { FunctionComponent, useCallback, useState } from "react";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { faComment } from "@fortawesome/free-regular-svg-icons";
 import { Box, Popper } from "@mui/material";
-import { EntityId } from "@hashintel/hash-subgraph";
+import { EntityId } from "@hashintel/hash-shared/types";
 import styles from "../style.module.css";
 import { CreateBlockComment } from "./CreateBlockComment";
 import { useIsReadonlyMode } from "../../../shared/readonly-mode";
