@@ -21,17 +21,17 @@ import {
 import { AxiosError } from "axios";
 import { OwnedById } from "@hashintel/hash-shared/types";
 
-import { GraphApi } from "../graph";
-import { systemUserAccountId } from "../graph/system-user";
+import { GraphApi } from ".";
+import { systemUserAccountId } from "./system-user";
 import {
   createPropertyType,
   getPropertyTypeById,
-} from "../graph/ontology/primitive/property-type";
+} from "./ontology/primitive/property-type";
 import { logger } from "../logger";
 import {
   createEntityType,
   getEntityTypeById,
-} from "../graph/ontology/primitive/entity-type";
+} from "./ontology/primitive/entity-type";
 import { NotFoundError } from "../lib/error";
 
 /** @todo: enable admins to expand upon restricted shortnames block list */

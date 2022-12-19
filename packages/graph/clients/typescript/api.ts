@@ -1425,7 +1425,7 @@ export interface ParameterExpression {
 export interface PathExpression {
   /**
    *
-   * @type {Array<DataTypeQueryToken | PropertyTypeQueryToken | EntityTypeQueryToken | EntityQueryToken | Selector | string & object>}
+   * @type {Array<DataTypeQueryToken | PropertyTypeQueryToken | EntityTypeQueryToken | EntityQueryToken | Selector | string>}
    * @memberof PathExpression
    */
   path: Array<
@@ -1434,7 +1434,7 @@ export interface PathExpression {
     | EntityTypeQueryToken
     | EntityQueryToken
     | Selector
-    | (string & object)
+    | string
   >;
 }
 /**

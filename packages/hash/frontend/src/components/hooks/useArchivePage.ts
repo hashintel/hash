@@ -3,7 +3,7 @@ import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
 import {
   EntityId,
   extractOwnedByIdFromEntityId,
-} from "@hashintel/hash-subgraph";
+} from "@hashintel/hash-shared/types";
 
 import { useCallback } from "react";
 import {
