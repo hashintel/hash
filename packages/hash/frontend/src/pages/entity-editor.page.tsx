@@ -7,7 +7,7 @@ import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
-import { OwnedById } from "@hashintel/hash-shared/types";
+import { EntityId, OwnedById } from "@hashintel/hash-shared/types";
 
 import { NextPageWithLayout } from "../shared/layout";
 import { useBlockProtocolFunctionsWithOntology } from "./type-editor/blockprotocol-ontology-functions-hook";
@@ -41,7 +41,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
 
   useEffect(() => {
     // As an example entity, we are going to use the currently logged in user's entity ID
-    const entityId = authenticatedUser.entityEditionId.baseId;
+    const entityId = authenticatedUser.entityEditionId.baseId as EntityId;
 
     void getEntity({ data: { entityId } }).then(({ data }) => {
       setUserSubgraph(data);
@@ -112,7 +112,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
       return;
     }
     await archiveEntity({
-      data: { entityId: createdEntity.metadata.editionId.baseId },
+      data: { entityId: createdEntity.metadata.editionId.baseId as EntityId },
     }).then(() => setCreatedEntity(undefined));
   };
 

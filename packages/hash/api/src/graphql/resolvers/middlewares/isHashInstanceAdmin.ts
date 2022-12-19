@@ -1,8 +1,9 @@
 import { ForbiddenError } from "apollo-server-express";
+import { isUserHashInstanceAdmin } from "../../../graph/knowledge/system-types/user";
 import { LoggedInGraphQLContext } from "../../context";
 import { ResolverMiddleware } from "./middlewareTypes";
 
-export const isHashInstanceAdmin: ResolverMiddleware<
+export const isHashInstanceAdminMiddleware: ResolverMiddleware<
   LoggedInGraphQLContext,
   any,
   LoggedInGraphQLContext
@@ -11,7 +12,7 @@ export const isHashInstanceAdmin: ResolverMiddleware<
     dataSources: { graphApi },
   } = ctx;
 
-  if (!(await ctx.userModel.isHashInstanceAdmin(graphApi))) {
+  if (!(await isUserHashInstanceAdmin({ graphApi }, { user: ctx.user }))) {
     throw new ForbiddenError(
       "You must be a HASH instance admin to perform this action.",
     );

@@ -1,7 +1,7 @@
 import { useMutation } from "@apollo/client";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { useCallback } from "react";
-import { EntityId } from "@hashintel/hash-subgraph";
+import { EntityId } from "@hashintel/hash-shared/types";
 import {
   CreateCommentMutation,
   CreateCommentMutationVariables,
