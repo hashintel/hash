@@ -3,7 +3,7 @@ import { useCallback } from "react";
 import {
   EntityId,
   extractOwnedByIdFromEntityId,
-} from "@hashintel/hash-subgraph";
+} from "@hashintel/hash-shared/types";
 import {
   SetParentPageMutation,
   SetParentPageMutationVariables,

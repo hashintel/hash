@@ -1,32 +1,34 @@
 import { ForbiddenError } from "apollo-server-express";
+import { isUserMemberOfOrg } from "../../../graph/knowledge/system-types/user";
 import { Scalars } from "../../apiTypes.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
-import { loggedInAndSignedUp } from "./loggedInAndSignedUp";
+import { loggedInAndSignedUpMiddleware } from "./loggedInAndSignedUp";
 import { ResolverMiddleware } from "./middlewareTypes";
 
 /** Middleware verifying the current logged in user has access to the requested account.
  * This middleware needs to be run on a query that is passing an
  * account id
  */
-export const canAccessAccount: ResolverMiddleware<
+export const canAccessAccountMiddleware: ResolverMiddleware<
   GraphQLContext,
   {
     ownedById: Scalars["OwnedById"];
   },
   LoggedInGraphQLContext
 > = (next) =>
-  loggedInAndSignedUp(async (_, args, ctx, info) => {
+  loggedInAndSignedUpMiddleware(async (_, args, ctx, info) => {
     const {
-      userModel,
+      user,
       dataSources: { graphApi },
     } = ctx;
     let isAllowed = false;
-    if (userModel.getEntityUuid() === args.ownedById) {
+    if (user.accountId === args.ownedById) {
       isAllowed = true;
     } else {
-      isAllowed = await userModel.isMemberOfOrg(graphApi, {
-        orgEntityUuid: args.ownedById,
-      });
+      isAllowed = await isUserMemberOfOrg(
+        { graphApi },
+        { user, orgEntityUuid: args.ownedById },
+      );
     }
     if (!isAllowed) {
       throw new ForbiddenError(

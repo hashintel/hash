@@ -29,10 +29,10 @@ export const createPropertyType: ImpureGraphFunction<
     actorId: AccountId;
   },
   Promise<PropertyTypeWithMetadata>
-> = async ({ graphApi }, params) => {
+> = async (ctx, params) => {
   const { ownedById, actorId } = params;
 
-  const namespace = await getNamespaceOfAccountOwner(graphApi, {
+  const namespace = await getNamespaceOfAccountOwner(ctx, {
     ownerId: ownedById,
   });
 
@@ -43,6 +43,8 @@ export const createPropertyType: ImpureGraphFunction<
   });
 
   const schema = { $id: propertyTypeId, ...params.schema };
+
+  const { graphApi } = ctx;
 
   const { data: metadata } = await graphApi
     .createPropertyType({
