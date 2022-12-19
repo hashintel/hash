@@ -38,7 +38,7 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-const ctx: ImpureGraphContext = { graphApi };
+const graphContext: ImpureGraphContext = { graphApi };
 
 describe("Comment", () => {
   let testUser: User;
@@ -52,7 +52,7 @@ describe("Comment", () => {
 
     testUser = await createTestUser(graphApi, "commentTest", logger);
 
-    const textEntity = await createEntity(ctx, {
+    const textEntity = await createEntity(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       properties: {
         [SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId]: [],
@@ -61,7 +61,7 @@ describe("Comment", () => {
       actorId: testUser.accountId,
     });
 
-    testBlock = await createBlock(ctx, {
+    testBlock = await createBlock(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       componentId: testBlockComponentId,
       blockData: textEntity,
@@ -70,7 +70,7 @@ describe("Comment", () => {
   });
 
   it("createComment method can create a comment", async () => {
-    const comment = await createComment(ctx, {
+    const comment = await createComment(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       parent: testBlock.entity,
       tokens: [],
@@ -78,17 +78,17 @@ describe("Comment", () => {
       actorId: testUser.accountId,
     });
 
-    const hasText = await getCommentText(ctx, { comment });
+    const hasText = await getCommentText(graphContext, { comment });
     expect(
       hasText.properties[
         SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId
       ],
     ).toEqual([]);
 
-    const commentAuthor = await getCommentAuthor(ctx, { comment });
+    const commentAuthor = await getCommentAuthor(graphContext, { comment });
     expect(commentAuthor.entity).toEqual(testUser.entity);
 
-    const parentBlock = await getCommentParent(ctx, { comment });
+    const parentBlock = await getCommentParent(graphContext, { comment });
     expect(parentBlock).toEqual(testBlock.entity);
   });
 });

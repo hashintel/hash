@@ -54,7 +54,7 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-const ctx: ImpureGraphContext = { graphApi };
+const graphContext: ImpureGraphContext = { graphApi };
 
 describe("Entity CRU", () => {
   let testUser: User;
@@ -72,38 +72,32 @@ describe("Entity CRU", () => {
     testUser = await createTestUser(graphApi, "entitytest", logger);
     testUser2 = await createTestUser(graphApi, "entitytest", logger);
 
-    textDataType = await createDataType(
-      { graphApi },
-      {
-        ownedById: testUser.accountId as OwnedById,
-        schema: {
-          kind: "dataType",
-          title: "Text",
-          type: "string",
-        },
-        actorId: testUser.accountId,
+    textDataType = await createDataType(graphContext, {
+      ownedById: testUser.accountId as OwnedById,
+      schema: {
+        kind: "dataType",
+        title: "Text",
+        type: "string",
       },
-    ).catch((err) => {
+      actorId: testUser.accountId,
+    }).catch((err) => {
       logger.error("Something went wrong making Text", err);
       throw err;
     });
 
     await Promise.all([
-      createEntityType(
-        { graphApi },
-        {
-          ownedById: testUser.accountId as OwnedById,
-          schema: {
-            kind: "entityType",
-            title: "Friends",
-            description: "Friend of",
-            type: "object",
-            properties: {},
-            allOf: [{ $ref: linkEntityTypeUri }],
-          },
-          actorId: testUser.accountId,
+      createEntityType(graphContext, {
+        ownedById: testUser.accountId as OwnedById,
+        schema: {
+          kind: "entityType",
+          title: "Friends",
+          description: "Friend of",
+          type: "object",
+          properties: {},
+          allOf: [{ $ref: linkEntityTypeUri }],
         },
-      )
+        actorId: testUser.accountId,
+      })
         .then((val) => {
           linkEntityTypeFriend = val;
         })
@@ -111,18 +105,15 @@ describe("Entity CRU", () => {
           logger.error("Something went wrong making link type Friends", err);
           throw err;
         }),
-      createPropertyType(
-        { graphApi },
-        {
-          ownedById: testUser.accountId as OwnedById,
-          schema: {
-            kind: "propertyType",
-            title: "Favorite Book",
-            oneOf: [{ $ref: textDataType.schema.$id }],
-          },
-          actorId: testUser.accountId,
+      createPropertyType(graphContext, {
+        ownedById: testUser.accountId as OwnedById,
+        schema: {
+          kind: "propertyType",
+          title: "Favorite Book",
+          oneOf: [{ $ref: textDataType.schema.$id }],
         },
-      )
+        actorId: testUser.accountId,
+      })
         .then((val) => {
           favoriteBookPropertyType = val;
         })
@@ -130,18 +121,15 @@ describe("Entity CRU", () => {
           logger.error("Something went wrong making Favorite Book", err);
           throw err;
         }),
-      createPropertyType(
-        { graphApi },
-        {
-          ownedById: testUser.accountId as OwnedById,
-          schema: {
-            kind: "propertyType",
-            title: "Name",
-            oneOf: [{ $ref: textDataType.schema.$id }],
-          },
-          actorId: testUser.accountId,
+      createPropertyType(graphContext, {
+        ownedById: testUser.accountId as OwnedById,
+        schema: {
+          kind: "propertyType",
+          title: "Name",
+          oneOf: [{ $ref: textDataType.schema.$id }],
         },
-      )
+        actorId: testUser.accountId,
+      })
         .then((val) => {
           namePropertyType = val;
         })
@@ -151,36 +139,33 @@ describe("Entity CRU", () => {
         }),
     ]);
 
-    entityType = await createEntityType(
-      { graphApi },
-      {
-        ownedById: testUser.accountId as OwnedById,
-        schema: generateSystemEntityTypeSchema({
-          entityTypeId: generateTypeId({
-            namespace: testUser.shortname!,
-            kind: "entity-type",
-            title: "Person",
-          }),
+    entityType = await createEntityType(graphContext, {
+      ownedById: testUser.accountId as OwnedById,
+      schema: generateSystemEntityTypeSchema({
+        entityTypeId: generateTypeId({
+          namespace: testUser.shortname!,
+          kind: "entity-type",
           title: "Person",
-          properties: [
-            { propertyType: favoriteBookPropertyType },
-            { propertyType: namePropertyType },
-          ],
-          outgoingLinks: [
-            {
-              linkEntityType: linkEntityTypeFriend,
-              destinationEntityTypes: ["SELF_REFERENCE"],
-            },
-          ],
         }),
-        actorId: testUser.accountId,
-      },
-    );
+        title: "Person",
+        properties: [
+          { propertyType: favoriteBookPropertyType },
+          { propertyType: namePropertyType },
+        ],
+        outgoingLinks: [
+          {
+            linkEntityType: linkEntityTypeFriend,
+            destinationEntityTypes: ["SELF_REFERENCE"],
+          },
+        ],
+      }),
+      actorId: testUser.accountId,
+    });
   });
 
   let createdEntity: Entity;
   it("can create an entity", async () => {
-    createdEntity = await createEntity(ctx, {
+    createdEntity = await createEntity(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       properties: {
         [namePropertyType.metadata.editionId.baseId]: "Bob",
@@ -192,7 +177,7 @@ describe("Entity CRU", () => {
   });
 
   it("can read an entity", async () => {
-    const fetchedEntity = await getLatestEntityById(ctx, {
+    const fetchedEntity = await getLatestEntityById(graphContext, {
       entityId: createdEntity.metadata.editionId.baseId,
     });
 
@@ -210,7 +195,7 @@ describe("Entity CRU", () => {
       testUser.accountId,
     );
 
-    updatedEntity = await updateEntity(ctx, {
+    updatedEntity = await updateEntity(graphContext, {
       entity: createdEntity,
       properties: {
         [namePropertyType.metadata.editionId.baseId]: "Updated Bob",
@@ -267,7 +252,7 @@ describe("Entity CRU", () => {
   });
 
   it("can create entity with linked entities from an entity definition", async () => {
-    const aliceEntity = await createEntityWithLinks(ctx, {
+    const aliceEntity = await createEntityWithLinks(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       // First create a new entity given the following definition
       entityTypeId: entityType.schema.$id,
@@ -290,14 +275,14 @@ describe("Entity CRU", () => {
     });
 
     const linkEntity = (
-      await getEntityOutgoingLinks(ctx, {
+      await getEntityOutgoingLinks(graphContext, {
         entity: aliceEntity,
       })
     )[0]!;
 
-    expect(await getLinkEntityRightEntity(ctx, { linkEntity })).toEqual(
-      updatedEntity,
-    );
+    expect(
+      await getLinkEntityRightEntity(graphContext, { linkEntity }),
+    ).toEqual(updatedEntity);
     expect(linkEntity.metadata.entityTypeId).toEqual(
       linkEntityTypeFriend.schema.$id,
     );

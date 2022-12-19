@@ -38,7 +38,7 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-const ctx: ImpureGraphContext = { graphApi };
+const graphContext: ImpureGraphContext = { graphApi };
 
 describe("Block", () => {
   let testUser: User;
@@ -61,25 +61,22 @@ describe("Block", () => {
      * @todo: rename to something more representative of a real-world use-case,
      * once the exact role of the block data entity's entity type is known.
      */
-    dummyEntityType = await createEntityType(
-      { graphApi },
-      {
-        ownedById: testUser.accountId as OwnedById,
-        schema: generateSystemEntityTypeSchema({
-          entityTypeId: generateTypeId({
-            namespace: testUser.shortname!,
-            kind: "entity-type",
-            title: "Dummy",
-          }),
+    dummyEntityType = await createEntityType(graphContext, {
+      ownedById: testUser.accountId as OwnedById,
+      schema: generateSystemEntityTypeSchema({
+        entityTypeId: generateTypeId({
+          namespace: testUser.shortname!,
+          kind: "entity-type",
           title: "Dummy",
-          properties: [],
-          outgoingLinks: [],
         }),
-        actorId: testUser.accountId,
-      },
-    );
+        title: "Dummy",
+        properties: [],
+        outgoingLinks: [],
+      }),
+      actorId: testUser.accountId,
+    });
 
-    testBlockDataEntity = await createEntity(ctx, {
+    testBlockDataEntity = await createEntity(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       properties: {},
       entityType: dummyEntityType,
@@ -88,7 +85,7 @@ describe("Block", () => {
   });
 
   it("can create a Block", async () => {
-    testBlock = await createBlock(ctx, {
+    testBlock = await createBlock(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       componentId: testBlockComponentId,
       blockData: testBlockDataEntity,
@@ -97,7 +94,7 @@ describe("Block", () => {
   });
 
   it("can get a block by its entity id", async () => {
-    const fetchedBlock = await getBlockById(ctx, {
+    const fetchedBlock = await getBlockById(graphContext, {
       entityId: testBlock.entity.metadata.editionId.baseId,
     });
 
@@ -107,13 +104,15 @@ describe("Block", () => {
   });
 
   it("can get the block's data entity", async () => {
-    const fetchedBlockData = await getBlockData(ctx, { block: testBlock });
+    const fetchedBlockData = await getBlockData(graphContext, {
+      block: testBlock,
+    });
 
     expect(fetchedBlockData).toEqual(testBlockDataEntity);
   });
 
   it("can update the block data entity", async () => {
-    const newBlockDataEntity = await createEntity(ctx, {
+    const newBlockDataEntity = await createEntity(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       properties: {},
       entityType: dummyEntityType,
@@ -121,26 +120,28 @@ describe("Block", () => {
     });
 
     expect(testBlockDataEntity).not.toEqual(newBlockDataEntity);
-    expect(await getBlockData(ctx, { block: testBlock })).toEqual(
+    expect(await getBlockData(graphContext, { block: testBlock })).toEqual(
       testBlockDataEntity,
     );
 
-    await updateBlockDataEntity(ctx, {
+    await updateBlockDataEntity(graphContext, {
       block: testBlock,
       newBlockDataEntity,
       actorId: testUser.accountId,
     });
 
-    expect(await getBlockData(ctx, { block: testBlock })).toEqual(
+    expect(await getBlockData(graphContext, { block: testBlock })).toEqual(
       newBlockDataEntity,
     );
   });
 
   it("cannot update the block data entity to the same data entity", async () => {
-    const currentDataEntity = await getBlockData(ctx, { block: testBlock });
+    const currentDataEntity = await getBlockData(graphContext, {
+      block: testBlock,
+    });
 
     await expect(
-      updateBlockDataEntity(ctx, {
+      updateBlockDataEntity(graphContext, {
         block: testBlock,
         newBlockDataEntity: currentDataEntity,
         actorId: testUser.accountId,

@@ -1,4 +1,5 @@
 import { ApolloError, UserInputError } from "apollo-server-errors";
+import { ImpureGraphContext } from "../../../../graph";
 import {
   addBlockToPage,
   getPageById,
@@ -62,6 +63,8 @@ export const updatePageContents: ResolverFn<
   const placeholderResults = new PlaceholderResultsMap();
   const { graphApi } = dataSources;
 
+  const graphContext: ImpureGraphContext = { graphApi };
+
   const createEntityWithPlaceholders = createEntityWithPlaceholdersFn(
     graphApi,
     placeholderResults,
@@ -122,12 +125,9 @@ export const updatePageContents: ResolverFn<
     ),
   );
 
-  const page = await getPageById(
-    { graphApi },
-    {
-      entityId: pageEntityId,
-    },
-  );
+  const page = await getPageById(graphContext, {
+    entityId: pageEntityId,
+  });
 
   if (!page) {
     const msg = `Page with Entity ID ${pageEntityId}`;
@@ -138,37 +138,28 @@ export const updatePageContents: ResolverFn<
   for (const [i, action] of actions.entries()) {
     try {
       if (action.insertBlock) {
-        await addBlockToPage(
-          { graphApi },
-          {
-            page,
-            block: insertedBlocks[insertCount]!,
-            position: action.insertBlock.position,
-            actorId: user.accountId,
-          },
-        );
+        await addBlockToPage(graphContext, {
+          page,
+          block: insertedBlocks[insertCount]!,
+          position: action.insertBlock.position,
+          actorId: user.accountId,
+        });
         insertCount += 1;
       } else if (action.moveBlock) {
-        await moveBlockInPage(
-          { graphApi },
-          {
-            ...action.moveBlock,
-            page,
-            actorId: user.accountId,
-          },
-        );
+        await moveBlockInPage(graphContext, {
+          ...action.moveBlock,
+          page,
+          actorId: user.accountId,
+        });
       } else if (action.removeBlock) {
-        await removeBlockFromPage(
-          { graphApi },
-          {
-            page,
-            position: action.removeBlock.position,
-            actorId: user.accountId,
-            allowRemovingFinal: actions
-              .slice(i + 1)
-              .some((actionToFollow) => actionToFollow.insertBlock),
-          },
-        );
+        await removeBlockFromPage(graphContext, {
+          page,
+          position: action.removeBlock.position,
+          actorId: user.accountId,
+          allowRemovingFinal: actions
+            .slice(i + 1)
+            .some((actionToFollow) => actionToFollow.insertBlock),
+        });
       }
     } catch (error) {
       if (error instanceof UserInputError) {

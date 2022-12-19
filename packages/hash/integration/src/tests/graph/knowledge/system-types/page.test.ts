@@ -44,7 +44,7 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-const ctx: ImpureGraphContext = { graphApi };
+const graphContext: ImpureGraphContext = { graphApi };
 
 describe("Page", () => {
   let testUser: User;
@@ -57,10 +57,10 @@ describe("Page", () => {
   });
 
   const createTestBlock = async () =>
-    await createBlock(ctx, {
+    await createBlock(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       componentId: "text",
-      blockData: await createEntity(ctx, {
+      blockData: await createEntity(graphContext, {
         ownedById: testUser.accountId as OwnedById,
         entityType: SYSTEM_TYPES.entityType.dummy,
         properties: {},
@@ -72,13 +72,13 @@ describe("Page", () => {
   let testPage: Page;
 
   it("can create a page", async () => {
-    testPage = await createPage(ctx, {
+    testPage = await createPage(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       title: "Test Page",
       actorId: testUser.accountId,
     });
 
-    const initialBlocks = await getPageBlocks(ctx, { page: testPage });
+    const initialBlocks = await getPageBlocks(graphContext, { page: testPage });
 
     expect(initialBlocks).toHaveLength(1);
   });
@@ -91,7 +91,7 @@ describe("Page", () => {
       createTestBlock(),
     ]);
 
-    testPage2 = await createPage(ctx, {
+    testPage2 = await createPage(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       title: "Test Page 2",
       summary: "Test page 2 summary",
@@ -99,7 +99,9 @@ describe("Page", () => {
       actorId: testUser.accountId,
     });
 
-    const initialBlocks = await getPageBlocks(ctx, { page: testPage2 });
+    const initialBlocks = await getPageBlocks(graphContext, {
+      page: testPage2,
+    });
     const expectedInitialBlocks = [initialBlock1, initialBlock2];
 
     expect(initialBlocks).toHaveLength(expectedInitialBlocks.length);
@@ -109,7 +111,7 @@ describe("Page", () => {
   });
 
   it("can get a page by its entity id", async () => {
-    const fetchedPage = await getPageById(ctx, {
+    const fetchedPage = await getPageById(graphContext, {
       entityId: testPage.entity.metadata.editionId.baseId,
     });
 
@@ -117,7 +119,7 @@ describe("Page", () => {
   });
 
   it("can get all pages in a workspace", async () => {
-    const allPages = await getAllPagesInWorkspace(ctx, {
+    const allPages = await getAllPagesInWorkspace(graphContext, {
       workspace: testUser,
     });
 
@@ -139,23 +141,25 @@ describe("Page", () => {
   let parentPage: Page;
 
   it("can get/set a parent page", async () => {
-    parentPage = await createPage(ctx, {
+    parentPage = await createPage(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       title: "Test Parent Page",
       summary: "Test page summary",
       actorId: testUser.accountId,
     });
 
-    expect(await getPageParentPage(ctx, { page: testPage })).toBeNull();
+    expect(
+      await getPageParentPage(graphContext, { page: testPage }),
+    ).toBeNull();
 
-    await setPageParentPage(ctx, {
+    await setPageParentPage(graphContext, {
       page: testPage,
       parentPage,
       actorId: testUser.accountId,
       prevIndex: null,
       nextIndex: null,
     });
-    expect(await getPageParentPage(ctx, { page: testPage })).toEqual(
+    expect(await getPageParentPage(graphContext, { page: testPage })).toEqual(
       parentPage,
     );
   });
@@ -167,7 +171,9 @@ describe("Page", () => {
   let testBlock3: Block;
 
   it("can insert blocks", async () => {
-    const existingBlocks = await getPageBlocks(ctx, { page: testPage });
+    const existingBlocks = await getPageBlocks(graphContext, {
+      page: testPage,
+    });
 
     expect(existingBlocks).toHaveLength(1);
 
@@ -179,20 +185,20 @@ describe("Page", () => {
     ]);
 
     // insert block at un-specified position
-    await addBlockToPage(ctx, {
+    await addBlockToPage(graphContext, {
       page: testPage,
       block: testBlock3,
       actorId: testUser.accountId,
     });
     // insert block at specified position
-    await addBlockToPage(ctx, {
+    await addBlockToPage(graphContext, {
       page: testPage,
       block: testBlock2,
       position: 1,
       actorId: testUser.accountId,
     });
 
-    const blocks = await getPageBlocks(ctx, { page: testPage });
+    const blocks = await getPageBlocks(graphContext, { page: testPage });
     const expectedBlocks = [testBlock1, testBlock2, testBlock3];
 
     expect(blocks).toHaveLength(expectedBlocks.length);
@@ -200,14 +206,14 @@ describe("Page", () => {
   });
 
   it("can move a block", async () => {
-    await moveBlockInPage(ctx, {
+    await moveBlockInPage(graphContext, {
       page: testPage,
       currentPosition: 0,
       newPosition: 2,
       actorId: testUser.accountId,
     });
 
-    const initialBlocks = await getPageBlocks(ctx, { page: testPage });
+    const initialBlocks = await getPageBlocks(graphContext, { page: testPage });
     const expectedInitialBlocks = [testBlock2, testBlock3, testBlock1];
 
     expect(initialBlocks).toHaveLength(expectedInitialBlocks.length);
@@ -215,14 +221,14 @@ describe("Page", () => {
       expect.arrayContaining(expectedInitialBlocks),
     );
 
-    await moveBlockInPage(ctx, {
+    await moveBlockInPage(graphContext, {
       page: testPage,
       currentPosition: 2,
       newPosition: 0,
       actorId: testUser.accountId,
     });
 
-    const updatedBlocks = await getPageBlocks(ctx, { page: testPage });
+    const updatedBlocks = await getPageBlocks(graphContext, { page: testPage });
     const expectedUpdatedBlocks = [testBlock1, testBlock2, testBlock3];
     expect(updatedBlocks).toHaveLength(expectedUpdatedBlocks.length);
     expect(updatedBlocks).toEqual(
@@ -231,13 +237,13 @@ describe("Page", () => {
   });
 
   it("can remove blocks", async () => {
-    await removeBlockFromPage(ctx, {
+    await removeBlockFromPage(graphContext, {
       page: testPage,
       position: 0,
       actorId: testUser.accountId,
     });
 
-    const blocks = await getPageBlocks(ctx, { page: testPage });
+    const blocks = await getPageBlocks(graphContext, { page: testPage });
     const expectedBlocks = [testBlock2, testBlock3];
 
     expect(blocks).toHaveLength(expectedBlocks.length);

@@ -47,7 +47,7 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-const ctx: ImpureGraphContext = { graphApi };
+const graphContext: ImpureGraphContext = { graphApi };
 
 describe("Link entity", () => {
   let namespace: string;
@@ -68,17 +68,14 @@ describe("Link entity", () => {
       kind: "entity-type",
       title: params.title,
     });
-    return createEntityType(
-      { graphApi },
-      {
-        ownedById: testUser.accountId as OwnedById,
-        schema: generateSystemEntityTypeSchema({
-          entityTypeId,
-          ...params,
-        }),
-        actorId: testUser.accountId,
-      },
-    );
+    return createEntityType(graphContext, {
+      ownedById: testUser.accountId as OwnedById,
+      schema: generateSystemEntityTypeSchema({
+        entityTypeId,
+        ...params,
+      }),
+      actorId: testUser.accountId,
+    });
   };
 
   beforeAll(async () => {
@@ -90,38 +87,32 @@ describe("Link entity", () => {
     namespace = testUser.shortname!;
 
     await Promise.all([
-      createEntityType(
-        { graphApi },
-        {
-          ownedById: testUser.accountId as OwnedById,
-          schema: {
-            title: "Friends",
-            description: "Friend of",
-            kind: "entityType",
-            type: "object",
-            allOf: [{ $ref: linkEntityTypeUri }],
-            properties: {},
-          },
-          actorId: testUser.accountId,
+      createEntityType(graphContext, {
+        ownedById: testUser.accountId as OwnedById,
+        schema: {
+          title: "Friends",
+          description: "Friend of",
+          kind: "entityType",
+          type: "object",
+          allOf: [{ $ref: linkEntityTypeUri }],
+          properties: {},
         },
-      ).then((linkEntityType) => {
+        actorId: testUser.accountId,
+      }).then((linkEntityType) => {
         friendLinkEntityType = linkEntityType;
       }),
-      createEntityType(
-        { graphApi },
-        {
-          ownedById: testUser.accountId as OwnedById,
-          schema: {
-            title: "Acquaintance",
-            description: "Acquainted with",
-            kind: "entityType",
-            type: "object",
-            allOf: [{ $ref: linkEntityTypeUri }],
-            properties: {},
-          },
-          actorId: testUser.accountId,
+      createEntityType(graphContext, {
+        ownedById: testUser.accountId as OwnedById,
+        schema: {
+          title: "Acquaintance",
+          description: "Acquainted with",
+          kind: "entityType",
+          type: "object",
+          allOf: [{ $ref: linkEntityTypeUri }],
+          properties: {},
         },
-      ).then((linkEntityType) => {
+        actorId: testUser.accountId,
+      }).then((linkEntityType) => {
         acquaintanceLinkEntityType = linkEntityType;
       }),
     ]);
@@ -144,37 +135,28 @@ describe("Link entity", () => {
     });
 
     await Promise.all([
-      createEntity(
-        { graphApi },
-        {
-          ownedById: testUser.accountId as OwnedById,
-          entityType: testEntityType,
-          properties: {},
-          actorId: testUser.accountId,
-        },
-      ).then((entity) => {
+      createEntity(graphContext, {
+        ownedById: testUser.accountId as OwnedById,
+        entityType: testEntityType,
+        properties: {},
+        actorId: testUser.accountId,
+      }).then((entity) => {
         leftEntity = entity;
       }),
-      createEntity(
-        { graphApi },
-        {
-          ownedById: testUser.accountId as OwnedById,
-          entityType: testEntityType,
-          properties: {},
-          actorId: testUser.accountId,
-        },
-      ).then((entity) => {
+      createEntity(graphContext, {
+        ownedById: testUser.accountId as OwnedById,
+        entityType: testEntityType,
+        properties: {},
+        actorId: testUser.accountId,
+      }).then((entity) => {
         friendRightEntity = entity;
       }),
-      createEntity(
-        { graphApi },
-        {
-          ownedById: testUser.accountId as OwnedById,
-          entityType: testEntityType,
-          properties: {},
-          actorId: testUser.accountId,
-        },
-      ).then((entity) => {
+      createEntity(graphContext, {
+        ownedById: testUser.accountId as OwnedById,
+        entityType: testEntityType,
+        properties: {},
+        actorId: testUser.accountId,
+      }).then((entity) => {
         acquaintanceRightEntity = entity;
       }),
     ]);
@@ -184,7 +166,7 @@ describe("Link entity", () => {
   let linkEntityAcquaintance: LinkEntity;
 
   it("can link entities", async () => {
-    linkEntityFriend = await createLinkEntity(ctx, {
+    linkEntityFriend = await createLinkEntity(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       leftEntityId: leftEntity.metadata.editionId.baseId,
       linkEntityType: friendLinkEntityType,
@@ -192,7 +174,7 @@ describe("Link entity", () => {
       actorId: testUser.accountId,
     });
 
-    linkEntityAcquaintance = await createLinkEntity(ctx, {
+    linkEntityAcquaintance = await createLinkEntity(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       leftEntityId: leftEntity.metadata.editionId.baseId,
       linkEntityType: acquaintanceLinkEntityType,
@@ -202,7 +184,7 @@ describe("Link entity", () => {
   });
 
   it("can get all entity links", async () => {
-    const allLinks = await getEntityOutgoingLinks(ctx, {
+    const allLinks = await getEntityOutgoingLinks(graphContext, {
       entity: leftEntity,
     });
     expect(allLinks).toHaveLength(2);
@@ -211,7 +193,7 @@ describe("Link entity", () => {
   });
 
   it("can get a single entity link", async () => {
-    const links = await getEntityOutgoingLinks(ctx, {
+    const links = await getEntityOutgoingLinks(graphContext, {
       entity: leftEntity,
       linkEntityType: friendLinkEntityType,
     });
@@ -219,24 +201,24 @@ describe("Link entity", () => {
     expect(links).toHaveLength(1);
     const linkEntity = links[0]!;
 
-    expect(await getLinkEntityLeftEntity(ctx, { linkEntity })).toEqual(
+    expect(await getLinkEntityLeftEntity(graphContext, { linkEntity })).toEqual(
       leftEntity,
     );
     expect(linkEntity.metadata.entityTypeId).toEqual(
       friendLinkEntityType.schema.$id,
     );
-    expect(await getLinkEntityRightEntity(ctx, { linkEntity })).toEqual(
-      friendRightEntity,
-    );
+    expect(
+      await getLinkEntityRightEntity(graphContext, { linkEntity }),
+    ).toEqual(friendRightEntity);
   });
 
   it("can archive a link", async () => {
-    await archiveEntity(ctx, {
+    await archiveEntity(graphContext, {
       entity: linkEntityAcquaintance,
       actorId: testUser.accountId,
     });
 
-    const links = await getEntityOutgoingLinks(ctx, {
+    const links = await getEntityOutgoingLinks(graphContext, {
       entity: leftEntity,
       linkEntityType: acquaintanceLinkEntityType,
     });

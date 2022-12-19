@@ -38,7 +38,7 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-const ctx: ImpureGraphContext = { graphApi };
+const graphContext: ImpureGraphContext = { graphApi };
 
 describe("Hash Instance", () => {
   beforeAll(async () => {
@@ -49,7 +49,7 @@ describe("Hash Instance", () => {
   let hashInstance: HashInstance;
 
   it("can get the hash instance", async () => {
-    hashInstance = await getHashInstance(ctx, {});
+    hashInstance = await getHashInstance(graphContext, {});
 
     expect(hashInstance).toBeTruthy();
   });
@@ -63,12 +63,12 @@ describe("Hash Instance", () => {
       logger,
     );
 
-    await addHashInstanceAdmin(ctx, {
+    await addHashInstanceAdmin(graphContext, {
       user: testHashInstanceAdmin,
       actorId: systemUserAccountId,
     });
 
-    const hashOutgoingAdminLinks = await getEntityOutgoingLinks(ctx, {
+    const hashOutgoingAdminLinks = await getEntityOutgoingLinks(graphContext, {
       entity: hashInstance.entity,
       linkEntityType: SYSTEM_TYPES.linkEntityType.admin,
     });
@@ -78,14 +78,14 @@ describe("Hash Instance", () => {
     const [hashOutgoingAdminLink] = hashOutgoingAdminLinks;
 
     expect(
-      await getLinkEntityRightEntity(ctx, {
+      await getLinkEntityRightEntity(graphContext, {
         linkEntity: hashOutgoingAdminLink!,
       }),
     ).toEqual(testHashInstanceAdmin.entity);
   });
 
   it("can determine if user is hash admin", async () => {
-    const hasHashInstanceAdmin = await isUserHashInstanceAdmin(ctx, {
+    const hasHashInstanceAdmin = await isUserHashInstanceAdmin(graphContext, {
       user: testHashInstanceAdmin,
     });
 
@@ -93,15 +93,18 @@ describe("Hash Instance", () => {
   });
 
   it("can remove a hash instance admin", async () => {
-    await removeHashInstanceAdmin(ctx, {
+    await removeHashInstanceAdmin(graphContext, {
       user: testHashInstanceAdmin,
       actorId: systemUserAccountId,
     });
 
-    const hashInstanceOutgoingAdminLinks = await getEntityOutgoingLinks(ctx, {
-      entity: hashInstance.entity,
-      linkEntityType: SYSTEM_TYPES.linkEntityType.admin,
-    });
+    const hashInstanceOutgoingAdminLinks = await getEntityOutgoingLinks(
+      graphContext,
+      {
+        entity: hashInstance.entity,
+        linkEntityType: SYSTEM_TYPES.linkEntityType.admin,
+      },
+    );
 
     expect(hashInstanceOutgoingAdminLinks).toHaveLength(0);
   });

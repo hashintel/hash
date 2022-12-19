@@ -32,7 +32,7 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-const ctx: ImpureGraphContext = { graphApi };
+const graphContext: ImpureGraphContext = { graphApi };
 
 describe("OrgMembership", () => {
   let testUser: User;
@@ -51,7 +51,7 @@ describe("OrgMembership", () => {
   let testOrgMembership: OrgMembership;
 
   it("can create an OrgMembership", async () => {
-    testOrgMembership = await createOrgMembership(ctx, {
+    testOrgMembership = await createOrgMembership(graphContext, {
       responsibility: "test",
       org: testOrg,
       actorId: testUser.accountId,
@@ -60,7 +60,7 @@ describe("OrgMembership", () => {
   });
 
   it("can get the org of an org membership", async () => {
-    const fetchedOrg = await getOrgMembershipOrg(ctx, {
+    const fetchedOrg = await getOrgMembershipOrg(graphContext, {
       orgMembership: testOrgMembership,
     });
 
@@ -68,7 +68,7 @@ describe("OrgMembership", () => {
   });
 
   it("can get the user of an org membership", async () => {
-    const fetchedUser = await getOrgMembershipUser(ctx, {
+    const fetchedUser = await getOrgMembershipUser(graphContext, {
       orgMembership: testOrgMembership,
     });
 

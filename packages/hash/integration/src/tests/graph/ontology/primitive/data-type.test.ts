@@ -2,6 +2,7 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
+  ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
@@ -32,6 +33,8 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
+const graphContext: ImpureGraphContext = { graphApi };
+
 let testUser: User;
 let testUser2: User;
 
@@ -60,23 +63,17 @@ describe("Data type CRU", () => {
   let createdDataType: DataTypeWithMetadata;
 
   it("can create a data type", async () => {
-    createdDataType = await createDataType(
-      { graphApi },
-      {
-        ownedById: testUser.accountId as OwnedById,
-        schema: dataTypeSchema,
-        actorId: testUser.accountId,
-      },
-    );
+    createdDataType = await createDataType(graphContext, {
+      ownedById: testUser.accountId as OwnedById,
+      schema: dataTypeSchema,
+      actorId: testUser.accountId,
+    });
   });
 
   it("can read a data type", async () => {
-    const fetchedDataType = await getDataTypeById(
-      { graphApi },
-      {
-        dataTypeId: createdDataType.schema.$id,
-      },
-    );
+    const fetchedDataType = await getDataTypeById(graphContext, {
+      dataTypeId: createdDataType.schema.$id,
+    });
 
     expect(fetchedDataType.schema).toEqual(createdDataType.schema);
   });
@@ -87,14 +84,11 @@ describe("Data type CRU", () => {
       testUser.accountId,
     );
 
-    createdDataType = await updateDataType(
-      { graphApi },
-      {
-        dataTypeId: createdDataType.schema.$id,
-        schema: { ...dataTypeSchema, title: updatedTitle },
-        actorId: testUser2.accountId,
-      },
-    ).catch((err) => Promise.reject(err.data));
+    createdDataType = await updateDataType(graphContext, {
+      dataTypeId: createdDataType.schema.$id,
+      schema: { ...dataTypeSchema, title: updatedTitle },
+      actorId: testUser2.accountId,
+    }).catch((err) => Promise.reject(err.data));
 
     expect(createdDataType.metadata.provenance.updatedById).toBe(
       testUser2.accountId,

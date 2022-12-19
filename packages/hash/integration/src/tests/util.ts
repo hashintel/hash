@@ -2,6 +2,7 @@ import { createKratosIdentity } from "@hashintel/hash-api/src/auth/ory-kratos";
 import {
   ensureSystemGraphIsInitialized,
   GraphApi,
+  ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
 import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
@@ -31,6 +32,8 @@ export const createTestUser = async (
 ) => {
   await ensureSystemGraphIsInitialized({ graphApi, logger });
 
+  const graphContext: ImpureGraphContext = { graphApi };
+
   const shortname = generateRandomShortname(shortNamePrefix);
 
   const identity = await createKratosIdentity({
@@ -46,26 +49,20 @@ export const createTestUser = async (
 
   const kratosIdentityId = identity.id;
 
-  const createdUser = await createUser(
-    { graphApi },
-    {
-      emails: [`${shortname}@example.com`],
-      kratosIdentityId,
-      actorId: systemUserAccountId,
-    },
-  ).catch((err) => {
+  const createdUser = await createUser(graphContext, {
+    emails: [`${shortname}@example.com`],
+    kratosIdentityId,
+    actorId: systemUserAccountId,
+  }).catch((err) => {
     logger.error(`Error making UserModel for ${shortname}`);
     throw err;
   });
 
-  return await updateUserShortname(
-    { graphApi },
-    {
-      user: createdUser,
-      updatedShortname: shortname,
-      actorId: createdUser.accountId,
-    },
-  ).catch((err) => {
+  return await updateUserShortname(graphContext, {
+    user: createdUser,
+    updatedShortname: shortname,
+    actorId: createdUser.accountId,
+  }).catch((err) => {
     logger.error(`Error updating shortname for UserModel to ${shortname}`);
     throw err;
   });

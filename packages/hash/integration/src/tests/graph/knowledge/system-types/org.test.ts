@@ -2,6 +2,7 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
+  ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
@@ -30,6 +31,8 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
+const graphContext: ImpureGraphContext = { graphApi };
+
 describe("Org", () => {
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
@@ -51,34 +54,25 @@ describe("Org", () => {
   it("can update the shortname of an org", async () => {
     shortname = generateRandomShortname("orgTest");
 
-    createdOrg = await updateOrgShortname(
-      { graphApi },
-      {
-        org: createdOrg,
-        updatedShortname: shortname,
-        actorId: systemUserAccountId,
-      },
-    );
+    createdOrg = await updateOrgShortname(graphContext, {
+      org: createdOrg,
+      updatedShortname: shortname,
+      actorId: systemUserAccountId,
+    });
   });
 
   it("can update the preferred name of an org", async () => {
-    createdOrg = await updateOrgName(
-      { graphApi },
-      {
-        org: createdOrg,
-        updatedOrgName: "The testing org",
-        actorId: systemUserAccountId,
-      },
-    );
+    createdOrg = await updateOrgName(graphContext, {
+      org: createdOrg,
+      updatedOrgName: "The testing org",
+      actorId: systemUserAccountId,
+    });
   });
 
   it("can get an org by its shortname", async () => {
-    const fetchedOrg = await getOrgByShortname(
-      { graphApi },
-      {
-        shortname,
-      },
-    );
+    const fetchedOrg = await getOrgByShortname(graphContext, {
+      shortname,
+    });
 
     expect(fetchedOrg).toEqual(createdOrg);
   });
