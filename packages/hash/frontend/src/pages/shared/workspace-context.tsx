@@ -7,6 +7,8 @@ import {
   useState,
   FunctionComponent,
 } from "react";
+import { AccountId } from "@hashintel/hash-shared/types";
+
 import { localStorageKeys } from "../../lib/config";
 import { MinimalOrg } from "../../lib/org";
 import { User } from "../../lib/user";
@@ -14,9 +16,9 @@ import { useAuthInfo } from "./auth-info-context";
 
 export type WorkspaceContextValue = {
   activeWorkspace?: User | MinimalOrg;
-  activeWorkspaceAccountId?: string;
+  activeWorkspaceAccountId?: AccountId;
   updateActiveWorkspaceAccountId: (
-    updatedActiveWorkspaceAccountId: string,
+    updatedActiveWorkspaceAccountId: AccountId,
   ) => void;
 };
 
@@ -35,10 +37,10 @@ export const WorkspaceContextProvider: FunctionComponent<{
   const { authenticatedUser } = useAuthInfo();
 
   const [activeWorkspaceAccountId, setActiveWorkspaceAccountId] =
-    useState<string>();
+    useState<AccountId>();
 
   const updateActiveWorkspaceAccountId = useCallback(
-    (updatedActiveWorkspaceAccountId: string) => {
+    (updatedActiveWorkspaceAccountId: AccountId) => {
       localStorage.setItem(
         localStorageKeys.workspaceAccountId,
         updatedActiveWorkspaceAccountId,
@@ -59,7 +61,7 @@ export const WorkspaceContextProvider: FunctionComponent<{
       );
 
       if (localStorageInitialValue) {
-        setActiveWorkspaceAccountId(localStorageInitialValue);
+        setActiveWorkspaceAccountId(localStorageInitialValue as AccountId);
       } else if (authenticatedUser) {
         /**
          * Initialize the `activeWorkspaceAccountId` to the account ID of the

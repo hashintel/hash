@@ -14,6 +14,8 @@ import {
   EntityTypeCreatorParams,
   generateSystemEntityTypeSchema,
 } from "@hashintel/hash-api/src/model/util";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
+
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
@@ -61,12 +63,12 @@ describe("Link entity model class", () => {
     return createEntityType(
       { graphApi },
       {
-        ownedById: testUserModel.getEntityUuid(),
+        ownedById: testUserModel.getEntityUuid() as OwnedById,
         schema: generateSystemEntityTypeSchema({
           entityTypeId,
           ...params,
         }),
-        actorId: testUserModel.getEntityUuid(),
+        actorId: testUserModel.getEntityUuid() as AccountId,
       },
     );
   };
@@ -83,7 +85,7 @@ describe("Link entity model class", () => {
       createEntityType(
         { graphApi },
         {
-          ownedById: testUserModel.getEntityUuid(),
+          ownedById: testUserModel.getEntityUuid() as OwnedById,
           schema: {
             title: "Friends",
             description: "Friend of",
@@ -92,7 +94,7 @@ describe("Link entity model class", () => {
             allOf: [{ $ref: linkEntityTypeUri }],
             properties: {},
           },
-          actorId: testUserModel.getEntityUuid(),
+          actorId: testUserModel.getEntityUuid() as AccountId,
         },
       ).then((linkEntityType) => {
         friendLinkEntityType = linkEntityType;
@@ -100,7 +102,7 @@ describe("Link entity model class", () => {
       createEntityType(
         { graphApi },
         {
-          ownedById: testUserModel.getEntityUuid(),
+          ownedById: testUserModel.getEntityUuid() as OwnedById,
           schema: {
             title: "Acquaintance",
             description: "Acquainted with",
@@ -109,7 +111,7 @@ describe("Link entity model class", () => {
             allOf: [{ $ref: linkEntityTypeUri }],
             properties: {},
           },
-          actorId: testUserModel.getEntityUuid(),
+          actorId: testUserModel.getEntityUuid() as AccountId,
         },
       ).then((linkEntityType) => {
         acquaintanceLinkEntityType = linkEntityType;
@@ -135,7 +137,7 @@ describe("Link entity model class", () => {
 
     await Promise.all([
       EntityModel.create(graphApi, {
-        ownedById: testUserModel.getEntityUuid(),
+        ownedById: testUserModel.getEntityUuid() as OwnedById,
         entityType: testEntityType,
         properties: {},
         actorId: testUserModel.getEntityUuid(),
@@ -143,7 +145,7 @@ describe("Link entity model class", () => {
         leftEntityModel = entity;
       }),
       EntityModel.create(graphApi, {
-        ownedById: testUserModel.getEntityUuid(),
+        ownedById: testUserModel.getEntityUuid() as OwnedById,
         entityType: testEntityType,
         properties: {},
         actorId: testUserModel.getEntityUuid(),
@@ -151,7 +153,7 @@ describe("Link entity model class", () => {
         friendRightEntityModel = entity;
       }),
       EntityModel.create(graphApi, {
-        ownedById: testUserModel.getEntityUuid(),
+        ownedById: testUserModel.getEntityUuid() as OwnedById,
         entityType: testEntityType,
         properties: {},
         actorId: testUserModel.getEntityUuid(),
@@ -166,7 +168,7 @@ describe("Link entity model class", () => {
 
   it("can link entities", async () => {
     linkEntityFriendModel = await LinkEntityModel.createLinkEntity(graphApi, {
-      ownedById: testUserModel.getEntityUuid(),
+      ownedById: testUserModel.getEntityUuid() as OwnedById,
       leftEntityModel,
       linkEntityType: friendLinkEntityType,
       rightEntityModel: friendRightEntityModel,
@@ -176,7 +178,7 @@ describe("Link entity model class", () => {
     linkEntityAcquaintanceModel = await LinkEntityModel.createLinkEntity(
       graphApi,
       {
-        ownedById: testUserModel.getEntityUuid(),
+        ownedById: testUserModel.getEntityUuid() as OwnedById,
         leftEntityModel,
         linkEntityType: acquaintanceLinkEntityType,
         rightEntityModel: acquaintanceRightEntityModel,

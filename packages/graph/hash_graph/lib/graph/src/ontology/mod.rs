@@ -6,6 +6,7 @@ mod entity_type;
 mod property_type;
 
 use core::fmt;
+use std::collections::hash_map::{RandomState, RawEntryMut};
 
 use error_stack::{Context, IntoReport, Result, ResultExt};
 use serde::{Deserialize, Serialize, Serializer};
@@ -24,7 +25,8 @@ pub use self::{
 use crate::{
     identifier::ontology::OntologyTypeEditionId,
     provenance::{OwnedById, ProvenanceMetadata},
-    store::Record,
+    store::{query::Filter, Record},
+    subgraph::Subgraph,
 };
 
 #[derive(Deserialize, ToSchema)]
@@ -139,12 +141,14 @@ impl OntologyType for EntityType {
     }
 }
 
-pub trait OntologyTypeWithMetadata: Record<Metadata = OntologyElementMetadata> {
+pub trait OntologyTypeWithMetadata: Record {
     type OntologyType: OntologyType<WithMetadata = Self>;
 
     fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self;
 
     fn inner(&self) -> &Self::OntologyType;
+
+    fn metadata(&self) -> &OntologyElementMetadata;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
@@ -171,6 +175,11 @@ impl OntologyElementMetadata {
     }
 
     #[must_use]
+    pub const fn owned_by_id(&self) -> OwnedById {
+        self.owned_by_id
+    }
+
+    #[must_use]
     pub const fn edition_id(&self) -> &OntologyTypeEditionId {
         &self.edition_id
     }
@@ -178,11 +187,6 @@ impl OntologyElementMetadata {
     #[must_use]
     pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
         self.provenance_metadata
-    }
-
-    #[must_use]
-    pub const fn owned_by_id(&self) -> OwnedById {
-        self.owned_by_id
     }
 }
 
@@ -195,11 +199,26 @@ pub struct DataTypeWithMetadata {
 }
 
 impl Record for DataTypeWithMetadata {
-    type Metadata = OntologyElementMetadata;
+    type EditionId = OntologyTypeEditionId;
     type QueryPath<'p> = DataTypeQueryPath;
 
-    fn metadata(&self) -> &OntologyElementMetadata {
-        &self.metadata
+    fn edition_id(&self) -> &Self::EditionId {
+        self.metadata().edition_id()
+    }
+
+    fn create_filter_for_edition_id(edition_id: &Self::EditionId) -> Filter<Self> {
+        Filter::for_ontology_type_edition_id(edition_id)
+    }
+
+    fn subgraph_entry<'s>(
+        subgraph: &'s mut Subgraph,
+        edition_id: &Self::EditionId,
+    ) -> RawEntryMut<'s, Self::EditionId, Self, RandomState> {
+        subgraph
+            .vertices
+            .data_types
+            .raw_entry_mut()
+            .from_key(edition_id)
     }
 }
 
@@ -216,6 +235,10 @@ impl OntologyTypeWithMetadata for DataTypeWithMetadata {
     fn inner(&self) -> &Self::OntologyType {
         &self.inner
     }
+
+    fn metadata(&self) -> &OntologyElementMetadata {
+        &self.metadata
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
@@ -227,11 +250,26 @@ pub struct PropertyTypeWithMetadata {
 }
 
 impl Record for PropertyTypeWithMetadata {
-    type Metadata = OntologyElementMetadata;
+    type EditionId = OntologyTypeEditionId;
     type QueryPath<'p> = PropertyTypeQueryPath;
 
-    fn metadata(&self) -> &OntologyElementMetadata {
-        &self.metadata
+    fn edition_id(&self) -> &Self::EditionId {
+        self.metadata().edition_id()
+    }
+
+    fn create_filter_for_edition_id(edition_id: &Self::EditionId) -> Filter<Self> {
+        Filter::for_ontology_type_edition_id(edition_id)
+    }
+
+    fn subgraph_entry<'s>(
+        subgraph: &'s mut Subgraph,
+        edition_id: &Self::EditionId,
+    ) -> RawEntryMut<'s, Self::EditionId, Self, RandomState> {
+        subgraph
+            .vertices
+            .property_types
+            .raw_entry_mut()
+            .from_key(edition_id)
     }
 }
 
@@ -248,6 +286,10 @@ impl OntologyTypeWithMetadata for PropertyTypeWithMetadata {
     fn inner(&self) -> &Self::OntologyType {
         &self.inner
     }
+
+    fn metadata(&self) -> &OntologyElementMetadata {
+        &self.metadata
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
@@ -259,11 +301,26 @@ pub struct EntityTypeWithMetadata {
 }
 
 impl Record for EntityTypeWithMetadata {
-    type Metadata = OntologyElementMetadata;
+    type EditionId = OntologyTypeEditionId;
     type QueryPath<'p> = EntityTypeQueryPath;
 
-    fn metadata(&self) -> &OntologyElementMetadata {
-        &self.metadata
+    fn edition_id(&self) -> &Self::EditionId {
+        self.metadata().edition_id()
+    }
+
+    fn create_filter_for_edition_id(edition_id: &Self::EditionId) -> Filter<Self> {
+        Filter::for_ontology_type_edition_id(edition_id)
+    }
+
+    fn subgraph_entry<'s>(
+        subgraph: &'s mut Subgraph,
+        edition_id: &Self::EditionId,
+    ) -> RawEntryMut<'s, Self::EditionId, Self, RandomState> {
+        subgraph
+            .vertices
+            .entity_types
+            .raw_entry_mut()
+            .from_key(edition_id)
     }
 }
 
@@ -279,5 +336,9 @@ impl OntologyTypeWithMetadata for EntityTypeWithMetadata {
 
     fn inner(&self) -> &Self::OntologyType {
         &self.inner
+    }
+
+    fn metadata(&self) -> &OntologyElementMetadata {
+        &self.metadata
     }
 }

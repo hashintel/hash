@@ -20,6 +20,9 @@ const baseSchema = gql`
   scalar Date
   scalar JSONObject
   scalar TextToken
+  # Branded types
+  scalar OwnedById
+  scalar AccountId
 
   """
   The queries available in this schema

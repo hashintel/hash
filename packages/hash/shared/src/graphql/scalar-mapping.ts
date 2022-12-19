@@ -4,22 +4,35 @@ export const scalars = {
   UnknownEntityProperties:
     "@hashintel/hash-shared/graphql/types#UnknownEntityProperties",
   TextToken: "@hashintel/hash-shared/graphql/types#TextToken",
+
+  VersionedUri: "@hashintel/hash-subgraph#VersionedUri",
+
+  DataTypeWithMetadata: "@hashintel/hash-subgraph#DataTypeWithMetadata",
   DataTypeWithoutId: "@hashintel/hash-shared/graphql/types#DataTypeWithoutId",
+
+  EntityTypeWithMetadata: "@hashintel/hash-subgraph#EntityTypeWithMetadata",
   EntityTypeWithoutId:
     "@hashintel/hash-shared/graphql/types#EntityTypeWithoutId",
+
+  PropertyTypeWithMetadata: "@hashintel/hash-subgraph#PropertyTypeWithMetadata",
   PropertyTypeWithoutId:
     "@hashintel/hash-shared/graphql/types#PropertyTypeWithoutId",
-  VersionedUri: "@hashintel/hash-subgraph#VersionedUri",
-  DataTypeWithMetadata: "@hashintel/hash-subgraph#DataTypeWithMetadata",
-  PropertyTypeWithMetadata: "@hashintel/hash-subgraph#PropertyTypeWithMetadata",
-  EntityTypeWithMetadata: "@hashintel/hash-subgraph#EntityTypeWithMetadata",
+
   Entity: "@hashintel/hash-subgraph#Entity",
   EntityId: "@hashintel/hash-subgraph#EntityId",
   EntityEditionId: "@hashintel/hash-subgraph#EntityEditionId",
   EntityMetadata: "@hashintel/hash-subgraph#EntityMetadata",
   PropertyObject: "@hashintel/hash-subgraph#PropertyObject",
+
   GraphElementEditionId: "@hashintel/hash-subgraph#GraphElementEditionId",
   Edges: "@hashintel/hash-subgraph#Edges",
   Vertices: "@hashintel/hash-subgraph#Vertices",
   LinkData: "@hashintel/hash-subgraph#LinkData",
+
+  OwnedById: "@hashintel/hash-shared/types#OwnedById",
+  UpdatedById: "@hashintel/hash-shared/types#UpdatedById",
+  AccountId: "@hashintel/hash-shared/types#AccountId",
+
+  EntityUuid: "@hashintel/hash-shared/types#EntityUuid",
+  Uuid: "@hashintel/hash-shared/types#Uuid",
 };

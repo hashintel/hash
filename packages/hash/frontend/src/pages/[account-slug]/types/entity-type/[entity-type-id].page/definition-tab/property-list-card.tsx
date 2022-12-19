@@ -16,6 +16,7 @@ import {
   useFormContext,
   useWatch,
 } from "react-hook-form";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import { useBlockProtocolCreatePropertyType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
 import { useBlockProtocolUpdatePropertyType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdatePropertyType";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
@@ -216,7 +217,7 @@ export const PropertyListCard = () => {
 
   const { routeNamespace } = useRouteNamespace();
   const { createPropertyType } = useBlockProtocolCreatePropertyType(
-    routeNamespace?.accountId ?? "",
+    (routeNamespace?.accountId as OwnedById) ?? null,
   );
 
   const refetchPropertyTypes = useRefetchPropertyTypes();

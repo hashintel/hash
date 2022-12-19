@@ -1,5 +1,6 @@
 import { useMutation } from "@apollo/client";
 import { useCallback } from "react";
+import { OwnedById } from "@hashintel/hash-shared/types";
 
 import {
   CreateEntityMutation,
@@ -9,7 +10,7 @@ import { createEntityMutation } from "../../../../graphql/queries/knowledge/enti
 import { CreateEntityMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolCreateEntity = (
-  ownedById: string | null,
+  ownedById: OwnedById | null,
   readonly?: boolean,
 ): {
   createEntity: CreateEntityMessageCallback;
