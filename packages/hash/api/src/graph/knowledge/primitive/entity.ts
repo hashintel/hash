@@ -330,7 +330,11 @@ export const updateEntity: ImpureGraphFunction<
   const { data: metadata } = await graphApi.updateEntity({
     actorId,
     entityId: entity.metadata.editionId.baseId,
-    /** @todo: this shouldn't be required */
+    /**
+     * @todo: this field could be optional when updating an entity
+     *
+     * @see https://app.asana.com/0/1201095311341924/1203285029221330/f
+     * */
     entityTypeId: entity.metadata.entityTypeId,
     archived: entity.metadata.archived,
     properties,
