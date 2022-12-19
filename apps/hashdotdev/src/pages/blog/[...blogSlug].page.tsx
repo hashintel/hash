@@ -80,7 +80,7 @@ export const getStaticProps: GetStaticProps<
     });
 
     const postPhotoSrc: string | null =
-      (typeof data?.postPhoto === "string" &&
+      (typeof data.postPhoto === "string" &&
         data.postPhoto &&
         data.postPhoto.split(",")[0]) ||
       null;

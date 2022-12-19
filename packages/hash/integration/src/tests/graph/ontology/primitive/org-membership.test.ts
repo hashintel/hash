@@ -72,6 +72,6 @@ describe("OrgMembership", () => {
       orgMembership: testOrgMembership,
     });
 
-    expect(fetchedUser?.entity).toEqual(testUser.entity);
+    expect(fetchedUser.entity).toEqual(testUser.entity);
   });
 });

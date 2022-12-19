@@ -2,7 +2,7 @@ import { Box } from "@mui/material";
 import { FunctionComponent } from "react";
 
 export const MdxVideo: FunctionComponent<{
-  src: string;
+  src: string | undefined;
   title: string;
 }> = ({ src, title }) => {
   const mediaProps = {

@@ -76,7 +76,7 @@ export class ProsemirrorManager {
          *       information
          */
         toDOM(node) {
-          if (node.textContent?.length > 0) {
+          if (node.textContent.length > 0) {
             return ["span", { "data-hash-type": "component" }, 0];
           } else {
             return ["span", { "data-hash-type": "component" }];
@@ -299,7 +299,8 @@ export class ProsemirrorManager {
 
     const { tr } = this.view.state;
 
-    const entityProperties = targetVariant?.properties ?? {};
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
+    const entityProperties = targetVariant.properties ?? {};
     const entityStoreState = entityStorePluginState(this.view.state);
     const blockEntity = draftBlockId
       ? entityStoreState.store.draft[draftBlockId]
@@ -421,6 +422,7 @@ export class ProsemirrorManager {
       this.view.state,
     ).store;
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     const blockEntity = blockEntityId ? entityStore.saved[blockEntityId] : null;
 
     if (!isBlockEntity(blockEntity)) {

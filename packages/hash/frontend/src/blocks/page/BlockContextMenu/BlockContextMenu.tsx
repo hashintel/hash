@@ -79,6 +79,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
     const hasChildEntity =
       !!blockEntity?.properties.entity &&
       Object.keys(
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
         (blockEntity.properties.entity as { properties: PropertyObject })
           .properties ?? {},
       ).length > 0;

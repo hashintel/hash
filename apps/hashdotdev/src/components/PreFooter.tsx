@@ -158,7 +158,7 @@ export const Subscribe: FunctionComponent<BoxProps> = (props) => {
                     if (data.response.status === "subscribed") {
                       setUserJoined(true);
                     } else if (
-                      data.response?.title?.includes("Invalid Resource")
+                      data.response.title?.includes("Invalid Resource")
                     ) {
                       setError("Are you sure? Please try a different address…");
                     } else {

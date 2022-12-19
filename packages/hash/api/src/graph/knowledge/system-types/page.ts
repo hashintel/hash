@@ -141,6 +141,7 @@ export const createPage: ImpureGraphFunction<
             summary,
         }
       : {}),
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- account for old browsers
     ...(index !== undefined
       ? { [SYSTEM_TYPES.propertyType.index.metadata.editionId.baseId]: index }
       : {}),
@@ -225,7 +226,7 @@ export const getPageParentPage: ImpureGraphFunction<
  */
 export const isPageArchived: ImpureGraphFunction<
   { page: Page },
-  Promise<Boolean>
+  Promise<boolean>
 > = async (ctx, { page }) => {
   if (page.archived) {
     return true;
