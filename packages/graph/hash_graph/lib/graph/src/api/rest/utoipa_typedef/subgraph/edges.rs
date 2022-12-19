@@ -90,7 +90,7 @@ impl Edges {
                                 edge,
                             ) => {
                                 // We only want to store one edge per link and in order to easily
-                                // look the corresponding link up in the vertices we store the the
+                                // look the corresponding link up in the vertices we store the
                                 // earliest timestamp when a link was added to the entity.
                                 //
                                 // As the vertices are sorted by timestamp, it's possible to get all
