@@ -112,7 +112,7 @@ class InteractableManagerClass {
     const handler = onClick ?? onMouseEnter;
 
     if (handler) {
-      handler?.(foundInteractable);
+      handler(foundInteractable);
 
       return true;
     }

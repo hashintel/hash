@@ -80,7 +80,7 @@ export const WorkspaceContextProvider: FunctionComponent<{
       authenticatedUser &&
       authenticatedUser.accountId === activeWorkspaceAccountId
         ? authenticatedUser
-        : authenticatedUser?.memberOf?.find(
+        : authenticatedUser?.memberOf.find(
             ({ accountId }) => accountId === activeWorkspaceAccountId,
           );
 

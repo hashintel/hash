@@ -15,6 +15,7 @@ import { NodeSelection, TextSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
 import { createRef, createContext, useContext } from "react";
 
+import { EntityId } from "@hashintel/hash-shared/types";
 import { CollabPositionIndicators } from "./CollabPositionIndicators";
 import styles from "./style.module.css";
 
@@ -71,7 +72,9 @@ export class BlockView implements NodeView {
 
     const draftEntity = this.store.draft[blockEntityNode.attrs.draftId];
 
-    return draftEntity?.metadata.editionId.baseId ?? null;
+    return (
+      (draftEntity?.metadata.editionId.baseId as EntityId | undefined) ?? null
+    );
   };
 
   private getBlockDraftId() {

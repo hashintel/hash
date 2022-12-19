@@ -17,8 +17,8 @@ export const redirectInGetInitialProps = (params: {
   } = params;
 
   if (req && res) {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- not a function whilst building next, so return instead.
     if (!res.writeHead) {
-      // `res.writeHead` is not a function whilst building next, so return instead.
       return;
     }
     res.writeHead(307, { Location: location });

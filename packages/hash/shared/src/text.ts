@@ -82,7 +82,7 @@ export const textBlockNodeToTextTokens = (node: ComponentNode): TextToken[] => {
           ...(marks.has("link")
             ? {
                 link: child.marks.find((mark) => mark.type.name === "link")
-                  ?.attrs?.href,
+                  ?.attrs.href,
               }
             : {}),
         });

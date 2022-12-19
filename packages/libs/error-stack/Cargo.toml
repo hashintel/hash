@@ -52,7 +52,7 @@ hooks = ['dep:spin']
 
 [package.metadata.docs.rs]
 all-features = true
-cargo-args = ["-Z", "unstable-options", "-Z", "rustdoc-scrape-examples=examples"]
+cargo-args = ["-Z", "unstable-options", "-Z", "rustdoc-scrape-examples"]
 targets = ["x86_64-unknown-linux-gnu"]
 
 [[example]]

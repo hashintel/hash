@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
 import { useCallback } from "react";
-import { EntityId } from "@hashintel/hash-subgraph";
+import { EntityId } from "@hashintel/hash-shared/types";
 import {
   DeleteCommentMutation,
   DeleteCommentMutationVariables,

@@ -156,7 +156,7 @@ export class ComponentView implements NodeView {
     ) {
       const entity = this.getDraftBlockEntity();
 
-      const blockDraftId = entity?.draftId;
+      const blockDraftId = entity.draftId;
 
       // @todo handle entity id not being defined
       const entityId = entity.metadata.editionId.baseId ?? "";
@@ -366,7 +366,7 @@ export class ComponentView implements NodeView {
     }
 
     const targetIsOutsideContentDOM =
-      !this.contentDOM?.contains(event.target) &&
+      !this.contentDOM.contains(event.target) &&
       event.target !== this.contentDOM;
 
     const targetIsContentDom = event.target === this.contentDOM;

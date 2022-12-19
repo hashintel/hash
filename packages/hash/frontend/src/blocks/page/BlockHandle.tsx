@@ -106,7 +106,7 @@ const BlockHandle: ForwardRefRenderFunction<
         unpadded
         {...bindTrigger(contextMenuPopupState)}
         onClick={() => {
-          onClick?.();
+          onClick();
           contextMenuPopupState.open();
         }}
         data-testid="block-changer"

@@ -1,7 +1,7 @@
 import { faFileAlt } from "@fortawesome/free-regular-svg-icons";
 import { faArchive, faLink } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { EntityId } from "@hashintel/hash-subgraph";
+import { EntityId } from "@hashintel/hash-shared/types";
 import {
   ListItemIcon,
   ListItemText,
@@ -142,6 +142,7 @@ export const PageMenu: FunctionComponent<PageMenuProps> = ({
             // eslint-disable-next-line react/no-array-index-key
             key={index}
             // faded={faded}
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
             onClick={onClick ?? popupState.close}
           >
             <ListItemIcon>

@@ -37,7 +37,7 @@ export const LoadEntityMenuContent: FunctionComponent<
   LoadEntityMenuContentProps
 > = ({ blockEntityId, closeParentContextMenu, popupState }) => {
   const blockView = useBlockView();
-  const loading = true;
+  const loading: boolean = true;
 
   // This depends on state external to react without subscribing to it
   // and this can cause some bugs.
@@ -95,6 +95,7 @@ export const LoadEntityMenuContent: FunctionComponent<
                 <FontAwesomeIcon icon={faSearch} />
               </InputAdornment>
             ),
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
             endAdornment: loading ? (
               <InputAdornment position="start">
                 <LoadingSpinner size={12} thickness={4} />
@@ -103,6 +104,7 @@ export const LoadEntityMenuContent: FunctionComponent<
           }}
         />
       </Box>
+      {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment */}
       {loading ? (
         <Box padding={2}>
           <LoadingSpinner size={16} thickness={4} />
