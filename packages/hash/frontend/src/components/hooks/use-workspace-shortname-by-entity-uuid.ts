@@ -27,7 +27,7 @@ export const useWorkspaceShortnameByEntityUuid = (params: {
   } = useWorkspaceByShortname(systemUserShortname);
 
   const systemUserOwnedById = useMemo(
-    () => systemUserWorkspace?.accountId as OwnedById,
+    () => systemUserWorkspace?.accountId as OwnedById | undefined,
     [systemUserWorkspace],
   );
 
