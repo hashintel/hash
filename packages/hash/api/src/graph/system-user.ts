@@ -11,9 +11,13 @@ import {
 } from "@hashintel/hash-shared/types";
 
 import { extractBaseUri } from "@blockprotocol/type-system";
-import { UserModel } from "../model";
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { getRequiredEnv } from "../util";
+import {
+  createUser,
+  getUserByShortname,
+  User,
+} from "./knowledge/system-types/user";
 
 // eslint-disable-next-line import/no-mutable-exports
 export let systemUserAccountId: AccountId;
@@ -78,10 +82,10 @@ export const ensureSystemUserAccountIdExists = async (params: {
 };
 
 // eslint-disable-next-line import/no-mutable-exports
-export let systemUserModel: UserModel;
+export let systemUser: User;
 
 /**
- * Ensure the `systemUserModel` exists by fetching it or creating it using
+ * Ensure the `systemUser` exists by fetching it or creating it using
  * the `systemUserAccountId`. Note this method must be run after the
  * `systemUserAccountId` and the system types have been initialized.
  */
@@ -91,12 +95,15 @@ export const ensureSystemUserExists = async (params: {
 }) => {
   const { graphApi, logger } = params;
 
-  const existingSystemUserModel = await UserModel.getUserByShortname(graphApi, {
-    shortname: systemUserShortname,
-  });
+  const existingSystemUser = await getUserByShortname(
+    { graphApi },
+    {
+      shortname: systemUserShortname,
+    },
+  );
 
-  if (existingSystemUserModel) {
-    systemUserModel = existingSystemUserModel;
+  if (existingSystemUser) {
+    systemUser = existingSystemUser;
   } else {
     const shortname = systemUserShortname;
     const preferredName = getRequiredEnv("SYSTEM_USER_PREFERRED_NAME");
@@ -111,17 +118,20 @@ export const ensureSystemUserExists = async (params: {
       credentials: { password: { config: { password } } },
     });
 
-    systemUserModel = await UserModel.createUser(graphApi, {
-      shortname,
-      actorId: systemUserAccountId,
-      preferredName,
-      emails: [emailAddress],
-      kratosIdentityId,
-      userAccountId: systemUserAccountId,
-    });
+    systemUser = await createUser(
+      { graphApi },
+      {
+        shortname,
+        actorId: systemUserAccountId,
+        preferredName,
+        emails: [emailAddress],
+        kratosIdentityId,
+        userAccountId: systemUserAccountId,
+      },
+    );
 
     logger.info(
-      `System user available with shortname = "${systemUserModel.getShortname()}"`,
+      `System user available with shortname = "${systemUser.shortname}"`,
     );
   }
 };

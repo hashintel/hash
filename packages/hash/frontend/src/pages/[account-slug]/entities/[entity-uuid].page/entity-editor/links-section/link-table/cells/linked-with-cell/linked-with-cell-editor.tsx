@@ -2,7 +2,7 @@ import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
 import { Entity } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { useContext } from "react";
-import { OwnedById } from "@hashintel/hash-shared/types";
+import { EntityId, OwnedById } from "@hashintel/hash-shared/types";
 import { useBlockProtocolArchiveEntity } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolArchiveEntity";
 import { useBlockProtocolCreateEntity } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
 import { useEntityEditor } from "../../../../entity-editor-context";
@@ -45,7 +45,7 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
     // if there is an existing link, archive it
     if (currentLink) {
       await archiveEntity({
-        data: { entityId: currentLink.metadata.editionId.baseId },
+        data: { entityId: currentLink.metadata.editionId.baseId as EntityId },
       });
     }
 
