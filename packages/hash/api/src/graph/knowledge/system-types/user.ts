@@ -124,11 +124,7 @@ export const getUserByShortname: ImpureGraphFunction<
   { shortname: string },
   Promise<User | null>
 > = async ({ graphApi }, params) => {
-  /**
-   * @todo: use upcoming Graph API method to filter entities in the datastore
-   *   https://app.asana.com/0/1202805690238892/1202890614880643/f
-   */
-  const userEntities = await graphApi
+  const [userEntity, ...unexpectedEntities] = await graphApi
     .getEntitiesByQuery({
       filter: {
         all: [
@@ -137,6 +133,17 @@ export const getUserByShortname: ImpureGraphFunction<
             equal: [
               { path: ["type", "versionedUri"] },
               { parameter: SYSTEM_TYPES.entityType.user.schema.$id },
+            ],
+          },
+          {
+            equal: [
+              {
+                path: [
+                  "properties",
+                  SYSTEM_TYPES.propertyType.shortName.metadata.editionId.baseId,
+                ],
+              },
+              { parameter: params.shortname },
             ],
           },
         ],
@@ -149,11 +156,13 @@ export const getUserByShortname: ImpureGraphFunction<
       ),
     );
 
-  return (
-    userEntities
-      .map((entity) => getUserFromEntity({ entity }))
-      .find((user) => user.shortname === params.shortname) ?? null
-  );
+  if (unexpectedEntities.length > 0) {
+    throw new Error(
+      `Critical: More than one user entity with shortname ${params.shortname} found in the graph.`,
+    );
+  }
+
+  return userEntity ? getUserFromEntity({ entity: userEntity }) : null;
 };
 
 /**
@@ -165,11 +174,7 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
   { kratosIdentityId: string },
   Promise<User | null>
 > = async ({ graphApi }, params) => {
-  /**
-   * @todo: use upcoming Graph API method to filter entities in the datastore
-   *   https://app.asana.com/0/1202805690238892/1202890614880643/f
-   */
-  const userEntities = await graphApi
+  const [userEntity, ...unexpectedEntities] = await graphApi
     .getEntitiesByQuery({
       filter: {
         all: [
@@ -178,6 +183,18 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
             equal: [
               { path: ["type", "versionedUri"] },
               { parameter: SYSTEM_TYPES.entityType.user.schema.$id },
+            ],
+          },
+          {
+            equal: [
+              {
+                path: [
+                  "properties",
+                  SYSTEM_TYPES.propertyType.kratosIdentityId.metadata.editionId
+                    .baseId,
+                ],
+              },
+              { parameter: params.kratosIdentityId },
             ],
           },
         ],
@@ -190,11 +207,13 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
       ),
     );
 
-  return (
-    userEntities
-      .map((entity) => getUserFromEntity({ entity }))
-      .find((user) => user.kratosIdentityId === params.kratosIdentityId) ?? null
-  );
+  if (unexpectedEntities.length > 0) {
+    throw new Error(
+      `Critical: More than one user entity with kratos identity Id ${params.kratosIdentityId} found in the graph.`,
+    );
+  }
+
+  return userEntity ? getUserFromEntity({ entity: userEntity }) : null;
 };
 
 /**

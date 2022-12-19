@@ -174,11 +174,7 @@ export const getOrgByShortname: ImpureGraphFunction<
   { shortname: string },
   Promise<Org | null>
 > = async ({ graphApi }, params) => {
-  /**
-   * @todo: use upcoming Graph API method to filter entities in the datastore
-   *   https://app.asana.com/0/1202805690238892/1202890614880643/f
-   */
-  const orgEntities = await graphApi
+  const [orgEntity, ...unexpectedEntities] = await graphApi
     .getEntitiesByQuery({
       filter: {
         all: [
@@ -187,6 +183,17 @@ export const getOrgByShortname: ImpureGraphFunction<
             equal: [
               { path: ["type", "versionedUri"] },
               { parameter: SYSTEM_TYPES.entityType.org.schema.$id },
+            ],
+          },
+          {
+            equal: [
+              {
+                path: [
+                  "properties",
+                  SYSTEM_TYPES.propertyType.shortName.metadata.editionId.baseId,
+                ],
+              },
+              { parameter: params.shortname },
             ],
           },
         ],
@@ -199,11 +206,13 @@ export const getOrgByShortname: ImpureGraphFunction<
       ),
     );
 
-  return (
-    orgEntities
-      .map((entity) => getOrgFromEntity({ entity }))
-      .find((org) => org.shortname === params.shortname) ?? null
-  );
+  if (unexpectedEntities.length > 0) {
+    throw new Error(
+      `Critical: More than one org entity with shortname ${params.shortname} found in the graph.`,
+    );
+  }
+
+  return orgEntity ? getOrgFromEntity({ entity: orgEntity }) : null;
 };
 
 /**
