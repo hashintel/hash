@@ -6,7 +6,7 @@ use core::any::{type_name, TypeId};
 
 use serde::{ser::SerializeMap, Serialize, Serializer};
 
-pub trait Reflection: Sized + 'static {
+pub trait Reflection: 'static {
     fn schema(doc: &mut Document) -> Schema;
 
     #[must_use]
@@ -169,7 +169,7 @@ pub struct Document {
 
 impl Document {
     #[must_use]
-    pub fn new<T: Reflection>() -> Self {
+    pub fn new<T: Reflection + ?Sized>() -> Self {
         let mut this = Self {
             id: TypeId::of::<T>(),
             schemas: BTreeMap::default(),
@@ -190,14 +190,14 @@ impl Document {
     }
 
     #[must_use]
-    pub fn reference<T: Reflection>(id: usize) -> Reference {
+    pub fn reference<T: Reflection + ?Sized>(id: usize) -> Reference {
         Reference {
             id,
             name: type_name::<T>(),
         }
     }
 
-    fn add_by_reference<T: Reflection>(&mut self, reference: Reference) {
+    fn add_by_reference<T: Reflection + ?Sized>(&mut self, reference: Reference) {
         let type_id = TypeId::of::<T>();
 
         self.references.insert(type_id, reference);
@@ -205,7 +205,7 @@ impl Document {
         self.schemas.insert(type_id, schema);
     }
 
-    pub fn add<T: Reflection>(&mut self) -> Reference {
+    pub fn add<T: Reflection + ?Sized>(&mut self) -> Reference {
         let type_id = TypeId::of::<T>();
 
         // we already have the value inserted, therefore we do not need to add it again
