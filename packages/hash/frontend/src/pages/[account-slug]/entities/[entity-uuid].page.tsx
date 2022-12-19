@@ -1,12 +1,12 @@
 import { Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import {
   entityIdFromOwnedByIdAndEntityUuid,
-  Entity,
-  Subgraph,
-  SubgraphRootTypes,
-} from "@hashintel/hash-subgraph";
+  EntityUuid,
+  OwnedById,
+} from "@hashintel/hash-shared/types";
 import Head from "next/head";
 import { useBlockProtocolGetEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
 import {
@@ -26,7 +26,7 @@ import { EntityPageHeader } from "./[entity-uuid].page/entity-page-wrapper/entit
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
-  const entityUuid = router.query["entity-uuid"] as string;
+  const entityUuid = router.query["entity-uuid"] as EntityUuid;
   const { routeNamespace } = useRouteNamespace();
   const { getEntity } = useBlockProtocolGetEntity();
   const { getEntityType } = useBlockProtocolGetEntityType();
@@ -42,7 +42,7 @@ const Page: NextPageWithLayout = () => {
           const { data: subgraph } = await getEntity({
             data: {
               entityId: entityIdFromOwnedByIdAndEntityUuid(
-                routeNamespace.accountId,
+                routeNamespace.accountId as OwnedById,
                 entityUuid,
               ),
             },
@@ -72,7 +72,7 @@ const Page: NextPageWithLayout = () => {
     const { data: subgraph } = await getEntity({
       data: {
         entityId: entityIdFromOwnedByIdAndEntityUuid(
-          routeNamespace.accountId,
+          routeNamespace.accountId as OwnedById,
           entityUuid,
         ),
       },
