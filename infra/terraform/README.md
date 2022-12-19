@@ -82,6 +82,13 @@ $ terraform apply --var-file prod-usea1.tfvars --var-file prod.secrets.tfvars
 ..
 ```
 
+Note that it may be required to disable refreshing state for subsequent applies (because of the Postgres SSH tunnel. Data sources are defrred to the apply phase usually).
+
+```console
+$ terraform apply --var-file prod-usea1.tfvars --var-file prod.secrets.tfvars -refresh=false
+..
+```
+
 ## 2. Migrate databases
 
 Once the terraform infrastructure is deployed, you should have an RDS Postgres database accessible from the bastion host with `graph` and `kratos` users/dbs. These need to be migrated locally in preparation for starting the services.
@@ -106,7 +113,7 @@ To migrate the graph, you must first build the docker container that contains th
 ```console
 $ DOCKER_BUILDKIT=1 docker build ./packages/graph -f ./packages/graph/deployment/migrations/Dockerfile -t hash-graph-migrate:latest
 ..
-$ docker run --rm -e 'HASH_GRAPH_PG_MIGRATION_URL=postgres://graph:changeme@localhost:5554/graph' hash-graph-migrate:latest
+$ docker run --rm --network host -e 'HASH_GRAPH_PG_MIGRATION_URL=postgres://graph:changeme@localhost:5554/graph' hash-graph-migrate:latest
 ..
 ```
 
@@ -115,7 +122,7 @@ You can simultaneously run the migrations for Kratos:
 ```console
 $ DOCKER_BUILDKIT=1 docker build ./packages/hash/external-services/kratos --build-arg ENV=prod -t kratos:latest
 ..
-$ docker run --rm -e "DSN=postgres://kratos:changeme@localhost:5554/kratos" kratos:latest migrate sql -e --yes
+$ docker run --network host --rm -e "LOG_LEVEL=info" -e "DSN=postgres://kratos:changeme@localhost:5554/kratos" kratos:latest migrate sql -e --yes
 ..
 ```
 
