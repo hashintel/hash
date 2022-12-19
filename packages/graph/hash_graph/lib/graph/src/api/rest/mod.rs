@@ -27,8 +27,8 @@ use include_dir::{include_dir, Dir};
 use tower_http::trace::TraceLayer;
 use utoipa::{
     openapi::{
-        self, schema, schema::RefOr, ArrayBuilder, KnownFormat, ObjectBuilder, OneOfBuilder, Ref,
-        SchemaFormat, SchemaType,
+        self, schema, schema::RefOr, AllOfBuilder, ArrayBuilder, KnownFormat, ObjectBuilder,
+        OneOfBuilder, Ref, SchemaFormat, SchemaType,
     },
     Modify, OpenApi,
 };
@@ -382,9 +382,15 @@ impl Modify for FilterSchemaAddon {
                                             .item(Ref::from_schema_name("EntityTypeQueryToken"))
                                             .item(Ref::from_schema_name("EntityQueryToken"))
                                             .item(Ref::from_schema_name("Selector"))
+                                            // Add `string` to the AllOf that extends `object`
+                                            // this keeps intellisense completions in TS.
                                             .item(
-                                                ObjectBuilder::new()
-                                                    .schema_type(SchemaType::String),
+                                                AllOfBuilder::new()
+                                                    .item(
+                                                        ObjectBuilder::new()
+                                                            .schema_type(SchemaType::String),
+                                                    )
+                                                    .item(ObjectBuilder::new()),
                                             ),
                                     ),
                                 )
