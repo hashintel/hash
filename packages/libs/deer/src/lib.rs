@@ -20,6 +20,10 @@
 #![allow(clippy::missing_errors_doc)]
 #![deny(unsafe_code)]
 
+// TODO: note to implementors of `Deserialize` to allow for `visit_none` and to defer to
+//  `visit_none` on every `deserialize_*` call if appropriate. missing value (`visit_none`) will
+//  only be generated through `*Access` implementations.
+
 use alloc::{string::String, vec::Vec};
 
 use error_stack::{Report, Result, ResultExt};
@@ -44,21 +48,63 @@ mod schema;
 extern crate alloc;
 
 pub trait ObjectAccess<'de> {
+    /// This enables bound-checking for [`ObjectAccess`].
+    ///
+    /// After calling this [`ObjectAccess`] will
+    /// ensure that there are never more than `length` values returned by [`Self::next`], if there
+    /// are not enough items present [`ArrayAccess`] will call [`Visitor::visit_none`], for
+    /// [`Self::value`] calls [`Visitor::visit_none`] will be called on the tuple of `(K, V)`, while
+    /// [`Self::value`] will call [`Visitor::visit_none`] of `V`.
+    ///
+    /// [`Self::value`] also counts toward the length, behaviour of multiple calls to
+    /// [`Self::value`] will always decrement the counter.
+    ///
+    /// This is best suited for types where the length/amount of keys is already predetermined, like
+    /// structs or enum variants.
+    ///
+    /// # Errors
+    ///
+    /// This will error if a call to [`Self::next`] or [`Self::value`] has been made before
+    /// calling this function or this function has been called repeatably.
+    fn set_bounded(&mut self, length: usize) -> Result<(), ObjectAccessError>;
+
     fn value<T>(&mut self, key: &str) -> Result<T, ObjectAccessError>
     where
         T: Deserialize<'de>;
 
-    fn next<T>(&mut self) -> Result<Option<(String, T)>, ObjectAccessError>
+    fn next<K, V>(&mut self) -> Option<Result<(K, V), ObjectAccessError>>
     where
-        T: Deserialize<'de>;
+        K: Deserialize<'de>,
+        V: Deserialize<'de>;
 
-    fn finish(self) -> Result<(), ObjectAccessError>;
+    fn size_hint(&self) -> Option<usize>;
+
+    fn end(self) -> Result<(), ObjectAccessError>;
 }
 
 pub trait ArrayAccess<'de> {
-    fn next<T>(&mut self) -> Result<Option<T>, ArrayAccessError>
+    /// Enables bound-checking for [`ArrayAccess`].
+    ///
+    /// After calling this [`ArrayAccess`] will
+    /// ensure that there are never more than `length` values returned by [`Self::next`], if there
+    /// are not enough items present [`ArrayAccess`] will call [`Visitor::visit_none`].
+    ///
+    /// One should still invoke [`Self::end`] to ensure that not too many items are supplied!
+    ///
+    /// This is best suited for types where the length is already predetermined, like arrays or
+    /// tuples, and should not be set on types like [`Vec`]!
+    ///
+    /// # Errors
+    ///
+    /// This will error if a call to [`Self::next`] has been made before setting
+    /// [`Self::set_bounded`] or [`Self::set_bounded`] was called repeatedly.
+    fn set_bounded(&mut self, length: usize) -> Result<(), ArrayAccessError>;
+
+    fn next<T>(&mut self) -> Option<Result<T, ArrayAccessError>>
     where
         T: Deserialize<'de>;
+
+    fn size_hint(&self) -> Option<usize>;
 
     fn end(self) -> Result<(), ArrayAccessError>;
 }
@@ -328,10 +374,6 @@ pub trait Deserializer<'de>: Sized {
     where
         V: Visitor<'de>;
 
-    fn deserialize_none<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
-    where
-        V: Visitor<'de>;
-
     /// Deserialize a `null` (or equivalent type) value
     ///
     /// This type should signal the explicit absence of a value, not to be confused with the
@@ -467,13 +509,20 @@ pub trait Deserializer<'de>: Sized {
 /// (which can be displayed with tools like [cargo-expand](https://github.com/dtolnay/cargo-expand))
 /// as a template. The macro generates human readable code which can be used as template.
 // TODO: add example
-pub trait Deserialize<'de>: Reflection + Sized {
+pub trait Deserialize<'de>: Sized {
+    type Reflection: Reflection + ?Sized;
+
     /// Deserialize this value from the given `deer` deserializer.
     ///
     /// # Errors
     ///
     /// Deserialization was unsuccessful
     fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError>;
+
+    #[must_use]
+    fn reflection() -> Document {
+        <Self::Reflection as Reflection>::document()
+    }
 }
 
 pub trait DeserializeOwned: for<'de> Deserialize<'de> {}
