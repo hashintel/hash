@@ -35,7 +35,7 @@ import {
 } from "@hashintel/hash-api/src/graph/knowledge/primitive/entity";
 import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
 import { getLinkEntityRightEntity } from "@hashintel/hash-api/src/graph/knowledge/primitive/link-entity";
-import { OwnedById } from "@hashintel/hash-shared/types";
+import { EntityId, OwnedById } from "@hashintel/hash-shared/types";
 import { createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
@@ -267,7 +267,8 @@ describe("Entity CRU", () => {
           linkEntityTypeId: linkEntityTypeFriend.schema.$id,
           entity: {
             // The "new" entity is in fact just an existing entity, so only a link will be created.
-            existingEntityId: updatedEntity.metadata.editionId.baseId,
+            existingEntityId: updatedEntity.metadata.editionId
+              .baseId as EntityId,
           },
         },
       ],

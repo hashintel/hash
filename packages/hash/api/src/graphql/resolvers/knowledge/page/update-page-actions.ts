@@ -2,9 +2,9 @@ import { UserInputError } from "apollo-server-errors";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import produce from "immer";
 
-import { Entity, EntityId } from "@hashintel/hash-subgraph";
+import { Entity } from "@hashintel/hash-subgraph";
 import { VersionedUri } from "@blockprotocol/type-system";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
+import { AccountId, OwnedById, EntityId } from "@hashintel/hash-shared/types";
 
 import {
   CreateEntityAction,
@@ -157,7 +157,7 @@ export const handleCreateNewEntity = async (params: {
     placeholderResults.set(entityPlaceholderId, {
       entityId: (
         await createEntityWithPlaceholders(entityDefinition, entityOwnedById)
-      ).metadata.editionId.baseId,
+      ).metadata.editionId.baseId as EntityId,
     });
   } catch (error) {
     if (error instanceof UserInputError) {
@@ -208,7 +208,7 @@ export const handleInsertNewBlock = async (
     );
 
     placeholderResults.set(entityPlaceholderId, {
-      entityId: blockData.metadata.editionId.baseId,
+      entityId: blockData.metadata.editionId.baseId as EntityId,
     });
 
     let block: Block;
@@ -248,7 +248,7 @@ export const handleInsertNewBlock = async (
     }
 
     placeholderResults.set(blockPlaceholderId, {
-      entityId: block.entity.metadata.editionId.baseId,
+      entityId: block.entity.metadata.editionId.baseId as EntityId,
     });
 
     return block;
