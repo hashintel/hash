@@ -27,8 +27,8 @@ use include_dir::{include_dir, Dir};
 use tower_http::trace::TraceLayer;
 use utoipa::{
     openapi::{
-        self, schema, schema::RefOr, ArrayBuilder, KnownFormat, ObjectBuilder, OneOfBuilder, Ref,
-        SchemaFormat, SchemaType,
+        self, schema, schema::RefOr, AllOfBuilder, ArrayBuilder, KnownFormat, ObjectBuilder,
+        OneOfBuilder, Ref, SchemaFormat, SchemaType,
     },
     Modify, OpenApi,
 };
@@ -307,6 +307,7 @@ impl Modify for OperationGraphTagAddon {
 struct FilterSchemaAddon;
 
 impl Modify for FilterSchemaAddon {
+    #[expect(clippy::too_many_lines)]
     fn modify(&self, openapi: &mut openapi::OpenApi) {
         if let Some(ref mut components) = openapi.components {
             components.schemas.insert(
@@ -380,7 +381,17 @@ impl Modify for FilterSchemaAddon {
                                             .item(Ref::from_schema_name("PropertyTypeQueryToken"))
                                             .item(Ref::from_schema_name("EntityTypeQueryToken"))
                                             .item(Ref::from_schema_name("EntityQueryToken"))
-                                            .item(Ref::from_schema_name("Selector")),
+                                            .item(Ref::from_schema_name("Selector"))
+                                            // Add `string` to the AllOf that extends `object`
+                                            // this keeps intellisense completions in TS.
+                                            .item(
+                                                AllOfBuilder::new()
+                                                    .item(
+                                                        ObjectBuilder::new()
+                                                            .schema_type(SchemaType::String),
+                                                    )
+                                                    .item(ObjectBuilder::new()),
+                                            ),
                                     ),
                                 )
                                 .required("path"),
