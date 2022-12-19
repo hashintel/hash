@@ -1,8 +1,11 @@
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
+import {
+  AccountId,
+  OwnedById,
+  extractOwnedByIdFromEntityId,
+} from "@hashintel/hash-shared/types";
 import {
   Entity,
   EntityId,
-  extractOwnedByIdFromEntityId,
   PropertyObject,
   Subgraph,
   SubgraphRootTypes,
@@ -485,7 +488,7 @@ export const addBlockToPage: ImpureGraphFunction<
     // assume that link to block is owned by the same account as the page
     ownedById: extractOwnedByIdFromEntityId(
       page.entity.metadata.editionId.baseId,
-    ) as OwnedById,
+    ),
     actorId,
   });
 };

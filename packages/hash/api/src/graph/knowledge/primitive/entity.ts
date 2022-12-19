@@ -1,13 +1,17 @@
 import { BaseUri, VersionedUri } from "@blockprotocol/type-system";
 import { Filter, GraphResolveDepths } from "@hashintel/hash-graph-client";
-import { AccountId, EntityUuid, OwnedById } from "@hashintel/hash-shared/types";
+import {
+  AccountId,
+  EntityUuid,
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+  OwnedById,
+} from "@hashintel/hash-shared/types";
 import {
   Entity,
   EntityId,
   EntityMetadata,
   EntityTypeWithMetadata,
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
   PropertyObject,
   splitEntityId,
   Subgraph,

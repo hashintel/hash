@@ -1,8 +1,9 @@
-import { OwnedById } from "@hashintel/hash-shared/types";
 import {
   extractEntityUuidFromEntityId,
-  PropertyObject,
-} from "@hashintel/hash-subgraph";
+  OwnedById,
+  Uuid,
+} from "@hashintel/hash-shared/types";
+import { PropertyObject } from "@hashintel/hash-subgraph";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { SYSTEM_TYPES } from "../../system-types";
@@ -78,7 +79,7 @@ export const createOrgMembership: ImpureGraphFunction<
   const linkEntity = await createLinkEntity(ctx, {
     ownedById: extractEntityUuidFromEntityId(
       org.entity.metadata.editionId.baseId,
-    ) as OwnedById,
+    ) as Uuid as OwnedById,
     linkEntityType: SYSTEM_TYPES.linkEntityType.orgMembership,
     leftEntityId: user.entity.metadata.editionId.baseId,
     rightEntityId: org.entity.metadata.editionId.baseId,

@@ -1,8 +1,13 @@
-import { AccountId, EntityUuid, OwnedById } from "@hashintel/hash-shared/types";
+import {
+  AccountId,
+  EntityUuid,
+  extractEntityUuidFromEntityId,
+  OwnedById,
+  Uuid,
+} from "@hashintel/hash-shared/types";
 import {
   Entity,
   EntityId,
-  extractEntityUuidFromEntityId,
   PropertyObject,
   Subgraph,
   SubgraphRootTypes,
@@ -73,7 +78,7 @@ export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
   return {
     accountId: extractEntityUuidFromEntityId(
       entity.metadata.editionId.baseId,
-    ) as AccountId,
+    ) as Uuid as AccountId,
     shortname,
     orgName,
     entity,

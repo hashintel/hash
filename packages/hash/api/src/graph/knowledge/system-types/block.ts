@@ -1,10 +1,8 @@
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import {
-  Entity,
-  EntityId,
+  AccountId,
   extractOwnedByIdFromEntityId,
-  PropertyObject,
-} from "@hashintel/hash-subgraph";
+} from "@hashintel/hash-shared/types";
+import { Entity, EntityId, PropertyObject } from "@hashintel/hash-subgraph";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { SYSTEM_TYPES } from "../../system-types";
@@ -183,7 +181,7 @@ export const updateBlockDataEntity: ImpureGraphFunction<
     rightEntityId: newBlockDataEntity.metadata.editionId.baseId,
     ownedById: extractOwnedByIdFromEntityId(
       block.entity.metadata.editionId.baseId,
-    ) as OwnedById,
+    ),
     actorId,
   });
 };

@@ -1,5 +1,4 @@
-import { OwnedById } from "@hashintel/hash-shared/types";
-import { extractOwnedByIdFromEntityId } from "@hashintel/hash-subgraph";
+import { extractOwnedByIdFromEntityId } from "@hashintel/hash-shared/types";
 import { getLatestEntityById } from "../../../../graph/knowledge/primitive/entity";
 import { createComment } from "../../../../graph/knowledge/system-types/comment";
 import { MutationCreateCommentArgs, ResolverFn } from "../../../apiTypes.gen";
@@ -27,9 +26,7 @@ export const createCommentResolver: ResolverFn<
     { graphApi },
     {
       tokens,
-      ownedById: extractOwnedByIdFromEntityId(
-        parent.metadata.editionId.baseId,
-      ) as OwnedById,
+      ownedById: extractOwnedByIdFromEntityId(parent.metadata.editionId.baseId),
       parent,
       author: user,
       actorId: user.accountId,
