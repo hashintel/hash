@@ -82,7 +82,7 @@ $ terraform apply --var-file prod-usea1.tfvars --var-file prod.secrets.tfvars
 ..
 ```
 
-Note that it may be required to disable refreshing state for subsequent applies (because of the Postgres SSH tunnel. Data sources are defrred to the apply phase usually).
+Note that it may be required to disable refreshing state for subsequent applies (because of the Postgres SSH tunnel. Data sources are deferred to the apply phase usually).
 
 ```console
 $ terraform apply --var-file prod-usea1.tfvars --var-file prod.secrets.tfvars -refresh=false
