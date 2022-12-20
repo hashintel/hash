@@ -14,7 +14,7 @@ import { propertyGridIndexes } from "./constants";
 import { getTooltipsOfPropertyRow } from "./get-tooltips-of-property-row";
 import { PropertyRow } from "./types";
 import { isValueEmpty } from "../is-value-empty";
-import { ChangeExpectedTypeCell } from "./cells/expected-type-cell";
+import { ChangeTypeCell } from "./cells/change-type-cell";
 import { guessEditorTypeFromValue } from "./cells/value-cell/utils";
 import { editorSpecs } from "./cells/value-cell/array-editor/sortable-row";
 
@@ -29,7 +29,7 @@ export const useCreateGetCellContent = (
         | SummaryChipCell
         | ValueCell
         | ChipCell
-        | ChangeExpectedTypeCell
+        | ChangeTypeCell
         | BlankCell => {
         const row = rows[rowIndex];
 
@@ -118,8 +118,8 @@ export const useCreateGetCellContent = (
                 copyData: currentType,
                 cursor: "pointer",
                 data: {
-                  kind: "expected-type-cell",
-                  expectedType: editorSpecs[currentType].title,
+                  kind: "change-type-cell",
+                  currentType: editorSpecs[currentType].title,
                   propertyRow: row,
                   valueCellOfThisRow: valueCell,
                 },

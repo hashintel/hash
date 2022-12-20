@@ -18,14 +18,14 @@ import { propertyGridIndexes } from "../constants";
 import { drawChip } from "../../../../../../../../components/grid/utils/draw-chip";
 import { getYCenter } from "../../../../../../../../components/grid/utils";
 
-export interface ChangeExpectedTypeCellProps {
-  readonly kind: "expected-type-cell";
-  expectedType: string;
+export interface ChangeTypeCellProps {
+  readonly kind: "change-type-cell";
+  currentType: string;
   propertyRow: PropertyRow;
   valueCellOfThisRow: ValueCell;
 }
 
-export type ChangeExpectedTypeCell = CustomCell<ChangeExpectedTypeCellProps>;
+export type ChangeTypeCell = CustomCell<ChangeTypeCellProps>;
 
 const changeTextGap = 8;
 const iconGap = 4;
@@ -34,16 +34,16 @@ const chipPadding = 12;
 const changeText = "CHANGE";
 const changeTextFont = "700 11px Inter";
 
-export const createRenderChangeExpectedTypeCell = (
+export const createRenderChangeTypeCell = (
   gridRef: RefObject<DataEditorRef>,
-): CustomRenderer<ChangeExpectedTypeCell> => {
+): CustomRenderer<ChangeTypeCell> => {
   return {
     kind: GridCellKind.Custom,
-    isMatch: (cell: CustomCell): cell is ChangeExpectedTypeCell =>
-      (cell.data as any).kind === "expected-type-cell",
+    isMatch: (cell: CustomCell): cell is ChangeTypeCell =>
+      (cell.data as any).kind === "change-type-cell",
     draw: (args, cell) => {
       const { theme, rect, ctx, spriteManager } = args;
-      const { expectedType } = cell.data;
+      const { currentType } = cell.data;
       const yCenter = getYCenter(args);
 
       const chipLeft = rect.x + theme.cellHorizontalPadding;
@@ -54,7 +54,7 @@ export const createRenderChangeExpectedTypeCell = (
       const changeTextWidth = ctx.measureText(changeText).width;
 
       const drawTheLeftChip = () =>
-        drawChipWithIcon(args, expectedType, chipLeft, textColor, bgColor);
+        drawChipWithIcon(args, currentType, chipLeft, textColor, bgColor);
 
       const chipWidth = drawTheLeftChip();
 
