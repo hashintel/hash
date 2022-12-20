@@ -1,7 +1,10 @@
 use alloc::borrow::ToOwned;
 
-use deer::{error::DeserializerError, Context, Visitor};
-use error_stack::Result;
+use deer::{
+    error::{ArrayAccessError, DeserializerError},
+    Context, Deserialize, Visitor,
+};
+use error_stack::{Report, Result, ResultExt};
 
 use crate::token::Token;
 
@@ -24,7 +27,7 @@ pub struct Deserializer<'a, 'de> {
     tokens: &'de [Token],
 }
 
-impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a, 'de> {
+impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
     forward!(
         deserialize_null,
         deserialize_bool,
@@ -58,7 +61,7 @@ impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a, 'de> {
             Token::Bytes(value) => visitor.visit_bytes(value),
             Token::BorrowedBytes(value) => visitor.visit_borrowed_bytes(value),
             Token::BytesBuf(value) => visitor.visit_bytes_buffer(value.to_vec()),
-            Token::Array { .. } => {}
+            Token::Array { length } => visitor.visit_array(ArrayAccess::new(self, length)),
             Token::Object { .. } => {}
             _ => {
                 panic!("Deserializer did not expect {token}");
@@ -100,3 +103,140 @@ impl<'a, 'de> Deserializer<'a, 'de> {
         self.tokens.is_empty()
     }
 }
+
+#[derive(Debug)]
+struct DeserializerNone<'a> {
+    context: &'a Context,
+}
+
+impl<'de> deer::Deserializer<'de> for DeserializerNone<'_> {
+    forward!(
+        deserialize_null,
+        deserialize_bool,
+        deserialize_number,
+        deserialize_char,
+        deserialize_string,
+        deserialize_str,
+        deserialize_bytes,
+        deserialize_bytes_buffer,
+        deserialize_array,
+        deserialize_object
+    );
+
+    fn context(&self) -> &Context {
+        self.context
+    }
+
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_none().change_context(DeserializerError)
+    }
+}
+
+struct ArrayAccess<'a, 'b, 'de: 'a> {
+    deserializer: &'a mut Deserializer<'b, 'de>,
+
+    dirty: bool,
+    length: Option<usize>,
+    remaining: Option<usize>,
+}
+
+impl<'a, 'b, 'de> ArrayAccess<'a, 'b, 'de> {
+    pub fn new(deserializer: &'a mut Deserializer<'b, 'de>, length: Option<usize>) -> Self {
+        Self {
+            deserializer,
+            dirty: false,
+            length,
+            remaining: None,
+        }
+    }
+}
+
+impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
+    fn set_bounded(&mut self, length: usize) -> Result<(), ArrayAccessError> {
+        if self.dirty {
+            return Err(
+                Report::new(SetBoundedError::Dirty.into_error()).change_context(ArrayAccessError)
+            );
+        }
+
+        if self.remaining.is_some() {
+            return Err(
+                Report::new(SetBoundedError::CalledMultipleTimes.into_error())
+                    .change_context(ArrayAccessError),
+            );
+        }
+
+        self.remaining = Some(length);
+
+        Ok(())
+    }
+
+    fn next<T>(&mut self) -> Option<Result<T, ArrayAccessError>>
+    where
+        T: Deserialize<'de>,
+    {
+        self.dirty = true;
+
+        if matches!(self.deserializer.peek(), Token::ArrayEnd) {
+            // we have reached the ending, if `self.remaining` is set we use the `DeserializerNone`
+            // to deserialize any values that require `None`
+            if let Some(remaining) = &mut self.remaining {
+                if *remaining == 0 {
+                    return None;
+                }
+
+                *remaining = remaining.saturating_sub(1);
+
+                let value = T::deserialize(DeserializerNone {
+                    context: self.deserializer.context,
+                });
+
+                Some(value.change_context(ArrayAccessError))
+            } else {
+                None
+            }
+        } else {
+            let value = T::deserialize(self.deserializer);
+            Some(value.change_context(ArrayAccessError))
+        }
+    }
+
+    fn size_hint(&self) -> Option<usize> {
+        self.length
+    }
+
+    fn end(self) -> Result<(), ArrayAccessError> {
+        let mut result = Ok(());
+
+        // ensure that we consume the last token, if it is the wrong token error out
+        if !matches!(self.deserializer.peek(), Token::ArrayEnd) {
+            // TODO: error
+            result = Err(Report::new(ArrayAccessError));
+        }
+
+        self.deserializer.next();
+
+        if self.remaining.map_or(false, |remaining| remaining > 0) {
+            let error = Report::new(ArrayAccessError);
+            // TODO: error
+            match &mut result {
+                Err(result) => result.extend_one(error),
+                result => *result = Err(error),
+            }
+        }
+
+        result
+    }
+}
+
+struct ObjectAccess<'a, 'b, 'de: 'a> {
+    deserializer: &'a mut Deserializer<'b, 'de>,
+
+    length: Option<usize>,
+    remaining: Option<usize>,
+}
+
+impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {}
