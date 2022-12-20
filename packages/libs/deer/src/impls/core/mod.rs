@@ -6,7 +6,7 @@ mod non_zero;
 mod string;
 mod unit;
 
-// DONE: f32, f64, i*, u*, char, str, array, slice, array, str, Atomic*, NonZero, Unit
+// DONE: f32, f64, i*, u*, char, str, array, Atomic*, NonZero, Unit
 // core:
 // tuple, LazyCell, OnceCell, SyncUnsafeCell, Cel, Ref,
 // RefCell, RefMut, UnsafeCell, PhantomData, ManuallyDrop, Option, Result, Wrapping, Bound, Range,
