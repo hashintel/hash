@@ -17,6 +17,7 @@ module.exports = {
       "simple-import-sort/exports",
       "simple-import-sort/imports",
       "unicorn/filename-case",
+      "unicorn/prefer-node-protocol",
     ]),
   },
   ignorePatterns: [
