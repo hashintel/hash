@@ -1,4 +1,3 @@
-import { ApolloError } from "apollo-server-express";
 import { PropertyTypeWithMetadata, Subgraph } from "@hashintel/hash-subgraph";
 import { OwnedById } from "@hashintel/hash-shared/types";
 
@@ -32,9 +31,7 @@ export const createPropertyTypeResolver: ResolverFn<
       schema: propertyType,
       actorId: user.accountId,
     },
-  ).catch((err) => {
-    throw new ApolloError(err, "CREATION_ERROR");
-  });
+  );
 
   return createdPropertyType;
 };
