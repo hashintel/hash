@@ -23,7 +23,7 @@ export interface ChipCellProps {
 
 export type ChipCell = CustomCell<ChipCellProps>;
 
-const getChipColors = (color: ChipProps["color"]) => {
+export const getChipColors = (color: ChipProps["color"]) => {
   switch (color) {
     case "blue":
       return {

@@ -1,0 +1,116 @@
+import {
+  CustomCell,
+  CustomRenderer,
+  DataEditorRef,
+  GridCellKind,
+  Item,
+} from "@glideapps/glide-data-grid";
+
+import { RefObject } from "react";
+import produce from "immer";
+import { customColors } from "@hashintel/hash-design-system/src/theme/palette";
+import { drawCellFadeOutGradient } from "../../../../../../../../components/grid/utils/draw-cell-fade-out-gradient";
+import { drawChipWithIcon } from "../../../../../../../../components/grid/utils/draw-chip-with-icon";
+import { PropertyRow } from "../types";
+import { getChipColors } from "./chip-cell";
+import { ValueCell } from "./value-cell/types";
+import { propertyGridIndexes } from "../constants";
+import { drawChip } from "../../../../../../../../components/grid/utils/draw-chip";
+import { getYCenter } from "../../../../../../../../components/grid/utils";
+
+export interface ChangeExpectedTypeCellProps {
+  readonly kind: "expected-type-cell";
+  expectedType: string;
+  propertyRow: PropertyRow;
+  valueCellOfThisRow: ValueCell;
+}
+
+export type ChangeExpectedTypeCell = CustomCell<ChangeExpectedTypeCellProps>;
+
+const changeTextGap = 8;
+const iconGap = 4;
+const iconSize = 11;
+const chipPadding = 12;
+const changeText = "CHANGE";
+const changeTextFont = "700 11px Inter";
+
+export const createRenderChangeExpectedTypeCell = (
+  gridRef: RefObject<DataEditorRef>,
+): CustomRenderer<ChangeExpectedTypeCell> => {
+  return {
+    kind: GridCellKind.Custom,
+    isMatch: (cell: CustomCell): cell is ChangeExpectedTypeCell =>
+      (cell.data as any).kind === "expected-type-cell",
+    draw: (args, cell) => {
+      const { theme, rect, ctx, spriteManager } = args;
+      const { expectedType } = cell.data;
+      const yCenter = getYCenter(args);
+
+      const chipLeft = rect.x + theme.cellHorizontalPadding;
+
+      const { bgColor, textColor } = getChipColors("blue");
+
+      ctx.font = changeTextFont;
+      const changeTextWidth = ctx.measureText(changeText).width;
+
+      const drawTheLeftChip = () =>
+        drawChipWithIcon(args, expectedType, chipLeft, textColor, bgColor);
+
+      const chipWidth = drawTheLeftChip();
+
+      const changeTextLeft = chipLeft + chipWidth + changeTextGap;
+
+      const mergedChipWidth =
+        chipWidth +
+        changeTextGap +
+        changeTextWidth +
+        iconGap +
+        iconSize +
+        chipPadding;
+
+      drawChip(args, chipLeft, mergedChipWidth, customColors.gray[10]);
+
+      drawTheLeftChip();
+
+      ctx.font = changeTextFont;
+      ctx.fillStyle = theme.textBubble;
+      ctx.fillText(changeText, changeTextLeft, yCenter);
+
+      spriteManager.drawSprite(
+        "bpRightLeft",
+        "normal",
+        ctx,
+        changeTextLeft + changeTextWidth + iconGap,
+        yCenter - iconSize / 2,
+        iconSize,
+        { ...theme, fgIconHeader: theme.textBubble },
+      );
+
+      drawCellFadeOutGradient(args);
+    },
+    onClick: (args) => {
+      const { valueCellOfThisRow } = args.cell.data;
+
+      const [_, rowIndex] = (args as unknown as { location: Item }).location;
+
+      const valueCellColumnIndex = propertyGridIndexes.findIndex(
+        (val) => val === "value",
+      );
+
+      const newContent = produce(valueCellOfThisRow, (draft) => {
+        draft.data.propertyRow.value = null;
+      });
+
+      gridRef.current?.setOverlaySimple({
+        cell: [valueCellColumnIndex, rowIndex],
+        forceEditMode: false,
+        highlight: false,
+        target: gridRef.current.getBounds(valueCellColumnIndex, rowIndex)!,
+        initialValue: undefined,
+        content: newContent,
+      });
+
+      return undefined;
+    },
+  };
+};

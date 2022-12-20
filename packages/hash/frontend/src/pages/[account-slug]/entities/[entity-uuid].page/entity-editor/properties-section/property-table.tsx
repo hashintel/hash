@@ -11,6 +11,7 @@ import { renderChipCell } from "./property-table/cells/chip-cell";
 import { createRenderPropertyNameCell } from "./property-table/cells/property-name-cell";
 import { renderSummaryChipCell } from "./property-table/cells/summary-chip-cell";
 import { Grid } from "../../../../../../components/grid/grid";
+import { createRenderChangeExpectedTypeCell } from "./property-table/cells/expected-type-cell";
 
 interface PropertyTableProps {
   showSearch: boolean;
@@ -37,6 +38,7 @@ export const PropertyTable = ({
       renderChipCell,
       createRenderPropertyNameCell(togglePropertyExpand, propertyExpandStatus),
       renderSummaryChipCell,
+      createRenderChangeExpectedTypeCell(tableRef),
     ],
     [togglePropertyExpand, propertyExpandStatus],
   );
