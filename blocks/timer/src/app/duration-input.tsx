@@ -1,14 +1,15 @@
 import {
   ChangeEventHandler,
   FocusEventHandler,
+  FunctionComponent,
   KeyboardEventHandler,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  FunctionComponent,
 } from "react";
+
 import { clamp } from "./clamp";
 
 type DurationInputProps = {

@@ -1,24 +1,24 @@
 import {
+  AggregateOperationInput,
+  FilterOperatorRequiringValue,
+  FilterOperatorType,
+  FilterOperatorWithoutValue,
+  MultiFilter,
+  MultiFilterOperatorType,
+} from "@blockprotocol/graph";
+import { debounce } from "lodash";
+import {
   FunctionComponent,
   useCallback,
   useMemo,
   useRef,
   useState,
 } from "react";
+import { unstable_batchedUpdates } from "react-dom";
+import { ColumnInstance } from "react-table";
 import { tw } from "twind";
 import { v4 as uuid } from "uuid";
-import { ColumnInstance } from "react-table";
 
-import {
-  MultiFilter,
-  FilterOperatorWithoutValue,
-  FilterOperatorType,
-  MultiFilterOperatorType,
-  FilterOperatorRequiringValue,
-  AggregateOperationInput,
-} from "@blockprotocol/graph";
-import { unstable_batchedUpdates } from "react-dom";
-import { debounce } from "lodash";
 import { AddIcon } from "./icons";
 
 const MENU_WIDTH = 540;

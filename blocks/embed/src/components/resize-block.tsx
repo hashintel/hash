@@ -1,15 +1,16 @@
+import { throttle } from "lodash";
 import {
   FunctionComponent,
+  MouseEvent,
   ReactNode,
   useCallback,
   useLayoutEffect,
   useMemo,
   useRef,
-  MouseEvent,
 } from "react";
 import { tw } from "twind";
-import { throttle } from "lodash";
-import { MIN_WIDTH, MIN_HEIGHT } from "../constants";
+
+import { MIN_HEIGHT, MIN_WIDTH } from "../constants";
 import { CornerResize } from "../svgs/corner-resize";
 import { isInRange, toCSSObject, toCSSText } from "../utils";
 

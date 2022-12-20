@@ -1,5 +1,5 @@
-import { FunctionComponent, ReactNode } from "react";
 import { Popover, Transition } from "@headlessui/react";
+import { FunctionComponent, ReactNode } from "react";
 import { tw } from "twind";
 
 type MenuProps = {

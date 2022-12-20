@@ -1,19 +1,20 @@
 import { Entity, EntityType, GraphBlockHandler } from "@blockprotocol/graph/.";
+import { Button } from "@hashintel/hash-design-system";
 import {
-  Dialog,
-  DialogTitle,
-  DialogActions,
-  FormControl,
-  FormGroup,
-  FormControlLabel,
   Checkbox,
-  formControlLabelClasses,
+  Dialog,
+  DialogActions,
+  DialogTitle,
   experimental_sx as sx,
+  FormControl,
+  FormControlLabel,
+  formControlLabelClasses,
+  FormGroup,
   styled,
 } from "@mui/material";
-import { Button } from "@hashintel/hash-design-system";
 import { useState } from "react";
 import { v4 as uuid } from "uuid";
+
 import { Item } from "../shuffle";
 import { getEntityLabel } from "../utils";
 

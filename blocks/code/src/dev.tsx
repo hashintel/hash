@@ -2,8 +2,8 @@
  * This is the entry point for developing and debugging.
  * This file is not bundled with the library during the build process.
  */
-import { createRoot } from "react-dom/client";
 import { MockBlockDock } from "mock-block-dock";
+import { createRoot } from "react-dom/client";
 
 import packageJSON from "../package.json";
 import Component from "./index";

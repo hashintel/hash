@@ -1,11 +1,11 @@
-import { CSSProperties, useMemo, useRef } from "react";
+import "./index.css";
+
 import { BlockComponent } from "@blockprotocol/graph/react";
 import DOMPurify from "dompurify";
+import { CSSProperties, useMemo, useRef } from "react";
 
-import { MailIcon } from "./icons/mail-icon";
 import { LinkIcon } from "./icons/link-icon";
-
-import "./index.css";
+import { MailIcon } from "./icons/mail-icon";
 
 type BlockEntityProperties = {
   avatar?: string;
