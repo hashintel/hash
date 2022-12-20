@@ -25,4 +25,4 @@ std = ['serde/std', 'error-stack/std']
 arbitrary-precision = []
 
 [workspace]
-members = ['.', 'macros', 'json']
+members = ['.', 'macros', 'json', 'desert']
