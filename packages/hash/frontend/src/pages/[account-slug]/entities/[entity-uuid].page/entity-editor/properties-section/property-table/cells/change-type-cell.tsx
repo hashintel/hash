@@ -101,6 +101,10 @@ export const createRenderChangeTypeCell = (
         draft.data.propertyRow.value = null;
       });
 
+      /**
+       * by using `setOverlaySimple`, we can open grid's editor overlay on any cell with any content
+       * here, we use this flexibility to open value cell with empty value, so it shows type picker
+       */
       gridRef.current?.setOverlaySimple({
         cell: [valueCellColumnIndex, rowIndex],
         forceEditMode: false,
