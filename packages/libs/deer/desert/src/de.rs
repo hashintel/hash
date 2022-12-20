@@ -1,4 +1,5 @@
 use alloc::borrow::ToOwned;
+use core::ops::Range;
 
 use deer::{
     error::{ArrayAccessError, DeserializerError, ObjectAccessError},
@@ -25,6 +26,16 @@ macro_rules! forward {
 pub struct Deserializer<'a, 'de> {
     context: &'a Context,
     tokens: &'de [Token],
+}
+
+impl<'a, 'de> Deserializer<'a, 'de> {
+    pub(crate) fn erase(&mut self, range: Range<usize>) {
+        for index in range {
+            if let Some(token) = self.tokens.get_mut(index) {
+                *token = Token::Trivia
+            }
+        }
+    }
 }
 
 impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
@@ -76,8 +87,21 @@ impl<'a, 'de> Deserializer<'a, 'de> {
         Self { tokens, context }
     }
 
+    fn peek_n(&self, n: usize) -> Option<Token> {
+        self.tokens.get(n).copied()
+    }
+
     fn peek_maybe(&self) -> Option<Token> {
-        self.tokens.first().copied()
+        let mut n = 0;
+        let mut token = self.peek_n(n);
+
+        while matches!(token, Some(Token::Trivia)) {
+            // skip all trivia
+            n += 1;
+            token = self.peek_n(n);
+        }
+
+        token
     }
 
     fn peek(&self) -> Token {
@@ -87,6 +111,11 @@ impl<'a, 'de> Deserializer<'a, 'de> {
     fn next_maybe(&mut self) -> Option<Token> {
         let (next, tokens) = self.tokens.split_first()?;
         self.tokens = tokens;
+
+        // avoid and skip all trivia
+        if matches!(next, Token::Trivia) {
+            return self.next_maybe();
+        }
 
         Some(*next)
     }
@@ -249,18 +278,113 @@ impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
             remaining: None,
         }
     }
+
+    fn scan(&self, key: &str) -> Option<usize> {
+        let mut objects: usize = 0;
+        let mut arrays: usize = 0;
+        let mut n = 0;
+
+        #[derive(Copy, Clone, Eq, PartialEq)]
+        enum State {
+            Key,
+            Value,
+        }
+
+        impl State {
+            fn flip(&mut self) {
+                match *self {
+                    State::Key => *self = State::Value,
+                    State::Value => *self = State::Key,
+                }
+            }
+        }
+
+        let mut state = State::Key;
+
+        loop {
+            let next = self.deserializer.peek_n(n)?;
+
+            match next {
+                Token::Array { .. } => arrays += 1,
+                Token::ArrayEnd => arrays -= 1,
+                Token::Object { .. } => objects += 1,
+                Token::ObjectEnd if objects == 0 => {
+                    // this is for the outer layer (that's us), therefore we can abort our linear
+                    // search
+                    return None;
+                }
+                Token::ObjectEnd => objects -= 1,
+                Token::Str(value) | Token::BorrowedStr(value) | Token::String(value)
+                    if objects == 0 && arrays == 0 && value == key && state == State::Key =>
+                {
+                    // we found an element that matches the element value that is next in line
+                    return Some(n);
+                }
+                _ => {}
+            }
+
+            if arrays == 0 && objects == 0 {
+                // we're dependent on the fact if something is a key or value, if we're not nested
+                // then we can switch the state.
+                state.flip();
+            }
+
+            n += 1;
+        }
+    }
 }
 
+// TODO: for value we need a scan for some sorts, and then need to replace/remove the elements from
+//  the stream
 impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
-    fn set_bounded(&mut self, length: usize) -> Result<(), ObjectAccessError> {
-        todo!()
+    fn set_bounded(&mut self, length: usize) -> Result<(), ArrayAccessError> {
+        if self.dirty {
+            return Err(
+                Report::new(SetBoundedError::Dirty.into_error()).change_context(ArrayAccessError)
+            );
+        }
+
+        if self.remaining.is_some() {
+            return Err(
+                Report::new(SetBoundedError::CalledMultipleTimes.into_error())
+                    .change_context(ArrayAccessError),
+            );
+        }
+
+        self.remaining = Some(length);
+
+        Ok(())
     }
 
     fn value<T>(&mut self, key: &str) -> Result<T, ObjectAccessError>
     where
         T: Deserialize<'de>,
     {
-        todo!()
+        // TODO: we need to look bounded stuffs
+        match self.scan(key) {
+            Some(offset) => {
+                // now we need to figure out which values are used, we can do this through offset
+                // calculations
+                let remaining = self.deserializer.remaining() - offset;
+
+                let mut deserializer = Deserializer {
+                    tokens: &self.deserializer.tokens[offset + 1..],
+                    context: self.deserializer.context,
+                };
+
+                let value = T::deserialize(&mut deserializer);
+
+                let erase = remaining - deserializer.remaining();
+
+                self.deserializer.erase(offset..offset + erase);
+
+                value
+            }
+            None => T::deserialize(DeserializerNone {
+                context: self.deserializer.context,
+            }),
+        }
+        .change_context(ObjectAccessError)
     }
 
     fn next<K, V>(&mut self) -> Option<Result<(K, V), ObjectAccessError>>
