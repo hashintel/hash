@@ -1,4 +1,5 @@
 import "./load-test-env";
+
 import { AwsSesEmailTransporter } from "@hashintel/hash-api/src/email/transporters";
 import { getAwsRegion } from "@hashintel/hash-api/src/lib/aws-config";
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";

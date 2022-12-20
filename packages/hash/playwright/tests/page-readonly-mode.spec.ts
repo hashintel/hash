@@ -1,7 +1,8 @@
 import { sleep } from "@hashintel/hash-shared/sleep";
-import { test, expect } from "./shared/runtime";
+
 import { loginUsingUi } from "./shared/login-using-ui";
 import { resetDb } from "./shared/reset-db";
+import { expect, test } from "./shared/runtime";
 
 const placeholderSelector =
   "text=Type / to browse blocks, or @ to browse entities";

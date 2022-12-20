@@ -1,12 +1,12 @@
-import { Subgraph } from "../../types/subgraph";
+import { mustBeDefined } from "../../shared/invariant";
+import { Entity } from "../../types/element";
 import {
   EntityEditionId,
   EntityId,
   isEntityEditionId,
 } from "../../types/identifier";
+import { Subgraph } from "../../types/subgraph";
 import { isEntityVertex } from "../../types/vertex";
-import { Entity } from "../../types/element";
-import { mustBeDefined } from "../../shared/invariant";
 
 /**
  * Returns all `Entity`s within the vertices of the subgraph

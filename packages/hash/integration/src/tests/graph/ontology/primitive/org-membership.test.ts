@@ -1,19 +1,20 @@
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
+import { Org } from "@hashintel/hash-api/src/graph/knowledge/system-types/org";
 import {
   createOrgMembership,
   getOrgMembershipOrg,
   getOrgMembershipUser,
   OrgMembership,
 } from "@hashintel/hash-api/src/graph/knowledge/system-types/org-membership";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
-import { Org } from "@hashintel/hash-api/src/graph/knowledge/system-types/org";
+import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
+
 import { createTestOrg, createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
