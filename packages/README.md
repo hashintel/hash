@@ -1,6 +1,6 @@
-[github_banner]: https://hash.dev/?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[github_banner]: https://hash.dev/?utm_medium=organic&utm_source=github_readme_hash-repo_libs
 [github_star]: https://github.com/hashintel/hash/tree/main/libs#
-[discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_libs
 
 [![github_banner](https://user-images.githubusercontent.com/6226576/208704188-32224e72-a5d3-4ee6-a1d1-20c99e8a8ff6.png)][github_banner]
 
