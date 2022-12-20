@@ -1,6 +1,8 @@
-# HASH
+[discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_root
 
-<a href="https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_root"><img src="https://img.shields.io/discord/840573247803097118" alt="Join HASH on Discord" /></a>
+[![discord](https://img.shields.io/discord/840573247803097118)][discord]
+
+# HASH
 
 ## What's in this repo?
 
