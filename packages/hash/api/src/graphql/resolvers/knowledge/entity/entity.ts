@@ -1,9 +1,5 @@
 import { Filter } from "@hashintel/hash-graph-client";
-import {
-  ApolloError,
-  ForbiddenError,
-  UserInputError,
-} from "apollo-server-express";
+import { ForbiddenError, UserInputError } from "apollo-server-express";
 import {
   Entity,
   isEntityId,
@@ -35,7 +31,6 @@ import {
   getLatestEntityById,
   updateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
-import { GraphApiError } from "../../../../graph";
 
 /**
  * @todo - Remove this when the Subgraph is appropriately queryable for a timestamp
@@ -170,26 +165,19 @@ export const getAllLatestEntitiesResolver: ResolverFn<
     });
   }
 
-  const { data: entitySubgraph } = await graphApi
-    .getEntitiesByQuery({
-      filter,
-      graphResolveDepths: {
-        inheritsFrom: { outgoing: 0 },
-        constrainsValuesOn,
-        constrainsPropertiesOn,
-        constrainsLinksOn,
-        constrainsLinkDestinationsOn,
-        isOfType,
-        hasLeftEntity,
-        hasRightEntity,
-      },
-    })
-    .catch(({ payload }: GraphApiError) => {
-      throw new ApolloError(
-        `Unable to retrieve all latest entities. ${payload}`,
-        "GET_ALL_ERROR",
-      );
-    });
+  const { data: entitySubgraph } = await graphApi.getEntitiesByQuery({
+    filter,
+    graphResolveDepths: {
+      inheritsFrom: { outgoing: 0 },
+      constrainsValuesOn,
+      constrainsPropertiesOn,
+      constrainsLinksOn,
+      constrainsLinkDestinationsOn,
+      isOfType,
+      hasLeftEntity,
+      hasRightEntity,
+    },
+  });
 
   removeNonLatestEntities(entitySubgraph as Subgraph);
   return entitySubgraph as Subgraph;
@@ -236,26 +224,19 @@ export const getEntityResolver: ResolverFn<
     ],
   };
 
-  const { data: entitySubgraph } = await graphApi
-    .getEntitiesByQuery({
-      filter,
-      graphResolveDepths: {
-        inheritsFrom: { outgoing: 0 },
-        constrainsValuesOn,
-        constrainsPropertiesOn,
-        constrainsLinksOn,
-        constrainsLinkDestinationsOn,
-        isOfType,
-        hasLeftEntity,
-        hasRightEntity,
-      },
-    })
-    .catch(({ payload }: GraphApiError) => {
-      throw new ApolloError(
-        `Unable to retrieve entity. ${payload}`,
-        "GET_ERROR",
-      );
-    });
+  const { data: entitySubgraph } = await graphApi.getEntitiesByQuery({
+    filter,
+    graphResolveDepths: {
+      inheritsFrom: { outgoing: 0 },
+      constrainsValuesOn,
+      constrainsPropertiesOn,
+      constrainsLinksOn,
+      constrainsLinkDestinationsOn,
+      isOfType,
+      hasLeftEntity,
+      hasRightEntity,
+    },
+  });
 
   removeNonLatestEntities(entitySubgraph as Subgraph);
   return entitySubgraph as Subgraph;

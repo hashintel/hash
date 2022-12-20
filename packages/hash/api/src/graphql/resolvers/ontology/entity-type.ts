@@ -31,14 +31,7 @@ export const createEntityTypeResolver: ResolverFn<
       schema: entityType,
       actorId: user.accountId,
     },
-  ).catch(({ status, payload }: GraphApiError) => {
-    const msg =
-      status === 409
-        ? `entity type with the same URI already exists.`
-        : `Couldn't create entity type: ${payload}.`;
-
-    throw new ApolloError(msg, "CREATION_ERROR");
-  });
+  );
 
   return createdEntityType;
 };
