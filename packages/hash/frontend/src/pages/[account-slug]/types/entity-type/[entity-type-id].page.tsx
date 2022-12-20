@@ -9,7 +9,7 @@ import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
-import { Buffer } from "buffer/";
+import { Buffer } from "node:buffer/";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useMemo } from "react";

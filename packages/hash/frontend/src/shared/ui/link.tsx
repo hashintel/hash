@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { UrlObject } from "url";
+import { UrlObject } from "node:url";
 import { useRouter } from "next/router";
 // eslint-disable-next-line no-restricted-imports
 import NextLink, { LinkProps as NextLinkProps } from "next/link";

@@ -12,7 +12,7 @@ import {
   Theme,
   Typography,
 } from "@mui/material";
-import { Buffer } from "buffer/";
+import { Buffer } from "node:buffer/";
 import { useRouter } from "next/router";
 import { ReactNode, useContext } from "react";
 import { useForm } from "react-hook-form";

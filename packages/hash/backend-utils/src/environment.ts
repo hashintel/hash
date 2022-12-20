@@ -1,6 +1,6 @@
 import { config } from "dotenv-flow";
 
-import path from "path";
+import path from "node:path";
 import waitOn from "wait-on";
 
 export const monorepoRootDir = path.resolve(__dirname, "../../../..");
