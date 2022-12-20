@@ -10,7 +10,8 @@ import { useBlockProtocolCreateEntity } from "../../../../../../../../../compone
 import { generateEntityLabel } from "../../../../../../../../../lib/entities";
 import { WorkspaceContext } from "../../../../../../../../shared/workspace-context";
 import { useEntityEditor } from "../../../../entity-editor-context";
-import { AddAnotherButton } from "../../../../properties-section/property-table/cells/value-cell/value-cell-editor/array-editor/add-another-button";
+import { AddAnotherButton } from "../../../../properties-section/property-table/cells/value-cell/array-editor/add-another-button";
+import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
 import { LinkedWithCell } from "../linked-with-cell";
 import { sortLinkAndTargetEntities } from "../sort-link-and-target-entities";
 import { EntitySelector } from "./entity-selector";
@@ -108,15 +109,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
   );
 
   return (
-    <Box
-      sx={(theme) => ({
-        border: "1px solid",
-        borderColor: "gray.30",
-        borderRadius: theme.borderRadii.lg,
-        background: "white",
-        overflow: "hidden",
-      })}
-    >
+    <GridEditorWrapper>
       <Box sx={{ maxHeight: 300, overflowY: "auto" }}>
         {sortedLinkAndTargetEntities.map(({ rightEntity, linkEntity }) => {
           const linkEntityId = linkEntity.metadata.editionId.baseId;
@@ -170,6 +163,6 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
             }}
           />
         ))}
-    </Box>
+    </GridEditorWrapper>
   );
 };
