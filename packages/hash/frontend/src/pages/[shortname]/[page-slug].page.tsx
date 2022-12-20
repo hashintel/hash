@@ -77,18 +77,18 @@ type PageProps = {
 };
 
 type PageParsedUrlQuery = {
-  "account-slug": string;
+  shortname: string;
   "page-slug": string;
 };
 
 export const isPageParsedUrlQuery = (
   queryParams: NextParsedUrlQuery,
 ): queryParams is PageParsedUrlQuery =>
-  typeof queryParams["account-slug"] === "string" &&
+  typeof queryParams.shortname === "string" &&
   typeof queryParams["page-slug"] === "string";
 
 export const parsePageUrlQueryParams = (params: PageParsedUrlQuery) => {
-  const workspaceShortname = params["account-slug"].slice(1);
+  const workspaceShortname = params.shortname.slice(1);
 
   const pageEntityUuid = params["page-slug"] as EntityUuid;
 

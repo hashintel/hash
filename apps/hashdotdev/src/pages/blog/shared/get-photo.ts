@@ -1,4 +1,4 @@
-import { promisify } from "util";
+import { promisify } from "node:util";
 import { imageSize as legacyImageSize } from "image-size";
 import { BlogPostPagePhoto } from "../../../components/BlogPost";
 

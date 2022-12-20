@@ -12,6 +12,7 @@ import {
   Theme,
   Typography,
 } from "@mui/material";
+// eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { ReactNode, useContext } from "react";
@@ -26,8 +27,8 @@ import {
 import { Link } from "../../../shared/ui/link";
 import { TopContextBar } from "../../shared/top-context-bar";
 import { WorkspaceContext } from "../../shared/workspace-context";
-import { HashOntologyIcon } from "../../[account-slug]/shared/hash-ontology-icon";
-import { OntologyChip } from "../../[account-slug]/shared/ontology-chip";
+import { HashOntologyIcon } from "../../[shortname]/shared/hash-ontology-icon";
+import { OntologyChip } from "../../[shortname]/shared/ontology-chip";
 
 const FormHelperLabel = ({
   children,

@@ -250,7 +250,6 @@ module.exports = {
     "simple-import-sort/exports": "error",
     "simple-import-sort/imports": "error",
     "unicorn/filename-case": "error",
-    "unicorn/prefer-node-protocol": "error",
     "unicorn/import-style": [
       "error",
       {
@@ -260,7 +259,8 @@ module.exports = {
         },
       },
     ],
-    "unicorn/no-array-for-each": ["error"],
+    "unicorn/no-array-for-each": "error",
+    "unicorn/prefer-node-protocol": "error",
   },
   settings: {
     "import/resolver": {

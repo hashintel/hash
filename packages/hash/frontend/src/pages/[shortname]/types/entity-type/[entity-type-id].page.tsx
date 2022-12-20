@@ -9,6 +9,7 @@ import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
+// eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
 import { Buffer } from "buffer/";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -108,7 +109,7 @@ const Page: NextPageWithLayout = () => {
 
   const entityTypeId = router.query["entity-type-id"] as string;
   const baseEntityTypeUri = !isDraft
-    ? getEntityTypeBaseUri(entityTypeId, router.query["account-slug"] as string)
+    ? getEntityTypeBaseUri(entityTypeId, router.query.shortname as string)
     : null;
 
   const entityTypeEntitiesValue =
@@ -296,7 +297,7 @@ const Page: NextPageWithLayout = () => {
                                 fontWeight="bold"
                                 color={(theme) => theme.palette.blue[70]}
                               >
-                                {router.query["account-slug"]}
+                                {router.query.shortname}
                               </Typography>
                               <Typography
                                 component="span"
