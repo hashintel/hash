@@ -1,3 +1,11 @@
+[github_banner]: https://hash.dev/?utm_medium=organic&utm_source=github_readme_hash-repo_libs
+[github_star]: https://github.com/hashintel/hash/tree/main/libs#
+[discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_libs
+
+[![github_banner](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/3e781f5b-193c-43c0-a48e-b19f4f68dc00/github)][github_banner]
+
+[![discord](https://img.shields.io/discord/840573247803097118)][discord] [![github_star](https://img.shields.io/github/stars/hashintel/hash?label=Star%20on%20GitHub&style=social)][github_star]
+
 # Packages
 
 ## `hash`

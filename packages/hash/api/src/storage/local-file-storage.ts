@@ -1,7 +1,7 @@
-import path from "path";
+import path from "node:path";
 import multer, { Multer, StorageEngine } from "multer";
-import fs from "fs";
-import { URL } from "url";
+import fs from "node:fs";
+import { URL } from "node:url";
 import express, { Express } from "express";
 import appRoot from "app-root-path";
 import { StorageType } from "../graphql/apiTypes.gen";

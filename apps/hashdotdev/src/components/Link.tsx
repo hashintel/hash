@@ -8,7 +8,7 @@ import clsx from "clsx";
 import NextLink, { LinkProps as NextLinkProps } from "next/link";
 import { useRouter } from "next/router";
 import { forwardRef, isValidElement } from "react";
-import { UrlObject } from "url";
+import { UrlObject } from "node:url";
 import { FRONTEND_URL } from "../config";
 import { Button } from "./Button";
 

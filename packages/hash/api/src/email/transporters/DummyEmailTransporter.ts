@@ -1,6 +1,6 @@
 import { convert } from "html-to-text";
-import path from "path";
-import fs from "fs/promises";
+import path from "node:path";
+import fs from "node:fs/promises";
 import { dump } from "js-yaml";
 import dedent from "dedent";
 import clipboardy from "clipboardy";
