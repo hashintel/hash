@@ -2,9 +2,9 @@
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
-import * as http from "http";
+import * as http from "node:http";
 import { StatsD } from "hot-shots";
-import { promisify } from "util";
+import { promisify } from "node:util";
 
 import { AsyncRedisClient } from "@hashintel/hash-backend-utils/redis";
 import { RedisQueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/redis";

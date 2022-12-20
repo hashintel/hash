@@ -4,7 +4,7 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 import dedent from "dedent";
-import { URLSearchParams } from "url";
+import { URLSearchParams } from "node:url";
 import { EmailTransporter } from "./transporters";
 
 const { FRONTEND_URL } = require("../lib/config");

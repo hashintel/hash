@@ -1,6 +1,6 @@
-import path from "path";
+import path from "node:path";
 import { loadAll } from "js-yaml";
-import fs from "fs/promises";
+import fs from "node:fs/promises";
 import { sleep } from "@hashintel/hash-shared/sleep";
 import { monorepoRootDir } from "@hashintel/hash-backend-utils/environment";
 
