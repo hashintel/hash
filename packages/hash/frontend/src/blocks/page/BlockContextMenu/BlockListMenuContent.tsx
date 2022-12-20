@@ -90,7 +90,7 @@ export const BlockListMenuContent: FunctionComponent<
               src={option.variant.icon ?? "/format-font.svg"}
             />
           </ListItemIcon>
-          <ListItemText primary={option?.variant.name} />
+          <ListItemText primary={option.variant.name} />
         </MenuItem>
       ))}
     </MenuList>

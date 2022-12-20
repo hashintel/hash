@@ -11,8 +11,7 @@ import {
   addEntityStoreAction,
   entityStorePluginState,
 } from "@hashintel/hash-shared/entityStorePlugin";
-import { EntityId } from "@hashintel/hash-subgraph";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
+import { AccountId, OwnedById, EntityId } from "@hashintel/hash-shared/types";
 
 // import applyDevTools from "prosemirror-dev-tools";
 import { Plugin } from "prosemirror-state";

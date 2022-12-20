@@ -19,7 +19,6 @@ export const scalars = {
     "@hashintel/hash-shared/graphql/types#PropertyTypeWithoutId",
 
   Entity: "@hashintel/hash-subgraph#Entity",
-  EntityId: "@hashintel/hash-subgraph#EntityId",
   EntityEditionId: "@hashintel/hash-subgraph#EntityEditionId",
   EntityMetadata: "@hashintel/hash-subgraph#EntityMetadata",
   PropertyObject: "@hashintel/hash-subgraph#PropertyObject",
@@ -32,6 +31,7 @@ export const scalars = {
   OwnedById: "@hashintel/hash-shared/types#OwnedById",
   UpdatedById: "@hashintel/hash-shared/types#UpdatedById",
   AccountId: "@hashintel/hash-shared/types#AccountId",
+  EntityId: "@hashintel/hash-shared/types#EntityId",
 
   EntityUuid: "@hashintel/hash-shared/types#EntityUuid",
   Uuid: "@hashintel/hash-shared/types#Uuid",

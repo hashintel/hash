@@ -45,13 +45,14 @@ export const BlockSuggester: FunctionComponent<BlockSuggesterProps> = ({
               width: "4rem",
             }}
           >
-            {option?.variant.icon && (
+            {option.variant.icon && (
               <img
                 style={{
                   height: "1.5rem",
                   width: "1.5rem",
                 }}
                 alt={option.variant.name}
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
                 src={option.variant.icon ?? "/format-font.svg"}
               />
             )}
@@ -71,7 +72,7 @@ export const BlockSuggester: FunctionComponent<BlockSuggesterProps> = ({
                 lineHeight: "1.25rem",
               }}
             >
-              {option?.variant.name}
+              {option.variant.name}
             </p>
             <p
               style={{
@@ -81,7 +82,7 @@ export const BlockSuggester: FunctionComponent<BlockSuggesterProps> = ({
                 opacity: 0.6,
               }}
             >
-              {option?.variant.description}
+              {option.variant.description}
             </p>
           </div>
         </>

@@ -19,8 +19,8 @@ export const getArraySchema = (
         items: {
           oneOf: getArraySchema(data.itemIds, flattenedExpectedValues),
         },
-        minItems: data?.minItems,
-        maxItems: data?.maxItems,
+        minItems: data.minItems,
+        maxItems: data.maxItems,
       };
     }
 

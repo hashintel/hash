@@ -63,7 +63,7 @@ export const useRows = () => {
       });
 
       const expectedEntityTypeTitles = expectedEntityTypes.map((val) => {
-        return val?.schema.title;
+        return val.schema.title;
       });
 
       return {

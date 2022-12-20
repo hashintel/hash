@@ -54,7 +54,7 @@ export const useGridTooltip = (
       const top = bounds.y;
 
       setTooltipPos((prev) => {
-        if (prev?.left === left && prev?.top === top) {
+        if (prev?.left === left && prev.top === top) {
           return prev;
         }
 
@@ -68,7 +68,7 @@ export const useGridTooltip = (
     (colIndex, rowIndex) => {
       if (
         gridTooltip?.colIndex === colIndex &&
-        gridTooltip?.rowIndex === rowIndex
+        gridTooltip.rowIndex === rowIndex
       ) {
         popupState.close();
       }

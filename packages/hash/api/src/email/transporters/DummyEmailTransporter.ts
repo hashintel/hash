@@ -181,7 +181,7 @@ export class DummyEmailTransporter implements EmailTransporter {
       return;
     }
 
-    const maxAllowedRowWidth = process.stdout.columns ?? 40;
+    const maxAllowedRowWidth = process.stdout.columns || 40;
     let maxRowWidth = 10;
     for (const rowToDisplay of rowsToDisplay) {
       const rowWidth = rowToDisplay.length;

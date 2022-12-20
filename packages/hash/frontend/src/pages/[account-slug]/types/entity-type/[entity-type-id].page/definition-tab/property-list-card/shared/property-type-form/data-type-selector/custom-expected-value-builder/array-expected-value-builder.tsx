@@ -82,7 +82,7 @@ const ArrayExpectedValueChild: FunctionComponent<
     setShow(true);
   }, []);
 
-  if (!array?.data) {
+  if (!array.data) {
     return null;
   }
 
@@ -241,7 +241,7 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
           position: "relative",
         }}
       >
-        {itemIds?.map((itemId, pos) => (
+        {itemIds.map((itemId, pos) => (
           <ArrayExpectedValueChild
             key={itemId}
             id={itemId}
@@ -286,7 +286,7 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
                 const childId = uniqueId();
 
                 setValue(`flattenedCustomExpectedValueList`, {
-                  ...(flattenedExpectedValues ?? {}),
+                  ...flattenedExpectedValues,
                   [childId]: {
                     id: childId,
                     parentId: expectedValueId,

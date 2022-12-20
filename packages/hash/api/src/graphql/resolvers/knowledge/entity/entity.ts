@@ -11,7 +11,7 @@ import {
   splitEntityId,
   Subgraph,
 } from "@hashintel/hash-subgraph";
-import { EntityModel, LinkEntityModel } from "../../../../model";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import {
   QueryGetEntityArgs,
   MutationCreateEntityArgs,
@@ -20,10 +20,22 @@ import {
   QueryGetAllLatestEntitiesArgs,
   MutationArchiveEntityArgs,
 } from "../../../apiTypes.gen";
-import { mapEntityModelToGQL } from "../model-mapping";
+import { mapEntityToGQL } from "../graphql-mapping";
 import { LoggedInGraphQLContext } from "../../../context";
 import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
 import { getEntityTypeById } from "../../../../graph/ontology/primitive/entity-type";
+import {
+  createLinkEntity,
+  isEntityLinkEntity,
+  LinkEntity,
+  updateLinkEntity,
+} from "../../../../graph/knowledge/primitive/link-entity";
+import {
+  archiveEntity,
+  createEntityWithLinks,
+  getLatestEntityById,
+  updateEntity,
+} from "../../../../graph/knowledge/primitive/entity";
 
 /**
  * @todo - Remove this when the Subgraph is appropriately queryable for a timestamp
@@ -54,7 +66,7 @@ export const createEntityResolver: ResolverFn<
 > = async (
   _,
   { ownedById, properties, entityTypeId, linkedEntities, linkData },
-  { dataSources: { graphApi }, userModel },
+  { dataSources: { graphApi }, user },
 ) => {
   /**
    * @todo: prevent callers of this mutation from being able to create restricted
@@ -63,44 +75,55 @@ export const createEntityResolver: ResolverFn<
    * @see https://app.asana.com/0/1202805690238892/1203084714149803/f
    */
 
-  let entityModel: EntityModel | LinkEntityModel;
+  let entity: Entity | LinkEntity;
 
   if (linkData) {
     const { leftEntityId, leftToRightOrder, rightEntityId, rightToLeftOrder } =
       linkData;
 
-    const [leftEntityModel, rightEntityModel, linkEntityType] =
-      await Promise.all([
-        EntityModel.getLatest(graphApi, {
+    const [leftEntity, rightEntity, linkEntityType] = await Promise.all([
+      getLatestEntityById(
+        { graphApi },
+        {
           entityId: leftEntityId,
-        }),
-        EntityModel.getLatest(graphApi, {
+        },
+      ),
+      getLatestEntityById(
+        { graphApi },
+        {
           entityId: rightEntityId,
-        }),
-        getEntityTypeById({ graphApi }, { entityTypeId }),
-      ]);
+        },
+      ),
+      getEntityTypeById({ graphApi }, { entityTypeId }),
+    ]);
 
-    entityModel = await LinkEntityModel.createLinkEntity(graphApi, {
-      leftEntityModel,
-      leftToRightOrder: leftToRightOrder ?? undefined,
-      rightEntityModel,
-      rightToLeftOrder: rightToLeftOrder ?? undefined,
-      properties,
-      linkEntityType,
-      ownedById: ownedById ?? userModel.getEntityUuid(),
-      actorId: userModel.getEntityUuid(),
-    });
+    entity = await createLinkEntity(
+      { graphApi },
+      {
+        leftEntityId: leftEntity.metadata.editionId.baseId,
+        leftToRightOrder: leftToRightOrder ?? undefined,
+        rightEntityId: rightEntity.metadata.editionId.baseId,
+        rightToLeftOrder: rightToLeftOrder ?? undefined,
+        properties,
+        linkEntityType,
+        ownedById: ownedById ?? (user.accountId as OwnedById),
+        actorId: user.accountId,
+      },
+    );
   } else {
-    entityModel = await EntityModel.createEntityWithLinks(graphApi, {
-      ownedById: ownedById ?? userModel.getEntityUuid(),
-      entityTypeId,
-      properties,
-      linkedEntities: linkedEntities ?? undefined,
-      actorId: userModel.getEntityUuid(),
-    });
+    entity = await createEntityWithLinks(
+      { graphApi },
+      {
+        ownedById: ownedById ?? (user.accountId as OwnedById),
+        entityTypeId,
+        properties,
+        linkedEntities: linkedEntities ?? undefined,
+        actorId: user.accountId,
+      },
+    );
   }
 
-  return mapEntityModelToGQL(entityModel);
+  return mapEntityToGQL(entity);
 };
 
 export const getAllLatestEntitiesResolver: ResolverFn<
@@ -246,64 +269,72 @@ export const updateEntityResolver: ResolverFn<
 > = async (
   _,
   { entityId, updatedProperties, leftToRightOrder, rightToLeftOrder },
-  { dataSources: { graphApi }, userModel },
+  { dataSources: { graphApi }, user },
 ) => {
   // The user needs to be signed up if they aren't updating their own user entity
   if (
-    entityId !== userModel.getBaseId() &&
-    !userModel.isAccountSignupComplete()
+    entityId !== user.entity.metadata.editionId.baseId &&
+    !user.isAccountSignupComplete
   ) {
     throw new ForbiddenError(
       "You must complete the sign-up process to perform this action.",
     );
   }
 
-  const entityModel = await EntityModel.getLatest(graphApi, { entityId });
+  const entity = await getLatestEntityById({ graphApi }, { entityId });
 
   for (const beforeUpdateHook of beforeUpdateEntityHooks) {
-    if (beforeUpdateHook.entityTypeId === entityModel.entityType.schema.$id) {
+    if (beforeUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
       await beforeUpdateHook.callback({
         graphApi,
-        entityModel,
+        entity,
         updatedProperties,
       });
     }
   }
 
-  let updatedEntityModel: EntityModel;
+  let updatedEntity: Entity;
 
-  if (entityModel instanceof LinkEntityModel) {
-    updatedEntityModel = await entityModel.update(graphApi, {
-      properties: updatedProperties,
-      actorId: userModel.getEntityUuid(),
-      leftToRightOrder: leftToRightOrder ?? undefined,
-      rightToLeftOrder: rightToLeftOrder ?? undefined,
-    });
+  if (isEntityLinkEntity(entity)) {
+    updatedEntity = await updateLinkEntity(
+      { graphApi },
+      {
+        linkEntity: entity,
+        properties: updatedProperties,
+        actorId: user.accountId,
+        leftToRightOrder: leftToRightOrder ?? undefined,
+        rightToLeftOrder: rightToLeftOrder ?? undefined,
+      },
+    );
   } else {
     if (leftToRightOrder || rightToLeftOrder) {
       throw new UserInputError(
-        `Cannot update the left to right order or right to left order of entity with ID ${entityModel.getBaseId()} because it isn't a link.`,
+        `Cannot update the left to right order or right to left order of entity with ID ${entity.metadata.editionId.baseId} because it isn't a link.`,
       );
     }
 
-    updatedEntityModel = await entityModel.update(graphApi, {
-      properties: updatedProperties,
-      actorId: userModel.getEntityUuid(),
-    });
+    updatedEntity = await updateEntity(
+      { graphApi },
+      {
+        entity,
+        properties: updatedProperties,
+        actorId: user.accountId,
+      },
+    );
   }
 
-  return mapEntityModelToGQL(updatedEntityModel);
+  return mapEntityToGQL(updatedEntity);
 };
 
-export const archiveEntity: ResolverFn<
+export const archiveEntityResolver: ResolverFn<
   Promise<boolean>,
   {},
   LoggedInGraphQLContext,
   MutationArchiveEntityArgs
-> = async (_, { entityId }, { dataSources: { graphApi }, userModel }) => {
-  const entityModel = await EntityModel.getLatest(graphApi, { entityId });
+> = async (_, { entityId }, { dataSources: { graphApi }, user }) => {
+  const entity = await getLatestEntityById({ graphApi }, { entityId });
 
-  await entityModel.archive(graphApi, { actorId: userModel.getEntityUuid() });
+  await archiveEntity({ graphApi }, { entity, actorId: user.accountId });
 
   return true;
 };

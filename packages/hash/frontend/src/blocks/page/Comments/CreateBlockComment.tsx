@@ -3,7 +3,7 @@ import { Box } from "@mui/material";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { faComment } from "@fortawesome/free-regular-svg-icons";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
-import { EntityId } from "@hashintel/hash-subgraph";
+import { EntityId } from "@hashintel/hash-shared/types";
 import { CommentTextField } from "./CommentTextField";
 import styles from "./style.module.css";
 import { useCreateComment } from "../../../components/hooks/useCreateComment";
@@ -23,7 +23,7 @@ export const CreateBlockComment: FunctionComponent<CreateBlockCommentProps> = ({
   const [inputValue, setInputValue] = useState<TextToken[]>([]);
 
   const handleCommentSubmit = async () => {
-    if (!loading && blockEntityId && inputValue?.length) {
+    if (!loading && blockEntityId && inputValue.length) {
       await createComment(blockEntityId, inputValue);
       onClose?.();
     }
