@@ -26,7 +26,7 @@ export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
 
   const baseUri = getEntityTypeBaseUri(
     router.query["entity-type-id"] as string,
-    router.query["account-slug"] as string,
+    router.query.shortname as string,
   );
 
   const currentTab = useCurrentTab();

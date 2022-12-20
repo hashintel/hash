@@ -109,7 +109,7 @@ const Page: NextPageWithLayout = () => {
 
   const entityTypeId = router.query["entity-type-id"] as string;
   const baseEntityTypeUri = !isDraft
-    ? getEntityTypeBaseUri(entityTypeId, router.query["account-slug"] as string)
+    ? getEntityTypeBaseUri(entityTypeId, router.query.shortname as string)
     : null;
 
   const entityTypeEntitiesValue =
@@ -297,7 +297,7 @@ const Page: NextPageWithLayout = () => {
                                 fontWeight="bold"
                                 color={(theme) => theme.palette.blue[70]}
                               >
-                                {router.query["account-slug"]}
+                                {router.query.shortname}
                               </Typography>
                               <Typography
                                 component="span"

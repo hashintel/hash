@@ -27,8 +27,8 @@ import {
 import { Link } from "../../../shared/ui/link";
 import { TopContextBar } from "../../shared/top-context-bar";
 import { WorkspaceContext } from "../../shared/workspace-context";
-import { HashOntologyIcon } from "../../[account-slug]/shared/hash-ontology-icon";
-import { OntologyChip } from "../../[account-slug]/shared/ontology-chip";
+import { HashOntologyIcon } from "../../[shortname]/shared/hash-ontology-icon";
+import { OntologyChip } from "../../[shortname]/shared/ontology-chip";
 
 const FormHelperLabel = ({
   children,
