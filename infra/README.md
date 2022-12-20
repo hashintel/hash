@@ -2,7 +2,7 @@
 [github_star]: https://github.com/hashintel/hash/tree/main/infra#
 [discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_infra
 
-[![github_banner](https://user-images.githubusercontent.com/6226576/208707231-4dd2897e-5b6c-450d-890a-926d451bb06d.png)][github_banner]
+[![github_banner](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/776e4404-c5ca-4cfd-99c2-bd53654bf300/public)][github_banner]
 
 [![discord](https://img.shields.io/discord/840573247803097118)][discord] [![github_star](https://img.shields.io/github/stars/hashintel/hash?label=Star%20on%20GitHub&style=social)][github_star]
 
