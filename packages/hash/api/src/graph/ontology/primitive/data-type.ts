@@ -38,11 +38,13 @@ export const createDataType: ImpureGraphFunction<
     actorId: AccountId;
   },
   Promise<DataTypeWithMetadata>
-> = async ({ graphApi }, params) => {
+> = async (ctx, params) => {
   const { ownedById, actorId } = params;
-  const namespace = await getNamespaceOfAccountOwner(graphApi, {
+  const namespace = await getNamespaceOfAccountOwner(ctx, {
     ownerId: params.ownedById,
   });
+
+  const { graphApi } = ctx;
 
   const dataTypeUri = generateTypeId({
     namespace,

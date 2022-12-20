@@ -704,27 +704,6 @@ mod tests {
         };
 
         #[test]
-        fn for_latest_version() {
-            let mut compiler = SelectCompiler::<DataTypeWithMetadata>::with_asterisk();
-
-            let filter = Filter::for_latest_version();
-            compiler.add_filter(&filter);
-
-            test_compilation(
-                &compiler,
-                r#"
-                WITH "type_ids" AS (SELECT *, MAX("type_ids_0_0_0"."version") OVER (PARTITION BY "type_ids_0_0_0"."base_uri") AS "latest_version" FROM "type_ids" AS "type_ids_0_0_0")
-                SELECT *
-                FROM "data_types" AS "data_types_0_0_0"
-                INNER JOIN "type_ids" AS "type_ids_0_1_0"
-                  ON "type_ids_0_1_0"."version_id" = "data_types_0_0_0"."version_id"
-                WHERE "type_ids_0_1_0"."version" = "type_ids_0_1_0"."latest_version"
-                "#,
-                &[],
-            );
-        }
-
-        #[test]
         fn for_versioned_uri() {
             let uri = VersionedUri::new(
                 BaseUri::new(
@@ -781,25 +760,6 @@ mod tests {
         }
 
         #[test]
-        fn for_all_latest_entities() {
-            let mut compiler = SelectCompiler::<Entity>::with_asterisk();
-
-            let filter = Filter::for_all_latest_entities();
-            compiler.add_filter(&filter);
-
-            test_compilation(
-                &compiler,
-                r#"
-                SELECT *
-                FROM "entities" AS "entities_0_0_0"
-                WHERE "entities_0_0_0"."decision_time" @> now()
-                  AND "entities_0_0_0"."transaction_time" @> now()
-                "#,
-                &[],
-            );
-        }
-
-        #[test]
         fn for_entity_by_entity_id() {
             let entity_id = EntityId::new(
                 OwnedById::new(AccountId::new(Uuid::new_v4())),
@@ -824,57 +784,6 @@ mod tests {
                     &entity_id.owned_by_id().as_uuid(),
                     &entity_id.entity_uuid().as_uuid(),
                 ],
-            );
-        }
-
-        #[test]
-        fn for_latest_entity_by_entity_id() {
-            let entity_id = EntityId::new(
-                OwnedById::new(AccountId::new(Uuid::new_v4())),
-                EntityUuid::new(Uuid::new_v4()),
-            );
-
-            let mut compiler = SelectCompiler::<Entity>::with_asterisk();
-
-            let filter = Filter::for_latest_entity_by_entity_id(entity_id);
-            compiler.add_filter(&filter);
-
-            test_compilation(
-                &compiler,
-                r#"
-                SELECT *
-                FROM "entities" AS "entities_0_0_0"
-                WHERE "entities_0_0_0"."decision_time" @> now()
-                  AND ("entities_0_0_0"."owned_by_id" = $1)
-                  AND ("entities_0_0_0"."entity_uuid" = $2)
-                  AND ("entities_0_0_0"."transaction_time" @> now())
-                "#,
-                &[
-                    &entity_id.owned_by_id().as_uuid(),
-                    &entity_id.entity_uuid().as_uuid(),
-                ],
-            );
-        }
-
-        #[test]
-        fn for_latest_entity_by_entity_uuid() {
-            let entity_uuid = EntityUuid::new(Uuid::new_v4());
-
-            let mut compiler = SelectCompiler::<Entity>::with_asterisk();
-
-            let filter = Filter::for_latest_entity_by_entity_uuid(entity_uuid);
-            compiler.add_filter(&filter);
-
-            test_compilation(
-                &compiler,
-                r#"
-                SELECT *
-                FROM "entities" AS "entities_0_0_0"
-                WHERE "entities_0_0_0"."decision_time" @> now()
-                  AND ("entities_0_0_0"."entity_uuid" = $1)
-                  AND ("entities_0_0_0"."transaction_time" @> now())
-                "#,
-                &[&entity_uuid.as_uuid()],
             );
         }
 

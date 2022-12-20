@@ -31,6 +31,7 @@ export const useEntitiesTable = (
     }
 
     const propertyColumnsMap = new Map<string, SizedGridColumn>();
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
     if (propertyTypes) {
       for (const propertyType of propertyTypes) {
         const propertyTypeBaseUri = extractBaseUri(propertyType.$id);
@@ -73,10 +74,11 @@ export const useEntitiesTable = (
     ];
 
     const rows: TypeEntitiesRow[] =
-      entities?.map((entity) => {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
+      entities.map((entity) => {
         const entityLabel = generateEntityLabel(subgraph, entity);
 
-        const entityType = entityTypes?.find(
+        const entityType = entityTypes.find(
           (type) => type.$id === entity.metadata.entityTypeId,
         );
 

@@ -50,6 +50,7 @@ export const useCollabPositionReporter = (
       pageBlockId = entityId;
 
       void (async () => {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
         while (!pageHasChanged && pageBlockId === entityId) {
           try {
             await sendCollabPosition({

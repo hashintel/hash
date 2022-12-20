@@ -1,7 +1,7 @@
 import { ApolloError } from "apollo-server-express";
 import { AxiosError } from "axios";
 import { PropertyTypeWithMetadata, Subgraph } from "@hashintel/hash-subgraph";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
+import { OwnedById } from "@hashintel/hash-shared/types";
 
 import {
   MutationCreatePropertyTypeArgs,
@@ -21,16 +21,17 @@ export const createPropertyTypeResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationCreatePropertyTypeArgs
-> = async (_, params, { dataSources, userModel }) => {
+> = async (_, params, { dataSources, user }) => {
   const { graphApi } = dataSources;
   const { ownedById, propertyType } = params;
 
   const createdPropertyType = await createPropertyType(
     { graphApi },
     {
-      ownedById: (ownedById as OwnedById) ?? userModel.getEntityUuid(),
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
+      ownedById: (ownedById as OwnedById) ?? user.accountId,
       schema: propertyType,
-      actorId: userModel.getEntityUuid() as AccountId,
+      actorId: user.accountId,
     },
   ).catch((err) => {
     throw new ApolloError(err, "CREATION_ERROR");
@@ -128,7 +129,7 @@ export const updatePropertyTypeResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationUpdatePropertyTypeArgs
-> = async (_, params, { dataSources, userModel }) => {
+> = async (_, params, { dataSources, user }) => {
   const { graphApi } = dataSources;
   const { propertyTypeId, updatedPropertyType: updatedPropertyTypeSchema } =
     params;
@@ -138,7 +139,7 @@ export const updatePropertyTypeResolver: ResolverFn<
     {
       propertyTypeId,
       schema: updatedPropertyTypeSchema,
-      actorId: userModel.getEntityUuid() as AccountId,
+      actorId: user.accountId,
     },
   ).catch((err: AxiosError) => {
     const msg =

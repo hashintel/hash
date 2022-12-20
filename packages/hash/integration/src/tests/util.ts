@@ -2,11 +2,16 @@ import { createKratosIdentity } from "@hashintel/hash-api/src/auth/ory-kratos";
 import {
   ensureSystemGraphIsInitialized,
   GraphApi,
+  ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
-import { OrgModel, UserModel } from "@hashintel/hash-api/src/model";
 import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
+import {
+  createUser,
+  updateUserShortname,
+} from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
+import { createOrg } from "@hashintel/hash-api/src/graph/knowledge/system-types/org";
 import { OrgSize } from "../graphql/apiTypes.gen";
 
 const randomStringSuffix = () => {
@@ -27,6 +32,8 @@ export const createTestUser = async (
 ) => {
   await ensureSystemGraphIsInitialized({ graphApi, logger });
 
+  const graphContext: ImpureGraphContext = { graphApi };
+
   const shortname = generateRandomShortname(shortNamePrefix);
 
   const identity = await createKratosIdentity({
@@ -42,7 +49,7 @@ export const createTestUser = async (
 
   const kratosIdentityId = identity.id;
 
-  const createdUser = await UserModel.createUser(graphApi, {
+  const createdUser = await createUser(graphContext, {
     emails: [`${shortname}@example.com`],
     kratosIdentityId,
     actorId: systemUserAccountId,
@@ -51,15 +58,14 @@ export const createTestUser = async (
     throw err;
   });
 
-  return await createdUser
-    .updateShortname(graphApi, {
-      updatedShortname: shortname,
-      actorId: createdUser.getEntityUuid(),
-    })
-    .catch((err) => {
-      logger.error(`Error updating shortname for UserModel to ${shortname}`);
-      throw err;
-    });
+  return await updateUserShortname(graphContext, {
+    user: createdUser,
+    updatedShortname: shortname,
+    actorId: createdUser.accountId,
+  }).catch((err) => {
+    logger.error(`Error updating shortname for UserModel to ${shortname}`);
+    throw err;
+  });
 };
 
 export const createTestOrg = async (
@@ -71,12 +77,15 @@ export const createTestOrg = async (
 
   const shortname = generateRandomShortname(shortNamePrefix);
 
-  return await OrgModel.createOrg(graphApi, {
-    name: "Test org",
-    shortname,
-    providedInfo: {
-      orgSize: OrgSize.ElevenToFifty,
+  return await createOrg(
+    { graphApi },
+    {
+      name: "Test org",
+      shortname,
+      providedInfo: {
+        orgSize: OrgSize.ElevenToFifty,
+      },
+      actorId: systemUserAccountId,
     },
-    actorId: systemUserAccountId,
-  });
+  );
 };

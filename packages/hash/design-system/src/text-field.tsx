@@ -87,7 +87,7 @@ export const getInputProps = ({
     ...{ notched: false },
     ...otherInputProps,
     endAdornment:
-      error || success ? renderEndAdornment() : otherProps?.endAdornment,
+      error || success ? renderEndAdornment() : otherProps.endAdornment,
   };
 };
 

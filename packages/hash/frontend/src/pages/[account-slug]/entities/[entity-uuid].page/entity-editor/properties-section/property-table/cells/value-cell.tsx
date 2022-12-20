@@ -14,7 +14,8 @@ import {
 import { drawTextWithIcon } from "../../../../../../../../components/grid/utils/draw-text-with-icon";
 import { isValueEmpty } from "../../is-value-empty";
 import { ValueCell } from "./value-cell/types";
-import { ValueCellEditor } from "./value-cell/value-cell-editor";
+import { SingleValueEditor } from "./value-cell/single-value-editor";
+import { ArrayEditor } from "./value-cell/array-editor";
 
 export const renderValueCell: CustomRenderer<ValueCell> = {
   kind: GridCellKind.Custom,
@@ -22,7 +23,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     (cell.data as any).kind === "value-cell",
   draw: (args, cell) => {
     const { ctx, rect, theme } = args;
-    const { value, expectedTypes } = cell.data.propertyRow;
+    const { value, expectedTypes, isArray } = cell.data.propertyRow;
 
     ctx.fillStyle = theme.textHeader;
     ctx.font = theme.baseFontStyle;
@@ -37,7 +38,8 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
       // draw empty value
       ctx.fillStyle = customColors.gray[50];
       ctx.font = "italic 14px Inter";
-      ctx.fillText("No value", left, yCenter);
+      const emptyText = isArray ? "No values" : "No value";
+      ctx.fillText(emptyText, left, yCenter);
     } else if (isBoolean) {
       // draw boolean
       return drawTextWithIcon({
@@ -57,11 +59,11 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     const tooltipInteractables = drawInteractableTooltipIcons(args);
     InteractableManager.setInteractablesForCell(args, tooltipInteractables);
   },
-  provideEditor: () => {
+  provideEditor: ({ data }) => {
     return {
-      styleOverride: { boxShadow: "none", background: "transparent" },
+      disableStyling: true,
       disablePadding: true,
-      editor: ValueCellEditor,
+      editor: data.propertyRow.isArray ? ArrayEditor : SingleValueEditor,
     };
   },
 };

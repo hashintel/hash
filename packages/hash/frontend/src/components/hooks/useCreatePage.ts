@@ -5,7 +5,7 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@hashintel/hash-subgraph";
-import { OwnedById } from "@hashintel/hash-shared/types";
+import { EntityUuid, OwnedById, Uuid } from "@hashintel/hash-shared/types";
 
 import {
   CreatePageMutation,
@@ -20,7 +20,7 @@ export const useCreatePage = (ownedById: OwnedById) => {
   const router = useRouter();
 
   const { workspaceShortname } = useWorkspaceShortnameByEntityUuid({
-    entityUuid: ownedById,
+    entityUuid: ownedById as Uuid as EntityUuid,
   });
 
   const [createPageFn, { loading: createPageLoading }] = useMutation<
@@ -49,7 +49,7 @@ export const useCreatePage = (ownedById: OwnedById) => {
         variables: { ownedById, properties: { title: "", prevIndex } },
       });
 
-      const pageEntityId = response.data?.createPage?.metadata.editionId.baseId;
+      const pageEntityId = response.data?.createPage.metadata.editionId.baseId;
 
       if (pageEntityId && workspaceShortname) {
         const pageEntityUuid = extractEntityUuidFromEntityId(pageEntityId);

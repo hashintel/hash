@@ -58,6 +58,7 @@ export const generatePropertyRowRecursively = ({
     propertyTypeBaseUri,
   );
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
   if (!propertyTypeVersions) {
     throw new Error(
       `propertyType not found for base URI: ${propertyTypeBaseUri}`,
@@ -71,7 +72,7 @@ export const generatePropertyRowRecursively = ({
 
   const isArray = isPropertyTypeArray || isAllowMultiple;
 
-  const required = !!requiredPropertyTypes?.includes(propertyTypeBaseUri);
+  const required = !!requiredPropertyTypes.includes(propertyTypeBaseUri);
 
   const value =
     get(entity.properties, propertyKeyChain) ?? (isArray ? [] : undefined);

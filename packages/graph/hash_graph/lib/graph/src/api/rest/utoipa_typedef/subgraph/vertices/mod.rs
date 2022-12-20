@@ -1,4 +1,4 @@
-use std::collections::{hash_map::Entry, HashMap};
+use std::collections::{hash_map::Entry, BTreeMap, HashMap};
 
 use serde::Serialize;
 use type_system::uri::BaseUri;
@@ -8,20 +8,22 @@ use utoipa::{
 };
 
 pub use self::vertex::*;
-use crate::identifier::{
-    knowledge::{EntityId, EntityVersion},
-    ontology::OntologyTypeVersion,
+use crate::{
+    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion, TransactionTimestamp},
+    knowledge::Entity,
 };
 
 pub mod vertex;
 
 #[derive(Serialize, ToSchema)]
 #[serde(transparent)]
-pub struct OntologyVertices(pub HashMap<BaseUri, HashMap<OntologyTypeVersion, OntologyVertex>>);
+pub struct OntologyVertices(pub HashMap<BaseUri, BTreeMap<OntologyTypeVersion, OntologyVertex>>);
 
 #[derive(Serialize, ToSchema)]
 #[serde(transparent)]
-pub struct KnowledgeGraphVertices(HashMap<EntityId, HashMap<EntityVersion, KnowledgeGraphVertex>>);
+pub struct KnowledgeGraphVertices(
+    HashMap<EntityId, BTreeMap<TransactionTimestamp, KnowledgeGraphVertex>>,
+);
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -30,6 +32,16 @@ pub struct Vertices {
     ontology: OntologyVertices,
     #[serde(flatten)]
     knowledge_graph: KnowledgeGraphVertices,
+}
+
+impl Vertices {
+    pub fn earliest_entity_by_id(&self, id: &EntityId) -> Option<&Entity> {
+        self.knowledge_graph
+            .0
+            .get(id)?
+            .first_key_value()
+            .map(|(_, KnowledgeGraphVertex::Entity(entity))| entity)
+    }
 }
 
 impl From<crate::subgraph::vertices::Vertices> for Vertices {
@@ -55,7 +67,7 @@ impl From<crate::subgraph::vertices::Vertices> for Vertices {
                             entry.into_mut().insert(id.version(), vertex);
                         }
                         Entry::Vacant(entry) => {
-                            entry.insert(HashMap::from([(id.version(), vertex)]));
+                            entry.insert(BTreeMap::from([(id.version(), vertex)]));
                         }
                     }
                     map
@@ -66,13 +78,14 @@ impl From<crate::subgraph::vertices::Vertices> for Vertices {
                 |mut map, (id, vertex)| {
                     match map.entry(id.base_id()) {
                         Entry::Occupied(entry) => {
-                            entry
-                                .into_mut()
-                                .insert(id.version(), KnowledgeGraphVertex::Entity(vertex));
+                            entry.into_mut().insert(
+                                id.version().transaction_time().as_start_bound_timestamp(),
+                                KnowledgeGraphVertex::Entity(vertex),
+                            );
                         }
                         Entry::Vacant(entry) => {
-                            entry.insert(HashMap::from([(
-                                id.version(),
+                            entry.insert(BTreeMap::from([(
+                                id.version().transaction_time().as_start_bound_timestamp(),
                                 KnowledgeGraphVertex::Entity(vertex),
                             )]));
                         }
@@ -83,6 +96,7 @@ impl From<crate::subgraph::vertices::Vertices> for Vertices {
         }
     }
 }
+
 // Utoipa generates `Edges` as an empty object if we don't manually do it, and we can't use
 // allOf because the generator can't handle it
 impl ToSchema for Vertices {
