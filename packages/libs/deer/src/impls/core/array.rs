@@ -1,12 +1,9 @@
 use core::{marker::PhantomData, mem, mem::MaybeUninit, ptr};
 
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Result, ResultExt};
 
 use crate::{
-    error::{
-        ArrayAccessError, ArrayLengthError, DeserializeError, Error, ExpectedLength, Location,
-        ReceivedLength, VisitorError,
-    },
+    error::{ArrayAccessError, DeserializeError, Location, VisitorError},
     ArrayAccess, Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
 };
 
@@ -23,43 +20,35 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
     where
         A: ArrayAccess<'de>,
     {
+        v.set_bounded(N).change_context(VisitorError)?;
+
         let mut result: Result<(), ArrayAccessError> = Ok(());
 
+        #[allow(unsafe_code)]
         // SAFETY: this is the same as `MaybeUninit::uninit_array()`, which is still unstable
         let mut array = unsafe { MaybeUninit::<[MaybeUninit<T>; N]>::uninit().assume_init() };
 
-        // we have two counters, `items` is the total amount of items we have processed, while
-        // `index` is the index in the array. We know that if `index` != `items` we have failed at
-        // least once, but we'd still need to dealloc all items, to do so we allocate all items
-        // continuously.
         let mut index = 0;
-        let mut items = 0;
+        let mut failed = false;
 
         loop {
             let value = v.next::<T>();
 
             match value {
                 None => break,
-                Some(Ok(value)) => {
-                    if index >= N {
-                        // TODO: we need to potentially change the wording to at least / gt
-                        let error = Report::new(Error::new(ArrayLengthError))
-                            .attach(ReceivedLength::new(v.size_hint().unwrap_or(N + 1)))
-                            .attach(ExpectedLength::new(N))
-                            .attach(Location::Array(index))
-                            .change_context(ArrayAccessError);
-
-                        // to avoid processing too many items we already break and add a new error
-                        match &mut result {
-                            Err(result) => result.extend_one(error),
-                            result => *result = Err(error),
-                        }
-
-                        break;
-                    }
-
+                Some(Ok(_)) if index >= N => {
+                    // This is unreachable, as `set_bounded` guarantees that this will loop for
+                    // exactly `N` times, even if more than `N` items are present it will always
+                    // return `None`, therefore this case is unreachable.
+                    unreachable!()
+                }
+                Some(Ok(value)) if !failed => {
                     array[index].write(value);
                     index += 1;
+                }
+                Some(Ok(_)) => {
+                    // We have already failed, therefore we can just drop the item and do not need
+                    // to add it to the array.
                 }
                 Some(Err(error)) => {
                     let error = error.attach(Location::Array(index));
@@ -68,32 +57,31 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
                         Err(result) => result.extend_one(error),
                         result => *result = Err(error),
                     }
+
+                    failed = true;
                 }
             }
-
-            items += 1;
         }
 
-        // ensure that we have enough items, `items` is always incremented, therefore we do not
-        // signal a wrong warning, even if we had errors.
-        if items != N {
-            let error = Report::new(Error::new(ArrayLengthError))
-                .attach(ReceivedLength::new(items))
-                .attach(ExpectedLength::new(N))
-                .change_context(ArrayAccessError);
-
+        if let Err(error) = v.end() {
             match &mut result {
                 Err(result) => result.extend_one(error),
                 result => *result = Err(error),
             }
         }
 
+        // we do not need to check if we have enough items, as `set_bounded` guarantees that we
+        // visit exactly `N` times and `v.end()` ensures that there aren't too many items.
+
         if result.is_err() {
             // we will error out, but as to not leak memory we drop all previously written items
             for item in &mut array[0..index] {
+                #[allow(unsafe_code)]
                 // SAFETY: we only increment the pointer once we've written a value, the array is
                 // continuous, even if we error out, therefore
-                unsafe { ptr::drop_in_place(item.as_mut_ptr()) }
+                unsafe {
+                    ptr::drop_in_place(item.as_mut_ptr());
+                }
             }
         }
 
@@ -104,6 +92,7 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
                 // * `cast` instead of `*const _ as *const [T; N]`
                 // * `ptr::addr_of!(array)` instead of `&array as *const _`
 
+                #[allow(unsafe_code)]
                 // SAFETY: we can guarantee that the array is fully initialized, because `result`
                 // will have an error if:
                 // * at least a single item had an error
@@ -116,14 +105,27 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
     }
 }
 
-struct ArrayReflection<T: Reflection + ?Sized, const N: usize>(PhantomData<fn() -> ([(); N], T)>);
+pub struct ArrayReflection<T: Reflection + ?Sized, const N: usize>(
+    PhantomData<fn() -> ([(); N], T)>,
+);
 
 impl<T: Reflection + ?Sized, const N: usize> Reflection for ArrayReflection<T, N> {
     fn schema(doc: &mut Document) -> Schema {
-        Schema::new("array")
-            .with("items", doc.add::<T>())
-            .with("minItems", N)
-            .with("maxItems", N)
+        // TODO: This is a super naive implementation to detect if `minItems` should be set, once
+        //  more structured schemas are in place we should replace this with a proper
+        //  implementation.
+        let items = doc.add::<T>();
+        let has_lower_bound = doc.get(items).map_or(true, |schema| schema.ty() != "none");
+
+        let mut schema = Schema::new("array")
+            .with("items", items)
+            .with("maxItems", N);
+
+        if has_lower_bound {
+            schema = schema.with("minItems", N);
+        }
+
+        schema
     }
 }
 

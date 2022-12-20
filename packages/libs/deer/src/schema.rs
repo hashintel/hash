@@ -89,7 +89,7 @@ struct SerializeReference {
     ref_: String,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Reference {
     id: usize,
     name: &'static str,
@@ -187,6 +187,18 @@ impl Document {
         self.schemas
             .get(&self.id)
             .expect("`new()` should have created a schema for the main schema")
+    }
+
+    #[must_use]
+    pub fn get(&self, reference: Reference) -> Option<&Schema> {
+        // TODO: We're able to optimize this via a `BiMap`
+        let type_id = self
+            .references
+            .iter()
+            .find(|(_, other)| **other == reference)
+            .map(|(type_id, _)| type_id)?;
+
+        self.schemas.get(&type_id)
     }
 
     #[must_use]
