@@ -1,5 +1,4 @@
 import { ApolloError } from "apollo-server-express";
-import { AxiosError } from "axios";
 import { PropertyTypeWithMetadata, Subgraph } from "@hashintel/hash-subgraph";
 import { OwnedById } from "@hashintel/hash-shared/types";
 
@@ -15,6 +14,7 @@ import {
   createPropertyType,
   updatePropertyType,
 } from "../../../graph/ontology/primitive/property-type";
+import { GraphApiError } from "../../../graph";
 
 export const createPropertyTypeResolver: ResolverFn<
   Promise<PropertyTypeWithMetadata>,
@@ -75,9 +75,9 @@ export const getAllLatestPropertyTypesResolver: ResolverFn<
         hasRightEntity: { incoming: 0, outgoing: 0 },
       },
     })
-    .catch((err: AxiosError) => {
+    .catch(({ payload }: GraphApiError) => {
       throw new ApolloError(
-        `Unable to retrieve all latest property types. ${err.response?.data}`,
+        `Unable to retrieve all latest property types. ${payload}`,
         "GET_ALL_ERROR",
       );
     });
@@ -114,9 +114,9 @@ export const getPropertyTypeResolver: ResolverFn<
         hasRightEntity: { incoming: 0, outgoing: 0 },
       },
     })
-    .catch((err: AxiosError) => {
+    .catch(({ payload }: GraphApiError) => {
       throw new ApolloError(
-        `Unable to retrieve property type [${propertyTypeId}]: ${err.response?.data}`,
+        `Unable to retrieve property type [${propertyTypeId}]: ${payload}`,
         "GET_ERROR",
       );
     });
@@ -141,9 +141,9 @@ export const updatePropertyTypeResolver: ResolverFn<
       schema: updatedPropertyTypeSchema,
       actorId: user.accountId,
     },
-  ).catch((err: AxiosError) => {
+  ).catch(({ status }: GraphApiError) => {
     const msg =
-      err.response?.status === 409
+      status === 409
         ? `Property type URI doesn't exist, unable to update. [URI=${propertyTypeId}]`
         : `Couldn't update property type.`;
 

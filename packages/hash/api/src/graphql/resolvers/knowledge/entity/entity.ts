@@ -1,5 +1,4 @@
 import { Filter } from "@hashintel/hash-graph-client";
-import { AxiosError } from "axios";
 import {
   ApolloError,
   ForbiddenError,
@@ -36,6 +35,7 @@ import {
   getLatestEntityById,
   updateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
+import { GraphApiError } from "../../../../graph";
 
 /**
  * @todo - Remove this when the Subgraph is appropriately queryable for a timestamp
@@ -184,9 +184,9 @@ export const getAllLatestEntitiesResolver: ResolverFn<
         hasRightEntity,
       },
     })
-    .catch((err: AxiosError) => {
+    .catch(({ payload }: GraphApiError) => {
       throw new ApolloError(
-        `Unable to retrieve all latest entities. ${err.response?.data}`,
+        `Unable to retrieve all latest entities. ${payload}`,
         "GET_ALL_ERROR",
       );
     });
@@ -250,9 +250,9 @@ export const getEntityResolver: ResolverFn<
         hasRightEntity,
       },
     })
-    .catch((err: AxiosError) => {
+    .catch(({ payload }: GraphApiError) => {
       throw new ApolloError(
-        `Unable to retrieve entity. ${err.response?.data}`,
+        `Unable to retrieve entity. ${payload}`,
         "GET_ERROR",
       );
     });
