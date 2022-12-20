@@ -77,7 +77,7 @@ export function updateLink(editorView: EditorView, href: string) {
     }
   }
 
-  dispatch?.(tr);
+  dispatch(tr);
 }
 
 export function removeLink(editorView: EditorView) {

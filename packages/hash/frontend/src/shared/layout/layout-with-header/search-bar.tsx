@@ -178,6 +178,7 @@ const SearchBarWhenSearchIsEnabled: FunctionComponent = () => {
   const [rootRef] = useOutsideClickRef(() => setResultListVisible(false));
 
   // present loading screen while waiting for the user to stop typing
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
   const isLoading = loading || displayedQuery !== submittedQuery;
 
   return (

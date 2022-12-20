@@ -258,6 +258,7 @@ const SignupPage: NextPageWithLayout = () => {
   return (
     <Container sx={{ pt: 10 }}>
       {authenticatedUser ? (
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
         userHasVerifiedEmail ? (
           <AccountSetupForm
             onSubmit={handleAccountSetupSubmit}

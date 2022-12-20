@@ -49,7 +49,7 @@ export const useCreatePage = (ownedById: OwnedById) => {
         variables: { ownedById, properties: { title: "", prevIndex } },
       });
 
-      const pageEntityId = response.data?.createPage?.metadata.editionId.baseId;
+      const pageEntityId = response.data?.createPage.metadata.editionId.baseId;
 
       if (pageEntityId && workspaceShortname) {
         const pageEntityUuid = extractEntityUuidFromEntityId(pageEntityId);

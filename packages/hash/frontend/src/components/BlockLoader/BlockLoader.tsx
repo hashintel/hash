@@ -80,6 +80,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     const convertedEntityTypesForProvidedEntities: BpEntityType[] = [];
 
     const blockEntity = convertApiEntityToBpEntity({
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
       entityId: entityId ?? "entityId-not-yet-set", // @todo ensure blocks always get sent an entityId
       entityTypeId,
       properties: entityProperties,
@@ -108,7 +109,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     uploadFile,
   };
 
-  const onBlockLoadedFromContext = useBlockLoadedContext()?.onBlockLoaded;
+  const onBlockLoadedFromContext = useBlockLoadedContext().onBlockLoaded;
   const onBlockLoadedRef = useRef(onBlockLoaded);
 
   useLayoutEffect(() => {
@@ -117,7 +118,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
 
   const onRemoteBlockLoaded = useCallback(() => {
     onBlockLoadedFromContext(blockEntityId);
-    onBlockLoadedRef?.current();
+    onBlockLoadedRef.current();
   }, [blockEntityId, onBlockLoadedFromContext]);
 
   // @todo upgrade sandbox for BP 0.2 and remove feature flag

@@ -13,6 +13,7 @@ export const useCreateNewEntityAndRedirect = () => {
   const { activeWorkspace, activeWorkspaceAccountId } =
     useContext(WorkspaceContext);
   const { createEntity } = useBlockProtocolCreateEntity(
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     (activeWorkspaceAccountId as OwnedById) ?? null,
   );
   const { getEntityType } = useBlockProtocolGetEntityType();

@@ -163,6 +163,8 @@ export const getOrCreateEntity: ImpureGraphFunction<
         entityId: existingEntityId,
       },
     );
+
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- account for old browsers
     if (!entity) {
       throw new ApolloError(
         `Entity ${existingEntityId} not found`,
@@ -472,7 +474,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     ],
   };
 
-  if (params?.linkEntityType) {
+  if (params.linkEntityType) {
     filter.all.push({
       equal: [
         { path: ["type", "versionedUri"] },
@@ -550,7 +552,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     ],
   };
 
-  if (params?.linkEntityType) {
+  if (params.linkEntityType) {
     filter.all.push({
       equal: [
         { path: ["type", "versionedUri"] },
@@ -561,7 +563,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     });
   }
 
-  if (params?.rightEntity) {
+  if (params.rightEntity) {
     filter.all.push(
       {
         equal: [

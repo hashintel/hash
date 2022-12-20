@@ -27,7 +27,7 @@ export const useWorkspaceShortnameByEntityUuid = (params: {
   } = useWorkspaceByShortname(systemUserShortname);
 
   const systemUserOwnedById = useMemo(
-    () => systemUserWorkspace?.accountId as OwnedById,
+    () => systemUserWorkspace?.accountId as OwnedById | undefined,
     [systemUserWorkspace],
   );
 
@@ -65,6 +65,7 @@ export const useWorkspaceShortnameByEntityUuid = (params: {
           );
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false-positive (because of await)
         if (!cancelled) {
           setWorkspaceShortname(shortname as string);
           setLoading(false);

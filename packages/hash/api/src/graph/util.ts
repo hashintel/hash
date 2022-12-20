@@ -164,6 +164,7 @@ export const propertyTypeInitializer = (
   let propertyType: PropertyTypeWithMetadata;
 
   return async (graphApi?: GraphApi) => {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     if (propertyType) {
       return propertyType;
     } else if (!graphApi) {
@@ -337,7 +338,7 @@ export const generateSystemLinkEntityTypeSchema = (
 export const entityTypeInitializer = (
   params: EntityTypeCreatorParams | LinkEntityTypeCreatorParams,
 ): ((graphApi: GraphApi) => Promise<EntityTypeWithMetadata>) => {
-  let entityType: EntityTypeWithMetadata;
+  let entityType: EntityTypeWithMetadata | undefined;
 
   return async (graphApi?: GraphApi) => {
     if (entityType) {

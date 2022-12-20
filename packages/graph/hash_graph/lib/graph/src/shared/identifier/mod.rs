@@ -71,6 +71,19 @@ impl FromStr for TransactionTimestamp {
     }
 }
 
+// WARNING: This MUST be kept up to date with the struct names and serde attributes
+//   Necessary because `DateTime` doesn't implement ToSchema
+impl ToSchema for TransactionTimestamp {
+    fn schema() -> openapi::Schema {
+        openapi::ObjectBuilder::new()
+            .schema_type(openapi::SchemaType::String)
+            .format(Some(openapi::SchemaFormat::KnownFormat(
+                openapi::KnownFormat::DateTime,
+            )))
+            .into()
+    }
+}
+
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct Timespan {
     start: Bound<DateTime<Utc>>,

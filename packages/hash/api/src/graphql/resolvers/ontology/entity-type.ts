@@ -28,6 +28,7 @@ export const createEntityTypeResolver: ResolverFn<
   const createdEntityType = await createEntityType(
     { graphApi },
     {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
       ownedById: (ownedById as OwnedById) ?? user.accountId,
       schema: entityType,
       actorId: user.accountId,

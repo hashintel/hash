@@ -25,7 +25,7 @@ const errorLink = onError(({ graphQLErrors, operation }) => {
         );
         scope.setExtra("Exception", extensions?.exception);
         scope.setExtra("Location", path);
-        scope.setExtra("Query", operation.query?.loc?.source?.body);
+        scope.setExtra("Query", operation.query.loc?.source.body);
         scope.setExtra("Variables", operation.variables);
         error.message = `GraphQL error - ${
           path?.[0]?.toString() ?? "undefined"

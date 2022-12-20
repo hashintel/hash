@@ -64,6 +64,7 @@ export const EntitiesTab: FunctionComponent = () => {
   const createGetCellContent = useCallback(
     (_rows: TypeEntitiesRow[]) =>
       ([colIndex, rowIndex]: Item): GridCell => {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
         if (_rows && columns) {
           const row = _rows[rowIndex];
           const columnId = columns[colIndex]?.id;
@@ -109,7 +110,7 @@ export const EntitiesTab: FunctionComponent = () => {
     <Box>
       <SectionWrapper
         title="Entities"
-        titleTooltip={`This table lists all entities with the ‘${entityType?.title}’ type that are accessible to you`}
+        titleTooltip={`This table lists all entities with the ‘${entityType.title}’ type that are accessible to you`}
         titleStartContent={
           <Stack direction="row">
             {entitiesCount.namespace || entitiesCount.public ? (

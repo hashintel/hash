@@ -88,7 +88,7 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
               sx={{ height: "32px", width: "32px", borderRadius: "100%" }}
             />
           ) : (
-            <Avatar size={32} title={authenticatedUser?.preferredName ?? "U"} />
+            <Avatar size={32} title={authenticatedUser.preferredName ?? "U"} />
           )}
         </HeaderIconButton>
       </Tooltip>

@@ -27,6 +27,6 @@ export const commentHasTextResolver: ResolverFn<
   return (
     (textEntity.properties[
       SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId
-    ] as TextToken[]) ?? []
+    ] as TextToken[] | undefined) ?? []
   );
 };

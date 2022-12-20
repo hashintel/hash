@@ -180,6 +180,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
       }}
     >
       <Box display="flex" justifyContent="space-between">
+        {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment */}
         <Avatar size={36} title={preferredName ?? "U"} />
         <Box
           sx={{ flexDirection: "column", flex: 1, overflow: "hidden", pl: 1.5 }}
@@ -342,7 +343,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
       ) : null}
 
       <CommentBlockMenu popupState={commentMenuPopupState}>
-        {authenticatedUser?.accountId === commentCreatedById ? (
+        {authenticatedUser.accountId === commentCreatedById ? (
           <CommentBlockMenuItem
             title={editable ? "Cancel Edit" : "Edit"}
             icon={
@@ -368,7 +369,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
             commentMenuPopupState.close();
           }}
         />
-        {authenticatedUser?.accountId === commentCreatedById ? (
+        {authenticatedUser.accountId === commentCreatedById ? (
           <CommentBlockMenuItem
             title="Delete Comment"
             icon={<FontAwesomeIcon icon={faTrash} />}
