@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 
 import { QueueProducer, QueueExclusiveConsumer } from "./adapter";
 import { AsyncRedisClient } from "../redis";
