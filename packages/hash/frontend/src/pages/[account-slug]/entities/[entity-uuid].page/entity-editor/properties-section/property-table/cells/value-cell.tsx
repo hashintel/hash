@@ -38,7 +38,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
       // draw empty value
       ctx.fillStyle = customColors.gray[50];
       ctx.font = "italic 14px Inter";
-      const emptyText = isArray ? "No value" : "No values";
+      const emptyText = isArray ? "No values" : "No value";
       ctx.fillText(emptyText, left, yCenter);
     } else if (isBoolean) {
       // draw boolean
