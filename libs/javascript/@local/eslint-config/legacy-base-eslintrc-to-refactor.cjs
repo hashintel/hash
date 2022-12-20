@@ -7,6 +7,7 @@ module.exports = {
     "@typescript-eslint",
     "canonical",
     "react-hooks",
+    "simple-import-sort",
     "jest",
     "unicorn",
   ],
@@ -246,6 +247,8 @@ module.exports = {
         ],
       },
     ],
+    "simple-import-sort/exports": "error",
+    "simple-import-sort/imports": "error",
     "unicorn/filename-case": "error",
     "unicorn/import-style": [
       "error",

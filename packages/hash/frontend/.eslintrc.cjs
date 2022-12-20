@@ -8,6 +8,8 @@ module.exports = {
       /* 2022-11-29:  30 */ "@typescript-eslint/no-unsafe-member-access",
       /* 2022-11-29:  11 */ "@typescript-eslint/no-unsafe-return",
       /* 2022-11-29:  34 */ "@typescript-eslint/restrict-template-expressions",
+      "simple-import-sort/exports",
+      "simple-import-sort/imports",
       "unicorn/filename-case",
     ]),
     "jsx-a11y/label-has-associated-control": "off",

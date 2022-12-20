@@ -8,6 +8,8 @@ module.exports = {
     {
       files: ["**/migration/*.ts"],
       rules: {
+        "simple-import-sort/exports": "off",
+        "simple-import-sort/imports": "off",
         "unicorn/filename-case": "off",
       },
     },
