@@ -1,7 +1,7 @@
 use alloc::borrow::ToOwned;
 
 use deer::{
-    error::{ArrayAccessError, DeserializerError},
+    error::{ArrayAccessError, DeserializerError, ObjectAccessError},
     Context, Deserialize, Visitor,
 };
 use error_stack::{Report, Result, ResultExt};
@@ -62,7 +62,7 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
             Token::BorrowedBytes(value) => visitor.visit_borrowed_bytes(value),
             Token::BytesBuf(value) => visitor.visit_bytes_buffer(value.to_vec()),
             Token::Array { length } => visitor.visit_array(ArrayAccess::new(self, length)),
-            Token::Object { .. } => {}
+            Token::Object { length } => visitor.visit_object(ObjectAccess::new(self, length)),
             _ => {
                 panic!("Deserializer did not expect {token}");
             }
@@ -235,8 +235,47 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
 struct ObjectAccess<'a, 'b, 'de: 'a> {
     deserializer: &'a mut Deserializer<'b, 'de>,
 
+    dirty: bool,
     length: Option<usize>,
     remaining: Option<usize>,
 }
 
-impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {}
+impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
+    pub fn new(deserializer: &'a mut Deserializer<'b, 'de>, length: Option<usize>) -> Self {
+        Self {
+            deserializer,
+            dirty: false,
+            length,
+            remaining: None,
+        }
+    }
+}
+
+impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
+    fn set_bounded(&mut self, length: usize) -> Result<(), ObjectAccessError> {
+        todo!()
+    }
+
+    fn value<T>(&mut self, key: &str) -> Result<T, ObjectAccessError>
+    where
+        T: Deserialize<'de>,
+    {
+        todo!()
+    }
+
+    fn next<K, V>(&mut self) -> Option<Result<(K, V), ObjectAccessError>>
+    where
+        K: Deserialize<'de>,
+        V: Deserialize<'de>,
+    {
+        todo!()
+    }
+
+    fn size_hint(&self) -> Option<usize> {
+        todo!()
+    }
+
+    fn end(self) -> Result<(), ObjectAccessError> {
+        todo!()
+    }
+}
