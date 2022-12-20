@@ -1,3 +1,11 @@
+[github_banner]: https://hash.dev/?utm_medium=organic&utm_source=github_readme_hash-repo_apps
+[github_star]: https://github.com/hashintel/hash/tree/main/apps#
+[discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_apps
+
+[![github_banner](https://user-images.githubusercontent.com/6226576/208704569-6341e47b-4b83-4b9b-9486-8b123d8e7ea5.png)][github_banner]
+
+[![discord](https://img.shields.io/discord/840573247803097118)][discord] [![github_star](https://img.shields.io/github/stars/hashintel/hash?label=Star%20on%20GitHub&style=social)][github_star]
+
 # About this directory
 
 This `apps` directory contains the source-code and/or content for a number of HASH's public-facing websites, including:
