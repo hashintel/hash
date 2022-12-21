@@ -399,10 +399,10 @@ export interface EntityEditionId {
   recordId: number;
   /**
    *
-   * @type {string}
+   * @type {EntityVersion}
    * @memberof EntityEditionId
    */
-  version: string;
+  version: EntityVersion;
 }
 /**
  *
@@ -672,6 +672,25 @@ export interface EntityTypeWithMetadata {
 /**
  *
  * @export
+ * @interface EntityVersion
+ */
+export interface EntityVersion {
+  /**
+   *
+   * @type {DecisionTimeVersionTimespan}
+   * @memberof EntityVersion
+   */
+  decisionTime: DecisionTimeVersionTimespan;
+  /**
+   *
+   * @type {TransactionTimeVersionTimespan}
+   * @memberof EntityVersion
+   */
+  transactionTime: TransactionTimeVersionTimespan;
+}
+/**
+ *
+ * @export
  * @interface EqualFilter
  */
 export interface EqualFilter {
@@ -746,10 +765,10 @@ export interface GraphElementEditionIdOneOf1 {
   recordId: number;
   /**
    *
-   * @type {string}
+   * @type {EntityVersion}
    * @memberof GraphElementEditionIdOneOf1
    */
-  version: string;
+  version: EntityVersion;
 }
 /**
  * @type GraphElementId

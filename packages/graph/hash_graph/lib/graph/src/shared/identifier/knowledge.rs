@@ -5,11 +5,7 @@ use std::{
 
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use tokio_postgres::types::ToSql;
-use utoipa::{
-    openapi,
-    openapi::{KnownFormat, SchemaFormat},
-    ToSchema,
-};
+use utoipa::{openapi, ToSchema};
 
 use crate::{
     identifier::{
@@ -90,31 +86,11 @@ impl ToSchema for EntityId {
     }
 }
 
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityVersion {
     decision_time: DecisionTimeVersionTimespan,
     transaction_time: TransactionTimeVersionTimespan,
-}
-
-impl Serialize for EntityVersion {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        // TODO: Expose temporal versions to backend
-        //   see https://app.asana.com/0/0/1203444301722133/f
-        self.transaction_time().start.serialize(serializer)
-    }
-}
-
-impl ToSchema for EntityVersion {
-    fn schema() -> openapi::Schema {
-        openapi::schema::ObjectBuilder::new()
-            .schema_type(openapi::SchemaType::String)
-            .format(Some(SchemaFormat::KnownFormat(KnownFormat::DateTime)))
-            .into()
-    }
 }
 
 impl EntityVersion {
