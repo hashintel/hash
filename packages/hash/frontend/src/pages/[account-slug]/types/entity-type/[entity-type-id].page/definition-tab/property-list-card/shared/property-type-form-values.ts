@@ -19,7 +19,7 @@ interface ArrayExpectedValue {
 }
 
 export interface Property {
-  id: string;
+  id: VersionedUri;
   required: boolean;
   allowArrays: boolean;
   animatingOut?: boolean;

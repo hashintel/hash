@@ -41,7 +41,7 @@ const StyledTableBodyCell = styled(Box)({
 
 export interface ObjectExpectedValueRowProps {
   objectId: string;
-  propertyId: string;
+  propertyId: VersionedUri;
   allowArrays: boolean;
   required: boolean;
   propertyIndex: number;
@@ -67,7 +67,7 @@ export const ObjectExpectedValueRow: FunctionComponent<
   const { types: propertyTypes } = usePropertyTypesContextValue();
   const { setValue } = useFormContext<PropertyTypeFormValues>();
 
-  const property = propertyTypes?.[propertyId as VersionedUri];
+  const property = propertyTypes?.[propertyId];
 
   useEffect(() => {
     if (property) {
@@ -271,7 +271,7 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
                     [
                       ...properties,
                       {
-                        id: details.option,
+                        id: details.option as VersionedUri,
                         allowArrays: false,
                         required: false,
                       },
@@ -303,7 +303,7 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
               }
             }}
             renderOption={(optProps, opt) => {
-              const property = propertyTypes?.[opt as VersionedUri];
+              const property = propertyTypes?.[opt];
               return property ? (
                 <Box component="li" {...optProps} sx={{ py: 1.5, px: 2.25 }}>
                   <FontAwesomeIcon
