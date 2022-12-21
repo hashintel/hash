@@ -3,11 +3,13 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import {
+  EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
   OwnedById,
 } from "@hashintel/hash-shared/types";
 import Head from "next/head";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { useBlockProtocolGetEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
 import {
   getLayoutWithSidebar,
@@ -23,6 +25,9 @@ import { generateEntityLabel } from "../../../lib/entities";
 import { useRouteNamespace } from "../shared/use-route-namespace";
 import { useBlockProtocolGetEntityType } from "../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { EntityPageHeader } from "./[entity-uuid].page/entity-page-wrapper/entity-page-header";
+import { useBlockProtocolUpdateEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolUpdateEntity";
+import { useLoadingCallback } from "../../../components/hooks/useLoadingCallback";
+import { EditBarReusable } from "../types/entity-type/[entity-type-id].page/edit-bar-reusable";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -30,9 +35,15 @@ const Page: NextPageWithLayout = () => {
   const { routeNamespace } = useRouteNamespace();
   const { getEntity } = useBlockProtocolGetEntity();
   const { getEntityType } = useBlockProtocolGetEntityType();
+  const { updateEntity } = useBlockProtocolUpdateEntity();
 
-  const [entitySubgraph, setEntitySubgraph] =
+  const [entitySubgraphFromDB, setEntitySubgraphFromDB] =
     useState<Subgraph<SubgraphRootTypes["entity"]>>();
+  const [draftEntitySubgraph, setDraftEntitySubgraph] =
+    useState<Subgraph<SubgraphRootTypes["entity"]>>();
+
+  const [isDirty, setIsDirty] = useState(false);
+
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -50,9 +61,10 @@ const Page: NextPageWithLayout = () => {
 
           if (subgraph) {
             try {
-              setEntitySubgraph(subgraph);
+              setEntitySubgraphFromDB(subgraph);
+              setDraftEntitySubgraph(subgraph);
             } catch {
-              setEntitySubgraph(undefined);
+              setEntitySubgraphFromDB(undefined);
             }
           }
         } finally {
@@ -78,18 +90,45 @@ const Page: NextPageWithLayout = () => {
       },
     });
 
-    setEntitySubgraph(subgraph);
+    setEntitySubgraphFromDB(subgraph);
   };
+
+  const discardChanges = () => {
+    setIsDirty(false);
+    setDraftEntitySubgraph(entitySubgraphFromDB);
+  };
+
+  const [handleSaveChanges, savingChanges] = useLoadingCallback(async () => {
+    if (!entitySubgraphFromDB || !draftEntitySubgraph) {
+      return;
+    }
+
+    const entity = getRoots(entitySubgraphFromDB)[0];
+    const draftEntity = getRoots(draftEntitySubgraph)[0];
+
+    if (!entity || !draftEntity) {
+      return;
+    }
+
+    /** @todo add validation here */
+    await updateEntity({
+      data: {
+        entityId: entity.metadata.editionId.baseId as EntityId,
+        updatedProperties: draftEntity.properties,
+      },
+    });
+    setIsDirty(false);
+  });
 
   if (loading) {
     return <EntityPageLoadingState />;
   }
 
-  if (!entitySubgraph) {
+  if (!draftEntitySubgraph) {
     return <PageErrorState />;
   }
 
-  const entityLabel = generateEntityLabel(entitySubgraph);
+  const entityLabel = generateEntityLabel(draftEntitySubgraph);
 
   return (
     <>
@@ -100,6 +139,19 @@ const Page: NextPageWithLayout = () => {
         header={
           <EntityPageHeader
             entityLabel={entityLabel}
+            editBar={
+              <EditBarReusable
+                visible={isDirty}
+                discardButtonProps={{
+                  onClick: discardChanges,
+                }}
+                confirmButtonProps={{
+                  onClick: handleSaveChanges,
+                  loading: savingChanges,
+                  children: "Save changes",
+                }}
+              />
+            }
             chip={
               <OntologyChip
                 icon={<HashOntologyIcon />}
@@ -134,9 +186,10 @@ const Page: NextPageWithLayout = () => {
         }
       >
         <EntityEditor
-          entitySubgraph={entitySubgraph}
-          setEntity={(entity) =>
-            setEntitySubgraph((entityAndSubgraph) => {
+          entitySubgraph={draftEntitySubgraph}
+          setEntity={(entity) => {
+            setIsDirty(true);
+            setDraftEntitySubgraph((entityAndSubgraph) => {
               if (entity) {
                 /**
                  * @todo - This is a problem, subgraphs should probably be immutable, there will be a new identifier
@@ -169,8 +222,8 @@ const Page: NextPageWithLayout = () => {
               } else {
                 return undefined;
               }
-            })
-          }
+            });
+          }}
           refetch={refetch}
         />
       </EntityPageWrapper>

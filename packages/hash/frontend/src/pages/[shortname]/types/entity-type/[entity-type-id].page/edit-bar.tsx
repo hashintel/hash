@@ -94,7 +94,7 @@ const EditBarContents = ({
  * offset of content underneath the edit bar to keep elements in *roughly* the
  * same position.
  */
-const useFreezeScrollWhileTransitioning = () => {
+export const useFreezeScrollWhileTransitioning = () => {
   const observerRef = useRef<ResizeObserver | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const editBarContext = useEditBarContext();
