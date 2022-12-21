@@ -32,7 +32,7 @@ import {
   SuggesterAction,
   suggesterPluginKey,
 } from "./createSuggester/createSuggester";
-import { RenderPortal } from "./usePortals";
+import { RenderPortal } from "./BlockPortals";
 
 /**
  * Allows us to have a stable reference for properties where we do not yet

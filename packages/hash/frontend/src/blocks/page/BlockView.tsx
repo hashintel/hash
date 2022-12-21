@@ -13,22 +13,29 @@ import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import { Node } from "prosemirror-model";
 import { NodeSelection, TextSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
-import { createRef } from "react";
+import { createRef, createContext, useContext } from "react";
 
 import { EntityId } from "@hashintel/hash-shared/types";
-import { BlockViewContext } from "./BlockViewContext";
 import { CollabPositionIndicators } from "./CollabPositionIndicators";
 import styles from "./style.module.css";
 
-import { RenderPortal } from "./usePortals";
 import { BlockContext } from "./BlockContext";
 import { BlockHandle } from "./BlockHandle";
 import { InsertBlock } from "./InsertBlock";
 import { BlockHighlight } from "./BlockHighlight";
 import { CreateBlockCommentButton } from "./Comments/CreateBlockCommentButton";
+import { RenderPortal } from "./BlockPortals";
 
 export const getBlockDomId = (blockEntityId: string) =>
   `entity-${blockEntityId}`;
+
+/** used to detect whether or not a context value was provided */
+const nullBlockView = {};
+
+/** used to hold the blockView instance */
+export const BlockViewContext = createContext<BlockView>(
+  nullBlockView as BlockView,
+);
 
 /**
  * This is the node view that wraps every one of our blocks in order to inject
@@ -381,3 +388,14 @@ export class BlockView implements NodeView {
         });
     };
 }
+
+/** used to access the blockView instance and ensure one has been provided */
+export const useBlockView = () => {
+  const blockView = useContext(BlockViewContext);
+
+  if (blockView === nullBlockView) {
+    throw new Error("no BlockViewContext value has been provided");
+  }
+
+  return blockView;
+};
