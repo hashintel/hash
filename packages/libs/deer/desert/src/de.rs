@@ -12,8 +12,8 @@ use bitvec::{
 };
 use deer::{
     error::{
-        ArrayAccessError, ArrayLengthError, DeserializerError, ExpectedLength, ObjectAccessError,
-        ReceivedLength, SetBoundedError, Variant,
+        ArrayAccessError, ArrayLengthError, BoundedContractViolationError, DeserializerError,
+        ExpectedLength, ObjectAccessError, ObjectItemsExtraError, ReceivedLength, Variant,
     },
     Context, Deserialize, Visitor,
 };
@@ -355,15 +355,16 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
     fn set_bounded(&mut self, length: usize) -> Result<(), ArrayAccessError> {
         if self.consumed > 0 {
             return Err(
-                Report::new(SetBoundedError::Dirty.into_error()).change_context(ArrayAccessError)
+                Report::new(BoundedContractViolationError::SetDirty.into_error())
+                    .change_context(ArrayAccessError),
             );
         }
 
         if self.remaining.is_some() {
-            return Err(
-                Report::new(SetBoundedError::CalledMultipleTimes.into_error())
-                    .change_context(ArrayAccessError),
-            );
+            return Err(Report::new(
+                BoundedContractViolationError::SetCalledMultipleTimes.into_error(),
+            )
+            .change_context(ArrayAccessError));
         }
 
         self.remaining = Some(length);
@@ -428,9 +429,8 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
 
         if let Some(remaining) = self.remaining {
             if remaining > 0 {
-                // TODO: This should be an internal error, as the consumer did not ensure that this
-                //  was called n times ~> ContractViolation error
-                let error = Report::new(());
+                let error =
+                    Report::new(BoundedContractViolationError::EndRemainingItems.into_error());
 
                 match &mut result {
                     Err(result) => result.extend_one(error),
@@ -446,18 +446,18 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
 struct ObjectAccess<'a, 'b, 'de: 'a> {
     deserializer: &'a mut Deserializer<'b, 'de>,
 
-    dirty: bool,
     length: Option<usize>,
     remaining: Option<usize>,
+    consumed: usize,
 }
 
 impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
     pub fn new(deserializer: &'a mut Deserializer<'b, 'de>, length: Option<usize>) -> Self {
         Self {
             deserializer,
-            dirty: false,
             length,
             remaining: None,
+            consumed: 0,
         }
     }
 
@@ -547,17 +547,18 @@ impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
 //  the stream
 impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
     fn set_bounded(&mut self, length: usize) -> Result<(), ObjectAccessError> {
-        if self.dirty {
+        if self.consumed > 0 {
             return Err(
-                Report::new(SetBoundedError::Dirty.into_error()).change_context(ObjectAccessError)
+                Report::new(BoundedContractViolationError::SetDirty.into_error())
+                    .change_context(ObjectAccessError),
             );
         }
 
         if self.remaining.is_some() {
-            return Err(
-                Report::new(SetBoundedError::CalledMultipleTimes.into_error())
-                    .change_context(ObjectAccessError),
-            );
+            return Err(Report::new(
+                BoundedContractViolationError::SetCalledMultipleTimes.into_error(),
+            )
+            .change_context(ObjectAccessError));
         }
 
         self.remaining = Some(length);
@@ -576,11 +577,12 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
             .change_context(ObjectAccessError);
         }
 
+        self.consumed += 1;
+
         if let Some(remaining) = &mut self.remaining {
             *remaining = remaining.saturating_sub(1);
         }
 
-        // TODO: we need to look bounded stuffs
         match self.scan(key) {
             Some(offset) => {
                 // now we need to figure out which values are used, we can do this through offset
@@ -618,6 +620,8 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
         if self.remaining == Some(0) {
             return None;
         }
+
+        self.consumed += 1;
 
         if let Some(remaining) = &mut self.remaining {
             *remaining = remaining.saturating_sub(1);
@@ -664,6 +668,38 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
     }
 
     fn end(self) -> Result<(), ObjectAccessError> {
-        todo!()
+        let mut result = Ok(());
+
+        // ensure that we consume the last token, if it is the wrong token error out
+        if !matches!(self.deserializer.peek(), Token::ObjectEnd) {
+            let mut error = Report::new(ObjectItemsExtraError.into_error())
+                .attach(ExpectedLength::new(self.consumed));
+
+            if let Some(length) = self.size_hint() {
+                error = error.attach(ReceivedLength::new(length));
+            }
+
+            result = Err(error);
+        }
+
+        // bump until the very end, which ensures that deserialize calls after this might succeed!
+        let bump = self
+            .scan_end()
+            .unwrap_or_else(|| self.deserializer.tokens.remaining());
+        self.deserializer.tokens.bump_n(bump);
+
+        if let Some(remaining) = self.remaining {
+            if remaining > 0 {
+                let error =
+                    Report::new(BoundedContractViolationError::EndRemainingItems.into_error());
+
+                match &mut result {
+                    Err(result) => result.extend_one(error),
+                    result => *result = Err(error),
+                }
+            }
+        }
+
+        result.change_context(ObjectAccessError)
     }
 }

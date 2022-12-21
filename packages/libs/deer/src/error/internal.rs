@@ -5,25 +5,32 @@ use crate::{
     id,
 };
 
+// TODO: name set_size?
 #[derive(Debug)]
-pub enum SetBoundedError {
-    Dirty,
-    CalledMultipleTimes,
+pub enum BoundedContractViolationError {
+    SetDirty,
+    SetCalledMultipleTimes,
+    EndRemainingItems,
 }
 
-impl Display for SetBoundedError {
+impl Display for BoundedContractViolationError {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
-            Self::Dirty => f.write_str("unable to set bounds after calling `.next()`"),
-            Self::CalledMultipleTimes => f.write_str("cannot call set_bounds() multiple times"),
+            Self::SetDirty => f.write_str("unable to set bounds after calling `.next()`"),
+            Self::SetCalledMultipleTimes => {
+                f.write_str("cannot call `set_bounded()` multiple times")
+            }
+            Self::EndRemainingItems => {
+                f.write_str("`.next()` was not called exactly `n` times before calling `.end()`")
+            }
         }
     }
 }
 
-impl Variant for SetBoundedError {
+impl Variant for BoundedContractViolationError {
     type Properties = (Location,);
 
-    const ID: Id = id!["internal", "access", "set_bounds"];
+    const ID: Id = id!["internal", "access", "bounded"];
     const NAMESPACE: Namespace = NAMESPACE;
 
     fn message<'a>(

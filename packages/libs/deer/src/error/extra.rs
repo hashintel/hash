@@ -78,6 +78,52 @@ impl Display for ObjectItemsExtraError {
     }
 }
 
+#[derive(Debug)]
+pub struct ObjectLengthError;
+
+impl Variant for ObjectLengthError {
+    type Properties = (Location, ExpectedLength, ReceivedLength);
+
+    const ID: Id = id!["object", "length"];
+    const NAMESPACE: Namespace = NAMESPACE;
+
+    fn message<'a>(
+        &self,
+        fmt: &mut Formatter,
+        properties: &<Self::Properties as ErrorProperties>::Value<'a>,
+    ) -> fmt::Result {
+        // expected object of length {expected}, but received object of length {received}
+        let (_, expected, received) = properties;
+
+        let has_expected = expected.is_some();
+        let has_received = received.is_some();
+
+        if let Some(ExpectedLength(length)) = expected {
+            fmt.write_fmt(format_args!("expected object of length {length}"))?;
+        }
+
+        if has_expected && has_received {
+            fmt.write_str(", but ")?;
+        }
+
+        if let Some(ReceivedLength(length)) = received {
+            fmt.write_fmt(format_args!("received object of length {length}"))?;
+        }
+
+        if !has_expected && !has_received {
+            Display::fmt(self, fmt)?;
+        }
+
+        Ok(())
+    }
+}
+
+impl Display for ObjectLengthError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str("received more items than expected")
+    }
+}
+
 #[derive(serde::Serialize)]
 pub struct ExpectedLength(usize);
 
@@ -240,7 +286,65 @@ mod tests {
     }
 
     #[test]
-    fn object() {
+    fn object_length() {
+        // we simulate that the error happens in:
+        // [..., {field1: {_: _, _: _, _: _} <- here}]
+        let error = Report::new(Error::new(ObjectLengthError))
+            .attach(Location::Field("field1"))
+            .attach(Location::Array(1))
+            .attach(ExpectedLength::new(2))
+            .attach(ReceivedLength::new(3));
+
+        let value = to_json::<ObjectLengthError>(&error);
+
+        assert_eq!(
+            value,
+            json!({
+                "location": [
+                    {"type": "array", "value": 1},
+                    {"type": "field", "value": "field1"}
+                ],
+                "expected": 2,
+                "received": 3
+            })
+        );
+    }
+
+    #[test]
+    fn object_length_message() {
+        assert_eq!(
+            to_message::<ObjectLengthError>(&Report::new(ObjectLengthError.into_error())),
+            "received more items than expected"
+        );
+
+        assert_eq!(
+            to_message::<ObjectLengthError>(
+                &Report::new(ObjectLengthError.into_error()) //
+                    .attach(ReceivedLength::new(3))
+            ),
+            "received object of length 3"
+        );
+
+        assert_eq!(
+            to_message::<ObjectLengthError>(
+                &Report::new(ObjectLengthError.into_error()) //
+                    .attach(ExpectedLength::new(2))
+            ),
+            "expected object of length 2"
+        );
+
+        assert_eq!(
+            to_message::<ObjectLengthError>(
+                &Report::new(ObjectLengthError.into_error())
+                    .attach(ExpectedLength::new(2))
+                    .attach(ReceivedLength::new(3))
+            ),
+            "expected object of length 2, but received object of length 3"
+        );
+    }
+
+    #[test]
+    fn object_extra() {
         // we simulate that the error happens in:
         // [..., {field1: [...], field2: [...]} <- here]
         let error = Report::new(ObjectItemsExtraError.into_error())
@@ -261,7 +365,7 @@ mod tests {
     }
 
     #[test]
-    fn object_message() {
+    fn object_extra_message() {
         assert_eq!(
             to_message::<ObjectItemsExtraError>(&Report::new(ObjectItemsExtraError.into_error())),
             "received unexpected keys"

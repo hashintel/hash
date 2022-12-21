@@ -32,10 +32,10 @@ use std::any::Demand;
 
 use deer::{
     error::{
-        ArrayAccessError, ArrayLengthError, DeserializeError, DeserializerError, ExpectedLength,
-        ExpectedType, MissingError, ObjectAccessError, ObjectItemsExtraError, ReceivedKey,
-        ReceivedLength, ReceivedType, ReceivedValue, SetBoundedError, TypeError, ValueError,
-        Variant,
+        ArrayAccessError, ArrayLengthError, BoundedContractViolationError, DeserializeError,
+        DeserializerError, ExpectedLength, ExpectedType, MissingError, ObjectAccessError,
+        ObjectItemsExtraError, ReceivedKey, ReceivedLength, ReceivedType, ReceivedValue, TypeError,
+        ValueError, Variant,
     },
     Context, Deserialize, DeserializeOwned, Document, Reflection, Schema, Visitor,
 };
@@ -400,15 +400,16 @@ impl<'a, 'de> deer::ArrayAccess<'de> for ArrayAccess<'a> {
     fn set_bounded(&mut self, length: usize) -> Result<(), ArrayAccessError> {
         if self.dirty {
             return Err(
-                Report::new(SetBoundedError::Dirty.into_error()).change_context(ArrayAccessError)
+                Report::new(BoundedContractViolationError::SetDirty.into_error())
+                    .change_context(ArrayAccessError),
             );
         }
 
         if self.remaining.is_some() {
-            return Err(
-                Report::new(SetBoundedError::CalledMultipleTimes.into_error())
-                    .change_context(ArrayAccessError),
-            );
+            return Err(Report::new(
+                BoundedContractViolationError::SetCalledMultipleTimes.into_error(),
+            )
+            .change_context(ArrayAccessError));
         }
 
         self.remaining = Some(length);
@@ -494,15 +495,16 @@ impl<'a, 'de> deer::ObjectAccess<'de> for ObjectAccess<'a> {
     fn set_bounded(&mut self, length: usize) -> Result<(), ObjectAccessError> {
         if self.dirty {
             return Err(
-                Report::new(SetBoundedError::Dirty.into_error()).change_context(ObjectAccessError)
+                Report::new(BoundedContractViolationError::SetDirty.into_error())
+                    .change_context(ObjectAccessError),
             );
         }
 
         if self.remaining.is_some() {
-            return Err(
-                Report::new(SetBoundedError::CalledMultipleTimes.into_error())
-                    .change_context(ObjectAccessError),
-            );
+            return Err(Report::new(
+                BoundedContractViolationError::SetCalledMultipleTimes.into_error(),
+            )
+            .change_context(ObjectAccessError));
         }
 
         self.remaining = Some(length);

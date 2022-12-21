@@ -65,9 +65,10 @@ use core::{
 
 use error_stack::{Context, Frame, IntoReport, Report, Result};
 pub use extra::{
-    ArrayLengthError, ExpectedLength, ObjectItemsExtraError, ReceivedKey, ReceivedLength,
+    ArrayLengthError, ExpectedLength, ObjectItemsExtraError, ObjectLengthError, ReceivedKey,
+    ReceivedLength,
 };
-pub use internal::SetBoundedError;
+pub use internal::BoundedContractViolationError;
 pub use location::Location;
 use serde::ser::SerializeMap;
 pub use r#type::{ExpectedType, ReceivedType, TypeError};
