@@ -884,10 +884,10 @@ impl PostgresStore<Transaction<'_>> {
                     entity_record_id,
                     tstzrange(
                         CASE WHEN decision_time IS NULL THEN now() ELSE decision_time END,
-                        'infinity',
+                        NULL,
                         '[)'
                     ),
-                    tstzrange(now(), 'infinity', '[)')
+                    tstzrange(now(), NULL, '[)')
                 FROM entity_versions_temp
                 RETURNING decision_time, transaction_time;",
                 &[],
