@@ -42,10 +42,7 @@ const StyledTableBodyCell = styled(Box)({
 interface ObjectExpectedValueRowProps {
   objectId: string;
   propertyId: VersionedUri;
-  allowArrays: boolean;
-  required: boolean;
   propertyIndex: number;
-  animatingOut?: boolean;
   allowArraysColumnWidth: number;
   requiredColumnWidth: number;
 }
@@ -55,18 +52,19 @@ const ObjectExpectedValueRow: FunctionComponent<
 > = ({
   objectId,
   propertyId,
-  allowArrays,
-  required,
   propertyIndex,
-  animatingOut,
   allowArraysColumnWidth,
   requiredColumnWidth,
 }) => {
   const [show, setShow] = useState(false);
 
-  const { types: propertyTypes } = usePropertyTypesContextValue();
-  const { setValue } = useFormContext<PropertyTypeFormValues>();
+  const { setValue, control } = useFormContext<PropertyTypeFormValues>();
+  const { allowArrays, required, animatingOut } = useWatch({
+    control,
+    name: `flattenedCustomExpectedValueList.${objectId}.data.properties.${propertyIndex}`,
+  });
 
+  const { types: propertyTypes } = usePropertyTypesContextValue();
   const property = propertyTypes?.[propertyId];
 
   useEffect(() => {
@@ -235,24 +233,16 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
           </Collapse>
 
           {properties.length
-            ? properties.map(
-                (
-                  { id, allowArrays, required, animatingOut },
-                  propertyIndex,
-                ) => (
-                  <ObjectExpectedValueRow
-                    key={id}
-                    objectId={expectedValueId}
-                    propertyId={id}
-                    allowArrays={allowArrays}
-                    required={required}
-                    propertyIndex={propertyIndex}
-                    animatingOut={animatingOut}
-                    allowArraysColumnWidth={allowArraysColumnWidth}
-                    requiredColumnWidth={requiredColumnWidth}
-                  />
-                ),
-              )
+            ? properties.map(({ id }, propertyIndex) => (
+                <ObjectExpectedValueRow
+                  key={id}
+                  objectId={expectedValueId}
+                  propertyId={id}
+                  propertyIndex={propertyIndex}
+                  allowArraysColumnWidth={allowArraysColumnWidth}
+                  requiredColumnWidth={requiredColumnWidth}
+                />
+              ))
             : null}
         </Box>
 
