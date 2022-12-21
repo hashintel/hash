@@ -1,6 +1,7 @@
 use core::fmt;
 use std::{any::type_name, error::Error, marker::PhantomData, time::SystemTime};
 
+use chrono::{DateTime, Utc};
 use derivative::Derivative;
 use postgres_types::{private::BytesMut, FromSql, ToSql, Type};
 use serde::{Deserialize, Serialize};
@@ -27,7 +28,7 @@ use utoipa::{openapi, ToSchema};
 pub struct Timestamp<A> {
     #[serde(skip)]
     axis: PhantomData<A>,
-    time: SystemTime,
+    time: DateTime<Utc>,
 }
 
 impl<A> fmt::Debug for Timestamp<A> {
@@ -44,7 +45,7 @@ impl<A> Timestamp<A> {
     pub fn now() -> Self {
         Self {
             axis: PhantomData,
-            time: SystemTime::now(),
+            time: DateTime::from(SystemTime::now()),
         }
     }
 
@@ -69,7 +70,7 @@ impl<'a> FromSql<'a> for Timestamp<()> {
     fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
         Ok(Self {
             axis: PhantomData,
-            time: SystemTime::from_sql(ty, raw)?,
+            time: DateTime::from_sql(ty, raw)?,
         })
     }
 
