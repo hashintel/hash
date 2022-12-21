@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-
 import { BlockComponent } from "blockprotocol/react";
+import { useEffect, useRef, useState } from "react";
 
 type BlockEntityProperties = {
   title: string;

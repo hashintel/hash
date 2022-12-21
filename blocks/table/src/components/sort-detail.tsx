@@ -1,8 +1,9 @@
-import { FunctionComponent, useEffect, useState } from "react";
-import { tw } from "twind";
-import { ColumnInstance } from "react-table";
-import { v4 as uuid } from "uuid";
 import { AggregateOperationInput } from "@blockprotocol/graph";
+import { FunctionComponent, useEffect, useState } from "react";
+import { ColumnInstance } from "react-table";
+import { tw } from "twind";
+import { v4 as uuid } from "uuid";
+
 import { AddIcon } from "./icons";
 
 type SortDetailProps = {

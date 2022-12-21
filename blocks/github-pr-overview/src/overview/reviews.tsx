@@ -1,12 +1,12 @@
-import { FunctionComponent } from "react";
 import {
-  Box,
-  Typography,
-  Stack,
-  typographyClasses,
-  AvatarGroup,
   Avatar,
+  AvatarGroup,
+  Box,
+  Stack,
+  Typography,
+  typographyClasses,
 } from "@mui/material";
+import { FunctionComponent } from "react";
 
 type SectionProps = {
   title: string;
