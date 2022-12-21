@@ -3,7 +3,7 @@ import { Node } from "prosemirror-model";
 import { NodeView } from "prosemirror-view";
 import { BlockLoadingIndicator } from "../../components/RemoteBlock/RemoteBlock";
 
-import { RenderPortal } from "./usePortals";
+import { RenderPortal } from "./BlockPortals";
 
 export const ProsemirrorLoadingState = () => {
   return (

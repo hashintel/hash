@@ -12,7 +12,10 @@ import {
 } from "react";
 import { MeQuery } from "../../graphql/apiTypes.gen";
 import { meQuery } from "../../graphql/queries/user.queries";
-import { AuthenticatedUser, constructAuthenticatedUser } from "../../lib/user";
+import {
+  AuthenticatedUser,
+  constructAuthenticatedUser,
+} from "../../lib/user-and-org";
 import { fetchKratosSession } from "./ory-kratos";
 
 type RefetchAuthInfoFunction = () => Promise<{

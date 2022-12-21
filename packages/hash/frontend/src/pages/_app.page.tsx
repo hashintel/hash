@@ -26,7 +26,10 @@ import { WorkspaceContextProvider } from "./shared/workspace-context";
 import { apolloClient } from "../lib/apollo-client";
 import { MeQuery } from "../graphql/apiTypes.gen";
 import { meQuery } from "../graphql/queries/user.queries";
-import { AuthenticatedUser, constructAuthenticatedUser } from "../lib/user";
+import {
+  AuthenticatedUser,
+  constructAuthenticatedUser,
+} from "../lib/user-and-org";
 import { fetchKratosSession } from "./shared/ory-kratos";
 import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
 import { setSentryUser } from "./shared/sentry";

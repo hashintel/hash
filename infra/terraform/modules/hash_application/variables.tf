@@ -93,3 +93,8 @@ variable "api_env_vars" {
   }))
   description = "A list of environment variables to save as system parameters and inject into the API service"
 }
+
+variable "ses_verified_domain_identity" {
+  type = string
+  description = "A verified AWS SES identity to use for email sending in the application."
+}

@@ -3,7 +3,7 @@ import { Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { FunctionComponent } from "react";
 import { Button } from "@hashintel/hash-design-system";
 import { ensureMounted } from "../../lib/dom";
-import { RenderPortal } from "./usePortals";
+import { RenderPortal } from "./BlockPortals";
 
 type ErrorProps = { errored: boolean };
 
