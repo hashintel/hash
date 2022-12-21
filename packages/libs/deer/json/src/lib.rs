@@ -34,14 +34,15 @@ use deer::{
     error::{
         ArrayAccessError, ArrayLengthError, DeserializeError, DeserializerError, ExpectedLength,
         ExpectedType, MissingError, ObjectAccessError, ObjectItemsExtraError, ReceivedKey,
-        ReceivedLength, ReceivedType, ReceivedValue, TypeError, ValueError, Variant,
+        ReceivedLength, ReceivedType, ReceivedValue, SetBoundedError, TypeError, ValueError,
+        Variant,
     },
     Context, Deserialize, DeserializeOwned, Document, Reflection, Schema, Visitor,
 };
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use serde_json::{Map, Value};
 
-use crate::error::{BytesUnsupportedError, OverflowError, SetBoundedError};
+use crate::error::{BytesUnsupportedError, OverflowError};
 
 #[cfg(not(feature = "arbitrary-precision"))]
 fn serde_to_deer_number(number: &serde_json::Number) -> Option<deer::Number> {

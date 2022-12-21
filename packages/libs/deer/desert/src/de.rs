@@ -2,7 +2,7 @@ use alloc::borrow::ToOwned;
 use core::ops::Range;
 
 use deer::{
-    error::{ArrayAccessError, DeserializerError, ObjectAccessError},
+    error::{ArrayAccessError, DeserializerError, ObjectAccessError, SetBoundedError, Variant},
     Context, Deserialize, Visitor,
 };
 use error_stack::{Report, Result, ResultExt};
@@ -56,7 +56,7 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
         self.context
     }
 
-    fn deserialize_any<V>(mut self, visitor: V) -> Result<V::Value, DeserializerError>
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>,
     {
@@ -124,6 +124,11 @@ impl<'a, 'de> Deserializer<'a, 'de> {
         self.next_maybe().expect("should have token to deserialize")
     }
 
+    fn bump_n(&mut self, n: usize) {
+        let (_, tokens) = self.tokens.split_at(n);
+        self.tokens = tokens;
+    }
+
     pub fn remaining(&self) -> usize {
         self.tokens.len()
     }
@@ -181,6 +186,31 @@ impl<'a, 'b, 'de> ArrayAccess<'a, 'b, 'de> {
             remaining: None,
         }
     }
+
+    fn scan_end(&self) -> Option<usize> {
+        let mut objects: usize = 0;
+        let mut arrays: usize = 0;
+
+        let mut n = 0;
+
+        loop {
+            let token = self.deserializer.peek_n(n)?;
+
+            match token {
+                Token::Array { .. } => arrays += 1,
+                Token::ArrayEnd if arrays == 0 && objects == 0 => {
+                    // we're at the outer layer, meaning we can know where we end
+                    return Some(n);
+                }
+                Token::ArrayEnd => arrays = arrays.saturating_sub(1),
+                Token::Object { .. } => objects += 1,
+                Token::ObjectEnd => objects = objects.saturating_sub(1),
+                _ => {}
+            }
+
+            n += 1;
+        }
+    }
 }
 
 impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
@@ -228,7 +258,7 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
                 None
             }
         } else {
-            let value = T::deserialize(self.deserializer);
+            let value = T::deserialize(&mut *self.deserializer);
             Some(value.change_context(ArrayAccessError))
         }
     }
@@ -279,6 +309,8 @@ impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
         }
     }
 
+    // This assumes that Str and such are atomic, meaning `Str Str` as a deserialize value is
+    // considered invalid, as that should use `ArrayAccess` instead.
     fn scan(&self, key: &str) -> Option<usize> {
         let mut objects: usize = 0;
         let mut arrays: usize = 0;
@@ -306,14 +338,14 @@ impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
 
             match next {
                 Token::Array { .. } => arrays += 1,
-                Token::ArrayEnd => arrays -= 1,
+                Token::ArrayEnd => arrays = arrays.saturating_sub(1),
                 Token::Object { .. } => objects += 1,
-                Token::ObjectEnd if objects == 0 => {
+                Token::ObjectEnd if objects == 0 && arrays == 0 => {
                     // this is for the outer layer (that's us), therefore we can abort our linear
                     // search
                     return None;
                 }
-                Token::ObjectEnd => objects -= 1,
+                Token::ObjectEnd => objects = objects.saturating_sub(1),
                 Token::Str(value) | Token::BorrowedStr(value) | Token::String(value)
                     if objects == 0 && arrays == 0 && value == key && state == State::Key =>
                 {
@@ -332,22 +364,47 @@ impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
             n += 1;
         }
     }
+
+    fn scan_end(&self) -> Option<usize> {
+        let mut objects: usize = 0;
+        let mut arrays: usize = 0;
+
+        let mut n = 0;
+
+        loop {
+            let token = self.deserializer.peek_n(n)?;
+
+            match token {
+                Token::Array { .. } => arrays += 1,
+                Token::ArrayEnd => arrays = arrays.saturating_sub(1),
+                Token::Object { .. } => objects += 1,
+                Token::ObjectEnd if arrays == 0 && objects == 0 => {
+                    // we're at the outer layer, meaning we can know where we end
+                    return Some(n);
+                }
+                Token::ObjectEnd => objects = objects.saturating_sub(1),
+                _ => {}
+            }
+
+            n += 1;
+        }
+    }
 }
 
 // TODO: for value we need a scan for some sorts, and then need to replace/remove the elements from
 //  the stream
 impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
-    fn set_bounded(&mut self, length: usize) -> Result<(), ArrayAccessError> {
+    fn set_bounded(&mut self, length: usize) -> Result<(), ObjectAccessError> {
         if self.dirty {
             return Err(
-                Report::new(SetBoundedError::Dirty.into_error()).change_context(ArrayAccessError)
+                Report::new(SetBoundedError::Dirty.into_error()).change_context(ObjectAccessError)
             );
         }
 
         if self.remaining.is_some() {
             return Err(
                 Report::new(SetBoundedError::CalledMultipleTimes.into_error())
-                    .change_context(ArrayAccessError),
+                    .change_context(ObjectAccessError),
             );
         }
 
@@ -360,6 +417,17 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
     where
         T: Deserialize<'de>,
     {
+        if self.remaining == Some(0) {
+            return T::deserialize(DeserializerNone {
+                context: self.deserializer.context,
+            })
+            .change_context(ObjectAccessError);
+        }
+
+        if let Some(remaining) = &mut self.remaining {
+            *remaining = remaining.saturating_sub(1);
+        }
+
         // TODO: we need to look bounded stuffs
         match self.scan(key) {
             Some(offset) => {
@@ -392,11 +460,54 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
         K: Deserialize<'de>,
         V: Deserialize<'de>,
     {
-        todo!()
+        if self.remaining == Some(0) {
+            return None;
+        }
+
+        if let Some(remaining) = &mut self.remaining {
+            *remaining = remaining.saturating_sub(1);
+        }
+
+        let (key, value) = if matches!(self.deserializer.peek(), Token::ObjectEnd) {
+            // we're not in bounded mode, which means we need to signal that we're done
+            if self.remaining.is_none() {
+                return None;
+            }
+
+            if self.remaining.is_some() {
+                let key = K::deserialize(DeserializerNone {
+                    context: self.deserializer.context,
+                });
+                let value = V::deserialize(DeserializerNone {
+                    context: self.deserializer.context,
+                });
+
+                (key, value)
+            } else {
+                return None;
+            }
+        } else {
+            let key = K::deserialize(&mut *self.deserializer);
+            let value = V::deserialize(&mut *self.deserializer);
+
+            (key, value)
+        };
+
+        let result = match (key, value) {
+            (Err(mut key), Err(value)) => {
+                key.extend_one(value);
+
+                Err(key.change_context(ObjectAccessError))
+            }
+            (Err(error), _) | (_, Err(error)) => Err(error.change_context(ObjectAccessError)),
+            (Ok(key), Ok(value)) => Ok((key, value)),
+        };
+
+        Some(result)
     }
 
     fn size_hint(&self) -> Option<usize> {
-        todo!()
+        self.length
     }
 
     fn end(self) -> Result<(), ObjectAccessError> {
