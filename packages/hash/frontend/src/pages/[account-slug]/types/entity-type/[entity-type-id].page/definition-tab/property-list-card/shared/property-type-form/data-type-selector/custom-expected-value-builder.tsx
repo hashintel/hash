@@ -41,7 +41,7 @@ const CustomChip: FunctionComponent<ChipProps & { borderColor?: string }> = ({
     }}
   />
 );
-export interface ExpectedValueBuilderProps {
+interface ExpectedValueBuilderProps {
   expectedValueId: string;
 }
 

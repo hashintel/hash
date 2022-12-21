@@ -39,7 +39,7 @@ const StyledTableBodyCell = styled(Box)({
   justifyContent: "center",
 });
 
-export interface ObjectExpectedValueRowProps {
+interface ObjectExpectedValueRowProps {
   objectId: string;
   propertyId: VersionedUri;
   allowArrays: boolean;
@@ -50,7 +50,7 @@ export interface ObjectExpectedValueRowProps {
   requiredColumnWidth: number;
 }
 
-export const ObjectExpectedValueRow: FunctionComponent<
+const ObjectExpectedValueRow: FunctionComponent<
   ObjectExpectedValueRowProps
 > = ({
   objectId,

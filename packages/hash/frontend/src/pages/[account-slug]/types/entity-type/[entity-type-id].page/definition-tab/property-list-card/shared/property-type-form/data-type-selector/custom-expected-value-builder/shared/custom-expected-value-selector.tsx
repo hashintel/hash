@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import { useState, useRef } from "react";
 
-export type CustomExpectedValueSelectorProps<T> = {
+type CustomExpectedValueSelectorProps<T> = {
   inputLabel: string;
   collapsedWidth: number;
   options: Array<T>;
