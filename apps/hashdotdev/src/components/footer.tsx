@@ -5,9 +5,9 @@ import { SITE_DESCRIPTION } from "../config";
 import { DiscordIcon } from "./icons/discord-icon";
 import { GithubIcon } from "./icons/github-icon";
 import { TwitterIcon } from "./icons/twitter-icon";
-import { Link } from "./xxx-link";
-import { Logo } from "./xxx-logo";
-import { Spacer } from "./xxx-spacer";
+import { Link } from "./link";
+import { Logo } from "./logo";
+import { Spacer } from "./spacer";
 
 const FooterLink: FunctionComponent<
   { href: string } & Omit<ComponentProps<typeof Typography>, "variant">

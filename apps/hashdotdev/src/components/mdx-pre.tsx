@@ -1,7 +1,7 @@
 import { Box } from "@mui/material";
 import { ReactElement } from "react";
 
-import { Snippet } from "./xxx-snippet";
+import { Snippet } from "./snippet";
 
 /**
  * @todo copy button

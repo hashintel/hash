@@ -3,11 +3,11 @@ import dynamic from "next/dynamic";
 import { ComponentType } from "react";
 
 import { ImageWithText } from "../components/image-with-text";
+import { Link, LinkProps } from "../components/link";
 import { MdxImage } from "../components/mdx-image";
 import { MdxPre } from "../components/mdx-pre";
 import { MdxTalkSlide } from "../components/mdx-talk-slide";
 import { MdxVideo } from "../components/mdx-video";
-import { Link, LinkProps } from "../components/xxx-link";
 
 const CalculationBlock = dynamic<{}>(
   () =>

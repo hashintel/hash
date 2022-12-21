@@ -8,8 +8,8 @@ import { createContext, FunctionComponent, ReactNode, useContext } from "react";
 import { FRONTEND_URL } from "../config";
 import { BlogPostAuthor as BlogPostAuthorType } from "../pages/blog/[...blog-slug].page";
 import { FaIcon } from "./icons/fa-icon";
+import { Link } from "./link";
 import { mdxImageClasses } from "./mdx-image";
-import { Link } from "./xxx-link";
 
 export type BlogPostPagePhoto = {
   src: string;

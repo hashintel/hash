@@ -11,10 +11,10 @@ import type { NextPage } from "next";
 import Image from "next/legacy/image";
 import { ComponentProps, FunctionComponent, ReactNode } from "react";
 
+import { Button } from "../components/button";
 import { GradientContainer } from "../components/gradient-container";
 import { FaIcon } from "../components/icons/fa-icon";
-import { Button } from "../components/xxx-button";
-import { Link } from "../components/xxx-link";
+import { Link } from "../components/link";
 
 const StylishDivider: FunctionComponent<
   ComponentProps<typeof Stack> & { wide?: boolean }

@@ -9,8 +9,8 @@ import {
 import Link from "next/link";
 import { forwardRef, FunctionComponent, useMemo } from "react";
 
+import { isHrefExternal } from "./link";
 import { LoadingSpinner } from "./loading-spinner";
-import { isHrefExternal } from "./xxx-link";
 
 export type ButtonProps = {
   loading?: boolean;

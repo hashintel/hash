@@ -2,7 +2,7 @@ import { faArrowRight, faBullhorn } from "@fortawesome/free-solid-svg-icons";
 import { Box, Container, Typography } from "@mui/material";
 
 import { FontAwesomeIcon } from "./icons/font-awesome-icon";
-import { Link } from "./xxx-link";
+import { Link } from "./link";
 
 const CAREERS_SITE = "https://hash.ai/careers";
 

@@ -12,7 +12,7 @@ import { useRouter } from "next/router";
 import { forwardRef, isValidElement } from "react";
 
 import { FRONTEND_URL } from "../config";
-import { Button } from "./xxx-button";
+import { Button } from "./button";
 
 // List of domains that are considered internal (i.e. should not be opened in a new tab)
 const internalDomains = ["hash.dev", "hash.ai", "blockprotocol.org"];

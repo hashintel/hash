@@ -1,7 +1,7 @@
 import Image from "next/legacy/image";
 import { ComponentProps, FunctionComponent } from "react";
 
-import { Link } from "./xxx-link";
+import { Link } from "./link";
 
 export const Logo: FunctionComponent<
   Omit<ComponentProps<typeof Link>, "href">

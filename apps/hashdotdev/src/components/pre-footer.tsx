@@ -13,10 +13,10 @@ import { unstable_batchedUpdates } from "react-dom";
 
 import { FRONTEND_URL } from "../config";
 import { SubscribeResponseBody } from "../pages/api/subscribe.page";
+import { Button } from "./button";
 import { FaIcon } from "./icons/fa-icon";
+import { NAV_HEIGHT } from "./navbar";
 import { TextField } from "./text-field";
-import { Button } from "./xxx-button";
-import { NAV_HEIGHT } from "./xxx-navbar";
 
 // Taken from http://emailregex.com/
 const EMAIL_REGEX =

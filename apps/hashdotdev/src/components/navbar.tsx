@@ -16,10 +16,10 @@ import clsx from "clsx";
 import { useRouter } from "next/router";
 import { FunctionComponent, useState } from "react";
 
+import { Button } from "./button";
 import { FaIcon } from "./icons/fa-icon";
 import { FontAwesomeIcon } from "./icons/font-awesome-icon";
-import { Button } from "./xxx-button";
-import { Logo } from "./xxx-logo";
+import { Logo } from "./logo";
 
 export const NAV_HEIGHT = 58;
 
