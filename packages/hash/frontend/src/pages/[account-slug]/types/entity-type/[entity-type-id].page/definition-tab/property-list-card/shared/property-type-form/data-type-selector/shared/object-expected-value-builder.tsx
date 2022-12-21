@@ -5,13 +5,9 @@ import {
   Box,
   Checkbox,
   chipClasses,
+  Collapse,
   Stack,
   styled,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   Typography,
 } from "@mui/material";
 import { usePopupState } from "material-ui-popup-state/hooks";
@@ -23,23 +19,25 @@ import { DeleteExpectedValueModal } from "../custom-expected-value-builder/array
 import { ExpectedValueBadge } from "../custom-expected-value-builder/array-expected-value-builder/expected-value-badge";
 import { CustomExpectedValueSelector } from "../custom-expected-value-builder/shared/custom-expected-value-selector";
 
-const StyledTableHeadCell = styled(TableCell)(({ theme }) => ({
-  py: 1,
-  px: 1.5,
+const StyledTableRow = styled(Box)(({ theme }) => ({
+  display: "flex",
+  borderBottom: `1px solid ${theme.palette.gray[30]} !important`,
+  gap: theme.spacing(1.5),
+  padding: `${theme.spacing(1)} ${theme.spacing(1.5)}}`,
+}));
+
+const StyledTableHeadCell = styled(Box)({
   lineHeight: "18px",
   fontSize: 11,
   fontWeight: 600,
-  borderBottom: `1px solid ${theme.palette.gray[30]}`,
   whiteSpace: "nowrap",
-}));
+});
 
-const StyledTableBodyCell = styled(TableCell)(({ theme }) => ({
-  py: 1,
-  px: 1.5,
-  flexDirection: "row",
+const StyledTableBodyCell = styled(Box)({
+  display: "flex",
   alignItems: "center",
-  borderBottom: `1px solid ${theme.palette.gray[30]} !important`,
-}));
+  justifyContent: "center",
+});
 
 export interface ObjectExpectedValueRowProps {
   objectId: string;
@@ -47,11 +45,23 @@ export interface ObjectExpectedValueRowProps {
   allowArrays: boolean;
   required: boolean;
   propertyIndex: number;
+  animatingOut?: boolean;
+  allowArraysColumnWidth: number;
+  requiredColumnWidth: number;
 }
 
 export const ObjectExpectedValueRow: FunctionComponent<
   ObjectExpectedValueRowProps
-> = ({ objectId, propertyId, allowArrays, required, propertyIndex }) => {
+> = ({
+  objectId,
+  propertyId,
+  allowArrays,
+  required,
+  propertyIndex,
+  animatingOut,
+  allowArraysColumnWidth,
+  requiredColumnWidth,
+}) => {
   const [show, setShow] = useState(false);
 
   const { types: propertyTypes } = usePropertyTypesContextValue();
@@ -60,70 +70,77 @@ export const ObjectExpectedValueRow: FunctionComponent<
   const property = propertyTypes?.[propertyId as VersionedUri];
 
   useEffect(() => {
-    setShow(true);
-  }, []);
+    if (property) {
+      setShow(true);
+    }
+  }, [property]);
 
-  return (
-    <TableRow
-      sx={{
-        maxHeight: show ? 1 : 0,
-        transition: ({ transitions }) => transitions.create("max-height"),
-      }}
-    >
-      <StyledTableBodyCell>
-        <FontAwesomeIcon
-          icon={faAsterisk}
-          sx={(theme) => ({
-            color: theme.palette.gray[50],
-            verticalAlign: "middle",
-          })}
-        />
-        <Typography
-          variant="smallTextLabels"
-          component="span"
-          ml={1.5}
-          color={(theme) => theme.palette.gray[80]}
-        >
-          {property?.title}
-        </Typography>
-        <Chip
-          color="purple"
-          label="PROPERTY TYPE"
+  return property ? (
+    <Collapse in={show && !animatingOut} sx={{ width: 1 }}>
+      <StyledTableRow sx={{ backgroundColor: "red" }}>
+        <StyledTableBodyCell sx={{ justifyContent: "flex-start", flex: 1 }}>
+          <FontAwesomeIcon
+            icon={faAsterisk}
+            sx={(theme) => ({
+              color: theme.palette.gray[50],
+              verticalAlign: "middle",
+            })}
+          />
+          <Typography
+            variant="smallTextLabels"
+            component="span"
+            ml={1.5}
+            color={(theme) => theme.palette.gray[80]}
+          >
+            {property?.title}
+          </Typography>
+          <Chip
+            color="purple"
+            label="PROPERTY TYPE"
+            sx={{
+              ml: 1.5,
+              borderColor: "transparent",
+              [`.${chipClasses.label}`]: {
+                fontWeight: 600,
+                fontSize: 11,
+              },
+            }}
+            size="xs"
+          />
+        </StyledTableBodyCell>
+        <StyledTableBodyCell
           sx={{
-            ml: 1.5,
-            borderColor: "transparent",
-            [`.${chipClasses.label}`]: {
-              fontWeight: 600,
-              fontSize: 11,
-            },
+            width: allowArraysColumnWidth,
           }}
-          size="xs"
-        />
-      </StyledTableBodyCell>
-      <StyledTableBodyCell align="center">
-        <Checkbox
-          checked={allowArrays}
-          onChange={(evt) => {
-            setValue(
-              `flattenedCustomExpectedValueList.${objectId}.data.properties.${propertyIndex}.allowArrays`,
-              evt.target.checked,
-            );
+        >
+          <Checkbox
+            checked={allowArrays}
+            onChange={(evt) => {
+              setValue(
+                `flattenedCustomExpectedValueList.${objectId}.data.properties.${propertyIndex}.allowArrays`,
+                evt.target.checked,
+              );
+            }}
+          />
+        </StyledTableBodyCell>
+        <StyledTableBodyCell
+          sx={{
+            width: requiredColumnWidth,
           }}
-        />
-      </StyledTableBodyCell>
-      <StyledTableBodyCell align="center">
-        <Checkbox
-          checked={required}
-          onChange={(evt) => {
-            setValue(
-              `flattenedCustomExpectedValueList.${objectId}.data.properties.${propertyIndex}.required`,
-              evt.target.checked,
-            );
-          }}
-        />
-      </StyledTableBodyCell>
-    </TableRow>
-  );
+        >
+          <Checkbox
+            checked={required}
+            onChange={(evt) => {
+              setValue(
+                `flattenedCustomExpectedValueList.${objectId}.data.properties.${propertyIndex}.required`,
+                evt.target.checked,
+              );
+            }}
+          />
+        </StyledTableBodyCell>
+      </StyledTableRow>
+    </Collapse>
+  ) : null;
 };
 
 type ObjectExpectedValueBuilderProps = {
@@ -146,6 +163,9 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
     name: `flattenedCustomExpectedValueList.${expectedValueId}.data.properties`,
   });
 
+  const [allowArraysColumnWidth, setAllowArraysColumnWidth] = useState(0);
+  const [requiredColumnWidth, setRequiredColumnWidth] = useState(0);
+
   const propertyIds = useMemo(
     () => properties.map(({ id }) => id),
     [properties],
@@ -155,6 +175,16 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
     variant: "popover",
     popupId: `deleteObject-${expectedValueId}`,
   });
+
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    if (properties.length === 0 && show) {
+      setShow(false);
+    } else if (properties.length > 0 && !show) {
+      setShow(true);
+    }
+  }, [properties, show]);
 
   return (
     <Stack sx={{ mb: 1 }}>
@@ -183,37 +213,48 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
           borderTopWidth: 0,
         })}
       >
-        {properties.length ? (
-          <Box width={1}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <StyledTableHeadCell>NAME</StyledTableHeadCell>
-                  <StyledTableHeadCell align="center">
-                    ALLOW ARRAYS
-                  </StyledTableHeadCell>
-                  <StyledTableHeadCell align="center">
-                    REQUIRED
-                  </StyledTableHeadCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {properties.map(
-                  ({ id, allowArrays, required }, propertyIndex) => (
-                    <ObjectExpectedValueRow
-                      key={id}
-                      objectId={expectedValueId}
-                      propertyId={id}
-                      allowArrays={allowArrays}
-                      required={required}
-                      propertyIndex={propertyIndex}
-                    />
-                  ),
-                )}
-              </TableBody>
-            </Table>
-          </Box>
-        ) : null}
+        <Box width={1}>
+          <Collapse in={show}>
+            <StyledTableRow>
+              <StyledTableHeadCell sx={{ flex: 1 }}>NAME</StyledTableHeadCell>
+              <StyledTableHeadCell
+                ref={(ref: HTMLDivElement) => {
+                  setAllowArraysColumnWidth(ref?.offsetWidth);
+                }}
+              >
+                ALLOW ARRAYS
+              </StyledTableHeadCell>
+              <StyledTableHeadCell
+                ref={(ref: HTMLDivElement) => {
+                  setRequiredColumnWidth(ref?.offsetWidth);
+                }}
+              >
+                REQUIRED
+              </StyledTableHeadCell>
+            </StyledTableRow>
+          </Collapse>
+
+          {properties.length
+            ? properties.map(
+                (
+                  { id, allowArrays, required, animatingOut },
+                  propertyIndex,
+                ) => (
+                  <ObjectExpectedValueRow
+                    key={id}
+                    objectId={expectedValueId}
+                    propertyId={id}
+                    allowArrays={allowArrays}
+                    required={required}
+                    propertyIndex={propertyIndex}
+                    animatingOut={animatingOut}
+                    allowArraysColumnWidth={allowArraysColumnWidth}
+                    requiredColumnWidth={requiredColumnWidth}
+                  />
+                ),
+              )
+            : null}
+        </Box>
 
         <Box sx={{ px: 1.25, py: 1 }}>
           <CustomExpectedValueSelector
@@ -242,7 +283,21 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
                 } else if (reason === "removeOption") {
                   setValue(
                     `flattenedCustomExpectedValueList.${expectedValueId}.data.properties`,
-                    properties.filter(({ id }) => id !== details.option),
+                    properties.map((property) => {
+                      if (property.id === details.option) {
+                        setTimeout(() => {
+                          setValue(
+                            `flattenedCustomExpectedValueList.${expectedValueId}.data.properties`,
+                            properties.filter(
+                              ({ id }) => id !== details.option,
+                            ),
+                          );
+                        }, 300);
+
+                        return { ...property, animatingOut: true };
+                      }
+                      return property;
+                    }),
                   );
                 }
               }

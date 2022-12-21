@@ -22,6 +22,7 @@ export interface Property {
   id: string;
   required: boolean;
   allowArrays: boolean;
+  animatingOut?: boolean;
 }
 
 interface ObjectExpectedValue {
