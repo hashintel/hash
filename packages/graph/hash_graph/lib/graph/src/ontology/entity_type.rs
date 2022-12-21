@@ -4,15 +4,16 @@ use serde::{
     de::{self, Deserializer, SeqAccess, Visitor},
     Deserialize,
 };
-use type_system::EntityType;
 use utoipa::ToSchema;
 
 use crate::{
     ontology::{property_type::PropertyTypeQueryPathVisitor, PropertyTypeQueryPath, Selector},
-    store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
+    store::query::{OntologyQueryPath, ParameterType, QueryPath},
 };
 
 /// A path to a [`EntityType`] field.
+///
+/// [`EntityType`]: type_system::EntityType
 #[derive(Debug, PartialEq, Eq)]
 pub enum EntityTypeQueryPath {
     /// The [`BaseUri`] of the [`EntityType`].
@@ -26,6 +27,7 @@ pub enum EntityTypeQueryPath {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`EntityType`]: type_system::EntityType
     /// [`BaseUri`]: type_system::uri::BaseUri
     BaseUri,
     /// The version of the [`EntityType`].
@@ -47,16 +49,18 @@ pub enum EntityTypeQueryPath {
     /// # use std::borrow::Cow;
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use type_system::EntityType;
-    /// # use graph::{store::query::{Filter, FilterExpression, Parameter}, ontology::EntityTypeQueryPath};
+    /// # use graph::{store::query::{Filter, FilterExpression, Parameter}};
+    /// # use graph::{ontology::{EntityTypeQueryPath, EntityTypeWithMetadata}};
     /// let filter_value = json!({ "equal": [{ "path": ["version"] }, { "parameter": "latest" }] });
-    /// let path = Filter::<EntityType>::deserialize(filter_value)?;
+    /// let path = Filter::<EntityTypeWithMetadata>::deserialize(filter_value)?;
     /// assert_eq!(path, Filter::Equal(
     ///     Some(FilterExpression::Path(EntityTypeQueryPath::Version)),
     ///     Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed("latest")))))
     /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`EntityType`]: type_system::EntityType
     Version,
     /// The [`VersionedUri`] of the [`EntityType`].
     ///
@@ -69,6 +73,7 @@ pub enum EntityTypeQueryPath {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`EntityType`]: type_system::EntityType
     /// [`VersionedUri`]: type_system::uri::VersionedUri
     VersionedUri,
     /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to the [`EntityType`].
@@ -82,23 +87,10 @@ pub enum EntityTypeQueryPath {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`EntityType`]: type_system::EntityType
     /// [`OwnedById`]: crate::provenance::OwnedById
     /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
     OwnedById,
-    /// The [`CreatedById`] of the [`ProvenanceMetadata`] belonging to the [`EntityType`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::EntityTypeQueryPath;
-    /// let path = EntityTypeQueryPath::deserialize(json!(["createdById"]))?;
-    /// assert_eq!(path, EntityTypeQueryPath::CreatedById);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`CreatedById`]: crate::provenance::CreatedById
-    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
-    CreatedById,
     /// The [`UpdatedById`] of the [`ProvenanceMetadata`] belonging to the [`EntityType`].
     ///
     /// ```rust
@@ -110,6 +102,7 @@ pub enum EntityTypeQueryPath {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`EntityType`]: type_system::EntityType
     /// [`UpdatedById`]: crate::provenance::UpdatedById
     /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
     UpdatedById,
@@ -123,6 +116,8 @@ pub enum EntityTypeQueryPath {
     /// assert_eq!(path, EntityTypeQueryPath::Title);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`EntityType::title()`]: type_system::EntityType::title
     Title,
     /// Corresponds to [`EntityType::description()`]
     ///
@@ -134,6 +129,8 @@ pub enum EntityTypeQueryPath {
     /// assert_eq!(path, EntityTypeQueryPath::Description);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`EntityType::description()`]: type_system::EntityType::description
     Description,
     /// Corresponds to [`EntityType::default()`].
     ///
@@ -145,6 +142,8 @@ pub enum EntityTypeQueryPath {
     /// assert_eq!(path, EntityTypeQueryPath::Default);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`EntityType::default()`]: type_system::EntityType::default
     Default,
     /// Corresponds to [`EntityType::examples()`].
     ///
@@ -156,6 +155,8 @@ pub enum EntityTypeQueryPath {
     /// assert_eq!(path, EntityTypeQueryPath::Examples);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`EntityType::examples()`]: type_system::EntityType::examples
     Examples,
     /// Corresponds to [`EntityType::property_type_references()`].
     ///
@@ -176,6 +177,8 @@ pub enum EntityTypeQueryPath {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`EntityType`]: type_system::EntityType
+    /// [`EntityType::property_type_references()`]: type_system::EntityType::property_type_references
     /// [`PropertyType`]: type_system::PropertyType
     Properties(PropertyTypeQueryPath),
     /// Corresponds to [`EntityType::required()`].
@@ -188,6 +191,8 @@ pub enum EntityTypeQueryPath {
     /// assert_eq!(path, EntityTypeQueryPath::Required);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`EntityType::required()`]: type_system::EntityType::required
     Required,
     /// Corresponds to the keys of [`EntityType::link_mappings()`].
     ///
@@ -208,6 +213,9 @@ pub enum EntityTypeQueryPath {
     /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`EntityType`]: type_system::EntityType
+    /// [`EntityType::link_mappings()`]: type_system::EntityType::link_mappings
     Links(Box<Self>),
     /// Corresponds to [`EntityType::required_links()`].
     ///
@@ -219,6 +227,8 @@ pub enum EntityTypeQueryPath {
     /// assert_eq!(path, EntityTypeQueryPath::RequiredLinks);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`EntityType::required_links()`]: type_system::EntityType::required_links
     RequiredLinks,
     /// Currently, does not correspond to any field of [`EntityType`].
     ///
@@ -242,6 +252,9 @@ pub enum EntityTypeQueryPath {
     /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`EntityType`]: type_system::EntityType
+    /// [`EntityType::inherits_from()`]: type_system::EntityType::inherits_from
     InheritsFrom(Box<Self>),
     /// Only used internally and not available for deserialization.
     VersionId,
@@ -249,11 +262,7 @@ pub enum EntityTypeQueryPath {
     Schema,
 }
 
-impl QueryRecord for EntityType {
-    type Path<'q> = EntityTypeQueryPath;
-}
-
-impl OntologyPath for EntityTypeQueryPath {
+impl OntologyQueryPath for EntityTypeQueryPath {
     fn base_uri() -> Self {
         Self::BaseUri
     }
@@ -270,10 +279,6 @@ impl OntologyPath for EntityTypeQueryPath {
         Self::OwnedById
     }
 
-    fn created_by_id() -> Self {
-        Self::CreatedById
-    }
-
     fn updated_by_id() -> Self {
         Self::UpdatedById
     }
@@ -283,12 +288,10 @@ impl OntologyPath for EntityTypeQueryPath {
     }
 }
 
-impl RecordPath for EntityTypeQueryPath {
+impl QueryPath for EntityTypeQueryPath {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::VersionId | Self::OwnedById | Self::CreatedById | Self::UpdatedById => {
-                ParameterType::Uuid
-            }
+            Self::VersionId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
             Self::Schema => ParameterType::Any,
             Self::BaseUri => ParameterType::BaseUri,
             Self::VersionedUri => ParameterType::VersionedUri,
@@ -311,7 +314,6 @@ impl fmt::Display for EntityTypeQueryPath {
             Self::Version => fmt.write_str("version"),
             Self::VersionedUri => fmt.write_str("versionedUri"),
             Self::OwnedById => fmt.write_str("ownedById"),
-            Self::CreatedById => fmt.write_str("createdById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
             Self::Schema => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),
@@ -335,7 +337,6 @@ pub enum EntityTypeQueryToken {
     Version,
     VersionedUri,
     OwnedById,
-    CreatedById,
     UpdatedById,
     Title,
     Description,
@@ -356,9 +357,9 @@ pub struct EntityTypeQueryPathVisitor {
 
 impl EntityTypeQueryPathVisitor {
     pub const EXPECTING: &'static str = "one of `baseUri`, `version`, `versionedUri`, \
-                                         `ownedById`, `createdById`, `updatedById`, `title`, \
-                                         `description`, `default`, `examples`, `properties`, \
-                                         `required`, `links`, `requiredLinks`, `inheritsFrom`";
+                                         `ownedById`, `updatedById`, `title`, `description`, \
+                                         `default`, `examples`, `properties`, `required`, \
+                                         `links`, `requiredLinks`, `inheritsFrom`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -384,7 +385,6 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
 
         Ok(match token {
             EntityTypeQueryToken::OwnedById => EntityTypeQueryPath::OwnedById,
-            EntityTypeQueryToken::CreatedById => EntityTypeQueryPath::CreatedById,
             EntityTypeQueryToken::UpdatedById => EntityTypeQueryPath::UpdatedById,
             EntityTypeQueryToken::BaseUri => EntityTypeQueryPath::BaseUri,
             EntityTypeQueryToken::VersionedUri => EntityTypeQueryPath::VersionedUri,
@@ -439,7 +439,7 @@ mod tests {
 
     use super::*;
 
-    fn deserialize<'q>(segments: impl IntoIterator<Item = &'q str>) -> EntityTypeQueryPath {
+    fn deserialize<'p>(segments: impl IntoIterator<Item = &'p str>) -> EntityTypeQueryPath {
         EntityTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
             segments.into_iter(),
         ))

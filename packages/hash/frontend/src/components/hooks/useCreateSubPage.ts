@@ -1,7 +1,14 @@
 import { useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
-import { EntityId, splitEntityId } from "@hashintel/hash-subgraph";
+import {
+  OwnedById,
+  EntityId,
+  extractEntityUuidFromEntityId,
+  Uuid,
+  EntityUuid,
+} from "@hashintel/hash-shared/types";
+
 import {
   CreatePageMutation,
   CreatePageMutationVariables,
@@ -10,9 +17,14 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 import { createPage, setParentPage } from "../../graphql/queries/page.queries";
+import { useWorkspaceShortnameByEntityUuid } from "./use-workspace-shortname-by-entity-uuid";
+import { constructPageRelativeUrl } from "../../lib/routes";
 
-export const useCreateSubPage = (ownedById: string) => {
+export const useCreateSubPage = (ownedById: OwnedById) => {
   const router = useRouter();
+  const { workspaceShortname } = useWorkspaceShortnameByEntityUuid({
+    entityUuid: ownedById as Uuid as EntityUuid,
+  });
 
   const [createPageFn, { loading: createPageLoading }] = useMutation<
     CreatePageMutation,
@@ -36,8 +48,8 @@ export const useCreateSubPage = (ownedById: string) => {
       });
 
       if (response.data?.createPage) {
-        const pageEntityId =
-          response.data?.createPage?.metadata.editionId.baseId;
+        const pageEntityId = response.data.createPage.metadata.editionId
+          .baseId as EntityId;
 
         await setParentPageFn({
           variables: {
@@ -47,13 +59,19 @@ export const useCreateSubPage = (ownedById: string) => {
           },
         });
 
-        if (pageEntityId) {
-          const [pageOwnedById, pageEntityUuid] = splitEntityId(pageEntityId);
-          return router.push(`/${pageOwnedById}/${pageEntityUuid}`);
+        if (
+          workspaceShortname &&
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
+          pageEntityId
+        ) {
+          const pageEntityUuid = extractEntityUuidFromEntityId(pageEntityId);
+          return router.push(
+            constructPageRelativeUrl({ workspaceShortname, pageEntityUuid }),
+          );
         }
       }
     },
-    [createPageFn, ownedById, setParentPageFn, router],
+    [createPageFn, ownedById, setParentPageFn, router, workspaceShortname],
   );
 
   return [

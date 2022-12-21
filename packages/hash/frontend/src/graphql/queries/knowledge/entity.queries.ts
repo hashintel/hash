@@ -4,16 +4,16 @@ import { subgraphFieldsFragment } from "../subgraph";
 export const createEntityMutation = gql`
   mutation createEntity(
     $entityTypeId: VersionedUri!
-    $ownedById: ID
+    $ownedById: OwnedById
     $properties: PropertyObject!
-    $linkMetadata: LinkEntityMetadata
+    $linkData: LinkData
   ) {
     # This is a scalar, which has no selection.
     createEntity(
       entityTypeId: $entityTypeId
       ownedById: $ownedById
       properties: $properties
-      linkMetadata: $linkMetadata
+      linkData: $linkData
     )
   }
 `;
@@ -78,15 +78,15 @@ export const updateEntityMutation = gql`
   mutation updateEntity(
     $entityId: EntityId!
     $updatedProperties: PropertyObject!
-    $leftOrder: Int
-    $rightOrder: Int
+    $leftToRightOrder: Int
+    $rightToLeftOrder: Int
   ) {
     # This is a scalar, which has no selection.
     updateEntity(
       entityId: $entityId
       updatedProperties: $updatedProperties
-      leftOrder: $leftOrder
-      rightOrder: $rightOrder
+      leftToRightOrder: $leftToRightOrder
+      rightToLeftOrder: $rightToLeftOrder
     )
   }
 `;

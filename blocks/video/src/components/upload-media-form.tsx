@@ -1,5 +1,6 @@
 import { ChangeEvent, FunctionComponent } from "react";
 import { tw } from "twind";
+
 import Loader from "../svgs/loader";
 
 type UploadMediaFormProps = {
@@ -54,7 +55,7 @@ export const UploadMediaForm: FunctionComponent<UploadMediaFormProps> = ({
         <div>
           {/** @todo need to make this controlled */}
           <input
-            className={tw`px-1.5 py-1 rounded-sm border-2 border-gray-200 bg-gray-50 focus:outline-none focus:ring focus:border-blue-300 w-full`}
+            className={tw`box-border text-base border-solid px-1.5 py-1 rounded-sm border-2 border-gray-200 bg-gray-50 focus:outline-none focus:ring focus:border-blue-300 w-full`}
             onChange={(event) => onUrlChange(event.target.value)}
             type="url"
             placeholder={`Enter ${capitalisedType} URL`}
@@ -64,7 +65,7 @@ export const UploadMediaForm: FunctionComponent<UploadMediaFormProps> = ({
         <div>
           <label>
             <div
-              className={tw`my-4 bg-gray-50 border-2 border-dashed border-gray-200 py-4 text-sm text-gray-400 ${
+              className={tw`text-base my-4 bg-gray-50 border-2 border-dashed border-gray-200 py-4 text-sm text-gray-400 ${
                 !readonly ? "cursor-pointer" : ""
               }`}
             >
@@ -85,7 +86,7 @@ export const UploadMediaForm: FunctionComponent<UploadMediaFormProps> = ({
         <div className={tw`mt-4`}>
           {!readonly && (
             <button
-              className={tw`bg-blue-400 rounded-sm hover:bg-blue-500 focus:bg-blue-600 py-1 text-white w-full flex items-center justify-center`}
+              className={tw`text-base border-none bg-blue-400 rounded-sm hover:bg-blue-500 focus:bg-blue-600 py-1 text-white w-full flex items-center justify-center`}
               type="submit"
             >
               {loading && <Loader />}

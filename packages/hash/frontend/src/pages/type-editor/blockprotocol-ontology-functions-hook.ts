@@ -7,12 +7,14 @@
  * relevant for the type editors.
  */
 import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
+import { OwnedById } from "@hashintel/hash-shared/types";
+
 import { OntologyCallbacks } from "../../components/hooks/blockProtocolFunctions/ontology/ontology-types-shim";
 import { KnowledgeCallbacks } from "../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 
 import { useBlockProtocolFileUpload } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolFileUpload";
 
-import { useReadonlyMode } from "../../shared/readonly-mode";
+import { useIsReadonlyMode } from "../../shared/readonly-mode";
 
 // Ontology operations
 import { useBlockProtocolAggregateDataTypes } from "../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateDataTypes";
@@ -62,18 +64,21 @@ export type GraphMessageCallbacks = Omit<
 
 /** @todo Consider if we should move this out of the page and into the hooks directory. */
 export const useBlockProtocolFunctionsWithOntology = (
-  ownedById: string,
+  ownedById: OwnedById | null,
 ): GraphMessageCallbacks => {
-  const { readonlyMode } = useReadonlyMode();
+  const isReadonlyMode = useIsReadonlyMode();
 
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
-  const { createEntity } = useBlockProtocolCreateEntity(readonlyMode);
+  const { createEntity } = useBlockProtocolCreateEntity(
+    ownedById,
+    isReadonlyMode,
+  );
 
   const { getEntity } = useBlockProtocolGetEntity();
   const { updateEntity } = useBlockProtocolUpdateEntity();
   const { archiveEntity } = useBlockProtocolArchiveEntity();
 
-  const { uploadFile } = useBlockProtocolFileUpload(readonlyMode);
+  const { uploadFile } = useBlockProtocolFileUpload(isReadonlyMode);
 
   // Ontology operations
 
@@ -81,19 +86,19 @@ export const useBlockProtocolFunctionsWithOntology = (
   const { getDataType } = useBlockProtocolGetDataType();
   const { createPropertyType } = useBlockProtocolCreatePropertyType(
     ownedById,
-    readonlyMode,
+    isReadonlyMode,
   );
   const { aggregatePropertyTypes } = useBlockProtocolAggregatePropertyTypes();
   const { getPropertyType } = useBlockProtocolGetPropertyType();
   const { updatePropertyType } =
-    useBlockProtocolUpdatePropertyType(readonlyMode);
+    useBlockProtocolUpdatePropertyType(isReadonlyMode);
   const { createEntityType } = useBlockProtocolCreateEntityType(
     ownedById,
-    readonlyMode,
+    isReadonlyMode,
   );
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
   const { getEntityType } = useBlockProtocolGetEntityType();
-  const { updateEntityType } = useBlockProtocolUpdateEntityType(readonlyMode);
+  const { updateEntityType } = useBlockProtocolUpdateEntityType(isReadonlyMode);
 
   return {
     aggregateEntities,

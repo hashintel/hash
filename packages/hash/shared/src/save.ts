@@ -1,8 +1,9 @@
 import { ApolloClient } from "@apollo/client";
-import { EntityId, VersionedUri } from "@hashintel/hash-subgraph";
+import { VersionedUri } from "@hashintel/hash-subgraph";
 import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
+import { OwnedById, EntityId } from "@hashintel/hash-shared/types";
 
 import { BlockEntity, isDraftTextEntity } from "./entity";
 import {
@@ -36,13 +37,13 @@ type EntityTypeForComponentResult = [VersionedUri, UpdatePageAction[]];
  */
 const calculateSaveActions = async (
   store: EntityStore,
-  ownedById: string,
+  ownedById: OwnedById,
   textEntityTypeId: VersionedUri,
   blocks: BlockEntity[],
   doc: Node,
   getEntityTypeForComponent: (
     componentId: string,
-  ) => Promise<EntityTypeForComponentResult>,
+  ) => EntityTypeForComponentResult | Promise<EntityTypeForComponentResult>,
 ) => {
   const actions: UpdatePageAction[] = [];
 
@@ -88,7 +89,7 @@ const calculateSaveActions = async (
 
       actions.push({
         updateEntity: {
-          entityId: draftEntity.metadata.editionId.baseId,
+          entityId: draftEntity.metadata.editionId.baseId as EntityId,
           properties: nextProperties,
         },
       });
@@ -265,7 +266,7 @@ const calculateSaveActions = async (
       const oldChildEntityForBlock = savedEntity.blockChildEntity;
 
       if (
-        oldChildEntityForBlock?.metadata.editionId.baseId !==
+        oldChildEntityForBlock.metadata.editionId.baseId !==
         newChildEntityForBlock?.metadata.editionId.baseId
       ) {
         if (!newChildEntityForBlock?.metadata.editionId.baseId) {
@@ -276,8 +277,9 @@ const calculateSaveActions = async (
 
         actions.push({
           swapBlockData: {
-            entityId: savedEntity.metadata.editionId.baseId,
-            newEntityEntityId: newChildEntityForBlock.metadata.editionId.baseId,
+            entityId: savedEntity.metadata.editionId.baseId as EntityId,
+            newEntityEntityId: newChildEntityForBlock.metadata.editionId
+              .baseId as EntityId,
           },
         });
       }
@@ -328,7 +330,8 @@ const calculateSaveActions = async (
           },
           ...(draftEntity.metadata.editionId.baseId
             ? {
-                existingBlockEntityId: draftEntity.metadata.editionId.baseId,
+                existingBlockEntityId: draftEntity.metadata.editionId
+                  .baseId as EntityId,
               }
             : {
                 blockPlaceholderId,
@@ -370,7 +373,7 @@ const getDraftEntityIds = (
 
 export const save = async (
   apolloClient: ApolloClient<unknown>,
-  ownedById: string,
+  ownedById: OwnedById,
   pageEntityId: EntityId,
   doc: Node,
   store: EntityStore,
@@ -395,7 +398,7 @@ export const save = async (
     /**
      * @todo currently we use the text entity type for *every block* we don't know about.
      */
-    async (_componentId: string) => {
+    (_componentId: string) => {
       return [TEXT_ENTITY_TYPE_ID, []];
     },
   );

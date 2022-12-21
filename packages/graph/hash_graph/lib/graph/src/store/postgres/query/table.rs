@@ -80,7 +80,6 @@ macro_rules! impl_ontology_column {
             pub enum $name {
                 VersionId,
                 OwnedById,
-                CreatedById,
                 UpdatedById,
                 Schema(Option<JsonField<'static>>),
             }
@@ -90,7 +89,6 @@ macro_rules! impl_ontology_column {
                     match self {
                         Self::VersionId
                         | Self::OwnedById
-                        | Self::CreatedById
                         | Self::UpdatedById => false,
                         Self::Schema(_) => true,
                     }
@@ -102,7 +100,6 @@ macro_rules! impl_ontology_column {
                     let column = match self {
                         Self::VersionId => "version_id",
                         Self::OwnedById => "owned_by_id",
-                        Self::CreatedById => "created_by_id",
                         Self::UpdatedById => "updated_by_id",
                         Self::Schema(None) => "schema",
                         Self::Schema(Some(path)) => match path {
@@ -131,16 +128,19 @@ impl_ontology_column!(EntityTypes);
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Entities<'p> {
     EntityUuid,
-    Version,
-    LatestVersion,
+    RecordId,
+    DecisionTime,
+    TransactionTime,
+    // TODO: Remove when adjusting structural queries
+    //   see https://app.asana.com/0/0/1203491211535116/f
+    LowerTransactionTime,
     Archived,
     OwnedById,
-    CreatedById,
     UpdatedById,
     EntityTypeVersionId,
     Properties(Option<JsonField<'p>>),
-    LeftOrder,
-    RightOrder,
+    LeftToRightOrder,
+    RightToLeftOrder,
     LeftEntityUuid,
     RightEntityUuid,
     LeftEntityOwnedById,
@@ -151,11 +151,12 @@ impl Entities<'_> {
     pub const fn nullable(self) -> bool {
         match self {
             Self::EntityUuid
-            | Self::Version
-            | Self::LatestVersion
+            | Self::RecordId
+            | Self::DecisionTime
+            | Self::TransactionTime
+            | Self::LowerTransactionTime
             | Self::Archived
             | Self::OwnedById
-            | Self::CreatedById
             | Self::UpdatedById
             | Self::EntityTypeVersionId => false,
             Self::Properties(_)
@@ -163,8 +164,8 @@ impl Entities<'_> {
             | Self::RightEntityUuid
             | Self::LeftEntityOwnedById
             | Self::RightEntityOwnedById
-            | Self::LeftOrder
-            | Self::RightOrder => true,
+            | Self::LeftToRightOrder
+            | Self::RightToLeftOrder => true,
         }
     }
 }
@@ -173,11 +174,11 @@ impl Transpile for Entities<'_> {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
             Self::EntityUuid => "entity_uuid",
-            Self::Version => "version",
-            Self::LatestVersion => "latest_version",
+            Self::RecordId => "entity_record_id",
+            Self::DecisionTime => "decision_time",
+            Self::TransactionTime | Self::LowerTransactionTime => "transaction_time",
             Self::Archived => "archived",
             Self::OwnedById => "owned_by_id",
-            Self::CreatedById => "created_by_id",
             Self::UpdatedById => "updated_by_id",
             Self::EntityTypeVersionId => "entity_type_version_id",
             Self::Properties(None) => "properties",
@@ -194,8 +195,8 @@ impl Transpile for Entities<'_> {
                     }
                 };
             }
-            Self::LeftOrder => "left_order",
-            Self::RightOrder => "right_order",
+            Self::LeftToRightOrder => "left_to_right_order",
+            Self::RightToLeftOrder => "right_to_left_order",
             Self::LeftEntityUuid => "left_entity_uuid",
             Self::RightEntityUuid => "right_entity_uuid",
             Self::LeftEntityOwnedById => "left_owned_by_id",
@@ -530,7 +531,7 @@ impl Relation {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{ontology::DataTypeQueryPath, store::postgres::query::Path};
+    use crate::{ontology::DataTypeQueryPath, store::postgres::query::PostgresQueryPath};
 
     #[test]
     fn transpile_table() {

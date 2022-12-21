@@ -1,4 +1,10 @@
-import { useEffect, useRef, useLayoutEffect, FunctionComponent } from "react";
+import {
+  useEffect,
+  useRef,
+  useLayoutEffect,
+  FunctionComponent,
+  useContext,
+} from "react";
 import { EditorState } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { baseKeymap } from "prosemirror-commands";
@@ -21,13 +27,12 @@ import {
   textBlockNodesFromTokens,
 } from "@hashintel/hash-shared/text";
 import { debounce, isEqual } from "lodash";
-import { usePortals } from "../usePortals";
+import { usePortals } from "../BlockPortals";
 import { createFormatPlugins } from "../createFormatPlugins";
 import {
   createSuggester,
   suggesterPluginKey,
 } from "../createSuggester/createSuggester";
-import { useRouteAccountInfo } from "../../../shared/routing";
 import styles from "./style.module.css";
 import {
   CommentPlaceholderAction,
@@ -35,6 +40,7 @@ import {
   commentPlaceholderPluginkey,
 } from "./commentPlaceholderPlugin";
 import { createTextEditorView } from "../createTextEditorView";
+import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 
 type CommentTextFieldProps = {
   value?: TextToken[];
@@ -67,7 +73,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
 }) => {
   const viewRef = useRef<EditorView>();
   const [portals, renderPortal] = usePortals();
-  const { accountId } = useRouteAccountInfo();
+  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
   const editorContainerRef = useRef<HTMLDivElement>();
   const editableRef = useRef(false);
   const eventsRef = useRef({ onClose, onSubmit, onLineCountChange });
@@ -93,7 +99,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
   useEffect(() => {
     const editorContainer = editorContainerRef.current;
 
-    if (editorContainer) {
+    if (editorContainer && activeWorkspaceAccountId) {
       const schema = createSchema({
         doc: {
           content: "inline*",
@@ -124,7 +130,11 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
           keymap(baseKeymap),
           ...createFormatPlugins(renderPortal),
           formatKeymap(schema),
-          createSuggester(renderPortal, accountId, editorContainer),
+          createSuggester(
+            renderPortal,
+            activeWorkspaceAccountId,
+            editorContainer,
+          ),
           commentPlaceholderPlugin(renderPortal),
         ],
       });
@@ -133,7 +143,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         state,
         editorContainer,
         renderPortal,
-        accountId,
+        activeWorkspaceAccountId,
         {
           dispatchTransaction: (tr) => {
             const newState = view.state.apply(tr);
@@ -176,7 +186,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         viewRef.current = undefined;
       };
     }
-  }, [onChange, accountId, renderPortal]);
+  }, [onChange, activeWorkspaceAccountId, renderPortal]);
 
   useEffect(() => {
     viewRef.current?.setProps({ editable: () => editable });

@@ -5,7 +5,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import "./loadTestEnv";
+import "./load-test-env";
 import {
   Aggregation,
   Entity,
@@ -92,8 +92,8 @@ const createNewBobWithOrg = async () => {
   const bobOrg = await Org.createOrg(db, {
     createdByAccountId: bobUser.entityId,
     properties: {
-      shortname: `${bobUser.properties.shortname}-org`,
-      name: `${bobUser.properties.preferredName}'s Org`,
+      shortname: `${bobUser.properties.shortname!}-org`,
+      name: `${bobUser.properties.preferredName!}'s Org`,
     },
   });
 
@@ -278,7 +278,7 @@ describe("logged in user ", () => {
     client.setCookie(cookie);
   });
 
-  afterAll(async () => {
+  afterAll(() => {
     /** @todo: delete test user from db */
     client.removeCookie();
   });

@@ -13,13 +13,13 @@ import {
 } from "@blockprotocol/graph";
 import {
   Entity,
-  EntityId,
   PropertyObject,
   Subgraph,
   VersionedUri,
   SubgraphRootTypes,
-  LinkEntityMetadata,
+  LinkData,
 } from "@hashintel/hash-subgraph";
+import { EntityId } from "@hashintel/hash-shared/types";
 
 export type KnowledgeCallbacks = {
   getEntity: GetEntityMessageCallback;
@@ -56,9 +56,8 @@ export type AggregateEntitiesMessageCallback = MessageCallback<
 
 export type CreateEntityRequest = {
   entityTypeId: VersionedUri;
-  ownedById?: string;
   properties: PropertyObject;
-  linkMetadata?: LinkEntityMetadata;
+  linkData?: LinkData;
 };
 
 export type CreateEntityMessageCallback = MessageCallback<
@@ -71,8 +70,8 @@ export type CreateEntityMessageCallback = MessageCallback<
 export type UpdateEntityRequest = {
   entityId: EntityId;
   updatedProperties: PropertyObject;
-  leftOrder?: number;
-  rightOrder?: number;
+  leftToRightOrder?: number;
+  rightToLeftOrder?: number;
 };
 
 export type UpdateEntityMessageCallback = MessageCallback<

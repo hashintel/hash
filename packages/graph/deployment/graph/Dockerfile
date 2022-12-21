@@ -1,4 +1,4 @@
-FROM alpine:3.16 as rust
+FROM alpine:3.17 as rust
 
 ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
@@ -13,13 +13,17 @@ FROM rust AS builder
 WORKDIR /usr/local/src/hash_graph
 COPY hash_graph .
 ARG PROFILE=production
+
+# To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
+RUN apk add --no-cache make protobuf-dev
+
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=/usr/local/src/hash_graph/target \
     cargo install --path bin/hash_graph --profile $PROFILE --all-features --locked
 
 # Replace with `FROM scratch` when a health check command was added to hash-graph
-FROM alpine:3.16 AS runtime
+FROM alpine:3.17 AS runtime
 COPY --from=builder /usr/local/cargo/bin/hash-graph /
 
 HEALTHCHECK --interval=2s --timeout=1s --retries=5 \

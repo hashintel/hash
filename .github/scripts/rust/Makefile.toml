@@ -18,10 +18,10 @@ CARGO_FORMAT_HACK_FLAGS = "--workspace"
 CARGO_CLIPPY_FLAGS = "--no-deps --all-targets"
 CARGO_CLIPPY_HACK_FLAGS = "--workspace --feature-powerset"
 
-CARGO_DOC_FLAGS = "--no-deps --all-features -Zunstable-options -Zrustdoc-scrape-examples=examples"
+CARGO_DOC_FLAGS = "--no-deps --all-features -Zunstable-options -Zrustdoc-scrape-examples"
 CARGO_DOC_HACK_FLAGS = "--workspace"
 
-CARGO_RUSTDOC_FLAGS = "--all-features -Zunstable-options -Zrustdoc-scrape-examples=examples -- -Zunstable-options"
+CARGO_RUSTDOC_FLAGS = "--all-features -Zunstable-options -Zrustdoc-scrape-examples -- -Zunstable-options"
 CARGO_RUSTDOC_HACK_FLAGS = "--workspace"
 
 CARGO_TEST_FLAGS = ""

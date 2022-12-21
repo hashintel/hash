@@ -24,7 +24,7 @@ import { RemoteBlock } from "../RemoteBlock/RemoteBlock";
 import { useBlockLoadedContext } from "../../blocks/onBlockLoaded";
 import { useBlockProtocolAggregateEntities } from "../hooks/blockProtocolFunctions/knowledge/useBlockProtocolAggregateEntities";
 import { useBlockProtocolFileUpload } from "../hooks/blockProtocolFunctions/useBlockProtocolFileUpload";
-import { useReadonlyMode } from "../../shared/readonly-mode";
+import { useIsReadonlyMode } from "../../shared/readonly-mode";
 import { DataMapEditor } from "./data-map-editor";
 import { SchemaMap } from "./shared";
 import { useBlockContext } from "../../blocks/page/BlockContext";
@@ -60,9 +60,9 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   onBlockLoaded,
   // shouldSandbox,
 }) => {
-  const { readonlyMode } = useReadonlyMode();
+  const isReadonlyMode = useIsReadonlyMode();
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
-  const { uploadFile } = useBlockProtocolFileUpload(readonlyMode);
+  const { uploadFile } = useBlockProtocolFileUpload(isReadonlyMode);
 
   const { showDataMappingUi, setShowDataMappingUi } = useBlockContext();
 
@@ -80,6 +80,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     const convertedEntityTypesForProvidedEntities: BpEntityType[] = [];
 
     const blockEntity = convertApiEntityToBpEntity({
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
       entityId: entityId ?? "entityId-not-yet-set", // @todo ensure blocks always get sent an entityId
       entityTypeId,
       properties: entityProperties,
@@ -91,12 +92,12 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
         convertedEntityTypesForProvidedEntities,
         "entityTypeId",
       ),
-      readonly: readonlyMode,
+      readonly: isReadonlyMode,
       // We currently don't construct a block graph or linked aggregations.
       blockGraph: {} as BlockGraph,
       linkedAggregations: [],
     };
-  }, [entityId, entityProperties, entityTypeId, readonlyMode]);
+  }, [entityId, entityProperties, entityTypeId, isReadonlyMode]);
 
   const functions = {
     aggregateEntities,
@@ -108,7 +109,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     uploadFile,
   };
 
-  const onBlockLoadedFromContext = useBlockLoadedContext()?.onBlockLoaded;
+  const onBlockLoadedFromContext = useBlockLoadedContext().onBlockLoaded;
   const onBlockLoadedRef = useRef(onBlockLoaded);
 
   useLayoutEffect(() => {
@@ -117,7 +118,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
 
   const onRemoteBlockLoaded = useCallback(() => {
     onBlockLoadedFromContext(blockEntityId);
-    onBlockLoadedRef?.current();
+    onBlockLoadedRef.current();
   }, [blockEntityId, onBlockLoadedFromContext]);
 
   // @todo upgrade sandbox for BP 0.2 and remove feature flag

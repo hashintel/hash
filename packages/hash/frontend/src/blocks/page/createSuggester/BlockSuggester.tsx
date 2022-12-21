@@ -1,6 +1,5 @@
 import { BlockVariant } from "@blockprotocol/core";
 import { FunctionComponent, useMemo } from "react";
-import { tw } from "twind";
 import { Box, SxProps, Theme, Typography } from "@mui/material";
 import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
 
@@ -38,19 +37,52 @@ export const BlockSuggester: FunctionComponent<BlockSuggesterProps> = ({
       options={filteredBlocks}
       renderItem={(option) => (
         <>
-          <div className={tw`flex w-16 items-center justify-center`}>
-            {option?.variant.icon && (
+          <div
+            style={{
+              alignItems: "center",
+              display: "flex",
+              justifyContent: "center",
+              width: "4rem",
+            }}
+          >
+            {option.variant.icon && (
               <img
-                className={tw`w-6 h-6`}
+                style={{
+                  height: "1.5rem",
+                  width: "1.5rem",
+                }}
                 alt={option.variant.name}
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
                 src={option.variant.icon ?? "/format-font.svg"}
               />
             )}
           </div>
-          <div className={tw`py-3 flex-1 pr-2`}>
-            <p className={tw`text-sm font-bold`}>{option?.variant.name}</p>
-            <p className={tw`text-xs text-opacity-60 text-black`}>
-              {option?.variant.description}
+          <div
+            style={{
+              flex: "1 1 0%",
+              paddingBottom: "0.75rem",
+              paddingRight: "0.5rem",
+              paddingTop: "0.75rem",
+            }}
+          >
+            <p
+              style={{
+                fontSize: "0.875rem",
+                fontWeight: "700",
+                lineHeight: "1.25rem",
+              }}
+            >
+              {option.variant.name}
+            </p>
+            <p
+              style={{
+                color: "#000000",
+                fontSize: "0.75rem",
+                lineHeight: "1rem",
+                opacity: 0.6,
+              }}
+            >
+              {option.variant.description}
             </p>
           </div>
         </>

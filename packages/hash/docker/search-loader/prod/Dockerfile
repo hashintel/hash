@@ -15,10 +15,11 @@ COPY packages/hash/backend-utils/package.json packages/hash/backend-utils/
 COPY packages/hash/search-loader/package.json packages/hash/search-loader/
 RUN yarn workspace @hashintel/hash-search-loader install --frozen-lockfile --ignore-scripts --prefer-offline
 
-COPY packages/hash/api/codegen.yml packages/hash/api/codegen.yml
+COPY packages/hash/api/codegen.config.ts packages/hash/api/codegen.config.ts
 COPY packages/hash/api/src/graphql/typeDefs packages/hash/api/src/graphql/typeDefs
 COPY packages/hash/api/src/collab/graphql/queries packages/hash/api/src/collab/graphql/queries
 COPY packages/hash/shared/src/queries packages/hash/shared/src/queries
+COPY packages/hash/shared/src/graphql packages/hash/shared/src/graphql
 
 RUN yarn workspace @hashintel/hash-api codegen
 

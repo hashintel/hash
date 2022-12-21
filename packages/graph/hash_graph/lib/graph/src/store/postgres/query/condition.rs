@@ -12,6 +12,7 @@ pub enum Condition<'p> {
     Not(Box<Self>),
     Equal(Option<Expression<'p>>, Option<Expression<'p>>),
     NotEqual(Option<Expression<'p>>, Option<Expression<'p>>),
+    RangeContains(Expression<'p>, Expression<'p>),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -76,6 +77,11 @@ impl Transpile for Condition<'_> {
                 fmt.write_str(" != ")?;
                 rhs.transpile(fmt)
             }
+            Condition::RangeContains(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" @> ")?;
+                rhs.transpile(fmt)
+            }
         }
     }
 }
@@ -85,20 +91,19 @@ mod tests {
     use std::borrow::Cow;
 
     use postgres_types::ToSql;
-    use type_system::DataType;
 
     use crate::{
-        ontology::DataTypeQueryPath,
+        ontology::{DataTypeQueryPath, DataTypeWithMetadata},
         store::{
             postgres::query::{SelectCompiler, Transpile},
             query::{Filter, FilterExpression, Parameter},
         },
     };
 
-    fn test_condition<'q, 'f: 'q>(
-        filter: &'f Filter<'q, DataType>,
+    fn test_condition<'p, 'f: 'p>(
+        filter: &'f Filter<'p, DataTypeWithMetadata>,
         rendered: &'static str,
-        parameters: &[&'q dyn ToSql],
+        parameters: &[&'p dyn ToSql],
     ) {
         let mut compiler = SelectCompiler::new();
         let condition = compiler.compile_filter(filter);

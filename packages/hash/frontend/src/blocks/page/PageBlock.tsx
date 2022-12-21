@@ -2,7 +2,7 @@ import { useApolloClient } from "@apollo/client";
 import { Button } from "@hashintel/hash-design-system";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
-import { EntityId } from "@hashintel/hash-subgraph";
+import { AccountId, EntityId } from "@hashintel/hash-shared/types";
 import { Box } from "@mui/material";
 import { SxProps } from "@mui/system";
 import { useRouter } from "next/router";
@@ -12,7 +12,7 @@ import { FunctionComponent, useLayoutEffect, useRef } from "react";
 import { useLocalstorageState } from "rooks";
 import { PageThread } from "../../components/hooks/usePageComments";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
-import { useReadonlyMode } from "../../shared/readonly-mode";
+import { useIsReadonlyMode } from "../../shared/readonly-mode";
 import { BlockLoadedProvider } from "../onBlockLoaded";
 import { UserBlocksProvider } from "../userBlocks";
 import { EditorConnection } from "./collab/EditorConnection";
@@ -23,13 +23,13 @@ import {
   getPageSectionContainerStyles,
   PageSectionContainer,
 } from "./PageSectionContainer";
-import { usePortals } from "./usePortals";
+import { usePortals } from "./BlockPortals";
 
 type PageBlockProps = {
   contents: BlockEntity[];
   blocks: BlocksMap;
   pageComments: PageThread[];
-  accountId: string;
+  accountId: AccountId;
   entityId: EntityId;
 };
 
@@ -68,7 +68,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
 
   const router = useRouter();
   const routeHash = router.asPath.split("#")[1] ?? "";
-  const { readonlyMode } = useReadonlyMode();
+  const isReadonlyMode = useIsReadonlyMode();
 
   const { setEditorView, pageTitleRef } = usePageContext();
 
@@ -91,7 +91,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       accountId,
       entityId,
       blocks,
-      readonlyMode,
+      isReadonlyMode,
       pageTitleRef,
       () => currentContents.current,
       client,
@@ -116,7 +116,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
     blocks,
     entityId,
     renderPortal,
-    readonlyMode,
+    isReadonlyMode,
     clearPortals,
     setEditorView,
     pageTitleRef,
@@ -126,7 +126,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   return (
     <UserBlocksProvider value={blocks}>
       <BlockLoadedProvider routeHash={routeHash}>
-        {readonlyMode || loadingTypeSystem ? null : (
+        {isReadonlyMode || loadingTypeSystem ? null : (
           <PageSectionContainer
             pageComments={pageComments}
             sx={{
@@ -146,7 +146,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
                   zIndex: 1,
                 }}
               >
-                {pageComments?.map((comment) => (
+                {pageComments.map((comment) => (
                   <CommentThread
                     key={comment.metadata.editionId.baseId}
                     pageId={entityId}
@@ -167,7 +167,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
                * so it automatically handles focusing on closest node on margin-clicking
                */
               ".ProseMirror": [
-                getPageSectionContainerStyles(pageComments, readonlyMode),
+                getPageSectionContainerStyles(pageComments, isReadonlyMode),
                 { paddingTop: 0, paddingBottom: "320px" },
               ],
               // prevents blue outline on selected nodes

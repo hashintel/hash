@@ -1,8 +1,8 @@
-use std::{mem::ManuallyDrop, str::FromStr};
+use std::mem::ManuallyDrop;
 
 use graph::{
     identifier::account::AccountId,
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    provenance::{OwnedById, UpdatedById},
     store::{
         AsClient, BaseUriAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
         EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore, StorePool,
@@ -10,7 +10,7 @@ use graph::{
 };
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
-use type_system::{DataType, EntityType, PropertyType};
+use type_system::{repr, DataType, EntityType, PropertyType};
 
 type Pool = PostgresStorePool<NoTls>;
 pub type Store = <Pool as StorePool>::Store<'static>;
@@ -73,8 +73,7 @@ impl StoreWrapper {
 
             assert!(
                 !(fail_on_exists && exists),
-                "database `{}` exists, and `fails_on_exists` was set to true",
-                bench_db_name
+                "database `{bench_db_name}` exists, and `fails_on_exists` was set to true",
             );
 
             if !(exists) {
@@ -177,13 +176,15 @@ pub async fn seed<D, P, E, C>(
     C: AsClient,
 {
     for data_type_str in data_types {
-        let data_type = DataType::from_str(data_type_str).expect("could not parse data type");
+        let data_type_repr: repr::DataType =
+            serde_json::from_str(data_type_str).expect("could not parse data type representation");
+        let data_type = DataType::try_from(data_type_repr).expect("could not parse data type");
 
         match store
             .create_data_type(
                 data_type.clone(),
                 OwnedById::new(account_id),
-                CreatedById::new(account_id),
+                UpdatedById::new(account_id),
             )
             .await
         {
@@ -202,14 +203,16 @@ pub async fn seed<D, P, E, C>(
     }
 
     for property_type_str in property_types {
+        let property_typee_repr: repr::PropertyType = serde_json::from_str(property_type_str)
+            .expect("could not parse property type representation");
         let property_type =
-            PropertyType::from_str(property_type_str).expect("could not parse property type");
+            PropertyType::try_from(property_typee_repr).expect("could not parse property type");
 
         match store
             .create_property_type(
                 property_type.clone(),
                 OwnedById::new(account_id),
-                CreatedById::new(account_id),
+                UpdatedById::new(account_id),
             )
             .await
         {
@@ -228,14 +231,16 @@ pub async fn seed<D, P, E, C>(
     }
 
     for entity_type_str in entity_types {
+        let entity_type_repr: repr::EntityType = serde_json::from_str(entity_type_str)
+            .expect("could not parse entity type representation");
         let entity_type =
-            EntityType::from_str(entity_type_str).expect("could not parse entity type");
+            EntityType::try_from(entity_type_repr).expect("could not parse entity type");
 
         match store
             .create_entity_type(
                 entity_type.clone(),
                 OwnedById::new(account_id),
-                CreatedById::new(account_id),
+                UpdatedById::new(account_id),
             )
             .await
         {

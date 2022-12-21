@@ -4,14 +4,7 @@ use std::fmt;
 
 pub use self::filter::{Filter, FilterExpression, Parameter, ParameterConversionError};
 
-/// A record stored in the [`store`].
-///
-/// [`store`]: crate::store
-pub trait QueryRecord {
-    type Path<'q>: RecordPath;
-}
-
-pub trait RecordPath {
+pub trait QueryPath {
     /// Returns what type this resolved `Path` has.
     fn expected_type(&self) -> ParameterType;
 }
@@ -25,7 +18,10 @@ pub enum ParameterType {
     Uuid,
     BaseUri,
     VersionedUri,
+    // TODO: Reevaluate if we need this after https://app.asana.com/0/0/1203491211535116/f
     Timestamp,
+    // TODO: Reevaluate if we need this after https://app.asana.com/0/0/1203491211535116/f
+    Timespan,
     Any,
 }
 
@@ -40,12 +36,13 @@ impl fmt::Display for ParameterType {
             Self::BaseUri => fmt.write_str("base URI"),
             Self::VersionedUri => fmt.write_str("versioned URI"),
             Self::Timestamp => fmt.write_str("timestamp"),
+            Self::Timespan => fmt.write_str("timespan"),
             Self::Any => fmt.write_str("any"),
         }
     }
 }
 
-pub trait OntologyPath: 'static {
+pub trait OntologyQueryPath {
     /// Returns the path identifying the [`BaseUri`].
     ///
     /// [`BaseUri`]: type_system::uri::BaseUri
@@ -65,11 +62,6 @@ pub trait OntologyPath: 'static {
     ///
     /// [`OwnedById`]: crate::provenance::OwnedById
     fn owned_by_id() -> Self;
-
-    /// Returns the path identifying the [`CreatedById`].
-    ///
-    /// [`CreatedById`]: crate::provenance::CreatedById
-    fn created_by_id() -> Self;
 
     /// Returns the path identifying the [`UpdatedById`].
     ///

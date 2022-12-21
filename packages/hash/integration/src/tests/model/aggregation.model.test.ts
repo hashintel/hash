@@ -1,7 +1,7 @@
 /** @todo - Fix/reimplement linkedAggregations - https://app.asana.com/0/1201095311341924/1202938872166821 */
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
-import "../loadTestEnv";
+import "../load-test-env";
 import { PostgresAdapter } from "@hashintel/hash-api/src/db";
 import {
   Aggregation,
@@ -27,8 +27,9 @@ let dummyEntityType: EntityType;
 
 let entityTypeCounter = 0;
 
-const createEntityType = async () => {
+const createEntityType = () => {
   entityTypeCounter += 1;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return EntityType.create(db, {
     accountId: existingUser.accountId,
     createdByAccountId: existingUser.entityId,
@@ -36,7 +37,8 @@ const createEntityType = async () => {
   });
 };
 
-const createEntity = async (params: { versioned: boolean }) =>
+const createEntity = (params: { versioned: boolean }) =>
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   Entity.create(db, {
     accountId: existingUser.accountId,
     createdByAccountId: existingUser.entityId,

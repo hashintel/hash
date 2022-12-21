@@ -1,40 +1,51 @@
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import {
-  SYSTEM_ACCOUNT_NAME,
-  SYSTEM_ACCOUNT_SHORTNAME,
-} from "@hashintel/hash-shared/environment";
 import { GraphApi } from "@hashintel/hash-graph-client";
-import { OrgModel, OrgSize } from "../model";
-import { systemAccountId } from "../model/util";
 import { ensureUsersAreSeeded } from "./seed-users";
 import { PageDefinition, seedPages } from "./seed-pages";
+import { systemUserAccountId } from "../graph/system-user";
+import {
+  createOrg,
+  getOrgByShortname,
+  Org,
+  OrgSize,
+} from "../graph/knowledge/system-types/org";
+import { joinOrg } from "../graph/knowledge/system-types/user";
 
 // Seed Org with some pages.
 const seedOrg = async (params: {
   graphApi: GraphApi;
   logger: Logger;
-}): Promise<OrgModel> => {
+}): Promise<Org> => {
   const { graphApi, logger } = params;
 
-  const existingOrgModel = await OrgModel.getOrgByShortname(graphApi, {
-    shortname: SYSTEM_ACCOUNT_SHORTNAME,
-  });
+  const exampleOrgShortname = "example-org";
+  const exampleOrgName = "Example";
 
-  if (existingOrgModel) {
-    return existingOrgModel;
+  const existingOrg = await getOrgByShortname(
+    { graphApi },
+    {
+      shortname: exampleOrgShortname,
+    },
+  );
+
+  if (existingOrg) {
+    return existingOrg;
   }
 
-  const sharedOrgModel = await OrgModel.createOrg(graphApi, {
-    name: SYSTEM_ACCOUNT_NAME,
-    shortname: SYSTEM_ACCOUNT_SHORTNAME,
-    providedInfo: {
-      orgSize: OrgSize.ElevenToFifty,
+  const sharedOrg = await createOrg(
+    { graphApi },
+    {
+      name: exampleOrgName,
+      shortname: exampleOrgShortname,
+      providedInfo: {
+        orgSize: OrgSize.ElevenToFifty,
+      },
+      actorId: systemUserAccountId,
     },
-    actorId: systemAccountId,
-  });
+  );
 
   logger.info(
-    `Development Org available with shortname = "${sharedOrgModel.getShortname()}"`,
+    `Development Org available with shortname = "${sharedOrg.shortname}"`,
   );
 
   const pageTitles: PageDefinition[] = [
@@ -49,13 +60,13 @@ const seedOrg = async (params: {
     },
   ];
 
-  await seedPages(pageTitles, sharedOrgModel.getEntityUuid(), params);
+  await seedPages(pageTitles, sharedOrg.accountId, params);
 
   logger.info(
-    `Development Org with shortname = "${sharedOrgModel.getShortname()}" now has seeded pages.`,
+    `Development Org with shortname = "${sharedOrg.shortname}" now has seeded pages.`,
   );
 
-  return sharedOrgModel;
+  return sharedOrg;
 };
 
 export const seedOrgsAndUsers = async (params: {
@@ -65,18 +76,23 @@ export const seedOrgsAndUsers = async (params: {
   const { graphApi, logger } = params;
 
   const createdUsers = await ensureUsersAreSeeded(params);
+
   if (createdUsers.length > 0) {
-    const sharedOrgModel = await seedOrg(params);
+    const sharedOrg = await seedOrg(params);
 
     for (const user of createdUsers) {
-      await user.joinOrg(graphApi, {
-        org: sharedOrgModel,
-        responsibility: "Member",
-        actorId: systemAccountId,
-      });
+      await joinOrg(
+        { graphApi },
+        {
+          user,
+          org: sharedOrg,
+          responsibility: "Member",
+          actorId: systemUserAccountId,
+        },
+      );
 
       logger.info(
-        `User with shortname = "${user.getShortname()}" joined org with shortname = '${sharedOrgModel.getShortname()}'`,
+        `User with shortname = "${user.shortname}" joined org with shortname = '${sharedOrg.shortname}'`,
       );
 
       const pageTitles: PageDefinition[] = [
@@ -101,9 +117,9 @@ export const seedOrgsAndUsers = async (params: {
         },
       ];
 
-      await seedPages(pageTitles, user.getEntityUuid(), params);
+      await seedPages(pageTitles, user.accountId, params);
       logger.info(
-        `Seeded User with shortname = "${user.getShortname()}" now has seeded pages.`,
+        `Seeded User with shortname = "${user.shortname}" now has seeded pages.`,
       );
     }
   }

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@apollo/client";
-import { types } from "@hashintel/hash-shared/types";
-import { extractBaseUri } from "@blockprotocol/type-system-web";
+import { types } from "@hashintel/hash-shared/ontology-types";
+import { extractBaseUri } from "@blockprotocol/type-system";
 import {
   GetHashInstanceEntityQueryQuery,
   GetHashInstanceEntityQueryQueryVariables,

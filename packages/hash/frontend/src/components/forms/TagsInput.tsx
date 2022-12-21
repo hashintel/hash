@@ -1,5 +1,5 @@
+import { Box } from "@mui/material";
 import { FunctionComponent, KeyboardEvent, useRef } from "react";
-import { tw } from "twind";
 
 type TagsInputProps = {
   minHeight?: number;
@@ -50,7 +50,7 @@ export const TagsInput: FunctionComponent<TagsInputProps> = ({
     if (!inputRef.current) {
       return;
     }
-    const inputValue = inputRef.current?.value;
+    const inputValue = inputRef.current.value;
     if (
       inputValue &&
       !tags.includes(inputValue) &&
@@ -67,9 +67,25 @@ export const TagsInput: FunctionComponent<TagsInputProps> = ({
   };
 
   return (
-    <div
-      style={{ minHeight: minHeight ?? 48 }}
-      className={tw`flex flex-wrap bg-white items-start rounded-lg p-2 border(1 solid gray-300 hover:gray-400 focus-within:gray-500)`}
+    <Box
+      sx={{
+        alignItems: "flex-start",
+        backgroundColor: "#ffffff",
+        border: "1px solid #D1D5DB",
+        borderRadius: "0.5rem",
+        display: "flex",
+        flexWrap: "wrap",
+        minHeight: minHeight ?? 48,
+        padding: "0.5rem",
+
+        "&:hover": {
+          borderColor: "#9CA3AF",
+        },
+
+        "&:focus-within": {
+          borderColor: "#6B7280",
+        },
+      }}
       onClick={() => inputRef.current?.focus()}
       onKeyDown={(evt) => {
         if (evt.key === "Enter") {
@@ -79,31 +95,81 @@ export const TagsInput: FunctionComponent<TagsInputProps> = ({
       role="button"
       tabIndex={0}
     >
-      <ul className={tw`flex flex-wrap items-start`}>
+      <ul
+        style={{
+          alignItems: "flex-start",
+          display: "flex",
+          flexWrap: "wrap",
+        }}
+      >
         {tags.map((tag) => (
           <li
             key={tag}
-            className={tw`relative flex flex-wrap bg-gray-300 text-sm pl-3 pr-6 py-1 rounded-2xl mr-1 mb-1`}
+            style={{
+              backgroundColor: "#D1D5DB",
+              borderRadius: "1rem",
+              display: "flex",
+              flexWrap: "wrap",
+              fontSize: "0.875rem",
+              lineHeight: "1.25rem",
+              marginBottom: "0.25rem",
+              marginRight: "0.25rem",
+              paddingBottom: "0.25rem",
+              paddingLeft: "0.75rem",
+              paddingRight: "1.5rem",
+              paddingTop: "0.25rem",
+              position: "relative",
+            }}
           >
             {tag}{" "}
-            <button
+            <Box
+              component="button"
               type="button"
               onClick={() => handleRemove(tag)}
-              className={tw`absolute border-none bg-transparent cursor-pointer right-0 top-0 bottom-0 pr-2 pl-0.5 focus:outline-none`}
+              sx={{
+                backgroundColor: "transparent",
+                borderStyle: "none",
+                bottom: "0",
+                cursor: "pointer",
+                paddingLeft: "0.125rem",
+                paddingRight: "0.5rem",
+                position: "absolute",
+                right: "0",
+                top: "0",
+
+                "&:focus": {
+                  outline: "none",
+                },
+              }}
             >
               &times;
-            </button>
+            </Box>
           </li>
         ))}
       </ul>
-      <input
+      <Box
+        component="input"
         type="text"
         ref={inputRef}
-        className={tw`border-none flex-1 focus:outline-none bg-transparent text-sm py-1 px-1`}
+        sx={{
+          backgroundColor: "transparent",
+          borderStyle: "none",
+          flex: "1 1 0%",
+          fontSize: "0.875rem",
+          lineHeight: "1.25rem",
+          paddingBottom: "0.25rem",
+          paddingLeft: "0.25rem",
+          paddingRight: "0.25rem",
+          paddingTop: "0.25rem",
+
+          "&:focus": {
+            outline: "none",
+          },
+        }}
         placeholder={placeholder}
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
       />
-    </div>
+    </Box>
   );
 };

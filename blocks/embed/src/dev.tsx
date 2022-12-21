@@ -2,13 +2,13 @@
  * This is the entry point for developing and debugging.
  * This file is not bundled with the library during the build process.
  */
+import { MockBlockDock } from "mock-block-dock";
 import { FunctionComponent, useState } from "react";
 import { render } from "react-dom";
 import { tw } from "twind";
-import { MockBlockDock } from "mock-block-dock";
 
-import Component from "./index";
 import variants from "../variants.json";
+import Component from "./index";
 import { ProviderName } from "./types";
 
 const node = document.getElementById("app");
@@ -53,7 +53,7 @@ const getVariantProperties = (variant: typeof variants[number]) => {
   return {
     ...variant.properties,
     embedType: variant.properties?.embedType as ProviderName | undefined,
-    ...variant.examples?.[0],
+    ...variant.examples[0],
   };
 };
 
@@ -68,6 +68,7 @@ const AppComponent: FunctionComponent = () => {
   return (
     <div className={tw`mt-4 w-1/2 mx-auto`}>
       <select
+        className={tw`text-base border-1 border-gray-300 rounded-md p-1`}
         value={selectedVariantIndex}
         onChange={(event) =>
           setSelectedVariantIndex(parseInt(event.target.value, 10))

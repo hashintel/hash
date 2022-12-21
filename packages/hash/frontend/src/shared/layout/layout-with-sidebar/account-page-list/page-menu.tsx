@@ -1,4 +1,7 @@
-import { FunctionComponent, useMemo, useState } from "react";
+import { faFileAlt } from "@fortawesome/free-regular-svg-icons";
+import { faArchive, faLink } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { EntityId } from "@hashintel/hash-shared/types";
 import {
   ListItemIcon,
   ListItemText,
@@ -6,11 +9,7 @@ import {
   PopoverPosition,
 } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
-import { faArchive, faLink } from "@fortawesome/free-solid-svg-icons";
-import { faFileAlt } from "@fortawesome/free-regular-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { EntityId } from "@hashintel/hash-subgraph";
-import { useRouteAccountInfo } from "../../../routing";
+import { FunctionComponent, useMemo, useState } from "react";
 import { MenuItem } from "../../../ui";
 
 type PageMenuProps = {
@@ -20,6 +19,7 @@ type PageMenuProps = {
   archivePage: (value: boolean, pageEntityId: EntityId) => Promise<void>;
   onClose: () => void;
   anchorPosition?: PopoverPosition;
+  pagePath: string;
 };
 
 export const PageMenu: FunctionComponent<PageMenuProps> = ({
@@ -29,9 +29,9 @@ export const PageMenu: FunctionComponent<PageMenuProps> = ({
   archivePage,
   anchorPosition,
   onClose,
+  pagePath,
 }) => {
   const [copied, setCopied] = useState(false);
-  const { accountId } = useRouteAccountInfo();
 
   // Commented out menu items whose functionality have not been
   // implemented yet
@@ -62,7 +62,7 @@ export const PageMenu: FunctionComponent<PageMenuProps> = ({
         icon: faLink,
         onClick: () => {
           void navigator.clipboard.writeText(
-            `${window.location.origin}/${accountId}/${entityId}`,
+            `${window.location.origin}${pagePath}`,
           );
           setCopied(true);
           setTimeout(() => {
@@ -111,7 +111,7 @@ export const PageMenu: FunctionComponent<PageMenuProps> = ({
       //   faded: true
       // },
     ],
-    [copied, popupState, createSubPage, accountId, entityId, archivePage],
+    [copied, createSubPage, popupState, pagePath, archivePage, entityId],
   );
 
   const bindMenuProps = bindMenu(popupState);
@@ -142,6 +142,7 @@ export const PageMenu: FunctionComponent<PageMenuProps> = ({
             // eslint-disable-next-line react/no-array-index-key
             key={index}
             // faded={faded}
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
             onClick={onClick ?? popupState.close}
           >
             <ListItemIcon>

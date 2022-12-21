@@ -1,4 +1,5 @@
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
+import { Client } from "@opensearch-project/opensearch";
 import { Logger } from "../logger";
 import { OpenSearch } from "./opensearch";
 
@@ -10,7 +11,7 @@ const stub = {
   scroll: jest.fn(),
 };
 const openSearch: OpenSearch = new OpenSearch(
-  stub as any,
+  stub as unknown as Client,
   new Logger({ level: "debug", mode: "dev", serviceName: "dbg" }),
 );
 

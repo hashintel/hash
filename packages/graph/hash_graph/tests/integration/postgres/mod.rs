@@ -12,32 +12,27 @@ use graph::{
         account::AccountId,
         knowledge::{EntityEditionId, EntityId},
         ontology::OntologyTypeEditionId,
-        GraphElementEditionId,
+        DecisionTimestamp, GraphElementEditionId,
     },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
-        LinkEntityMetadata,
+        LinkData,
     },
     ontology::{
         DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata, OntologyElementMetadata,
         PropertyTypeWithMetadata,
     },
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    provenance::{OwnedById, UpdatedById},
     store::{
-        error::ArchivalError,
         query::{Filter, FilterExpression, Parameter},
         AccountStore, AsClient, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityStore,
         EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool, PropertyTypeStore,
-        QueryError, StorePool, UpdateError,
+        QueryError, Record, StorePool, UpdateError,
     },
-    subgraph::{
-        edges::GraphResolveDepths,
-        query::StructuralQuery,
-        vertices::{KnowledgeGraphVertex, OntologyVertex, Vertex},
-    },
+    subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
 };
 use tokio_postgres::{NoTls, Transaction};
-use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
+use type_system::{repr, uri::VersionedUri, DataType, EntityType, PropertyType};
 use uuid::Uuid;
 
 pub struct DatabaseTestWrapper {
@@ -107,32 +102,39 @@ impl DatabaseTestWrapper {
             .await
             .expect("could not insert account id");
 
-        for data_type in data_types {
+        for data_type_str in data_types {
+            let data_type_repr: repr::DataType = serde_json::from_str(data_type_str)
+                .expect("could not parse data type representation");
             store
                 .create_data_type(
-                    DataType::from_str(data_type).expect("could not parse data type"),
+                    DataType::try_from(data_type_repr).expect("could not parse data type"),
                     OwnedById::new(account_id),
-                    CreatedById::new(account_id),
+                    UpdatedById::new(account_id),
                 )
                 .await?;
         }
 
-        for property_type in property_types {
+        for property_type_str in property_types {
+            let property_type_repr: repr::PropertyType = serde_json::from_str(property_type_str)
+                .expect("could not parse property type representation");
             store
                 .create_property_type(
-                    PropertyType::from_str(property_type).expect("could not parse property type"),
+                    PropertyType::try_from(property_type_repr)
+                        .expect("could not parse property type"),
                     OwnedById::new(account_id),
-                    CreatedById::new(account_id),
+                    UpdatedById::new(account_id),
                 )
                 .await?;
         }
 
-        for entity_type in entity_types {
+        for entity_type_str in entity_types {
+            let entity_type_repr: repr::EntityType = serde_json::from_str(entity_type_str)
+                .expect("could not parse entity type representation");
             store
                 .create_entity_type(
-                    EntityType::from_str(entity_type).expect("could not parse entity type"),
+                    EntityType::try_from(entity_type_repr).expect("could not parse entity type"),
                     OwnedById::new(account_id),
-                    CreatedById::new(account_id),
+                    UpdatedById::new(account_id),
                 )
                 .await?;
         }
@@ -151,7 +153,7 @@ impl DatabaseApi<'_> {
             .create_data_type(
                 data_type,
                 OwnedById::new(self.account_id),
-                CreatedById::new(self.account_id),
+                UpdatedById::new(self.account_id),
             )
             .await
     }
@@ -160,7 +162,7 @@ impl DatabaseApi<'_> {
         &mut self,
         uri: &VersionedUri,
     ) -> Result<DataTypeWithMetadata, QueryError> {
-        let vertex = self
+        Ok(self
             .store
             .get_data_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
@@ -168,14 +170,9 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementEditionId::Ontology(
-                OntologyTypeEditionId::from(uri),
-            ))
-            .expect("no data type found");
-
-        let Vertex::Ontology(vertex) = vertex else { unreachable!() };
-        let OntologyVertex::DataType(data_type) = *vertex else { unreachable!() };
-        Ok(*data_type)
+            .data_types
+            .remove(&OntologyTypeEditionId::from(uri))
+            .expect("no data type found"))
     }
 
     pub async fn update_data_type(
@@ -195,7 +192,7 @@ impl DatabaseApi<'_> {
             .create_property_type(
                 property_type,
                 OwnedById::new(self.account_id),
-                CreatedById::new(self.account_id),
+                UpdatedById::new(self.account_id),
             )
             .await
     }
@@ -204,7 +201,7 @@ impl DatabaseApi<'_> {
         &mut self,
         uri: &VersionedUri,
     ) -> Result<PropertyTypeWithMetadata, QueryError> {
-        let vertex = self
+        Ok(self
             .store
             .get_property_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
@@ -212,14 +209,9 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementEditionId::Ontology(
-                OntologyTypeEditionId::from(uri),
-            ))
-            .expect("no property type found");
-
-        let Vertex::Ontology(vertex) = vertex else { unreachable!() };
-        let OntologyVertex::PropertyType(property_type) = *vertex else { unreachable!() };
-        Ok(*property_type)
+            .property_types
+            .remove(&OntologyTypeEditionId::from(uri))
+            .expect("no property type found"))
     }
 
     pub async fn update_property_type(
@@ -239,7 +231,7 @@ impl DatabaseApi<'_> {
             .create_entity_type(
                 entity_type,
                 OwnedById::new(self.account_id),
-                CreatedById::new(self.account_id),
+                UpdatedById::new(self.account_id),
             )
             .await
     }
@@ -248,7 +240,7 @@ impl DatabaseApi<'_> {
         &mut self,
         uri: &VersionedUri,
     ) -> Result<EntityTypeWithMetadata, QueryError> {
-        let vertex = self
+        Ok(self
             .store
             .get_entity_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
@@ -256,14 +248,9 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementEditionId::Ontology(
-                OntologyTypeEditionId::from(uri),
-            ))
-            .expect("no entity type found");
-
-        let Vertex::Ontology(vertex) = vertex else { unreachable!() };
-        let OntologyVertex::EntityType(entity_type) = *vertex else { unreachable!() };
-        Ok(*entity_type)
+            .entity_types
+            .remove(&OntologyTypeEditionId::from(uri))
+            .expect("no entity type found"))
     }
 
     pub async fn update_entity_type(
@@ -283,11 +270,13 @@ impl DatabaseApi<'_> {
     ) -> Result<EntityMetadata, InsertionError> {
         self.store
             .create_entity(
-                properties,
-                entity_type_id,
                 OwnedById::new(self.account_id),
                 entity_uuid,
-                CreatedById::new(self.account_id),
+                Some(DecisionTimestamp::from_str("2000-01-01T00:00:00Z").unwrap()),
+                UpdatedById::new(self.account_id),
+                false,
+                entity_type_id,
+                properties,
                 None,
             )
             .await
@@ -297,20 +286,17 @@ impl DatabaseApi<'_> {
         &self,
         entity_edition_id: EntityEditionId,
     ) -> Result<Entity, QueryError> {
-        let vertex = self
+        Ok(self
             .store
             .get_entity(&StructuralQuery {
-                filter: Filter::for_entity_by_edition_id(entity_edition_id),
+                filter: Entity::create_filter_for_edition_id(&entity_edition_id),
                 graph_resolve_depths: GraphResolveDepths::default(),
             })
             .await?
             .vertices
-            .remove(&GraphElementEditionId::KnowledgeGraph(entity_edition_id))
-            .expect("no entity found");
-
-        let Vertex::KnowledgeGraph(vertex) = vertex else { unreachable!() };
-        let KnowledgeGraphVertex::Entity(persisted_entity) = *vertex;
-        Ok(persisted_entity)
+            .entities
+            .remove(&entity_edition_id)
+            .expect("no entity found"))
     }
 
     pub async fn update_entity(
@@ -318,15 +304,17 @@ impl DatabaseApi<'_> {
         entity_id: EntityId,
         properties: EntityProperties,
         entity_type_id: VersionedUri,
-        order: EntityLinkOrder,
+        link_order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError> {
         self.store
             .update_entity(
                 entity_id,
-                properties,
-                entity_type_id,
+                Some(DecisionTimestamp::from_str("2000-01-03T00:00:00Z").unwrap()),
                 UpdatedById::new(self.account_id),
-                order,
+                false,
+                entity_type_id,
+                properties,
+                link_order,
             )
             .await
     }
@@ -341,17 +329,14 @@ impl DatabaseApi<'_> {
     ) -> Result<EntityMetadata, InsertionError> {
         self.store
             .create_entity(
-                properties,
-                entity_type_id,
                 OwnedById::new(self.account_id),
                 entity_uuid,
-                CreatedById::new(self.account_id),
-                Some(LinkEntityMetadata::new(
-                    left_entity_id,
-                    right_entity_id,
-                    None,
-                    None,
-                )),
+                Some(DecisionTimestamp::from_str("2000-01-02T00:00:00Z").unwrap()),
+                UpdatedById::new(self.account_id),
+                false,
+                entity_type_id,
+                properties,
+                Some(LinkData::new(left_entity_id, right_entity_id, None, None)),
             )
             .await
     }
@@ -407,18 +392,17 @@ impl DatabaseApi<'_> {
         let roots = subgraph
             .roots
             .into_iter()
-            .filter_map(|edition_id| subgraph.vertices.remove(&edition_id))
-            .map(|vertex| {
-                let Vertex::KnowledgeGraph(vertex) = vertex else { unreachable!() };
-                let KnowledgeGraphVertex::Entity(persisted_entity) = *vertex;
-                persisted_entity
+            .filter_map(|edition_id| match edition_id {
+                GraphElementEditionId::Ontology(_) => None,
+                GraphElementEditionId::KnowledgeGraph(edition_id) => {
+                    subgraph.vertices.entities.remove(&edition_id)
+                }
             })
             .collect::<Vec<_>>();
 
-        match roots.as_slice() {
-            [] => panic!("no entity found"),
-            [entity] => Ok(entity.clone()),
-            [..] => panic!("more than one entity was found"),
+        match roots.len() {
+            1 => Ok(roots.into_iter().next().unwrap()),
+            len => panic!("unexpected number of entities found, expected 1 but received {len}"),
         }
     }
 
@@ -444,10 +428,16 @@ impl DatabaseApi<'_> {
                 ))),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::Version)),
+                Some(FilterExpression::Path(
+                    EntityQueryPath::LowerTransactionTime,
+                )),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     "latest",
                 )))),
+            ),
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::Archived)),
+                Some(FilterExpression::Parameter(Parameter::Boolean(false))),
             ),
         ]);
 
@@ -462,18 +452,32 @@ impl DatabaseApi<'_> {
         Ok(subgraph
             .roots
             .into_iter()
-            .filter_map(|edition_id| subgraph.vertices.remove(&edition_id))
-            .map(|vertex| {
-                let Vertex::KnowledgeGraph(vertex) = vertex else { unreachable!() };
-                let KnowledgeGraphVertex::Entity(persisted_entity) = *vertex;
-                persisted_entity
+            .filter_map(|edition_id| match edition_id {
+                GraphElementEditionId::Ontology(_) => None,
+                GraphElementEditionId::KnowledgeGraph(edition_id) => {
+                    subgraph.vertices.entities.remove(&edition_id)
+                }
             })
             .collect())
     }
 
-    async fn archive_entity(&mut self, link_entity_id: EntityId) -> Result<(), ArchivalError> {
+    async fn archive_entity(
+        &mut self,
+        entity_id: EntityId,
+        properties: EntityProperties,
+        entity_type_id: VersionedUri,
+        link_order: EntityLinkOrder,
+    ) -> Result<EntityMetadata, UpdateError> {
         self.store
-            .archive_entity(link_entity_id, UpdatedById::new(self.account_id))
+            .update_entity(
+                entity_id,
+                Some(DecisionTimestamp::from_str("2000-01-04T00:00:00Z").unwrap()),
+                UpdatedById::new(self.account_id),
+                true,
+                entity_type_id,
+                properties,
+                link_order,
+            )
             .await
     }
 }

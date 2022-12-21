@@ -6,7 +6,7 @@ import {
   FunctionComponent,
 } from "react";
 import { useRouter } from "next/router";
-import { SelfServiceRegistrationFlow } from "@ory/client";
+import { RegistrationFlow } from "@ory/client";
 import { Typography, Container, Box } from "@mui/material";
 import { TextField } from "@hashintel/hash-design-system";
 import { AxiosError } from "axios";
@@ -19,16 +19,17 @@ import {
   oryKratosClient,
 } from "./shared/ory-kratos";
 import { Button } from "../shared/ui";
-import { useAuthenticatedUser } from "../components/hooks/useAuthenticatedUser";
 import { AccountSetupForm } from "./signup.page/account-setup-form";
 
 import { parseGraphQLError } from "./shared/auth-utils";
 import { useUpdateAuthenticatedUser } from "../components/hooks/useUpdateAuthenticatedUser";
 import { useHashInstance } from "../components/hooks/useHashInstance";
+import { useAuthInfo } from "./shared/auth-info-context";
 
 const KratosRegistrationFlowForm: FunctionComponent = () => {
   const router = useRouter();
   const { hashInstance } = useHashInstance();
+  const { refetch } = useAuthInfo();
 
   useEffect(() => {
     // If user registration is disabled, redirect the user to the login page
@@ -39,7 +40,7 @@ const KratosRegistrationFlowForm: FunctionComponent = () => {
 
   // The "flow" represents a registration process and contains
   // information about the form we need to render (e.g. username + password)
-  const [flow, setFlow] = useState<SelfServiceRegistrationFlow>();
+  const [flow, setFlow] = useState<RegistrationFlow>();
 
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -69,7 +70,7 @@ const KratosRegistrationFlowForm: FunctionComponent = () => {
     // If ?flow=.. was in the URL, we fetch it
     if (flowId) {
       oryKratosClient
-        .getSelfServiceRegistrationFlow(String(flowId))
+        .getRegistrationFlow({ id: String(flowId) })
         // We received the flow - let's use its data and render the form!
         .then(({ data }) => setFlow(data))
         .catch(handleFlowError);
@@ -78,9 +79,9 @@ const KratosRegistrationFlowForm: FunctionComponent = () => {
 
     // Otherwise we initialize it
     oryKratosClient
-      .initializeSelfServiceRegistrationFlowForBrowsers(
-        returnTo ? String(returnTo) : undefined,
-      )
+      .createBrowserRegistrationFlow({
+        returnTo: returnTo ? String(returnTo) : undefined,
+      })
       .then(({ data }) => setFlow(data))
       .catch(handleFlowError);
   }, [flowId, router, router.isReady, returnTo, flow, handleFlowError]);
@@ -104,23 +105,22 @@ const KratosRegistrationFlowForm: FunctionComponent = () => {
       .push(`/signup?flow=${flow.id}`, undefined, { shallow: true })
       .then(() =>
         oryKratosClient
-          .submitSelfServiceRegistrationFlow(String(flow?.id), {
-            csrf_token,
-            traits,
-            password,
-            method: "password",
+          .updateRegistrationFlow({
+            flow: flow.id,
+            updateRegistrationFlowBody: {
+              csrf_token,
+              traits,
+              password,
+              method: "password",
+            },
           })
-          .then(({ data }) => {
-            // If we ended up here, it means we are successfully signed up!
-            //
-            // You can do cool stuff here, like having access to the identity which just signed up:
-            const { identity: _kratosIdentity } = data;
-
-            // For now however we just want to redirect home!
-            return router.push(flow?.return_to ?? "/");
+          .then(() => {
+            // If the user has successfully logged in, refetch the authenticated user which should transition
+            // the user to the next step of the signup flow.
+            void refetch();
           })
           .catch(handleFlowError)
-          .catch((err: AxiosError<SelfServiceRegistrationFlow>) => {
+          .catch((err: AxiosError<RegistrationFlow>) => {
             // If the previous handler did not catch the error it's most likely a form validation error
             if (err.response?.status === 400) {
               // Yup, it is!
@@ -210,10 +210,16 @@ const KratosVerificationFlowForm: FunctionComponent = () => {
 const SignupPage: NextPageWithLayout = () => {
   const router = useRouter();
 
-  const { authenticatedUser } = useAuthenticatedUser();
+  const { authenticatedUser } = useAuthInfo();
 
   const [updateAuthenticatedUser, { loading: updateUserLoading }] =
     useUpdateAuthenticatedUser();
+
+  useEffect(() => {
+    if (authenticatedUser && authenticatedUser.accountSignupComplete) {
+      void router.push("/");
+    }
+  }, [authenticatedUser, router]);
 
   const [invitationInfo] = useState<null>(null);
   const [errorMessage, setErrorMessage] = useState<string>();
@@ -252,6 +258,7 @@ const SignupPage: NextPageWithLayout = () => {
   return (
     <Container sx={{ pt: 10 }}>
       {authenticatedUser ? (
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
         userHasVerifiedEmail ? (
           <AccountSetupForm
             onSubmit={handleAccountSetupSubmit}

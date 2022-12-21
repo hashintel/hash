@@ -2,38 +2,32 @@
 
 use std::sync::Arc;
 
-use axum::{
-    extract::Path,
-    http::StatusCode,
-    routing::{get, post},
-    Extension, Json, Router,
-};
+use axum::{http::StatusCode, routing::post, Extension, Json, Router};
 use error_stack::IntoReport;
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
-use type_system::{uri::VersionedUri, DataType};
+use type_system::{repr, uri::VersionedUri, DataType};
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
 use crate::{
     api::rest::{
-        read_from_store, report_to_status_code,
-        utoipa_typedef::subgraph::{Edges, Subgraph, Vertices},
+        report_to_status_code,
+        utoipa_typedef::subgraph::{Edges, Subgraph, Vertex, Vertices},
     },
     identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId, GraphElementId},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, DataTypeQueryToken, DataTypeWithMetadata, OntologyElementMetadata,
     },
-    provenance::{CreatedById, OwnedById, UpdatedById},
-    store::{query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool},
+    provenance::{OwnedById, UpdatedById},
+    store::{BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool},
     subgraph::{
         edges::{
             EdgeResolveDepths, GraphResolveDepths, OntologyEdgeKind, OutgoingEdgeResolveDepth,
             SharedEdgeKind,
         },
         query::{DataTypeStructuralQuery, StructuralQuery},
-        vertices::Vertex,
     },
 };
 
@@ -42,8 +36,6 @@ use crate::{
     paths(
         create_data_type,
         get_data_types_by_query,
-        get_data_type,
-        get_latest_data_types,
         update_data_type
     ),
     components(
@@ -51,7 +43,6 @@ use crate::{
             CreateDataTypeRequest,
             UpdateDataTypeRequest,
             OwnedById,
-            CreatedById,
             UpdatedById,
             OntologyTypeEditionId,
             OntologyElementMetadata,
@@ -84,25 +75,19 @@ impl RoutedResource for DataTypeResource {
         Router::new().nest(
             "/data-types",
             Router::new()
-                .route(
-                    "/",
-                    post(create_data_type::<P>)
-                        .get(get_latest_data_types::<P>)
-                        .put(update_data_type::<P>),
-                )
-                .route("/query", post(get_data_types_by_query::<P>))
-                .route("/:version_id", get(get_data_type::<P>)),
+                .route("/", post(create_data_type::<P>).put(update_data_type::<P>))
+                .route("/query", post(get_data_types_by_query::<P>)),
         )
     }
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreateDataTypeRequest {
     #[schema(value_type = VAR_DATA_TYPE)]
-    schema: serde_json::Value,
+    schema: repr::DataType,
     owned_by_id: OwnedById,
-    actor_id: CreatedById,
+    actor_id: UpdatedById,
 }
 
 #[utoipa::path(
@@ -119,10 +104,11 @@ struct CreateDataTypeRequest {
     ),
     request_body = CreateDataTypeRequest,
 )]
+#[tracing::instrument(level = "info", skip(pool, domain_validator))]
 async fn create_data_type<P: StorePool + Send>(
-    body: Json<CreateDataTypeRequest>,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
+    body: Json<CreateDataTypeRequest>,
 ) -> Result<Json<OntologyElementMetadata>, StatusCode> {
     let Json(CreateDataTypeRequest {
         schema,
@@ -176,6 +162,7 @@ async fn create_data_type<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     )
 )]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn get_data_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(query): Json<serde_json::Value>,
@@ -203,53 +190,7 @@ async fn get_data_types_by_query<P: StorePool + Send>(
         .map(|subgraph| Json(subgraph.into()))
 }
 
-#[utoipa::path(
-    get,
-    path = "/data-types",
-    tag = "DataType",
-    responses(
-        (status = 200, content_type = "application/json", description = "List of all data types at their latest versions", body = [DataTypeWithMetadata]),
-
-        (status = 500, description = "Store error occurred"),
-    )
-)]
-async fn get_latest_data_types<P: StorePool + Send>(
-    pool: Extension<Arc<P>>,
-) -> Result<Json<Vec<DataTypeWithMetadata>>, StatusCode> {
-    read_from_store(pool.as_ref(), &Filter::<DataType>::for_latest_version())
-        .await
-        .map(Json)
-}
-
-#[utoipa::path(
-    get,
-    path = "/data-types/{uri}",
-    tag = "DataType",
-    responses(
-        (status = 200, content_type = "application/json", description = "The schema of the requested data type", body = DataTypeWithMetadata),
-        (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
-
-        (status = 404, description = "Data type was not found"),
-        (status = 500, description = "Store error occurred"),
-    ),
-    params(
-        ("uri" = String, Path, description = "The URI of the data type"),
-    )
-)]
-async fn get_data_type<P: StorePool + Send>(
-    uri: Path<VersionedUri>,
-    pool: Extension<Arc<P>>,
-) -> Result<Json<DataTypeWithMetadata>, StatusCode> {
-    read_from_store(
-        pool.as_ref(),
-        &Filter::<DataType>::for_versioned_uri(&uri.0),
-    )
-    .await
-    .and_then(|mut data_types| data_types.pop().ok_or(StatusCode::NOT_FOUND))
-    .map(Json)
-}
-
-#[derive(ToSchema, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct UpdateDataTypeRequest {
     #[schema(value_type = VAR_UPDATE_DATA_TYPE)]
@@ -272,9 +213,10 @@ struct UpdateDataTypeRequest {
     ),
     request_body = UpdateDataTypeRequest,
 )]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn update_data_type<P: StorePool + Send>(
-    body: Json<UpdateDataTypeRequest>,
     pool: Extension<Arc<P>>,
+    body: Json<UpdateDataTypeRequest>,
 ) -> Result<Json<OntologyElementMetadata>, StatusCode> {
     let Json(UpdateDataTypeRequest {
         schema,

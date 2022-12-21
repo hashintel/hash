@@ -5,23 +5,24 @@ edition = "2021"
 publish = false
 
 [dependencies]
-error-stack = "0.2.4"
+error-stack = { version = "0.2.4", default_features = false }
 
-num-traits = "0.2.15"
+num-traits = { version = "0.2.15", default_features = false }
 
 serde = { version = "1.0.148", default_features = false, features = ['alloc', 'derive'] }
 erased-serde = { version = "0.3.23", default_features = false, features = ['alloc'] }
 
 [dev-dependencies]
 serde_json = "1.0.89"
+similar-asserts = { version = "1.4.2", features = ['serde'] }
 
 [build-dependencies]
 rustc_version = "0.4.0"
 
 [features]
 default = ['std']
-std = ['serde/std']
+std = ['serde/std', 'error-stack/std']
 arbitrary-precision = []
 
 [workspace]
-members = ['.', 'macros']
+members = ['.', 'macros', 'json']

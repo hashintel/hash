@@ -1,6 +1,6 @@
-import path from "path";
+import path from "node:path";
 import { loadAll } from "js-yaml";
-import fs from "fs/promises";
+import fs from "node:fs/promises";
 import { sleep } from "@hashintel/hash-shared/sleep";
 import { monorepoRootDir } from "@hashintel/hash-backend-utils/environment";
 
@@ -58,6 +58,7 @@ export const getDerivedPayloadFromMostRecentEmail = async (
     emailDumps = loadAll(await fs.readFile(emailDumpsFilePath, "utf-8"));
   } catch (error) {
     throw new Error(
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       `Unable to load email dumps from ${emailDumpsFilePath}. ${sharedErrorMessage}\n\n${error}`,
     );
   }
@@ -70,8 +71,9 @@ export const getDerivedPayloadFromMostRecentEmail = async (
     );
   }
 
-  if (typeof mostRecentEmailDump !== "object" || mostRecentEmailDump === null) {
+  if (typeof mostRecentEmailDump !== "object") {
     throw new Error(
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       `Expected most recent email to be an object, got ${mostRecentEmailDump}`,
     );
   }
@@ -80,6 +82,7 @@ export const getDerivedPayloadFromMostRecentEmail = async (
 
   if (typeof derivedPayload !== "object" || derivedPayload === null) {
     throw new Error(
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       `Expected derivedPayload in most recent email to be an object, got ${derivedPayload}`,
     );
   }

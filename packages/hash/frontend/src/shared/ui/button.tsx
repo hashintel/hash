@@ -1,11 +1,18 @@
 // eslint-disable-next-line no-restricted-imports
 import Link from "next/link";
+import { UrlObject } from "node:url";
 import { FunctionComponent, forwardRef, useMemo, ReactNode } from "react";
 import {
   Button as BaseButton,
   ButtonProps as BaseButtonProps,
 } from "@hashintel/hash-design-system";
-import { isHrefExternal } from "./link";
+import { frontendUrl } from "@hashintel/hash-shared/environment";
+
+// @todo: update the regex to check against the domain of the hosted version of HASH
+export const isHrefExternal = (href: string | UrlObject) =>
+  typeof href === "string" &&
+  (href === "/discord" || !/^(mailto:|#|\/)/.test(href)) &&
+  !href.startsWith(frontendUrl);
 
 export type ButtonProps = {
   children: ReactNode;
@@ -33,7 +40,7 @@ export const Button: FunctionComponent<ButtonProps> = forwardRef(
 
     if (href && !isHrefExternal(href)) {
       return (
-        <Link href={href} passHref>
+        <Link href={href} passHref legacyBehavior>
           {Component}
         </Link>
       );

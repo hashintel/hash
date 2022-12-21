@@ -13,11 +13,11 @@ import { Box, Theme, useTheme, useMediaQuery, SxProps } from "@mui/material";
 
 import { IconButton } from "@hashintel/hash-design-system";
 import { getBlockDomId } from "../../../blocks/page/BlockView";
-import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
 import { HASH_OPENSEARCH_ENABLED } from "../../../lib/public-env";
 import { SearchInput } from "./search-bar/search-input";
 import { Button, Link } from "../../ui";
 import { SearchIcon } from "../../icons";
+import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
 
 /** finds the query's words in the result and chops it into parts at the words' boundaries */
 const splitByMatches = (result: string, query: string) => {
@@ -178,6 +178,7 @@ const SearchBarWhenSearchIsEnabled: FunctionComponent = () => {
   const [rootRef] = useOutsideClickRef(() => setResultListVisible(false));
 
   // present loading screen while waiting for the user to stop typing
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
   const isLoading = loading || displayedQuery !== submittedQuery;
 
   return (
@@ -242,6 +243,7 @@ const SearchBarWhenSearchIsEnabled: FunctionComponent = () => {
               No results found for&nbsp;<b>{submittedQuery}</b>.
             </ResultItem>
           ) : (
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
             data.searchPages.map((searchPage: any) => (
               <ResultItem
                 key={searchPage.block?.entityId ?? searchPage.page.entityId}

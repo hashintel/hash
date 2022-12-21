@@ -2,7 +2,7 @@
 //!
 //! [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 //! [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-//! [![rust-version](https://img.shields.io/badge/Rust-1.63.0/nightly--2022--11--14-blue)][rust-version]
+//! [![rust-version](https://img.shields.io/badge/Rust-1.63.0/nightly--2022--12--09-blue)][rust-version]
 //! [![discord](https://img.shields.io/discord/840573247803097118)][discord]
 //!
 //! [crates.io]: https://crates.io/crates/error-stack
@@ -415,9 +415,10 @@
 //!
 //!  Feature       | Description                                                        | default
 //! ---------------|--------------------------------------------------------------------|----------
-//! `std`          | Enables support for [`Error`] and, on nightly, [`Backtrace`]       | enabled
+//! `std`          | Enables support for [`Error`], and, on Rust 1.65+, [`Backtrace`]   | enabled
 //! `pretty-print` | Provide color[^color] and use of unicode in [`Debug`] output       | enabled
 //! `spantrace`    | Enables automatic capturing of [`SpanTrace`]s                      | disabled
+//! `hooks`        | Enables hooks on `no-std` platforms using spin locks               | disabled
 //! `anyhow`       | Provides `into_report` to convert [`anyhow::Error`] to [`Report`]  | disabled
 //! `eyre`         | Provides `into_report` to convert [`eyre::Report`] to [`Report`]   | disabled
 //!
@@ -475,14 +476,17 @@ mod report;
 mod result;
 
 mod context;
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "hooks"))]
 pub mod fmt;
-#[cfg(not(feature = "std"))]
+#[cfg(not(any(feature = "std", feature = "hooks")))]
 mod fmt;
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "hooks"))]
 mod hook;
 #[cfg(feature = "serde")]
 mod serde;
+
+#[cfg(all(doc, any(feature = "std", feature = "hooks")))]
+pub use hook::context::HookContext;
 
 pub use self::{
     compat::IntoReportCompat,

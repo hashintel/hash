@@ -3,13 +3,16 @@ use std::fmt::{self, Write};
 use crate::store::postgres::query::{AliasedColumn, Transpile, WindowStatement};
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub enum Function<'q> {
-    Min(Expression<'q>),
-    Max(Expression<'q>),
-    JsonExtractPath(Vec<Expression<'q>>),
-    JsonContains(Expression<'q>, Expression<'q>),
-    JsonBuildArray(Vec<Expression<'q>>),
-    JsonBuildObject(Vec<(Expression<'q>, Expression<'q>)>),
+pub enum Function<'p> {
+    Min(Box<Expression<'p>>),
+    Max(Box<Expression<'p>>),
+    JsonExtractPath(Vec<Expression<'p>>),
+    JsonContains(Box<Expression<'p>>, Box<Expression<'p>>),
+    JsonBuildArray(Vec<Expression<'p>>),
+    JsonBuildObject(Vec<(Expression<'p>, Expression<'p>)>),
+    Lower(Box<Expression<'p>>),
+    Upper(Box<Expression<'p>>),
+    Now,
 }
 
 impl Transpile for Function<'_> {
@@ -64,6 +67,17 @@ impl Transpile for Function<'_> {
                 }
                 fmt.write_char(')')
             }
+            Self::Now => fmt.write_str("now()"),
+            Self::Lower(expression) => {
+                fmt.write_str("lower(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::Upper(expression) => {
+                fmt.write_str("upper(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
         }
     }
 }
@@ -85,16 +99,16 @@ impl Transpile for Constant {
 
 /// A compiled expression in Postgres.
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub enum Expression<'q> {
+pub enum Expression<'p> {
     Asterisk,
-    Column(AliasedColumn<'q>),
+    Column(AliasedColumn<'p>),
     /// A parameter are transpiled as a placeholder, e.g. `$1`, in order to prevent SQL injection.
     Parameter(usize),
     /// [`Constant`]s are directly transpiled into the SQL query. Caution has to be taken to
     /// prevent SQL injection and no user input should ever be used as a [`Constant`].
     Constant(Constant),
-    Function(Box<Function<'q>>),
-    Window(Box<Self>, WindowStatement<'q>),
+    Function(Function<'p>),
+    Window(Box<Self>, WindowStatement<'p>),
 }
 
 impl Transpile for Expression<'_> {
@@ -129,7 +143,7 @@ mod tests {
     use super::*;
     use crate::{
         ontology::DataTypeQueryPath,
-        store::postgres::query::{test_helper::max_version_expression, Alias, Path},
+        store::postgres::query::{test_helper::max_version_expression, Alias, PostgresQueryPath},
     };
 
     #[test]
@@ -143,7 +157,7 @@ mod tests {
     #[test]
     fn transpile_function_expression() {
         assert_eq!(
-            Expression::Function(Box::new(Function::Min(Expression::Column(
+            Expression::Function(Function::Min(Box::new(Expression::Column(
                 DataTypeQueryPath::Version
                     .terminating_column()
                     .aliased(Alias {

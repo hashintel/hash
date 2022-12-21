@@ -2,7 +2,6 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";
-import { Replay } from "@sentry/replay";
 import {
   SENTRY_DSN,
   SENTRY_REPLAY_SESSION_SAMPLE_RATE,
@@ -15,8 +14,7 @@ Sentry.init({
   environment: VERCEL_ENV,
   integrations: SENTRY_REPLAY_SESSION_SAMPLE_RATE
     ? [
-        new Replay({
-          captureOnlyOnError: true,
+        new Sentry.Replay({
           errorSampleRate: 1,
           sessionSampleRate: parseFloat(SENTRY_REPLAY_SESSION_SAMPLE_RATE),
           stickySession: true,

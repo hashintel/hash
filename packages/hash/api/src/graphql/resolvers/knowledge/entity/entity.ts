@@ -11,11 +11,7 @@ import {
   splitEntityId,
   Subgraph,
 } from "@hashintel/hash-subgraph";
-import {
-  EntityModel,
-  EntityTypeModel,
-  LinkEntityModel,
-} from "../../../../model";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import {
   QueryGetEntityArgs,
   MutationCreateEntityArgs,
@@ -24,14 +20,27 @@ import {
   QueryGetAllLatestEntitiesArgs,
   MutationArchiveEntityArgs,
 } from "../../../apiTypes.gen";
-import { mapEntityModelToGQL } from "../model-mapping";
+import { mapEntityToGQL } from "../graphql-mapping";
 import { LoggedInGraphQLContext } from "../../../context";
 import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
+import { getEntityTypeById } from "../../../../graph/ontology/primitive/entity-type";
+import {
+  createLinkEntity,
+  isEntityLinkEntity,
+  LinkEntity,
+  updateLinkEntity,
+} from "../../../../graph/knowledge/primitive/link-entity";
+import {
+  archiveEntity,
+  createEntityWithLinks,
+  getLatestEntityById,
+  updateEntity,
+} from "../../../../graph/knowledge/primitive/entity";
 
 /**
  * @todo - Remove this when the Subgraph is appropriately queryable for a timestamp
  *   at the moment, (not in the roots) all versions of linked entities are returned,
- *   and with the lack of an `endTime`, this breaks the queryability of the graph to
+ *   and with the lack of an `endTime`, this breaks the query ability of the graph to
  *   find the correct version of an entity.
  *   https://app.asana.com/0/1201095311341924/1203331904553375/f
  *
@@ -49,15 +58,15 @@ const removeNonLatestEntities = (subgraph: Subgraph) => {
   }
 };
 
-export const createEntity: ResolverFn<
+export const createEntityResolver: ResolverFn<
   Promise<Entity>,
   {},
   LoggedInGraphQLContext,
   MutationCreateEntityArgs
 > = async (
   _,
-  { ownedById, properties, entityTypeId, linkedEntities, linkMetadata },
-  { dataSources: { graphApi }, userModel },
+  { ownedById, properties, entityTypeId, linkedEntities, linkData },
+  { dataSources: { graphApi }, user },
 ) => {
   /**
    * @todo: prevent callers of this mutation from being able to create restricted
@@ -66,46 +75,58 @@ export const createEntity: ResolverFn<
    * @see https://app.asana.com/0/1202805690238892/1203084714149803/f
    */
 
-  let entityModel: EntityModel | LinkEntityModel;
+  let entity: Entity | LinkEntity;
 
-  if (linkMetadata) {
-    const { leftEntityId, leftOrder, rightEntityId, rightOrder } = linkMetadata;
+  if (linkData) {
+    const { leftEntityId, leftToRightOrder, rightEntityId, rightToLeftOrder } =
+      linkData;
 
-    const [leftEntityModel, rightEntityModel, linkEntityTypeModel] =
-      await Promise.all([
-        EntityModel.getLatest(graphApi, {
+    const [leftEntity, rightEntity, linkEntityType] = await Promise.all([
+      getLatestEntityById(
+        { graphApi },
+        {
           entityId: leftEntityId,
-        }),
-        EntityModel.getLatest(graphApi, {
+        },
+      ),
+      getLatestEntityById(
+        { graphApi },
+        {
           entityId: rightEntityId,
-        }),
-        EntityTypeModel.get(graphApi, { entityTypeId }),
-      ]);
+        },
+      ),
+      getEntityTypeById({ graphApi }, { entityTypeId }),
+    ]);
 
-    entityModel = await LinkEntityModel.createLinkEntity(graphApi, {
-      leftEntityModel,
-      leftOrder: leftOrder ?? undefined,
-      rightEntityModel,
-      rightOrder: rightOrder ?? undefined,
-      properties,
-      linkEntityTypeModel,
-      ownedById: ownedById ?? userModel.getEntityUuid(),
-      actorId: userModel.getEntityUuid(),
-    });
+    entity = await createLinkEntity(
+      { graphApi },
+      {
+        leftEntityId: leftEntity.metadata.editionId.baseId,
+        leftToRightOrder: leftToRightOrder ?? undefined,
+        rightEntityId: rightEntity.metadata.editionId.baseId,
+        rightToLeftOrder: rightToLeftOrder ?? undefined,
+        properties,
+        linkEntityType,
+        ownedById: ownedById ?? (user.accountId as OwnedById),
+        actorId: user.accountId,
+      },
+    );
   } else {
-    entityModel = await EntityModel.createEntityWithLinks(graphApi, {
-      ownedById: ownedById ?? userModel.getEntityUuid(),
-      entityTypeId,
-      properties,
-      linkedEntities: linkedEntities ?? undefined,
-      actorId: userModel.getEntityUuid(),
-    });
+    entity = await createEntityWithLinks(
+      { graphApi },
+      {
+        ownedById: ownedById ?? (user.accountId as OwnedById),
+        entityTypeId,
+        properties,
+        linkedEntities: linkedEntities ?? undefined,
+        actorId: user.accountId,
+      },
+    );
   }
 
-  return mapEntityModelToGQL(entityModel);
+  return mapEntityToGQL(entity);
 };
 
-export const getAllLatestEntities: ResolverFn<
+export const getAllLatestEntitiesResolver: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
@@ -174,7 +195,7 @@ export const getAllLatestEntities: ResolverFn<
   return entitySubgraph as Subgraph;
 };
 
-export const getEntity: ResolverFn<
+export const getEntityResolver: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
@@ -240,75 +261,80 @@ export const getEntity: ResolverFn<
   return entitySubgraph as Subgraph;
 };
 
-export const updateEntity: ResolverFn<
+export const updateEntityResolver: ResolverFn<
   Promise<Entity>,
   {},
   LoggedInGraphQLContext,
   MutationUpdateEntityArgs
 > = async (
   _,
-  { entityId, updatedProperties, leftOrder, rightOrder },
-  { dataSources: { graphApi }, userModel },
+  { entityId, updatedProperties, leftToRightOrder, rightToLeftOrder },
+  { dataSources: { graphApi }, user },
 ) => {
   // The user needs to be signed up if they aren't updating their own user entity
   if (
-    entityId !== userModel.getEntityUuid() &&
-    !userModel.isAccountSignupComplete()
+    entityId !== user.entity.metadata.editionId.baseId &&
+    !user.isAccountSignupComplete
   ) {
     throw new ForbiddenError(
       "You must complete the sign-up process to perform this action.",
     );
   }
 
-  const entityModel = await EntityModel.getLatest(graphApi, { entityId });
+  const entity = await getLatestEntityById({ graphApi }, { entityId });
 
   for (const beforeUpdateHook of beforeUpdateEntityHooks) {
-    if (
-      beforeUpdateHook.entityTypeId ===
-      entityModel.entityTypeModel.getSchema().$id
-    ) {
+    if (beforeUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
       await beforeUpdateHook.callback({
         graphApi,
-        entityModel,
+        entity,
         updatedProperties,
       });
     }
   }
 
-  let updatedEntityModel: EntityModel;
+  let updatedEntity: Entity;
 
-  if (entityModel instanceof LinkEntityModel) {
-    updatedEntityModel = await entityModel.update(graphApi, {
-      properties: updatedProperties,
-      actorId: userModel.getEntityUuid(),
-      leftOrder: leftOrder ?? undefined,
-      rightOrder: rightOrder ?? undefined,
-    });
+  if (isEntityLinkEntity(entity)) {
+    updatedEntity = await updateLinkEntity(
+      { graphApi },
+      {
+        linkEntity: entity,
+        properties: updatedProperties,
+        actorId: user.accountId,
+        leftToRightOrder: leftToRightOrder ?? undefined,
+        rightToLeftOrder: rightToLeftOrder ?? undefined,
+      },
+    );
   } else {
-    if (leftOrder || rightOrder) {
+    if (leftToRightOrder || rightToLeftOrder) {
       throw new UserInputError(
-        `Cannot update the left order or right order of entity with ID ${entityModel.getBaseId()} because it isn't a link.`,
+        `Cannot update the left to right order or right to left order of entity with ID ${entity.metadata.editionId.baseId} because it isn't a link.`,
       );
     }
 
-    updatedEntityModel = await entityModel.update(graphApi, {
-      properties: updatedProperties,
-      actorId: userModel.getEntityUuid(),
-    });
+    updatedEntity = await updateEntity(
+      { graphApi },
+      {
+        entity,
+        properties: updatedProperties,
+        actorId: user.accountId,
+      },
+    );
   }
 
-  return mapEntityModelToGQL(updatedEntityModel);
+  return mapEntityToGQL(updatedEntity);
 };
 
-export const archiveEntity: ResolverFn<
+export const archiveEntityResolver: ResolverFn<
   Promise<boolean>,
   {},
   LoggedInGraphQLContext,
   MutationArchiveEntityArgs
-> = async (_, { entityId }, { dataSources: { graphApi }, userModel }) => {
-  const entityModel = await EntityModel.getLatest(graphApi, { entityId });
+> = async (_, { entityId }, { dataSources: { graphApi }, user }) => {
+  const entity = await getLatestEntityById({ graphApi }, { entityId });
 
-  await entityModel.archive(graphApi, { actorId: userModel.getEntityUuid() });
+  await archiveEntity({ graphApi }, { entity, actorId: user.accountId });
 
   return true;
 };

@@ -1,92 +1,88 @@
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { GraphApi } from "@hashintel/hash-graph-client";
-import { types } from "@hashintel/hash-shared/types";
+import { types } from "@hashintel/hash-shared/ontology-types";
+import {
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@hashintel/hash-subgraph";
 import { logger } from "../logger";
 
-import { EntityTypeModel, PropertyTypeModel } from "../model";
-import {
-  propertyTypeInitializer,
-  entityTypeInitializer,
-  systemAccountId,
-} from "../model/util";
+import { propertyTypeInitializer, entityTypeInitializer } from "./util";
 
 // eslint-disable-next-line import/no-mutable-exports
 export let SYSTEM_TYPES: {
   dataType: {};
   propertyType: {
     // General account related
-    shortName: PropertyTypeModel;
+    shortName: PropertyTypeWithMetadata;
 
     // User-related
-    email: PropertyTypeModel;
-    kratosIdentityId: PropertyTypeModel;
-    preferredName: PropertyTypeModel;
+    email: PropertyTypeWithMetadata;
+    kratosIdentityId: PropertyTypeWithMetadata;
+    preferredName: PropertyTypeWithMetadata;
 
     // Org-related
-    orgName: PropertyTypeModel;
-    orgSize: PropertyTypeModel;
-    orgProvidedInfo: PropertyTypeModel;
+    orgName: PropertyTypeWithMetadata;
+    orgSize: PropertyTypeWithMetadata;
+    orgProvidedInfo: PropertyTypeWithMetadata;
 
     // OrgMembership-related
-    responsibility: PropertyTypeModel;
+    responsibility: PropertyTypeWithMetadata;
 
     // Block-related
-    componentId: PropertyTypeModel;
+    componentId: PropertyTypeWithMetadata;
 
     // Page-related
-    archived: PropertyTypeModel;
-    summary: PropertyTypeModel;
-    title: PropertyTypeModel;
-    index: PropertyTypeModel;
-    icon: PropertyTypeModel;
+    archived: PropertyTypeWithMetadata;
+    summary: PropertyTypeWithMetadata;
+    title: PropertyTypeWithMetadata;
+    index: PropertyTypeWithMetadata;
+    icon: PropertyTypeWithMetadata;
 
     // Text-related
-    tokens: PropertyTypeModel;
+    tokens: PropertyTypeWithMetadata;
 
     // Comment-related
-    resolvedAt: PropertyTypeModel;
-    deletedAt: PropertyTypeModel;
+    resolvedAt: PropertyTypeWithMetadata;
+    deletedAt: PropertyTypeWithMetadata;
 
     // HASH Instance related
-    userSelfRegistrationIsEnabled: PropertyTypeModel;
-    userRegistrationByInviteIsEnabled: PropertyTypeModel;
-    orgSelfRegistrationIsEnabled: PropertyTypeModel;
+    userSelfRegistrationIsEnabled: PropertyTypeWithMetadata;
+    userRegistrationByInviteIsEnabled: PropertyTypeWithMetadata;
+    orgSelfRegistrationIsEnabled: PropertyTypeWithMetadata;
   };
   entityType: {
-    hashInstance: EntityTypeModel;
-    user: EntityTypeModel;
-    org: EntityTypeModel;
-    /**
-     * @todo: make org membership entity type a link entity type
-     * @see https://app.asana.com/0/0/1203371754468058/f
-     */
-    block: EntityTypeModel;
-    comment: EntityTypeModel;
-    page: EntityTypeModel;
-    text: EntityTypeModel;
+    hashInstance: EntityTypeWithMetadata;
+    user: EntityTypeWithMetadata;
+    org: EntityTypeWithMetadata;
+    block: EntityTypeWithMetadata;
+    comment: EntityTypeWithMetadata;
+    page: EntityTypeWithMetadata;
+    text: EntityTypeWithMetadata;
     /**
      * @todo: deprecate all uses of this dummy entity type
      * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
      */
-    dummy: EntityTypeModel;
+    dummy: EntityTypeWithMetadata;
   };
   linkEntityType: {
     // HASHInstance-related
-    admin: EntityTypeModel;
+    admin: EntityTypeWithMetadata;
 
     // User-related
-    orgMembership: EntityTypeModel;
+    orgMembership: EntityTypeWithMetadata;
 
     // Block-related
-    blockData: EntityTypeModel;
+    blockData: EntityTypeWithMetadata;
 
     // Page-related
-    contains: EntityTypeModel;
-    parent: EntityTypeModel;
+    contains: EntityTypeWithMetadata;
+    parent: EntityTypeWithMetadata;
 
     // Comment-related
-    hasText: EntityTypeModel;
-    author: EntityTypeModel;
+    hasText: EntityTypeWithMetadata;
+    author: EntityTypeWithMetadata;
   };
 };
 
@@ -94,50 +90,46 @@ const userSelfRegistrationIsEnabledPropertyTypeInitializer =
   propertyTypeInitializer({
     ...types.propertyType.userSelfRegistrationIsEnabled,
     possibleValues: [{ primitiveDataType: "boolean" }],
-    actorId: systemAccountId,
   });
 
 const orgSelfRegistrationIsEnabledPropertyTypeInitializer =
   propertyTypeInitializer({
     ...types.propertyType.orgSelfRegistrationIsEnabled,
     possibleValues: [{ primitiveDataType: "boolean" }],
-    actorId: systemAccountId,
   });
 
 const userRegistrationByInviteIsEnabledPropertyTypeInitializer =
   propertyTypeInitializer({
     ...types.propertyType.userRegistrationByInviteIsEnabled,
     possibleValues: [{ primitiveDataType: "boolean" }],
-    actorId: systemAccountId,
   });
 
-export const adminLinkEntityTypeInitializer = entityTypeInitializer({
-  ...types.linkEntityType.admin,
-  actorId: systemAccountId,
-});
+export const adminLinkEntityTypeInitializer = entityTypeInitializer(
+  types.linkEntityType.admin,
+);
 
 export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
 
-  const userSelfRegistrationIsEnabledPropertyTypeModel =
+  const userSelfRegistrationIsEnabledPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.userSelfRegistrationIsEnabled(
       graphApi,
     );
 
-  const orgSelfRegistrationIsEnabledPropertyTypeModel =
+  const orgSelfRegistrationIsEnabledPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.orgSelfRegistrationIsEnabled(
       graphApi,
     );
 
-  const userRegistrationByInviteIsEnabledPropertyTypeModel =
+  const userRegistrationByInviteIsEnabledPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.userRegistrationByInviteIsEnabled(
       graphApi,
     );
 
-  const adminLinkEntityTypeModel =
+  const adminLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.admin(graphApi);
 
-  const userEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.user(
+  const userEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.user(
     graphApi,
   );
 
@@ -147,25 +139,24 @@ export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
     ...types.entityType.hashInstance,
     properties: [
       {
-        propertyTypeModel: userSelfRegistrationIsEnabledPropertyTypeModel,
+        propertyType: userSelfRegistrationIsEnabledPropertyType,
         required: true,
       },
       {
-        propertyTypeModel: orgSelfRegistrationIsEnabledPropertyTypeModel,
+        propertyType: orgSelfRegistrationIsEnabledPropertyType,
         required: true,
       },
       {
-        propertyTypeModel: userRegistrationByInviteIsEnabledPropertyTypeModel,
+        propertyType: userRegistrationByInviteIsEnabledPropertyType,
         required: true,
       },
     ],
     outgoingLinks: [
       {
-        linkEntityTypeModel: adminLinkEntityTypeModel,
-        destinationEntityTypeModels: [userEntityTypeModel],
+        linkEntityType: adminLinkEntityType,
+        destinationEntityTypes: [userEntityType],
       },
     ],
-    actorId: systemAccountId,
   })(graphApi);
 };
 
@@ -173,11 +164,11 @@ export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
 export const orgProvidedInfoPropertyTypeInitializer = async (
   graphApi: GraphApi,
 ) => {
-  const orgSizePropertyTypeModel =
+  const orgSizePropertyType =
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     await SYSTEM_TYPES_INITIALIZERS.propertyType.orgSize(graphApi);
 
-  const orgSizeBaseUri = orgSizePropertyTypeModel.getBaseUri();
+  const orgSizeBaseUri = orgSizePropertyType.metadata.editionId.baseId;
 
   return propertyTypeInitializer({
     ...types.propertyType.orgProvidedInfo,
@@ -185,25 +176,24 @@ export const orgProvidedInfoPropertyTypeInitializer = async (
       {
         propertyTypeObjectProperties: {
           [orgSizeBaseUri]: {
-            $ref: orgSizePropertyTypeModel.getSchema().$id,
+            $ref: orgSizePropertyType.schema.$id,
           },
         },
       },
     ],
-    actorId: systemAccountId,
   })(graphApi);
 };
 
 // Generate the schema for the org entity type
 export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
-  const shortnamePropertyTypeModel =
+  const shortnamePropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.shortName(graphApi);
 
-  const orgNamePropertyTypeModel =
+  const orgNamePropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.orgName(graphApi);
 
-  const orgProvidedInfoPropertyTypeModel =
+  const orgProvidedInfoPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.orgProvidedInfo(graphApi);
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
@@ -211,67 +201,59 @@ export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
     ...types.entityType.org,
     properties: [
       {
-        propertyTypeModel: shortnamePropertyTypeModel,
+        propertyType: shortnamePropertyType,
         required: true,
       },
       {
-        propertyTypeModel: orgNamePropertyTypeModel,
+        propertyType: orgNamePropertyType,
         required: true,
       },
       {
-        propertyTypeModel: orgProvidedInfoPropertyTypeModel,
+        propertyType: orgProvidedInfoPropertyType,
         required: false,
       },
     ],
-    actorId: systemAccountId,
   })(graphApi);
 };
 
 const shortnamePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.shortName,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
 const orgNamePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.orgName,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
 const orgSizePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.orgSize,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
 const emailPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.email,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
 const kratosIdentityIdPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.kratosIdentityId,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
 const preferredNamePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.preferredName,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
 const responsibilityPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.responsibility,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
 const orgMembershipLinkEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
-  const responsibilityPropertyTypeModel =
+  const responsibilityPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.responsibility(graphApi);
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
@@ -279,33 +261,33 @@ const orgMembershipLinkEntityTypeInitializer = async (graphApi: GraphApi) => {
     ...types.linkEntityType.orgMembership,
     properties: [
       {
-        propertyTypeModel: responsibilityPropertyTypeModel,
+        propertyType: responsibilityPropertyType,
         required: true,
       },
     ],
-    actorId: systemAccountId,
   })(graphApi);
 };
 
 const userEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
-  const shortnamePropertyTypeModel =
+  const shortnamePropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.shortName(graphApi);
 
-  const emailPropertyTypeModel =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.email(graphApi);
-
-  const kratosIdentityIdPropertyTypeModel =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.kratosIdentityId(graphApi);
-
-  const preferredNamePropertyTypeModel =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.preferredName(graphApi);
-
-  const orgEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.org(
+  const emailPropertyType = await SYSTEM_TYPES_INITIALIZERS.propertyType.email(
     graphApi,
   );
 
-  const orgMembershipLinkEntityTypeModel =
+  const kratosIdentityIdPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.kratosIdentityId(graphApi);
+
+  const preferredNamePropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.preferredName(graphApi);
+
+  const orgEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.org(
+    graphApi,
+  );
+
+  const orgMembershipLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.orgMembership(graphApi);
 
   /* eslint-enable @typescript-eslint/no-use-before-define */
@@ -314,54 +296,51 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
     ...types.entityType.user,
     properties: [
       {
-        propertyTypeModel: shortnamePropertyTypeModel,
+        propertyType: shortnamePropertyType,
       },
       {
-        propertyTypeModel: emailPropertyTypeModel,
+        propertyType: emailPropertyType,
         required: true,
         array: { minItems: 1 },
       },
       {
-        propertyTypeModel: kratosIdentityIdPropertyTypeModel,
+        propertyType: kratosIdentityIdPropertyType,
         required: true,
       },
       {
-        propertyTypeModel: preferredNamePropertyTypeModel,
+        propertyType: preferredNamePropertyType,
         required: true,
       },
     ],
     outgoingLinks: [
       {
-        linkEntityTypeModel: orgMembershipLinkEntityTypeModel,
-        destinationEntityTypeModels: [orgEntityTypeModel],
+        linkEntityType: orgMembershipLinkEntityType,
+        destinationEntityTypes: [orgEntityType],
         maxItems: 1,
       },
     ],
-    actorId: systemAccountId,
   })(graphApi);
 };
 
 const componentIdPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.componentId,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
-const blockDataLinkEntityTypeInitializer = entityTypeInitializer({
-  ...types.linkEntityType.blockData,
-  actorId: systemAccountId,
-});
+const blockDataLinkEntityTypeInitializer = entityTypeInitializer(
+  types.linkEntityType.blockData,
+);
 
 const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
 
-  const componentIdPropertyTypeModel =
+  const componentIdPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.componentId(graphApi);
 
-  const blockDataLinkEntityTypeModel =
+  const blockDataLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.blockData(graphApi);
 
-  const dummyEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.dummy(
+  const dummyEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.dummy(
     graphApi,
   );
 
@@ -371,23 +350,22 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
     ...types.entityType.block,
     properties: [
       {
-        propertyTypeModel: componentIdPropertyTypeModel,
+        propertyType: componentIdPropertyType,
         required: true,
       },
     ],
     outgoingLinks: [
       {
-        linkEntityTypeModel: blockDataLinkEntityTypeModel,
+        linkEntityType: blockDataLinkEntityType,
         /**
          * @todo: unset this when the destination entity type can be undefined
          * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
          */
-        destinationEntityTypeModels: [dummyEntityTypeModel],
+        destinationEntityTypes: [dummyEntityType],
         required: true,
         maxItems: 1,
       },
     ],
-    actorId: systemAccountId,
   })(graphApi);
 };
 
@@ -398,13 +376,12 @@ const tokensPropertyTypeInitializer = propertyTypeInitializer({
    * @see https://app.asana.com/0/1202805690238892/1203045933021778/f
    */
   possibleValues: [{ primitiveDataType: "object" }],
-  actorId: systemAccountId,
 });
 
 const textEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
 
-  const tokensPropertyTypeModel =
+  const tokensPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.tokens(graphApi);
 
   /* eslint-enable @typescript-eslint/no-use-before-define */
@@ -412,12 +389,11 @@ const textEntityTypeInitializer = async (graphApi: GraphApi) => {
     ...types.entityType.text,
     properties: [
       {
-        propertyTypeModel: tokensPropertyTypeModel,
+        propertyType: tokensPropertyType,
         required: true,
         array: true,
       },
     ],
-    actorId: systemAccountId,
   })(graphApi);
 };
 
@@ -429,75 +405,70 @@ const dummyEntityTypeInitializer = async (graphApi: GraphApi) => {
   return entityTypeInitializer({
     ...types.entityType.dummy,
     properties: [],
-    actorId: systemAccountId,
   })(graphApi);
 };
 
 const archivedPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.archived,
   possibleValues: [{ primitiveDataType: "boolean" }],
-  actorId: systemAccountId,
 });
 
 const summaryPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.summary,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
 const titlePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.title,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
 const indexPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.index,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
 const iconPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.icon,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
-const containsLinkEntityTypeInitializer = entityTypeInitializer({
-  ...types.linkEntityType.contains,
-  actorId: systemAccountId,
-});
+const containsLinkEntityTypeInitializer = entityTypeInitializer(
+  types.linkEntityType.contains,
+);
 
-const parentLinkEntityTypeInitializer = entityTypeInitializer({
-  ...types.linkEntityType.parent,
-  actorId: systemAccountId,
-});
+const parentLinkEntityTypeInitializer = entityTypeInitializer(
+  types.linkEntityType.parent,
+);
 
 const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
 
-  const summaryPropertyTypeModel =
+  const summaryPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.summary(graphApi);
 
-  const archivedPropertyTypeModel =
+  const archivedPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.archived(graphApi);
 
-  const titlePropertyTypeModel =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.title(graphApi);
+  const titlePropertyType = await SYSTEM_TYPES_INITIALIZERS.propertyType.title(
+    graphApi,
+  );
 
-  const indexPropertyTypeModel =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.index(graphApi);
+  const indexPropertyType = await SYSTEM_TYPES_INITIALIZERS.propertyType.index(
+    graphApi,
+  );
 
-  const iconPropertyTypeModel =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.icon(graphApi);
+  const iconPropertyType = await SYSTEM_TYPES_INITIALIZERS.propertyType.icon(
+    graphApi,
+  );
 
-  const containsLinkEntityTypeModel =
+  const containsLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.contains(graphApi);
 
-  const parentLinkTypeTypeModel =
+  const parentLinkTypeType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.parent(graphApi);
 
-  const blockEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.block(
+  const blockEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.block(
     graphApi,
   );
 
@@ -507,89 +478,84 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
     ...types.entityType.page,
     properties: [
       {
-        propertyTypeModel: summaryPropertyTypeModel,
+        propertyType: summaryPropertyType,
       },
       {
-        propertyTypeModel: archivedPropertyTypeModel,
+        propertyType: archivedPropertyType,
       },
       {
-        propertyTypeModel: iconPropertyTypeModel,
+        propertyType: iconPropertyType,
       },
       {
-        propertyTypeModel: titlePropertyTypeModel,
+        propertyType: titlePropertyType,
         required: true,
       },
       {
-        propertyTypeModel: indexPropertyTypeModel,
+        propertyType: indexPropertyType,
         required: true,
       },
     ],
     outgoingLinks: [
       {
-        linkEntityTypeModel: containsLinkEntityTypeModel,
-        destinationEntityTypeModels: [blockEntityTypeModel],
+        linkEntityType: containsLinkEntityType,
+        destinationEntityTypes: [blockEntityType],
         required: true,
         ordered: true,
       },
       {
-        linkEntityTypeModel: parentLinkTypeTypeModel,
-        destinationEntityTypeModels: ["SELF_REFERENCE"],
+        linkEntityType: parentLinkTypeType,
+        destinationEntityTypes: ["SELF_REFERENCE"],
         maxItems: 1,
       },
     ],
-    actorId: systemAccountId,
   })(graphApi);
 };
 
 const resolvedAtPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.resolvedAt,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
 const deletedAtPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.deletedAt,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
-const hasTextLinkEntityTypeInitializer = entityTypeInitializer({
-  ...types.linkEntityType.hasText,
-  actorId: systemAccountId,
-});
+const hasTextLinkEntityTypeInitializer = entityTypeInitializer(
+  types.linkEntityType.hasText,
+);
 
-const authorLinkEntityTypeInitializer = entityTypeInitializer({
-  ...types.linkEntityType.author,
-  actorId: systemAccountId,
-});
+const authorLinkEntityTypeInitializer = entityTypeInitializer(
+  types.linkEntityType.author,
+);
 
 const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
 
-  const resolvedAtPropertyTypeModel =
+  const resolvedAtPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.resolvedAt(graphApi);
 
-  const deletedAtPropertyTypeModel =
+  const deletedAtPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.deletedAt(graphApi);
 
-  const hasTextLinkEntityTypeModel =
+  const hasTextLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasText(graphApi);
 
-  const parentLinkTypeTypeModel =
+  const parentLinkTypeType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.parent(graphApi);
 
-  const authorLinkTypeTypeModel =
+  const authorLinkTypeType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.author(graphApi);
 
-  const userEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.user(
+  const userEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.user(
     graphApi,
   );
 
-  const textEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.text(
+  const textEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.text(
     graphApi,
   );
 
-  const blockEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.block(
+  const blockEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.block(
     graphApi,
   );
 
@@ -599,33 +565,32 @@ const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
     ...types.entityType.comment,
     properties: [
       {
-        propertyTypeModel: resolvedAtPropertyTypeModel,
+        propertyType: resolvedAtPropertyType,
       },
       {
-        propertyTypeModel: deletedAtPropertyTypeModel,
+        propertyType: deletedAtPropertyType,
       },
     ],
     outgoingLinks: [
       {
-        linkEntityTypeModel: hasTextLinkEntityTypeModel,
-        destinationEntityTypeModels: [textEntityTypeModel],
+        linkEntityType: hasTextLinkEntityType,
+        destinationEntityTypes: [textEntityType],
         required: true,
         maxItems: 1,
       },
       {
-        linkEntityTypeModel: parentLinkTypeTypeModel,
-        destinationEntityTypeModels: ["SELF_REFERENCE", blockEntityTypeModel],
+        linkEntityType: parentLinkTypeType,
+        destinationEntityTypes: ["SELF_REFERENCE", blockEntityType],
         required: true,
         maxItems: 1,
       },
       {
-        linkEntityTypeModel: authorLinkTypeTypeModel,
-        destinationEntityTypeModels: [userEntityTypeModel],
+        linkEntityType: authorLinkTypeType,
+        destinationEntityTypes: [userEntityType],
         required: true,
         maxItems: 1,
       },
     ],
-    actorId: systemAccountId,
   })(graphApi);
 };
 
@@ -696,7 +661,9 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
 };
 
 /**
- * Ensures the required system types have been created in the graph.
+ * Ensures the required system types have been created in the graph by fetching
+ * them or creating them using the `systemUserAccountId`. Note this method must
+ * be run after the `systemUserAccountId` has been initialized.
  */
 export const ensureSystemTypesExist = async (params: {
   graphApi: GraphApi;
@@ -722,10 +689,17 @@ export const ensureSystemTypesExist = async (params: {
       SYSTEM_TYPES_INITIALIZERS[
         typeKind as keyof typeof SYSTEM_TYPES_INITIALIZERS
       ];
-    for (const [key, typeInitializer] of Object.entries(inner)) {
+    for (const [key, typeInitializer] of Object.entries(inner) as [
+      string,
+      (
+        graphApi: GraphApi,
+      ) => Promise<
+        PropertyTypeWithMetadata | DataTypeWithMetadata | EntityTypeWithMetadata
+      >,
+    ][]) {
       logger.debug(`Checking system type: [${key}] exists`);
-      const model = await typeInitializer(graphApi);
-      initializedSystemTypes[typeKind][key] = model;
+      const type = await typeInitializer(graphApi);
+      initializedSystemTypes[typeKind][key] = type;
     }
   }
 

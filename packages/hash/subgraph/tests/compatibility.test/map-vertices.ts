@@ -12,8 +12,10 @@ import {
   OneOf,
   PropertyType,
   PropertyValues,
+  validateBaseUri,
+  validateVersionedUri,
   VersionedUri,
-} from "@blockprotocol/type-system-web";
+} from "@blockprotocol/type-system";
 import {
   isEntityId,
   OntologyVertex,
@@ -22,10 +24,6 @@ import {
   PropertyObject,
   EntityId,
 } from "../../src";
-import {
-  validateBaseUri,
-  validateVersionedUri,
-} from "../../src/shared/type-system-patch";
 
 const mapDataType = (dataType: DataTypeGraphApi): DataType => {
   const idResult = validateVersionedUri(dataType.$id);
@@ -114,6 +112,11 @@ const mapKnowledgeGraphVertex = (
     inner: {
       ...vertex.inner,
       properties: vertex.inner.properties as PropertyObject,
+      linkData: {
+        ...vertex.inner.linkData,
+        leftEntityId: vertex.inner.linkData?.leftEntityId as EntityId,
+        rightEntityId: vertex.inner.linkData?.rightEntityId as EntityId,
+      },
       metadata: {
         ...vertex.inner.metadata,
         editionId: {
@@ -121,13 +124,6 @@ const mapKnowledgeGraphVertex = (
           version: vertex.inner.metadata.editionId.version,
         },
         entityTypeId: vertex.inner.metadata.entityTypeId as VersionedUri,
-        linkMetadata: {
-          ...vertex.inner.metadata.linkMetadata,
-          leftEntityId: vertex.inner.metadata.linkMetadata
-            ?.leftEntityId as EntityId,
-          rightEntityId: vertex.inner.metadata.linkMetadata
-            ?.rightEntityId as EntityId,
-        },
       },
     },
   };

@@ -1,6 +1,12 @@
 import { useRouter } from "next/router";
-import { useEffect, FormEventHandler, useState, useMemo } from "react";
-import { SelfServiceLoginFlow } from "@ory/client";
+import {
+  useEffect,
+  FormEventHandler,
+  useState,
+  useMemo,
+  useContext,
+} from "react";
+import { LoginFlow } from "@ory/client";
 import { Typography, Container, Box } from "@mui/material";
 import { TextField } from "@hashintel/hash-design-system";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
@@ -14,10 +20,14 @@ import {
 import { Button } from "../shared/ui";
 import { useLogoutFlow } from "../components/hooks/useLogoutFlow";
 import { useHashInstance } from "../components/hooks/useHashInstance";
+import { WorkspaceContext } from "./shared/workspace-context";
+import { useAuthInfo } from "./shared/auth-info-context";
 
 const LoginPage: NextPageWithLayout = () => {
   // Get ?flow=... from the URL
   const router = useRouter();
+  const { refetch } = useAuthInfo();
+  const { updateActiveWorkspaceAccountId } = useContext(WorkspaceContext);
   const { hashInstance } = useHashInstance();
 
   const {
@@ -31,7 +41,7 @@ const LoginPage: NextPageWithLayout = () => {
     aal,
   } = router.query;
 
-  const [flow, setFlow] = useState<SelfServiceLoginFlow>();
+  const [flow, setFlow] = useState<LoginFlow>();
 
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -61,7 +71,7 @@ const LoginPage: NextPageWithLayout = () => {
     // If ?flow=.. was in the URL, we fetch it
     if (flowId) {
       oryKratosClient
-        .getSelfServiceLoginFlow(String(flowId))
+        .getLoginFlow({ id: String(flowId) })
         .then(({ data }) => setFlow(data))
         .catch(handleFlowError);
       return;
@@ -69,11 +79,11 @@ const LoginPage: NextPageWithLayout = () => {
 
     // Otherwise we initialize it
     oryKratosClient
-      .initializeSelfServiceLoginFlowForBrowsers(
-        Boolean(refresh),
-        aal ? String(aal) : undefined,
-        returnTo ? String(returnTo) : undefined,
-      )
+      .createBrowserLoginFlow({
+        refresh: Boolean(refresh),
+        aal: aal ? String(aal) : undefined,
+        returnTo: returnTo ? String(returnTo) : undefined,
+      })
       .then(({ data }) => setFlow(data))
       .catch(handleFlowError);
   }, [
@@ -99,29 +109,45 @@ const LoginPage: NextPageWithLayout = () => {
     void router
       // On submission, add the flow ID to the URL but do not navigate. This prevents the user losing
       // their data when they reload the page.
-      .push(`/login?flow=${flow?.id}`, undefined, { shallow: true })
+      .push(`/login?flow=${flow.id}`, undefined, { shallow: true })
       .then(() =>
         oryKratosClient
-          .submitSelfServiceLoginFlow(String(flow?.id), {
-            csrf_token,
-            method: "password",
-            identifier: email,
-            password,
+          .updateLoginFlow({
+            flow: String(flow.id),
+            updateLoginFlowBody: {
+              csrf_token,
+              method: "password",
+              identifier: email,
+              password,
+            },
           })
-          // We logged in successfully! Let's bring the user home.
-          .then(() => {
-            if (flow?.return_to) {
-              window.location.href = flow?.return_to;
+          // We logged in successfully! Let's redirect the user.
+          .then(async () => {
+            // If the flow specifies a redirect, use it.
+            if (flow.return_to) {
+              window.location.href = flow.return_to;
               return;
             }
+
+            // Otherwise, redirect the user to their workspace.
+            const { authenticatedUser } = await refetch();
+
+            if (!authenticatedUser) {
+              throw new Error(
+                "Could not fetch authenticated user after logging in.",
+              );
+            }
+
+            updateActiveWorkspaceAccountId(authenticatedUser.accountId);
+
             void router.push("/");
           })
           .catch(handleFlowError)
-          .catch((err: AxiosError<SelfServiceLoginFlow>) => {
+          .catch((err: AxiosError<LoginFlow>) => {
             // If the previous handler did not catch the error it's most likely a form validation error
             if (err.response?.status === 400) {
               // Yup, it is!
-              setFlow(err.response?.data);
+              setFlow(err.response.data);
               return;
             }
 
@@ -130,13 +156,13 @@ const LoginPage: NextPageWithLayout = () => {
       );
   };
 
-  const emailInputUiNode = flow?.ui?.nodes.find(
+  const emailInputUiNode = flow?.ui.nodes.find(
     ({ attributes }) =>
       isUiNodeInputAttributes(attributes) &&
       attributes.name === "traits.emails",
   );
 
-  const passwordInputUiNode = flow?.ui?.nodes.find(
+  const passwordInputUiNode = flow?.ui.nodes.find(
     ({ attributes }) =>
       isUiNodeInputAttributes(attributes) && attributes.name === "password",
   );
@@ -188,7 +214,7 @@ const LoginPage: NextPageWithLayout = () => {
           required
         />
         <Button type="submit">Log in to your account</Button>
-        {flow?.ui?.messages?.map(({ text, id }) => (
+        {flow?.ui.messages?.map(({ text, id }) => (
           <Typography key={id}>{text}</Typography>
         ))}
         {errorMessage ? <Typography>{errorMessage}</Typography> : null}

@@ -10,7 +10,7 @@ use graph::{
     identifier::account::AccountId,
     logging::init_logger,
     ontology::domain_validator::DomainValidator,
-    provenance::{CreatedById, OwnedById},
+    provenance::{OwnedById, UpdatedById},
     store::{
         AccountStore, BaseUriAlreadyExists, DataTypeStore, EntityTypeStore, PostgresStorePool,
         StorePool,
@@ -175,7 +175,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
             .create_data_type(
                 data_type,
                 OwnedById::new(root_account_id),
-                CreatedById::new(root_account_id),
+                UpdatedById::new(root_account_id),
             )
             .await
             .change_context(GraphError)
@@ -196,7 +196,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         .create_entity_type(
             link_entity_type,
             OwnedById::new(root_account_id),
-            CreatedById::new(root_account_id),
+            UpdatedById::new(root_account_id),
         )
         .await
     {
@@ -220,6 +220,7 @@ async fn main() -> Result<(), GraphError> {
         args.log_config.log_folder,
         args.log_config.log_level,
         &args.log_config.log_file_prefix,
+        args.otlp_endpoint.as_deref(),
     );
 
     let pool = PostgresStorePool::new(&args.db_info, NoTls)
@@ -245,7 +246,7 @@ async fn main() -> Result<(), GraphError> {
 
     tracing::info!("Listening on {api_address}");
     axum::Server::bind(&addr)
-        .serve(rest_router.into_make_service())
+        .serve(rest_router.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .unwrap();
 

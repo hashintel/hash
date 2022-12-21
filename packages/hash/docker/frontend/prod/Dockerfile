@@ -22,16 +22,16 @@ COPY packages/hash/subgraph/package.json packages/hash/subgraph/
 COPY packages/graph/clients/typescript/package.json packages/graph/clients/typescript/
 RUN yarn workspace @hashintel/hash-frontend install --frozen-lockfile --prefer-offline
 
-COPY packages/hash/api/codegen.yml packages/hash/api/codegen.yml
+COPY packages/hash/api/codegen.config.ts packages/hash/api/codegen.config.ts
 COPY packages/hash/api/src/graphql/typeDefs packages/hash/api/src/graphql/typeDefs
-COPY packages/hash/frontend/codegen.yml packages/hash/frontend/codegen.yml
+COPY packages/hash/frontend/codegen.config.ts packages/hash/frontend/codegen.config.ts
 COPY packages/hash/frontend/src/graphql/queries packages/hash/frontend/src/graphql/queries
 COPY packages/hash/shared/src/queries packages/hash/shared/src/queries
+COPY packages/hash/shared/src/graphql packages/hash/shared/src/graphql
 
 RUN yarn workspace @hashintel/hash-frontend codegen
 
-COPY packages/hash/shared/codegen.yml packages/hash/shared/codegen.yml
-COPY packages/hash/shared/src/queries packages/hash/shared/src/queries
+COPY packages/hash/shared/codegen.config.ts packages/hash/shared/codegen.config.ts
 
 RUN yarn workspace @hashintel/hash-shared codegen
 
@@ -51,8 +51,8 @@ ARG FRONTEND_URL
 ENV FRONTEND_URL ${FRONTEND_URL}
 ARG SYSTEM_ACCOUNT_NAME
 ENV SYSTEM_ACCOUNT_NAME ${SYSTEM_ACCOUNT_NAME}
-ARG SYSTEM_ACCOUNT_SHORTNAME
-ENV SYSTEM_ACCOUNT_SHORTNAME ${SYSTEM_ACCOUNT_SHORTNAME}
+ARG SYSTEM_USER_SHORTNAME
+ENV SYSTEM_USER_SHORTNAME ${SYSTEM_USER_SHORTNAME}
 RUN yarn next build
 
 

@@ -1,22 +1,19 @@
-use std::{fmt::Debug, str::FromStr};
+use std::str::FromStr;
 
 use async_trait::async_trait;
-use error_stack::{Context, IntoReport, Result, ResultExt};
+use error_stack::{IntoReport, Result, ResultExt};
 use futures::{StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
 use type_system::uri::VersionedUri;
 
 use crate::{
     identifier::ontology::OntologyTypeEditionId,
-    ontology::{OntologyElementMetadata, PersistedOntologyType},
-    provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
+    ontology::{OntologyElementMetadata, OntologyType, OntologyTypeWithMetadata},
+    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         crud::Read,
-        postgres::{
-            ontology::OntologyDatabaseType,
-            query::{Distinctness, PostgresQueryRecord, SelectCompiler},
-        },
-        query::{Filter, OntologyPath, QueryRecord},
+        postgres::query::{Distinctness, PostgresRecord, SelectCompiler},
+        query::{Filter, OntologyQueryPath},
         AsClient, PostgresStore, QueryError,
     },
 };
@@ -24,25 +21,15 @@ use crate::{
 #[async_trait]
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
-    T: for<'q> PersistedOntologyType<
-            Inner: PostgresQueryRecord<Path<'q>: Debug + Send + Sync + OntologyPath>
-                       + OntologyDatabaseType
-                       + TryFrom<serde_json::Value, Error: Context>
-                       + Send
-                       + 'static,
-        > + Send,
+    T: OntologyTypeWithMetadata + PostgresRecord,
+    for<'p> T::QueryPath<'p>: OntologyQueryPath,
 {
-    type Query<'q> = Filter<'q, T::Inner>;
-
-    async fn read<'f: 'q, 'q>(&self, filter: &'f Self::Query<'q>) -> Result<Vec<T>, QueryError> {
-        let versioned_uri_path =
-            <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::versioned_uri();
-        let schema_path = <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::schema();
-        let owned_by_id_path = <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::owned_by_id();
-        let created_by_id_path =
-            <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::created_by_id();
-        let updated_by_id_path =
-            <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::updated_by_id();
+    #[tracing::instrument(level = "info", skip(self, filter))]
+    async fn read(&self, filter: &Filter<T>) -> Result<Vec<T>, QueryError> {
+        let versioned_uri_path = <T::QueryPath<'static> as OntologyQueryPath>::versioned_uri();
+        let schema_path = <T::QueryPath<'static> as OntologyQueryPath>::schema();
+        let owned_by_id_path = <T::QueryPath<'static> as OntologyQueryPath>::owned_by_id();
+        let updated_by_id_path = <T::QueryPath<'static> as OntologyQueryPath>::updated_by_id();
 
         let mut compiler = SelectCompiler::new();
 
@@ -53,7 +40,6 @@ where
         );
         let schema_index = compiler.add_selection_path(&schema_path);
         let owned_by_id_index = compiler.add_selection_path(&owned_by_id_path);
-        let created_by_id_index = compiler.add_selection_path(&created_by_id_path);
         let updated_by_id_path_index = compiler.add_selection_path(&updated_by_id_path);
 
         compiler.add_filter(filter);
@@ -69,18 +55,21 @@ where
                 let versioned_uri = VersionedUri::from_str(row.get(versioned_uri_index))
                     .into_report()
                     .change_context(QueryError)?;
-                let record = <T::Inner>::try_from(row.get::<_, serde_json::Value>(schema_index))
+                let record_repr: <T::OntologyType as OntologyType>::Representation =
+                    serde_json::from_value(row.get(schema_index))
+                        .into_report()
+                        .change_context(QueryError)?;
+                let record = T::OntologyType::try_from(record_repr)
                     .into_report()
                     .change_context(QueryError)?;
                 let owned_by_id = OwnedById::new(row.get(owned_by_id_index));
-                let created_by_id = CreatedById::new(row.get(created_by_id_index));
                 let updated_by_id = UpdatedById::new(row.get(updated_by_id_path_index));
 
                 Ok(T::new(
                     record,
                     OntologyElementMetadata::new(
                         OntologyTypeEditionId::from(&versioned_uri),
-                        ProvenanceMetadata::new(created_by_id, updated_by_id),
+                        ProvenanceMetadata::new(updated_by_id),
                         owned_by_id,
                     ),
                 ))

@@ -3,7 +3,13 @@ module.exports = {
   root: true,
   // this is the highest config lower ones will automatically extend
   parser: "@typescript-eslint/parser",
-  plugins: ["@typescript-eslint", "react-hooks", "jest", "unicorn"],
+  plugins: [
+    "@typescript-eslint",
+    "canonical",
+    "react-hooks",
+    "jest",
+    "unicorn",
+  ],
   extends: [
     "airbnb",
     "prettier",
@@ -20,6 +26,7 @@ module.exports = {
   },
   reportUnusedDisableDirectives: true,
   rules: {
+    "canonical/filename-no-index": "error",
     // overridden airbnb rules (if you wish to add to this list, please outline your reasoning here: https://www.notion.so/hashintel/HASH-dev-eslint-configuration-60c52c127d13478fbce6bb5579a6b7be)
     "no-undef-init": "off",
     "no-underscore-dangle": "off",
@@ -239,6 +246,7 @@ module.exports = {
         ],
       },
     ],
+    "unicorn/filename-case": "error",
     "unicorn/import-style": [
       "error",
       {
@@ -248,7 +256,8 @@ module.exports = {
         },
       },
     ],
-    "unicorn/no-array-for-each": ["error"],
+    "unicorn/no-array-for-each": "error",
+    "unicorn/prefer-node-protocol": "error",
   },
   settings: {
     "import/resolver": {
@@ -289,6 +298,15 @@ module.exports = {
       },
     },
     {
+      files: [".storybook/*", "**/*.stories.{j,t}s{x,}"],
+      rules: {
+        "import/no-extraneous-dependencies": [
+          "error",
+          { devDependencies: true },
+        ],
+      },
+    },
+    {
       files: ["*.config.{c,m,}{j,t}s", "*.d.ts", "*rc.{c,m,}js"],
       rules: {
         "global-require": "off",
@@ -311,7 +329,8 @@ module.exports = {
           "error", // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/docs/rules/no-misused-promises.md#checksvoidreturn
           { checksVoidReturn: { attributes: false, properties: false } },
         ],
-        // replaced by @typescript-eslint/no-unused-vars
+        "no-constant-condition": "off", // replaced by @typescript-eslint/no-unnecessary-condition
+        "@typescript-eslint/no-unnecessary-condition": "error",
         "@typescript-eslint/no-unused-vars": [
           "error",
           {

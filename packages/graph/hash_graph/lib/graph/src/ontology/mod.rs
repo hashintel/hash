@@ -6,11 +6,15 @@ mod entity_type;
 mod property_type;
 
 use core::fmt;
+use std::collections::hash_map::{RandomState, RawEntryMut};
 
 use error_stack::{Context, IntoReport, Result, ResultExt};
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json;
-use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
+use type_system::{
+    repr, uri::VersionedUri, DataType, EntityType, ParseDataTypeError, ParseEntityTypeError,
+    ParsePropertyTypeError, PropertyType,
+};
 use utoipa::ToSchema;
 
 pub use self::{
@@ -21,6 +25,8 @@ pub use self::{
 use crate::{
     identifier::ontology::OntologyTypeEditionId,
     provenance::{OwnedById, ProvenanceMetadata},
+    store::{query::Filter, Record},
+    subgraph::Subgraph,
 };
 
 #[derive(Deserialize, ToSchema)]
@@ -50,13 +56,10 @@ impl fmt::Display for PatchAndParseError {
 ///   - "$id" already existed
 ///   - the [`serde_json::Value`] wasn't an 'Object'
 ///   - deserializing into `T` failed
-pub fn patch_id_and_parse<T>(
+pub fn patch_id_and_parse<T: OntologyType>(
     id: &VersionedUri,
     mut value: serde_json::Value,
-) -> Result<T, PatchAndParseError>
-where
-    T: TryFrom<serde_json::Value, Error: Context>,
-{
+) -> Result<T, PatchAndParseError> {
     if let Some(object) = value.as_object_mut() {
         if let Some(previous_val) = object.insert(
             "$id".to_owned(),
@@ -74,7 +77,10 @@ where
             .attach_printable(value);
     }
 
-    let ontology_type: T = value
+    let ontology_type_repr: T::Representation = serde_json::from_value(value)
+        .into_report()
+        .change_context(PatchAndParseError)?;
+    let ontology_type: T = ontology_type_repr
         .try_into()
         .into_report()
         .change_context(PatchAndParseError)?;
@@ -87,53 +93,62 @@ fn serialize_ontology_type<T, S>(
     serializer: S,
 ) -> std::result::Result<S::Ok, S::Error>
 where
-    T: Clone,
-    serde_json::Value: From<T>,
+    T: OntologyType + Clone,
     S: Serializer,
 {
     // This clone is necessary because `Serialize` requires us to take the param by reference here
     //  even though we only use it in places where we could move
-    serde_json::Value::from(ontology_type.clone()).serialize(serializer)
+    T::Representation::from(ontology_type.clone()).serialize(serializer)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-pub struct DataTypeWithMetadata {
-    #[schema(value_type = VAR_DATA_TYPE)]
-    #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
-    inner: DataType,
-    metadata: OntologyElementMetadata,
+pub trait OntologyType:
+    Sized + TryFrom<Self::Representation, Error = Self::ConversionError>
+{
+    type ConversionError: Context;
+    type Representation: From<Self> + Serialize + for<'de> Deserialize<'de>;
+    type WithMetadata: OntologyTypeWithMetadata<OntologyType = Self>;
+
+    fn id(&self) -> &VersionedUri;
 }
 
-impl DataTypeWithMetadata {
-    #[must_use]
-    pub const fn inner(&self) -> &DataType {
-        &self.inner
-    }
+impl OntologyType for DataType {
+    type ConversionError = ParseDataTypeError;
+    type Representation = repr::DataType;
+    type WithMetadata = DataTypeWithMetadata;
 
-    #[must_use]
-    pub const fn metadata(&self) -> &OntologyElementMetadata {
-        &self.metadata
+    fn id(&self) -> &VersionedUri {
+        self.id()
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-pub struct PropertyTypeWithMetadata {
-    #[schema(value_type = VAR_PROPERTY_TYPE)]
-    #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
-    inner: PropertyType,
-    metadata: OntologyElementMetadata,
+impl OntologyType for PropertyType {
+    type ConversionError = ParsePropertyTypeError;
+    type Representation = repr::PropertyType;
+    type WithMetadata = PropertyTypeWithMetadata;
+
+    fn id(&self) -> &VersionedUri {
+        self.id()
+    }
 }
 
-impl PropertyTypeWithMetadata {
-    #[must_use]
-    pub const fn inner(&self) -> &PropertyType {
-        &self.inner
-    }
+impl OntologyType for EntityType {
+    type ConversionError = ParseEntityTypeError;
+    type Representation = repr::EntityType;
+    type WithMetadata = EntityTypeWithMetadata;
 
-    #[must_use]
-    pub const fn metadata(&self) -> &OntologyElementMetadata {
-        &self.metadata
+    fn id(&self) -> &VersionedUri {
+        self.id()
     }
+}
+
+pub trait OntologyTypeWithMetadata: Record {
+    type OntologyType: OntologyType<WithMetadata = Self>;
+
+    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self;
+
+    fn inner(&self) -> &Self::OntologyType;
+
+    fn metadata(&self) -> &OntologyElementMetadata;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
@@ -160,6 +175,11 @@ impl OntologyElementMetadata {
     }
 
     #[must_use]
+    pub const fn owned_by_id(&self) -> OwnedById {
+        self.owned_by_id
+    }
+
+    #[must_use]
     pub const fn edition_id(&self) -> &OntologyTypeEditionId {
         &self.edition_id
     }
@@ -168,14 +188,111 @@ impl OntologyElementMetadata {
     pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
         self.provenance_metadata
     }
+}
 
-    #[must_use]
-    pub const fn owned_by_id(&self) -> OwnedById {
-        self.owned_by_id
+#[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
+pub struct DataTypeWithMetadata {
+    #[schema(value_type = VAR_DATA_TYPE)]
+    #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
+    inner: DataType,
+    metadata: OntologyElementMetadata,
+}
+
+impl Record for DataTypeWithMetadata {
+    type EditionId = OntologyTypeEditionId;
+    type QueryPath<'p> = DataTypeQueryPath;
+
+    fn edition_id(&self) -> &Self::EditionId {
+        self.metadata().edition_id()
+    }
+
+    fn create_filter_for_edition_id(edition_id: &Self::EditionId) -> Filter<Self> {
+        Filter::for_ontology_type_edition_id(edition_id)
+    }
+
+    fn subgraph_entry<'s>(
+        subgraph: &'s mut Subgraph,
+        edition_id: &Self::EditionId,
+    ) -> RawEntryMut<'s, Self::EditionId, Self, RandomState> {
+        subgraph
+            .vertices
+            .data_types
+            .raw_entry_mut()
+            .from_key(edition_id)
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+impl OntologyTypeWithMetadata for DataTypeWithMetadata {
+    type OntologyType = DataType;
+
+    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self {
+        Self {
+            inner: record,
+            metadata,
+        }
+    }
+
+    fn inner(&self) -> &Self::OntologyType {
+        &self.inner
+    }
+
+    fn metadata(&self) -> &OntologyElementMetadata {
+        &self.metadata
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
+pub struct PropertyTypeWithMetadata {
+    #[schema(value_type = VAR_PROPERTY_TYPE)]
+    #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
+    inner: PropertyType,
+    metadata: OntologyElementMetadata,
+}
+
+impl Record for PropertyTypeWithMetadata {
+    type EditionId = OntologyTypeEditionId;
+    type QueryPath<'p> = PropertyTypeQueryPath;
+
+    fn edition_id(&self) -> &Self::EditionId {
+        self.metadata().edition_id()
+    }
+
+    fn create_filter_for_edition_id(edition_id: &Self::EditionId) -> Filter<Self> {
+        Filter::for_ontology_type_edition_id(edition_id)
+    }
+
+    fn subgraph_entry<'s>(
+        subgraph: &'s mut Subgraph,
+        edition_id: &Self::EditionId,
+    ) -> RawEntryMut<'s, Self::EditionId, Self, RandomState> {
+        subgraph
+            .vertices
+            .property_types
+            .raw_entry_mut()
+            .from_key(edition_id)
+    }
+}
+
+impl OntologyTypeWithMetadata for PropertyTypeWithMetadata {
+    type OntologyType = PropertyType;
+
+    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self {
+        Self {
+            inner: record,
+            metadata,
+        }
+    }
+
+    fn inner(&self) -> &Self::OntologyType {
+        &self.inner
+    }
+
+    fn metadata(&self) -> &OntologyElementMetadata {
+        &self.metadata
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
 pub struct EntityTypeWithMetadata {
     #[schema(value_type = VAR_ENTITY_TYPE)]
     #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
@@ -183,53 +300,45 @@ pub struct EntityTypeWithMetadata {
     metadata: OntologyElementMetadata,
 }
 
-impl EntityTypeWithMetadata {
-    #[must_use]
-    pub const fn inner(&self) -> &EntityType {
+impl Record for EntityTypeWithMetadata {
+    type EditionId = OntologyTypeEditionId;
+    type QueryPath<'p> = EntityTypeQueryPath;
+
+    fn edition_id(&self) -> &Self::EditionId {
+        self.metadata().edition_id()
+    }
+
+    fn create_filter_for_edition_id(edition_id: &Self::EditionId) -> Filter<Self> {
+        Filter::for_ontology_type_edition_id(edition_id)
+    }
+
+    fn subgraph_entry<'s>(
+        subgraph: &'s mut Subgraph,
+        edition_id: &Self::EditionId,
+    ) -> RawEntryMut<'s, Self::EditionId, Self, RandomState> {
+        subgraph
+            .vertices
+            .entity_types
+            .raw_entry_mut()
+            .from_key(edition_id)
+    }
+}
+
+impl OntologyTypeWithMetadata for EntityTypeWithMetadata {
+    type OntologyType = EntityType;
+
+    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self {
+        Self {
+            inner: record,
+            metadata,
+        }
+    }
+
+    fn inner(&self) -> &Self::OntologyType {
         &self.inner
     }
 
-    #[must_use]
-    pub const fn metadata(&self) -> &OntologyElementMetadata {
+    fn metadata(&self) -> &OntologyElementMetadata {
         &self.metadata
-    }
-}
-
-pub trait PersistedOntologyType {
-    type Inner;
-
-    fn new(record: Self::Inner, metadata: OntologyElementMetadata) -> Self;
-}
-
-impl PersistedOntologyType for DataTypeWithMetadata {
-    type Inner = DataType;
-
-    fn new(record: Self::Inner, metadata: OntologyElementMetadata) -> Self {
-        Self {
-            inner: record,
-            metadata,
-        }
-    }
-}
-
-impl PersistedOntologyType for PropertyTypeWithMetadata {
-    type Inner = PropertyType;
-
-    fn new(record: Self::Inner, metadata: OntologyElementMetadata) -> Self {
-        Self {
-            inner: record,
-            metadata,
-        }
-    }
-}
-
-impl PersistedOntologyType for EntityTypeWithMetadata {
-    type Inner = EntityType;
-
-    fn new(record: Self::Inner, metadata: OntologyElementMetadata) -> Self {
-        Self {
-            inner: record,
-            metadata,
-        }
     }
 }

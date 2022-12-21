@@ -6,14 +6,14 @@ use crate::store::postgres::query::{
 };
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub struct SelectStatement<'q> {
-    pub with: WithExpression<'q>,
-    pub distinct: Vec<AliasedColumn<'q>>,
-    pub selects: Vec<SelectExpression<'q>>,
+pub struct SelectStatement<'p> {
+    pub with: WithExpression<'p>,
+    pub distinct: Vec<AliasedColumn<'p>>,
+    pub selects: Vec<SelectExpression<'p>>,
     pub from: AliasedTable,
-    pub joins: Vec<JoinExpression<'q>>,
-    pub where_expression: WhereExpression<'q>,
-    pub order_by_expression: OrderByExpression<'q>,
+    pub joins: Vec<JoinExpression<'p>>,
+    pub where_expression: WhereExpression<'p>,
+    pub order_by_expression: OrderByExpression<'p>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -78,23 +78,25 @@ mod tests {
     use std::borrow::Cow;
 
     use postgres_types::ToSql;
-    use type_system::{DataType, EntityType, PropertyType};
     use uuid::Uuid;
 
     use crate::{
         knowledge::{Entity, EntityQueryPath},
-        ontology::{DataTypeQueryPath, EntityTypeQueryPath, PropertyTypeQueryPath},
+        ontology::{
+            DataTypeQueryPath, DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata,
+            PropertyTypeQueryPath, PropertyTypeWithMetadata,
+        },
         store::{
             postgres::query::{
-                test_helper::trim_whitespace, Distinctness, Ordering, PostgresQueryRecord,
+                test_helper::trim_whitespace, Distinctness, Ordering, PostgresRecord,
                 SelectCompiler,
             },
             query::{Filter, FilterExpression, Parameter},
         },
     };
 
-    fn test_compilation<'f, 'q: 'f, T: PostgresQueryRecord + 'static>(
-        compiler: &SelectCompiler<'f, 'q, T>,
+    fn test_compilation<'f, 'p: 'f, T: PostgresRecord + 'static>(
+        compiler: &SelectCompiler<'f, 'p, T>,
         expected_statement: &'static str,
         expected_parameters: &[&'f dyn ToSql],
     ) {
@@ -120,7 +122,7 @@ mod tests {
     #[test]
     fn asterisk() {
         test_compilation(
-            &SelectCompiler::<DataType>::with_asterisk(),
+            &SelectCompiler::<DataTypeWithMetadata>::with_asterisk(),
             r#"SELECT * FROM "data_types" AS "data_types_0_0_0""#,
             &[],
         );
@@ -128,7 +130,7 @@ mod tests {
 
     #[test]
     fn simple_expression() {
-        let mut compiler = SelectCompiler::<DataType>::with_asterisk();
+        let mut compiler = SelectCompiler::<DataTypeWithMetadata>::with_asterisk();
         compiler.add_filter(&Filter::Equal(
             Some(FilterExpression::Path(DataTypeQueryPath::VersionedUri)),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
@@ -148,7 +150,7 @@ mod tests {
 
     #[test]
     fn specific_version() {
-        let mut compiler = SelectCompiler::<DataType>::with_asterisk();
+        let mut compiler = SelectCompiler::<DataTypeWithMetadata>::with_asterisk();
 
         let filter = Filter::All(vec![
             Filter::Equal(
@@ -182,7 +184,7 @@ mod tests {
 
     #[test]
     fn latest_version() {
-        let mut compiler = SelectCompiler::<DataType>::with_asterisk();
+        let mut compiler = SelectCompiler::<DataTypeWithMetadata>::with_asterisk();
 
         compiler.add_filter(&Filter::Equal(
             Some(FilterExpression::Path(DataTypeQueryPath::Version)),
@@ -207,7 +209,7 @@ mod tests {
 
     #[test]
     fn not_latest_version() {
-        let mut compiler = SelectCompiler::<DataType>::with_asterisk();
+        let mut compiler = SelectCompiler::<DataTypeWithMetadata>::with_asterisk();
 
         compiler.add_filter(&Filter::NotEqual(
             Some(FilterExpression::Path(DataTypeQueryPath::Version)),
@@ -232,7 +234,7 @@ mod tests {
 
     #[test]
     fn property_type_by_referenced_data_types() {
-        let mut compiler = SelectCompiler::<PropertyType>::with_asterisk();
+        let mut compiler = SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk();
 
         compiler.add_filter(&Filter::Equal(
             Some(FilterExpression::Path(PropertyTypeQueryPath::DataTypes(
@@ -301,7 +303,7 @@ mod tests {
 
     #[test]
     fn property_type_by_referenced_property_types() {
-        let mut compiler = SelectCompiler::<PropertyType>::with_asterisk();
+        let mut compiler = SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk();
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(
@@ -330,7 +332,7 @@ mod tests {
 
     #[test]
     fn entity_type_by_referenced_property_types() {
-        let mut compiler = SelectCompiler::<EntityType>::with_asterisk();
+        let mut compiler = SelectCompiler::<EntityTypeWithMetadata>::with_asterisk();
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityTypeQueryPath::Properties(
@@ -359,7 +361,7 @@ mod tests {
 
     #[test]
     fn entity_type_by_referenced_link_types() {
-        let mut compiler = SelectCompiler::<EntityType>::with_asterisk();
+        let mut compiler = SelectCompiler::<EntityTypeWithMetadata>::with_asterisk();
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityTypeQueryPath::Links(
@@ -396,7 +398,7 @@ mod tests {
 
     #[test]
     fn entity_type_by_inheritance() {
-        let mut compiler = SelectCompiler::<EntityType>::with_asterisk();
+        let mut compiler = SelectCompiler::<EntityTypeWithMetadata>::with_asterisk();
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityTypeQueryPath::InheritsFrom(
@@ -443,7 +445,8 @@ mod tests {
             r#"
             SELECT *
             FROM "entities" AS "entities_0_0_0"
-            WHERE "entities_0_0_0"."entity_uuid" = $1
+            WHERE "entities_0_0_0"."decision_time" @> now()
+              AND "entities_0_0_0"."entity_uuid" = $1
             "#,
             &[&"12345678-ABCD-4321-5678-ABCD5555DCBA"],
         );
@@ -454,7 +457,9 @@ mod tests {
         let mut compiler = SelectCompiler::<Entity>::with_asterisk();
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::Version)),
+            Some(FilterExpression::Path(
+                EntityQueryPath::LowerTransactionTime,
+            )),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "latest",
             )))),
@@ -466,7 +471,8 @@ mod tests {
             r#"
             SELECT *
             FROM "entities" AS "entities_0_0_0"
-            WHERE "entities_0_0_0"."latest_version" = TRUE
+            WHERE "entities_0_0_0"."decision_time" @> now()
+              AND "entities_0_0_0"."transaction_time" @> now()
             "#,
             &[],
         );
@@ -481,14 +487,14 @@ mod tests {
             Some(Ordering::Ascending),
         );
         compiler.add_distinct_selection_with_ordering(
-            &EntityQueryPath::Version,
+            &EntityQueryPath::DecisionTime,
             Distinctness::Distinct,
             Some(Ordering::Descending),
         );
         compiler.add_selection_path(&EntityQueryPath::Properties(None));
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::CreatedById)),
+            Some(FilterExpression::Path(EntityQueryPath::UpdatedById)),
             Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
         );
         compiler.add_filter(&filter);
@@ -497,14 +503,15 @@ mod tests {
             &compiler,
             r#"
             SELECT
-                DISTINCT ON("entities_0_0_0"."entity_uuid", "entities_0_0_0"."version")
+                DISTINCT ON("entities_0_0_0"."entity_uuid", "entities_0_0_0"."decision_time")
                 "entities_0_0_0"."entity_uuid",
-                "entities_0_0_0"."version",
+                "entities_0_0_0"."decision_time",
                 "entities_0_0_0"."properties"
             FROM "entities" AS "entities_0_0_0"
-            WHERE "entities_0_0_0"."created_by_id" = $1
+            WHERE "entities_0_0_0"."decision_time" @> now()
+              AND "entities_0_0_0"."updated_by_id" = $1
             ORDER BY "entities_0_0_0"."entity_uuid" ASC,
-                     "entities_0_0_0"."version" DESC
+                     "entities_0_0_0"."decision_time" DESC
             "#,
             &[&Uuid::nil()],
         );
@@ -529,7 +536,8 @@ mod tests {
             r#"
             SELECT *
             FROM "entities" AS "entities_0_0_0"
-            WHERE "entities_0_0_0"."properties"->>$1 = $2
+            WHERE "entities_0_0_0"."decision_time" @> now()
+              AND "entities_0_0_0"."properties"->>$1 = $2
             "#,
             &[
                 &"https://blockprotocol.org/@alice/types/property-type/name/",
@@ -555,7 +563,8 @@ mod tests {
             r#"
             SELECT *
             FROM "entities" AS "entities_0_0_0"
-            WHERE "entities_0_0_0"."properties"->>$1 IS NULL
+            WHERE "entities_0_0_0"."decision_time" @> now()
+              AND "entities_0_0_0"."properties"->>$1 IS NULL
             "#,
             &[&"https://blockprotocol.org/@alice/types/property-type/name/"],
         );
@@ -568,10 +577,12 @@ mod tests {
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
                 Box::new(EntityQueryPath::RightEntity(Box::new(
-                    EntityQueryPath::Version,
+                    EntityQueryPath::LowerTransactionTime,
                 ))),
             ))),
-            None,
+            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                "latest",
+            )))),
         );
         compiler.add_filter(&filter);
 
@@ -584,7 +595,10 @@ mod tests {
               ON "entities_0_1_0"."left_entity_uuid" = "entities_0_0_0"."entity_uuid"
             RIGHT OUTER JOIN "entities" AS "entities_0_2_0"
               ON "entities_0_2_0"."entity_uuid" = "entities_0_1_0"."right_entity_uuid"
-            WHERE "entities_0_2_0"."version" IS NULL
+            WHERE "entities_0_0_0"."decision_time" @> now()
+              AND "entities_0_1_0"."decision_time" @> now()
+              AND "entities_0_2_0"."decision_time" @> now()
+              AND "entities_0_2_0"."transaction_time" @> now()
             "#,
             &[],
         );
@@ -597,10 +611,12 @@ mod tests {
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
                 Box::new(EntityQueryPath::LeftEntity(Box::new(
-                    EntityQueryPath::Version,
+                    EntityQueryPath::LowerTransactionTime,
                 ))),
             ))),
-            None,
+            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                "latest",
+            )))),
         );
         compiler.add_filter(&filter);
 
@@ -613,7 +629,10 @@ mod tests {
               ON "entities_0_1_0"."right_entity_uuid" = "entities_0_0_0"."entity_uuid"
             RIGHT OUTER JOIN "entities" AS "entities_0_2_0"
               ON "entities_0_2_0"."entity_uuid" = "entities_0_1_0"."left_entity_uuid"
-            WHERE "entities_0_2_0"."version" IS NULL
+            WHERE "entities_0_0_0"."decision_time" @> now()
+              AND "entities_0_1_0"."decision_time" @> now()
+              AND "entities_0_2_0"."decision_time" @> now()
+              AND "entities_0_2_0"."transaction_time" @> now()
             "#,
             &[],
         );
@@ -656,48 +675,33 @@ mod tests {
             r#"
             SELECT *
             FROM "entities" AS "entities_0_0_0"
-            WHERE ("entities_0_0_0"."left_entity_uuid" = $1) AND ("entities_0_0_0"."left_owned_by_id" = $2)
-              AND ("entities_0_0_0"."right_entity_uuid" = $3) AND ("entities_0_0_0"."right_owned_by_id" = $4)
+            WHERE "entities_0_0_0"."decision_time" @> now()
+              AND ("entities_0_0_0"."left_entity_uuid" = $1)
+              AND ("entities_0_0_0"."left_owned_by_id" = $2)
+              AND ("entities_0_0_0"."right_entity_uuid" = $3)
+              AND ("entities_0_0_0"."right_owned_by_id" = $4)
             "#,
             &[&Uuid::nil(), &Uuid::nil(), &Uuid::nil(), &Uuid::nil()],
         );
     }
 
     mod predefined {
+        use std::time::SystemTime;
+
+        use chrono::DateTime;
         use type_system::uri::{BaseUri, VersionedUri};
 
         use super::*;
         use crate::{
             identifier::{
                 account::AccountId,
-                knowledge::{EntityEditionId, EntityId, EntityVersion},
+                knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
                 ontology::{OntologyTypeEditionId, OntologyTypeVersion},
-                Timestamp,
+                DecisionTimespan, TransactionTimespan,
             },
             knowledge::EntityUuid,
             provenance::OwnedById,
         };
-
-        #[test]
-        fn for_latest_version() {
-            let mut compiler = SelectCompiler::<DataType>::with_asterisk();
-
-            let filter = Filter::for_latest_version();
-            compiler.add_filter(&filter);
-
-            test_compilation(
-                &compiler,
-                r#"
-                WITH "type_ids" AS (SELECT *, MAX("type_ids_0_0_0"."version") OVER (PARTITION BY "type_ids_0_0_0"."base_uri") AS "latest_version" FROM "type_ids" AS "type_ids_0_0_0")
-                SELECT *
-                FROM "data_types" AS "data_types_0_0_0"
-                INNER JOIN "type_ids" AS "type_ids_0_1_0"
-                  ON "type_ids_0_1_0"."version_id" = "data_types_0_0_0"."version_id"
-                WHERE "type_ids_0_1_0"."version" = "type_ids_0_1_0"."latest_version"
-                "#,
-                &[],
-            );
-        }
 
         #[test]
         fn for_versioned_uri() {
@@ -709,7 +713,7 @@ mod tests {
                 1,
             );
 
-            let mut compiler = SelectCompiler::<DataType>::with_asterisk();
+            let mut compiler = SelectCompiler::<DataTypeWithMetadata>::with_asterisk();
 
             let filter = Filter::for_versioned_uri(&uri);
             compiler.add_filter(&filter);
@@ -737,7 +741,7 @@ mod tests {
                 OntologyTypeVersion::new(1),
             );
 
-            let mut compiler = SelectCompiler::<DataType>::with_asterisk();
+            let mut compiler = SelectCompiler::<DataTypeWithMetadata>::with_asterisk();
 
             let filter = Filter::for_ontology_type_edition_id(&uri);
             compiler.add_filter(&filter);
@@ -752,24 +756,6 @@ mod tests {
                 WHERE ("type_ids_0_1_0"."base_uri" = $1) AND ("type_ids_0_1_0"."version" = $2)
                 "#,
                 &[&uri.base_id().as_str(), &i64::from(uri.version().inner())],
-            );
-        }
-
-        #[test]
-        fn for_all_latest_entities() {
-            let mut compiler = SelectCompiler::<Entity>::with_asterisk();
-
-            let filter = Filter::for_all_latest_entities();
-            compiler.add_filter(&filter);
-
-            test_compilation(
-                &compiler,
-                r#"
-                SELECT *
-                FROM "entities" AS "entities_0_0_0"
-                WHERE "entities_0_0_0"."latest_version" = TRUE
-                "#,
-                &[],
             );
         }
 
@@ -790,62 +776,14 @@ mod tests {
                 r#"
                 SELECT *
                 FROM "entities" AS "entities_0_0_0"
-                WHERE ("entities_0_0_0"."owned_by_id" = $1)
+                WHERE "entities_0_0_0"."decision_time" @> now()
+                  AND ("entities_0_0_0"."owned_by_id" = $1)
                   AND ("entities_0_0_0"."entity_uuid" = $2)
                 "#,
                 &[
                     &entity_id.owned_by_id().as_uuid(),
                     &entity_id.entity_uuid().as_uuid(),
                 ],
-            );
-        }
-
-        #[test]
-        fn for_latest_entity_by_entity_id() {
-            let entity_id = EntityId::new(
-                OwnedById::new(AccountId::new(Uuid::new_v4())),
-                EntityUuid::new(Uuid::new_v4()),
-            );
-
-            let mut compiler = SelectCompiler::<Entity>::with_asterisk();
-
-            let filter = Filter::for_latest_entity_by_entity_id(entity_id);
-            compiler.add_filter(&filter);
-
-            test_compilation(
-                &compiler,
-                r#"
-                SELECT *
-                FROM "entities" AS "entities_0_0_0"
-                WHERE ("entities_0_0_0"."owned_by_id" = $1)
-                  AND ("entities_0_0_0"."entity_uuid" = $2)
-                  AND ("entities_0_0_0"."latest_version" = TRUE)
-                "#,
-                &[
-                    &entity_id.owned_by_id().as_uuid(),
-                    &entity_id.entity_uuid().as_uuid(),
-                ],
-            );
-        }
-
-        #[test]
-        fn for_latest_entity_by_entity_uuid() {
-            let entity_uuid = EntityUuid::new(Uuid::new_v4());
-
-            let mut compiler = SelectCompiler::<Entity>::with_asterisk();
-
-            let filter = Filter::for_latest_entity_by_entity_uuid(entity_uuid);
-            compiler.add_filter(&filter);
-
-            test_compilation(
-                &compiler,
-                r#"
-                SELECT *
-                FROM "entities" AS "entities_0_0_0"
-                WHERE ("entities_0_0_0"."entity_uuid" = $1)
-                  AND ("entities_0_0_0"."latest_version" = TRUE)
-                "#,
-                &[&entity_uuid.as_uuid()],
             );
         }
 
@@ -856,7 +794,11 @@ mod tests {
                     OwnedById::new(AccountId::new(Uuid::new_v4())),
                     EntityUuid::new(Uuid::new_v4()),
                 ),
-                EntityVersion::new(Timestamp::default()),
+                EntityRecordId::new(0),
+                EntityVersion::new(
+                    DecisionTimespan::from(DateTime::default()..),
+                    TransactionTimespan::from(DateTime::from(SystemTime::now())..),
+                ),
             );
 
             let mut compiler = SelectCompiler::<Entity>::with_asterisk();
@@ -869,14 +811,15 @@ mod tests {
                 r#"
                 SELECT *
                 FROM "entities" AS "entities_0_0_0"
-                WHERE ("entities_0_0_0"."owned_by_id" = $1)
+                WHERE "entities_0_0_0"."decision_time" @> now()
+                  AND ("entities_0_0_0"."owned_by_id" = $1)
                   AND ("entities_0_0_0"."entity_uuid" = $2)
-                  AND ("entities_0_0_0"."version" = $3)
+                  AND ("entities_0_0_0"."entity_record_id" = $3)
                 "#,
                 &[
                     &entity_edition_id.base_id().owned_by_id().as_uuid(),
                     &entity_edition_id.base_id().entity_uuid().as_uuid(),
-                    &entity_edition_id.version().inner(),
+                    &entity_edition_id.record_id().as_i64(),
                 ],
             );
         }
@@ -888,7 +831,11 @@ mod tests {
                     OwnedById::new(AccountId::new(Uuid::new_v4())),
                     EntityUuid::new(Uuid::new_v4()),
                 ),
-                EntityVersion::new(Timestamp::default()),
+                EntityRecordId::new(0),
+                EntityVersion::new(
+                    DecisionTimespan::from(DateTime::default()..),
+                    TransactionTimespan::from(DateTime::from(SystemTime::now())..),
+                ),
             );
 
             let mut compiler = SelectCompiler::<Entity>::with_asterisk();
@@ -903,14 +850,16 @@ mod tests {
                 FROM "entities" AS "entities_0_0_0"
                 RIGHT OUTER JOIN "entities" AS "entities_0_1_0"
                   ON "entities_0_1_0"."entity_uuid" = "entities_0_0_0"."left_entity_uuid"
-                WHERE ("entities_0_0_0"."left_owned_by_id" = $1)
+                WHERE "entities_0_0_0"."decision_time" @> now()
+                  AND "entities_0_1_0"."decision_time" @> now()
+                  AND ("entities_0_0_0"."left_owned_by_id" = $1)
                   AND ("entities_0_0_0"."left_entity_uuid" = $2)
-                  AND ("entities_0_1_0"."version" = $3)
+                  AND ("entities_0_1_0"."entity_record_id" = $3)
                 "#,
                 &[
                     &entity_edition_id.base_id().owned_by_id().as_uuid(),
                     &entity_edition_id.base_id().entity_uuid().as_uuid(),
-                    &entity_edition_id.version().inner(),
+                    &entity_edition_id.record_id().as_i64(),
                 ],
             );
         }
@@ -922,7 +871,11 @@ mod tests {
                     OwnedById::new(AccountId::new(Uuid::new_v4())),
                     EntityUuid::new(Uuid::new_v4()),
                 ),
-                EntityVersion::new(Timestamp::default()),
+                EntityRecordId::new(0),
+                EntityVersion::new(
+                    DecisionTimespan::from(DateTime::default()..),
+                    TransactionTimespan::from(DateTime::from(SystemTime::now())..),
+                ),
             );
 
             let mut compiler = SelectCompiler::<Entity>::with_asterisk();
@@ -937,14 +890,16 @@ mod tests {
                 FROM "entities" AS "entities_0_0_0"
                 LEFT OUTER JOIN "entities" AS "entities_0_1_0"
                   ON "entities_0_1_0"."left_entity_uuid" = "entities_0_0_0"."entity_uuid"
-                WHERE ("entities_0_1_0"."owned_by_id" = $1)
+                WHERE "entities_0_0_0"."decision_time" @> now()
+                  AND "entities_0_1_0"."decision_time" @> now()
+                  AND ("entities_0_1_0"."owned_by_id" = $1)
                   AND ("entities_0_1_0"."entity_uuid" = $2)
-                  AND ("entities_0_1_0"."version" = $3)
+                  AND ("entities_0_1_0"."entity_record_id" = $3)
                 "#,
                 &[
                     &entity_edition_id.base_id().owned_by_id().as_uuid(),
                     &entity_edition_id.base_id().entity_uuid().as_uuid(),
-                    &entity_edition_id.version().inner(),
+                    &entity_edition_id.record_id().as_i64(),
                 ],
             );
         }
@@ -956,7 +911,11 @@ mod tests {
                     OwnedById::new(AccountId::new(Uuid::new_v4())),
                     EntityUuid::new(Uuid::new_v4()),
                 ),
-                EntityVersion::new(Timestamp::default()),
+                EntityRecordId::new(0),
+                EntityVersion::new(
+                    DecisionTimespan::from(DateTime::default()..),
+                    TransactionTimespan::from(DateTime::from(SystemTime::now())..),
+                ),
             );
 
             let mut compiler = SelectCompiler::<Entity>::with_asterisk();
@@ -971,14 +930,16 @@ mod tests {
                 FROM "entities" AS "entities_0_0_0"
                 LEFT OUTER JOIN "entities" AS "entities_0_1_0"
                   ON "entities_0_1_0"."right_entity_uuid" = "entities_0_0_0"."entity_uuid"
-                WHERE ("entities_0_1_0"."owned_by_id" = $1)
+                WHERE "entities_0_0_0"."decision_time" @> now()
+                  AND "entities_0_1_0"."decision_time" @> now()
+                  AND ("entities_0_1_0"."owned_by_id" = $1)
                   AND ("entities_0_1_0"."entity_uuid" = $2)
-                  AND ("entities_0_1_0"."version" = $3)
+                  AND ("entities_0_1_0"."entity_record_id" = $3)
                 "#,
                 &[
                     &entity_edition_id.base_id().owned_by_id().as_uuid(),
                     &entity_edition_id.base_id().entity_uuid().as_uuid(),
-                    &entity_edition_id.version().inner(),
+                    &entity_edition_id.record_id().as_i64(),
                 ],
             );
         }

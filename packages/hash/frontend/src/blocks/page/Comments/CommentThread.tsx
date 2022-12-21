@@ -4,16 +4,21 @@ import { Box, buttonClasses, Collapse } from "@mui/material";
 import { Button } from "@hashintel/hash-design-system";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { extractBaseUri } from "@blockprotocol/type-system-web";
-import { types } from "@hashintel/hash-shared/types";
-import { EntityId } from "@hashintel/hash-subgraph";
+import { extractBaseUri } from "@blockprotocol/type-system";
+import { types } from "@hashintel/hash-shared/ontology-types";
+import {
+  AccountId,
+  EntityId,
+  extractEntityUuidFromEntityId,
+  Uuid,
+} from "@hashintel/hash-shared/types";
 import { PageThread } from "../../../components/hooks/usePageComments";
 import { CommentTextField } from "./CommentTextField";
 import { CommentBlock } from "./CommentBlock";
 import styles from "./style.module.css";
 import { useCreateComment } from "../../../components/hooks/useCreateComment";
 import { CommentActionButtons } from "./CommentActionButtons";
-import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
+import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
 
 const UNCOLLAPSIBLE_REPLIES_NUMBER = 2;
 
@@ -46,8 +51,11 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
   };
 
   const handleReplySubmit = async () => {
-    if (!loading && inputValue?.length) {
-      await createReply(comment.metadata.editionId.baseId, inputValue);
+    if (!loading && inputValue.length) {
+      await createReply(
+        comment.metadata.editionId.baseId as EntityId,
+        inputValue,
+      );
       setInputValue([]);
     }
   };
@@ -73,6 +81,14 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
     [comment.author.properties],
   );
 
+  const authorId = useMemo(
+    () =>
+      extractEntityUuidFromEntityId(
+        comment.author.metadata.editionId.baseId,
+      ) as Uuid as AccountId,
+    [comment.author],
+  );
+
   return (
     <Box
       ref={threadRef}
@@ -93,10 +109,11 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
         pageId={pageId}
         comment={comment}
         resolvable={
-          authenticatedUser?.userAccountId ===
-            comment.metadata.provenance.createdById ||
-          authenticatedUser?.userAccountId ===
-            comment.parent.metadata.provenance.createdById
+          // TODO: The provenance fields shouldn't be used for this
+          //   see https://app.asana.com/0/1201095311341924/1203466351235289/f
+          authenticatedUser.accountId === authorId ||
+          authenticatedUser.accountId ===
+            comment.parent.metadata.provenance.updatedById
         }
       />
 

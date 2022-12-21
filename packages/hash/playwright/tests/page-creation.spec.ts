@@ -20,17 +20,14 @@ test.beforeEach(async () => {
 test("user can create page", async ({ page }) => {
   await loginUsingTempForm({ page });
 
-  // TODO: Check if we are on the user page
+  await page.waitForURL("/");
   await expect(page.locator("text=Welcome to HASH")).toBeVisible();
-
-  // TODO: Check URL contains own login once we have replaced uuids implemented
-  await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+$/));
 
   // TODO: investigate why delay is required for create page button to work
   await sleep(500);
   await page.locator(createPageButtonSelector).click();
 
-  await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+\/[\w-]+$/));
+  await page.waitForURL((url) => !!url.pathname.match(/^\/@[\w-]+\/[\w-]+$/));
 
   const blockRegion = page.locator("#root");
   const listOfPages = page.locator(listOfPagesSelector);
@@ -169,7 +166,7 @@ test("user can rename page", async ({ page }) => {
   await sleep(500);
   await page.locator(createPageButtonSelector).click();
 
-  await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+\/[\w-]+$/));
+  await page.waitForURL((url) => !!url.pathname.match(/^\/@[\w-]+\/[\w-]+$/));
 
   const listOfPages = page.locator(listOfPagesSelector);
   const pageTitle = page.locator(pageTitleInputSelector);

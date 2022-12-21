@@ -1,4 +1,4 @@
-import { FunctionComponent, useRef, useMemo } from "react";
+import { FunctionComponent, useMemo, useContext } from "react";
 import {
   Box,
   Typography,
@@ -15,61 +15,52 @@ import {
   bindMenu,
 } from "material-ui-popup-state/hooks";
 import { Avatar, FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
 import { Button, MenuItem } from "../../ui";
-import { useRouteAccountInfo } from "../../routing";
 import { useLogoutFlow } from "../../../components/hooks/useLogoutFlow";
+import { WorkspaceContext } from "../../../pages/shared/workspace-context";
+import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
 
 type WorkspaceSwitcherProps = {};
 
 export const WorkspaceSwitcher: FunctionComponent<
   WorkspaceSwitcherProps
 > = () => {
-  const buttonRef = useRef<HTMLButtonElement>(null);
   const popupState = usePopupState({
     variant: "popover",
     popupId: "workspace-switcher-menu",
   });
   const { authenticatedUser } = useAuthenticatedUser();
   const { logout } = useLogoutFlow();
-  const { accountId } = useRouteAccountInfo();
+  const { activeWorkspaceAccountId, updateActiveWorkspaceAccountId } =
+    useContext(WorkspaceContext);
 
-  const activeWorkspace = useMemo(() => {
-    let accountName = "";
-
-    if (authenticatedUser && accountId === authenticatedUser.userAccountId) {
-      accountName =
-        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle empty preferredName
-        authenticatedUser.preferredName || authenticatedUser.shortname!;
+  const activeWorkspaceName = useMemo(() => {
+    if (activeWorkspaceAccountId === authenticatedUser.accountId) {
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle empty preferredName
+      return authenticatedUser.preferredName || authenticatedUser.shortname!;
     } else {
-      const activeOrg = authenticatedUser?.memberOf.find(
-        ({ orgAccountId }) => orgAccountId === accountId,
+      const activeOrg = authenticatedUser.memberOf.find(
+        ({ accountId }) => accountId === activeWorkspaceAccountId,
       );
 
       if (activeOrg) {
-        accountName = activeOrg.name;
+        return activeOrg.name;
       }
     }
 
-    return { name: accountName || "User", accountId };
-  }, [accountId, authenticatedUser]);
+    return "User";
+  }, [activeWorkspaceAccountId, authenticatedUser]);
 
   const workspaceList = useMemo(() => {
-    if (!authenticatedUser) {
-      return [];
-    }
-
     return [
       {
-        key: authenticatedUser.userAccountId,
-        url: `/${authenticatedUser.userAccountId}`,
+        accountId: authenticatedUser.accountId,
         title: "My personal workspace",
         subText: `@${authenticatedUser.shortname ?? "user"}`,
         avatarTitle: authenticatedUser.preferredName ?? "U",
       },
-      ...authenticatedUser.memberOf.map(({ orgAccountId, name, members }) => ({
-        key: orgAccountId,
-        url: `/${orgAccountId}`,
+      ...authenticatedUser.memberOf.map(({ accountId, name, members }) => ({
+        accountId,
         title: name,
         subText: `${members.length} members`,
         avatarTitle: name,
@@ -79,9 +70,8 @@ export const WorkspaceSwitcher: FunctionComponent<
 
   return (
     <Box>
-      <Tooltip placement="bottom" title={activeWorkspace.name}>
+      <Tooltip placement="bottom" title={activeWorkspaceName}>
         <Button
-          ref={buttonRef}
           variant="tertiary_quiet"
           fullWidth
           sx={({ spacing }) => ({
@@ -93,7 +83,7 @@ export const WorkspaceSwitcher: FunctionComponent<
           })}
           {...bindTrigger(popupState)}
         >
-          <Avatar size={22} title={activeWorkspace.name} />
+          <Avatar size={22} title={activeWorkspaceName} />
           <Typography
             sx={{
               pr: 1,
@@ -107,7 +97,7 @@ export const WorkspaceSwitcher: FunctionComponent<
             }}
             variant="smallTextLabels"
           >
-            {activeWorkspace.name}
+            {activeWorkspaceName}
           </Typography>
           <FontAwesomeIcon
             icon={faChevronDown}
@@ -125,17 +115,19 @@ export const WorkspaceSwitcher: FunctionComponent<
         }}
         autoFocus={false}
       >
-        {workspaceList.map(({ title, subText, url, key }) => (
+        {workspaceList.map(({ title, subText, accountId }) => (
           <MenuItem
-            key={key}
-            selected={key === activeWorkspace.accountId}
-            onClick={() => popupState.close()}
-            href={url}
+            key={accountId}
+            selected={accountId === activeWorkspaceAccountId}
+            onClick={() => {
+              updateActiveWorkspaceAccountId(accountId);
+              popupState.close();
+            }}
           >
             <ListItemAvatar>
               <Avatar
                 size={34}
-                title={authenticatedUser?.preferredName ?? "U"}
+                title={authenticatedUser.preferredName ?? "U"}
               />
             </ListItemAvatar>
             <ListItemText

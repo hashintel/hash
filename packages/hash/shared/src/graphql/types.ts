@@ -1,8 +1,4 @@
-import {
-  DataType,
-  PropertyType,
-  EntityType,
-} from "@blockprotocol/type-system-web";
+import { DataType, PropertyType, EntityType } from "@blockprotocol/type-system";
 import { EntityId } from "@hashintel/hash-subgraph";
 
 export type TextToken =

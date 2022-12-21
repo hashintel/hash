@@ -5,24 +5,22 @@
   "description": "Integration tests for HASH",
   "license": "AGPL-3.0",
   "scripts": {
-    "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.yml",
+    "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "fix:eslint": "eslint --fix .",
-    "lint:eslint": "eslint .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "test": "jest --runInBand"
   },
   "dependencies": {
-    "@blockprotocol/type-system-web": "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-web?244d25a",
+    "@blockprotocol/type-system": "0.0.1",
     "@hashintel/hash-api": "0.0.0-private",
     "@hashintel/hash-backend-utils": "0.0.0-private",
     "@hashintel/hash-graph-client": "0.0.0-private",
     "@hashintel/hash-shared": "0.0.0-private",
+    "@hashintel/hash-subgraph": "0.0.0-private",
     "execa": "5.1.1",
     "graphql": "15.5.1",
-    "graphql-request": "3.4.0",
-    "graphql-tag": "2.12.5",
-    "node-fetch": "^2.6.7",
-    "pg": "8.7.1"
+    "graphql-request": "3.4.0"
   },
   "devDependencies": {
     "@babel/preset-env": "7.20.2",
@@ -35,12 +33,9 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/jest": "29.2.3",
-    "@types/prompts": "2.4.1",
-    "@typescript-eslint/eslint-plugin": "5.45.0",
-    "@typescript-eslint/parser": "5.45.0",
-    "eslint": "8.28.0",
+    "eslint": "8.29.0",
     "jest": "29.3.1",
     "rimraf": "^3.0.2",
-    "typescript": "4.9.3"
+    "typescript": "4.9.4"
   }
 }

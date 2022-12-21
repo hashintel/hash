@@ -1,4 +1,4 @@
-import { promisify } from "util";
+import { promisify } from "node:util";
 
 import { createClient } from "redis";
 import { DataSource } from "apollo-datasource";
@@ -90,6 +90,7 @@ export class AsyncRedisClient extends DataSource {
     client.on("error", (error) => {
       this.logger.error({
         message: "Redis connection lost",
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- error stringification may need improvement
         errorMessage: `${error.name}: ${error.message}`,
       });
     });

@@ -1,12 +1,12 @@
 use std::fmt::{Debug, Formatter};
 
 use serde::Deserialize;
-use type_system::{DataType, EntityType, PropertyType};
 use utoipa::ToSchema;
 
 use crate::{
     knowledge::Entity,
-    store::query::{Filter, QueryRecord},
+    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
+    store::{query::Filter, Record},
     subgraph::edges::GraphResolveDepths,
 };
 
@@ -32,7 +32,7 @@ use crate::{
 /// as a root vertex.
 ///
 /// Depending on the type of the [`StructuralQuery`], different [`RecordPath`]s are valid. Please
-/// see the documentation on the implementation of [`QueryRecord::Path`] for the valid paths for
+/// see the documentation on the implementation of [`Record::QueryPath`] for the valid paths for
 /// each type.
 ///
 /// # Depth
@@ -105,7 +105,7 @@ use crate::{
 ///     "any": [
 ///       {
 ///         "equal": [
-///           { "path": ["createdById"] },
+///           { "path": ["updatedById"] },
 ///           { "parameter": "12345678-90ab-cdef-1234-567890abcdef" }
 ///         ]
 ///       },
@@ -148,27 +148,27 @@ use crate::{
 /// }
 /// ```
 ///
-/// [`RecordPath`]: crate::store::query::RecordPath
+/// [`RecordPath`]: crate::store::query::QueryPath
 /// [`Parameter`]: crate::store::query::Parameter
 #[derive(Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 #[aliases(
-    DataTypeStructuralQuery = StructuralQuery<'static, DataType>,
-    PropertyTypeStructuralQuery = StructuralQuery<'static, PropertyType>,
-    EntityTypeStructuralQuery = StructuralQuery<'static, EntityType>,
+    DataTypeStructuralQuery = StructuralQuery<'static, DataTypeWithMetadata>,
+    PropertyTypeStructuralQuery = StructuralQuery<'static, PropertyTypeWithMetadata>,
+    EntityTypeStructuralQuery = StructuralQuery<'static, EntityTypeWithMetadata>,
     EntityStructuralQuery = StructuralQuery<'static, Entity>,
 )]
-pub struct StructuralQuery<'q, T: QueryRecord> {
-    #[serde(bound = "'de: 'q, T::Path<'q>: Deserialize<'de>")]
-    pub filter: Filter<'q, T>,
+pub struct StructuralQuery<'p, R: Record> {
+    #[serde(bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>")]
+    pub filter: Filter<'p, R>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
 
 // TODO: Derive traits when bounds are generated correctly
 //   see https://github.com/rust-lang/rust/issues/26925
-impl<'q, T> Debug for StructuralQuery<'q, T>
+impl<'p, R> Debug for StructuralQuery<'p, R>
 where
-    T: QueryRecord<Path<'q>: Debug>,
+    R: Record<QueryPath<'p>: Debug>,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("StructuralQuery")

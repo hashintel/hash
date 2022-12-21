@@ -1,10 +1,10 @@
-import React, { FunctionComponent } from "react";
 import {
-  useSortable,
-  defaultAnimateLayoutChanges,
   AnimateLayoutChanges,
+  defaultAnimateLayoutChanges,
+  useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import React, { FunctionComponent } from "react";
 
 import { Item, ItemProps } from "./item";
 

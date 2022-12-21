@@ -1,5 +1,6 @@
 import { FunctionComponent } from "react";
 import { tw } from "twind";
+
 import Pencil from "../svgs/pencil";
 import { ResizeImageBlock } from "./resize-image-block";
 
@@ -34,7 +35,7 @@ export const MediaWithCaption: FunctionComponent<MediaWithCaptionProps> = ({
   const captionNode = (
     <input
       placeholder="Add a caption"
-      className={tw`focus:outline-none text-center mt-3`}
+      className={tw`border-none bg-transparent focus:outline-none text-center mt-3`}
       type="text"
       value={caption}
       disabled={readonly}
@@ -62,7 +63,7 @@ export const MediaWithCaption: FunctionComponent<MediaWithCaptionProps> = ({
             style={{
               maxWidth: "100%",
             }}
-            src={src ?? ""}
+            src={src}
           />
           {captionNode}
         </div>
@@ -71,7 +72,7 @@ export const MediaWithCaption: FunctionComponent<MediaWithCaptionProps> = ({
         <button
           type="button"
           onClick={onReset}
-          className={tw`ml-2 bg-gray-100 p-1.5 border-1 border-gray-300 rounded-sm self-start`}
+          className={tw`ml-2 bg-gray-100 p-1.5 border-1 border-gray-300 rounded-sm self-start border-solid`}
         >
           <Pencil />
         </button>

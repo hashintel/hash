@@ -77,7 +77,10 @@ target
 .vscode/settings.json
 
 # intellij IDEs config
-/.idea/
+.idea/
+
+# fleet IDEs config
+.fleet/
 
 # Python virtual environment
 venv
@@ -96,3 +99,14 @@ __pycache__
 # Application data
 /var
 seed-users.json
+
+# Terraform
+**/.terraform
+*.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.secrets.tfvars
+*.pem
+
+# Workspace-specific
+/packages/hash/design-system/storybook-static

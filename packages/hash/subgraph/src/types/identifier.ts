@@ -4,13 +4,14 @@ import { validate as validateUuid } from "uuid";
 // For strange behavior we haven't found the cause of, we are unable to export
 // directly here, and have to import as alias before re-exporting the type
 // if we don't, the `api` package is unable to use this library.
-import { VersionedUri as TVersionedUri } from "@blockprotocol/type-system-web";
+import { VersionedUri as TVersionedUri } from "@blockprotocol/type-system";
 
 export type VersionedUri = TVersionedUri;
 
 // `${AccountId}%${EntityUuid}`
 export type EntityId = `${string}%${string}`;
 
+/** @todo - consider Type Branding this */
 export const entityIdFromOwnedByIdAndEntityUuid = (
   ownedById: string,
   entityUuid: string,

@@ -5,15 +5,18 @@ import {
   EntityId,
   extractEntityUuidFromEntityId,
 } from "@hashintel/hash-subgraph";
-import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-shared/environment";
+import { systemUserShortname } from "@hashintel/hash-shared/environment";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
+
 import { useUsers } from "../../../components/hooks/useUsers";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { Link } from "../../../shared/ui";
+import { constructPageRelativeUrl } from "../../../lib/routes";
 
 interface MentionDisplayProps {
   entityId: EntityId;
   mentionType: "page" | "user";
-  accountId: string;
+  accountId: AccountId;
 }
 
 export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
@@ -21,14 +24,16 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   mentionType,
   accountId,
 }) => {
-  const { users, loading: usersLoading } = useUsers();
-  const { data: pages, loading: pagesLoading } = useAccountPages(accountId);
+  const { users, loading: usersLoading } = useUsers(true);
+  const { data: pages, loading: pagesLoading } = useAccountPages(
+    accountId as OwnedById,
+  );
 
   const { title, href, icon } = useMemo(() => {
     switch (mentionType) {
       case "user": {
         // User entities are stored on the system account
-        const userHref = `/@${SYSTEM_ACCOUNT_SHORTNAME}/entities/${extractEntityUuidFromEntityId(
+        const userHref = `/@${systemUserShortname}/entities/${extractEntityUuidFromEntityId(
           entityId,
         )}`;
 
@@ -63,6 +68,10 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
         }
       }
       case "page": {
+        const page = pages.find(
+          (potentialPage) => potentialPage.entityId === entityId,
+        );
+
         let pageTitle = "";
 
         // Only set the title to "Page" if the query hasn't returned yet
@@ -70,29 +79,26 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
           pageTitle = "Page";
         } else {
           // Once the query loads, either display the found title, or display "Unknown Page" if the page doesn't exist in the page array
-          pageTitle =
-            pages.find((page) => page.entityId === entityId)?.title ??
-            "Unknown Page";
+          pageTitle = page?.title ?? "Unknown Page";
         }
+
+        const pageEntityUuid = extractEntityUuidFromEntityId(entityId);
 
         return {
           title: pageTitle,
-          href: `/${accountId}/${extractEntityUuidFromEntityId(entityId)}`,
+          href: page
+            ? constructPageRelativeUrl({
+                workspaceShortname: page.ownerShortname,
+                pageEntityUuid,
+              })
+            : "",
           icon: <ArticleIcon style={{ fontSize: "1em" }} />,
         };
       }
       default:
         return { title: "", href: "", icon: "@" };
     }
-  }, [
-    accountId,
-    entityId,
-    mentionType,
-    users,
-    pages,
-    pagesLoading,
-    usersLoading,
-  ]);
+  }, [entityId, mentionType, users, pages, pagesLoading, usersLoading]);
 
   return (
     <Link noLinkStyle href={href} sx={{ fontWeight: 500, color: "#9ca3af" }}>

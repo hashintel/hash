@@ -2,10 +2,10 @@ import { FunctionComponent, useCallback, useState } from "react";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { faComment } from "@fortawesome/free-regular-svg-icons";
 import { Box, Popper } from "@mui/material";
-import { EntityId } from "@hashintel/hash-subgraph";
+import { EntityId } from "@hashintel/hash-shared/types";
 import styles from "../style.module.css";
 import { CreateBlockComment } from "./CreateBlockComment";
-import { useReadonlyMode } from "../../../shared/readonly-mode";
+import { useIsReadonlyMode } from "../../../shared/readonly-mode";
 
 type CreateBlockCommentButtonProps = {
   blockEntityId: EntityId | null;
@@ -17,13 +17,13 @@ export const CreateBlockCommentButton: FunctionComponent<
 > = ({ blockEntityId, rootNode }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
-  const { readonlyMode } = useReadonlyMode();
+  const isReadonlyMode = useIsReadonlyMode();
 
   const closeInput = useCallback(() => {
     setAnchorEl(null);
   }, []);
 
-  if (readonlyMode) {
+  if (isReadonlyMode) {
     return null;
   }
 

@@ -1,7 +1,3 @@
-import {
-  EntityId,
-  entityIdFromOwnedByIdAndEntityUuid,
-} from "@hashintel/hash-subgraph";
 import { useRouter } from "next/router";
 import {
   createContext,
@@ -10,9 +6,15 @@ import {
   useMemo,
   ReactNode,
 } from "react";
+import { EntityUuid } from "@hashintel/hash-shared/types";
+
+import {
+  parsePageUrlQueryParams,
+  isPageParsedUrlQuery,
+} from "../../pages/[shortname]/[page-slug].page";
 
 type RoutePageInfo = {
-  pageEntityId: EntityId;
+  routePageEntityUuid: EntityUuid;
 };
 
 const RoutePageInfoContext = createContext<RoutePageInfo | undefined>(
@@ -29,20 +31,17 @@ export const RoutePageInfoProvider: FunctionComponent<{
 }> = ({ children }) => {
   const router = useRouter();
 
-  const accountSlug = router.query["account-slug"];
-  const pageSlug = router.query["page-slug"];
+  const routePageEntityUuid = useMemo(() => {
+    if (isPageParsedUrlQuery(router.query)) {
+      return parsePageUrlQueryParams(router.query).pageEntityUuid;
+    }
+    return undefined;
+  }, [router]);
 
-  const contextValue = useMemo<RoutePageInfo | undefined>(() => {
-    return typeof accountSlug === "string" && typeof pageSlug === "string"
-      ? {
-          // @todo parse and use suspense for lookup if needed
-          pageEntityId: entityIdFromOwnedByIdAndEntityUuid(
-            accountSlug,
-            pageSlug,
-          ),
-        }
-      : undefined;
-  }, [accountSlug, pageSlug]);
+  const contextValue = useMemo<RoutePageInfo | undefined>(
+    () => (routePageEntityUuid ? { routePageEntityUuid } : undefined),
+    [routePageEntityUuid],
+  );
 
   return (
     <RoutePageInfoContext.Provider value={contextValue}>

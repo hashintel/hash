@@ -1,6 +1,6 @@
+import { Box } from "@mui/material";
 import { useMemo, FunctionComponent } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { tw } from "twind";
 
 import { SelectInput } from "../../components/forms/SelectInput";
 import { useShortnameInput } from "../../components/hooks/useShortnameInput";
@@ -81,38 +81,75 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
   }, [invitationInfo, email]);
 
   const shortnameError = getShortnameError(
-    errors?.shortname?.message,
+    errors.shortname?.message,
     Boolean(touchedFields.shortname),
   );
 
   return (
-    <div className={tw`w-9/12 max-w-3xl`}>
-      <LogoIcon className={tw`mb-16`} />
-      <div className={tw`mb-9`}>
-        <h1 className={tw`text-3xl font-bold mb-4`}>{title}</h1>
-        <p className={tw`text-2xl mb-14 font-light`}>{subtitle}</p>
+    <div style={{ width: "75%", maxWidth: "48rem" }}>
+      <LogoIcon style={{ marginBottom: "4rem" }} />
+      <div style={{ marginBottom: "2.25rem" }}>
+        <h1
+          style={{
+            fontSize: "1.875rem",
+            fontWeight: "700",
+            lineHeight: "2.25rem",
+            marginBottom: "1rem",
+          }}
+        >
+          {title}
+        </h1>
+        <p
+          style={{
+            fontSize: "1.5rem",
+            fontWeight: "300",
+            lineHeight: "2rem",
+            marginBottom: "3.5rem",
+          }}
+        >
+          {subtitle}
+        </p>
         <form onSubmit={onSubmit}>
-          <div className={tw`mb-8`}>
-            <label htmlFor="shortname" className={tw`block mb-5`}>
-              <p className={tw`block font-bold uppercase mb-2`}>
+          <div style={{ marginBottom: "2rem" }}>
+            <label
+              htmlFor="shortname"
+              style={{ display: "block", marginBottom: "1.25rem" }}
+            >
+              <p
+                style={{
+                  display: "block",
+                  fontWeight: "700",
+                  marginBottom: "0.5rem",
+                  textTransform: "uppercase",
+                }}
+              >
                 Personal Username
               </p>
-              <p className={tw`text-sm text-black text-opacity-60 mb-5`}>
+              <p
+                style={{
+                  color: "#000000",
+                  fontSize: "0.875rem",
+                  marginBottom: "1.25rem",
+                  opacity: 0.6,
+                  lineHeight: "1.25rem",
+                }}
+              >
                 Your own personal graph will exist under this username. e.g.
                 https://hash.ai/
-                <strong className={tw`text-black text-opacity-100`}>
+                <strong style={{ color: "#000000", opacity: "1" }}>
                   @{shortnameWatcher || "example"}
                 </strong>
               </p>
             </label>
-            <div className={tw`flex items-center`}>
-              <div className={tw`relative`}>
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <div style={{ position: "relative" }}>
                 <Controller
                   control={control}
                   name="shortname"
                   rules={{ validate: validateShortname }}
                   render={({ field }) => (
-                    <input
+                    <Box
+                      component="input"
                       id="shortname"
                       onChange={(evt) => {
                         const newEvt = { ...evt };
@@ -123,11 +160,24 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
                       }}
                       onBlur={field.onBlur}
                       autoFocus
-                      className={tw`w-64 border-1 ${
-                        shortnameError
-                          ? "border-red-300 focus:border-red-500"
-                          : "border-gray-300 focus:border-blue-500"
-                      } border-solid focus:outline-none rounded-lg h-11 py-6 pl-9 pr-5 mr-7`}
+                      sx={{
+                        borderColor: shortnameError ? "#FCA5A5" : "#D1D5DB",
+                        borderRadius: "0.5rem",
+                        borderStyle: "solid",
+                        borderWidth: 1,
+                        height: "2.75rem",
+                        marginRight: "1.75rem",
+                        paddingBottom: "1.5rem",
+                        paddingLeft: "2.25rem",
+                        paddingRight: "1.25rem",
+                        paddingTop: "1.5rem",
+                        width: "16rem",
+
+                        "&:focus": {
+                          borderColor: shortnameError ? "#EF4444" : "#2563EB",
+                          outline: "none",
+                        },
+                      }}
                       placeholder="example"
                       autoComplete="off"
                     />
@@ -135,28 +185,55 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
                 />
 
                 <span
-                  className={tw`absolute text-gray-400 left-5 top-1/2 -translate-y-1/2`}
+                  style={{
+                    position: "absolute",
+                    left: "1.25rem",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: "#9CA3AF",
+                  }}
                 >
                   @
                 </span>
               </div>
               <div
-                style={{ minHeight: 50 }}
-                className={tw`transition-opacity max-w-sm flex items-center border-1 ${
-                  shortnameError ? "border-red-300" : "border-blue-300"
-                } rounded-md px-3.5`}
+                style={{
+                  alignItems: "center",
+                  borderColor: shortnameError ? "#FCA5A5" : "#D1D5DB",
+                  borderRadius: "0.375rem",
+                  borderWidth: 1,
+                  display: "flex",
+                  maxWidth: "24rem",
+                  minHeight: 50,
+                  paddingLeft: "0.875rem",
+                  paddingRight: "0.875rem",
+                  transitionProperty: "opacity",
+                }}
               >
                 <InfoIcon
-                  className={tw`h-6 w-6 mr-3 ${
-                    shortnameError ? "text-red-500" : "text-blue-500"
-                  }`}
+                  style={{
+                    color: shortnameError ? "#EF4444" : "#3B82F6",
+                    height: "1.5rem",
+                    marginRight: "0.75rem",
+                    width: "1.5rem",
+                  }}
                 />
                 <span
-                  className={tw`flex-1 ${
-                    shortnameError
-                      ? "text-red-500 text-sm"
-                      : "text-black text-opacity-60 text-xs"
-                  }`}
+                  style={{
+                    flex: "1 1 0%",
+                    ...(shortnameError
+                      ? {
+                          color: "#EF4444",
+                          fontSize: "0.875rem",
+                          lineHeight: "1.25rem",
+                        }
+                      : {
+                          color: "#000000",
+                          textOpacity: "0.6",
+                          fontSize: "0.75rem",
+                          lineHeight: "1rem",
+                        }),
+                  }}
                 >
                   {shortnameError ?? (
                     <>
@@ -168,31 +245,66 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
               </div>
             </div>
           </div>
-          <div className={tw``}>
+          <div>
             <label
               htmlFor="name"
-              className={tw`block font-bold uppercase mb-2`}
+              style={{
+                display: "block",
+                fontWeight: "700",
+                marginBottom: "0.5rem",
+                textTransform: "uppercase",
+              }}
             >
               Preferred name{" "}
-              <span className={tw`font-normal`}>or first name</span>
+              <span style={{ fontWeight: "400" }}>or first name</span>
             </label>
-            <p className={tw`text-sm text-black text-opacity-60 mb-5`}>
+            <p
+              style={{
+                color: "#000000",
+                fontSize: "0.875rem",
+                lineHeight: "1.25rem",
+                marginBottom: "1.25rem",
+                opacity: 0.6,
+              }}
+            >
               What shall we call you when referring to you? e.g. “Hi,{" "}
-              <strong className={tw`text-black text-opacity-100 capitalize`}>
+              <strong
+                style={{
+                  color: "#000000",
+                  opacity: 1,
+                  textTransform: "capitalize",
+                }}
+              >
                 {preferredNameWatcher || "Bobby"}
               </strong>
               ”
             </p>
-            <input
+            <Box
+              component="input"
               id="name"
-              className={tw`w-64 border-1 border-gray-300 border-solid focus:outline-none focus:border-blue-500 rounded-lg h-11 py-6 px-5`}
+              sx={{
+                paddingLeft: "1.25rem",
+                paddingRight: "1.25rem",
+                paddingTop: "1.5rem",
+                paddingBottom: "1.5rem",
+                width: "16rem",
+                height: "2.75rem",
+                borderRadius: "0.5rem",
+                borderColor: "#D1D5DB",
+                borderStyle: "solid",
+
+                "&:focus": {
+                  borderColor: "#2563EB",
+                  outline: "none",
+                },
+              }}
               placeholder="Bobby"
               {...register("preferredName", { required: true })}
             />
           </div>
 
           {!!invitationInfo && (
-            <div className={tw`mt-8`}>
+            <div style={{ marginTop: "2rem" }}>
               <Controller
                 control={control}
                 name="responsibility"
@@ -211,14 +323,46 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
               />
 
               {errorMessage ? (
-                <p className={tw`text-red-500 text-sm mt-5 `}>{errorMessage}</p>
+                <p
+                  style={{
+                    marginTop: "1.25rem",
+                    color: "#EF4444",
+                    fontSize: "0.875rem",
+                    lineHeight: "1.25rem",
+                  }}
+                >
+                  {errorMessage}
+                </p>
               ) : null}
             </div>
           )}
 
-          <button
+          <Box
+            component="button"
             type="submit"
-            className={tw`group cursor-pointer border-none w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 rounded-lg h-11 transition-all disabled:opacity-50 flex items-center justify-center text-white text-sm font-bold mt-14`}
+            sx={{
+              alignItems: "center",
+              backgroundColor: "#EC4899",
+              backgroundImage:
+                "background-image: linear-gradient(to right, var(--tw-gradient-stops))",
+              borderRadius: "0.5rem",
+              borderStyle: "none",
+              color: "#ffffff",
+              cursor: "pointer",
+              display: "flex",
+              fontSize: "0.875rem",
+              fontWeight: "700",
+              height: "2.75rem",
+              justifyContent: "center",
+              lineHeight: "1.25rem",
+              marginTop: "3.5rem",
+              transitionProperty: "all",
+              width: "16rem",
+
+              ":disabled": {
+                opacity: 0.5,
+              },
+            }}
             disabled={
               !isValid ||
               loading ||
@@ -226,18 +370,33 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
             }
           >
             {loading ? (
-              <SpinnerIcon className={tw`h-4 w-4 text-white animate-spin`} />
+              <SpinnerIcon
+                style={{
+                  animation: "spin 1s linear infinite",
+                  color: "#ffffff",
+                  width: "1rem",
+                  height: "1rem",
+                }}
+              />
             ) : (
               <>
                 <span>Continue</span>
-                <span
-                  className={tw`ml-2 transition-all group-hover:translate-x-1`}
+                <Box
+                  component="span"
+                  sx={{
+                    marginLeft: "0.5rem",
+                    transitionProperty: "all",
+
+                    "button:hover &": {
+                      transform: "translateX(0.25rem)",
+                    },
+                  }}
                 >
                   &rarr;
-                </span>
+                </Box>
               </>
             )}
-          </button>
+          </Box>
         </form>
       </div>
     </div>

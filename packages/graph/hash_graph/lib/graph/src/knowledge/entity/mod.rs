@@ -1,6 +1,12 @@
 mod query;
 
-use std::{collections::HashMap, fmt};
+use std::{
+    collections::{
+        hash_map::{RandomState, RawEntryMut},
+        HashMap,
+    },
+    fmt,
+};
 
 use serde::{Deserialize, Serialize};
 use tokio_postgres::types::{FromSql, ToSql};
@@ -12,11 +18,25 @@ pub use self::query::{EntityQueryPath, EntityQueryPathVisitor, EntityQueryToken}
 use crate::{
     identifier::knowledge::{EntityEditionId, EntityId},
     provenance::ProvenanceMetadata,
+    store::{query::Filter, Record},
+    subgraph::Subgraph,
 };
 
 #[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, ToSchema,
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    ToSchema,
+    ToSql,
 )]
+#[postgres(transparent)]
 #[repr(transparent)]
 pub struct EntityUuid(Uuid);
 
@@ -77,53 +97,56 @@ impl EntityProperties {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityLinkOrder {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    left_order: Option<LinkOrder>,
+    left_to_right_order: Option<LinkOrder>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    right_order: Option<LinkOrder>,
+    right_to_left_order: Option<LinkOrder>,
 }
 
 impl EntityLinkOrder {
     #[must_use]
-    pub const fn new(left_order: Option<LinkOrder>, right_order: Option<LinkOrder>) -> Self {
+    pub const fn new(
+        left_to_right_order: Option<LinkOrder>,
+        right_to_left_order: Option<LinkOrder>,
+    ) -> Self {
         Self {
-            left_order,
-            right_order,
+            left_to_right_order,
+            right_to_left_order,
         }
     }
 
     #[must_use]
-    pub const fn left(&self) -> Option<LinkOrder> {
-        self.left_order
+    pub const fn left_to_right(&self) -> Option<LinkOrder> {
+        self.left_to_right_order
     }
 
     #[must_use]
-    pub const fn right(&self) -> Option<LinkOrder> {
-        self.right_order
+    pub const fn right_to_left(&self) -> Option<LinkOrder> {
+        self.right_to_left_order
     }
 }
 
 /// The associated information for 'Link' entities
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct LinkEntityMetadata {
+pub struct LinkData {
     left_entity_id: EntityId,
     right_entity_id: EntityId,
     #[serde(flatten)]
     order: EntityLinkOrder,
 }
 
-impl LinkEntityMetadata {
+impl LinkData {
     #[must_use]
     pub const fn new(
         left_entity_id: EntityId,
         right_entity_id: EntityId,
-        left_order: Option<LinkOrder>,
-        right_order: Option<LinkOrder>,
+        left_to_right_order: Option<LinkOrder>,
+        right_to_left_order: Option<LinkOrder>,
     ) -> Self {
         Self {
             left_entity_id,
             right_entity_id,
-            order: EntityLinkOrder::new(left_order, right_order),
+            order: EntityLinkOrder::new(left_to_right_order, right_to_left_order),
         }
     }
 
@@ -138,18 +161,18 @@ impl LinkEntityMetadata {
     }
 
     #[must_use]
-    pub const fn left_order(&self) -> Option<LinkOrder> {
-        self.order.left_order
+    pub const fn left_to_right_order(&self) -> Option<LinkOrder> {
+        self.order.left_to_right_order
     }
 
     #[must_use]
-    pub const fn right_order(&self) -> Option<LinkOrder> {
-        self.order.right_order
+    pub const fn right_to_left_order(&self) -> Option<LinkOrder> {
+        self.order.right_to_left_order
     }
 }
 
 /// The metadata of an [`Entity`] record.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 // TODO: deny_unknown_fields on other structs
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityMetadata {
@@ -158,8 +181,6 @@ pub struct EntityMetadata {
     entity_type_id: VersionedUri,
     #[serde(rename = "provenance")]
     provenance_metadata: ProvenanceMetadata,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    link_metadata: Option<LinkEntityMetadata>,
     archived: bool,
 }
 
@@ -169,14 +190,12 @@ impl EntityMetadata {
         edition_id: EntityEditionId,
         entity_type_id: VersionedUri,
         provenance_metadata: ProvenanceMetadata,
-        link_metadata: Option<LinkEntityMetadata>,
         archived: bool,
     ) -> Self {
         Self {
             edition_id,
             entity_type_id,
             provenance_metadata,
-            link_metadata,
             archived,
         }
     }
@@ -197,11 +216,6 @@ impl EntityMetadata {
     }
 
     #[must_use]
-    pub const fn link_metadata(&self) -> Option<LinkEntityMetadata> {
-        self.link_metadata
-    }
-
-    #[must_use]
     pub const fn archived(&self) -> bool {
         self.archived
     }
@@ -209,10 +223,12 @@ impl EntityMetadata {
 
 /// A record of an [`Entity`] that has been persisted in the datastore, with its associated
 /// metadata.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Entity {
     properties: EntityProperties,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    link_data: Option<LinkData>,
     metadata: EntityMetadata,
 }
 
@@ -220,19 +236,19 @@ impl Entity {
     #[must_use]
     pub const fn new(
         properties: EntityProperties,
+        link_data: Option<LinkData>,
         identifier: EntityEditionId,
         entity_type_id: VersionedUri,
         provenance_metadata: ProvenanceMetadata,
-        link_metadata: Option<LinkEntityMetadata>,
         archived: bool,
     ) -> Self {
         Self {
             properties,
+            link_data,
             metadata: EntityMetadata::new(
                 identifier,
                 entity_type_id,
                 provenance_metadata,
-                link_metadata,
                 archived,
             ),
         }
@@ -244,8 +260,37 @@ impl Entity {
     }
 
     #[must_use]
+    pub const fn link_data(&self) -> Option<LinkData> {
+        self.link_data
+    }
+
+    #[must_use]
     pub const fn metadata(&self) -> &EntityMetadata {
         &self.metadata
+    }
+}
+
+impl Record for Entity {
+    type EditionId = EntityEditionId;
+    type QueryPath<'p> = EntityQueryPath<'p>;
+
+    fn edition_id(&self) -> &Self::EditionId {
+        &self.metadata.edition_id
+    }
+
+    fn create_filter_for_edition_id(edition_id: &Self::EditionId) -> Filter<Self> {
+        Filter::for_entity_by_edition_id(*edition_id)
+    }
+
+    fn subgraph_entry<'s>(
+        subgraph: &'s mut Subgraph,
+        edition_id: &Self::EditionId,
+    ) -> RawEntryMut<'s, Self::EditionId, Self, RandomState> {
+        subgraph
+            .vertices
+            .entities
+            .raw_entry_mut()
+            .from_key(edition_id)
     }
 }
 

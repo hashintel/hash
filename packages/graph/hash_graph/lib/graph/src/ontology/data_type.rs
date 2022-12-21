@@ -4,10 +4,9 @@ use serde::{
     de::{self, Deserializer, SeqAccess, Visitor},
     Deserialize,
 };
-use type_system::DataType;
 use utoipa::ToSchema;
 
-use crate::store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath};
+use crate::store::query::{OntologyQueryPath, ParameterType, QueryPath};
 
 /// A path to a [`DataType`] field.
 ///
@@ -31,6 +30,7 @@ pub enum DataTypeQueryPath {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`DataType`]: type_system::DataType
     /// [`BaseUri`]: type_system::uri::BaseUri
     BaseUri,
     /// The version of the [`DataType`].
@@ -52,16 +52,18 @@ pub enum DataTypeQueryPath {
     /// # use std::borrow::Cow;
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use type_system::DataType;
-    /// # use graph::{store::query::{Filter, FilterExpression, Parameter}, ontology::DataTypeQueryPath};
+    /// # use graph::{store::query::{Filter, FilterExpression, Parameter}};
+    /// # use graph::{ontology::{DataTypeQueryPath, DataTypeWithMetadata}};
     /// let filter_value = json!({ "equal": [{ "path": ["version"] }, { "parameter": "latest" }] });
-    /// let path = Filter::<DataType>::deserialize(filter_value)?;
+    /// let path = Filter::<DataTypeWithMetadata>::deserialize(filter_value)?;
     /// assert_eq!(path, Filter::Equal(
     ///     Some(FilterExpression::Path(DataTypeQueryPath::Version)),
     ///     Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed("latest")))))
     /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`DataType`]: type_system::DataType
     Version,
     /// The [`VersionedUri`] of the [`DataType`].
     ///
@@ -75,6 +77,7 @@ pub enum DataTypeQueryPath {
     /// ```
     ///
     /// [`VersionedUri`]: type_system::uri::VersionedUri
+    /// [`DataType`]: type_system::DataType
     VersionedUri,
     /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to the [`DataType`].
     ///
@@ -87,23 +90,10 @@ pub enum DataTypeQueryPath {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`DataType`]: type_system::DataType
     /// [`OwnedById`]: crate::provenance::OwnedById
     /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
     OwnedById,
-    /// The [`CreatedById`] of the [`ProvenanceMetadata`] belonging to the [`DataType`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::DataTypeQueryPath;
-    /// let path = DataTypeQueryPath::deserialize(json!(["createdById"]))?;
-    /// assert_eq!(path, DataTypeQueryPath::CreatedById);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`CreatedById`]: crate::provenance::CreatedById
-    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
-    CreatedById,
     /// The [`UpdatedById`] of the [`ProvenanceMetadata`] belonging to the [`DataType`].
     ///
     /// ```rust
@@ -115,6 +105,7 @@ pub enum DataTypeQueryPath {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`DataType`]: type_system::DataType
     /// [`UpdatedById`]: crate::provenance::UpdatedById
     /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
     UpdatedById,
@@ -128,6 +119,8 @@ pub enum DataTypeQueryPath {
     /// assert_eq!(path, DataTypeQueryPath::Title);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`DataType::title()`]: type_system::DataType::title
     Title,
     /// Corresponds to [`DataType::description()`]
     ///
@@ -139,6 +132,8 @@ pub enum DataTypeQueryPath {
     /// assert_eq!(path, DataTypeQueryPath::Description);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`DataType::description()`]: type_system::DataType::description
     Description,
     /// Corresponds to [`DataType::json_type()`].
     ///
@@ -150,6 +145,8 @@ pub enum DataTypeQueryPath {
     /// assert_eq!(path, DataTypeQueryPath::Type);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`DataType::json_type()`]: type_system::DataType::json_type
     Type,
     /// Only used internally and not available for deserialization.
     VersionId,
@@ -157,11 +154,7 @@ pub enum DataTypeQueryPath {
     Schema,
 }
 
-impl QueryRecord for DataType {
-    type Path<'q> = DataTypeQueryPath;
-}
-
-impl OntologyPath for DataTypeQueryPath {
+impl OntologyQueryPath for DataTypeQueryPath {
     fn base_uri() -> Self {
         Self::BaseUri
     }
@@ -178,10 +171,6 @@ impl OntologyPath for DataTypeQueryPath {
         Self::OwnedById
     }
 
-    fn created_by_id() -> Self {
-        Self::CreatedById
-    }
-
     fn updated_by_id() -> Self {
         Self::UpdatedById
     }
@@ -191,12 +180,10 @@ impl OntologyPath for DataTypeQueryPath {
     }
 }
 
-impl RecordPath for DataTypeQueryPath {
+impl QueryPath for DataTypeQueryPath {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::VersionId | Self::OwnedById | Self::CreatedById | Self::UpdatedById => {
-                ParameterType::Uuid
-            }
+            Self::VersionId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
             Self::Schema => ParameterType::Any,
             Self::BaseUri => ParameterType::BaseUri,
             Self::VersionedUri => ParameterType::VersionedUri,
@@ -214,7 +201,6 @@ impl fmt::Display for DataTypeQueryPath {
             Self::Version => fmt.write_str("version"),
             Self::VersionedUri => fmt.write_str("versionedUri"),
             Self::OwnedById => fmt.write_str("ownedById"),
-            Self::CreatedById => fmt.write_str("createdById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
             Self::Schema => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),
@@ -232,7 +218,6 @@ pub enum DataTypeQueryToken {
     Version,
     VersionedUri,
     OwnedById,
-    CreatedById,
     UpdatedById,
     Title,
     Description,
@@ -247,8 +232,8 @@ pub struct DataTypeQueryPathVisitor {
 
 impl DataTypeQueryPathVisitor {
     pub const EXPECTING: &'static str = "one of `baseUri`, `version`, `versionedUri`, \
-                                         `ownedById`, `createdById`, `updatedById`, `title`, \
-                                         `description`, `type`";
+                                         `ownedById`, `updatedById`, `title`, `description`, \
+                                         `type`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -274,7 +259,6 @@ impl<'de> Visitor<'de> for DataTypeQueryPathVisitor {
 
         Ok(match token {
             DataTypeQueryToken::OwnedById => DataTypeQueryPath::OwnedById,
-            DataTypeQueryToken::CreatedById => DataTypeQueryPath::CreatedById,
             DataTypeQueryToken::UpdatedById => DataTypeQueryPath::UpdatedById,
             DataTypeQueryToken::BaseUri => DataTypeQueryPath::BaseUri,
             DataTypeQueryToken::VersionedUri => DataTypeQueryPath::VersionedUri,
@@ -301,7 +285,7 @@ mod tests {
 
     use super::*;
 
-    fn deserialize<'q>(segments: impl IntoIterator<Item = &'q str>) -> DataTypeQueryPath {
+    fn deserialize<'p>(segments: impl IntoIterator<Item = &'p str>) -> DataTypeQueryPath {
         DataTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
             segments.into_iter(),
         ))

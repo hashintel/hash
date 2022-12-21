@@ -1,3 +1,5 @@
+/* eslint-disable canonical/filename-no-index -- @todo rename file */
+
 import { toggleMark } from "prosemirror-commands";
 import { inputRules } from "prosemirror-inputrules";
 import { Mark } from "prosemirror-model";
@@ -8,9 +10,8 @@ import {
   PluginKey,
 } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { tw } from "twind";
 import { createRef } from "react";
-import { RenderPortal } from "../usePortals";
+import { RenderPortal } from "../BlockPortals";
 import { ensureMounted } from "../../../lib/dom";
 import { MarksTooltip } from "./MarksTooltip";
 import { LinkModal } from "./LinkModal";
@@ -130,6 +131,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
           }
 
           if (
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
             !dragging &&
             lastState &&
             lastState.doc.eq(state.doc) &&
@@ -151,7 +153,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
           const activeMarks = getActiveMarksWithAttrs(editorView.state);
 
           const jsx = (
-            <div className={tw`absolute z-30`} style={{ top, left }}>
+            <div style={{ top, left, position: "absolute", zIndex: "30" }}>
               <MarksTooltip
                 activeMarks={activeMarks}
                 toggleMark={(name, attrs) => {
@@ -199,8 +201,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
         ) {
           linkUrl = nextEditorState.selection.$from
             .marks()
-            ?.find((mark: Mark) => mark.type.name === linkMark.name)
-            ?.attrs.href;
+            .find((mark: Mark) => mark.type.name === linkMark.name)?.attrs.href;
         }
         // If link is in text selection
         else if (
@@ -292,8 +293,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
 
           renderPortal(
             <div
-              style={{ left, top: bottom }}
-              className={tw`absolute z-50`}
+              style={{ left, top: bottom, position: "absolute", zIndex: "50" }}
               ref={linkModalRef}
             >
               <LinkModal

@@ -1,6 +1,6 @@
 # Based on the quick-start example https://github.com/ory/kratos/blob/master/contrib/quickstart/kratos/email-password/kratos.yml
 
-version: v0.10.1
+version: v0.11.0
 
 serve:
   public:
@@ -10,6 +10,10 @@ serve:
   admin:
     base_url: http://kratos:4434/
 
+session:
+  # Let sessions live for 3 years
+  lifespan: 26280h # 24 h * 365 days * 3 years
+
 selfservice:
   default_browser_return_url: http://localhost:3000/
   allowed_return_urls:
@@ -18,6 +22,18 @@ selfservice:
   methods:
     password:
       enabled: true
+
+    link:
+      config:
+        # The URL for verification emails are set through the link method
+        # but we're using the code method, so we disable this method for usage.
+        enabled: false
+        # Set through SELFSERVICE_METHODS_LINK_CONFIG_BASE_URL
+        base_url: http://localhost:3000/api/ory
+    code:
+      config:
+        # and make sure to enable the code method.
+        enabled: true
 
   flows:
     error:
@@ -42,6 +58,7 @@ selfservice:
             # supported by kratos.
             - hook: web_hook
               config:
+                can_interrupt: true
                 url: http://host.docker.internal:5001/kratos-after-registration
                 method: POST
                 body: file:///etc/config/kratos/hooks/after.registration.jsonnet
@@ -53,6 +70,13 @@ selfservice:
                     value: secret
                     in: header
             - hook: session
+
+    verification:
+      use: code
+      lifespan: 48h
+      # Set though SELFSERVICE_FLOWS_VERIFICATION_UI_URL
+      ui_url: http://localhost:3000/verification
+      enabled: true
 
 log:
   level: debug
@@ -73,3 +97,9 @@ identity:
   schemas:
     - id: default
       url: file:///etc/config/kratos/identity.schema.json
+
+courier:
+  template_override_path: /etc/config/kratos/templates
+  smtp:
+    # Set through COURIER_SMTP_CONNECTION_URI
+    connection_uri: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true

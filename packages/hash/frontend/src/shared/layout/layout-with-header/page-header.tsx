@@ -2,13 +2,13 @@ import { FunctionComponent, ReactNode } from "react";
 import { Box, useTheme, useMediaQuery } from "@mui/material";
 
 import { useLogoutFlow } from "../../../components/hooks/useLogoutFlow";
-import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
 import { AccountDropdown } from "./account-dropdown";
 import { SearchBar } from "./search-bar";
 import { ActionsDropdown } from "./actions-dropdown";
 import { Button, Link } from "../../ui";
 import { HashAlphaNavIcon } from "../../icons";
 import { useHashInstance } from "../../../components/hooks/useHashInstance";
+import { useAuthInfo } from "../../../pages/shared/auth-info-context";
 
 const Nav: FunctionComponent<{ children?: ReactNode }> = ({ children }) => (
   <Box
@@ -30,7 +30,7 @@ export const PageHeader: FunctionComponent = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
-  const { authenticatedUser } = useAuthenticatedUser();
+  const { authenticatedUser } = useAuthInfo();
   const { hashInstance } = useHashInstance();
   const { logout } = useLogoutFlow();
 
@@ -64,12 +64,7 @@ export const PageHeader: FunctionComponent = () => {
               justifyContent: "center",
             }}
           >
-            <Link
-              noLinkStyle
-              href={`/${
-                authenticatedUser ? authenticatedUser.userAccountId : ""
-              }`}
-            >
+            <Link noLinkStyle href="/">
               <HashAlphaNavIcon
                 sx={({ palette }) => ({
                   height: "1.1rem",

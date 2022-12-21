@@ -2,21 +2,18 @@ use alloc::format;
 use core::fmt::{Display, Formatter};
 
 use super::{ErrorProperties, ErrorProperty, Id, Namespace, Variant, NAMESPACE};
-use crate::{
-    error::{Location, Schema},
-    id,
-};
+use crate::{error::Location, id, schema::Document};
 
 #[derive(serde::Serialize)]
-pub struct ExpectedType(Schema);
+pub struct ExpectedType(Document);
 
 impl ExpectedType {
     #[must_use]
-    pub const fn new(schema: Schema) -> Self {
-        Self(schema)
+    pub const fn new(document: Document) -> Self {
+        Self(document)
     }
 
-    pub(crate) const fn schema(&self) -> &Schema {
+    pub(crate) const fn document(&self) -> &Document {
         &self.0
     }
 }
@@ -34,15 +31,15 @@ impl ErrorProperty for ExpectedType {
 }
 
 #[derive(serde::Serialize)]
-pub struct ReceivedType(Schema);
+pub struct ReceivedType(Document);
 
 impl ReceivedType {
     #[must_use]
-    pub const fn new(schema: Schema) -> Self {
-        Self(schema)
+    pub const fn new(document: Document) -> Self {
+        Self(document)
     }
 
-    pub(crate) const fn schema(&self) -> &Schema {
+    pub(crate) const fn document(&self) -> &Document {
         &self.0
     }
 }
@@ -76,11 +73,11 @@ impl Variant for TypeError {
         let (_, expected, received) = properties;
 
         let expected = expected
-            .map(|expected| expected.schema().ty())
+            .map(|expected| expected.document().schema().ty())
             .map(|ty| format!("expected value of type {ty}"));
 
         let received = received
-            .map(|received| received.schema().ty())
+            .map(|received| received.document().schema().ty())
             .map(|ty| format!("received value of unexpected type {ty}"));
 
         match (expected, received) {
@@ -109,6 +106,10 @@ mod tests {
     use super::*;
     use crate::{
         error::Error,
+        schema::{
+            visitor::{StringSchema, U8Schema},
+            Reflection,
+        },
         test::{to_json, to_message},
     };
 
@@ -123,12 +124,8 @@ mod tests {
             .attach(Location::Array(1))
             .attach(Location::Entry("entry1".into()))
             .attach(Location::Array(0))
-            .attach(ExpectedType::new(
-                Schema::new("integer")
-                    .with("minimum", u8::MIN)
-                    .with("maximum", u8::MAX),
-            ))
-            .attach(ReceivedType::new(Schema::new("string")));
+            .attach(ExpectedType::new(U8Schema::document()))
+            .attach(ReceivedType::new(StringSchema::document()));
 
         assert_eq!(
             to_json::<TypeError>(&error),
@@ -140,12 +137,22 @@ mod tests {
                     {"type": "field", "value": "field2"}
                 ],
                 "expected": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 255
+                    "$ref": "#/$defs/0000-deer::schema::visitor::U8Schema",
+                    "$defs": {
+                        "0000-deer::schema::visitor::U8Schema": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 255,
+                        }
+                    },
                 },
                 "received": {
-                    "type": "string"
+                    "$defs": {
+                        "0000-deer::schema::visitor::StringSchema": {
+                            "type": "string"
+                        }
+                    },
+                    "$ref": "#/$defs/0000-deer::schema::visitor::StringSchema"
                 }
             })
         );
@@ -161,7 +168,7 @@ mod tests {
         assert_eq!(
             to_message::<TypeError>(
                 &Report::new(TypeError.into_error())
-                    .attach(ReceivedType::new(Schema::new("string")))
+                    .attach(ReceivedType::new(StringSchema::document()))
             ),
             r#"received value of unexpected type string"#
         );
@@ -169,7 +176,7 @@ mod tests {
         assert_eq!(
             to_message::<TypeError>(
                 &Report::new(TypeError.into_error())
-                    .attach(ExpectedType::new(Schema::new("integer")))
+                    .attach(ExpectedType::new(U8Schema::document()))
             ),
             r#"expected value of type integer"#
         );
@@ -177,8 +184,8 @@ mod tests {
         assert_eq!(
             to_message::<TypeError>(
                 &Report::new(TypeError.into_error())
-                    .attach(ReceivedType::new(Schema::new("string")))
-                    .attach(ExpectedType::new(Schema::new("integer")))
+                    .attach(ReceivedType::new(StringSchema::document()))
+                    .attach(ExpectedType::new(U8Schema::document()))
             ),
             "expected value of type integer, but received value of unexpected type string"
         );

@@ -1,7 +1,7 @@
 import { Box, SxProps } from "@mui/material";
 import { ReactNode } from "react";
 import { PageThread } from "../../components/hooks/usePageComments";
-import { useReadonlyMode } from "../../shared/readonly-mode";
+import { useIsReadonlyMode } from "../../shared/readonly-mode";
 
 export const PAGE_CONTENT_WIDTH = 696;
 export const PAGE_MIN_PADDING = 48;
@@ -12,7 +12,7 @@ export const getPageSectionContainerStyles = (
   readonlyMode?: boolean,
 ) => {
   const commentsContainerWidth =
-    !readonlyMode && pageComments?.length
+    !readonlyMode && pageComments.length
       ? COMMENTS_WIDTH + PAGE_MIN_PADDING
       : 0;
 
@@ -36,12 +36,12 @@ export const PageSectionContainer = ({
   pageComments: PageThread[];
   sx?: SxProps;
 }) => {
-  const { readonlyMode } = useReadonlyMode();
+  const isReadonlyMode = useIsReadonlyMode();
 
   return (
     <Box
       sx={[
-        getPageSectionContainerStyles(pageComments, readonlyMode),
+        getPageSectionContainerStyles(pageComments, isReadonlyMode),
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
     >

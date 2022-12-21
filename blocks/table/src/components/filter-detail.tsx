@@ -1,24 +1,24 @@
 import {
+  AggregateOperationInput,
+  FilterOperatorRequiringValue,
+  FilterOperatorType,
+  FilterOperatorWithoutValue,
+  MultiFilter,
+  MultiFilterOperatorType,
+} from "@blockprotocol/graph";
+import { debounce } from "lodash";
+import {
   FunctionComponent,
   useCallback,
   useMemo,
   useRef,
   useState,
 } from "react";
+import { unstable_batchedUpdates } from "react-dom";
+import { ColumnInstance } from "react-table";
 import { tw } from "twind";
 import { v4 as uuid } from "uuid";
-import { ColumnInstance } from "react-table";
 
-import {
-  MultiFilter,
-  FilterOperatorWithoutValue,
-  FilterOperatorType,
-  MultiFilterOperatorType,
-  FilterOperatorRequiringValue,
-  AggregateOperationInput,
-} from "@blockprotocol/graph";
-import { unstable_batchedUpdates } from "react-dom";
-import { debounce } from "lodash";
 import { AddIcon } from "./icons";
 
 const MENU_WIDTH = 540;
@@ -55,6 +55,7 @@ const filterHasValue = (filter: Filter): filter is FilterRequiringValue => {
   return (
     !FILTER_OPERATORS_WITHOUT_VALUE.includes(
       filter.operator as FilterOperatorWithoutValue,
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     ) && (filter as FilterRequiringValue).value !== null
   );
 };
@@ -101,7 +102,7 @@ export const FilterDetail: FunctionComponent<FilterDetailProps> = ({
     setFilters((prevFields) => [
       ...prevFields,
       {
-        field: columns?.[0]?.id ?? "",
+        field: columns[0]?.id ?? "",
         operator: "CONTAINS",
         value: "",
         id: uuid(),
@@ -136,7 +137,7 @@ export const FilterDetail: FunctionComponent<FilterDetailProps> = ({
 
   if (multiFilter && !filters.length && !isMounted.current) {
     isMounted.current = true;
-    const fieldsWithId = (multiFilter.filters ?? []).map((filter) => ({
+    const fieldsWithId = multiFilter.filters.map((filter) => ({
       ...filter,
       id: uuid(),
     }));

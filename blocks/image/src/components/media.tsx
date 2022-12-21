@@ -6,25 +6,27 @@
  * @see https://app.asana.com/0/1200211978612931/1201906715110980/f
  * @todo Deduplicate this file
  */
-import { useGraphBlockService } from "@blockprotocol/graph/react";
 import {
+  BlockGraphProperties,
   Entity,
   Link,
   LinkGroup,
-  BlockGraphProperties,
   UpdateEntityData,
 } from "@blockprotocol/graph";
+import { useGraphBlockService } from "@blockprotocol/graph/react";
 import {
   Dispatch,
+  FunctionComponent,
+  RefObject,
   SetStateAction,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  FunctionComponent,
 } from "react";
 import { unstable_batchedUpdates } from "react-dom";
+
 import { ErrorAlert } from "./error-alert";
 import { MediaWithCaption } from "./media-with-caption";
 import { UploadMediaForm } from "./upload-media-form";
@@ -95,7 +97,7 @@ function getLinkedEntities(params: {
     sourceEntityId,
   });
 
-  if (!matchingLinkGroup?.links?.[0]) {
+  if (!matchingLinkGroup?.links[0]) {
     return null;
   }
 
@@ -112,6 +114,7 @@ function getLinkedEntities(params: {
       linkedEntity.entityId === destinationEntityId && "url" in linkedEntity,
   );
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
   if (!matchingLinkedEntities) {
     return null;
   }
@@ -126,10 +129,12 @@ const isSingleTargetLink = (link: Link): link is Link => "linkId" in link;
  */
 export const Media: FunctionComponent<
   BlockGraphProperties<MediaEntityProperties> & {
+    blockRef: RefObject<HTMLDivElement>;
     mediaType: "image" | "video";
   }
 > = (props) => {
   const {
+    blockRef,
     graph: {
       blockEntity: {
         entityId,
@@ -141,11 +146,11 @@ export const Media: FunctionComponent<
     mediaType,
   } = props;
 
-  const blockRef = useRef<HTMLDivElement>(null);
   const { graphService } = useGraphBlockService(blockRef);
 
   const matchingLinkedEntities = useMemo(() => {
-    if (blockGraph?.linkGroups && blockGraph?.linkedEntities && entityId) {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
+    if (blockGraph?.linkGroups && blockGraph.linkedEntities && entityId) {
       return getLinkedEntities({
         sourceEntityId: entityId,
         path: "$.file",
@@ -200,7 +205,7 @@ export const Media: FunctionComponent<
             updateEntityData.properties.initialWidth = width;
           }
 
-          void graphService?.updateEntity({ data: updateEntityData });
+          void graphService.updateEntity({ data: updateEntityData });
         }
 
         unstable_batchedUpdates(() => {
@@ -238,7 +243,9 @@ export const Media: FunctionComponent<
         !loading &&
         entityId &&
         graphService?.createLink &&
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
         graphService.deleteLink &&
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
         graphService.uploadFile
       ) {
         unstable_batchedUpdates(() => {
@@ -270,7 +277,7 @@ export const Media: FunctionComponent<
               });
             }
 
-            await graphService?.createLink({
+            await graphService.createLink({
               data: {
                 sourceEntityId: entityId,
                 destinationEntityId: file.entityId,
@@ -309,7 +316,7 @@ export const Media: FunctionComponent<
       return;
     }
 
-    if (draftUrl?.trim()) {
+    if (draftUrl.trim()) {
       handleImageUpload({ url: draftUrl });
     } else {
       setErrorString("Please enter a valid image URL or select a file below");

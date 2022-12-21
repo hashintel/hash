@@ -9,35 +9,22 @@ const iconSize = 20;
 const iconGap = 10;
 const cellMargin = getCellHorizontalPadding();
 
-const drawBackground = (args: DrawArgs<TooltipCell>) => {
-  const { ctx, cell, rect, theme } = args;
-  const { tooltips } = cell.data;
-
-  // paint the whole bg first
-  const iconsWidth = (iconSize + iconGap) * tooltips.length;
-  const totalWidth = iconsWidth + cellMargin;
-  const rectRight = rect.x + rect.width;
-  const rectLeft = rectRight - totalWidth;
-
-  ctx.fillStyle = theme.bgCell;
-  ctx.fillRect(rectLeft, rect.y, totalWidth, rect.height);
-
-  drawCellFadeOutGradient(args, totalWidth);
-};
-
 export const drawInteractableTooltipIcons = (
   args: DrawArgs<TooltipCell>,
 ): Interactable[] => {
   const { ctx, cell, rect, col, row, theme } = args;
   const { hideTooltip, showTooltip, tooltips } = cell.data;
 
-  if (!tooltips?.length) {
+  if (!tooltips.length) {
     drawCellFadeOutGradient(args);
     return [];
   }
 
-  drawBackground(args);
+  const iconsWidth = (iconSize + iconGap) * tooltips.length;
+  const bgWidth = iconsWidth + cellMargin;
+  drawCellFadeOutGradient(args, bgWidth);
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
   if (!hideTooltip || !showTooltip) {
     throw new Error(
       `Please pass 'hideTooltip' and 'showTooltip' to cell data, provided by 'useGridTooltip'`,
@@ -92,8 +79,8 @@ export const drawInteractableTooltipIcons = (
         showTooltip({
           text: tooltip.text,
           iconX: actualTooltipX + iconSize / 2,
-          col,
-          row,
+          colIndex: col,
+          rowIndex: row,
         }),
       onMouseLeave: () => hideTooltip(col, row),
     });

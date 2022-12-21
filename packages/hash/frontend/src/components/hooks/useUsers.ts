@@ -1,16 +1,18 @@
 import { useMemo } from "react";
 import { useQuery } from "@apollo/client";
-import { types } from "@hashintel/hash-shared/types";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
-import { constructUser, User } from "../../lib/user";
+import { constructUser, User } from "../../lib/user-and-org";
 import {
   GetAllLatestEntitiesQuery,
   GetAllLatestEntitiesQueryVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 
-export const useUsers = (): {
+export const useUsers = (
+  cache = false,
+): {
   loading: boolean;
   users?: User[];
 } => {
@@ -29,7 +31,7 @@ export const useUsers = (): {
       hasRightEntity: { incoming: 1, outgoing: 1 },
     },
     /** @todo reconsider caching. This is done for testing/demo purposes. */
-    fetchPolicy: "no-cache",
+    fetchPolicy: cache ? "cache-first" : "no-cache",
   });
 
   const { getAllLatestEntities: subgraph } = data ?? {};

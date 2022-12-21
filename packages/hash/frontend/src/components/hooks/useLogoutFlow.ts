@@ -1,6 +1,7 @@
 import { useApolloClient } from "@apollo/client";
 import { AxiosError } from "axios";
 import { DependencyList, useEffect, useState } from "react";
+import { resetLocalStorage } from "../../lib/config";
 
 import { oryKratosClient } from "../../pages/shared/ory-kratos";
 
@@ -11,7 +12,7 @@ export const useLogoutFlow = (deps?: DependencyList) => {
 
   useEffect(() => {
     oryKratosClient
-      .createSelfServiceLogoutFlowUrlForBrowsers()
+      .createBrowserLogoutFlow()
       .then(({ data }) => setLogoutToken(data.logout_token))
       .catch((err: AxiosError) => {
         switch (err.response?.status) {
@@ -29,7 +30,9 @@ export const useLogoutFlow = (deps?: DependencyList) => {
   return {
     logout: async () => {
       if (logoutToken) {
-        await oryKratosClient.submitSelfServiceLogoutFlow(logoutToken);
+        await oryKratosClient.updateLogoutFlow({ token: logoutToken });
+
+        resetLocalStorage();
 
         await client.resetStore();
       }

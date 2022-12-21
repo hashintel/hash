@@ -1,22 +1,20 @@
 use std::{borrow::Cow, iter::once};
 
-use type_system::PropertyType;
-
 use crate::{
-    ontology::PropertyTypeQueryPath,
+    ontology::{PropertyTypeQueryPath, PropertyTypeWithMetadata},
     store::postgres::query::{
         table::{Column, JsonField, PropertyTypes, Relation, TypeIds},
-        Path, PostgresQueryRecord, Table,
+        PostgresQueryPath, PostgresRecord, Table,
     },
 };
 
-impl PostgresQueryRecord for PropertyType {
+impl PostgresRecord for PropertyTypeWithMetadata {
     fn base_table() -> Table {
         Table::PropertyTypes
     }
 }
 
-impl Path for PropertyTypeQueryPath {
+impl PostgresQueryPath for PropertyTypeQueryPath {
     fn relations(&self) -> Vec<Relation> {
         match self {
             Self::BaseUri | Self::Version => vec![Relation::PropertyTypeIds],
@@ -36,7 +34,6 @@ impl Path for PropertyTypeQueryPath {
             Self::Version => Column::TypeIds(TypeIds::Version),
             Self::VersionId => Column::PropertyTypes(PropertyTypes::VersionId),
             Self::OwnedById => Column::PropertyTypes(PropertyTypes::OwnedById),
-            Self::CreatedById => Column::PropertyTypes(PropertyTypes::CreatedById),
             Self::UpdatedById => Column::PropertyTypes(PropertyTypes::UpdatedById),
             Self::Schema => Column::PropertyTypes(PropertyTypes::Schema(None)),
             Self::VersionedUri => Column::PropertyTypes(PropertyTypes::Schema(Some(

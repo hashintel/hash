@@ -1,6 +1,7 @@
 use core::fmt;
 
 use serde::{Deserialize, Serialize};
+use tokio_postgres::types::ToSql;
 use utoipa::{openapi::Schema, ToSchema};
 use uuid::Uuid;
 
@@ -9,8 +10,9 @@ use crate::identifier::account::AccountId;
 macro_rules! define_provenance_id {
     ($name:tt) => {
         #[derive(
-            Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize,
+            Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, ToSql,
         )]
+        #[postgres(transparent)]
         #[repr(transparent)]
         pub struct $name(AccountId);
 
@@ -46,28 +48,18 @@ macro_rules! define_provenance_id {
 }
 
 define_provenance_id!(OwnedById);
-define_provenance_id!(CreatedById);
 define_provenance_id!(UpdatedById);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ProvenanceMetadata {
-    created_by_id: CreatedById,
     updated_by_id: UpdatedById,
 }
 
 impl ProvenanceMetadata {
     #[must_use]
-    pub const fn new(created_by_id: CreatedById, updated_by_id: UpdatedById) -> Self {
-        Self {
-            created_by_id,
-            updated_by_id,
-        }
-    }
-
-    #[must_use]
-    pub const fn created_by_id(&self) -> CreatedById {
-        self.created_by_id
+    pub const fn new(updated_by_id: UpdatedById) -> Self {
+        Self { updated_by_id }
     }
 
     #[must_use]

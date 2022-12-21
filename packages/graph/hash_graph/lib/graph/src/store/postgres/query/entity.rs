@@ -4,17 +4,17 @@ use crate::{
     knowledge::{Entity, EntityQueryPath},
     store::postgres::query::{
         table::{Column, Entities, JsonField, Relation},
-        Path, PostgresQueryRecord, Table,
+        PostgresQueryPath, PostgresRecord, Table,
     },
 };
 
-impl PostgresQueryRecord for Entity {
+impl PostgresRecord for Entity {
     fn base_table() -> Table {
         Table::Entities
     }
 }
 
-impl Path for EntityQueryPath<'_> {
+impl PostgresQueryPath for EntityQueryPath<'_> {
     fn relations(&self) -> Vec<Relation> {
         match self {
             Self::LeftEntity(path) | Self::RightEntity(path)
@@ -42,11 +42,13 @@ impl Path for EntityQueryPath<'_> {
     fn terminating_column(&self) -> Column {
         match self {
             Self::Uuid => Column::Entities(Entities::EntityUuid),
-            Self::Version => Column::Entities(Entities::Version),
+            Self::RecordId => Column::Entities(Entities::RecordId),
+            Self::DecisionTime => Column::Entities(Entities::DecisionTime),
+            Self::TransactionTime => Column::Entities(Entities::TransactionTime),
+            Self::LowerTransactionTime => Column::Entities(Entities::LowerTransactionTime),
             Self::Archived => Column::Entities(Entities::Archived),
             Self::Type(path) => path.terminating_column(),
             Self::OwnedById => Column::Entities(Entities::OwnedById),
-            Self::CreatedById => Column::Entities(Entities::CreatedById),
             Self::UpdatedById => Column::Entities(Entities::UpdatedById),
             Self::LeftEntity(path) if **path == EntityQueryPath::Uuid => {
                 Column::Entities(Entities::LeftEntityUuid)
@@ -64,8 +66,8 @@ impl Path for EntityQueryPath<'_> {
             | Self::RightEntity(path)
             | Self::IncomingLinks(path)
             | Self::OutgoingLinks(path) => path.terminating_column(),
-            Self::LeftOrder => Column::Entities(Entities::LeftOrder),
-            Self::RightOrder => Column::Entities(Entities::RightOrder),
+            Self::LeftToRightOrder => Column::Entities(Entities::LeftToRightOrder),
+            Self::RightToLeftOrder => Column::Entities(Entities::RightToLeftOrder),
             Self::Properties(path) => path
                 .as_ref()
                 .map_or(Column::Entities(Entities::Properties(None)), |path| {

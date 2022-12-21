@@ -1,4 +1,4 @@
-import { useCallback, FunctionComponent } from "react";
+import { FunctionComponent, useCallback } from "react";
 import { tw } from "twind";
 
 type PaginationProps = {
@@ -26,7 +26,7 @@ export const Pagination: FunctionComponent<PaginationProps> = ({
       return (
         <button
           type="button"
-          className={tw`border-1 w-7 h-7 py-0.5 rounded-md text-sm leading-none mr-1 ${
+          className={tw`bg-transparent border-solid border-1 w-7 h-7 py-0.5 rounded-md text-sm leading-none mr-1 ${
             _page === pageNumber ? "border-blue-500 text-blue-500" : ""
           } focus:outline-none`}
           onClick={() => setPageIndex(_page)}

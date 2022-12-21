@@ -1,8 +1,10 @@
-import { FunctionComponent, useMemo, useState } from "react";
-import { Box, Typography } from "@mui/material";
+/* eslint-disable canonical/filename-no-index -- @todo rename file */
 
-import { GithubPullRequestEntityType } from "../types";
+import { Box, Typography } from "@mui/material";
+import { FunctionComponent, useMemo, useState } from "react";
+
 import { GithubIcon } from "../icons";
+import { GithubPullRequestEntityType } from "../types";
 import { CustomAutocomplete } from "./custom-autocomplete";
 
 export type PullRequestSelectorProps = {

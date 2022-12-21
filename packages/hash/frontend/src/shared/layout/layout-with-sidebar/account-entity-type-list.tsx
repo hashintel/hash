@@ -1,36 +1,36 @@
-import {
-  useState,
-  useMemo,
-  useRef,
-  FunctionComponent,
-  useEffect,
-  Ref,
-} from "react";
-import {
-  Box,
-  Tooltip,
-  outlinedInputClasses,
-  Fade,
-  Collapse,
-} from "@mui/material";
-import { TransitionGroup } from "react-transition-group";
 import { faArrowUpAZ, faSearch } from "@fortawesome/free-solid-svg-icons";
-import { orderBy } from "lodash";
-import { useRouter } from "next/router";
-import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
 import {
+  FontAwesomeIcon,
   IconButton,
   TextField,
-  FontAwesomeIcon,
 } from "@hashintel/hash-design-system";
-import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
-import { NavLink } from "./nav-link";
-
+import { EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import {
+  Box,
+  Collapse,
+  Fade,
+  outlinedInputClasses,
+  Tooltip,
+} from "@mui/material";
+import { orderBy } from "lodash";
+import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
+import {
+  FunctionComponent,
+  Ref,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { TransitionGroup } from "react-transition-group";
+import { useBlockProtocolAggregateEntityTypes } from "../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateEntityTypes";
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
 import {
   SortActionsDropdown,
   SortType,
 } from "./account-entity-type-list/sort-actions-dropdown";
+import { NavLink } from "./nav-link";
 
 type SearchInputProps = {
   searchVisible: boolean;
@@ -121,18 +121,12 @@ const SearchInput: FunctionComponent<SearchInputProps> = ({
 );
 
 type AccountEntityTypeListProps = {
-  accountId: string;
+  ownedById: string;
 };
 
 export const AccountEntityTypeList: FunctionComponent<
   AccountEntityTypeListProps
-> = ({ accountId }) => {
-  // const { data } = useGetAllEntityTypes(accountId);
-  const data = null as any;
-  const router = useRouter();
-
-  const { authenticatedUser } = useAuthenticatedUser();
-
+> = ({ ownedById }) => {
   const [sortType, setSortType] = useState<SortType>("asc");
   const [searchVisible, setSearchVisible] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -148,26 +142,51 @@ export const AccountEntityTypeList: FunctionComponent<
     }
   }, [searchVisible]);
 
+  const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
+
+  const [allEntityTypes, setAllEntityTypes] = useState<
+    EntityTypeWithMetadata[] | null
+  >(null);
+
+  useEffect(() => {
+    void aggregateEntityTypes({ data: {} }).then((result) => {
+      if (result.data) {
+        const roots = getRoots(result.data);
+
+        setAllEntityTypes(roots);
+      }
+    });
+  }, [aggregateEntityTypes]);
+
+  const accountEntityTypes = useMemo(() => {
+    if (allEntityTypes) {
+      return allEntityTypes.filter(
+        (root) => root.metadata.ownedById === ownedById,
+      );
+    }
+
+    return null;
+  }, [allEntityTypes, ownedById]);
+
   // todo: handle search server side
-  const filteredData = useMemo(() => {
-    // let entityTypes = data?.deprecatedGetAccountEntityTypes ?? [];
-    let entityTypes = [] as any[];
+  const filteredEntityTypes = useMemo(() => {
+    // let allEntityTypes = data?.deprecatedGetAccountEntityTypes ?? [];
+    let entityTypes = accountEntityTypes;
 
     if (searchQuery) {
-      entityTypes = entityTypes.filter(({ properties }) =>
-        properties.title.toLowerCase().includes(searchQuery.toLowerCase()),
-      );
+      const lowerQuery = searchQuery.toLowerCase();
+      entityTypes =
+        entityTypes?.filter((root) => {
+          return root.schema.title.toLowerCase().includes(lowerQuery);
+        }) ?? null;
     }
 
     // Right now we just handle ascending/descending and default to ascending
     // for other sort types
-    return orderBy(
-      entityTypes,
-      ["properties.title"],
-      [sortType === "asc" || sortType === "desc" ? sortType : "asc"],
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- data is currently commented out
-  }, [sortType, data, searchQuery]);
+    return orderBy(entityTypes, (root) => root.schema.title.toLowerCase(), [
+      sortType === "asc" || sortType === "desc" ? sortType : "asc",
+    ]);
+  }, [accountEntityTypes, searchQuery, sortType]);
 
   return (
     <Box>
@@ -175,7 +194,7 @@ export const AccountEntityTypeList: FunctionComponent<
         title="Types"
         endAdornmentProps={{
           tooltipTitle: "Create new entity type",
-          href: `/@${authenticatedUser?.shortname}/types/new/entity-type`,
+          href: `/new/types/entity-type`,
           "data-testid": "create-entity-type-btn",
         }}
       >
@@ -210,7 +229,7 @@ export const AccountEntityTypeList: FunctionComponent<
               position="relative"
             >
               {/*
-                Commented this out because the functionality is not present yet 
+                Commented this out because the functionality is not present yet
                 ("View All Pages" screen hasn't been designed/built)
 
                 @todo uncomment when this has been done
@@ -266,22 +285,14 @@ export const AccountEntityTypeList: FunctionComponent<
             />
           </Box>
           <TransitionGroup>
-            {filteredData.map((entityType) => {
-              return (
-                <Collapse key={entityType.entityId}>
-                  <EntityTypeItem
-                    title={entityType.properties.title}
-                    entityId={entityType.entityId}
-                    accountId={accountId}
-                    /**
-                     * @todo Pulling the entityId from the url will break once we switch to using slugs to represent entity types
-                     * We need to create a context to pull the right entityId in that scenario
-                     */
-                    selected={router.query.typeId === entityType.entityId}
-                  />
-                </Collapse>
-              );
-            })}
+            {filteredEntityTypes.map((root) => (
+              <Collapse key={root.schema.$id}>
+                <EntityTypeItem
+                  title={root.schema.title}
+                  entityTypeId={root.schema.$id}
+                />
+              </Collapse>
+            ))}
           </TransitionGroup>
         </Box>
       </NavLink>

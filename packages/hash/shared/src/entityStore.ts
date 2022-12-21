@@ -3,14 +3,14 @@ import {
   EntityId,
   EntityMetadata,
   EntityVersion,
-  LinkEntityMetadata,
+  LinkData,
   PropertyObject,
   VersionedUri,
 } from "@hashintel/hash-subgraph";
 
 import { generateDraftIdForEntity } from "./entityStorePlugin";
 import { BlockEntity } from "./entity";
-import { types } from "./types";
+import { types } from "./ontology-types";
 
 export type EntityStoreType = BlockEntity | BlockEntity["blockChildEntity"];
 
@@ -26,12 +26,12 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
       version?: EntityVersion;
     };
     entityTypeId?: VersionedUri | null;
-    linkMetadata?: LinkEntityMetadata;
     provenance?: EntityMetadata["provenance"];
   };
   /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
   blockChildEntity?: Type & { draftId?: string };
   properties: PropertyObject & { entity?: DraftEntity };
+  linkData?: LinkData;
 
   componentId?: string;
 
@@ -89,6 +89,7 @@ const findEntities = (contents: BlockEntity[]): EntityStoreType[] => {
 
   for (const entity of contents) {
     entities.push(entity);
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     if (entity.blockChildEntity) {
       entities.push(entity.blockChildEntity);
     }
@@ -139,6 +140,7 @@ export const createEntityStore = (
 
   for (const entity of entities) {
     const entityId = entity.metadata.editionId.baseId;
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     if (entity && !entityToDraft[entityId]) {
       entityToDraft[entityId] = generateDraftIdForEntity(entityId);
     }

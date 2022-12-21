@@ -4,7 +4,7 @@ import { FormEvent, FunctionComponent, useRef, useState } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 import { Button } from "../../../shared/ui";
 import { useUserBlocks } from "../../userBlocks";
-import { useBlockView } from "../BlockViewContext";
+import { useBlockView } from "../BlockView";
 
 /** trim whitespace and remove trailing slash */
 const createNormalizedBlockUrl = (url: string) => url.trim().replace(/\/$/, "");
@@ -26,6 +26,7 @@ export const BlockLoaderInput: FunctionComponent<BlockLoaderInputProps> = ({
   const isDefinedBlock = !!userBlocks[createNormalizedBlockUrl(blockUrl)];
   const isValidBlockUrl = Boolean(blockUrlRef.current?.validity.valid);
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
   const inputDisabled = !isValidBlockUrl || error != null;
 
   const loadBlockFromUrl = (event: FormEvent<HTMLFormElement>) => {
@@ -106,7 +107,8 @@ export const BlockLoaderInput: FunctionComponent<BlockLoaderInputProps> = ({
             ? "Re-load block"
             : !isValidBlockUrl
             ? "Invalid URL"
-            : error
+            : // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
+            error
             ? "An error occurred"
             : "Load Block"}
         </Button>

@@ -1,22 +1,20 @@
 use std::{borrow::Cow, iter::once};
 
-use type_system::EntityType;
-
 use crate::{
-    ontology::EntityTypeQueryPath,
+    ontology::{EntityTypeQueryPath, EntityTypeWithMetadata},
     store::postgres::query::{
         table::{Column, EntityTypes, JsonField, Relation, TypeIds},
-        Path, PostgresQueryRecord, Table,
+        PostgresQueryPath, PostgresRecord, Table,
     },
 };
 
-impl PostgresQueryRecord for EntityType {
+impl PostgresRecord for EntityTypeWithMetadata {
     fn base_table() -> Table {
         Table::EntityTypes
     }
 }
 
-impl Path for EntityTypeQueryPath {
+impl PostgresQueryPath for EntityTypeQueryPath {
     /// Returns the relations that are required to access the path.
     fn relations(&self) -> Vec<Relation> {
         match self {
@@ -40,7 +38,6 @@ impl Path for EntityTypeQueryPath {
             Self::Version => Column::TypeIds(TypeIds::Version),
             Self::VersionId => Column::EntityTypes(EntityTypes::VersionId),
             Self::OwnedById => Column::EntityTypes(EntityTypes::OwnedById),
-            Self::CreatedById => Column::EntityTypes(EntityTypes::CreatedById),
             Self::UpdatedById => Column::EntityTypes(EntityTypes::UpdatedById),
             Self::Schema => Column::EntityTypes(EntityTypes::Schema(None)),
             Self::VersionedUri => Column::EntityTypes(EntityTypes::Schema(Some(JsonField::Text(

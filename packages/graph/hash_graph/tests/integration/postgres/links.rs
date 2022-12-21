@@ -1,4 +1,4 @@
-use graph::knowledge::EntityProperties;
+use graph::knowledge::{EntityLinkOrder, EntityProperties};
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::uri::{BaseUri, VersionedUri};
 
@@ -56,17 +56,14 @@ async fn insert() {
         .get_link_entity_target(person_a_metadata.edition_id().base_id(), friend_of_type_id)
         .await
         .expect("could not fetch entity");
-    let link_metadata = link_entity
-        .metadata()
-        .link_metadata()
-        .expect("entity is not a link");
+    let link_data = link_entity.link_data().expect("entity is not a link");
 
     assert_eq!(
-        link_metadata.left_entity_id(),
+        link_data.left_entity_id(),
         person_a_metadata.edition_id().base_id()
     );
     assert_eq!(
-        link_metadata.right_entity_id(),
+        link_data.right_entity_id(),
         person_b_metadata.edition_id().base_id()
     );
 }
@@ -162,34 +159,31 @@ async fn get_entity_links() {
             .is_some()
     );
 
-    let link_metadatas = links_from_source
+    let link_datas = links_from_source
         .iter()
-        .map(|entity| {
-            entity
-                .metadata()
-                .link_metadata()
-                .expect("entity is not a link")
-        })
+        .map(|entity| entity.link_data().expect("entity is not a link"))
         .collect::<Vec<_>>();
     assert!(
-        link_metadatas
+        link_datas
             .iter()
-            .find(|link_metadata| link_metadata.left_entity_id()
+            .find(|link_data| link_data.left_entity_id()
                 == person_a_metadata.edition_id().base_id())
             .is_some()
     );
     assert!(
-        link_metadatas
+        link_datas
             .iter()
-            .find(|link_metadata| link_metadata.right_entity_id()
-                == person_b_metadata.edition_id().base_id())
+            .find(
+                |link_data| link_data.right_entity_id() == person_b_metadata.edition_id().base_id()
+            )
             .is_some()
     );
     assert!(
-        link_metadatas
+        link_datas
             .iter()
-            .find(|link_metadata| link_metadata.right_entity_id()
-                == person_c_metadata.edition_id().base_id())
+            .find(
+                |link_data| link_data.right_entity_id() == person_c_metadata.edition_id().base_id()
+            )
             .is_some()
     );
 }
@@ -234,7 +228,7 @@ async fn remove_link() {
     let link_entity_metadata = api
         .create_link_entity(
             EntityProperties::empty(),
-            friend_link_type_id,
+            friend_link_type_id.clone(),
             None,
             person_a_metadata.edition_id().base_id(),
             person_b_metadata.edition_id().base_id(),
@@ -249,9 +243,14 @@ async fn remove_link() {
             .is_empty()
     );
 
-    api.archive_entity(link_entity_metadata.edition_id().base_id())
-        .await
-        .expect("could not remove link");
+    api.archive_entity(
+        link_entity_metadata.edition_id().base_id(),
+        EntityProperties::empty(),
+        friend_link_type_id,
+        EntityLinkOrder::new(None, None),
+    )
+    .await
+    .expect("could not remove link");
 
     assert!(
         api.get_latest_entity_links(person_a_metadata.edition_id().base_id())

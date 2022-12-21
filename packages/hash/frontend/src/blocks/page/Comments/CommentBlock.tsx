@@ -26,12 +26,12 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { bindTrigger } from "material-ui-popup-state";
-import { types } from "@hashintel/hash-shared/types";
-import { extractBaseUri } from "@blockprotocol/type-system-web";
+import { types } from "@hashintel/hash-shared/ontology-types";
+import { extractBaseUri } from "@blockprotocol/type-system";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { isEqual } from "lodash";
 import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
-import { EntityId } from "@hashintel/hash-subgraph";
+import { EntityId } from "@hashintel/hash-shared/types";
 import { PageComment } from "../../../components/hooks/usePageComments";
 import { CommentTextField } from "./CommentTextField";
 import { CommentBlockMenu } from "./CommentBlockMenu";
@@ -39,11 +39,11 @@ import styles from "./style.module.css";
 import { useUpdateCommentText } from "../../../components/hooks/useUpdateCommentText";
 import { CommentBlockMenuItem } from "./CommentBlockMenuItem";
 import { PencilSlashIcon } from "../../../shared/icons/pencil-slash-icon";
-import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
 import { useResolveComment } from "../../../components/hooks/useResolveComment";
 import { useDeleteComment } from "../../../components/hooks/useDeleteComment";
 import { CommentBlockDeleteConfirmationDialog } from "./CommentBlockDeleteConfirmationDialog";
 import { CommentActionButtons } from "./CommentActionButtons";
+import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
 
 type ToggleTextExpandedButtonProps = {
   label: ReactNode;
@@ -86,13 +86,17 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
 }) => {
   const {
     metadata: {
-      editionId: { baseId: commentEntityId },
-      provenance: { createdById: commentCreatedById },
+      editionId: { baseId },
+      // TODO: The provenance fields shouldn't be used for this
+      //   see https://app.asana.com/0/1201095311341924/1203466351235289/f
+      provenance: { updatedById: commentCreatedById },
     },
     hasText,
     author,
     textUpdatedAt,
   } = comment;
+
+  const commentEntityId = baseId as EntityId;
 
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [collapsed, setCollapsed] = useState(true);
@@ -176,6 +180,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
       }}
     >
       <Box display="flex" justifyContent="space-between">
+        {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment */}
         <Avatar size={36} title={preferredName ?? "U"} />
         <Box
           sx={{ flexDirection: "column", flex: 1, overflow: "hidden", pl: 1.5 }}
@@ -338,7 +343,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
       ) : null}
 
       <CommentBlockMenu popupState={commentMenuPopupState}>
-        {authenticatedUser?.userAccountId === commentCreatedById ? (
+        {authenticatedUser.accountId === commentCreatedById ? (
           <CommentBlockMenuItem
             title={editable ? "Cancel Edit" : "Edit"}
             icon={
@@ -364,7 +369,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
             commentMenuPopupState.close();
           }}
         />
-        {authenticatedUser?.userAccountId === commentCreatedById ? (
+        {authenticatedUser.accountId === commentCreatedById ? (
           <CommentBlockMenuItem
             title="Delete Comment"
             icon={<FontAwesomeIcon icon={faTrash} />}

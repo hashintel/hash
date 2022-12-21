@@ -2,10 +2,42 @@ import { DataSource } from "apollo-datasource";
 import {
   Configuration,
   GraphApi as GraphApiClient,
+  GraphResolveDepths,
 } from "@hashintel/hash-graph-client";
 import HttpAgent, { HttpsAgent } from "agentkeepalive";
 import axios from "axios";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
+import {
+  ensureSystemUserExists,
+  ensureSystemUserAccountIdExists,
+} from "./system-user";
+import { ensureSystemTypesExist } from "./system-types";
+import { ensureSystemEntitiesExists } from "./system-entities";
+
+export type ImpureGraphContext = {
+  graphApi: GraphApi;
+  /** @todo: add logger? */
+};
+
+export type ImpureGraphFunction<Parameters, ReturnType> = (
+  ctx: ImpureGraphContext,
+  params: Parameters,
+) => ReturnType;
+
+export type PureGraphFunction<Parameters, ReturnType> = (
+  params: Parameters,
+) => ReturnType;
+
+export const zeroedGraphResolveDepths: GraphResolveDepths = {
+  inheritsFrom: { outgoing: 0 },
+  constrainsValuesOn: { outgoing: 0 },
+  constrainsPropertiesOn: { outgoing: 0 },
+  constrainsLinksOn: { outgoing: 0 },
+  constrainsLinkDestinationsOn: { outgoing: 0 },
+  isOfType: { outgoing: 0 },
+  hasLeftEntity: { incoming: 0, outgoing: 0 },
+  hasRightEntity: { incoming: 0, outgoing: 0 },
+};
 
 const agentConfig = {
   maxSockets: 128,
@@ -33,4 +65,17 @@ export const createGraphClient = (
   const config = new Configuration({ basePath });
 
   return new GraphApiClient(config, basePath, axiosInstance);
+};
+
+export const ensureSystemGraphIsInitialized = async (params: {
+  graphApi: GraphApi;
+  logger: Logger;
+}) => {
+  await ensureSystemUserAccountIdExists(params);
+
+  await ensureSystemTypesExist(params);
+
+  await ensureSystemUserExists(params);
+
+  await ensureSystemEntitiesExists(params);
 };

@@ -3,6 +3,17 @@ use std::fmt;
 use error_stack::Context;
 
 #[derive(Debug)]
+pub struct StoreError;
+
+impl Context for StoreError {}
+
+impl fmt::Display for StoreError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("The store encountered an error")
+    }
+}
+
+#[derive(Debug)]
 #[must_use]
 pub struct InsertionError;
 
@@ -40,18 +51,6 @@ impl Context for UpdateError {}
 
 #[derive(Debug)]
 #[must_use]
-pub struct ArchivalError;
-
-impl fmt::Display for ArchivalError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Could not archive entry in store")
-    }
-}
-
-impl Context for ArchivalError {}
-
-#[derive(Debug)]
-#[must_use]
 pub struct BaseUriAlreadyExists;
 
 impl fmt::Display for BaseUriAlreadyExists {
@@ -85,6 +84,18 @@ impl fmt::Display for EntityDoesNotExist {
 }
 
 impl Context for EntityDoesNotExist {}
+
+#[derive(Debug)]
+#[must_use]
+pub struct RaceConditionOnUpdate;
+
+impl fmt::Display for RaceConditionOnUpdate {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("The entity that should be updated was unexpectedly updated at the same time")
+    }
+}
+
+impl Context for RaceConditionOnUpdate {}
 
 #[derive(Debug)]
 #[must_use]

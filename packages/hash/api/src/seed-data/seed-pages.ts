@@ -1,6 +1,11 @@
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { GraphApi } from "@hashintel/hash-graph-client";
-import { PageModel } from "../model";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
+import {
+  createPage,
+  Page,
+  setPageParentPage,
+} from "../graph/knowledge/system-types/page";
 
 export type PageDefinition = {
   title: string;
@@ -9,42 +14,49 @@ export type PageDefinition = {
 
 export const seedPages = async (
   pageDefinitions: PageDefinition[],
-  owningActorId: string,
+  owningActorId: AccountId,
   sharedParams: {
     graphApi: GraphApi;
     logger: Logger;
   },
-  parentPageModel?: PageModel,
+  parentPage?: Page,
 ) => {
   const { graphApi } = sharedParams;
 
   let prevIndex: string | undefined;
 
   for (const pageDefinition of pageDefinitions) {
-    const newPageModel: PageModel = await PageModel.createPage(graphApi, {
-      actorId: owningActorId,
-      ownedById: owningActorId,
-      title: pageDefinition.title,
-      prevIndex,
-    });
-
-    if (parentPageModel) {
-      await newPageModel.setParentPage(graphApi, {
+    const newPage: Page = await createPage(
+      { graphApi },
+      {
         actorId: owningActorId,
-        parentPageModel,
-        prevIndex: parentPageModel.getIndex() ?? null,
-        nextIndex: null,
-      });
+        ownedById: owningActorId as OwnedById,
+        title: pageDefinition.title,
+        prevIndex,
+      },
+    );
+
+    if (parentPage) {
+      await setPageParentPage(
+        { graphApi },
+        {
+          page: newPage,
+          actorId: owningActorId,
+          parentPage,
+          prevIndex: parentPage.index ?? null,
+          nextIndex: null,
+        },
+      );
     }
 
-    prevIndex = newPageModel.getIndex();
+    prevIndex = newPage.index;
 
     if (pageDefinition.nestedPages) {
       await seedPages(
         pageDefinition.nestedPages,
         owningActorId,
         sharedParams,
-        newPageModel,
+        newPage,
       );
     }
   }

@@ -1,5 +1,6 @@
 import { useMutation } from "@apollo/client";
 import { useCallback } from "react";
+import { OwnedById } from "@hashintel/hash-shared/types";
 
 import {
   CreatePropertyTypeMutation,
@@ -9,7 +10,7 @@ import { createPropertyTypeMutation } from "../../../../graphql/queries/ontology
 import { CreatePropertyTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolCreatePropertyType = (
-  ownedById: string,
+  ownedById: OwnedById | null,
   readonly?: boolean,
 ): {
   createPropertyType: CreatePropertyTypeMessageCallback;
@@ -30,6 +31,12 @@ export const useBlockProtocolCreatePropertyType = (
             },
           ],
         };
+      }
+
+      if (!ownedById) {
+        throw new Error(
+          "Hook was constructed without `ownedById` while not in readonly mode. Data must be created under an account.",
+        );
       }
 
       if (!data) {

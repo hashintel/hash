@@ -1,17 +1,20 @@
-import { useMutation } from "@apollo/client";
+import { useLazyQuery, useMutation } from "@apollo/client";
 import { useCallback, useState } from "react";
 
-import { types } from "@hashintel/hash-shared/types";
-import { extractBaseUri } from "@blockprotocol/type-system-web";
+import { types } from "@hashintel/hash-shared/ontology-types";
+import { extractBaseUri } from "@blockprotocol/type-system";
 import { GraphQLError } from "graphql";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+import { EntityId } from "@hashintel/hash-shared/types";
 import {
+  MeQuery,
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../graphql/apiTypes.gen";
-import { AuthenticatedUser, constructAuthenticatedUser } from "../../lib/user";
+import { AuthenticatedUser } from "../../lib/user-and-org";
 import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
-import { useAuthenticatedUser } from "./useAuthenticatedUser";
+import { useAuthInfo } from "../../pages/shared/auth-info-context";
+import { meQuery } from "../../graphql/queries/user.queries";
 
 type UpdateAuthenticatedUserParams = {
   shortname?: string;
@@ -19,7 +22,9 @@ type UpdateAuthenticatedUserParams = {
 };
 
 export const useUpdateAuthenticatedUser = () => {
-  const { authenticatedUser, refetch } = useAuthenticatedUser();
+  const { authenticatedUser, refetch } = useAuthInfo();
+
+  const [getMe] = useLazyQuery<MeQuery>(meQuery, { fetchPolicy: "no-cache" });
 
   const [updateEntity] = useMutation<
     UpdateEntityMutation,
@@ -35,29 +40,39 @@ export const useUpdateAuthenticatedUser = () => {
       updatedAuthenticatedUser?: AuthenticatedUser;
       errors?: readonly GraphQLError[] | undefined;
     }> => {
+      if (!authenticatedUser) {
+        throw new Error("There is no authenticated user to update.");
+      }
+
       try {
         setLoading(true);
         if (!params.shortname && !params.preferredName) {
           return { updatedAuthenticatedUser: authenticatedUser };
         }
 
-        const [
-          {
-            data: { me: latestMeSubgraph },
-          },
-        ] = await refetch();
+        const latestUserEntitySubgraph = await getMe()
+          .then(({ data }) => data?.me)
+          .catch(() => undefined);
 
-        const userEntity = getRoots(latestMeSubgraph)[0]!;
+        if (!latestUserEntitySubgraph) {
+          throw new Error(
+            "Could not get latest user entity when updating the authenticated user.",
+          );
+        }
+
+        const latestUserEntity = getRootsAsEntities(
+          latestUserEntitySubgraph,
+        )[0]!;
 
         /**
          * @todo: use a partial update mutation instead
          * @see https://app.asana.com/0/1202805690238892/1203285029221330/f
          */
-        const { properties: currentProperties } = userEntity;
+        const { properties: currentProperties } = latestUserEntity;
 
         const { errors } = await updateEntity({
           variables: {
-            entityId: userEntity.metadata.editionId.baseId,
+            entityId: latestUserEntity.metadata.editionId.baseId as EntityId,
             updatedProperties: {
               ...currentProperties,
               ...(params.shortname
@@ -82,37 +97,14 @@ export const useUpdateAuthenticatedUser = () => {
           return { errors };
         }
 
-        const [
-          {
-            data: { me: updatedSubgraph },
-          },
-          kratosSession,
-        ] = await refetch();
-
-        if (!kratosSession) {
-          throw new Error(
-            "The kratos session could not be re-fetched whilst updating the authenticated user",
-          );
-        }
-
-        const updatedAuthenticatedUser = constructAuthenticatedUser({
-          userEntityEditionId: userEntity.metadata.editionId,
-          /**
-           * @todo: ensure this subgraph contains the incoming links of orgs
-           * at depth 2 to support constructing the `members` of an `Org`.
-           *
-           * @see https://app.asana.com/0/1202805690238892/1203250435416412/f
-           */
-          subgraph: updatedSubgraph,
-          kratosSession,
-        });
+        const { authenticatedUser: updatedAuthenticatedUser } = await refetch();
 
         return { updatedAuthenticatedUser };
       } finally {
         setLoading(false);
       }
     },
-    [authenticatedUser, refetch, updateEntity],
+    [authenticatedUser, refetch, updateEntity, getMe],
   );
 
   return [updateAuthenticatedUser, { loading }] as const;

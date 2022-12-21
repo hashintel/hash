@@ -2,12 +2,7 @@
 
 use std::sync::Arc;
 
-use axum::{
-    extract::Path,
-    http::StatusCode,
-    routing::{get, post},
-    Extension, Json, Router,
-};
+use axum::{http::StatusCode, routing::post, Extension, Json, Router};
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
@@ -16,34 +11,35 @@ use utoipa::{OpenApi, ToSchema};
 use crate::{
     api::rest::{
         api_resource::RoutedResource,
-        read_from_store, report_to_status_code,
-        utoipa_typedef::subgraph::{
-            Edges, KnowledgeGraphRootedEdges, KnowledgeGraphVertices, OntologyRootedEdges,
-            OntologyVertices, Subgraph, Vertices,
+        report_to_status_code,
+        utoipa_typedef::{
+            subgraph::{
+                Edges, KnowledgeGraphOutwardEdges, KnowledgeGraphRootedEdges, KnowledgeGraphVertex,
+                KnowledgeGraphVertices, OntologyRootedEdges, OntologyVertex, OntologyVertices,
+                Subgraph, Vertex, Vertices,
+            },
+            EntityIdAndTimestamp,
         },
     },
     identifier::{
-        knowledge::{EntityEditionId, EntityId, EntityIdAndTimestamp, EntityVersion},
-        GraphElementEditionId, GraphElementId,
+        knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
+        GraphElementEditionId, GraphElementId, TransactionTimestamp,
     },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryToken, EntityUuid,
-        LinkEntityMetadata, LinkOrder,
+        LinkData, LinkOrder,
     },
-    provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
-        error::{EntityDoesNotExist, QueryError},
-        query::Filter,
+        error::{EntityDoesNotExist, RaceConditionOnUpdate},
         EntityStore, StorePool,
     },
     subgraph::{
         edges::{
-            EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind,
-            KnowledgeGraphOutwardEdges, OntologyEdgeKind, OntologyOutwardEdges,
-            OutgoingEdgeResolveDepth, SharedEdgeKind,
+            EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
+            OntologyOutwardEdges, OutgoingEdgeResolveDepth, SharedEdgeKind,
         },
         query::{EntityStructuralQuery, StructuralQuery},
-        vertices::{KnowledgeGraphVertex, OntologyVertex, Vertex},
     },
 };
 
@@ -52,19 +48,14 @@ use crate::{
     paths(
         create_entity,
         get_entities_by_query,
-        get_entity,
-        get_latest_entities,
         update_entity,
-        archive_entity
     ),
     components(
         schemas(
             OwnedById,
-            CreatedById,
             UpdatedById,
             CreateEntityRequest,
             UpdateEntityRequest,
-            ArchiveEntityRequest,
             EntityUuid,
             EntityId,
             EntityEditionId,
@@ -73,10 +64,12 @@ use crate::{
             Entity,
             EntityLinkOrder,
             EntityProperties,
+            EntityRecordId,
             EntityVersion,
             EntityStructuralQuery,
             EntityQueryToken,
-            LinkEntityMetadata,
+            TransactionTimestamp,
+            LinkData,
             LinkOrder,
             ProvenanceMetadata,
             GraphElementId,
@@ -114,20 +107,13 @@ impl RoutedResource for EntityResource {
         Router::new().nest(
             "/entities",
             Router::new()
-                .route(
-                    "/",
-                    post(create_entity::<P>)
-                        .get(get_latest_entities::<P>)
-                        .put(update_entity::<P>),
-                )
-                .route("/archive", post(archive_entity::<P>))
-                .route("/query", post(get_entities_by_query::<P>))
-                .route("/:entity_uuid", get(get_entity::<P>)),
+                .route("/", post(create_entity::<P>).put(update_entity::<P>))
+                .route("/query", post(get_entities_by_query::<P>)),
         )
     }
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreateEntityRequest {
     properties: EntityProperties,
@@ -135,11 +121,11 @@ struct CreateEntityRequest {
     entity_type_id: VersionedUri,
     owned_by_id: OwnedById,
     entity_uuid: Option<EntityUuid>,
-    actor_id: CreatedById,
+    actor_id: UpdatedById,
     // TODO: this could break invariants if we don't move to fractional indexing
     //  https://app.asana.com/0/1201095311341924/1202085856561975/f
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    link_metadata: Option<LinkEntityMetadata>,
+    link_data: Option<LinkData>,
 }
 
 #[utoipa::path(
@@ -155,9 +141,10 @@ struct CreateEntityRequest {
         (status = 500, description = "Store error occurred"),
     ),
 )]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn create_entity<P: StorePool + Send>(
-    body: Json<CreateEntityRequest>,
     pool: Extension<Arc<P>>,
+    body: Json<CreateEntityRequest>,
 ) -> Result<Json<EntityMetadata>, StatusCode> {
     let Json(CreateEntityRequest {
         properties,
@@ -165,7 +152,7 @@ async fn create_entity<P: StorePool + Send>(
         owned_by_id,
         entity_uuid,
         actor_id,
-        link_metadata,
+        link_data,
     }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -175,12 +162,14 @@ async fn create_entity<P: StorePool + Send>(
 
     store
         .create_entity(
-            properties,
-            entity_type_id,
             owned_by_id,
             entity_uuid,
+            None,
             actor_id,
-            link_metadata,
+            false,
+            entity_type_id,
+            properties,
+            link_data,
         )
         .await
         .map_err(|report| {
@@ -190,55 +179,6 @@ async fn create_entity<P: StorePool + Send>(
             StatusCode::INTERNAL_SERVER_ERROR
         })
         .map(Json)
-}
-
-#[derive(Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-struct ArchiveEntityRequest {
-    entity_id: EntityId,
-    actor_id: UpdatedById,
-}
-
-#[utoipa::path(
-    post,
-    path = "/entities/archive",
-    request_body = ArchiveEntityRequest,
-    tag = "Entity",
-    responses(
-        (status = 200, content_type = "application/json", description = "No response"),
-        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
-
-        (status = 404, description = "Entity could not be found"),
-        (status = 500, description = "Store error occurred"),
-    ),
-)]
-async fn archive_entity<P: StorePool + Send>(
-    body: Json<ArchiveEntityRequest>,
-    pool: Extension<Arc<P>>,
-) -> Result<(), StatusCode> {
-    let Json(ArchiveEntityRequest {
-        entity_id,
-        actor_id,
-    }) = body;
-
-    let mut store = pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    store
-        .archive_entity(entity_id, actor_id)
-        .await
-        .map_err(|report| {
-            if report.contains::<QueryError>() {
-                return StatusCode::NOT_FOUND;
-            }
-
-            tracing::error!(error=?report, "Could not archive entity");
-
-            // Insertion/update errors are considered internal server errors.
-            StatusCode::INTERNAL_SERVER_ERROR
-        })
 }
 
 #[utoipa::path(
@@ -252,6 +192,7 @@ async fn archive_entity<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     )
 )]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn get_entities_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(query): Json<serde_json::Value>,
@@ -279,53 +220,7 @@ async fn get_entities_by_query<P: StorePool + Send>(
         .map(|subgraph| Json(subgraph.into()))
 }
 
-#[utoipa::path(
-    get,
-    path = "/entities",
-    tag = "Entity",
-    responses(
-        (status = 200, content_type = "application/json", description = "List of all entities", body = [Entity]),
-
-        (status = 500, description = "Store error occurred"),
-    )
-)]
-async fn get_latest_entities<P: StorePool + Send>(
-    pool: Extension<Arc<P>>,
-) -> Result<Json<Vec<Entity>>, StatusCode> {
-    read_from_store(pool.as_ref(), &Filter::<Entity>::for_all_latest_entities())
-        .await
-        .map(Json)
-}
-
-#[utoipa::path(
-    get,
-    path = "/entities/{entityId}",
-    tag = "Entity",
-    responses(
-        (status = 200, content_type = "application/json", description = "The latest version of the requested entity", body = Entity),
-
-        (status = 400, content_type = "text/plain", description = "Provided entity id is invalid"),
-        (status = 404, description = "Entity was not found"),
-        (status = 500, description = "Store error occurred"),
-    ),
-    params(
-        ("entityId" = EntityId, Path, description = "The EntityId"),
-    )
-)]
-async fn get_entity<P: StorePool + Send>(
-    Path(entity_id): Path<EntityId>,
-    pool: Extension<Arc<P>>,
-) -> Result<Json<Entity>, StatusCode> {
-    read_from_store(
-        pool.as_ref(),
-        &Filter::<Entity>::for_latest_entity_by_entity_id(entity_id),
-    )
-    .await
-    .and_then(|mut entities| entities.pop().ok_or(StatusCode::NOT_FOUND))
-    .map(Json)
-}
-
-#[derive(ToSchema, Serialize, Deserialize)]
+#[derive(Debug, ToSchema, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UpdateEntityRequest {
     properties: EntityProperties,
@@ -335,6 +230,7 @@ struct UpdateEntityRequest {
     actor_id: UpdatedById,
     #[serde(flatten)]
     order: EntityLinkOrder,
+    archived: bool,
 }
 
 #[utoipa::path(
@@ -344,15 +240,17 @@ struct UpdateEntityRequest {
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated entity", body = EntityMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+        (status = 423, content_type = "text/plain", description = "The entity that should be updated was unexpectedly updated at the same time"),
 
         (status = 404, description = "Entity ID or Entity Type URI was not found"),
         (status = 500, description = "Store error occurred"),
     ),
     request_body = UpdateEntityRequest,
 )]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn update_entity<P: StorePool + Send>(
-    body: Json<UpdateEntityRequest>,
     pool: Extension<Arc<P>>,
+    body: Json<UpdateEntityRequest>,
 ) -> Result<Json<EntityMetadata>, StatusCode> {
     let Json(UpdateEntityRequest {
         properties,
@@ -360,6 +258,7 @@ async fn update_entity<P: StorePool + Send>(
         entity_type_id,
         actor_id,
         order,
+        archived,
     }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -368,17 +267,27 @@ async fn update_entity<P: StorePool + Send>(
     })?;
 
     store
-        .update_entity(entity_id, properties, entity_type_id, actor_id, order)
+        .update_entity(
+            entity_id,
+            None,
+            actor_id,
+            archived,
+            entity_type_id,
+            properties,
+            order,
+        )
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity");
 
-            if report.contains::<QueryError>() || report.contains::<EntityDoesNotExist>() {
-                return StatusCode::NOT_FOUND;
+            if report.contains::<EntityDoesNotExist>() {
+                StatusCode::NOT_FOUND
+            } else if report.contains::<RaceConditionOnUpdate>() {
+                StatusCode::LOCKED
+            } else {
+                // Insertion/update errors are considered internal server errors.
+                StatusCode::INTERNAL_SERVER_ERROR
             }
-
-            // Insertion/update errors are considered internal server errors.
-            StatusCode::INTERNAL_SERVER_ERROR
         })
         .map(Json)
 }

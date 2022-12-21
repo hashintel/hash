@@ -3,13 +3,17 @@ use std::fmt;
 use crate::store::postgres::query::{Condition, Transpile};
 
 #[derive(Debug, Default, PartialEq, Eq, Hash)]
-pub struct WhereExpression<'q> {
-    conditions: Vec<Condition<'q>>,
+pub struct WhereExpression<'p> {
+    conditions: Vec<Condition<'p>>,
 }
 
-impl<'q> WhereExpression<'q> {
-    pub fn add_condition(&mut self, condition: Condition<'q>) {
-        self.conditions.push(condition);
+impl<'p> WhereExpression<'p> {
+    pub fn add_condition(&mut self, condition: Condition<'p>) {
+        // TODO: Remove deduplication when adjusting structural queries
+        //   see https://app.asana.com/0/0/1203491211535116/f
+        if !self.conditions.iter().any(|c| c == &condition) {
+            self.conditions.push(condition);
+        }
     }
 
     pub fn len(&self) -> usize {
@@ -43,11 +47,9 @@ impl Transpile for WhereExpression<'_> {
 mod tests {
     use std::borrow::Cow;
 
-    use type_system::DataType;
-
     use super::*;
     use crate::{
-        ontology::DataTypeQueryPath,
+        ontology::{DataTypeQueryPath, DataTypeWithMetadata},
         store::{
             postgres::query::{test_helper::trim_whitespace, SelectCompiler},
             query::{Filter, FilterExpression, Parameter},
@@ -56,11 +58,11 @@ mod tests {
 
     #[test]
     fn transpile_where_expression() {
-        let mut compiler = SelectCompiler::<DataType>::new();
+        let mut compiler = SelectCompiler::<DataTypeWithMetadata>::new();
         let mut where_clause = WhereExpression::default();
         assert_eq!(where_clause.transpile_to_string(), "");
 
-        let filter_a = Filter::<DataType>::Equal(
+        let filter_a = Filter::Equal(
             Some(FilterExpression::Path(DataTypeQueryPath::Version)),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "latest",
@@ -73,7 +75,7 @@ mod tests {
             r#"WHERE "type_ids_0_1_0"."version" = "type_ids_0_1_0"."latest_version""#
         );
 
-        let filter_b = Filter::<DataType>::All(vec![
+        let filter_b = Filter::All(vec![
             Filter::Equal(
                 Some(FilterExpression::Path(DataTypeQueryPath::BaseUri)),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
@@ -96,7 +98,7 @@ mod tests {
             )
         );
 
-        let filter_c = Filter::<DataType>::NotEqual(
+        let filter_c = Filter::NotEqual(
             Some(FilterExpression::Path(DataTypeQueryPath::Description)),
             None,
         );
@@ -112,7 +114,7 @@ mod tests {
             )
         );
 
-        let filter_d = Filter::<DataType>::Any(vec![
+        let filter_d = Filter::Any(vec![
             Filter::Equal(
                 Some(FilterExpression::Path(DataTypeQueryPath::Title)),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(

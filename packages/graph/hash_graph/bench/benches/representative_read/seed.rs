@@ -5,13 +5,13 @@ use std::{
 };
 
 use graph::{
-    identifier::{account::AccountId, knowledge::EntityId},
-    knowledge::{EntityProperties, EntityUuid, LinkEntityMetadata},
-    provenance::{CreatedById, OwnedById},
+    identifier::account::AccountId,
+    knowledge::{EntityProperties, EntityUuid, LinkData},
+    provenance::{OwnedById, UpdatedById},
     store::{AccountStore, AsClient, EntityStore, PostgresStore},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use type_system::{uri::VersionedUri, EntityType};
+use type_system::{repr, uri::VersionedUri, EntityType};
 use uuid::Uuid;
 
 use crate::util::{seed, StoreWrapper};
@@ -145,17 +145,18 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
     for (entity_type_str, entity_str, quantity) in SEED_ENTITIES {
         let properties: EntityProperties =
             serde_json::from_str(entity_str).expect("could not parse entity");
-        let entity_type_id = EntityType::from_str(entity_type_str)
+        let entity_type_repr: repr::EntityType = serde_json::from_str(entity_type_str)
+            .expect("could not parse entity type representation");
+        let entity_type_id = EntityType::try_from(entity_type_repr)
             .expect("could not parse entity type")
             .id()
             .clone();
 
         let uuids = store
             .insert_entities_batched_by_type(
-                repeat((None, properties, None)).take(quantity),
-                entity_type_id,
-                OwnedById::new(account_id),
-                CreatedById::new(account_id),
+                repeat((OwnedById::new(account_id), None, properties, None, None)).take(quantity),
+                UpdatedById::new(account_id),
+                &entity_type_id,
             )
             .await
             .expect("failed to create entities");
@@ -165,7 +166,9 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
     }
 
     for (entity_type_str, left_entity_index, right_entity_index) in SEED_LINKS {
-        let entity_type_id = EntityType::from_str(entity_type_str)
+        let entity_type_repr: repr::EntityType = serde_json::from_str(entity_type_str)
+            .expect("could not parse entity type representation");
+        let entity_type_id = EntityType::try_from(entity_type_repr)
             .expect("could not parse entity type")
             .id()
             .clone();
@@ -175,18 +178,22 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
                 entity_uuids[*left_entity_index]
                     .iter()
                     .zip(&entity_uuids[*right_entity_index])
-                    .map(|(left_uuid, right_uuid)| {
-                        LinkEntityMetadata::new(
-                            EntityId::new(OwnedById::new(account_id), *left_uuid),
-                            EntityId::new(OwnedById::new(account_id), *right_uuid),
+                    .map(|(left_entity_metadata, right_entity_metadata)| {
+                        (
+                            OwnedById::new(account_id),
                             None,
+                            EntityProperties::empty(),
+                            Some(LinkData::new(
+                                left_entity_metadata.edition_id().base_id(),
+                                right_entity_metadata.edition_id().base_id(),
+                                None,
+                                None,
+                            )),
                             None,
                         )
-                    })
-                    .map(|link_metadata| (None, EntityProperties::empty(), Some(link_metadata))),
-                entity_type_id,
-                OwnedById::new(account_id),
-                CreatedById::new(account_id),
+                    }),
+                UpdatedById::new(account_id),
+                &entity_type_id,
             )
             .await
             .expect("failed to create entities");
@@ -221,7 +228,9 @@ async fn get_samples(account_id: AccountId, store_wrapper: &mut StoreWrapper) ->
         SEED_ENTITY_TYPES
             .into_iter()
             .map(|entity_type_str| {
-                EntityType::from_str(entity_type_str)
+                let entity_type_repr: repr::EntityType = serde_json::from_str(entity_type_str)
+                    .expect("could not parse entity type representation");
+                EntityType::try_from(entity_type_repr)
                     .expect("could not parse entity type")
                     .id()
                     .clone()
@@ -237,7 +246,9 @@ async fn get_samples(account_id: AccountId, store_wrapper: &mut StoreWrapper) ->
     let sample_map = samples.entities.get_mut(&account_id).unwrap();
 
     for entity_type_id in SEED_ENTITIES.map(|(entity_type_str, ..)| {
-        EntityType::from_str(entity_type_str)
+        let entity_type_repr: repr::EntityType = serde_json::from_str(entity_type_str)
+            .expect("could not parse entity type representation");
+        EntityType::try_from(entity_type_repr)
             .expect("could not parse entity type")
             .id()
             .clone()
