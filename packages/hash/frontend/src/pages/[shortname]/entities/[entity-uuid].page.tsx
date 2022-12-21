@@ -150,19 +150,87 @@ const Page: NextPageWithLayout = () => {
   const entityLabel = generateEntityLabel(draftEntitySubgraph);
 
   return (
-    <EntityEditorPage
-      refetch={refetch}
-      editBar={
-        <EditBar
-          visible={isDirty}
-          discardButtonProps={{
-            onClick: discardChanges,
-          }}
-          confirmButtonProps={{
-            onClick: handleSaveChanges,
-            loading: savingChanges,
-            children: "Save changes",
-          }}
+    <>
+      <Head>
+        <title>{entityLabel} | Entity | HASH</title>
+      </Head>
+      <EntityPageWrapper
+        header={
+          <EntityPageHeader
+            entityLabel={entityLabel}
+            chip={
+              <OntologyChip
+                icon={<HashOntologyIcon />}
+                domain="hash.ai"
+                path={
+                  <Typography>
+                    <Typography
+                      color={(theme) => theme.palette.blue[70]}
+                      component="span"
+                      fontWeight="bold"
+                    >
+                      {router.query.shortname}
+                    </Typography>
+                    <Typography
+                      color={(theme) => theme.palette.blue[70]}
+                      component="span"
+                    >
+                      /entities/
+                    </Typography>
+                    <Typography
+                      color={(theme) => theme.palette.blue[70]}
+                      component="span"
+                      fontWeight="bold"
+                    >
+                      {entityUuid}
+                    </Typography>
+                  </Typography>
+                }
+              />
+            }
+          />
+        }
+      >
+        <EntityEditor
+          entitySubgraph={entitySubgraph}
+          setEntity={(entity) =>
+            setEntitySubgraph((entityAndSubgraph) => {
+              if (entity) {
+                /**
+                 * @todo - This is a problem, subgraphs should probably be immutable, there will be a new identifier
+                 *   for the updated entity. This version will not match the one returned by the data store.
+                 *   For places where we mutate elements, we should probably store them separately from the subgraph to
+                 *   allow for optimistic updates without being incorrect.
+                 */
+                const newEntity = JSON.parse(JSON.stringify(entity)) as Entity;
+                const newEntityVersion = new Date().toISOString();
+                newEntity.metadata.editionId.version.decisionTime.start =
+                  newEntityVersion;
+
+                return entityAndSubgraph
+                  ? ({
+                      ...entityAndSubgraph,
+                      roots: [newEntity.metadata.editionId],
+                      vertices: {
+                        ...entityAndSubgraph.vertices,
+                        [newEntity.metadata.editionId.baseId]: {
+                          ...entityAndSubgraph.vertices[
+                            newEntity.metadata.editionId.baseId
+                          ],
+                          [newEntityVersion]: {
+                            kind: "entity",
+                            inner: newEntity,
+                          },
+                        },
+                      },
+                    } as Subgraph<SubgraphRootTypes["entity"]>)
+                  : undefined;
+              } else {
+                return undefined;
+              }
+            })
+          }
+          refetch={refetch}
         />
       }
       entityLabel={entityLabel}

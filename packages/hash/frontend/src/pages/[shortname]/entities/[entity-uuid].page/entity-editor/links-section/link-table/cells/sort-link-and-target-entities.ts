@@ -7,8 +7,8 @@ export const sortLinkAndTargetEntities = (
   }[],
 ) => {
   return [...linkAndTargetEntities].sort((a, b) =>
-    a.linkEntity.metadata.editionId.version.localeCompare(
-      b.linkEntity.metadata.editionId.version,
+    a.linkEntity.metadata.editionId.version.decisionTime.start.localeCompare(
+      b.linkEntity.metadata.editionId.version.decisionTime.start,
     ),
   );
 };
