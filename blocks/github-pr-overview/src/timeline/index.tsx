@@ -1,19 +1,19 @@
 /* eslint-disable canonical/filename-no-index -- @todo rename file */
 
-import { FunctionComponent, useMemo, useState } from "react";
-import Box from "@mui/material/Box";
 import Timeline, { timelineClasses } from "@mui/lab/Timeline";
-
-import { uniq, intersection, sortBy } from "lodash";
-import { Collapse, BoxProps, styled } from "@mui/material";
+import { BoxProps, Collapse, styled } from "@mui/material";
+import Box from "@mui/material/Box";
+import { intersection, sortBy, uniq } from "lodash";
+import { FunctionComponent, useMemo, useState } from "react";
 import { TransitionGroup } from "react-transition-group";
-import { TimelineItem } from "./timeline-item";
+
 import {
   GithubIssueEventEntityType,
   GithubPullRequestEntityType,
   GithubReviewEntityType,
 } from "../types";
 import { ConfigPanel } from "./config-panel";
+import { TimelineItem } from "./timeline-item";
 
 const Container = styled(({ children, ...props }: BoxProps) => (
   <Box {...props}>{children}</Box>

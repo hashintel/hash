@@ -58,8 +58,12 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../../lib/apollo-client";
-import { constructMinimalOrg, MinimalOrg } from "../../lib/org";
-import { constructMinimalUser, MinimalUser } from "../../lib/user";
+import {
+  constructMinimalOrg,
+  MinimalOrg,
+  constructMinimalUser,
+  MinimalUser,
+} from "../../lib/user-and-org";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { useIsReadonlyMode } from "../../shared/readonly-mode";
@@ -77,18 +81,18 @@ type PageProps = {
 };
 
 type PageParsedUrlQuery = {
-  "account-slug": string;
+  shortname: string;
   "page-slug": string;
 };
 
 export const isPageParsedUrlQuery = (
   queryParams: NextParsedUrlQuery,
 ): queryParams is PageParsedUrlQuery =>
-  typeof queryParams["account-slug"] === "string" &&
+  typeof queryParams.shortname === "string" &&
   typeof queryParams["page-slug"] === "string";
 
 export const parsePageUrlQueryParams = (params: PageParsedUrlQuery) => {
-  const workspaceShortname = params["account-slug"].slice(1);
+  const workspaceShortname = params.shortname.slice(1);
 
   const pageEntityUuid = params["page-slug"] as EntityUuid;
 

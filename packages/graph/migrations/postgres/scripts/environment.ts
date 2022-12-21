@@ -1,7 +1,7 @@
 import { config } from "dotenv-flow";
 import dotenvExpand from "dotenv-expand";
 
-import path from "path";
+import path from "node:path";
 
 export const graphRootDir = path.resolve(__dirname, "../../../");
 

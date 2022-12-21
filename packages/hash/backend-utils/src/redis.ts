@@ -1,4 +1,4 @@
-import { promisify } from "util";
+import { promisify } from "node:util";
 
 import { createClient } from "redis";
 import { DataSource } from "apollo-datasource";

@@ -256,7 +256,8 @@ module.exports = {
         },
       },
     ],
-    "unicorn/no-array-for-each": ["error"],
+    "unicorn/no-array-for-each": "error",
+    "unicorn/prefer-node-protocol": "error",
   },
   settings: {
     "import/resolver": {
