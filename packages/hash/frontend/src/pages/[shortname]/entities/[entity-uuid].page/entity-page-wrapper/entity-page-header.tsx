@@ -18,10 +18,10 @@ export const EntityPageHeader = ({
 }) => {
   const router = useRouter();
 
-  const accountSlug = router.query["account-slug"];
+  const paramsShortname = router.query.shortname;
   const { activeWorkspace } = useContext(WorkspaceContext);
 
-  const shortname = accountSlug?.slice(1) ?? activeWorkspace?.shortname;
+  const shortname = paramsShortname?.slice(1) ?? activeWorkspace?.shortname;
 
   if (!shortname) {
     throw new Error("Cannot render before workspace is available");

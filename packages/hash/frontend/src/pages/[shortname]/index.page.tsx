@@ -12,13 +12,13 @@ const menuBarHeight = 60;
 export const parseProfilePageUrlQueryParams = (
   queryParams: NextParsedUrlQuery | undefined,
 ) => {
-  const paramsAccountSlug = queryParams?.["account-slug"];
+  const paramsShortname = queryParams?.shortname;
 
-  if (!paramsAccountSlug || typeof paramsAccountSlug !== "string") {
-    throw new Error("Could not parse `account-slug` from query params.");
+  if (!paramsShortname || typeof paramsShortname !== "string") {
+    throw new Error("Could not parse `shortname` from query params.");
   }
 
-  const profileShortname = paramsAccountSlug.slice(1);
+  const profileShortname = paramsShortname.slice(1);
 
   return { profileShortname };
 };
