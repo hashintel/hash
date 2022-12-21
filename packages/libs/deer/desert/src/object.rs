@@ -113,8 +113,6 @@ impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
     }
 }
 
-// TODO: for value we need a scan for some sorts, and then need to replace/remove the elements from
-//  the stream
 impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
     fn set_bounded(&mut self, length: usize) -> Result<(), ObjectAccessError> {
         if self.consumed > 0 {

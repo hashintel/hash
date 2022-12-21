@@ -3,22 +3,14 @@
 extern crate alloc;
 
 pub(crate) mod array;
+mod assert;
 mod deserializer;
 pub(crate) mod object;
 pub(crate) mod tape;
 mod token;
 
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub use assert::{
+    assert_tokens, assert_tokens_error, assert_tokens_with_context,
+    assert_tokens_with_context_error,
+};
+pub use token::Token;

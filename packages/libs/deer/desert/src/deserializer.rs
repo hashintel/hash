@@ -96,7 +96,7 @@ impl<'a, 'de> Deserializer<'a, 'de> {
         self.tape.next().expect("should have token to deserialize")
     }
 
-    pub(crate) fn tape(&self) -> &Tape {
+    pub(crate) fn tape(&self) -> &Tape<'a, 'de> {
         &self.tape
     }
 
