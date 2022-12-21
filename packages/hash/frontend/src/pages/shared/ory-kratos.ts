@@ -16,6 +16,7 @@ import {
   UpdateRecoveryFlowBody,
   UpdateSettingsFlowBody,
   UpdateVerificationFlowBody,
+  UpdateSettingsFlowWithPasswordMethod,
 } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { AxiosError } from "axios";
@@ -63,6 +64,7 @@ type Flows = {
   recovery: [RecoveryFlow, UpdateRecoveryFlowBody];
   registration: [RegistrationFlow, UpdateRegistrationFlowBody];
   settings: [SettingsFlow, UpdateSettingsFlowBody];
+  settingsWithPassword: [SettingsFlow, UpdateSettingsFlowWithPasswordMethod];
   verification: [VerificationFlow, UpdateVerificationFlowBody];
 };
 

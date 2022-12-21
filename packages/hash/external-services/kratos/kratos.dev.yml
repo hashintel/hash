@@ -84,6 +84,10 @@ selfservice:
       ui_url: http://localhost:3000/recovery
       use: code
 
+    settings:
+      # Set through SELFSERVICE_FLOWS_SETTINGS_UI_URL
+      ui_url: http://localhost:3000/settings
+
 log:
   level: debug
   format: text
