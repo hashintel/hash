@@ -16,7 +16,7 @@ import {
 import { Avatar } from "@hashintel/hash-design-system";
 import { MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
-import { AuthenticatedUser } from "../../../lib/user";
+import { AuthenticatedUser } from "../../../lib/user-and-org";
 
 type AccountDropdownProps = {
   avatar?: string;

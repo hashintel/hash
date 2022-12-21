@@ -27,7 +27,7 @@ import {
   textBlockNodesFromTokens,
 } from "@hashintel/hash-shared/text";
 import { debounce, isEqual } from "lodash";
-import { usePortals } from "../usePortals";
+import { usePortals } from "../BlockPortals";
 import { createFormatPlugins } from "../createFormatPlugins";
 import {
   createSuggester,

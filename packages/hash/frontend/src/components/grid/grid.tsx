@@ -27,9 +27,7 @@ import {
 } from "./utils/sorting";
 import { useRenderGridPortal } from "./utils/use-render-grid-portal";
 import { overrideCustomRenderers } from "./utils/override-custom-renderers";
-
-export type Row = Record<string, unknown>;
-export type Rows = Row[];
+import { Rows } from "./utils/rows";
 
 export type GridProps<T> = Omit<
   DataEditorProps,

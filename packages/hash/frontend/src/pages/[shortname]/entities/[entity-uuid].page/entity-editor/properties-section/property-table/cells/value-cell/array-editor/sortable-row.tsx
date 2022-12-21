@@ -22,7 +22,7 @@ import { faSquareCheck } from "../../../../../../../../../../shared/icons/pro/fa
 import { BooleanInput } from "../inputs/boolean-input";
 import { NumberOrTextInput } from "../inputs/number-or-text-input";
 
-const editorSpecs: Record<
+export const editorSpecs: Record<
   EditorType,
   { icon: IconDefinition["icon"]; title: string }
 > = {
