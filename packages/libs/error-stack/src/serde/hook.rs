@@ -14,46 +14,52 @@ fn serialize<'a, T: serde::Serialize + Send + Sync + 'static>(
     Some(Box::new(value))
 }
 
-// Thanks to https://users.rust-lang.org/t/hrtb-on-multiple-generics/34255/2 for the solution
-pub trait DynamicFn<'a> {
-    type Output;
-    type Input;
-
+trait ErasedFn<'a> {
     fn call(
         &self,
         value: &'a Frame,
         context: &mut HookContext<Frame>,
-    ) -> Option<dyn erased_serde::Serialize + 'a>;
-
-    fn erase(self) -> Box<dyn DynamicFn<'a, Output = (), Input = ()>>;
+    ) -> Option<Box<dyn erased_serde::Serialize + 'a>>;
 }
 
-impl<'a, U: 'a, T: Send + Sync + 'static, F> DynamicFn<'a> for F
+impl<'a, F> ErasedFn<'a> for F
+where
+    F: Fn(&Frame, &mut HookContext<Frame>) -> Option<Box<dyn erased_serde::Serialize + 'a>>,
+{
+    fn call(
+        &self,
+        value: &'a Frame,
+        context: &mut HookContext<Frame>,
+    ) -> Option<Box<dyn erased_serde::Serialize + 'a>> {
+        (self)(value, context)
+    }
+}
+
+// Thanks to https://users.rust-lang.org/t/hrtb-on-multiple-generics/34255/2 for the solution
+pub trait DynamicFn<'a> {
+    type Input: Send + Sync + 'static;
+    type Output: serde::Serialize + 'a;
+
+    fn call(&self, value: &'a Self::Input, context: &mut HookContext<Self::Input>) -> Self::Output;
+}
+
+impl<'a, U: 'a, T, F> DynamicFn<'a> for F
 where
     F: Fn(&'a T) -> U,
     U: serde::Serialize,
+    T: Send + Sync + 'static,
 {
     type Input = T;
     type Output = U;
 
-    fn call(
-        &self,
-        value: &'a Frame,
-        context: &mut HookContext<Frame>,
-    ) -> Option<dyn erased_serde::Serialize + 'a> {
-        let value = value.request_ref::<T>()?;
-
-        (self)(value, context.cast())
-    }
-
-    fn erase(self) -> Box<dyn DynamicFn<'a, Output = (), Input = ()>> {
-        |frame, context| (self)(frame, context)
+    fn call(&self, value: &'a Self::Input, context: &mut HookContext<Self::Input>) -> Self::Output {
+        (self)(value, context)
     }
 }
 
 type HookFnReturn<'a> = Option<Box<dyn erased_serde::Serialize + 'a>>;
 type StaticHookFn = for<'a> fn(&'a Frame) -> HookFnReturn<'a>;
-type DynamicHookFn = Box<dyn for<'a> DynamicFn<'a, Output = (), Input = ()>>;
+type DynamicHookFn = Box<dyn for<'a> ErasedFn<'a>>;
 
 enum HookFn {
     Static(StaticHookFn),
@@ -79,7 +85,12 @@ impl Hook {
         for<'a> <F as DynamicFn<'a>>::Input: Send + Sync + 'static,
         for<'a> <F as DynamicFn<'a>>::Output: serde::Serialize,
     {
-        let closure = closure.erase();
+        let closure: Box<dyn for<'a> ErasedFn<'a>> =
+            Box::new(move |frame: &Frame, context: &mut HookContext<Frame>| {
+                let value = frame.request_ref::<F::Input>()?;
+
+                Box::new(closure.call(value, context.cast()))
+            });
 
         Self {
             ty: TypeId::of::<F::Input>(),
