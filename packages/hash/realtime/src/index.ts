@@ -1,7 +1,7 @@
 /* eslint-disable canonical/filename-no-index -- @todo rename file */
 
-import * as crypto from "crypto";
-import * as http from "http";
+import * as crypto from "node:crypto";
+import * as http from "node:http";
 
 import { sql } from "slonik";
 import {

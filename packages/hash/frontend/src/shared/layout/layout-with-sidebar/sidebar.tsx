@@ -63,7 +63,7 @@ export const PageSidebar: FunctionComponent = () => {
         title="Home"
         href="/"
         tooltipTitle="View your inbox and latest activity"
-        active={router.pathname === "/[account-slug]"}
+        active={router.pathname === "/[shortname]"}
       />
       {/* 
         Commented out nav links whose functionality have not been 
