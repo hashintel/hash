@@ -533,8 +533,8 @@ export const up = (pgm: MigrationBuilder): void => {
         _owned_by_id,
         _entity_uuid,
         _entity_record_id,
-        tstzrange(_decision_time, 'infinity', '[)'),
-        tstzrange(now(), 'infinity', '[)')
+        tstzrange(_decision_time, NULL, '[)'),
+        tstzrange(now(), NULL, '[)')
       ) RETURNING entity_versions.entity_record_id, entity_versions.decision_time, entity_versions.transaction_time;
     END
     `,
@@ -612,7 +612,7 @@ export const up = (pgm: MigrationBuilder): void => {
       RETURN QUERY
       UPDATE entity_versions
       SET decision_time = tstzrange(_decision_time, upper(entity_versions.decision_time), '[)'),
-          transaction_time = tstzrange(now(), 'infinity', '[)'),
+          transaction_time = tstzrange(now(), NULL, '[)'),
           entity_record_id = _new_entity_record_id
       WHERE entity_versions.owned_by_id = _owned_by_id
         AND entity_versions.entity_uuid = _entity_uuid
