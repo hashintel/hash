@@ -6,10 +6,10 @@ import {
   Checkbox,
   chipClasses,
   Stack,
+  styled,
   Table,
   TableBody,
   TableCell,
-  TableCellProps,
   TableHead,
   TableRow,
   Typography,
@@ -23,33 +23,23 @@ import { DeleteExpectedValueModal } from "../custom-expected-value-builder/array
 import { ExpectedValueBadge } from "../custom-expected-value-builder/array-expected-value-builder/expected-value-badge";
 import { CustomExpectedValueSelector } from "../custom-expected-value-builder/shared/custom-expected-value-selector";
 
-const StyledTableHeadCell = (props: TableCellProps) => (
-  <TableCell
-    {...props}
-    sx={{
-      py: 1,
-      px: 1.5,
-      lineHeight: "18px",
-      fontSize: 11,
-      fontWeight: 600,
-      borderBottom: ({ palette }) => `1px solid ${palette.gray[30]}`,
-      whiteSpace: "nowrap",
-    }}
-  />
-);
+const StyledTableHeadCell = styled(TableCell)(({ theme }) => ({
+  py: 1,
+  px: 1.5,
+  lineHeight: "18px",
+  fontSize: 11,
+  fontWeight: 600,
+  borderBottom: `1px solid ${theme.palette.gray[30]}`,
+  whiteSpace: "nowrap",
+}));
 
-const StyledTableBodyCell = (props: TableCellProps) => (
-  <TableCell
-    {...props}
-    sx={{
-      py: 1,
-      px: 1.5,
-      flexDirection: "row",
-      alignItems: "center",
-      borderBottom: ({ palette }) => `1px solid ${palette.gray[30]} !important`,
-    }}
-  />
-);
+const StyledTableBodyCell = styled(TableCell)(({ theme }) => ({
+  py: 1,
+  px: 1.5,
+  flexDirection: "row",
+  alignItems: "center",
+  borderBottom: `1px solid ${theme.palette.gray[30]} !important`,
+}));
 
 export interface ObjectExpectedValueRowProps {
   objectId: string;
