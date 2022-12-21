@@ -9,6 +9,7 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { constructOrg, Org } from "../../lib/user-and-org";
+import { useInitTypeSystem } from "../../lib/use-init-type-system";
 /**
  * Retrieves a list of organizations.
  * @todo the API should provide this, and it should only be available to admins.
@@ -20,6 +21,8 @@ export const useOrgs = (
   loading: boolean;
   orgs?: Org[];
 } => {
+  const loadingTypeSystem = useInitTypeSystem();
+
   const { data, loading } = useQuery<
     GetAllLatestEntitiesQuery,
     GetAllLatestEntitiesQueryVariables
@@ -41,7 +44,7 @@ export const useOrgs = (
   const { getAllLatestEntities: subgraph } = data ?? {};
 
   const orgs = useMemo(() => {
-    if (!subgraph) {
+    if (!loadingTypeSystem || !subgraph) {
       return undefined;
     }
 
@@ -59,7 +62,7 @@ export const useOrgs = (
           resolvedOrgs,
         }),
     );
-  }, [subgraph]);
+  }, [subgraph, loadingTypeSystem]);
 
   return {
     loading,
