@@ -11,7 +11,10 @@ use bitvec::{
     vec::BitVec,
 };
 use deer::{
-    error::{ArrayAccessError, DeserializerError, ObjectAccessError, SetBoundedError, Variant},
+    error::{
+        ArrayAccessError, ArrayLengthError, DeserializerError, ExpectedLength, ObjectAccessError,
+        ReceivedLength, SetBoundedError, Variant,
+    },
     Context, Deserialize, Visitor,
 };
 use error_stack::{Report, Result, ResultExt};
@@ -307,16 +310,16 @@ impl<'de> deer::Deserializer<'de> for DeserializerNone<'_> {
 struct ArrayAccess<'a, 'b, 'de: 'a> {
     deserializer: &'a mut Deserializer<'b, 'de>,
 
-    dirty: bool,
     length: Option<usize>,
     remaining: Option<usize>,
+    consumed: usize,
 }
 
 impl<'a, 'b, 'de> ArrayAccess<'a, 'b, 'de> {
     pub fn new(deserializer: &'a mut Deserializer<'b, 'de>, length: Option<usize>) -> Self {
         Self {
             deserializer,
-            dirty: false,
+            consumed: 0,
             length,
             remaining: None,
         }
@@ -350,7 +353,7 @@ impl<'a, 'b, 'de> ArrayAccess<'a, 'b, 'de> {
 
 impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
     fn set_bounded(&mut self, length: usize) -> Result<(), ArrayAccessError> {
-        if self.dirty {
+        if self.consumed > 0 {
             return Err(
                 Report::new(SetBoundedError::Dirty.into_error()).change_context(ArrayAccessError)
             );
@@ -372,7 +375,7 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
     where
         T: Deserialize<'de>,
     {
-        self.dirty = true;
+        self.consumed += 1;
 
         if matches!(self.deserializer.peek(), Token::ArrayEnd) {
             // we have reached the ending, if `self.remaining` is set we use the `DeserializerNone`
@@ -403,27 +406,40 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
     }
 
     fn end(self) -> Result<(), ArrayAccessError> {
-        // TODO: error if self.remaining isn't Some(0) or None
         let mut result = Ok(());
 
         // ensure that we consume the last token, if it is the wrong token error out
         if !matches!(self.deserializer.peek(), Token::ArrayEnd) {
-            // TODO: error
-            result = Err(Report::new(ArrayAccessError));
+            let mut error = Report::new(ArrayLengthError.into_error())
+                .attach(ExpectedLength::new(self.consumed));
+
+            if let Some(length) = self.size_hint() {
+                error = error.attach(ReceivedLength::new(length));
+            }
+
+            result = Err(error);
         }
 
-        self.deserializer.next();
+        // bump until the very end, which ensures that deserialize calls after this might succeed!
+        let bump = self
+            .scan_end()
+            .unwrap_or_else(|| self.deserializer.tokens.remaining());
+        self.deserializer.tokens.bump_n(bump);
 
-        if self.remaining.map_or(false, |remaining| remaining > 0) {
-            let error = Report::new(ArrayAccessError);
-            // TODO: error
-            match &mut result {
-                Err(result) => result.extend_one(error),
-                result => *result = Err(error),
+        if let Some(remaining) = self.remaining {
+            if remaining > 0 {
+                // TODO: This should be an internal error, as the consumer did not ensure that this
+                //  was called n times ~> ContractViolation error
+                let error = Report::new(());
+
+                match &mut result {
+                    Err(result) => result.extend_one(error),
+                    result => *result = Err(error),
+                }
             }
         }
 
-        result
+        result.change_context(ArrayAccessError)
     }
 }
 
@@ -609,9 +625,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
 
         let (key, value) = if matches!(self.deserializer.peek(), Token::ObjectEnd) {
             // we're not in bounded mode, which means we need to signal that we're done
-            if self.remaining.is_none() {
-                return None;
-            }
+            self.remaining?;
 
             if self.remaining.is_some() {
                 let key = K::deserialize(DeserializerNone {
