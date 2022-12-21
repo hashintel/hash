@@ -111,7 +111,7 @@ const Page: NextPageWithLayout = () => {
                       component="span"
                       fontWeight="bold"
                     >
-                      {router.query["account-slug"]}
+                      {router.query.shortname}
                     </Typography>
                     <Typography
                       color={(theme) => theme.palette.blue[70]}

@@ -1,6 +1,6 @@
-import { useRef } from "react";
 import { BlockComponent } from "@blockprotocol/graph/react";
 import { useHook, useHookBlockService } from "@blockprotocol/hook/react";
+import { useRef } from "react";
 
 type BlockEntityProperties = {
   text?: string;

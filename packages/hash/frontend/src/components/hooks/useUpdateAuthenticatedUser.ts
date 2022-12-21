@@ -11,7 +11,7 @@ import {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../graphql/apiTypes.gen";
-import { AuthenticatedUser } from "../../lib/user";
+import { AuthenticatedUser } from "../../lib/user-and-org";
 import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { useAuthInfo } from "../../pages/shared/auth-info-context";
 import { meQuery } from "../../graphql/queries/user.queries";

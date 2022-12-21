@@ -4,9 +4,9 @@ import { useContext, useEffect, useState } from "react";
 import { PageErrorState } from "../../components/page-error-state";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
-import { EntityPageLoadingState } from "../[account-slug]/entities/[entity-uuid].page/entity-page-loading-state";
-import { NewEntityPage } from "../[account-slug]/entities/[entity-uuid].page/new-entity-page";
-import { useCreateNewEntityAndRedirect } from "../[account-slug]/entities/[entity-uuid].page/shared/use-create-new-entity-and-redirect";
+import { EntityPageLoadingState } from "../[shortname]/entities/[entity-uuid].page/entity-page-loading-state";
+import { NewEntityPage } from "../[shortname]/entities/[entity-uuid].page/new-entity-page";
+import { useCreateNewEntityAndRedirect } from "../[shortname]/entities/[entity-uuid].page/shared/use-create-new-entity-and-redirect";
 import { WorkspaceContext } from "../shared/workspace-context";
 
 const Page: NextPageWithLayout = () => {

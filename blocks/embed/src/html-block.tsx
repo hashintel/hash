@@ -1,5 +1,6 @@
-import { useEffect, useRef, FunctionComponent } from "react";
+import { FunctionComponent, useEffect, useRef } from "react";
 import { tw } from "twind";
+
 import { toCSSText } from "./utils";
 
 type HtmlBlockProps = {
