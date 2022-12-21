@@ -15,7 +15,7 @@ import { expectedValuesOptions } from "../shared/expected-values-options";
 import { ExpectedValueBadge } from "./array-expected-value-builder/expected-value-badge";
 import { DeleteExpectedValueModal } from "./array-expected-value-builder/delete-expected-value-modal";
 import { CustomExpectedValueSelector } from "./shared/custom-expected-value-selector";
-import { ObjectExpectedValueBuilder } from "./object-expected-value-builder";
+import { ObjectExpectedValueBuilder } from "../shared/object-expected-value-builder";
 
 const dataTypeOptions: DefaultExpectedValueTypeId[] = [
   ...primitiveDataTypeOptions,

@@ -19,9 +19,9 @@ import { FunctionComponent, useEffect, useMemo, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { usePropertyTypesContextValue } from "../../../../../../use-property-types-context-value";
 import { PropertyTypeFormValues } from "../../../property-type-form-values";
-import { DeleteExpectedValueModal } from "./array-expected-value-builder/delete-expected-value-modal";
-import { ExpectedValueBadge } from "./array-expected-value-builder/expected-value-badge";
-import { CustomExpectedValueSelector } from "./shared/custom-expected-value-selector";
+import { DeleteExpectedValueModal } from "../custom-expected-value-builder/array-expected-value-builder/delete-expected-value-modal";
+import { ExpectedValueBadge } from "../custom-expected-value-builder/array-expected-value-builder/expected-value-badge";
+import { CustomExpectedValueSelector } from "../custom-expected-value-builder/shared/custom-expected-value-selector";
 
 const StyledTableHeadCell = (props: TableCellProps) => (
   <TableCell
