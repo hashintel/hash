@@ -11,7 +11,7 @@ import {
   addEntityStoreAction,
   entityStorePluginState,
 } from "@hashintel/hash-shared/entityStorePlugin";
-import { EntityId } from "@hashintel/hash-subgraph";
+import { AccountId, OwnedById, EntityId } from "@hashintel/hash-shared/types";
 
 // import applyDevTools from "prosemirror-dev-tools";
 import { Plugin } from "prosemirror-state";
@@ -26,13 +26,13 @@ import { createPlaceholderPlugin } from "./createPlaceholderPlugin/createPlaceho
 import { createSuggester } from "./createSuggester/createSuggester";
 import { createFocusPageTitlePlugin } from "./focusPageTitlePlugin";
 import styles from "./style.module.css";
-import { RenderPortal } from "./usePortals";
+import { RenderPortal } from "./BlockPortals";
 import { createTextEditorView } from "./createTextEditorView";
 
 export type BlocksMap = Record<string, HashBlock>;
 
 const createSavePlugin = (
-  ownedById: string,
+  ownedById: OwnedById,
   pageEntityId: EntityId,
   client: ApolloClient<unknown>,
 ) => {
@@ -140,7 +140,7 @@ const createSavePlugin = (
 export const createEditorView = (
   renderNode: HTMLElement,
   renderPortal: RenderPortal,
-  accountId: string,
+  accountId: AccountId,
   pageEntityId: EntityId,
   blocks: BlocksMap,
   readonly: boolean,
@@ -155,7 +155,7 @@ export const createEditorView = (
   const plugins: Plugin<unknown>[] = readonly
     ? []
     : [
-        createSavePlugin(accountId, pageEntityId, client),
+        createSavePlugin(accountId as OwnedById, pageEntityId, client),
         ...createFormatPlugins(renderPortal),
         createSuggester(renderPortal, accountId, renderNode, () => manager),
         createPlaceholderPlugin(renderPortal),

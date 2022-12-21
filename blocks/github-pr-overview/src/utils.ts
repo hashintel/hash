@@ -1,5 +1,5 @@
-import { startCase } from "lodash";
 import { theme } from "@hashintel/hash-design-system";
+import { startCase } from "lodash";
 
 const NODE_COLORS = {
   opened: theme.palette.blue[60],

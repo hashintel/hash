@@ -8,17 +8,18 @@ import {
   TimelineSeparator,
 } from "@mui/lab";
 import {
-  Popover,
-  Typography,
-  Stack,
   Avatar,
-  IconButton,
   Box,
+  IconButton,
+  Popover,
+  Stack,
   Tooltip,
+  Typography,
 } from "@mui/material";
 import { format } from "date-fns";
 import { startCase } from "lodash";
 import { FunctionComponent, useState } from "react";
+
 import {
   LinkIcon,
   PullRequestClosedIcon,
@@ -220,7 +221,7 @@ export const TimelineItem: FunctionComponent<TimelineItemProps> = ({
             })}
             variant="microText"
           >
-            For {event.actor?.login}
+            For {event.actor.login}
           </Typography>
         </Stack>
       </Popover>

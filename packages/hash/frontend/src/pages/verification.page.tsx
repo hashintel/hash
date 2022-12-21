@@ -52,7 +52,7 @@ const VerificationPage: NextPageWithLayout = () => {
   const { logout } = useLogoutFlow([aal, refresh]);
 
   const extractFlowCodeValue = (flowToSearch: VerificationFlow | undefined) => {
-    const uiCode = flowToSearch?.ui?.nodes.find(
+    const uiCode = flowToSearch?.ui.nodes.find(
       ({ attributes }) =>
         isUiNodeInputAttributes(attributes) && attributes.name === "code",
     );
@@ -111,11 +111,11 @@ const VerificationPage: NextPageWithLayout = () => {
     void router
       // On submission, add the flow ID to the URL but do not navigate. This prevents the user loosing
       // their data when they reload the page.
-      .push(`/verification`, { query: { flow: flow?.id } }, { shallow: true });
+      .push(`/verification`, { query: { flow: flow.id } }, { shallow: true });
 
     oryKratosClient
       .updateVerificationFlow({
-        flow: String(flow?.id),
+        flow: String(flow.id),
         updateVerificationFlowBody: {
           ...gatherUiNodeValuesFromFlow<"verification">(flow),
           code,
@@ -130,7 +130,7 @@ const VerificationPage: NextPageWithLayout = () => {
       .catch(handleFlowError);
   };
 
-  const codeInputUiNode = flow?.ui?.nodes.find(
+  const codeInputUiNode = flow?.ui.nodes.find(
     ({ attributes }) =>
       isUiNodeInputAttributes(attributes) && attributes.name === "code",
   );
@@ -168,7 +168,7 @@ const VerificationPage: NextPageWithLayout = () => {
           required
         />
         <Button type="submit">Verify account</Button>
-        {flow?.ui?.messages?.map(({ text, id }) => (
+        {flow?.ui.messages?.map(({ text, id }) => (
           <Typography key={id}>{text}</Typography>
         ))}
         {errorMessage ? <Typography>{errorMessage}</Typography> : null}

@@ -1,13 +1,14 @@
+import { Entity, GraphBlockHandler } from "@blockprotocol/graph";
 import {
   ChangeEvent,
+  FunctionComponent,
   useEffect,
   useRef,
   useState,
-  FunctionComponent,
 } from "react";
 import { Column, Row } from "react-table";
-import { Entity, GraphBlockHandler } from "@blockprotocol/graph";
 import { tw } from "twind";
+
 import { identityEntityAndProperty } from "../lib/identify-entity";
 
 type EditableCellProps = {

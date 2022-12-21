@@ -1,6 +1,8 @@
 import { EditorState } from "prosemirror-state";
 import { DirectEditorProps, EditorView } from "prosemirror-view";
-import { RenderPortal } from "./usePortals";
+import { AccountId } from "@hashintel/hash-shared/types";
+import { RenderPortal } from "./BlockPortals";
+
 import { mentionNodeView } from "./MentionView/MentionNodeView";
 import { clipboardTextSerializer } from "./clipboardTextSerializer";
 
@@ -8,7 +10,7 @@ export const createTextEditorView = (
   state: EditorState,
   renderNode: HTMLElement,
   renderPortal: RenderPortal,
-  accountId: string,
+  accountId: AccountId,
   editorProps?: Partial<DirectEditorProps>,
 ) =>
   new EditorView(renderNode, {

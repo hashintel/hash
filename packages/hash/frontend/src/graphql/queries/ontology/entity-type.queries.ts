@@ -64,7 +64,7 @@ export const getEntityTypeRootedSubgraphQuery = gql`
 
 export const createEntityTypeMutation = gql`
   mutation createEntityType(
-    $ownedById: ID!
+    $ownedById: OwnedById!
     $entityType: EntityTypeWithoutId!
   ) {
     # This is a scalar, which has no selection.

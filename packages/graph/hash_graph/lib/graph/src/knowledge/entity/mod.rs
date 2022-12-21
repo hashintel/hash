@@ -1,6 +1,12 @@
 mod query;
 
-use std::{collections::HashMap, fmt};
+use std::{
+    collections::{
+        hash_map::{RandomState, RawEntryMut},
+        HashMap,
+    },
+    fmt,
+};
 
 use serde::{Deserialize, Serialize};
 use tokio_postgres::types::{FromSql, ToSql};
@@ -12,7 +18,8 @@ pub use self::query::{EntityQueryPath, EntityQueryPathVisitor, EntityQueryToken}
 use crate::{
     identifier::knowledge::{EntityEditionId, EntityId},
     provenance::ProvenanceMetadata,
-    store::Record,
+    store::{query::Filter, Record},
+    subgraph::Subgraph,
 };
 
 #[derive(
@@ -256,14 +263,34 @@ impl Entity {
     pub const fn link_data(&self) -> Option<LinkData> {
         self.link_data
     }
+
+    #[must_use]
+    pub const fn metadata(&self) -> &EntityMetadata {
+        &self.metadata
+    }
 }
 
 impl Record for Entity {
-    type Metadata = EntityMetadata;
+    type EditionId = EntityEditionId;
     type QueryPath<'p> = EntityQueryPath<'p>;
 
-    fn metadata(&self) -> &EntityMetadata {
-        &self.metadata
+    fn edition_id(&self) -> &Self::EditionId {
+        &self.metadata.edition_id
+    }
+
+    fn create_filter_for_edition_id(edition_id: &Self::EditionId) -> Filter<Self> {
+        Filter::for_entity_by_edition_id(*edition_id)
+    }
+
+    fn subgraph_entry<'s>(
+        subgraph: &'s mut Subgraph,
+        edition_id: &Self::EditionId,
+    ) -> RawEntryMut<'s, Self::EditionId, Self, RandomState> {
+        subgraph
+            .vertices
+            .entities
+            .raw_entry_mut()
+            .from_key(edition_id)
     }
 }
 

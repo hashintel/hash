@@ -1,6 +1,7 @@
 import { ApolloError } from "apollo-server-express";
 import { AxiosError } from "axios";
 import { EntityTypeWithMetadata, Subgraph } from "@hashintel/hash-subgraph";
+import { OwnedById } from "@hashintel/hash-shared/types";
 
 import {
   MutationCreateEntityTypeArgs,
@@ -20,16 +21,17 @@ export const createEntityTypeResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationCreateEntityTypeArgs
-> = async (_, params, { dataSources, userModel }) => {
+> = async (_, params, { dataSources, user }) => {
   const { graphApi } = dataSources;
   const { ownedById, entityType } = params;
 
   const createdEntityType = await createEntityType(
     { graphApi },
     {
-      ownedById: ownedById ?? userModel.getEntityUuid(),
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
+      ownedById: (ownedById as OwnedById) ?? user.accountId,
       schema: entityType,
-      actorId: userModel.getEntityUuid(),
+      actorId: user.accountId,
     },
   ).catch((err) => {
     throw new ApolloError(err, "CREATION_ERROR");
@@ -132,7 +134,7 @@ export const updateEntityTypeResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationUpdateEntityTypeArgs
-> = async (_, params, { dataSources, userModel }) => {
+> = async (_, params, { dataSources, user }) => {
   const { graphApi } = dataSources;
   const { entityTypeId, updatedEntityType: updatedEntityTypeSchema } = params;
 
@@ -141,7 +143,7 @@ export const updateEntityTypeResolver: ResolverFn<
     {
       entityTypeId,
       schema: updatedEntityTypeSchema,
-      actorId: userModel.getEntityUuid(),
+      actorId: user.accountId,
     },
   ).catch((err: AxiosError) => {
     const msg =

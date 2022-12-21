@@ -25,7 +25,7 @@ module.exports = (workspaceDirPath) => {
     );
   }
 
-  const workspaceDirPrefix = `${path
+  const workspaceDirPrefix = `/${path
     .relative(monorepoRoot, workspaceDirPath)
     .replace(/\\/g, "/")}/`;
 

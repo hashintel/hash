@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 
 import { QueueProducer, QueueExclusiveConsumer } from "./adapter";
 import { AsyncRedisClient } from "../redis";
@@ -72,6 +72,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
       this.ownerKey(name),
       QUEUE_CONSUMER_OWNERSHIP_TIMEOUT_MS / 1000,
     );
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false positive (because of await)
     if (this.queueOwned) {
       this.queueOwned.lastUpdated = Date.now();
     }

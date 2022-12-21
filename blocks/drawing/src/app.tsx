@@ -1,25 +1,26 @@
-import {
-  useState,
-  useCallback,
-  useRef,
-  useEffect,
-  useLayoutEffect,
-  SyntheticEvent,
-} from "react";
+import "./base.css";
 
 import {
   BlockComponent,
   useGraphBlockService,
 } from "@blockprotocol/graph/react";
 import { TDDocument, Tldraw, TldrawApp } from "@tldraw/tldraw";
-import { Resizable, ResizeCallbackData } from "react-resizable";
 import {
-  handleExport,
-  getInitialDocument,
-  isValidSerializedDocument,
+  SyntheticEvent,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import { Resizable, ResizeCallbackData } from "react-resizable";
+
+import {
   getDefaultDocument,
+  getInitialDocument,
+  handleExport,
+  isValidSerializedDocument,
 } from "./utils";
-import "./base.css";
 
 type BlockEntityProperties = {
   serializedDocument: string;

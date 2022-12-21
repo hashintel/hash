@@ -1,17 +1,16 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import "./styles.scss";
+import "react-datepicker/dist/react-datepicker.css";
+import "./datepicker-override.scss";
 
 import {
   BlockComponent,
   useGraphBlockService,
 } from "@blockprotocol/graph/react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { Display } from "./display";
-import { DatePickerInput } from "./date-picker-input";
 import { CountdownTitle } from "./countdown-title";
-
-import "./styles.scss";
-import "react-datepicker/dist/react-datepicker.css";
-import "./datepicker-override.scss";
+import { DatePickerInput } from "./date-picker-input";
+import { Display } from "./display";
 
 type BlockEntityProperties = {
   title?: string;

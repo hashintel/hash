@@ -1,9 +1,9 @@
-import { readFileSync } from "fs";
+import { readFileSync } from "node:fs";
 import { readdir, readdirSync, readFile } from "fs-extra";
 import matter from "gray-matter";
 import { MDXRemoteSerializeResult } from "next-mdx-remote";
 import { serialize } from "next-mdx-remote/serialize";
-import path from "path";
+import path from "node:path";
 import remarkMdx from "remark-mdx";
 import remarkMdxDisableExplicitJsx from "remark-mdx-disable-explicit-jsx";
 import remarkParse from "remark-parse";

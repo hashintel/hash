@@ -1,12 +1,15 @@
+import {
+  shortnameIsRestricted,
+  shortnameIsTaken,
+} from "../../../../graph/knowledge/system-types/account.fields";
 import { QueryIsShortnameTakenArgs, ResolverFn } from "../../../apiTypes.gen";
 import { GraphQLContext } from "../../../context";
-import { AccountFields } from "../../../../model";
 
-export const isShortnameTaken: ResolverFn<
+export const isShortnameTakenResolver: ResolverFn<
   Promise<boolean>,
   {},
   GraphQLContext,
   QueryIsShortnameTakenArgs
 > = async (_, { shortname }, { dataSources: { graphApi } }) =>
-  AccountFields.shortnameIsRestricted(shortname) ||
-  (await AccountFields.shortnameIsTaken(graphApi, { shortname }));
+  shortnameIsRestricted({ shortname }) ||
+  (await shortnameIsTaken({ graphApi }, { shortname }));

@@ -162,7 +162,7 @@ use core::{
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub use hook::HookContext;
 #[cfg(any(feature = "std", feature = "hooks"))]
-pub(crate) use hook::{install_builtin_hooks, Hooks};
+pub(crate) use hook::{install_builtin_hooks, Format, Hooks};
 #[cfg(feature = "pretty-print")]
 use owo_colors::{OwoColorize, Stream, Style as OwOStyle};
 
@@ -947,7 +947,7 @@ fn debug_frame(
 impl<C> Debug for Report<C> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         #[cfg(any(feature = "std", feature = "hooks"))]
-        let mut context = HookContext::new(fmt.alternate());
+        let mut context = HookContext::new(Format::new(fmt.alternate()));
 
         #[cfg_attr(not(any(feature = "std", feature = "hooks")), allow(unused_mut))]
         let mut lines = self
@@ -958,7 +958,7 @@ impl<C> Debug for Report<C> {
                     frame,
                     &[],
                     #[cfg(any(feature = "std", feature = "hooks"))]
-                    &mut context,
+                    context.cast(),
                 )
             })
             .enumerate()

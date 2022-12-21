@@ -2,6 +2,7 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
+  ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
@@ -9,7 +10,6 @@ import {
   PropertyType,
   TypeSystemInitializer,
 } from "@blockprotocol/type-system";
-import { UserModel } from "@hashintel/hash-api/src/model";
 import {
   createPropertyType,
   getPropertyTypeById,
@@ -20,6 +20,8 @@ import {
   PropertyTypeWithMetadata,
 } from "@hashintel/hash-subgraph";
 import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
+import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import { createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
@@ -38,10 +40,12 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-let testUser: UserModel;
-let testUser2: UserModel;
+let testUser: User;
+let testUser2: User;
 let textDataType: DataTypeWithMetadata;
 let propertyTypeSchema: Omit<PropertyType, "$id">;
+
+const graphContext: ImpureGraphContext = { graphApi };
 
 beforeAll(async () => {
   await TypeSystemInitializer.initialize();
@@ -50,18 +54,15 @@ beforeAll(async () => {
   testUser = await createTestUser(graphApi, "pt-test-1", logger);
   testUser2 = await createTestUser(graphApi, "pt-test-2", logger);
 
-  textDataType = await createDataType(
-    { graphApi },
-    {
-      ownedById: testUser.getEntityUuid(),
-      schema: {
-        kind: "dataType",
-        title: "Text",
-        type: "string",
-      },
-      actorId: testUser.getEntityUuid(),
+  textDataType = await createDataType(graphContext, {
+    ownedById: testUser.accountId as OwnedById,
+    schema: {
+      kind: "dataType",
+      title: "Text",
+      type: "string",
     },
-  );
+    actorId: testUser.accountId,
+  });
 
   propertyTypeSchema = {
     kind: "propertyType",
@@ -78,23 +79,17 @@ describe("Property type CRU", () => {
   let createdPropertyType: PropertyTypeWithMetadata;
 
   it("can create a property type", async () => {
-    createdPropertyType = await createPropertyType(
-      { graphApi },
-      {
-        ownedById: testUser.getEntityUuid(),
-        schema: propertyTypeSchema,
-        actorId: testUser.getEntityUuid(),
-      },
-    );
+    createdPropertyType = await createPropertyType(graphContext, {
+      ownedById: testUser.accountId as OwnedById,
+      schema: propertyTypeSchema,
+      actorId: testUser.accountId,
+    });
   });
 
   it("can read a property type", async () => {
-    const fetchedPropertyType = await getPropertyTypeById(
-      { graphApi },
-      {
-        propertyTypeId: createdPropertyType.schema.$id,
-      },
-    );
+    const fetchedPropertyType = await getPropertyTypeById(graphContext, {
+      propertyTypeId: createdPropertyType.schema.$id,
+    });
 
     expect(fetchedPropertyType.schema).toEqual(createdPropertyType.schema);
   });
@@ -103,23 +98,20 @@ describe("Property type CRU", () => {
 
   it("can update a property type", async () => {
     expect(createdPropertyType.metadata.provenance.updatedById).toBe(
-      testUser.getEntityUuid(),
+      testUser.accountId,
     );
 
-    createdPropertyType = await updatePropertyType(
-      { graphApi },
-      {
-        propertyTypeId: createdPropertyType.schema.$id,
-        schema: {
-          ...propertyTypeSchema,
-          title: updatedTitle,
-        },
-        actorId: testUser2.getEntityUuid(),
+    createdPropertyType = await updatePropertyType(graphContext, {
+      propertyTypeId: createdPropertyType.schema.$id,
+      schema: {
+        ...propertyTypeSchema,
+        title: updatedTitle,
       },
-    ).catch((err) => Promise.reject(err.data));
+      actorId: testUser2.accountId,
+    }).catch((err) => Promise.reject(err.data));
 
     expect(createdPropertyType.metadata.provenance.updatedById).toBe(
-      testUser2.getEntityUuid(),
+      testUser2.accountId,
     );
   });
 });

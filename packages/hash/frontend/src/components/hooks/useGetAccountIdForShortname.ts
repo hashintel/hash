@@ -1,11 +1,16 @@
 import { useMemo } from "react";
-import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
+import {
+  AccountEntityId,
+  AccountId,
+  extractAccountId,
+} from "@hashintel/hash-shared/types";
+
 import { useUsers } from "./useUsers";
 import { useOrgs } from "./useOrgs";
 
 export const useGetAccountIdForShortname = (
   shortname: string | undefined,
-): { loading: boolean; accountId: string | undefined } => {
+): { loading: boolean; accountId: AccountId | undefined } => {
   const { loading: usersLoading, users } = useUsers(true);
   const { loading: orgsLoading, orgs } = useOrgs(true);
 
@@ -14,7 +19,7 @@ export const useGetAccountIdForShortname = (
     const userBaseId = users?.find((user) => user.shortname === shortname)
       ?.entityEditionId.baseId;
     const userAccountId = userBaseId
-      ? extractEntityUuidFromEntityId(userBaseId)
+      ? extractAccountId(userBaseId as AccountEntityId)
       : undefined;
 
     if (userAccountId !== undefined) {
@@ -24,7 +29,7 @@ export const useGetAccountIdForShortname = (
     const orgBaseId = orgs?.find((org) => org.shortname === shortname)
       ?.entityEditionId.baseId;
     const orgAccountId = orgBaseId
-      ? extractEntityUuidFromEntityId(orgBaseId)
+      ? extractAccountId(orgBaseId as AccountEntityId)
       : undefined;
 
     if (orgAccountId !== undefined) {

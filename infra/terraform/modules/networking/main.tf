@@ -179,6 +179,14 @@ resource "aws_security_group" "vpce" {
   }
 
   ingress {
+    from_port   = 587
+    to_port     = 587
+    protocol    = "tcp"
+    description = "Allow smtp endpoint connections"
+    cidr_blocks = [aws_vpc.main.cidr_block]
+  }
+
+  ingress {
     from_port   = 6379
     to_port     = 6379
     protocol    = "tcp"
@@ -301,16 +309,15 @@ resource "aws_vpc_endpoint" "elasticache" {
   ]
 }
 
-# # Allow SES from containers in the private subnet
-# # This might not be required, as the API is on the public subnet.
-# resource "aws_vpc_endpoint" "email" {
-#   vpc_id              = aws_vpc.main.id
-#   service_name        = "com.amazonaws.${var.region}.email-smtp"
-#   vpc_endpoint_type   = "Interface"
-#   subnet_ids          = aws_subnet.snpriv[*].id
-#   private_dns_enabled = true
-#   security_group_ids = [
-#     aws_vpc.main.default_security_group_id,
-#     aws_security_group.vpce.id
-#   ]
-# }
+# Allow SES from containers in the public subnet
+resource "aws_vpc_endpoint" "email" {
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${var.region}.email-smtp"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = aws_subnet.snpriv[*].id
+  private_dns_enabled = true
+  security_group_ids = [
+    aws_vpc.main.default_security_group_id,
+    aws_security_group.vpce.id
+  ]
+}

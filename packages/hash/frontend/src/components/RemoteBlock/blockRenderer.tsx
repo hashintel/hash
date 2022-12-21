@@ -19,7 +19,8 @@ export const BlockRenderer: FunctionComponent<BlockRendererProps> = ({
   sourceUrl,
 }) => {
   // @todo remove this React default when we update all blocks to 0.2
-  const entryPoint = blockType?.entryPoint ?? "react";
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
+  const entryPoint = blockType.entryPoint ?? "react";
 
   if (entryPoint === "html") {
     if (typeof blockSource !== "string") {
@@ -49,6 +50,7 @@ export const BlockRenderer: FunctionComponent<BlockRendererProps> = ({
         tagName={blockType.tagName}
       />
     );
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
   } else if (entryPoint === "react") {
     if (typeof blockSource !== "function") {
       throw new Error(

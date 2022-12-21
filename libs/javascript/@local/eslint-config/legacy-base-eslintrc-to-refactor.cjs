@@ -256,7 +256,8 @@ module.exports = {
         },
       },
     ],
-    "unicorn/no-array-for-each": ["error"],
+    "unicorn/no-array-for-each": "error",
+    "unicorn/prefer-node-protocol": "error",
   },
   settings: {
     "import/resolver": {
@@ -297,6 +298,15 @@ module.exports = {
       },
     },
     {
+      files: [".storybook/*", "**/*.stories.{j,t}s{x,}"],
+      rules: {
+        "import/no-extraneous-dependencies": [
+          "error",
+          { devDependencies: true },
+        ],
+      },
+    },
+    {
       files: ["*.config.{c,m,}{j,t}s", "*.d.ts", "*rc.{c,m,}js"],
       rules: {
         "global-require": "off",
@@ -319,7 +329,8 @@ module.exports = {
           "error", // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/docs/rules/no-misused-promises.md#checksvoidreturn
           { checksVoidReturn: { attributes: false, properties: false } },
         ],
-        // replaced by @typescript-eslint/no-unused-vars
+        "no-constant-condition": "off", // replaced by @typescript-eslint/no-unnecessary-condition
+        "@typescript-eslint/no-unnecessary-condition": "error",
         "@typescript-eslint/no-unused-vars": [
           "error",
           {

@@ -9,7 +9,7 @@ import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { useUserBlocks } from "../userBlocks";
 import { BlockConfigMenu } from "./BlockConfigMenu/BlockConfigMenu";
 import { BlockContextMenu } from "./BlockContextMenu/BlockContextMenu";
-import { useBlockView } from "./BlockViewContext";
+import { useBlockView } from "./BlockView";
 import { useBlockContext } from "./BlockContext";
 import { useIsReadonlyMode } from "../../shared/readonly-mode";
 
@@ -106,7 +106,7 @@ const BlockHandle: ForwardRefRenderFunction<
         unpadded
         {...bindTrigger(contextMenuPopupState)}
         onClick={() => {
-          onClick?.();
+          onClick();
           contextMenuPopupState.open();
         }}
         data-testid="block-changer"

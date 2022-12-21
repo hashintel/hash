@@ -116,7 +116,7 @@ export const returnTypeAsJson = async (request: NextRequest) => {
     );
   }
 
-  const type = vertices?.[baseId]?.[version];
+  const type = vertices[baseId]?.[version];
 
   if (!type) {
     return generateErrorResponse(

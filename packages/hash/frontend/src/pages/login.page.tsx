@@ -109,11 +109,11 @@ const LoginPage: NextPageWithLayout = () => {
     void router
       // On submission, add the flow ID to the URL but do not navigate. This prevents the user losing
       // their data when they reload the page.
-      .push(`/login?flow=${flow?.id}`, undefined, { shallow: true })
+      .push(`/login?flow=${flow.id}`, undefined, { shallow: true })
       .then(() =>
         oryKratosClient
           .updateLoginFlow({
-            flow: String(flow?.id),
+            flow: String(flow.id),
             updateLoginFlowBody: {
               csrf_token,
               method: "password",
@@ -124,8 +124,8 @@ const LoginPage: NextPageWithLayout = () => {
           // We logged in successfully! Let's redirect the user.
           .then(async () => {
             // If the flow specifies a redirect, use it.
-            if (flow?.return_to) {
-              window.location.href = flow?.return_to;
+            if (flow.return_to) {
+              window.location.href = flow.return_to;
               return;
             }
 
@@ -147,7 +147,7 @@ const LoginPage: NextPageWithLayout = () => {
             // If the previous handler did not catch the error it's most likely a form validation error
             if (err.response?.status === 400) {
               // Yup, it is!
-              setFlow(err.response?.data);
+              setFlow(err.response.data);
               return;
             }
 
@@ -156,13 +156,13 @@ const LoginPage: NextPageWithLayout = () => {
       );
   };
 
-  const emailInputUiNode = flow?.ui?.nodes.find(
+  const emailInputUiNode = flow?.ui.nodes.find(
     ({ attributes }) =>
       isUiNodeInputAttributes(attributes) &&
       attributes.name === "traits.emails",
   );
 
-  const passwordInputUiNode = flow?.ui?.nodes.find(
+  const passwordInputUiNode = flow?.ui.nodes.find(
     ({ attributes }) =>
       isUiNodeInputAttributes(attributes) && attributes.name === "password",
   );
@@ -214,7 +214,7 @@ const LoginPage: NextPageWithLayout = () => {
           required
         />
         <Button type="submit">Log in to your account</Button>
-        {flow?.ui?.messages?.map(({ text, id }) => (
+        {flow?.ui.messages?.map(({ text, id }) => (
           <Typography key={id}>{text}</Typography>
         ))}
         {errorMessage ? <Typography>{errorMessage}</Typography> : null}

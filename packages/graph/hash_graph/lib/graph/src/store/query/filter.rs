@@ -16,7 +16,7 @@ use crate::{
         knowledge::{EntityEditionId, EntityId},
         ontology::OntologyTypeEditionId,
     },
-    knowledge::{Entity, EntityQueryPath, EntityUuid},
+    knowledge::{Entity, EntityQueryPath},
     store::{
         query::{OntologyQueryPath, ParameterType, QueryPath},
         Record,
@@ -29,7 +29,7 @@ use crate::{
     rename_all = "camelCase",
     bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>"
 )]
-pub enum Filter<'p, R: Record> {
+pub enum Filter<'p, R: Record + ?Sized> {
     All(Vec<Self>),
     Any(Vec<Self>),
     Not(Box<Self>),
@@ -47,17 +47,6 @@ impl<'p, R> Filter<'p, R>
 where
     R: Record<QueryPath<'p>: OntologyQueryPath>,
 {
-    /// Creates a `Filter` to search for all ontology types of kind `R` at their latest version.
-    #[must_use]
-    pub fn for_latest_version() -> Self {
-        Self::Equal(
-            Some(FilterExpression::Path(<R::QueryPath<'p>>::version())),
-            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                "latest",
-            )))),
-        )
-    }
-
     /// Creates a `Filter` to search for a specific ontology type of kind `R`, identified by its
     /// [`BaseUri`].
     #[must_use]
@@ -105,19 +94,6 @@ where
 }
 
 impl<'p> Filter<'p, Entity> {
-    /// Creates a `Filter` to search for all entities at their latest version.
-    #[must_use]
-    pub const fn for_all_latest_entities() -> Self {
-        Self::Equal(
-            Some(FilterExpression::Path(
-                EntityQueryPath::LowerTransactionTime,
-            )),
-            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                "latest",
-            )))),
-        )
-    }
-
     /// Creates a `Filter` to search for all versions of an entities its [`EntityId`].
     #[must_use]
     pub fn for_entity_by_entity_id(entity_id: EntityId) -> Self {
@@ -134,42 +110,6 @@ impl<'p> Filter<'p, Entity> {
                     entity_id.entity_uuid().as_uuid(),
                 ))),
             ),
-        ])
-    }
-
-    /// Creates a `Filter` to search for a specific entities at their latest version, identified by
-    /// its [`EntityId`].
-    #[must_use]
-    pub fn for_latest_entity_by_entity_id(entity_id: EntityId) -> Self {
-        Self::All(vec![
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.owned_by_id().as_uuid(),
-                ))),
-            ),
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::Uuid)),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.entity_uuid().as_uuid(),
-                ))),
-            ),
-            Self::for_all_latest_entities(),
-        ])
-    }
-
-    /// Creates a `Filter` to search for a specific entities at their latest version, identified by
-    /// its [`EntityUuid`].
-    #[must_use]
-    pub fn for_latest_entity_by_entity_uuid(entity_uuid: EntityUuid) -> Self {
-        Self::All(vec![
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::Uuid)),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_uuid.as_uuid(),
-                ))),
-            ),
-            Self::for_all_latest_entities(),
         ])
     }
 
@@ -410,7 +350,7 @@ where
     rename_all = "camelCase",
     bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>"
 )]
-pub enum FilterExpression<'p, R: Record> {
+pub enum FilterExpression<'p, R: Record + ?Sized> {
     Path(R::QueryPath<'p>),
     Parameter(Parameter<'p>),
 }
@@ -577,6 +517,7 @@ mod tests {
             ontology::OntologyTypeVersion,
             DecisionTimespan, TransactionTimespan,
         },
+        knowledge::EntityUuid,
         ontology::{DataTypeQueryPath, DataTypeWithMetadata},
         provenance::OwnedById,
     };
@@ -589,21 +530,6 @@ mod tests {
             Filter::<R>::deserialize(expected).expect("Could not deserialize filter");
         expected.convert_parameters().expect("invalid filter");
         assert_eq!(*actual, expected);
-    }
-
-    #[test]
-    fn for_latest_version() {
-        let expected = json! {{
-          "equal": [
-            { "path": ["version"] },
-            { "parameter": "latest" }
-          ]
-        }};
-
-        test_filter_representation(
-            &Filter::<DataTypeWithMetadata>::for_latest_version(),
-            &expected,
-        );
     }
 
     #[test]
@@ -665,18 +591,6 @@ mod tests {
     }
 
     #[test]
-    fn for_all_latest_entities() {
-        let expected = json! {{
-          "equal": [
-            { "path": ["version"] },
-            { "parameter": "latest" }
-          ]
-        }};
-
-        test_filter_representation(&Filter::for_all_latest_entities(), &expected);
-    }
-
-    #[test]
     fn for_entity_by_entity_id() {
         let entity_id = EntityId::new(
             OwnedById::new(AccountId::new(Uuid::new_v4())),
@@ -697,59 +611,6 @@ mod tests {
         }};
 
         test_filter_representation(&Filter::for_entity_by_entity_id(entity_id), &expected);
-    }
-
-    #[test]
-    fn for_latest_entity_by_entity_id() {
-        let entity_id = EntityId::new(
-            OwnedById::new(AccountId::new(Uuid::new_v4())),
-            EntityUuid::new(Uuid::new_v4()),
-        );
-
-        let expected = json! {{
-          "all": [
-            { "equal": [
-              { "path": ["ownedById"] },
-              { "parameter": entity_id.owned_by_id() }
-            ]},
-            { "equal": [
-              { "path": ["uuid"] },
-              { "parameter": entity_id.entity_uuid() }
-            ]},
-            { "equal": [
-              { "path": ["version"] },
-              { "parameter": "latest" }
-            ]}
-          ]
-        }};
-
-        test_filter_representation(
-            &Filter::for_latest_entity_by_entity_id(entity_id),
-            &expected,
-        );
-    }
-
-    #[test]
-    fn for_latest_entity_by_entity_uuid() {
-        let entity_uuid = EntityUuid::new(Uuid::new_v4());
-
-        let expected = json! {{
-          "all": [
-            { "equal": [
-              { "path": ["uuid"] },
-              { "parameter": entity_uuid }
-            ]},
-            { "equal": [
-              { "path": ["version"] },
-              { "parameter": "latest" }
-            ]}
-          ]
-        }};
-
-        test_filter_representation(
-            &Filter::for_latest_entity_by_entity_uuid(entity_uuid),
-            &expected,
-        );
     }
 
     #[test]

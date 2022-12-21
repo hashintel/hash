@@ -16,7 +16,7 @@ import {
 import { Avatar } from "@hashintel/hash-design-system";
 import { MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
-import { AuthenticatedUser } from "../../../lib/user";
+import { AuthenticatedUser } from "../../../lib/user-and-org";
 
 type AccountDropdownProps = {
   avatar?: string;
@@ -88,7 +88,7 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
               sx={{ height: "32px", width: "32px", borderRadius: "100%" }}
             />
           ) : (
-            <Avatar size={32} title={authenticatedUser?.preferredName ?? "U"} />
+            <Avatar size={32} title={authenticatedUser.preferredName ?? "U"} />
           )}
         </HeaderIconButton>
       </Tooltip>

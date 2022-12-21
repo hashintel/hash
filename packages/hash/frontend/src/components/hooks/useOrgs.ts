@@ -8,7 +8,7 @@ import {
   GetAllLatestEntitiesQueryVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { constructOrg, Org } from "../../lib/org";
+import { constructOrg, Org } from "../../lib/user-and-org";
 /**
  * Retrieves a list of organizations.
  * @todo the API should provide this, and it should only be available to admins.
