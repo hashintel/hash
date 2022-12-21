@@ -1,6 +1,6 @@
-use alloc::borrow::ToOwned;
+use alloc::borrow::{Cow, ToOwned};
 use core::{
-    ops::{Deref, DerefMut, Range},
+    ops::{Deref, Range},
     slice::SliceIndex,
 };
 
@@ -32,59 +32,52 @@ macro_rules! forward {
 }
 
 #[derive(Debug)]
-enum Trivia<'de> {
+enum Trivia<'a> {
     Owned(BitBox),
-    Slice(&'de mut BitSlice),
+    Slice(&'a BitSlice),
 }
 
-impl Deref for Trivia<'_> {
+impl<'a> Deref for Trivia<'a> {
     type Target = BitSlice;
 
     fn deref(&self) -> &Self::Target {
         match self {
             Trivia::Owned(value) => value.as_bitslice(),
-            Trivia::Slice(value) => value.as_ref(),
-        }
-    }
-}
-
-impl DerefMut for Trivia<'_> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        match self {
-            Trivia::Owned(value) => value.as_mut_bitslice(),
             Trivia::Slice(value) => *value,
         }
     }
 }
 
-impl From<BitBox> for Trivia<'_> {
-    fn from(value: BitBox) -> Self {
-        Self::Owned(value)
-    }
-}
+impl<'a> Trivia<'a> {
+    fn to_mut(&mut self) -> &mut BitSlice {
+        match self {
+            Trivia::Owned(value) => value.as_mut_bitslice(),
+            Trivia::Slice(value) => {
+                let owned = BitBox::from_bitslice(*value);
+                *self = Self::Owned(owned);
 
-impl<'de> From<&'de mut BitSlice> for Trivia<'de> {
-    fn from(value: &'de mut BitSlice) -> Self {
-        Self::Slice(value)
-    }
-}
-
-#[derive(Debug)]
-struct Tape<'de> {
-    tokens: &'de [Token],
-    trivia: Trivia<'de>,
-}
-
-impl Tape<'static> {
-    fn empty() -> Self {
-        Self {
-            tokens: &[],
-            trivia: Trivia::Owned(BitVec::new().into_boxed_bitslice()),
+                self.to_mut()
+            }
         }
     }
 }
 
-impl<'de> Tape<'de> {
+#[derive(Debug)]
+struct Tape<'a, 'de> {
+    tokens: &'de [Token],
+    trivia: Trivia<'a>,
+}
+
+impl Tape<'_, '_> {
+    fn empty() -> Self {
+        Self {
+            tokens: &[],
+            trivia: Trivia::Slice(BitSlice::empty()),
+        }
+    }
+}
+
+impl<'a, 'de> Tape<'a, 'de> {
     // also includes trivia
     fn peek_all_n(&self, n: usize) -> Option<Token> {
         self.tokens.get(n).copied()
@@ -101,7 +94,7 @@ impl<'de> Tape<'de> {
             range.end = self.tokens.len();
         }
 
-        if let Some(slice) = self.trivia.get_mut(range) {
+        if let Some(slice) = self.trivia.to_mut().get_mut(range) {
             slice.fill(true);
         }
     }
@@ -136,7 +129,7 @@ impl<'de> Tape<'de> {
         let (token, tokens) = self.tokens.split_first()?;
         let is_trivia = *self.trivia.get(0)?;
         // use trivia like a feed tape, this avoid reallocation
-        self.trivia.shift_left(1);
+        self.trivia.to_mut().shift_left(1);
         self.tokens = tokens;
 
         Some((*token, is_trivia))
@@ -166,29 +159,27 @@ impl<'de> Tape<'de> {
         self.tokens.is_empty()
     }
 
-    fn view<'a, B>(&'a mut self, n: B) -> Option<Tape<'a>>
+    fn view<'b, B>(&'b self, n: B) -> Option<Tape<'b, 'de>>
     where
-        B: BitSliceIndex<'a, usize, Lsb0, Mut = &'a mut BitSlice<usize, Lsb0>>
+        B: BitSliceIndex<'b, usize, Lsb0, Immut = &'b BitSlice<usize, Lsb0>>
             + SliceIndex<[Token], Output = [Token]>
             + Clone,
     {
         let tokens = self.tokens.get(n.clone())?;
-        let trivia = self.trivia.get_mut(n)?;
+        let trivia = self.trivia.get(n)?;
 
         Some(Tape {
             tokens,
-            trivia: trivia.into(),
+            trivia: Trivia::Slice(trivia),
         })
     }
 }
 
-impl<'de> From<&'de [Token]> for Tape<'de> {
+impl<'de> From<&'de [Token]> for Tape<'_, 'de> {
     fn from(value: &'de [Token]) -> Self {
         Self {
             tokens: value,
-            trivia: BitVec::repeat(false, value.len())
-                .into_boxed_bitslice()
-                .into(),
+            trivia: Trivia::Owned(BitVec::repeat(false, value.len()).into_boxed_bitslice()),
         }
     }
 }
@@ -196,7 +187,7 @@ impl<'de> From<&'de [Token]> for Tape<'de> {
 #[derive(Debug)]
 pub struct Deserializer<'a, 'de> {
     context: &'a Context,
-    tokens: Tape<'de>,
+    tokens: Tape<'a, 'de>,
 }
 
 impl<'a, 'de> Deserializer<'a, 'de> {
@@ -583,7 +574,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
                 let tape = self.deserializer.tokens.view(offset + 1..);
 
                 let mut deserializer = Deserializer {
-                    tokens: tape.unwrap_or_else(Tape::<'static>::empty),
+                    tokens: tape.unwrap_or_else(Tape::empty),
                     context: self.deserializer.context,
                 };
 
