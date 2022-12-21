@@ -59,7 +59,6 @@ export const PageLayout: FunctionComponent<{
       <Box sx={{ flex: 1 }} />
       <PreFooter subscribe={subscribe} />
       <Footer />
-      <HiringBanner />
     </Box>
   );
 };
