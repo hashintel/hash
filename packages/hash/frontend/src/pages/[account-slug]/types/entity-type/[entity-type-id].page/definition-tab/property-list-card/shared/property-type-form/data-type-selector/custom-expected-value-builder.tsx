@@ -296,7 +296,7 @@ export const CustomExpectedValueBuilder: FunctionComponent<
                 const containsArray = customExpectedValue.data.itemIds.some(
                   (itemId) => {
                     const typeId =
-                      flattenedExpectedValues[itemId]?.data?.typeId!;
+                      flattenedExpectedValues[itemId]?.data?.typeId;
                     return typeId === "array";
                   },
                 );
