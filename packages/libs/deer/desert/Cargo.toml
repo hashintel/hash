@@ -10,3 +10,4 @@ publish = false
 [dependencies]
 deer = { path = ".." }
 error-stack = { version = "0.2.4", default_features = false }
+bitvec = { version = "1", default_features = false, features = ['alloc', 'atomic'] }

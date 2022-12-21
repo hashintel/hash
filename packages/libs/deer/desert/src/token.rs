@@ -18,7 +18,6 @@ pub enum Token {
     ArrayEnd,
     Object { length: Option<usize> },
     ObjectEnd,
-    Trivia,
 }
 
 impl Display for Token {
