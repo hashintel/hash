@@ -46,9 +46,9 @@ default = ["std", "pretty-print"]
 
 pretty-print = ["dep:owo-colors"]
 spantrace = ["dep:tracing-error", "std"]
-std = ["anyhow?/std", "erased-serde"]
+std = ["anyhow?/std"]
 eyre = ["dep:eyre", "std"]
-serde = ["dep:serde"]
+serde = ["dep:serde", "dep:erased-serde"]
 hooks = ['dep:spin']
 
 [package.metadata.docs.rs]
