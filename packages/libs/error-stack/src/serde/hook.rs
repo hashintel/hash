@@ -14,9 +14,46 @@ fn serialize<'a, T: serde::Serialize + Send + Sync + 'static>(
     Some(Box::new(value))
 }
 
+// Thanks to https://users.rust-lang.org/t/hrtb-on-multiple-generics/34255/2 for the solution
+pub trait DynamicFn<'a> {
+    type Output;
+    type Input;
+
+    fn call(
+        &self,
+        value: &'a Frame,
+        context: &mut HookContext<Frame>,
+    ) -> Option<dyn erased_serde::Serialize + 'a>;
+
+    fn erase(self) -> Box<dyn DynamicFn<'a, Output = (), Input = ()>>;
+}
+
+impl<'a, U: 'a, T: Send + Sync + 'static, F> DynamicFn<'a> for F
+where
+    F: Fn(&'a T) -> U,
+    U: serde::Serialize,
+{
+    type Input = T;
+    type Output = U;
+
+    fn call(
+        &self,
+        value: &'a Frame,
+        context: &mut HookContext<Frame>,
+    ) -> Option<dyn erased_serde::Serialize + 'a> {
+        let value = value.request_ref::<T>()?;
+
+        (self)(value, context.cast())
+    }
+
+    fn erase(self) -> Box<dyn DynamicFn<'a, Output = (), Input = ()>> {
+        |frame, context| (self)(frame, context)
+    }
+}
+
 type HookFnReturn<'a> = Option<Box<dyn erased_serde::Serialize + 'a>>;
 type StaticHookFn = for<'a> fn(&'a Frame) -> HookFnReturn<'a>;
-type DynamicHookFn = Box<dyn for<'a> Fn(&'a Frame, &mut HookContext<Frame>) -> HookFnReturn<'a>>;
+type DynamicHookFn = Box<dyn for<'a> DynamicFn<'a, Output = (), Input = ()>>;
 
 enum HookFn {
     Static(StaticHookFn),
@@ -36,34 +73,16 @@ impl Hook {
         }
     }
 
-    fn new_dynamic<T: Send + Sync + 'static, U: serde::Serialize, F>(closure: F) -> Self
+    fn new_dynamic<F>(closure: F) -> Self
     where
-        for<'a> F: Fn(&'a T, &mut HookContext<T>) -> U + 'a,
+        F: for<'a> DynamicFn<'a>,
+        for<'a> <F as DynamicFn<'a>>::Input: Send + Sync + 'static,
+        for<'a> <F as DynamicFn<'a>>::Output: serde::Serialize,
     {
-        // we need to use functions (instead of closures) here, as we're unable to specify any
-        // lifetime parameters in closures
-        fn dispatch<'a, F, T: Send + Sync + 'static, U: serde::Serialize + 'a>(
-            closure: F,
-            frame: &'a Frame,
-            context: &mut HookContext<Frame>,
-        ) -> Option<Box<dyn erased_serde::Serialize + 'a>>
-        where
-            F: FnOnce(&'a T, &mut HookContext<T>) -> U,
-        {
-            let value: &T = frame.request_ref()?;
-            let value = closure(value, context.cast());
-
-            Some(Box::new(value))
-        }
-
-        // TODO: lifetime of dyn serialize
-        let closure: DynamicHookFn =
-            Box::new(move |frame: &Frame, context: &mut HookContext<Frame>| {
-                dispatch(&closure, frame, context)
-            });
+        let closure = closure.erase();
 
         Self {
-            ty: TypeId::of::<T>(),
+            ty: TypeId::of::<F::Input>(),
             hook: HookFn::Dynamic(closure),
         }
     }
