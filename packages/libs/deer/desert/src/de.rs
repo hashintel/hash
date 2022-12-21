@@ -268,6 +268,7 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
     }
 
     fn end(self) -> Result<(), ArrayAccessError> {
+        // TODO: error if self.remaining isn't Some(0) or None
         let mut result = Ok(());
 
         // ensure that we consume the last token, if it is the wrong token error out

@@ -454,6 +454,7 @@ impl<'a, 'de> deer::ArrayAccess<'de> for ArrayAccess<'a> {
     }
 
     fn end(self) -> Result<(), ArrayAccessError> {
+        // TODO: error if self.remaining isn't Some(0) or None
         let count = self.inner.count();
         if count == 0 {
             Ok(())
