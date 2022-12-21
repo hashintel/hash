@@ -303,7 +303,7 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
               }
             }}
             renderOption={(optProps, opt) => {
-              const property = propertyTypes?.[opt];
+              const property = propertyTypes?.[opt as VersionedUri];
               return property ? (
                 <Box component="li" {...optProps} sx={{ py: 1.5, px: 2.25 }}>
                   <FontAwesomeIcon
