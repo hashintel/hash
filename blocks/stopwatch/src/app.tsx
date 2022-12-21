@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
 import { BlockComponent } from "blockprotocol/react";
+import { useCallback, useEffect, useState } from "react";
 
 type BlockEntityProperties = {
   start?: Date;

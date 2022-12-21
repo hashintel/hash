@@ -2,7 +2,7 @@
 
 import express from "express";
 import { json } from "body-parser";
-import { readFileSync, writeFileSync } from "fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { executeTask } from "./execution";
 import { GithubIngestor } from "./tasks/source-github";
 import { ConfiguredAirbyteCatalog } from "./airbyte/protocol";

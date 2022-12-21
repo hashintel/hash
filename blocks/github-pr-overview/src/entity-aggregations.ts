@@ -2,12 +2,12 @@ import { GraphBlockHandler } from "@blockprotocol/graph";
 import { uniqBy } from "lodash";
 
 import {
+  GITHUB_ENTITY_TYPES,
   GithubIssueEventEntityType,
   GithubPullRequestEntityType,
-  PullRequestIdentifier,
   GithubReviewEntityType,
   isDefined,
-  GITHUB_ENTITY_TYPES,
+  PullRequestIdentifier,
 } from "./types";
 
 const ITEMS_PER_PAGE = 500;

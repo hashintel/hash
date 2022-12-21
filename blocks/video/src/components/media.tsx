@@ -7,25 +7,26 @@
  * @todo Deduplicate this file
  */
 import {
+  BlockGraphProperties,
   Entity,
   Link,
   LinkGroup,
-  BlockGraphProperties,
   UpdateEntityData,
 } from "@blockprotocol/graph";
 import { useGraphBlockService } from "@blockprotocol/graph/react";
-import { tw } from "twind";
 import {
   Dispatch,
+  FunctionComponent,
   SetStateAction,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  FunctionComponent,
 } from "react";
 import { unstable_batchedUpdates } from "react-dom";
+import { tw } from "twind";
+
 import { ErrorAlert } from "./error-alert";
 import { MediaWithCaption } from "./media-with-caption";
 import { UploadMediaForm } from "./upload-media-form";

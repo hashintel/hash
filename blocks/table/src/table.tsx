@@ -1,3 +1,13 @@
+import {
+  EntityType,
+  LinkedAggregation,
+  UpdateEntityData,
+} from "@blockprotocol/graph";
+import {
+  BlockComponent,
+  useGraphBlockService,
+} from "@blockprotocol/graph/react";
+import { orderBy } from "lodash";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CellProps,
@@ -6,27 +16,15 @@ import {
   useSortBy,
   useTable,
 } from "react-table";
-
-import {
-  LinkedAggregation,
-  EntityType,
-  UpdateEntityData,
-} from "@blockprotocol/graph";
-import {
-  BlockComponent,
-  useGraphBlockService,
-} from "@blockprotocol/graph/react";
 import { setup, tw } from "twind";
-import { orderBy } from "lodash";
 
 import { EditableCell } from "./components/editable-cell";
+import { EntityTypeDropdown } from "./components/entity-type-dropdown";
+import { AggregateArgs, Header } from "./components/header";
+import { Pagination } from "./components/pagination";
 import { makeColumns } from "./lib/columns";
 import { getSchemaPropertyDefinition } from "./lib/get-schema-property";
 import { identityEntityAndProperty } from "./lib/identify-entity";
-
-import { Pagination } from "./components/pagination";
-import { AggregateArgs, Header } from "./components/header";
-import { EntityTypeDropdown } from "./components/entity-type-dropdown";
 import { omitTypenameDeep } from "./lib/omit-typename-deep";
 
 setup({ preflight: false });

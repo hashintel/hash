@@ -77,3 +77,9 @@ variable "pg_graph_user_password" {
   sensitive   = true
   description = "Hashed form of the 'graph' user Postgres password."
 }
+
+variable "ses_verified_domain_identity" {
+  type        = string
+  default     = ""
+  description = "A verified AWS SES identity to use for email sending in the application."
+}

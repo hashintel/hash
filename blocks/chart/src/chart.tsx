@@ -1,22 +1,22 @@
-import { BlockProtocolEntity, BlockProtocolEntityType } from "blockprotocol";
-import { FunctionComponent, useCallback, useMemo, useState } from "react";
-import debounce from "lodash.debounce";
+import Autocomplete from "@mui/material/Autocomplete";
+import Box from "@mui/material/Box";
 // eslint-disable-next-line no-restricted-imports
 import Button from "@mui/material/Button";
-import { styled } from "@mui/material/styles";
-import Box from "@mui/material/Box";
-import Autocomplete from "@mui/material/Autocomplete";
-import TextField from "@mui/material/TextField";
-import Typography from "@mui/material/Typography";
-import Fade from "@mui/material/Fade";
 import Collapse from "@mui/material/Collapse";
 import Divider from "@mui/material/Divider";
+import Fade from "@mui/material/Fade";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
-import InputLabel from "@mui/material/InputLabel";
-import FormControl from "@mui/material/FormControl";
+import { styled } from "@mui/material/styles";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
+import { BlockProtocolEntity, BlockProtocolEntityType } from "blockprotocol";
+import debounce from "lodash.debounce";
+import { FunctionComponent, useCallback, useMemo, useState } from "react";
 
-import { EChart, SeriesOption, ECOption } from "./e-chart";
+import { EChart, ECOption, SeriesOption } from "./e-chart";
 
 const StyledTextField = styled(TextField)(({ theme }) => ({
   "> .MuiInputBase-root > input": {

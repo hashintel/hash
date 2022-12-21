@@ -26,7 +26,10 @@ import { WorkspaceContextProvider } from "./shared/workspace-context";
 import { apolloClient } from "../lib/apollo-client";
 import { MeQuery } from "../graphql/apiTypes.gen";
 import { meQuery } from "../graphql/queries/user.queries";
-import { AuthenticatedUser, constructAuthenticatedUser } from "../lib/user";
+import {
+  AuthenticatedUser,
+  constructAuthenticatedUser,
+} from "../lib/user-and-org";
 import { fetchKratosSession } from "./shared/ory-kratos";
 import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
 import { setSentryUser } from "./shared/sentry";
@@ -67,7 +70,7 @@ const App: FunctionComponent<AppProps> = ({
     setSentryUser({ authenticatedUser });
   }, [authenticatedUser]);
 
-  // App UI often depends on [account-slug] and other query params. However,
+  // App UI often depends on [shortname] and other query params. However,
   // router.query is empty during server-side rendering for pages that don’t use
   // getServerSideProps. By showing app skeleton on the server, we avoid UI
   // mismatches during rehydration and improve type-safety of param extraction.
@@ -131,7 +134,7 @@ const AppWithTypeSystemContextProvider: AppPage<AppProps, AppInitialProps> = (
 
 // The list of page pathnames that should be accessible whether or not the user is authenticated
 const publiclyAccessiblePagePathnames = [
-  "/[account-slug]/[page-slug]",
+  "/[shortname]/[page-slug]",
   "/login",
   "/signup",
 ];

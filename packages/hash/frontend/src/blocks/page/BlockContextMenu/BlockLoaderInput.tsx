@@ -4,7 +4,7 @@ import { FormEvent, FunctionComponent, useRef, useState } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 import { Button } from "../../../shared/ui";
 import { useUserBlocks } from "../../userBlocks";
-import { useBlockView } from "../BlockViewContext";
+import { useBlockView } from "../BlockView";
 
 /** trim whitespace and remove trailing slash */
 const createNormalizedBlockUrl = (url: string) => url.trim().replace(/\/$/, "");

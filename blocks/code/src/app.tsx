@@ -1,13 +1,13 @@
-import { useEffect, useRef, useState } from "react";
-
 import {
   BlockComponent,
   useGraphBlockService,
 } from "@blockprotocol/graph/react";
+import { useEffect, useRef, useState } from "react";
+
 import styles from "./app.module.css";
+import { Editor } from "./editor";
 import { CopyIcon } from "./icons";
 import { languages, LanguageType } from "./utils";
-import { Editor } from "./editor";
 
 type BlockEntityProperties = {
   caption?: string;
