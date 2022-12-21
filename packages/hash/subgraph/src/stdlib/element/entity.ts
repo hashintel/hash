@@ -36,7 +36,7 @@ export const getEntityByEditionId = (
   entityEditionId: EntityEditionId,
 ): Entity | undefined => {
   const { baseId: entityId, version } = entityEditionId;
-  const vertex = subgraph.vertices[entityId]?.[version];
+  const vertex = subgraph.vertices[entityId]?.[version.transactionTime.start];
 
   if (!vertex) {
     return undefined;
@@ -124,7 +124,9 @@ export const getRootsAsEntities = (subgraph: Subgraph): Entity[] => {
       );
     }
     const rootVertex = mustBeDefined(
-      subgraph.vertices[rootEditionId.baseId]?.[rootEditionId.version],
+      subgraph.vertices[rootEditionId.baseId]?.[
+        rootEditionId.version.transactionTime.start
+      ],
       `roots should have corresponding vertices but ${JSON.stringify(
         rootEditionId,
       )} was missing`,
