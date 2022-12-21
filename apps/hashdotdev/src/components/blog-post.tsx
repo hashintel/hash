@@ -1,14 +1,15 @@
 import { Container, Stack, Typography } from "@mui/material";
 import { Box, TypographyProps } from "@mui/system";
+import { format } from "date-fns";
 import Image from "next/legacy/image";
 import { NextSeo } from "next-seo";
-import { createContext, ReactNode, useContext, FunctionComponent } from "react";
-import { format } from "date-fns";
+import { createContext, FunctionComponent, ReactNode, useContext } from "react";
+
 import { FRONTEND_URL } from "../config";
-import { Link } from "./Link";
-import { mdxImageClasses } from "./MdxImage";
-import { FaIcon } from "./icons/FaIcon";
-import { BlogPostAuthor as BlogPostAuthorType } from "../pages/blog/[...blogSlug].page";
+import { BlogPostAuthor as BlogPostAuthorType } from "../pages/blog/[...blog-slug].page";
+import { FaIcon } from "./icons/fa-icon";
+import { mdxImageClasses } from "./mdx-image";
+import { Link } from "./xxx-link";
 
 export type BlogPostPagePhoto = {
   src: string;

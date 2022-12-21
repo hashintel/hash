@@ -1,10 +1,11 @@
 import { Box } from "@mui/material";
 import { useTheme } from "@mui/system";
 import { FunctionComponent, ReactNode } from "react";
-import { Footer } from "./Footer";
-import { HiringBanner } from "./HiringBanner";
-import { Navbar } from "./Navbar";
-import { PreFooter } from "./PreFooter";
+
+import { HiringBanner } from "./hiring-banner";
+import { PreFooter } from "./pre-footer";
+import { Footer } from "./xxx-footer";
+import { Navbar } from "./xxx-navbar";
 
 // @todo extract NavLink component
 

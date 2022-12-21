@@ -9,18 +9,19 @@ import { Box } from "@mui/system";
 import { GetStaticProps } from "next";
 import Image from "next/legacy/image";
 import { NextSeo } from "next-seo";
-import { ComponentProps, FunctionComponent, Fragment } from "react";
-import { BlogPostAuthor, BlogPostPagePhoto } from "../../components/BlogPost";
-import { GradientContainer } from "../../components/GradientContainer";
-import { Link } from "../../components/Link";
-import { PageLayout } from "../../components/PageLayout";
-import { Subscribe } from "../../components/PreFooter";
-import { parseNameFromFileName } from "../../util/clientMdxUtil";
-import { getAllPages, Page } from "../../util/mdxUtil";
-import { NextPageWithLayout } from "../../util/nextTypes";
+import { ComponentProps, Fragment, FunctionComponent } from "react";
+
+import { BlogPostAuthor, BlogPostPagePhoto } from "../../components/blog-post";
+import { GradientContainer } from "../../components/gradient-container";
+import { FaIcon } from "../../components/icons/fa-icon";
+import { PageLayout } from "../../components/page-layout";
+import { Subscribe } from "../../components/pre-footer";
+import { Link } from "../../components/xxx-link";
+import { parseNameFromFileName } from "../../util/client-mdx-util";
+import { getAllPages, Page } from "../../util/mdx-util";
+import { NextPageWithLayout } from "../../util/next-types";
+import { BlogPostProps } from "./[...blog-slug].page";
 import { getPhoto } from "./shared/get-photo";
-import { BlogPostProps } from "./[...blogSlug].page";
-import { FaIcon } from "../../components/icons/FaIcon";
 
 type BlogIndividualPage = Page<BlogPostProps> & {
   photos: {
@@ -86,8 +87,8 @@ const BlogPostLink: FunctionComponent<
   <Link
     {...props}
     href={{
-      pathname: "/blog/[...blogSlug]",
-      query: { blogSlug: parseNameFromFileName(page.fileName) },
+      pathname: "/blog/[...blog-slug]",
+      query: { "blog-slug": parseNameFromFileName(page.fileName) },
     }}
   >
     {children}

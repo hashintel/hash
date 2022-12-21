@@ -3,19 +3,20 @@ import { BoxProps } from "@mui/system";
 import axios from "axios";
 import { useRouter } from "next/router";
 import {
+  FunctionComponent,
   useCallback,
   useEffect,
   useRef,
   useState,
-  FunctionComponent,
 } from "react";
 import { unstable_batchedUpdates } from "react-dom";
+
 import { FRONTEND_URL } from "../config";
 import { SubscribeResponseBody } from "../pages/api/subscribe.page";
-import { Button } from "./Button";
-import { FaIcon } from "./icons/FaIcon";
-import { NAV_HEIGHT } from "./Navbar";
-import { TextField } from "./TextField";
+import { FaIcon } from "./icons/fa-icon";
+import { TextField } from "./text-field";
+import { Button } from "./xxx-button";
+import { NAV_HEIGHT } from "./xxx-navbar";
 
 // Taken from http://emailregex.com/
 const EMAIL_REGEX =

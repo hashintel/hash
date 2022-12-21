@@ -1,12 +1,13 @@
 import { Box, Container, Divider, Stack, Typography } from "@mui/material";
 import { ComponentProps, FunctionComponent, ReactNode } from "react";
+
 import { SITE_DESCRIPTION } from "../config";
-import { DiscordIcon } from "./icons/DiscordIcon";
-import { GithubIcon } from "./icons/GithubIcon";
-import { TwitterIcon } from "./icons/TwitterIcon";
-import { Link } from "./Link";
-import { Logo } from "./Logo";
-import { Spacer } from "./Spacer";
+import { DiscordIcon } from "./icons/discord-icon";
+import { GithubIcon } from "./icons/github-icon";
+import { TwitterIcon } from "./icons/twitter-icon";
+import { Link } from "./xxx-link";
+import { Logo } from "./xxx-logo";
+import { Spacer } from "./xxx-spacer";
 
 const FooterLink: FunctionComponent<
   { href: string } & Omit<ComponentProps<typeof Typography>, "variant">

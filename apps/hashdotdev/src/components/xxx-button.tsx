@@ -7,9 +7,10 @@ import {
 } from "@mui/material";
 // eslint-disable-next-line no-restricted-imports
 import Link from "next/link";
-import { FunctionComponent, forwardRef, useMemo } from "react";
-import { isHrefExternal } from "./Link";
-import { LoadingSpinner } from "./LoadingSpinner";
+import { forwardRef, FunctionComponent, useMemo } from "react";
+
+import { LoadingSpinner } from "./loading-spinner";
+import { isHrefExternal } from "./xxx-link";
 
 export type ButtonProps = {
   loading?: boolean;
