@@ -441,8 +441,6 @@ impl Parameter<'_> {
 
 #[cfg(test)]
 mod tests {
-    use std::time::SystemTime;
-
     use serde_json::json;
     use type_system::uri::BaseUri;
 
@@ -452,7 +450,10 @@ mod tests {
             account::AccountId,
             knowledge::{EntityRecordId, EntityVersion},
             ontology::OntologyTypeVersion,
-            DecisionTimespan, TransactionTimespan,
+            time::{
+                DecisionTimeVersionTimespan, DecisionTimestamp, TransactionTimeVersionTimespan,
+                TransactionTimestamp,
+            },
         },
         knowledge::EntityUuid,
         ontology::{DataTypeQueryPath, DataTypeWithMetadata},
@@ -559,8 +560,8 @@ mod tests {
             ),
             EntityRecordId::new(0),
             EntityVersion::new(
-                DecisionTimespan::from(DateTime::default()..),
-                TransactionTimespan::from(DateTime::from(SystemTime::now())..),
+                DecisionTimeVersionTimespan::new(DecisionTimestamp::now(), None),
+                TransactionTimeVersionTimespan::new(TransactionTimestamp::now(), None),
             ),
         );
 
@@ -596,8 +597,8 @@ mod tests {
             ),
             EntityRecordId::new(0),
             EntityVersion::new(
-                DecisionTimespan::from(DateTime::default()..),
-                TransactionTimespan::from(DateTime::from(SystemTime::now())..),
+                DecisionTimeVersionTimespan::new(DecisionTimestamp::now(), None),
+                TransactionTimeVersionTimespan::new(TransactionTimestamp::now(), None),
             ),
         );
 
@@ -633,8 +634,8 @@ mod tests {
             ),
             EntityRecordId::new(0),
             EntityVersion::new(
-                DecisionTimespan::from(DateTime::default()..),
-                TransactionTimespan::from(DateTime::from(SystemTime::now())..),
+                DecisionTimeVersionTimespan::new(DecisionTimestamp::now(), None),
+                TransactionTimeVersionTimespan::new(TransactionTimestamp::now(), None),
             ),
         );
 
@@ -670,8 +671,8 @@ mod tests {
             ),
             EntityRecordId::new(0),
             EntityVersion::new(
-                DecisionTimespan::from(DateTime::default()..),
-                TransactionTimespan::from(DateTime::from(SystemTime::now())..),
+                DecisionTimeVersionTimespan::new(DecisionTimestamp::now(), None),
+                TransactionTimeVersionTimespan::new(TransactionTimestamp::now(), None),
             ),
         );
 

@@ -23,7 +23,8 @@ use crate::{
     },
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
-        GraphElementEditionId, GraphElementId, TransactionTimestamp,
+        time::{DecisionTimeVersionTimespan, TransactionTimeVersionTimespan, TransactionTimestamp},
+        GraphElementEditionId, GraphElementId,
     },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryToken, EntityUuid,
@@ -69,6 +70,8 @@ use crate::{
             EntityStructuralQuery,
             EntityQueryToken,
             TransactionTimestamp,
+            TransactionTimeVersionTimespan,
+            DecisionTimeVersionTimespan,
             LinkData,
             LinkOrder,
             ProvenanceMetadata,
