@@ -1,30 +1,28 @@
+import { BlockProtocolUpdateEntitiesAction } from "blockprotocol";
+import { BlockComponent } from "blockprotocol/react";
 import {
+  Reducer,
+  useCallback,
   useEffect,
   useLayoutEffect,
-  useRef,
   useReducer,
-  useCallback,
-  Reducer,
+  useRef,
 } from "react";
+import { setup, tw } from "twind";
 
-import { tw, setup } from "twind";
-
-import { BlockComponent } from "blockprotocol/react";
-
-import { BlockProtocolUpdateEntitiesAction } from "blockprotocol";
-import { ProviderName, AppState, Actions } from "./types";
-import { HtmlBlock } from "./html-block";
-import { getFormCopy } from "./utils";
-import Pencil from "./svgs/pencil";
-import { ResizeBlock } from "./components/resize-block";
 import { EditView } from "./components/edit-view";
+import { ResizeBlock } from "./components/resize-block";
 import {
-  MAX_WIDTH,
   BASE_HEIGHT,
   BASE_WIDTH,
-  PROVIDER_NAMES_TO_RESPECT_ASPECT_RATIO,
+  MAX_WIDTH,
   PROVIDER_NAMES_THAT_CANT_BE_RESIZED,
+  PROVIDER_NAMES_TO_RESPECT_ASPECT_RATIO,
 } from "./constants";
+import { HtmlBlock } from "./html-block";
+import Pencil from "./svgs/pencil";
+import { Actions, AppState, ProviderName } from "./types";
+import { getFormCopy } from "./utils";
 
 type BlockEntityProperties = {
   // @todo temporarily using application-provided getEmbedCode - implement fallbacks for CORS-blocked oembed endpoints and remove
