@@ -22,10 +22,10 @@ export const getObjectSchema = (
   const requiredArray: BaseUri[] = [];
 
   for (const { id, allowArrays, required } of properties) {
-    const baseUri = extractBaseUri(id as VersionedUri);
+    const baseUri = extractBaseUri(id);
 
     const propertyTypeReference: PropertyTypeReference = {
-      $ref: id as VersionedUri,
+      $ref: id,
     };
 
     if (allowArrays) {
@@ -65,8 +65,8 @@ export const getArrayItems = (
           items: {
             oneOf: getArrayItems(data.itemIds, flattenedExpectedValues),
           },
-          minItems: data?.minItems,
-          maxItems: data?.maxItems,
+          minItems: data.minItems,
+          maxItems: data.maxItems,
         };
       } else if ("properties" in property.data) {
         return getObjectSchema(property.data.properties);
