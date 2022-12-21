@@ -2,7 +2,10 @@
 
 extern crate alloc;
 
-mod de;
+mod array;
+mod deserializer;
+mod object;
+pub(crate) mod tape;
 mod token;
 
 pub fn add(left: usize, right: usize) -> usize {
