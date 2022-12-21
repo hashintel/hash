@@ -24,7 +24,7 @@ impl<'a> Deref for Trivia<'a> {
     fn deref(&self) -> &Self::Target {
         match self {
             Trivia::Owned(value) => value.as_bitslice(),
-            Trivia::Slice(value) => *value,
+            Trivia::Slice(value) => value,
         }
     }
 }
