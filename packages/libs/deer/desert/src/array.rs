@@ -3,9 +3,9 @@ use deer::{
         ArrayAccessError, ArrayLengthError, BoundedContractViolationError, ExpectedLength,
         ReceivedLength, Variant,
     },
-    Deserialize,
+    Deserialize, Deserializer as _,
 };
-use error_stack::{Report, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 
 use crate::{
     deserializer::{Deserializer, DeserializerNone},
@@ -57,7 +57,7 @@ impl<'a, 'b, 'de> ArrayAccess<'a, 'b, 'de> {
 }
 
 impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
-    fn set_bounded(&mut self, length: usize) -> error_stack::Result<(), ArrayAccessError> {
+    fn set_bounded(&mut self, length: usize) -> Result<(), ArrayAccessError> {
         if self.consumed > 0 {
             return Err(
                 Report::new(BoundedContractViolationError::SetDirty.into_error())
@@ -77,7 +77,7 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
         Ok(())
     }
 
-    fn next<T>(&mut self) -> Option<error_stack::Result<T, ArrayAccessError>>
+    fn next<T>(&mut self) -> Option<Result<T, ArrayAccessError>>
     where
         T: Deserialize<'de>,
     {
@@ -94,7 +94,7 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
                 *remaining = remaining.saturating_sub(1);
 
                 let value = T::deserialize(DeserializerNone {
-                    context: self.deserializer.context,
+                    context: self.deserializer.context(),
                 });
 
                 Some(value.change_context(ArrayAccessError))
@@ -111,7 +111,7 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
         self.length
     }
 
-    fn end(self) -> error_stack::Result<(), ArrayAccessError> {
+    fn end(self) -> Result<(), ArrayAccessError> {
         let mut result = Ok(());
 
         // ensure that we consume the last token, if it is the wrong token error out
@@ -129,8 +129,8 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
         // bump until the very end, which ensures that deserialize calls after this might succeed!
         let bump = self
             .scan_end()
-            .unwrap_or_else(|| self.deserializer.tokens.remaining());
-        self.deserializer.tokens.bump_n(bump);
+            .unwrap_or_else(|| self.deserializer.tape().remaining());
+        self.deserializer.tape_mut().bump_n(bump);
 
         if let Some(remaining) = self.remaining {
             if remaining > 0 {

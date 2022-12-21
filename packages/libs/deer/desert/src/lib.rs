@@ -2,9 +2,9 @@
 
 extern crate alloc;
 
-mod array;
+pub(crate) mod array;
 mod deserializer;
-mod object;
+pub(crate) mod object;
 pub(crate) mod tape;
 mod token;
 
