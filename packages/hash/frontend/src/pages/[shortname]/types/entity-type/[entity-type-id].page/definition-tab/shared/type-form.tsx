@@ -236,7 +236,7 @@ export const generateInitialTypeUri = (baseUri: string) =>
 
 export const useGenerateTypeBaseUri = (kind: SchemaKind) => {
   const router = useRouter();
-  const shortname = router.query["account-slug"]?.toString().slice(1) ?? "";
+  const shortname = router.query.shortname?.toString().slice(1) ?? "";
 
   return (value: string) => {
     if (!shortname) {
