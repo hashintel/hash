@@ -16,7 +16,8 @@
 #[cfg(any(feature = "std", feature = "hooks"))]
 mod hook;
 
-use alloc::{format, vec, vec::Vec};
+use alloc::{boxed::Box, format, string::String, vec, vec::Vec};
+use core::iter::once;
 
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub use hook::HookContext;
@@ -24,55 +25,100 @@ pub use hook::HookContext;
 pub(crate) use hook::{DynamicFn, Hooks};
 use serde::{ser::SerializeMap, Serialize, Serializer};
 
-use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
+use crate::{
+    fmt, fmt::debug_attachments_invoke, serde::hook::Serde, Context, Frame, FrameKind, Report,
+};
 
-struct SerializeAttachment<'a>(&'a Frame);
+enum SerializedAttachment<'a> {
+    Erased(Box<dyn erased_serde::Serialize + 'a>),
+    String(String),
+}
 
-impl<'a> Serialize for SerializeAttachment<'a> {
+impl Serialize for SerializedAttachment<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        let Self(frame) = self;
-
-        #[allow(clippy::match_same_arms)]
-        match frame.kind() {
-            FrameKind::Context(_) => {
-                // TODO: for now `Context` is unsupported, upcoming PR will fix via hooks
-                // `SerializeAttachmentList` ensures that no context is ever serialized
-                todo!()
-            }
-            FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
-                // TODO: for now opaque attachments are unsupported, upcoming PR will fix that
-                // `SerializeAttachmentList` ensures that no such attachment is added
-                todo!()
-            }
-            FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-                format!("{attachment}").serialize(serializer)
-            }
+        match self {
+            SerializedAttachment::Erased(erased) => erased.serialize(serializer),
+            SerializedAttachment::String(string) => string.serialize(serializer),
         }
     }
 }
 
-struct SerializeAttachmentList<'a, 'b>(&'a [&'b Frame]);
+enum EitherIterator<T, U>
+where
+    T: Iterator<Item = U::Item>,
+    U: Iterator,
+{
+    Left(T),
+    Right(U),
+}
+
+impl<T, U> Iterator for EitherIterator<T, U>
+where
+    T: Iterator<Item = U::Item>,
+    U: Iterator,
+{
+    type Item = T::Item;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            EitherIterator::Left(left) => left.next(),
+            EitherIterator::Right(right) => right.next(),
+        }
+    }
+}
+
+fn serialize_attachment<'a>(
+    hooks: &'a Hooks,
+    frame: &'a Frame,
+    context: &'a mut HookContext<Frame>,
+) -> impl Iterator<Item = SerializedAttachment<'a>> + 'a {
+    let mut attachments = hooks
+        .call(frame, context)
+        .map(SerializedAttachment::Erased)
+        .peekable();
+
+    let has_attachments = attachments.peek().is_some();
+
+    if has_attachments {
+        EitherIterator::Left(attachments)
+    } else {
+        // we weren't able to find a serializer and will fallback to the debug representation if
+        // possible
+        let mut debug_context = fmt::HookContext::new(fmt::Format::new(false));
+        let (_, attachments) = debug_attachments_invoke(once(frame), debug_context.cast());
+
+        EitherIterator::Right(attachments.into_iter().map(SerializedAttachment::String))
+    }
+}
+
+struct SerializeHooks<'a> {
+    hooks: &'a Hooks,
+    context: &'a mut HookContext<Frame>,
+}
+
+struct SerializeAttachmentList<'a, 'b> {
+    frames: &'a [&'b Frame],
+    hooks: &'a SerializeHooks<'a>,
+}
 
 impl<'a, 'b> Serialize for SerializeAttachmentList<'a, 'b> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
+        let Self {
+            frames,
+            hooks: SerializeHooks { hooks, context },
+        } = *self;
+
         serializer.collect_seq(
-            self.0
+            frames
                 .iter()
                 .copied()
-                .filter(|attachment| {
-                    // for now opaque attachments are ignored
-                    !matches!(
-                        attachment.kind(),
-                        FrameKind::Attachment(AttachmentKind::Opaque(_))
-                    )
-                })
-                .map(SerializeAttachment),
+                .flat_map(|frame| serialize_attachment(hooks, frame, *context)),
         )
     }
 }
@@ -81,6 +127,7 @@ struct SerializeContext<'a> {
     attachments: Vec<&'a Frame>,
     context: &'a dyn Context,
     sources: &'a [Frame],
+    hooks: &'a SerializeHooks<'a>,
 }
 
 impl<'a> Serialize for SerializeContext<'a> {
@@ -92,30 +139,48 @@ impl<'a> Serialize for SerializeContext<'a> {
             context,
             attachments,
             sources,
+            hooks,
         } = self;
 
         let mut map = serializer.serialize_map(Some(3))?;
         map.serialize_entry("context", &format!("{context}").as_str())?;
-        map.serialize_entry("attachments", &SerializeAttachmentList(&attachments[..]))?;
-        map.serialize_entry("sources", &SerializeSources(sources))?;
+        map.serialize_entry("attachments", &SerializeAttachmentList {
+            frames: &attachments[..],
+            hooks,
+        })?;
+        map.serialize_entry("sources", &SerializeSources {
+            frames: sources,
+            hooks,
+        })?;
 
         map.end()
     }
 }
 
-struct SerializeSources<'a>(&'a [Frame]);
+struct SerializeSources<'a> {
+    frames: &'a [Frame],
+    hooks: &'a SerializeHooks<'a>,
+}
 
 impl<'a> Serialize for SerializeSources<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        serializer.collect_seq(self.0.iter().flat_map(|source| find_next(&[], source)))
+        serializer.collect_seq(
+            self.frames
+                .iter()
+                .flat_map(|source| find_next(&[], source, self.hooks)),
+        )
     }
 }
 
 // find the next applicable context and return the serializer
-fn find_next<'a>(head: &[&'a Frame], mut current: &'a Frame) -> Vec<SerializeContext<'a>> {
+fn find_next<'a>(
+    head: &[&'a Frame],
+    mut current: &'a Frame,
+    hooks: &'a SerializeHooks<'a>,
+) -> Vec<SerializeContext<'a>> {
     let mut attachments = vec![];
     attachments.extend(head);
 
@@ -128,6 +193,7 @@ fn find_next<'a>(head: &[&'a Frame], mut current: &'a Frame) -> Vec<SerializeCon
                 attachments,
                 context,
                 sources: current.sources(),
+                hooks,
             }];
         } else if current.sources().len() > 1 {
             // current is an attachment, add to attachments and recursively probe
@@ -136,7 +202,7 @@ fn find_next<'a>(head: &[&'a Frame], mut current: &'a Frame) -> Vec<SerializeCon
             return current
                 .sources()
                 .iter()
-                .flat_map(|source| find_next(&attachments, source))
+                .flat_map(|source| find_next(&attachments, source, hooks))
                 .collect();
         } else if current.sources().len() == 1 {
             attachments.push(current);
@@ -155,6 +221,18 @@ impl<C: Context> Serialize for Report<C> {
     where
         S: Serializer,
     {
-        SerializeSources(self.current_frames()).serialize(serializer)
+        Report::invoke_serde_hook(|hooks| {
+            let mut context = HookContext::new(Serde {});
+            let serialize_hooks = SerializeHooks {
+                hooks,
+                context: context.cast(),
+            };
+
+            SerializeSources {
+                frames: self.current_frames(),
+                hooks: &serialize_hooks,
+            }
+            .serialize(serializer)
+        })
     }
 }

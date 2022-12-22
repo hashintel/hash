@@ -184,7 +184,7 @@ impl Report<()> {
         closure(&hook)
     }
 
-    #[cfg(feature = "serde")]
+    #[cfg(all(any(feature = "std", feature = "hooks"), feature = "serde"))]
     pub fn install_serde_hook<T: serde::Serialize + Send + Sync + 'static>() {
         // TODO: install built-in
 
@@ -198,7 +198,7 @@ impl Report<()> {
         lock.insert_static::<T>();
     }
 
-    #[cfg(feature = "serde")]
+    #[cfg(all(any(feature = "std", feature = "hooks"), feature = "serde"))]
     pub fn install_custom_serde_hook<F, T>(closure: F)
     where
         F: for<'a> crate::serde::DynamicFn<'a, T>,
@@ -214,5 +214,19 @@ impl Report<()> {
         let mut lock = SERDE_HOOK.write();
 
         lock.insert_dynamic(closure);
+    }
+
+    #[cfg(all(any(feature = "std", feature = "hooks"), feature = "serde"))]
+    pub(crate) fn invoke_serde_hook<T>(closure: impl FnOnce(&crate::serde::Hooks) -> T) -> T {
+        // TODO: install built-in
+
+        #[cfg(feature = "std")]
+        let hook = SERDE_HOOK.read().expect("should not be poisoned");
+
+        // The spin RwLock cannot panic
+        #[cfg(all(not(feature = "std"), feature = "hooks"))]
+        let hook = SERDE_HOOK.read();
+
+        closure(&hook)
     }
 }

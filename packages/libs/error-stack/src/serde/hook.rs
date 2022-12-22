@@ -1,5 +1,5 @@
 use alloc::{boxed::Box, vec::Vec};
-use core::any::TypeId;
+use core::{any::TypeId, iter::FusedIterator};
 
 use crate::Frame;
 
@@ -22,12 +22,6 @@ where
     type Output: serde::Serialize + 'a;
 
     fn call(&self, value: &'a I, context: &mut HookContext<I>) -> Self::Output;
-
-    fn erase(
-        &self,
-        value: &'a Frame,
-        context: &mut HookContext<Frame>,
-    ) -> Option<Box<dyn erased_serde::Serialize + 'a>>;
 }
 
 impl<'a, U: 'a, T, F> DynamicFn<'a, T> for F
@@ -41,18 +35,6 @@ where
 
     fn call(&self, value: &'a T, context: &mut HookContext<T>) -> Self::Output {
         (self)(value, context)
-    }
-
-    fn erase(
-        &self,
-        value: &'a Frame,
-        context: &mut HookContext<Frame>,
-    ) -> Option<Box<dyn erased_serde::Serialize + 'a>> {
-        let value = value.request_ref::<T>()?;
-
-        let value = <Self as DynamicFn<'a, T>>::call(self, value, context.cast());
-
-        Some(Box::new(value))
     }
 }
 
@@ -104,7 +86,12 @@ impl Hook {
             for<'b> <F as DynamicFn<'b, I>>::Output: serde::Serialize + 'b,
             I: Send + Sync + 'static,
         {
+            #[cfg(nightly)]
             let value = frame.request_ref::<I>()?;
+
+            #[cfg(not(nightly))]
+            let value = frame.downcast_ref::<I>()?;
+
             let value = closure.call(value, context.cast());
 
             Some(Box::new(value))
@@ -167,7 +154,7 @@ impl Hooks {
         &'a self,
         frame: &'a Frame,
         context: &'a mut HookContext<Frame>,
-    ) -> impl Iterator<Item = Box<dyn erased_serde::Serialize + 'a>> + 'a + '_ {
+    ) -> impl FusedIterator<Item = Box<dyn erased_serde::Serialize + 'a>> + 'a + '_ {
         self.inner
             .iter()
             .filter_map(|hook| hook.call(frame, context))

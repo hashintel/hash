@@ -668,7 +668,7 @@ impl Opaque {
     }
 }
 
-fn debug_attachments_invoke<'a>(
+pub(crate) fn debug_attachments_invoke<'a>(
     frames: impl IntoIterator<Item = &'a Frame>,
     #[cfg(any(feature = "std", feature = "hooks"))] context: &mut HookContext<Frame>,
 ) -> (Opaque, Vec<String>) {
