@@ -642,7 +642,7 @@ fn debug_context(context: &dyn Context) -> Lines {
         .collect()
 }
 
-struct Opaque(usize);
+pub(crate) struct Opaque(usize);
 
 impl Opaque {
     const fn new() -> Self {

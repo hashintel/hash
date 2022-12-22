@@ -102,12 +102,12 @@ struct SerializeHooks<'a> {
     context: &'a mut HookContext<Frame>,
 }
 
-struct SerializeAttachmentList<'a, 'b> {
+struct SerializeAttachmentList<'a, 'b, 'c> {
     frames: &'a [&'b Frame],
-    hooks: &'a RefCell<SerializeHooks<'a>>,
+    hooks: &'c RefCell<SerializeHooks<'c>>,
 }
 
-impl<'a, 'b> Serialize for SerializeAttachmentList<'a, 'b> {
+impl<'a, 'b, 'c> Serialize for SerializeAttachmentList<'a, 'b, 'c> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -128,14 +128,14 @@ impl<'a, 'b> Serialize for SerializeAttachmentList<'a, 'b> {
     }
 }
 
-struct SerializeContext<'a> {
+struct SerializeContext<'a, 'b> {
     attachments: Vec<&'a Frame>,
     context: &'a dyn Context,
     sources: &'a [Frame],
-    hooks: &'a RefCell<SerializeHooks<'a>>,
+    hooks: &'b RefCell<SerializeHooks<'b>>,
 }
 
-impl<'a> Serialize for SerializeContext<'a> {
+impl<'a, 'b> Serialize for SerializeContext<'a, 'b> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -148,7 +148,7 @@ impl<'a> Serialize for SerializeContext<'a> {
         // } = self;
         let context = self.context;
         let sources = self.sources;
-        let hooks = self.hooks;
+        let hooks = &self.hooks;
 
         let mut map = serializer.serialize_map(Some(3))?;
         map.serialize_entry("context", &format!("{context}").as_str())?;
@@ -165,12 +165,12 @@ impl<'a> Serialize for SerializeContext<'a> {
     }
 }
 
-struct SerializeSources<'a> {
+struct SerializeSources<'a, 'b> {
     frames: &'a [Frame],
-    hooks: &'a RefCell<SerializeHooks<'a>>,
+    hooks: &'b RefCell<SerializeHooks<'b>>,
 }
 
-impl<'a> Serialize for SerializeSources<'a> {
+impl<'a, 'b> Serialize for SerializeSources<'a, 'b> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -184,11 +184,11 @@ impl<'a> Serialize for SerializeSources<'a> {
 }
 
 // find the next applicable context and return the serializer
-fn find_next<'a>(
+fn find_next<'a, 'b>(
     head: &[&'a Frame],
     mut current: &'a Frame,
-    hooks: &'a RefCell<SerializeHooks<'a>>,
-) -> Vec<SerializeContext<'a>> {
+    hooks: &'b RefCell<SerializeHooks<'b>>,
+) -> Vec<SerializeContext<'a, 'b>> {
     let mut attachments = vec![];
     attachments.extend(head);
 
