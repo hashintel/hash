@@ -14,11 +14,12 @@ import {
 import { SxProps, Theme } from "@mui/system";
 import clsx from "clsx";
 import { useRouter } from "next/router";
-import { useState, FunctionComponent } from "react";
-import { Button } from "./Button";
-import { FaIcon } from "./icons/FaIcon";
-import { FontAwesomeIcon } from "./icons/FontAwesomeIcon";
-import { Logo } from "./Logo";
+import { FunctionComponent, useState } from "react";
+
+import { Button } from "./button";
+import { FaIcon } from "./icons/fa-icon";
+import { FontAwesomeIcon } from "./icons/font-awesome-icon";
+import { Logo } from "./logo";
 
 export const NAV_HEIGHT = 58;
 
