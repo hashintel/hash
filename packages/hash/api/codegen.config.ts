@@ -3,7 +3,7 @@ import { scalars } from "@hashintel/hash-shared/graphql/scalar-mapping";
 
 const config: CodegenConfig = {
   overwrite: true,
-  schema: "./src/graphql/typeDefs/**/*.ts",
+  schema: "./src/graphql/type-defs/**/*.ts",
   require: ["ts-node/register"],
   generates: {
     "./src/graphql/graphqlSchema.gen.json": {
