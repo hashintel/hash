@@ -12,7 +12,7 @@ import {
   MutationUpdatePageContentsArgs,
   ResolverFn,
   UpdatePageContentsResult,
-} from "../../../apiTypes.gen";
+} from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { mapPageToGQL, UnresolvedPageGQL } from "../graphql-mapping";
 import {

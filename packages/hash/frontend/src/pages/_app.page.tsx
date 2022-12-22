@@ -17,7 +17,7 @@ import { SnackbarProvider } from "notistack";
 import { FunctionComponent, useEffect, useState } from "react";
 import { ModalProvider } from "react-modal-hook";
 
-import { MeQuery } from "../graphql/apiTypes.gen";
+import { MeQuery } from "../graphql/api-types.gen";
 import { meQuery } from "../graphql/queries/user.queries";
 import { apolloClient } from "../lib/apollo-client";
 import { TypeSystemContextProvider } from "../lib/use-init-type-system";

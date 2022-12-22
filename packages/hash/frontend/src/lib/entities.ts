@@ -12,7 +12,7 @@ import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import {
   Link as ApiLink,
   UnknownEntity as ApiEntity,
-} from "../graphql/apiTypes.gen";
+} from "../graphql/api-types.gen";
 
 const isObject = (thing: unknown): thing is {} =>
   typeof thing === "object" && thing !== null;

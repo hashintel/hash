@@ -28,7 +28,7 @@ import {
   QueryGetAllLatestEntitiesArgs,
   QueryGetEntityArgs,
   ResolverFn,
-} from "../../../apiTypes.gen";
+} from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { mapEntityToGQL } from "../graphql-mapping";
 import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";

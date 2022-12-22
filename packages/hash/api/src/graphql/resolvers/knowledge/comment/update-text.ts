@@ -5,7 +5,7 @@ import {
 import {
   MutationUpdateCommentTextArgs,
   ResolverFn,
-} from "../../../apiTypes.gen";
+} from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { mapCommentToGQL, UnresolvedCommentGQL } from "../graphql-mapping";
 

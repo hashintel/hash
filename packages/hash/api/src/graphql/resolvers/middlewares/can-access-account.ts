@@ -1,7 +1,7 @@
 import { ForbiddenError } from "apollo-server-express";
 
 import { isUserMemberOfOrg } from "../../../graph/knowledge/system-types/user";
-import { Scalars } from "../../apiTypes.gen";
+import { Scalars } from "../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 import { loggedInAndSignedUpMiddleware } from "./logged-in-and-signed-up";
 import { ResolverMiddleware } from "./middleware-types";

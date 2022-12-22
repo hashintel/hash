@@ -4,7 +4,7 @@ import {
   getPageById,
   setPageParentPage,
 } from "../../../../graph/knowledge/system-types/page";
-import { MutationSetParentPageArgs, ResolverFn } from "../../../apiTypes.gen";
+import { MutationSetParentPageArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { mapPageToGQL, UnresolvedPageGQL } from "../graphql-mapping";
 

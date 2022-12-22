@@ -26,7 +26,7 @@ import {
   SwapBlockDataAction,
   UpdateEntityAction,
   UpdatePageAction,
-} from "../../../apiTypes.gen";
+} from "../../../api-types.gen";
 
 export const createEntityWithPlaceholdersFn =
   (graphApi: GraphApi, placeholderResults: PlaceholderResultsMap) =>

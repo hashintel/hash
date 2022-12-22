@@ -5,7 +5,7 @@ import {
   getPageBlocks,
   getPageById,
 } from "../../../../graph/knowledge/system-types/page";
-import { ResolverFn } from "../../../apiTypes.gen";
+import { ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { mapBlockToGQL, UnresolvedPageGQL } from "../graphql-mapping";
 

@@ -1,7 +1,7 @@
 import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { Express } from "express";
 
-import { StorageType } from "../graphql/apiTypes.gen";
+import { StorageType } from "../graphql/api-types.gen";
 import { getAwsS3Config } from "../lib/aws-config";
 import { LOCAL_FILE_UPLOAD_PATH } from "../lib/config";
 import { AwsS3StorageProvider } from "./aws-s3-storage-provider";

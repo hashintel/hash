@@ -7,7 +7,7 @@ import { Entity, UnresolvedGQLLinkedAggregation } from "../../../model";
 import {
   MutationCreateLinkedAggregationArgs,
   ResolverFn,
-} from "../../apiTypes.gen";
+} from "../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../context";
 
 export const createLinkedAggregation: ResolverFn<

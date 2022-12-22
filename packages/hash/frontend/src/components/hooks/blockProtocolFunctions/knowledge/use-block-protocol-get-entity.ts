@@ -5,7 +5,7 @@ import { useCallback } from "react";
 import {
   GetEntityQuery,
   GetEntityQueryVariables,
-} from "../../../../graphql/apiTypes.gen";
+} from "../../../../graphql/api-types.gen";
 import { getEntityQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { GetEntityMessageCallback } from "./knowledge-shim";
 

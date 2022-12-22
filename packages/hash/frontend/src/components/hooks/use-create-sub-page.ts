@@ -14,7 +14,7 @@ import {
   CreatePageMutationVariables,
   SetParentPageMutation,
   SetParentPageMutationVariables,
-} from "../../graphql/apiTypes.gen";
+} from "../../graphql/api-types.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 import { createPage, setParentPage } from "../../graphql/queries/page.queries";
 import { constructPageRelativeUrl } from "../../lib/routes";

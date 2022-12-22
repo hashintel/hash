@@ -8,7 +8,7 @@ import { Box } from "@mui/material";
 import {
   GetPageInfoQuery,
   GetPageInfoQueryVariables,
-} from "../graphql/apiTypes.gen";
+} from "../graphql/api-types.gen";
 
 export type SizeVariant = "small" | "medium";
 

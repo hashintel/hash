@@ -10,7 +10,7 @@ import {
   MeQuery,
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
-} from "../../graphql/apiTypes.gen";
+} from "../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { meQuery } from "../../graphql/queries/user.queries";
 import { AuthenticatedUser } from "../../lib/user-and-org";

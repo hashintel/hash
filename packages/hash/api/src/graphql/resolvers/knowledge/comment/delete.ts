@@ -2,7 +2,7 @@ import {
   deleteComment,
   getCommentById,
 } from "../../../../graph/knowledge/system-types/comment";
-import { MutationDeleteCommentArgs, ResolverFn } from "../../../apiTypes.gen";
+import { MutationDeleteCommentArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { mapCommentToGQL, UnresolvedCommentGQL } from "../graphql-mapping";
 

@@ -5,7 +5,7 @@ import { useCallback } from "react";
 import {
   ResolveCommentMutation,
   ResolveCommentMutationVariables,
-} from "../../graphql/apiTypes.gen";
+} from "../../graphql/api-types.gen";
 import { resolveComment } from "../../graphql/queries/comment.queries";
 import { getPageComments } from "../../graphql/queries/page.queries";
 

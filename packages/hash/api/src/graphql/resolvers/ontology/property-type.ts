@@ -11,7 +11,7 @@ import {
   QueryGetAllLatestPropertyTypesArgs,
   QueryGetPropertyTypeArgs,
   ResolverFn,
-} from "../../apiTypes.gen";
+} from "../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../context";
 
 export const createPropertyTypeResolver: ResolverFn<

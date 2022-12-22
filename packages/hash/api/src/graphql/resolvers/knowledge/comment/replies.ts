@@ -2,7 +2,7 @@ import {
   getCommentById,
   getCommentReplies,
 } from "../../../../graph/knowledge/system-types/comment";
-import { ResolverFn } from "../../../apiTypes.gen";
+import { ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { mapCommentToGQL, UnresolvedCommentGQL } from "../graphql-mapping";
 

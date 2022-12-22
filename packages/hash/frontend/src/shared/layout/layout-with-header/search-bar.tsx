@@ -1,5 +1,5 @@
 // import { useQuery } from "@apollo/client";
-// import { PageSearchResult } from "../../../../../graphql/apiTypes.gen";
+// import { PageSearchResult } from "../../../../../graphql/api-types.gen";
 import { IconButton } from "@hashintel/hash-design-system";
 import { Box, SxProps, Theme, useMediaQuery, useTheme } from "@mui/material";
 import { escapeRegExp } from "lodash";

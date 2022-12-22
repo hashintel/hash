@@ -5,7 +5,7 @@ import { useCallback } from "react";
 import {
   CreateEntityMutation,
   CreateEntityMutationVariables,
-} from "../../../../graphql/apiTypes.gen";
+} from "../../../../graphql/api-types.gen";
 import { createEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
 import { CreateEntityMessageCallback } from "./knowledge-shim";
 

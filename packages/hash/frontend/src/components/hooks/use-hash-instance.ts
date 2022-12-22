@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import {
   GetHashInstanceEntityQueryQuery,
   GetHashInstanceEntityQueryQueryVariables,
-} from "../../graphql/apiTypes.gen";
+} from "../../graphql/api-types.gen";
 import { getHashInstanceEntityQuery } from "../../graphql/queries/knowledge/hash-instance.queries";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
 

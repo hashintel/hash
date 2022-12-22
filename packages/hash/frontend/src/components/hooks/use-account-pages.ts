@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import {
   GetAccountPagesTreeQuery,
   GetAccountPagesTreeQueryVariables,
-} from "../../graphql/apiTypes.gen";
+} from "../../graphql/api-types.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 import { useWorkspaceShortnameByAccountId } from "./use-workspace-shortname-by-account-id";
 

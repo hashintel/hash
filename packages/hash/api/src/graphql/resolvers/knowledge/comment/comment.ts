@@ -2,7 +2,7 @@ import { extractOwnedByIdFromEntityId } from "@hashintel/hash-shared/types";
 
 import { getLatestEntityById } from "../../../../graph/knowledge/primitive/entity";
 import { createComment } from "../../../../graph/knowledge/system-types/comment";
-import { MutationCreateCommentArgs, ResolverFn } from "../../../apiTypes.gen";
+import { MutationCreateCommentArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { mapCommentToGQL, UnresolvedCommentGQL } from "../graphql-mapping";
 

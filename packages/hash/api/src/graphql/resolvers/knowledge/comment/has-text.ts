@@ -5,7 +5,7 @@ import {
   getCommentText,
 } from "../../../../graph/knowledge/system-types/comment";
 import { SYSTEM_TYPES } from "../../../../graph/system-types";
-import { ResolverFn } from "../../../apiTypes.gen";
+import { ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { UnresolvedCommentGQL } from "../graphql-mapping";
 

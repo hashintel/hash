@@ -4,7 +4,7 @@ import {
   getCommentById,
   getCommentParent,
 } from "../../../../graph/knowledge/system-types/comment";
-import { ResolverFn } from "../../../apiTypes.gen";
+import { ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { mapEntityToGQL, UnresolvedCommentGQL } from "../graphql-mapping";
 

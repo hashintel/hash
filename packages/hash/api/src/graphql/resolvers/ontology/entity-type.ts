@@ -11,7 +11,7 @@ import {
   QueryGetAllLatestEntityTypesArgs,
   QueryGetEntityTypeArgs,
   ResolverFn,
-} from "../../apiTypes.gen";
+} from "../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../context";
 
 export const createEntityTypeResolver: ResolverFn<

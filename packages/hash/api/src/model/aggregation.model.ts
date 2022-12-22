@@ -9,7 +9,7 @@ import {
   AggregateOperation,
   AggregateOperationInput,
   LinkedAggregation as GQLLinkedAggregation,
-} from "../graphql/apiTypes.gen";
+} from "../graphql/api-types.gen";
 import {
   Aggregation,
   Entity,

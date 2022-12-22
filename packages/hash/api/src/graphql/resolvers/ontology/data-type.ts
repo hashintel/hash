@@ -4,7 +4,7 @@ import {
   QueryGetAllLatestDataTypesArgs,
   QueryGetDataTypeArgs,
   ResolverFn,
-} from "../../apiTypes.gen";
+} from "../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 
 export const getAllLatestDataTypes: ResolverFn<

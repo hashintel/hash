@@ -7,7 +7,7 @@ import { Aggregation } from "../../../model";
 import {
   MutationDeleteLinkedAggregationArgs,
   ResolverFn,
-} from "../../apiTypes.gen";
+} from "../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../context";
 
 export const deleteLinkedAggregation: ResolverFn<

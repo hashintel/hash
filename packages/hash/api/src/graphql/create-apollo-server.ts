@@ -11,7 +11,7 @@ import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
 import { GraphApi } from "../graph";
 import { TaskExecutor } from "../task-execution";
-import { StorageType } from "./apiTypes.gen";
+import { StorageType } from "./api-types.gen";
 import { GraphQLContext } from "./context";
 import { resolvers } from "./resolvers";
 import { schema } from "./type-defs";

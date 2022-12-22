@@ -5,7 +5,7 @@ import { useCallback } from "react";
 import {
   GetAllLatestPropertyTypesQuery,
   GetAllLatestPropertyTypesQueryVariables,
-} from "../../../../graphql/apiTypes.gen";
+} from "../../../../graphql/api-types.gen";
 import { getAllLatestPropertyTypesQuery } from "../../../../graphql/queries/ontology/property-type.queries";
 import { AggregatePropertyTypesMessageCallback } from "./ontology-types-shim";
 

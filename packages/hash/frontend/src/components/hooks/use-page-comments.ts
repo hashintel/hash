@@ -6,7 +6,7 @@ import { Entity, EntityMetadata } from "@hashintel/hash-subgraph";
 import {
   GetPageCommentsQuery,
   GetPageCommentsQueryVariables,
-} from "../../graphql/apiTypes.gen";
+} from "../../graphql/api-types.gen";
 import { getPageComments } from "../../graphql/queries/page.queries";
 
 export type PageThread = PageComment & {

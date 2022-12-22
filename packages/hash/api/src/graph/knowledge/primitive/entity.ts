@@ -23,7 +23,7 @@ import { ApolloError } from "apollo-server-errors";
 import {
   EntityDefinition,
   LinkedEntityDefinition,
-} from "../../../graphql/apiTypes.gen";
+} from "../../../graphql/api-types.gen";
 import { linkedTreeFlatten } from "../../../util";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
 import { getEntityTypeById } from "../../ontology/primitive/entity-type";
