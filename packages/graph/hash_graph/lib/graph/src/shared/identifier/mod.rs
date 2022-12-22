@@ -34,6 +34,7 @@ impl ToSchema for GraphElementId {
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct EntityVertexId {
     base_id: EntityId,
     version: TransactionTimestamp,

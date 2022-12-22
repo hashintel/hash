@@ -781,7 +781,7 @@ export interface GraphElementVertexIdOneOf1 {
    * @type {string}
    * @memberof GraphElementVertexIdOneOf1
    */
-  base_id: string;
+  baseId: string;
   /**
    *
    * @type {string}
