@@ -5,24 +5,51 @@ import {
   faClose,
   faPencil,
   faTrash,
+  IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
 import { Box, Divider, Typography } from "@mui/material";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { useState } from "react";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import { SortableItem } from "./types";
 import { ValueChip } from "./value-chip";
 import { RowAction } from "./row-action";
-import { InlineTextEditor } from "./inline-text-editor";
-import { faText } from "../../../../../../../../../../../shared/icons/pro/fa-text";
+import { faText } from "../../../../../../../../../../shared/icons/pro/fa-text";
+import { guessEditorTypeFromValue } from "../utils";
+import { EditorType } from "../types";
+import { fa100 } from "../../../../../../../../../../shared/icons/pro/fa-100";
+import { faSquareCheck } from "../../../../../../../../../../shared/icons/pro/fa-square-check";
+import { BooleanInput } from "../inputs/boolean-input";
+import { NumberOrTextInput } from "../inputs/number-or-text-input";
+
+export const editorSpecs: Record<
+  EditorType,
+  { icon: IconDefinition["icon"]; title: string }
+> = {
+  boolean: {
+    icon: faSquareCheck,
+    title: types.dataType.boolean.title,
+  },
+  number: {
+    icon: fa100,
+    title: types.dataType.number.title,
+  },
+  text: {
+    icon: faText,
+    title: types.dataType.text.title,
+  },
+};
 
 interface SortableRowProps {
   item: SortableItem;
-  selected: boolean;
-  onRemove: (index: number) => void;
-  onSelect: (id: string) => void;
-  onEditClicked: (id: string) => void;
-  onEditFinished: (index: number, value: string) => void;
+  selected?: boolean;
+  onRemove?: (index: number) => void;
+  onSelect?: (id: string) => void;
+  onEditClicked?: (id: string) => void;
   editing: boolean;
+  expectedTypes: string[];
+  onSaveChanges: (index: number, value: unknown) => void;
+  onDiscardChanges: () => void;
 }
 
 export const SortableRow = ({
@@ -31,10 +58,12 @@ export const SortableRow = ({
   selected,
   onSelect,
   onEditClicked,
-  onEditFinished,
+  onSaveChanges,
+  onDiscardChanges,
   editing,
+  expectedTypes,
 }: SortableRowProps) => {
-  const { id, value, index } = item;
+  const { id, value, index, overriddenEditorType } = item;
   const {
     attributes,
     isDragging,
@@ -49,7 +78,7 @@ export const SortableRow = ({
   });
 
   const [hovered, setHovered] = useState(false);
-  const [draftValue, setDraftValue] = useState(String(value));
+  const [draftValue, setDraftValue] = useState(value);
   const [prevEditing, setPrevEditing] = useState(editing);
 
   const shouldShowActions =
@@ -57,8 +86,13 @@ export const SortableRow = ({
 
   if (prevEditing !== editing) {
     setPrevEditing(editing);
-    setDraftValue(String(value));
+    setDraftValue(value);
   }
+
+  const editorType =
+    overriddenEditorType ?? guessEditorTypeFromValue(value, expectedTypes);
+
+  const editorSpec = editorSpecs[editorType];
 
   return (
     <Box
@@ -76,7 +110,7 @@ export const SortableRow = ({
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      onClick={() => onSelect(id)}
+      onClick={() => onSelect?.(id)}
     >
       <Box
         {...listeners}
@@ -102,21 +136,23 @@ export const SortableRow = ({
       </Typography>
 
       {editing ? (
-        <InlineTextEditor
-          value={draftValue}
-          onChange={(val) => {
-            setDraftValue(val);
-          }}
-          onEnterPressed={() => {
-            onEditFinished(index, draftValue);
-          }}
-        />
+        editorType === "boolean" ? (
+          <BooleanInput value={!!draftValue} onChange={setDraftValue} />
+        ) : (
+          <NumberOrTextInput
+            isNumber={editorType === "number"}
+            /** @todo is this casting ok? */
+            value={draftValue as number | string}
+            onChange={setDraftValue}
+            onEnterPressed={() => onSaveChanges(index, draftValue)}
+          />
+        )
       ) : (
         <ValueChip
           value={value}
-          selected={selected}
-          icon={{ icon: faText }}
-          tooltip="Text"
+          selected={!!selected}
+          icon={{ icon: editorSpec.icon }}
+          tooltip={editorSpec.title}
         />
       )}
 
@@ -142,13 +178,13 @@ export const SortableRow = ({
                 <RowAction
                   tooltip="Save Changes"
                   icon={faCheck}
-                  onClick={() => onEditFinished(index, draftValue)}
+                  onClick={() => onSaveChanges(index, draftValue)}
                 />
                 <Divider orientation="vertical" />
                 <RowAction
                   tooltip="Discard Changes"
                   icon={faClose}
-                  onClick={() => onEditFinished(index, String(value))}
+                  onClick={() => onDiscardChanges()}
                 />
               </>
             ) : (
@@ -156,13 +192,13 @@ export const SortableRow = ({
                 <RowAction
                   tooltip="Edit"
                   icon={faPencil}
-                  onClick={() => onEditClicked(id)}
+                  onClick={() => onEditClicked?.(id)}
                 />
                 <Divider orientation="vertical" />
                 <RowAction
                   tooltip="Delete"
                   icon={faTrash}
-                  onClick={() => onRemove(index)}
+                  onClick={() => onRemove?.(index)}
                 />
               </>
             )}

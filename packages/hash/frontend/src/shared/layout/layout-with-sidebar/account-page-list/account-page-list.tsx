@@ -31,6 +31,7 @@ import {
   EntityUuid,
   OwnedById,
   extractEntityUuidFromEntityId,
+  EntityId,
 } from "@hashintel/hash-shared/types";
 
 import { Box, Collapse } from "@mui/material";
@@ -239,7 +240,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
 
         setTreeItems(sortedItems);
         reorderPage(
-          active.id,
+          active.id as EntityId,
           parentPageEntityId,
           beforeIndex,
           afterIndex,

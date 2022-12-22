@@ -1,9 +1,9 @@
-import { Box } from "@mui/material";
 import produce from "immer";
 import { useMemo, useRef, useState } from "react";
 import {
   closestCenter,
   DndContext,
+  DragEndEvent,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -15,23 +15,36 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { ValueCellEditorComponent } from "../types";
+import { styled, Box, experimental_sx as sx } from "@mui/material";
+import { ValueCellEditorComponent } from "./types";
 import { SortableItem } from "./array-editor/types";
 import { SortableRow } from "./array-editor/sortable-row";
 import { AddAnotherButton } from "./array-editor/add-another-button";
-import { InlineTextEditor } from "./array-editor/inline-text-editor";
+import { DraftRow } from "./array-editor/draft-row";
+import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
+import { isBlankStringOrNullish } from "./utils";
 
-const NEW_ROW_KEY = "new";
+export const DRAFT_ROW_KEY = "draft";
+
+const ListWrapper = styled(Box)(
+  sx({
+    maxHeight: 300,
+    overflowY: "auto",
+    overflowX: "hidden",
+    borderBottom: "1px solid",
+    borderColor: "gray.20",
+  }),
+);
 
 export const ArrayEditor: ValueCellEditorComponent = ({
   value: cell,
   onChange,
 }) => {
-  const scrollableContainer = useRef<HTMLDivElement>(null);
+  const listWrapperRef = useRef<HTMLDivElement>(null);
+  const { value: propertyValue, expectedTypes } = cell.data.propertyRow;
 
   const items = useMemo(() => {
-    const propertyVal = cell.data.propertyRow.value;
-    const values = Array.isArray(propertyVal) ? propertyVal : [];
+    const values = Array.isArray(propertyValue) ? propertyValue : [];
 
     const itemsArray: SortableItem[] = values.map((value, index) => ({
       index,
@@ -40,20 +53,35 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     }));
 
     return itemsArray;
-  }, [cell]);
+  }, [propertyValue]);
 
-  const [input, setInput] = useState("");
   const [selectedRow, setSelectedRow] = useState("");
-  const [editingRow, setEditingRow] = useState(items.length ? "" : NEW_ROW_KEY);
+  const [editingRow, setEditingRow] = useState(
+    // if there is no item, start in add item state
+    items.length ? "" : DRAFT_ROW_KEY,
+  );
 
-  const addItem = (text: string) => {
+  const toggleSelectedRow = (id: string) => {
+    setSelectedRow((prevId) => (id === prevId ? "" : id));
+  };
+
+  const addItem = (value: unknown) => {
+    setEditingRow("");
+
     const newCell = produce(cell, (draftCell) => {
       draftCell.data.propertyRow.value = [
-        ...items.map(({ value }) => value),
-        text,
+        ...items.map((item) => item.value),
+        value,
       ];
     });
     onChange(newCell);
+
+    // using setImmediate, so scroll happens after item is rendered
+    setImmediate(() => {
+      listWrapperRef.current?.scrollTo({
+        top: listWrapperRef.current.scrollHeight,
+      });
+    });
   };
 
   const removeItem = (indexToRemove: number) => {
@@ -65,12 +93,8 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     onChange(newCell);
   };
 
-  const updateItem = (indexToUpdate: number, value: string) => {
+  const updateItem = (indexToUpdate: number, value: unknown) => {
     setEditingRow("");
-
-    if (!value.trim().length) {
-      return removeItem(indexToUpdate);
-    }
 
     const newCell = produce(cell, (draftCell) => {
       draftCell.data.propertyRow.value = items.map((item, index) =>
@@ -98,38 +122,39 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     }),
   );
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (active.id !== over?.id) {
+      const oldIndex = items.findIndex(({ id }) => id === active.id);
+      const newIndex = items.findIndex(({ id }) => id === over?.id);
+      moveItem(oldIndex, newIndex);
+    }
+  };
+
+  const handleAddAnotherClick = () => {
+    setEditingRow(DRAFT_ROW_KEY);
+    setSelectedRow("");
+  };
+
+  const handleSaveChanges = (index: number, value: unknown) => {
+    if (isBlankStringOrNullish(value)) {
+      return removeItem(index);
+    }
+
+    updateItem(index, value);
+  };
+
   return (
-    <Box
-      sx={(theme) => ({
-        border: "1px solid",
-        borderColor: "gray.30",
-        borderRadius: theme.borderRadii.lg,
-        background: "white",
-        overflow: "hidden",
-      })}
-    >
-      <Box
-        ref={scrollableContainer}
-        sx={{
-          maxHeight: 300,
-          overflowY: "auto",
-          overflowX: "hidden",
-          borderBottom: "1px solid",
-          borderColor: "gray.20",
-        }}
+    <GridEditorWrapper>
+      <ListWrapper
+        ref={listWrapperRef}
+        display={items.length ? "initial" : "none"}
       >
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
-          onDragEnd={(event) => {
-            const { active, over } = event;
-
-            if (active.id !== over?.id) {
-              const oldIndex = items.findIndex(({ id }) => id === active.id);
-              const newIndex = items.findIndex(({ id }) => id === over?.id);
-              moveItem(oldIndex, newIndex);
-            }
-          }}
+          onDragEnd={handleDragEnd}
         >
           <SortableContext items={items} strategy={verticalListSortingStrategy}>
             {items.map((item) => (
@@ -138,47 +163,31 @@ export const ArrayEditor: ValueCellEditorComponent = ({
                 item={item}
                 onRemove={removeItem}
                 onEditClicked={(id) => setEditingRow(id)}
-                onEditFinished={updateItem}
+                onSaveChanges={handleSaveChanges}
+                onDiscardChanges={() => setEditingRow("")}
                 editing={editingRow === item.id}
                 selected={selectedRow === item.id}
-                onSelect={(id) =>
-                  setSelectedRow((prevId) => (id === prevId ? "" : id))
-                }
+                onSelect={toggleSelectedRow}
+                expectedTypes={expectedTypes}
               />
             ))}
           </SortableContext>
         </DndContext>
-      </Box>
+      </ListWrapper>
 
-      {editingRow !== NEW_ROW_KEY ? (
+      {editingRow !== DRAFT_ROW_KEY ? (
         <AddAnotherButton
           title="Add Another Value"
-          onClick={() => {
-            setEditingRow(NEW_ROW_KEY);
-            setSelectedRow("");
-          }}
+          onClick={handleAddAnotherClick}
         />
       ) : (
-        <InlineTextEditor
-          value={input}
-          onChange={(value) => setInput(value)}
-          onEnterPressed={() => {
-            if (input.trim().length) {
-              addItem(input);
-            }
-
-            setInput("");
-            setEditingRow("");
-
-            // using setImmediate, so scroll happens after item is rendered
-            setImmediate(() => {
-              scrollableContainer.current?.scrollTo({
-                top: scrollableContainer.current.scrollHeight,
-              });
-            });
-          }}
+        <DraftRow
+          existingItemCount={items.length}
+          expectedTypes={expectedTypes}
+          onDraftSaved={addItem}
+          onDraftDiscarded={() => setEditingRow("")}
         />
       )}
-    </Box>
+    </GridEditorWrapper>
   );
 };

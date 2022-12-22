@@ -13,7 +13,7 @@ import { useRef, useState, FunctionComponent, useEffect } from "react";
 import { TextField, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { useFilteredBlocks } from "../createSuggester/useFilteredBlocks";
 import { MenuItem } from "../../../shared/ui";
-import { useBlockView } from "../BlockViewContext";
+import { useBlockView } from "../BlockView";
 
 type BlockListMenuContentProps = {
   popupState?: PopupState;
@@ -90,7 +90,7 @@ export const BlockListMenuContent: FunctionComponent<
               src={option.variant.icon ?? "/format-font.svg"}
             />
           </ListItemIcon>
-          <ListItemText primary={option?.variant.name} />
+          <ListItemText primary={option.variant.name} />
         </MenuItem>
       ))}
     </MenuList>

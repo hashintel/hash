@@ -217,6 +217,7 @@ export const PropertyListCard = () => {
 
   const { routeNamespace } = useRouteNamespace();
   const { createPropertyType } = useBlockProtocolCreatePropertyType(
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     (routeNamespace?.accountId as OwnedById) ?? null,
   );
 

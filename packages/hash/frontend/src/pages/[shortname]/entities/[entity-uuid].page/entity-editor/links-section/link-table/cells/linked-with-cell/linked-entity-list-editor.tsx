@@ -4,13 +4,14 @@ import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { Box } from "@mui/material";
 import produce from "immer";
 import { useContext, useMemo, useState } from "react";
-import { OwnedById } from "@hashintel/hash-shared/types";
+import { EntityId, OwnedById } from "@hashintel/hash-shared/types";
 import { useBlockProtocolArchiveEntity } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolArchiveEntity";
 import { useBlockProtocolCreateEntity } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
 import { generateEntityLabel } from "../../../../../../../../../lib/entities";
 import { WorkspaceContext } from "../../../../../../../../shared/workspace-context";
 import { useEntityEditor } from "../../../../entity-editor-context";
-import { AddAnotherButton } from "../../../../properties-section/property-table/cells/value-cell/value-cell-editor/array-editor/add-another-button";
+import { AddAnotherButton } from "../../../../properties-section/property-table/cells/value-cell/array-editor/add-another-button";
+import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
 import { LinkedWithCell } from "../linked-with-cell";
 import { sortLinkAndTargetEntities } from "../sort-link-and-target-entities";
 import { EntitySelector } from "./entity-selector";
@@ -24,6 +25,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
 
   const { entitySubgraph, refetch } = useEntityEditor();
   const { createEntity } = useBlockProtocolCreateEntity(
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     (activeWorkspaceAccountId as OwnedById) ?? null,
   );
   const { archiveEntity } = useBlockProtocolArchiveEntity();
@@ -65,6 +67,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
       },
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
     if (!linkEntity || linkEntity === undefined) {
       throw new Error("failed to create link");
     }
@@ -106,15 +109,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
   );
 
   return (
-    <Box
-      sx={(theme) => ({
-        border: "1px solid",
-        borderColor: "gray.30",
-        borderRadius: theme.borderRadii.lg,
-        background: "white",
-        overflow: "hidden",
-      })}
-    >
+    <GridEditorWrapper>
       <Box sx={{ maxHeight: 300, overflowY: "auto" }}>
         {sortedLinkAndTargetEntities.map(({ rightEntity, linkEntity }) => {
           const linkEntityId = linkEntity.metadata.editionId.baseId;
@@ -136,7 +131,9 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
                 onChange(newCell);
 
                 await archiveEntity({
-                  data: { entityId: linkEntity.metadata.editionId.baseId },
+                  data: {
+                    entityId: linkEntity.metadata.editionId.baseId as EntityId,
+                  },
                 });
 
                 await refetch();
@@ -166,6 +163,6 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
             }}
           />
         ))}
-    </Box>
+    </GridEditorWrapper>
   );
 };

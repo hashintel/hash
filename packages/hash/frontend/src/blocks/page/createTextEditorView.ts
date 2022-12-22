@@ -1,8 +1,8 @@
 import { EditorState } from "prosemirror-state";
 import { DirectEditorProps, EditorView } from "prosemirror-view";
 import { AccountId } from "@hashintel/hash-shared/types";
+import { RenderPortal } from "./BlockPortals";
 
-import { RenderPortal } from "./usePortals";
 import { mentionNodeView } from "./MentionView/MentionNodeView";
 import { clipboardTextSerializer } from "./clipboardTextSerializer";
 

@@ -26,7 +26,7 @@ export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
 
   const baseUri = getEntityTypeBaseUri(
     router.query["entity-type-id"] as string,
-    router.query["account-slug"] as string,
+    router.query.shortname as string,
   );
 
   const currentTab = useCurrentTab();
@@ -68,6 +68,7 @@ export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
           value={getTabValue("definition")}
           href={isDraft ? router.asPath : getTabUri(baseUri, "definition")}
           label="Definition"
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
           count={propertiesCount ?? 0}
           active={currentTab === "definition"}
         />

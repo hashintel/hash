@@ -157,7 +157,7 @@ const prepareCommandForWrappedEntities =
 
       if (isComponentNode(node)) {
         const blockNode = state.doc.resolve(pos).node(1);
-        const blockEntityNode = blockNode?.firstChild;
+        const blockEntityNode = blockNode.firstChild;
 
         if (!blockEntityNode || !isEntityNode(blockEntityNode)) {
           throw new Error("Unexpected structure");

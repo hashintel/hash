@@ -7,9 +7,11 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { extractBaseUri } from "@blockprotocol/type-system";
 import { types } from "@hashintel/hash-shared/ontology-types";
 import {
+  AccountId,
   EntityId,
   extractEntityUuidFromEntityId,
-} from "@hashintel/hash-subgraph";
+  Uuid,
+} from "@hashintel/hash-shared/types";
 import { PageThread } from "../../../components/hooks/usePageComments";
 import { CommentTextField } from "./CommentTextField";
 import { CommentBlock } from "./CommentBlock";
@@ -49,8 +51,11 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
   };
 
   const handleReplySubmit = async () => {
-    if (!loading && inputValue?.length) {
-      await createReply(comment.metadata.editionId.baseId, inputValue);
+    if (!loading && inputValue.length) {
+      await createReply(
+        comment.metadata.editionId.baseId as EntityId,
+        inputValue,
+      );
       setInputValue([]);
     }
   };
@@ -78,7 +83,9 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
 
   const authorId = useMemo(
     () =>
-      extractEntityUuidFromEntityId(comment.author.metadata.editionId.baseId),
+      extractEntityUuidFromEntityId(
+        comment.author.metadata.editionId.baseId,
+      ) as Uuid as AccountId,
     [comment.author],
   );
 
@@ -104,8 +111,8 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
         resolvable={
           // TODO: The provenance fields shouldn't be used for this
           //   see https://app.asana.com/0/1201095311341924/1203466351235289/f
-          authenticatedUser?.accountId === authorId ||
-          authenticatedUser?.accountId ===
+          authenticatedUser.accountId === authorId ||
+          authenticatedUser.accountId ===
             comment.parent.metadata.provenance.updatedById
         }
       />

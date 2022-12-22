@@ -72,7 +72,7 @@ export const EntityTypeItem: FunctionComponent<EntityTypeItemProps> = ({
   const url = new URL(`${window.location.origin}${router.asPath}/`);
   const urlBase = `${url.origin}${url.pathname.replace(/\/$/, "")}/`;
   const selected =
-    router.route === "/[account-slug]/types/entity-type/[entity-type-id]" &&
+    router.route === "/[shortname]/types/entity-type/[entity-type-id]" &&
     urlBase === baseUri;
 
   return (

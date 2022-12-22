@@ -1,6 +1,7 @@
-import { FunctionComponent } from "react";
-import { Box, Typography } from "@mui/material";
 import { LoadingSpinner } from "@hashintel/hash-design-system";
+import { Box, Typography } from "@mui/material";
+import { FunctionComponent } from "react";
+
 import { GithubIcon } from "./icons";
 
 export type PullRequestSelectorProps = {

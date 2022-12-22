@@ -1,4 +1,4 @@
-import { performance } from "perf_hooks";
+import { performance } from "node:perf_hooks";
 
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
 import { ApolloServer } from "apollo-server-express";
@@ -64,7 +64,7 @@ export const createApolloServer = ({
     dataSources: getDataSources,
     context: (ctx): Omit<GraphQLContext, "dataSources"> => ({
       ...ctx,
-      userModel: ctx.req.userModel,
+      user: ctx.req.user,
       emailTransporter,
       uploadProvider,
       logger: logger.child({

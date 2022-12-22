@@ -15,7 +15,7 @@ export const propertyGridColumns: PropertyColumn[] = [
   {
     title: "Expected type",
     id: "expectedTypes",
-    width: 200,
+    width: 250,
   },
 ];
 

@@ -256,7 +256,8 @@ module.exports = {
         },
       },
     ],
-    "unicorn/no-array-for-each": ["error"],
+    "unicorn/no-array-for-each": "error",
+    "unicorn/prefer-node-protocol": "error",
   },
   settings: {
     "import/resolver": {
@@ -328,7 +329,8 @@ module.exports = {
           "error", // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/docs/rules/no-misused-promises.md#checksvoidreturn
           { checksVoidReturn: { attributes: false, properties: false } },
         ],
-        // replaced by @typescript-eslint/no-unused-vars
+        "no-constant-condition": "off", // replaced by @typescript-eslint/no-unnecessary-condition
+        "@typescript-eslint/no-unnecessary-condition": "error",
         "@typescript-eslint/no-unused-vars": [
           "error",
           {

@@ -1,5 +1,6 @@
-import { useEffect, useRef, FunctionComponent } from "react";
+import { FunctionComponent, useEffect, useRef } from "react";
 import { tw } from "twind";
+
 import { toCSSText } from "./utils";
 
 type HtmlBlockProps = {
@@ -24,7 +25,7 @@ export const HtmlBlock: FunctionComponent<HtmlBlockProps> = ({
 
     divRef.current.innerHTML = "";
     divRef.current.appendChild(docFragment);
-    const el = divRef.current.children[0] as HTMLIFrameElement;
+    const el = divRef.current.children[0] as HTMLIFrameElement | undefined;
     if (el) {
       el.style.cssText = toCSSText({
         position: "absolute",

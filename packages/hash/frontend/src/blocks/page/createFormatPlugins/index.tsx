@@ -11,7 +11,7 @@ import {
 } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { createRef } from "react";
-import { RenderPortal } from "../usePortals";
+import { RenderPortal } from "../BlockPortals";
 import { ensureMounted } from "../../../lib/dom";
 import { MarksTooltip } from "./MarksTooltip";
 import { LinkModal } from "./LinkModal";
@@ -131,6 +131,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
           }
 
           if (
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
             !dragging &&
             lastState &&
             lastState.doc.eq(state.doc) &&
@@ -200,8 +201,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
         ) {
           linkUrl = nextEditorState.selection.$from
             .marks()
-            ?.find((mark: Mark) => mark.type.name === linkMark.name)
-            ?.attrs.href;
+            .find((mark: Mark) => mark.type.name === linkMark.name)?.attrs.href;
         }
         // If link is in text selection
         else if (

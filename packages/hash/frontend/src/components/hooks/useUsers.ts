@@ -3,7 +3,7 @@ import { useQuery } from "@apollo/client";
 import { types } from "@hashintel/hash-shared/ontology-types";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
-import { constructUser, User } from "../../lib/user";
+import { constructUser, User } from "../../lib/user-and-org";
 import {
   GetAllLatestEntitiesQuery,
   GetAllLatestEntitiesQueryVariables,

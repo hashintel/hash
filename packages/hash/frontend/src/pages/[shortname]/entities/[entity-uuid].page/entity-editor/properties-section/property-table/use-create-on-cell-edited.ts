@@ -6,6 +6,7 @@ import {
 import { useCallback } from "react";
 import { cloneDeep, set } from "lodash";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { EntityId } from "@hashintel/hash-shared/types";
 import { useSnackbar } from "../../../../../../../components/hooks/useSnackbar";
 import { useEntityEditor } from "../../entity-editor-context";
 import { useBlockProtocolUpdateEntity } from "../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolUpdateEntity";
@@ -43,7 +44,9 @@ export const useCreateOnCellEdited = () => {
           return;
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
         if (!key || !row) {
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
           throw new Error(`${key ? "property" : "key"} not found`);
         }
 
@@ -75,7 +78,7 @@ export const useCreateOnCellEdited = () => {
         try {
           await updateEntity({
             data: {
-              entityId: entity.metadata.editionId.baseId,
+              entityId: entity.metadata.editionId.baseId as EntityId,
               updatedProperties,
             },
           });

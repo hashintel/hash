@@ -1,9 +1,9 @@
 import { Entity } from "@hashintel/hash-subgraph";
-import { HashInstanceModel } from "../../../../model";
+import { getHashInstance } from "../../../../graph/knowledge/system-types/hash-instance";
 import { ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 
-export const hashInstanceEntity: ResolverFn<
+export const hashInstanceEntityResolver: ResolverFn<
   Promise<Entity>,
   {},
   LoggedInGraphQLContext,
@@ -11,9 +11,7 @@ export const hashInstanceEntity: ResolverFn<
 > = async (_, __, { dataSources }) => {
   const { graphApi } = dataSources;
 
-  const hashInstanceModel = await HashInstanceModel.getHashInstanceModel(
-    graphApi,
-  );
+  const hashInstance = await getHashInstance({ graphApi }, {});
 
-  return hashInstanceModel.entity;
+  return hashInstance.entity;
 };

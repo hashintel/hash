@@ -11,8 +11,7 @@ import {
   addEntityStoreAction,
   entityStorePluginState,
 } from "@hashintel/hash-shared/entityStorePlugin";
-import { EntityId } from "@hashintel/hash-subgraph";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
+import { AccountId, OwnedById, EntityId } from "@hashintel/hash-shared/types";
 
 // import applyDevTools from "prosemirror-dev-tools";
 import { Plugin } from "prosemirror-state";
@@ -27,7 +26,7 @@ import { createPlaceholderPlugin } from "./createPlaceholderPlugin/createPlaceho
 import { createSuggester } from "./createSuggester/createSuggester";
 import { createFocusPageTitlePlugin } from "./focusPageTitlePlugin";
 import styles from "./style.module.css";
-import { RenderPortal } from "./usePortals";
+import { RenderPortal } from "./BlockPortals";
 import { createTextEditorView } from "./createTextEditorView";
 
 export type BlocksMap = Record<string, HashBlock>;

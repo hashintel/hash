@@ -272,9 +272,9 @@ const entityStoreReducer = (
           (draftEntity) => {
             if ("blockEntityMetadata" in action.payload) {
               draftEntity.componentId =
-                action.payload.blockEntityMetadata?.componentId;
+                action.payload.blockEntityMetadata.componentId;
               draftEntity.blockChildEntity = action.payload.blockEntityMetadata
-                ?.blockChildEntity as any;
+                .blockChildEntity as any;
             }
 
             if ("properties" in action.payload) {
@@ -300,6 +300,7 @@ const entityStoreReducer = (
         );
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
       if (!action.payload.targetEntity) {
         throw new Error("Entity missing to update Block data");
       }

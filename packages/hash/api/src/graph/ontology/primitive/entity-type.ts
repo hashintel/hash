@@ -35,9 +35,9 @@ export const createEntityType: ImpureGraphFunction<
     actorId: AccountId;
   },
   Promise<EntityTypeWithMetadata>
-> = async ({ graphApi }, params) => {
+> = async (ctx, params) => {
   const { ownedById, actorId } = params;
-  const namespace = await getNamespaceOfAccountOwner(graphApi, {
+  const namespace = await getNamespaceOfAccountOwner(ctx, {
     ownerId: params.ownedById,
   });
 
@@ -47,6 +47,8 @@ export const createEntityType: ImpureGraphFunction<
     title: params.schema.title,
   });
   const schema = { $id: entityTypeId, ...params.schema };
+
+  const { graphApi } = ctx;
 
   const { data: metadata } = await graphApi
     .createEntityType({

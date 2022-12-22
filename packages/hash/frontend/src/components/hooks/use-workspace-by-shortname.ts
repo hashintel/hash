@@ -1,6 +1,5 @@
 import { useMemo } from "react";
-import { Org } from "../../lib/org";
-import { User } from "../../lib/user";
+import { Org, User } from "../../lib/user-and-org";
 import { useOrgs } from "./useOrgs";
 import { useUsers } from "./useUsers";
 

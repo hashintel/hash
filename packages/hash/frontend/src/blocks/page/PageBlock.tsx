@@ -2,8 +2,7 @@ import { useApolloClient } from "@apollo/client";
 import { Button } from "@hashintel/hash-design-system";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
-import { EntityId } from "@hashintel/hash-subgraph";
-import { AccountId } from "@hashintel/hash-shared/types";
+import { AccountId, EntityId } from "@hashintel/hash-shared/types";
 import { Box } from "@mui/material";
 import { SxProps } from "@mui/system";
 import { useRouter } from "next/router";
@@ -24,7 +23,7 @@ import {
   getPageSectionContainerStyles,
   PageSectionContainer,
 } from "./PageSectionContainer";
-import { usePortals } from "./usePortals";
+import { usePortals } from "./BlockPortals";
 
 type PageBlockProps = {
   contents: BlockEntity[];
@@ -147,7 +146,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
                   zIndex: 1,
                 }}
               >
-                {pageComments?.map((comment) => (
+                {pageComments.map((comment) => (
                   <CommentThread
                     key={comment.metadata.editionId.baseId}
                     pageId={entityId}

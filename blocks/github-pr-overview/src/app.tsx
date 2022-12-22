@@ -1,21 +1,21 @@
-import { Reducer, useEffect, useReducer, useRef } from "react";
 import {
   BlockComponent,
   useGraphBlockService,
 } from "@blockprotocol/graph/react";
-import { Box, CssBaseline, Theme, ThemeProvider } from "@mui/material";
 import { theme } from "@hashintel/hash-design-system";
+import { Box, CssBaseline, Theme, ThemeProvider } from "@mui/material";
+import { Reducer, useEffect, useReducer, useRef } from "react";
+
+import { getEntityTypeIdsAndPrs, getPrDetails } from "./entity-aggregations";
+import { InfoUI } from "./info-ui";
+import { GithubPrOverview } from "./overview";
+import { PullRequestSelector } from "./pull-request-selector";
 import {
-  PullRequestIdentifier,
+  Actions,
   BlockState,
   LocalState,
-  Actions,
+  PullRequestIdentifier,
 } from "./types";
-import { GithubPrOverview } from "./overview";
-
-import { getPrDetails, getEntityTypeIdsAndPrs } from "./entity-aggregations";
-import { PullRequestSelector } from "./pull-request-selector";
-import { InfoUI } from "./info-ui";
 
 type BlockEntityProperties = {
   selectedPullRequest?: PullRequestIdentifier;
@@ -206,7 +206,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
       void getPrDetails(
         selectedPullRequestIdentifier,
         githubEntityTypeIds,
-        ({ data }) => graphService?.aggregateEntities({ data }),
+        ({ data }) => graphService.aggregateEntities({ data }),
       )
         .then((data) => {
           dispatch({

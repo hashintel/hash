@@ -3,8 +3,8 @@
 /**
  * Entrypoint of the Block Component.
  */
-import { App } from "./app";
-
 import "./index.css";
+
+import { App } from "./app";
 
 export default App;

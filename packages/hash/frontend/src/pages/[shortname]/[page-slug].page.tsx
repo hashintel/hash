@@ -14,10 +14,6 @@ import {
 } from "@hashintel/hash-shared/queries/page.queries";
 import { types } from "@hashintel/hash-shared/ontology-types";
 import { isSafariBrowser } from "@hashintel/hash-shared/util";
-import {
-  EntityId,
-  entityIdFromOwnedByIdAndEntityUuid,
-} from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import { alpha, Box, Collapse } from "@mui/material";
 import { keyBy } from "lodash";
@@ -29,6 +25,10 @@ import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
+  entityIdFromOwnedByIdAndEntityUuid,
+  EntityId,
+  OwnedById,
+  EntityUuid,
 } from "@hashintel/hash-shared/types";
 
 // import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
@@ -58,8 +58,12 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../../lib/apollo-client";
-import { constructMinimalOrg, MinimalOrg } from "../../lib/org";
-import { constructMinimalUser, MinimalUser } from "../../lib/user";
+import {
+  constructMinimalOrg,
+  MinimalOrg,
+  constructMinimalUser,
+  MinimalUser,
+} from "../../lib/user-and-org";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { useIsReadonlyMode } from "../../shared/readonly-mode";
@@ -77,20 +81,20 @@ type PageProps = {
 };
 
 type PageParsedUrlQuery = {
-  "account-slug": string;
+  shortname: string;
   "page-slug": string;
 };
 
 export const isPageParsedUrlQuery = (
   queryParams: NextParsedUrlQuery,
 ): queryParams is PageParsedUrlQuery =>
-  typeof queryParams["account-slug"] === "string" &&
+  typeof queryParams.shortname === "string" &&
   typeof queryParams["page-slug"] === "string";
 
 export const parsePageUrlQueryParams = (params: PageParsedUrlQuery) => {
-  const workspaceShortname = params["account-slug"].slice(1);
+  const workspaceShortname = params.shortname.slice(1);
 
-  const pageEntityUuid = params["page-slug"];
+  const pageEntityUuid = params["page-slug"] as EntityUuid;
 
   return { workspaceShortname, pageEntityUuid };
 };
@@ -118,7 +122,8 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   const { workspaceShortname, pageEntityUuid } =
     parsePageUrlQueryParams(params);
 
-  const { cookie } = req?.headers ?? {};
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
+  const { cookie } = req.headers ?? {};
 
   const workspacesSubgraph = await apolloClient
     .query<GetAllLatestEntitiesQuery>({
@@ -169,7 +174,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
     );
   }
 
-  const pageOwnedById = pageWorkspace?.accountId;
+  const pageOwnedById = pageWorkspace.accountId as OwnedById;
 
   const pageEntityId = entityIdFromOwnedByIdAndEntityUuid(
     pageOwnedById,
@@ -198,7 +203,7 @@ export const PageNotificationBanner: FunctionComponent = () => {
     },
   );
 
-  const archived = data?.page?.archived;
+  const archived = data?.page.archived;
 
   return (
     <Collapse in={!!archived}>
@@ -230,6 +235,7 @@ export const PageNotificationBanner: FunctionComponent = () => {
               background: alpha(palette.gray[90], 0.08),
             },
           })}
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
           onClick={() => pageEntityId && archivePage(false, pageEntityId)}
         >
           Restore
@@ -399,7 +405,7 @@ const Page: NextPageWithLayout<PageProps> = ({
           <TopContextBar
             crumbs={generateCrumbsFromPages({
               pages: accountPages,
-              pageEntityId: data.page.metadata.editionId.baseId,
+              pageEntityId: data.page.metadata.editionId.baseId as EntityId,
               ownerShortname: pageWorkspace.shortname!,
             })}
             scrollToTop={scrollToTop}
@@ -414,7 +420,7 @@ const Page: NextPageWithLayout<PageProps> = ({
               readonly={isReadonlyMode}
               sx={({ breakpoints }) => ({
                 mb: 2,
-                [breakpoints.up(pageComments?.length ? "xl" : "lg")]: {
+                [breakpoints.up(pageComments.length ? "xl" : "lg")]: {
                   position: "absolute",
                   top: 0,
                   right: "calc(100% + 24px)",

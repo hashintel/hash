@@ -39,10 +39,7 @@ export const RoutePageInfoProvider: FunctionComponent<{
   }, [router]);
 
   const contextValue = useMemo<RoutePageInfo | undefined>(
-    () =>
-      routePageEntityUuid
-        ? { routePageEntityUuid: routePageEntityUuid as EntityUuid }
-        : undefined,
+    () => (routePageEntityUuid ? { routePageEntityUuid } : undefined),
     [routePageEntityUuid],
   );
 

@@ -59,6 +59,7 @@ const derivePathsFromSchema = (
     }
     return Object.entries(_schemaProperties).reduce(
       (pathAccumulator, [currentKey, currentSchema]) => {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
         if (!currentSchema) {
           return pathAccumulator;
         }
@@ -141,6 +142,7 @@ const generateInitialTransformations = (
     targetPaths.includes(sourcePath),
   );
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
   if (!matchingKeys) {
     return undefined;
   }
@@ -320,6 +322,7 @@ export const DataMapEditor = ({
                   onChange={(evt) =>
                     onSchemaMapChange(
                       produce((draftMap) => {
+                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
                         if (evt.target.value == null) {
                           return;
                         }

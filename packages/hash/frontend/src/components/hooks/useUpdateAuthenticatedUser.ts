@@ -5,12 +5,13 @@ import { types } from "@hashintel/hash-shared/ontology-types";
 import { extractBaseUri } from "@blockprotocol/type-system";
 import { GraphQLError } from "graphql";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+import { EntityId } from "@hashintel/hash-shared/types";
 import {
   MeQuery,
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../graphql/apiTypes.gen";
-import { AuthenticatedUser } from "../../lib/user";
+import { AuthenticatedUser } from "../../lib/user-and-org";
 import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { useAuthInfo } from "../../pages/shared/auth-info-context";
 import { meQuery } from "../../graphql/queries/user.queries";
@@ -71,7 +72,7 @@ export const useUpdateAuthenticatedUser = () => {
 
         const { errors } = await updateEntity({
           variables: {
-            entityId: latestUserEntity.metadata.editionId.baseId,
+            entityId: latestUserEntity.metadata.editionId.baseId as EntityId,
             updatedProperties: {
               ...currentProperties,
               ...(params.shortname
