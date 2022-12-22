@@ -12,7 +12,7 @@ use graph::{
         account::AccountId,
         knowledge::{EntityEditionId, EntityId},
         ontology::OntologyTypeEditionId,
-        GraphElementEditionId,
+        GraphElementVertexId,
     },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
@@ -289,7 +289,7 @@ impl DatabaseApi<'_> {
         Ok(self
             .store
             .get_entity(&StructuralQuery {
-                filter: Entity::create_filter_for_edition_id(&entity_edition_id),
+                filter: Entity::create_filter_for_vertex_id(&entity_edition_id),
                 graph_resolve_depths: GraphResolveDepths::default(),
             })
             .await?
@@ -393,8 +393,8 @@ impl DatabaseApi<'_> {
             .roots
             .into_iter()
             .filter_map(|edition_id| match edition_id {
-                GraphElementEditionId::Ontology(_) => None,
-                GraphElementEditionId::KnowledgeGraph(edition_id) => {
+                GraphElementVertexId::Ontology(_) => None,
+                GraphElementVertexId::KnowledgeGraph(edition_id) => {
                     subgraph.vertices.entities.remove(&edition_id)
                 }
             })
@@ -453,8 +453,8 @@ impl DatabaseApi<'_> {
             .roots
             .into_iter()
             .filter_map(|edition_id| match edition_id {
-                GraphElementEditionId::Ontology(_) => None,
-                GraphElementEditionId::KnowledgeGraph(edition_id) => {
+                GraphElementVertexId::Ontology(_) => None,
+                GraphElementVertexId::KnowledgeGraph(edition_id) => {
                     subgraph.vertices.entities.remove(&edition_id)
                 }
             })

@@ -10,7 +10,10 @@ use uuid::Uuid;
 
 pub use self::query::{EntityQueryPath, EntityQueryPathVisitor, EntityQueryToken};
 use crate::{
-    identifier::knowledge::{EntityEditionId, EntityId},
+    identifier::{
+        knowledge::{EntityEditionId, EntityId},
+        EntityVertexId,
+    },
     provenance::ProvenanceMetadata,
     store::{query::Filter, Record},
 };
@@ -266,13 +269,21 @@ impl Entity {
 impl Record for Entity {
     type EditionId = EntityEditionId;
     type QueryPath<'p> = EntityQueryPath<'p>;
+    type VertexId = EntityVertexId;
 
     fn edition_id(&self) -> &Self::EditionId {
         &self.metadata.edition_id
     }
 
-    fn create_filter_for_edition_id(edition_id: &Self::EditionId) -> Filter<Self> {
-        Filter::for_entity_by_edition_id(*edition_id)
+    fn vertex_id(&self) -> Self::VertexId {
+        EntityVertexId::new(
+            self.edition_id().base_id(),
+            self.edition_id().version().transaction_time().start,
+        )
+    }
+
+    fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
+        Filter::for_entity_by_vertex_id(*vertex_id)
     }
 }
 

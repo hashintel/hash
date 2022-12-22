@@ -11,6 +11,7 @@ use crate::{
     identifier::{
         account::AccountId,
         time::{DecisionTimeVersionTimespan, TransactionTimeVersionTimespan},
+        EntityVertexId,
     },
     knowledge::{Entity, EntityUuid},
     provenance::OwnedById,
@@ -141,7 +142,7 @@ pub struct EntityEditionId {
     version: EntityVersion,
 }
 
-impl SubgraphIndex<Entity> for EntityEditionId {
+impl SubgraphIndex<Entity> for EntityVertexId {
     fn subgraph_vertex_entry<'a>(
         &self,
         subgraph: &'a mut Subgraph,
