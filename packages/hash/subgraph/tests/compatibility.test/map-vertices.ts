@@ -124,8 +124,8 @@ const mapKnowledgeGraphVertex = (
         editionId: {
           baseId: vertex.inner.metadata.editionId.baseId as EntityId,
           recordId: vertex.inner.metadata.editionId.recordId,
-          version: vertex.inner.metadata.editionId.version as EntityVersion,
         },
+        version: vertex.inner.metadata.version as EntityVersion,
         entityTypeId: vertex.inner.metadata.entityTypeId as VersionedUri,
       },
     },

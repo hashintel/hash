@@ -62,8 +62,8 @@ export const EntitySelector = ({
           !entityIdsToFilterOut?.includes(entity.metadata.editionId.baseId),
       )
       .sort((a, b) =>
-        a.metadata.editionId.version.decisionTime.start.localeCompare(
-          b.metadata.editionId.version.decisionTime.start,
+        a.metadata.version.decisionTime.start.localeCompare(
+          b.metadata.version.decisionTime.start,
         ),
       );
   }, [entities, entityIdsToFilterOut]);
