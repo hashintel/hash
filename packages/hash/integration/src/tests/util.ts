@@ -13,7 +13,7 @@ import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-typ
 import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
-import { OrgSize } from "../graphql/apiTypes.gen";
+import { OrgSize } from "../graphql/api-types.gen";
 
 const randomStringSuffix = () => {
   const alphabet = "abcdefghijklmnopqrstuvwxyz";

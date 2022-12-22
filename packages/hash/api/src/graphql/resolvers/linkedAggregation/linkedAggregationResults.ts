@@ -9,7 +9,7 @@ import {
   UnresolvedGQLLinkedAggregation,
   UnresolvedGQLUnknownEntity,
 } from "../../../model";
-import { ResolverFn } from "../../apiTypes.gen";
+import { ResolverFn } from "../../api-types.gen";
 
 export const linkedAggregationResults: ResolverFn<
   UnresolvedGQLUnknownEntity[],

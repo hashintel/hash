@@ -14,7 +14,7 @@ import {
   ResolverFn,
   QueryGetAllLatestEntitiesArgs,
   MutationArchiveEntityArgs,
-} from "../../../apiTypes.gen";
+} from "../../../api-types.gen";
 import { mapEntityToGQL } from "../graphql-mapping";
 import { LoggedInGraphQLContext } from "../../../context";
 import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
