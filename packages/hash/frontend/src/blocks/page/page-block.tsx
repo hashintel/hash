@@ -19,13 +19,13 @@ import { BlockLoadedProvider } from "../on-block-loaded";
 import { UserBlocksProvider } from "../user-blocks";
 import { usePortals } from "./block-portals";
 import { EditorConnection } from "./collab/editor-connection";
+import { CommentThread } from "./comments/comment-thread";
 import { BlocksMap, createEditorView } from "./create-editor-view";
 import { usePageContext } from "./page-context";
 import {
   getPageSectionContainerStyles,
   PageSectionContainer,
 } from "./page-section-container";
-import { CommentThread } from "./xxx-comments/comment-thread";
 
 type PageBlockProps = {
   contents: BlockEntity[];
