@@ -1209,10 +1209,10 @@ export interface OntologyOutwardEdgesOneOf1 {
   reversed: boolean;
   /**
    *
-   * @type {OntologyOutwardEdgesOneOf1RightEndpoint}
+   * @type {GraphElementVertexIdOneOf1}
    * @memberof OntologyOutwardEdgesOneOf1
    */
-  rightEndpoint: OntologyOutwardEdgesOneOf1RightEndpoint;
+  rightEndpoint: GraphElementVertexIdOneOf1;
 }
 
 export const OntologyOutwardEdgesOneOf1KindEnum = {
@@ -1222,25 +1222,6 @@ export const OntologyOutwardEdgesOneOf1KindEnum = {
 export type OntologyOutwardEdgesOneOf1KindEnum =
   typeof OntologyOutwardEdgesOneOf1KindEnum[keyof typeof OntologyOutwardEdgesOneOf1KindEnum];
 
-/**
- *
- * @export
- * @interface OntologyOutwardEdgesOneOf1RightEndpoint
- */
-export interface OntologyOutwardEdgesOneOf1RightEndpoint {
-  /**
-   *
-   * @type {string}
-   * @memberof OntologyOutwardEdgesOneOf1RightEndpoint
-   */
-  baseId: string;
-  /**
-   *
-   * @type {number}
-   * @memberof OntologyOutwardEdgesOneOf1RightEndpoint
-   */
-  recordId: number;
-}
 /**
  *
  * @export
