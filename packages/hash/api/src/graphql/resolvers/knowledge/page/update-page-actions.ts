@@ -205,7 +205,7 @@ export const handleInsertNewBlock = async (
     const blockData = await createEntityWithPlaceholders(
       entity,
       // assume that the "block entity" is in the same account as the block itself
-      blockOwnedById as OwnedById,
+      blockOwnedById,
     );
 
     placeholderResults.set(entityPlaceholderId, {

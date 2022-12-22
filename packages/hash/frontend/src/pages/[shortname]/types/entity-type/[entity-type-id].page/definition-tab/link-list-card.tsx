@@ -136,7 +136,7 @@ const LinkTypeRow = ({
       throw new Error("Failed to update property type");
     }
 
-    await refetchEntityTypes?.();
+    await refetchEntityTypes();
 
     onUpdateVersionRef.current(
       // @todo temporary bug fix
@@ -350,7 +350,7 @@ export const LinkListCard = () => {
       throw new Error("Could not create");
     }
 
-    await refetchEntityTypes?.();
+    await refetchEntityTypes();
 
     handleAddEntityType(res.data.schema);
   };

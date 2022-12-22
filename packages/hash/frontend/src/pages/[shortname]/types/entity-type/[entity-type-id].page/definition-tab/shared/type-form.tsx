@@ -85,7 +85,7 @@ export const TypeFormNameField = ({
       label="Singular name"
       required
       placeholder="e.g. Stock Price"
-      disabled={fieldDisabled ?? isSubmitting}
+      disabled={fieldDisabled || isSubmitting}
       {...(!fieldDisabled && {
         error: !!nameError,
         helperText: nameError?.message,
@@ -180,7 +180,7 @@ export const TypeFormDescriptionField = ({
       }
       required={descriptionRequired}
       placeholder="Describe this property type in one or two sentences"
-      disabled={fieldDisabled ?? isSubmitting}
+      disabled={fieldDisabled || isSubmitting}
       {...(!fieldDisabled &&
         descriptionTouched && {
           success: descriptionValid,
@@ -322,7 +322,7 @@ export const TypeForm = <T extends TypeFormDefaults>({
   children?: ReactNode;
   nameExists: (name: string) => Promise<boolean>;
 } & TypeFormProps<T>) => {
-  const defaultValues = getDefaultValues() ?? {};
+  const defaultValues = getDefaultValues();
 
   const formMethods = useForm<T>({
     defaultValues,
@@ -407,12 +407,12 @@ export const TypeForm = <T extends TypeFormDefaults>({
           }}
         >
           <TypeFormNameField
-            fieldDisabled={disabledFields?.includes("name") ?? false}
+            fieldDisabled={disabledFields.includes("name")}
             typeExists={nameExists}
           />
           <TypeFormDescriptionField
             defaultValues={defaultValues}
-            fieldDisabled={disabledFields?.includes("description") ?? false}
+            fieldDisabled={disabledFields.includes("description")}
           />
           {children}
         </Stack>
