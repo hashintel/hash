@@ -2,11 +2,12 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 import { ApolloError } from "apollo-server-errors";
+
+import { Aggregation } from "../../../model";
 import {
   MutationDeleteLinkedAggregationArgs,
   ResolverFn,
 } from "../../apiTypes.gen";
-import { Aggregation } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 
 export const deleteLinkedAggregation: ResolverFn<

@@ -1,3 +1,5 @@
+import "prosemirror-view/style/prosemirror.css";
+
 import { useApolloClient } from "@apollo/client";
 import { Button } from "@hashintel/hash-design-system";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
@@ -7,14 +9,15 @@ import { Box } from "@mui/material";
 import { SxProps } from "@mui/system";
 import { useRouter } from "next/router";
 import { EditorView } from "prosemirror-view";
-import "prosemirror-view/style/prosemirror.css";
 import { FunctionComponent, useLayoutEffect, useRef } from "react";
 import { useLocalstorageState } from "rooks";
+
 import { PageThread } from "../../components/hooks/usePageComments";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { useIsReadonlyMode } from "../../shared/readonly-mode";
 import { BlockLoadedProvider } from "../onBlockLoaded";
 import { UserBlocksProvider } from "../userBlocks";
+import { usePortals } from "./BlockPortals";
 import { EditorConnection } from "./collab/EditorConnection";
 import { CommentThread } from "./Comments/CommentThread";
 import { BlocksMap, createEditorView } from "./createEditorView";
@@ -23,7 +26,6 @@ import {
   getPageSectionContainerStyles,
   PageSectionContainer,
 } from "./PageSectionContainer";
-import { usePortals } from "./BlockPortals";
 
 type PageBlockProps = {
   contents: BlockEntity[];

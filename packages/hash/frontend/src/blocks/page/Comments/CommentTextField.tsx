@@ -1,46 +1,47 @@
+import { faAt } from "@fortawesome/free-solid-svg-icons";
 import {
-  useEffect,
-  useRef,
-  useLayoutEffect,
-  FunctionComponent,
-  useContext,
-} from "react";
-import { EditorState } from "prosemirror-state";
-import { EditorView } from "prosemirror-view";
-import { baseKeymap } from "prosemirror-commands";
-import { keymap } from "prosemirror-keymap";
+  FontAwesomeIcon,
+  IconButton,
+  LoadingSpinner,
+} from "@hashintel/hash-design-system";
+import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import {
   createSchema,
   formatKeymap,
   textTokenNodes,
 } from "@hashintel/hash-shared/prosemirror";
-import { Box } from "@mui/material";
-import { faAt } from "@fortawesome/free-solid-svg-icons";
 import {
-  IconButton,
-  FontAwesomeIcon,
-  LoadingSpinner,
-} from "@hashintel/hash-design-system";
-import { TextToken } from "@hashintel/hash-shared/graphql/types";
-import {
-  textBlockNodeToTextTokens,
   textBlockNodesFromTokens,
+  textBlockNodeToTextTokens,
 } from "@hashintel/hash-shared/text";
+import { Box } from "@mui/material";
 import { debounce, isEqual } from "lodash";
+import { baseKeymap } from "prosemirror-commands";
+import { keymap } from "prosemirror-keymap";
+import { EditorState } from "prosemirror-state";
+import { EditorView } from "prosemirror-view";
+import {
+  FunctionComponent,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+} from "react";
+
+import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 import { usePortals } from "../BlockPortals";
 import { createFormatPlugins } from "../createFormatPlugins";
 import {
   createSuggester,
   suggesterPluginKey,
 } from "../createSuggester/createSuggester";
-import styles from "./style.module.css";
+import { createTextEditorView } from "../createTextEditorView";
 import {
   CommentPlaceholderAction,
   commentPlaceholderPlugin,
   commentPlaceholderPluginkey,
 } from "./commentPlaceholderPlugin";
-import { createTextEditorView } from "../createTextEditorView";
-import { WorkspaceContext } from "../../../pages/shared/workspace-context";
+import styles from "./style.module.css";
 
 type CommentTextFieldProps = {
   value?: TextToken[];

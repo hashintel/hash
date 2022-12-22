@@ -1,8 +1,9 @@
 import { Node, Schema } from "prosemirror-model";
-import { ComponentNode } from "./prosemirror";
-import { TextToken } from "./graphql/types";
+
 import { TextEntityType, TextProperties } from "./entity";
 import { TEXT_TOKEN_PROPERTY_TYPE_BASE_URI } from "./entityStore";
+import { TextToken } from "./graphql/types";
+import { ComponentNode } from "./prosemirror";
 
 export const textBlockNodesFromTokens = (
   tokens: TextToken[],

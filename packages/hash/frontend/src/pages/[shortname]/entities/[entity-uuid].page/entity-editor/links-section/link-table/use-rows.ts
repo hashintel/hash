@@ -1,12 +1,13 @@
-import { useMemo } from "react";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { VersionedUri } from "@hashintel/hash-subgraph";
 import { getOutgoingLinkAndTargetEntitiesAtMoment } from "@hashintel/hash-subgraph/src/stdlib/edge/link";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
-import { VersionedUri } from "@hashintel/hash-subgraph";
-import { useEntityEditor } from "../../entity-editor-context";
-import { LinkRow } from "./types";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { useMemo } from "react";
+
 import { useBlockProtocolArchiveEntity } from "../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolArchiveEntity";
 import { useSnackbar } from "../../../../../../../components/hooks/useSnackbar";
+import { useEntityEditor } from "../../entity-editor-context";
+import { LinkRow } from "./types";
 
 export const useRows = () => {
   const { entitySubgraph, refetch } = useEntityEditor();

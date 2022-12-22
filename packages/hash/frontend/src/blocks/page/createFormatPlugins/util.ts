@@ -1,6 +1,6 @@
 import { isComponentNode } from "@hashintel/hash-shared/prosemirror";
 import { InputRule } from "prosemirror-inputrules";
-import { Node, Mark } from "prosemirror-model";
+import { Mark, Node } from "prosemirror-model";
 import { EditorState, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import urlRegexSafe from "url-regex-safe";

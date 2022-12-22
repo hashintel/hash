@@ -1,6 +1,7 @@
 import { CollabPosition } from "@hashintel/hash-shared/collab";
 import { AnimatePresence, motion } from "framer-motion";
-import { useMemo, FunctionComponent } from "react";
+import { FunctionComponent, useMemo } from "react";
+
 import { useCollabPositionContext } from "../../contexts/CollabPositionContext";
 import { CollabPositionIndicator } from "./CollabPositionIndicator";
 

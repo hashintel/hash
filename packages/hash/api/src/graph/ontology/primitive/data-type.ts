@@ -1,6 +1,6 @@
-import { AxiosError } from "axios";
-import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { DataType } from "@blockprotocol/type-system";
+import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import {
   DataTypeWithMetadata,
   Subgraph,
@@ -8,11 +8,12 @@ import {
   VersionedUri,
 } from "@hashintel/hash-subgraph";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
-import { getNamespaceOfAccountOwner } from "./util";
-import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
+import { AxiosError } from "axios";
+
 import { NotFoundError } from "../../../lib/error";
+import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
+import { getNamespaceOfAccountOwner } from "./util";
 
 /**
  * Create a data type.

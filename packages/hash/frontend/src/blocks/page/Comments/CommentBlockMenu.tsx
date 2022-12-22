@@ -1,6 +1,6 @@
-import { FunctionComponent, ReactNode } from "react";
-import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
 import { Menu } from "@mui/material";
+import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
+import { FunctionComponent, ReactNode } from "react";
 
 type CommentBlockMenuProps = {
   popupState: PopupState;

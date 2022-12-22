@@ -1,7 +1,8 @@
 import { Entity, extractOwnedByIdFromEntityId } from "@hashintel/hash-subgraph";
 import { useCallback } from "react";
-import { useUsers } from "./useUsers";
+
 import { useOrgs } from "./useOrgs";
+import { useUsers } from "./useUsers";
 
 export const useGetOwnerForEntity = () => {
   /*

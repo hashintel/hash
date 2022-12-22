@@ -10,7 +10,8 @@ import {
   tooltipClasses,
   Typography,
 } from "@mui/material";
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+
 import { expectedValuesOptions } from "../../shared/expected-values-options";
 
 interface ExpectedValueBadgeProps {

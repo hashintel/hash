@@ -1,3 +1,4 @@
+import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { faClose, faList } from "@fortawesome/free-solid-svg-icons";
 import {
   Button,
@@ -17,7 +18,7 @@ import {
 import { uniqueId } from "lodash";
 import { FunctionComponent } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
-import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
+
 import { faCube } from "../../../../../../../../../../shared/icons/pro/fa-cube";
 import {
   ArrayType,
@@ -26,8 +27,8 @@ import {
   PropertyTypeFormValues,
 } from "../../property-type-form-values";
 import { dataTypeOptions } from "../shared/data-type-options";
-import { useCustomExpectedValueBuilderContext } from "./shared/custom-expected-value-builder-context";
 import { ArrayExpectedValueBuilder } from "./custom-expected-value-builder/array-expected-value-builder";
+import { useCustomExpectedValueBuilderContext } from "./shared/custom-expected-value-builder-context";
 
 const CustomChip: FunctionComponent<ChipProps & { borderColor?: string }> = ({
   borderColor,

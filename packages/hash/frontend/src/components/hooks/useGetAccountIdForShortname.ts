@@ -1,12 +1,12 @@
-import { useMemo } from "react";
 import {
   AccountEntityId,
   AccountId,
   extractAccountId,
 } from "@hashintel/hash-shared/types";
+import { useMemo } from "react";
 
-import { useUsers } from "./useUsers";
 import { useOrgs } from "./useOrgs";
+import { useUsers } from "./useUsers";
 
 export const useGetAccountIdForShortname = (
   shortname: string | undefined,

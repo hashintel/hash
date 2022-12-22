@@ -1,5 +1,6 @@
 import { Box, Typography } from "@mui/material";
 import { FunctionComponent } from "react";
+
 import { LinkListCard } from "./definition-tab/link-list-card";
 import { PropertyListCard } from "./definition-tab/property-list-card";
 import { useEntityType } from "./shared/entity-type-context";

@@ -1,5 +1,6 @@
 import { EntityType, VersionedUri } from "@blockprotocol/type-system";
 import { Chip } from "@hashintel/hash-design-system";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import { linkEntityTypeUri } from "@hashintel/hash-subgraph";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { TableBody, TableCell, TableFooter, TableHead } from "@mui/material";
@@ -11,7 +12,7 @@ import {
   useFormContext,
   useWatch,
 } from "react-hook-form";
-import { OwnedById } from "@hashintel/hash-shared/types";
+
 import { useBlockProtocolCreateEntityType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreateEntityType";
 import { useBlockProtocolGetEntityType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { useBlockProtocolUpdateEntityType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";

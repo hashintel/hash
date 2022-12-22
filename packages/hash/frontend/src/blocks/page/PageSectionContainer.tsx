@@ -1,5 +1,6 @@
 import { Box, SxProps } from "@mui/material";
 import { ReactNode } from "react";
+
 import { PageThread } from "../../components/hooks/usePageComments";
 import { useIsReadonlyMode } from "../../shared/readonly-mode";
 

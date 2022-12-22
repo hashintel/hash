@@ -1,9 +1,10 @@
 import { useMutation } from "@apollo/client";
-import { useCallback } from "react";
 import {
   EntityId,
   extractOwnedByIdFromEntityId,
 } from "@hashintel/hash-shared/types";
+import { useCallback } from "react";
+
 import {
   SetParentPageMutation,
   SetParentPageMutationVariables,

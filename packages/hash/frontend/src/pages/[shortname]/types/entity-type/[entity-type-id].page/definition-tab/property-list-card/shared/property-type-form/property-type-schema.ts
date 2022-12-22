@@ -1,4 +1,5 @@
 import { PropertyValues, VersionedUri } from "@blockprotocol/type-system";
+
 import {
   CustomExpectedValue,
   ExpectedValue,

@@ -1,12 +1,13 @@
-import { styled, TextareaAutosize, experimental_sx as sx } from "@mui/material";
+import { EntityId } from "@hashintel/hash-shared/types";
+import { experimental_sx as sx, styled, TextareaAutosize } from "@mui/material";
 import {
   ChangeEventHandler,
   FocusEventHandler,
+  FunctionComponent,
   KeyboardEventHandler,
   useState,
-  FunctionComponent,
 } from "react";
-import { EntityId } from "@hashintel/hash-shared/types";
+
 import { useUpdatePageTitle } from "../../../components/hooks/useUpdatePageTitle";
 import { useIsReadonlyMode } from "../../../shared/readonly-mode";
 import { usePageContext } from "../PageContext";

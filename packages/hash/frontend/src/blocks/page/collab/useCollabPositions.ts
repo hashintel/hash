@@ -2,6 +2,7 @@ import { CollabPosition } from "@hashintel/hash-shared/collab";
 import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { sleep } from "@hashintel/hash-shared/sleep";
 import { useEffect, useState } from "react";
+
 import { AbortingPromise, GET } from "./http";
 
 const requestRetryInterval = 5000;

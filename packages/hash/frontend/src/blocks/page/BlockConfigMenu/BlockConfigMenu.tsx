@@ -1,27 +1,26 @@
 import { JsonObject, JsonValue } from "@blockprotocol/core";
-import { useKey } from "rooks";
-import { get } from "lodash";
-
+import { TextField } from "@hashintel/hash-design-system";
+import { BlockEntity } from "@hashintel/hash-shared/entity";
+import { JsonSchema } from "@hashintel/hash-shared/json-utils";
 import {
+  Box,
   Checkbox,
   FormControlLabel,
-  Box,
-  Typography,
   Popover,
+  Typography,
 } from "@mui/material";
+import { get } from "lodash";
+import { bindPopover, PopupState } from "material-ui-popup-state/hooks";
 import {
   ChangeEvent,
   ForwardedRef,
+  FunctionComponent,
   useEffect,
   useRef,
   useState,
-  FunctionComponent,
 } from "react";
-import { BlockEntity } from "@hashintel/hash-shared/entity";
-import { JsonSchema } from "@hashintel/hash-shared/json-utils";
-import { bindPopover, PopupState } from "material-ui-popup-state/hooks";
+import { useKey } from "rooks";
 
-import { TextField } from "@hashintel/hash-design-system";
 import { MenuItem } from "../../../shared/ui";
 
 const extractConfigPropertySchemas = (

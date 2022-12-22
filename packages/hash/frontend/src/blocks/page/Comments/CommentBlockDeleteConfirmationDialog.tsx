@@ -1,14 +1,14 @@
-import { FunctionComponent } from "react";
 import { Button } from "@hashintel/hash-design-system";
 import {
-  backdropClasses,
-  dialogClasses,
   alpha,
-  DialogContent,
-  DialogContentText,
+  backdropClasses,
   Box,
   Dialog,
+  dialogClasses,
+  DialogContent,
+  DialogContentText,
 } from "@mui/material";
+import { FunctionComponent } from "react";
 
 type CommentBlockDeleteConfirmationDialogProps = {
   container: HTMLDivElement | null;

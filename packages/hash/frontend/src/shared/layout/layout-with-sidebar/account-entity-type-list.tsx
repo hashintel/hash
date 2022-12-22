@@ -24,6 +24,7 @@ import {
   useState,
 } from "react";
 import { TransitionGroup } from "react-transition-group";
+
 import { useBlockProtocolAggregateEntityTypes } from "../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateEntityTypes";
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
 import {

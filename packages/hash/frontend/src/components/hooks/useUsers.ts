@@ -1,14 +1,15 @@
-import { useMemo } from "react";
 import { useQuery } from "@apollo/client";
 import { types } from "@hashintel/hash-shared/ontology-types";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
-import { constructUser, User } from "../../lib/user-and-org";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { useMemo } from "react";
+
 import {
   GetAllLatestEntitiesQuery,
   GetAllLatestEntitiesQueryVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { constructUser, User } from "../../lib/user-and-org";
 
 export const useUsers = (
   cache = false,

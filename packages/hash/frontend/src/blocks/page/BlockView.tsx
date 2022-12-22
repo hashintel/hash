@@ -1,4 +1,5 @@
 import { BlockVariant } from "@blockprotocol/core";
+import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
 import { EntityStore } from "@hashintel/hash-shared/entityStore";
 import {
   entityStorePluginState,
@@ -8,23 +9,21 @@ import {
   findComponentNode,
   isEntityNode,
 } from "@hashintel/hash-shared/prosemirror";
-import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
+import { EntityId } from "@hashintel/hash-shared/types";
 import { Node } from "prosemirror-model";
 import { NodeSelection, TextSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
-import { createRef, createContext, useContext } from "react";
-
-import { EntityId } from "@hashintel/hash-shared/types";
-import { CollabPositionIndicators } from "./CollabPositionIndicators";
-import styles from "./style.module.css";
+import { createContext, createRef, useContext } from "react";
 
 import { BlockContext } from "./BlockContext";
 import { BlockHandle } from "./BlockHandle";
-import { InsertBlock } from "./InsertBlock";
 import { BlockHighlight } from "./BlockHighlight";
-import { CreateBlockCommentButton } from "./Comments/CreateBlockCommentButton";
 import { RenderPortal } from "./BlockPortals";
+import { CollabPositionIndicators } from "./CollabPositionIndicators";
+import { CreateBlockCommentButton } from "./Comments/CreateBlockCommentButton";
+import { InsertBlock } from "./InsertBlock";
+import styles from "./style.module.css";
 
 export const getBlockDomId = (blockEntityId: string) =>
   `entity-${blockEntityId}`;

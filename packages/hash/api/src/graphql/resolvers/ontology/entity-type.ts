@@ -1,20 +1,20 @@
+import { OwnedById } from "@hashintel/hash-shared/types";
+import { EntityTypeWithMetadata, Subgraph } from "@hashintel/hash-subgraph";
 import { ApolloError } from "apollo-server-express";
 import { AxiosError } from "axios";
-import { EntityTypeWithMetadata, Subgraph } from "@hashintel/hash-subgraph";
-import { OwnedById } from "@hashintel/hash-shared/types";
 
-import {
-  MutationCreateEntityTypeArgs,
-  MutationUpdateEntityTypeArgs,
-  QueryGetEntityTypeArgs,
-  QueryGetAllLatestEntityTypesArgs,
-  ResolverFn,
-} from "../../apiTypes.gen";
-import { LoggedInGraphQLContext } from "../../context";
 import {
   createEntityType,
   updateEntityType,
 } from "../../../graph/ontology/primitive/entity-type";
+import {
+  MutationCreateEntityTypeArgs,
+  MutationUpdateEntityTypeArgs,
+  QueryGetAllLatestEntityTypesArgs,
+  QueryGetEntityTypeArgs,
+  ResolverFn,
+} from "../../apiTypes.gen";
+import { LoggedInGraphQLContext } from "../../context";
 
 export const createEntityTypeResolver: ResolverFn<
   Promise<EntityTypeWithMetadata>,

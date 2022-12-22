@@ -1,4 +1,5 @@
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon, TextField } from "@hashintel/hash-design-system";
 import { HashBlock } from "@hashintel/hash-shared/blocks";
 import {
   Box,
@@ -9,11 +10,11 @@ import {
   Typography,
 } from "@mui/material";
 import { PopupState } from "material-ui-popup-state/core";
-import { useRef, useState, FunctionComponent, useEffect } from "react";
-import { TextField, FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { useFilteredBlocks } from "../createSuggester/useFilteredBlocks";
+import { FunctionComponent, useEffect, useRef, useState } from "react";
+
 import { MenuItem } from "../../../shared/ui";
 import { useBlockView } from "../BlockView";
+import { useFilteredBlocks } from "../createSuggester/useFilteredBlocks";
 
 type BlockListMenuContentProps = {
   popupState?: PopupState;

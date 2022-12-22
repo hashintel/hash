@@ -1,19 +1,19 @@
-import {
-  useEffect,
-  useState,
-  useRef,
-  FunctionComponent,
-  FormEvent,
-} from "react";
-import { useRouter } from "next/router";
-
 import { Box } from "@mui/material";
-import { LogoIcon, SpinnerIcon } from "../../shared/icons";
+import { useRouter } from "next/router";
+import {
+  FormEvent,
+  FunctionComponent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
 import { TextInput } from "../../components/forms/TextInput";
-import { InviteHeader } from "../shared/invite-header";
-import { InvitationInfo } from "../shared/auth-utils";
+import { LogoIcon, SpinnerIcon } from "../../shared/icons";
 import { Link } from "../../shared/ui";
 import { useAuthInfo } from "../shared/auth-info-context";
+import { InvitationInfo } from "../shared/auth-utils";
+import { InviteHeader } from "../shared/invite-header";
 
 type SignupIntroProps = {
   handleSubmit: (email: string) => void;

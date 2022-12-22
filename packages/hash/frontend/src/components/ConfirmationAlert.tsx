@@ -1,4 +1,3 @@
-import { FunctionComponent, ReactNode } from "react";
 import {
   Dialog,
   DialogActions,
@@ -6,6 +5,8 @@ import {
   DialogContentText,
   DialogTitle,
 } from "@mui/material";
+import { FunctionComponent, ReactNode } from "react";
+
 import { Button } from "../shared/ui";
 
 type ConfirmationAlertProps = {

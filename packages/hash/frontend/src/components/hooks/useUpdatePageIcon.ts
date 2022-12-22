@@ -1,11 +1,11 @@
 import { useMutation } from "@apollo/client";
 import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
-
-import { useCallback } from "react";
 import {
   EntityId,
   extractOwnedByIdFromEntityId,
 } from "@hashintel/hash-shared/types";
+import { useCallback } from "react";
+
 import {
   GetPageInfoQueryVariables,
   UpdatePageMutation,

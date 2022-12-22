@@ -2,6 +2,7 @@ import { TextField } from "@hashintel/hash-design-system";
 import { Box, Collapse } from "@mui/material";
 import { FormEvent, FunctionComponent, useRef, useState } from "react";
 import { unstable_batchedUpdates } from "react-dom";
+
 import { Button } from "../../../shared/ui";
 import { useUserBlocks } from "../../userBlocks";
 import { useBlockView } from "../BlockView";

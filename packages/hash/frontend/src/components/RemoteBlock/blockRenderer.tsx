@@ -1,5 +1,5 @@
 import { BlockMetadata, UnknownRecord } from "@blockprotocol/core";
-import { ReactElement, FunctionComponent } from "react";
+import { FunctionComponent, ReactElement } from "react";
 
 import { CustomElementLoader } from "./blockRenderer/customElement";
 import { HtmlLoader } from "./blockRenderer/html";

@@ -11,19 +11,18 @@ import {
   CreateResourceError,
   ReadOrModifyResourceError,
 } from "@blockprotocol/graph";
-
 import {
-  PropertyType,
   EntityType,
+  PropertyType,
   VersionedUri,
 } from "@blockprotocol/type-system";
+import { EmptyObject } from "@hashintel/hash-shared/util";
 import {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
   Subgraph,
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
-import { EmptyObject } from "@hashintel/hash-shared/util";
 
 export type OntologyCallbacks = {
   aggregateDataTypes: AggregateDataTypesMessageCallback;

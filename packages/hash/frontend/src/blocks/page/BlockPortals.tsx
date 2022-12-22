@@ -1,6 +1,7 @@
-import { Fragment, useMemo, ReactNode, useCallback, useState } from "react";
+import { Fragment, ReactNode, useCallback, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { v4 as uuid } from "uuid";
+
 import { BlockContext } from "./BlockContext";
 
 export interface PortalProps {

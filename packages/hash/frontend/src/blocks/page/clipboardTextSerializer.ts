@@ -1,4 +1,4 @@
-import { NodeType, Node, Slice } from "prosemirror-model";
+import { Node, NodeType, Slice } from "prosemirror-model";
 
 // /**
 //  * Prosemirror doesn't know to convert hard breaks into new line characters

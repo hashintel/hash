@@ -1,4 +1,5 @@
 import { Box, Skeleton } from "@mui/material";
+
 import { ProsemirrorLoadingState } from "../blocks/page/LoadingView";
 import { PAGE_CONTENT_WIDTH } from "../blocks/page/PageSectionContainer";
 import {

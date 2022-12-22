@@ -4,8 +4,8 @@ import {
   EntityId,
   extractOwnedByIdFromEntityId,
 } from "@hashintel/hash-shared/types";
-
 import { useCallback } from "react";
+
 import {
   GetPageInfoQueryVariables,
   UpdatePageMutation,

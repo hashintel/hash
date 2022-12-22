@@ -1,3 +1,5 @@
+import "iframe-resizer/js/iframeResizer.contentWindow";
+
 import * as Sentry from "@sentry/react";
 import {
   BlockProtocolAggregateEntitiesFunction,
@@ -6,8 +8,7 @@ import {
   BlockProtocolEntity,
   BlockProtocolUpdateEntitiesFunction,
 } from "blockprotocol";
-import "iframe-resizer/js/iframeResizer.contentWindow";
-import { useCallback, useEffect, useState, FunctionComponent } from "react";
+import { FunctionComponent, useCallback, useEffect, useState } from "react";
 
 import { FetchEmbedCodeFn } from "../../BlockLoader/fetchEmbedCode";
 // import { ErrorBlock } from "../../ErrorBlock/ErrorBlock";

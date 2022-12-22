@@ -1,21 +1,21 @@
 import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  FunctionComponent,
-} from "react";
-import {
   BlockProtocolFunction,
   BlockProtocolFunctions,
   JSONObject,
 } from "blockprotocol";
+import {
+  FunctionComponent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { v4 as uuid } from "uuid";
 
-import { ResizingIFrame } from "../ResizingIFrame/ResizingIFrame";
-import { MessageFromBlockFramer, MessageFromFramedBlock } from "../types";
 import { memoizeFetchFunction } from "../../../lib/memoize";
 import { FetchEmbedCodeFn } from "../../BlockLoader/fetchEmbedCode";
+import { ResizingIFrame } from "../ResizingIFrame/ResizingIFrame";
+import { MessageFromBlockFramer, MessageFromFramedBlock } from "../types";
 
 export type CrossFrameProxyProps = BlockProtocolFunctions & {
   blockProperties: JSONObject;

@@ -1,9 +1,11 @@
-import { convert } from "html-to-text";
-import path from "node:path";
 import fs from "node:fs/promises";
-import { dump } from "js-yaml";
-import dedent from "dedent";
+import path from "node:path";
+
 import clipboardy from "clipboardy";
+import dedent from "dedent";
+import { convert } from "html-to-text";
+import { dump } from "js-yaml";
+
 import { logger } from "../../logger";
 import { EmailTransporter, EmailTransporterSendMailOptions } from "./types";
 

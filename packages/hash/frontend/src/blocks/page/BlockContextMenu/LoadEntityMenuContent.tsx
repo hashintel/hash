@@ -1,5 +1,13 @@
 import { faAsterisk, faSearch } from "@fortawesome/free-solid-svg-icons";
 import {
+  FontAwesomeIcon,
+  LoadingSpinner,
+  TextField,
+} from "@hashintel/hash-design-system";
+import { BlockEntity } from "@hashintel/hash-shared/entity";
+import { EntityStoreType } from "@hashintel/hash-shared/entityStore";
+import { EntityId } from "@hashintel/hash-subgraph";
+import {
   Box,
   InputAdornment,
   ListItemIcon,
@@ -9,23 +17,16 @@ import {
 } from "@mui/material";
 import { PopupState } from "material-ui-popup-state/core";
 import {
+  FunctionComponent,
   useCallback,
   useEffect,
   useMemo,
   useRef,
-  FunctionComponent,
 } from "react";
-import { BlockEntity } from "@hashintel/hash-shared/entity";
-import {
-  LoadingSpinner,
-  TextField,
-  FontAwesomeIcon,
-} from "@hashintel/hash-design-system";
-import { EntityId } from "@hashintel/hash-subgraph";
-import { EntityStoreType } from "@hashintel/hash-shared/entityStore";
-import { useBlockView } from "../BlockView";
-import { MenuItem } from "../../../shared/ui";
+
 import { generateEntityLabel } from "../../../lib/entities";
+import { MenuItem } from "../../../shared/ui";
+import { useBlockView } from "../BlockView";
 
 type LoadEntityMenuContentProps = {
   blockEntityId: EntityId | null;

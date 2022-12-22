@@ -2,12 +2,12 @@ import {
   fontAwesomeIconClasses,
   IconButton,
 } from "@hashintel/hash-design-system";
-import { iconButtonClasses, Tooltip, SxProps, Theme } from "@mui/material";
+import { EntityId } from "@hashintel/hash-shared/types";
+import { iconButtonClasses, SxProps, Theme, Tooltip } from "@mui/material";
 import { SystemStyleObject } from "@mui/system";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { MouseEventHandler } from "react";
 
-import { EntityId } from "@hashintel/hash-shared/types";
 import {
   EmojiPicker,
   EmojiPickerPopoverProps,

@@ -1,11 +1,12 @@
-import { useRouter } from "next/router";
-import { NextParsedUrlQuery } from "next/dist/server/request-meta";
-import { Typography, Container, Grid, Skeleton, Box } from "@mui/material";
 import { Avatar } from "@hashintel/hash-design-system";
+import { Box, Container, Grid, Skeleton, Typography } from "@mui/material";
+import { NextParsedUrlQuery } from "next/dist/server/request-meta";
+import { useRouter } from "next/router";
 import { useMemo } from "react";
-import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
-import { useUsers } from "../../components/hooks/useUsers";
+
 import { useOrgs } from "../../components/hooks/useOrgs";
+import { useUsers } from "../../components/hooks/useUsers";
+import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 
 const menuBarHeight = 60;
 

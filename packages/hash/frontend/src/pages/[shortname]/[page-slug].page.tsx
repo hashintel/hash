@@ -8,11 +8,19 @@ import {
   GetPageQuery,
   GetPageQueryVariables,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import {
   getPageInfoQuery,
   getPageQuery,
 } from "@hashintel/hash-shared/queries/page.queries";
-import { types } from "@hashintel/hash-shared/ontology-types";
+import {
+  EntityId,
+  entityIdFromOwnedByIdAndEntityUuid,
+  EntityUuid,
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+  OwnedById,
+} from "@hashintel/hash-shared/types";
 import { isSafariBrowser } from "@hashintel/hash-shared/util";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import { alpha, Box, Collapse } from "@mui/material";
@@ -22,14 +30,6 @@ import { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import Head from "next/head";
 import { Router } from "next/router";
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
-import {
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-  entityIdFromOwnedByIdAndEntityUuid,
-  EntityId,
-  OwnedById,
-  EntityUuid,
-} from "@hashintel/hash-shared/types";
 
 // import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
 // import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
@@ -58,10 +58,11 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../../lib/apollo-client";
+import { constructPageRelativeUrl } from "../../lib/routes";
 import {
   constructMinimalOrg,
-  MinimalOrg,
   constructMinimalUser,
+  MinimalOrg,
   MinimalUser,
 } from "../../lib/user-and-org";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
@@ -72,7 +73,6 @@ import {
   TOP_CONTEXT_BAR_HEIGHT,
   TopContextBar,
 } from "../shared/top-context-bar";
-import { constructPageRelativeUrl } from "../../lib/routes";
 
 type PageProps = {
   pageWorkspace: MinimalUser | MinimalOrg;

@@ -17,8 +17,9 @@ import {
 } from "@mui/material";
 import clsx from "clsx";
 import { Ref, useMemo } from "react";
-import { OntologyChip, parseUriForOntologyChip } from "./ontology-chip";
+
 import { AutocompleteDropdown } from "./autocomplete-dropdown";
+import { OntologyChip, parseUriForOntologyChip } from "./ontology-chip";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 
 const TYPE_SELECTOR_HEIGHT = 57;

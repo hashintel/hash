@@ -1,9 +1,10 @@
 import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { ListItemIcon, ListItemText } from "@mui/material";
 import {
-  bindPopover,
-  bindHover,
   bindFocus,
+  bindHover,
+  bindPopover,
   usePopupState,
 } from "material-ui-popup-state/hooks";
 import HoverPopover from "material-ui-popup-state/HoverPopover";
@@ -16,7 +17,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+
 import { MenuItem } from "../../../shared/ui";
 
 type BlockContextMenuItemProps = {

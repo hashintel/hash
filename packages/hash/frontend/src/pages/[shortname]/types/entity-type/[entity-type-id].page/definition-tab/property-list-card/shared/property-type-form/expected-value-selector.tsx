@@ -8,21 +8,21 @@ import { types } from "@hashintel/hash-shared/ontology-types";
 import { Autocomplete, Box, PaperProps, Typography } from "@mui/material";
 import { forwardRef, ForwardRefRenderFunction, useMemo, useState } from "react";
 import { useController, useFormContext, useWatch } from "react-hook-form";
+
 import { AutocompleteDropdown } from "../../../../../../../shared/autocomplete-dropdown";
+import { StyledPlusCircleIcon } from "../../../../../../../shared/styled-plus-circle-icon";
 import {
   ArrayType,
   PropertyTypeFormValues,
 } from "../property-type-form-values";
-import { ExpectedValueChip } from "./expected-value-selector/expected-value-chip";
-import { expectedValuesOptions } from "./expected-value-selector/shared/expected-values-options";
-import { dataTypeOptions } from "./shared/data-type-options";
-
-import { StyledPlusCircleIcon } from "../../../../../../../shared/styled-plus-circle-icon";
 import { CustomExpectedValueBuilder } from "./expected-value-selector/custom-expected-value-builder";
+import { ExpectedValueChip } from "./expected-value-selector/expected-value-chip";
 import {
   CustomExpectedValueBuilderContext,
   useCustomExpectedValueBuilderContext,
 } from "./expected-value-selector/shared/custom-expected-value-builder-context";
+import { expectedValuesOptions } from "./expected-value-selector/shared/expected-values-options";
+import { dataTypeOptions } from "./shared/data-type-options";
 
 const ExpectedValueSelectorDropdown = ({ children, ...props }: PaperProps) => {
   const {

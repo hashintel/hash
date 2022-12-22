@@ -1,13 +1,14 @@
-import { useMemo } from "react";
 import { useQuery } from "@apollo/client";
-import { types } from "@hashintel/hash-shared/ontology-types";
 import { extractBaseUri } from "@blockprotocol/type-system";
+import { types } from "@hashintel/hash-shared/ontology-types";
+import { useMemo } from "react";
+
 import {
   GetHashInstanceEntityQueryQuery,
   GetHashInstanceEntityQueryQueryVariables,
 } from "../../graphql/apiTypes.gen";
-import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { getHashInstanceEntityQuery } from "../../graphql/queries/knowledge/hashInstance.queries";
+import { useInitTypeSystem } from "../../lib/use-init-type-system";
 
 type HashInstance = {
   userSelfRegistrationIsEnabled: boolean;

@@ -1,22 +1,22 @@
+import { ApolloClient } from "@apollo/client";
 import { HashBlock } from "@hashintel/hash-shared/blocks";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
-import { debounce } from "lodash";
-// import { apiOrigin } from "@hashintel/hash-shared/environment";
-import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
-import { EditorView } from "prosemirror-view";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
-import { save } from "@hashintel/hash-shared/save";
-import { ApolloClient } from "@apollo/client";
 import {
   addEntityStoreAction,
   entityStorePluginState,
 } from "@hashintel/hash-shared/entityStorePlugin";
-import { AccountId, OwnedById, EntityId } from "@hashintel/hash-shared/types";
-
+// import { apiOrigin } from "@hashintel/hash-shared/environment";
+import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
+import { save } from "@hashintel/hash-shared/save";
+import { AccountId, EntityId, OwnedById } from "@hashintel/hash-shared/types";
+import { debounce } from "lodash";
 // import applyDevTools from "prosemirror-dev-tools";
 import { Plugin } from "prosemirror-state";
+import { EditorView } from "prosemirror-view";
 import { RefObject } from "react";
-import { LoadingView } from "./LoadingView";
+
+import { RenderPortal } from "./BlockPortals";
 import { BlockView } from "./BlockView";
 import { EditorConnection } from "./collab/EditorConnection";
 import { ComponentView } from "./ComponentView";
@@ -24,10 +24,10 @@ import { createErrorPlugin } from "./createErrorPlugin";
 import { createFormatPlugins } from "./createFormatPlugins";
 import { createPlaceholderPlugin } from "./createPlaceholderPlugin/createPlaceholderPlugin";
 import { createSuggester } from "./createSuggester/createSuggester";
-import { createFocusPageTitlePlugin } from "./focusPageTitlePlugin";
-import styles from "./style.module.css";
-import { RenderPortal } from "./BlockPortals";
 import { createTextEditorView } from "./createTextEditorView";
+import { createFocusPageTitlePlugin } from "./focusPageTitlePlugin";
+import { LoadingView } from "./LoadingView";
+import styles from "./style.module.css";
 
 export type BlocksMap = Record<string, HashBlock>;
 

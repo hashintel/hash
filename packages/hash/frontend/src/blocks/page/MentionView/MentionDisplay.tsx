@@ -1,17 +1,16 @@
-import { useMemo, FunctionComponent } from "react";
-import ArticleIcon from "@mui/icons-material/Article";
-
+import { systemUserShortname } from "@hashintel/hash-shared/environment";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import {
   EntityId,
   extractEntityUuidFromEntityId,
 } from "@hashintel/hash-subgraph";
-import { systemUserShortname } from "@hashintel/hash-shared/environment";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
+import ArticleIcon from "@mui/icons-material/Article";
+import { FunctionComponent, useMemo } from "react";
 
-import { useUsers } from "../../../components/hooks/useUsers";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
-import { Link } from "../../../shared/ui";
+import { useUsers } from "../../../components/hooks/useUsers";
 import { constructPageRelativeUrl } from "../../../lib/routes";
+import { Link } from "../../../shared/ui";
 
 interface MentionDisplayProps {
   entityId: EntityId;

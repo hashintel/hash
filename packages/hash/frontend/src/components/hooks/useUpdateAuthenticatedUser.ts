@@ -1,20 +1,20 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
+import { extractBaseUri } from "@blockprotocol/type-system";
+import { types } from "@hashintel/hash-shared/ontology-types";
+import { EntityId } from "@hashintel/hash-shared/types";
+import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+import { GraphQLError } from "graphql";
 import { useCallback, useState } from "react";
 
-import { types } from "@hashintel/hash-shared/ontology-types";
-import { extractBaseUri } from "@blockprotocol/type-system";
-import { GraphQLError } from "graphql";
-import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
-import { EntityId } from "@hashintel/hash-shared/types";
 import {
   MeQuery,
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../graphql/apiTypes.gen";
-import { AuthenticatedUser } from "../../lib/user-and-org";
 import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
-import { useAuthInfo } from "../../pages/shared/auth-info-context";
 import { meQuery } from "../../graphql/queries/user.queries";
+import { AuthenticatedUser } from "../../lib/user-and-org";
+import { useAuthInfo } from "../../pages/shared/auth-info-context";
 
 type UpdateAuthenticatedUserParams = {
   shortname?: string;

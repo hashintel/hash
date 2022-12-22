@@ -1,14 +1,8 @@
 import {
-  areComponentsCompatible,
-  isHashTextBlock,
-} from "@hashintel/hash-shared/blocks";
-import { useRef, forwardRef, useMemo, ForwardRefRenderFunction } from "react";
-
-import { useKey } from "rooks";
-
-import { Box, Divider, Menu, Typography } from "@mui/material";
-import { bindMenu } from "material-ui-popup-state";
-import { PopupState } from "material-ui-popup-state/hooks";
+  faCopy,
+  faMessage,
+  faTrashCan,
+} from "@fortawesome/free-regular-svg-icons";
 // import { format } from "date-fns";
 import {
   faAdd,
@@ -18,23 +12,26 @@ import {
   faMap,
   faRefresh,
 } from "@fortawesome/free-solid-svg-icons";
-import {
-  faCopy,
-  faMessage,
-  faTrashCan,
-} from "@fortawesome/free-regular-svg-icons";
-import { BlockEntity } from "@hashintel/hash-shared/entity";
-
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import {
+  areComponentsCompatible,
+  isHashTextBlock,
+} from "@hashintel/hash-shared/blocks";
+import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { PropertyObject } from "@hashintel/hash-subgraph";
+import { Box, Divider, Menu, Typography } from "@mui/material";
+import { bindMenu } from "material-ui-popup-state";
+import { PopupState } from "material-ui-popup-state/hooks";
+import { forwardRef, ForwardRefRenderFunction, useMemo, useRef } from "react";
+import { useKey } from "rooks";
+
+import { useUsers } from "../../../components/hooks/useUsers";
 import { useUserBlocks } from "../../userBlocks";
 import { getBlockDomId } from "../BlockView";
-
-import { BlockLoaderInput } from "./BlockLoaderInput";
-import { useUsers } from "../../../components/hooks/useUsers";
 import { BlockContextMenuItem } from "./BlockContextMenuItem";
-import { LoadEntityMenuContent } from "./LoadEntityMenuContent";
 import { BlockListMenuContent } from "./BlockListMenuContent";
+import { BlockLoaderInput } from "./BlockLoaderInput";
+import { LoadEntityMenuContent } from "./LoadEntityMenuContent";
 
 type BlockContextMenuProps = {
   blockEntity: BlockEntity | null;

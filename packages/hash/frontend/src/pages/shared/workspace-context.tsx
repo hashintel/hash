@@ -1,13 +1,13 @@
+import { AccountId } from "@hashintel/hash-shared/types";
 import {
-  ReactElement,
-  useMemo,
   createContext,
+  FunctionComponent,
+  ReactElement,
   useCallback,
   useEffect,
+  useMemo,
   useState,
-  FunctionComponent,
 } from "react";
-import { AccountId } from "@hashintel/hash-shared/types";
 
 import { localStorageKeys } from "../../lib/config";
 import { MinimalOrg, User } from "../../lib/user-and-org";

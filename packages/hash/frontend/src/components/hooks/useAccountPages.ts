@@ -1,6 +1,6 @@
 import { useQuery } from "@apollo/client";
+import { EntityId, OwnedById } from "@hashintel/hash-shared/types";
 import { useMemo } from "react";
-import { OwnedById, EntityId } from "@hashintel/hash-shared/types";
 
 import {
   GetAccountPagesTreeQuery,

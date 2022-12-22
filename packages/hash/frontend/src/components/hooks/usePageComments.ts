@@ -1,7 +1,8 @@
 import { useQuery } from "@apollo/client";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
-import { EntityMetadata, Entity } from "@hashintel/hash-subgraph";
 import { EntityId } from "@hashintel/hash-shared/types";
+import { Entity, EntityMetadata } from "@hashintel/hash-subgraph";
+
 import {
   GetPageCommentsQuery,
   GetPageCommentsQueryVariables,

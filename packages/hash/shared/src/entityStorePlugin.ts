@@ -5,6 +5,7 @@ import { Node } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
+
 import { BlockEntity, getEntityChildEntity, isTextEntity } from "./entity";
 import {
   createEntityStore,

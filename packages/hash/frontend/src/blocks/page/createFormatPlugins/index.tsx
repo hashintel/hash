@@ -11,10 +11,11 @@ import {
 } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { createRef } from "react";
-import { RenderPortal } from "../BlockPortals";
+
 import { ensureMounted } from "../../../lib/dom";
-import { MarksTooltip } from "./MarksTooltip";
+import { RenderPortal } from "../BlockPortals";
 import { LinkModal } from "./LinkModal";
+import { MarksTooltip } from "./MarksTooltip";
 import {
   getActiveMarksWithAttrs,
   isValidLink,

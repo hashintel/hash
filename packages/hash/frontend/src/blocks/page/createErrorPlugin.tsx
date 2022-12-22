@@ -1,7 +1,8 @@
+import { Button } from "@hashintel/hash-design-system";
 import { Box, Dialog, Stack, Typography } from "@mui/material";
 import { Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { FunctionComponent } from "react";
-import { Button } from "@hashintel/hash-design-system";
+
 import { ensureMounted } from "../../lib/dom";
 import { RenderPortal } from "./BlockPortals";
 

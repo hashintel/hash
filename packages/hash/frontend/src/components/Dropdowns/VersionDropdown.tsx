@@ -1,6 +1,6 @@
-import { FunctionComponent, ChangeEvent } from "react";
-import { formatDistance } from "date-fns";
 import { Box } from "@mui/material";
+import { formatDistance } from "date-fns";
+import { ChangeEvent, FunctionComponent } from "react";
 
 type VersionDropdownProps = {
   onChange: (value?: string) => void;

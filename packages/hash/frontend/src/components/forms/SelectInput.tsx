@@ -1,11 +1,11 @@
 import { Box } from "@mui/material";
 import { uniqueId } from "lodash";
 import {
-  forwardRef,
   ChangeEvent,
+  forwardRef,
+  HTMLProps,
   useCallback,
   useState,
-  HTMLProps,
 } from "react";
 
 type SelectInputProps = {

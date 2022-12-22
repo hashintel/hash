@@ -1,7 +1,7 @@
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
+import { isHashInstanceAdminMiddleware } from "./isHashInstanceAdmin";
 import { loggedInAndSignedUpMiddleware } from "./loggedInAndSignedUp";
 import { ResolverMiddleware } from "./middlewareTypes";
-import { isHashInstanceAdminMiddleware } from "./isHashInstanceAdmin";
 
 export const loggedInAndSignedUpHashInstanceAdminMiddleware: ResolverMiddleware<
   GraphQLContext,

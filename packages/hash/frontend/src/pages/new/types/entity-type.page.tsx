@@ -2,6 +2,7 @@ import { EntityType } from "@blockprotocol/type-system";
 import { Button, TextField } from "@hashintel/hash-design-system";
 import { frontendUrl } from "@hashintel/hash-shared/environment";
 import { generateBaseTypeId } from "@hashintel/hash-shared/ontology-types";
+import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import {
   Box,
   Container,
@@ -17,7 +18,7 @@ import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { ReactNode, useContext } from "react";
 import { useForm } from "react-hook-form";
-import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
+
 import { useBlockProtocolGetEntityType } from "../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { useInitTypeSystem } from "../../../lib/use-init-type-system";
 import {
@@ -25,10 +26,10 @@ import {
   NextPageWithLayout,
 } from "../../../shared/layout";
 import { Link } from "../../../shared/ui/link";
-import { TopContextBar } from "../../shared/top-context-bar";
-import { WorkspaceContext } from "../../shared/workspace-context";
 import { HashOntologyIcon } from "../../[shortname]/shared/hash-ontology-icon";
 import { OntologyChip } from "../../[shortname]/shared/ontology-chip";
+import { TopContextBar } from "../../shared/top-context-bar";
+import { WorkspaceContext } from "../../shared/workspace-context";
 
 const FormHelperLabel = ({
   children,

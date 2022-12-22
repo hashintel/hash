@@ -1,9 +1,10 @@
 import { VersionedUri } from "@blockprotocol/type-system";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { useRouter } from "next/router";
 import { useCallback, useContext } from "react";
-import { OwnedById } from "@hashintel/hash-shared/types";
+
 import { useBlockProtocolCreateEntity } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
 import { useBlockProtocolGetEntityType } from "../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { WorkspaceContext } from "../../../../shared/workspace-context";

@@ -1,8 +1,8 @@
 import { useApolloClient } from "@apollo/client";
 import { AxiosError } from "axios";
 import { DependencyList, useEffect, useState } from "react";
-import { resetLocalStorage } from "../../lib/config";
 
+import { resetLocalStorage } from "../../lib/config";
 import { oryKratosClient } from "../../pages/shared/ory-kratos";
 
 export const useLogoutFlow = (deps?: DependencyList) => {

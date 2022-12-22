@@ -1,5 +1,6 @@
 import { frontendUrl } from "@hashintel/hash-shared/environment";
 import corsMiddleware from "cors";
+
 import { StorageType } from "../graphql/apiTypes.gen";
 
 function getEnvStorageType(): StorageType {

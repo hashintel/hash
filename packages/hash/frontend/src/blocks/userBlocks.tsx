@@ -1,3 +1,4 @@
+import { fetchBlock } from "@hashintel/hash-shared/blocks";
 import {
   createContext,
   Dispatch,
@@ -9,10 +10,9 @@ import {
   useMemo,
 } from "react";
 
-import { fetchBlock } from "@hashintel/hash-shared/blocks";
 import { useCachedDefaultState } from "../components/hooks/useDefaultState";
-import { BlocksMap } from "./page/createEditorView";
 import { useGetBlockProtocolBlocks } from "../components/hooks/useGetBlockProtocolBlocks";
+import { BlocksMap } from "./page/createEditorView";
 
 interface UserBlocksContextState {
   value: BlocksMap;

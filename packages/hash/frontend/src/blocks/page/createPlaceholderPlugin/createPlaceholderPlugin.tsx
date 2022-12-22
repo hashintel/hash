@@ -4,6 +4,7 @@ import {
 } from "@hashintel/hash-shared/prosemirror";
 import { Plugin, PluginKey } from "prosemirror-state";
 import { Decoration, DecorationSet } from "prosemirror-view";
+
 import { RenderPortal } from "../BlockPortals";
 import { Placeholder } from "./Placeholder";
 

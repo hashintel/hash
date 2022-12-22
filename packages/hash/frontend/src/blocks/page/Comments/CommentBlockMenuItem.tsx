@@ -1,5 +1,6 @@
-import { FunctionComponent, ReactNode } from "react";
 import { ListItemIcon, ListItemText } from "@mui/material";
+import { FunctionComponent, ReactNode } from "react";
+
 import { MenuItem } from "../../../shared/ui";
 
 type CommentBlockMenuItemProps = {

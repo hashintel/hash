@@ -1,6 +1,8 @@
 import type { BlockVariant } from "@blockprotocol/core";
 import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
+import { AccountId } from "@hashintel/hash-shared/types";
+import { EntityId } from "@hashintel/hash-subgraph";
 import { Popper } from "@mui/material";
 import {
   EditorState,
@@ -10,8 +12,7 @@ import {
   Transaction,
 } from "prosemirror-state";
 import { ReactElement } from "react";
-import { EntityId } from "@hashintel/hash-subgraph";
-import { AccountId } from "@hashintel/hash-shared/types";
+
 import { ensureMounted } from "../../../lib/dom";
 import { RenderPortal } from "../BlockPortals";
 import { BlockSuggester } from "./BlockSuggester";

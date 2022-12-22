@@ -1,14 +1,13 @@
-import { useMemo, FunctionComponent, useContext } from "react";
-import ArticleIcon from "@mui/icons-material/Article";
-
-import { EntityId } from "@hashintel/hash-subgraph";
 import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
+import { EntityId } from "@hashintel/hash-subgraph";
+import ArticleIcon from "@mui/icons-material/Article";
+import { FunctionComponent, useContext, useMemo } from "react";
 
-import { useUsers } from "../../../components/hooks/useUsers";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
+import { useUsers } from "../../../components/hooks/useUsers";
+import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 import { fuzzySearchBy } from "./fuzzySearchBy";
 import { Suggester } from "./Suggester";
-import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 
 export interface MentionSuggesterProps {
   search?: string;

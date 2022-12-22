@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
-import { useCallback } from "react";
 import { OwnedById } from "@hashintel/hash-shared/types";
+import { useCallback } from "react";
 
 import {
   CreatePropertyTypeMutation,

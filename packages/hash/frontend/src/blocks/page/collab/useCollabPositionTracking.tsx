@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { useDocumentEventListener, useWindowEventListener } from "rooks";
+
 import { componentViewTargetSelector } from "../ComponentView";
 import type { CollabPositionReporter } from "./useCollabPositionReporter";
 

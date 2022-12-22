@@ -1,4 +1,5 @@
 import { EntityVersion } from "@hashintel/hash-subgraph";
+
 import {
   getCommentById,
   getCommentText,

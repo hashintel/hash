@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useState, useCallback } from "react";
+import { Dispatch, SetStateAction, useCallback, useState } from "react";
 import { useLocalstorageState } from "rooks";
 
 export const useDefaultState = <

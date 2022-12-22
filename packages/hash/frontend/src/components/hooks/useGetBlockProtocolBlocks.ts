@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+
 import { GetBlockProtocolBlocksQuery } from "../../graphql/apiTypes.gen";
 import { getBlockProtocolBlocksQuery } from "../../graphql/queries/block.queries";
 

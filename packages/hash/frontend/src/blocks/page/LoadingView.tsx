@@ -1,8 +1,8 @@
 import { Box } from "@mui/material";
 import { Node } from "prosemirror-model";
 import { NodeView } from "prosemirror-view";
-import { BlockLoadingIndicator } from "../../components/RemoteBlock/RemoteBlock";
 
+import { BlockLoadingIndicator } from "../../components/RemoteBlock/RemoteBlock";
 import { RenderPortal } from "./BlockPortals";
 
 export const ProsemirrorLoadingState = () => {

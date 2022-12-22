@@ -1,12 +1,12 @@
 import { BlockVariant } from "@blockprotocol/core";
-import { FunctionComponent, useMemo } from "react";
-import { Box, SxProps, Theme, Typography } from "@mui/material";
 import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
+import { Box, SxProps, Theme, Typography } from "@mui/material";
+import { FunctionComponent, useMemo } from "react";
 
-import { Suggester } from "./Suggester";
-import { useUserBlocks } from "../../userBlocks";
-import { useFilteredBlocks } from "./useFilteredBlocks";
 import { WarnIcon } from "../../../shared/icons";
+import { useUserBlocks } from "../../userBlocks";
+import { Suggester } from "./Suggester";
+import { useFilteredBlocks } from "./useFilteredBlocks";
 
 export interface BlockSuggesterProps {
   search?: string;

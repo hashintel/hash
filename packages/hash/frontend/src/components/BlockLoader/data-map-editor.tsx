@@ -1,3 +1,16 @@
+import { UnknownRecord } from "@blockprotocol/core";
+import { BlockGraph, Entity } from "@blockprotocol/graph";
+import { faClose, faEye } from "@fortawesome/free-solid-svg-icons";
+import {
+  FontAwesomeIcon,
+  IconButton,
+  MenuItem,
+  Select,
+  TextField,
+} from "@hashintel/hash-design-system";
+import { JsonSchema } from "@hashintel/hash-shared/json-utils";
+import { Box, Typography } from "@mui/material";
+import produce from "immer";
 import jsonpath from "jsonpath";
 import {
   Dispatch,
@@ -6,21 +19,9 @@ import {
   useMemo,
   useState,
 } from "react";
-import { JsonSchema } from "@hashintel/hash-shared/json-utils";
-import { UnknownRecord } from "@blockprotocol/core";
-import { Box, Typography } from "@mui/material";
-import { faClose, faEye } from "@fortawesome/free-solid-svg-icons";
-import { BlockGraph, Entity } from "@blockprotocol/graph";
-import {
-  FontAwesomeIcon,
-  IconButton,
-  MenuItem,
-  Select,
-  TextField,
-} from "@hashintel/hash-design-system";
-import produce from "immer";
-import { dataTreeFromEntityGraph, SchemaMap } from "./shared";
+
 import { DataMapPreview } from "./data-map-editor/data-map-preview";
+import { dataTreeFromEntityGraph, SchemaMap } from "./shared";
 
 type DataMapperProps = {
   onClose: () => void;

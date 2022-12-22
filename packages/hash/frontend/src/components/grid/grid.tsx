@@ -1,33 +1,35 @@
 import "@glideapps/glide-data-grid/dist/index.css";
+
 import {
+  CompactSelection,
   DataEditor,
   DataEditorProps,
-  Theme,
   DataEditorRef,
-  GridSelection,
-  CompactSelection,
-  GridMouseEventArgs,
-  Item,
-  GridColumn,
-  SizedGridColumn,
-  GridCell,
   GetRowThemeCallback,
+  GridCell,
+  GridColumn,
+  GridMouseEventArgs,
+  GridSelection,
+  Item,
+  SizedGridColumn,
+  Theme,
 } from "@glideapps/glide-data-grid";
 import { useTheme } from "@mui/material";
-import { Ref, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { uniqueId } from "lodash";
+import { Ref, useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import { getCellHorizontalPadding } from "./utils";
 import { customGridIcons } from "./utils/custom-grid-icons";
 import { InteractableManager } from "./utils/interactable-manager";
-import { useDrawHeader } from "./utils/use-draw-header";
-import {
-  createHandleHeaderClicked,
-  defaultSortRows,
-  ColumnSort,
-} from "./utils/sorting";
-import { useRenderGridPortal } from "./utils/use-render-grid-portal";
 import { overrideCustomRenderers } from "./utils/override-custom-renderers";
 import { Rows } from "./utils/rows";
+import {
+  ColumnSort,
+  createHandleHeaderClicked,
+  defaultSortRows,
+} from "./utils/sorting";
+import { useDrawHeader } from "./utils/use-draw-header";
+import { useRenderGridPortal } from "./utils/use-render-grid-portal";
 
 export type GridProps<T> = Omit<
   DataEditorProps,

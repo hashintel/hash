@@ -1,17 +1,18 @@
-import { useMemo, useRef } from "react";
 import { DataEditorRef } from "@glideapps/glide-data-grid";
-import { useRows } from "./property-table/use-rows";
-import { useCreateGetCellContent } from "./property-table/use-create-get-cell-content";
-import { propertyGridColumns } from "./property-table/constants";
-import { useCreateOnCellEdited } from "./property-table/use-create-on-cell-edited";
-import { useEntityEditor } from "../entity-editor-context";
+import { useMemo, useRef } from "react";
+
+import { Grid } from "../../../../../../components/grid/grid";
 import { useGridTooltip } from "../../../../../../components/grid/utils/use-grid-tooltip";
-import { renderValueCell } from "./property-table/cells/value-cell";
+import { useEntityEditor } from "../entity-editor-context";
+import { createRenderChangeTypeCell } from "./property-table/cells/change-type-cell";
 import { renderChipCell } from "./property-table/cells/chip-cell";
 import { createRenderPropertyNameCell } from "./property-table/cells/property-name-cell";
 import { renderSummaryChipCell } from "./property-table/cells/summary-chip-cell";
-import { Grid } from "../../../../../../components/grid/grid";
-import { createRenderChangeTypeCell } from "./property-table/cells/change-type-cell";
+import { renderValueCell } from "./property-table/cells/value-cell";
+import { propertyGridColumns } from "./property-table/constants";
+import { useCreateGetCellContent } from "./property-table/use-create-get-cell-content";
+import { useCreateOnCellEdited } from "./property-table/use-create-on-cell-edited";
+import { useRows } from "./property-table/use-rows";
 
 interface PropertyTableProps {
   showSearch: boolean;

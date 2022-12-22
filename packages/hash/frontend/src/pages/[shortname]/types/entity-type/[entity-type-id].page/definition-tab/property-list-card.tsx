@@ -1,6 +1,7 @@
 import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
 import { faList } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import {
   Checkbox,
   TableBody,
@@ -16,7 +17,7 @@ import {
   useFormContext,
   useWatch,
 } from "react-hook-form";
-import { OwnedById } from "@hashintel/hash-shared/types";
+
 import { useBlockProtocolCreatePropertyType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
 import { useBlockProtocolUpdatePropertyType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdatePropertyType";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
@@ -29,8 +30,8 @@ import {
 import { MultipleValuesCell } from "./property-list-card/multiple-values-cell";
 import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
 import { PropertyTypeForm } from "./property-list-card/shared/property-type-form";
-import { PropertyTypeFormValues } from "./property-list-card/shared/property-type-form-values";
 import { getPropertyTypeSchema } from "./property-list-card/shared/property-type-form/property-type-schema";
+import { PropertyTypeFormValues } from "./property-list-card/shared/property-type-form-values";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,

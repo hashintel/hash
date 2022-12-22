@@ -5,29 +5,28 @@ import {
   EntityType as BpEntityType,
 } from "@blockprotocol/graph";
 import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
+import { JsonSchema } from "@hashintel/hash-shared/json-utils";
+import { EntityId } from "@hashintel/hash-subgraph";
+import { uniqBy } from "lodash";
 import {
+  FunctionComponent,
   useCallback,
   useLayoutEffect,
   useMemo,
   useRef,
-  FunctionComponent,
 } from "react";
-import { uniqBy } from "lodash";
-
 import { useLocalstorageState } from "rooks";
-import { JsonSchema } from "@hashintel/hash-shared/json-utils";
-import { EntityId } from "@hashintel/hash-subgraph";
 
-import { convertApiEntityToBpEntity } from "../../lib/entities";
-import { fetchEmbedCode } from "./fetchEmbedCode";
-import { RemoteBlock } from "../RemoteBlock/RemoteBlock";
 import { useBlockLoadedContext } from "../../blocks/onBlockLoaded";
+import { useBlockContext } from "../../blocks/page/BlockContext";
+import { convertApiEntityToBpEntity } from "../../lib/entities";
+import { useIsReadonlyMode } from "../../shared/readonly-mode";
 import { useBlockProtocolAggregateEntities } from "../hooks/blockProtocolFunctions/knowledge/useBlockProtocolAggregateEntities";
 import { useBlockProtocolFileUpload } from "../hooks/blockProtocolFunctions/useBlockProtocolFileUpload";
-import { useIsReadonlyMode } from "../../shared/readonly-mode";
+import { RemoteBlock } from "../RemoteBlock/RemoteBlock";
 import { DataMapEditor } from "./data-map-editor";
+import { fetchEmbedCode } from "./fetchEmbedCode";
 import { SchemaMap } from "./shared";
-import { useBlockContext } from "../../blocks/page/BlockContext";
 
 // @todo consolidate these properties, e.g. take all entityX, linkX into a single childEntity prop
 // @see https://app.asana.com/0/1200211978612931/1202807842439190/f

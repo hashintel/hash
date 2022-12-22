@@ -1,4 +1,4 @@
-import { HTMLProps, FunctionComponent } from "react";
+import { FunctionComponent, HTMLProps } from "react";
 
 type CheckboxProps = {
   checked: boolean;

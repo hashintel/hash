@@ -1,11 +1,11 @@
+import * as aws from "@aws-sdk/client-ses";
+import { defaultProvider } from "@aws-sdk/credential-provider-node";
+import { convert } from "html-to-text";
 import nodemailer from "nodemailer";
 import SESTransport from "nodemailer/lib/ses-transport";
-import * as aws from "@aws-sdk/client-ses";
-import { convert } from "html-to-text";
-import { defaultProvider } from "@aws-sdk/credential-provider-node";
 
-import { EmailTransporter, EmailTransporterSendMailOptions } from "./types";
 import { logger } from "../../logger";
+import { EmailTransporter, EmailTransporterSendMailOptions } from "./types";
 
 export interface AwsSesEmailTransporterConfig {
   from: string;

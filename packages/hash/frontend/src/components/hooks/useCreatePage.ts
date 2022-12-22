@@ -1,11 +1,11 @@
 import { useMutation } from "@apollo/client";
-import { useRouter } from "next/router";
-import { useCallback } from "react";
+import { EntityUuid, OwnedById, Uuid } from "@hashintel/hash-shared/types";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@hashintel/hash-subgraph";
-import { EntityUuid, OwnedById, Uuid } from "@hashintel/hash-shared/types";
+import { useRouter } from "next/router";
+import { useCallback } from "react";
 
 import {
   CreatePageMutation,
@@ -13,8 +13,8 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 import { createPage } from "../../graphql/queries/page.queries";
-import { useWorkspaceShortnameByEntityUuid } from "./use-workspace-shortname-by-entity-uuid";
 import { constructPageRelativeUrl } from "../../lib/routes";
+import { useWorkspaceShortnameByEntityUuid } from "./use-workspace-shortname-by-entity-uuid";
 
 export const useCreatePage = (ownedById: OwnedById) => {
   const router = useRouter();

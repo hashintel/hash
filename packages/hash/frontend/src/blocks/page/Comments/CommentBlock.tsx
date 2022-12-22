@@ -1,12 +1,14 @@
+import { extractBaseUri } from "@blockprotocol/type-system";
+import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
 import {
-  FunctionComponent,
-  ReactNode,
-  useEffect,
-  useMemo,
-  useState,
-  useCallback,
-} from "react";
-import { Box, Collapse, Tooltip, Typography } from "@mui/material";
+  faChevronDown,
+  faChevronUp,
+  faEllipsisVertical,
+  faLink,
+  faPencil,
+  faTrash,
+  IconDefinition,
+} from "@fortawesome/free-solid-svg-icons";
 import {
   Avatar,
   Button,
@@ -14,36 +16,35 @@ import {
   IconButton,
   LoadingSpinner,
 } from "@hashintel/hash-design-system";
-import { formatDistanceToNowStrict } from "date-fns";
-import {
-  faChevronDown,
-  faChevronUp,
-  faEllipsisVertical,
-  IconDefinition,
-  faLink,
-  faPencil,
-  faTrash,
-} from "@fortawesome/free-solid-svg-icons";
-import { usePopupState } from "material-ui-popup-state/hooks";
-import { bindTrigger } from "material-ui-popup-state";
-import { types } from "@hashintel/hash-shared/ontology-types";
-import { extractBaseUri } from "@blockprotocol/type-system";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
-import { isEqual } from "lodash";
-import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import { EntityId } from "@hashintel/hash-shared/types";
-import { PageComment } from "../../../components/hooks/usePageComments";
-import { CommentTextField } from "./CommentTextField";
-import { CommentBlockMenu } from "./CommentBlockMenu";
-import styles from "./style.module.css";
-import { useUpdateCommentText } from "../../../components/hooks/useUpdateCommentText";
-import { CommentBlockMenuItem } from "./CommentBlockMenuItem";
-import { PencilSlashIcon } from "../../../shared/icons/pencil-slash-icon";
-import { useResolveComment } from "../../../components/hooks/useResolveComment";
+import { Box, Collapse, Tooltip, Typography } from "@mui/material";
+import { formatDistanceToNowStrict } from "date-fns";
+import { isEqual } from "lodash";
+import { bindTrigger } from "material-ui-popup-state";
+import { usePopupState } from "material-ui-popup-state/hooks";
+import {
+  FunctionComponent,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import { useDeleteComment } from "../../../components/hooks/useDeleteComment";
-import { CommentBlockDeleteConfirmationDialog } from "./CommentBlockDeleteConfirmationDialog";
-import { CommentActionButtons } from "./CommentActionButtons";
+import { PageComment } from "../../../components/hooks/usePageComments";
+import { useResolveComment } from "../../../components/hooks/useResolveComment";
+import { useUpdateCommentText } from "../../../components/hooks/useUpdateCommentText";
 import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
+import { PencilSlashIcon } from "../../../shared/icons/pencil-slash-icon";
+import { CommentActionButtons } from "./CommentActionButtons";
+import { CommentBlockDeleteConfirmationDialog } from "./CommentBlockDeleteConfirmationDialog";
+import { CommentBlockMenu } from "./CommentBlockMenu";
+import { CommentBlockMenuItem } from "./CommentBlockMenuItem";
+import { CommentTextField } from "./CommentTextField";
+import styles from "./style.module.css";
 
 type ToggleTextExpandedButtonProps = {
   label: ReactNode;

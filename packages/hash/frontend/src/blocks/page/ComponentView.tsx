@@ -25,14 +25,15 @@ import * as Sentry from "@sentry/nextjs";
 import { Node } from "prosemirror-model";
 import { TextSelection, Transaction } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
+
 import { BlockLoader } from "../../components/BlockLoader/BlockLoader";
 import { ErrorBlock } from "../../components/ErrorBlock/ErrorBlock";
 import { BlockContext } from "./BlockContext";
+import { RenderPortal } from "./BlockPortals";
 import {
   SuggesterAction,
   suggesterPluginKey,
 } from "./createSuggester/createSuggester";
-import { RenderPortal } from "./BlockPortals";
 
 /**
  * Allows us to have a stable reference for properties where we do not yet

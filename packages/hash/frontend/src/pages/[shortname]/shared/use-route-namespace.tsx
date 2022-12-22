@@ -1,6 +1,6 @@
+import { AccountId } from "@hashintel/hash-shared/types";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
-import { AccountId } from "@hashintel/hash-shared/types";
 
 import { useGetAccountIdForShortname } from "../../../components/hooks/useGetAccountIdForShortname";
 

@@ -1,10 +1,11 @@
-import { useState, FunctionComponent } from "react";
-import { Box, Popover, popoverClasses } from "@mui/material";
-import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
 import type { BlockVariant } from "@blockprotocol/core";
+import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
+import { Box, Popover, popoverClasses } from "@mui/material";
+import { FunctionComponent, useState } from "react";
+
 import { PlusBoxOutlineIcon } from "../../shared/icons/plus-box-outline-icon";
-import { BlockSuggester } from "./createSuggester/BlockSuggester";
 import { useIsReadonlyMode } from "../../shared/readonly-mode";
+import { BlockSuggester } from "./createSuggester/BlockSuggester";
 
 type InsertBlockProps = {
   onBlockSuggesterChange: (

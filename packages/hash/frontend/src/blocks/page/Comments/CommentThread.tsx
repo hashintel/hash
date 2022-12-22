@@ -1,10 +1,6 @@
-import { FunctionComponent, useState, useRef, useMemo } from "react";
-import { TextToken } from "@hashintel/hash-shared/graphql/types";
-import { Box, buttonClasses, Collapse } from "@mui/material";
-import { Button } from "@hashintel/hash-design-system";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { extractBaseUri } from "@blockprotocol/type-system";
+import { Button } from "@hashintel/hash-design-system";
+import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { types } from "@hashintel/hash-shared/ontology-types";
 import {
   AccountId,
@@ -12,13 +8,18 @@ import {
   extractEntityUuidFromEntityId,
   Uuid,
 } from "@hashintel/hash-shared/types";
-import { PageThread } from "../../../components/hooks/usePageComments";
-import { CommentTextField } from "./CommentTextField";
-import { CommentBlock } from "./CommentBlock";
-import styles from "./style.module.css";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { Box, buttonClasses, Collapse } from "@mui/material";
+import { FunctionComponent, useMemo, useRef, useState } from "react";
+
 import { useCreateComment } from "../../../components/hooks/useCreateComment";
-import { CommentActionButtons } from "./CommentActionButtons";
+import { PageThread } from "../../../components/hooks/usePageComments";
 import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
+import { CommentActionButtons } from "./CommentActionButtons";
+import { CommentBlock } from "./CommentBlock";
+import { CommentTextField } from "./CommentTextField";
+import styles from "./style.module.css";
 
 const UNCOLLAPSIBLE_REPLIES_NUMBER = 2;
 

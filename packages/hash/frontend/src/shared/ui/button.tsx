@@ -1,12 +1,12 @@
-// eslint-disable-next-line no-restricted-imports
-import Link from "next/link";
 import { UrlObject } from "node:url";
-import { FunctionComponent, forwardRef, useMemo, ReactNode } from "react";
+
 import {
   Button as BaseButton,
   ButtonProps as BaseButtonProps,
 } from "@hashintel/hash-design-system";
 import { frontendUrl } from "@hashintel/hash-shared/environment";
+import Link from "next/link";
+import { forwardRef, FunctionComponent, ReactNode, useMemo } from "react";
 
 // @todo: update the regex to check against the domain of the hosted version of HASH
 export const isHrefExternal = (href: string | UrlObject) =>

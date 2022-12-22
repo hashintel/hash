@@ -1,11 +1,11 @@
+import { Subgraph } from "@hashintel/hash-subgraph";
 import { ApolloError } from "apollo-server-express";
 import { AxiosError } from "axios";
 
-import { Subgraph } from "@hashintel/hash-subgraph";
 import {
+  QueryGetAllLatestDataTypesArgs,
   QueryGetDataTypeArgs,
   ResolverFn,
-  QueryGetAllLatestDataTypesArgs,
 } from "../../apiTypes.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 

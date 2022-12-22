@@ -1,5 +1,6 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import {
   Box,
   listItemSecondaryActionClasses,
@@ -7,7 +8,6 @@ import {
   Menu,
   useTheme,
 } from "@mui/material";
-
 import {
   bindMenu,
   bindTrigger,
@@ -20,7 +20,6 @@ import {
   useMemo,
   useState,
 } from "react";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { useCreatePage } from "../../../components/hooks/useCreatePage";

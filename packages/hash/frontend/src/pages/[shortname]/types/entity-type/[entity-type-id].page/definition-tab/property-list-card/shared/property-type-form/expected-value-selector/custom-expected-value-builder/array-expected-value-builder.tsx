@@ -18,6 +18,7 @@ import { uniqueId } from "lodash";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
+
 import {
   CustomExpectedValue,
   DefaultExpectedValueTypeId,
@@ -26,8 +27,8 @@ import {
 } from "../../../property-type-form-values";
 import { dataTypeOptions as primitiveDataTypeOptions } from "../../shared/data-type-options";
 import { expectedValuesOptions } from "../shared/expected-values-options";
-import { ExpectedValueBadge } from "./array-expected-value-builder/expected-value-badge";
 import { DeleteExpectedValueModal } from "./array-expected-value-builder/delete-expected-value-modal";
+import { ExpectedValueBadge } from "./array-expected-value-builder/expected-value-badge";
 
 const dataTypeOptions: DefaultExpectedValueTypeId[] = [
   ...primitiveDataTypeOptions,

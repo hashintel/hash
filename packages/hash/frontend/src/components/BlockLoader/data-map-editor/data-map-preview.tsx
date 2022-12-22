@@ -1,10 +1,10 @@
-import { ReactElement } from "react";
 import { UnknownRecord } from "@blockprotocol/core";
-import { Box, Typography } from "@mui/material";
 import {
   JsonSchema,
   validateDataAgainstSchema,
 } from "@hashintel/hash-shared/json-utils";
+import { Box, Typography } from "@mui/material";
+import { ReactElement } from "react";
 
 type DataMapPreviewProps = {
   sourceTree: UnknownRecord;

@@ -1,7 +1,7 @@
 import { useLazyQuery } from "@apollo/client";
-
-import { useCallback } from "react";
 import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
+import { useCallback } from "react";
+
 import {
   GetPropertyTypeQuery,
   GetPropertyTypeQueryVariables,

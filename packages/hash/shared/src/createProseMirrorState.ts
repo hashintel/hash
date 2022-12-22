@@ -3,12 +3,13 @@ import { baseKeymap } from "prosemirror-commands";
 import { dropCursor } from "prosemirror-dropcursor";
 import { Node, Schema } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
+
 import { createEntityStorePlugin } from "./entityStorePlugin";
 import {
   createSchema,
-  textTokenNodes,
-  pageEditorNodes,
   formatKeymap,
+  pageEditorNodes,
+  textTokenNodes,
 } from "./prosemirror";
 import { wrapEntitiesPlugin } from "./wrapEntitiesPlugin";
 
