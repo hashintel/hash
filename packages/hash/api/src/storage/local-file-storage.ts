@@ -4,7 +4,7 @@ import fs from "node:fs";
 import { URL } from "node:url";
 import express, { Express } from "express";
 import appRoot from "app-root-path";
-import { StorageType } from "../graphql/apiTypes.gen";
+import { StorageType } from "../graphql/api-types.gen";
 
 import {
   GetFileEntityStorageKeyParams,

@@ -24,7 +24,7 @@ import {
 } from "../shared/routing";
 import { WorkspaceContextProvider } from "./shared/workspace-context";
 import { apolloClient } from "../lib/apollo-client";
-import { MeQuery } from "../graphql/apiTypes.gen";
+import { MeQuery } from "../graphql//api-types.gen";
 import { meQuery } from "../graphql/queries/user.queries";
 import {
   AuthenticatedUser,

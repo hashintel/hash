@@ -7,7 +7,7 @@ import {
   QueryGetPropertyTypeArgs,
   QueryGetAllLatestPropertyTypesArgs,
   ResolverFn,
-} from "../../apiTypes.gen";
+} from "../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import {
   createPropertyType,

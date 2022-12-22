@@ -4,7 +4,7 @@ import {
   GetDataTypeQueryVariables,
   GetEntityTypeQueryVariables,
   GetPropertyTypeQueryVariables,
-} from "../../graphql/apiTypes.gen";
+} from "../../graphql//api-types.gen";
 import { getDataTypeQuery } from "../../graphql/queries/ontology/data-type.queries";
 import { getEntityTypeQuery } from "../../graphql/queries/ontology/entity-type.queries";
 import { getPropertyTypeQuery } from "../../graphql/queries/ontology/property-type.queries";

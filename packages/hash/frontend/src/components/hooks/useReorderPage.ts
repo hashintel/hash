@@ -7,7 +7,7 @@ import {
 import {
   SetParentPageMutation,
   SetParentPageMutationVariables,
-} from "../../graphql/apiTypes.gen";
+} from "../../graphql//api-types.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 import { setParentPage } from "../../graphql/queries/page.queries";
 

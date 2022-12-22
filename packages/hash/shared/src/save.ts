@@ -20,7 +20,7 @@ import {
   UpdatePageContentsMutationVariables,
   UpdatePageAction,
   UpdatePageContentsResultPlaceholder,
-} from "./graphql/apiTypes.gen";
+} from "./graphql/api-types.gen";
 import { isEntityNode } from "./prosemirror";
 import { getPageQuery, updatePageContents } from "./queries/page.queries";
 
@@ -307,7 +307,7 @@ const calculateSaveActions = async (
       const blockData = draftEntity.blockChildEntity;
       const blockChildEntityId =
         blockData?.metadata.editionId.baseId ??
-        draftIdToPlaceholderId.get(blockData!.draftId!);
+        draftIdToPlaceholderId.get(blockData.draftId!);
 
       if (!blockChildEntityId) {
         throw new Error("Block data entity id missing");

@@ -7,7 +7,7 @@ import { constructUser, User } from "../../lib/user-and-org";
 import {
   GetAllLatestEntitiesQuery,
   GetAllLatestEntitiesQueryVariables,
-} from "../../graphql/apiTypes.gen";
+} from "../../graphql//api-types.gen";
 import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 
 export const useUsers = (

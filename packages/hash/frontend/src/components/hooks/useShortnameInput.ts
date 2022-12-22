@@ -3,7 +3,7 @@ import { useCallback, useState } from "react";
 import {
   IsShortnameTakenQuery,
   QueryIsShortnameTakenArgs,
-} from "../../graphql/apiTypes.gen";
+} from "../../graphql//api-types.gen";
 import { isShortnameTaken as isShortnameTakenQuery } from "../../graphql/queries/user.queries";
 
 type ShortnameErrorCode =

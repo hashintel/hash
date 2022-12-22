@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import {
   UpdatePropertyTypeMutation,
   UpdatePropertyTypeMutationVariables,
-} from "../../../../graphql/apiTypes.gen";
+} from "../../../../graphql//api-types.gen";
 import { updatePropertyTypeMutation } from "../../../../graphql/queries/ontology/property-type.queries";
 import { UpdatePropertyTypeMessageCallback } from "./ontology-types-shim";
 
