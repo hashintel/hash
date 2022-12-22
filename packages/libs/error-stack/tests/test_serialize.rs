@@ -72,7 +72,7 @@ fn multiple_sources_at_root() {
 
 #[cfg(any(feature = "std", feature = "hooks"))]
 mod hooks {
-    use error_stack::{fmt::HookContext, Report};
+    use error_stack::{serde::HookContext, Report};
 
     use super::*;
 
@@ -81,19 +81,50 @@ mod hooks {
         b: Box<[u8]>,
     }
 
+    #[derive(serde::Serialize)]
     struct ImplementSerialize<'a> {
         a: &'a str,
         b: &'a [u8],
     }
 
+    #[derive(serde::Serialize)]
+    struct ImplementSerializeOwned {
+        a: String,
+        b: Vec<u8>,
+    }
+
+    fn serialize<'a>(
+        value: &'a DoesNotImplementSerialize,
+        context: &mut HookContext<DoesNotImplementSerialize>,
+    ) -> ImplementSerialize<'a> {
+        ImplementSerialize {
+            a: &value.a,
+            b: &value.b,
+        }
+    }
+
     #[test]
     fn install_custom_hook() {
+        // This sadly does not work
+        // Report::install_custom_serde_hook(
+        //     |value: &DoesNotImplementSerialize,
+        //      context: &mut HookContext<DoesNotImplementSerialize>| ImplementSerialize {
+        //         a: &value.a,
+        //         b: &value.b,
+        //     },
+        // );
+
+        Report::install_custom_serde_hook(serialize)
+    }
+
+    #[test]
+    fn install_custom_hook_owned() {
         Report::install_custom_serde_hook(
             |value: &DoesNotImplementSerialize,
              context: &mut HookContext<DoesNotImplementSerialize>| {
-                ImplementSerialize {
-                    a: &value.a,
-                    b: &value.b,
+                ImplementSerializeOwned {
+                    a: value.a.clone(),
+                    b: value.b.to_vec(),
                 }
             },
         );

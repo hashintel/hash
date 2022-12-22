@@ -19,6 +19,8 @@ mod hook;
 use alloc::{format, vec, vec::Vec};
 
 #[cfg(any(feature = "std", feature = "hooks"))]
+pub use hook::HookContext;
+#[cfg(any(feature = "std", feature = "hooks"))]
 pub(crate) use hook::{DynamicFn, Hooks};
 use serde::{ser::SerializeMap, Serialize, Serializer};
 

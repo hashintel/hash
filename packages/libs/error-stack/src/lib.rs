@@ -483,7 +483,7 @@ mod fmt;
 #[cfg(any(feature = "std", feature = "hooks"))]
 mod hook;
 #[cfg(feature = "serde")]
-pub(crate) mod serde;
+pub mod serde;
 
 #[cfg(all(doc, any(feature = "std", feature = "hooks")))]
 pub use hook::context::HookContext;
