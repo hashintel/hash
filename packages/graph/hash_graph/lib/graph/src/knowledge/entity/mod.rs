@@ -11,7 +11,7 @@ use uuid::Uuid;
 pub use self::query::{EntityQueryPath, EntityQueryPathVisitor, EntityQueryToken};
 use crate::{
     identifier::{
-        knowledge::{EntityEditionId, EntityId},
+        knowledge::{EntityEditionId, EntityId, EntityVersion},
         EntityVertexId,
     },
     provenance::ProvenanceMetadata,
@@ -173,6 +173,7 @@ impl LinkData {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityMetadata {
     edition_id: EntityEditionId,
+    version: EntityVersion,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
     #[serde(rename = "provenance")]
@@ -184,12 +185,14 @@ impl EntityMetadata {
     #[must_use]
     pub const fn new(
         edition_id: EntityEditionId,
+        version: EntityVersion,
         entity_type_id: VersionedUri,
         provenance_metadata: ProvenanceMetadata,
         archived: bool,
     ) -> Self {
         Self {
             edition_id,
+            version,
             entity_type_id,
             provenance_metadata,
             archived,
@@ -199,6 +202,11 @@ impl EntityMetadata {
     #[must_use]
     pub const fn edition_id(&self) -> EntityEditionId {
         self.edition_id
+    }
+
+    #[must_use]
+    pub const fn version(&self) -> &EntityVersion {
+        &self.version
     }
 
     #[must_use]
@@ -234,6 +242,7 @@ impl Entity {
         properties: EntityProperties,
         link_data: Option<LinkData>,
         identifier: EntityEditionId,
+        version: EntityVersion,
         entity_type_id: VersionedUri,
         provenance_metadata: ProvenanceMetadata,
         archived: bool,
@@ -243,6 +252,7 @@ impl Entity {
             link_data,
             metadata: EntityMetadata::new(
                 identifier,
+                version,
                 entity_type_id,
                 provenance_metadata,
                 archived,
@@ -278,7 +288,7 @@ impl Record for Entity {
     fn vertex_id(&self) -> Self::VertexId {
         EntityVertexId::new(
             self.edition_id().base_id(),
-            self.edition_id().version().transaction_time().start,
+            self.metadata().version().transaction_time().start,
         )
     }
 

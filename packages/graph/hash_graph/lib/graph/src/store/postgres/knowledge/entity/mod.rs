@@ -325,13 +325,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .change_context(InsertionError)?;
 
         Ok(EntityMetadata::new(
-            EntityEditionId::new(
-                entity_id,
-                EntityRecordId::new(row.get(0)),
-                EntityVersion::new(
-                    DecisionTimeVersionTimespan::from_anonymous(row.get(1)),
-                    TransactionTimeVersionTimespan::from_anonymous(row.get(2)),
-                ),
+            EntityEditionId::new(entity_id, EntityRecordId::new(row.get(0))),
+            EntityVersion::new(
+                DecisionTimeVersionTimespan::from_anonymous(row.get(1)),
+                TransactionTimeVersionTimespan::from_anonymous(row.get(2)),
             ),
             entity_type_id,
             ProvenanceMetadata::new(updated_by_id),
@@ -429,7 +426,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .zip(entity_record_ids)
             .map(|(((entity_id, ..), entity_version), entity_record_id)| {
                 EntityMetadata::new(
-                    EntityEditionId::new(entity_id, entity_record_id, entity_version),
+                    EntityEditionId::new(entity_id, entity_record_id),
+                    entity_version,
                     entity_type_id.clone(),
                     ProvenanceMetadata::new(actor_id),
                     false,
@@ -568,13 +566,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .change_context(UpdateError)?;
 
         Ok(EntityMetadata::new(
-            EntityEditionId::new(
-                entity_id,
-                EntityRecordId::new(row.get(0)),
-                EntityVersion::new(
-                    DecisionTimeVersionTimespan::from_anonymous(row.get(1)),
-                    TransactionTimeVersionTimespan::from_anonymous(row.get(2)),
-                ),
+            EntityEditionId::new(entity_id, EntityRecordId::new(row.get(0))),
+            EntityVersion::new(
+                DecisionTimeVersionTimespan::from_anonymous(row.get(1)),
+                TransactionTimeVersionTimespan::from_anonymous(row.get(2)),
             ),
             entity_type_id,
             ProvenanceMetadata::new(updated_by_id),
