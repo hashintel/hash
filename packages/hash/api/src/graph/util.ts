@@ -19,7 +19,6 @@ import {
   PropertyTypeWithMetadata,
   linkEntityTypeUri,
 } from "@hashintel/hash-subgraph";
-import { AxiosError } from "axios";
 import { OwnedById } from "@hashintel/hash-shared/types";
 
 import { GraphApi } from ".";
@@ -191,7 +190,7 @@ export const propertyTypeInitializer = (
               schema: propertyTypeSchema,
               actorId: systemUserAccountId,
             },
-          ).catch((createError: AxiosError) => {
+          ).catch((createError) => {
             logger.warn(`Failed to create property type: ${params.title}`);
             throw createError;
           });
@@ -367,7 +366,7 @@ export const entityTypeInitializer = (
               schema: entityTypeSchema,
               actorId: systemUserAccountId,
             },
-          ).catch((createError: AxiosError) => {
+          ).catch((createError) => {
             logger.warn(`Failed to create entity type: ${params.title}`);
             throw createError;
           });
