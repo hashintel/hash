@@ -23,7 +23,14 @@ import {
   bindToggle,
   PopupState,
 } from "material-ui-popup-state/hooks";
-import { ComponentProps, ReactNode, useEffect, useMemo, useState } from "react";
+import {
+  ComponentProps,
+  ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { FormProvider, useForm, UseFormTrigger } from "react-hook-form";
 import { useBlockProtocolGetPropertyType } from "../../../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
 import { Modal } from "../../../../../../../../components/Modals/Modal";
@@ -126,6 +133,8 @@ const PropertyTypeFormInner = ({
   const [creatingCustomExpectedValue, setCreatingCustomExpectedValue] =
     useState(false);
 
+  const selectorInputRef = useRef<HTMLInputElement | null>();
+
   const customExpectedValueBuilderContextValue = useMemo(
     () => ({
       customExpectedValueBuilderOpen: creatingCustomExpectedValue,
@@ -136,6 +145,13 @@ const PropertyTypeFormInner = ({
         setValue("customExpectedValueId", undefined);
         setValue("flattenedCustomExpectedValueList", {});
         setCreatingCustomExpectedValue(false);
+
+        // Using setImmediate because the autocomplete input is disabled when
+        // creatingCustomExpectedValue is false and can't be focused until it
+        // is set to true
+        setImmediate(() => {
+          selectorInputRef.current?.focus();
+        });
       },
     }),
     [creatingCustomExpectedValue, setCreatingCustomExpectedValue, setValue],
@@ -351,7 +367,7 @@ const PropertyTypeFormInner = ({
             <CustomExpectedValueBuilderContext.Provider
               value={customExpectedValueBuilderContextValue}
             >
-              <ExpectedValueSelector />
+              <ExpectedValueSelector ref={selectorInputRef} />
             </CustomExpectedValueBuilderContext.Provider>
           </FormProvider>
         </Stack>

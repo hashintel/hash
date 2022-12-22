@@ -67,10 +67,10 @@ const ExpectedValueSelectorDropdown = ({ children, ...props }: PaperProps) => {
   );
 };
 
-const ExpectedValueSelector: ForwardRefRenderFunction<
-  HTMLInputElement,
-  {}
-> = () => {
+const ExpectedValueSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = (
+  {},
+  inputRef,
+) => {
   const { control, setValue } = useFormContext<PropertyTypeFormValues>();
 
   const {
@@ -151,6 +151,7 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
       renderInput={(inputProps) => (
         <TextField
           {...inputProps}
+          inputRef={inputRef}
           label="Expected values"
           placeholder="Select acceptable values"
         />
