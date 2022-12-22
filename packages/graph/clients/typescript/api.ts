@@ -416,12 +416,6 @@ export interface EntityEditionId {
    * @memberof EntityEditionId
    */
   recordId: number;
-  /**
-   *
-   * @type {EntityVersion}
-   * @memberof EntityEditionId
-   */
-  version: EntityVersion;
 }
 /**
  *
@@ -491,6 +485,12 @@ export interface EntityMetadata {
    * @memberof EntityMetadata
    */
   provenance: ProvenanceMetadata;
+  /**
+   *
+   * @type {EntityVersion}
+   * @memberof EntityMetadata
+   */
+  version: EntityVersion;
 }
 /**
  * A single token in an [`EntityQueryPath`].
@@ -738,63 +738,57 @@ export type Filter =
 export type FilterExpression = ParameterExpression | PathExpression;
 
 /**
- * @type GraphElementEditionId
+ * @type GraphElementId
  * @export
  */
-export type GraphElementEditionId =
-  | GraphElementEditionIdOneOf
-  | GraphElementEditionIdOneOf1;
+export type GraphElementId = string;
+
+/**
+ * @type GraphElementVertexId
+ * @export
+ */
+export type GraphElementVertexId =
+  | GraphElementVertexIdOneOf
+  | GraphElementVertexIdOneOf1;
 
 /**
  *
  * @export
- * @interface GraphElementEditionIdOneOf
+ * @interface GraphElementVertexIdOneOf
  */
-export interface GraphElementEditionIdOneOf {
+export interface GraphElementVertexIdOneOf {
   /**
    *
    * @type {string}
-   * @memberof GraphElementEditionIdOneOf
+   * @memberof GraphElementVertexIdOneOf
    */
   baseId: string;
   /**
    *
    * @type {number}
-   * @memberof GraphElementEditionIdOneOf
+   * @memberof GraphElementVertexIdOneOf
    */
   version: number;
 }
 /**
  *
  * @export
- * @interface GraphElementEditionIdOneOf1
+ * @interface GraphElementVertexIdOneOf1
  */
-export interface GraphElementEditionIdOneOf1 {
+export interface GraphElementVertexIdOneOf1 {
   /**
    *
    * @type {string}
-   * @memberof GraphElementEditionIdOneOf1
+   * @memberof GraphElementVertexIdOneOf1
    */
-  baseId: string;
+  base_id: string;
   /**
    *
-   * @type {number}
-   * @memberof GraphElementEditionIdOneOf1
+   * @type {string}
+   * @memberof GraphElementVertexIdOneOf1
    */
-  recordId: number;
-  /**
-   *
-   * @type {EntityVersion}
-   * @memberof GraphElementEditionIdOneOf1
-   */
-  version: EntityVersion;
+  version: string;
 }
-/**
- * @type GraphElementId
- * @export
- */
-export type GraphElementId = string;
-
 /**
  * TODO: DOC - <https://app.asana.com/0/0/1203438518991188/f>
  * @export
@@ -926,10 +920,10 @@ export interface KnowledgeGraphOutwardEdgesOneOf1 {
   reversed: boolean;
   /**
    *
-   * @type {GraphElementEditionIdOneOf}
+   * @type {GraphElementVertexIdOneOf}
    * @memberof KnowledgeGraphOutwardEdgesOneOf1
    */
-  rightEndpoint: GraphElementEditionIdOneOf;
+  rightEndpoint: GraphElementVertexIdOneOf;
 }
 
 export const KnowledgeGraphOutwardEdgesOneOf1KindEnum = {
@@ -1178,10 +1172,10 @@ export interface OntologyOutwardEdgesOneOf {
   reversed: boolean;
   /**
    *
-   * @type {GraphElementEditionIdOneOf}
+   * @type {GraphElementVertexIdOneOf}
    * @memberof OntologyOutwardEdgesOneOf
    */
-  rightEndpoint: GraphElementEditionIdOneOf;
+  rightEndpoint: GraphElementVertexIdOneOf;
 }
 
 export const OntologyOutwardEdgesOneOfKindEnum = {
@@ -1215,10 +1209,10 @@ export interface OntologyOutwardEdgesOneOf1 {
   reversed: boolean;
   /**
    *
-   * @type {GraphElementEditionIdOneOf1}
+   * @type {OntologyOutwardEdgesOneOf1RightEndpoint}
    * @memberof OntologyOutwardEdgesOneOf1
    */
-  rightEndpoint: GraphElementEditionIdOneOf1;
+  rightEndpoint: OntologyOutwardEdgesOneOf1RightEndpoint;
 }
 
 export const OntologyOutwardEdgesOneOf1KindEnum = {
@@ -1228,6 +1222,25 @@ export const OntologyOutwardEdgesOneOf1KindEnum = {
 export type OntologyOutwardEdgesOneOf1KindEnum =
   typeof OntologyOutwardEdgesOneOf1KindEnum[keyof typeof OntologyOutwardEdgesOneOf1KindEnum];
 
+/**
+ *
+ * @export
+ * @interface OntologyOutwardEdgesOneOf1RightEndpoint
+ */
+export interface OntologyOutwardEdgesOneOf1RightEndpoint {
+  /**
+   *
+   * @type {string}
+   * @memberof OntologyOutwardEdgesOneOf1RightEndpoint
+   */
+  baseId: string;
+  /**
+   *
+   * @type {number}
+   * @memberof OntologyOutwardEdgesOneOf1RightEndpoint
+   */
+  recordId: number;
+}
 /**
  *
  * @export
@@ -1766,10 +1779,10 @@ export interface Subgraph {
   edges: Edges;
   /**
    *
-   * @type {Array<GraphElementEditionId>}
+   * @type {Array<GraphElementVertexId>}
    * @memberof Subgraph
    */
-  roots: Array<GraphElementEditionId>;
+  roots: Array<GraphElementVertexId>;
   /**
    *
    * @type {Vertices}
