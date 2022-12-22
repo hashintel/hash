@@ -118,26 +118,19 @@ Note that you will need valid AWS credentials for this email transporter to work
 
 HASH is built around the open [Block Protocol](https://blockprotocol.org) ([@blockprotocol/blockprotocol](https://github.com/blockprotocol/blockprotocol) on GitHub).
 
-You can test blocks in HASH by going to any page, clicking on the menu next to an empty block, and pasting in the URL to your block's distribution folder (i.e. the one containing `block-metadata.json`, `block-schema.json`, and the block's code). If you need a way of serving your folder, try [`serve`](https://github.com/vercel/serve).
+### Using blocks
 
-To get started building a block, visit the [docs](https://blockprotocol.org/docs).
+Blocks published to the [Þ Hub](https://blockprotocol.org/hub) can be run within HASH via the 'insert block' (aka. 'slash') menu.
 
-## HASH blocks
+While running the app in development mode, you can also test local blocks out in HASH by going to any page, clicking on the menu next to an empty block, and pasting in the URL to your block's distribution folder (i.e. the one containing `block-metadata.json`, `block-schema.json`, and the block's code). If you need a way of serving your folder, try [`serve`](https://github.com/vercel/serve).
 
-This repository contains a number of https://blockprotocol.org blocks.
-If you want to develop, build or serve a single block, run:
+### HASH blocks
 
-```sh
-yarn workspace @hashintel/block-name dev
-## or
-yarn workspace @hashintel/block-name build
-## or
-yarn workspace @hashintel/block-name serve
-```
+The code pertaining to HASH-developed blocks can be found in the [`/blocks` directory](https://github.com/hashintel/hash/tree/main/blocks) in the root of this monorepo.
 
-## Creating new blocks
+### Creating new blocks
 
-See https://blockprotocol.org/docs/developing-blocks
+See the [Developing Blocks](https://blockprotocol.org/docs/developing-blocks) page in the [Þ Docs](https://blockprotocol.org/docs) for instructions on developing and publishing your own blocks.
 
 ## Development
 
