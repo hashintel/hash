@@ -17,7 +17,9 @@
 mod hook;
 
 use alloc::{boxed::Box, format, string::String, vec, vec::Vec};
-use core::{cell::RefCell, iter::once, marker::PhantomData};
+#[cfg(not(any(feature = "std", feature = "hooks")))]
+use core::marker::PhantomData;
+use core::{cell::RefCell, iter::once};
 
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub use hook::HookContext;
@@ -71,8 +73,8 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            EitherIterator::Left(left) => left.next(),
-            EitherIterator::Right(right) => right.next(),
+            Self::Left(left) => left.next(),
+            Self::Right(right) => right.next(),
         }
     }
 }
@@ -132,9 +134,9 @@ impl<'a, 'b, 'c> Serialize for SerializeAttachmentList<'a, 'b, 'c> {
     where
         S: Serializer,
     {
-        let mut h = self.hooks.borrow_mut();
-        let hooks = h.hooks;
-        let context = &mut h.context;
+        let mut hooks_ref = self.hooks.borrow_mut();
+        let hooks = hooks_ref.hooks;
+        let context = &mut *hooks_ref.context;
 
         let mut seq = serializer.serialize_seq(None)?;
 
