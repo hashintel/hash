@@ -1,5 +1,5 @@
 import fetch from "node-fetch";
-import { ResolverFn, BlockProtocolBlock } from "../../apiTypes.gen";
+import { ResolverFn, BlockProtocolBlock } from "../../api-types.gen";
 import { GraphQLContext } from "../../context";
 
 export const getBlockProtocolBlocksResolver: ResolverFn<

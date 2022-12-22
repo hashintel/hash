@@ -23,7 +23,7 @@ import {
   QueryPageCommentsArgs,
   QueryPagesArgs,
   ResolverFn,
-} from "../../../apiTypes.gen";
+} from "../../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import {
   UnresolvedPageGQL,

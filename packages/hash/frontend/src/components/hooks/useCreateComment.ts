@@ -5,7 +5,7 @@ import { EntityId } from "@hashintel/hash-shared/types";
 import {
   CreateCommentMutation,
   CreateCommentMutationVariables,
-} from "../../graphql/apiTypes.gen";
+} from "../../graphql/api-types.gen";
 import { createComment } from "../../graphql/queries/comment.queries";
 import { getPageComments } from "../../graphql/queries/page.queries";
 
