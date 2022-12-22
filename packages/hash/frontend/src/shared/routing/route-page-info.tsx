@@ -11,7 +11,7 @@ import { EntityUuid } from "@hashintel/hash-shared/types";
 import {
   parsePageUrlQueryParams,
   isPageParsedUrlQuery,
-} from "../../pages/[account-slug]/[page-slug].page";
+} from "../../pages/[shortname]/[page-slug].page";
 
 type RoutePageInfo = {
   routePageEntityUuid: EntityUuid;

@@ -1,5 +1,4 @@
 import clsx from "clsx";
-import { UrlObject } from "url";
 import { useRouter } from "next/router";
 // eslint-disable-next-line no-restricted-imports
 import NextLink, { LinkProps as NextLinkProps } from "next/link";
@@ -10,14 +9,7 @@ import {
   styled,
 } from "@mui/material";
 import { forwardRef, isValidElement } from "react";
-import { frontendUrl } from "@hashintel/hash-shared/environment";
-import { Button } from "./button";
-
-// @todo: update the regex to check against the domain of the hosted version of HASH
-export const isHrefExternal = (href: string | UrlObject) =>
-  typeof href === "string" &&
-  (href === "/discord" || !/^(mailto:|#|\/)/.test(href)) &&
-  !href.startsWith(frontendUrl);
+import { Button, isHrefExternal } from "./button";
 
 /**
  * This component is based on https://github.com/mui-org/material-ui/blob/a5c92dfd84dfe5888a8b383a9b5fe5701a934564/examples/nextjs/src/Link.js

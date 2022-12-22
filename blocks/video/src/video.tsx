@@ -1,5 +1,6 @@
 import { BlockComponent } from "@blockprotocol/graph/react";
 import { setup } from "twind";
+
 import { Media, MediaEntityProperties } from "./components/media";
 
 export type BlockEntityProperties = MediaEntityProperties;

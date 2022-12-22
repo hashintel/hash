@@ -1,21 +1,22 @@
-import React, { FunctionComponent, useState, useRef } from "react";
-import { List } from "@mui/material";
 import {
+  closestCenter,
   DndContext,
   DragOverlay,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  UniqueIdentifier,
   DropAnimation,
   MeasuringStrategy,
+  PointerSensor,
+  UniqueIdentifier,
+  useSensor,
+  useSensors,
 } from "@dnd-kit/core";
 import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { List } from "@mui/material";
+import React, { FunctionComponent, useRef, useState } from "react";
+
 import { Item } from "../shuffle";
 import { Item as ItemComponent } from "./item";
 import { SortableItem } from "./sortable-item";

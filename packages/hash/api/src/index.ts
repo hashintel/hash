@@ -1,8 +1,8 @@
 import cors from "cors";
 
-import { promisify } from "util";
-import http from "http";
-import path from "path";
+import { promisify } from "node:util";
+import http from "node:http";
+import path from "node:path";
 
 import { json } from "body-parser";
 import express from "express";

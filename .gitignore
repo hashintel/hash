@@ -77,7 +77,10 @@ target
 .vscode/settings.json
 
 # intellij IDEs config
-/.idea/
+.idea/
+
+# fleet IDEs config
+.fleet/
 
 # Python virtual environment
 venv

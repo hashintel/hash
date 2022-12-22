@@ -1,23 +1,24 @@
 import "./app.scss";
 
 import {
-  useState,
-  useCallback,
-  useMemo,
-  useRef,
-  MouseEventHandler,
-} from "react";
-import {
   BlockComponent,
   useGraphBlockService,
 } from "@blockprotocol/graph/react";
-import { parseISO, isValid } from "date-fns";
+import { isValid, parseISO } from "date-fns";
 import * as duration from "duration-fns";
-import { useAutoRefresh } from "./app/use-auto-refresh";
+import {
+  MouseEventHandler,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
 import { calculateDurationStepLength } from "./app/calculate-duration-step-length";
+import { clamp } from "./app/clamp";
 import { DurationInput } from "./app/duration-input";
 import { TimerStatus } from "./app/timer-status";
-import { clamp } from "./app/clamp";
+import { useAutoRefresh } from "./app/use-auto-refresh";
 
 type TimerState = {
   initialDurationInMs: number;

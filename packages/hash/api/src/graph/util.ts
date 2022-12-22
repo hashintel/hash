@@ -17,6 +17,7 @@ import {
 import {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
+  linkEntityTypeUri,
 } from "@hashintel/hash-subgraph";
 import { OwnedById } from "@hashintel/hash-shared/types";
 
@@ -309,9 +310,6 @@ export type LinkEntityTypeCreatorParams = Omit<
 > & {
   linkEntityTypeId: VersionedUri;
 };
-
-export const linkEntityTypeUri: VersionedUri =
-  "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
 
 /**
  * Helper method for generating a link entity type schema for the Graph API.

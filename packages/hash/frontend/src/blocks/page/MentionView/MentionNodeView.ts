@@ -1,8 +1,7 @@
 import { Node } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
 import { AccountId } from "@hashintel/hash-shared/types";
-
-import { RenderPortal } from "../usePortals";
+import { RenderPortal } from "../BlockPortals";
 import { MentionView } from "./MentionView";
 
 export const mentionNodeView =

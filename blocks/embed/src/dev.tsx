@@ -2,13 +2,13 @@
  * This is the entry point for developing and debugging.
  * This file is not bundled with the library during the build process.
  */
+import { MockBlockDock } from "mock-block-dock";
 import { FunctionComponent, useState } from "react";
 import { render } from "react-dom";
 import { tw } from "twind";
-import { MockBlockDock } from "mock-block-dock";
 
-import Component from "./index";
 import variants from "../variants.json";
+import Component from "./index";
 import { ProviderName } from "./types";
 
 const node = document.getElementById("app");
