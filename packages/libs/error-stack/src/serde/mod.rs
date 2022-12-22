@@ -17,13 +17,16 @@
 mod hook;
 
 use alloc::{boxed::Box, format, string::String, vec, vec::Vec};
-use core::iter::once;
+use core::{cell::RefCell, iter::once};
 
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub use hook::HookContext;
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub(crate) use hook::{DynamicFn, Hooks};
-use serde::{ser::SerializeMap, Serialize, Serializer};
+use serde::{
+    ser::{SerializeMap, SerializeSeq},
+    Serialize, Serializer,
+};
 
 use crate::{
     fmt, fmt::debug_attachments_invoke, serde::hook::Serde, Context, Frame, FrameKind, Report,
@@ -101,7 +104,7 @@ struct SerializeHooks<'a> {
 
 struct SerializeAttachmentList<'a, 'b> {
     frames: &'a [&'b Frame],
-    hooks: &'a SerializeHooks<'a>,
+    hooks: &'a RefCell<SerializeHooks<'a>>,
 }
 
 impl<'a, 'b> Serialize for SerializeAttachmentList<'a, 'b> {
@@ -109,15 +112,19 @@ impl<'a, 'b> Serialize for SerializeAttachmentList<'a, 'b> {
     where
         S: Serializer,
     {
-        let hooks = self.hooks.hooks;
-        let context = self.hooks.context;
+        let mut h = self.hooks.borrow_mut();
+        let hooks = h.hooks;
+        let context = &mut h.context;
 
-        serializer.collect_seq(
-            self.frames
-                .iter()
-                .copied()
-                .flat_map(move |frame| serialize_attachment(hooks, frame, context)),
-        )
+        let mut seq = serializer.serialize_seq(None)?;
+
+        for frame in self.frames {
+            for attachment in serialize_attachment(hooks, frame, context) {
+                seq.serialize_element(&attachment)?;
+            }
+        }
+
+        seq.end()
     }
 }
 
@@ -125,7 +132,7 @@ struct SerializeContext<'a> {
     attachments: Vec<&'a Frame>,
     context: &'a dyn Context,
     sources: &'a [Frame],
-    hooks: &'a SerializeHooks<'a>,
+    hooks: &'a RefCell<SerializeHooks<'a>>,
 }
 
 impl<'a> Serialize for SerializeContext<'a> {
@@ -133,17 +140,20 @@ impl<'a> Serialize for SerializeContext<'a> {
     where
         S: Serializer,
     {
-        let Self {
-            context,
-            attachments,
-            sources,
-            hooks,
-        } = self;
+        // let Self {
+        //     context,
+        //     attachments,
+        //     sources,
+        //     hooks,
+        // } = self;
+        let context = self.context;
+        let sources = self.sources;
+        let hooks = self.hooks;
 
         let mut map = serializer.serialize_map(Some(3))?;
         map.serialize_entry("context", &format!("{context}").as_str())?;
         map.serialize_entry("attachments", &&mut SerializeAttachmentList {
-            frames: &attachments[..],
+            frames: &self.attachments[..],
             hooks,
         })?;
         map.serialize_entry("sources", &SerializeSources {
@@ -157,7 +167,7 @@ impl<'a> Serialize for SerializeContext<'a> {
 
 struct SerializeSources<'a> {
     frames: &'a [Frame],
-    hooks: &'a SerializeHooks<'a>,
+    hooks: &'a RefCell<SerializeHooks<'a>>,
 }
 
 impl<'a> Serialize for SerializeSources<'a> {
@@ -177,7 +187,7 @@ impl<'a> Serialize for SerializeSources<'a> {
 fn find_next<'a>(
     head: &[&'a Frame],
     mut current: &'a Frame,
-    hooks: &'a SerializeHooks<'a>,
+    hooks: &'a RefCell<SerializeHooks<'a>>,
 ) -> Vec<SerializeContext<'a>> {
     let mut attachments = vec![];
     attachments.extend(head);
@@ -228,7 +238,7 @@ impl<C: Context> Serialize for Report<C> {
 
             SerializeSources {
                 frames: self.current_frames(),
-                hooks: &serialize_hooks,
+                hooks: &RefCell::new(serialize_hooks),
             }
             .serialize(serializer)
         })
