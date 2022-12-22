@@ -1,6 +1,8 @@
 import { promisify } from "node:util";
+
 import { imageSize as legacyImageSize } from "image-size";
-import { BlogPostPagePhoto } from "../../../components/BlogPost";
+
+import { BlogPostPagePhoto } from "../../../components/blog-post";
 
 const imageSize = promisify(legacyImageSize);
 

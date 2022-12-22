@@ -9,12 +9,15 @@ import { Logger } from "@hashintel/hash-backend-utils/logger";
 import {
   EntityTypeCreatorParams,
   generateSystemEntityTypeSchema,
-  linkEntityTypeUri,
 } from "@hashintel/hash-api/src/graph/util";
 
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import { Entity, EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
+import {
+  Entity,
+  EntityTypeWithMetadata,
+  linkEntityTypeUri,
+} from "@hashintel/hash-subgraph";
 import { createEntityType } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
 import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
 import {

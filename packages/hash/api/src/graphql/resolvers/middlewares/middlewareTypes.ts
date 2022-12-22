@@ -1,4 +1,4 @@
-import { ResolverFn } from "../../apiTypes.gen";
+import { ResolverFn } from "../../api-types.gen";
 
 export type ResolverMiddleware<
   TStartContext,

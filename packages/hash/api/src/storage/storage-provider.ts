@@ -1,4 +1,4 @@
-import { StorageType } from "../graphql/apiTypes.gen";
+import { StorageType } from "../graphql/api-types.gen";
 
 /** Interface describing a generic storage provider
  * used for allowing the download and upload files via presigned request.

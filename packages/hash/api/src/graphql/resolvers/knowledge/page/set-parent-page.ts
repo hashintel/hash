@@ -1,7 +1,7 @@
 import { ApolloError } from "apollo-server-express";
 
 import { LoggedInGraphQLContext } from "../../../context";
-import { MutationSetParentPageArgs, ResolverFn } from "../../../apiTypes.gen";
+import { MutationSetParentPageArgs, ResolverFn } from "../../../api-types.gen";
 import { mapPageToGQL, UnresolvedPageGQL } from "../graphql-mapping";
 import {
   getPageById,

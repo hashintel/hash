@@ -5,7 +5,7 @@ import {
   GraphResolveDepths,
 } from "@hashintel/hash-graph-client";
 import HttpAgent, { HttpsAgent } from "agentkeepalive";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import {
   ensureSystemUserExists,
@@ -51,6 +51,41 @@ const httpsAgent = new HttpsAgent(agentConfig);
 
 export type GraphApi = GraphApiClient & DataSource;
 
+const isErrorAxiosError = (error: Error): error is AxiosError =>
+  (error as AxiosError).isAxiosError;
+
+type JSONValue =
+  | string
+  | number
+  | boolean
+  | { [x: string]: JSONValue }
+  | Array<JSONValue>;
+
+export class GraphApiError extends Error {
+  // `status` is the HTTP status code from the server response
+  status?: number;
+  // `payload` is the contents of the HTTP body from the server response
+  payload: JSONValue;
+
+  constructor(axiosError: AxiosError) {
+    const responseData = axiosError.response?.data;
+
+    const message = `GraphApi error: ${
+      typeof responseData === "string" ? responseData : axiosError.message
+    }`;
+
+    super(message);
+
+    this.status = axiosError.response?.status;
+
+    if (!responseData) {
+      throw new Error("No response data found in Graph API error.");
+    }
+
+    this.payload = responseData as JSONValue;
+  }
+}
+
 export const createGraphClient = (
   _logger: Logger,
   { host, port }: { host: string; port: number },
@@ -60,11 +95,26 @@ export const createGraphClient = (
     httpsAgent,
   });
 
+  axiosInstance.interceptors.response.use(
+    (response) => response,
+    (error: Error) => {
+      if (!isErrorAxiosError(error)) {
+        throw new Error("Graph error is not axios error");
+      }
+
+      const graphApiError = new GraphApiError(error);
+
+      return Promise.reject(graphApiError);
+    },
+  );
+
   const basePath = `http://${host}:${port}`;
 
   const config = new Configuration({ basePath });
 
-  return new GraphApiClient(config, basePath, axiosInstance);
+  const graphApi = new GraphApiClient(config, basePath, axiosInstance);
+
+  return graphApi;
 };
 
 export const ensureSystemGraphIsInitialized = async (params: {
