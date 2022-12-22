@@ -10,7 +10,6 @@ import {
 } from "@hashintel/hash-subgraph";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
-import { AxiosError } from "axios";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
@@ -47,19 +46,11 @@ export const createPropertyType: ImpureGraphFunction<
 
   const { graphApi } = ctx;
 
-  const { data: metadata } = await graphApi
-    .createPropertyType({
-      ownedById,
-      schema,
-      actorId,
-    })
-    .catch((err: AxiosError) => {
-      throw new Error(
-        err.response?.status === 409
-          ? `property type with the same URI already exists. [URI=${schema.$id}]`
-          : `[${err.code}] couldn't create property type: ${err.response?.data}.`,
-      );
-    });
+  const { data: metadata } = await graphApi.createPropertyType({
+    ownedById,
+    schema,
+    actorId,
+  });
 
   return { schema, metadata };
 };

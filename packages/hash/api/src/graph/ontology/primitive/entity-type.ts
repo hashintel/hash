@@ -11,7 +11,6 @@ import {
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
-import { AxiosError } from "axios";
 
 import { NotFoundError } from "../../../lib/error";
 import {
@@ -46,23 +45,16 @@ export const createEntityType: ImpureGraphFunction<
     kind: "entity-type",
     title: params.schema.title,
   });
+
   const schema = { $id: entityTypeId, ...params.schema };
 
   const { graphApi } = ctx;
 
-  const { data: metadata } = await graphApi
-    .createEntityType({
-      actorId,
-      ownedById,
-      schema,
-    })
-    .catch((err: AxiosError) => {
-      throw new Error(
-        err.response?.status === 409
-          ? `entity type with the same URI already exists. [URI=${schema.$id}]`
-          : `[${err.code}] couldn't create entity type: ${err.response?.data}.`,
-      );
-    });
+  const { data: metadata } = await graphApi.createEntityType({
+    actorId,
+    ownedById,
+    schema,
+  });
 
   return { schema, metadata };
 };

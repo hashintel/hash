@@ -9,7 +9,6 @@ import {
 } from "@hashintel/hash-subgraph";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
-import { AxiosError } from "axios";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
@@ -54,19 +53,11 @@ export const createDataType: ImpureGraphFunction<
   });
   const schema = { $id: dataTypeUri, ...params.schema };
 
-  const { data: metadata } = await graphApi
-    .createDataType({
-      schema,
-      ownedById,
-      actorId,
-    })
-    .catch((err: AxiosError) => {
-      throw new Error(
-        err.response?.status === 409
-          ? `data type with the same URI already exists. [URI=${schema.$id}]`
-          : `[${err.code}] couldn't create data type: ${err.response?.data}.`,
-      );
-    });
+  const { data: metadata } = await graphApi.createDataType({
+    schema,
+    ownedById,
+    actorId,
+  });
 
   return { schema, metadata };
 };

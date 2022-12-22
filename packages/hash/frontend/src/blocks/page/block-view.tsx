@@ -21,9 +21,9 @@ import { BlockHandle } from "./block-handle";
 import { BlockHighlight } from "./block-highlight";
 import { RenderPortal } from "./block-portals";
 import { CollabPositionIndicators } from "./collab-position-indicators";
+import { CreateBlockCommentButton } from "./comments/create-block-comment-button";
 import { InsertBlock } from "./insert-block";
 import styles from "./style.module.css";
-import { CreateBlockCommentButton } from "./comments/create-block-comment-button";
 
 export const getBlockDomId = (blockEntityId: string) =>
   `entity-${blockEntityId}`;
