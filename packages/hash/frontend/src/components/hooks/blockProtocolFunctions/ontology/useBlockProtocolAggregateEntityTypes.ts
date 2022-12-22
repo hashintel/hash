@@ -5,7 +5,7 @@ import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import {
   GetAllLatestEntityTypesQuery,
   GetAllLatestEntityTypesQueryVariables,
-} from "../../../../graphql//api-types.gen";
+} from "../../../../graphql/api-types.gen";
 import { getAllLatestEntityTypesQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
 import { AggregateEntityTypesMessageCallback } from "./ontology-types-shim";
 

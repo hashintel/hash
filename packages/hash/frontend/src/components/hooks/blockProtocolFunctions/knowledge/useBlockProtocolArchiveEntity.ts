@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import {
   ArchiveEntityMutation,
   ArchiveEntityMutationVariables,
-} from "../../../../graphql//api-types.gen";
+} from "../../../../graphql/api-types.gen";
 import { archiveEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
 import { ArchiveEntityMessageCallback } from "./knowledge-shim";
 

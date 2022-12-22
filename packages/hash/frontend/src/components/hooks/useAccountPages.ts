@@ -5,7 +5,7 @@ import { OwnedById, EntityId } from "@hashintel/hash-shared/types";
 import {
   GetAccountPagesTreeQuery,
   GetAccountPagesTreeQueryVariables,
-} from "../../graphql//api-types.gen";
+} from "../../graphql/api-types.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 import { useWorkspaceShortnameByAccountId } from "./use-workspace-shortname-by-account-id";
 

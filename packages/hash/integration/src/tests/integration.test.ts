@@ -31,7 +31,7 @@ import {
   SystemTypeName,
   WayToUseHash,
   DeprecatedEntityType,
-} from "../graphql//api-types.gen";
+} from "../graphql/api-types.gen";
 
 const logger = new Logger({
   mode: "dev",

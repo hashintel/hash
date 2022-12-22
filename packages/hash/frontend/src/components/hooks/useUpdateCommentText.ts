@@ -5,7 +5,7 @@ import { EntityId } from "@hashintel/hash-shared/types";
 import {
   UpdateCommentTextMutation,
   UpdateCommentTextMutationVariables,
-} from "../../graphql//api-types.gen";
+} from "../../graphql/api-types.gen";
 import { updateCommentText } from "../../graphql/queries/comment.queries";
 import { getPageComments } from "../../graphql/queries/page.queries";
 

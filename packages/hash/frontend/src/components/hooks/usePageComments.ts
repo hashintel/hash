@@ -5,7 +5,7 @@ import { EntityId } from "@hashintel/hash-shared/types";
 import {
   GetPageCommentsQuery,
   GetPageCommentsQueryVariables,
-} from "../../graphql//api-types.gen";
+} from "../../graphql/api-types.gen";
 import { getPageComments } from "../../graphql/queries/page.queries";
 
 export type PageThread = PageComment & {

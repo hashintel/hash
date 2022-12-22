@@ -7,7 +7,7 @@ import {
 import {
   GetPageQuery,
   GetPageQueryVariables,
-} from "@hashintel/hash-shared/graphql//api-types.gen";
+} from "@hashintel/hash-shared/graphql/api-types.gen";
 import {
   getPageInfoQuery,
   getPageQuery,
@@ -55,7 +55,7 @@ import {
   GetAllLatestEntitiesQuery,
   GetPageInfoQuery,
   GetPageInfoQueryVariables,
-} from "../../graphql//api-types.gen";
+} from "../../graphql/api-types.gen";
 import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../../lib/apollo-client";
 import {

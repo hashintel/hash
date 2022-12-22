@@ -10,7 +10,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { MeQuery } from "../../graphql//api-types.gen";
+import { MeQuery } from "../../graphql/api-types.gen";
 import { meQuery } from "../../graphql/queries/user.queries";
 import {
   AuthenticatedUser,

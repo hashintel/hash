@@ -10,7 +10,7 @@ import { EntityUuid, OwnedById, Uuid } from "@hashintel/hash-shared/types";
 import {
   CreatePageMutation,
   CreatePageMutationVariables,
-} from "../../graphql//api-types.gen";
+} from "../../graphql/api-types.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 import { createPage } from "../../graphql/queries/page.queries";
 import { useWorkspaceShortnameByEntityUuid } from "./use-workspace-shortname-by-entity-uuid";

@@ -8,7 +8,7 @@ const config: CodegenConfig = {
     "./src/graphql/fragmentTypes.gen.json": {
       plugins: ["fragment-matcher"],
     },
-    "./src/graphql//api-types.gen.ts": {
+    "./src/graphql/api-types.gen.ts": {
       plugins: ["typescript", "typescript-operations"],
       config: {
         skipTypename: true,

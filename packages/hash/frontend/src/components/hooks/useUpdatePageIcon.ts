@@ -10,7 +10,7 @@ import {
   GetPageInfoQueryVariables,
   UpdatePageMutation,
   UpdatePageMutationVariables,
-} from "../../graphql//api-types.gen";
+} from "../../graphql/api-types.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 import { updatePage } from "../../graphql/queries/page.queries";
 

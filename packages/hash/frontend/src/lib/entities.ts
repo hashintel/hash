@@ -12,7 +12,7 @@ import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/e
 import {
   UnknownEntity as ApiEntity,
   Link as ApiLink,
-} from "../graphql//api-types.gen";
+} from "../graphql/api-types.gen";
 
 const isObject = (thing: unknown): thing is {} =>
   typeof thing === "object" && thing !== null;
