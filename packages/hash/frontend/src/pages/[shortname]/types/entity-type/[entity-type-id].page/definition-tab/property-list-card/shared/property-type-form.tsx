@@ -28,7 +28,12 @@ export const PropertyTypeForm = (
       },
     });
 
-    return !res.data || !!getPropertyTypeById(res.data, propertyTypeId);
+    if (!res.data) {
+      // @todo consider non-crash error handling
+      throw new Error("Unable to check whether name is available");
+    }
+
+    return !!getPropertyTypeById(res.data, propertyTypeId);
   };
 
   return (

@@ -77,8 +77,12 @@ export const LinkTypeForm = (props: TypeFormProps) => {
       },
     });
 
-    // @todo question from CiaranMn: Why does an absence of data mean we assume that the name exists?
-    return !res.data || !!getEntityTypeById(res.data, entityTypeId);
+    if (!res.data) {
+      // @todo consider non-crash error handling
+      throw new Error("Unable to check whether name is available");
+    }
+
+    return !!getEntityTypeById(res.data, entityTypeId);
   };
 
   return <TypeForm nameExists={nameExists} {...props} />;
