@@ -28,12 +28,9 @@ import {
 } from "../shared/property-types-context";
 import { MultipleValuesCell } from "./property-list-card/multiple-values-cell";
 import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
-import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
-import {
-  formDataToPropertyType,
-  PropertyTypeForm,
-} from "./property-list-card/shared/property-type-form";
+import { PropertyTypeForm } from "./property-list-card/shared/property-type-form";
 import { PropertyTypeFormValues } from "./property-list-card/shared/property-type-form-values";
+import { getPropertyTypeSchema } from "./property-list-card/shared/property-type-form/property-type-schema";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
@@ -45,16 +42,25 @@ import {
 } from "./shared/entity-type-table";
 import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
 import { QuestionIcon } from "./shared/question-icon";
+import { TypeFormModal } from "./shared/type-form";
+import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { useStateCallback } from "./shared/use-state-callback";
+
+const formDataToPropertyType = (data: PropertyTypeFormValues) => ({
+  oneOf: getPropertyTypeSchema(data.expectedValues),
+  description: data.description,
+  title: data.name,
+  kind: "propertyType" as const,
+});
 
 export const PropertyTypeRow = ({
   propertyIndex,
   onRemove,
-  onUpdatePropertyTypeVersion,
+  onUpdateVersion,
 }: {
   propertyIndex: number;
   onRemove: () => void;
-  onUpdatePropertyTypeVersion: (nextId: VersionedUri) => void;
+  onUpdateVersion: (nextId: VersionedUri) => void;
 }) => {
   const { control } = useFormContext<EntityTypeEditorForm>();
 
@@ -77,14 +83,13 @@ export const PropertyTypeRow = ({
 
   const { updatePropertyType } = useBlockProtocolUpdatePropertyType();
   const refetchPropertyTypes = useRefetchPropertyTypes();
+  const onUpdateVersionRef = useRef(onUpdateVersion);
+  useLayoutEffect(() => {
+    onUpdateVersionRef.current = onUpdateVersion;
+  });
 
   const propertyTypes = usePropertyTypes();
   const property = propertyTypes?.[$id];
-
-  const onUpdatePropertyTypeVersionRef = useRef(onUpdatePropertyTypeVersion);
-  useLayoutEffect(() => {
-    onUpdatePropertyTypeVersionRef.current = onUpdatePropertyTypeVersion;
-  });
 
   if (!property) {
     if (propertyTypes) {
@@ -126,11 +131,11 @@ export const PropertyTypeRow = ({
           variant="property"
         />
       </EntityTypeTableRow>
-      <PropertyTypeForm
+      <TypeFormModal
+        as={PropertyTypeForm}
         popupState={editModalPopupState}
         modalTitle={<>Edit Property Type</>}
         onSubmit={async (data) => {
-          // @todo verify this works
           const res = await updatePropertyType({
             data: {
               propertyTypeId: $id,
@@ -144,7 +149,7 @@ export const PropertyTypeRow = ({
 
           await refetchPropertyTypes?.();
 
-          onUpdatePropertyTypeVersionRef.current(
+          onUpdateVersionRef.current(
             // @todo temporary bug fix
             res.data.schema.$id.replace("//v", "/v") as VersionedUri,
           );
@@ -152,7 +157,7 @@ export const PropertyTypeRow = ({
           editModalPopupState.close();
         }}
         submitButtonProps={{ children: <>Edit property type</> }}
-        fieldProps={{ name: { disabled: true } }}
+        disabledFields={["name"]}
         getDefaultValues={() => ({
           name: property.title,
           description: property.description,
@@ -304,7 +309,7 @@ export const PropertyListCard = () => {
             onRemove={() => {
               remove(index);
             }}
-            onUpdatePropertyTypeVersion={(nextId) => {
+            onUpdateVersion={(nextId) => {
               setValue(`properties.${index}.$id`, nextId, {
                 shouldDirty: true,
               });
@@ -323,7 +328,8 @@ export const PropertyListCard = () => {
               searchText={searchText}
               onSearchTextChange={setSearchText}
             />
-            <PropertyTypeForm
+            <TypeFormModal
+              as={PropertyTypeForm}
               modalTitle={
                 <>
                   Create new property type

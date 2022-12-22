@@ -3,7 +3,6 @@ import { useTheme } from "@mui/system";
 import { FunctionComponent, ReactNode } from "react";
 
 import { Footer } from "./footer";
-import { HiringBanner } from "./hiring-banner";
 import { Navbar } from "./navbar";
 import { PreFooter } from "./pre-footer";
 
@@ -60,7 +59,6 @@ export const PageLayout: FunctionComponent<{
       <Box sx={{ flex: 1 }} />
       <PreFooter subscribe={subscribe} />
       <Footer />
-      <HiringBanner />
     </Box>
   );
 };
