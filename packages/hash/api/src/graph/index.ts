@@ -54,11 +54,18 @@ export type GraphApi = GraphApiClient & DataSource;
 const isErrorAxiosError = (error: Error): error is AxiosError =>
   (error as AxiosError).isAxiosError;
 
+type JSONValue =
+  | string
+  | number
+  | boolean
+  | { [x: string]: JSONValue }
+  | Array<JSONValue>;
+
 export class GraphApiError extends Error {
   // `status` is the HTTP status code from the server response
   status?: number;
   // `payload` is the contents of the HTTP body from the server response
-  payload: any;
+  payload: JSONValue;
 
   constructor(axiosError: AxiosError) {
     const responseData = axiosError.response?.data;
@@ -70,7 +77,12 @@ export class GraphApiError extends Error {
     super(message);
 
     this.status = axiosError.response?.status;
-    this.payload = responseData;
+
+    if (!responseData) {
+      throw new Error("No response data found in Graph API error.");
+    }
+
+    this.payload = responseData as JSONValue;
   }
 }
 
