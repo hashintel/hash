@@ -17,7 +17,7 @@
 mod hook;
 
 use alloc::{boxed::Box, format, string::String, vec, vec::Vec};
-use core::{cell::RefCell, iter::once};
+use core::{cell::RefCell, iter::once, marker::PhantomData};
 
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub use hook::HookContext;
@@ -33,6 +33,7 @@ use crate::{
 };
 
 enum SerializedAttachment<'a> {
+    #[cfg(any(feature = "std", feature = "hooks"))]
     Erased(Box<dyn erased_serde::Serialize + 'a>),
     String(String),
 }
@@ -43,12 +44,14 @@ impl Serialize for SerializedAttachment<'_> {
         S: Serializer,
     {
         match self {
+            #[cfg(any(feature = "std", feature = "hooks"))]
             SerializedAttachment::Erased(erased) => erased.serialize(serializer),
             SerializedAttachment::String(string) => string.serialize(serializer),
         }
     }
 }
 
+#[cfg(any(feature = "std", feature = "hooks"))]
 enum EitherIterator<T, U>
 where
     T: Iterator<Item = U::Item>,
@@ -58,6 +61,7 @@ where
     Right(U),
 }
 
+#[cfg(any(feature = "std", feature = "hooks"))]
 impl<T, U> Iterator for EitherIterator<T, U>
 where
     T: Iterator<Item = U::Item>,
@@ -73,6 +77,7 @@ where
     }
 }
 
+#[cfg(any(feature = "std", feature = "hooks"))]
 fn serialize_attachment<'a>(
     hooks: &'a Hooks,
     frame: &'a Frame,
@@ -97,6 +102,17 @@ fn serialize_attachment<'a>(
     }
 }
 
+#[cfg(not(any(feature = "std", feature = "hooks")))]
+fn serialize_attachment<'a>(frame: &'a Frame) -> impl Iterator<Item = String> + 'a {
+    // we weren't able to find a serializer and will fallback to the debug representation if
+    // possible
+    let mut debug_context = fmt::HookContext::new(fmt::Format::new(false));
+    let (_, attachments) = debug_attachments_invoke(once(frame), debug_context.cast());
+
+    attachments.into_iter()
+}
+
+#[cfg(any(feature = "std", feature = "hooks"))]
 struct SerializeHooks<'a> {
     hooks: &'a Hooks,
     context: &'a mut HookContext<Frame>,
@@ -104,9 +120,13 @@ struct SerializeHooks<'a> {
 
 struct SerializeAttachmentList<'a, 'b, 'c> {
     frames: &'a [&'b Frame],
+    #[cfg(any(feature = "std", feature = "hooks"))]
     hooks: &'c RefCell<SerializeHooks<'c>>,
+    #[cfg(not(any(feature = "std", feature = "hooks")))]
+    hooks: PhantomData<&'c ()>,
 }
 
+#[cfg(any(feature = "std", feature = "hooks"))]
 impl<'a, 'b, 'c> Serialize for SerializeAttachmentList<'a, 'b, 'c> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -128,11 +148,32 @@ impl<'a, 'b, 'c> Serialize for SerializeAttachmentList<'a, 'b, 'c> {
     }
 }
 
+#[cfg(not(any(feature = "std", feature = "hooks")))]
+impl<'a, 'b, 'c> Serialize for SerializeAttachmentList<'a, 'b, 'c> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_seq(None)?;
+
+        for frame in self.frames {
+            for attachment in serialize_attachment(hooks) {
+                seq.serialize_element(&attachment)?;
+            }
+        }
+
+        seq.end()
+    }
+}
+
 struct SerializeContext<'a, 'b> {
     attachments: Vec<&'a Frame>,
     context: &'a dyn Context,
     sources: &'a [Frame],
+    #[cfg(any(feature = "std", feature = "hooks"))]
     hooks: &'b RefCell<SerializeHooks<'b>>,
+    #[cfg(not(any(feature = "std", feature = "hooks")))]
+    hooks: PhantomData<&'b ()>,
 }
 
 impl<'a, 'b> Serialize for SerializeContext<'a, 'b> {
@@ -140,24 +181,21 @@ impl<'a, 'b> Serialize for SerializeContext<'a, 'b> {
     where
         S: Serializer,
     {
-        // let Self {
-        //     context,
-        //     attachments,
-        //     sources,
-        //     hooks,
-        // } = self;
         let context = self.context;
         let sources = self.sources;
+        #[cfg(any(feature = "std", feature = "hooks"))]
         let hooks = &self.hooks;
 
         let mut map = serializer.serialize_map(Some(3))?;
         map.serialize_entry("context", &format!("{context}").as_str())?;
         map.serialize_entry("attachments", &&mut SerializeAttachmentList {
             frames: &self.attachments[..],
+            #[cfg(any(feature = "std", feature = "hooks"))]
             hooks,
         })?;
         map.serialize_entry("sources", &SerializeSources {
             frames: sources,
+            #[cfg(any(feature = "std", feature = "hooks"))]
             hooks,
         })?;
 
@@ -167,7 +205,10 @@ impl<'a, 'b> Serialize for SerializeContext<'a, 'b> {
 
 struct SerializeSources<'a, 'b> {
     frames: &'a [Frame],
+    #[cfg(any(feature = "std", feature = "hooks"))]
     hooks: &'b RefCell<SerializeHooks<'b>>,
+    #[cfg(not(any(feature = "std", feature = "hooks")))]
+    hooks: PhantomData<&'b ()>,
 }
 
 impl<'a, 'b> Serialize for SerializeSources<'a, 'b> {
@@ -175,11 +216,14 @@ impl<'a, 'b> Serialize for SerializeSources<'a, 'b> {
     where
         S: Serializer,
     {
-        serializer.collect_seq(
-            self.frames
-                .iter()
-                .flat_map(|source| find_next(&[], source, self.hooks)),
-        )
+        serializer.collect_seq(self.frames.iter().flat_map(|source| {
+            find_next(
+                &[],
+                source,
+                #[cfg(any(feature = "std", feature = "hooks"))]
+                self.hooks,
+            )
+        }))
     }
 }
 
@@ -187,7 +231,7 @@ impl<'a, 'b> Serialize for SerializeSources<'a, 'b> {
 fn find_next<'a, 'b>(
     head: &[&'a Frame],
     mut current: &'a Frame,
-    hooks: &'b RefCell<SerializeHooks<'b>>,
+    #[cfg(any(feature = "std", feature = "hooks"))] hooks: &'b RefCell<SerializeHooks<'b>>,
 ) -> Vec<SerializeContext<'a, 'b>> {
     let mut attachments = vec![];
     attachments.extend(head);
@@ -201,6 +245,7 @@ fn find_next<'a, 'b>(
                 attachments,
                 context,
                 sources: current.sources(),
+                #[cfg(any(feature = "std", feature = "hooks"))]
                 hooks,
             }];
         } else if current.sources().len() > 1 {
@@ -210,7 +255,14 @@ fn find_next<'a, 'b>(
             return current
                 .sources()
                 .iter()
-                .flat_map(|source| find_next(&attachments, source, hooks))
+                .flat_map(|source| {
+                    find_next(
+                        &attachments,
+                        source,
+                        #[cfg(any(feature = "std", feature = "hooks"))]
+                        hooks,
+                    )
+                })
                 .collect();
         } else if current.sources().len() == 1 {
             attachments.push(current);
@@ -224,6 +276,7 @@ fn find_next<'a, 'b>(
     }
 }
 
+#[cfg(any(feature = "std", feature = "hooks"))]
 impl<C: Context> Serialize for Report<C> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -242,5 +295,18 @@ impl<C: Context> Serialize for Report<C> {
             }
             .serialize(serializer)
         })
+    }
+}
+
+#[cfg(not(any(feature = "std", feature = "hooks")))]
+impl<C: Context> Serialize for Report<C> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        SerializeSources {
+            frames: self.current_frames(),
+        }
+        .serialize(serializer)
     }
 }
