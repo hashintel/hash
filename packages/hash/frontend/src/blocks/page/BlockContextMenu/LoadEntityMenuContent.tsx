@@ -5,7 +5,7 @@ import {
   TextField,
 } from "@hashintel/hash-design-system";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
-import { EntityStoreType } from "@hashintel/hash-shared/entityStore";
+import { EntityStoreType } from "@hashintel/hash-shared/entity-store";
 import { EntityId } from "@hashintel/hash-subgraph";
 import {
   Box,

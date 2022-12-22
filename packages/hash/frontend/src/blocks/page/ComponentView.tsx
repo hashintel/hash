@@ -8,18 +8,18 @@ import {
   DraftEntity,
   EntityStore,
   isDraftBlockEntity,
-} from "@hashintel/hash-shared/entityStore";
+} from "@hashintel/hash-shared/entity-store";
 import {
   addEntityStoreAction,
   entityStorePluginState,
   subscribeToEntityStore,
-} from "@hashintel/hash-shared/entityStorePlugin";
+} from "@hashintel/hash-shared/entity-store-plugin";
 import {
   componentNodeToId,
   isComponentNode,
   isParagraphNode,
 } from "@hashintel/hash-shared/prosemirror";
-import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
+import { ProsemirrorManager } from "@hashintel/hash-shared/prosemirror-manager";
 import { textBlockNodeToEntityProperties } from "@hashintel/hash-shared/text";
 import * as Sentry from "@sentry/nextjs";
 import { Node } from "prosemirror-model";
