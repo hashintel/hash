@@ -7,11 +7,11 @@ import {
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { EntityType, TypeSystemInitializer } from "@blockprotocol/type-system";
-import { linkEntityTypeUri } from "@hashintel/hash-api/src/graph/util";
 import {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
+  linkEntityTypeUri,
 } from "@hashintel/hash-subgraph";
 import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
 import {
