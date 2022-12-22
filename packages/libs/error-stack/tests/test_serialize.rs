@@ -1,6 +1,6 @@
 //! Note: span_trace, backtrace and such are not special cased, therefore all tests run with all
 //! tests enabled.
-#![cfg(all(feature = "std", feature = "spantrace", feature = "serde"))]
+#![cfg(all(feature = "spantrace", feature = "serde"))]
 // can be considered safe, because we only check the output, which in itself does not use **any**
 // unsafe code.
 #![cfg(not(miri))]
@@ -68,4 +68,34 @@ fn multiple_sources_at_root() {
     a.extend_one(b);
 
     assert_ron_snapshot!(a);
+}
+
+#[cfg(any(feature = "std", feature = "hooks"))]
+mod hooks {
+    use error_stack::{fmt::HookContext, Report};
+
+    use super::*;
+
+    struct DoesNotImplementSerialize {
+        a: String,
+        b: Box<[u8]>,
+    }
+
+    struct ImplementSerialize<'a> {
+        a: &'a str,
+        b: &'a [u8],
+    }
+
+    #[test]
+    fn install_custom_hook() {
+        Report::install_custom_serde_hook(
+            |value: &DoesNotImplementSerialize,
+             context: &mut HookContext<DoesNotImplementSerialize>| {
+                ImplementSerialize {
+                    a: &value.a,
+                    b: &value.b,
+                }
+            },
+        );
+    }
 }
