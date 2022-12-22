@@ -5,7 +5,7 @@ import { ApolloError } from "apollo-server-errors";
 import {
   MutationDeleteLinkedAggregationArgs,
   ResolverFn,
-} from "../../apiTypes.gen";
+} from "../../api-types.gen";
 import { Aggregation } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 

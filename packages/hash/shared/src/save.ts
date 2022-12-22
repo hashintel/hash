@@ -20,7 +20,7 @@ import {
   UpdatePageContentsMutationVariables,
   UpdatePageAction,
   UpdatePageContentsResultPlaceholder,
-} from "./graphql/apiTypes.gen";
+} from "./graphql/api-types.gen";
 import { isEntityNode } from "./prosemirror";
 import { getPageQuery, updatePageContents } from "./queries/page.queries";
 

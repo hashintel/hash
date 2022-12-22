@@ -7,7 +7,7 @@ import {
   QueryGetEntityTypeArgs,
   QueryGetAllLatestEntityTypesArgs,
   ResolverFn,
-} from "../../apiTypes.gen";
+} from "../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import {
   createEntityType,

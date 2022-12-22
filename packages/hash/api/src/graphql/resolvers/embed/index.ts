@@ -7,7 +7,7 @@ import {
   Maybe,
   QueryEmbedCodeArgs,
   ResolverFn,
-} from "../../apiTypes.gen";
+} from "../../api-types.gen";
 
 import { GraphQLContext } from "../../context";
 

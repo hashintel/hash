@@ -3,7 +3,7 @@ import {
   getCommentById,
   getCommentText,
 } from "../../../../graph/knowledge/system-types/comment";
-import { ResolverFn } from "../../../apiTypes.gen";
+import { ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { UnresolvedCommentGQL } from "../graphql-mapping";
 

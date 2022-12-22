@@ -23,7 +23,7 @@ COPY packages/graph/clients/typescript/package.json packages/graph/clients/types
 RUN yarn workspace @hashintel/hash-frontend install --frozen-lockfile --prefer-offline
 
 COPY packages/hash/api/codegen.config.ts packages/hash/api/codegen.config.ts
-COPY packages/hash/api/src/graphql/typeDefs packages/hash/api/src/graphql/typeDefs
+COPY packages/hash/api/src/graphql/type-defs packages/hash/api/src/graphql/type-defs
 COPY packages/hash/frontend/codegen.config.ts packages/hash/frontend/codegen.config.ts
 COPY packages/hash/frontend/src/graphql/queries packages/hash/frontend/src/graphql/queries
 COPY packages/hash/shared/src/queries packages/hash/shared/src/queries

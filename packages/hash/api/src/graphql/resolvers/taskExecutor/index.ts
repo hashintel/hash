@@ -11,7 +11,7 @@ import {
   MutationExecuteGithubDiscoverTaskArgs,
   MutationExecuteGithubReadTaskArgs,
   ResolverFn,
-} from "../../apiTypes.gen";
+} from "../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 import { createEntity } from "../../../graph/knowledge/primitive/entity";
 

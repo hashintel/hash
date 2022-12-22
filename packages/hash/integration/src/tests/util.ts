@@ -12,7 +12,7 @@ import {
   updateUserShortname,
 } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
 import { createOrg } from "@hashintel/hash-api/src/graph/knowledge/system-types/org";
-import { OrgSize } from "../graphql/apiTypes.gen";
+import { OrgSize } from "../graphql/api-types.gen";
 
 const randomStringSuffix = () => {
   const alphabet = "abcdefghijklmnopqrstuvwxyz";
