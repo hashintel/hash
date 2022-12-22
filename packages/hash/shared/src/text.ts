@@ -1,7 +1,7 @@
 import { Node, Schema } from "prosemirror-model";
 
 import { TextEntityType, TextProperties } from "./entity";
-import { TEXT_TOKEN_PROPERTY_TYPE_BASE_URI } from "./entityStore";
+import { TEXT_TOKEN_PROPERTY_TYPE_BASE_URI } from "./entity-store";
 import { TextToken } from "./graphql/types";
 import { ComponentNode } from "./prosemirror";
 

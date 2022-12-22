@@ -9,7 +9,7 @@ import {
 import { Draft, produce } from "immer";
 
 import { BlockEntity } from "./entity";
-import { generateDraftIdForEntity } from "./entityStorePlugin";
+import { generateDraftIdForEntity } from "./entity-store-plugin";
 import { types } from "./ontology-types";
 
 export type EntityStoreType = BlockEntity | BlockEntity["blockChildEntity"];

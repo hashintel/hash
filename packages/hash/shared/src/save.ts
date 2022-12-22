@@ -12,7 +12,7 @@ import {
   getDraftEntityByEntityId,
   isDraftBlockEntity,
   TEXT_ENTITY_TYPE_ID,
-} from "./entityStore";
+} from "./entity-store";
 import {
   GetPageQuery,
   GetPageQueryVariables,

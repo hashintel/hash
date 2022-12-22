@@ -15,7 +15,7 @@ import {
   getDraftEntityByEntityId,
   isBlockEntity,
   isDraftBlockEntity,
-} from "./entityStore";
+} from "./entity-store";
 import {
   ComponentNode,
   componentNodeToId,
