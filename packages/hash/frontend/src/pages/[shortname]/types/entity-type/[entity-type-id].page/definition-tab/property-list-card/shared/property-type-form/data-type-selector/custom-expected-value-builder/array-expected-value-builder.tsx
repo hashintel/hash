@@ -12,9 +12,9 @@ import {
 } from "../../../property-type-form-values";
 import { dataTypeOptions as primitiveDataTypeOptions } from "../../shared/data-type-options";
 import { expectedValuesOptions } from "../shared/expected-values-options";
-import { ExpectedValueBadge } from "./array-expected-value-builder/expected-value-badge";
-import { DeleteExpectedValueModal } from "./array-expected-value-builder/delete-expected-value-modal";
-import { CustomExpectedValueSelector } from "./shared/custom-expected-value-selector";
+import { ExpectedValueBadge } from "../shared/expected-value-badge";
+import { DeleteExpectedValueModal } from "../shared/delete-expected-value-modal";
+import { CustomExpectedValueSelector } from "../shared/custom-expected-value-selector";
 import { ObjectExpectedValueBuilder } from "../shared/object-expected-value-builder";
 
 const dataTypeOptions: DefaultExpectedValueTypeId[] = [
