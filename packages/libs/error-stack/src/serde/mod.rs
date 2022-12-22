@@ -109,16 +109,14 @@ impl<'a, 'b> Serialize for SerializeAttachmentList<'a, 'b> {
     where
         S: Serializer,
     {
-        let Self {
-            frames,
-            hooks: SerializeHooks { hooks, context },
-        } = *self;
+        let hooks = self.hooks.hooks;
+        let context = self.hooks.context;
 
         serializer.collect_seq(
-            frames
+            self.frames
                 .iter()
                 .copied()
-                .flat_map(|frame| serialize_attachment(hooks, frame, *context)),
+                .flat_map(move |frame| serialize_attachment(hooks, frame, context)),
         )
     }
 }
@@ -144,7 +142,7 @@ impl<'a> Serialize for SerializeContext<'a> {
 
         let mut map = serializer.serialize_map(Some(3))?;
         map.serialize_entry("context", &format!("{context}").as_str())?;
-        map.serialize_entry("attachments", &SerializeAttachmentList {
+        map.serialize_entry("attachments", &&mut SerializeAttachmentList {
             frames: &attachments[..],
             hooks,
         })?;
