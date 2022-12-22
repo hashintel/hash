@@ -23,7 +23,7 @@ import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
 import {
   EntityDefinition,
   LinkedEntityDefinition,
-} from "../../../graphql/apiTypes.gen";
+} from "../../../graphql/api-types.gen";
 import { linkedTreeFlatten } from "../../../util";
 import { getEntityTypeById } from "../../ontology/primitive/entity-type";
 import {

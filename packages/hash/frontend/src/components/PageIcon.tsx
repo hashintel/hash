@@ -7,7 +7,7 @@ import { EntityId } from "@hashintel/hash-shared/types";
 import {
   GetPageInfoQuery,
   GetPageInfoQueryVariables,
-} from "../graphql/apiTypes.gen";
+} from "../graphql/api-types.gen";
 
 export type SizeVariant = "small" | "medium";
 

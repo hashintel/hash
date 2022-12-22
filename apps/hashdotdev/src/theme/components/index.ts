@@ -1,23 +1,19 @@
 /* eslint-disable canonical/filename-no-index -- @todo rename file */
 
 import { ThemeOptions } from "@mui/material";
-import { MuiAvatarThemeOptions } from "./dataDisplay/MuiAvatarThemeOptions";
 
-import { MuiFormControlThemeOptions } from "./inputs/MuiFormControlThemeOptions";
-import { MuiInputBaseThemeOptions } from "./inputs/MuiInputBaseThemeOptions";
-import { MuiOutlinedInputThemeOptions } from "./inputs/MuiOutlinedInputThemeOptions";
-import { MuiTextFieldThemeOptions } from "./inputs/MuiTextFieldThemeOptions";
-import { MuiButtonThemeOptions } from "./inputs/MuiButtonThemeOptions";
-
-import { MuiTypographyThemeOptions } from "./dataDisplay/MuiTypographyThemeOptions";
-import { MuiIconButtonThemeOptions } from "./dataDisplay/MuiIconButtonThemeOptions";
-import { MuiIconThemeOptions } from "./dataDisplay/MuiIconThemeOptions";
-
-import { MuiContainerThemeOptions } from "./layout/MuiContainerThemeOptions";
-
-import { MuiLinkThemeOptions } from "./navigation/MuiLinkThemeOptions";
-
-import { MuiCssBaselineThemeOptions } from "./utils/MuiCssBaselineThemeOptions";
+import { MuiAvatarThemeOptions } from "./data-display/mui-avatar-theme-options";
+import { MuiIconButtonThemeOptions } from "./data-display/mui-icon-button-theme-options";
+import { MuiIconThemeOptions } from "./data-display/mui-icon-theme-options";
+import { MuiTypographyThemeOptions } from "./data-display/mui-typography-theme-options";
+import { MuiButtonThemeOptions } from "./inputs/mui-button-theme-options";
+import { MuiFormControlThemeOptions } from "./inputs/mui-form-control-theme-options";
+import { MuiInputBaseThemeOptions } from "./inputs/mui-input-base-theme-options";
+import { MuiOutlinedInputThemeOptions } from "./inputs/mui-outlined-input-theme-options";
+import { MuiTextFieldThemeOptions } from "./inputs/mui-text-field-theme-options";
+import { MuiContainerThemeOptions } from "./layout/mui-container-theme-options";
+import { MuiLinkThemeOptions } from "./navigation/mui-link-theme-options";
+import { MuiCssBaselineThemeOptions } from "./utils/mui-css-baseline-theme-options";
 
 export const components: ThemeOptions["components"] = {
   MuiAvatar: MuiAvatarThemeOptions,

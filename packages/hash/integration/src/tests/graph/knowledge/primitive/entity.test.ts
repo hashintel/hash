@@ -8,10 +8,7 @@ import {
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
-import {
-  generateSystemEntityTypeSchema,
-  linkEntityTypeUri,
-} from "@hashintel/hash-api/src/graph/util";
+import { generateSystemEntityTypeSchema } from "@hashintel/hash-api/src/graph/util";
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
@@ -22,6 +19,7 @@ import {
   Subgraph,
   SubgraphRootTypes,
   extractOwnedByIdFromEntityId,
+  linkEntityTypeUri,
 } from "@hashintel/hash-subgraph";
 import { createPropertyType } from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
 import { createEntityType } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";

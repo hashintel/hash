@@ -6,7 +6,7 @@ import {
   Entity,
   MutationCreateFileFromLinkArgs,
   ResolverFn,
-} from "../../apiTypes.gen";
+} from "../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { File } from "../../../model";
 
