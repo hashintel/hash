@@ -1,4 +1,3 @@
-import { AxiosError } from "axios";
 import { UpdatePropertyTypeRequest } from "@hashintel/hash-graph-client";
 import {
   PropertyTypeWithMetadata,
@@ -46,19 +45,11 @@ export const createPropertyType: ImpureGraphFunction<
 
   const { graphApi } = ctx;
 
-  const { data: metadata } = await graphApi
-    .createPropertyType({
-      ownedById,
-      schema,
-      actorId,
-    })
-    .catch((err: AxiosError) => {
-      throw new Error(
-        err.response?.status === 409
-          ? `property type with the same URI already exists. [URI=${schema.$id}]`
-          : `[${err.code}] couldn't create property type: ${err.response?.data}.`,
-      );
-    });
+  const { data: metadata } = await graphApi.createPropertyType({
+    ownedById,
+    schema,
+    actorId,
+  });
 
   return { schema, metadata };
 };

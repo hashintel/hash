@@ -1,14 +1,15 @@
 import { GetStaticPaths, GetStaticProps, NextPage } from "next";
 import { MDXRemoteSerializeResult } from "next-mdx-remote";
+
 import {
   BlogPagePhotos,
   BlogPostContent,
   BlogPostHead,
   BlogPostPagePhoto,
   BlogPostPhotosContext,
-} from "../../components/BlogPost";
-import { MdxPageContent } from "../../components/MdxPageContent";
-import { getAllPageHrefs, getSerializedPage } from "../../util/mdxUtil";
+} from "../../components/blog-post";
+import { MdxPageContent } from "../../components/mdx-page-content";
+import { getAllPageHrefs, getSerializedPage } from "../../util/mdx-util";
 import { getPhoto } from "./shared/get-photo";
 
 type BlogPostAuthorWithPhotoSrc = {
@@ -39,13 +40,13 @@ type BlogPostPageProps = {
 };
 
 type BlogPostPageQueryParams = {
-  blogSlug?: string[];
+  "blog-slug"?: string[];
 };
 
 export const getStaticPaths: GetStaticPaths<BlogPostPageQueryParams> = () => {
   const paths = getAllPageHrefs({ folderName: "blog" }).map((href) => ({
     params: {
-      blogSlug: href
+      "blog-slug": href
         .replace("/blog", "")
         .split("/")
         .filter((item) => !!item),
@@ -62,7 +63,7 @@ export const getStaticProps: GetStaticProps<
   BlogPostPageProps,
   BlogPostPageQueryParams
 > = async ({ params }) => {
-  const { blogSlug } = params ?? {};
+  const blogSlug = params?.["blog-slug"];
 
   const fileNameWithoutIndex =
     blogSlug && blogSlug.length > 0 ? blogSlug[0]! : "index";

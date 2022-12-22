@@ -1,3 +1,5 @@
+import { UrlObject } from "node:url";
+
 import {
   Link as MuiLink,
   LinkProps as MuiLinkProps,
@@ -8,9 +10,9 @@ import clsx from "clsx";
 import NextLink, { LinkProps as NextLinkProps } from "next/link";
 import { useRouter } from "next/router";
 import { forwardRef, isValidElement } from "react";
-import { UrlObject } from "node:url";
+
 import { FRONTEND_URL } from "../config";
-import { Button } from "./Button";
+import { Button } from "./button";
 
 // List of domains that are considered internal (i.e. should not be opened in a new tab)
 const internalDomains = ["hash.dev", "hash.ai", "blockprotocol.org"];
