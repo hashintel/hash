@@ -1,5 +1,5 @@
-import { SvgIcon, SvgIconProps } from "@mui/material";
 import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import { SvgIcon, SvgIconProps } from "@mui/material";
 import { forwardRef } from "react";
 
 type FontAwesomeIconProps = {

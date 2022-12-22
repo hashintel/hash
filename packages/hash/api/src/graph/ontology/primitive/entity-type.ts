@@ -1,5 +1,3 @@
-import { AxiosError } from "axios";
-
 import { EntityType, VersionedUri } from "@blockprotocol/type-system";
 import { UpdateEntityTypeRequest } from "@hashintel/hash-graph-client";
 import {
@@ -46,23 +44,16 @@ export const createEntityType: ImpureGraphFunction<
     kind: "entity-type",
     title: params.schema.title,
   });
+
   const schema = { $id: entityTypeId, ...params.schema };
 
   const { graphApi } = ctx;
 
-  const { data: metadata } = await graphApi
-    .createEntityType({
-      actorId,
-      ownedById,
-      schema,
-    })
-    .catch((err: AxiosError) => {
-      throw new Error(
-        err.response?.status === 409
-          ? `entity type with the same URI already exists. [URI=${schema.$id}]`
-          : `[${err.code}] couldn't create entity type: ${err.response?.data}.`,
-      );
-    });
+  const { data: metadata } = await graphApi.createEntityType({
+    actorId,
+    ownedById,
+    schema,
+  });
 
   return { schema, metadata };
 };
