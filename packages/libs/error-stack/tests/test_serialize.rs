@@ -114,7 +114,14 @@ mod hooks {
         //     },
         // );
 
-        Report::install_custom_serde_hook(serialize)
+        Report::install_custom_serde_hook(serialize);
+
+        let report = create_report().attach(DoesNotImplementSerialize {
+            a: "example".to_string(),
+            b: Box::new([1, 2, 3]),
+        });
+
+        assert_ron_snapshot!(report);
     }
 
     #[test]
@@ -128,5 +135,12 @@ mod hooks {
                 }
             },
         );
+
+        let report = create_report().attach(DoesNotImplementSerialize {
+            a: "example".to_string(),
+            b: Box::new([1, 2, 3]),
+        });
+
+        assert_ron_snapshot!(report);
     }
 }
