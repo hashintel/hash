@@ -67,10 +67,12 @@ export const EditBarReusable = ({
   discardButtonProps,
   confirmButtonProps,
   visible,
+  label,
 }: {
   visible: boolean;
   discardButtonProps: Partial<ButtonProps>;
   confirmButtonProps: Partial<ButtonProps>;
+  label?: ReactNode;
 }) => {
   const ref = useFreezeScrollWhileTransitioning();
 
@@ -88,7 +90,7 @@ export const EditBarReusable = ({
         <EditBarContents
           icon={<PencilSimpleLine />}
           title="Currently editing"
-          label={`Version ${1} -> ${2}`}
+          label={label}
           discardButtonProps={{
             children: "Discard changes",
             ...discardButtonProps,

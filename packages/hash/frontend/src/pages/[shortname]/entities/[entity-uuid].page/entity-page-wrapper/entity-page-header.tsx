@@ -16,7 +16,7 @@ export const EntityPageHeader = ({
   entityLabel: string;
   lightTitle?: boolean;
   chip: ReactNode;
-  editBar: ReactNode;
+  editBar?: ReactNode;
 }) => {
   const router = useRouter();
 

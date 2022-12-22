@@ -1,33 +1,29 @@
-import { Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
+import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
   OwnedById,
 } from "@hashintel/hash-shared/types";
-import Head from "next/head";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import produce from "immer";
 import { useBlockProtocolGetEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
 import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../shared/layout";
-import { HashOntologyIcon } from "../shared/hash-ontology-icon";
-import { OntologyChip } from "../shared/ontology-chip";
-import { EntityEditor } from "./[entity-uuid].page/entity-editor";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
-import { EntityPageWrapper } from "./[entity-uuid].page/entity-page-wrapper";
 import { PageErrorState } from "../../../components/page-error-state";
 import { generateEntityLabel } from "../../../lib/entities";
 import { useRouteNamespace } from "../shared/use-route-namespace";
 import { useBlockProtocolGetEntityType } from "../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
-import { EntityPageHeader } from "./[entity-uuid].page/entity-page-wrapper/entity-page-header";
 import { useBlockProtocolUpdateEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolUpdateEntity";
 import { useLoadingCallback } from "../../../components/hooks/useLoadingCallback";
 import { EditBarReusable } from "../types/entity-type/[entity-type-id].page/edit-bar-reusable";
+import { EntityEditorPage } from "./[entity-uuid].page/entity-editor-page";
+import { updateEntitySubgraphStateByEntity } from "./[entity-uuid].page/shared/update-entity-subgraph-state-by-entity";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -77,7 +73,7 @@ const Page: NextPageWithLayout = () => {
   }, [entityUuid, getEntity, getEntityType, routeNamespace]);
 
   const refetch = async () => {
-    if (!routeNamespace) {
+    if (!routeNamespace || !draftEntitySubgraph) {
       return;
     }
 
@@ -90,7 +86,25 @@ const Page: NextPageWithLayout = () => {
       },
     });
 
+    if (!subgraph) {
+      return;
+    }
+
     setEntitySubgraphFromDB(subgraph);
+
+    const newDraftEntitySubgraph = produce(subgraph, (val) => {
+      /** @see https://github.com/immerjs/immer/issues/839 for ts-ignore reason */
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      const entityToUpdate = getRoots(val)[0];
+      const draftEntity = getRoots(draftEntitySubgraph)[0];
+
+      if (entityToUpdate && "properties" in entityToUpdate && draftEntity) {
+        entityToUpdate.properties = draftEntity.properties;
+      }
+    });
+
+    setDraftEntitySubgraph(newDraftEntitySubgraph);
   };
 
   const discardChanges = () => {
@@ -131,103 +145,30 @@ const Page: NextPageWithLayout = () => {
   const entityLabel = generateEntityLabel(draftEntitySubgraph);
 
   return (
-    <>
-      <Head>
-        <title>{entityLabel} | Entity | HASH</title>
-      </Head>
-      <EntityPageWrapper
-        header={
-          <EntityPageHeader
-            entityLabel={entityLabel}
-            editBar={
-              <EditBarReusable
-                visible={isDirty}
-                discardButtonProps={{
-                  onClick: discardChanges,
-                }}
-                confirmButtonProps={{
-                  onClick: handleSaveChanges,
-                  loading: savingChanges,
-                  children: "Save changes",
-                }}
-              />
-            }
-            chip={
-              <OntologyChip
-                icon={<HashOntologyIcon />}
-                domain="hash.ai"
-                path={
-                  <Typography>
-                    <Typography
-                      color={(theme) => theme.palette.blue[70]}
-                      component="span"
-                      fontWeight="bold"
-                    >
-                      {router.query.shortname}
-                    </Typography>
-                    <Typography
-                      color={(theme) => theme.palette.blue[70]}
-                      component="span"
-                    >
-                      /entities/
-                    </Typography>
-                    <Typography
-                      color={(theme) => theme.palette.blue[70]}
-                      component="span"
-                      fontWeight="bold"
-                    >
-                      {entityUuid}
-                    </Typography>
-                  </Typography>
-                }
-              />
-            }
-          />
-        }
-      >
-        <EntityEditor
-          entitySubgraph={draftEntitySubgraph}
-          setEntity={(entity) => {
-            setIsDirty(true);
-            setDraftEntitySubgraph((entityAndSubgraph) => {
-              if (entity) {
-                /**
-                 * @todo - This is a problem, subgraphs should probably be immutable, there will be a new identifier
-                 *   for the updated entity. This version will not match the one returned by the data store.
-                 *   For places where we mutate elements, we should probably store them separately from the subgraph to
-                 *   allow for optimistic updates without being incorrect.
-                 */
-                const newEntity = JSON.parse(JSON.stringify(entity)) as Entity;
-                const newEntityVersion = new Date().toISOString();
-                newEntity.metadata.editionId.version = newEntityVersion;
-
-                return entityAndSubgraph
-                  ? ({
-                      ...entityAndSubgraph,
-                      roots: [newEntity.metadata.editionId],
-                      vertices: {
-                        ...entityAndSubgraph.vertices,
-                        [newEntity.metadata.editionId.baseId]: {
-                          ...entityAndSubgraph.vertices[
-                            newEntity.metadata.editionId.baseId
-                          ],
-                          [newEntityVersion]: {
-                            kind: "entity",
-                            inner: newEntity,
-                          },
-                        },
-                      },
-                    } as Subgraph<SubgraphRootTypes["entity"]>)
-                  : undefined;
-              } else {
-                return undefined;
-              }
-            });
+    <EntityEditorPage
+      refetch={refetch}
+      editBar={
+        <EditBarReusable
+          visible={isDirty}
+          discardButtonProps={{
+            onClick: discardChanges,
           }}
-          refetch={refetch}
+          confirmButtonProps={{
+            onClick: handleSaveChanges,
+            loading: savingChanges,
+            children: "Save changes",
+          }}
         />
-      </EntityPageWrapper>
-    </>
+      }
+      entityLabel={entityLabel}
+      entitySubgraph={draftEntitySubgraph}
+      entityUuid={entityUuid}
+      owner={String(router.query.shortname)}
+      setEntity={(entity) => {
+        setIsDirty(true);
+        updateEntitySubgraphStateByEntity(entity, setDraftEntitySubgraph);
+      }}
+    />
   );
 };
 

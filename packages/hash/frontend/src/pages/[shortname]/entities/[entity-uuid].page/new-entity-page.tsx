@@ -1,162 +1,168 @@
-import { faPlus, faWarning } from "@fortawesome/free-solid-svg-icons";
-import { Button, Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { Box, Divider, Typography } from "@mui/material";
+import { VersionedUri } from "@blockprotocol/type-system";
+import { useContext, useEffect, useState } from "react";
+import {
+  SubgraphRootTypes,
+  Subgraph,
+  EntityEditionId,
+  extractEntityUuidFromEntityId,
+} from "@hashintel/hash-subgraph";
+import { OwnedById } from "@hashintel/hash-shared/types";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { useRouter } from "next/router";
-import { useContext, useState } from "react";
-import { useSnackbar } from "../../../../components/hooks/useSnackbar";
+import { EditBarReusable } from "../../types/entity-type/[entity-type-id].page/edit-bar-reusable";
+import { EntityEditorPage } from "./entity-editor-page";
+import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
+import { EntityPageLoadingState } from "./entity-page-loading-state";
+import { PageErrorState } from "../../../../components/page-error-state";
+import { useLoadingCallback } from "../../../../components/hooks/useLoadingCallback";
+import { useBlockProtocolCreateEntity } from "../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
 import { WorkspaceContext } from "../../../shared/workspace-context";
-import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
-import { OntologyChip } from "../../shared/ontology-chip";
-import { SectionWrapper } from "../../shared/section-wrapper";
-import { WhiteCard } from "../../shared/white-card";
-import { EntityTypeSelector } from "./new-entity-page/entity-type-selector";
-import { EntityTypesContextProvider } from "./new-entity-page/entity-types-context-provider";
-import { EntityPageWrapper } from "./entity-page-wrapper";
-import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
-import { LinksSectionEmptyState } from "./shared/links-section-empty-state";
-import { PeersSectionEmptyState } from "./shared/peers-section-empty-state";
-import { PropertiesSectionEmptyState } from "./shared/properties-section-empty-state";
-import { useCreateNewEntityAndRedirect } from "./shared/use-create-new-entity-and-redirect";
+import { generateEntityLabel } from "../../../../lib/entities";
+import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
 
-export const NewEntityPage = () => {
+interface NewEntityPageProps {
+  entityTypeId: VersionedUri;
+}
+
+export const NewEntityPage = ({ entityTypeId }: NewEntityPageProps) => {
   const router = useRouter();
-  const snackbar = useSnackbar();
-  const [isSelectingType, setIsSelectingType] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [draftEntitySubgraph, setDraftEntitySubgraph] =
+    useState<Subgraph<SubgraphRootTypes["entity"]>>();
 
-  const { activeWorkspace } = useContext(WorkspaceContext);
-  const createNewEntityAndRedirect = useCreateNewEntityAndRedirect();
+  const { activeWorkspace, activeWorkspaceAccountId } =
+    useContext(WorkspaceContext);
+  const { createEntity } = useBlockProtocolCreateEntity(
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
+    (activeWorkspaceAccountId as OwnedById) ?? null,
+  );
 
-  if (!activeWorkspace) {
-    throw new Error("Active workspace must be set");
+  const { getEntityType } = useBlockProtocolGetEntityType();
+
+  useEffect(() => {
+    const init = async () => {
+      try {
+        setLoading(true);
+
+        const { data: subgraph } = await getEntityType({
+          data: {
+            entityTypeId,
+            graphResolveDepths: {
+              constrainsValuesOn: { outgoing: 255 },
+              constrainsLinksOn: { outgoing: 255 },
+              constrainsLinkDestinationsOn: { outgoing: 255 },
+              constrainsPropertiesOn: { outgoing: 255 },
+            },
+          },
+        });
+
+        if (!subgraph) {
+          throw new Error("subgraph not found");
+        }
+
+        const draftEntityEditionId: EntityEditionId = {
+          baseId: "draft%draft",
+          version: new Date().toISOString(),
+        };
+
+        setDraftEntitySubgraph({
+          ...subgraph,
+          roots: [draftEntityEditionId],
+          vertices: {
+            ...subgraph.vertices,
+            [draftEntityEditionId.baseId]: {
+              [draftEntityEditionId.version]: {
+                kind: "entity",
+                inner: {
+                  properties: {},
+                  metadata: {
+                    editionId: draftEntityEditionId,
+                    entityTypeId,
+                    provenance: { updatedById: "" },
+                    archived: false,
+                  },
+                },
+              },
+            },
+          },
+        } as Subgraph<SubgraphRootTypes["entity"]>);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void init();
+  }, [entityTypeId, getEntityType]);
+
+  const [handleCreateEntity, creating] = useLoadingCallback(async () => {
+    if (!draftEntitySubgraph || !activeWorkspace) {
+      return;
+    }
+
+    const draftEntity = getRoots(draftEntitySubgraph)[0];
+
+    if (!draftEntity) {
+      return;
+    }
+
+    const { data: entity } = await createEntity({
+      data: {
+        entityTypeId,
+        properties: draftEntity.properties,
+      },
+    });
+
+    if (!entity) {
+      return;
+    }
+
+    const entityId = extractEntityUuidFromEntityId(
+      entity.metadata.editionId.baseId,
+    );
+
+    void router.push(`/@${activeWorkspace.shortname}/entities/${entityId}`);
+  });
+
+  if (loading) {
+    return <EntityPageLoadingState />;
   }
 
+  if (!draftEntitySubgraph) {
+    return <PageErrorState />;
+  }
+
+  const entityLabel = generateEntityLabel(draftEntitySubgraph);
+
   return (
-    <EntityPageWrapper
-      header={
-        <EntityPageHeader
-          entityLabel="New entity"
-          lightTitle
-          chip={
-            <OntologyChip
-              icon={<HashOntologyIcon />}
-              domain="hash.ai"
-              path={
-                <>
-                  <Typography
-                    color={(theme) => theme.palette.blue[70]}
-                    fontWeight="bold"
-                    component="span"
-                  >
-                    @{activeWorkspace.shortname}
-                  </Typography>
-                  <Typography
-                    color={(theme) => theme.palette.blue[70]}
-                    component="span"
-                  >
-                    /entities
-                  </Typography>
-                </>
-              }
-            />
-          }
+    <EntityEditorPage
+      /**
+       * @todo links section is hidden temporarily on new entity page
+       * it should be visible again after draft state on links implemented
+       * */
+      hideLinksSection
+      refetch={async () => {}}
+      editBar={
+        <EditBarReusable
+          label="- this entity has not been created yet"
+          visible
+          discardButtonProps={{
+            href: "/new/entity",
+            children: "Discard entity",
+          }}
+          confirmButtonProps={{
+            onClick: handleCreateEntity,
+            loading: creating,
+            children: "Create entity",
+          }}
         />
       }
-    >
-      <SectionWrapper
-        title="Types"
-        titleStartContent={<Chip label="No type" size="xs" />}
-      >
-        <WhiteCard>
-          <Box
-            pt={3.75}
-            pb={2}
-            gap={0.75}
-            display="flex"
-            flexDirection="column"
-            alignItems="center"
-            textAlign="center"
-          >
-            <Typography
-              display="flex"
-              alignItems="center"
-              variant="largeTextLabels"
-              fontWeight={600}
-              gap={1}
-            >
-              <FontAwesomeIcon icon={faWarning} sx={{ color: "yellow.80" }} />
-              This entity requires a type
-            </Typography>
-            <Typography color="gray.60">
-              Types describe an entity, and determine the properties and links
-              that can be associated with it.
-            </Typography>
-          </Box>
-
-          <Divider />
-
-          <EntityTypesContextProvider>
-            <Box
-              sx={{
-                display: "flex",
-                gap: 1,
-                alignItems: "center",
-                p: 3,
-                justifyContent: "center",
-                flexWrap: "wrap",
-              }}
-            >
-              {isSelectingType ? (
-                <EntityTypeSelector
-                  onCancel={() => setIsSelectingType(false)}
-                  onSelect={async (entityType) => {
-                    try {
-                      setIsSelectingType(false);
-                      setLoading(true);
-
-                      await createNewEntityAndRedirect(entityType.$id);
-                    } catch (error: any) {
-                      snackbar.error(error.message);
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
-                  onCreateNew={(searchValue) => {
-                    let href = `/new/types/entity-type`;
-                    if (searchValue) {
-                      href += `?name=${encodeURIComponent(searchValue)}`;
-                    }
-
-                    void router.push(href);
-                  }}
-                />
-              ) : (
-                <>
-                  <Button
-                    loading={loading}
-                    onClick={() => setIsSelectingType(true)}
-                    startIcon={!loading && <FontAwesomeIcon icon={faPlus} />}
-                    sx={{ fontSize: 14, paddingX: 2 }}
-                  >
-                    Add a type
-                  </Button>
-                  {!loading && (
-                    <Typography variant="smallTextLabels" fontWeight={600}>
-                      to start using this entity
-                    </Typography>
-                  )}
-                </>
-              )}
-            </Box>
-          </EntityTypesContextProvider>
-        </WhiteCard>
-      </SectionWrapper>
-
-      <PropertiesSectionEmptyState />
-
-      <LinksSectionEmptyState />
-
-      <PeersSectionEmptyState />
-    </EntityPageWrapper>
+      entityLabel={entityLabel}
+      entitySubgraph={draftEntitySubgraph}
+      entityUuid="draft"
+      owner={`@${activeWorkspace?.shortname}`}
+      setEntity={(entity) => {
+        updateEntitySubgraphStateByEntity(entity, setDraftEntitySubgraph);
+      }}
+    />
   );
 };
