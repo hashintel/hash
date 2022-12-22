@@ -36,7 +36,7 @@ let uploadStorageProvider: StorageType = StorageType.LocalFileSystem;
 
 function initialiseStorageProvider(provider: StorageType) {
   const initialiser = storageProviderInitialiserLookup[provider];
-
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
   if (!initialiser) {
     throw new Error(
       `No storage provider available for storage type: ${provider}`,
