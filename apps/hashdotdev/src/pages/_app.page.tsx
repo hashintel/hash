@@ -6,13 +6,14 @@ import { EmotionCache } from "@emotion/react";
 import type { AppProps } from "next/app";
 import { useRouter } from "next/router";
 import { DefaultSeo, DefaultSeoProps } from "next-seo";
-import { useEffect, FunctionComponent } from "react";
 import NextNProgress from "nextjs-progressbar";
-import { PageLayout } from "../components/PageLayout";
-import { theme } from "../theme";
-import { MuiProvider } from "../theme/MuiProvider";
-import { NextPageWithLayout } from "../util/nextTypes";
+import { FunctionComponent, useEffect } from "react";
+
+import { PageLayout } from "../components/page-layout";
 import { FRONTEND_URL, SITE_DESCRIPTION } from "../config";
+import { theme } from "../theme";
+import { MuiProvider } from "../theme/mui-provider";
+import { NextPageWithLayout } from "../util/next-types";
 
 const defaultSeoProps: DefaultSeoProps = {
   title: "HASH.dev – HASH for Developers",
