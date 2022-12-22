@@ -307,7 +307,7 @@ const calculateSaveActions = async (
       const blockData = draftEntity.blockChildEntity;
       const blockChildEntityId =
         blockData?.metadata.editionId.baseId ??
-        draftIdToPlaceholderId.get(blockData.draftId!);
+        draftIdToPlaceholderId.get(blockData!.draftId!);
 
       if (!blockChildEntityId) {
         throw new Error("Block data entity id missing");
