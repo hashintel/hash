@@ -7,6 +7,7 @@ import {
   ontologyTypeEditionIdToVersionedUri,
   Subgraph,
   SubgraphRootTypes,
+  linkEntityTypeUri,
 } from "@hashintel/hash-subgraph";
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
@@ -18,7 +19,6 @@ import {
   zeroedGraphResolveDepths,
 } from "../..";
 import { getNamespaceOfAccountOwner } from "./util";
-import { linkEntityTypeUri } from "../../util";
 import { NotFoundError } from "../../../lib/error";
 
 /**
