@@ -8,7 +8,7 @@ import { SizedGridColumn } from "@glideapps/glide-data-grid";
 import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { useMemo } from "react";
 
-import { useGetOwnerForEntity } from "../../../../../../components/hooks/useGetOwnerForEntity";
+import { useGetOwnerForEntity } from "../../../../../../components/hooks/use-get-owner-for-entity";
 import { generateEntityLabel } from "../../../../../../lib/entities";
 
 export interface TypeEntitiesRow {

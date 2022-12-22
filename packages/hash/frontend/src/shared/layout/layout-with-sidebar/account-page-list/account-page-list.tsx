@@ -35,11 +35,11 @@ import {
 } from "react";
 import { useLocalstorageState } from "rooks";
 
-import { useAccountPages } from "../../../../components/hooks/useAccountPages";
-import { useArchivePage } from "../../../../components/hooks/useArchivePage";
-import { useCreatePage } from "../../../../components/hooks/useCreatePage";
-import { useCreateSubPage } from "../../../../components/hooks/useCreateSubPage";
-import { useReorderPage } from "../../../../components/hooks/useReorderPage";
+import { useAccountPages } from "../../../../components/hooks/use-account-pages";
+import { useArchivePage } from "../../../../components/hooks/use-archive-page";
+import { useCreatePage } from "../../../../components/hooks/use-create-page";
+import { useCreateSubPage } from "../../../../components/hooks/use-create-sub-page";
+import { useReorderPage } from "../../../../components/hooks/use-reorder-page";
 import { constructPageRelativeUrl } from "../../../../lib/routes";
 import { NavLink } from "../nav-link";
 import { AccountPageListItem } from "./account-page-list-item";

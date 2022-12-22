@@ -16,7 +16,7 @@ import {
 } from "material-ui-popup-state/hooks";
 import { FunctionComponent, useContext, useMemo } from "react";
 
-import { useLogoutFlow } from "../../../components/hooks/useLogoutFlow";
+import { useLogoutFlow } from "../../../components/hooks/use-logout-flow";
 import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
 import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 import { Button, MenuItem } from "../../ui";

@@ -4,8 +4,8 @@ import { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 
-import { useOrgs } from "../../components/hooks/useOrgs";
-import { useUsers } from "../../components/hooks/useUsers";
+import { useOrgs } from "../../components/hooks/use-orgs";
+import { useUsers } from "../../components/hooks/use-users";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 
 const menuBarHeight = 60;

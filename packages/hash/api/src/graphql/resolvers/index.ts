@@ -1,9 +1,9 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
-import { getBlockProtocolBlocksResolver } from "./blockprotocol/getBlock";
+import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
 import { fileFields } from "./file";
-import { requestFileUpload } from "./file/requestFileUpload";
+import { requestFileUpload } from "./file/request-file-upload";
 import { blocksResolver } from "./knowledge/block/block";
 import { blockChildEntityResolver } from "./knowledge/block/data-entity";
 import { commentAuthorResolver } from "./knowledge/comment/author";
@@ -22,7 +22,7 @@ import {
   getEntityResolver,
   updateEntityResolver,
 } from "./knowledge/entity/entity";
-import { hashInstanceEntityResolver } from "./knowledge/hashInstance/hashInstance";
+import { hashInstanceEntityResolver } from "./knowledge/hash-instance/hash-instance";
 import { createOrgResolver } from "./knowledge/org/create-org";
 import { pageContents, updatePageContents } from "./knowledge/page";
 import {
@@ -37,14 +37,14 @@ import { updatePageResolver } from "./knowledge/page/update-page";
 import { createUserResolver } from "./knowledge/user/create-user";
 import { isShortnameTakenResolver } from "./knowledge/user/is-shortname-taken";
 import { meResolver } from "./knowledge/user/me";
-import { createLinkedAggregation } from "./linkedAggregation/createLinkedAggregation";
-import { deleteLinkedAggregation } from "./linkedAggregation/deleteLinkedAggregation";
-import { getLinkedAggregation } from "./linkedAggregation/getLinkedAggregation";
-import { linkedAggregationResults } from "./linkedAggregation/linkedAggregationResults";
-import { updateLinkedAggregationOperation } from "./linkedAggregation/updateLinkedAggregationOperation";
-import { loggedInMiddleware } from "./middlewares/loggedIn";
-import { loggedInAndSignedUpMiddleware } from "./middlewares/loggedInAndSignedUp";
-import { loggedInAndSignedUpHashInstanceAdminMiddleware } from "./middlewares/loggedInAndSignedUpHashInstanceAdmin";
+import { createLinkedAggregation } from "./linked-aggregation/create-linked-aggregation";
+import { deleteLinkedAggregation } from "./linked-aggregation/delete-linked-aggregation";
+import { getLinkedAggregation } from "./linked-aggregation/get-linked-aggregation";
+import { linkedAggregationResults } from "./linked-aggregation/linked-aggregation-results";
+import { updateLinkedAggregationOperation } from "./linked-aggregation/update-linked-aggregation-operation";
+import { loggedInMiddleware } from "./middlewares/logged-in";
+import { loggedInAndSignedUpMiddleware } from "./middlewares/logged-in-and-signed-up";
+import { loggedInAndSignedUpHashInstanceAdminMiddleware } from "./middlewares/logged-in-and-signed-up-hash-instance-admin";
 import { getAllLatestDataTypes, getDataType } from "./ontology/data-type";
 import {
   createEntityTypeResolver,
@@ -64,7 +64,7 @@ import {
   executeGithubDiscoverTask,
   executeGithubReadTask,
   executeGithubSpecTask,
-} from "./taskExecutor";
+} from "./task-executor";
 
 /** @todo - Refactor the names of these https://app.asana.com/0/1200211978612931/1203234667392169/f */
 export const resolvers = {

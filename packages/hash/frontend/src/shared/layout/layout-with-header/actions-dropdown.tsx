@@ -21,8 +21,8 @@ import {
   useState,
 } from "react";
 
-import { useAccountPages } from "../../../components/hooks/useAccountPages";
-import { useCreatePage } from "../../../components/hooks/useCreatePage";
+import { useAccountPages } from "../../../components/hooks/use-account-pages";
+import { useCreatePage } from "../../../components/hooks/use-create-page";
 import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 import { MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";

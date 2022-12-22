@@ -13,9 +13,9 @@ import {
   useWatch,
 } from "react-hook-form";
 
-import { useBlockProtocolCreateEntityType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreateEntityType";
-import { useBlockProtocolGetEntityType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
-import { useBlockProtocolUpdateEntityType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";
+import { useBlockProtocolCreateEntityType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/use-block-protocol-create-entity-type";
+import { useBlockProtocolGetEntityType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/use-block-protocol-get-entity-type";
+import { useBlockProtocolUpdateEntityType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/use-block-protocol-update-entity-type";
 import { LinkIcon } from "../../../../../../shared/icons/link";
 import { HashSelectorAutocomplete } from "../../../../shared/hash-selector-autocomplete";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";

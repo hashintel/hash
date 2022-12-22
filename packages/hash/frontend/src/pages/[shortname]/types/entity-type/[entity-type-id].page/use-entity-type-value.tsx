@@ -10,9 +10,9 @@ import {
   useState,
 } from "react";
 
-import { useBlockProtocolAggregateEntityTypes } from "../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateEntityTypes";
-import { useBlockProtocolCreateEntityType } from "../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreateEntityType";
-import { useBlockProtocolUpdateEntityType } from "../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";
+import { useBlockProtocolAggregateEntityTypes } from "../../../../../components/hooks/blockProtocolFunctions/ontology/use-block-protocol-aggregate-entity-types";
+import { useBlockProtocolCreateEntityType } from "../../../../../components/hooks/blockProtocolFunctions/ontology/use-block-protocol-create-entity-type";
+import { useBlockProtocolUpdateEntityType } from "../../../../../components/hooks/blockProtocolFunctions/ontology/use-block-protocol-update-entity-type";
 import { useAdvancedInitTypeSystem } from "../../../../../lib/use-init-type-system";
 
 export const useEntityTypeValue = (

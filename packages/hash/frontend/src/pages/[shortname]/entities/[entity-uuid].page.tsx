@@ -9,8 +9,8 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
-import { useBlockProtocolGetEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
-import { useBlockProtocolGetEntityType } from "../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
+import { useBlockProtocolGetEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/use-block-protocol-get-entity";
+import { useBlockProtocolGetEntityType } from "../../../components/hooks/blockProtocolFunctions/ontology/use-block-protocol-get-entity-type";
 import { PageErrorState } from "../../../components/page-error-state";
 import { generateEntityLabel } from "../../../lib/entities";
 import {

@@ -19,7 +19,7 @@ import { useRouter } from "next/router";
 import { ReactNode, useContext } from "react";
 import { useForm } from "react-hook-form";
 
-import { useBlockProtocolGetEntityType } from "../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
+import { useBlockProtocolGetEntityType } from "../../../components/hooks/blockProtocolFunctions/ontology/use-block-protocol-get-entity-type";
 import { useInitTypeSystem } from "../../../lib/use-init-type-system";
 import {
   getLayoutWithSidebar,

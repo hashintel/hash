@@ -12,8 +12,8 @@ import {
   useState,
 } from "react";
 
-import { useHashInstance } from "../components/hooks/useHashInstance";
-import { useUpdateAuthenticatedUser } from "../components/hooks/useUpdateAuthenticatedUser";
+import { useHashInstance } from "../components/hooks/use-hash-instance";
+import { useUpdateAuthenticatedUser } from "../components/hooks/use-update-authenticated-user";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
 import { useAuthInfo } from "./shared/auth-info-context";

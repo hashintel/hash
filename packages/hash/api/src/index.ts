@@ -28,7 +28,7 @@ import {
   EmailTransporter,
 } from "./email/transporters";
 import { createGraphClient, ensureSystemGraphIsInitialized } from "./graph";
-import { createApolloServer } from "./graphql/createApolloServer";
+import { createApolloServer } from "./graphql/create-apollo-server";
 import { getAwsRegion } from "./lib/aws-config";
 import { CORS_CONFIG, FILE_UPLOAD_PROVIDER } from "./lib/config";
 import {

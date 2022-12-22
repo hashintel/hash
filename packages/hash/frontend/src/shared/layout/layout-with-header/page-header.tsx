@@ -1,8 +1,8 @@
 import { Box, useMediaQuery, useTheme } from "@mui/material";
 import { FunctionComponent, ReactNode } from "react";
 
-import { useHashInstance } from "../../../components/hooks/useHashInstance";
-import { useLogoutFlow } from "../../../components/hooks/useLogoutFlow";
+import { useHashInstance } from "../../../components/hooks/use-hash-instance";
+import { useLogoutFlow } from "../../../components/hooks/use-logout-flow";
 import { useAuthInfo } from "../../../pages/shared/auth-info-context";
 import { HashAlphaNavIcon } from "../../icons";
 import { Button, Link } from "../../ui";

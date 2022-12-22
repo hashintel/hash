@@ -18,8 +18,8 @@ import {
   useWatch,
 } from "react-hook-form";
 
-import { useBlockProtocolCreatePropertyType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
-import { useBlockProtocolUpdatePropertyType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdatePropertyType";
+import { useBlockProtocolCreatePropertyType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/use-block-protocol-create-property-type";
+import { useBlockProtocolUpdatePropertyType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/use-block-protocol-update-property-type";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
 import { useRouteNamespace } from "../../../../shared/use-route-namespace";
 import { EntityTypeEditorForm } from "../shared/form-types";

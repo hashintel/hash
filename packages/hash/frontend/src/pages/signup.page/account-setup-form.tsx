@@ -2,8 +2,8 @@ import { Box } from "@mui/material";
 import { FunctionComponent, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 
-import { SelectInput } from "../../components/forms/SelectInput";
-import { useShortnameInput } from "../../components/hooks/useShortnameInput";
+import { SelectInput } from "../../components/forms/select-input";
+import { useShortnameInput } from "../../components/hooks/use-shortname-input";
 import { InfoIcon, LogoIcon, SpinnerIcon } from "../../shared/icons";
 import { InvitationInfo, ORG_ROLES } from "../shared/auth-utils";
 

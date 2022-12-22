@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 
-import { TextInput } from "../../components/forms/TextInput";
+import { TextInput } from "../../components/forms/text-input";
 import { LogoIcon, SpinnerIcon } from "../../shared/icons";
 import { Link } from "../../shared/ui";
 import { useAuthInfo } from "../shared/auth-info-context";

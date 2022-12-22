@@ -12,7 +12,7 @@ import {
 } from "react";
 import { useDebounce, useKey, useOutsideClickRef } from "rooks";
 
-import { getBlockDomId } from "../../../blocks/page/BlockView";
+import { getBlockDomId } from "../../../blocks/page/block-view";
 import { HASH_OPENSEARCH_ENABLED } from "../../../lib/public-env";
 import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
 import { SearchIcon } from "../../icons";

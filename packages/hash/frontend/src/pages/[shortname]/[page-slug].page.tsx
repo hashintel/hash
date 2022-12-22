@@ -34,23 +34,23 @@ import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 // import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
 // import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 // import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
-import { PageBlock } from "../../blocks/page/PageBlock";
+import { PageBlock } from "../../blocks/page/page-block";
 import {
   PageContextProvider,
   usePageContext,
-} from "../../blocks/page/PageContext";
-import { PageSectionContainer } from "../../blocks/page/PageSectionContainer";
-import { PageTitle } from "../../blocks/page/PageTitle/PageTitle";
+} from "../../blocks/page/page-context";
+import { PageSectionContainer } from "../../blocks/page/page-section-container";
+import { PageTitle } from "../../blocks/page/page-title/page-title";
 import {
   AccountPagesInfo,
   useAccountPages,
-} from "../../components/hooks/useAccountPages";
-import { useArchivePage } from "../../components/hooks/useArchivePage";
-import { usePageComments } from "../../components/hooks/usePageComments";
-import { PageIcon, pageIconVariantSizes } from "../../components/PageIcon";
-import { PageIconButton } from "../../components/PageIconButton";
-import { PageLoadingState } from "../../components/PageLoadingState";
-import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
+} from "../../components/hooks/use-account-pages";
+import { useArchivePage } from "../../components/hooks/use-archive-page";
+import { usePageComments } from "../../components/hooks/use-page-comments";
+import { PageIcon, pageIconVariantSizes } from "../../components/page-icon";
+import { PageIconButton } from "../../components/page-icon-button";
+import { PageLoadingState } from "../../components/page-loading-state";
+import { CollabPositionProvider } from "../../contexts/collab-position-context";
 import {
   GetAllLatestEntitiesQuery,
   GetPageInfoQuery,

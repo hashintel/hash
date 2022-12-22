@@ -48,7 +48,7 @@ import {
   UseFormTrigger,
 } from "react-hook-form";
 
-import { Modal } from "../../../../../../../components/Modals/Modal";
+import { Modal } from "../../../../../../../components/xxx-modals/modal";
 import { withHandler } from "../property-list-card/shared/with-handler";
 import { QuestionIcon } from "./question-icon";
 

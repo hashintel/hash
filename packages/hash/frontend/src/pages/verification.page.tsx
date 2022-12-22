@@ -8,7 +8,7 @@ import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { useRouter } from "next/router";
 import { FormEventHandler, useEffect, useMemo, useState } from "react";
 
-import { useLogoutFlow } from "../components/hooks/useLogoutFlow";
+import { useLogoutFlow } from "../components/hooks/use-logout-flow";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
 import {

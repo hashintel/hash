@@ -6,7 +6,7 @@ import {
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { useBlockProtocolAggregateEntities } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolAggregateEntities";
+import { useBlockProtocolAggregateEntities } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/use-block-protocol-aggregate-entities";
 import { generateEntityLabel } from "../../../../../../../../../lib/entities";
 import { HashSelectorAutocomplete } from "../../../../../../../shared/hash-selector-autocomplete";
 import { useEntityEditor } from "../../../../entity-editor-context";

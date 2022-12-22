@@ -10,25 +10,25 @@ import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
 import { OwnedById } from "@hashintel/hash-shared/types";
 
 import { KnowledgeCallbacks } from "../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
-import { useBlockProtocolAggregateEntities } from "../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolAggregateEntities";
-import { useBlockProtocolArchiveEntity } from "../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolArchiveEntity";
-import { useBlockProtocolCreateEntity } from "../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
+import { useBlockProtocolAggregateEntities } from "../../components/hooks/blockProtocolFunctions/knowledge/use-block-protocol-aggregate-entities";
+import { useBlockProtocolArchiveEntity } from "../../components/hooks/blockProtocolFunctions/knowledge/use-block-protocol-archive-entity";
+import { useBlockProtocolCreateEntity } from "../../components/hooks/blockProtocolFunctions/knowledge/use-block-protocol-create-entity";
 // Knowledge Graph Operations
-import { useBlockProtocolGetEntity } from "../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
-import { useBlockProtocolUpdateEntity } from "../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolUpdateEntity";
+import { useBlockProtocolGetEntity } from "../../components/hooks/blockProtocolFunctions/knowledge/use-block-protocol-get-entity";
+import { useBlockProtocolUpdateEntity } from "../../components/hooks/blockProtocolFunctions/knowledge/use-block-protocol-update-entity";
 import { OntologyCallbacks } from "../../components/hooks/blockProtocolFunctions/ontology/ontology-types-shim";
 // Ontology operations
-import { useBlockProtocolAggregateDataTypes } from "../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateDataTypes";
-import { useBlockProtocolAggregateEntityTypes } from "../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateEntityTypes";
-import { useBlockProtocolAggregatePropertyTypes } from "../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregatePropertyTypes";
-import { useBlockProtocolCreateEntityType } from "../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreateEntityType";
-import { useBlockProtocolCreatePropertyType } from "../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
-import { useBlockProtocolGetDataType } from "../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetDataType";
-import { useBlockProtocolGetEntityType } from "../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
-import { useBlockProtocolGetPropertyType } from "../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
-import { useBlockProtocolUpdateEntityType } from "../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";
-import { useBlockProtocolUpdatePropertyType } from "../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdatePropertyType";
-import { useBlockProtocolFileUpload } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolFileUpload";
+import { useBlockProtocolAggregateDataTypes } from "../../components/hooks/blockProtocolFunctions/ontology/use-block-protocol-aggregate-data-types";
+import { useBlockProtocolAggregateEntityTypes } from "../../components/hooks/blockProtocolFunctions/ontology/use-block-protocol-aggregate-entity-types";
+import { useBlockProtocolAggregatePropertyTypes } from "../../components/hooks/blockProtocolFunctions/ontology/use-block-protocol-aggregate-property-types";
+import { useBlockProtocolCreateEntityType } from "../../components/hooks/blockProtocolFunctions/ontology/use-block-protocol-create-entity-type";
+import { useBlockProtocolCreatePropertyType } from "../../components/hooks/blockProtocolFunctions/ontology/use-block-protocol-create-property-type";
+import { useBlockProtocolGetDataType } from "../../components/hooks/blockProtocolFunctions/ontology/use-block-protocol-get-data-type";
+import { useBlockProtocolGetEntityType } from "../../components/hooks/blockProtocolFunctions/ontology/use-block-protocol-get-entity-type";
+import { useBlockProtocolGetPropertyType } from "../../components/hooks/blockProtocolFunctions/ontology/use-block-protocol-get-property-type";
+import { useBlockProtocolUpdateEntityType } from "../../components/hooks/blockProtocolFunctions/ontology/use-block-protocol-update-entity-type";
+import { useBlockProtocolUpdatePropertyType } from "../../components/hooks/blockProtocolFunctions/ontology/use-block-protocol-update-property-type";
+import { useBlockProtocolFileUpload } from "../../components/hooks/blockProtocolFunctions/use-block-protocol-file-upload";
 import { useIsReadonlyMode } from "../../shared/readonly-mode";
 
 export type GraphMessageCallbacks = Omit<

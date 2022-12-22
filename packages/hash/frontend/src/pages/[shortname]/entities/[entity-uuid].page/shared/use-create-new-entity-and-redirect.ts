@@ -5,8 +5,8 @@ import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/e
 import { useRouter } from "next/router";
 import { useCallback, useContext } from "react";
 
-import { useBlockProtocolCreateEntity } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
-import { useBlockProtocolGetEntityType } from "../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
+import { useBlockProtocolCreateEntity } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/use-block-protocol-create-entity";
+import { useBlockProtocolGetEntityType } from "../../../../../components/hooks/blockProtocolFunctions/ontology/use-block-protocol-get-entity-type";
 import { WorkspaceContext } from "../../../../shared/workspace-context";
 
 export const useCreateNewEntityAndRedirect = () => {

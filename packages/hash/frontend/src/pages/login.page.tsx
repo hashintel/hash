@@ -12,8 +12,8 @@ import {
   useState,
 } from "react";
 
-import { useHashInstance } from "../components/hooks/useHashInstance";
-import { useLogoutFlow } from "../components/hooks/useLogoutFlow";
+import { useHashInstance } from "../components/hooks/use-hash-instance";
+import { useLogoutFlow } from "../components/hooks/use-logout-flow";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
 import { useAuthInfo } from "./shared/auth-info-context";

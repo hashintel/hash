@@ -2,7 +2,7 @@ import { AccountId } from "@hashintel/hash-shared/types";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 
-import { useGetAccountIdForShortname } from "../../../components/hooks/useGetAccountIdForShortname";
+import { useGetAccountIdForShortname } from "../../../components/hooks/use-get-account-id-for-shortname";
 
 export const useRouteNamespace = (): {
   loading: boolean;

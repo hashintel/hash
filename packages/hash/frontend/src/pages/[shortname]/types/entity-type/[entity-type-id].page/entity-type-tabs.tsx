@@ -5,7 +5,7 @@ import { useRouter } from "next/router";
 import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
-import { useFontLoadedCallback } from "../../../../../components/hooks/useFontLoadedCallback";
+import { useFontLoadedCallback } from "../../../../../components/hooks/use-font-loaded-callback";
 import { TabLink } from "./entity-type-tabs/tab-link";
 import { useEntityType } from "./shared/entity-type-context";
 import { useEntityTypeEntities } from "./shared/entity-type-entities-context";
