@@ -9,10 +9,8 @@ use std::borrow::Cow;
 use error_stack::Result;
 use graph::{
     identifier::{
-        account::AccountId,
-        knowledge::{EntityEditionId, EntityId},
-        ontology::OntologyTypeEditionId,
-        GraphElementVertexId,
+        account::AccountId, knowledge::EntityId, ontology::OntologyTypeEditionId,
+        time::TransactionTimestamp, EntityVertexId, GraphElementVertexId,
     },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
@@ -284,18 +282,20 @@ impl DatabaseApi<'_> {
 
     pub async fn get_entity(
         &self,
-        entity_edition_id: EntityEditionId,
+        entity_id: EntityId,
+        timestamp: TransactionTimestamp,
     ) -> Result<Entity, QueryError> {
+        let entity_vertex_id = EntityVertexId::new(entity_id, timestamp);
         Ok(self
             .store
             .get_entity(&StructuralQuery {
-                filter: Entity::create_filter_for_vertex_id(&entity_edition_id),
+                filter: Entity::create_filter_for_vertex_id(&entity_vertex_id),
                 graph_resolve_depths: GraphResolveDepths::default(),
             })
             .await?
             .vertices
             .entities
-            .remove(&entity_edition_id)
+            .remove(&entity_vertex_id)
             .expect("no entity found"))
     }
 
