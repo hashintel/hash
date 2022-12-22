@@ -125,3 +125,6 @@ export const isEntityAndTimestamp = (
     !Number.isNaN(Date.parse(editionId.timestamp))
   );
 };
+
+export const linkEntityTypeUri: VersionedUri =
+  "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";

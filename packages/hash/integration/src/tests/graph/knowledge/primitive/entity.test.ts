@@ -17,10 +17,7 @@ import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user"
 import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
 import { createEntityType } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
-import {
-  generateSystemEntityTypeSchema,
-  linkEntityTypeUri,
-} from "@hashintel/hash-api/src/graph/util";
+import { generateSystemEntityTypeSchema } from "@hashintel/hash-api/src/graph/util";
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
@@ -30,6 +27,7 @@ import {
   Entity,
   EntityTypeWithMetadata,
   extractOwnedByIdFromEntityId,
+  linkEntityTypeUri,
   PropertyTypeWithMetadata,
   Subgraph,
   SubgraphRootTypes,

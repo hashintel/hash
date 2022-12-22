@@ -12,13 +12,13 @@ import {
   updateEntityType,
 } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
-import { linkEntityTypeUri } from "@hashintel/hash-api/src/graph/util";
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { OwnedById } from "@hashintel/hash-shared/types";
 import {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
+  linkEntityTypeUri,
   PropertyTypeWithMetadata,
 } from "@hashintel/hash-subgraph";
 

@@ -20,13 +20,16 @@ import { createEntityType } from "@hashintel/hash-api/src/graph/ontology/primiti
 import {
   EntityTypeCreatorParams,
   generateSystemEntityTypeSchema,
-  linkEntityTypeUri,
 } from "@hashintel/hash-api/src/graph/util";
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { OwnedById } from "@hashintel/hash-shared/types";
-import { Entity, EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
+import {
+  Entity,
+  EntityTypeWithMetadata,
+  linkEntityTypeUri,
+} from "@hashintel/hash-subgraph";
 
 import { createTestUser } from "../../../util";
 

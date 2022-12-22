@@ -6,12 +6,12 @@ module.exports = {
       /* 2022-11-29:  13 */ "@typescript-eslint/no-unsafe-assignment",
       /* 2022-11-29:  13 */ "@typescript-eslint/no-unsafe-member-access",
       /* 2022-11-29:  11 */ "@typescript-eslint/restrict-template-expressions",
-      "simple-import-sort/exports",
-      "simple-import-sort/imports",
-      "unicorn/filename-case",
     ]),
     "jsx-a11y/label-has-associated-control": "off",
     "import/no-default-export": "error",
+    "simple-import-sort/exports": "error",
+    "simple-import-sort/imports": "error",
+    "unicorn/filename-case": "error",
   },
   overrides: [
     {

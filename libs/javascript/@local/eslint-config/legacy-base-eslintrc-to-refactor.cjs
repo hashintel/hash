@@ -6,9 +6,9 @@ module.exports = {
   plugins: [
     "@typescript-eslint",
     "canonical",
+    "jest",
     "react-hooks",
     "simple-import-sort",
-    "jest",
     "unicorn",
   ],
   extends: [
