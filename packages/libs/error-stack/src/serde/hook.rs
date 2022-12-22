@@ -15,7 +15,7 @@ fn serialize<'a, T: serde::Serialize + Send + Sync + 'static>(
 }
 
 // Thanks to https://users.rust-lang.org/t/hrtb-on-multiple-generics/34255/2 for the solution
-pub trait DynamicFn<'a, I>: 'static
+pub trait DynamicFn<'a, I>: Send + Sync + 'static
 where
     I: Send + Sync + 'static,
 {
@@ -33,7 +33,7 @@ where
 impl<'a, U: 'a, T, F> DynamicFn<'a, T> for F
 where
     F: Fn(&'a T, &mut HookContext<T>) -> U,
-    F: 'static,
+    F: Send + Sync + 'static,
     U: serde::Serialize,
     T: Send + Sync + 'static,
 {
@@ -60,9 +60,12 @@ type HookFnReturn<'a> = Option<Box<dyn erased_serde::Serialize + 'a>>;
 type StaticHookFn = for<'a> fn(&'a Frame) -> HookFnReturn<'a>;
 type DynamicHookFn = Box<
     dyn for<'a> Fn(
-        &'a Frame,
-        &mut HookContext<Frame>,
-    ) -> Option<Box<dyn erased_serde::Serialize + 'a>>,
+            &'a Frame,
+            &mut HookContext<Frame>,
+        ) -> Option<Box<dyn erased_serde::Serialize + 'a>>
+        + Send
+        + Sync
+        + 'static,
 >;
 
 enum HookFn {
@@ -89,6 +92,8 @@ impl Hook {
         for<'a> <F as DynamicFn<'a, I>>::Output: serde::Serialize + 'a,
         I: Send + Sync + 'static,
     {
+        // to ensure proper lifetimes we dispatch via a function not closure, as it let's us specify
+        // lifetimes
         fn dispatch<'a, F, I>(
             closure: &F,
             frame: &'a Frame,
@@ -133,6 +138,10 @@ pub(crate) struct Hooks {
 }
 
 impl Hooks {
+    pub(crate) const fn new() -> Self {
+        Self { inner: Vec::new() }
+    }
+
     pub(crate) fn insert_static<T: serde::Serialize + Send + Sync + 'static>(&mut self) {
         let type_id = TypeId::of::<T>();
 

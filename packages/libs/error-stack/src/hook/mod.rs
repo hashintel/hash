@@ -16,6 +16,8 @@ type RwLock<T> = std::sync::RwLock<T>;
 type RwLock<T> = spin::rwlock::RwLock<T>;
 
 static FMT_HOOK: RwLock<Hooks> = RwLock::new(Hooks { inner: Vec::new() });
+#[cfg(feature = "serde")]
+static SERDE_HOOK: RwLock<crate::serde::Hooks> = RwLock::new(crate::serde::Hooks::new());
 
 impl Report<()> {
     /// Can be used to globally set a [`Debug`] format hook, for a specific type `T`.
@@ -180,5 +182,37 @@ impl Report<()> {
         let hook = FMT_HOOK.read();
 
         closure(&hook)
+    }
+
+    #[cfg(feature = "serde")]
+    pub fn install_serde_hook<T: serde::Serialize + Send + Sync + 'static>() {
+        // TODO: install built-in
+
+        #[cfg(feature = "std")]
+        let mut lock = SERDE_HOOK.write().expect("should not be poisoned");
+
+        // The spin RwLock cannot panic
+        #[cfg(all(not(feature = "std"), feature = "hooks"))]
+        let mut lock = SERDE_HOOK.write();
+
+        lock.insert_static::<T>();
+    }
+
+    #[cfg(feature = "serde")]
+    pub fn install_custom_serde_hook<F, T>(closure: F)
+    where
+        F: for<'a> crate::serde::DynamicFn<'a, T>,
+        T: Send + Sync + 'static,
+    {
+        // TODO: install built-in
+
+        #[cfg(feature = "std")]
+        let mut lock = SERDE_HOOK.write().expect("should not be poisoned");
+
+        // The spin RwLock cannot panic
+        #[cfg(all(not(feature = "std"), feature = "hooks"))]
+        let mut lock = SERDE_HOOK.write();
+
+        lock.insert_dynamic(closure);
     }
 }
