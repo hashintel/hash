@@ -6,45 +6,45 @@ expression: report
   {
     "context": "root error",
     "attachments": [
-      Location(
-        file: "tests/common/mod.rs",
-        line: 4,
-        column: 5,
-      ),
+      {
+        "file": "tests/common/mod.rs",
+        "line": 4,
+        "column": 5
+      },
       "backtrace (1)",
-      SpanTrace(
-        spans: [
-          Metadata(
-            fields: [],
-            level: "INFO",
-            name: "func_b",
-            target: "test_serialize::common::snapshots",
-            module_path: Some("test_serialize::common::snapshots"),
-            file: Some("tests/common/snapshots.rs"),
-            line: Some(72),
-            type: "span",
-          ),
-          Metadata(
-            fields: [],
-            level: "INFO",
-            name: "func_a",
-            target: "test_serialize::common::snapshots",
-            module_path: Some("test_serialize::common::snapshots"),
-            file: Some("tests/common/snapshots.rs"),
-            line: Some(77),
-            type: "span",
-          ),
-        ],
-      ),
-      ImplementSerializeOwned(
-        a: "example",
-        b: [
+      {
+        "spans": [
+          {
+            "fields": [],
+            "level": "INFO",
+            "name": "func_b",
+            "target": "test_serialize::common::snapshots",
+            "module_path": "test_serialize::common::snapshots",
+            "file": "tests/common/snapshots.rs",
+            "line": 73,
+            "type": "span"
+          },
+          {
+            "fields": [],
+            "level": "INFO",
+            "name": "func_a",
+            "target": "test_serialize::common::snapshots",
+            "module_path": "test_serialize::common::snapshots",
+            "file": "tests/common/snapshots.rs",
+            "line": 78,
+            "type": "span"
+          }
+        ]
+      },
+      {
+        "a": "example",
+        "b": [
           1,
           2,
-          3,
-        ],
-      ),
+          3
+        ]
+      }
     ],
-    "sources": [],
-  },
+    "sources": []
+  }
 ]

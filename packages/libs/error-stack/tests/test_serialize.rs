@@ -8,7 +8,7 @@
 mod common;
 
 use common::snapshots::*;
-use insta::assert_ron_snapshot;
+use insta::assert_json_snapshot;
 
 fn prepare(suffix: bool) -> impl Drop {
     snapshots::prepare(suffix, false)
@@ -22,7 +22,7 @@ fn sources_nested() {
 
     let report = create_sources_nested();
 
-    assert_ron_snapshot!(report);
+    assert_json_snapshot!(report);
 }
 
 #[cfg(all(
@@ -44,7 +44,7 @@ mod full {
 
         let report = create_report().attach_printable(PrintableA(2));
 
-        assert_ron_snapshot!(report);
+        assert_json_snapshot!(report);
     }
 
     #[test]
@@ -55,7 +55,7 @@ mod full {
             .attach_printable(PrintableA(2))
             .change_context(ContextA(2));
 
-        assert_ron_snapshot!(report);
+        assert_json_snapshot!(report);
     }
 
     #[test]
@@ -72,7 +72,7 @@ mod full {
             .change_context(ContextA(2))
             .attach_printable(PrintableC(4));
 
-        assert_ron_snapshot!(a);
+        assert_json_snapshot!(a);
     }
 
     #[test]
@@ -84,7 +84,7 @@ mod full {
 
         a.extend_one(b);
 
-        assert_ron_snapshot!(a);
+        assert_json_snapshot!(a);
     }
 
     struct DoesNotImplementSerialize {
@@ -133,7 +133,7 @@ mod full {
             b: Box::new([1, 2, 3]),
         });
 
-        assert_ron_snapshot!(report);
+        assert_json_snapshot!(report);
     }
 
     #[test]
@@ -154,9 +154,10 @@ mod full {
             b: Box::new([1, 2, 3]),
         });
 
-        assert_ron_snapshot!(report);
+        assert_json_snapshot!(report);
     }
 
     // TODO: test auto/easy
     // TODO: test provider
+    // TODO: test context serialize
 }

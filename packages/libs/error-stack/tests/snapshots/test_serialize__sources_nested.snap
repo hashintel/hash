@@ -6,214 +6,214 @@ expression: report
   {
     "context": "context A",
     "attachments": [
-      Location(
-        file: "tests/common/snapshots.rs",
-        line: 207,
-        column: 10,
-      ),
+      {
+        "file": "tests/common/snapshots.rs",
+        "line": 207,
+        "column": 10
+      },
       "2",
-      "1",
+      "1"
     ],
     "sources": [
       {
         "context": "context A",
         "attachments": [
-          Location(
-            file: "tests/common/snapshots.rs",
-            line: 201,
-            column: 10,
-          ),
+          {
+            "file": "tests/common/snapshots.rs",
+            "line": 201,
+            "column": 10
+          },
           "4",
-          "3",
+          "3"
         ],
         "sources": [
           {
             "context": "root error",
             "attachments": [
-              Location(
-                file: "tests/common/mod.rs",
-                line: 4,
-                column: 5,
-              ),
-              "6",
+              {
+                "file": "tests/common/mod.rs",
+                "line": 4,
+                "column": 5
+              },
+              "6"
             ],
-            "sources": [],
-          },
-        ],
+            "sources": []
+          }
+        ]
       },
       {
         "context": "context A",
         "attachments": [
-          Location(
-            file: "tests/common/snapshots.rs",
-            line: 196,
-            column: 10,
-          ),
+          {
+            "file": "tests/common/snapshots.rs",
+            "line": 196,
+            "column": 10
+          },
           "5",
-          "3",
+          "3"
         ],
         "sources": [
           {
             "context": "context A",
             "attachments": [
-              Location(
-                file: "tests/common/snapshots.rs",
-                line: 194,
-                column: 10,
-              ),
-              "7",
+              {
+                "file": "tests/common/snapshots.rs",
+                "line": 194,
+                "column": 10
+              },
+              "7"
             ],
             "sources": [
               {
                 "context": "context A",
                 "attachments": [
-                  Location(
-                    file: "tests/common/snapshots.rs",
-                    line: 185,
-                    column: 34,
-                  ),
+                  {
+                    "file": "tests/common/snapshots.rs",
+                    "line": 185,
+                    "column": 34
+                  },
                   "9",
-                  "8",
+                  "8"
                 ],
                 "sources": [
                   {
                     "context": "root error",
                     "attachments": [
-                      Location(
-                        file: "tests/common/mod.rs",
-                        line: 4,
-                        column: 5,
-                      ),
+                      {
+                        "file": "tests/common/mod.rs",
+                        "line": 4,
+                        "column": 5
+                      }
                     ],
-                    "sources": [],
-                  },
-                ],
+                    "sources": []
+                  }
+                ]
               },
               {
                 "context": "context A",
                 "attachments": [
-                  Location(
-                    file: "tests/common/snapshots.rs",
-                    line: 179,
-                    column: 10,
-                  ),
+                  {
+                    "file": "tests/common/snapshots.rs",
+                    "line": 179,
+                    "column": 10
+                  },
                   "13",
                   "10",
                   "16",
                   "9",
-                  "8",
+                  "8"
                 ],
                 "sources": [
                   {
                     "context": "root error",
                     "attachments": [
-                      Location(
-                        file: "tests/common/mod.rs",
-                        line: 4,
-                        column: 5,
-                      ),
+                      {
+                        "file": "tests/common/mod.rs",
+                        "line": 4,
+                        "column": 5
+                      }
                     ],
-                    "sources": [],
-                  },
-                ],
+                    "sources": []
+                  }
+                ]
               },
               {
                 "context": "context A",
                 "attachments": [
-                  Location(
-                    file: "tests/common/snapshots.rs",
-                    line: 165,
-                    column: 10,
-                  ),
+                  {
+                    "file": "tests/common/snapshots.rs",
+                    "line": 165,
+                    "column": 10
+                  },
                   "15",
                   "14",
                   "10",
                   "16",
                   "9",
-                  "8",
+                  "8"
                 ],
                 "sources": [
                   {
                     "context": "root error",
                     "attachments": [
-                      Location(
-                        file: "tests/common/mod.rs",
-                        line: 4,
-                        column: 5,
-                      ),
+                      {
+                        "file": "tests/common/mod.rs",
+                        "line": 4,
+                        "column": 5
+                      }
                     ],
-                    "sources": [],
-                  },
-                ],
+                    "sources": []
+                  }
+                ]
               },
               {
                 "context": "context A",
                 "attachments": [
-                  Location(
-                    file: "tests/common/snapshots.rs",
-                    line: 175,
-                    column: 10,
-                  ),
+                  {
+                    "file": "tests/common/snapshots.rs",
+                    "line": 175,
+                    "column": 10
+                  },
                   "11",
                   "9",
-                  "8",
+                  "8"
                 ],
                 "sources": [
                   {
                     "context": "root error",
                     "attachments": [
-                      Location(
-                        file: "tests/common/mod.rs",
-                        line: 4,
-                        column: 5,
-                      ),
+                      {
+                        "file": "tests/common/mod.rs",
+                        "line": 4,
+                        "column": 5
+                      }
                     ],
-                    "sources": [],
-                  },
-                ],
+                    "sources": []
+                  }
+                ]
               },
               {
                 "context": "context A",
                 "attachments": [
-                  Location(
-                    file: "tests/common/snapshots.rs",
-                    line: 171,
-                    column: 10,
-                  ),
+                  {
+                    "file": "tests/common/snapshots.rs",
+                    "line": 171,
+                    "column": 10
+                  },
                   "12",
                   "9",
-                  "8",
+                  "8"
                 ],
                 "sources": [
                   {
                     "context": "context A",
                     "attachments": [
-                      Location(
-                        file: "tests/common/snapshots.rs",
-                        line: 170,
-                        column: 10,
-                      ),
+                      {
+                        "file": "tests/common/snapshots.rs",
+                        "line": 170,
+                        "column": 10
+                      }
                     ],
                     "sources": [
                       {
                         "context": "root error",
                         "attachments": [
-                          Location(
-                            file: "tests/common/mod.rs",
-                            line: 4,
-                            column: 5,
-                          ),
+                          {
+                            "file": "tests/common/mod.rs",
+                            "line": 4,
+                            "column": 5
+                          }
                         ],
-                        "sources": [],
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
+                        "sources": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
 ]
