@@ -81,6 +81,12 @@ export const SortableRow = ({
   const [draftValue, setDraftValue] = useState(value);
   const [prevEditing, setPrevEditing] = useState(editing);
 
+  const editorType =
+    overriddenEditorType ?? guessEditorTypeFromValue(value, expectedTypes);
+
+  const editorSpec = editorSpecs[editorType];
+
+  const isBooleanEditor = editorType === "boolean";
   const shouldShowActions =
     !isDragging && !isSorting && (hovered || selected || editing);
 
@@ -88,11 +94,6 @@ export const SortableRow = ({
     setPrevEditing(editing);
     setDraftValue(value);
   }
-
-  const editorType =
-    overriddenEditorType ?? guessEditorTypeFromValue(value, expectedTypes);
-
-  const editorSpec = editorSpecs[editorType];
 
   return (
     <Box
@@ -136,8 +137,12 @@ export const SortableRow = ({
       </Typography>
 
       {editing ? (
-        editorType === "boolean" ? (
-          <BooleanInput value={!!draftValue} onChange={setDraftValue} />
+        isBooleanEditor ? (
+          <BooleanInput
+            showChange
+            value={!!draftValue}
+            onChange={setDraftValue}
+          />
         ) : (
           <NumberOrTextInput
             isNumber={editorType === "number"}
@@ -147,6 +152,12 @@ export const SortableRow = ({
             onEnterPressed={() => onSaveChanges(index, draftValue)}
           />
         )
+      ) : isBooleanEditor ? (
+        <BooleanInput
+          showChange={shouldShowActions}
+          value={!!draftValue}
+          onChange={setDraftValue}
+        />
       ) : (
         <ValueChip
           value={value}
@@ -156,7 +167,7 @@ export const SortableRow = ({
         />
       )}
 
-      {shouldShowActions && (
+      {shouldShowActions && !isBooleanEditor && (
         <Box
           display="flex"
           sx={[

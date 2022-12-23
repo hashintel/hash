@@ -37,7 +37,13 @@ export const DraftRow = ({
     return (
       <EditorTypePicker
         expectedTypes={expectedTypes}
-        onTypeChange={setEditorType}
+        onTypeChange={(type) => {
+          if (type === "boolean") {
+            onDraftSaved(true);
+          }
+
+          setEditorType(type);
+        }}
       />
     );
   }
