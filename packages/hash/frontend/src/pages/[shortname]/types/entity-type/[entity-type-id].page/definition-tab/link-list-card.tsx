@@ -5,15 +5,12 @@ import { linkEntityTypeUri } from "@hashintel/hash-subgraph";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import {
   ClickAwayListener,
-  outlinedInputClasses,
   Popper,
   Stack,
   TableBody,
   TableCell,
   TableFooter,
   TableHead,
-  tableRowClasses,
-  Typography,
 } from "@mui/material";
 import { Box } from "@mui/system";
 import {
@@ -22,12 +19,7 @@ import {
   usePopupState,
 } from "material-ui-popup-state/hooks";
 import { useId, useLayoutEffect, useRef, useState } from "react";
-import {
-  Controller,
-  useFieldArray,
-  useFormContext,
-  useWatch,
-} from "react-hook-form";
+import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { OwnedById } from "@hashintel/hash-shared/types";
 import { useBlockProtocolCreateEntityType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreateEntityType";
 import { useBlockProtocolGetEntityType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";

@@ -1,5 +1,5 @@
 import { PopperProps } from "@mui/material";
-import { SxProps, Theme } from "@mui/system";
+import { Theme } from "@mui/system";
 import { SystemStyleObject } from "@mui/system/styleFunctionSx/styleFunctionSx";
 
 const popperPositionDataAttribute = "data-popper-placement";
