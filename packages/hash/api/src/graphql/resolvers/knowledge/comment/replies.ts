@@ -4,7 +4,7 @@ import {
 } from "../../../../graph/knowledge/system-types/comment";
 import { ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { UnresolvedCommentGQL, mapCommentToGQL } from "../graphql-mapping";
+import { mapCommentToGQL, UnresolvedCommentGQL } from "../graphql-mapping";
 
 export const commentRepliesResolver: ResolverFn<
   Promise<UnresolvedCommentGQL[]>,

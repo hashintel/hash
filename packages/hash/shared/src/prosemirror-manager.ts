@@ -18,14 +18,14 @@ import {
   EntityStoreType,
   isBlockEntity,
   isDraftBlockEntity,
-} from "./entityStore";
+} from "./entity-store";
 import {
   addEntityStoreAction,
   entityStorePluginState,
   entityStorePluginStateFromTransaction,
   generateDraftIdForEntity,
   mustGetDraftEntityByEntityId,
-} from "./entityStorePlugin";
+} from "./entity-store-plugin";
 import {
   componentNodeGroupName,
   findComponentNode,

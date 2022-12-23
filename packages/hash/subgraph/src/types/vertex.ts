@@ -1,4 +1,5 @@
 import { BaseUri } from "@blockprotocol/type-system";
+
 import {
   DataTypeWithMetadata,
   Entity,

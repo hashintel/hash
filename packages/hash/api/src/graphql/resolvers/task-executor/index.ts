@@ -1,10 +1,12 @@
 import { JsonObject } from "@blockprotocol/core";
-import { ApolloError } from "apollo-server-express";
-import { upperFirst, camelCase } from "lodash";
-import { singular } from "pluralize";
 import { EntityType } from "@blockprotocol/type-system";
-import { PropertyObject } from "@hashintel/hash-subgraph";
 import { OwnedById } from "@hashintel/hash-shared/types";
+import { PropertyObject } from "@hashintel/hash-subgraph";
+import { ApolloError } from "apollo-server-express";
+import { camelCase, upperFirst } from "lodash";
+import { singular } from "pluralize";
+
+import { createEntity } from "../../../graph/knowledge/primitive/entity";
 import { CachedEntityTypes, Task } from "../../../task-execution";
 import {
   MutationExecuteGithubCheckTaskArgs,
@@ -13,7 +15,6 @@ import {
   ResolverFn,
 } from "../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
-import { createEntity } from "../../../graph/knowledge/primitive/entity";
 
 export const executeDemoTask: ResolverFn<
   Promise<string>,
