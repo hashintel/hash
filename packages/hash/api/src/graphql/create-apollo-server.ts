@@ -1,21 +1,20 @@
 import { performance } from "node:perf_hooks";
 
-import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
-import { ApolloServer } from "apollo-server-express";
 import { makeExecutableSchema } from "@graphql-tools/schema";
-
-import { StatsD } from "hot-shots";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { SearchAdapter } from "@hashintel/hash-backend-utils/search/adapter";
+import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
+import { ApolloServer } from "apollo-server-express";
+import { StatsD } from "hot-shots";
 
-import { schema } from "./type-defs";
-import { resolvers } from "./resolvers";
 import { CacheAdapter } from "../cache";
-import { GraphQLContext } from "./context";
 import { EmailTransporter } from "../email/transporters";
-import { StorageType } from "./api-types.gen";
-import { TaskExecutor } from "../task-execution";
 import { GraphApi } from "../graph";
+import { TaskExecutor } from "../task-execution";
+import { StorageType } from "./api-types.gen";
+import { GraphQLContext } from "./context";
+import { resolvers } from "./resolvers";
+import { schema } from "./type-defs";
 
 export interface CreateApolloServerParams {
   graphApi: GraphApi;

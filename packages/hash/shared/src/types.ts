@@ -1,9 +1,9 @@
 import {
   EntityId as EntityIdSubgraph,
+  entityIdFromOwnedByIdAndEntityUuid as entityIdFromOwnedByIdAndEntityUuidSubgraph,
   extractEntityUuidFromEntityId as extractEntityUuidFromEntityIdSubgraph,
   extractOwnedByIdFromEntityId as extractOwnedByIdFromEntityIdSubgraph,
   splitEntityId as splitEntityIdSubgraph,
-  entityIdFromOwnedByIdAndEntityUuid as entityIdFromOwnedByIdAndEntityUuidSubgraph,
 } from "@hashintel/hash-subgraph";
 
 type BrandedBase<Base, Kind extends {}> = Base & {

@@ -1,4 +1,3 @@
-import { Draft, produce } from "immer";
 import {
   EntityId,
   EntityMetadata,
@@ -7,9 +6,10 @@ import {
   PropertyObject,
   VersionedUri,
 } from "@hashintel/hash-subgraph";
+import { Draft, produce } from "immer";
 
-import { generateDraftIdForEntity } from "./entityStorePlugin";
 import { BlockEntity } from "./entity";
+import { generateDraftIdForEntity } from "./entity-store-plugin";
 import { types } from "./ontology-types";
 
 export type EntityStoreType = BlockEntity | BlockEntity["blockChildEntity"];

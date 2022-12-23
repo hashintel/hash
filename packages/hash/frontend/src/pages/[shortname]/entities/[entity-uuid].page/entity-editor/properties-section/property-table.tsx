@@ -22,10 +22,10 @@ export const PropertyTable = ({
   showSearch,
   onSearchClose,
 }: PropertyTableProps) => {
-  const tableRef = useRef<DataEditorRef>(null);
+  const gridRef = useRef<DataEditorRef>(null);
   const { togglePropertyExpand, propertyExpandStatus } = useEntityEditor();
   const [rows, sortAndFlattenRows] = useRows();
-  const { tooltipElement, showTooltip, hideTooltip } = useGridTooltip(tableRef);
+  const { tooltipElement, showTooltip, hideTooltip } = useGridTooltip(gridRef);
   const createGetCellContent = useCreateGetCellContent(
     showTooltip,
     hideTooltip,
@@ -38,7 +38,7 @@ export const PropertyTable = ({
       renderChipCell,
       createRenderPropertyNameCell(togglePropertyExpand, propertyExpandStatus),
       renderSummaryChipCell,
-      createRenderChangeTypeCell(tableRef),
+      createRenderChangeTypeCell(gridRef),
     ],
     [togglePropertyExpand, propertyExpandStatus],
   );
@@ -46,7 +46,7 @@ export const PropertyTable = ({
   return (
     <>
       <Grid
-        tableRef={tableRef}
+        gridRef={gridRef}
         columns={propertyGridColumns}
         createGetCellContent={createGetCellContent}
         createOnCellEdited={createOnCellEdited}

@@ -1,9 +1,10 @@
 import { ForbiddenError } from "apollo-server-express";
+
 import { isUserMemberOfOrg } from "../../../graph/knowledge/system-types/user";
 import { Scalars } from "../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
-import { loggedInAndSignedUpMiddleware } from "./loggedInAndSignedUp";
-import { ResolverMiddleware } from "./middlewareTypes";
+import { loggedInAndSignedUpMiddleware } from "./logged-in-and-signed-up";
+import { ResolverMiddleware } from "./middleware-types";
 
 /** Middleware verifying the current logged in user has access to the requested account.
  * This middleware needs to be run on a query that is passing an
