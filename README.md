@@ -8,6 +8,7 @@
 [glossary of terms]: https://hash.ai/glossary?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [block protocol]: https://github.com/blockprotocol/blockprotocol
 [hiring]: https://hash.ai/careers?utm_medium=organic&utm_source=github_readme_hash-repo_root
+
 [![github_banner](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/ec83e48d-5a46-4c3f-a603-5d9fc43ff400/github)][github_banner]
 
 [![discord](https://img.shields.io/discord/840573247803097118)][discord] [![github_star](https://img.shields.io/github/stars/hashintel/hash?label=Star%20on%20GitHub&style=social)][github_star]
@@ -23,6 +24,7 @@ This is HASH's _public monorepo_ which contains our open-source, fair-source and
 ### Top-level
 
 This repository's contents is divided across four primary sections:
+
 - [`/apps` - applications](#applications): the primary code behind our runnable applications
 - [`/blocks` - blocks](#blocks): our public [Block Protocol] blocks
 - [`/infra`- infrastructure](#infrastructure): deployment scripts and other tools used to run our apps
