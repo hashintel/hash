@@ -63,6 +63,11 @@ const EditBarContents = ({
   );
 };
 
+/**
+ * @todo make this file actually reusable and rename it to "edit-bar",
+ * current `edit-bar` is a variant of the edit bar, specific for TypeEditor.
+ * refactor the current `edit-bar`, and rename it to something like `type-editor-edit-bar`
+ */
 export const EditBarReusable = ({
   discardButtonProps,
   confirmButtonProps,
