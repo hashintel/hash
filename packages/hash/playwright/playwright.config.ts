@@ -1,4 +1,4 @@
-import { PlaywrightTestConfig, devices } from "@playwright/test";
+import { devices, PlaywrightTestConfig } from "@playwright/test";
 
 const ci = process.env.CI === "true";
 

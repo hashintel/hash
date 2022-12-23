@@ -17,8 +17,8 @@ import {
 import {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
+  linkEntityTypeUri,
 } from "@hashintel/hash-subgraph";
-import { AxiosError } from "axios";
 import { OwnedById } from "@hashintel/hash-shared/types";
 
 import { GraphApi } from ".";
@@ -190,7 +190,7 @@ export const propertyTypeInitializer = (
               schema: propertyTypeSchema,
               actorId: systemUserAccountId,
             },
-          ).catch((createError: AxiosError) => {
+          ).catch((createError) => {
             logger.warn(`Failed to create property type: ${params.title}`);
             throw createError;
           });
@@ -223,7 +223,6 @@ export type EntityTypeCreatorParams = {
       // Some models may reference themselves. This marker is used to stop infinite loops during initialization by telling the initializer to use a self reference
       | "SELF_REFERENCE"
     )[];
-    required?: boolean;
     minItems?: number;
     maxItems?: number;
     ordered?: boolean;
@@ -287,10 +286,6 @@ export const generateSystemEntityTypeSchema = (
       {},
     ) ?? undefined;
 
-  const requiredLinks = params.outgoingLinks
-    ?.filter(({ required }) => !!required)
-    .map(({ linkEntityType }) => linkEntityType.schema.$id);
-
   return {
     $id: params.entityTypeId,
     title: params.title,
@@ -300,7 +295,6 @@ export const generateSystemEntityTypeSchema = (
     properties,
     required: requiredProperties,
     links,
-    requiredLinks,
   };
 };
 
@@ -310,9 +304,6 @@ export type LinkEntityTypeCreatorParams = Omit<
 > & {
   linkEntityTypeId: VersionedUri;
 };
-
-export const linkEntityTypeUri: VersionedUri =
-  "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
 
 /**
  * Helper method for generating a link entity type schema for the Graph API.
@@ -369,7 +360,7 @@ export const entityTypeInitializer = (
               schema: entityTypeSchema,
               actorId: systemUserAccountId,
             },
-          ).catch((createError: AxiosError) => {
+          ).catch((createError) => {
             logger.warn(`Failed to create entity type: ${params.title}`);
             throw createError;
           });

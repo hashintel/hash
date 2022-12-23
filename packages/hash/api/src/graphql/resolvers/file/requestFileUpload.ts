@@ -6,7 +6,7 @@ import {
   ResolverFn,
   RequestFileUploadResponse,
   File as GQLFile,
-} from "../../apiTypes.gen";
+} from "../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { File } from "../../../model";
 

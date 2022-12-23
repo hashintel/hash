@@ -25,7 +25,7 @@ import {
   PropertyTypeFormValues,
 } from "../../property-type-form-values";
 import { dataTypeOptions } from "../shared/data-type-options";
-import { useCustomExpectedValueBuilderContext } from "../shared/custom-expected-value-builder-context";
+import { useCustomExpectedValueBuilderContext } from "./shared/custom-expected-value-builder-context";
 import { ArrayExpectedValueBuilder } from "./custom-expected-value-builder/array-expected-value-builder";
 import { ObjectExpectedValueBuilder } from "./shared/object-expected-value-builder";
 

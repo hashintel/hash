@@ -6,7 +6,7 @@ import {
   UploadableStorageProvider,
 } from "./storage-provider";
 import { AwsS3StorageProvider } from "./aws-s3-storage-provider";
-import { StorageType } from "../graphql/apiTypes.gen";
+import { StorageType } from "../graphql/api-types.gen";
 import { LocalFileSystemStorageProvider } from "./local-file-storage";
 import { LOCAL_FILE_UPLOAD_PATH } from "../lib/config";
 import { getAwsS3Config } from "../lib/aws-config";

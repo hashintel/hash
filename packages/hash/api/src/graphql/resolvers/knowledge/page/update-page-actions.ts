@@ -13,7 +13,7 @@ import {
   SwapBlockDataAction,
   UpdateEntityAction,
   UpdatePageAction,
-} from "../../../apiTypes.gen";
+} from "../../../api-types.gen";
 import {
   createEntityWithLinks,
   getLatestEntityById,

@@ -1,6 +1,6 @@
 import { ApolloError } from "apollo-server-errors";
 import { Entity } from "@hashintel/hash-subgraph";
-import { ResolverFn } from "../../../apiTypes.gen";
+import { ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { mapBlockToGQL, UnresolvedPageGQL } from "../graphql-mapping";
 import {

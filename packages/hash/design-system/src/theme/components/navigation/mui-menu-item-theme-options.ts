@@ -1,11 +1,11 @@
 import {
   Components,
-  Theme,
-  menuItemClasses,
-  listItemTextClasses,
-  listItemIconClasses,
   listItemAvatarClasses,
+  listItemIconClasses,
   listItemSecondaryActionClasses,
+  listItemTextClasses,
+  menuItemClasses,
+  Theme,
 } from "@mui/material";
 
 export const MuiMenuItemThemeOptions: Components<Theme>["MuiMenuItem"] = {

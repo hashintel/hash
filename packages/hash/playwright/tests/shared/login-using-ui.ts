@@ -1,5 +1,6 @@
-import { Page } from "playwright";
 import { expect } from "@playwright/test";
+import { Page } from "playwright";
+
 import { getDerivedPayloadFromMostRecentEmail } from "./get-derived-payload-from-most-recent-email";
 
 export const loginUsingUi = async ({

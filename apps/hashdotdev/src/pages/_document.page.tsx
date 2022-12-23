@@ -1,13 +1,14 @@
+import createEmotionServer from "@emotion/server/create-instance";
 import Document, {
-  Html,
+  DocumentContext,
   Head,
+  Html,
   Main,
   NextScript,
-  DocumentContext,
 } from "next/document";
-import createEmotionServer from "@emotion/server/create-instance";
 import { Children } from "react";
-import { createEmotionCache } from "../util/createEmotionCache";
+
+import { createEmotionCache } from "../util/create-emotion-cache";
 
 const gtmId = "G-2JDBVXSZV8";
 
