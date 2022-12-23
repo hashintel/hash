@@ -3,6 +3,7 @@
 // @ts-nocheck
 import { FileProperties, ResolverFn } from "../../api-types.gen";
 import { GraphQLContext } from "../../context";
+import { File } from "../../../model";
 
 export const fileUrlResolver: ResolverFn<
   string,
