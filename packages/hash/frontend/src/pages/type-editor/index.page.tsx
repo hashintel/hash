@@ -1,16 +1,15 @@
 import { types } from "@hashintel/hash-shared/ontology-types";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import { Box, Container } from "@mui/material";
 import { useCallback, useState } from "react";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 
 import {
   AggregateDataTypesMessageCallback,
   AggregateEntityTypesMessageCallback,
   AggregatePropertyTypesMessageCallback,
-} from "../../components/hooks/blockProtocolFunctions/ontology/ontology-types-shim";
+} from "../../components/hooks/block-protocol-functions/ontology/ontology-types-shim";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { NextPageWithLayout } from "../../shared/layout";
-
 import { Button } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { useBlockProtocolFunctionsWithOntology } from "./blockprotocol-ontology-functions-hook";

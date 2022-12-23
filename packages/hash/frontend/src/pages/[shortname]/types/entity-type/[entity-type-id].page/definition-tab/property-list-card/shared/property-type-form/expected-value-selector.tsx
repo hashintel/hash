@@ -9,22 +9,22 @@ import {
   forwardRef,
   ForwardRefRenderFunction,
   useMemo,
-  useState,
   useRef,
+  useState,
 } from "react";
 import { useController, useFormContext, useWatch } from "react-hook-form";
-import { AutocompleteDropdown } from "../../../../../../../shared/autocomplete-dropdown";
-import { PropertyTypeFormValues } from "../property-type-form-values";
-import { ExpectedValueChip } from "./expected-value-selector/expected-value-chip";
-import { expectedValuesOptions } from "./expected-value-selector/shared/expected-values-options";
-import { dataTypeOptions } from "./shared/data-type-options";
 
+import { AutocompleteDropdown } from "../../../../../../../shared/autocomplete-dropdown";
 import { StyledPlusCircleIcon } from "../../../../../../../shared/styled-plus-circle-icon";
+import { PropertyTypeFormValues } from "../property-type-form-values";
 import { CustomExpectedValueBuilder } from "./expected-value-selector/custom-expected-value-builder";
+import { ExpectedValueChip } from "./expected-value-selector/expected-value-chip";
 import {
   CustomExpectedValueBuilderContext,
   useCustomExpectedValueBuilderContext,
 } from "./expected-value-selector/shared/custom-expected-value-builder-context";
+import { expectedValuesOptions } from "./expected-value-selector/shared/expected-values-options";
+import { dataTypeOptions } from "./shared/data-type-options";
 
 const ExpectedValueSelectorDropdown = ({ children, ...props }: PaperProps) => {
   const {

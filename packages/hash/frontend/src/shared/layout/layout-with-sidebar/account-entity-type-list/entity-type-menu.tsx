@@ -9,8 +9,9 @@ import { ListItemIcon, ListItemText, Menu } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/core";
 import pluralize from "pluralize";
 import { FunctionComponent, useState } from "react";
-import { MenuItem } from "../../../ui";
+
 import { useFrozenValue } from "../../../frozen";
+import { MenuItem } from "../../../ui";
 
 type EntityTypeMenuProps = {
   entityTypeId: VersionedUri;

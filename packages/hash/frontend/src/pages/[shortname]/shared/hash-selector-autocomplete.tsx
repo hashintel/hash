@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import clsx from "clsx";
 import { Ref, useMemo } from "react";
+
 import { AutocompleteDropdown } from "./autocomplete-dropdown";
 import { OntologyChip, parseUriForOntologyChip } from "./ontology-chip";
 import {

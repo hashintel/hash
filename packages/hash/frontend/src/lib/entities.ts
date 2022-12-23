@@ -1,17 +1,17 @@
 import { Entity as BpEntity, Link as BpLink } from "@blockprotocol/graph";
-
 import {
   Entity,
   extractEntityUuidFromEntityId,
   Subgraph,
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
-import { getPropertyTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
+import { getPropertyTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+
 import {
-  UnknownEntity as ApiEntity,
   Link as ApiLink,
+  UnknownEntity as ApiEntity,
 } from "../graphql/api-types.gen";
 
 const isObject = (thing: unknown): thing is {} =>

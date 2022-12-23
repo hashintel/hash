@@ -1,3 +1,5 @@
+import { faXmark } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
 import {
   Box,
   InputAdornment,
@@ -7,9 +9,7 @@ import {
 } from "@mui/material";
 import { FunctionComponent, useCallback, useEffect, useRef } from "react";
 import { useKeys } from "rooks";
-import { faXmark } from "@fortawesome/free-solid-svg-icons";
 
-import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
 import { SearchIcon } from "../../../icons";
 
 const ClearSearchIcon: FunctionComponent<{

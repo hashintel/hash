@@ -1,12 +1,13 @@
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
+import { EntityId, OwnedById } from "@hashintel/hash-shared/types";
 import { Entity } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { Box } from "@mui/material";
 import produce from "immer";
 import { useContext, useMemo, useState } from "react";
-import { EntityId, OwnedById } from "@hashintel/hash-shared/types";
-import { useBlockProtocolArchiveEntity } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolArchiveEntity";
-import { useBlockProtocolCreateEntity } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
+
+import { useBlockProtocolArchiveEntity } from "../../../../../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
+import { useBlockProtocolCreateEntity } from "../../../../../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
 import { generateEntityLabel } from "../../../../../../../../../lib/entities";
 import { WorkspaceContext } from "../../../../../../../../shared/workspace-context";
 import { useEntityEditor } from "../../../../entity-editor-context";

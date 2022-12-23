@@ -3,16 +3,17 @@ import {
   GridCellKind,
   Item,
 } from "@glideapps/glide-data-grid";
-import { useCallback } from "react";
-import { cloneDeep, set } from "lodash";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { EntityId } from "@hashintel/hash-shared/types";
-import { useSnackbar } from "../../../../../../../components/hooks/useSnackbar";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { cloneDeep, set } from "lodash";
+import { useCallback } from "react";
+
+import { useBlockProtocolUpdateEntity } from "../../../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
+import { useSnackbar } from "../../../../../../../components/hooks/use-snackbar";
 import { useEntityEditor } from "../../entity-editor-context";
-import { useBlockProtocolUpdateEntity } from "../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolUpdateEntity";
+import { ValueCell } from "./cells/value-cell/types";
 import { propertyGridIndexes } from "./constants";
 import { PropertyRow } from "./types";
-import { ValueCell } from "./cells/value-cell/types";
 
 /**
  * This onCellEdited is used to handle editing the data only at `Values` column

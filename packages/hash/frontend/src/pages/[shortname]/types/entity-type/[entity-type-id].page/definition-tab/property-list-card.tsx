@@ -1,6 +1,7 @@
 import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
 import { faList } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import {
   Checkbox,
   TableBody,
@@ -16,9 +17,9 @@ import {
   useFormContext,
   useWatch,
 } from "react-hook-form";
-import { OwnedById } from "@hashintel/hash-shared/types";
-import { useBlockProtocolCreatePropertyType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
-import { useBlockProtocolUpdatePropertyType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdatePropertyType";
+
+import { useBlockProtocolCreatePropertyType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-property-type";
+import { useBlockProtocolUpdatePropertyType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-property-type";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
 import { useRouteNamespace } from "../../../../shared/use-route-namespace";
 import { EntityTypeEditorForm } from "../shared/form-types";
@@ -26,11 +27,10 @@ import {
   usePropertyTypes,
   useRefetchPropertyTypes,
 } from "../shared/property-types-context";
-import { MultipleValuesCell } from "./shared/multiple-values-cell";
 import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
 import { PropertyTypeForm } from "./property-list-card/shared/property-type-form";
-import { PropertyTypeFormValues } from "./property-list-card/shared/property-type-form-values";
 import { getPropertyTypeSchema } from "./property-list-card/shared/property-type-form/property-type-schema";
+import { PropertyTypeFormValues } from "./property-list-card/shared/property-type-form-values";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
@@ -41,6 +41,7 @@ import {
   EntityTypeTableTitleCellText,
 } from "./shared/entity-type-table";
 import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
+import { MultipleValuesCell } from "./shared/multiple-values-cell";
 import { QuestionIcon } from "./shared/question-icon";
 import { TypeFormModal } from "./shared/type-form";
 import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";

@@ -1,5 +1,6 @@
 import { textFieldBorderRadius } from "@hashintel/hash-design-system";
 import { autocompleteClasses, Box, Paper, PaperProps } from "@mui/material";
+
 import { popperPlacementSelectors } from "./popper-placement-modifier";
 
 export const AutocompleteDropdown = ({
