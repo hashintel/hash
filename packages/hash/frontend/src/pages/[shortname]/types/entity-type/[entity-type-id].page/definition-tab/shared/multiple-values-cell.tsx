@@ -1,4 +1,6 @@
+import { faEdit } from "@fortawesome/free-regular-svg-icons";
 import {
+  FontAwesomeIcon,
   getInputProps,
   inputLabelProps,
   TextField,
@@ -25,26 +27,68 @@ import {
   useWatch,
 } from "react-hook-form";
 
-import { useFrozenValue } from "../../../../../../../shared/use-frozen-value";
+import { Frozen, useFrozenValue } from "../../../../../../../shared/frozen";
+import {
+  addPopperPositionClassPopperModifier,
+  popperPlacementPopperNoRadius,
+} from "../../../../../shared/popper-placement-modifier";
 import { EntityTypeEditorForm } from "../../shared/form-types";
 
-export const MultipleValuesCell = ({
-  propertyIndex,
+const MultipleValuesCellSummary = ({
+  show,
+  infinity,
+  max,
+  min,
 }: {
-  propertyIndex: number;
+  show: boolean;
+  infinity: boolean;
+  min: number | string;
+  max: number | string;
+}) => (
+  <Collapse orientation="horizontal" in={show}>
+    <Frozen frozen={!show}>
+      <Typography
+        variant="smallTextLabels"
+        sx={{
+          display: "flex",
+          fontWeight: 500,
+          whiteSpace: "nowrap",
+          color: ({ palette }) => palette.gray[70],
+          userSelect: "none",
+        }}
+      >
+        {infinity || (min !== max && typeof max === "number")
+          ? `${min === "" ? 0 : min} ${infinity ? "or more" : `to ${max}`}`
+          : min}
+      </Typography>
+    </Frozen>
+  </Collapse>
+);
+
+export const MultipleValuesCell = ({
+  index,
+  variant,
+}: {
+  index: number;
+  variant: "property" | "link";
 }) => {
   const { control, setValue } = useFormContext<EntityTypeEditorForm>();
 
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
   const [multipleValuesMenuOpen, setMultipleValuesMenuOpen] = useState(false);
+  const [hovered, setHovered] = useState(false);
+
+  const formPrefix = `${
+    variant === "property" ? "properties" : "links"
+  }.${index}` as const;
 
   const [array, minValue, maxValue, infinity] = useWatch({
     control,
     name: [
-      `properties.${propertyIndex}.array`,
-      `properties.${propertyIndex}.minValue`,
-      `properties.${propertyIndex}.maxValue`,
-      `properties.${propertyIndex}.infinity`,
+      `${formPrefix}.array`,
+      `${formPrefix}.minValue`,
+      `${formPrefix}.maxValue`,
+      `${formPrefix}.infinity`,
     ],
   });
 
@@ -67,10 +111,6 @@ export const MultipleValuesCell = ({
     !multipleValuesMenuOpen,
   );
 
-  const isArrayFrozenMinValue = useFrozenValue(minValue, !array);
-  const isArrayFrozenMaxValue = useFrozenValue(maxValue, !array);
-  const isArrayFrozenInfinity = useFrozenValue(infinity, !array);
-
   const maximumFieldId = useId();
 
   const [infinityCheckboxNode, setInfinityCheckboxNode] =
@@ -78,9 +118,11 @@ export const MultipleValuesCell = ({
 
   const arrayController = useController({
     control,
-    name: `properties.${propertyIndex}.array`,
+    name: `${formPrefix}.array`,
   });
-  const arrayField = arrayController.field;
+
+  const canToggle = variant !== "link";
+  const showSummary = array || !canToggle;
 
   const handleArrayChange = (nextArray: boolean) => {
     setMultipleValuesMenuOpen(nextArray);
@@ -98,16 +140,18 @@ export const MultipleValuesCell = ({
       nextInfinity = true;
     }
 
-    setValue(`properties.${propertyIndex}.minValue`, nextMinValue, {
+    setValue(`${formPrefix}.minValue`, nextMinValue, {
       shouldDirty: true,
     });
-    setValue(`properties.${propertyIndex}.maxValue`, nextMaxValue, {
+    setValue(`${formPrefix}.maxValue`, nextMaxValue, {
       shouldDirty: true,
     });
-    setValue(`properties.${propertyIndex}.infinity`, nextInfinity, {
+    setValue(`${formPrefix}.infinity`, nextInfinity, {
       shouldDirty: true,
     });
-    arrayField.onChange(nextArray);
+    if (canToggle) {
+      arrayController.field.onChange(nextArray);
+    }
   };
 
   return (
@@ -125,7 +169,7 @@ export const MultipleValuesCell = ({
               setMultipleValuesMenuOpen(false);
             } else if (array) {
               setMultipleValuesMenuOpen(true);
-            } else {
+            } else if (canToggle) {
               handleArrayChange(true);
             }
           }}
@@ -141,14 +185,17 @@ export const MultipleValuesCell = ({
               multipleValuesMenuOpen ? palette.gray[40] : "transparent"
             } !important`,
           })}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
         >
           <Box
             sx={({ palette, transitions }) => ({
               display: "inline-flex",
-              borderRadius: "4px 30px 30px 4px",
+              alignItems: "center",
+              borderRadius: canToggle ? "4px 30px 30px 4px" : "30px",
               backgroundColor: "transparent",
               transition: transitions.create(["padding", "background-color"]),
-              ...(array
+              ...(showSummary
                 ? {
                     py: 0.5,
                     px: 0.75,
@@ -157,38 +204,42 @@ export const MultipleValuesCell = ({
                 : {}),
             })}
           >
-            <Checkbox
-              {...arrayField}
-              checked={arrayField.value}
-              onChange={(evt) => {
-                handleArrayChange(evt.target.checked);
-              }}
-            />
-            <Collapse orientation="horizontal" in={array}>
-              <Typography
-                variant="smallTextLabels"
-                sx={{
-                  display: "flex",
-                  ml: 1,
-                  fontWeight: 500,
-                  whiteSpace: "nowrap",
-                  color: ({ palette }) => palette.gray[70],
-                  userSelect: "none",
+            {canToggle ? (
+              <Checkbox
+                {...arrayController.field}
+                checked={arrayController.field.value}
+                onChange={(evt) => {
+                  handleArrayChange(evt.target.checked);
                 }}
+                sx={{
+                  "+ *": {
+                    ml: 1,
+                  },
+                }}
+              />
+            ) : null}
+            <MultipleValuesCellSummary
+              show={showSummary}
+              infinity={infinity}
+              min={minValue}
+              max={maxValue}
+            />
+            {canToggle ? null : (
+              <Collapse
+                in={hovered || multipleValuesMenuOpen}
+                orientation="horizontal"
               >
-                {isArrayFrozenInfinity ||
-                (isArrayFrozenMinValue !== isArrayFrozenMaxValue &&
-                  typeof isArrayFrozenMaxValue === "number")
-                  ? `${
-                      isArrayFrozenMinValue === "" ? 0 : isArrayFrozenMinValue
-                    } ${
-                      isArrayFrozenInfinity
-                        ? "or more"
-                        : `to ${isArrayFrozenMaxValue}`
-                    }`
-                  : isArrayFrozenMinValue}
-              </Typography>
-            </Collapse>
+                <FontAwesomeIcon
+                  icon={faEdit}
+                  sx={(theme) => ({
+                    fontSize: "13px",
+                    color: theme.palette.gray[70],
+                    ml: 0.5,
+                    display: "block",
+                  })}
+                />
+              </Collapse>
+            )}
           </Box>
         </Box>
         <Popper
@@ -203,12 +254,14 @@ export const MultipleValuesCell = ({
           transition
           // Attempt to prevent this messing with the edit bar scroll freezing
           modifiers={[
-            { name: "flip", enabled: false },
-            { name: "preventOverflow", enabled: false },
+            addPopperPositionClassPopperModifier,
+            // { name: "flip", enabled: false },
+            // { name: "preventOverflow", enabled: false },
             {
               name: "offset",
               enabled: true,
               options: {
+                // @todo check this is right
                 offset: () => [0, -1],
               },
             },
@@ -220,16 +273,18 @@ export const MultipleValuesCell = ({
             >
               <Fade {...TransitionProps}>
                 <Box
-                  sx={({ palette, boxShadows }) => ({
-                    border: 1,
-                    p: 1.5,
-                    background: palette.white,
-                    borderColor: palette.gray[30],
-                    boxShadow: boxShadows.md,
-                    borderBottomLeftRadius: 4,
-                    borderBottomRightRadius: 4,
-                    userSelect: "none",
-                  })}
+                  sx={[
+                    ({ palette, boxShadows }) => ({
+                      border: 1,
+                      p: 1.5,
+                      background: palette.white,
+                      borderColor: palette.gray[30],
+                      boxShadow: boxShadows.md,
+                      borderRadius: "4px",
+                      userSelect: "none",
+                    }),
+                    popperPlacementPopperNoRadius,
+                  ]}
                 >
                   {/* Controllers are used for min/max as their values are frozen during animation */}
                   <Controller
@@ -246,22 +301,18 @@ export const MultipleValuesCell = ({
                             min = Math.max(0, min);
 
                             if (min > maxValue) {
-                              setValue(
-                                `properties.${propertyIndex}.maxValue`,
-                                min,
-                                { shouldDirty: true },
-                              );
+                              setValue(`${formPrefix}.maxValue`, min, {
+                                shouldDirty: true,
+                              });
                             }
                             field.onChange(min);
                           }
                         }}
                         onBlur={(evt) => {
                           if (evt.target.value === "") {
-                            setValue(
-                              `properties.${propertyIndex}.minValue`,
-                              0,
-                              { shouldDirty: true },
-                            );
+                            setValue(`${formPrefix}.minValue`, 0, {
+                              shouldDirty: true,
+                            });
                           }
                         }}
                         type="number"
@@ -272,7 +323,7 @@ export const MultipleValuesCell = ({
                         sx={{ mb: 2 }}
                       />
                     )}
-                    name={`properties.${propertyIndex}.minValue`}
+                    name={`${formPrefix}.minValue`}
                     rules={{ min: 0, required: true }}
                   />
                   <FormControl>
@@ -312,11 +363,9 @@ export const MultipleValuesCell = ({
                               } else {
                                 max = Math.max(max, 0);
                                 if (max < minValue) {
-                                  setValue(
-                                    `properties.${propertyIndex}.minValue`,
-                                    max,
-                                    { shouldDirty: true },
-                                  );
+                                  setValue(`${formPrefix}.minValue`, max, {
+                                    shouldDirty: true,
+                                  });
                                 }
 
                                 field.onChange(max);
@@ -325,7 +374,7 @@ export const MultipleValuesCell = ({
                             onBlur={(evt) => {
                               if (evt.target.value === "") {
                                 setValue(
-                                  `properties.${propertyIndex}.maxValue`,
+                                  `${formPrefix}.maxValue`,
                                   Math.max(
                                     1,
                                     typeof minValue === "number" ? minValue : 0,
@@ -339,7 +388,7 @@ export const MultipleValuesCell = ({
                             id={maximumFieldId}
                           />
                         )}
-                        name={`properties.${propertyIndex}.maxValue`}
+                        name={`${formPrefix}.maxValue`}
                         rules={{
                           min: 0,
                           required: true,
@@ -367,13 +416,17 @@ export const MultipleValuesCell = ({
                     onChange={(evt) => {
                       if (typeof maxValue !== "number") {
                         setValue(
-                          `properties.${propertyIndex}.maxValue`,
+                          `${formPrefix}.maxValue`,
                           Math.max(
                             1,
                             typeof minValue === "number" ? minValue : 0,
                           ),
                           { shouldDirty: true },
                         );
+                      } else if (maxValue < minValue) {
+                        setValue(`${formPrefix}.maxValue`, minValue, {
+                          shouldDirty: true,
+                        });
                       }
                       field.onChange(evt.target.checked);
                     }}
@@ -383,7 +436,7 @@ export const MultipleValuesCell = ({
                     }}
                   />
                 )}
-                name={`properties.${propertyIndex}.infinity`}
+                name={`${formPrefix}.infinity`}
               />,
               infinityCheckboxNode,
             )

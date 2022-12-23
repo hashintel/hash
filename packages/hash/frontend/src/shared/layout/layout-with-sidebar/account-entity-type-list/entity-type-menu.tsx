@@ -11,7 +11,7 @@ import pluralize from "pluralize";
 import { FunctionComponent, useState } from "react";
 
 import { MenuItem } from "../../../ui";
-import { useFrozenValue } from "../../../use-frozen-value";
+import { useFrozenValue } from "../../../frozen";
 
 type EntityTypeMenuProps = {
   entityTypeId: VersionedUri;
