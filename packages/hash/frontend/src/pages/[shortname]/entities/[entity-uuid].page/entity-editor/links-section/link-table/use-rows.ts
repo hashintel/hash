@@ -4,7 +4,7 @@ import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/e
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { useMemo } from "react";
 
-import { useBlockProtocolArchiveEntity } from "../../../../../../../components/hooks/blockProtocolFunctions/knowledge/use-block-protocol-archive-entity";
+import { useBlockProtocolArchiveEntity } from "../../../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
 import { useSnackbar } from "../../../../../../../components/hooks/use-snackbar";
 import { useEntityEditor } from "../../entity-editor-context";
 import { LinkRow } from "./types";

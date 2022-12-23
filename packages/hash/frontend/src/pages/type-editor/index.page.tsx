@@ -7,7 +7,7 @@ import {
   AggregateDataTypesMessageCallback,
   AggregateEntityTypesMessageCallback,
   AggregatePropertyTypesMessageCallback,
-} from "../../components/hooks/blockProtocolFunctions/ontology/ontology-types-shim";
+} from "../../components/hooks/block-protocol-functions/ontology/ontology-types-shim";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { NextPageWithLayout } from "../../shared/layout";
 import { Button } from "../../shared/ui";

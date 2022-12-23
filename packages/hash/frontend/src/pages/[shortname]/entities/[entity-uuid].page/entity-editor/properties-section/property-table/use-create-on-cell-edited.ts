@@ -8,7 +8,7 @@ import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { cloneDeep, set } from "lodash";
 import { useCallback } from "react";
 
-import { useBlockProtocolUpdateEntity } from "../../../../../../../components/hooks/blockProtocolFunctions/knowledge/use-block-protocol-update-entity";
+import { useBlockProtocolUpdateEntity } from "../../../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { useSnackbar } from "../../../../../../../components/hooks/use-snackbar";
 import { useEntityEditor } from "../../entity-editor-context";
 import { ValueCell } from "./cells/value-cell/types";

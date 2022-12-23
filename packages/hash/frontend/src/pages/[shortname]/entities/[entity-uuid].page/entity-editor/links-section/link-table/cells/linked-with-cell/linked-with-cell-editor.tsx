@@ -4,8 +4,8 @@ import { Entity } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { useContext } from "react";
 
-import { useBlockProtocolArchiveEntity } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/use-block-protocol-archive-entity";
-import { useBlockProtocolCreateEntity } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/use-block-protocol-create-entity";
+import { useBlockProtocolArchiveEntity } from "../../../../../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
+import { useBlockProtocolCreateEntity } from "../../../../../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
 import { WorkspaceContext } from "../../../../../../../../shared/workspace-context";
 import { useEntityEditor } from "../../../../entity-editor-context";
 import { LinkedWithCell } from "../linked-with-cell";

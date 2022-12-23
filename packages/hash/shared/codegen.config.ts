@@ -5,7 +5,7 @@ const config: CodegenConfig = {
   overwrite: true,
   schema: "../api/src/graphql/type-defs/**/*.ts",
   generates: {
-    "./src/graphql/fragmentTypes.gen.json": {
+    "./src/graphql/fragment-types.gen.json": {
       plugins: ["fragment-matcher"],
     },
     "./src/graphql/api-types.gen.ts": {

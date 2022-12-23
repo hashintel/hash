@@ -31,9 +31,9 @@ import Head from "next/head";
 import { Router } from "next/router";
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 
-// import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
-// import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
-// import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
+// import { useCollabPositionReporter } from "../../blocks/page/collab/use-collab-position-reporter";
+// import { useCollabPositions } from "../../blocks/page/collab/use-collab-positions";
+// import { useCollabPositionTracking } from "../../blocks/page/collab/use-collab-position-tracking";
 import { PageBlock } from "../../blocks/page/page-block";
 import {
   PageContextProvider,

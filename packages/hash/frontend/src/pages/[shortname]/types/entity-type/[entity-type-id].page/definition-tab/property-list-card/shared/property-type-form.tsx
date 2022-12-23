@@ -1,6 +1,6 @@
 import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 
-import { useBlockProtocolGetPropertyType } from "../../../../../../../../components/hooks/blockProtocolFunctions/ontology/use-block-protocol-get-property-type";
+import { useBlockProtocolGetPropertyType } from "../../../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-property-type";
 import {
   generateInitialTypeUri,
   TypeForm,

@@ -1,7 +1,7 @@
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { useBlockProtocolAggregatePropertyTypes } from "../../../../../components/hooks/blockProtocolFunctions/ontology/use-block-protocol-aggregate-property-types";
+import { useBlockProtocolAggregatePropertyTypes } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-property-types";
 import { useInitTypeSystem } from "../../../../../lib/use-init-type-system";
 import { PropertyTypesContextValues } from "./shared/property-types-context";
 

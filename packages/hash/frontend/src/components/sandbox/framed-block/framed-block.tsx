@@ -11,7 +11,7 @@ import {
 import { FunctionComponent, useCallback, useEffect, useState } from "react";
 
 import { FetchEmbedCodeFn } from "../../block-loader/fetch-embed-code";
-// import { ErrorBlock } from "../../ErrorBlock/ErrorBlock";
+// import { ErrorBlock } from "../../error-block/error-block";
 import {
   BlockLoadingIndicator,
   // RemoteBlock,
