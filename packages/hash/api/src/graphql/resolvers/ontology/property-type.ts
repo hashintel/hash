@@ -1,18 +1,18 @@
-import { PropertyTypeWithMetadata, Subgraph } from "@hashintel/hash-subgraph";
 import { OwnedById } from "@hashintel/hash-shared/types";
+import { PropertyTypeWithMetadata, Subgraph } from "@hashintel/hash-subgraph";
 
-import {
-  MutationCreatePropertyTypeArgs,
-  MutationUpdatePropertyTypeArgs,
-  QueryGetPropertyTypeArgs,
-  QueryGetAllLatestPropertyTypesArgs,
-  ResolverFn,
-} from "../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../context";
 import {
   createPropertyType,
   updatePropertyType,
 } from "../../../graph/ontology/primitive/property-type";
+import {
+  MutationCreatePropertyTypeArgs,
+  MutationUpdatePropertyTypeArgs,
+  QueryGetAllLatestPropertyTypesArgs,
+  QueryGetPropertyTypeArgs,
+  ResolverFn,
+} from "../../api-types.gen";
+import { LoggedInGraphQLContext } from "../../context";
 
 export const createPropertyTypeResolver: ResolverFn<
   Promise<PropertyTypeWithMetadata>,

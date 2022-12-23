@@ -1,11 +1,12 @@
 import { Entity } from "@hashintel/hash-subgraph";
+
 import { Block } from "../../../graph/knowledge/system-types/block";
 import { Comment } from "../../../graph/knowledge/system-types/comment";
 import { Page } from "../../../graph/knowledge/system-types/page";
 import {
   Block as GQLBlock,
-  Page as GQLPage,
   Comment as GQLComment,
+  Page as GQLPage,
 } from "../../api-types.gen";
 
 export const mapEntityToGQL = (entity: Entity): Entity => entity;

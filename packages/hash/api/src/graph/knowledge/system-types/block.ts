@@ -3,8 +3,9 @@ import {
   extractOwnedByIdFromEntityId,
 } from "@hashintel/hash-shared/types";
 import { Entity, EntityId, PropertyObject } from "@hashintel/hash-subgraph";
-import { ImpureGraphFunction, PureGraphFunction } from "../..";
+
 import { EntityTypeMismatchError } from "../../../lib/error";
+import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
   archiveEntity,
@@ -19,7 +20,7 @@ import {
   getLinkEntityLeftEntity,
   getLinkEntityRightEntity,
 } from "../primitive/link-entity";
-import { getCommentFromEntity, Comment } from "./comment";
+import { Comment, getCommentFromEntity } from "./comment";
 
 export type Block = {
   componentId: string;

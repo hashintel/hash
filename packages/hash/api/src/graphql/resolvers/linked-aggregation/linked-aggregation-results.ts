@@ -2,7 +2,7 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 import { ApolloError } from "apollo-server-express";
-import { GraphQLContext } from "../../context";
+
 import {
   Aggregation,
   Entity,
@@ -10,6 +10,7 @@ import {
   UnresolvedGQLUnknownEntity,
 } from "../../../model";
 import { ResolverFn } from "../../api-types.gen";
+import { GraphQLContext } from "../../context";
 
 export const linkedAggregationResults: ResolverFn<
   UnresolvedGQLUnknownEntity[],

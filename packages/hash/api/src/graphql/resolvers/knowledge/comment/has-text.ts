@@ -1,12 +1,13 @@
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
-import { ResolverFn } from "../../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../../context";
-import { UnresolvedCommentGQL } from "../graphql-mapping";
-import { SYSTEM_TYPES } from "../../../../graph/system-types";
+
 import {
   getCommentById,
   getCommentText,
 } from "../../../../graph/knowledge/system-types/comment";
+import { SYSTEM_TYPES } from "../../../../graph/system-types";
+import { ResolverFn } from "../../../api-types.gen";
+import { LoggedInGraphQLContext } from "../../../context";
+import { UnresolvedCommentGQL } from "../graphql-mapping";
 
 export const commentHasTextResolver: ResolverFn<
   Promise<TextToken[]>,

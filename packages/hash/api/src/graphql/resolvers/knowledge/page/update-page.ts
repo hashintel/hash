@@ -1,3 +1,4 @@
+import { updateEntityProperties } from "../../../../graph/knowledge/primitive/entity";
 import {
   getPageById,
   getPageFromEntity,
@@ -6,7 +7,6 @@ import { SYSTEM_TYPES } from "../../../../graph/system-types";
 import { MutationUpdatePageArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { mapPageToGQL, UnresolvedPageGQL } from "../graphql-mapping";
-import { updateEntityProperties } from "../../../../graph/knowledge/primitive/entity";
 
 export const updatePageResolver: ResolverFn<
   Promise<UnresolvedPageGQL>,

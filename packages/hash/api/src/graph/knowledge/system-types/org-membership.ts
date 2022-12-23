@@ -4,8 +4,9 @@ import {
   Uuid,
 } from "@hashintel/hash-shared/types";
 import { PropertyObject } from "@hashintel/hash-subgraph";
-import { ImpureGraphFunction, PureGraphFunction } from "../..";
+
 import { EntityTypeMismatchError } from "../../../lib/error";
+import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
   createLinkEntity,
