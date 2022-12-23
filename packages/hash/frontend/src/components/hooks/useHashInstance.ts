@@ -5,7 +5,7 @@ import { extractBaseUri } from "@blockprotocol/type-system";
 import {
   GetHashInstanceEntityQueryQuery,
   GetHashInstanceEntityQueryQueryVariables,
-} from "../../graphql/apiTypes.gen";
+} from "../../graphql/api-types.gen";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { getHashInstanceEntityQuery } from "../../graphql/queries/knowledge/hashInstance.queries";
 

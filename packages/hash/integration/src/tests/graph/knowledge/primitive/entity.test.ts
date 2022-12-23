@@ -1,31 +1,10 @@
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
   zeroedGraphResolveDepths,
 } from "@hashintel/hash-api/src/graph";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-
-import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
-import {
-  generateSystemEntityTypeSchema,
-  linkEntityTypeUri,
-} from "@hashintel/hash-api/src/graph/util";
-import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import {
-  Entity,
-  DataTypeWithMetadata,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-  Subgraph,
-  SubgraphRootTypes,
-  extractOwnedByIdFromEntityId,
-} from "@hashintel/hash-subgraph";
-import { createPropertyType } from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
-import { createEntityType } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
-import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import {
   createEntity,
   createEntityWithLinks,
@@ -33,9 +12,28 @@ import {
   getLatestEntityById,
   updateEntity,
 } from "@hashintel/hash-api/src/graph/knowledge/primitive/entity";
-import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
 import { getLinkEntityRightEntity } from "@hashintel/hash-api/src/graph/knowledge/primitive/link-entity";
+import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
+import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
+import { createEntityType } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
+import { createPropertyType } from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
+import { generateSystemEntityTypeSchema } from "@hashintel/hash-api/src/graph/util";
+import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { EntityId, OwnedById } from "@hashintel/hash-shared/types";
+import {
+  DataTypeWithMetadata,
+  Entity,
+  EntityTypeWithMetadata,
+  extractOwnedByIdFromEntityId,
+  linkEntityTypeUri,
+  PropertyTypeWithMetadata,
+  Subgraph,
+  SubgraphRootTypes,
+} from "@hashintel/hash-subgraph";
+import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+
 import { createTestUser } from "../../../util";
 
 jest.setTimeout(60000);

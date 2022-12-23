@@ -1,10 +1,10 @@
 import { Box } from "@mui/material";
 import { useTheme } from "@mui/system";
 import { FunctionComponent, ReactNode } from "react";
-import { Footer } from "./Footer";
-import { HiringBanner } from "./HiringBanner";
-import { Navbar } from "./Navbar";
-import { PreFooter } from "./PreFooter";
+
+import { Footer } from "./footer";
+import { Navbar } from "./navbar";
+import { PreFooter } from "./pre-footer";
 
 // @todo extract NavLink component
 
@@ -59,7 +59,6 @@ export const PageLayout: FunctionComponent<{
       <Box sx={{ flex: 1 }} />
       <PreFooter subscribe={subscribe} />
       <Footer />
-      <HiringBanner />
     </Box>
   );
 };

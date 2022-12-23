@@ -1,17 +1,17 @@
 import { Box, Typography, TypographyProps } from "@mui/material";
-import { ComponentType } from "react";
 import dynamic from "next/dynamic";
+import { ComponentType } from "react";
 
-import { ImageWithText } from "../components/ImageWithText";
-import { Link, LinkProps } from "../components/Link";
-import { MdxImage } from "../components/MdxImage";
-import { MdxPre } from "../components/MdxPre";
-import { MdxTalkSlide } from "../components/MdxTalkSlide";
-import { MdxVideo } from "../components/MdxVideo";
+import { ImageWithText } from "../components/image-with-text";
+import { Link, LinkProps } from "../components/link";
+import { MdxImage } from "../components/mdx-image";
+import { MdxPre } from "../components/mdx-pre";
+import { MdxTalkSlide } from "../components/mdx-talk-slide";
+import { MdxVideo } from "../components/mdx-video";
 
 const CalculationBlock = dynamic<{}>(
   () =>
-    import("../components/CalculationBlock").then(
+    import("../components/calculation-block").then(
       (module) => module.CalculationBlock,
     ),
   { ssr: false },

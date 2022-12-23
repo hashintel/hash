@@ -8,12 +8,12 @@ import { StatsD } from "hot-shots";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { SearchAdapter } from "@hashintel/hash-backend-utils/search/adapter";
 
-import { schema } from "./typeDefs";
+import { schema } from "./type-defs";
 import { resolvers } from "./resolvers";
 import { CacheAdapter } from "../cache";
 import { GraphQLContext } from "./context";
 import { EmailTransporter } from "../email/transporters";
-import { StorageType } from "./apiTypes.gen";
+import { StorageType } from "./api-types.gen";
 import { TaskExecutor } from "../task-execution";
 import { GraphApi } from "../graph";
 

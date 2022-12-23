@@ -6,7 +6,7 @@ import {
   Block as GQLBlock,
   Page as GQLPage,
   Comment as GQLComment,
-} from "../../apiTypes.gen";
+} from "../../api-types.gen";
 
 export const mapEntityToGQL = (entity: Entity): Entity => entity;
 

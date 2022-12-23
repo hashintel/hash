@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState, FunctionComponent } from "react";
+import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   Collapse,
@@ -6,8 +6,9 @@ import {
   TextField as MuiTextField,
   TextFieldProps as MuiTextFieldProps,
 } from "@mui/material";
-import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "./icons/FontAwesomeIcon";
+import { FunctionComponent, ReactNode, useEffect, useState } from "react";
+
+import { FontAwesomeIcon } from "./icons/font-awesome-icon";
 
 type TextFieldProps = {
   displayErrorOnTouched?: boolean;

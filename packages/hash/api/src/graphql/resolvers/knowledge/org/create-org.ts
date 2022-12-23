@@ -1,7 +1,7 @@
 import { Subgraph } from "@hashintel/hash-subgraph";
 import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity";
 import { createOrg } from "../../../../graph/knowledge/system-types/org";
-import { MutationCreateOrgArgs, ResolverFn } from "../../../apiTypes.gen";
+import { MutationCreateOrgArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 
 export const createOrgResolver: ResolverFn<

@@ -1,14 +1,16 @@
 import { readFileSync } from "node:fs";
+import path from "node:path";
+
 import { readdir, readdirSync, readFile } from "fs-extra";
 import matter from "gray-matter";
 import { MDXRemoteSerializeResult } from "next-mdx-remote";
 import { serialize } from "next-mdx-remote/serialize";
-import path from "node:path";
 import remarkMdx from "remark-mdx";
 import remarkMdxDisableExplicitJsx from "remark-mdx-disable-explicit-jsx";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
-import { parseNameFromFileName } from "./clientMdxUtil";
+
+import { parseNameFromFileName } from "./client-mdx-util";
 
 type Node = {
   type: string;

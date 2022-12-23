@@ -4,7 +4,7 @@ import {
   getBlockData,
 } from "../../../../graph/knowledge/system-types/block";
 
-import { QueryBlocksArgs, ResolverFn } from "../../../apiTypes.gen";
+import { QueryBlocksArgs, ResolverFn } from "../../../api-types.gen";
 import { GraphQLContext } from "../../../context";
 import { UnresolvedBlockGQL, mapEntityToGQL } from "../graphql-mapping";
 
