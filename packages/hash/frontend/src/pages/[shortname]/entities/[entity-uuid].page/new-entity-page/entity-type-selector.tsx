@@ -1,5 +1,6 @@
 import { EntityType } from "@blockprotocol/type-system";
 import { FunctionComponent, useContext, useRef, useState } from "react";
+
 import { HashSelectorAutocomplete } from "../../../shared/hash-selector-autocomplete";
 import { EntityTypesContext } from "./shared/entity-types-context";
 

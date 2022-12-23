@@ -1,6 +1,7 @@
 import { EntityType, VersionedUri } from "@blockprotocol/type-system";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import { linkEntityTypeUri } from "@hashintel/hash-subgraph";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import {
@@ -20,10 +21,10 @@ import {
 } from "material-ui-popup-state/hooks";
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
-import { OwnedById } from "@hashintel/hash-shared/types";
-import { useBlockProtocolCreateEntityType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreateEntityType";
-import { useBlockProtocolGetEntityType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
-import { useBlockProtocolUpdateEntityType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";
+
+import { useBlockProtocolCreateEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
+import { useBlockProtocolGetEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
+import { useBlockProtocolUpdateEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-entity-type";
 import { LinkIcon } from "../../../../../../shared/icons/link";
 import { HashSelectorAutocomplete } from "../../../../shared/hash-selector-autocomplete";
 import {

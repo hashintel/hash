@@ -4,6 +4,7 @@ import {
   MenuItem,
   TextField,
 } from "@hashintel/hash-design-system";
+
 import { CellInputProps } from "./types";
 
 export const BooleanInput = ({ onChange, value }: CellInputProps<boolean>) => {

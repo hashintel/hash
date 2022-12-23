@@ -1,4 +1,5 @@
 import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
+
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
 import { LinksSection } from "./entity-editor/links-section";
 import { PeersSection } from "./entity-editor/peers-section";
