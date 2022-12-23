@@ -72,8 +72,8 @@ impl TimeProjection {
 impl ToSchema for TimeProjection {
     fn schema() -> openapi::Schema {
         openapi::OneOfBuilder::new()
-            .item(DecisionTimeProjection::schema())
-            .item(TransactionTimeProjection::schema())
+            .item(openapi::Ref::from_schema_name("DecisionTimeProjection"))
+            .item(openapi::Ref::from_schema_name("TransactionTimeProjection"))
             .build()
             .into()
     }
@@ -89,8 +89,12 @@ pub enum ResolvedTimeProjection {
 impl ToSchema for ResolvedTimeProjection {
     fn schema() -> openapi::Schema {
         openapi::OneOfBuilder::new()
-            .item(ResolvedDecisionTimeProjection::schema())
-            .item(ResolvedTransactionTimeProjection::schema())
+            .item(openapi::Ref::from_schema_name(
+                "ResolvedDecisionTimeProjection",
+            ))
+            .item(openapi::Ref::from_schema_name(
+                "ResolvedTransactionTimeProjection",
+            ))
             .build()
             .into()
     }

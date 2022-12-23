@@ -49,6 +49,7 @@ use crate::{
             ResolvedDecisionTimeProjection, ResolvedTimeProjection,
             ResolvedTransactionTimeProjection, TimeProjection, TimespanBound, Timestamp,
             TransactionTime, TransactionTimeProjection, TransactionTimeVersionTimespan,
+            TransactionTimestamp,
         },
         GraphElementId, GraphElementVertexId,
     },
@@ -185,6 +186,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             Subgraph,
 
             TransactionTime,
+            TransactionTimestamp,
             TransactionTimeVersionTimespan,
             TransactionTimeProjection,
             ResolvedTransactionTimeProjection,
