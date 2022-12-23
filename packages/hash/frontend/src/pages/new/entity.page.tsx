@@ -6,7 +6,7 @@ import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { EntityPageLoadingState } from "../[shortname]/entities/[entity-uuid].page/entity-page-loading-state";
 import { SelectEntityTypePage } from "../[shortname]/entities/[entity-uuid].page/select-entity-type-page";
 import { WorkspaceContext } from "../shared/workspace-context";
-import { NewEntityPage } from "../[shortname]/entities/[entity-uuid].page/new-entity-page";
+import { CreateEntityPage } from "../[shortname]/entities/[entity-uuid].page/create-entity-page";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -25,7 +25,7 @@ const Page: NextPageWithLayout = () => {
   }
 
   if (shouldBeCreatingEntity) {
-    return <NewEntityPage entityTypeId={entityTypeId.inner} />;
+    return <CreateEntityPage entityTypeId={entityTypeId.inner} />;
   }
 
   return <SelectEntityTypePage />;

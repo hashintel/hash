@@ -39,7 +39,6 @@ const Page: NextPageWithLayout = () => {
     useState<Subgraph<SubgraphRootTypes["entity"]>>();
 
   const [isDirty, setIsDirty] = useState(false);
-
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -61,6 +60,7 @@ const Page: NextPageWithLayout = () => {
               setDraftEntitySubgraph(subgraph);
             } catch {
               setEntitySubgraphFromDB(undefined);
+              setDraftEntitySubgraph(undefined);
             }
           }
         } finally {
@@ -99,7 +99,7 @@ const Page: NextPageWithLayout = () => {
       const entityToUpdate = getRoots(val)[0];
       const draftEntity = getRoots(draftEntitySubgraph)[0];
 
-      if (entityToUpdate && "properties" in entityToUpdate && draftEntity) {
+      if (entityToUpdate && draftEntity && "properties" in entityToUpdate) {
         entityToUpdate.properties = draftEntity.properties;
       }
     });
@@ -117,17 +117,16 @@ const Page: NextPageWithLayout = () => {
       return;
     }
 
-    const entity = getRoots(entitySubgraphFromDB)[0];
     const draftEntity = getRoots(draftEntitySubgraph)[0];
 
-    if (!entity || !draftEntity) {
+    if (!draftEntity) {
       return;
     }
 
     /** @todo add validation here */
     await updateEntity({
       data: {
-        entityId: entity.metadata.editionId.baseId as EntityId,
+        entityId: draftEntity.metadata.editionId.baseId as EntityId,
         updatedProperties: draftEntity.properties,
       },
     });

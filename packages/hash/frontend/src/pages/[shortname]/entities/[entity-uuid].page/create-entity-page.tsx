@@ -20,11 +20,11 @@ import { WorkspaceContext } from "../../../shared/workspace-context";
 import { generateEntityLabel } from "../../../../lib/entities";
 import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
 
-interface NewEntityPageProps {
+interface CreateEntityPageProps {
   entityTypeId: VersionedUri;
 }
 
-export const NewEntityPage = ({ entityTypeId }: NewEntityPageProps) => {
+export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [draftEntitySubgraph, setDraftEntitySubgraph] =
