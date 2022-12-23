@@ -1,9 +1,22 @@
 import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { Box, Collapse, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Checkbox,
+  checkboxClasses,
+  Collapse,
+  collapseClasses,
+  Input,
+  inputClasses,
+  Stack,
+  TextField,
+  textFieldClasses,
+  Theme,
+  Typography,
+} from "@mui/material";
 import { uniqueId } from "lodash";
 import { usePopupState } from "material-ui-popup-state/hooks";
-import { FunctionComponent, useEffect, useMemo, useState } from "react";
-import { useFormContext, useWatch } from "react-hook-form";
+import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
+import { useController, useFormContext, useWatch } from "react-hook-form";
 import {
   CustomExpectedValue,
   DefaultExpectedValueTypeId,
@@ -164,6 +177,19 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
     popupId: `deleteArray-${expectedValueId}`,
   });
 
+  const minItemsController = useController({
+    control,
+    name: `flattenedCustomExpectedValueList.${expectedValueId}.data.minItems`,
+  });
+  const maxItemsController = useController({
+    control,
+    name: `flattenedCustomExpectedValueList.${expectedValueId}.data.maxItems`,
+  });
+  const infinityController = useController({
+    control,
+    name: `flattenedCustomExpectedValueList.${expectedValueId}.data.infinity`,
+  });
+
   const deleteExpectedValueById = (typeId: string) => {
     const removedExpectedValue = Object.values(flattenedExpectedValues).find(
       (expectedValue) =>
@@ -204,6 +230,12 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
     [itemIds, flattenedExpectedValues],
   );
 
+  const [minItemsWidth, setMinItemsWidth] = useState(0);
+  const [maxItemsWidth, setMaxItemsWidth] = useState(0);
+  const [hovered, setHovered] = useState(false);
+
+  const maxItemsInputRef = useRef<HTMLInputElement | null>();
+
   return (
     <Stack sx={{ mb: 1 }}>
       <ExpectedValueBadge
@@ -217,6 +249,243 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
             onDelete?.();
           }
         }}
+        endNode={
+          <Box display="flex" gap={1.25}>
+            <Box display="flex">
+              <Box
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  py: 0.25,
+                  px: 1,
+                  background: ({ palette }) => palette.gray[80],
+                  borderBottomLeftRadius: 30,
+                  borderTopLeftRadius: 30,
+                }}
+              >
+                <Typography
+                  variant="smallCaps"
+                  sx={{
+                    fontSize: 11,
+                    color: ({ palette }) => palette.gray[30],
+                  }}
+                >
+                  Min
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  py: 0.25,
+                  px: 1,
+                  pl: 0.75,
+                  background: ({ palette }) => palette.gray[90],
+                  borderBottomRightRadius: 30,
+                  borderTopRightRadius: 30,
+                }}
+              >
+                <Input
+                  {...minItemsController.field}
+                  onChange={(event) => {
+                    setMinItemsWidth(event.target.value.length);
+                    minItemsController.field.onChange(event);
+                  }}
+                  type="number"
+                  sx={{
+                    fontSize: 11,
+                    height: 16,
+                    color: (theme: Theme) => theme.palette.white,
+                    mx: 0.25,
+                    width: `${minItemsWidth || 1}ch`,
+
+                    "::before": {
+                      display: "none",
+                    },
+                    "::after": {
+                      borderBottomStyle: "dotted",
+                      borderBottomColor: "white",
+                      borderBottomWidth: 1,
+                    },
+
+                    ":hover": {
+                      "::after": {
+                        transform: "scaleX(1) translateX(0)",
+                      },
+                    },
+
+                    // <-- Hide number input default arrows -->
+                    "& input[type=number]": {
+                      "-moz-appearance": "textfield",
+                    },
+                    "& input[type=number]::-webkit-outer-spin-button": {
+                      "-webkit-appearance": "none",
+                      margin: 0,
+                    },
+                    "& input[type=number]::-webkit-inner-spin-button": {
+                      "-webkit-appearance": "none",
+                      margin: 0,
+                    },
+                    // <-- Hide number input default arrows -->
+                  }}
+                />
+              </Box>
+            </Box>
+
+            <Box
+              display="flex"
+              onMouseEnter={() => setHovered(true)}
+              onMouseLeave={() => setHovered(false)}
+            >
+              <Box
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  py: 0.25,
+                  px: 1,
+                  background: ({ palette }) => palette.gray[80],
+                  borderBottomLeftRadius: 30,
+                  borderTopLeftRadius: 30,
+                }}
+              >
+                <Typography
+                  variant="smallCaps"
+                  sx={{
+                    fontSize: 11,
+                    color: ({ palette }) => palette.gray[30],
+                  }}
+                >
+                  Max
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  py: 0.25,
+                  px: 1,
+                  pl: 0.75,
+                  background: ({ palette }) => palette.gray[90],
+                  borderBottomRightRadius: 30,
+                  borderTopRightRadius: 30,
+                }}
+              >
+                <Collapse
+                  orientation="horizontal"
+                  in={hovered}
+                  sx={{
+                    [`.${collapseClasses.wrapperInner}`]: {
+                      display: "flex",
+                      alignItems: "center",
+                    },
+                  }}
+                  collapsedSize={
+                    infinityController.field.value
+                      ? 0
+                      : (maxItemsInputRef.current?.offsetWidth ?? 0) + 4
+                  }
+                >
+                  <Box sx={{ fontSize: 11, width: `${maxItemsWidth}ch` }}>
+                    <Input
+                      {...maxItemsController.field}
+                      inputRef={(ref: HTMLInputElement | null) => {
+                        if (ref) {
+                          setMaxItemsWidth(ref.value.length);
+                        }
+                      }}
+                      disabled={infinityController.field.value}
+                      onChange={(event) => {
+                        setMaxItemsWidth(event.target.value.length);
+                        maxItemsController.field.onChange(event);
+                      }}
+                      type="number"
+                      sx={{
+                        fontSize: 11,
+                        height: 16,
+                        color: (theme: Theme) => theme.palette.white,
+                        width: `${maxItemsWidth}ch`,
+
+                        "::before": {
+                          display: "none",
+                        },
+                        "::after": {
+                          borderBottomStyle: "dashed",
+                          borderBottomColor: "white",
+                          borderBottomWidth: 1,
+                        },
+
+                        ":hover": {
+                          "::after": {
+                            transform: "scaleX(1) translateX(0)",
+                          },
+                        },
+
+                        // <-- Hide number input default arrows -->
+                        "& input[type=number]": {
+                          "-moz-appearance": "textfield",
+                        },
+                        "& input[type=number]::-webkit-outer-spin-button": {
+                          "-webkit-appearance": "none",
+                          margin: 0,
+                        },
+                        "& input[type=number]::-webkit-inner-spin-button": {
+                          "-webkit-appearance": "none",
+                          margin: 0,
+                        },
+                        // <-- Hide number input default arrows -->
+                      }}
+                    />
+                  </Box>
+                  <Typography
+                    variant="smallTextLabels"
+                    sx={{
+                      pl: 0.5,
+                      fontSize: 11,
+                      color: ({ palette }) => palette.white,
+                      whiteSpace: "nowrap",
+                      pr: 0.5,
+                    }}
+                  >
+                    or allow
+                  </Typography>
+                </Collapse>
+                <Collapse
+                  orientation="horizontal"
+                  in={hovered}
+                  sx={{
+                    [`.${collapseClasses.wrapperInner}`]: {
+                      display: "flex",
+                      alignItems: "center",
+                    },
+                  }}
+                  collapsedSize={infinityController.field.value ? 12 : 0}
+                >
+                  <Typography
+                    variant="smallTextLabels"
+                    sx={{
+                      // pl: 0.5,
+                      fontSize: 11,
+                      color: ({ palette }) => palette.white,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    ∞
+                    <Checkbox
+                      {...infinityController.field}
+                      sx={{
+                        ml: 0.5,
+                        width: 12,
+                        height: 12,
+                        "&, > svg": { fontSize: 12 },
+                      }}
+                      size="small"
+                    />
+                  </Typography>
+                </Collapse>
+              </Box>
+            </Box>
+          </Box>
+        }
       />
 
       <Box

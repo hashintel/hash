@@ -15,6 +15,7 @@ interface ArrayExpectedValue {
   typeId: "array";
   minItems: number;
   maxItems?: number;
+  infinity?: boolean;
   itemIds: string[];
 }
 
