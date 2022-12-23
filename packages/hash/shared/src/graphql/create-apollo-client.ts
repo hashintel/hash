@@ -13,7 +13,6 @@ import {
 } from "node-fetch";
 
 import { apiGraphQLEndpoint } from "../environment";
-
 import possibleTypes from "./fragmentTypes.gen.json";
 
 const errorLink = onError(({ graphQLErrors, operation }) => {

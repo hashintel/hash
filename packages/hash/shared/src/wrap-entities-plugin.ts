@@ -1,5 +1,7 @@
-import { entityStorePluginState } from "@hashintel/hash-shared/entityStorePlugin";
+import { entityStorePluginState } from "@hashintel/hash-shared/entity-store-plugin";
 import { mapValues } from "lodash";
+import { keymap } from "prosemirror-keymap";
+import { Node } from "prosemirror-model";
 import {
   Command,
   EditorState,
@@ -8,9 +10,8 @@ import {
   TextSelection,
   Transaction,
 } from "prosemirror-state";
-import { keymap } from "prosemirror-keymap";
-import { Node } from "prosemirror-model";
 import { Mapping } from "prosemirror-transform";
+
 import { getBlockChildEntity, isTextEntity } from "./entity";
 import { isComponentNode, isEntityNode } from "./prosemirror";
 

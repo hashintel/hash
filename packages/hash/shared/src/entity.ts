@@ -6,7 +6,7 @@ import {
   isDraftEntity,
   isEntity,
   TEXT_TOKEN_PROPERTY_TYPE_BASE_URI,
-} from "./entityStore";
+} from "./entity-store";
 import { Block } from "./graphql/api-types.gen";
 import { TextToken } from "./graphql/types";
 import { flatMapTree } from "./util";

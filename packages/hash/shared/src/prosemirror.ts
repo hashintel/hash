@@ -1,6 +1,7 @@
 import { toggleMark } from "prosemirror-commands";
-import { NodeSpec, NodeType, Node, Schema } from "prosemirror-model";
 import { keymap } from "prosemirror-keymap";
+import { Node, NodeSpec, NodeType, Schema } from "prosemirror-model";
+
 import { paragraphBlockComponentId } from "./blocks";
 
 type NodeWithAttrs<Attrs extends {}> = Omit<Node, "attrs"> & {
