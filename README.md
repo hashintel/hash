@@ -1,6 +1,7 @@
-[github_banner]: https://hash.dev/?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[github_banner]: https://hash.dev/?utm_medium=organic&utm_source=github_readme_hash-repo_root-header_banner
 [github_star]: https://github.com/hashintel/hash#
 [discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[hash.ai]: https://hash.ai?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hash.dev]: https://hash.dev?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hash]: https://hash.ai/platform/hash?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hash engine]: https://hash.ai/platform/engine?utm_medium=organic&utm_source=github_readme_hash-repo_root
@@ -17,7 +18,7 @@
 
 ## Welcome
 
-This is HASH's _public monorepo_ which contains our open-source, fair-source and commons-licensed code, docs, and other key resources. You can learn more about our big picture vision at [hash.dev]
+This is HASH's _public monorepo_ which contains our open-source, fair-source and commons-licensed code, docs, and other key resources. You can learn more about our big picture vision at [hash.dev] or sign up for free to the hosted version at [hash.ai] 
 
 ## Repository structure
 
