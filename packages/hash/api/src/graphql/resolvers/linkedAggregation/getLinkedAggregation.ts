@@ -3,7 +3,7 @@
 // @ts-nocheck
 import { ApolloError } from "apollo-server-express";
 
-import { QueryGetLinkedAggregationArgs, ResolverFn } from "../../apiTypes.gen";
+import { QueryGetLinkedAggregationArgs, ResolverFn } from "../../api-types.gen";
 import { GraphQLContext } from "../../context";
 import { UnresolvedGQLLinkedAggregation, Aggregation } from "../../../model";
 

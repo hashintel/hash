@@ -14,6 +14,7 @@ module.exports = {
     "@hashintel/hash-subgraph(.*)": "<rootDir>/../subgraph$1",
     "@hashintel/hash-graph-client": "<rootDir>/../../graph/clients/typescript",
   },
+  setupFiles: ["@hashintel/hash-backend-utils/environment"],
   testMatch: [
     "<rootDir>/src/tests/model/knowledge/**",
     "<rootDir>/src/tests/graph/**",

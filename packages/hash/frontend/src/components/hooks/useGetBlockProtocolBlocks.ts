@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import { GetBlockProtocolBlocksQuery } from "../../graphql/apiTypes.gen";
+import { GetBlockProtocolBlocksQuery } from "../../graphql/api-types.gen";
 import { getBlockProtocolBlocksQuery } from "../../graphql/queries/block.queries";
 
 export const useGetBlockProtocolBlocks = () => {
