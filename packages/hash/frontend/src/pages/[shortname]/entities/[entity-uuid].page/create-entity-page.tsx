@@ -1,23 +1,24 @@
 import { VersionedUri } from "@blockprotocol/type-system";
-import { useContext, useEffect, useState } from "react";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import {
-  SubgraphRootTypes,
-  Subgraph,
   EntityEditionId,
   extractEntityUuidFromEntityId,
+  Subgraph,
+  SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
-import { OwnedById } from "@hashintel/hash-shared/types";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { useRouter } from "next/router";
+import { useContext, useEffect, useState } from "react";
+
+import { useBlockProtocolCreateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
+import { useBlockProtocolGetEntityType } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
+import { useLoadingCallback } from "../../../../components/hooks/use-loading-callback";
+import { PageErrorState } from "../../../../components/page-error-state";
+import { generateEntityLabel } from "../../../../lib/entities";
+import { WorkspaceContext } from "../../../shared/workspace-context";
 import { EditBarReusable } from "../../types/entity-type/[entity-type-id].page/edit-bar-reusable";
 import { EntityEditorPage } from "./entity-editor-page";
-import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { EntityPageLoadingState } from "./entity-page-loading-state";
-import { PageErrorState } from "../../../../components/page-error-state";
-import { useLoadingCallback } from "../../../../components/hooks/useLoadingCallback";
-import { useBlockProtocolCreateEntity } from "../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
-import { WorkspaceContext } from "../../../shared/workspace-context";
-import { generateEntityLabel } from "../../../../lib/entities";
 import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
 
 interface CreateEntityPageProps {

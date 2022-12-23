@@ -1,5 +1,6 @@
 import { Box, Collapse, Container, Stack, Typography } from "@mui/material";
 import { ReactNode } from "react";
+
 import { PencilSimpleLine } from "../../../../../shared/icons/svg";
 import { Button, ButtonProps } from "../../../../../shared/ui/button";
 import { useFreezeScrollWhileTransitioning } from "./edit-bar";
