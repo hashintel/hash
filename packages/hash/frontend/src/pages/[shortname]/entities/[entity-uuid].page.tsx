@@ -1,28 +1,29 @@
-import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
-import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
   OwnedById,
 } from "@hashintel/hash-shared/types";
+import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import produce from "immer";
-import { useBlockProtocolGetEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+
+import { useBlockProtocolGetEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
+import { useBlockProtocolUpdateEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
+import { useBlockProtocolGetEntityType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
+import { useLoadingCallback } from "../../../components/hooks/useLoadingCallback";
+import { PageErrorState } from "../../../components/page-error-state";
+import { generateEntityLabel } from "../../../lib/entities";
 import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../shared/layout";
-import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
-import { PageErrorState } from "../../../components/page-error-state";
-import { generateEntityLabel } from "../../../lib/entities";
 import { useRouteNamespace } from "../shared/use-route-namespace";
-import { useBlockProtocolGetEntityType } from "../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
-import { useBlockProtocolUpdateEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolUpdateEntity";
-import { useLoadingCallback } from "../../../components/hooks/useLoadingCallback";
 import { EditBarReusable } from "../types/entity-type/[entity-type-id].page/edit-bar-reusable";
 import { EntityEditorPage } from "./[entity-uuid].page/entity-editor-page";
+import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
 import { updateEntitySubgraphStateByEntity } from "./[entity-uuid].page/shared/update-entity-subgraph-state-by-entity";
 
 const Page: NextPageWithLayout = () => {

@@ -3,7 +3,8 @@ import { Button, Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box, Divider, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useContext, useState } from "react";
-import { useSnackbar } from "../../../../components/hooks/useSnackbar";
+
+import { useSnackbar } from "../../../../components/hooks/use-snackbar";
 import { WorkspaceContext } from "../../../shared/workspace-context";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";

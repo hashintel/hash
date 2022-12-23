@@ -4,6 +4,7 @@ import { uniqueId } from "lodash";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { FunctionComponent, useEffect, useMemo, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
+
 import {
   CustomExpectedValue,
   DefaultExpectedValueTypeId,
@@ -11,10 +12,10 @@ import {
   PropertyTypeFormValues,
 } from "../../../property-type-form-values";
 import { dataTypeOptions as primitiveDataTypeOptions } from "../../shared/data-type-options";
-import { expectedValuesOptions } from "../shared/expected-values-options";
-import { ExpectedValueBadge } from "../shared/expected-value-badge";
-import { DeleteExpectedValueModal } from "../shared/delete-expected-value-modal";
 import { CustomExpectedValueSelector } from "../shared/custom-expected-value-selector";
+import { DeleteExpectedValueModal } from "../shared/delete-expected-value-modal";
+import { ExpectedValueBadge } from "../shared/expected-value-badge";
+import { expectedValuesOptions } from "../shared/expected-values-options";
 import { ObjectExpectedValueBuilder } from "../shared/object-expected-value-builder";
 
 const dataTypeOptions: DefaultExpectedValueTypeId[] = [

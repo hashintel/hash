@@ -1,13 +1,14 @@
 import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
-import { useBlockProtocolGetPropertyType } from "../../../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
+
+import { useBlockProtocolGetPropertyType } from "../../../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-property-type";
 import {
   generateInitialTypeUri,
   TypeForm,
   TypeFormProps,
   useGenerateTypeBaseUri,
 } from "../../shared/type-form";
-import { PropertyTypeFormValues } from "./property-type-form-values";
 import { ExpectedValueSelector } from "./property-type-form/expected-value-selector";
+import { PropertyTypeFormValues } from "./property-type-form-values";
 
 export const PropertyTypeForm = (
   props: TypeFormProps<PropertyTypeFormValues>,

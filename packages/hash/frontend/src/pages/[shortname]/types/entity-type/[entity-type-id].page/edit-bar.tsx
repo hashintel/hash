@@ -3,8 +3,9 @@ import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box, Collapse, Container, Stack, Typography } from "@mui/material";
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { useFormState } from "react-hook-form";
-import { PencilSimpleLine } from "../../../../../shared/icons/svg";
+
 import { useEditBarContext } from "../../../../../shared/edit-bar-scroller";
+import { PencilSimpleLine } from "../../../../../shared/icons/svg";
 import { Button, ButtonProps } from "../../../../../shared/ui/button";
 import { EntityTypeEditorForm } from "./shared/form-types";
 

@@ -1,6 +1,7 @@
 import { faTrash } from "@fortawesome/free-solid-svg-icons";
 import { Box } from "@mui/material";
 import clsx from "clsx";
+
 import { RowAction } from "../../../../../properties-section/property-table/cells/value-cell/array-editor/row-action";
 import { ValueChip } from "../../../../../properties-section/property-table/cells/value-cell/array-editor/value-chip";
 
