@@ -14,15 +14,15 @@ This is HASH's _public monorepo_ which contains our open-source, fair-source and
 
 ### Packages
 
-- [`blocks`](blocks): The source code for all of HASH's open-source [Block Protocol](https://github.com/blockprotocol/blockprotocol) blocks
-- [`packages/hash`](packages/hash): The codebase for [HASH](https://hash.ai/platform/hash) - a data-driven, entity-centric, all-in-one workspace based on the Block Protocol
-- [`packages/engine`](packages/engine): The codebase for our next-gen version of [HASH Engine](https://hash.ai/platform/engine) - a versatile agent-based simulation engine written in Rust
-- [`packages/libs`](packages/libs): The source code for our open-source developer libraries
+- [`/blocks`](blocks): The source code for all of HASH's open-source [Block Protocol](https://github.com/blockprotocol/blockprotocol) blocks
+- [`/packages/hash`](packages/hash): The codebase for [HASH](https://hash.ai/platform/hash) - a data-driven, entity-centric, all-in-one workspace based on the Block Protocol
+- [`/packages/engine`](packages/engine): The codebase for our next-gen version of [HASH Engine](https://hash.ai/platform/engine) - a versatile agent-based simulation engine written in Rust
+- [`/packages/libs`](packages/libs): The source code for our open-source developer libraries
 
 ### Site code and content
 
-- [`apps/hashdotai`](apps/hashdotai): contains the [HASH user guide](https://hash.ai/docs) and [glossary of terms](https://hash.ai/glossary) content
-- [`apps/hashdotdev`](apps/hashdotdev): contains the [hash.dev](https://hash.dev/) developer-education website content and code
+- [`/apps/hashdotai`](apps/hashdotai): contains the [HASH user guide](https://hash.ai/docs) and [glossary of terms](https://hash.ai/glossary) content
+- [`/apps/hashdotdev`](apps/hashdotdev): contains the [hash.dev](https://hash.dev/) developer-education website content and code
 
 ### Infrastructure
 
