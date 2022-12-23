@@ -1,0 +1,55 @@
+---
+source: tests/test_serialize.rs
+expression: report
+---
+[
+  {
+    "context": "context A",
+    "attachments": [
+      Location(
+        file: "tests/test_serialize.rs",
+        line: 52,
+        column: 14,
+      ),
+    ],
+    "sources": [
+      {
+        "context": "root error",
+        "attachments": [
+          Location(
+            file: "tests/common/mod.rs",
+            line: 4,
+            column: 5,
+          ),
+          "backtrace (1)",
+          SpanTrace(
+            spans: [
+              Metadata(
+                fields: [],
+                level: "INFO",
+                name: "func_b",
+                target: "test_serialize::common::snapshots",
+                module_path: Some("test_serialize::common::snapshots"),
+                file: Some("tests/common/snapshots.rs"),
+                line: Some(72),
+                type: "span",
+              ),
+              Metadata(
+                fields: [],
+                level: "INFO",
+                name: "func_a",
+                target: "test_serialize::common::snapshots",
+                module_path: Some("test_serialize::common::snapshots"),
+                file: Some("tests/common/snapshots.rs"),
+                line: Some(77),
+                type: "span",
+              ),
+            ],
+          ),
+          "printable A",
+        ],
+        "sources": [],
+      },
+    ],
+  },
+]

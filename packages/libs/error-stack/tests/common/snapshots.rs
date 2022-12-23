@@ -44,7 +44,7 @@ fn setup() {
     setup_color();
 }
 
-fn snap_suffix() -> String {
+fn snap_suffix(pretty_print: bool) -> String {
     #[allow(unused_mut)]
     let mut suffix: Vec<&'static str> = vec![];
 
@@ -59,7 +59,7 @@ fn snap_suffix() -> String {
     }
 
     #[cfg(feature = "pretty-print")]
-    {
+    if pretty_print {
         suffix.push("pretty-print");
     }
 
@@ -82,12 +82,12 @@ pub fn create_report() -> Report<RootError> {
     capture_error(func_a)
 }
 
-pub fn prepare(suffix: bool) -> impl Drop {
+pub fn prepare(suffix: bool, pretty_print: bool) -> impl Drop {
     setup();
 
     let mut settings = insta::Settings::clone_current();
     if suffix {
-        settings.set_snapshot_suffix(snap_suffix());
+        settings.set_snapshot_suffix(snap_suffix(pretty_print));
     }
 
     settings.add_filter(

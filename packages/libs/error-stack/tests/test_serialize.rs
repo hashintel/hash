@@ -10,6 +10,10 @@ mod common;
 use common::snapshots::*;
 use insta::assert_ron_snapshot;
 
+fn prepare(suffix: bool) -> impl Drop {
+    snapshots::prepare(suffix, false)
+}
+
 /// This is the main test, to test all different parts at once,
 /// and demonstrates that the rendering algorithm works at arbitrary depth.
 #[test]

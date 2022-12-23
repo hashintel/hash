@@ -11,6 +11,10 @@ use common::snapshots::*;
 use error_stack::Report;
 use insta::assert_snapshot;
 
+fn prepare(suffix: bool) -> impl Drop {
+    snapshots::prepare(suffix, true)
+}
+
 /// This is the main test, to test all different parts at once,
 /// and demonstrates that the rendering algorithm works at arbitrary depth.
 #[test]
