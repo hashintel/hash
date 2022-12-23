@@ -8,7 +8,7 @@ expression: report
     "attachments": [
       Location(
         file: "tests/common/snapshots.rs",
-        line: 206,
+        line: 207,
         column: 10,
       ),
       "2",
@@ -20,7 +20,7 @@ expression: report
         "attachments": [
           Location(
             file: "tests/common/snapshots.rs",
-            line: 200,
+            line: 201,
             column: 10,
           ),
           "4",
@@ -46,7 +46,7 @@ expression: report
         "attachments": [
           Location(
             file: "tests/common/snapshots.rs",
-            line: 195,
+            line: 196,
             column: 10,
           ),
           "5",
@@ -58,7 +58,7 @@ expression: report
             "attachments": [
               Location(
                 file: "tests/common/snapshots.rs",
-                line: 193,
+                line: 194,
                 column: 10,
               ),
               "7",
@@ -69,7 +69,7 @@ expression: report
                 "attachments": [
                   Location(
                     file: "tests/common/snapshots.rs",
-                    line: 184,
+                    line: 185,
                     column: 34,
                   ),
                   "9",
@@ -94,7 +94,7 @@ expression: report
                 "attachments": [
                   Location(
                     file: "tests/common/snapshots.rs",
-                    line: 178,
+                    line: 179,
                     column: 10,
                   ),
                   "13",
@@ -122,7 +122,7 @@ expression: report
                 "attachments": [
                   Location(
                     file: "tests/common/snapshots.rs",
-                    line: 164,
+                    line: 165,
                     column: 10,
                   ),
                   "15",
@@ -151,7 +151,7 @@ expression: report
                 "attachments": [
                   Location(
                     file: "tests/common/snapshots.rs",
-                    line: 174,
+                    line: 175,
                     column: 10,
                   ),
                   "11",
@@ -177,7 +177,7 @@ expression: report
                 "attachments": [
                   Location(
                     file: "tests/common/snapshots.rs",
-                    line: 170,
+                    line: 171,
                     column: 10,
                   ),
                   "12",
@@ -190,7 +190,7 @@ expression: report
                     "attachments": [
                       Location(
                         file: "tests/common/snapshots.rs",
-                        line: 169,
+                        line: 170,
                         column: 10,
                       ),
                     ],

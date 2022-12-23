@@ -12,7 +12,10 @@ pub type HookContext<T> = crate::hook::context::HookContext<Serde, T>;
 fn serialize<'a, T: serde::Serialize + Send + Sync + 'static>(
     frame: &'a Frame,
 ) -> Option<Box<dyn erased_serde::Serialize + 'a>> {
+    #[cfg(nightly)]
     let value: &T = frame.request_ref()?;
+    #[cfg(not(nightly))]
+    let value: &T = frame.downcast_ref()?;
     Some(Box::new(value))
 }
 

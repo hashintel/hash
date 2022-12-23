@@ -44,6 +44,7 @@ fn setup() {
     setup_color();
 }
 
+#[allow(unused_variables)]
 fn snap_suffix(pretty_print: bool) -> String {
     #[allow(unused_mut)]
     let mut suffix: Vec<&'static str> = vec![];
