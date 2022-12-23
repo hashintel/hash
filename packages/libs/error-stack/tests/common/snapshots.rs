@@ -4,7 +4,7 @@ use tracing_error::ErrorLayer;
 #[cfg(feature = "spantrace")]
 use tracing_subscriber::layer::SubscriberExt;
 
-pub use crate::common::*;
+pub use super::*;
 
 #[cfg(feature = "spantrace")]
 fn setup_tracing() {

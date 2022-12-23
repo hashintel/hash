@@ -6,9 +6,8 @@
 #![cfg_attr(nightly, feature(provide_any))]
 
 mod common;
-mod common_snapshot;
 
-use common_snapshot::*;
+use common::snapshots::*;
 use insta::assert_ron_snapshot;
 
 /// This is the main test, to test all different parts at once,

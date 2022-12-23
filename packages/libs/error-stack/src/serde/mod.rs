@@ -16,39 +16,43 @@
 #[cfg(any(feature = "std", feature = "hooks"))]
 mod hook;
 
-use alloc::{boxed::Box, format, string::String, vec, vec::Vec};
+#[cfg(any(feature = "std", feature = "hooks"))]
+use alloc::boxed::Box;
+use alloc::{format, string::String, vec, vec::Vec};
+#[cfg(any(feature = "std", feature = "hooks"))]
+use core::cell::RefCell;
+use core::iter::once;
 #[cfg(not(any(feature = "std", feature = "hooks")))]
 use core::marker::PhantomData;
-use core::{cell::RefCell, iter::once};
 
 #[cfg(any(feature = "std", feature = "hooks"))]
-pub use hook::HookContext;
-#[cfg(any(feature = "std", feature = "hooks"))]
 pub(crate) use hook::{install_builtin_hooks, DynamicFn, Hooks};
+#[cfg(any(feature = "std", feature = "hooks"))]
+pub use hook::{HookContext, Serde};
 use serde::{
     ser::{SerializeMap, SerializeSeq},
     Serialize, Serializer,
 };
 
-use crate::{
-    fmt, fmt::debug_attachments_invoke, serde::hook::Serde, Context, Frame, FrameKind, Report,
-};
+#[cfg(any(feature = "std", feature = "hooks"))]
+use crate::fmt;
+use crate::{fmt::debug_attachments_invoke, Context, Frame, FrameKind, Report};
 
+#[cfg(any(feature = "std", feature = "hooks"))]
 enum SerializedAttachment<'a> {
-    #[cfg(any(feature = "std", feature = "hooks"))]
     Erased(Box<dyn erased_serde::Serialize + 'a>),
     String(String),
 }
 
+#[cfg(any(feature = "std", feature = "hooks"))]
 impl Serialize for SerializedAttachment<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         match self {
-            #[cfg(any(feature = "std", feature = "hooks"))]
-            SerializedAttachment::Erased(erased) => erased.serialize(serializer),
-            SerializedAttachment::String(string) => string.serialize(serializer),
+            Self::Erased(erased) => erased.serialize(serializer),
+            Self::String(string) => string.serialize(serializer),
         }
     }
 }
@@ -108,8 +112,7 @@ fn serialize_attachment<'a>(
 fn serialize_attachment<'a>(frame: &'a Frame) -> impl Iterator<Item = String> + 'a {
     // we weren't able to find a serializer and will fallback to the debug representation if
     // possible
-    let mut debug_context = fmt::HookContext::new(fmt::Format::new(false));
-    let (_, attachments) = debug_attachments_invoke(once(frame), debug_context.cast());
+    let (_, attachments) = debug_attachments_invoke(once(frame));
 
     attachments.into_iter()
 }
@@ -159,7 +162,7 @@ impl<'a, 'b, 'c> Serialize for SerializeAttachmentList<'a, 'b, 'c> {
         let mut seq = serializer.serialize_seq(None)?;
 
         for frame in self.frames {
-            for attachment in serialize_attachment(hooks) {
+            for attachment in serialize_attachment(frame) {
                 seq.serialize_element(&attachment)?;
             }
         }
@@ -194,11 +197,15 @@ impl<'a, 'b> Serialize for SerializeContext<'a, 'b> {
             frames: &self.attachments[..],
             #[cfg(any(feature = "std", feature = "hooks"))]
             hooks,
+            #[cfg(not(any(feature = "std", feature = "hooks")))]
+            hooks: PhantomData,
         })?;
         map.serialize_entry("sources", &SerializeSources {
             frames: sources,
             #[cfg(any(feature = "std", feature = "hooks"))]
             hooks,
+            #[cfg(not(any(feature = "std", feature = "hooks")))]
+            hooks: PhantomData,
         })?;
 
         map.end()
@@ -249,6 +256,8 @@ fn find_next<'a, 'b>(
                 sources: current.sources(),
                 #[cfg(any(feature = "std", feature = "hooks"))]
                 hooks,
+                #[cfg(not(any(feature = "std", feature = "hooks")))]
+                hooks: PhantomData,
             }];
         } else if current.sources().len() > 1 {
             // current is an attachment, add to attachments and recursively probe
@@ -308,6 +317,7 @@ impl<C: Context> Serialize for Report<C> {
     {
         SerializeSources {
             frames: self.current_frames(),
+            hooks: PhantomData,
         }
         .serialize(serializer)
     }

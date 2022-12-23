@@ -5,9 +5,8 @@
 #![cfg_attr(all(nightly, feature = "std"), feature(error_generic_member_access))]
 
 mod common;
-mod common_snapshot;
 
-use common_snapshot::*;
+use common::snapshots::*;
 #[allow(unused_imports)]
 use error_stack::Report;
 use insta::assert_snapshot;

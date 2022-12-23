@@ -4,6 +4,8 @@ pub fn create_report() -> Report<RootError> {
     Report::new(RootError)
 }
 
+pub mod snapshots;
+
 extern crate alloc;
 
 pub use alloc::{

@@ -68,8 +68,3 @@ required-features = ["std"]
 [[example]]
 name = "parse_config"
 required-features = ["std"]
-
-
-[[test]]
-name = "common"
-test = false
