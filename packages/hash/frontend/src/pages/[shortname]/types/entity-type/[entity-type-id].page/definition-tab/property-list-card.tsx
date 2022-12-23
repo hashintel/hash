@@ -26,7 +26,7 @@ import {
   usePropertyTypes,
   useRefetchPropertyTypes,
 } from "../shared/property-types-context";
-import { MultipleValuesCell } from "./property-list-card/multiple-values-cell";
+import { MultipleValuesCell } from "./shared/multiple-values-cell";
 import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
 import { PropertyTypeForm } from "./property-list-card/shared/property-type-form";
 import { PropertyTypeFormValues } from "./property-list-card/shared/property-type-form-values";
@@ -111,7 +111,7 @@ export const PropertyTypeRow = ({
           <PropertyExpectedValues property={property} />
         </TableCell>
 
-        <MultipleValuesCell propertyIndex={propertyIndex} />
+        <MultipleValuesCell index={propertyIndex} variant="property" />
 
         <EntityTypeTableCenteredCell>
           <Controller
@@ -149,10 +149,7 @@ export const PropertyTypeRow = ({
 
           await refetchPropertyTypes?.();
 
-          onUpdateVersionRef.current(
-            // @todo temporary bug fix
-            res.data.schema.$id.replace("//v", "/v") as VersionedUri,
-          );
+          onUpdateVersionRef.current(res.data.schema.$id);
 
           editModalPopupState.close();
         }}
@@ -290,10 +287,18 @@ export const PropertyListCard = () => {
     <EntityTypeTable>
       <TableHead>
         <EntityTypeTableHeaderRow>
-          <TableCell>Property name</TableCell>
-          <TableCell width={180}>Expected values</TableCell>
+          <TableCell width={260}>Property name</TableCell>
+          <TableCell>Expected values</TableCell>
           <EntityTypeTableCenteredCell width={170}>
-            Allow multiple values <QuestionIcon />
+            Allow arrays{" "}
+            <QuestionIcon
+              tooltip={
+                <>
+                  Allowing arrays permits the entry of more than one value for a
+                  given property
+                </>
+              }
+            />
           </EntityTypeTableCenteredCell>
           <EntityTypeTableCenteredCell width={100}>
             Required
@@ -337,6 +342,13 @@ export const PropertyListCard = () => {
                     sx={{
                       ml: 1.25,
                     }}
+                    tooltip={
+                      <>
+                        You should only create a new property type if you can't
+                        find an existing one which corresponds to the
+                        information you're trying to capture.
+                      </>
+                    }
                   />
                 </>
               }
