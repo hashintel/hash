@@ -184,6 +184,7 @@ mod default {
     #[cfg(feature = "spantrace")]
     use tracing_error::SpanTrace;
 
+    #[allow(clippy::wildcard_imports)]
     use super::*;
     use crate::Report;
 
@@ -276,7 +277,7 @@ mod default {
 
             let mut error: Result<(), S::Error> = Ok(());
 
-            span_trace.with_spans(|metadata, line| {
+            span_trace.with_spans(|metadata, _| {
                 if let Err(err) = seq.serialize_element(&SerializeSpanTraceMetadata(metadata)) {
                     error = Err(err);
 

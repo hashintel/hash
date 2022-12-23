@@ -141,8 +141,7 @@ mod full {
         let _guard = prepare(false);
 
         Report::install_custom_serde_hook(
-            |value: &DoesNotImplementSerialize,
-             context: &mut HookContext<DoesNotImplementSerialize>| {
+            |value: &DoesNotImplementSerialize, _: &mut HookContext<DoesNotImplementSerialize>| {
                 ImplementSerializeOwned {
                     a: value.a.clone(),
                     b: value.b.to_vec(),
@@ -157,4 +156,7 @@ mod full {
 
         assert_ron_snapshot!(report);
     }
+
+    // TODO: test auto/easy
+    // TODO: test provider
 }
