@@ -3,14 +3,15 @@ import { baseKeymap } from "prosemirror-commands";
 import { dropCursor } from "prosemirror-dropcursor";
 import { Node, Schema } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
-import { createEntityStorePlugin } from "./entityStorePlugin";
+
+import { createEntityStorePlugin } from "./entity-store-plugin";
 import {
   createSchema,
-  textTokenNodes,
-  pageEditorNodes,
   formatKeymap,
+  pageEditorNodes,
+  textTokenNodes,
 } from "./prosemirror";
-import { wrapEntitiesPlugin } from "./wrapEntitiesPlugin";
+import { wrapEntitiesPlugin } from "./wrap-entities-plugin";
 
 const nodes = {
   doc: {

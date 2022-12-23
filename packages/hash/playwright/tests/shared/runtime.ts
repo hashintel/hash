@@ -1,4 +1,4 @@
-import { test as base, expect } from "@playwright/test";
+import { expect, test as base } from "@playwright/test";
 
 const tolerableConsoleMessageMatches: RegExp[] = [
   /Download the Apollo DevTools for a better development experience/,
