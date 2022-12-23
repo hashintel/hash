@@ -1,18 +1,18 @@
+import { mustBeDefined } from "../shared/invariant";
+import {
+  isEntityEditionId,
+  isOntologyTypeEditionId,
+} from "../types/identifier";
 import {
   Subgraph,
   SubgraphRootType,
   SubgraphRootTypes,
 } from "../types/subgraph";
-import { getDataTypeByEditionId } from "./element/data-type";
-import {
-  isEntityEditionId,
-  isOntologyTypeEditionId,
-} from "../types/identifier";
-import { getPropertyTypeByEditionId } from "./element/property-type";
-import { getEntityTypeByEditionId } from "./element/entity-type";
-import { getEntityByEditionId } from "./element/entity";
 import { Vertex } from "../types/vertex";
-import { mustBeDefined } from "../shared/invariant";
+import { getDataTypeByEditionId } from "./element/data-type";
+import { getEntityByEditionId } from "./element/entity";
+import { getEntityTypeByEditionId } from "./element/entity-type";
+import { getPropertyTypeByEditionId } from "./element/property-type";
 
 /**
  * Returns all root elements.
