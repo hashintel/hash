@@ -38,6 +38,7 @@ export const DraftRow = ({
       <EditorTypePicker
         expectedTypes={expectedTypes}
         onTypeChange={(type) => {
+          // for boolean type, we don't need the "save changes" flow, so we directly create a "true" value here
           if (type === "boolean") {
             onDraftSaved(true);
           }
