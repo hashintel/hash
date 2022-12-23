@@ -5,13 +5,16 @@ import {
   TextField,
 } from "@hashintel/hash-design-system";
 import { Autocomplete, Box, PaperProps, Typography } from "@mui/material";
-import { forwardRef, ForwardRefRenderFunction, useMemo, useState } from "react";
+import {
+  forwardRef,
+  ForwardRefRenderFunction,
+  useMemo,
+  useState,
+  useRef,
+} from "react";
 import { useController, useFormContext, useWatch } from "react-hook-form";
 import { AutocompleteDropdown } from "../../../../../../../shared/autocomplete-dropdown";
-import {
-  ArrayType,
-  PropertyTypeFormValues,
-} from "../property-type-form-values";
+import { PropertyTypeFormValues } from "../property-type-form-values";
 import { ExpectedValueChip } from "./expected-value-selector/expected-value-chip";
 import { expectedValuesOptions } from "./expected-value-selector/shared/expected-values-options";
 import { dataTypeOptions } from "./shared/data-type-options";
@@ -73,10 +76,10 @@ const ExpectedValueSelectorDropdown = ({ children, ...props }: PaperProps) => {
   );
 };
 
-const ExpectedValueSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = (
-  {},
-  inputRef,
-) => {
+const ExpectedValueSelector: ForwardRefRenderFunction<
+  HTMLInputElement,
+  {}
+> = () => {
   const { control, setValue } = useFormContext<PropertyTypeFormValues>();
 
   const {
@@ -86,6 +89,8 @@ const ExpectedValueSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = (
     rules: { required: true },
     name: "expectedValues",
   });
+
+  const inputRef = useRef<HTMLInputElement | null>();
 
   const [creatingCustomExpectedValue, setCreatingCustomExpectedValue] =
     useState(false);
@@ -100,6 +105,13 @@ const ExpectedValueSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = (
         setValue("customExpectedValueId", undefined);
         setValue("flattenedCustomExpectedValueList", {});
         setCreatingCustomExpectedValue(false);
+
+        // Using setImmediate because the autocomplete input is disabled when
+        // creatingCustomExpectedValue is false and can't be focused until it
+        // is set to true
+        setImmediate(() => {
+          inputRef.current?.focus();
+        });
       },
     }),
     [creatingCustomExpectedValue, setCreatingCustomExpectedValue, setValue],
@@ -144,18 +156,21 @@ const ExpectedValueSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = (
           expectedValues.map((expectedValue, index) => {
             const typeId =
               typeof expectedValue === "object"
-                ? expectedValue.arrayType
+                ? expectedValue.typeId
                 : expectedValue;
 
-            const editable =
-              typeId in ArrayType ||
-              typeId === types.dataType.object.dataTypeId;
+            const editable = typeId === "array" || typeId === "object";
 
             return (
               <ExpectedValueChip
                 {...getTagProps({ index })}
                 key={typeId}
-                expectedValueType={typeId}
+                expectedValueType={
+                  typeof expectedValue === "object" &&
+                  "arrayType" in expectedValue
+                    ? expectedValue.arrayType
+                    : typeId
+                }
                 editable={editable}
                 onEdit={() => {
                   if (typeof expectedValue === "object") {
@@ -175,6 +190,7 @@ const ExpectedValueSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = (
         renderInput={(inputProps) => (
           <TextField
             {...inputProps}
+            inputRef={inputRef}
             label="Expected values"
             placeholder="Select acceptable values"
           />

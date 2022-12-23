@@ -343,9 +343,10 @@ export const PropertyListCard = () => {
               popupState={createModalPopupState}
               onSubmit={handleSubmit}
               submitButtonProps={{ children: <>Create new property type</> }}
-              getDefaultValues={() =>
-                searchText.length ? { name: searchText } : {}
-              }
+              getDefaultValues={() => ({
+                expectedValues: [],
+                ...(searchText.length ? { name: searchText } : {}),
+              })}
             />
           </>
         ) : (
