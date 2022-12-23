@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
+use utoipa::{openapi, ToSchema};
 
 use crate::identifier::time::{
     timestamp::Timestamp, version::VersionTimespan, Image, Kernel, Projection, ResolvedProjection,
@@ -36,7 +36,7 @@ pub type TransactionTimeVersionTimespan = VersionTimespan<TransactionTime>;
 pub type TransactionTimeProjection = Projection<DecisionTime, TransactionTime>;
 pub type ResolvedTransactionTimeProjection = ResolvedProjection<DecisionTime, TransactionTime>;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum TimeProjection {
     DecisionTime(DecisionTimeProjection),
@@ -69,9 +69,29 @@ impl TimeProjection {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+impl ToSchema for TimeProjection {
+    fn schema() -> openapi::Schema {
+        openapi::OneOfBuilder::new()
+            .item(DecisionTimeProjection::schema())
+            .item(TransactionTimeProjection::schema())
+            .build()
+            .into()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum ResolvedTimeProjection {
     DecisionTime(ResolvedDecisionTimeProjection),
     TransactionTime(ResolvedTransactionTimeProjection),
+}
+
+impl ToSchema for ResolvedTimeProjection {
+    fn schema() -> openapi::Schema {
+        openapi::OneOfBuilder::new()
+            .item(ResolvedDecisionTimeProjection::schema())
+            .item(ResolvedTransactionTimeProjection::schema())
+            .build()
+            .into()
+    }
 }
