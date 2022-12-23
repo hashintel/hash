@@ -45,8 +45,10 @@ use crate::{
     identifier::{
         ontology::OntologyTypeEditionId,
         time::{
-            DecisionTimeVersionTimespan, Timestamp, TransactionTimeVersionTimespan,
-            TransactionTimestamp,
+            DecisionTime, DecisionTimeProjection, DecisionTimeVersionTimespan,
+            ResolvedDecisionTimeProjection, ResolvedTimeProjection,
+            ResolvedTransactionTimeProjection, TimeProjection, TimespanBound, Timestamp,
+            TransactionTime, TransactionTimeProjection, TransactionTimeVersionTimespan,
         },
         GraphElementId, GraphElementVertexId,
     },
@@ -163,7 +165,6 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
 
             GraphElementId,
             GraphElementVertexId,
-            TransactionTimestamp,
             OntologyVertex,
             KnowledgeGraphVertex,
             Vertex,
@@ -182,8 +183,17 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             EdgeResolveDepths,
             OutgoingEdgeResolveDepth,
             Subgraph,
-            DecisionTimeVersionTimespan,
+
+            TransactionTime,
             TransactionTimeVersionTimespan,
+            TransactionTimeProjection,
+            ResolvedTransactionTimeProjection,
+            DecisionTime,
+            DecisionTimeVersionTimespan,
+            DecisionTimeProjection,
+            ResolvedDecisionTimeProjection,
+            TimeProjection,
+            ResolvedTimeProjection,
         )
     ),
 )]
@@ -443,6 +453,10 @@ impl Modify for TimeSchemaAddon {
             components
                 .schemas
                 .insert("Timestamp".to_owned(), Timestamp::<()>::schema().into());
+            components.schemas.insert(
+                "TimespanBound".to_owned(),
+                TimespanBound::<()>::schema().into(),
+            );
         }
     }
 }

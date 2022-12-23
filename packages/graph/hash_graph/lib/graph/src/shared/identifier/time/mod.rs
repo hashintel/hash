@@ -1,15 +1,22 @@
 mod axis;
+mod projection;
+mod timespan;
 mod timestamp;
 mod version;
+
 use std::{error::Error, ops::Bound};
 
 use postgres_types::{FromSql, Type};
 
 pub use self::{
     axis::{
-        DecisionTime, DecisionTimeVersionTimespan, DecisionTimestamp, TransactionTime,
-        TransactionTimeVersionTimespan, TransactionTimestamp,
+        DecisionTime, DecisionTimeProjection, DecisionTimeVersionTimespan, DecisionTimestamp,
+        ResolvedDecisionTimeProjection, ResolvedTimeProjection, ResolvedTransactionTimeProjection,
+        TimeProjection, TransactionTime, TransactionTimeProjection, TransactionTimeVersionTimespan,
+        TransactionTimestamp,
     },
+    projection::{Image, Kernel, Projection, ResolvedImage, ResolvedKernel, ResolvedProjection},
+    timespan::{ResolvedTimespan, Timespan, TimespanBound},
     timestamp::Timestamp,
 };
 

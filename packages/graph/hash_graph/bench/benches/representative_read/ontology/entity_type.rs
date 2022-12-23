@@ -1,5 +1,6 @@
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
+    identifier::time::{Image, Kernel, Projection, TimeProjection, TimespanBound},
     store::{query::Filter, EntityTypeStore},
     subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
 };
@@ -29,6 +30,13 @@ pub fn bench_get_entity_type_by_id(
                 .get_entity_type(&StructuralQuery {
                     filter: Filter::for_versioned_uri(&entity_type_id),
                     graph_resolve_depths: GraphResolveDepths::default(),
+                    time_projection: TimeProjection::DecisionTime(Projection {
+                        kernel: Kernel::new(None),
+                        image: Image::new(
+                            Some(TimespanBound::Unbounded),
+                            Some(TimespanBound::Unbounded),
+                        ),
+                    }),
                 })
                 .await
                 .expect("failed to read entity type from store");

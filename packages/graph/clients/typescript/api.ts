@@ -299,6 +299,12 @@ export interface DataTypeStructuralQuery {
    * @memberof DataTypeStructuralQuery
    */
   graphResolveDepths: GraphResolveDepths;
+  /**
+   *
+   * @type {TimeProjection}
+   * @memberof DataTypeStructuralQuery
+   */
+  timeProjection?: TimeProjection;
 }
 /**
  *
@@ -319,6 +325,137 @@ export interface DataTypeWithMetadata {
    */
   schema: DataType;
 }
+/**
+ * Time axis for the decision time.  This is used as the generic argument to time-related structs and can be used as tag value.
+ * @export
+ * @enum {string}
+ */
+
+export const DecisionTime = {
+  Decision: "decision",
+} as const;
+
+export type DecisionTime = typeof DecisionTime[keyof typeof DecisionTime];
+
+/**
+ *
+ * @export
+ * @interface DecisionTimeProjection
+ */
+export interface DecisionTimeProjection {
+  /**
+   *
+   * @type {DecisionTimeProjectionImage}
+   * @memberof DecisionTimeProjection
+   */
+  image: DecisionTimeProjectionImage;
+  /**
+   *
+   * @type {DecisionTimeProjectionKernel}
+   * @memberof DecisionTimeProjection
+   */
+  kernel: DecisionTimeProjectionKernel;
+}
+/**
+ *
+ * @export
+ * @interface DecisionTimeProjectionImage
+ */
+export interface DecisionTimeProjectionImage {
+  /**
+   * Time axis for the decision time.  This is used as the generic argument to time-related structs and can be used as tag value.
+   * @type {string}
+   * @memberof DecisionTimeProjectionImage
+   */
+  axis: DecisionTimeProjectionImageAxisEnum;
+  /**
+   *
+   * @type {TimespanBound}
+   * @memberof DecisionTimeProjectionImage
+   */
+  end?: TimespanBound;
+  /**
+   *
+   * @type {TimespanBound}
+   * @memberof DecisionTimeProjectionImage
+   */
+  start?: TimespanBound;
+}
+
+export const DecisionTimeProjectionImageAxisEnum = {
+  Decision: "decision",
+} as const;
+
+export type DecisionTimeProjectionImageAxisEnum =
+  typeof DecisionTimeProjectionImageAxisEnum[keyof typeof DecisionTimeProjectionImageAxisEnum];
+
+/**
+ *
+ * @export
+ * @interface DecisionTimeProjectionImageAllOf
+ */
+export interface DecisionTimeProjectionImageAllOf {
+  /**
+   * Time axis for the decision time.  This is used as the generic argument to time-related structs and can be used as tag value.
+   * @type {string}
+   * @memberof DecisionTimeProjectionImageAllOf
+   */
+  axis: DecisionTimeProjectionImageAllOfAxisEnum;
+}
+
+export const DecisionTimeProjectionImageAllOfAxisEnum = {
+  Decision: "decision",
+} as const;
+
+export type DecisionTimeProjectionImageAllOfAxisEnum =
+  typeof DecisionTimeProjectionImageAllOfAxisEnum[keyof typeof DecisionTimeProjectionImageAllOfAxisEnum];
+
+/**
+ *
+ * @export
+ * @interface DecisionTimeProjectionImageAllOf1
+ */
+export interface DecisionTimeProjectionImageAllOf1 {
+  /**
+   *
+   * @type {TimespanBound}
+   * @memberof DecisionTimeProjectionImageAllOf1
+   */
+  end?: TimespanBound;
+  /**
+   *
+   * @type {TimespanBound}
+   * @memberof DecisionTimeProjectionImageAllOf1
+   */
+  start?: TimespanBound;
+}
+/**
+ *
+ * @export
+ * @interface DecisionTimeProjectionKernel
+ */
+export interface DecisionTimeProjectionKernel {
+  /**
+   * Time axis for the transaction time.  This is used as the generic argument to time-related structs and can be used as tag value.
+   * @type {string}
+   * @memberof DecisionTimeProjectionKernel
+   */
+  axis: DecisionTimeProjectionKernelAxisEnum;
+  /**
+   *
+   * @type {string}
+   * @memberof DecisionTimeProjectionKernel
+   */
+  timestamp?: string;
+}
+
+export const DecisionTimeProjectionKernelAxisEnum = {
+  Transaction: "transaction",
+} as const;
+
+export type DecisionTimeProjectionKernelAxisEnum =
+  typeof DecisionTimeProjectionKernelAxisEnum[keyof typeof DecisionTimeProjectionKernelAxisEnum];
+
 /**
  *
  * @export
@@ -536,6 +673,12 @@ export interface EntityStructuralQuery {
    * @memberof EntityStructuralQuery
    */
   graphResolveDepths: GraphResolveDepths;
+  /**
+   *
+   * @type {TimeProjection}
+   * @memberof EntityStructuralQuery
+   */
+  timeProjection?: TimeProjection;
 }
 /**
  * Specifies the structure of an Entity Type
@@ -668,6 +811,12 @@ export interface EntityTypeStructuralQuery {
    * @memberof EntityTypeStructuralQuery
    */
   graphResolveDepths: GraphResolveDepths;
+  /**
+   *
+   * @type {TimeProjection}
+   * @memberof EntityTypeStructuralQuery
+   */
+  timeProjection?: TimeProjection;
 }
 /**
  *
@@ -1665,6 +1814,12 @@ export interface PropertyTypeStructuralQuery {
    * @memberof PropertyTypeStructuralQuery
    */
   graphResolveDepths: GraphResolveDepths;
+  /**
+   *
+   * @type {TimeProjection}
+   * @memberof PropertyTypeStructuralQuery
+   */
+  timeProjection?: TimeProjection;
 }
 /**
  *
@@ -1719,6 +1874,238 @@ export interface ProvenanceMetadata {
 /**
  *
  * @export
+ * @interface ResolvedDecisionTimeProjection
+ */
+export interface ResolvedDecisionTimeProjection {
+  /**
+   *
+   * @type {ResolvedDecisionTimeProjectionImage}
+   * @memberof ResolvedDecisionTimeProjection
+   */
+  image: ResolvedDecisionTimeProjectionImage;
+  /**
+   *
+   * @type {ResolvedDecisionTimeProjectionKernel}
+   * @memberof ResolvedDecisionTimeProjection
+   */
+  kernel: ResolvedDecisionTimeProjectionKernel;
+}
+/**
+ *
+ * @export
+ * @interface ResolvedDecisionTimeProjectionImage
+ */
+export interface ResolvedDecisionTimeProjectionImage {
+  /**
+   * Time axis for the decision time.  This is used as the generic argument to time-related structs and can be used as tag value.
+   * @type {string}
+   * @memberof ResolvedDecisionTimeProjectionImage
+   */
+  axis: ResolvedDecisionTimeProjectionImageAxisEnum;
+  /**
+   *
+   * @type {TimespanBound}
+   * @memberof ResolvedDecisionTimeProjectionImage
+   */
+  end: TimespanBound;
+  /**
+   *
+   * @type {TimespanBound}
+   * @memberof ResolvedDecisionTimeProjectionImage
+   */
+  start: TimespanBound;
+}
+
+export const ResolvedDecisionTimeProjectionImageAxisEnum = {
+  Decision: "decision",
+} as const;
+
+export type ResolvedDecisionTimeProjectionImageAxisEnum =
+  typeof ResolvedDecisionTimeProjectionImageAxisEnum[keyof typeof ResolvedDecisionTimeProjectionImageAxisEnum];
+
+/**
+ *
+ * @export
+ * @interface ResolvedDecisionTimeProjectionImageAllOf
+ */
+export interface ResolvedDecisionTimeProjectionImageAllOf {
+  /**
+   *
+   * @type {TimespanBound}
+   * @memberof ResolvedDecisionTimeProjectionImageAllOf
+   */
+  end: TimespanBound;
+  /**
+   *
+   * @type {TimespanBound}
+   * @memberof ResolvedDecisionTimeProjectionImageAllOf
+   */
+  start: TimespanBound;
+}
+/**
+ *
+ * @export
+ * @interface ResolvedDecisionTimeProjectionKernel
+ */
+export interface ResolvedDecisionTimeProjectionKernel {
+  /**
+   * Time axis for the transaction time.  This is used as the generic argument to time-related structs and can be used as tag value.
+   * @type {string}
+   * @memberof ResolvedDecisionTimeProjectionKernel
+   */
+  axis: ResolvedDecisionTimeProjectionKernelAxisEnum;
+  /**
+   *
+   * @type {string}
+   * @memberof ResolvedDecisionTimeProjectionKernel
+   */
+  timestamp: string;
+}
+
+export const ResolvedDecisionTimeProjectionKernelAxisEnum = {
+  Transaction: "transaction",
+} as const;
+
+export type ResolvedDecisionTimeProjectionKernelAxisEnum =
+  typeof ResolvedDecisionTimeProjectionKernelAxisEnum[keyof typeof ResolvedDecisionTimeProjectionKernelAxisEnum];
+
+/**
+ * @type ResolvedTimeProjection
+ * @export
+ */
+export type ResolvedTimeProjection =
+  | ResolvedTimeProjectionOneOf
+  | ResolvedTimeProjectionOneOf1;
+
+/**
+ *
+ * @export
+ * @interface ResolvedTimeProjectionOneOf
+ */
+export interface ResolvedTimeProjectionOneOf {
+  /**
+   *
+   * @type {ResolvedDecisionTimeProjection}
+   * @memberof ResolvedTimeProjectionOneOf
+   */
+  DecisionTime?: ResolvedDecisionTimeProjection;
+}
+/**
+ *
+ * @export
+ * @interface ResolvedTimeProjectionOneOf1
+ */
+export interface ResolvedTimeProjectionOneOf1 {
+  /**
+   *
+   * @type {ResolvedTransactionTimeProjection}
+   * @memberof ResolvedTimeProjectionOneOf1
+   */
+  TransactionTime?: ResolvedTransactionTimeProjection;
+}
+/**
+ *
+ * @export
+ * @interface ResolvedTransactionTimeProjection
+ */
+export interface ResolvedTransactionTimeProjection {
+  /**
+   *
+   * @type {ResolvedTransactionTimeProjectionImage}
+   * @memberof ResolvedTransactionTimeProjection
+   */
+  image: ResolvedTransactionTimeProjectionImage;
+  /**
+   *
+   * @type {ResolvedTransactionTimeProjectionKernel}
+   * @memberof ResolvedTransactionTimeProjection
+   */
+  kernel: ResolvedTransactionTimeProjectionKernel;
+}
+/**
+ *
+ * @export
+ * @interface ResolvedTransactionTimeProjectionImage
+ */
+export interface ResolvedTransactionTimeProjectionImage {
+  /**
+   * Time axis for the transaction time.  This is used as the generic argument to time-related structs and can be used as tag value.
+   * @type {string}
+   * @memberof ResolvedTransactionTimeProjectionImage
+   */
+  axis: ResolvedTransactionTimeProjectionImageAxisEnum;
+  /**
+   *
+   * @type {TimespanBound}
+   * @memberof ResolvedTransactionTimeProjectionImage
+   */
+  end: TimespanBound;
+  /**
+   *
+   * @type {TimespanBound}
+   * @memberof ResolvedTransactionTimeProjectionImage
+   */
+  start: TimespanBound;
+}
+
+export const ResolvedTransactionTimeProjectionImageAxisEnum = {
+  Transaction: "transaction",
+} as const;
+
+export type ResolvedTransactionTimeProjectionImageAxisEnum =
+  typeof ResolvedTransactionTimeProjectionImageAxisEnum[keyof typeof ResolvedTransactionTimeProjectionImageAxisEnum];
+
+/**
+ *
+ * @export
+ * @interface ResolvedTransactionTimeProjectionImageAllOf
+ */
+export interface ResolvedTransactionTimeProjectionImageAllOf {
+  /**
+   * Time axis for the transaction time.  This is used as the generic argument to time-related structs and can be used as tag value.
+   * @type {string}
+   * @memberof ResolvedTransactionTimeProjectionImageAllOf
+   */
+  axis: ResolvedTransactionTimeProjectionImageAllOfAxisEnum;
+}
+
+export const ResolvedTransactionTimeProjectionImageAllOfAxisEnum = {
+  Transaction: "transaction",
+} as const;
+
+export type ResolvedTransactionTimeProjectionImageAllOfAxisEnum =
+  typeof ResolvedTransactionTimeProjectionImageAllOfAxisEnum[keyof typeof ResolvedTransactionTimeProjectionImageAllOfAxisEnum];
+
+/**
+ *
+ * @export
+ * @interface ResolvedTransactionTimeProjectionKernel
+ */
+export interface ResolvedTransactionTimeProjectionKernel {
+  /**
+   * Time axis for the decision time.  This is used as the generic argument to time-related structs and can be used as tag value.
+   * @type {string}
+   * @memberof ResolvedTransactionTimeProjectionKernel
+   */
+  axis: ResolvedTransactionTimeProjectionKernelAxisEnum;
+  /**
+   *
+   * @type {string}
+   * @memberof ResolvedTransactionTimeProjectionKernel
+   */
+  timestamp: string;
+}
+
+export const ResolvedTransactionTimeProjectionKernelAxisEnum = {
+  Decision: "decision",
+} as const;
+
+export type ResolvedTransactionTimeProjectionKernelAxisEnum =
+  typeof ResolvedTransactionTimeProjectionKernelAxisEnum[keyof typeof ResolvedTransactionTimeProjectionKernelAxisEnum];
+
+/**
+ *
+ * @export
  * @enum {string}
  */
 
@@ -1760,10 +2147,22 @@ export interface Subgraph {
   edges: Edges;
   /**
    *
+   * @type {ResolvedTimeProjection}
+   * @memberof Subgraph
+   */
+  resolvedTimeProjection: ResolvedTimeProjection;
+  /**
+   *
    * @type {Array<GraphElementVertexId>}
    * @memberof Subgraph
    */
   roots: Array<GraphElementVertexId>;
+  /**
+   *
+   * @type {TimeProjection}
+   * @memberof Subgraph
+   */
+  timeProjection: TimeProjection;
   /**
    *
    * @type {Vertices}
@@ -1771,6 +2170,185 @@ export interface Subgraph {
    */
   vertices: Vertices;
 }
+/**
+ * @type TimeProjection
+ * @export
+ */
+export type TimeProjection = TimeProjectionOneOf | TimeProjectionOneOf1;
+
+/**
+ *
+ * @export
+ * @interface TimeProjectionOneOf
+ */
+export interface TimeProjectionOneOf {
+  /**
+   *
+   * @type {DecisionTimeProjection}
+   * @memberof TimeProjectionOneOf
+   */
+  DecisionTime?: DecisionTimeProjection;
+}
+/**
+ *
+ * @export
+ * @interface TimeProjectionOneOf1
+ */
+export interface TimeProjectionOneOf1 {
+  /**
+   *
+   * @type {TransactionTimeProjection}
+   * @memberof TimeProjectionOneOf1
+   */
+  TransactionTime?: TransactionTimeProjection;
+}
+/**
+ * @type TimespanBound
+ * @export
+ */
+export type TimespanBound = TimespanBoundOneOf | TimespanBoundOneOf1;
+
+/**
+ *
+ * @export
+ * @interface TimespanBoundOneOf
+ */
+export interface TimespanBoundOneOf {
+  /**
+   *
+   * @type {object}
+   * @memberof TimespanBoundOneOf
+   */
+  bound: TimespanBoundOneOfBoundEnum;
+}
+
+export const TimespanBoundOneOfBoundEnum = {
+  Unbounded: "unbounded",
+} as const;
+
+export type TimespanBoundOneOfBoundEnum =
+  typeof TimespanBoundOneOfBoundEnum[keyof typeof TimespanBoundOneOfBoundEnum];
+
+/**
+ *
+ * @export
+ * @interface TimespanBoundOneOf1
+ */
+export interface TimespanBoundOneOf1 {
+  /**
+   *
+   * @type {object}
+   * @memberof TimespanBoundOneOf1
+   */
+  bound: TimespanBoundOneOf1BoundEnum;
+  /**
+   *
+   * @type {string}
+   * @memberof TimespanBoundOneOf1
+   */
+  timestamp: string;
+}
+
+export const TimespanBoundOneOf1BoundEnum = {
+  Included: "included",
+  Excluded: "excluded",
+} as const;
+
+export type TimespanBoundOneOf1BoundEnum =
+  typeof TimespanBoundOneOf1BoundEnum[keyof typeof TimespanBoundOneOf1BoundEnum];
+
+/**
+ * Time axis for the transaction time.  This is used as the generic argument to time-related structs and can be used as tag value.
+ * @export
+ * @enum {string}
+ */
+
+export const TransactionTime = {
+  Transaction: "transaction",
+} as const;
+
+export type TransactionTime =
+  typeof TransactionTime[keyof typeof TransactionTime];
+
+/**
+ *
+ * @export
+ * @interface TransactionTimeProjection
+ */
+export interface TransactionTimeProjection {
+  /**
+   *
+   * @type {TransactionTimeProjectionImage}
+   * @memberof TransactionTimeProjection
+   */
+  image: TransactionTimeProjectionImage;
+  /**
+   *
+   * @type {TransactionTimeProjectionKernel}
+   * @memberof TransactionTimeProjection
+   */
+  kernel: TransactionTimeProjectionKernel;
+}
+/**
+ *
+ * @export
+ * @interface TransactionTimeProjectionImage
+ */
+export interface TransactionTimeProjectionImage {
+  /**
+   * Time axis for the transaction time.  This is used as the generic argument to time-related structs and can be used as tag value.
+   * @type {string}
+   * @memberof TransactionTimeProjectionImage
+   */
+  axis: TransactionTimeProjectionImageAxisEnum;
+  /**
+   *
+   * @type {TimespanBound}
+   * @memberof TransactionTimeProjectionImage
+   */
+  end?: TimespanBound;
+  /**
+   *
+   * @type {TimespanBound}
+   * @memberof TransactionTimeProjectionImage
+   */
+  start?: TimespanBound;
+}
+
+export const TransactionTimeProjectionImageAxisEnum = {
+  Transaction: "transaction",
+} as const;
+
+export type TransactionTimeProjectionImageAxisEnum =
+  typeof TransactionTimeProjectionImageAxisEnum[keyof typeof TransactionTimeProjectionImageAxisEnum];
+
+/**
+ *
+ * @export
+ * @interface TransactionTimeProjectionKernel
+ */
+export interface TransactionTimeProjectionKernel {
+  /**
+   * Time axis for the decision time.  This is used as the generic argument to time-related structs and can be used as tag value.
+   * @type {string}
+   * @memberof TransactionTimeProjectionKernel
+   */
+  axis: TransactionTimeProjectionKernelAxisEnum;
+  /**
+   *
+   * @type {string}
+   * @memberof TransactionTimeProjectionKernel
+   */
+  timestamp?: string;
+}
+
+export const TransactionTimeProjectionKernelAxisEnum = {
+  Decision: "decision",
+} as const;
+
+export type TransactionTimeProjectionKernelAxisEnum =
+  typeof TransactionTimeProjectionKernelAxisEnum[keyof typeof TransactionTimeProjectionKernelAxisEnum];
+
 /**
  *
  * @export
