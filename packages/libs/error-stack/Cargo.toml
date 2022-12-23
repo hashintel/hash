@@ -17,6 +17,7 @@ keywords = ["error", "errorstack", "error-handling", "report", "no_std"]
 categories = ["rust-patterns", "no-std"]
 
 [dependencies]
+tracing-core = { version = "0.1", optional = true, default_features = false }
 tracing-error = { version = "0.2", optional = true, default_features = false }
 anyhow = { version = "1.0.65", default-features = false, optional = true }
 eyre = { version = "0.6", default-features = false, optional = true }
@@ -45,7 +46,7 @@ rustc_version = "0.4"
 default = ["std", "pretty-print"]
 
 pretty-print = ["dep:owo-colors"]
-spantrace = ["dep:tracing-error", "std"]
+spantrace = ["dep:tracing-error", "dep:tracing-core", "std"]
 std = ["anyhow?/std"]
 eyre = ["dep:eyre", "std"]
 serde = ["dep:serde", "dep:erased-serde"]

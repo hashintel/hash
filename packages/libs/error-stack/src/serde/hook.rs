@@ -1,6 +1,8 @@
 use alloc::{boxed::Box, vec::Vec};
 use core::{any::TypeId, iter::FusedIterator};
 
+pub(crate) use default::install_builtin_hooks;
+
 use crate::Frame;
 
 pub struct Serde {}
@@ -158,5 +160,196 @@ impl Hooks {
         self.inner
             .iter()
             .filter_map(|hook| hook.call(frame, context))
+    }
+}
+
+mod default {
+    #![allow(unused_imports)]
+
+    use core::{
+        panic::Location,
+        sync::atomic::{AtomicBool, Ordering},
+    };
+    #[cfg(feature = "std")]
+    use std::sync::Once;
+
+    use serde::{
+        ser::{SerializeSeq, SerializeStruct},
+        Serialize, Serializer,
+    };
+    #[cfg(all(not(feature = "std"), feature = "hooks"))]
+    use spin::once::Once;
+    #[cfg(feature = "spantrace")]
+    use tracing_core::{field::FieldSet, Metadata};
+    #[cfg(feature = "spantrace")]
+    use tracing_error::SpanTrace;
+
+    use super::*;
+    use crate::Report;
+
+    struct SerializeLocation<'a>(&'a Location<'static>);
+
+    impl SerializeLocation<'static> {
+        fn hook<'a>(
+            value: &'a Location<'static>,
+            _: &mut HookContext<Location<'static>>,
+        ) -> SerializeLocation<'a> {
+            SerializeLocation(value)
+        }
+    }
+
+    // we're not using derive here, as we would need to add additional serde features that are quite
+    // heavy and (sometimes) unsuited for no-std environments
+    impl Serialize for SerializeLocation<'_> {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            let Self(location) = *self;
+            let mut s = serializer.serialize_struct("Location", 3)?;
+
+            s.serialize_field("file", location.file())?;
+            s.serialize_field("line", &location.line())?;
+            s.serialize_field("column", &location.column())?;
+
+            s.end()
+        }
+    }
+
+    #[cfg(feature = "spantrace")]
+    struct SerializeSpanTraceFields(&'static FieldSet);
+
+    impl Serialize for SerializeSpanTraceFields {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            let Self(fields) = *self;
+
+            let mut s = serializer.serialize_seq(Some(fields.len()))?;
+
+            for field in fields.iter() {
+                s.serialize_element(field.name())?;
+            }
+
+            s.end()
+        }
+    }
+
+    #[cfg(feature = "spantrace")]
+    struct SerializeSpanTraceMetadata(&'static Metadata<'static>);
+
+    #[cfg(feature = "spantrace")]
+    impl Serialize for SerializeSpanTraceMetadata {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            let Self(metadata) = *self;
+            let mut s = serializer.serialize_struct("Metadata", 8)?;
+
+            s.serialize_field("fields", &SerializeSpanTraceFields(metadata.fields()))?;
+            s.serialize_field("level", metadata.level().as_str())?;
+            s.serialize_field("name", metadata.name())?;
+            s.serialize_field("target", metadata.target())?;
+            s.serialize_field("module_path", &metadata.module_path())?;
+            s.serialize_field("file", &metadata.file())?;
+            s.serialize_field("line", &metadata.line())?;
+            s.serialize_field("type", if metadata.is_event() { "event" } else { "span" })?;
+
+            s.end()
+        }
+    }
+
+    #[cfg(feature = "spantrace")]
+    struct SerializeSpanTraceSpans<'a>(&'a SpanTrace);
+
+    #[cfg(feature = "spantrace")]
+    impl Serialize for SerializeSpanTraceSpans<'_> {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            let Self(span_trace) = *self;
+            let mut seq = serializer.serialize_seq(None)?;
+
+            let mut error: Result<(), S::Error> = Ok(());
+
+            span_trace.with_spans(|metadata, line| {
+                if let Err(err) = seq.serialize_element(&SerializeSpanTraceMetadata(metadata)) {
+                    error = Err(err);
+
+                    false
+                } else {
+                    true
+                }
+            });
+
+            error?;
+
+            seq.end()
+        }
+    }
+
+    #[cfg(feature = "spantrace")]
+    struct SerializeSpantrace<'a>(&'a SpanTrace);
+
+    #[cfg(feature = "spantrace")]
+    impl SerializeSpantrace<'static> {
+        fn hook<'a>(
+            value: &'a SpanTrace,
+            _: &mut HookContext<SpanTrace>,
+        ) -> SerializeSpantrace<'a> {
+            SerializeSpantrace(value)
+        }
+    }
+
+    #[cfg(feature = "spantrace")]
+    impl Serialize for SerializeSpantrace<'_> {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            let Self(span_trace) = *self;
+            let mut s = serializer.serialize_struct("SpanTrace", 1)?;
+
+            s.serialize_field("spans", &SerializeSpanTraceSpans(span_trace))?;
+
+            s.end()
+        }
+    }
+
+    pub(crate) fn install_builtin_hooks() {
+        // We could in theory remove this and replace it with a single AtomicBool.
+        static INSTALL_BUILTIN: Once = Once::new();
+
+        // This static makes sure that we only run once, if we wouldn't have this guard we would
+        // deadlock, as `install_debug_hook` calls `install_builtin_hooks`, and according to the
+        // docs:
+        //
+        // > If the given closure recursively invokes call_once on the same Once instance the exact
+        // > behavior is not specified, allowed outcomes are a panic or a deadlock.
+        //
+        // This limitation is not present for the implementation from the spin crate, but for
+        // simplicity and readability the extra guard is kept.
+        static INSTALL_BUILTIN_RUNNING: AtomicBool = AtomicBool::new(false);
+
+        // This has minimal overhead, as `Once::call_once` calls `.is_completed` as the short path
+        // we just move it out here, so that we're able to check `INSTALL_BUILTIN_RUNNING`
+        if INSTALL_BUILTIN.is_completed() || INSTALL_BUILTIN_RUNNING.load(Ordering::Acquire) {
+            return;
+        }
+
+        INSTALL_BUILTIN.call_once(|| {
+            INSTALL_BUILTIN_RUNNING.store(true, Ordering::Release);
+
+            Report::install_custom_serde_hook(SerializeLocation::hook);
+
+            // #[cfg(all(feature = "std", rust_1_65))]
+            // Report::install_debug_hook::<Backtrace>(backtrace);
+
+            #[cfg(feature = "spantrace")]
+            Report::install_custom_serde_hook(SerializeSpantrace::hook);
+        });
     }
 }

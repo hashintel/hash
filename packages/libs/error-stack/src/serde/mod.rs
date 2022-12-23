@@ -24,7 +24,7 @@ use core::{cell::RefCell, iter::once};
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub use hook::HookContext;
 #[cfg(any(feature = "std", feature = "hooks"))]
-pub(crate) use hook::{DynamicFn, Hooks};
+pub(crate) use hook::{install_builtin_hooks, DynamicFn, Hooks};
 use serde::{
     ser::{SerializeMap, SerializeSeq},
     Serialize, Serializer,

@@ -186,7 +186,7 @@ impl Report<()> {
 
     #[cfg(all(any(feature = "std", feature = "hooks"), feature = "serde"))]
     pub fn install_serde_hook<T: serde::Serialize + Send + Sync + 'static>() {
-        // TODO: install built-in
+        crate::serde::install_builtin_hooks();
 
         #[cfg(feature = "std")]
         let mut lock = SERDE_HOOK.write().expect("should not be poisoned");
@@ -204,7 +204,7 @@ impl Report<()> {
         F: for<'a> crate::serde::DynamicFn<'a, T>,
         T: Send + Sync + 'static,
     {
-        // TODO: install built-in
+        crate::serde::install_builtin_hooks();
 
         #[cfg(feature = "std")]
         let mut lock = SERDE_HOOK.write().expect("should not be poisoned");
@@ -218,7 +218,7 @@ impl Report<()> {
 
     #[cfg(all(any(feature = "std", feature = "hooks"), feature = "serde"))]
     pub(crate) fn invoke_serde_hook<T>(closure: impl FnOnce(&crate::serde::Hooks) -> T) -> T {
-        // TODO: install built-in
+        crate::serde::install_builtin_hooks();
 
         #[cfg(feature = "std")]
         let hook = SERDE_HOOK.read().expect("should not be poisoned");
