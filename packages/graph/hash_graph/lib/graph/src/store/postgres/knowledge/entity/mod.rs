@@ -1,6 +1,6 @@
 mod read;
 
-use std::{future::Future, pin::Pin};
+use std::{collections::hash_map::RawEntryMut, future::Future, pin::Pin};
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
@@ -31,7 +31,7 @@ use crate::{
             KnowledgeGraphOutwardEdges, OutgoingEdgeResolveDepth, OutwardEdge, SharedEdgeKind,
         },
         query::StructuralQuery,
-        Subgraph,
+        Subgraph, SubgraphIndex,
     },
 };
 
@@ -52,11 +52,18 @@ impl<C: AsClient> PostgresStore<C> {
                 .knowledge_dependency_map
                 .insert(&entity_vertex_id, current_resolve_depth);
 
-            let entity = match dependency_status {
+            let time_axis = subgraph.resolved_time_projection.time_axis();
+
+            let entity: &Entity = match dependency_status {
                 DependencyStatus::Unresolved => {
-                    subgraph
-                        .get_or_read::<Entity>(self, &entity_vertex_id)
-                        .await?
+                    match entity_vertex_id.subgraph_vertex_entry(subgraph) {
+                        RawEntryMut::Occupied(entry) => entry.into_mut(),
+                        RawEntryMut::Vacant(_) => {
+                            // Entities are always inserted into the subgraph before they are
+                            // resolved, so this should never happen. If it does, it is a bug.
+                            unreachable!("entity should already be in the subgraph")
+                        }
+                    }
                 }
 
                 DependencyStatus::Resolved => return Ok(()),
@@ -93,6 +100,7 @@ impl<C: AsClient> PostgresStore<C> {
                 for outgoing_link_entity in <Self as Read<Entity>>::read(
                     self,
                     &Filter::for_outgoing_link_by_source_entity_vertex_id(entity_vertex_id),
+                    &subgraph.resolved_time_projection,
                 )
                 .await?
                 {
@@ -107,8 +115,8 @@ impl<C: AsClient> PostgresStore<C> {
                         }),
                     });
 
-                    let outgoing_link_entity_vertex_id = outgoing_link_entity.vertex_id();
-                    subgraph.insert(outgoing_link_entity);
+                    let outgoing_link_entity_vertex_id = outgoing_link_entity.vertex_id(time_axis);
+                    subgraph.insert(&outgoing_link_entity_vertex_id, outgoing_link_entity);
 
                     self.traverse_entity(
                         outgoing_link_entity_vertex_id,
@@ -130,6 +138,7 @@ impl<C: AsClient> PostgresStore<C> {
                 for incoming_link_entity in <Self as Read<Entity>>::read(
                     self,
                     &Filter::for_incoming_link_by_source_entity_vertex_id(entity_vertex_id),
+                    &subgraph.resolved_time_projection,
                 )
                 .await?
                 {
@@ -144,8 +153,8 @@ impl<C: AsClient> PostgresStore<C> {
                         }),
                     });
 
-                    let incoming_link_entity_vertex_id = incoming_link_entity.vertex_id();
-                    subgraph.insert(incoming_link_entity);
+                    let incoming_link_entity_vertex_id = incoming_link_entity.vertex_id(time_axis);
+                    subgraph.insert(&incoming_link_entity_vertex_id, incoming_link_entity);
 
                     self.traverse_entity(
                         incoming_link_entity_vertex_id,
@@ -167,6 +176,7 @@ impl<C: AsClient> PostgresStore<C> {
                 for left_entity in <Self as Read<Entity>>::read(
                     self,
                     &Filter::for_left_entity_by_entity_vertex_id(entity_vertex_id),
+                    &subgraph.resolved_time_projection,
                 )
                 .await?
                 {
@@ -181,8 +191,8 @@ impl<C: AsClient> PostgresStore<C> {
                         }),
                     });
 
-                    let left_entity_vertex_id = left_entity.vertex_id();
-                    subgraph.insert(left_entity);
+                    let left_entity_vertex_id = left_entity.vertex_id(time_axis);
+                    subgraph.insert(&left_entity_vertex_id, left_entity);
 
                     self.traverse_entity(
                         left_entity_vertex_id,
@@ -204,6 +214,7 @@ impl<C: AsClient> PostgresStore<C> {
                 for right_entity in <Self as Read<Entity>>::read(
                     self,
                     &Filter::for_right_entity_by_entity_vertex_id(entity_vertex_id),
+                    &subgraph.resolved_time_projection,
                 )
                 .await?
                 {
@@ -218,8 +229,8 @@ impl<C: AsClient> PostgresStore<C> {
                         }),
                     });
 
-                    let right_entity_vertex_id = right_entity.vertex_id();
-                    subgraph.insert(right_entity);
+                    let right_entity_vertex_id = right_entity.vertex_id(time_axis);
+                    subgraph.insert(&right_entity_vertex_id, right_entity);
 
                     self.traverse_entity(
                         right_entity_vertex_id,
@@ -450,11 +461,13 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             time_projection.clone().resolve(),
         );
         let mut dependency_context = DependencyContext::default();
+        let time_axis = subgraph.resolved_time_projection.time_axis();
 
-        for entity in Read::<Entity>::read(self, filter).await? {
-            let vertex_id = entity.vertex_id();
+        for entity in Read::<Entity>::read(self, filter, &subgraph.resolved_time_projection).await?
+        {
+            let vertex_id = entity.vertex_id(time_axis);
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
-            subgraph.insert(entity);
+            subgraph.insert(&vertex_id, entity);
 
             self.traverse_entity(
                 vertex_id,

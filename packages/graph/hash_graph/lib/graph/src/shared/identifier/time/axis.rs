@@ -3,7 +3,7 @@ use utoipa::{openapi, ToSchema};
 
 use crate::identifier::time::{
     timestamp::Timestamp, version::VersionTimespan, Image, Kernel, Projection, ResolvedProjection,
-    TimespanBound,
+    ResolvedTimespan, TimespanBound,
 };
 
 /// Time axis for the decision time.
@@ -42,6 +42,20 @@ pub enum TimeProjection {
     DecisionTime(DecisionTimeProjection),
     TransactionTime(TransactionTimeProjection),
 }
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum TimeAxis {
+    DecisionTime,
+    TransactionTime,
+}
+
+/// Time axis for the projected image time.
+///
+/// This is used as the generic argument to time-related structs.
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct ProjectedTime;
+
+pub type ProjectedTimestamp = Timestamp<ProjectedTime>;
 
 impl Default for TimeProjection {
     fn default() -> Self {
@@ -84,6 +98,24 @@ impl ToSchema for TimeProjection {
 pub enum ResolvedTimeProjection {
     DecisionTime(ResolvedDecisionTimeProjection),
     TransactionTime(ResolvedTransactionTimeProjection),
+}
+
+impl ResolvedTimeProjection {
+    #[must_use]
+    pub const fn time_axis(&self) -> TimeAxis {
+        match self {
+            Self::DecisionTime(_) => TimeAxis::DecisionTime,
+            Self::TransactionTime(_) => TimeAxis::TransactionTime,
+        }
+    }
+
+    #[must_use]
+    pub const fn projected_time(&self) -> ResolvedTimespan<ProjectedTime> {
+        match self {
+            Self::DecisionTime(projection) => projection.image.span.cast(),
+            Self::TransactionTime(projection) => projection.image.span.cast(),
+        }
+    }
 }
 
 impl ToSchema for ResolvedTimeProjection {

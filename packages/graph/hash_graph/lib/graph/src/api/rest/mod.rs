@@ -45,7 +45,7 @@ use crate::{
     identifier::{
         ontology::OntologyTypeEditionId,
         time::{
-            DecisionTime, DecisionTimeProjection, DecisionTimeVersionTimespan,
+            DecisionTime, DecisionTimeProjection, DecisionTimeVersionTimespan, ProjectedTimestamp,
             ResolvedDecisionTimeProjection, ResolvedTimeProjection,
             ResolvedTransactionTimeProjection, TimeProjection, TimespanBound, Timestamp,
             TransactionTime, TransactionTimeProjection, TransactionTimeVersionTimespan,
@@ -151,53 +151,52 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
 
 #[derive(OpenApi)]
 #[openapi(
-    tags(
-        (name = "Graph", description = "HASH Graph API")
-    ),
-    modifiers(&MergeAddon, &ExternalRefAddon, &OperationGraphTagAddon, &FilterSchemaAddon, &TimeSchemaAddon),
-    components(
-        schemas(
-            OwnedById,
-            UpdatedById,
-            ProvenanceMetadata,
-            OntologyTypeEditionId,
-            OntologyElementMetadata,
-            Selector,
-
-            GraphElementId,
-            GraphElementVertexId,
-            OntologyVertex,
-            KnowledgeGraphVertex,
-            Vertex,
-            KnowledgeGraphVertices,
-            OntologyVertices,
-            Vertices,
-            SharedEdgeKind,
-            KnowledgeGraphEdgeKind,
-            OntologyEdgeKind,
-            OntologyOutwardEdges,
-            KnowledgeGraphOutwardEdges,
-            OntologyRootedEdges,
-            KnowledgeGraphRootedEdges,
-            Edges,
-            GraphResolveDepths,
-            EdgeResolveDepths,
-            OutgoingEdgeResolveDepth,
-            Subgraph,
-
-            TransactionTime,
-            TransactionTimestamp,
-            TransactionTimeVersionTimespan,
-            TransactionTimeProjection,
-            ResolvedTransactionTimeProjection,
-            DecisionTime,
-            DecisionTimeVersionTimespan,
-            DecisionTimeProjection,
-            ResolvedDecisionTimeProjection,
-            TimeProjection,
-            ResolvedTimeProjection,
-        )
-    ),
+tags(
+(name = "Graph", description = "HASH Graph API")
+),
+modifiers(& MergeAddon, & ExternalRefAddon, & OperationGraphTagAddon, & FilterSchemaAddon, & TimeSchemaAddon),
+components(
+schemas(
+OwnedById,
+UpdatedById,
+ProvenanceMetadata,
+OntologyTypeEditionId,
+OntologyElementMetadata,
+Selector,
+GraphElementId,
+GraphElementVertexId,
+OntologyVertex,
+KnowledgeGraphVertex,
+Vertex,
+KnowledgeGraphVertices,
+OntologyVertices,
+Vertices,
+SharedEdgeKind,
+KnowledgeGraphEdgeKind,
+OntologyEdgeKind,
+OntologyOutwardEdges,
+KnowledgeGraphOutwardEdges,
+OntologyRootedEdges,
+KnowledgeGraphRootedEdges,
+Edges,
+GraphResolveDepths,
+EdgeResolveDepths,
+OutgoingEdgeResolveDepth,
+Subgraph,
+TransactionTime,
+TransactionTimestamp,
+TransactionTimeVersionTimespan,
+TransactionTimeProjection,
+ProjectedTimestamp,
+ResolvedTransactionTimeProjection,
+DecisionTime,
+DecisionTimeVersionTimespan,
+DecisionTimeProjection,
+ResolvedDecisionTimeProjection,
+TimeProjection,
+ResolvedTimeProjection,
+)
+),
 )]
 struct OpenApiDocumentation;
 

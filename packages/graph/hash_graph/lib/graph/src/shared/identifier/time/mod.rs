@@ -11,9 +11,9 @@ use postgres_types::{FromSql, Type};
 pub use self::{
     axis::{
         DecisionTime, DecisionTimeProjection, DecisionTimeVersionTimespan, DecisionTimestamp,
-        ResolvedDecisionTimeProjection, ResolvedTimeProjection, ResolvedTransactionTimeProjection,
-        TimeProjection, TransactionTime, TransactionTimeProjection, TransactionTimeVersionTimespan,
-        TransactionTimestamp,
+        ProjectedTimestamp, ResolvedDecisionTimeProjection, ResolvedTimeProjection,TimeAxis,
+        ResolvedTransactionTimeProjection, TimeProjection, TransactionTime,
+        TransactionTimeProjection, TransactionTimeVersionTimespan, TransactionTimestamp,
     },
     projection::{Image, Kernel, Projection, ResolvedImage, ResolvedKernel, ResolvedProjection},
     timespan::{ResolvedTimespan, Timespan, TimespanBound},

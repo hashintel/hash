@@ -309,13 +309,13 @@ impl DatabaseApi<'_> {
         entity_id: EntityId,
         timestamp: TransactionTimestamp,
     ) -> Result<Entity, QueryError> {
-        let entity_vertex_id = EntityVertexId::new(entity_id, timestamp);
+        let entity_vertex_id = EntityVertexId::new(entity_id, timestamp.cast());
         Ok(self
             .store
             .get_entity(&StructuralQuery {
                 filter: Entity::create_filter_for_vertex_id(&entity_vertex_id),
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: TimeProjection::DecisionTime(Projection {
+                time_projection: TimeProjection::TransactionTime(Projection {
                     kernel: Kernel::new(None),
                     image: Image::new(
                         Some(TimespanBound::Unbounded),

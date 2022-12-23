@@ -24,6 +24,17 @@ pub enum TimespanBound<A> {
     Excluded(Timestamp<A>),
 }
 
+impl<A> TimespanBound<A> {
+    #[must_use]
+    pub const fn cast<B>(&self) -> TimespanBound<B> {
+        match self {
+            Self::Unbounded => TimespanBound::Unbounded,
+            Self::Included(timestamp) => TimespanBound::Included(timestamp.cast()),
+            Self::Excluded(timestamp) => TimespanBound::Excluded(timestamp.cast()),
+        }
+    }
+}
+
 impl<A> ToSchema for TimespanBound<A> {
     fn schema() -> openapi::Schema {
         openapi::OneOfBuilder::new()
@@ -76,4 +87,14 @@ pub struct Timespan<A> {
 pub struct ResolvedTimespan<A> {
     pub start: TimespanBound<A>,
     pub end: TimespanBound<A>,
+}
+
+impl<A> ResolvedTimespan<A> {
+    #[must_use]
+    pub const fn cast<B>(&self) -> ResolvedTimespan<B> {
+        ResolvedTimespan {
+            start: self.start.cast(),
+            end: self.end.cast(),
+        }
+    }
 }

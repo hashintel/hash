@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use crate::{
     identifier::{
-        knowledge::EntityId, ontology::OntologyTypeEditionId, time::TransactionTimestamp,
+        knowledge::EntityId, ontology::OntologyTypeEditionId, time::ProjectedTimestamp,
         EntityVertexId,
     },
     knowledge::{Entity, EntityQueryPath},
@@ -333,7 +333,7 @@ pub enum Parameter<'p> {
     #[serde(skip)]
     SignedInteger(i64),
     #[serde(skip)]
-    Timestamp(TransactionTimestamp),
+    Timestamp(ProjectedTimestamp),
 }
 
 impl Parameter<'_> {
@@ -398,7 +398,7 @@ impl Parameter<'_> {
             (Parameter::Text(text), ParameterType::Timestamp) => {
                 if text != "latest" {
                     *self = Parameter::Timestamp(
-                        TransactionTimestamp::from_str(&*text)
+                        ProjectedTimestamp::from_str(&*text)
                             .into_report()
                             .change_context_lazy(|| ParameterConversionError {
                                 actual: self.to_owned(),
@@ -447,9 +447,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        identifier::{
-            account::AccountId, ontology::OntologyTypeVersion, time::TransactionTimestamp,
-        },
+        identifier::{account::AccountId, ontology::OntologyTypeVersion},
         knowledge::EntityUuid,
         ontology::{DataTypeQueryPath, DataTypeWithMetadata},
         provenance::OwnedById,
@@ -554,7 +552,7 @@ mod tests {
                 OwnedById::new(AccountId::new(Uuid::new_v4())),
                 EntityUuid::new(Uuid::new_v4()),
             ),
-            TransactionTimestamp::now(),
+            ProjectedTimestamp::now(),
         );
 
         let expected = json! {{
@@ -588,7 +586,7 @@ mod tests {
                 OwnedById::new(AccountId::new(Uuid::new_v4())),
                 EntityUuid::new(Uuid::new_v4()),
             ),
-            TransactionTimestamp::now(),
+            ProjectedTimestamp::now(),
         );
 
         let expected = json! {{
@@ -622,7 +620,7 @@ mod tests {
                 OwnedById::new(AccountId::new(Uuid::new_v4())),
                 EntityUuid::new(Uuid::new_v4()),
             ),
-            TransactionTimestamp::now(),
+            ProjectedTimestamp::now(),
         );
 
         let expected = json! {{
@@ -656,7 +654,7 @@ mod tests {
                 OwnedById::new(AccountId::new(Uuid::new_v4())),
                 EntityUuid::new(Uuid::new_v4()),
             ),
-            TransactionTimestamp::now(),
+            ProjectedTimestamp::now(),
         );
 
         let expected = json! {{

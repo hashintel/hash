@@ -9,7 +9,7 @@ use utoipa::{
 
 pub use self::vertex::*;
 use crate::{
-    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion, time::TransactionTimestamp},
+    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion, time::ProjectedTimestamp},
     knowledge::Entity,
 };
 
@@ -22,7 +22,7 @@ pub struct OntologyVertices(pub HashMap<BaseUri, BTreeMap<OntologyTypeVersion, O
 #[derive(Serialize, ToSchema)]
 #[serde(transparent)]
 pub struct KnowledgeGraphVertices(
-    HashMap<EntityId, BTreeMap<TransactionTimestamp, KnowledgeGraphVertex>>,
+    HashMap<EntityId, BTreeMap<ProjectedTimestamp, KnowledgeGraphVertex>>,
 );
 
 #[derive(Serialize)]

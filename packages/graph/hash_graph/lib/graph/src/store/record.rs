@@ -1,4 +1,5 @@
 use crate::{
+    identifier::time::TimeAxis,
     store::query::{Filter, QueryPath},
     subgraph::SubgraphIndex,
 };
@@ -13,7 +14,7 @@ pub trait Record: Sized + Send {
 
     fn edition_id(&self) -> &Self::EditionId;
 
-    fn vertex_id(&self) -> Self::VertexId;
+    fn vertex_id(&self, time_axis: TimeAxis) -> Self::VertexId;
 
-    fn create_filter_for_vertex_id(edition_id: &Self::VertexId) -> Filter<Self>;
+    fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self>;
 }

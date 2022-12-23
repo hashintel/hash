@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::identifier::{knowledge::EntityId, time::TransactionTimestamp};
+use crate::identifier::{knowledge::EntityId, time::ProjectedTimestamp};
 
 pub mod subgraph;
 
@@ -9,5 +9,5 @@ pub mod subgraph;
 #[serde(rename_all = "camelCase")]
 pub struct EntityIdAndTimestamp {
     pub base_id: EntityId,
-    pub timestamp: TransactionTimestamp,
+    pub timestamp: ProjectedTimestamp,
 }

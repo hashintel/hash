@@ -32,7 +32,9 @@ use crate::{
     knowledge::{EntityProperties, LinkOrder},
 };
 use crate::{
-    identifier::{account::AccountId, ontology::OntologyTypeEditionId, EntityVertexId},
+    identifier::{
+        account::AccountId, ontology::OntologyTypeEditionId, time::TimeProjection, EntityVertexId,
+    },
     ontology::{OntologyElementMetadata, OntologyTypeWithMetadata},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
@@ -354,10 +356,13 @@ where
 
         // TODO - address potential race condition
         //  https://app.asana.com/0/1202805690238892/1203201674100967/f
-        let previous_ontology_type =
-            <Self as Read<T::WithMetadata>>::read_one(self, &Filter::for_base_uri(uri.base_uri()))
-                .await
-                .change_context(UpdateError)?;
+        let previous_ontology_type = <Self as Read<T::WithMetadata>>::read_one(
+            self,
+            &Filter::for_base_uri(uri.base_uri()),
+            &TimeProjection::default().resolve(),
+        )
+        .await
+        .change_context(UpdateError)?;
 
         let owned_by_id = previous_ontology_type.metadata().owned_by_id();
 

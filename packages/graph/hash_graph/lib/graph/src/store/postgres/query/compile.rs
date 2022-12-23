@@ -3,16 +3,19 @@ use std::{borrow::Cow, collections::HashSet, fmt::Display, marker::PhantomData};
 use postgres_types::ToSql;
 use tokio_postgres::row::RowIndex;
 
-use crate::store::{
-    postgres::query::{
-        expression::Constant,
-        table::{Entities, EntityTypes, JsonField, Relation, TypeIds},
-        Alias, AliasedColumn, AliasedTable, Column, Condition, Distinctness, EqualityOperator,
-        Expression, Function, JoinExpression, OrderByExpression, Ordering, PostgresQueryPath,
-        PostgresRecord, SelectExpression, SelectStatement, Table, Transpile, WhereExpression,
-        WindowStatement, WithExpression,
+use crate::{
+    identifier::time::ResolvedTimeProjection,
+    store::{
+        postgres::query::{
+            expression::Constant,
+            table::{Entities, EntityTypes, JsonField, Relation, TypeIds},
+            Alias, AliasedColumn, AliasedTable, Column, Condition, Distinctness, EqualityOperator,
+            Expression, Function, JoinExpression, OrderByExpression, Ordering, PostgresQueryPath,
+            PostgresRecord, SelectExpression, SelectStatement, Table, Transpile, WhereExpression,
+            WindowStatement, WithExpression,
+        },
+        query::{Filter, FilterExpression, Parameter},
     },
-    query::{Filter, FilterExpression, Parameter},
 };
 
 // # Lifetime guidance
@@ -29,12 +32,13 @@ pub struct CompilerArtifacts<'p> {
 pub struct SelectCompiler<'c, 'p, T> {
     statement: SelectStatement<'c>,
     artifacts: CompilerArtifacts<'p>,
+    time_projection: &'c ResolvedTimeProjection,
     _marker: PhantomData<fn(*const T)>,
 }
 
 impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     /// Creates a new, empty compiler.
-    pub fn new() -> Self {
+    pub fn new(time_projection: &'c ResolvedTimeProjection) -> Self {
         Self {
             statement: SelectStatement {
                 with: WithExpression::default(),
@@ -54,13 +58,14 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                 condition_index: 0,
                 required_tables: HashSet::new(),
             },
+            time_projection,
             _marker: PhantomData,
         }
     }
 
     /// Creates a new compiler, which will select everything using the asterisk (`*`).
-    pub fn with_asterisk() -> Self {
-        let mut default = Self::new();
+    pub fn with_asterisk(time_projection: &'c ResolvedTimeProjection) -> Self {
+        let mut default = Self::new(time_projection);
         default
             .statement
             .selects
