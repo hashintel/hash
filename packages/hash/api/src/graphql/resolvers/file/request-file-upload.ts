@@ -1,14 +1,9 @@
 /** @todo - Fix Files - https://app.asana.com/0/1202805690238892/1203418451117503/f */
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
-import {
-  MutationRequestFileUploadArgs,
-  ResolverFn,
-  RequestFileUploadResponse,
-  File as GQLFile,
-} from "../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../context";
 import { File } from "../../../model";
+import { File as GQLFile } from "../../api-types.gen";
+import { LoggedInGraphQLContext } from "../../context";
 
 export const requestFileUpload: ResolverFn<
   Promise<RequestFileUploadResponse>,

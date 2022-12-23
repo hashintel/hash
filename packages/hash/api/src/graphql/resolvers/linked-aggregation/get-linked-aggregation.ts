@@ -5,7 +5,6 @@ import { ApolloError } from "apollo-server-express";
 
 import { QueryGetLinkedAggregationArgs, ResolverFn } from "../../api-types.gen";
 import { GraphQLContext } from "../../context";
-import { UnresolvedGQLLinkedAggregation, Aggregation } from "../../../model";
 
 export const getLinkedAggregation: ResolverFn<
   Promise<UnresolvedGQLLinkedAggregation>,

@@ -2,7 +2,7 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 import { ApolloError } from "apollo-server-express";
-import { GraphQLContext } from "../../context";
+
 import {
   Aggregation,
   Entity,

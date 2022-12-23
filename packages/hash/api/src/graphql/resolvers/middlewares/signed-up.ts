@@ -1,6 +1,7 @@
 import { ForbiddenError } from "apollo-server-express";
+
 import { LoggedInGraphQLContext } from "../../context";
-import { ResolverMiddleware } from "./middlewareTypes";
+import { ResolverMiddleware } from "./middleware-types";
 
 export const signedUpMiddleware: ResolverMiddleware<
   LoggedInGraphQLContext,
