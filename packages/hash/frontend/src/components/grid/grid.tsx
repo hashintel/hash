@@ -44,7 +44,7 @@ export type GridProps<T> = Omit<
   resizable?: boolean;
   sortable?: boolean;
   initialColumnSort?: ColumnSort<string>;
-  tableRef?: Ref<DataEditorRef>;
+  gridRef?: Ref<DataEditorRef>;
   createGetCellContent: (rows: T) => (cell: Item) => GridCell;
   createOnCellEdited?: (rows: T) => DataEditorProps["onCellEdited"];
   sortRows?: (rows: T, sort: ColumnSort<string>) => T;
@@ -61,7 +61,7 @@ export const Grid = <T extends Rows>({
   initialColumnSort,
   createGetCellContent,
   sortRows,
-  tableRef,
+  gridRef,
   createOnCellEdited,
   ...rest
 }: GridProps<T>) => {
@@ -210,7 +210,7 @@ export const Grid = <T extends Rows>({
 
   return (
     <DataEditor
-      ref={tableRef}
+      ref={gridRef}
       theme={gridTheme}
       getRowThemeOverride={getRowThemeOverride}
       gridSelection={selection}
