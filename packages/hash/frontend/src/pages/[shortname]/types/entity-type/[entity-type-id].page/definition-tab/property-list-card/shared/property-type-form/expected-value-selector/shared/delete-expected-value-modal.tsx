@@ -8,7 +8,7 @@ import { Box, Stack, Typography } from "@mui/material";
 import { bindDialog, PopupState } from "material-ui-popup-state/hooks";
 import { Fragment } from "react";
 
-import { Modal } from "../../../../../../../../../../../../components/modals/modal";
+import { Modal } from "../../../../../../../../../../../components/modals/modal";
 
 type CountItemProps = { label: string; count: number };
 
@@ -31,26 +31,31 @@ const CountGroup = ({ items }: { items: CountItemProps[] }) => (
 );
 
 interface DeleteExpectedValueModalProps {
+  expectedValueType: "array" | "property object";
   popupState: PopupState;
   onClose: () => void;
   onDelete?: () => void;
-  dataTypeCount: number;
-  arrayCount: number;
-  propertyObjectCount: number;
+  dataTypeCount?: number;
+  arrayCount?: number;
+  propertyObjectCount?: number;
+  propertyTypeCount?: number;
 }
 
 export const DeleteExpectedValueModal = ({
+  expectedValueType,
   popupState,
   onClose,
   onDelete,
-  dataTypeCount,
-  arrayCount,
-  propertyObjectCount,
+  dataTypeCount = 0,
+  arrayCount = 0,
+  propertyObjectCount = 0,
+  propertyTypeCount = 0,
 }: DeleteExpectedValueModalProps) => {
   const countArray = [
     { label: "data type", count: dataTypeCount },
     { label: "array", count: arrayCount },
     { label: "property object", count: propertyObjectCount },
+    { label: "property type", count: propertyTypeCount },
   ].filter(({ count }) => count);
 
   return (
@@ -78,7 +83,7 @@ export const DeleteExpectedValueModal = ({
               fontWeight: 500,
             }}
           >
-            Remove array and its contents
+            Remove {expectedValueType} and its contents
           </Typography>
 
           <IconButton
@@ -94,7 +99,8 @@ export const DeleteExpectedValueModal = ({
               variant="smallTextLabels"
               sx={{ color: ({ palette }) => palette.gray[80] }}
             >
-              This array contains <CountGroup items={countArray} />
+              This {expectedValueType} contains{" "}
+              <CountGroup items={countArray} />
               {dataTypeCount + propertyObjectCount + arrayCount > 1
                 ? " These "
                 : " This "}

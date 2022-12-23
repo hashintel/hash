@@ -1,4 +1,3 @@
-import { VersionedUri } from "@blockprotocol/type-system";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import {
@@ -12,10 +11,11 @@ import {
 } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 
-import { expectedValuesOptions } from "../../shared/expected-values-options";
+import { DefaultExpectedValueTypeId } from "../../../property-type-form-values";
+import { expectedValuesOptions } from "./expected-values-options";
 
 interface ExpectedValueBadgeProps {
-  typeId: VersionedUri | "array";
+  typeId: DefaultExpectedValueTypeId;
   prefix?: string;
   deleteTooltip?: string;
   onDelete?: () => void;
@@ -30,7 +30,10 @@ export const ExpectedValueBadge = ({
   const [hovered, setHovered] = useState(false);
 
   const { icon, title } = expectedValuesOptions[typeId]!;
+
   const isArray = typeId === "array";
+  const isObject = typeId === "object";
+  const isDataType = !isArray && !isObject;
 
   const prefixTextRef = useRef<HTMLSpanElement>(null);
   const [prefixContainerWidth, setPreficContainerWidth] = useState(0);
@@ -52,10 +55,9 @@ export const ExpectedValueBadge = ({
             display: "flex",
             background: ({ palette }) => palette.gray[60],
             borderTopLeftRadius: 4,
-            borderBottomLeftRadius: 4,
+            borderBottomLeftRadius: isArray ? 0 : 4,
             padding: 1.25,
             alignItems: "center",
-            ...(isArray ? { borderBottomLeftRadius: 0 } : {}),
             width: prefixContainerWidth,
             transition: ({ transitions }) => transitions.create("width"),
           }}
@@ -83,16 +85,16 @@ export const ExpectedValueBadge = ({
           paddingX: 1.5,
           pr: 0,
           alignItems: "center",
-          borderRadius: 4,
+          borderRadius: 1,
           position: "relative",
           overflow: "hidden",
           ...(prefix
             ? { borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }
             : {}),
-          ...(typeId === "array"
+          ...(!isDataType
             ? {
                 width: "100%",
-                borderBottomLeftRadius: 0,
+                borderBottomLeftRadius: isObject && !prefix ? 4 : 0,
                 borderBottomRightRadius: 0,
               }
             : {}),
@@ -120,7 +122,7 @@ export const ExpectedValueBadge = ({
             {title}
           </Typography>
 
-          {!isArray ? (
+          {isDataType ? (
             <Chip
               label={
                 <Typography variant="smallCaps" sx={{ fontSize: 11 }}>

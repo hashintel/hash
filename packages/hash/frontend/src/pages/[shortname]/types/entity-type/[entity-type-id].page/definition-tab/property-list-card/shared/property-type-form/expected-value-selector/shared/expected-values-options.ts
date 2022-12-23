@@ -42,10 +42,11 @@ export const expectedValuesOptions = {
     icon: faSquareCheck,
     colors: chipColors.blue,
   },
-  [types.dataType.object.dataTypeId]: {
+  object: {
     title: "Property Object",
     icon: faCube,
     colors: chipColors.purple,
+    allowMultiple: true,
   },
   array: {
     title: "Array",
