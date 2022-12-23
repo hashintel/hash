@@ -6,9 +6,9 @@ CARGO_TEST_HACK_FLAGS = "--workspace --optional-deps --feature-powerset --exclud
 CARGO_INSTA_TEST_FLAGS = "--no-fail-fast"
 CARGO_RUSTDOC_HACK_FLAGS = ""
 CARGO_DOC_HACK_FLAGS = ""
-# The only features that are of relevance are: spantrace, pretty-print, std, hooks
+# The only features that are of relevance are: spantrace, pretty-print, std, hooks, serde
 # all others do not change the output
-CARGO_INSTA_TEST_HACK_FLAGS = "--keep-going --feature-powerset --include-features spantrace,pretty-print,std,hooks"
+CARGO_INSTA_TEST_HACK_FLAGS = "--keep-going --feature-powerset --include-features spantrace,pretty-print,std,hooks,serde"
 
 
 [tasks.test]

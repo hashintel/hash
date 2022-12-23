@@ -219,6 +219,7 @@ mod default {
     #[cfg(feature = "spantrace")]
     struct SerializeSpanTraceFields(&'static FieldSet);
 
+    #[cfg(feature = "spantrace")]
     impl Serialize for SerializeSpanTraceFields {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where

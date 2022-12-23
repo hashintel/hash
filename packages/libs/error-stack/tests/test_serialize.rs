@@ -1,80 +1,88 @@
-//! Note: span_trace, backtrace and such are not special cased, therefore all tests run with all
-//! tests enabled.
-#![cfg(all(feature = "spantrace", feature = "serde"))]
+#![cfg(feature = "serde")]
 // can be considered safe, because we only check the output, which in itself does not use **any**
 // unsafe code.
 #![cfg(not(miri))]
 #![cfg_attr(all(nightly, feature = "std"), feature(error_generic_member_access))]
 #![cfg_attr(nightly, feature(provide_any))]
 
+mod common;
+mod common_snapshot;
+
+use common_snapshot::*;
 use insta::assert_ron_snapshot;
 
-use crate::common::{create_report, ContextA, PrintableA, PrintableC};
-
-mod common;
-
-fn prepare() -> impl Drop {
-    std::env::set_var("RUST_LIB_BACKTRACE", "0");
-
-    let settings = insta::Settings::clone_current();
-
-    settings.bind_to_scope()
-}
-
+/// This is the main test, to test all different parts at once,
+/// and demonstrates that the rendering algorithm works at arbitrary depth.
 #[test]
-fn attachment() {
-    let _guard = prepare();
+fn sources_nested() {
+    let _guard = prepare(true);
 
-    let report = create_report().attach_printable(PrintableA(2));
+    let report = create_sources_nested();
 
     assert_ron_snapshot!(report);
 }
 
-#[test]
-fn context() {
-    let _guard = prepare();
-
-    let report = create_report()
-        .attach_printable(PrintableA(2))
-        .change_context(ContextA(2));
-
-    assert_ron_snapshot!(report);
-}
-
-#[test]
-fn multiple_sources() {
-    let _guard = prepare();
-
-    let mut a = create_report().attach_printable(PrintableC(1));
-    let b = create_report().attach_printable(PrintableC(2));
-
-    a.extend_one(b);
-
-    let a = a
-        .attach_printable(PrintableC(3))
-        .change_context(ContextA(2))
-        .attach_printable(PrintableC(4));
-
-    assert_ron_snapshot!(a);
-}
-
-#[test]
-fn multiple_sources_at_root() {
-    let _guard = prepare();
-
-    let mut a = create_report().attach_printable(PrintableC(1));
-    let b = create_report().attach_printable(PrintableC(2));
-
-    a.extend_one(b);
-
-    assert_ron_snapshot!(a);
-}
-
-#[cfg(any(feature = "std", feature = "hooks"))]
-mod hooks {
+#[cfg(all(
+    rust_1_65,
+    any(feature = "std", feature = "hooks"),
+    feature = "spantrace",
+    feature = "pretty-print"
+))]
+mod full {
+    //! For reasoning about this specific module please refer to
+    //! `test_debug.rs`
     use error_stack::{serde::HookContext, Report};
 
     use super::*;
+
+    #[test]
+    fn attachment() {
+        let _guard = prepare(false);
+
+        let report = create_report().attach_printable(PrintableA(2));
+
+        assert_ron_snapshot!(report);
+    }
+
+    #[test]
+    fn context() {
+        let _guard = prepare(false);
+
+        let report = create_report()
+            .attach_printable(PrintableA(2))
+            .change_context(ContextA(2));
+
+        assert_ron_snapshot!(report);
+    }
+
+    #[test]
+    fn multiple_sources() {
+        let _guard = prepare(false);
+
+        let mut a = create_report().attach_printable(PrintableC(1));
+        let b = create_report().attach_printable(PrintableC(2));
+
+        a.extend_one(b);
+
+        let a = a
+            .attach_printable(PrintableC(3))
+            .change_context(ContextA(2))
+            .attach_printable(PrintableC(4));
+
+        assert_ron_snapshot!(a);
+    }
+
+    #[test]
+    fn multiple_sources_at_root() {
+        let _guard = prepare(false);
+
+        let mut a = create_report().attach_printable(PrintableC(1));
+        let b = create_report().attach_printable(PrintableC(2));
+
+        a.extend_one(b);
+
+        assert_ron_snapshot!(a);
+    }
 
     struct DoesNotImplementSerialize {
         a: String,
@@ -95,7 +103,7 @@ mod hooks {
 
     fn serialize<'a>(
         value: &'a DoesNotImplementSerialize,
-        context: &mut HookContext<DoesNotImplementSerialize>,
+        _: &mut HookContext<DoesNotImplementSerialize>,
     ) -> ImplementSerialize<'a> {
         ImplementSerialize {
             a: &value.a,
@@ -104,7 +112,8 @@ mod hooks {
     }
 
     #[test]
-    fn install_custom_hook() {
+    fn hook_custom() {
+        let _guard = prepare(false);
         // This sadly does not work
         // Report::install_custom_serde_hook(
         //     |value: &DoesNotImplementSerialize,
@@ -125,7 +134,9 @@ mod hooks {
     }
 
     #[test]
-    fn install_custom_hook_owned() {
+    fn hook_custom_owned() {
+        let _guard = prepare(false);
+
         Report::install_custom_serde_hook(
             |value: &DoesNotImplementSerialize,
              context: &mut HookContext<DoesNotImplementSerialize>| {
