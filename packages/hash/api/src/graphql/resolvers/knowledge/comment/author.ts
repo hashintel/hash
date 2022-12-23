@@ -1,11 +1,12 @@
 import { Entity } from "@hashintel/hash-subgraph";
+
 import {
   getCommentAuthor,
   getCommentById,
 } from "../../../../graph/knowledge/system-types/comment";
 import { ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { UnresolvedCommentGQL, mapEntityToGQL } from "../graphql-mapping";
+import { mapEntityToGQL, UnresolvedCommentGQL } from "../graphql-mapping";
 
 export const commentAuthorResolver: ResolverFn<
   Promise<Entity>,

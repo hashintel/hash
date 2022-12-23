@@ -2,10 +2,10 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 import {
-  MutationRequestFileUploadArgs,
-  ResolverFn,
-  RequestFileUploadResponse,
   File as GQLFile,
+  MutationRequestFileUploadArgs,
+  RequestFileUploadResponse,
+  ResolverFn,
 } from "../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { File } from "../../../model";
