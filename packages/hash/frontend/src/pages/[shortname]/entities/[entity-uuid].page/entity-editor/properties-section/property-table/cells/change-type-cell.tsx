@@ -5,18 +5,18 @@ import {
   GridCellKind,
   Item,
 } from "@glideapps/glide-data-grid";
-
-import { RefObject } from "react";
-import produce from "immer";
 import { customColors } from "@hashintel/hash-design-system/src/theme/palette";
+import produce from "immer";
+import { RefObject } from "react";
+
+import { getYCenter } from "../../../../../../../../components/grid/utils";
 import { drawCellFadeOutGradient } from "../../../../../../../../components/grid/utils/draw-cell-fade-out-gradient";
+import { drawChip } from "../../../../../../../../components/grid/utils/draw-chip";
 import { drawChipWithIcon } from "../../../../../../../../components/grid/utils/draw-chip-with-icon";
+import { propertyGridIndexes } from "../constants";
 import { PropertyRow } from "../types";
 import { getChipColors } from "./chip-cell";
 import { ValueCell } from "./value-cell/types";
-import { propertyGridIndexes } from "../constants";
-import { drawChip } from "../../../../../../../../components/grid/utils/draw-chip";
-import { getYCenter } from "../../../../../../../../components/grid/utils";
 
 export interface ChangeTypeCellProps {
   readonly kind: "change-type-cell";

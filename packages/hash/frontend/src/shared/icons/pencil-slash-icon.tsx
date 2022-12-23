@@ -1,5 +1,5 @@
-import { FunctionComponent } from "react";
 import { SvgIcon, SvgIconProps } from "@mui/material";
+import { FunctionComponent } from "react";
 
 export const PencilSlashIcon: FunctionComponent<SvgIconProps> = (props) => {
   return (

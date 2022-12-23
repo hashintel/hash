@@ -1,6 +1,9 @@
 import produce from "immer";
 import { useState } from "react";
+
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
+import { isValueEmpty } from "../../../is-value-empty";
+import { EditorTypePicker } from "./editor-type-picker";
 import { BooleanInput } from "./inputs/boolean-input";
 import { NumberOrTextInput } from "./inputs/number-or-text-input";
 import { EditorType, ValueCellEditorComponent } from "./types";
@@ -8,8 +11,6 @@ import {
   guessEditorTypeFromExpectedType,
   guessEditorTypeFromValue,
 } from "./utils";
-import { EditorTypePicker } from "./editor-type-picker";
-import { isValueEmpty } from "../../../is-value-empty";
 
 export const SingleValueEditor: ValueCellEditorComponent = (props) => {
   const { value: cell, onChange } = props;

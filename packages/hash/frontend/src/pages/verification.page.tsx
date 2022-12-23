@@ -1,21 +1,21 @@
-import { useRouter } from "next/router";
-import { useEffect, FormEventHandler, useState, useMemo } from "react";
+import { TextField } from "@hashintel/hash-design-system";
+import { Box, Container, Typography } from "@mui/material";
 import {
   UpdateVerificationFlowWithCodeMethodBody,
   VerificationFlow,
 } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
-import { Typography, Container, Box } from "@mui/material";
-import { TextField } from "@hashintel/hash-design-system";
+import { useRouter } from "next/router";
+import { FormEventHandler, useEffect, useMemo, useState } from "react";
 
+import { useLogoutFlow } from "../components/hooks/use-logout-flow";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
+import { Button } from "../shared/ui";
 import {
   createFlowErrorHandler,
   gatherUiNodeValuesFromFlow,
   oryKratosClient,
 } from "./shared/ory-kratos";
-import { Button } from "../shared/ui";
-import { useLogoutFlow } from "../components/hooks/useLogoutFlow";
 
 const VerificationPage: NextPageWithLayout = () => {
   // Get ?flow=... from the URL

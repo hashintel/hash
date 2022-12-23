@@ -21,7 +21,7 @@ import { customAlphabet } from "nanoid";
 
 import setupAuth from "./auth";
 import { RedisCache } from "./cache";
-// import { createCollabApp } from "./collab/collabApp";
+// import { createCollabApp } from "./collab/collab-app";
 import {
   AwsSesEmailTransporter,
   DummyEmailTransporter,

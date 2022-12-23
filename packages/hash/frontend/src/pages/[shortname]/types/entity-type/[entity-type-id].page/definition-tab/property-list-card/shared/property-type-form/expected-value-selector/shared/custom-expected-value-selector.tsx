@@ -7,7 +7,7 @@ import {
   Box,
   inputBaseClasses,
 } from "@mui/material";
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
 
 type CustomExpectedValueSelectorProps<T> = {
   inputLabel: string;

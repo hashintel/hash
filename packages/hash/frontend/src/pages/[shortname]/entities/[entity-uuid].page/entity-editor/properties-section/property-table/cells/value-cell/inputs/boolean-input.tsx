@@ -1,7 +1,8 @@
-import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { Box, Tooltip, Typography, chipClasses } from "@mui/material";
 import { faSquare, faSquareCheck } from "@fortawesome/free-regular-svg-icons";
 import { faRightLeft } from "@fortawesome/free-solid-svg-icons";
+import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { Box, chipClasses, Tooltip, Typography } from "@mui/material";
+
 import { CellInputProps } from "./types";
 
 export const BooleanInput = ({

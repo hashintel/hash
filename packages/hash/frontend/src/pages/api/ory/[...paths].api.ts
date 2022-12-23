@@ -1,9 +1,9 @@
 // @ory/integrations offers a package for integrating with NextJS.
-import { config, createApiHandler } from "@ory/integrations/next-edge";
 import {
   frontendDomain,
   oryKratosPublicUrl,
 } from "@hashintel/hash-shared/environment";
+import { config, createApiHandler } from "@ory/integrations/next-edge";
 
 // We need to export the config.
 export { config };

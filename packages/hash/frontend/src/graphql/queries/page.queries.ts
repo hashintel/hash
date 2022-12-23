@@ -1,4 +1,5 @@
 import { gql } from "@apollo/client";
+
 import { commentFieldsFragment } from "./comment.queries";
 
 export const setParentPage = gql`
