@@ -16,7 +16,7 @@ import {
   LinkedAggregation as GQLLinkedAggregation,
   AggregateOperation,
   AggregateOperationInput,
-} from "../graphql/apiTypes.gen";
+} from "../graphql/api-types.gen";
 
 export type GQLLinkedAggregationExternalResolvers = "__typename" | "results";
 

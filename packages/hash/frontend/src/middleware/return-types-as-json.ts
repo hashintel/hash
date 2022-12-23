@@ -17,7 +17,7 @@ import type {
   GetEntityTypeQueryVariables,
   GetPropertyTypeQuery,
   GetPropertyTypeQueryVariables,
-} from "../graphql/apiTypes.gen";
+} from "../graphql/api-types.gen";
 import { generateQueryArgs } from "./return-types-as-json/generate-query-args";
 
 const generateErrorResponse = (

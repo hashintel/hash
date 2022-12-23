@@ -3,7 +3,7 @@ import { SearchAdapter } from "@hashintel/hash-backend-utils/search/adapter";
 
 import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
-import { StorageType } from "./apiTypes.gen";
+import { StorageType } from "./api-types.gen";
 import { TaskExecutor } from "../task-execution";
 import { GraphApi } from "../graph";
 import { User } from "../graph/knowledge/system-types/user";

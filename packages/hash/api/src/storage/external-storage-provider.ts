@@ -1,4 +1,4 @@
-import { StorageType } from "../graphql/apiTypes.gen";
+import { StorageType } from "../graphql/api-types.gen";
 import { PresignedDownloadRequest, StorageProvider } from "./storage-provider";
 
 /** Implementation of the storage provider for external links (doesn't actually store anything)
