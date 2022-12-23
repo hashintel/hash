@@ -1,12 +1,6 @@
 /** @type {import("eslint").Linter.Config} */
 module.exports = {
-  plugins: [
-    "@typescript-eslint",
-    "react-hooks",
-    "react",
-    "simple-import-sort",
-    "unicorn",
-  ],
+  plugins: ["@typescript-eslint", "react-hooks", "react", "unicorn"],
   rules: {
     curly: ["error", "multi-line"],
     "import/no-extraneous-dependencies": ["error", { devDependencies: true }],

@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
+
 import { Client } from "@opensearch-project/opensearch";
+
 import { Logger } from "../logger";
 import { OpenSearch } from "./opensearch";
 

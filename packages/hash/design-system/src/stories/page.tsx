@@ -1,6 +1,8 @@
-import { FunctionComponent, useState } from "react";
-import { Header } from "./header";
 import "./page.css";
+
+import { FunctionComponent, useState } from "react";
+
+import { Header } from "./header";
 
 type User = {
   name: string;

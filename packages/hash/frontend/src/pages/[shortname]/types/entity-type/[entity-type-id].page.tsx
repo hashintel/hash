@@ -237,7 +237,7 @@ const Page: NextPageWithLayout = () => {
         <PropertyTypesContext.Provider value={propertyTypes}>
           <EntityTypeContext.Provider value={entityType}>
             <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
-              <EntityTypesContext.Provider value={entityTypesContextValue.data}>
+              <EntityTypesContext.Provider value={entityTypesContextValue}>
                 <Box
                   sx={{
                     display: "flex",

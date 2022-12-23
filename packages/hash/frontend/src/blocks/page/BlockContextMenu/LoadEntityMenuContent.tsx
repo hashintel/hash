@@ -22,7 +22,7 @@ import {
   FontAwesomeIcon,
 } from "@hashintel/hash-design-system";
 import { EntityId } from "@hashintel/hash-subgraph";
-import { EntityStoreType } from "@hashintel/hash-shared/entityStore";
+import { EntityStoreType } from "@hashintel/hash-shared/entity-store";
 import { useBlockView } from "../BlockView";
 import { MenuItem } from "../../../shared/ui";
 import { generateEntityLabel } from "../../../lib/entities";

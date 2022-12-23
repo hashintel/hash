@@ -5,7 +5,7 @@ import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import {
   GetDataTypeQuery,
   GetDataTypeQueryVariables,
-} from "../../../../graphql/apiTypes.gen";
+} from "../../../../graphql/api-types.gen";
 import { getDataTypeQuery } from "../../../../graphql/queries/ontology/data-type.queries";
 import { GetDataTypeMessageCallback } from "./ontology-types-shim";
 

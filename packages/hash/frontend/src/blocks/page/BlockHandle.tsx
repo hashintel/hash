@@ -1,6 +1,9 @@
 import { JsonObject } from "@blockprotocol/core";
 import { faEllipsisVertical } from "@fortawesome/free-solid-svg-icons";
-import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
+import {
+  EntityStore,
+  isBlockEntity,
+} from "@hashintel/hash-shared/entity-store";
 import { Box } from "@mui/material";
 import { bindTrigger } from "material-ui-popup-state";
 import { usePopupState } from "material-ui-popup-state/hooks";

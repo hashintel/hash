@@ -3,23 +3,23 @@
 import * as crypto from "node:crypto";
 import * as http from "node:http";
 
-import { sql } from "slonik";
 import {
-  clearIntervalAsync,
-  setIntervalAsync,
-} from "set-interval-async/dynamic";
-import { GracefulShutdown } from "@hashintel/hash-backend-utils/shutdown";
+  getRequiredEnv,
+  waitOnResource,
+} from "@hashintel/hash-backend-utils/environment";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import {
   createPostgresConnPool,
   PgPool,
 } from "@hashintel/hash-backend-utils/postgres";
+import { GracefulShutdown } from "@hashintel/hash-backend-utils/shutdown";
 import {
-  getRequiredEnv,
-  waitOnResource,
-} from "@hashintel/hash-backend-utils/environment";
+  clearIntervalAsync,
+  setIntervalAsync,
+} from "set-interval-async/dynamic";
+import { sql } from "slonik";
 
-import { MONITOR_TABLES, generateQueues } from "./config";
+import { generateQueues, MONITOR_TABLES } from "./config";
 
 // The number of milliseconds between queries to the replication slot
 const POLL_INTERVAL_MILLIS = 250;

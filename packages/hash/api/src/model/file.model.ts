@@ -6,7 +6,7 @@ import { PresignedPost } from "@aws-sdk/s3-presigned-post";
 import { CreateEntityArgs, Entity, EntityConstructorArgs, File } from ".";
 import { createEntityArgsBuilder, genId } from "../util";
 
-import { StorageType } from "../graphql/apiTypes.gen";
+import { StorageType } from "../graphql/api-types.gen";
 import {
   getStorageProvider,
   getUploadStorageProvider,

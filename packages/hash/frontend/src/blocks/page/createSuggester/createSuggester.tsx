@@ -1,6 +1,6 @@
 import type { BlockVariant } from "@blockprotocol/core";
 import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
-import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
+import { ProsemirrorManager } from "@hashintel/hash-shared/prosemirror-manager";
 import { Popper } from "@mui/material";
 import {
   EditorState,
