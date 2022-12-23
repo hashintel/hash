@@ -223,7 +223,6 @@ export type EntityTypeCreatorParams = {
       // Some models may reference themselves. This marker is used to stop infinite loops during initialization by telling the initializer to use a self reference
       | "SELF_REFERENCE"
     )[];
-    required?: boolean;
     minItems?: number;
     maxItems?: number;
     ordered?: boolean;
@@ -287,10 +286,6 @@ export const generateSystemEntityTypeSchema = (
       {},
     ) ?? undefined;
 
-  const requiredLinks = params.outgoingLinks
-    ?.filter(({ required }) => !!required)
-    .map(({ linkEntityType }) => linkEntityType.schema.$id);
-
   return {
     $id: params.entityTypeId,
     title: params.title,
@@ -300,7 +295,6 @@ export const generateSystemEntityTypeSchema = (
     properties,
     required: requiredProperties,
     links,
-    requiredLinks,
   };
 };
 
