@@ -13,12 +13,13 @@ import {
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+
+import { EntityTypeMismatchError } from "../../../lib/error";
 import {
   ImpureGraphFunction,
   PureGraphFunction,
   zeroedGraphResolveDepths,
 } from "../..";
-import { EntityTypeMismatchError } from "../../../lib/error";
 import { SYSTEM_TYPES } from "../../system-types";
 import { systemUserAccountId } from "../../system-user";
 import {

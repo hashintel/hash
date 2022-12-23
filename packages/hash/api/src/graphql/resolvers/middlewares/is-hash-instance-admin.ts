@@ -1,7 +1,8 @@
 import { ForbiddenError } from "apollo-server-express";
+
 import { isUserHashInstanceAdmin } from "../../../graph/knowledge/system-types/user";
 import { LoggedInGraphQLContext } from "../../context";
-import { ResolverMiddleware } from "./middlewareTypes";
+import { ResolverMiddleware } from "./middleware-types";
 
 export const isHashInstanceAdminMiddleware: ResolverMiddleware<
   LoggedInGraphQLContext,

@@ -1,9 +1,10 @@
 import { extractOwnedByIdFromEntityId } from "@hashintel/hash-shared/types";
+
 import { getLatestEntityById } from "../../../../graph/knowledge/primitive/entity";
 import { createComment } from "../../../../graph/knowledge/system-types/comment";
 import { MutationCreateCommentArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { UnresolvedCommentGQL, mapCommentToGQL } from "../graphql-mapping";
+import { mapCommentToGQL, UnresolvedCommentGQL } from "../graphql-mapping";
 
 export const createCommentResolver: ResolverFn<
   Promise<UnresolvedCommentGQL>,
