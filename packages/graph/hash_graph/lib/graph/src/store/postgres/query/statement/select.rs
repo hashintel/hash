@@ -499,7 +499,7 @@ mod tests {
     #[test]
     fn entity_with_manual_selection() {
         let time_projection = TimeProjection::default().resolve();
-        let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
+        let mut compiler = SelectCompiler::<Entity>::new(&time_projection);
         compiler.add_distinct_selection_with_ordering(
             &EntityQueryPath::Uuid,
             Distinctness::Distinct,
