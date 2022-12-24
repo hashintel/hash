@@ -2,6 +2,7 @@ import { EntityType } from "@blockprotocol/type-system";
 import { Button, TextField } from "@hashintel/hash-design-system";
 import { frontendUrl } from "@hashintel/hash-shared/environment";
 import { generateBaseTypeId } from "@hashintel/hash-shared/ontology-types";
+import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import {
   Box,
   Container,
@@ -12,22 +13,23 @@ import {
   Theme,
   Typography,
 } from "@mui/material";
+// eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { ReactNode, useContext } from "react";
 import { useForm } from "react-hook-form";
-import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
-import { useBlockProtocolGetEntityType } from "../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
+
+import { useBlockProtocolGetEntityType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
 import { useInitTypeSystem } from "../../../lib/use-init-type-system";
 import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../shared/layout";
 import { Link } from "../../../shared/ui/link";
+import { HashOntologyIcon } from "../../[shortname]/shared/hash-ontology-icon";
+import { OntologyChip } from "../../[shortname]/shared/ontology-chip";
 import { TopContextBar } from "../../shared/top-context-bar";
 import { WorkspaceContext } from "../../shared/workspace-context";
-import { HashOntologyIcon } from "../../[account-slug]/shared/hash-ontology-icon";
-import { OntologyChip } from "../../[account-slug]/shared/ontology-chip";
 
 const FormHelperLabel = ({
   children,

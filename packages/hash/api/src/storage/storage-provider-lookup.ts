@@ -1,16 +1,17 @@
-import { Express } from "express";
 import { apiOrigin } from "@hashintel/hash-shared/environment";
+import { Express } from "express";
+
+import { StorageType } from "../graphql/api-types.gen";
+import { getAwsS3Config } from "../lib/aws-config";
+import { LOCAL_FILE_UPLOAD_PATH } from "../lib/config";
+import { AwsS3StorageProvider } from "./aws-s3-storage-provider";
+import { ExternalStorageProvider } from "./external-storage-provider";
+import { LocalFileSystemStorageProvider } from "./local-file-storage";
 import {
   StorageProvider,
   StorageProviderLookup,
   UploadableStorageProvider,
 } from "./storage-provider";
-import { AwsS3StorageProvider } from "./aws-s3-storage-provider";
-import { StorageType } from "../graphql/apiTypes.gen";
-import { LocalFileSystemStorageProvider } from "./local-file-storage";
-import { LOCAL_FILE_UPLOAD_PATH } from "../lib/config";
-import { getAwsS3Config } from "../lib/aws-config";
-import { ExternalStorageProvider } from "./external-storage-provider";
 
 type StorageProviderInitialiser = () =>
   | StorageProvider
@@ -36,6 +37,7 @@ let uploadStorageProvider: StorageType = StorageType.LocalFileSystem;
 
 function initialiseStorageProvider(provider: StorageType) {
   const initialiser = storageProviderInitialiserLookup[provider];
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
   if (!initialiser) {
     throw new Error(
       `No storage provider available for storage type: ${provider}`,

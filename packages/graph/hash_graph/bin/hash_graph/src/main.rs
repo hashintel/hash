@@ -220,6 +220,7 @@ async fn main() -> Result<(), GraphError> {
         args.log_config.log_folder,
         args.log_config.log_level,
         &args.log_config.log_file_prefix,
+        args.otlp_endpoint.as_deref(),
     );
 
     let pool = PostgresStorePool::new(&args.db_info, NoTls)
@@ -245,7 +246,7 @@ async fn main() -> Result<(), GraphError> {
 
     tracing::info!("Listening on {api_address}");
     axum::Server::bind(&addr)
-        .serve(rest_router.into_make_service())
+        .serve(rest_router.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .unwrap();
 

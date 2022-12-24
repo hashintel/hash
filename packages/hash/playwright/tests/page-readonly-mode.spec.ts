@@ -1,7 +1,8 @@
 import { sleep } from "@hashintel/hash-shared/sleep";
-import { test, expect } from "./shared/runtime";
+
 import { loginUsingUi } from "./shared/login-using-ui";
 import { resetDb } from "./shared/reset-db";
+import { expect, test } from "./shared/runtime";
 
 const placeholderSelector =
   "text=Type / to browse blocks, or @ to browse entities";
@@ -26,7 +27,7 @@ test.skip("user can view page in read-only mode but not update", async ({
   await sleep(500);
   await page.locator('[data-testid="create-page-btn"]').click();
 
-  await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+\/[\w-]+$/));
+  await page.waitForURL((url) => !!url.pathname.match(/^\/@[\w-]+\/[\w-]+$/));
 
   await expect(page.locator('[data-testid="page-sidebar"]')).toBeVisible();
 

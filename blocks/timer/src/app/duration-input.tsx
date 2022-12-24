@@ -1,14 +1,15 @@
 import {
   ChangeEventHandler,
   FocusEventHandler,
+  FunctionComponent,
   KeyboardEventHandler,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  FunctionComponent,
 } from "react";
+
 import { clamp } from "./clamp";
 
 type DurationInputProps = {
@@ -53,8 +54,8 @@ const convertDurationInMsToInputTexts = (value: number): InputTexts => {
 };
 
 const convertInputTextsToDurationInMs = (inputTexts: InputTexts): number => {
-  const minutes = Number.parseInt(inputTexts[0] ?? "0", 10) || 0;
-  const seconds = Number.parseInt(inputTexts[1] ?? "0", 10) || 0;
+  const minutes = Number.parseInt(inputTexts[0] || "0", 10) || 0;
+  const seconds = Number.parseInt(inputTexts[1] || "0", 10) || 0;
 
   return clamp(minutes, [0, 99]) * 60_000 + clamp(seconds, [0, 59]) * 1000;
 };

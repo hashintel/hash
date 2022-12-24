@@ -3,12 +3,12 @@ use std::fmt;
 use crate::store::postgres::query::{Condition, Transpile};
 
 #[derive(Debug, Default, PartialEq, Eq, Hash)]
-pub struct WhereExpression<'q> {
-    conditions: Vec<Condition<'q>>,
+pub struct WhereExpression<'p> {
+    conditions: Vec<Condition<'p>>,
 }
 
-impl<'q> WhereExpression<'q> {
-    pub fn add_condition(&mut self, condition: Condition<'q>) {
+impl<'p> WhereExpression<'p> {
+    pub fn add_condition(&mut self, condition: Condition<'p>) {
         // TODO: Remove deduplication when adjusting structural queries
         //   see https://app.asana.com/0/0/1203491211535116/f
         if !self.conditions.iter().any(|c| c == &condition) {

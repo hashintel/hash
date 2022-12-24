@@ -5,8 +5,11 @@ use serde::Serialize;
 use utoipa::ToSchema;
 
 pub use self::{
-    edges::{Edges, KnowledgeGraphRootedEdges, OntologyRootedEdges},
-    vertices::{KnowledgeGraphVertices, OntologyVertices, Vertices},
+    edges::{Edges, KnowledgeGraphOutwardEdges, KnowledgeGraphRootedEdges, OntologyRootedEdges},
+    vertices::{
+        KnowledgeGraphVertex, KnowledgeGraphVertices, OntologyVertex, OntologyVertices, Vertex,
+        Vertices,
+    },
 };
 use crate::{identifier::GraphElementEditionId, subgraph::edges::GraphResolveDepths};
 
@@ -21,10 +24,12 @@ pub struct Subgraph {
 
 impl From<crate::subgraph::Subgraph> for Subgraph {
     fn from(subgraph: crate::subgraph::Subgraph) -> Self {
+        let vertices = subgraph.vertices.into();
+        let edges = Edges::from_vertices_and_store_edges(subgraph.edges, &vertices);
         Self {
             roots: subgraph.roots.into_iter().collect(),
-            vertices: subgraph.vertices.into(),
-            edges: subgraph.edges.into(),
+            vertices,
+            edges,
             depths: subgraph.depths,
         }
     }

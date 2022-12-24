@@ -1,11 +1,16 @@
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { AxiosError } from "axios";
 
-import { GraphApi } from "../graph";
-import { UserModel } from "../model";
 import { createKratosIdentity } from "../auth/ory-kratos";
-import { isDevEnv } from "../lib/env-config";
+import { GraphApi } from "../graph";
+import {
+  createUser,
+  updateUserPreferredName,
+  updateUserShortname,
+  User,
+} from "../graph/knowledge/system-types/user";
 import { systemUserAccountId } from "../graph/system-user";
+import { isDevEnv } from "../lib/env-config";
 
 type SeededUser = {
   email: string;
@@ -41,7 +46,7 @@ export const ensureUsersAreSeeded = async ({
 }: {
   graphApi: GraphApi;
   logger: Logger;
-}): Promise<UserModel[]> => {
+}): Promise<User[]> => {
   const createdUsers = [];
 
   // Only use `devUsers` if we are in a dev environment
@@ -99,22 +104,33 @@ export const ensureUsersAreSeeded = async ({
       const { traits, id: kratosIdentityId } = maybeNewIdentity;
       const { emails } = traits;
 
-      let user = await UserModel.createUser(graphApi, {
-        emails,
-        kratosIdentityId,
-        actorId: systemUserAccountId,
-        isInstanceAdmin,
-      });
+      let user = await createUser(
+        { graphApi },
+        {
+          emails,
+          kratosIdentityId,
+          actorId: systemUserAccountId,
+          isInstanceAdmin,
+        },
+      );
 
-      user = await user.updateShortname(graphApi, {
-        updatedShortname: shortname,
-        actorId: systemUserAccountId,
-      });
+      user = await updateUserShortname(
+        { graphApi },
+        {
+          user,
+          updatedShortname: shortname,
+          actorId: systemUserAccountId,
+        },
+      );
 
-      user = await user.updatePreferredName(graphApi, {
-        updatedPreferredName: preferredName,
-        actorId: systemUserAccountId,
-      });
+      user = await updateUserPreferredName(
+        { graphApi },
+        {
+          user,
+          updatedPreferredName: preferredName,
+          actorId: systemUserAccountId,
+        },
+      );
 
       createdUsers.push(user);
     }

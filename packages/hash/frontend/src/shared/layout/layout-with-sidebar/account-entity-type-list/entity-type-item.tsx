@@ -1,11 +1,11 @@
 import { extractBaseUri, VersionedUri } from "@blockprotocol/type-system";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
-
 import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
 import { Box, BoxProps, styled, Tooltip, Typography } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
 import { FunctionComponent, useRef } from "react";
+
 import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
 import { Link } from "../../../ui";
 import { EntityTypeMenu } from "./entity-type-menu";
@@ -72,7 +72,7 @@ export const EntityTypeItem: FunctionComponent<EntityTypeItemProps> = ({
   const url = new URL(`${window.location.origin}${router.asPath}/`);
   const urlBase = `${url.origin}${url.pathname.replace(/\/$/, "")}/`;
   const selected =
-    router.route === "/[account-slug]/types/entity-type/[entity-type-id]" &&
+    router.route === "/[shortname]/types/entity-type/[entity-type-id]" &&
     urlBase === baseUri;
 
   return (

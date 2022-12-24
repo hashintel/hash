@@ -77,7 +77,10 @@ target
 .vscode/settings.json
 
 # intellij IDEs config
-/.idea/
+.idea/
+
+# fleet IDEs config
+.fleet/
 
 # Python virtual environment
 venv
@@ -104,3 +107,6 @@ seed-users.json
 *.tfstate.*
 *.secrets.tfvars
 *.pem
+
+# Workspace-specific
+/packages/hash/design-system/storybook-static

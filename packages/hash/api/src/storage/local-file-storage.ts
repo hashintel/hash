@@ -1,11 +1,12 @@
-import path from "path";
-import multer, { Multer, StorageEngine } from "multer";
-import fs from "fs";
-import { URL } from "url";
-import express, { Express } from "express";
-import appRoot from "app-root-path";
-import { StorageType } from "../graphql/apiTypes.gen";
+import fs from "node:fs";
+import path from "node:path";
+import { URL } from "node:url";
 
+import appRoot from "app-root-path";
+import express, { Express } from "express";
+import multer, { Multer, StorageEngine } from "multer";
+
+import { StorageType } from "../graphql/api-types.gen";
 import {
   GetFileEntityStorageKeyParams,
   PresignedDownloadRequest,

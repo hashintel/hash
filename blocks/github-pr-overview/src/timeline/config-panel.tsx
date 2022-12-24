@@ -1,25 +1,26 @@
 import { MenuCheckboxItem } from "@hashintel/hash-design-system";
 import {
-  Paper,
-  Typography,
   Box,
-  Stack,
+  BoxProps,
+  Collapse,
   Divider,
-  typographyClasses,
+  ListItemIcon,
+  ListItemText,
   Menu,
   MenuItem,
-  ListItemIcon,
+  MenuList,
+  Paper,
+  Stack,
   styled,
-  BoxProps,
-  ListItemText,
+  Typography,
+  typographyClasses,
   useMediaQuery,
   useTheme,
-  MenuList,
-  Collapse,
 } from "@mui/material";
 import { startCase } from "lodash";
 import { Dispatch, FunctionComponent, SetStateAction, useState } from "react";
-import { ChevronDownIcon, CheckDoubleIcon, ClearIcon } from "../icons";
+
+import { CheckDoubleIcon, ChevronDownIcon, ClearIcon } from "../icons";
 import { getEventTypeColor } from "../utils";
 
 type ConfigPanelProps = {

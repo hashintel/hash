@@ -1,16 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
-import { Container, Typography } from "@mui/material";
-import { ValueOrArray, Array } from "@blockprotocol/type-system";
+import { Array, ValueOrArray } from "@blockprotocol/type-system";
 import { Button } from "@hashintel/hash-design-system";
 import { types } from "@hashintel/hash-shared/ontology-types";
+import { EntityId, OwnedById } from "@hashintel/hash-shared/types";
 import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
-import { NextPageWithLayout } from "../shared/layout";
-import { useBlockProtocolFunctionsWithOntology } from "./type-editor/blockprotocol-ontology-functions-hook";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { Container, Typography } from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
+
 import { useAdvancedInitTypeSystem } from "../lib/use-init-type-system";
+import { NextPageWithLayout } from "../shared/layout";
 import { useAuthenticatedUser } from "./shared/auth-info-context";
+import { useBlockProtocolFunctionsWithOntology } from "./type-editor/blockprotocol-ontology-functions-hook";
 
 /**
  * Helper type-guard for determining if a `ValueOrArray` definition is an array or a value.
@@ -19,13 +21,14 @@ const isArrayDefinition = <T,>(input: ValueOrArray<T>): input is Array<T> =>
   input &&
   typeof input === "object" &&
   "type" in input &&
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
   input.type === "array";
 
 /**
  * This component is an example usage of the `getEntity` BP function.
  * This is meant to be removed as soon as it's unneeded.
  */
-const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
+const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
   const { authenticatedUser } = useAuthenticatedUser();
   const [userSubgraph, setUserSubgraph] =
     useState<Subgraph<SubgraphRootTypes["entity"]>>();
@@ -39,7 +42,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
 
   useEffect(() => {
     // As an example entity, we are going to use the currently logged in user's entity ID
-    const entityId = authenticatedUser.entityEditionId.baseId;
+    const entityId = authenticatedUser.entityEditionId.baseId as EntityId;
 
     void getEntity({ data: { entityId } }).then(({ data }) => {
       setUserSubgraph(data);
@@ -110,7 +113,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
       return;
     }
     await archiveEntity({
-      data: { entityId: createdEntity.metadata.editionId.baseId },
+      data: { entityId: createdEntity.metadata.editionId.baseId as EntityId },
     }).then(() => setCreatedEntity(undefined));
   };
 
@@ -157,7 +160,7 @@ const ExampleEntityEditorPage: NextPageWithLayout = () => {
     <Container sx={{ pt: 10 }}>Loading...</Container>
   ) : (
     <Container sx={{ pt: 10 }}>
-      <ExampleUsage ownedById={authenticatedUser.userAccountId} />
+      <ExampleUsage ownedById={authenticatedUser.accountId as OwnedById} />
     </Container>
   );
 };

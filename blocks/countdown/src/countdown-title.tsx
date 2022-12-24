@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useRef, FunctionComponent } from "react";
+import { ChangeEvent, FunctionComponent, useEffect, useRef } from "react";
 
 type CountdownTitleProps = {
   value: string | undefined;

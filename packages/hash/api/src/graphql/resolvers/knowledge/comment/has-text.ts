@@ -1,26 +1,33 @@
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
-import { CommentModel } from "../../../../model";
-import { ResolverFn } from "../../../apiTypes.gen";
-import { LoggedInGraphQLContext } from "../../../context";
-import { UnresolvedCommentGQL } from "../model-mapping";
-import { SYSTEM_TYPES } from "../../../../graph/system-types";
 
-export const commentHasText: ResolverFn<
+import {
+  getCommentById,
+  getCommentText,
+} from "../../../../graph/knowledge/system-types/comment";
+import { SYSTEM_TYPES } from "../../../../graph/system-types";
+import { ResolverFn } from "../../../api-types.gen";
+import { LoggedInGraphQLContext } from "../../../context";
+import { UnresolvedCommentGQL } from "../graphql-mapping";
+
+export const commentHasTextResolver: ResolverFn<
   Promise<TextToken[]>,
   UnresolvedCommentGQL,
   LoggedInGraphQLContext,
   {}
 > = async ({ metadata }, _, { dataSources }) => {
   const { graphApi } = dataSources;
-  const commentModel = await CommentModel.getCommentById(graphApi, {
-    entityId: metadata.editionId.baseId,
-  });
-  const textEntityModel = await commentModel.getHasText(graphApi);
+  const comment = await getCommentById(
+    { graphApi },
+    {
+      entityId: metadata.editionId.baseId,
+    },
+  );
+  const textEntity = await getCommentText({ graphApi }, { comment });
 
-  // @todo implement `TextModel` class so that a `TextModel.getTokens()` method can be used here
+  // @todo implement `Text` class so that a `Text.getTokens()` method can be used here
   return (
-    (textEntityModel.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.tokens.getBaseUri()
-    ] ?? []
+    (textEntity.properties[
+      SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId
+    ] as TextToken[] | undefined) ?? []
   );
 };

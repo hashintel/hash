@@ -1,16 +1,17 @@
 import {
-  DataTypeWithMetadata as DataTypeWithMetadataGraphApi,
-  EntityTypeWithMetadata as EntityTypeWithMetadataGraphApi,
-  PropertyTypeWithMetadata as PropertyTypeWithMetadataGraphApi,
-  ProvenanceMetadata as ProvenanceMetadataGraphApi,
-} from "@hashintel/hash-graph-client";
-import {
   BaseUri,
   DataType,
   EntityType,
   PropertyType,
   VersionedUri,
 } from "@blockprotocol/type-system";
+import {
+  DataTypeWithMetadata as DataTypeWithMetadataGraphApi,
+  EntityTypeWithMetadata as EntityTypeWithMetadataGraphApi,
+  PropertyTypeWithMetadata as PropertyTypeWithMetadataGraphApi,
+  ProvenanceMetadata as ProvenanceMetadataGraphApi,
+} from "@hashintel/hash-graph-client";
+
 import { EntityEditionId, EntityId } from "./identifier";
 
 // Due to restrictions with how much OpenAPI can express, we patch the schemas with the better-typed ones from the

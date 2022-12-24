@@ -11,10 +11,12 @@ module.exports = {
   moduleNameMapper: {
     "@hashintel/hash-backend-utils(.*)": "<rootDir>/../backend-utils/src$1",
     "@hashintel/hash-shared(.*)": "<rootDir>/../shared/src$1",
+    "@hashintel/hash-subgraph(.*)": "<rootDir>/../subgraph$1",
     "@hashintel/hash-graph-client": "<rootDir>/../../graph/clients/typescript",
   },
+  setupFiles: ["@hashintel/hash-backend-utils/environment"],
   testMatch: [
     "<rootDir>/src/tests/model/knowledge/**",
-    "<rootDir>/src/tests/model/ontology/**",
+    "<rootDir>/src/tests/graph/**",
   ],
 };

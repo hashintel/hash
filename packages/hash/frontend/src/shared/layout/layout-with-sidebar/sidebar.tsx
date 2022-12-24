@@ -1,14 +1,13 @@
 import { faHome } from "@fortawesome/free-solid-svg-icons";
 import { IconButton } from "@hashintel/hash-design-system";
 import { Box, Drawer, Tooltip } from "@mui/material";
-
 import { useRouter } from "next/router";
 import { FunctionComponent, useContext } from "react";
+
 import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 import { SidebarToggleIcon } from "../../icons";
 import { useRoutePageInfo } from "../../routing";
 import { HEADER_HEIGHT } from "../layout-with-header/page-header";
-
 import { AccountEntityTypeList } from "./account-entity-type-list";
 import { AccountPageList } from "./account-page-list/account-page-list";
 import { useSidebarContext } from "./sidebar-context";
@@ -21,7 +20,8 @@ export const PageSidebar: FunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
   const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
-  const { pageEntityId } = useRoutePageInfo({ allowUndefined: true }) ?? {};
+  const { routePageEntityUuid } =
+    useRoutePageInfo({ allowUndefined: true }) ?? {};
 
   return (
     <Drawer
@@ -62,7 +62,7 @@ export const PageSidebar: FunctionComponent = () => {
         title="Home"
         href="/"
         tooltipTitle="View your inbox and latest activity"
-        active={router.pathname === "/[account-slug]"}
+        active={router.pathname === "/[shortname]"}
       />
       {/* 
         Commented out nav links whose functionality have not been 
@@ -94,7 +94,7 @@ export const PageSidebar: FunctionComponent = () => {
           <>
             {/* PAGES */}
             <AccountPageList
-              currentPageEntityId={pageEntityId}
+              currentPageEntityUuid={routePageEntityUuid}
               accountId={activeWorkspaceAccountId}
             />
             {/* TYPES */}

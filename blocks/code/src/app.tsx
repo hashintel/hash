@@ -1,13 +1,13 @@
-import { useEffect, useRef, useState } from "react";
-
 import {
   BlockComponent,
   useGraphBlockService,
 } from "@blockprotocol/graph/react";
+import { useEffect, useRef, useState } from "react";
+
 import styles from "./app.module.css";
+import { Editor } from "./editor";
 import { CopyIcon } from "./icons";
 import { languages, LanguageType } from "./utils";
-import { Editor } from "./editor";
 
 type BlockEntityProperties = {
   caption?: string;
@@ -83,6 +83,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
 
   const copyToClipboard = async () => {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- account for old browsers
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(localData.content);
         setCopied(true);
@@ -110,16 +111,13 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     setCaptionVisibility(true);
     setTimeout(() => {
       captionRef.current?.focus();
-      captionRef.current?.setSelectionRange(
-        0,
-        captionRef.current?.value.length,
-      );
+      captionRef.current?.setSelectionRange(0, captionRef.current.value.length);
     }, 0);
   };
 
   useEffect(() => {
     if (captionRef.current !== document.activeElement) {
-      setCaptionVisibility(localData.caption && localData.caption?.length > 0);
+      setCaptionVisibility(localData.caption && localData.caption.length > 0);
     }
   }, [localData.caption]);
 

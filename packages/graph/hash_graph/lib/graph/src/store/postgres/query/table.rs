@@ -531,7 +531,7 @@ impl Relation {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{ontology::DataTypeQueryPath, store::postgres::query::Path};
+    use crate::{ontology::DataTypeQueryPath, store::postgres::query::PostgresQueryPath};
 
     #[test]
     fn transpile_table() {

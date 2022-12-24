@@ -1,10 +1,11 @@
 import { gql } from "@apollo/client";
+
 import { subgraphFieldsFragment } from "../subgraph";
 
 export const createEntityMutation = gql`
   mutation createEntity(
     $entityTypeId: VersionedUri!
-    $ownedById: ID
+    $ownedById: OwnedById
     $properties: PropertyObject!
     $linkData: LinkData
   ) {

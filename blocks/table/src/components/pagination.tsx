@@ -1,4 +1,4 @@
-import { useCallback, FunctionComponent } from "react";
+import { FunctionComponent, useCallback } from "react";
 import { tw } from "twind";
 
 type PaginationProps = {

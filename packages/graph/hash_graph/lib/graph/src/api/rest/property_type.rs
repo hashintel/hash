@@ -2,12 +2,7 @@
 
 use std::sync::Arc;
 
-use axum::{
-    extract::Path,
-    http::StatusCode,
-    routing::{get, post},
-    Extension, Json, Router,
-};
+use axum::{http::StatusCode, routing::post, Extension, Json, Router};
 use error_stack::IntoReport;
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
@@ -17,8 +12,8 @@ use utoipa::{OpenApi, ToSchema};
 use super::api_resource::RoutedResource;
 use crate::{
     api::rest::{
-        read_from_store, report_to_status_code,
-        utoipa_typedef::subgraph::{Edges, Subgraph, Vertices},
+        report_to_status_code,
+        utoipa_typedef::subgraph::{Edges, Subgraph, Vertex, Vertices},
     },
     identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId, GraphElementId},
     ontology::{
@@ -27,16 +22,13 @@ use crate::{
         PropertyTypeWithMetadata,
     },
     provenance::{OwnedById, UpdatedById},
-    store::{
-        query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool,
-    },
+    store::{BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool},
     subgraph::{
         edges::{
             EdgeResolveDepths, GraphResolveDepths, OntologyEdgeKind, OutgoingEdgeResolveDepth,
             SharedEdgeKind,
         },
         query::{PropertyTypeStructuralQuery, StructuralQuery},
-        vertices::Vertex,
     },
 };
 
@@ -45,8 +37,6 @@ use crate::{
     paths(
         create_property_type,
         get_property_types_by_query,
-        get_property_type,
-        get_latest_property_types,
         update_property_type
     ),
     components(
@@ -81,7 +71,6 @@ pub struct PropertyTypeResource;
 
 impl RoutedResource for PropertyTypeResource {
     /// Create routes for interacting with property types.
-    #[expect(deprecated)]
     fn routes<P: StorePool + Send + 'static>() -> Router {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
@@ -89,17 +78,14 @@ impl RoutedResource for PropertyTypeResource {
             Router::new()
                 .route(
                     "/",
-                    post(create_property_type::<P>)
-                        .get(get_latest_property_types::<P>)
-                        .put(update_property_type::<P>),
+                    post(create_property_type::<P>).put(update_property_type::<P>),
                 )
-                .route("/query", post(get_property_types_by_query::<P>))
-                .route("/:version_id", get(get_property_type::<P>)),
+                .route("/query", post(get_property_types_by_query::<P>)),
         )
     }
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreatePropertyTypeRequest {
     #[schema(value_type = VAR_PROPERTY_TYPE)]
@@ -122,6 +108,7 @@ struct CreatePropertyTypeRequest {
     ),
     request_body = CreatePropertyTypeRequest,
 )]
+#[tracing::instrument(level = "info", skip(pool, domain_validator))]
 async fn create_property_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
@@ -180,6 +167,7 @@ async fn create_property_type<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     )
 )]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn get_property_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(query): Json<serde_json::Value>,
@@ -210,52 +198,7 @@ async fn get_property_types_by_query<P: StorePool + Send>(
         .map(|subgraph| Json(subgraph.into()))
 }
 
-#[utoipa::path(
-    get,
-    path = "/property-types",
-    tag = "PropertyType",
-    responses(
-        (status = 200, content_type = "application/json", description = "List of all property types at their latest versions", body = [PropertyTypeWithMetadata]),
-
-        (status = 500, description = "Store error occurred"),
-    )
-)]
-#[deprecated = "use `/property-types/query` instead"]
-async fn get_latest_property_types<P: StorePool + Send>(
-    pool: Extension<Arc<P>>,
-) -> Result<Json<Vec<PropertyTypeWithMetadata>>, StatusCode> {
-    read_from_store(pool.as_ref(), &Filter::for_latest_version())
-        .await
-        .map(Json)
-}
-
-#[utoipa::path(
-    get,
-    path = "/property-types/{uri}",
-    tag = "PropertyType",
-    responses(
-        (status = 200, content_type = "application/json", description = "The schema of the requested property type", body = PropertyTypeWithMetadata),
-        (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
-
-        (status = 404, description = "Property type was not found"),
-        (status = 500, description = "Store error occurred"),
-    ),
-    params(
-        ("uri" = String, Path, description = "The URI of the property type"),
-    )
-)]
-#[deprecated = "use `/property-types/query` instead"]
-async fn get_property_type<P: StorePool + Send>(
-    uri: Path<VersionedUri>,
-    pool: Extension<Arc<P>>,
-) -> Result<Json<PropertyTypeWithMetadata>, StatusCode> {
-    read_from_store(pool.as_ref(), &Filter::for_versioned_uri(&uri.0))
-        .await
-        .and_then(|mut property_types| property_types.pop().ok_or(StatusCode::NOT_FOUND))
-        .map(Json)
-}
-
-#[derive(ToSchema, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct UpdatePropertyTypeRequest {
     #[schema(value_type = VAR_UPDATE_PROPERTY_TYPE)]
@@ -278,6 +221,7 @@ struct UpdatePropertyTypeRequest {
     ),
     request_body = UpdatePropertyTypeRequest,
 )]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn update_property_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<UpdatePropertyTypeRequest>,

@@ -2,7 +2,7 @@ import {
   BlockComponent,
   useGraphBlockService,
 } from "@blockprotocol/graph/react";
-import { useHookBlockService, useHook } from "@blockprotocol/hook/react";
+import { useHook, useHookBlockService } from "@blockprotocol/hook/react";
 import { useRef } from "react";
 
 import { EmojiIcon } from "./emoji-icon";

@@ -109,7 +109,10 @@ target
 .vscode/settings.json
 
 # intellij IDEs config
-/.idea/
+.idea/
+
+# fleet IDEs config
+.fleet/
 
 # Python compiled files and package metadata
 __pycache__
@@ -133,3 +136,6 @@ seed-users.json
 *.tfstate.*
 *.secrets.tfvars
 *.pem
+
+# Workspace-specific
+/packages/hash/design-system/storybook-static

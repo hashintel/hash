@@ -1,6 +1,6 @@
-import { tw } from "twind";
 import { EntityType } from "@blockprotocol/graph";
 import { FunctionComponent } from "react";
+import { tw } from "twind";
 
 type EntityTypeDropdownProps = {
   onChange?: (entityTypeId?: string) => void;

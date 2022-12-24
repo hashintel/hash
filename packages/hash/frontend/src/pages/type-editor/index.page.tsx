@@ -1,14 +1,15 @@
 import { types } from "@hashintel/hash-shared/ontology-types";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import { Box, Container } from "@mui/material";
 import { useCallback, useState } from "react";
+
 import {
   AggregateDataTypesMessageCallback,
   AggregateEntityTypesMessageCallback,
   AggregatePropertyTypesMessageCallback,
-} from "../../components/hooks/blockProtocolFunctions/ontology/ontology-types-shim";
+} from "../../components/hooks/block-protocol-functions/ontology/ontology-types-shim";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { NextPageWithLayout } from "../../shared/layout";
-
 import { Button } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { useBlockProtocolFunctionsWithOntology } from "./blockprotocol-ontology-functions-hook";
@@ -17,10 +18,12 @@ import { useBlockProtocolFunctionsWithOntology } from "./blockprotocol-ontology-
  * This component is an example usage of the new functions.
  * This is meant to be removed as soon as it's unneeded.
  */
-const ExampleUsage = ({ accountId }: { accountId: string }) => {
+const ExampleUsage = ({ accountId }: { accountId: AccountId }) => {
   const [content, setContent] = useState<string>();
 
-  const functions = useBlockProtocolFunctionsWithOntology(accountId);
+  const functions = useBlockProtocolFunctionsWithOntology(
+    accountId as OwnedById,
+  );
 
   const getType = useCallback(
     (
@@ -112,7 +115,7 @@ const Page: NextPageWithLayout = () => {
   ) : (
     <Container sx={{ pt: 10 }}>
       Hello!
-      <ExampleUsage accountId={authenticatedUser.userAccountId} />
+      <ExampleUsage accountId={authenticatedUser.accountId} />
     </Container>
   );
 };

@@ -1,30 +1,35 @@
-import { CommentModel } from "../../../../model";
-
+import {
+  getCommentById,
+  updateCommentText,
+} from "../../../../graph/knowledge/system-types/comment";
 import {
   MutationUpdateCommentTextArgs,
   ResolverFn,
-} from "../../../apiTypes.gen";
+} from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { UnresolvedCommentGQL, mapCommentModelToGQL } from "../model-mapping";
+import { mapCommentToGQL, UnresolvedCommentGQL } from "../graphql-mapping";
 
-export const updateCommentText: ResolverFn<
+export const updateCommentTextResolver: ResolverFn<
   Promise<UnresolvedCommentGQL>,
   {},
   LoggedInGraphQLContext,
   MutationUpdateCommentTextArgs
-> = async (
-  _,
-  { entityId, tokens },
-  { dataSources: { graphApi }, userModel },
-) => {
-  const commentModel = await CommentModel.getCommentById(graphApi, {
-    entityId,
-  });
+> = async (_, { entityId, tokens }, { dataSources: { graphApi }, user }) => {
+  const comment = await getCommentById(
+    { graphApi },
+    {
+      entityId,
+    },
+  );
 
-  const updatedCommentModel = await commentModel.updateText(graphApi, {
-    actorId: userModel.getEntityUuid(),
-    tokens,
-  });
+  await updateCommentText(
+    { graphApi },
+    {
+      comment,
+      actorId: user.accountId,
+      tokens,
+    },
+  );
 
-  return mapCommentModelToGQL(updatedCommentModel);
+  return mapCommentToGQL(comment);
 };

@@ -1,5 +1,6 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import {
   Box,
   listItemSecondaryActionClasses,
@@ -7,7 +8,6 @@ import {
   Menu,
   useTheme,
 } from "@mui/material";
-
 import {
   bindMenu,
   bindTrigger,
@@ -20,20 +20,21 @@ import {
   useMemo,
   useState,
 } from "react";
-import { useAccountPages } from "../../../components/hooks/useAccountPages";
-import { useCreatePage } from "../../../components/hooks/useCreatePage";
+
+import { useAccountPages } from "../../../components/hooks/use-account-pages";
+import { useCreatePage } from "../../../components/hooks/use-create-page";
 import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 import { MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
 
 export const ActionsDropdownInner: FunctionComponent<{
-  accountId: string;
+  accountId: AccountId;
 }> = ({ accountId }) => {
   const theme = useTheme();
   const { activeWorkspace } = useContext(WorkspaceContext);
   const [loading, setLoading] = useState(false);
-  const { data } = useAccountPages(accountId);
-  const [createUntitledPage] = useCreatePage(accountId);
+  const { data } = useAccountPages(accountId as OwnedById);
+  const [createUntitledPage] = useCreatePage(accountId as OwnedById);
   const popupState = usePopupState({
     variant: "popover",
     popupId: "actions-dropdown-menu",

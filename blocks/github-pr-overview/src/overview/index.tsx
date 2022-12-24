@@ -1,19 +1,13 @@
 /* eslint-disable canonical/filename-no-index -- @todo rename file */
 
-import { FunctionComponent } from "react";
+import { IconButton } from "@hashintel/hash-design-system";
+import { Box, Divider, Typography, typographyClasses } from "@mui/material";
 import Avatar from "@mui/material/Avatar";
 import Stack from "@mui/material/Stack";
-import { uniqBy } from "lodash";
 import formatDistance from "date-fns/formatDistance";
-import { Box, Typography, Divider, typographyClasses } from "@mui/material";
-import { IconButton } from "@hashintel/hash-design-system";
-import {
-  GithubIssueEventEntityType,
-  GithubPullRequestEntityType,
-  GithubReviewEntityType,
-  isDefined,
-} from "../types";
-import { GithubPrTimeline } from "../timeline";
+import { uniqBy } from "lodash";
+import { FunctionComponent } from "react";
+
 import {
   CloseIcon,
   CommentIcon,
@@ -22,8 +16,15 @@ import {
   PullRequestMergedIcon,
   PullRequestOpenIcon,
 } from "../icons";
-import { Reviews } from "./reviews";
+import { GithubPrTimeline } from "../timeline";
+import {
+  GithubIssueEventEntityType,
+  GithubPullRequestEntityType,
+  GithubReviewEntityType,
+  isDefined,
+} from "../types";
 import { getEventTypeColor } from "../utils";
+import { Reviews } from "./reviews";
 
 export type GithubPrOverviewProps = {
   pullRequest: GithubPullRequestEntityType["properties"];
@@ -240,7 +241,7 @@ export const GithubPrOverview: FunctionComponent<GithubPrOverviewProps> = ({
 
         <Reviews
           pendingReviews={(pullRequest.requested_reviewers ?? [])
-            ?.filter(isDefined)
+            .filter(isDefined)
             .map(({ login, avatar_url }) => ({ login, avatar_url }))}
           completedReviews={uniqueReviewers}
         />

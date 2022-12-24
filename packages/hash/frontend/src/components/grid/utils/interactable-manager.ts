@@ -1,6 +1,7 @@
 import { CustomCell } from "@glideapps/glide-data-grid";
 import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
 import { typedKeys } from "@hashintel/hash-shared/util";
+
 import {
   CellPath,
   CursorPos,
@@ -112,7 +113,7 @@ class InteractableManagerClass {
     const handler = onClick ?? onMouseEnter;
 
     if (handler) {
-      handler?.(foundInteractable);
+      handler(foundInteractable);
 
       return true;
     }
