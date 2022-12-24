@@ -117,7 +117,6 @@ mod full {
     #[test]
     fn hook_custom() {
         let _guard = prepare(false);
-        // This sadly does not work
 
         Report::install_custom_serde_hook(serialize);
 
