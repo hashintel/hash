@@ -4,6 +4,7 @@
 #![cfg(not(miri))]
 #![cfg_attr(all(nightly, feature = "std"), feature(error_generic_member_access))]
 #![cfg_attr(nightly, feature(provide_any))]
+#![cfg_attr(nightly, feature(closure_lifetime_binder))]
 
 mod common;
 
@@ -29,7 +30,6 @@ fn sources_nested() {
     rust_1_65,
     any(feature = "std", feature = "hooks"),
     feature = "spantrace",
-    feature = "pretty-print"
 ))]
 mod full {
     //! For reasoning about this specific module please refer to
@@ -118,15 +118,32 @@ mod full {
     fn hook_custom() {
         let _guard = prepare(false);
         // This sadly does not work
-        // Report::install_custom_serde_hook(
-        //     |value: &DoesNotImplementSerialize,
-        //      context: &mut HookContext<DoesNotImplementSerialize>| ImplementSerialize {
-        //         a: &value.a,
-        //         b: &value.b,
-        //     },
-        // );
 
         Report::install_custom_serde_hook(serialize);
+
+        let report = create_report().attach(DoesNotImplementSerialize {
+            a: "example".to_string(),
+            b: Box::new([1, 2, 3]),
+        });
+
+        assert_json_snapshot!(report);
+    }
+
+    #[test]
+    #[cfg(nightly)]
+    fn hook_custom_nightly() {
+        let _guard = prepare(false);
+
+        Report::install_custom_serde_hook(
+            for<'a, 'b> |value: &'a DoesNotImplementSerialize,
+                         context: &'b mut HookContext<DoesNotImplementSerialize>|
+                         -> ImplementSerialize<'a> {
+                ImplementSerialize {
+                    a: &value.a,
+                    b: &value.b,
+                }
+            },
+        );
 
         let report = create_report().attach(DoesNotImplementSerialize {
             a: "example".to_string(),

@@ -1,0 +1,50 @@
+---
+source: tests/test_serialize.rs
+expression: report
+---
+[
+  {
+    "context": "root error",
+    "attachments": [
+      {
+        "file": "tests/common/mod.rs",
+        "line": 4,
+        "column": 5
+      },
+      "backtrace (1)",
+      {
+        "spans": [
+          {
+            "fields": [],
+            "level": "INFO",
+            "name": "func_b",
+            "target": "test_serialize::common::snapshots",
+            "module_path": "test_serialize::common::snapshots",
+            "file": "tests/common/snapshots.rs",
+            "line": 73,
+            "type": "span"
+          },
+          {
+            "fields": [],
+            "level": "INFO",
+            "name": "func_a",
+            "target": "test_serialize::common::snapshots",
+            "module_path": "test_serialize::common::snapshots",
+            "file": "tests/common/snapshots.rs",
+            "line": 78,
+            "type": "span"
+          }
+        ]
+      },
+      {
+        "a": "example",
+        "b": [
+          1,
+          2,
+          3
+        ]
+      }
+    ],
+    "sources": []
+  }
+]
