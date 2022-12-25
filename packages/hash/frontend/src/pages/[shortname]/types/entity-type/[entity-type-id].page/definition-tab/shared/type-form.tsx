@@ -17,7 +17,6 @@ import {
   Divider,
   inputLabelClasses,
   Stack,
-  Tooltip,
   Typography,
 } from "@mui/material";
 import {
@@ -47,7 +46,8 @@ import {
   useFormContext,
   UseFormTrigger,
 } from "react-hook-form";
-import { Modal } from "../../../../../../../components/Modals/Modal";
+
+import { Modal } from "../../../../../../../components/modals/modal";
 import { withHandler } from "../property-list-card/shared/with-handler";
 import { QuestionIcon } from "./question-icon";
 
@@ -114,7 +114,7 @@ export const TypeFormNameField = ({
   );
 };
 
-// @todo handle this field having a different description
+// @todo handle this field having a different type than property
 export const TypeFormDescriptionField = ({
   defaultValues,
   fieldDisabled,
@@ -151,31 +151,16 @@ export const TypeFormDescriptionField = ({
       label={
         <>
           Description{" "}
-          <Tooltip
-            placement="top"
-            title="Descriptions help people understand what property types can be used for, and help make them more discoverable (allowing for reuse)."
-            PopperProps={{
-              modifiers: [
-                {
-                  name: "offset",
-                  options: {
-                    offset: [0, 8],
-                  },
-                },
-              ],
+          <Box
+            sx={{
+              order: 1,
+              ml: 0.75,
+              display: "flex",
+              alignItems: "center",
             }}
           >
-            <Box
-              sx={{
-                order: 1,
-                ml: 0.75,
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              <QuestionIcon />
-            </Box>
-          </Tooltip>
+            <QuestionIcon tooltip="Descriptions help people understand what property types can be used for, and help make them more discoverable (allowing for reuse)." />
+          </Box>
         </>
       }
       required={descriptionRequired}
@@ -236,7 +221,7 @@ export const generateInitialTypeUri = (baseUri: string) =>
 
 export const useGenerateTypeBaseUri = (kind: SchemaKind) => {
   const router = useRouter();
-  const shortname = router.query["account-slug"]?.toString().slice(1) ?? "";
+  const shortname = router.query.shortname?.toString().slice(1) ?? "";
 
   return (value: string) => {
     if (!shortname) {

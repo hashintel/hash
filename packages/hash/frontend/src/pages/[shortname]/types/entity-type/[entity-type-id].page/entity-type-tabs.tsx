@@ -4,13 +4,14 @@ import { Box, Tabs, tabsClasses } from "@mui/material";
 import { useRouter } from "next/router";
 import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
-import { useFontLoadedCallback } from "../../../../../components/hooks/useFontLoadedCallback";
+
+import { useFontLoadedCallback } from "../../../../../components/hooks/use-font-loaded-callback";
+import { TabLink } from "./entity-type-tabs/tab-link";
+import { useEntityType } from "./shared/entity-type-context";
 import { useEntityTypeEntities } from "./shared/entity-type-entities-context";
 import { EntityTypeEditorForm } from "./shared/form-types";
-import { TabLink } from "./entity-type-tabs/tab-link";
 import { getEntityTypeBaseUri } from "./shared/get-entity-type-base-uri";
 import { getTabUri, getTabValue, useCurrentTab } from "./shared/tabs";
-import { useEntityType } from "./shared/entity-type-context";
 
 export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
   const router = useRouter();

@@ -2,15 +2,16 @@ import {
   GraphResolveDepths,
   OntologyTypeEditionId,
 } from "@hashintel/hash-graph-client";
+
+import { Edges } from "./edge";
 import {
   DataTypeWithMetadata,
-  EntityTypeWithMetadata,
   Entity,
+  EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "./element";
-import { Vertices } from "./vertex";
-import { Edges } from "./edge";
 import { EntityEditionId } from "./identifier";
+import { Vertices } from "./vertex";
 
 export type SubgraphRootTypes = {
   dataType: {

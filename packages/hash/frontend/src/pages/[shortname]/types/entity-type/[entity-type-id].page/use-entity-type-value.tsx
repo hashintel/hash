@@ -1,8 +1,7 @@
 import { EntityType, extractBaseUri } from "@blockprotocol/type-system";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import { getEntityTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { useRouter } from "next/router";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
-
 import {
   useCallback,
   useEffect,
@@ -10,9 +9,10 @@ import {
   useRef,
   useState,
 } from "react";
-import { useBlockProtocolAggregateEntityTypes } from "../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateEntityTypes";
-import { useBlockProtocolCreateEntityType } from "../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreateEntityType";
-import { useBlockProtocolUpdateEntityType } from "../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";
+
+import { useBlockProtocolAggregateEntityTypes } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-entity-types";
+import { useBlockProtocolCreateEntityType } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
+import { useBlockProtocolUpdateEntityType } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-entity-type";
 import { useAdvancedInitTypeSystem } from "../../../../../lib/use-init-type-system";
 
 export const useEntityTypeValue = (

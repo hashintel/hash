@@ -1,9 +1,10 @@
+import { validateBaseUri } from "@blockprotocol/type-system";
 import {
   Edges as EdgesGraphApi,
   KnowledgeGraphOutwardEdges,
   OntologyOutwardEdges,
 } from "@hashintel/hash-graph-client";
-import { validateBaseUri } from "@blockprotocol/type-system";
+
 import {
   Edges,
   isEntityAndTimestamp,

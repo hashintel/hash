@@ -3,16 +3,16 @@ import { scalars } from "@hashintel/hash-shared/graphql/scalar-mapping";
 
 const config: CodegenConfig = {
   overwrite: true,
-  schema: "./src/graphql/typeDefs/**/*.ts",
+  schema: "./src/graphql/type-defs/**/*.ts",
   require: ["ts-node/register"],
   generates: {
-    "./src/graphql/graphqlSchema.gen.json": {
+    "./src/graphql/graphql-schema.gen.json": {
       plugins: ["introspection"],
       config: {
         noSchemaStitching: true,
       },
     },
-    "./src/graphql/apiTypes.gen.ts": {
+    "./src/graphql/api-types.gen.ts": {
       plugins: ["typescript", "typescript-resolvers", "typescript-operations"],
       documents: ["../shared/src/queries/**/*.ts"],
       hooks: {

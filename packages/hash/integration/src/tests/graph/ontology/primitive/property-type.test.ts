@@ -1,27 +1,27 @@
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
-import {
-  createGraphClient,
-  ensureSystemGraphIsInitialized,
-  ImpureGraphContext,
-} from "@hashintel/hash-api/src/graph";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-
 import {
   PropertyType,
   TypeSystemInitializer,
 } from "@blockprotocol/type-system";
 import {
+  createGraphClient,
+  ensureSystemGraphIsInitialized,
+  ImpureGraphContext,
+} from "@hashintel/hash-api/src/graph";
+import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
+import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
+import {
   createPropertyType,
   getPropertyTypeById,
   updatePropertyType,
 } from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
+import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import {
   DataTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@hashintel/hash-subgraph";
-import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
-import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
-import { OwnedById } from "@hashintel/hash-shared/types";
+
 import { createTestUser } from "../../../util";
 
 jest.setTimeout(60000);

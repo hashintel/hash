@@ -1,5 +1,5 @@
-import { styled } from "@mui/material";
 import { IconButton } from "@hashintel/hash-design-system";
+import { styled } from "@mui/material";
 
 export const HeaderIconButton = styled(IconButton)(({ theme }) => ({
   transition: theme.transitions.create(["box-shadow"]),
