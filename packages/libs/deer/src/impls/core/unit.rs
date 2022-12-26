@@ -19,7 +19,7 @@ impl<'de> Visitor<'de> for UnitVisitor {
     }
 }
 
-struct UnitReflection;
+pub struct UnitReflection;
 
 // We do not implement `Reflection` on `()` automatically, as `()` is often the default for
 // auto-completing implementation, therefore implementing `Reflection` for `()` would likely lead to

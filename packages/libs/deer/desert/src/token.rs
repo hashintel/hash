@@ -3,7 +3,8 @@ use core::fmt::{Debug, Display, Formatter};
 use deer::Number;
 
 // TODO: test
-#[derive(Debug, Copy, Clone)]
+// TODO: this should be `Copy`, but `Number` has no &'static constructor
+#[derive(Debug, Clone)]
 pub enum Token {
     /// A serialized `bool`
     ///
@@ -50,7 +51,7 @@ pub enum Token {
     /// assert_tokens(&Bool(true), &[Token::Bool(true)])
     /// ```
     Bool(bool),
-    Number(&'static Number),
+    Number(Number),
     Char(char),
     Str(&'static str),
     BorrowedStr(&'static str),

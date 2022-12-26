@@ -57,7 +57,7 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
 
         match token {
             Token::Bool(value) => visitor.visit_bool(value),
-            Token::Number(value) => visitor.visit_number(value.clone()),
+            Token::Number(value) => visitor.visit_number(value),
             Token::Char(value) => visitor.visit_char(value),
             Token::Str(value) => visitor.visit_str(value),
             Token::BorrowedStr(value) => visitor.visit_borrowed_str(value),
