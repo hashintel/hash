@@ -131,7 +131,7 @@ pub trait Visitor<'de>: Sized {
 
     fn visit_null(self) -> Result<Self::Value, VisitorError> {
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(visitor::NullSchema::document()))
+            .attach(ReceivedType::new(<()>::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
@@ -145,7 +145,7 @@ pub trait Visitor<'de>: Sized {
 
     fn visit_number(self, v: Number) -> Result<Self::Value, VisitorError> {
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(visitor::NumberSchema::document()))
+            .attach(ReceivedType::new(Number::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
@@ -155,12 +155,12 @@ pub trait Visitor<'de>: Sized {
         let v = v.encode_utf8(&mut buffer);
 
         self.visit_str(v)
-            .attach(ReceivedType::new(visitor::CharSchema::document()))
+            .attach(ReceivedType::new(char::reflection()))
     }
 
     fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(visitor::StringSchema::document()))
+            .attach(ReceivedType::new(<&str>::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
@@ -210,34 +210,33 @@ pub trait Visitor<'de>: Sized {
 
     fn visit_i8(self, v: i8) -> Result<Self::Value, VisitorError> {
         self.visit_number(Number::from(v))
-            .attach(ReceivedType::new(visitor::I8Schema::document()))
+            .attach(ReceivedType::new(i8::reflection()))
     }
 
     fn visit_i16(self, v: i16) -> Result<Self::Value, VisitorError> {
         self.visit_number(Number::from(v))
-            .attach(ReceivedType::new(visitor::I16Schema::document()))
+            .attach(ReceivedType::new(i16::reflection()))
     }
 
     fn visit_i32(self, v: i32) -> Result<Self::Value, VisitorError> {
-        self.visit_number(Number::from(v))
-            .attach(visitor::I32Schema::document())
+        self.visit_number(Number::from(v)).attach(i32::reflection())
     }
 
     fn visit_i64(self, v: i64) -> Result<Self::Value, VisitorError> {
         self.visit_number(Number::from(v))
-            .attach(ReceivedType::new(visitor::I64Schema::document()))
+            .attach(ReceivedType::new(i64::reflection()))
     }
 
     fn visit_i128(self, v: i128) -> Result<Self::Value, VisitorError> {
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(visitor::I128Schema::document()))
+            .attach(ReceivedType::new(i128::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
     fn visit_isize(self, v: isize) -> Result<Self::Value, VisitorError> {
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(visitor::ISizeSchema::document()))
+            .attach(ReceivedType::new(isize::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
@@ -249,41 +248,41 @@ pub trait Visitor<'de>: Sized {
 
     fn visit_u16(self, v: u16) -> Result<Self::Value, VisitorError> {
         self.visit_number(Number::from(v))
-            .attach(ReceivedType::new(visitor::U16Schema::document()))
+            .attach(ReceivedType::new(u16::reflection()))
     }
 
     fn visit_u32(self, v: u32) -> Result<Self::Value, VisitorError> {
         self.visit_number(Number::from(v))
-            .attach(ReceivedType::new(visitor::U32Schema::document()))
+            .attach(ReceivedType::new(u32::reflection()))
     }
 
     fn visit_u64(self, v: u64) -> Result<Self::Value, VisitorError> {
         self.visit_number(Number::from(v))
-            .attach(ReceivedType::new(visitor::U64Schema::document()))
+            .attach(ReceivedType::new(u64::reflection()))
     }
 
     fn visit_u128(self, v: u128) -> Result<Self::Value, VisitorError> {
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(visitor::U128Schema::document()))
+            .attach(ReceivedType::new(u128::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
     fn visit_usize(self, v: usize) -> Result<Self::Value, VisitorError> {
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(visitor::USizeSchema::document()))
+            .attach(ReceivedType::new(usize::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
     fn visit_f32(self, v: f32) -> Result<Self::Value, VisitorError> {
         self.visit_number(Number::from(v))
-            .attach(ReceivedType::new(visitor::NumberSchema::document()))
+            .attach(ReceivedType::new(f32::reflection()))
     }
 
     fn visit_f64(self, v: f64) -> Result<Self::Value, VisitorError> {
         self.visit_number(Number::from(v))
-            .attach(ReceivedType::new(visitor::NumberSchema::document()))
+            .attach(ReceivedType::new(f64::reflection()))
     }
 }
 
@@ -295,7 +294,7 @@ impl Visitor<'_> for NumberVisitor {
     type Value = Number;
 
     fn expecting(&self) -> Document {
-        visitor::NumberSchema::document()
+        Number::reflection()
     }
 
     fn visit_number(self, v: Number) -> Result<Self::Value, VisitorError> {

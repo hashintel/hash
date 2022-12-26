@@ -287,8 +287,8 @@ mod tests {
             ReceivedValue, ReportExt, ValueError, Variant, VisitorError, NAMESPACE,
         },
         id,
-        schema::visitor::{NumberSchema, StringSchema},
-        Deserialize, Reflection,
+        schema::visitor::StringSchema,
+        Deserialize, Number, Reflection,
     };
 
     #[derive(Debug)]
@@ -520,7 +520,7 @@ mod tests {
             .attach(Location::Field("b"))
             .attach(Location::Field("a"))
             .attach(Location::Array(0))
-            .attach(ExpectedType::new(NumberSchema::document()));
+            .attach(ExpectedType::new(Number::reflection()));
 
         let export = report.export();
         let export = to_value(export).expect("should be ok");
@@ -539,11 +539,11 @@ mod tests {
                     ],
                     "expected": {
                       "$defs": {
-                          "0000-deer::schema::visitor::NumberSchema": {
+                          "0000-deer::number::Number": {
                               "type": "number",
                           },
                       },
-                      "$ref": "#/$defs/0000-deer::schema::visitor::NumberSchema",
+                      "$ref": "#/$defs/0000-deer::number::Number",
                     }
                 }
             }])
