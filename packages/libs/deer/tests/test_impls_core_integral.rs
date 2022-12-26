@@ -1,4 +1,4 @@
-use deer::Number;
+use deer::{Deserialize, Number};
 use deer_desert::{assert_tokens, assert_tokens_error, Token};
 use proptest::prelude::*;
 use serde_json::json;
