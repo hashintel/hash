@@ -287,8 +287,8 @@ mod tests {
             ReceivedValue, ReportExt, ValueError, Variant, VisitorError, NAMESPACE,
         },
         id,
-        schema::visitor::{NumberSchema, StringSchema, U8Schema},
-        Reflection,
+        schema::visitor::{NumberSchema, StringSchema},
+        Deserialize, Reflection,
     };
 
     #[derive(Debug)]
@@ -563,7 +563,7 @@ mod tests {
 
         let value = Report::new(Error::new(ValueError))
             .attach(ReceivedValue::new(256u16))
-            .attach(ExpectedType::new(U8Schema::document()))
+            .attach(ExpectedType::new(u8::reflection()))
             .attach(Location::Field("a"))
             .change_context(VisitorError);
 
@@ -606,13 +606,13 @@ mod tests {
                     "received": 256,
                     "expected": {
                         "$defs": {
-                            "0000-deer::schema::visitor::U8Schema": {
+                            "0000-u8": {
                                 "maximum": 255,
                                 "minimum": 0,
                                 "type": "integer",
                             },
                         },
-                        "$ref": "#/$defs/0000-deer::schema::visitor::U8Schema",
+                        "$ref": "#/$defs/0000-u8",
                     }
                 }
             }])

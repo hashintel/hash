@@ -13,7 +13,7 @@ macro_rules! impl_integral {
             type Value = $typ;
 
             fn expecting(&self) -> Document {
-                Document::new::<$typ>()
+                <$typ>::reflection()
             }
 
             fn $visit(self, v: $typ) -> error_stack::Result<Self::Value, VisitorError> {

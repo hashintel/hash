@@ -2,6 +2,8 @@ use core::fmt::Debug;
 
 use deer::{error::ReportExt, Context, Deserialize};
 use serde_json::to_value;
+#[cfg(feature = "pretty")]
+use similar_asserts::{assert_eq, assert_serde_eq};
 
 use crate::{deserializer::Deserializer, token::Token};
 
@@ -39,7 +41,11 @@ pub fn assert_tokens_with_context_error<'de, T>(
     let received = received.export();
     let received = to_value(received).expect("error should serialize");
 
-    assert_eq!(received, *error)
+    #[cfg(not(feature = "pretty"))]
+    assert_eq!(received, *error);
+
+    #[cfg(feature = "pretty")]
+    assert_serde_eq!(received, *error);
 }
 
 pub fn assert_tokens_error<'de, T>(error: &serde_json::Value, tokens: &'de [Token])

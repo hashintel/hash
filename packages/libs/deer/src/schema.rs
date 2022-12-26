@@ -371,15 +371,6 @@ pub(crate) mod visitor {
         }
     }
 
-    pub(crate) struct U8Schema;
-    impl Reflection for U8Schema {
-        fn schema(_: &mut Document) -> Schema {
-            Schema::new("integer")
-                .with("minimum", u8::MIN)
-                .with("maximum", u8::MAX)
-        }
-    }
-
     pub(crate) struct U16Schema;
     impl Reflection for U16Schema {
         fn schema(_: &mut Document) -> Schema {
@@ -431,9 +422,10 @@ mod tests {
     use alloc::{boxed::Box, collections::BTreeMap, vec::Vec};
 
     use serde_json::{json, to_value};
+    use similar_asserts::assert_serde_eq;
 
     use crate::{
-        schema::visitor::{U16Schema, U32Schema, U8Schema},
+        schema::visitor::{U16Schema, U32Schema},
         Document, Reflection, Schema,
     };
 
@@ -581,7 +573,7 @@ mod tests {
         fn schema(doc: &mut Document) -> Schema {
             let mut properties = BTreeMap::new();
             // TODO: once `Describe` is implemented for `core` types replace this temporary type
-            properties.insert("a", doc.add::<U8Schema>());
+            properties.insert("a", doc.add::<u8>());
             properties.insert("b", doc.add::<U16Schema>());
             properties.insert("c", doc.add::<U32Schema>());
             properties.insert("d", doc.add::<U16Schema>());
@@ -599,7 +591,7 @@ mod tests {
         let document = Vertex::document();
         let document = to_value(document).expect("should be valid json");
 
-        assert_eq!(
+        assert_serde_eq!(
             document,
             json!({
               "$ref": "#/$defs/0000-deer::schema::tests::Vertex",
@@ -615,7 +607,7 @@ mod tests {
                   "minimum": 0,
                   "type": "integer"
                 },
-                "0001-deer::schema::visitor::U8Schema": {
+                "0001-u8": {
                   "maximum": u8::MAX,
                   "minimum": 0,
                   "type": "integer"
@@ -624,7 +616,7 @@ mod tests {
                   "additionalProperties": false,
                   "properties": {
                     "a": {
-                      "$ref": "#/$defs/0001-deer::schema::visitor::U8Schema"
+                      "$ref": "#/$defs/0001-u8"
                     },
                     "b": {
                       "$ref": "#/$defs/0002-deer::schema::visitor::U16Schema"

@@ -244,7 +244,7 @@ pub trait Visitor<'de>: Sized {
 
     fn visit_u8(self, v: u8) -> Result<Self::Value, VisitorError> {
         self.visit_number(Number::from(v))
-            .attach(ReceivedType::new(visitor::U8Schema::document()))
+            .attach(ReceivedType::new(u8::reflection()))
     }
 
     fn visit_u16(self, v: u16) -> Result<Self::Value, VisitorError> {
@@ -324,7 +324,7 @@ macro_rules! derive_from_number {
                 .$to()
                 .ok_or_else(||
                     Report::new(ValueError.into_error())
-                        .attach(ExpectedType::new(visitor::$schema::document()))
+                        .attach(ExpectedType::new(<$schema>::reflection()))
                         .attach(ReceivedValue::new(n))
                 )
                 .change_context(DeserializerError)?;
@@ -485,22 +485,22 @@ pub trait Deserializer<'de>: Sized {
         V: Visitor<'de>;
 
     derive_from_number![
-        deserialize_i8(to_i8: I8Schema) -> visit_i8,
-        deserialize_i16(to_i16: I16Schema) -> visit_i16,
-        deserialize_i32(to_i32: I32Schema) -> visit_i32,
-        deserialize_i64(to_i64: I64Schema) -> visit_i64,
-        deserialize_i128(to_i128: I128Schema) -> visit_i128,
-        deserialize_isize(to_isize: ISizeSchema) -> visit_isize,
+        deserialize_i8(to_i8: i8) -> visit_i8,
+        deserialize_i16(to_i16: i16) -> visit_i16,
+        deserialize_i32(to_i32: i32) -> visit_i32,
+        deserialize_i64(to_i64: i64) -> visit_i64,
+        deserialize_i128(to_i128: i128) -> visit_i128,
+        deserialize_isize(to_isize: isize) -> visit_isize,
 
-        deserialize_u8(to_u8: U8Schema) -> visit_u8,
-        deserialize_u16(to_u16: U16Schema) -> visit_u16,
-        deserialize_u32(to_u32: U32Schema) -> visit_u32,
-        deserialize_u64(to_u64: U64Schema) -> visit_u64,
-        deserialize_u128(to_u128: U128Schema) -> visit_u128,
-        deserialize_usize(to_usize: USizeSchema) -> visit_usize,
+        deserialize_u8(to_u8: u8) -> visit_u8,
+        deserialize_u16(to_u16: u16) -> visit_u16,
+        deserialize_u32(to_u32: u32) -> visit_u32,
+        deserialize_u64(to_u64: u64) -> visit_u64,
+        deserialize_u128(to_u128: u128) -> visit_u128,
+        deserialize_usize(to_usize: usize) -> visit_usize,
 
-        deserialize_f32(to_f32: NumberSchema) -> visit_f32,
-        deserialize_f64(to_f64: NumberSchema) -> visit_f64,
+        deserialize_f32(to_f32: f32) -> visit_f32,
+        deserialize_f64(to_f64: f64) -> visit_f64,
     ];
 }
 

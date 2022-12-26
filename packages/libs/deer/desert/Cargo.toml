@@ -12,3 +12,9 @@ deer = { path = ".." }
 error-stack = { version = "0.2.4", default_features = false }
 serde_json = { version = "1.0.91", default_features = false, features = ['alloc'] }
 bitvec = { version = "1", default_features = false, features = ['alloc', 'atomic'] }
+
+similar-asserts = { version = "1.4.2", default_features = false, features = ['serde'], optional = true }
+
+[features]
+default = ['pretty']
+pretty = ['dep:similar-asserts']
