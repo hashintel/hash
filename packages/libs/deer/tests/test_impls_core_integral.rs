@@ -82,13 +82,17 @@ proptest! {
 #[test]
 fn u8_err_overflow() {
     assert_tokens_error::<_, u8>(
-        &Errors::new([(
-            "deer",
-            &["value"],
-            json!({"expected": u8::reflection(), "received": 256, "location": 0}),
-        )]),
+        &error! {
+            ns: "deer",
+            id: ["value"],
+            properties: {
+                "expected": u8::reflection(),
+                "received": 256,
+                "location": []
+            }
+        },
         &[Token::Number(Number::from(u8::MAX as u16 + 1))],
-    )
+    );
 }
 
 // TODO: test reflection

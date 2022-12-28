@@ -34,8 +34,9 @@ pub fn assert_tokens_with_context_error<'de, E, T>(
     tokens: &'de [Token],
     context: &Context,
 ) where
-    E: PartialEq<Value> + Serialize + Debug,
+    E: Serialize + Debug,
     T: Deserialize<'de> + Debug,
+    Value: PartialEq<E>,
 {
     let mut de = Deserializer::new(tokens, context);
     let received = T::deserialize(&mut de).expect_err("value of type T should fail serialization");
@@ -47,13 +48,14 @@ pub fn assert_tokens_with_context_error<'de, E, T>(
     assert_eq!(received, *error);
 
     #[cfg(feature = "pretty")]
-    assert_serde_eq!(*error, received);
+    assert_serde_eq!(received, *error);
 }
 
 pub fn assert_tokens_error<'de, E, T>(error: &E, tokens: &'de [Token])
 where
-    E: PartialEq<Value> + Serialize + Debug,
+    E: Serialize + Debug,
     T: Deserialize<'de> + Debug,
+    Value: PartialEq<E>,
 {
     assert_tokens_with_context_error::<E, T>(error, tokens, &Context::new());
 }

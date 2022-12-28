@@ -83,3 +83,24 @@ impl PartialEq<Errors> for Value {
         other.eq(self)
     }
 }
+
+#[macro_export]
+macro_rules! error {
+    ([$($tt:tt),*]) => {
+        common::Errors::new([$(error!(@internal $tt)),*])
+    };
+    {
+        ns: $namespace:literal,
+        id: [$($id:literal),*],
+        properties: $($properties:tt)*
+    } => {
+        error!([{ns: $namespace, id: [$($id),*], properties: $($properties)*}])
+    };
+    (@internal {
+        ns: $namespace:literal,
+        id: [$($id:literal),*],
+        properties: $($properties:tt)*
+    }) => {
+        common::Error::new($namespace, &[$($id),*], json!($($properties)*))
+    }
+}
