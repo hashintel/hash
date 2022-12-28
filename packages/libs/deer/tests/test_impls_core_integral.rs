@@ -79,6 +79,8 @@ proptest! {
     }
 }
 
+// we're not testing the individual error messages, as those are tested at the respective error
+// variants and are separate from the returned errors
 #[test]
 fn u8_err_overflow() {
     assert_tokens_error::<_, u8>(
@@ -87,7 +89,7 @@ fn u8_err_overflow() {
             id: ["value"],
             properties: {
                 "expected": u8::reflection(),
-                "received": 256,
+                "received": Number::from(256),
                 "location": []
             }
         },
@@ -100,16 +102,15 @@ fn u8_err_overflow() {
 #[test]
 fn u8_err_underflow() {
     assert_tokens_error::<_, u8>(
-        &json!([{
-            "id": ["value"],
-            "message": "received value is of correct type (integer), but does not fit constraints",
-            "namespace": "deer",
-            "properties": {
+        &error! {
+            ns: "deer",
+            id: ["value"],
+            properties: {
                 "expected": u8::reflection(),
-                "received": -1,
+                "received": Number::from(-1),
                 "location": []
             }
-        }]),
+        },
         &[Token::Number(Number::from(-1))],
     )
 }
