@@ -1,7 +1,11 @@
+mod common;
+
 use deer::{Deserialize, Number};
 use deer_desert::{assert_tokens, assert_tokens_error, Token};
 use proptest::prelude::*;
 use serde_json::json;
+
+use crate::common::Errors;
 
 proptest! {
     #[test]
@@ -77,24 +81,21 @@ proptest! {
 
 #[test]
 fn u8_err_overflow() {
-    assert_tokens_error::<u8>(
-        &json!([{
-            "id": ["value"],
-            "message": "received value is of correct type (integer), but does not fit constraints",
-            "namespace": "deer",
-            "properties": {
-                "expected": u8::reflection(),
-                "received": 256,
-                "location": []
-            }
-        }]),
+    assert_tokens_error::<_, u8>(
+        &Errors::new([(
+            "deer",
+            &["value"],
+            json!({"expected": u8::reflection(), "received": 256, "location": 0}),
+        )]),
         &[Token::Number(Number::from(u8::MAX as u16 + 1))],
     )
 }
 
+// TODO: test reflection
+
 #[test]
 fn u8_err_underflow() {
-    assert_tokens_error::<u8>(
+    assert_tokens_error::<_, u8>(
         &json!([{
             "id": ["value"],
             "message": "received value is of correct type (integer), but does not fit constraints",

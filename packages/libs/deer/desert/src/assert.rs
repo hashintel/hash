@@ -1,7 +1,8 @@
 use core::fmt::Debug;
 
 use deer::{error::ReportExt, Context, Deserialize};
-use serde_json::to_value;
+use serde::Serialize;
+use serde_json::{to_value, Value};
 #[cfg(feature = "pretty")]
 use similar_asserts::{assert_eq, assert_serde_eq};
 
@@ -28,11 +29,12 @@ where
     assert_tokens_with_context(value, tokens, &Context::new());
 }
 
-pub fn assert_tokens_with_context_error<'de, T>(
-    error: &serde_json::Value,
+pub fn assert_tokens_with_context_error<'de, E, T>(
+    error: &E,
     tokens: &'de [Token],
     context: &Context,
 ) where
+    E: PartialEq<Value> + Serialize + Debug,
     T: Deserialize<'de> + Debug,
 {
     let mut de = Deserializer::new(tokens, context);
@@ -45,12 +47,13 @@ pub fn assert_tokens_with_context_error<'de, T>(
     assert_eq!(received, *error);
 
     #[cfg(feature = "pretty")]
-    assert_serde_eq!(received, *error);
+    assert_serde_eq!(*error, received);
 }
 
-pub fn assert_tokens_error<'de, T>(error: &serde_json::Value, tokens: &'de [Token])
+pub fn assert_tokens_error<'de, E, T>(error: &E, tokens: &'de [Token])
 where
+    E: PartialEq<Value> + Serialize + Debug,
     T: Deserialize<'de> + Debug,
 {
-    assert_tokens_with_context_error::<T>(error, tokens, &Context::new());
+    assert_tokens_with_context_error::<E, T>(error, tokens, &Context::new());
 }
