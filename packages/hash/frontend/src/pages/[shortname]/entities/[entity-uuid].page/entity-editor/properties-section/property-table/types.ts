@@ -1,4 +1,5 @@
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
+
 import { VerticalIndentationLineDir } from "../../../../../../../components/grid/utils/draw-vertical-indentation-line";
 
 export type PropertyRow = {

@@ -9,10 +9,11 @@
  */
 
 import { Subgraph as SubgraphGraphApi } from "@hashintel/hash-graph-client";
+
 import { Subgraph } from "../src";
-import { mapVertices } from "./compatibility.test/map-vertices";
 import { mapEdges } from "./compatibility.test/map-edges";
 import { mapRoots } from "./compatibility.test/map-roots";
+import { mapVertices } from "./compatibility.test/map-vertices";
 
 test("Graph API subgraph type is compatible with library type", () => {
   // We don't need an actual subgraph, we are just checking for TSC errors

@@ -1,4 +1,5 @@
 import { Subgraph as SubgraphGraphApi } from "@hashintel/hash-graph-client";
+
 import {
   isEntityEditionId,
   isOntologyTypeEditionId,

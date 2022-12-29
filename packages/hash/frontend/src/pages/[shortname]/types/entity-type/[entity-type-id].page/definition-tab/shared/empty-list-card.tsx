@@ -11,6 +11,7 @@ import {
   typographyClasses,
 } from "@mui/material";
 import { ReactNode } from "react";
+
 import { WhiteCard } from "../../../../../shared/white-card";
 
 type EmptyListCardProps = Pick<CardActionAreaProps, "onClick"> & {

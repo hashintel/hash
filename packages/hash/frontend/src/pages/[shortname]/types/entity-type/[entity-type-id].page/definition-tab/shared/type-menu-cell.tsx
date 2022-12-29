@@ -26,6 +26,7 @@ import {
   PopupState,
 } from "material-ui-popup-state/hooks";
 import { Fragment } from "react";
+
 import { MenuItemProps } from "../../../../../../../shared/ui/menu-item";
 import {
   OntologyChip,
