@@ -2,14 +2,11 @@ import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import {
   Box,
   Checkbox,
-  checkboxClasses,
   Collapse,
   collapseClasses,
   Input,
   inputClasses,
   Stack,
-  TextField,
-  textFieldClasses,
   Theme,
   Typography,
 } from "@mui/material";
@@ -399,10 +396,11 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
                         maxItemsController.field.onChange(event);
                       }}
                       type="number"
-                      sx={{
+                      sx={({ palette, transitions }) => ({
                         fontSize: 11,
                         height: 16,
-                        color: (theme: Theme) => theme.palette.white,
+                        transition: transitions.create("color"),
+                        color: palette.white,
                         width: `${maxItemsWidth}ch`,
 
                         "::before": {
@@ -412,6 +410,10 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
                           borderBottomStyle: "dashed",
                           borderBottomColor: "white",
                           borderBottomWidth: 1,
+                        },
+
+                        [`.${inputClasses.disabled}`]: {
+                          WebkitTextFillColor: "initial",
                         },
 
                         ":hover": {
@@ -433,7 +435,7 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
                           margin: 0,
                         },
                         // <-- Hide number input default arrows -->
-                      }}
+                      })}
                     />
                   </Box>
                   <Typography
