@@ -1,27 +1,28 @@
-import { Typography } from "@mui/material";
-import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
-import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import {
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
   OwnedById,
 } from "@hashintel/hash-shared/types";
+import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
+import { Typography } from "@mui/material";
 import Head from "next/head";
-import { useBlockProtocolGetEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+
+import { useBlockProtocolGetEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
+import { useBlockProtocolGetEntityType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
+import { PageErrorState } from "../../../components/page-error-state";
+import { generateEntityLabel } from "../../../lib/entities";
 import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../shared/layout";
 import { HashOntologyIcon } from "../shared/hash-ontology-icon";
 import { OntologyChip } from "../shared/ontology-chip";
+import { useRouteNamespace } from "../shared/use-route-namespace";
 import { EntityEditor } from "./[entity-uuid].page/entity-editor";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
 import { EntityPageWrapper } from "./[entity-uuid].page/entity-page-wrapper";
-import { PageErrorState } from "../../../components/page-error-state";
-import { generateEntityLabel } from "../../../lib/entities";
-import { useRouteNamespace } from "../shared/use-route-namespace";
-import { useBlockProtocolGetEntityType } from "../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { EntityPageHeader } from "./[entity-uuid].page/entity-page-wrapper/entity-page-header";
 
 const Page: NextPageWithLayout = () => {

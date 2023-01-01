@@ -1,6 +1,7 @@
 import { BaseUri, VersionedUri } from "@blockprotocol/type-system";
-import slugify from "slugify";
 import { systemUserShortname } from "@hashintel/hash-shared/environment";
+import slugify from "slugify";
+
 import { frontendUrl } from "./environment";
 
 export type SchemaKind = "data-type" | "property-type" | "entity-type";

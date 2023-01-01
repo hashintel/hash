@@ -2,17 +2,18 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
-  Typography,
-  Container,
   Box,
+  Container,
+  Typography,
 } from "@mui/material";
 import { GetStaticProps } from "next";
-import { NextPageWithLayout } from "../shared/layout";
+
 import { isProduction } from "../lib/config";
+import { NextPageWithLayout } from "../shared/layout";
 import { ButtonsDemo } from "./playground.page/buttons-demo";
+import { ChipsDemo } from "./playground.page/chips-demo";
 import { InputsDemo } from "./playground.page/inputs-demo";
 import { SelectMenusDemo } from "./playground.page/select-menus-demo";
-import { ChipsDemo } from "./playground.page/chips-demo";
 
 interface PageProps {}
 

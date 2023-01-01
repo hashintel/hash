@@ -1,23 +1,24 @@
 import { EntityType, VersionedUri } from "@blockprotocol/type-system";
 import { UpdateEntityTypeRequest } from "@hashintel/hash-graph-client";
+import { EntityTypeWithoutId } from "@hashintel/hash-shared/graphql/types";
+import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import {
   EntityTypeWithMetadata,
+  linkEntityTypeUri,
   ontologyTypeEditionIdToVersionedUri,
   Subgraph,
   SubgraphRootTypes,
-  linkEntityTypeUri,
 } from "@hashintel/hash-subgraph";
-import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
-import { EntityTypeWithoutId } from "@hashintel/hash-shared/graphql/types";
+
+import { NotFoundError } from "../../../lib/error";
 import {
   ImpureGraphFunction,
   PureGraphFunction,
   zeroedGraphResolveDepths,
 } from "../..";
 import { getNamespaceOfAccountOwner } from "./util";
-import { NotFoundError } from "../../../lib/error";
 
 /**
  * Create an entity type.

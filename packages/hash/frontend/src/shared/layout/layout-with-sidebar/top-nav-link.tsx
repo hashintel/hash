@@ -1,7 +1,8 @@
-import { FunctionComponent } from "react";
 import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
-import { Typography, Tooltip, typographyClasses } from "@mui/material";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { Tooltip, Typography, typographyClasses } from "@mui/material";
+import { FunctionComponent } from "react";
+
 import { Link } from "../../ui";
 
 type NavLinkProps = {

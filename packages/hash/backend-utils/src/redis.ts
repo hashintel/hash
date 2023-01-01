@@ -1,7 +1,7 @@
 import { promisify } from "node:util";
 
-import { createClient } from "redis";
 import { DataSource } from "apollo-datasource";
+import { createClient } from "redis";
 
 import { Logger } from "./logger";
 

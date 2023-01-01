@@ -1,18 +1,10 @@
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { EntityType, TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-
-import { EntityType, TypeSystemInitializer } from "@blockprotocol/type-system";
-import {
-  DataTypeWithMetadata,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-  linkEntityTypeUri,
-} from "@hashintel/hash-subgraph";
+import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
 import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
 import {
   createEntityType,
@@ -20,8 +12,16 @@ import {
   updateEntityType,
 } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
-import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
+import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { OwnedById } from "@hashintel/hash-shared/types";
+import {
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  linkEntityTypeUri,
+  PropertyTypeWithMetadata,
+} from "@hashintel/hash-subgraph";
+
 import { createTestUser } from "../../../util";
 
 jest.setTimeout(60000);

@@ -1,4 +1,4 @@
-import { StatusError } from "./StatusError";
+import { StatusError } from "./status-error";
 
 const makePlain = (html?: string | null | undefined) => {
   const elt = document.createElement("div");

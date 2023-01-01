@@ -1,14 +1,14 @@
-import { Subgraph } from "../../types/subgraph";
-import { entityEditionIdToString, EntityId } from "../../types/identifier";
-import { Entity } from "../../types/element";
-import { getEntityAtTimestamp } from "../element/entity";
-import {
-  isOutwardLinkEdge,
-  isHasRightEntityEdge,
-  isHasLeftEntityEdge,
-  isIncomingLinkEdge,
-} from "../../types/edge/outward-edge-alias";
 import { mustBeDefined } from "../../shared/invariant";
+import {
+  isHasLeftEntityEdge,
+  isHasRightEntityEdge,
+  isIncomingLinkEdge,
+  isOutwardLinkEdge,
+} from "../../types/edge/outward-edge-alias";
+import { Entity } from "../../types/element";
+import { entityEditionIdToString, EntityId } from "../../types/identifier";
+import { Subgraph } from "../../types/subgraph";
+import { getEntityAtTimestamp } from "../element/entity";
 
 const getUniqueEntitiesFilter = () => {
   const set = new Set();
