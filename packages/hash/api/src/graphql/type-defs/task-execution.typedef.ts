@@ -21,6 +21,16 @@ export const executeTaskTypedef = gql`
     credentials: GithubCredentials!
   }
 
+  input AsanaCredentials {
+    """
+    Asana Personal Access Token
+    """
+    personal_access_token: String!
+  }
+  input AsanaTaskConfig {
+    credentials: AsanaCredentials!
+  }
+
   extend type Mutation {
     """
     Execute the Demo Task
@@ -43,5 +53,22 @@ export const executeTaskTypedef = gql`
     Call the GitHub Integration Read Task
     """
     executeGithubReadTask(config: GithubTaskConfig!): String!
+
+    """
+    Call the Asana Integration Spec Task
+    """
+    executeAsanaSpecTask: String!
+    """
+    Call the Asana Integration Check Task
+    """
+    executeAsanaCheckTask(config: AsanaTaskConfig!): String!
+    """
+    Call the Asana Integration Discover Task
+    """
+    executeAsanaDiscoverTask(config: AsanaTaskConfig!): String!
+    """
+    Call the Asana Integration Read Task
+    """
+    executeAsanaReadTask(config: AsanaTaskConfig!): String!
   }
 `;
