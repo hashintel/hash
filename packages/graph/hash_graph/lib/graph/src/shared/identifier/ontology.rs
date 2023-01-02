@@ -91,7 +91,7 @@ impl From<&OntologyTypeEditionId> for VersionedUri {
 }
 
 impl SubgraphIndex<DataTypeWithMetadata> for OntologyTypeEditionId {
-    fn subgraph_entry<'a>(
+    fn subgraph_vertex_entry<'a>(
         &self,
         subgraph: &'a mut Subgraph,
     ) -> RawEntryMut<'a, Self, DataTypeWithMetadata, RandomState> {
@@ -100,7 +100,7 @@ impl SubgraphIndex<DataTypeWithMetadata> for OntologyTypeEditionId {
 }
 
 impl SubgraphIndex<PropertyTypeWithMetadata> for OntologyTypeEditionId {
-    fn subgraph_entry<'a>(
+    fn subgraph_vertex_entry<'a>(
         &self,
         subgraph: &'a mut Subgraph,
     ) -> RawEntryMut<'a, Self, PropertyTypeWithMetadata, RandomState> {
@@ -113,7 +113,7 @@ impl SubgraphIndex<PropertyTypeWithMetadata> for OntologyTypeEditionId {
 }
 
 impl SubgraphIndex<EntityTypeWithMetadata> for OntologyTypeEditionId {
-    fn subgraph_entry<'a>(
+    fn subgraph_vertex_entry<'a>(
         &self,
         subgraph: &'a mut Subgraph,
     ) -> RawEntryMut<'a, Self, EntityTypeWithMetadata, RandomState> {

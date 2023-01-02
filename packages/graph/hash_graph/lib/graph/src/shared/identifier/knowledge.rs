@@ -165,7 +165,7 @@ pub struct EntityEditionId {
 }
 
 impl SubgraphIndex<Entity> for EntityEditionId {
-    fn subgraph_entry<'a>(
+    fn subgraph_vertex_entry<'a>(
         &self,
         subgraph: &'a mut Subgraph,
     ) -> RawEntryMut<'a, Self, Entity, RandomState> {

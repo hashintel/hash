@@ -43,7 +43,7 @@ impl Subgraph {
         &mut self,
         edition_id: &impl SubgraphIndex<R>,
     ) -> RawEntryMut<R::EditionId, R, RandomState> {
-        edition_id.subgraph_entry(self)
+        edition_id.subgraph_vertex_entry(self)
     }
 
     pub fn insert<R: Record>(&mut self, record: R) -> Option<R> {
@@ -87,10 +87,11 @@ impl Subgraph {
 
 /// Used for index operations on a mutable [`Subgraph`].
 ///
-/// Depending on `R`, the index operation will be performed on the vertices of the subgraph.
+/// Depending on `R`, the index operation will be performed on the respective collection of the
+/// subgraph.
 pub trait SubgraphIndex<R: Record>: Clone + Eq + Hash + Into<GraphElementEditionId> {
-    /// Returns a mutable reference to the [`Record`] in the subgraph.
-    fn subgraph_entry<'a>(
+    /// Returns a mutable reference to the [`Record`] vertex in the subgraph.
+    fn subgraph_vertex_entry<'a>(
         &self,
         subgraph: &'a mut Subgraph,
     ) -> RawEntryMut<'a, R::EditionId, R, RandomState>;
