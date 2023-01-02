@@ -1,7 +1,11 @@
 use alloc::{boxed::Box, vec, vec::Vec};
+#[cfg(nightly)]
+use core::error::Error;
 use core::{fmt, marker::PhantomData, mem, panic::Location};
 #[cfg(all(rust_1_65, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
+#[cfg(all(not(nightly), feature = "std"))]
+use std::error::Error;
 #[cfg(feature = "std")]
 use std::process::ExitCode;
 
@@ -11,6 +15,7 @@ use tracing_error::{SpanTrace, SpanTraceStatus};
 #[cfg(nightly)]
 use crate::iter::{RequestRef, RequestValue};
 use crate::{
+    error::ReportError,
     iter::{Frames, FramesMut},
     Context, Frame,
 };
@@ -636,6 +641,26 @@ impl<C> Report<C> {
                 reported to https://github.com/hashintel/hash/issues/new"
             );
         })
+    }
+
+    /// Converts this `Report` to an [`Error`].
+    #[cfg(any(nightly, feature = "std"))]
+    #[must_use]
+    pub fn into_error(self) -> impl Error + Send + Sync + 'static
+    where
+        C: 'static,
+    {
+        ReportError::new(self)
+    }
+
+    /// Returns this `Report` as an [`Error`].
+    #[cfg(any(nightly, feature = "std"))]
+    #[must_use]
+    pub fn as_error(&self) -> &(impl Error + Send + Sync + 'static)
+    where
+        C: 'static,
+    {
+        ReportError::from_ref(self)
     }
 }
 
