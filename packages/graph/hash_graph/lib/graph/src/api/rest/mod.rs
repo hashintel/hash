@@ -105,8 +105,8 @@ pub fn rest_api_router<P: StorePool + Send + 'static>(
     merged_routes
         .layer(Extension(store))
         .layer(Extension(domain_regex))
-        .layer(axum::middleware::from_fn(log_request_and_response))
-        .layer(TraceLayer::new_for_http().make_span_with(span_maker))
+        // .layer(axum::middleware::from_fn(log_request_and_response))
+        // .layer(TraceLayer::new_for_http().make_span_with(span_maker))
         .nest(
             "/api-doc",
             Router::new()
