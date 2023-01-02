@@ -186,6 +186,8 @@ impl Report<()> {
         closure(&hook)
     }
 
+    // TODO: upcoming PR will add documentation
+    #[allow(missing_docs)]
     #[cfg(all(any(feature = "std", feature = "hooks"), feature = "serde"))]
     pub fn install_serde_hook<T: serde::Serialize + Send + Sync + 'static>() {
         install_builtin_serde_hooks();
@@ -200,6 +202,8 @@ impl Report<()> {
         lock.insert_static::<T>();
     }
 
+    // TODO: upcoming PR will add documentation
+    #[allow(missing_docs)]
     #[cfg(all(any(feature = "std", feature = "hooks"), feature = "serde"))]
     pub fn install_custom_serde_hook<T>(closure: impl for<'a> SerializeFn<'a, T>)
     where

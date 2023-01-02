@@ -7,6 +7,8 @@ use crate::Frame;
 
 pub struct Serde {}
 
+// TODO: upcoming PR will add documentation
+#[allow(missing_docs)]
 pub type HookContext<T> = crate::hook::context::HookContext<Serde, T>;
 
 fn serialize<'a, T: serde::Serialize + Send + Sync + 'static>(
