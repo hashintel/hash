@@ -1,20 +1,24 @@
-import { CommentModel } from "../../../../model";
-import { ResolverFn } from "../../../apiTypes.gen";
+import {
+  getCommentById,
+  getCommentReplies,
+} from "../../../../graph/knowledge/system-types/comment";
+import { ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { UnresolvedCommentGQL, mapCommentModelToGQL } from "../model-mapping";
+import { mapCommentToGQL, UnresolvedCommentGQL } from "../graphql-mapping";
 
-export const commentReplies: ResolverFn<
+export const commentRepliesResolver: ResolverFn<
   Promise<UnresolvedCommentGQL[]>,
   UnresolvedCommentGQL,
   LoggedInGraphQLContext,
   {}
 > = async ({ metadata }, _, { dataSources: { graphApi } }) => {
-  const commentModel = await CommentModel.getCommentById(graphApi, {
-    entityId: metadata.editionId.baseId,
-  });
-  const replyModels = await commentModel.getReplies(graphApi);
+  const comment = await getCommentById(
+    { graphApi },
+    {
+      entityId: metadata.editionId.baseId,
+    },
+  );
+  const replies = await getCommentReplies({ graphApi }, { comment });
 
-  return replyModels
-    .filter((replyModel) => !replyModel.getDeletedAt())
-    .map(mapCommentModelToGQL);
+  return replies.filter((reply) => !reply.deletedAt).map(mapCommentToGQL);
 };

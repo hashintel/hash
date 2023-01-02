@@ -1,4 +1,5 @@
 import { gql } from "@apollo/client";
+
 import { subgraphFieldsFragment } from "../subgraph";
 
 export const getEntityTypeQuery = gql`
@@ -64,7 +65,7 @@ export const getEntityTypeRootedSubgraphQuery = gql`
 
 export const createEntityTypeMutation = gql`
   mutation createEntityType(
-    $ownedById: ID!
+    $ownedById: OwnedById!
     $entityType: EntityTypeWithoutId!
   ) {
     # This is a scalar, which has no selection.

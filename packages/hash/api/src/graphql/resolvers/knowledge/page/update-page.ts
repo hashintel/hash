@@ -1,10 +1,14 @@
+import { updateEntityProperties } from "../../../../graph/knowledge/primitive/entity";
+import {
+  getPageById,
+  getPageFromEntity,
+} from "../../../../graph/knowledge/system-types/page";
 import { SYSTEM_TYPES } from "../../../../graph/system-types";
-import { PageModel } from "../../../../model";
-import { MutationUpdatePageArgs, ResolverFn } from "../../../apiTypes.gen";
+import { MutationUpdatePageArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { UnresolvedPageGQL, mapPageModelToGQL } from "../model-mapping";
+import { mapPageToGQL, UnresolvedPageGQL } from "../graphql-mapping";
 
-export const updatePage: ResolverFn<
+export const updatePageResolver: ResolverFn<
   Promise<UnresolvedPageGQL>,
   {},
   LoggedInGraphQLContext,
@@ -12,24 +16,26 @@ export const updatePage: ResolverFn<
 > = async (
   _,
   { entityId, updatedProperties },
-  { dataSources: { graphApi }, userModel },
+  { dataSources: { graphApi }, user },
 ) => {
-  const pageModel = await PageModel.getPageById(graphApi, { entityId });
+  const page = await getPageById({ graphApi }, { entityId });
 
-  const updatedPageEntityModel = await pageModel.updateProperties(graphApi, {
-    updatedProperties: Object.entries(updatedProperties).map(
-      ([propertyName, value]) => ({
-        propertyTypeBaseUri:
-          SYSTEM_TYPES.propertyType[
-            propertyName as keyof MutationUpdatePageArgs["updatedProperties"]
-          ].getBaseUri(),
-        value,
-      }),
-    ),
-    actorId: userModel.getEntityUuid(),
-  });
+  const updatedPageEntity = await updateEntityProperties(
+    { graphApi },
+    {
+      entity: page.entity,
+      updatedProperties: Object.entries(updatedProperties).map(
+        ([propertyName, value]) => ({
+          propertyTypeBaseUri:
+            SYSTEM_TYPES.propertyType[
+              propertyName as keyof MutationUpdatePageArgs["updatedProperties"]
+            ].metadata.editionId.baseId,
+          value: value ?? undefined,
+        }),
+      ),
+      actorId: user.accountId,
+    },
+  );
 
-  const updatedPageModel = PageModel.fromEntityModel(updatedPageEntityModel);
-
-  return mapPageModelToGQL(updatedPageModel);
+  return mapPageToGQL(getPageFromEntity({ entity: updatedPageEntity }));
 };

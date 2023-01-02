@@ -8,7 +8,7 @@ use std::{
 use chrono::{DateTime, Utc};
 use error_stack::{bail, ensure, Context, IntoReport, Report, ResultExt};
 use serde::Deserialize;
-use type_system::uri::VersionedUri;
+use type_system::uri::{BaseUri, VersionedUri};
 use uuid::Uuid;
 
 use crate::{
@@ -16,102 +16,84 @@ use crate::{
         knowledge::{EntityEditionId, EntityId},
         ontology::OntologyTypeEditionId,
     },
-    knowledge::{Entity, EntityQueryPath, EntityUuid},
-    store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
+    knowledge::{Entity, EntityQueryPath},
+    store::{
+        query::{OntologyQueryPath, ParameterType, QueryPath},
+        Record,
+    },
 };
 
 /// A set of conditions used for queries.
 #[derive(Deserialize)]
 #[serde(
     rename_all = "camelCase",
-    bound = "'de: 'q, T::Path<'q>: Deserialize<'de>"
+    bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>"
 )]
-pub enum Filter<'q, T: QueryRecord> {
+pub enum Filter<'p, R: Record + ?Sized> {
     All(Vec<Self>),
     Any(Vec<Self>),
     Not(Box<Self>),
     Equal(
-        Option<FilterExpression<'q, T>>,
-        Option<FilterExpression<'q, T>>,
+        Option<FilterExpression<'p, R>>,
+        Option<FilterExpression<'p, R>>,
     ),
     NotEqual(
-        Option<FilterExpression<'q, T>>,
-        Option<FilterExpression<'q, T>>,
+        Option<FilterExpression<'p, R>>,
+        Option<FilterExpression<'p, R>>,
     ),
 }
 
-impl<'q, T> Filter<'q, T>
+impl<'p, R> Filter<'p, R>
 where
-    T: QueryRecord<Path<'q>: OntologyPath>,
+    R: Record<QueryPath<'p>: OntologyQueryPath>,
 {
-    /// Creates a `Filter` to search for all ontology types of kind `T` at their latest version.
+    /// Creates a `Filter` to search for a specific ontology type of kind `R`, identified by its
+    /// [`BaseUri`].
     #[must_use]
-    pub fn for_latest_version() -> Self {
+    pub fn for_base_uri(base_uri: &'p BaseUri) -> Self {
         Self::Equal(
-            Some(FilterExpression::Path(<T::Path<'q>>::version())),
+            Some(FilterExpression::Path(<R::QueryPath<'p>>::base_uri())),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                "latest",
+                base_uri.as_str(),
             )))),
         )
     }
 
-    /// Creates a `Filter` to search for a specific ontology type of kind `T`, identified by its
+    /// Creates a `Filter` to filter by a given version.
+    #[must_use]
+    fn for_version(version: u32) -> Self {
+        Self::Equal(
+            Some(FilterExpression::Path(<R::QueryPath<'p>>::version())),
+            Some(FilterExpression::Parameter(Parameter::SignedInteger(
+                version.into(),
+            ))),
+        )
+    }
+
+    /// Creates a `Filter` to search for a specific ontology type of kind `R`, identified by its
     /// [`VersionedUri`].
     #[must_use]
-    pub fn for_versioned_uri(versioned_uri: &'q VersionedUri) -> Self {
+    pub fn for_versioned_uri(versioned_uri: &'p VersionedUri) -> Self {
         Self::All(vec![
-            Self::Equal(
-                Some(FilterExpression::Path(<T::Path<'q>>::base_uri())),
-                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                    versioned_uri.base_uri().as_str(),
-                )))),
-            ),
-            Self::Equal(
-                Some(FilterExpression::Path(<T::Path<'q>>::version())),
-                Some(FilterExpression::Parameter(Parameter::SignedInteger(
-                    versioned_uri.version().into(),
-                ))),
-            ),
+            Self::for_base_uri(versioned_uri.base_uri()),
+            Self::for_version(versioned_uri.version()),
         ])
     }
 
-    /// Creates a `Filter` to search for a specific ontology type of kind `T`, identified by its
+    /// Creates a `Filter` to search for a specific ontology type of kind `R`, identified by its
     /// [`OntologyTypeEditionId`].
     #[must_use]
     pub fn for_ontology_type_edition_id(
-        ontology_type_edition_id: &'q OntologyTypeEditionId,
+        ontology_type_edition_id: &'p OntologyTypeEditionId,
     ) -> Self {
         Self::All(vec![
-            Self::Equal(
-                Some(FilterExpression::Path(<T::Path<'q>>::base_uri())),
-                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                    ontology_type_edition_id.base_id().as_str(),
-                )))),
-            ),
-            Self::Equal(
-                Some(FilterExpression::Path(<T::Path<'q>>::version())),
-                Some(FilterExpression::Parameter(Parameter::SignedInteger(
-                    ontology_type_edition_id.version().inner().into(),
-                ))),
-            ),
+            Self::for_base_uri(ontology_type_edition_id.base_id()),
+            Self::for_version(ontology_type_edition_id.version().inner()),
         ])
     }
 }
 
-impl<'q> Filter<'q, Entity> {
-    /// Creates a `Filter` to search for all entities at their latest version.
-    #[must_use]
-    pub const fn for_all_latest_entities() -> Self {
-        Self::Equal(
-            Some(FilterExpression::Path(
-                EntityQueryPath::LowerTransactionTime,
-            )),
-            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                "latest",
-            )))),
-        )
-    }
-
+impl<'p> Filter<'p, Entity> {
     /// Creates a `Filter` to search for all versions of an entities its [`EntityId`].
     #[must_use]
     pub fn for_entity_by_entity_id(entity_id: EntityId) -> Self {
@@ -128,42 +110,6 @@ impl<'q> Filter<'q, Entity> {
                     entity_id.entity_uuid().as_uuid(),
                 ))),
             ),
-        ])
-    }
-
-    /// Creates a `Filter` to search for a specific entities at their latest version, identified by
-    /// its [`EntityId`].
-    #[must_use]
-    pub fn for_latest_entity_by_entity_id(entity_id: EntityId) -> Self {
-        Self::All(vec![
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.owned_by_id().as_uuid(),
-                ))),
-            ),
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::Uuid)),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.entity_uuid().as_uuid(),
-                ))),
-            ),
-            Self::for_all_latest_entities(),
-        ])
-    }
-
-    /// Creates a `Filter` to search for a specific entities at their latest version, identified by
-    /// its [`EntityUuid`].
-    #[must_use]
-    pub fn for_latest_entity_by_entity_uuid(entity_uuid: EntityUuid) -> Self {
-        Self::All(vec![
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::Uuid)),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_uuid.as_uuid(),
-                ))),
-            ),
-            Self::for_all_latest_entities(),
         ])
     }
 
@@ -328,9 +274,9 @@ impl<'q> Filter<'q, Entity> {
     }
 }
 
-impl<'q, T: QueryRecord> Filter<'q, T>
+impl<'p, R: Record> Filter<'p, R>
 where
-    T::Path<'q>: Display,
+    R::QueryPath<'p>: Display,
 {
     /// Converts the contained [`Parameter`]s to match the type of a `T::Path`.
     ///
@@ -362,9 +308,9 @@ where
 
 // TODO: Derive traits when bounds are generated correctly
 //   see https://github.com/rust-lang/rust/issues/26925
-impl<'q, T> Debug for Filter<'q, T>
+impl<'p, R> Debug for Filter<'p, R>
 where
-    T: QueryRecord<Path<'q>: Debug>,
+    R: Record<QueryPath<'p>: Debug>,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -379,9 +325,9 @@ where
 
 // TODO: Derive traits when bounds are generated correctly
 //   see https://github.com/rust-lang/rust/issues/26925
-impl<'q, T> PartialEq for Filter<'q, T>
+impl<'p, R> PartialEq for Filter<'p, R>
 where
-    T: QueryRecord<Path<'q>: PartialEq>,
+    R: Record<QueryPath<'p>: PartialEq>,
 {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -402,18 +348,18 @@ where
 #[derive(Deserialize)]
 #[serde(
     rename_all = "camelCase",
-    bound = "'de: 'q, T::Path<'q>: Deserialize<'de>"
+    bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>"
 )]
-pub enum FilterExpression<'q, T: QueryRecord> {
-    Path(T::Path<'q>),
-    Parameter(Parameter<'q>),
+pub enum FilterExpression<'p, R: Record + ?Sized> {
+    Path(R::QueryPath<'p>),
+    Parameter(Parameter<'p>),
 }
 
 // TODO: Derive traits when bounds are generated correctly
 //   see https://github.com/rust-lang/rust/issues/26925
-impl<'q, T> Debug for FilterExpression<'q, T>
+impl<'p, R> Debug for FilterExpression<'p, R>
 where
-    T: QueryRecord<Path<'q>: Debug>,
+    R: Record<QueryPath<'p>: Debug>,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -425,9 +371,9 @@ where
 
 // TODO: Derive traits when bounds are generated correctly
 //   see https://github.com/rust-lang/rust/issues/26925
-impl<'q, T> PartialEq for FilterExpression<'q, T>
+impl<'p, R> PartialEq for FilterExpression<'p, R>
 where
-    T: QueryRecord<Path<'q>: PartialEq>,
+    R: Record<QueryPath<'p>: PartialEq>,
 {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -440,10 +386,10 @@ where
 
 #[derive(Debug, PartialEq, Deserialize)]
 #[serde(untagged)]
-pub enum Parameter<'q> {
+pub enum Parameter<'p> {
     Boolean(bool),
     Number(f64),
-    Text(Cow<'q, str>),
+    Text(Cow<'p, str>),
     #[serde(skip)]
     Uuid(Uuid),
     #[serde(skip)]
@@ -571,33 +517,19 @@ mod tests {
             ontology::OntologyTypeVersion,
             DecisionTimespan, TransactionTimespan,
         },
+        knowledge::EntityUuid,
         ontology::{DataTypeQueryPath, DataTypeWithMetadata},
         provenance::OwnedById,
     };
 
-    fn test_filter_representation<'de, T>(actual: &Filter<'de, T>, expected: &'de serde_json::Value)
+    fn test_filter_representation<'de, R>(actual: &Filter<'de, R>, expected: &'de serde_json::Value)
     where
-        T: QueryRecord<Path<'de>: Debug + Display + PartialEq + Deserialize<'de>>,
+        R: Record<QueryPath<'de>: Debug + Display + PartialEq + Deserialize<'de>>,
     {
         let mut expected =
-            Filter::<T>::deserialize(expected).expect("Could not deserialize filter");
+            Filter::<R>::deserialize(expected).expect("Could not deserialize filter");
         expected.convert_parameters().expect("invalid filter");
         assert_eq!(*actual, expected);
-    }
-
-    #[test]
-    fn for_latest_version() {
-        let expected = json! {{
-          "equal": [
-            { "path": ["version"] },
-            { "parameter": "latest" }
-          ]
-        }};
-
-        test_filter_representation(
-            &Filter::<DataTypeWithMetadata>::for_latest_version(),
-            &expected,
-        );
     }
 
     #[test]
@@ -659,18 +591,6 @@ mod tests {
     }
 
     #[test]
-    fn for_all_latest_entities() {
-        let expected = json! {{
-          "equal": [
-            { "path": ["version"] },
-            { "parameter": "latest" }
-          ]
-        }};
-
-        test_filter_representation(&Filter::for_all_latest_entities(), &expected);
-    }
-
-    #[test]
     fn for_entity_by_entity_id() {
         let entity_id = EntityId::new(
             OwnedById::new(AccountId::new(Uuid::new_v4())),
@@ -691,59 +611,6 @@ mod tests {
         }};
 
         test_filter_representation(&Filter::for_entity_by_entity_id(entity_id), &expected);
-    }
-
-    #[test]
-    fn for_latest_entity_by_entity_id() {
-        let entity_id = EntityId::new(
-            OwnedById::new(AccountId::new(Uuid::new_v4())),
-            EntityUuid::new(Uuid::new_v4()),
-        );
-
-        let expected = json! {{
-          "all": [
-            { "equal": [
-              { "path": ["ownedById"] },
-              { "parameter": entity_id.owned_by_id() }
-            ]},
-            { "equal": [
-              { "path": ["uuid"] },
-              { "parameter": entity_id.entity_uuid() }
-            ]},
-            { "equal": [
-              { "path": ["version"] },
-              { "parameter": "latest" }
-            ]}
-          ]
-        }};
-
-        test_filter_representation(
-            &Filter::for_latest_entity_by_entity_id(entity_id),
-            &expected,
-        );
-    }
-
-    #[test]
-    fn for_latest_entity_by_entity_uuid() {
-        let entity_uuid = EntityUuid::new(Uuid::new_v4());
-
-        let expected = json! {{
-          "all": [
-            { "equal": [
-              { "path": ["uuid"] },
-              { "parameter": entity_uuid }
-            ]},
-            { "equal": [
-              { "path": ["version"] },
-              { "parameter": "latest" }
-            ]}
-          ]
-        }};
-
-        test_filter_representation(
-            &Filter::for_latest_entity_by_entity_uuid(entity_uuid),
-            &expected,
-        );
     }
 
     #[test]

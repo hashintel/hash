@@ -1,7 +1,8 @@
 import { sleep } from "@hashintel/hash-shared/sleep";
-import { test, expect } from "./shared/runtime";
-import { resetDb } from "./shared/reset-db";
+
 import { loginUsingTempForm } from "./shared/login-using-temp-form";
+import { resetDb } from "./shared/reset-db";
+import { expect, test } from "./shared/runtime";
 
 const pageNameSuffix = Date.now();
 const pageNameFallback = "Untitled";
@@ -27,7 +28,7 @@ test("user can create page", async ({ page }) => {
   await sleep(500);
   await page.locator(createPageButtonSelector).click();
 
-  await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+\/[\w-]+$/));
+  await page.waitForURL((url) => !!url.pathname.match(/^\/@[\w-]+\/[\w-]+$/));
 
   const blockRegion = page.locator("#root");
   const listOfPages = page.locator(listOfPagesSelector);
@@ -166,7 +167,7 @@ test("user can rename page", async ({ page }) => {
   await sleep(500);
   await page.locator(createPageButtonSelector).click();
 
-  await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+\/[\w-]+$/));
+  await page.waitForURL((url) => !!url.pathname.match(/^\/@[\w-]+\/[\w-]+$/));
 
   const listOfPages = page.locator(listOfPagesSelector);
   const pageTitle = page.locator(pageTitleInputSelector);

@@ -1,6 +1,7 @@
 import { CustomCell } from "@glideapps/glide-data-grid";
 import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
 import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
+
 import { getYCenter } from "../utils";
 
 interface DrawTextWithIconParams {

@@ -2,12 +2,12 @@ import { GraphBlockHandler } from "@blockprotocol/graph";
 import { uniqBy } from "lodash";
 
 import {
+  GITHUB_ENTITY_TYPES,
   GithubIssueEventEntityType,
   GithubPullRequestEntityType,
-  PullRequestIdentifier,
   GithubReviewEntityType,
   isDefined,
-  GITHUB_ENTITY_TYPES,
+  PullRequestIdentifier,
 } from "./types";
 
 const ITEMS_PER_PAGE = 500;
@@ -280,7 +280,7 @@ export const getPrDetails = (
     ),
   ])
     .then(([pullRequests, reviews, events]) => {
-      const pullRequest = pullRequests?.[0];
+      const pullRequest = pullRequests[0];
       if (!pullRequest) {
         throw new Error("An error occured while fetching PR info");
       }

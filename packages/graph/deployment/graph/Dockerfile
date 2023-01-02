@@ -13,6 +13,10 @@ FROM rust AS builder
 WORKDIR /usr/local/src/hash_graph
 COPY hash_graph .
 ARG PROFILE=production
+
+# To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
+RUN apk add --no-cache make protobuf-dev
+
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=/usr/local/src/hash_graph/target \

@@ -1,6 +1,6 @@
 import {
-  FunctionComponent,
   forwardRef,
+  FunctionComponent,
   HTMLAttributes,
   MutableRefObject,
   useRef,
@@ -41,7 +41,7 @@ const CustomInput = forwardRef<
         data-expanded={displayTime ? "true" : "false"}
         type="text"
         ref={(element) => {
-          if (!ref || !inputRef) return;
+          if (!ref) return;
 
           (inputRef as MutableRefObject<HTMLInputElement | null>).current =
             element;

@@ -1,9 +1,11 @@
 import { Subgraph } from "@hashintel/hash-subgraph";
-import { OrgModel } from "../../../../model";
-import { MutationCreateOrgArgs, ResolverFn } from "../../../apiTypes.gen";
+
+import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity";
+import { createOrg } from "../../../../graph/knowledge/system-types/org";
+import { MutationCreateOrgArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 
-export const createOrg: ResolverFn<
+export const createOrgResolver: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
@@ -11,17 +13,26 @@ export const createOrg: ResolverFn<
 > = async (
   _,
   { name, shortname, orgSize, hasLeftEntity, hasRightEntity },
-  { dataSources: { graphApi }, userModel },
+  { dataSources: { graphApi }, user },
 ) => {
-  const orgModel = await OrgModel.createOrg(graphApi, {
-    shortname,
-    name,
-    providedInfo: { orgSize },
-    actorId: userModel.getEntityUuid(),
-  });
+  const org = await createOrg(
+    { graphApi },
+    {
+      shortname,
+      name,
+      providedInfo: { orgSize },
+      actorId: user.accountId,
+    },
+  );
 
-  return await orgModel.getRootedSubgraph(graphApi, {
-    hasLeftEntity,
-    hasRightEntity,
-  });
+  return await getLatestEntityRootedSubgraph(
+    { graphApi },
+    {
+      entity: org.entity,
+      graphResolveDepths: {
+        hasLeftEntity,
+        hasRightEntity,
+      },
+    },
+  );
 };

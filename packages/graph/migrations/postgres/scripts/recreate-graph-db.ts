@@ -1,6 +1,6 @@
 import { waitOnResource } from "@hashintel/hash-backend-utils/environment";
-
 import pg from "pg";
+
 import { getRequiredEnv } from "./environment";
 
 const main = async () => {

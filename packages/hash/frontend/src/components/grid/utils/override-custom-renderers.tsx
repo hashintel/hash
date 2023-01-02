@@ -5,6 +5,7 @@ import {
 } from "@glideapps/glide-data-grid";
 import { useScrollLock } from "@hashintel/hash-design-system";
 import { MutableRefObject, PropsWithChildren } from "react";
+
 import { InteractableManager } from "./interactable-manager";
 
 const ScrollLockWrapper = ({ children }: PropsWithChildren) => {

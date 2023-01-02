@@ -4,23 +4,24 @@ import {
   ErrorAuthenticatorAssuranceLevelNotSatisfied,
   ErrorBrowserLocationChangeRequired,
   FrontendApi,
-  NeedsPrivilegedSessionError,
   LoginFlow,
+  NeedsPrivilegedSessionError,
   RecoveryFlow,
   RegistrationFlow,
   SettingsFlow,
-  VerificationFlow,
   UiNodeInputAttributes,
   UpdateLoginFlowBody,
-  UpdateRegistrationFlowBody,
   UpdateRecoveryFlowBody,
+  UpdateRegistrationFlowBody,
   UpdateSettingsFlowBody,
   UpdateVerificationFlowBody,
+  VerificationFlow,
 } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { AxiosError } from "axios";
 import { NextRouter } from "next/router";
 import { Dispatch, SetStateAction } from "react";
+
 import { isBrowser } from "../../lib/config";
 
 export const oryKratosClient = new FrontendApi(
@@ -42,9 +43,9 @@ export const oryKratosClient = new FrontendApi(
   }),
 );
 
-export const fetchKratosSession = async (cookieString?: string) => {
+export const fetchKratosSession = async (cookie?: string) => {
   const kratosSession = await oryKratosClient
-    .toSession({ cookie: cookieString })
+    .toSession({ cookie })
     .then(({ data }) => data)
     .catch(() => undefined);
 

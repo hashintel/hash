@@ -1,16 +1,17 @@
-import { ReactNode, FunctionComponent } from "react";
+import { FunctionComponent, ReactNode } from "react";
+
+import { useIsReadonlyMode } from "../readonly-mode";
 import { PageHeader } from "./layout-with-header/page-header";
 import { PlainLayout } from "./plain-layout";
-import { useReadonlyMode } from "../readonly-mode";
 
 export const LayoutWithHeader: FunctionComponent<{
   children?: ReactNode;
 }> = ({ children }) => {
-  const { readonlyMode } = useReadonlyMode();
+  const isReadonlyMode = useIsReadonlyMode();
 
   return (
     <PlainLayout>
-      {!readonlyMode && <PageHeader />}
+      {!isReadonlyMode && <PageHeader />}
       {children}
     </PlainLayout>
   );

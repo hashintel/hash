@@ -1,11 +1,13 @@
 /* eslint-disable canonical/filename-no-index -- @todo rename file */
 
-import express from "express";
+import { readFileSync, writeFileSync } from "node:fs";
+
 import { json } from "body-parser";
-import { readFileSync, writeFileSync } from "fs";
+import express from "express";
+
+import { ConfiguredAirbyteCatalog } from "./airbyte/protocol";
 import { executeTask } from "./execution";
 import { GithubIngestor } from "./tasks/source-github";
-import { ConfiguredAirbyteCatalog } from "./airbyte/protocol";
 
 /** @todo - Could be from env-var */
 const port = 5010;

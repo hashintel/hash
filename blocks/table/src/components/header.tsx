@@ -1,12 +1,13 @@
-import { FunctionComponent, ReactNode } from "react";
-import { tw } from "twind";
 import { AggregateOperationInput } from "@blockprotocol/graph";
+import { FunctionComponent, ReactNode } from "react";
 import { ColumnInstance } from "react-table";
+import { tw } from "twind";
+
+import { FilterDetail } from "./filter-detail";
+import { Menu } from "./menu";
 // import { SearchIcon } from "./icons";
 import { SortDetail } from "./sort-detail";
 import { ToggleColumnsDetail } from "./toggle-columns-detail";
-import { FilterDetail } from "./filter-detail";
-import { Menu } from "./menu";
 
 export type AggregateArgs = {
   operation: "filter" | "sort" | "changePageSize";

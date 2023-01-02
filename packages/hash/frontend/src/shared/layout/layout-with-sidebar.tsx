@@ -1,9 +1,10 @@
 import { IconButton } from "@hashintel/hash-design-system";
 import { Box, Fade, styled, Tooltip } from "@mui/material";
 import { FunctionComponent, ReactNode, useState } from "react";
+
 import { EditBarScroller } from "../edit-bar-scroller";
 import { SidebarToggleIcon } from "../icons";
-import { useReadonlyMode } from "../readonly-mode";
+import { useIsReadonlyMode } from "../readonly-mode";
 import { LayoutWithHeader } from "./layout-with-header";
 import { HEADER_HEIGHT } from "./layout-with-header/page-header";
 import {
@@ -35,7 +36,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
   fullWidth,
 }) => {
   const { openSidebar, sidebarOpen } = useSidebarContext();
-  const { readonlyMode } = useReadonlyMode();
+  const isReadonlyMode = useIsReadonlyMode();
   const [main, setMain] = useState<HTMLElement | null>(null);
 
   return (
@@ -46,7 +47,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
           position: "relative",
         }}
       >
-        {!readonlyMode && <PageSidebar />}
+        {!isReadonlyMode && <PageSidebar />}
 
         <Box
           sx={(theme) => ({

@@ -1,7 +1,8 @@
 import { CustomCell } from "@glideapps/glide-data-grid";
 import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
+
 import { getYCenter } from "../utils";
-import { drawRoundRect } from "./draw-round-rect";
+import { drawChip } from "./draw-chip";
 
 /**
  * @param args draw args of cell
@@ -21,8 +22,6 @@ export const drawChipWithIcon = (
   const { ctx, theme } = args;
   const yCenter = getYCenter(args);
 
-  const height = 26;
-  const chipTop = yCenter - height / 2;
   const paddingX = 12;
   const iconSize = 10;
   const gap = 6;
@@ -30,13 +29,11 @@ export const drawChipWithIcon = (
   const iconLeft = left + paddingX;
   const textLeft = iconSize + gap + iconLeft;
 
+  ctx.font = args.theme.baseFontStyle;
   const textWidth = ctx.measureText(text).width;
   const chipWidth = iconSize + gap + textWidth + 2 * paddingX;
 
-  ctx.fillStyle = bgColor ?? theme.bgBubble;
-  ctx.beginPath();
-  drawRoundRect(ctx, left, chipTop, chipWidth, height, height / 2);
-  ctx.fill();
+  drawChip(args, left, chipWidth, bgColor ?? theme.bgBubble);
 
   args.spriteManager.drawSprite(
     "bpAsterisk",

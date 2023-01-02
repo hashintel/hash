@@ -1,20 +1,21 @@
-import { BlockModel } from "../../../../model";
-
-import { QueryBlocksArgs, ResolverFn } from "../../../apiTypes.gen";
+import { getBlockById } from "../../../../graph/knowledge/system-types/block";
+import { QueryBlocksArgs, ResolverFn } from "../../../api-types.gen";
 import { GraphQLContext } from "../../../context";
-import { UnresolvedBlockGQL, mapBlockModelToGQL } from "../model-mapping";
+import { UnresolvedBlockGQL } from "../graphql-mapping";
 
-export const blocks: ResolverFn<
+export const blocksResolver: ResolverFn<
   Promise<UnresolvedBlockGQL[]>,
   {},
   GraphQLContext,
   QueryBlocksArgs
 > = async (_, params, { dataSources: { graphApi } }) => {
-  const blocksPromise = await Promise.all(
-    params.blocks.map((entityId) =>
-      BlockModel.getBlockById(graphApi, { entityId }),
-    ),
+  const blocks = await Promise.all(
+    params.blocks.map((entityId) => getBlockById({ graphApi }, { entityId })),
   );
 
-  return blocksPromise.map(mapBlockModelToGQL);
+  return blocks.map(({ componentId, entity }) => ({
+    componentId,
+    metadata: entity.metadata,
+    properties: entity.properties,
+  }));
 };

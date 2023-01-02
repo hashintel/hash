@@ -5,7 +5,7 @@
   "description": "Integration tests for HASH",
   "license": "AGPL-3.0",
   "scripts": {
-    "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.yml",
+    "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
@@ -17,6 +17,7 @@
     "@hashintel/hash-backend-utils": "0.0.0-private",
     "@hashintel/hash-graph-client": "0.0.0-private",
     "@hashintel/hash-shared": "0.0.0-private",
+    "@hashintel/hash-subgraph": "0.0.0-private",
     "execa": "5.1.1",
     "graphql": "15.5.1",
     "graphql-request": "3.4.0"
