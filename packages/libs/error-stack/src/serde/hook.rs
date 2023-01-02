@@ -173,6 +173,8 @@ mod default {
         panic::Location,
         sync::atomic::{AtomicBool, Ordering},
     };
+    #[cfg(all(feature = "std", rust_1_65))]
+    use std::backtrace::Backtrace;
     #[cfg(feature = "std")]
     use std::sync::Once;
 
@@ -324,6 +326,15 @@ mod default {
         }
     }
 
+    #[cfg(all(feature = "std", rust_1_65))]
+    fn backtrace(backtrace: &Backtrace, _: &mut HookContext<Backtrace>) -> Vec<String> {
+        backtrace
+            .to_string()
+            .lines()
+            .map(ToOwned::to_owned)
+            .collect()
+    }
+
     pub(crate) fn install_builtin_serde_hooks() {
         // We could in theory remove this and replace it with a single AtomicBool.
         static INSTALL_BUILTIN: Once = Once::new();
@@ -350,8 +361,8 @@ mod default {
 
             Report::install_custom_serde_hook(SerializeLocation::hook);
 
-            // #[cfg(all(feature = "std", rust_1_65))]
-            // Report::install_debug_hook::<Backtrace>(backtrace);
+            #[cfg(all(feature = "std", rust_1_65))]
+            Report::install_custom_serde_hook::<Backtrace>(backtrace);
 
             #[cfg(feature = "spantrace")]
             Report::install_custom_serde_hook(SerializeSpantrace::hook);
