@@ -1,16 +1,16 @@
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { AxiosError } from "axios";
 
-import { GraphApi } from "../graph";
 import { createKratosIdentity } from "../auth/ory-kratos";
-import { isDevEnv } from "../lib/env-config";
-import { systemUserAccountId } from "../graph/system-user";
+import { GraphApi } from "../graph";
 import {
   createUser,
   updateUserPreferredName,
   updateUserShortname,
   User,
 } from "../graph/knowledge/system-types/user";
+import { systemUserAccountId } from "../graph/system-user";
+import { isDevEnv } from "../lib/env-config";
 
 type SeededUser = {
   email: string;

@@ -5,9 +5,9 @@ import {
 import {
   MutationUpdateCommentTextArgs,
   ResolverFn,
-} from "../../../apiTypes.gen";
+} from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { UnresolvedCommentGQL, mapCommentToGQL } from "../graphql-mapping";
+import { mapCommentToGQL, UnresolvedCommentGQL } from "../graphql-mapping";
 
 export const updateCommentTextResolver: ResolverFn<
   Promise<UnresolvedCommentGQL>,

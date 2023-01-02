@@ -1,13 +1,14 @@
 import { useCallback, useMemo } from "react";
-import { PropertyRow } from "./types";
-import { generatePropertyRowsFromEntity } from "./use-rows/generate-property-rows-from-entity";
+
+import {
+  ColumnSort,
+  defaultSortRows,
+} from "../../../../../../../components/grid/utils/sorting";
 import { useEntityEditor } from "../../entity-editor-context";
 import { fillRowIndentCalculations } from "./fill-row-indent-calculations";
 import { flattenExpandedItemsOfTree } from "./flatten";
-import {
-  defaultSortRows,
-  ColumnSort,
-} from "../../../../../../../components/grid/utils/sorting";
+import { PropertyRow } from "./types";
+import { generatePropertyRowsFromEntity } from "./use-rows/generate-property-rows-from-entity";
 
 export const useRows = () => {
   const { entitySubgraph, propertyExpandStatus } = useEntityEditor();

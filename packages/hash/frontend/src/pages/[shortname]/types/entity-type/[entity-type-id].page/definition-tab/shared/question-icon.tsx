@@ -1,9 +1,16 @@
 import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { experimental_sx as sx, styled, Theme } from "@mui/material";
-import { ComponentProps } from "react";
+import {
+  Box,
+  BoxProps,
+  experimental_sx as sx,
+  styled,
+  Theme,
+  Tooltip,
+} from "@mui/material";
+import { ComponentProps, ReactNode } from "react";
 
-export const QuestionIcon = styled(
+const StyledQuestionIcon = styled(
   (props: Omit<ComponentProps<typeof FontAwesomeIcon>, "icon">) => (
     <FontAwesomeIcon {...props} icon={faQuestionCircle} />
   ),
@@ -12,3 +19,29 @@ export const QuestionIcon = styled(
     color: theme.palette.gray[40],
   })),
 );
+
+export const QuestionIcon = ({
+  tooltip,
+  ...props
+}: { tooltip: NonNullable<ReactNode> } & BoxProps) => {
+  return (
+    <Tooltip
+      title={tooltip}
+      placement="top"
+      PopperProps={{
+        modifiers: [
+          {
+            name: "offset",
+            options: {
+              offset: [0, 8],
+            },
+          },
+        ],
+      }}
+    >
+      <Box display="inline" {...props}>
+        <StyledQuestionIcon />
+      </Box>
+    </Tooltip>
+  );
+};

@@ -1,19 +1,19 @@
-import { AxiosError } from "axios";
+import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
 import { UpdatePropertyTypeRequest } from "@hashintel/hash-graph-client";
+import { PropertyTypeWithoutId } from "@hashintel/hash-shared/graphql/types";
+import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import {
   PropertyTypeWithMetadata,
   Subgraph,
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
-import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
-import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
-import { PropertyTypeWithoutId } from "@hashintel/hash-shared/graphql/types";
+
+import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
 import { getNamespaceOfAccountOwner } from "./util";
-import { NotFoundError } from "../../../lib/error";
 
 /**
  * Create a property type.
@@ -46,19 +46,11 @@ export const createPropertyType: ImpureGraphFunction<
 
   const { graphApi } = ctx;
 
-  const { data: metadata } = await graphApi
-    .createPropertyType({
-      ownedById,
-      schema,
-      actorId,
-    })
-    .catch((err: AxiosError) => {
-      throw new Error(
-        err.response?.status === 409
-          ? `property type with the same URI already exists. [URI=${schema.$id}]`
-          : `[${err.code}] couldn't create property type: ${err.response?.data}.`,
-      );
-    });
+  const { data: metadata } = await graphApi.createPropertyType({
+    ownedById,
+    schema,
+    actorId,
+  });
 
   return { schema, metadata };
 };

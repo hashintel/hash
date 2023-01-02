@@ -5,14 +5,15 @@ import {
 import {
   Box,
   BoxProps,
-  Typography,
+  Collapse,
+  styled,
   Tooltip,
   tooltipClasses,
   TooltipProps,
-  styled,
-  Collapse,
+  Typography,
 } from "@mui/material";
 import { forwardRef, FunctionComponent } from "react";
+
 import { FontAwesomeIcon } from "./fontawesome-icon";
 
 const DisabledTooltip = styled(({ className, ...props }: TooltipProps) => (

@@ -1,8 +1,9 @@
 import { Subgraph } from "@hashintel/hash-subgraph";
+
 import { createKratosIdentity } from "../../../../auth/ory-kratos";
 import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity";
 import { createUser } from "../../../../graph/knowledge/system-types/user";
-import { MutationCreateUserArgs, ResolverFn } from "../../../apiTypes.gen";
+import { MutationCreateUserArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 
 export const createUserResolver: ResolverFn<
