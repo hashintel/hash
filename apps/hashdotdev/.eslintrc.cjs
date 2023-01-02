@@ -9,9 +9,6 @@ module.exports = {
     ]),
     "jsx-a11y/label-has-associated-control": "off",
     "import/no-default-export": "error",
-    "simple-import-sort/exports": "error",
-    "simple-import-sort/imports": "error",
-    "unicorn/filename-case": "error",
   },
   overrides: [
     {

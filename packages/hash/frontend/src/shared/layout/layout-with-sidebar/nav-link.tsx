@@ -1,12 +1,13 @@
-import { useState, FunctionComponent, ReactNode } from "react";
 import { faAdd, faChevronRight } from "@fortawesome/free-solid-svg-icons";
-import { Box, Typography, Collapse, Tooltip } from "@mui/material";
 import {
+  FontAwesomeIcon,
   IconButton,
   IconButtonProps,
-  FontAwesomeIcon,
   LoadingSpinner,
 } from "@hashintel/hash-design-system";
+import { Box, Collapse, Tooltip, Typography } from "@mui/material";
+import { FunctionComponent, ReactNode, useState } from "react";
+
 import { Link } from "../../ui";
 
 type NavLinkProps = {

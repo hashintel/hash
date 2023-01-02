@@ -1,36 +1,37 @@
 import { Filter } from "@hashintel/hash-graph-client";
-import { ForbiddenError, UserInputError } from "apollo-server-express";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import {
   Entity,
   isEntityId,
   splitEntityId,
   Subgraph,
 } from "@hashintel/hash-subgraph";
-import { OwnedById } from "@hashintel/hash-shared/types";
-import {
-  QueryGetEntityArgs,
-  MutationCreateEntityArgs,
-  MutationUpdateEntityArgs,
-  ResolverFn,
-  QueryGetAllLatestEntitiesArgs,
-  MutationArchiveEntityArgs,
-} from "../../../api-types.gen";
-import { mapEntityToGQL } from "../graphql-mapping";
-import { LoggedInGraphQLContext } from "../../../context";
-import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
-import { getEntityTypeById } from "../../../../graph/ontology/primitive/entity-type";
-import {
-  createLinkEntity,
-  isEntityLinkEntity,
-  LinkEntity,
-  updateLinkEntity,
-} from "../../../../graph/knowledge/primitive/link-entity";
+import { ForbiddenError, UserInputError } from "apollo-server-express";
+
 import {
   archiveEntity,
   createEntityWithLinks,
   getLatestEntityById,
   updateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
+import {
+  createLinkEntity,
+  isEntityLinkEntity,
+  LinkEntity,
+  updateLinkEntity,
+} from "../../../../graph/knowledge/primitive/link-entity";
+import { getEntityTypeById } from "../../../../graph/ontology/primitive/entity-type";
+import {
+  MutationArchiveEntityArgs,
+  MutationCreateEntityArgs,
+  MutationUpdateEntityArgs,
+  QueryGetAllLatestEntitiesArgs,
+  QueryGetEntityArgs,
+  ResolverFn,
+} from "../../../api-types.gen";
+import { LoggedInGraphQLContext } from "../../../context";
+import { mapEntityToGQL } from "../graphql-mapping";
+import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
 
 /**
  * @todo - Remove this when the Subgraph is appropriately queryable for a timestamp

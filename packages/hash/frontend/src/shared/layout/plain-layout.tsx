@@ -1,7 +1,8 @@
-import Head from "next/head";
-import { ReactElement, ReactNode, FunctionComponent } from "react";
-import NextNProgress from "nextjs-progressbar";
 import { useTheme } from "@mui/material";
+import Head from "next/head";
+import NextNProgress from "nextjs-progressbar";
+import { FunctionComponent, ReactElement, ReactNode } from "react";
+
 import { isProduction } from "../../lib/config";
 
 export const PlainLayout: FunctionComponent<{

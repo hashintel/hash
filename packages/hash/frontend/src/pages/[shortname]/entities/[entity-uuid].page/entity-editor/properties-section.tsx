@@ -6,12 +6,13 @@ import {
 } from "@hashintel/hash-design-system";
 import { Paper, Stack } from "@mui/material";
 import { useState } from "react";
-import { PropertyTable } from "./properties-section/property-table";
+
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { WhiteChip } from "../../../shared/white-chip";
 import { PropertiesSectionEmptyState } from "../shared/properties-section-empty-state";
-import { useRows } from "./properties-section/property-table/use-rows";
 import { getPropertyCountSummary } from "./properties-section/get-property-count-summary";
+import { PropertyTable } from "./properties-section/property-table";
+import { useRows } from "./properties-section/property-table/use-rows";
 
 export const PropertiesSection = () => {
   const [showSearch, setShowSearch] = useState(false);

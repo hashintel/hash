@@ -1,9 +1,18 @@
-use std::{fmt, fmt::Display};
+use std::{
+    collections::hash_map::{RandomState, RawEntryMut},
+    fmt,
+    fmt::Display,
+};
 
 use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Serialize};
 use type_system::uri::{BaseUri, VersionedUri};
 use utoipa::{openapi, ToSchema};
+
+use crate::{
+    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
+    subgraph::{Subgraph, SubgraphIndex},
+};
 
 #[derive(
     Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, FromSql, ToSql,
@@ -78,5 +87,40 @@ impl From<&OntologyTypeEditionId> for VersionedUri {
     fn from(edition_id: &OntologyTypeEditionId) -> Self {
         // We should make it possible to destructure to avoid the clone
         Self::new(edition_id.base_id().clone(), edition_id.version.inner())
+    }
+}
+
+impl SubgraphIndex<DataTypeWithMetadata> for OntologyTypeEditionId {
+    fn subgraph_vertex_entry<'a>(
+        &self,
+        subgraph: &'a mut Subgraph,
+    ) -> RawEntryMut<'a, Self, DataTypeWithMetadata, RandomState> {
+        subgraph.vertices.data_types.raw_entry_mut().from_key(self)
+    }
+}
+
+impl SubgraphIndex<PropertyTypeWithMetadata> for OntologyTypeEditionId {
+    fn subgraph_vertex_entry<'a>(
+        &self,
+        subgraph: &'a mut Subgraph,
+    ) -> RawEntryMut<'a, Self, PropertyTypeWithMetadata, RandomState> {
+        subgraph
+            .vertices
+            .property_types
+            .raw_entry_mut()
+            .from_key(self)
+    }
+}
+
+impl SubgraphIndex<EntityTypeWithMetadata> for OntologyTypeEditionId {
+    fn subgraph_vertex_entry<'a>(
+        &self,
+        subgraph: &'a mut Subgraph,
+    ) -> RawEntryMut<'a, Self, EntityTypeWithMetadata, RandomState> {
+        subgraph
+            .vertices
+            .entity_types
+            .raw_entry_mut()
+            .from_key(self)
     }
 }
