@@ -19,12 +19,13 @@ import {
 } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import { ApolloError } from "apollo-server-errors";
-import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
+
 import {
   EntityDefinition,
   LinkedEntityDefinition,
-} from "../../../graphql/apiTypes.gen";
+} from "../../../graphql/api-types.gen";
 import { linkedTreeFlatten } from "../../../util";
+import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
 import { getEntityTypeById } from "../../ontology/primitive/entity-type";
 import {
   createLinkEntity,

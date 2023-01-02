@@ -1,14 +1,15 @@
-import clsx from "clsx";
-import { useRouter } from "next/router";
-// eslint-disable-next-line no-restricted-imports
-import NextLink, { LinkProps as NextLinkProps } from "next/link";
 import {
   // eslint-disable-next-line no-restricted-imports
   Link as MuiLink,
   LinkProps as MuiLinkProps,
   styled,
 } from "@mui/material";
+import clsx from "clsx";
+// eslint-disable-next-line no-restricted-imports
+import NextLink, { LinkProps as NextLinkProps } from "next/link";
+import { useRouter } from "next/router";
 import { forwardRef, isValidElement } from "react";
+
 import { Button, isHrefExternal } from "./button";
 
 /**

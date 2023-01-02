@@ -1,12 +1,13 @@
 import { BaseUri } from "@blockprotocol/type-system";
+
 import {
+  EntityEditionId,
+  EntityId,
+  EntityIdAndTimestamp,
   isEntityEditionId,
   isOntologyTypeEditionId,
-  EntityId,
-  Timestamp,
-  EntityEditionId,
-  EntityIdAndTimestamp,
   OntologyTypeEditionId,
+  Timestamp,
 } from "./identifier";
 
 // -------------------------------- Edge Kinds --------------------------------

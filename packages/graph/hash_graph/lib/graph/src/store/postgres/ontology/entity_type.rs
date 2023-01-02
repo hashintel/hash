@@ -44,12 +44,9 @@ impl<C: AsClient> PostgresStore<C> {
 
             let entity_type = match dependency_status {
                 DependencyStatus::Unresolved => {
-                    <Self as Read<EntityTypeWithMetadata>>::read_into_subgraph(
-                        self,
-                        subgraph,
-                        entity_type_id,
-                    )
-                    .await?
+                    subgraph
+                        .get_or_read::<EntityTypeWithMetadata>(self, entity_type_id)
+                        .await?
                 }
                 DependencyStatus::Resolved => return Ok(()),
             };
@@ -291,16 +288,20 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         let mut dependency_context = DependencyContext::default();
 
         for entity_type in Read::<EntityTypeWithMetadata>::read(self, filter).await? {
+            let edition_id = entity_type.edition_id().clone();
+
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
-            let entity_type = entity_type.insert_into_subgraph_as_root(&mut subgraph);
+            subgraph.insert(entity_type);
 
             self.traverse_entity_type(
-                &entity_type.metadata().edition_id().clone(),
+                &edition_id,
                 &mut dependency_context,
                 &mut subgraph,
                 graph_resolve_depths,
             )
             .await?;
+
+            subgraph.roots.insert(edition_id.into());
         }
 
         Ok(subgraph)

@@ -34,10 +34,29 @@ use utoipa::{
 
 use self::{api_resource::RoutedResource, middleware::span_maker};
 use crate::{
-    api::rest::middleware::log_request_and_response,
-    identifier::time::Timestamp,
-    ontology::{domain_validator::DomainValidator, Selector},
+    api::rest::{
+        middleware::log_request_and_response,
+        utoipa_typedef::subgraph::{
+            Edges, KnowledgeGraphOutwardEdges, KnowledgeGraphRootedEdges, KnowledgeGraphVertex,
+            KnowledgeGraphVertices, OntologyRootedEdges, OntologyVertex, OntologyVertices,
+            Subgraph, Vertex, Vertices,
+        },
+    },
+    identifier::{
+        ontology::OntologyTypeEditionId,
+        time::{
+            DecisionTimeVersionTimespan, Timestamp, TransactionTimeVersionTimespan,
+            TransactionTimestamp,
+        },
+        GraphElementEditionId, GraphElementId,
+    },
+    ontology::{domain_validator::DomainValidator, OntologyElementMetadata, Selector},
+    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{QueryError, StorePool},
+    subgraph::edges::{
+        EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
+        OntologyOutwardEdges, OutgoingEdgeResolveDepth, SharedEdgeKind,
+    },
 };
 
 static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/json_schemas");
@@ -135,7 +154,36 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
     modifiers(&MergeAddon, &ExternalRefAddon, &OperationGraphTagAddon, &FilterSchemaAddon, &TimeSchemaAddon),
     components(
         schemas(
+            OwnedById,
+            UpdatedById,
+            ProvenanceMetadata,
+            OntologyTypeEditionId,
+            OntologyElementMetadata,
             Selector,
+
+            GraphElementId,
+            GraphElementEditionId,
+            TransactionTimestamp,
+            OntologyVertex,
+            KnowledgeGraphVertex,
+            Vertex,
+            KnowledgeGraphVertices,
+            OntologyVertices,
+            Vertices,
+            SharedEdgeKind,
+            KnowledgeGraphEdgeKind,
+            OntologyEdgeKind,
+            OntologyOutwardEdges,
+            KnowledgeGraphOutwardEdges,
+            OntologyRootedEdges,
+            KnowledgeGraphRootedEdges,
+            Edges,
+            GraphResolveDepths,
+            EdgeResolveDepths,
+            OutgoingEdgeResolveDepth,
+            Subgraph,
+            DecisionTimeVersionTimespan,
+            TransactionTimeVersionTimespan,
         )
     ),
 )]

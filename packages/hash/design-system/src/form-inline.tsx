@@ -1,5 +1,5 @@
-import { FunctionComponent, ReactNode } from "react";
 import { Box, buttonClasses, outlinedInputClasses } from "@mui/material";
+import { FunctionComponent, ReactNode } from "react";
 
 type FormInlineProps = {
   children?: ReactNode;

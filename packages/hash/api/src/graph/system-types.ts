@@ -6,9 +6,9 @@ import {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@hashintel/hash-subgraph";
-import { logger } from "../logger";
 
-import { propertyTypeInitializer, entityTypeInitializer } from "./util";
+import { logger } from "../logger";
+import { entityTypeInitializer, propertyTypeInitializer } from "./util";
 
 // eslint-disable-next-line import/no-mutable-exports
 export let SYSTEM_TYPES: {
@@ -316,7 +316,6 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
       {
         linkEntityType: orgMembershipLinkEntityType,
         destinationEntityTypes: [orgEntityType],
-        maxItems: 1,
       },
     ],
   })(graphApi);
@@ -362,7 +361,7 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
          * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
          */
         destinationEntityTypes: [dummyEntityType],
-        required: true,
+        minItems: 1,
         maxItems: 1,
       },
     ],
@@ -499,7 +498,7 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
       {
         linkEntityType: containsLinkEntityType,
         destinationEntityTypes: [blockEntityType],
-        required: true,
+        minItems: 1,
         ordered: true,
       },
       {
@@ -575,19 +574,19 @@ const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
       {
         linkEntityType: hasTextLinkEntityType,
         destinationEntityTypes: [textEntityType],
-        required: true,
+        minItems: 1,
         maxItems: 1,
       },
       {
         linkEntityType: parentLinkTypeType,
         destinationEntityTypes: ["SELF_REFERENCE", blockEntityType],
-        required: true,
+        minItems: 1,
         maxItems: 1,
       },
       {
         linkEntityType: authorLinkTypeType,
         destinationEntityTypes: [userEntityType],
-        required: true,
+        minItems: 1,
         maxItems: 1,
       },
     ],

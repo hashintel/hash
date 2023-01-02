@@ -7,6 +7,7 @@ import {
   LinkData,
   PropertyObject,
 } from "@hashintel/hash-subgraph";
+
 import { ImpureGraphFunction } from "../..";
 import { isEntityTypeLinkEntityType } from "../../ontology/primitive/entity-type";
 import { getLatestEntityById } from "./entity";
