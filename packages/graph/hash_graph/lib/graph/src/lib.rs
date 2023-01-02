@@ -65,14 +65,16 @@
     reason = "This encourages importing `as` which breaks IDEs"
 )]
 
-pub mod api;
+pub mod logging;
+mod shared;
 
 pub mod knowledge;
 pub mod ontology;
-mod shared;
 
 pub mod store;
 
-pub mod logging;
+pub mod generator;
+
+pub mod api;
 
 pub use self::shared::*;
