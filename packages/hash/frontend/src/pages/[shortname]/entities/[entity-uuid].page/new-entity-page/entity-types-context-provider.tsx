@@ -1,6 +1,7 @@
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { PropsWithChildren, useEffect, useMemo, useState } from "react";
-import { useBlockProtocolAggregateEntityTypes } from "../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateEntityTypes";
+
+import { useBlockProtocolAggregateEntityTypes } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-entity-types";
 import { useInitTypeSystem } from "../../../../../lib/use-init-type-system";
 import {
   EntityTypesContext,

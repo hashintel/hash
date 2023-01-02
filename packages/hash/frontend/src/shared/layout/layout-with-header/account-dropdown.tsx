@@ -1,22 +1,22 @@
-import { useMemo, FunctionComponent } from "react";
+import { Avatar } from "@hashintel/hash-design-system";
 import {
   Box,
-  Typography,
   Divider,
-  Tooltip,
   ListItemText,
   Menu,
+  Tooltip,
+  Typography,
 } from "@mui/material";
-
 import {
-  usePopupState,
   bindMenu,
   bindTrigger,
+  usePopupState,
 } from "material-ui-popup-state/hooks";
-import { Avatar } from "@hashintel/hash-design-system";
+import { FunctionComponent, useMemo } from "react";
+
+import { AuthenticatedUser } from "../../../lib/user-and-org";
 import { MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
-import { AuthenticatedUser } from "../../../lib/user-and-org";
 
 type AccountDropdownProps = {
   avatar?: string;

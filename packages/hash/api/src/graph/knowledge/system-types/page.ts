@@ -1,7 +1,7 @@
 import {
   AccountId,
-  OwnedById,
   extractOwnedByIdFromEntityId,
+  OwnedById,
 } from "@hashintel/hash-shared/types";
 import {
   Entity,
@@ -13,12 +13,13 @@ import {
 import { getEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
+
+import { EntityTypeMismatchError } from "../../../lib/error";
 import {
   ImpureGraphFunction,
   PureGraphFunction,
   zeroedGraphResolveDepths,
 } from "../..";
-import { EntityTypeMismatchError } from "../../../lib/error";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
   archiveEntity,

@@ -1,18 +1,19 @@
-import { DataSource } from "apollo-datasource";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
 import {
   Configuration,
   GraphApi as GraphApiClient,
   GraphResolveDepths,
 } from "@hashintel/hash-graph-client";
 import HttpAgent, { HttpsAgent } from "agentkeepalive";
+import { DataSource } from "apollo-datasource";
 import axios, { AxiosError } from "axios";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import {
-  ensureSystemUserExists,
-  ensureSystemUserAccountIdExists,
-} from "./system-user";
-import { ensureSystemTypesExist } from "./system-types";
+
 import { ensureSystemEntitiesExists } from "./system-entities";
+import { ensureSystemTypesExist } from "./system-types";
+import {
+  ensureSystemUserAccountIdExists,
+  ensureSystemUserExists,
+} from "./system-user";
 
 export type ImpureGraphContext = {
   graphApi: GraphApi;

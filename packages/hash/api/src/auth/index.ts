@@ -1,17 +1,18 @@
-import { Express, Request, RequestHandler } from "express";
-import { AxiosError } from "axios";
-import { Session } from "@ory/client";
-import { GraphApi } from "@hashintel/hash-graph-client";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
-import { KratosUserIdentity, kratosFrontendApi } from "./ory-kratos";
-import { systemUserAccountId } from "../graph/system-user";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { GraphApi } from "@hashintel/hash-graph-client";
+import { Session } from "@ory/client";
+import { AxiosError } from "axios";
+import { Express, Request, RequestHandler } from "express";
+
 import { getHashInstance } from "../graph/knowledge/system-types/hash-instance";
 import {
   createUser,
   getUserByKratosIdentityId,
   User,
 } from "../graph/knowledge/system-types/user";
+import { systemUserAccountId } from "../graph/system-user";
+import { kratosFrontendApi, KratosUserIdentity } from "./ory-kratos";
 
 declare global {
   namespace Express {

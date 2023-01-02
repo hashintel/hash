@@ -1,30 +1,30 @@
-import {
-  useEffect,
-  FormEventHandler,
-  useState,
-  useMemo,
-  FunctionComponent,
-} from "react";
-import { useRouter } from "next/router";
-import { RegistrationFlow } from "@ory/client";
-import { Typography, Container, Box } from "@mui/material";
 import { TextField } from "@hashintel/hash-design-system";
-import { AxiosError } from "axios";
+import { Box, Container, Typography } from "@mui/material";
+import { RegistrationFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
+import { AxiosError } from "axios";
+import { useRouter } from "next/router";
+import {
+  FormEventHandler,
+  FunctionComponent,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import { useHashInstance } from "../components/hooks/use-hash-instance";
+import { useUpdateAuthenticatedUser } from "../components/hooks/use-update-authenticated-user";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
+import { Button } from "../shared/ui";
+import { useAuthInfo } from "./shared/auth-info-context";
+import { parseGraphQLError } from "./shared/auth-utils";
 import {
   createFlowErrorHandler,
-  mustGetCsrfTokenFromFlow,
   IdentityTraits,
+  mustGetCsrfTokenFromFlow,
   oryKratosClient,
 } from "./shared/ory-kratos";
-import { Button } from "../shared/ui";
 import { AccountSetupForm } from "./signup.page/account-setup-form";
-
-import { parseGraphQLError } from "./shared/auth-utils";
-import { useUpdateAuthenticatedUser } from "../components/hooks/useUpdateAuthenticatedUser";
-import { useHashInstance } from "../components/hooks/useHashInstance";
-import { useAuthInfo } from "./shared/auth-info-context";
 
 const KratosRegistrationFlowForm: FunctionComponent = () => {
   const router = useRouter();

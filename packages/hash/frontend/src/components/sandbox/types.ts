@@ -1,11 +1,12 @@
 import {
   BlockProtocolAggregateEntitiesFunction,
+  BlockProtocolAggregateEntityTypesFunction,
   BlockProtocolCreateEntitiesFunction,
   BlockProtocolUpdateEntitiesFunction,
-  BlockProtocolAggregateEntityTypesFunction,
   JSONObject,
 } from "blockprotocol";
-import { FetchEmbedCodeFn } from "../BlockLoader/fetchEmbedCode";
+
+import { FetchEmbedCodeFn } from "../block-loader/fetch-embed-code";
 
 export type MessageFromFramedBlock = {
   requestId: string;
