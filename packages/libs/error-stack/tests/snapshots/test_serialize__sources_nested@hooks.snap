@@ -8,7 +8,7 @@ expression: report
     "attachments": [
       {
         "file": "tests/common/snapshots.rs",
-        "line": 207,
+        "line": 212,
         "column": 10
       },
       "2",
@@ -20,7 +20,7 @@ expression: report
         "attachments": [
           {
             "file": "tests/common/snapshots.rs",
-            "line": 201,
+            "line": 206,
             "column": 10
           },
           "4",
@@ -35,7 +35,6 @@ expression: report
                 "line": 4,
                 "column": 5
               },
-              "backtrace (1)",
               "6"
             ],
             "sources": []
@@ -47,7 +46,7 @@ expression: report
         "attachments": [
           {
             "file": "tests/common/snapshots.rs",
-            "line": 196,
+            "line": 201,
             "column": 10
           },
           "5",
@@ -59,7 +58,7 @@ expression: report
             "attachments": [
               {
                 "file": "tests/common/snapshots.rs",
-                "line": 194,
+                "line": 199,
                 "column": 10
               },
               "7"
@@ -70,7 +69,7 @@ expression: report
                 "attachments": [
                   {
                     "file": "tests/common/snapshots.rs",
-                    "line": 185,
+                    "line": 190,
                     "column": 34
                   },
                   "9",
@@ -84,8 +83,7 @@ expression: report
                         "file": "tests/common/mod.rs",
                         "line": 4,
                         "column": 5
-                      },
-                      "backtrace (1)"
+                      }
                     ],
                     "sources": []
                   }
@@ -96,7 +94,7 @@ expression: report
                 "attachments": [
                   {
                     "file": "tests/common/snapshots.rs",
-                    "line": 179,
+                    "line": 184,
                     "column": 10
                   },
                   "13",
@@ -113,8 +111,7 @@ expression: report
                         "file": "tests/common/mod.rs",
                         "line": 4,
                         "column": 5
-                      },
-                      "backtrace (1)"
+                      }
                     ],
                     "sources": []
                   }
@@ -125,7 +122,7 @@ expression: report
                 "attachments": [
                   {
                     "file": "tests/common/snapshots.rs",
-                    "line": 165,
+                    "line": 170,
                     "column": 10
                   },
                   "15",
@@ -143,8 +140,7 @@ expression: report
                         "file": "tests/common/mod.rs",
                         "line": 4,
                         "column": 5
-                      },
-                      "backtrace (1)"
+                      }
                     ],
                     "sources": []
                   }
@@ -155,7 +151,7 @@ expression: report
                 "attachments": [
                   {
                     "file": "tests/common/snapshots.rs",
-                    "line": 175,
+                    "line": 180,
                     "column": 10
                   },
                   "11",
@@ -170,8 +166,7 @@ expression: report
                         "file": "tests/common/mod.rs",
                         "line": 4,
                         "column": 5
-                      },
-                      "backtrace (1)"
+                      }
                     ],
                     "sources": []
                   }
@@ -182,7 +177,7 @@ expression: report
                 "attachments": [
                   {
                     "file": "tests/common/snapshots.rs",
-                    "line": 171,
+                    "line": 176,
                     "column": 10
                   },
                   "12",
@@ -195,7 +190,7 @@ expression: report
                     "attachments": [
                       {
                         "file": "tests/common/snapshots.rs",
-                        "line": 170,
+                        "line": 175,
                         "column": 10
                       }
                     ],
@@ -207,8 +202,7 @@ expression: report
                             "file": "tests/common/mod.rs",
                             "line": 4,
                             "column": 5
-                          },
-                          "backtrace (1)"
+                          }
                         ],
                         "sources": []
                       }

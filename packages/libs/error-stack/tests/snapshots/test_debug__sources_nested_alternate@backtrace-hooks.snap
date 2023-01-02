@@ -1,6 +1,6 @@
 ---
 source: tests/test_debug.rs
-expression: "format!(\"{report:?}\")"
+expression: "format!(\"{report:#?}\")"
 ---
 context A
 |- at tests/common/snapshots.rs:212:10
@@ -14,6 +14,7 @@ context A
  |  |
  |  |-> root error
  |      |- at tests/common/mod.rs:4:5
+ |      |- backtrace (1)
  |      |- 6
  |
  |> context A
@@ -32,6 +33,7 @@ context A
      |  |
      |  |-> root error
      |      |- at tests/common/mod.rs:4:5
+     |      |- backtrace (2)
      |
      |> context A
      |  |- at tests/common/snapshots.rs:184:10
@@ -43,6 +45,7 @@ context A
      |  |
      |  |-> root error
      |      |- at tests/common/mod.rs:4:5
+     |      |- backtrace (3)
      |
      |> context A
      |  |- at tests/common/snapshots.rs:170:10
@@ -55,6 +58,7 @@ context A
      |  |
      |  |-> root error
      |      |- at tests/common/mod.rs:4:5
+     |      |- backtrace (4)
      |
      |> context A
      |  |- at tests/common/snapshots.rs:180:10
@@ -64,6 +68,7 @@ context A
      |  |
      |  |-> root error
      |      |- at tests/common/mod.rs:4:5
+     |      |- backtrace (5)
      |
      |> context A
         |- at tests/common/snapshots.rs:176:10
@@ -76,3 +81,24 @@ context A
         |
         |-> root error
             |- at tests/common/mod.rs:4:5
+            |- backtrace (6)
+
+========================================
+
+backtrace no. 1
+  [redacted]
+
+backtrace no. 2
+  [redacted]
+
+backtrace no. 3
+  [redacted]
+
+backtrace no. 4
+  [redacted]
+
+backtrace no. 5
+  [redacted]
+
+backtrace no. 6
+  [redacted]

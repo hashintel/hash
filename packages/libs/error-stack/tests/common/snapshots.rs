@@ -45,7 +45,7 @@ fn setup() {
 }
 
 #[allow(unused_variables)]
-fn snap_suffix(pretty_print: bool) -> String {
+fn snap_suffix(pretty_print: bool, hooks_suffix: bool) -> String {
     #[allow(unused_mut)]
     let mut suffix: Vec<&'static str> = vec![];
 
@@ -62,6 +62,11 @@ fn snap_suffix(pretty_print: bool) -> String {
     #[cfg(feature = "pretty-print")]
     if pretty_print {
         suffix.push("pretty-print");
+    }
+
+    #[cfg(any(feature = "std", feature = "hooks"))]
+    {
+        suffix.push("hooks");
     }
 
     suffix.join("-")
@@ -83,12 +88,12 @@ pub fn create_report() -> Report<RootError> {
     capture_error(func_a)
 }
 
-pub fn prepare(suffix: bool, pretty_print: bool) -> impl Drop {
+pub fn prepare(suffix: bool, pretty_print: bool, hooks_suffix: bool) -> impl Drop {
     setup();
 
     let mut settings = insta::Settings::clone_current();
     if suffix {
-        settings.set_snapshot_suffix(snap_suffix(pretty_print));
+        settings.set_snapshot_suffix(snap_suffix(pretty_print, hooks_suffix));
     }
 
     settings.add_filter(

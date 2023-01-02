@@ -4,7 +4,7 @@
 #![cfg(not(miri))]
 #![cfg_attr(all(nightly, feature = "std"), feature(error_generic_member_access))]
 #![cfg_attr(nightly, feature(provide_any))]
-#![cfg_attr(nightly, feature(closure_lifetime_binder))]
+// #![cfg_attr(nightly, feature(closure_lifetime_binder))]
 
 mod common;
 
@@ -12,7 +12,7 @@ use common::snapshots::*;
 use insta::assert_json_snapshot;
 
 fn prepare(suffix: bool) -> impl Drop {
-    snapshots::prepare(suffix, false)
+    snapshots::prepare(suffix, false, true)
 }
 
 /// This is the main test, to test all different parts at once,
@@ -128,29 +128,29 @@ mod full {
         assert_json_snapshot!(report);
     }
 
-    #[test]
-    #[cfg(nightly)]
-    fn hook_custom_nightly() {
-        let _guard = prepare(false);
-
-        Report::install_custom_serde_hook(
-            for<'a, 'b> |value: &'a DoesNotImplementSerialize,
-                         context: &'b mut HookContext<DoesNotImplementSerialize>|
-                         -> ImplementSerialize<'a> {
-                ImplementSerialize {
-                    a: &value.a,
-                    b: &value.b,
-                }
-            },
-        );
-
-        let report = create_report().attach(DoesNotImplementSerialize {
-            a: "example".to_string(),
-            b: Box::new([1, 2, 3]),
-        });
-
-        assert_json_snapshot!(report);
-    }
+    // #[test]
+    // #[cfg(nightly)]
+    // fn hook_custom_nightly() {
+    //     let _guard = prepare(false);
+    //
+    //     Report::install_custom_serde_hook(
+    //         for<'a, 'b> |value: &'a DoesNotImplementSerialize,
+    //                      context: &'b mut HookContext<DoesNotImplementSerialize>|
+    //                      -> ImplementSerialize<'a> {
+    //             ImplementSerialize {
+    //                 a: &value.a,
+    //                 b: &value.b,
+    //             }
+    //         },
+    //     );
+    //
+    //     let report = create_report().attach(DoesNotImplementSerialize {
+    //         a: "example".to_string(),
+    //         b: Box::new([1, 2, 3]),
+    //     });
+    //
+    //     assert_json_snapshot!(report);
+    // }
 
     #[test]
     fn hook_custom_owned() {

@@ -32,7 +32,7 @@ expression: a
                 "target": "test_serialize::common::snapshots",
                 "module_path": "test_serialize::common::snapshots",
                 "file": "tests/common/snapshots.rs",
-                "line": 73,
+                "line": 78,
                 "type": "span"
               },
               {
@@ -42,7 +42,7 @@ expression: a
                 "target": "test_serialize::common::snapshots",
                 "module_path": "test_serialize::common::snapshots",
                 "file": "tests/common/snapshots.rs",
-                "line": 78,
+                "line": 83,
                 "type": "span"
               }
             ]
@@ -70,7 +70,7 @@ expression: a
                 "target": "test_serialize::common::snapshots",
                 "module_path": "test_serialize::common::snapshots",
                 "file": "tests/common/snapshots.rs",
-                "line": 73,
+                "line": 78,
                 "type": "span"
               },
               {
@@ -80,7 +80,7 @@ expression: a
                 "target": "test_serialize::common::snapshots",
                 "module_path": "test_serialize::common::snapshots",
                 "file": "tests/common/snapshots.rs",
-                "line": 78,
+                "line": 83,
                 "type": "span"
               }
             ]

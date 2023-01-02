@@ -3,12 +3,12 @@ source: tests/test_debug.rs
 expression: "format!(\"{report:#?}\")"
 ---
 context A
-├╴ tests/common/snapshots.rs:207:10
+├╴ tests/common/snapshots.rs:212:10
 ├╴ 2
 ├╴ 1
 │
 ╰┬▶ context A
- │  ├╴ tests/common/snapshots.rs:201:10
+ │  ├╴ tests/common/snapshots.rs:206:10
  │  ├╴ 4
  │  ├╴ 3
  │  │
@@ -19,16 +19,16 @@ context A
  │      ╰╴ 6
  │
  ╰▶ context A
-    ├╴ tests/common/snapshots.rs:196:10
+    ├╴ tests/common/snapshots.rs:201:10
     ├╴ 5
     ├╴ 3
     │
     ├─▶ context A
-    │   ├╴ tests/common/snapshots.rs:194:10
+    │   ├╴ tests/common/snapshots.rs:199:10
     │   ╰╴ 7
     │
     ╰┬▶ context A
-     │  ├╴ tests/common/snapshots.rs:185:34
+     │  ├╴ tests/common/snapshots.rs:190:34
      │  ├╴ 9
      │  ├╴ 8
      │  │
@@ -38,7 +38,7 @@ context A
      │      ╰╴ span trace with 2 frames (2)
      │
      ├▶ context A
-     │  ├╴ tests/common/snapshots.rs:179:10
+     │  ├╴ tests/common/snapshots.rs:184:10
      │  ├╴ 13
      │  ├╴ 10
      │  ├╴ 16
@@ -51,7 +51,7 @@ context A
      │      ╰╴ span trace with 2 frames (3)
      │
      ├▶ context A
-     │  ├╴ tests/common/snapshots.rs:165:10
+     │  ├╴ tests/common/snapshots.rs:170:10
      │  ├╴ 15
      │  ├╴ 14
      │  ├╴ 10
@@ -65,7 +65,7 @@ context A
      │      ╰╴ span trace with 2 frames (4)
      │
      ├▶ context A
-     │  ├╴ tests/common/snapshots.rs:175:10
+     │  ├╴ tests/common/snapshots.rs:180:10
      │  ├╴ 11
      │  ├╴ 9
      │  ├╴ 8
@@ -76,13 +76,13 @@ context A
      │      ╰╴ span trace with 2 frames (5)
      │
      ╰▶ context A
-        ├╴ tests/common/snapshots.rs:171:10
+        ├╴ tests/common/snapshots.rs:176:10
         ├╴ 12
         ├╴ 9
         ├╴ 8
         │
         ├─▶ context A
-        │   ╰╴ tests/common/snapshots.rs:170:10
+        │   ╰╴ tests/common/snapshots.rs:175:10
         │
         ╰─▶ root error
             ├╴ tests/common/mod.rs:4:5
