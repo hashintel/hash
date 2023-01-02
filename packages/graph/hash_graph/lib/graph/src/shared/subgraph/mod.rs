@@ -85,7 +85,11 @@ impl Subgraph {
     }
 }
 
+/// Used for index operations on a mutable [`Subgraph`].
+///
+/// Depending on `R`, the index operation will be performed on the vertices of the subgraph.
 pub trait SubgraphIndex<R: Record>: Clone + Eq + Hash + Into<GraphElementEditionId> {
+    /// Returns a mutable reference to the [`Record`] in the subgraph.
     fn subgraph_entry<'a>(
         &self,
         subgraph: &'a mut Subgraph,
