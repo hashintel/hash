@@ -86,8 +86,8 @@ impl Subgraph {
 }
 
 pub trait SubgraphIndex<R: Record>: Clone + Eq + Hash + Into<GraphElementEditionId> {
-    fn subgraph_entry<'r>(
+    fn subgraph_entry<'a>(
         &self,
-        subgraph: &'r mut Subgraph,
-    ) -> RawEntryMut<'r, R::EditionId, R, RandomState>;
+        subgraph: &'a mut Subgraph,
+    ) -> RawEntryMut<'a, R::EditionId, R, RandomState>;
 }

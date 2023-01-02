@@ -165,10 +165,10 @@ pub struct EntityEditionId {
 }
 
 impl SubgraphIndex<Entity> for EntityEditionId {
-    fn subgraph_entry<'r>(
+    fn subgraph_entry<'a>(
         &self,
-        subgraph: &'r mut Subgraph,
-    ) -> RawEntryMut<'r, Self, Entity, RandomState> {
+        subgraph: &'a mut Subgraph,
+    ) -> RawEntryMut<'a, Self, Entity, RandomState> {
         subgraph.vertices.entities.raw_entry_mut().from_key(self)
     }
 }

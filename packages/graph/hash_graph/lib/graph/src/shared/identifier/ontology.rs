@@ -91,19 +91,19 @@ impl From<&OntologyTypeEditionId> for VersionedUri {
 }
 
 impl SubgraphIndex<DataTypeWithMetadata> for OntologyTypeEditionId {
-    fn subgraph_entry<'r>(
+    fn subgraph_entry<'a>(
         &self,
-        subgraph: &'r mut Subgraph,
-    ) -> RawEntryMut<'r, Self, DataTypeWithMetadata, RandomState> {
+        subgraph: &'a mut Subgraph,
+    ) -> RawEntryMut<'a, Self, DataTypeWithMetadata, RandomState> {
         subgraph.vertices.data_types.raw_entry_mut().from_key(self)
     }
 }
 
 impl SubgraphIndex<PropertyTypeWithMetadata> for OntologyTypeEditionId {
-    fn subgraph_entry<'r>(
+    fn subgraph_entry<'a>(
         &self,
-        subgraph: &'r mut Subgraph,
-    ) -> RawEntryMut<'r, Self, PropertyTypeWithMetadata, RandomState> {
+        subgraph: &'a mut Subgraph,
+    ) -> RawEntryMut<'a, Self, PropertyTypeWithMetadata, RandomState> {
         subgraph
             .vertices
             .property_types
@@ -113,10 +113,10 @@ impl SubgraphIndex<PropertyTypeWithMetadata> for OntologyTypeEditionId {
 }
 
 impl SubgraphIndex<EntityTypeWithMetadata> for OntologyTypeEditionId {
-    fn subgraph_entry<'r>(
+    fn subgraph_entry<'a>(
         &self,
-        subgraph: &'r mut Subgraph,
-    ) -> RawEntryMut<'r, Self, EntityTypeWithMetadata, RandomState> {
+        subgraph: &'a mut Subgraph,
+    ) -> RawEntryMut<'a, Self, EntityTypeWithMetadata, RandomState> {
         subgraph
             .vertices
             .entity_types
