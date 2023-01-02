@@ -79,6 +79,7 @@ proptest! {
     }
 }
 
+// TODO: generate those tests instead?
 // we're not testing the individual error messages, as those are tested at the respective error
 // variants and are separate from the returned errors
 #[test]
