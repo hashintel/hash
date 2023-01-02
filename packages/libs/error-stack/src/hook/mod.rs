@@ -3,7 +3,7 @@ pub(crate) mod context;
 use alloc::vec::Vec;
 
 #[cfg(feature = "serde")]
-use crate::serde::{install_builtin_serde_hooks, SerdeHooks};
+use crate::serde::{install_builtin_serde_hooks, SerdeHooks, SerializeFn};
 use crate::{
     fmt::{install_builtin_debug_hooks, FmtHooks},
     Report,
@@ -203,7 +203,7 @@ impl Report<()> {
     #[cfg(all(any(feature = "std", feature = "hooks"), feature = "serde"))]
     pub fn install_custom_serde_hook<F, T>(closure: F)
     where
-        F: for<'a> crate::serde::DynamicFn<'a, T>,
+        F: for<'a> SerializeFn<'a, T>,
         T: Send + Sync + 'static,
     {
         install_builtin_serde_hooks();

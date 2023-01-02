@@ -28,7 +28,7 @@ use core::marker::PhantomData;
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub use hook::HookContext;
 #[cfg(any(feature = "std", feature = "hooks"))]
-pub(crate) use hook::{install_builtin_serde_hooks, DynamicFn, Serde, SerdeHooks};
+pub(crate) use hook::{install_builtin_serde_hooks, Serde, SerdeHooks, SerializeFn};
 use serde::{
     ser::{SerializeMap, SerializeSeq},
     Serialize, Serializer,

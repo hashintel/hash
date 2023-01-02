@@ -20,7 +20,7 @@ fn serialize<'a, T: serde::Serialize + Send + Sync + 'static>(
 }
 
 // Thanks to https://users.rust-lang.org/t/hrtb-on-multiple-generics/34255/2 for the solution
-pub trait DynamicFn<'a, I>: Send + Sync + 'static
+pub trait SerializeFn<'a, I>: Send + Sync + 'static
 where
     I: Send + Sync + 'static,
 {
@@ -29,7 +29,7 @@ where
     fn call(&self, value: &'a I, context: &mut HookContext<I>) -> Self::Output;
 }
 
-impl<'a, U: 'a, T, F> DynamicFn<'a, T> for F
+impl<'a, U: 'a, T, F> SerializeFn<'a, T> for F
 where
     F: Fn(&'a T, &mut HookContext<T>) -> U,
     F: Send + Sync + 'static,
@@ -75,8 +75,8 @@ impl Hook {
 
     fn new_dynamic<F, I>(closure: F) -> Self
     where
-        F: for<'a> DynamicFn<'a, I>,
-        for<'a> <F as DynamicFn<'a, I>>::Output: serde::Serialize + 'a,
+        F: for<'a> SerializeFn<'a, I>,
+        for<'a> <F as SerializeFn<'a, I>>::Output: serde::Serialize + 'a,
         I: Send + Sync + 'static,
     {
         // to ensure proper lifetimes we dispatch via a function not closure, as it let's us specify
@@ -87,8 +87,8 @@ impl Hook {
             context: &mut HookContext<Frame>,
         ) -> Option<Box<dyn erased_serde::Serialize + 'a>>
         where
-            F: for<'b> DynamicFn<'b, I>,
-            for<'b> <F as DynamicFn<'b, I>>::Output: serde::Serialize + 'b,
+            F: for<'b> SerializeFn<'b, I>,
+            for<'b> <F as SerializeFn<'b, I>>::Output: serde::Serialize + 'b,
             I: Send + Sync + 'static,
         {
             #[cfg(nightly)]
@@ -144,8 +144,8 @@ impl SerdeHooks {
 
     pub(crate) fn insert_dynamic<F, I>(&mut self, closure: F)
     where
-        F: for<'a> DynamicFn<'a, I>,
-        for<'a> <F as DynamicFn<'a, I>>::Output: serde::Serialize + 'a,
+        F: for<'a> SerializeFn<'a, I>,
+        for<'a> <F as SerializeFn<'a, I>>::Output: serde::Serialize + 'a,
         I: Send + Sync + 'static,
     {
         let type_id = TypeId::of::<I>();
