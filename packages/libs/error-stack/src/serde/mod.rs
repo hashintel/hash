@@ -109,7 +109,7 @@ fn serialize_attachment<'a>(
 }
 
 #[cfg(not(any(feature = "std", feature = "hooks")))]
-fn serialize_attachment<'a>(frame: &'a Frame) -> impl Iterator<Item = String> + 'a {
+fn serialize_attachment(frame: &Frame) -> impl Iterator<Item = String> + '_ {
     // we weren't able to find a serializer and will fallback to the debug representation if
     // possible
     let (_, attachments) = debug_attachments_invoke(once(frame));
