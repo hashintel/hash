@@ -22,16 +22,16 @@ COPY packages/hash/subgraph/package.json packages/hash/subgraph/
 COPY packages/graph/clients/typescript/package.json packages/graph/clients/typescript/
 RUN yarn workspace @hashintel/hash-frontend install --frozen-lockfile --prefer-offline
 
-COPY packages/hash/api/codegen.yml packages/hash/api/codegen.yml
-COPY packages/hash/api/src/graphql/typeDefs packages/hash/api/src/graphql/typeDefs
-COPY packages/hash/frontend/codegen.yml packages/hash/frontend/codegen.yml
+COPY packages/hash/api/codegen.config.ts packages/hash/api/codegen.config.ts
+COPY packages/hash/api/src/graphql/type-defs packages/hash/api/src/graphql/type-defs
+COPY packages/hash/frontend/codegen.config.ts packages/hash/frontend/codegen.config.ts
 COPY packages/hash/frontend/src/graphql/queries packages/hash/frontend/src/graphql/queries
 COPY packages/hash/shared/src/queries packages/hash/shared/src/queries
+COPY packages/hash/shared/src/graphql packages/hash/shared/src/graphql
 
 RUN yarn workspace @hashintel/hash-frontend codegen
 
-COPY packages/hash/shared/codegen.yml packages/hash/shared/codegen.yml
-COPY packages/hash/shared/src/queries packages/hash/shared/src/queries
+COPY packages/hash/shared/codegen.config.ts packages/hash/shared/codegen.config.ts
 
 RUN yarn workspace @hashintel/hash-shared codegen
 

@@ -2,13 +2,13 @@ import { useRouter } from "next/router";
 import {
   createContext,
   FunctionComponent,
+  ReactNode,
   useContext,
   useMemo,
-  ReactNode,
 } from "react";
+
 import { useWorkspaceByShortname } from "../../components/hooks/use-workspace-by-shortname";
-import { MinimalOrg } from "../../lib/org";
-import { User } from "../../lib/user";
+import { MinimalOrg, User } from "../../lib/user-and-org";
 
 type RouteWorkspaceInfo = {
   routeWorkspaceShortname: string;
@@ -25,11 +25,11 @@ export const RouteWorkspaceInfoProvider: FunctionComponent<{
   const router = useRouter();
 
   const routeWorkspaceShortname = useMemo(() => {
-    const paramsAccountSlug = router.query["account-slug"];
+    const paramsShortname = router.query.shortname;
 
-    return !paramsAccountSlug || Array.isArray(paramsAccountSlug)
+    return !paramsShortname || Array.isArray(paramsShortname)
       ? undefined
-      : paramsAccountSlug.slice(1);
+      : paramsShortname.slice(1);
   }, [router]);
 
   const { workspace: routeWorkspace } = useWorkspaceByShortname(
@@ -63,9 +63,7 @@ export const useRouteWorkspaceInfo: UseRouteWorkspaceInfo = (options = {}) => {
   const contextValue = useContext(RouteWorkspaceInfoContext);
 
   if (!contextValue && !options.allowUndefined) {
-    throw new Error(
-      "Unable to get account info (missing `account-slug` in URL)",
-    );
+    throw new Error("Unable to get account info (missing `shortname` in URL)");
   }
 
   return contextValue as RouteWorkspaceInfo;

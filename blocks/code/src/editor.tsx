@@ -1,3 +1,4 @@
+import Prism from "prismjs";
 import {
   ChangeEvent,
   KeyboardEvent,
@@ -6,7 +7,6 @@ import {
   useEffect,
   useRef,
 } from "react";
-import Prism from "prismjs";
 
 import styles from "./editor.module.css";
 import { LanguageType } from "./utils";

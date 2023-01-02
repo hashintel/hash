@@ -1,8 +1,10 @@
 import { Subgraph } from "@hashintel/hash-subgraph";
-import { ResolverFn, QueryMeArgs } from "../../../apiTypes.gen";
+
+import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity";
+import { QueryMeArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 
-export const me: ResolverFn<
+export const meResolver: ResolverFn<
   Subgraph,
   {},
   LoggedInGraphQLContext,
@@ -10,10 +12,16 @@ export const me: ResolverFn<
 > = async (
   _,
   { hasLeftEntity, hasRightEntity },
-  { userModel, dataSources: { graphApi } },
+  { user, dataSources: { graphApi } },
 ) => {
-  return await userModel.getRootedSubgraph(graphApi, {
-    hasLeftEntity,
-    hasRightEntity,
-  });
+  return await getLatestEntityRootedSubgraph(
+    { graphApi },
+    {
+      entity: user.entity,
+      graphResolveDepths: {
+        hasLeftEntity,
+        hasRightEntity,
+      },
+    },
+  );
 };

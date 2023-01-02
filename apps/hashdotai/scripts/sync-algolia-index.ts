@@ -1,8 +1,9 @@
-import fs from "fs";
-import path from "path";
-import matter from "gray-matter";
+import fs from "node:fs";
+import path from "node:path";
+
 import algoliasearch from "algoliasearch";
 import * as envalid from "envalid";
+import matter from "gray-matter";
 
 const monorepoDirPath = path.resolve(__dirname, "../../..");
 

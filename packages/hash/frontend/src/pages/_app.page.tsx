@@ -2,35 +2,39 @@
 // @todo have webpack polyfill this
 require("setimmediate");
 
+import "./globals.scss";
+
 import { ApolloProvider } from "@apollo/client/react";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import { CacheProvider, EmotionCache } from "@emotion/react";
+import { createEmotionCache, theme } from "@hashintel/hash-design-system";
 import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
-import { FunctionComponent, useEffect, useState } from "react";
-import { ModalProvider } from "react-modal-hook";
+import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
 import { configureScope } from "@sentry/nextjs";
 import { AppProps as NextAppProps } from "next/app";
 import { useRouter } from "next/router";
-import { CacheProvider, EmotionCache } from "@emotion/react";
-import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
-import { theme, createEmotionCache } from "@hashintel/hash-design-system";
 import { SnackbarProvider } from "notistack";
-import { TypeSystemContextProvider } from "../lib/use-init-type-system";
-import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
+import { FunctionComponent, useEffect, useState } from "react";
+import { ModalProvider } from "react-modal-hook";
 
-import "./globals.scss";
+import { MeQuery } from "../graphql/api-types.gen";
+import { meQuery } from "../graphql/queries/user.queries";
+import { apolloClient } from "../lib/apollo-client";
+import { TypeSystemContextProvider } from "../lib/use-init-type-system";
+import {
+  AuthenticatedUser,
+  constructAuthenticatedUser,
+} from "../lib/user-and-org";
+import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import {
   RoutePageInfoProvider,
   RouteWorkspaceInfoProvider,
 } from "../shared/routing";
-import { WorkspaceContextProvider } from "./shared/workspace-context";
-import { apolloClient } from "../lib/apollo-client";
-import { MeQuery } from "../graphql/apiTypes.gen";
-import { meQuery } from "../graphql/queries/user.queries";
-import { AuthenticatedUser, constructAuthenticatedUser } from "../lib/user";
-import { fetchKratosSession } from "./shared/ory-kratos";
-import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
-import { setSentryUser } from "./shared/sentry";
 import { AppPage, redirectInGetInitialProps } from "./shared/_app.util";
+import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
+import { fetchKratosSession } from "./shared/ory-kratos";
+import { setSentryUser } from "./shared/sentry";
+import { WorkspaceContextProvider } from "./shared/workspace-context";
 
 const clientSideEmotionCache = createEmotionCache();
 
@@ -67,7 +71,7 @@ const App: FunctionComponent<AppProps> = ({
     setSentryUser({ authenticatedUser });
   }, [authenticatedUser]);
 
-  // App UI often depends on [account-slug] and other query params. However,
+  // App UI often depends on [shortname] and other query params. However,
   // router.query is empty during server-side rendering for pages that don’t use
   // getServerSideProps. By showing app skeleton on the server, we avoid UI
   // mismatches during rehydration and improve type-safety of param extraction.
@@ -131,7 +135,7 @@ const AppWithTypeSystemContextProvider: AppPage<AppProps, AppInitialProps> = (
 
 // The list of page pathnames that should be accessible whether or not the user is authenticated
 const publiclyAccessiblePagePathnames = [
-  "/[account-slug]/[page-slug]",
+  "/[shortname]/[page-slug]",
   "/login",
   "/signup",
 ];

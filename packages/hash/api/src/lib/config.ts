@@ -1,24 +1,23 @@
 import { frontendUrl } from "@hashintel/hash-shared/environment";
 import corsMiddleware from "cors";
-import { StorageType } from "../graphql/apiTypes.gen";
 
-function getEnvStorageType() {
-  const envUploadProvider = process.env.FILE_UPLOAD_PROVIDER as StorageType;
-  if (
-    envUploadProvider &&
-    !Object.values<string>(StorageType).includes(envUploadProvider)
-  ) {
-    // In case a value is defined but is wrong
-    throw new Error(
-      `Env variable FILE_UPLOAD_PROVIDER must be one of the allowed StorageType values`,
-    );
+import { StorageType } from "../graphql/api-types.gen";
+
+function getEnvStorageType(): StorageType {
+  const envUploadProvider = process.env.FILE_UPLOAD_PROVIDER as string;
+  if (!envUploadProvider) {
+    return StorageType.LocalFileSystem;
   }
-  return envUploadProvider;
+  if (Object.values<string>(StorageType).includes(envUploadProvider)) {
+    return envUploadProvider as StorageType;
+  }
+  // In case a value is defined but is wrong
+  throw new Error(
+    `Env variable FILE_UPLOAD_PROVIDER must be one of the allowed StorageType values`,
+  );
 }
 
-/** Uses optional `FILE_UPLOAD_PROVIDER` env variable. Defaults to S3 */
-export const FILE_UPLOAD_PROVIDER =
-  getEnvStorageType() || StorageType.LocalFileSystem;
+export const FILE_UPLOAD_PROVIDER = getEnvStorageType();
 export const LOCAL_FILE_UPLOAD_PATH =
   process.env.LOCAL_FILE_UPLOAD_PATH || "var/uploads/";
 

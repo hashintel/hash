@@ -1,12 +1,12 @@
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { SearchAdapter } from "@hashintel/hash-backend-utils/search/adapter";
 
-import { UserModel } from "../model";
 import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
-import { StorageType } from "./apiTypes.gen";
-import { TaskExecutor } from "../task-execution";
 import { GraphApi } from "../graph";
+import { User } from "../graph/knowledge/system-types/user";
+import { TaskExecutor } from "../task-execution";
+import { StorageType } from "./api-types.gen";
 
 /**
  * Apollo context object with dataSources. For details see:
@@ -22,9 +22,9 @@ export interface GraphQLContext {
   emailTransporter: EmailTransporter;
   uploadProvider: StorageType;
   logger: Logger;
-  userModel?: UserModel;
+  user?: User;
 }
 
 export interface LoggedInGraphQLContext extends GraphQLContext {
-  userModel: UserModel;
+  user: User;
 }

@@ -1,21 +1,22 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { EntityType } from "@blockprotocol/graph/.";
 import {
   BlockComponent,
   useGraphBlockService,
 } from "@blockprotocol/graph/react";
+import AddIcon from "@mui/icons-material/Add";
+import ClearIcon from "@mui/icons-material/Clear";
+import DatasetLinkedIcon from "@mui/icons-material/DatasetLinked";
+import ShuffleIcon from "@mui/icons-material/Shuffle";
 import Box from "@mui/material/Box";
 import produce from "immer";
-import { v4 as uuid } from "uuid";
 import isEqual from "lodash.isequal";
-import ShuffleIcon from "@mui/icons-material/Shuffle";
-import AddIcon from "@mui/icons-material/Add";
-import DatasetLinkedIcon from "@mui/icons-material/DatasetLinked";
-import ClearIcon from "@mui/icons-material/Clear";
-import { EntityType } from "@blockprotocol/graph/.";
-import { ItemList } from "./components/item-list";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { v4 as uuid } from "uuid";
+
 import { AddEntitiesDialog } from "./components/add-entities-dialog";
-import { getEntityLabel } from "./utils";
+import { ItemList } from "./components/item-list";
 import { TooltipButton } from "./components/tooltip-button";
+import { getEntityLabel } from "./utils";
 
 export type Item = {
   id: string;

@@ -12,7 +12,7 @@ use utoipa::{
 };
 
 use crate::{
-    identifier::{account::AccountId, DecisionTimespan, TransactionTimespan, TransactionTimestamp},
+    identifier::{account::AccountId, DecisionTimespan, TransactionTimespan},
     knowledge::{Entity, EntityUuid},
     provenance::OwnedById,
     subgraph::{Subgraph, SubgraphIndex},
@@ -200,57 +200,5 @@ impl EntityEditionId {
     #[must_use]
     pub const fn version(&self) -> EntityVersion {
         self.version
-    }
-}
-
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct EntityIdAndTimestamp {
-    base_id: EntityId,
-    timestamp: TransactionTimestamp,
-}
-
-impl EntityIdAndTimestamp {
-    #[must_use]
-    pub const fn new(entity_id: EntityId, timestamp: TransactionTimestamp) -> Self {
-        Self {
-            base_id: entity_id,
-            timestamp,
-        }
-    }
-
-    #[must_use]
-    pub const fn base_id(&self) -> EntityId {
-        self.base_id
-    }
-
-    #[must_use]
-    pub const fn timestamp(&self) -> TransactionTimestamp {
-        self.timestamp
-    }
-}
-
-// WARNING: This MUST be kept up to date with the struct names and serde attributes
-//   Necessary because Timestamp doesn't implement ToSchema
-impl ToSchema for EntityIdAndTimestamp {
-    fn schema() -> openapi::Schema {
-        openapi::ObjectBuilder::new()
-            .property(
-                "baseId",
-                // Apparently OpenAPI doesn't support const values, the best you can do is
-                // an enum with one option
-                EntityId::schema(),
-            )
-            .required("baseId")
-            .property(
-                "timestamp",
-                openapi::schema::Object::from(
-                    openapi::schema::ObjectBuilder::new()
-                        .schema_type(openapi::SchemaType::String)
-                        .format(Some(SchemaFormat::KnownFormat(KnownFormat::DateTime))),
-                ),
-            )
-            .required("timestamp")
-            .into()
     }
 }

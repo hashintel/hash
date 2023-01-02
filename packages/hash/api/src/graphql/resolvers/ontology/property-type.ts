@@ -1,40 +1,37 @@
-import { ApolloError } from "apollo-server-express";
-import { AxiosError } from "axios";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import { PropertyTypeWithMetadata, Subgraph } from "@hashintel/hash-subgraph";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 
-import {
-  MutationCreatePropertyTypeArgs,
-  MutationUpdatePropertyTypeArgs,
-  QueryGetPropertyTypeArgs,
-  QueryGetAllLatestPropertyTypesArgs,
-  ResolverFn,
-} from "../../apiTypes.gen";
-import { LoggedInGraphQLContext } from "../../context";
 import {
   createPropertyType,
   updatePropertyType,
 } from "../../../graph/ontology/primitive/property-type";
+import {
+  MutationCreatePropertyTypeArgs,
+  MutationUpdatePropertyTypeArgs,
+  QueryGetAllLatestPropertyTypesArgs,
+  QueryGetPropertyTypeArgs,
+  ResolverFn,
+} from "../../api-types.gen";
+import { LoggedInGraphQLContext } from "../../context";
 
 export const createPropertyTypeResolver: ResolverFn<
   Promise<PropertyTypeWithMetadata>,
   {},
   LoggedInGraphQLContext,
   MutationCreatePropertyTypeArgs
-> = async (_, params, { dataSources, userModel }) => {
+> = async (_, params, { dataSources, user }) => {
   const { graphApi } = dataSources;
   const { ownedById, propertyType } = params;
 
   const createdPropertyType = await createPropertyType(
     { graphApi },
     {
-      ownedById: (ownedById as OwnedById) ?? userModel.getEntityUuid(),
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
+      ownedById: (ownedById as OwnedById) ?? user.accountId,
       schema: propertyType,
-      actorId: userModel.getEntityUuid() as AccountId,
+      actorId: user.accountId,
     },
-  ).catch((err) => {
-    throw new ApolloError(err, "CREATION_ERROR");
-  });
+  );
 
   return createdPropertyType;
 };
@@ -58,8 +55,8 @@ export const getAllLatestPropertyTypesResolver: ResolverFn<
    *   authorized to see.
    *   https://app.asana.com/0/1202805690238892/1202890446280569/f
    */
-  const { data: propertyTypeSubgraph } = await graphApi
-    .getPropertyTypesByQuery({
+  const { data: propertyTypeSubgraph } = await graphApi.getPropertyTypesByQuery(
+    {
       filter: {
         equal: [{ path: ["version"] }, { parameter: "latest" }],
       },
@@ -73,14 +70,8 @@ export const getAllLatestPropertyTypesResolver: ResolverFn<
         hasLeftEntity: { incoming: 0, outgoing: 0 },
         hasRightEntity: { incoming: 0, outgoing: 0 },
       },
-    })
-    .catch((err: AxiosError) => {
-      throw new ApolloError(
-        `Unable to retrieve all latest property types. ${err.response?.data}`,
-        "GET_ALL_ERROR",
-      );
-    });
-
+    },
+  );
   return propertyTypeSubgraph as Subgraph;
 };
 
@@ -97,8 +88,8 @@ export const getPropertyTypeResolver: ResolverFn<
 ) => {
   const { graphApi } = dataSources;
 
-  const { data: propertyTypeSubgraph } = await graphApi
-    .getPropertyTypesByQuery({
+  const { data: propertyTypeSubgraph } = await graphApi.getPropertyTypesByQuery(
+    {
       filter: {
         equal: [{ path: ["versionedUri"] }, { parameter: propertyTypeId }],
       },
@@ -112,13 +103,8 @@ export const getPropertyTypeResolver: ResolverFn<
         hasLeftEntity: { incoming: 0, outgoing: 0 },
         hasRightEntity: { incoming: 0, outgoing: 0 },
       },
-    })
-    .catch((err: AxiosError) => {
-      throw new ApolloError(
-        `Unable to retrieve property type [${propertyTypeId}]: ${err.response?.data}`,
-        "GET_ERROR",
-      );
-    });
+    },
+  );
 
   return propertyTypeSubgraph as Subgraph;
 };
@@ -128,7 +114,7 @@ export const updatePropertyTypeResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationUpdatePropertyTypeArgs
-> = async (_, params, { dataSources, userModel }) => {
+> = async (_, params, { dataSources, user }) => {
   const { graphApi } = dataSources;
   const { propertyTypeId, updatedPropertyType: updatedPropertyTypeSchema } =
     params;
@@ -138,16 +124,9 @@ export const updatePropertyTypeResolver: ResolverFn<
     {
       propertyTypeId,
       schema: updatedPropertyTypeSchema,
-      actorId: userModel.getEntityUuid() as AccountId,
+      actorId: user.accountId,
     },
-  ).catch((err: AxiosError) => {
-    const msg =
-      err.response?.status === 409
-        ? `Property type URI doesn't exist, unable to update. [URI=${propertyTypeId}]`
-        : `Couldn't update property type.`;
-
-    throw new ApolloError(msg, "CREATION_ERROR");
-  });
+  );
 
   return updatedPropertyType;
 };

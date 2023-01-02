@@ -1,9 +1,9 @@
 import {
-  EntityId,
+  EntityId as EntityIdSubgraph,
+  entityIdFromOwnedByIdAndEntityUuid as entityIdFromOwnedByIdAndEntityUuidSubgraph,
   extractEntityUuidFromEntityId as extractEntityUuidFromEntityIdSubgraph,
   extractOwnedByIdFromEntityId as extractOwnedByIdFromEntityIdSubgraph,
   splitEntityId as splitEntityIdSubgraph,
-  entityIdFromOwnedByIdAndEntityUuid as entityIdFromOwnedByIdAndEntityUuidSubgraph,
 } from "@hashintel/hash-subgraph";
 
 type BrandedBase<Base, Kind extends {}> = Base & {
@@ -31,6 +31,9 @@ export type Uuid = Brand<string, "Uuid">;
 /** An ID to uniquely identify an account (e.g. a User or an Org) */
 export type AccountId = Brand<Uuid, "AccountId">;
 
+/** An ID to uniquely identify an entity */
+export type EntityId = Brand<EntityIdSubgraph, "EntityId">;
+
 /** An account ID of an actor that is the owner of something */
 export type OwnedById = Brand<AccountId, "OwnedById">;
 /** An account ID of an actor that has updated something */
@@ -45,14 +48,18 @@ export type AccountEntityId = Brand<EntityId, "AccountEntityId">;
 // These type overwrites are centralized for being able to swap out implementations.
 
 export const splitEntityId = splitEntityIdSubgraph as (
-  entityId: EntityId,
+  entityId: EntityIdSubgraph,
 ) => [OwnedById, EntityUuid];
 
 export const extractOwnedByIdFromEntityId =
-  extractOwnedByIdFromEntityIdSubgraph as (entityId: EntityId) => OwnedById;
+  extractOwnedByIdFromEntityIdSubgraph as (
+    entityId: EntityIdSubgraph,
+  ) => OwnedById;
 
 export const extractEntityUuidFromEntityId =
-  extractEntityUuidFromEntityIdSubgraph as (entityId: EntityId) => EntityUuid;
+  extractEntityUuidFromEntityIdSubgraph as (
+    entityId: EntityIdSubgraph,
+  ) => EntityUuid;
 
 /** If the underlying entityUuid is an accountId, use this cast to convert the type */
 export const extractAccountId = extractEntityUuidFromEntityIdSubgraph as (
@@ -62,6 +69,9 @@ export const extractAccountId = extractEntityUuidFromEntityIdSubgraph as (
 
 export const entityIdFromOwnedByIdAndEntityUuid =
   entityIdFromOwnedByIdAndEntityUuidSubgraph as (
+    ownedById: OwnedById,
+    entityUuid: EntityUuid,
+  ) => EntityIdSubgraph as (
     ownedById: OwnedById,
     entityUuid: EntityUuid,
   ) => EntityId;

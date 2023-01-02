@@ -1,16 +1,27 @@
-import { GraphApi } from "@hashintel/hash-graph-client";
-import { ApolloError, UserInputError } from "apollo-server-express";
-import { types } from "@hashintel/hash-shared/ontology-types";
 import { VersionedUri } from "@blockprotocol/type-system";
-import { PropertyObject } from "@hashintel/hash-subgraph";
+import { GraphApi } from "@hashintel/hash-graph-client";
+import { types } from "@hashintel/hash-shared/ontology-types";
+import { Entity, PropertyObject } from "@hashintel/hash-subgraph";
+import { ApolloError, UserInputError } from "apollo-server-express";
+
+import {
+  shortnameContainsInvalidCharacter,
+  shortnameIsRestricted,
+  shortnameIsTaken,
+  shortnameMaximumLength,
+  shortnameMinimumLength,
+} from "../../../../graph/knowledge/system-types/account.fields";
+import {
+  getUserFromEntity,
+  updateUserKratosIdentityTraits,
+} from "../../../../graph/knowledge/system-types/user";
 import { SYSTEM_TYPES } from "../../../../graph/system-types";
-import { AccountFields, EntityModel, UserModel } from "../../../../model";
 
 const validateAccountShortname = async (
   graphApi: GraphApi,
   shortname: string,
 ) => {
-  if (AccountFields.shortnameContainsInvalidCharacter(shortname)) {
+  if (shortnameContainsInvalidCharacter({ shortname })) {
     throw new UserInputError(
       "Shortname may only contain letters, numbers, - or _",
     );
@@ -20,8 +31,8 @@ const validateAccountShortname = async (
   }
 
   if (
-    AccountFields.shortnameIsRestricted(shortname) ||
-    (await AccountFields.shortnameIsTaken(graphApi, { shortname }))
+    shortnameIsRestricted({ shortname }) ||
+    (await shortnameIsTaken({ graphApi }, { shortname }))
   ) {
     throw new ApolloError(`Shortname "${shortname}" taken`, "NAME_TAKEN");
   }
@@ -30,28 +41,28 @@ const validateAccountShortname = async (
    * @todo: enable admins to have a shortname under 4 characters
    * @see https://app.asana.com/0/1201095311341924/1203285346775714/f
    */
-  if (shortname.length < AccountFields.shortnameMinimumLength) {
+  if (shortname.length < shortnameMinimumLength) {
     throw new UserInputError("Shortname must be at least 4 characters long.");
   }
-  if (shortname.length > AccountFields.shortnameMaximumLength) {
+  if (shortname.length > shortnameMaximumLength) {
     throw new UserInputError("Shortname cannot be longer than 24 characters");
   }
 };
 
 type BeforeUpdateEntityHookCallback = (params: {
   graphApi: GraphApi;
-  entityModel: EntityModel;
+  entity: Entity;
   updatedProperties: PropertyObject;
 }) => Promise<void>;
 
 const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
-  entityModel,
+  entity,
   updatedProperties,
   graphApi,
 }) => {
-  const userModel = UserModel.fromEntityModel(entityModel);
+  const user = getUserFromEntity({ entity });
 
-  const currentShortname = userModel.getShortname();
+  const currentShortname = user.shortname;
 
   const updatedShortname = updatedProperties[
     SYSTEM_TYPES.propertyType.shortName.metadata.editionId.baseId
@@ -65,7 +76,7 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
     await validateAccountShortname(graphApi, updatedShortname);
   }
 
-  const currentPreferredName = userModel.getPreferredName();
+  const currentPreferredName = user.preferredName;
 
   const updatedPreferredName = updatedProperties[
     SYSTEM_TYPES.propertyType.preferredName.metadata.editionId.baseId
@@ -77,7 +88,7 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
     }
   }
 
-  const currentEmails = userModel.getEmails();
+  const currentEmails = user.emails;
 
   const updatedEmails = updatedProperties[
     SYSTEM_TYPES.propertyType.email.metadata.editionId.baseId
@@ -87,9 +98,15 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
     [...currentEmails].sort().join().toLowerCase() !==
     [...updatedEmails].sort().join().toLowerCase()
   ) {
-    await userModel.updateKratosIdentityTraits({
-      emails: updatedEmails,
-    });
+    await updateUserKratosIdentityTraits(
+      { graphApi },
+      {
+        user,
+        updatedTraits: {
+          emails: updatedEmails,
+        },
+      },
+    );
   }
 };
 

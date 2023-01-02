@@ -1,17 +1,17 @@
+import { EntityUuid } from "@hashintel/hash-shared/types";
 import { useRouter } from "next/router";
 import {
   createContext,
   FunctionComponent,
+  ReactNode,
   useContext,
   useMemo,
-  ReactNode,
 } from "react";
-import { EntityUuid } from "@hashintel/hash-shared/types";
 
 import {
-  parsePageUrlQueryParams,
   isPageParsedUrlQuery,
-} from "../../pages/[account-slug]/[page-slug].page";
+  parsePageUrlQueryParams,
+} from "../../pages/[shortname]/[page-slug].page";
 
 type RoutePageInfo = {
   routePageEntityUuid: EntityUuid;
@@ -39,10 +39,7 @@ export const RoutePageInfoProvider: FunctionComponent<{
   }, [router]);
 
   const contextValue = useMemo<RoutePageInfo | undefined>(
-    () =>
-      routePageEntityUuid
-        ? { routePageEntityUuid: routePageEntityUuid as EntityUuid }
-        : undefined,
+    () => (routePageEntityUuid ? { routePageEntityUuid } : undefined),
     [routePageEntityUuid],
   );
 

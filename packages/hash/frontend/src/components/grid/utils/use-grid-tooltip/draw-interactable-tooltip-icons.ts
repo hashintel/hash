@@ -1,4 +1,5 @@
 import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
+
 import { getCellHorizontalPadding, getYCenter } from "../../utils";
 import { drawCellFadeOutGradient } from "../draw-cell-fade-out-gradient";
 import { InteractableManager } from "../interactable-manager";
@@ -15,7 +16,7 @@ export const drawInteractableTooltipIcons = (
   const { ctx, cell, rect, col, row, theme } = args;
   const { hideTooltip, showTooltip, tooltips } = cell.data;
 
-  if (!tooltips?.length) {
+  if (!tooltips.length) {
     drawCellFadeOutGradient(args);
     return [];
   }
@@ -24,6 +25,7 @@ export const drawInteractableTooltipIcons = (
   const bgWidth = iconsWidth + cellMargin;
   drawCellFadeOutGradient(args, bgWidth);
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
   if (!hideTooltip || !showTooltip) {
     throw new Error(
       `Please pass 'hideTooltip' and 'showTooltip' to cell data, provided by 'useGridTooltip'`,

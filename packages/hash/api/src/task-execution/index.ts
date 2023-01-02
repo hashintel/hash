@@ -1,16 +1,16 @@
-import { DataSource } from "apollo-datasource";
-import fetch from "node-fetch";
 import { EntityType } from "@blockprotocol/type-system";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import {
   EntityTypeWithMetadata,
   Subgraph,
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
+import { DataSource } from "apollo-datasource";
+import fetch from "node-fetch";
 
-import { UserModel } from "../model";
 import { GraphApi } from "../graph";
+import { User } from "../graph/knowledge/system-types/user";
 import { createEntityType } from "../graph/ontology/primitive/entity-type";
 
 /** @todo: When task scheduling is more mature and we move away from the temporary `hash-task-executor` we should have a single source of */
@@ -71,10 +71,7 @@ export const connectToTaskExecutor = (config: Config) => {
  *
  * @todo - This is temporary and should be removed when we extend the EntityType model class to support these actions properly
  */
-export const CachedEntityTypes = async (
-  graphApi: GraphApi,
-  user: UserModel,
-) => {
+export const CachedEntityTypes = async (graphApi: GraphApi, user: User) => {
   const streamsWithEntityTypes: Map<string, EntityTypeWithMetadata> = new Map();
   const entityTypeSubgraph = await graphApi
     .getEntityTypesByQuery({
@@ -114,8 +111,8 @@ export const CachedEntityTypes = async (
       const entityType = await createEntityType(
         { graphApi },
         {
-          ownedById: user.getEntityUuid() as OwnedById,
-          actorId: user.getEntityUuid() as AccountId,
+          ownedById: user.accountId as OwnedById,
+          actorId: user.accountId,
           schema: { ...jsonSchema, title: entityTypeTitle },
         },
       );

@@ -1,3 +1,13 @@
+import {
+  EntityType,
+  LinkedAggregation,
+  UpdateEntityData,
+} from "@blockprotocol/graph";
+import {
+  BlockComponent,
+  useGraphBlockService,
+} from "@blockprotocol/graph/react";
+import { orderBy } from "lodash";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CellProps,
@@ -6,27 +16,15 @@ import {
   useSortBy,
   useTable,
 } from "react-table";
-
-import {
-  LinkedAggregation,
-  EntityType,
-  UpdateEntityData,
-} from "@blockprotocol/graph";
-import {
-  BlockComponent,
-  useGraphBlockService,
-} from "@blockprotocol/graph/react";
 import { setup, tw } from "twind";
-import { orderBy } from "lodash";
 
 import { EditableCell } from "./components/editable-cell";
+import { EntityTypeDropdown } from "./components/entity-type-dropdown";
+import { AggregateArgs, Header } from "./components/header";
+import { Pagination } from "./components/pagination";
 import { makeColumns } from "./lib/columns";
 import { getSchemaPropertyDefinition } from "./lib/get-schema-property";
 import { identityEntityAndProperty } from "./lib/identify-entity";
-
-import { Pagination } from "./components/pagination";
-import { AggregateArgs, Header } from "./components/header";
-import { EntityTypeDropdown } from "./components/entity-type-dropdown";
 import { omitTypenameDeep } from "./lib/omit-typename-deep";
 
 setup({ preflight: false });
@@ -199,7 +197,7 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
       }
 
       void graphService
-        ?.aggregateEntities({
+        .aggregateEntities({
           data: {
             operation: linkedData.operation,
           },
@@ -245,6 +243,7 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
         columns: initialState?.columns,
       };
 
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
       if (!newLinkedData.operation) {
         return;
       }
@@ -277,7 +276,7 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
       // If in read-only mode, we don't want to save the operation to db
       if (graphReadonly) {
         void graphService
-          ?.aggregateEntities({
+          .aggregateEntities({
             data: {
               operation: newLinkedData.operation,
             },
@@ -304,14 +303,14 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
         return;
       }
 
-      void graphService?.updateEntity({
+      void graphService.updateEntity({
         data: {
           entityId,
           properties: { initialState: newState },
         },
       });
 
-      void graphService?.updateLinkedAggregation({
+      void graphService.updateLinkedAggregation({
         data: {
           aggregationId: matchingLinkedAggregation.aggregationId,
           operation: omitTypenameDeep(newLinkedData.operation),
@@ -345,7 +344,7 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
       ...(properties.columns && { columns: properties.columns }),
     };
 
-    void graphService?.updateEntity({
+    void graphService.updateEntity({
       data: {
         entityId,
         properties: { initialState: newState },
@@ -362,7 +361,7 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
   const doesNotNeedInitialColumns =
     !!initialState?.columns || !tableData.data?.length;
 
-  const defaultColumnData = tableData?.data?.[0]?.properties;
+  const defaultColumnData = tableData.data?.[0]?.properties;
 
   const defaultColumnDataRef = useRef(defaultColumnData);
 
@@ -397,7 +396,7 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
   const setPageSize = useCallback(
     (size: number) => {
       const tableDataEntityTypeId =
-        tableData?.linkedAggregation?.operation.entityTypeId;
+        tableData.linkedAggregation?.operation.entityTypeId;
       if (!tableDataEntityTypeId) {
         return;
       }
@@ -408,7 +407,7 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
         entityTypeId: tableDataEntityTypeId,
       });
     },
-    [handleUpdate, tableData?.linkedAggregation],
+    [handleUpdate, tableData.linkedAggregation],
   );
 
   /**
@@ -449,7 +448,7 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
           return;
         }
         setEntityTypes(
-          orderBy(data.results, (entityType) => entityType.schema?.title),
+          orderBy(data.results, (entityType) => entityType.schema.title),
         );
       });
   }, [graphService]);
@@ -466,19 +465,19 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
 
       if (updatedEntityTypeId) {
         if (tableData.linkedAggregation) {
-          void graphService?.updateLinkedAggregation({
+          void graphService.updateLinkedAggregation({
             data: {
               aggregationId: tableData.linkedAggregation.aggregationId,
               operation: {
                 entityTypeId: updatedEntityTypeId,
                 // There is scope to include other options if entity properties overlap
                 itemsPerPage:
-                  tableData.linkedAggregation?.operation?.itemsPerPage,
+                  tableData.linkedAggregation.operation.itemsPerPage,
               },
             },
           });
         } else {
-          void graphService?.createLinkedAggregation({
+          void graphService.createLinkedAggregation({
             data: {
               sourceEntityId: entityId,
               path,
@@ -489,7 +488,7 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
           });
         }
       } else if (tableData.linkedAggregation) {
-        void graphService?.deleteLinkedAggregation({
+        void graphService.deleteLinkedAggregation({
           data: {
             aggregationId: tableData.linkedAggregation.aggregationId,
           },
@@ -503,9 +502,7 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
     entityTypes && !graphReadonly ? (
       <EntityTypeDropdown
         options={entityTypes}
-        value={
-          tableData?.linkedAggregation?.operation?.entityTypeId ?? undefined
-        }
+        value={tableData.linkedAggregation?.operation.entityTypeId ?? undefined}
         onChange={handleEntityTypeChange}
       />
     ) : null;
@@ -514,7 +511,7 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
   return (
     <div ref={blockRef} className={tw`font-sans overflow-x-auto`}>
       {/* If there's no linked data operation, only render the entity type selector */}
-      {!tableData.linkedAggregation?.operation?.entityTypeId ? (
+      {!tableData.linkedAggregation?.operation.entityTypeId ? (
         <div>{entityTypeDropdown}</div>
       ) : (
         <>
@@ -524,7 +521,7 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
             onAggregate={handleUpdate}
             aggregateOptions={aggregateOptions}
             entityTypeDropdown={entityTypeDropdown}
-            entityTypeId={tableData?.linkedAggregation.operation.entityTypeId}
+            entityTypeId={tableData.linkedAggregation.operation.entityTypeId}
           />
           <div className={tw`max-w-full`}>
             <table
@@ -573,7 +570,7 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
                         const propertyDef = getSchemaPropertyDefinition(
                           (remoteEntityTypes ?? []).find(
                             (entityType) =>
-                              entityType.schema?.title === entity.type,
+                              entityType.schema.title === entity.type,
                           )?.schema,
                           property,
                         );

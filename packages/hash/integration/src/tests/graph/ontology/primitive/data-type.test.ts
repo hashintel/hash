@@ -1,19 +1,19 @@
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { DataType, TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
+  ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-
-import { DataType, TypeSystemInitializer } from "@blockprotocol/type-system";
-import { UserModel } from "@hashintel/hash-api/src/model";
+import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
 import {
   createDataType,
   getDataTypeById,
   updateDataType,
 } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
+import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import { DataTypeWithMetadata } from "@hashintel/hash-subgraph";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 
 import { createTestUser } from "../../../util";
 
@@ -33,8 +33,10 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-let testUser: UserModel;
-let testUser2: UserModel;
+const graphContext: ImpureGraphContext = { graphApi };
+
+let testUser: User;
+let testUser2: User;
 
 // we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
 //  https://github.com/microsoft/TypeScript/issues/50638
@@ -61,23 +63,17 @@ describe("Data type CRU", () => {
   let createdDataType: DataTypeWithMetadata;
 
   it("can create a data type", async () => {
-    createdDataType = await createDataType(
-      { graphApi },
-      {
-        ownedById: testUser.getEntityUuid() as OwnedById,
-        schema: dataTypeSchema,
-        actorId: testUser.getEntityUuid() as AccountId,
-      },
-    );
+    createdDataType = await createDataType(graphContext, {
+      ownedById: testUser.accountId as OwnedById,
+      schema: dataTypeSchema,
+      actorId: testUser.accountId,
+    });
   });
 
   it("can read a data type", async () => {
-    const fetchedDataType = await getDataTypeById(
-      { graphApi },
-      {
-        dataTypeId: createdDataType.schema.$id,
-      },
-    );
+    const fetchedDataType = await getDataTypeById(graphContext, {
+      dataTypeId: createdDataType.schema.$id,
+    });
 
     expect(fetchedDataType.schema).toEqual(createdDataType.schema);
   });
@@ -85,20 +81,17 @@ describe("Data type CRU", () => {
   const updatedTitle = "New text!";
   it("can update a data type", async () => {
     expect(createdDataType.metadata.provenance.updatedById).toBe(
-      testUser.getEntityUuid(),
+      testUser.accountId,
     );
 
-    createdDataType = await updateDataType(
-      { graphApi },
-      {
-        dataTypeId: createdDataType.schema.$id,
-        schema: { ...dataTypeSchema, title: updatedTitle },
-        actorId: testUser2.getEntityUuid() as AccountId,
-      },
-    ).catch((err) => Promise.reject(err.data));
+    createdDataType = await updateDataType(graphContext, {
+      dataTypeId: createdDataType.schema.$id,
+      schema: { ...dataTypeSchema, title: updatedTitle },
+      actorId: testUser2.accountId,
+    }).catch((err) => Promise.reject(err.data));
 
     expect(createdDataType.metadata.provenance.updatedById).toBe(
-      testUser2.getEntityUuid(),
+      testUser2.accountId,
     );
   });
 });

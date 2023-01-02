@@ -1,13 +1,16 @@
+import createEmotionServer from "@emotion/server/create-instance";
 import Document, {
-  Html,
+  DocumentContext,
   Head,
+  Html,
   Main,
   NextScript,
-  DocumentContext,
 } from "next/document";
-import createEmotionServer from "@emotion/server/create-instance";
 import { Children } from "react";
-import { createEmotionCache } from "../util/createEmotionCache";
+
+import { createEmotionCache } from "../util/create-emotion-cache";
+
+const gtmId = "G-2JDBVXSZV8";
 
 class MyDocument extends Document {
   static async getInitialProps(ctx: DocumentContext) {
@@ -79,10 +82,12 @@ class MyDocument extends Document {
             href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
             rel="stylesheet"
           />
-          <script
-            async
-            src="https://www.googletagmanager.com/gtag/js?id=G-2JDBVXSZV8"
-          />
+          {process.env.NEXT_PUBLIC_VERCEL_ENV === "production" && (
+            <script
+              async
+              src={`https://www.googletagmanager.com/gtag/js?id=${gtmId}`}
+            />
+          )}
           <script
             // eslint-disable-next-line react/no-danger
             dangerouslySetInnerHTML={{
@@ -91,7 +96,7 @@ class MyDocument extends Document {
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
 
-            gtag('config', 'G-2JDBVXSZV8');
+            gtag('config', '${gtmId}');
           `,
             }}
           />

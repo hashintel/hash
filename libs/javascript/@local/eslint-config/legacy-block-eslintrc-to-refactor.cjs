@@ -11,6 +11,5 @@ module.exports = {
     "react/jsx-no-useless-fragment": "error",
     "react/no-danger": "error",
     "react/self-closing-comp": "error",
-    "unicorn/filename-case": "error",
   },
 };

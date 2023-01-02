@@ -1,9 +1,9 @@
 import { ApolloClient } from "@apollo/client";
-import { EntityId, VersionedUri } from "@hashintel/hash-subgraph";
+import { EntityId, OwnedById } from "@hashintel/hash-shared/types";
+import { VersionedUri } from "@hashintel/hash-subgraph";
 import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
-import { OwnedById } from "@hashintel/hash-shared/types";
 
 import { BlockEntity, isDraftTextEntity } from "./entity";
 import {
@@ -12,15 +12,15 @@ import {
   getDraftEntityByEntityId,
   isDraftBlockEntity,
   TEXT_ENTITY_TYPE_ID,
-} from "./entityStore";
+} from "./entity-store";
 import {
   GetPageQuery,
   GetPageQueryVariables,
+  UpdatePageAction,
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
-  UpdatePageAction,
   UpdatePageContentsResultPlaceholder,
-} from "./graphql/apiTypes.gen";
+} from "./graphql/api-types.gen";
 import { isEntityNode } from "./prosemirror";
 import { getPageQuery, updatePageContents } from "./queries/page.queries";
 
@@ -89,7 +89,7 @@ const calculateSaveActions = async (
 
       actions.push({
         updateEntity: {
-          entityId: draftEntity.metadata.editionId.baseId,
+          entityId: draftEntity.metadata.editionId.baseId as EntityId,
           properties: nextProperties,
         },
       });
@@ -266,7 +266,7 @@ const calculateSaveActions = async (
       const oldChildEntityForBlock = savedEntity.blockChildEntity;
 
       if (
-        oldChildEntityForBlock?.metadata.editionId.baseId !==
+        oldChildEntityForBlock.metadata.editionId.baseId !==
         newChildEntityForBlock?.metadata.editionId.baseId
       ) {
         if (!newChildEntityForBlock?.metadata.editionId.baseId) {
@@ -277,8 +277,9 @@ const calculateSaveActions = async (
 
         actions.push({
           swapBlockData: {
-            entityId: savedEntity.metadata.editionId.baseId,
-            newEntityEntityId: newChildEntityForBlock.metadata.editionId.baseId,
+            entityId: savedEntity.metadata.editionId.baseId as EntityId,
+            newEntityEntityId: newChildEntityForBlock.metadata.editionId
+              .baseId as EntityId,
           },
         });
       }
@@ -329,7 +330,8 @@ const calculateSaveActions = async (
           },
           ...(draftEntity.metadata.editionId.baseId
             ? {
-                existingBlockEntityId: draftEntity.metadata.editionId.baseId,
+                existingBlockEntityId: draftEntity.metadata.editionId
+                  .baseId as EntityId,
               }
             : {
                 blockPlaceholderId,

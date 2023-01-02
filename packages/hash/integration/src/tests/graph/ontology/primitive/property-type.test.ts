@@ -1,26 +1,27 @@
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
-import {
-  createGraphClient,
-  ensureSystemGraphIsInitialized,
-} from "@hashintel/hash-api/src/graph";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-
 import {
   PropertyType,
   TypeSystemInitializer,
 } from "@blockprotocol/type-system";
-import { UserModel } from "@hashintel/hash-api/src/model";
+import {
+  createGraphClient,
+  ensureSystemGraphIsInitialized,
+  ImpureGraphContext,
+} from "@hashintel/hash-api/src/graph";
+import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
+import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
 import {
   createPropertyType,
   getPropertyTypeById,
   updatePropertyType,
 } from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
+import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import {
   DataTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@hashintel/hash-subgraph";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
-import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
+
 import { createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
@@ -39,10 +40,12 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-let testUser: UserModel;
-let testUser2: UserModel;
+let testUser: User;
+let testUser2: User;
 let textDataType: DataTypeWithMetadata;
 let propertyTypeSchema: Omit<PropertyType, "$id">;
+
+const graphContext: ImpureGraphContext = { graphApi };
 
 beforeAll(async () => {
   await TypeSystemInitializer.initialize();
@@ -51,18 +54,15 @@ beforeAll(async () => {
   testUser = await createTestUser(graphApi, "pt-test-1", logger);
   testUser2 = await createTestUser(graphApi, "pt-test-2", logger);
 
-  textDataType = await createDataType(
-    { graphApi },
-    {
-      ownedById: testUser.getEntityUuid() as OwnedById,
-      schema: {
-        kind: "dataType",
-        title: "Text",
-        type: "string",
-      },
-      actorId: testUser.getEntityUuid() as AccountId,
+  textDataType = await createDataType(graphContext, {
+    ownedById: testUser.accountId as OwnedById,
+    schema: {
+      kind: "dataType",
+      title: "Text",
+      type: "string",
     },
-  );
+    actorId: testUser.accountId,
+  });
 
   propertyTypeSchema = {
     kind: "propertyType",
@@ -79,23 +79,17 @@ describe("Property type CRU", () => {
   let createdPropertyType: PropertyTypeWithMetadata;
 
   it("can create a property type", async () => {
-    createdPropertyType = await createPropertyType(
-      { graphApi },
-      {
-        ownedById: testUser.getEntityUuid() as OwnedById,
-        schema: propertyTypeSchema,
-        actorId: testUser.getEntityUuid() as AccountId,
-      },
-    );
+    createdPropertyType = await createPropertyType(graphContext, {
+      ownedById: testUser.accountId as OwnedById,
+      schema: propertyTypeSchema,
+      actorId: testUser.accountId,
+    });
   });
 
   it("can read a property type", async () => {
-    const fetchedPropertyType = await getPropertyTypeById(
-      { graphApi },
-      {
-        propertyTypeId: createdPropertyType.schema.$id,
-      },
-    );
+    const fetchedPropertyType = await getPropertyTypeById(graphContext, {
+      propertyTypeId: createdPropertyType.schema.$id,
+    });
 
     expect(fetchedPropertyType.schema).toEqual(createdPropertyType.schema);
   });
@@ -104,23 +98,20 @@ describe("Property type CRU", () => {
 
   it("can update a property type", async () => {
     expect(createdPropertyType.metadata.provenance.updatedById).toBe(
-      testUser.getEntityUuid(),
+      testUser.accountId,
     );
 
-    createdPropertyType = await updatePropertyType(
-      { graphApi },
-      {
-        propertyTypeId: createdPropertyType.schema.$id,
-        schema: {
-          ...propertyTypeSchema,
-          title: updatedTitle,
-        },
-        actorId: testUser2.getEntityUuid() as AccountId,
+    createdPropertyType = await updatePropertyType(graphContext, {
+      propertyTypeId: createdPropertyType.schema.$id,
+      schema: {
+        ...propertyTypeSchema,
+        title: updatedTitle,
       },
-    ).catch((err) => Promise.reject(err.data));
+      actorId: testUser2.accountId,
+    }).catch((err) => Promise.reject(err.data));
 
     expect(createdPropertyType.metadata.provenance.updatedById).toBe(
-      testUser2.getEntityUuid(),
+      testUser2.accountId,
     );
   });
 });

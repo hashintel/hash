@@ -19,7 +19,8 @@ import {
 } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
 import { ReactNode } from "react";
-import { PAGE_TITLE_PLACEHOLDER } from "../../blocks/page/PageTitle/PageTitle";
+
+import { PAGE_TITLE_PLACEHOLDER } from "../../blocks/page/page-title/page-title";
 import { MenuItem } from "../../shared/ui";
 
 export type Breadcrumb = {
@@ -101,6 +102,7 @@ export const Breadcrumbs = ({
       }
     >
       {items.map((item, index) => {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
         if (item && "submenu" in item) {
           return (
             <SubMenu

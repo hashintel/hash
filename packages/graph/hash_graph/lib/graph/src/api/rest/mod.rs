@@ -12,7 +12,7 @@ mod entity_type;
 mod property_type;
 mod utoipa_typedef;
 
-use std::{fmt::Debug, sync::Arc};
+use std::sync::Arc;
 
 use axum::{
     extract::Path,
@@ -22,7 +22,6 @@ use axum::{
     Extension, Json, Router,
 };
 use error_stack::Report;
-use futures::TryFutureExt;
 use include_dir::{include_dir, Dir};
 use tower_http::trace::TraceLayer;
 use utoipa::{
@@ -35,9 +34,25 @@ use utoipa::{
 
 use self::{api_resource::RoutedResource, middleware::span_maker};
 use crate::{
-    api::rest::middleware::log_request_and_response,
-    ontology::{domain_validator::DomainValidator, Selector},
-    store::{crud::Read, query::Filter, QueryError, Record, StorePool},
+    api::rest::{
+        middleware::log_request_and_response,
+        utoipa_typedef::subgraph::{
+            Edges, KnowledgeGraphOutwardEdges, KnowledgeGraphRootedEdges, KnowledgeGraphVertex,
+            KnowledgeGraphVertices, OntologyRootedEdges, OntologyVertex, OntologyVertices,
+            Subgraph, Vertex, Vertices,
+        },
+    },
+    identifier::{
+        ontology::OntologyTypeEditionId, GraphElementEditionId, GraphElementId,
+        TransactionTimestamp,
+    },
+    ontology::{domain_validator::DomainValidator, OntologyElementMetadata, Selector},
+    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
+    store::{QueryError, StorePool},
+    subgraph::edges::{
+        EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
+        OntologyOutwardEdges, OutgoingEdgeResolveDepth, SharedEdgeKind,
+    },
 };
 
 static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/json_schemas");
@@ -70,35 +85,6 @@ fn report_to_status_code<C>(report: &Report<C>) -> StatusCode {
         status_code = StatusCode::UNPROCESSABLE_ENTITY;
     }
     status_code
-}
-
-async fn read_from_store<'pool, 'p, P, R>(
-    pool: &'pool P,
-    query: &Filter<'p, R>,
-) -> Result<Vec<R>, StatusCode>
-where
-    P: StorePool<Store<'pool>: Read<R>>,
-    R: Record<QueryPath<'p>: Sync + Debug> + Send,
-{
-    pool.acquire()
-        .map_err(|report| {
-            tracing::error!(error=?report, "Could not acquire access to the store");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })
-        .and_then(|store| async move {
-            // TODO: Closure is taking reference of `store` to `read()`, so the read operation
-            //       needs to be awaited on. By passing through a stream we could avoid awaiting and
-            //       remove the `async move` closure
-            //   see https://app.asana.com/0/1202805690238892/1202923536131158/f
-            Read::read(&store, query)
-                .map_err(|report| {
-                    // TODO: Implement `Valuable` for queries and print them here
-                    tracing::error!(error=?report, ?query, "Could not read from the store");
-                    report_to_status_code(&report)
-                })
-                .await
-        })
-        .await
 }
 
 pub fn rest_api_router<P: StorePool + Send + 'static>(
@@ -164,7 +150,34 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
     modifiers(&MergeAddon, &ExternalRefAddon, &OperationGraphTagAddon, &FilterSchemaAddon),
     components(
         schemas(
+            OwnedById,
+            UpdatedById,
+            ProvenanceMetadata,
+            OntologyTypeEditionId,
+            OntologyElementMetadata,
             Selector,
+
+            GraphElementId,
+            GraphElementEditionId,
+            TransactionTimestamp,
+            OntologyVertex,
+            KnowledgeGraphVertex,
+            Vertex,
+            KnowledgeGraphVertices,
+            OntologyVertices,
+            Vertices,
+            SharedEdgeKind,
+            KnowledgeGraphEdgeKind,
+            OntologyEdgeKind,
+            OntologyOutwardEdges,
+            KnowledgeGraphOutwardEdges,
+            OntologyRootedEdges,
+            KnowledgeGraphRootedEdges,
+            Edges,
+            GraphResolveDepths,
+            EdgeResolveDepths,
+            OutgoingEdgeResolveDepth,
+            Subgraph,
         )
     ),
 )]
@@ -307,6 +320,7 @@ impl Modify for OperationGraphTagAddon {
 struct FilterSchemaAddon;
 
 impl Modify for FilterSchemaAddon {
+    #[expect(clippy::too_many_lines)]
     fn modify(&self, openapi: &mut openapi::OpenApi) {
         if let Some(ref mut components) = openapi.components {
             components.schemas.insert(
@@ -380,7 +394,11 @@ impl Modify for FilterSchemaAddon {
                                             .item(Ref::from_schema_name("PropertyTypeQueryToken"))
                                             .item(Ref::from_schema_name("EntityTypeQueryToken"))
                                             .item(Ref::from_schema_name("EntityQueryToken"))
-                                            .item(Ref::from_schema_name("Selector")),
+                                            .item(Ref::from_schema_name("Selector"))
+                                            .item(
+                                                ObjectBuilder::new()
+                                                    .schema_type(SchemaType::String),
+                                            ),
                                     ),
                                 )
                                 .required("path"),

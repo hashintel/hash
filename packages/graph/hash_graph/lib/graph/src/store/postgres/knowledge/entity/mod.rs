@@ -11,9 +11,7 @@ use uuid::Uuid;
 
 use crate::{
     identifier::{
-        knowledge::{
-            EntityEditionId, EntityId, EntityIdAndTimestamp, EntityRecordId, EntityVersion,
-        },
+        knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
         ontology::OntologyTypeEditionId,
         DecisionTimespan, DecisionTimestamp, TransactionTimespan,
     },
@@ -97,40 +95,6 @@ impl<C: AsClient> PostgresStore<C> {
                 )
                 .await?
                 {
-                    // We want to log the time the link entity was *first* added from this
-                    // entity. We therefore need to find the timestamp of the first link
-                    // entity
-                    // TODO: this is very slow, we should update structural querying to be
-                    //       able to  get the first timestamp of something efficiently
-                    let mut all_outgoing_link_lower_decision_timestamps: Vec<_> =
-                        <Self as Read<Entity>>::read(
-                            self,
-                            &Filter::for_entity_by_entity_id(
-                                outgoing_link_entity.metadata().edition_id().base_id(),
-                            ),
-                        )
-                        .await?
-                        .into_iter()
-                        .map(|entity| {
-                            entity
-                                .metadata()
-                                .edition_id()
-                                .version()
-                                .transaction_time()
-                                .as_start_bound_timestamp()
-                        })
-                        .collect();
-
-                    all_outgoing_link_lower_decision_timestamps.sort();
-
-                    let earliest_timestamp = all_outgoing_link_lower_decision_timestamps
-                        .into_iter()
-                        .next()
-                        .expect(
-                            "we got the edition id from the entity in the first place, there must \
-                             be at least one version",
-                        );
-
                     subgraph.edges.insert(Edge::KnowledgeGraph {
                         edition_id: entity_edition_id,
                         outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
@@ -138,10 +102,7 @@ impl<C: AsClient> PostgresStore<C> {
                             // outgoing link `Entity`
                             kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                             reversed: true,
-                            right_endpoint: EntityIdAndTimestamp::new(
-                                outgoing_link_entity.metadata().edition_id().base_id(),
-                                earliest_timestamp,
-                            ),
+                            right_endpoint: outgoing_link_entity.metadata().edition_id().base_id(),
                         }),
                     });
 
@@ -171,40 +132,6 @@ impl<C: AsClient> PostgresStore<C> {
                 )
                 .await?
                 {
-                    // We want to log the time the link entity was *first* added from this
-                    // entity. We therefore need to find the timestamp of the first link
-                    // entity
-                    // TODO: this is very slow, we should update structural querying to be
-                    //       able to get the first timestamp of something efficiently
-                    let mut all_incoming_link_lower_decision_timestamps: Vec<_> =
-                        <Self as Read<Entity>>::read(
-                            self,
-                            &Filter::for_entity_by_entity_id(
-                                incoming_link_entity.metadata().edition_id().base_id(),
-                            ),
-                        )
-                        .await?
-                        .into_iter()
-                        .map(|entity| {
-                            entity
-                                .metadata()
-                                .edition_id()
-                                .version()
-                                .transaction_time()
-                                .as_start_bound_timestamp()
-                        })
-                        .collect();
-
-                    all_incoming_link_lower_decision_timestamps.sort();
-
-                    let earliest_timestamp = all_incoming_link_lower_decision_timestamps
-                        .into_iter()
-                        .next()
-                        .expect(
-                            "we got the edition id from the entity in the first place, there must \
-                             be at least one version",
-                        );
-
                     subgraph.edges.insert(Edge::KnowledgeGraph {
                         edition_id: entity_edition_id,
                         outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
@@ -212,10 +139,7 @@ impl<C: AsClient> PostgresStore<C> {
                             // incoming link `Entity`
                             kind: KnowledgeGraphEdgeKind::HasRightEntity,
                             reversed: true,
-                            right_endpoint: EntityIdAndTimestamp::new(
-                                incoming_link_entity.metadata().edition_id().base_id(),
-                                earliest_timestamp,
-                            ),
+                            right_endpoint: incoming_link_entity.metadata().edition_id().base_id(),
                         }),
                     });
 
@@ -245,37 +169,6 @@ impl<C: AsClient> PostgresStore<C> {
                 )
                 .await?
                 {
-                    // We want to log the time _this_ link entity was *first* added from the
-                    // left entity. We therefore need to find the timestamp of this entity
-                    // TODO: this is very slow, we should update structural querying to be
-                    //       able to get the first timestamp of something efficiently
-                    let mut all_self_lower_decision_timestamps: Vec<_> =
-                        <Self as Read<Entity>>::read(
-                            self,
-                            &Filter::for_entity_by_entity_id(entity_edition_id.base_id()),
-                        )
-                        .await?
-                        .into_iter()
-                        .map(|entity| {
-                            entity
-                                .metadata()
-                                .edition_id()
-                                .version()
-                                .transaction_time()
-                                .as_start_bound_timestamp()
-                        })
-                        .collect();
-
-                    all_self_lower_decision_timestamps.sort();
-
-                    let earliest_timestamp = all_self_lower_decision_timestamps
-                        .into_iter()
-                        .next()
-                        .expect(
-                            "we got the edition id from the entity in the first place, there must \
-                             be at least one version",
-                        );
-
                     subgraph.edges.insert(Edge::KnowledgeGraph {
                         edition_id: entity_edition_id,
                         outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
@@ -283,10 +176,7 @@ impl<C: AsClient> PostgresStore<C> {
                             // outgoing `Link` `Entity`
                             kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                             reversed: false,
-                            right_endpoint: EntityIdAndTimestamp::new(
-                                left_entity.metadata().edition_id().base_id(),
-                                earliest_timestamp,
-                            ),
+                            right_endpoint: left_entity.metadata().edition_id().base_id(),
                         }),
                     });
 
@@ -316,37 +206,6 @@ impl<C: AsClient> PostgresStore<C> {
                 )
                 .await?
                 {
-                    // We want to log the time _this_ link entity was *first* added to the
-                    // right entity. We therefore need to find the timestamp of this entity
-                    // TODO: this is very slow, we should update structural querying to be
-                    //       able to  get the first timestamp of something efficiently
-                    let mut all_self_lower_decision_timestamps: Vec<_> =
-                        <Self as Read<Entity>>::read(
-                            self,
-                            &Filter::for_entity_by_entity_id(entity_edition_id.base_id()),
-                        )
-                        .await?
-                        .into_iter()
-                        .map(|entity| {
-                            entity
-                                .metadata()
-                                .edition_id()
-                                .version()
-                                .transaction_time()
-                                .as_start_bound_timestamp()
-                        })
-                        .collect();
-
-                    all_self_lower_decision_timestamps.sort();
-
-                    let earliest_timestamp = all_self_lower_decision_timestamps
-                        .into_iter()
-                        .next()
-                        .expect(
-                            "we got the edition id from the entity in the first place, there must \
-                             be at least one version",
-                        );
-
                     subgraph.edges.insert(Edge::KnowledgeGraph {
                         edition_id: entity_edition_id,
                         outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
@@ -354,10 +213,7 @@ impl<C: AsClient> PostgresStore<C> {
                             // outgoing `Link` `Entity`
                             kind: KnowledgeGraphEdgeKind::HasRightEntity,
                             reversed: false,
-                            right_endpoint: EntityIdAndTimestamp::new(
-                                right_entity.metadata().edition_id().base_id(),
-                                earliest_timestamp,
-                            ),
+                            right_endpoint: right_entity.metadata().edition_id().base_id(),
                         }),
                     });
 

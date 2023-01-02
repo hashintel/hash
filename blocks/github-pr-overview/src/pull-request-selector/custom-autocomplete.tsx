@@ -1,13 +1,13 @@
-import { forwardRef, ReactElement, Ref } from "react";
 import { KeyboardArrowDown } from "@mui/icons-material";
 import {
+  Autocomplete,
+  autocompleteClasses,
   AutocompleteProps as MuiAutocompleteProps,
   AutocompleteRenderInputParams,
-  TextField,
-  Autocomplete,
   outlinedInputClasses,
-  autocompleteClasses,
+  TextField,
 } from "@mui/material";
+import { forwardRef, ReactElement, Ref } from "react";
 
 type AutocompleteProps<T> = Omit<
   MuiAutocompleteProps<T, false, false, false>,

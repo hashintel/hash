@@ -1,10 +1,12 @@
 import { Subgraph } from "@hashintel/hash-subgraph";
+
 import { createKratosIdentity } from "../../../../auth/ory-kratos";
-import { UserModel } from "../../../../model";
-import { MutationCreateUserArgs, ResolverFn } from "../../../apiTypes.gen";
+import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity";
+import { createUser } from "../../../../graph/knowledge/system-types/user";
+import { MutationCreateUserArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 
-export const createUser: ResolverFn<
+export const createUserResolver: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
@@ -19,7 +21,7 @@ export const createUser: ResolverFn<
     preferredName,
     hasLeftEntity,
   },
-  { dataSources: { graphApi }, userModel: actorUserModel },
+  { dataSources: { graphApi }, user: actorUser },
 ) => {
   const kratosIdentity = await createKratosIdentity({
     traits: {
@@ -37,16 +39,20 @@ export const createUser: ResolverFn<
 
   const { id: kratosIdentityId } = kratosIdentity;
 
-  const userModel = await UserModel.createUser(graphApi, {
-    emails: [emailAddress],
-    shortname: shortname ?? undefined,
-    preferredName: preferredName ?? undefined,
-    kratosIdentityId,
-    isInstanceAdmin,
-    actorId: actorUserModel.getEntityUuid(),
-  });
+  const user = await createUser(
+    { graphApi },
+    {
+      emails: [emailAddress],
+      shortname: shortname ?? undefined,
+      preferredName: preferredName ?? undefined,
+      kratosIdentityId,
+      isInstanceAdmin,
+      actorId: actorUser.accountId,
+    },
+  );
 
-  return await userModel.getRootedSubgraph(graphApi, {
-    hasLeftEntity,
-  });
+  return await getLatestEntityRootedSubgraph(
+    { graphApi },
+    { entity: user.entity, graphResolveDepths: { hasLeftEntity } },
+  );
 };

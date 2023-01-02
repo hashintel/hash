@@ -65,7 +65,6 @@ module "postgres" {
 
 
 module "tunnel" {
-  depends_on         = [module.bastion]
   source             = "../modules/tunnel"
   ssh_host           = module.bastion.ssh_info.host
   ssh_port           = 22
@@ -134,17 +133,18 @@ module "api_ecr" {
 }
 
 module "application" {
-  depends_on   = [module.networking, module.postgres]
-  source       = "../modules/hash_application"
-  subnets      = module.networking.snpub
-  env          = local.env
-  region       = local.region
-  vpc          = module.networking.vpc
-  prefix       = local.prefix
-  param_prefix = local.param_prefix
-  cpu          = 1024
-  memory       = 2048
-  graph_image  = module.graph_ecr
+  depends_on                   = [module.networking, module.postgres]
+  source                       = "../modules/hash_application"
+  subnets                      = module.networking.snpub
+  env                          = local.env
+  region                       = local.region
+  vpc                          = module.networking.vpc
+  prefix                       = local.prefix
+  param_prefix                 = local.param_prefix
+  cpu                          = 1024
+  memory                       = 2048
+  graph_image                  = module.graph_ecr
+  ses_verified_domain_identity = var.ses_verified_domain_identity
   graph_env_vars = concat(var.hash_graph_env_vars, [
     { name = "HASH_GRAPH_PG_USER", secret = false, value = "graph" },
     { name = "HASH_GRAPH_PG_PASSWORD", secret = true, value = sensitive(var.pg_graph_user_password.raw) },
@@ -160,6 +160,7 @@ module "application" {
   ])
   api_image = module.api_ecr
   api_env_vars = concat(var.hash_api_env_vars, [
+    { name = "AWS_REGION", secret = false, value = local.region },
     { name = "SYSTEM_USER_PASSWORD", secret = true, value = sensitive(var.hash_system_user_password) },
     { name = "KRATOS_API_KEY", secret = true, value = sensitive(var.kratos_api_key) },
     { name = "HASH_SEED_USERS", secret = true, value = sensitive(jsonencode(var.hash_seed_users)) },

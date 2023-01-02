@@ -1,3 +1,3 @@
-export * from "./AwsSesEmailTransporter";
-export * from "./DummyEmailTransporter";
+export * from "./aws-ses-email-transporter";
+export * from "./dummy-email-transporter";
 export * from "./types";

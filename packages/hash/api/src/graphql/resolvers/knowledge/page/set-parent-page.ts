@@ -1,11 +1,14 @@
 import { ApolloError } from "apollo-server-express";
 
+import {
+  getPageById,
+  setPageParentPage,
+} from "../../../../graph/knowledge/system-types/page";
+import { MutationSetParentPageArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { MutationSetParentPageArgs, ResolverFn } from "../../../apiTypes.gen";
-import { mapPageModelToGQL, UnresolvedPageGQL } from "../model-mapping";
-import { PageModel } from "../../../../model";
+import { mapPageToGQL, UnresolvedPageGQL } from "../graphql-mapping";
 
-export const setParentPage: ResolverFn<
+export const setParentPageResolver: ResolverFn<
   Promise<UnresolvedPageGQL>,
   {},
   LoggedInGraphQLContext,
@@ -13,28 +16,38 @@ export const setParentPage: ResolverFn<
 > = async (
   _,
   { pageEntityId, parentPageEntityId, prevIndex = null, nextIndex = null },
-  { dataSources: { graphApi }, userModel },
+  { dataSources: { graphApi }, user },
 ) => {
   if (pageEntityId === parentPageEntityId) {
     throw new ApolloError("A page cannot be the parent of itself");
   }
 
-  const pageModel = await PageModel.getPageById(graphApi, {
-    entityId: pageEntityId,
-  });
+  const page = await getPageById(
+    { graphApi },
+    {
+      entityId: pageEntityId,
+    },
+  );
 
-  const newParentPageModel = parentPageEntityId
-    ? await PageModel.getPageById(graphApi, {
-        entityId: parentPageEntityId,
-      })
+  const newParentPage = parentPageEntityId
+    ? await getPageById(
+        { graphApi },
+        {
+          entityId: parentPageEntityId,
+        },
+      )
     : null;
 
-  const updatedPageModel = await pageModel.setParentPage(graphApi, {
-    parentPageModel: newParentPageModel,
-    actorId: userModel.getEntityUuid(),
-    prevIndex,
-    nextIndex,
-  });
+  const updatedPage = await setPageParentPage(
+    { graphApi },
+    {
+      page,
+      parentPage: newParentPage,
+      actorId: user.accountId,
+      prevIndex,
+      nextIndex,
+    },
+  );
 
-  return mapPageModelToGQL(updatedPageModel);
+  return mapPageToGQL(updatedPage);
 };

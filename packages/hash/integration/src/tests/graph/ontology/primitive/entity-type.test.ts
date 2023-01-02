@@ -1,18 +1,10 @@
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { EntityType, TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
+  ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-
-import { UserModel } from "@hashintel/hash-api/src/model";
-import { EntityType, TypeSystemInitializer } from "@blockprotocol/type-system";
-import { linkEntityTypeUri } from "@hashintel/hash-api/src/model/util";
-import {
-  DataTypeWithMetadata,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@hashintel/hash-subgraph";
+import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
 import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
 import {
   createEntityType,
@@ -20,7 +12,15 @@ import {
   updateEntityType,
 } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
+import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { OwnedById } from "@hashintel/hash-shared/types";
+import {
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  linkEntityTypeUri,
+  PropertyTypeWithMetadata,
+} from "@hashintel/hash-subgraph";
 
 import { createTestUser } from "../../../util";
 
@@ -40,8 +40,8 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-let testUser: UserModel;
-let testUser2: UserModel;
+let testUser: User;
+let testUser2: User;
 let entityTypeSchema: Omit<EntityType, "$id">;
 let workerEntityType: EntityTypeWithMetadata;
 let textDataType: DataTypeWithMetadata;
@@ -51,6 +51,8 @@ let knowsLinkEntityType: EntityTypeWithMetadata;
 let previousAddressLinkEntityType: EntityTypeWithMetadata;
 let addressEntityType: EntityTypeWithMetadata;
 
+const graphContext: ImpureGraphContext = { graphApi };
+
 beforeAll(async () => {
   await TypeSystemInitializer.initialize();
   await ensureSystemGraphIsInitialized({ graphApi, logger });
@@ -58,110 +60,89 @@ beforeAll(async () => {
   testUser = await createTestUser(graphApi, "entity-type-test-1", logger);
   testUser2 = await createTestUser(graphApi, "entity-type-test-2", logger);
 
-  textDataType = await createDataType(
-    { graphApi },
-    {
-      ownedById: testUser.getEntityUuid() as OwnedById,
-      schema: {
-        kind: "dataType",
-        title: "Text",
-        type: "string",
-      },
-      actorId: testUser.getEntityUuid() as AccountId,
+  textDataType = await createDataType(graphContext, {
+    ownedById: testUser.accountId as OwnedById,
+    schema: {
+      kind: "dataType",
+      title: "Text",
+      type: "string",
     },
-  );
+    actorId: testUser.accountId,
+  });
 
   await Promise.all([
-    createEntityType(
-      { graphApi },
-      {
-        ownedById: testUser.getEntityUuid() as OwnedById,
-        schema: {
-          kind: "entityType",
-          title: "Worker",
-          type: "object",
-          properties: {},
-        },
-        actorId: testUser.getEntityUuid() as AccountId,
+    createEntityType(graphContext, {
+      ownedById: testUser.accountId as OwnedById,
+      schema: {
+        kind: "entityType",
+        title: "Worker",
+        type: "object",
+        properties: {},
       },
-    ).then((val) => {
+      actorId: testUser.accountId,
+    }).then((val) => {
       workerEntityType = val;
     }),
-    createEntityType(
-      { graphApi },
-      {
-        ownedById: testUser.getEntityUuid() as OwnedById,
-        schema: {
-          kind: "entityType",
-          title: "Address",
-          type: "object",
-          properties: {},
-        },
-        actorId: testUser.getEntityUuid() as AccountId,
+    createEntityType(graphContext, {
+      ownedById: testUser.accountId as OwnedById,
+      schema: {
+        kind: "entityType",
+        title: "Address",
+        type: "object",
+        properties: {},
       },
-    ).then((val) => {
+      actorId: testUser.accountId,
+    }).then((val) => {
       addressEntityType = val;
     }),
-    createPropertyType(
-      { graphApi },
-      {
-        ownedById: testUser.getEntityUuid() as OwnedById,
-        schema: {
-          kind: "propertyType",
-          title: "Favorite Book",
-          oneOf: [{ $ref: textDataType.schema.$id }],
-        },
-        actorId: testUser.getEntityUuid() as AccountId,
+    createPropertyType(graphContext, {
+      ownedById: testUser.accountId as OwnedById,
+      schema: {
+        kind: "propertyType",
+        title: "Favorite Book",
+        oneOf: [{ $ref: textDataType.schema.$id }],
       },
-    ).then((val) => {
+      actorId: testUser.accountId,
+    }).then((val) => {
       favoriteBookPropertyType = val;
     }),
-    createPropertyType(
-      { graphApi },
-      {
-        ownedById: testUser.getEntityUuid() as OwnedById,
-        schema: {
-          kind: "propertyType",
-          title: "Name",
-          oneOf: [{ $ref: textDataType.schema.$id }],
-        },
-        actorId: testUser.getEntityUuid() as AccountId,
+    createPropertyType(graphContext, {
+      ownedById: testUser.accountId as OwnedById,
+      schema: {
+        kind: "propertyType",
+        title: "Name",
+        oneOf: [{ $ref: textDataType.schema.$id }],
       },
-    ).then((val) => {
+      actorId: testUser.accountId,
+    }).then((val) => {
       namePropertyType = val;
     }),
-    createEntityType(
-      { graphApi },
-      {
-        ownedById: testUser.getEntityUuid() as OwnedById,
-        schema: {
-          kind: "entityType",
-          title: "Knows",
-          description: "Knows of someone",
-          type: "object",
-          properties: {},
-          allOf: [{ $ref: linkEntityTypeUri }],
-        },
-        actorId: testUser.getEntityUuid() as AccountId,
+    createEntityType(graphContext, {
+      ownedById: testUser.accountId as OwnedById,
+      schema: {
+        kind: "entityType",
+        title: "Knows",
+        description: "Knows of someone",
+        type: "object",
+        properties: {},
+        allOf: [{ $ref: linkEntityTypeUri }],
       },
-    ).then((val) => {
+      actorId: testUser.accountId,
+    }).then((val) => {
       knowsLinkEntityType = val;
     }),
-    createEntityType(
-      { graphApi },
-      {
-        ownedById: testUser.getEntityUuid() as OwnedById,
-        schema: {
-          kind: "entityType",
-          title: "Previous Address",
-          description: "A previous address of something.",
-          type: "object",
-          properties: {},
-          allOf: [{ $ref: linkEntityTypeUri }],
-        },
-        actorId: testUser.getEntityUuid() as AccountId,
+    createEntityType(graphContext, {
+      ownedById: testUser.accountId as OwnedById,
+      schema: {
+        kind: "entityType",
+        title: "Previous Address",
+        description: "A previous address of something.",
+        type: "object",
+        properties: {},
+        allOf: [{ $ref: linkEntityTypeUri }],
       },
-    ).then((val) => {
+      actorId: testUser.accountId,
+    }).then((val) => {
       previousAddressLinkEntityType = val;
     }),
   ]);
@@ -201,23 +182,17 @@ describe("Entity type CRU", () => {
   let createdEntityType: EntityTypeWithMetadata;
 
   it("can create an entity type", async () => {
-    createdEntityType = await createEntityType(
-      { graphApi },
-      {
-        ownedById: testUser.getEntityUuid() as OwnedById,
-        schema: entityTypeSchema,
-        actorId: testUser.getEntityUuid() as AccountId,
-      },
-    );
+    createdEntityType = await createEntityType(graphContext, {
+      ownedById: testUser.accountId as OwnedById,
+      schema: entityTypeSchema,
+      actorId: testUser.accountId,
+    });
   });
 
   it("can read an entity type", async () => {
-    const fetchedEntityType = await getEntityTypeById(
-      { graphApi },
-      {
-        entityTypeId: createdEntityType.schema.$id,
-      },
-    );
+    const fetchedEntityType = await getEntityTypeById(graphContext, {
+      entityTypeId: createdEntityType.schema.$id,
+    });
 
     expect(fetchedEntityType.schema).toEqual(createdEntityType.schema);
   });
@@ -226,20 +201,17 @@ describe("Entity type CRU", () => {
 
   it("can update an entity type", async () => {
     expect(createdEntityType.metadata.provenance.updatedById).toBe(
-      testUser.getEntityUuid(),
+      testUser.accountId,
     );
 
-    const updatedEntityType = await updateEntityType(
-      { graphApi },
-      {
-        entityTypeId: createdEntityType.schema.$id,
-        schema: { ...entityTypeSchema, title: updatedTitle },
-        actorId: testUser2.getEntityUuid() as AccountId,
-      },
-    ).catch((err) => Promise.reject(err.data));
+    const updatedEntityType = await updateEntityType(graphContext, {
+      entityTypeId: createdEntityType.schema.$id,
+      schema: { ...entityTypeSchema, title: updatedTitle },
+      actorId: testUser2.accountId,
+    }).catch((err) => Promise.reject(err.data));
 
     expect(updatedEntityType.metadata.provenance.updatedById).toBe(
-      testUser2.getEntityUuid(),
+      testUser2.accountId,
     );
   });
 });

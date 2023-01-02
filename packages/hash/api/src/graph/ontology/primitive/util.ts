@@ -1,8 +1,10 @@
 import { systemUserShortname } from "@hashintel/hash-shared/environment";
-import { entityIdFromOwnedByIdAndEntityUuid } from "@hashintel/hash-subgraph";
 import { OwnedById } from "@hashintel/hash-shared/types";
-import { OrgModel, UserModel } from "../../../model";
-import { GraphApi } from "../..";
+import { entityIdFromOwnedByIdAndEntityUuid } from "@hashintel/hash-subgraph";
+
+import { ImpureGraphFunction } from "../..";
+import { getOrgById } from "../../knowledge/system-types/org";
+import { getUserById } from "../../knowledge/system-types/user";
 import { systemUserAccountId } from "../../system-user";
 
 /**
@@ -10,27 +12,29 @@ import { systemUserAccountId } from "../../system-user";
  *
  * @param params.ownerId - the id of the owner
  */
-export const getNamespaceOfAccountOwner = async (
-  graphApi: GraphApi,
-  params: { ownerId: OwnedById },
-) => {
+export const getNamespaceOfAccountOwner: ImpureGraphFunction<
+  {
+    ownerId: OwnedById;
+  },
+  Promise<string>
+> = async (ctx, params) => {
   const namespace =
     params.ownerId === systemUserAccountId
       ? systemUserShortname
       : (
-          (await UserModel.getUserById(graphApi, {
+          (await getUserById(ctx, {
             entityId: entityIdFromOwnedByIdAndEntityUuid(
               systemUserAccountId,
               params.ownerId,
             ),
           }).catch(() => undefined)) ??
-          (await OrgModel.getOrgById(graphApi, {
+          (await getOrgById(ctx, {
             entityId: entityIdFromOwnedByIdAndEntityUuid(
               systemUserAccountId,
               params.ownerId,
             ),
           }).catch(() => undefined))
-        )?.getShortname();
+        )?.shortname;
 
   if (!namespace) {
     throw new Error(`failed to get namespace for owner: ${params.ownerId}`);

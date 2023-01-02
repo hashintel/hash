@@ -2,18 +2,18 @@
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
-import * as http from "http";
-import { StatsD } from "hot-shots";
-import { promisify } from "util";
+import * as http from "node:http";
+import { promisify } from "node:util";
 
-import { AsyncRedisClient } from "@hashintel/hash-backend-utils/redis";
-import { RedisQueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/redis";
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
-import { GracefulShutdown } from "@hashintel/hash-backend-utils/shutdown";
-import { OpenSearch } from "@hashintel/hash-backend-utils/search/opensearch";
+import { RedisQueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/redis";
+import { AsyncRedisClient } from "@hashintel/hash-backend-utils/redis";
 import { ENTITIES_SEARCH_INDEX } from "@hashintel/hash-backend-utils/search/doc-types";
+import { OpenSearch } from "@hashintel/hash-backend-utils/search/opensearch";
+import { GracefulShutdown } from "@hashintel/hash-backend-utils/shutdown";
+import { StatsD } from "hot-shots";
 
-import { logger, INSTANCE_ID } from "./config";
+import { INSTANCE_ID, logger } from "./config";
 import { SearchLoader } from "./search-loader";
 
 const OPENSEARCH_ENABLED = process.env.HASH_OPENSEARCH_ENABLED === "true";
@@ -181,7 +181,7 @@ const main = async () => {
       return;
     }
     const size = await queueConsumer.length(SEARCH_QUEUE_NAME);
-    statsd?.gauge("queue_size", size);
+    statsd.gauge("queue_size", size);
   }, 5_000);
   shutdown.addCleanup("statsd reporting", () => clearInterval(int1));
 
