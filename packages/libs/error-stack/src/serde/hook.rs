@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, vec::Vec};
 use core::{any::TypeId, iter::FusedIterator};
 
-pub(crate) use default::install_builtin_hooks;
+pub(crate) use default::install_builtin_serde_hooks;
 
 use crate::Frame;
 
@@ -125,11 +125,11 @@ impl Hook {
     }
 }
 
-pub(crate) struct Hooks {
+pub(crate) struct SerdeHooks {
     inner: Vec<Hook>,
 }
 
-impl Hooks {
+impl SerdeHooks {
     pub(crate) const fn new() -> Self {
         Self { inner: Vec::new() }
     }
@@ -324,7 +324,7 @@ mod default {
         }
     }
 
-    pub(crate) fn install_builtin_hooks() {
+    pub(crate) fn install_builtin_serde_hooks() {
         // We could in theory remove this and replace it with a single AtomicBool.
         static INSTALL_BUILTIN: Once = Once::new();
 

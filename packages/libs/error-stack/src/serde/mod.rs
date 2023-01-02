@@ -28,7 +28,7 @@ use core::marker::PhantomData;
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub use hook::HookContext;
 #[cfg(any(feature = "std", feature = "hooks"))]
-pub(crate) use hook::{install_builtin_hooks, DynamicFn, Hooks, Serde};
+pub(crate) use hook::{install_builtin_serde_hooks, DynamicFn, Serde, SerdeHooks};
 use serde::{
     ser::{SerializeMap, SerializeSeq},
     Serialize, Serializer,
@@ -85,7 +85,7 @@ where
 
 #[cfg(any(feature = "std", feature = "hooks"))]
 fn serialize_attachment<'a>(
-    hooks: &'a Hooks,
+    hooks: &'a SerdeHooks,
     frame: &'a Frame,
     context: &'a mut HookContext<Frame>,
 ) -> impl Iterator<Item = SerializedAttachment<'a>> + 'a {
@@ -119,7 +119,7 @@ fn serialize_attachment<'a>(frame: &'a Frame) -> impl Iterator<Item = String> + 
 
 #[cfg(any(feature = "std", feature = "hooks"))]
 struct SerializeHooks<'a> {
-    hooks: &'a Hooks,
+    hooks: &'a SerdeHooks,
     context: &'a mut HookContext<Frame>,
 }
 

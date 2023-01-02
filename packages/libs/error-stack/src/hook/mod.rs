@@ -2,8 +2,10 @@ pub(crate) mod context;
 
 use alloc::vec::Vec;
 
+#[cfg(feature = "serde")]
+use crate::serde::{install_builtin_serde_hooks, SerdeHooks};
 use crate::{
-    fmt::{install_builtin_hooks, Hooks},
+    fmt::{install_builtin_debug_hooks, FmtHooks},
     Report,
 };
 
@@ -15,9 +17,9 @@ type RwLock<T> = std::sync::RwLock<T>;
 #[cfg(all(not(feature = "std"), feature = "hooks"))]
 type RwLock<T> = spin::rwlock::RwLock<T>;
 
-static FMT_HOOK: RwLock<Hooks> = RwLock::new(Hooks { inner: Vec::new() });
+static FMT_HOOK: RwLock<FmtHooks> = RwLock::new(FmtHooks { inner: Vec::new() });
 #[cfg(feature = "serde")]
-static SERDE_HOOK: RwLock<crate::serde::Hooks> = RwLock::new(crate::serde::Hooks::new());
+static SERDE_HOOK: RwLock<SerdeHooks> = RwLock::new(SerdeHooks::new());
 
 impl Report<()> {
     /// Can be used to globally set a [`Debug`] format hook, for a specific type `T`.
@@ -155,7 +157,7 @@ impl Report<()> {
     pub fn install_debug_hook<T: Send + Sync + 'static>(
         hook: impl Fn(&T, &mut crate::fmt::HookContext<T>) + Send + Sync + 'static,
     ) {
-        install_builtin_hooks();
+        install_builtin_debug_hooks();
 
         #[cfg(feature = "std")]
         let mut lock = FMT_HOOK.write().expect("should not be poisoned");
@@ -171,8 +173,8 @@ impl Report<()> {
     ///
     /// [`install_debug_hook`]: Self::install_debug_hook
     #[cfg(any(feature = "std", feature = "hooks"))]
-    pub(crate) fn invoke_debug_format_hook<T>(closure: impl FnOnce(&Hooks) -> T) -> T {
-        install_builtin_hooks();
+    pub(crate) fn invoke_debug_format_hook<T>(closure: impl FnOnce(&FmtHooks) -> T) -> T {
+        install_builtin_debug_hooks();
 
         #[cfg(feature = "std")]
         let hook = FMT_HOOK.read().expect("should not be poisoned");
@@ -186,7 +188,7 @@ impl Report<()> {
 
     #[cfg(all(any(feature = "std", feature = "hooks"), feature = "serde"))]
     pub fn install_serde_hook<T: serde::Serialize + Send + Sync + 'static>() {
-        crate::serde::install_builtin_hooks();
+        install_builtin_serde_hooks();
 
         #[cfg(feature = "std")]
         let mut lock = SERDE_HOOK.write().expect("should not be poisoned");
@@ -204,7 +206,7 @@ impl Report<()> {
         F: for<'a> crate::serde::DynamicFn<'a, T>,
         T: Send + Sync + 'static,
     {
-        crate::serde::install_builtin_hooks();
+        install_builtin_serde_hooks();
 
         #[cfg(feature = "std")]
         let mut lock = SERDE_HOOK.write().expect("should not be poisoned");
@@ -217,8 +219,8 @@ impl Report<()> {
     }
 
     #[cfg(all(any(feature = "std", feature = "hooks"), feature = "serde"))]
-    pub(crate) fn invoke_serde_hook<T>(closure: impl FnOnce(&crate::serde::Hooks) -> T) -> T {
-        crate::serde::install_builtin_hooks();
+    pub(crate) fn invoke_serde_hook<T>(closure: impl FnOnce(&crate::serde::SerdeHooks) -> T) -> T {
+        crate::serde::install_builtin_serde_hooks();
 
         #[cfg(feature = "std")]
         let hook = SERDE_HOOK.read().expect("should not be poisoned");

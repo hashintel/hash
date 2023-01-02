@@ -162,7 +162,7 @@ use core::{
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub use hook::HookContext;
 #[cfg(any(feature = "std", feature = "hooks"))]
-pub(crate) use hook::{install_builtin_hooks, Format, Hooks};
+pub(crate) use hook::{install_builtin_debug_hooks, FmtHooks, Format};
 #[cfg(feature = "pretty-print")]
 use owo_colors::{OwoColorize, Stream, Style as OwOStyle};
 
