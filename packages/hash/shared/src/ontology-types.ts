@@ -1,9 +1,10 @@
 import { BaseUri, VersionedUri } from "@blockprotocol/type-system";
-import slugify from "slugify";
 import { systemUserShortname } from "@hashintel/hash-shared/environment";
+import slugify from "slugify";
+
 import { frontendUrl } from "./environment";
 
-type SchemaKind = "data-type" | "property-type" | "entity-type";
+export type SchemaKind = "data-type" | "property-type" | "entity-type";
 
 /** Slugify the title of a type */
 export const slugifyTypeTitle = (title: string): string =>

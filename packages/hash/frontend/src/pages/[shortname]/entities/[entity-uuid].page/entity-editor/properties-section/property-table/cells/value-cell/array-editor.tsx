@@ -1,5 +1,3 @@
-import produce from "immer";
-import { useMemo, useRef, useState } from "react";
 import {
   closestCenter,
   DndContext,
@@ -15,13 +13,16 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { styled, Box, experimental_sx as sx } from "@mui/material";
-import { ValueCellEditorComponent } from "./types";
-import { SortableItem } from "./array-editor/types";
-import { SortableRow } from "./array-editor/sortable-row";
+import { Box, experimental_sx as sx, styled } from "@mui/material";
+import produce from "immer";
+import { useMemo, useRef, useState } from "react";
+
+import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
 import { AddAnotherButton } from "./array-editor/add-another-button";
 import { DraftRow } from "./array-editor/draft-row";
-import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
+import { SortableRow } from "./array-editor/sortable-row";
+import { SortableItem } from "./array-editor/types";
+import { ValueCellEditorComponent } from "./types";
 import { isBlankStringOrNullish } from "./utils";
 
 export const DRAFT_ROW_KEY = "draft";

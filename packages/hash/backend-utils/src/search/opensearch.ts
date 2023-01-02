@@ -2,16 +2,16 @@ import { JsonObject } from "@blockprotocol/core";
 import { Client, ClientOptions, errors } from "@opensearch-project/opensearch";
 import { DataSource } from "apollo-datasource";
 
-import { sleep } from "../utils";
 import { Logger } from "../logger";
+import { sleep } from "../utils";
 import {
   SearchAdapter,
-  SearchResult,
-  SearchHit,
-  SearchParameters,
-  SearchResultPaginated,
   SearchField,
   SearchFieldPresence,
+  SearchHit,
+  SearchParameters,
+  SearchResult,
+  SearchResultPaginated,
 } from "./adapter";
 
 const KEEP_ALIVE_CURSOR_DURATION = "10m";

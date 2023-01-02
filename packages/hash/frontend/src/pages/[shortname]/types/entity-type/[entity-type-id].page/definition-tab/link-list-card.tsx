@@ -1,20 +1,43 @@
-import { EntityType } from "@blockprotocol/type-system";
-import { Chip } from "@hashintel/hash-design-system";
-import { TableBody, TableCell, TableFooter, TableHead } from "@mui/material";
-import { usePopupState } from "material-ui-popup-state/hooks";
-import { useId, useRef, useState } from "react";
+import { EntityType, VersionedUri } from "@blockprotocol/type-system";
+import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
+import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { OwnedById } from "@hashintel/hash-shared/types";
+import { linkEntityTypeUri } from "@hashintel/hash-subgraph";
+import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import {
-  Controller,
-  useFieldArray,
-  useFormContext,
-  useWatch,
-} from "react-hook-form";
+  ClickAwayListener,
+  Popper,
+  Stack,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+} from "@mui/material";
+import { Box } from "@mui/system";
+import {
+  bindPopper,
+  bindTrigger,
+  usePopupState,
+} from "material-ui-popup-state/hooks";
+import { useId, useLayoutEffect, useRef, useState } from "react";
+import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
+
+import { useBlockProtocolCreateEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
+import { useBlockProtocolGetEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
+import { useBlockProtocolUpdateEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-entity-type";
 import { LinkIcon } from "../../../../../../shared/icons/link";
 import { HashSelectorAutocomplete } from "../../../../shared/hash-selector-autocomplete";
+import {
+  addPopperPositionClassPopperModifier,
+  popperPlacementInputNoRadius,
+  popperPlacementPopperNoRadius,
+} from "../../../../shared/popper-placement-modifier";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
+import { useRouteNamespace } from "../../../../shared/use-route-namespace";
 import {
   useEntityTypes,
   useEntityTypesLoading,
+  useFetchEntityTypes,
   useLinkEntityTypes,
 } from "../shared/entity-types-context";
 import { EntityTypeEditorForm } from "../shared/form-types";
@@ -22,33 +45,94 @@ import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
   EntityTypeTableButtonRow,
+  EntityTypeTableCenteredCell,
   EntityTypeTableHeaderRow,
   EntityTypeTableRow,
   EntityTypeTableTitleCellText,
 } from "./shared/entity-type-table";
 import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
+import { MultipleValuesCell } from "./shared/multiple-values-cell";
 import { QuestionIcon } from "./shared/question-icon";
+import {
+  generateInitialTypeUri,
+  TypeForm,
+  TypeFormDefaults,
+  TypeFormModal,
+  TypeFormProps,
+  useGenerateTypeBaseUri,
+} from "./shared/type-form";
 import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { useStateCallback } from "./shared/use-state-callback";
+
+const formDataToEntityType = (data: TypeFormDefaults) => ({
+  type: "object" as const,
+  kind: "entityType" as const,
+  title: data.name,
+  description: data.description,
+  allOf: [
+    {
+      $ref: linkEntityTypeUri,
+    },
+  ],
+  properties: {},
+});
+
+export const LinkTypeForm = (props: TypeFormProps) => {
+  const { getEntityType } = useBlockProtocolGetEntityType();
+  const generateTypeBaseUri = useGenerateTypeBaseUri("entity-type");
+
+  const nameExists = async (name: string) => {
+    const entityTypeId = generateInitialTypeUri(generateTypeBaseUri(name));
+
+    const res = await getEntityType({
+      data: {
+        entityTypeId,
+        graphResolveDepths: {
+          constrainsValuesOn: { outgoing: 0 },
+          constrainsPropertiesOn: { outgoing: 0 },
+        },
+      },
+    });
+
+    if (!res.data) {
+      // @todo consider non-crash error handling
+      throw new Error("Unable to check whether name is available");
+    }
+
+    return !!getEntityTypeById(res.data, entityTypeId);
+  };
+
+  return <TypeForm nameExists={nameExists} {...props} />;
+};
 
 const LinkTypeRow = ({
   linkIndex,
   onRemove,
+  onUpdateVersion,
 }: {
   linkIndex: number;
   onRemove: () => void;
+  onUpdateVersion: (nextId: VersionedUri) => void;
 }) => {
-  const { control, register, setValue } =
-    useFormContext<EntityTypeEditorForm>();
-  const linkTypes = useLinkEntityTypes();
-  const entityTypes = useEntityTypes();
-  // @todo watch more specific
-  const linkData = useWatch({
-    control,
-    name: `links.${linkIndex}`,
+  const { control, setValue } = useFormContext<EntityTypeEditorForm>();
+
+  const entityTypeSelectorPopupId = useId();
+  const entityTypeSelectorPopupState = usePopupState({
+    variant: "popper",
+    popupId: entityTypeSelectorPopupId,
   });
 
-  const link = linkTypes[linkData.$id];
+  const linkTypes = useLinkEntityTypes();
+  const entityTypes = useEntityTypes();
+  const linkId = useWatch({
+    control,
+    name: `links.${linkIndex}.$id`,
+  });
+
+  const chosenEntityTypes = useWatch({
+    control,
+    name: `links.${linkIndex}.entityTypes`,
+  });
 
   const popupId = useId();
   const menuPopupState = usePopupState({
@@ -56,112 +140,215 @@ const LinkTypeRow = ({
     popupId: `property-menu-${popupId}`,
   });
 
+  const editModalPopupId = useId();
+  const editModalPopupState = usePopupState({
+    variant: "popover",
+    popupId: `editLink-${editModalPopupId}`,
+  });
+
+  const { updateEntityType } = useBlockProtocolUpdateEntityType();
+  const refetchEntityTypes = useFetchEntityTypes();
+  const onUpdateVersionRef = useRef(onUpdateVersion);
+  useLayoutEffect(() => {
+    onUpdateVersionRef.current = onUpdateVersion;
+  });
+
+  const handleSubmit = async (data: TypeFormDefaults) => {
+    const res = await updateEntityType({
+      data: {
+        entityTypeId: linkId,
+        entityType: formDataToEntityType(data),
+      },
+    });
+
+    if (!res.data) {
+      throw new Error("Failed to update property type");
+    }
+
+    await refetchEntityTypes();
+
+    onUpdateVersionRef.current(res.data.schema.$id);
+
+    editModalPopupState.close();
+  };
+
+  const link = linkTypes[linkId];
+
   if (!link) {
     throw new Error("Missing link");
   }
 
   return (
-    <EntityTypeTableRow>
-      <TableCell>
-        <EntityTypeTableTitleCellText>
-          {link.schema.title}
-        </EntityTypeTableTitleCellText>
-      </TableCell>
-      <TableCell>
-        <Controller
-          name={`links.${linkIndex}.entityTypes`}
-          control={control}
-          render={({ field: { onChange, value, ref } }) => (
-            <HashSelectorAutocomplete
-              autoFocus={false}
-              onChange={(evt, chosenTypes) => {
-                if (
-                  chosenTypes.length === 0 &&
-                  evt.target !== document.activeElement
-                ) {
-                  onRemove();
-                } else {
-                  onChange(chosenTypes.map((type) => type.$id));
-                }
-              }}
-              onBlur={() => {
-                if (!value.length) {
-                  onRemove();
-                }
-              }}
-              value={
-                // @todo tidy
-                value.map(($id) => entityTypes[$id]!.schema)
+    <>
+      <EntityTypeTableRow>
+        <TableCell>
+          <EntityTypeTableTitleCellText>
+            {link.schema.title}
+          </EntityTypeTableTitleCellText>
+        </TableCell>
+        <TableCell
+          sx={(theme) => ({
+            [entityTypeSelectorPopupState.isOpen ? "& > *" : "&:hover > *"]: {
+              boxShadow: theme.boxShadows.xs,
+              borderColor: `${theme.palette.gray[30]} !important`,
+              backgroundColor: "white",
+            },
+
+            "&, *": {
+              cursor: "pointer",
+            },
+          })}
+        >
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={[
+              {
+                border: 1,
+                borderColor: "transparent",
+                borderRadius: 1.5,
+                p: 0.75,
+                width: 1,
+                position: "relative",
+                userSelect: "none",
+                maxWidth: 200,
+                minHeight: 42,
+                left: -7,
+                overflow: "hidden",
+                "&:after": {
+                  position: "absolute",
+                  top: 0,
+                  right: 0,
+                  width: "20px",
+                  height: "100%",
+                  zIndex: 1,
+                  display: "block",
+                  content: `""`,
+                  background: "linear-gradient(to right, transparent, white)",
+                },
+              },
+              ...(entityTypeSelectorPopupState.isOpen
+                ? [popperPlacementInputNoRadius]
+                : []),
+            ]}
+            {...bindTrigger(entityTypeSelectorPopupState)}
+          >
+            {chosenEntityTypes.map((entityTypeId) => {
+              const type = entityTypes[entityTypeId];
+
+              if (!type) {
+                throw new Error("Entity type missing in links table");
               }
-              options={Object.values(entityTypes).map((type) => type.schema)}
-              optionToRenderData={({ $id, title, description }) => ({
-                $id,
-                title,
-                description,
-              })}
-              dropdownProps={{
-                query: "",
-                createButtonProps: null,
-                variant: "entityType",
+
+              return (
+                <Chip
+                  color="blue"
+                  label={
+                    <Stack
+                      direction="row"
+                      spacing={0.75}
+                      fontSize={14}
+                      alignItems="center"
+                    >
+                      <FontAwesomeIcon
+                        icon={faAsterisk}
+                        sx={{ fontSize: "inherit" }}
+                      />
+                      <Box component="span">{type.schema.title}</Box>
+                    </Stack>
+                  }
+                  key={type.schema.$id}
+                />
+              );
+            })}
+            <Popper
+              {...bindPopper(entityTypeSelectorPopupState)}
+              placement="bottom-start"
+              modifiers={[
+                addPopperPositionClassPopperModifier,
+                { name: "flip", enabled: false },
+                { name: "preventOverflow", enabled: false },
+                {
+                  name: "offset",
+                  enabled: true,
+                  options: {
+                    // @todo check this is right
+                    offset: () => [0, -1],
+                  },
+                },
+              ]}
+              sx={{
+                zIndex: 1,
+                width: "min(100%, 430px)",
               }}
-              multiple
-              disableCloseOnSelect
-              renderTags={(tags, getTagProps) => {
-                return tags.map((tag, index) => (
-                  <Chip
-                    {...getTagProps({ index })}
-                    color="blue"
-                    label={tag.title}
-                    key={tag.$id}
+            >
+              <ClickAwayListener
+                onClickAway={entityTypeSelectorPopupState.close}
+              >
+                <Box
+                  onClick={(evt) => {
+                    evt.stopPropagation();
+                    evt.preventDefault();
+                  }}
+                >
+                  <HashSelectorAutocomplete
+                    sx={popperPlacementPopperNoRadius}
+                    open={entityTypeSelectorPopupState.isOpen}
+                    onChange={(_, chosenType) => {
+                      if (chosenType) {
+                        const filtered = chosenEntityTypes.filter(
+                          (id) => id !== chosenType.$id,
+                        );
+                        setValue(
+                          `links.${linkIndex}.entityTypes`,
+                          filtered.length === chosenEntityTypes.length
+                            ? [...chosenEntityTypes, chosenType.$id]
+                            : filtered,
+                        );
+                      }
+                      entityTypeSelectorPopupState.close();
+                    }}
+                    options={Object.values(entityTypes).map(
+                      (type) => type.schema,
+                    )}
+                    optionToRenderData={({ $id, title, description }) => ({
+                      $id,
+                      title,
+                      description,
+                    })}
+                    dropdownProps={{
+                      query: "",
+                      createButtonProps: null,
+                      variant: "entityType",
+                    }}
                   />
-                ));
-              }}
-              inputRef={ref}
-            />
-          )}
+                </Box>
+              </ClickAwayListener>
+            </Popper>
+          </Stack>
+        </TableCell>
+        <MultipleValuesCell index={linkIndex} variant="link" />
+        <TypeMenuCell
+          typeId={linkId}
+          editButtonProps={bindTrigger(editModalPopupState)}
+          popupState={menuPopupState}
+          variant="link"
+          onRemove={onRemove}
         />
-      </TableCell>
-      <TableCell>
-        <input
-          type="number"
-          {...register(`links.${linkIndex}.minValue`, {
-            valueAsNumber: true,
-            onChange(evt) {
-              const value = evt.target.value;
-              if (value > linkData.maxValue) {
-                setValue(`links.${linkIndex}.maxValue`, value, {
-                  shouldDirty: true,
-                });
-              }
-            },
-          })}
-          min={0}
-        />
-        <input
-          type="number"
-          {...register(`links.${linkIndex}.maxValue`, {
-            valueAsNumber: true,
-            onChange(evt) {
-              const value = evt.target.value;
-              if (value < linkData.minValue) {
-                setValue(`links.${linkIndex}.minValue`, value, {
-                  shouldDirty: true,
-                });
-              }
-            },
-          })}
-          min={1}
-        />
-      </TableCell>
-      <TypeMenuCell
-        typeId={linkData.$id}
-        editButtonProps={{}}
-        popupState={menuPopupState}
-        variant="link"
-        onRemove={onRemove}
-        canEdit={false}
+      </EntityTypeTableRow>
+      <TypeFormModal
+        as={LinkTypeForm}
+        popupState={editModalPopupState}
+        modalTitle={<>Edit link</>}
+        onSubmit={handleSubmit}
+        submitButtonProps={{ children: <>Edit link</> }}
+        disabledFields={["name"]}
+        getDefaultValues={() => ({
+          name: link.schema.title,
+          description: link.schema.description,
+        })}
       />
-    </EntityTypeTableRow>
+    </>
   );
 };
 
@@ -189,17 +376,60 @@ const InsertLinkRow = (
 };
 
 export const LinkListCard = () => {
-  const { control } = useFormContext<EntityTypeEditorForm>();
+  const { control, setValue } = useFormContext<EntityTypeEditorForm>();
   const { fields, append, remove } = useFieldArray({ control, name: "links" });
   const loading = useEntityTypesLoading();
 
   const [addingNewLink, setAddingNewLink] = useStateCallback(false);
   const addingNewLinkRef = useRef<HTMLInputElement>(null);
   const [searchText, setSearchText] = useState("");
+  const modalId = useId();
+  const createModalPopupState = usePopupState({
+    variant: "popover",
+    popupId: `createLink-${modalId}`,
+  });
+
+  const { routeNamespace } = useRouteNamespace();
+  const refetchEntityTypes = useFetchEntityTypes();
+  const { createEntityType } = useBlockProtocolCreateEntityType(
+    routeNamespace?.accountId as OwnedById,
+  );
 
   const cancelAddingNewLink = () => {
     setAddingNewLink(false);
     setSearchText("");
+  };
+
+  const handleAddEntityType = (link: EntityType) => {
+    cancelAddingNewLink();
+    append(
+      {
+        $id: link.$id,
+        entityTypes: [],
+        minValue: 0,
+        maxValue: 1,
+        infinity: true,
+        array: true,
+      },
+      { shouldFocus: false },
+    );
+  };
+
+  const handleSubmit = async (data: TypeFormDefaults) => {
+    const res = await createEntityType({
+      data: {
+        entityType: formDataToEntityType(data),
+      },
+    });
+
+    if (res.errors?.length || !res.data) {
+      // @todo handle this
+      throw new Error("Could not create");
+    }
+
+    await refetchEntityTypes();
+
+    handleAddEntityType(res.data.schema);
   };
 
   // @todo loading state
@@ -239,12 +469,14 @@ export const LinkListCard = () => {
       <TableHead>
         <EntityTypeTableHeaderRow>
           <TableCell>Link name</TableCell>
-          <TableCell>
-            Expected entity types <QuestionIcon />
+          <TableCell width={262}>
+            Expected entity types{" "}
+            <QuestionIcon tooltip="When specified, only entities whose types are listed in this column will be able to be associated with a link" />
           </TableCell>
-          <TableCell>
-            Allowed number of links <QuestionIcon />
-          </TableCell>
+          <EntityTypeTableCenteredCell width={200}>
+            Allowed number of links{" "}
+            <QuestionIcon tooltip="Require entities to specify a minimum or maximum number of links. A minimum value of 1 or more means that a link is required." />
+          </EntityTypeTableCenteredCell>
           <TableCell width={TYPE_MENU_CELL_WIDTH} />
         </EntityTypeTableHeaderRow>
       </TableHead>
@@ -256,29 +488,52 @@ export const LinkListCard = () => {
             onRemove={() => {
               remove(index);
             }}
+            onUpdateVersion={(nextId) => {
+              setValue(`links.${index}.$id`, nextId, {
+                shouldDirty: true,
+              });
+            }}
           />
         ))}
       </TableBody>
       <TableFooter>
         {addingNewLink ? (
-          <InsertLinkRow
-            inputRef={addingNewLinkRef}
-            onCancel={cancelAddingNewLink}
-            onAdd={(link) => {
-              cancelAddingNewLink();
-              append(
-                {
-                  $id: link.$id,
-                  entityTypes: [],
-                  minValue: 0,
-                  maxValue: 1,
-                },
-                { focusName: `links.${fields.length}.entityTypes` },
-              );
-            }}
-            searchText={searchText}
-            onSearchTextChange={setSearchText}
-          />
+          <>
+            <InsertLinkRow
+              inputRef={addingNewLinkRef}
+              onCancel={cancelAddingNewLink}
+              onAdd={handleAddEntityType}
+              searchText={searchText}
+              onSearchTextChange={setSearchText}
+              createModalPopupState={createModalPopupState}
+            />
+            <TypeFormModal
+              as={LinkTypeForm}
+              popupState={createModalPopupState}
+              modalTitle={
+                <>
+                  Create new link
+                  <QuestionIcon
+                    sx={{
+                      ml: 1.25,
+                    }}
+                    tooltip={
+                      <>
+                        You should only create a new link type if you can't find
+                        an existing one which corresponds to the relationship
+                        you're trying to capture.
+                      </>
+                    }
+                  />
+                </>
+              }
+              onSubmit={handleSubmit}
+              submitButtonProps={{ children: <>Create new link</> }}
+              getDefaultValues={() =>
+                searchText.length ? { name: searchText } : {}
+              }
+            />
+          </>
         ) : (
           <EntityTypeTableButtonRow
             icon={<StyledPlusCircleIcon />}

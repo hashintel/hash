@@ -1,19 +1,10 @@
-import { UserInputError } from "apollo-server-errors";
+import { VersionedUri } from "@blockprotocol/type-system";
 import { GraphApi } from "@hashintel/hash-graph-client";
+import { AccountId, EntityId, OwnedById } from "@hashintel/hash-shared/types";
+import { Entity } from "@hashintel/hash-subgraph";
+import { UserInputError } from "apollo-server-errors";
 import produce from "immer";
 
-import { Entity } from "@hashintel/hash-subgraph";
-import { VersionedUri } from "@blockprotocol/type-system";
-import { AccountId, OwnedById, EntityId } from "@hashintel/hash-shared/types";
-
-import {
-  CreateEntityAction,
-  EntityDefinition,
-  InsertBlockAction,
-  SwapBlockDataAction,
-  UpdateEntityAction,
-  UpdatePageAction,
-} from "../../../apiTypes.gen";
 import {
   createEntityWithLinks,
   getLatestEntityById,
@@ -21,13 +12,21 @@ import {
   PropertyValue,
   updateEntityProperties,
 } from "../../../../graph/knowledge/primitive/entity";
-import { User } from "../../../../graph/knowledge/system-types/user";
 import {
   Block,
   createBlock,
   getBlockById,
   updateBlockDataEntity,
 } from "../../../../graph/knowledge/system-types/block";
+import { User } from "../../../../graph/knowledge/system-types/user";
+import {
+  CreateEntityAction,
+  EntityDefinition,
+  InsertBlockAction,
+  SwapBlockDataAction,
+  UpdateEntityAction,
+  UpdatePageAction,
+} from "../../../api-types.gen";
 
 export const createEntityWithPlaceholdersFn =
   (graphApi: GraphApi, placeholderResults: PlaceholderResultsMap) =>

@@ -5,11 +5,10 @@ import {
   VersionedUri,
 } from "@blockprotocol/type-system";
 import { apiGraphQLEndpoint } from "@hashintel/hash-shared/environment";
+import type { ApolloError } from "apollo-server-express";
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import type { NextRequest } from "next/server";
-
-import type { ApolloError } from "apollo-server-express";
 import type {
   GetDataTypeQuery,
   GetDataTypeQueryVariables,
@@ -17,7 +16,7 @@ import type {
   GetEntityTypeQueryVariables,
   GetPropertyTypeQuery,
   GetPropertyTypeQueryVariables,
-} from "../graphql/apiTypes.gen";
+} from "../graphql/api-types.gen";
 import { generateQueryArgs } from "./return-types-as-json/generate-query-args";
 
 const generateErrorResponse = (

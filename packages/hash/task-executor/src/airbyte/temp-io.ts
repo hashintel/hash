@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
-import path from "node:path";
 import * as os from "node:os";
+import path from "node:path";
 
 export const writeToTempFile = async (
   fileName: string,

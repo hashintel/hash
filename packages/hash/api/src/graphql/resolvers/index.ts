@@ -1,72 +1,70 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
+import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
-
-import { meResolver } from "./knowledge/user/me";
-import { isShortnameTakenResolver } from "./knowledge/user/is-shortname-taken";
 import { fileFields } from "./file";
-import { requestFileUpload } from "./file/requestFileUpload";
-import { loggedInMiddleware } from "./middlewares/loggedIn";
-import { loggedInAndSignedUpMiddleware } from "./middlewares/loggedInAndSignedUp";
-import { deleteLinkedAggregation } from "./linkedAggregation/deleteLinkedAggregation";
-import { updateLinkedAggregationOperation } from "./linkedAggregation/updateLinkedAggregationOperation";
-import { createLinkedAggregation } from "./linkedAggregation/createLinkedAggregation";
-import { linkedAggregationResults } from "./linkedAggregation/linkedAggregationResults";
+import { requestFileUpload } from "./file/request-file-upload";
+import { blocksResolver } from "./knowledge/block/block";
+import { blockChildEntityResolver } from "./knowledge/block/data-entity";
+import { commentAuthorResolver } from "./knowledge/comment/author";
+import { createCommentResolver } from "./knowledge/comment/comment";
+import { deleteCommentResolver } from "./knowledge/comment/delete";
+import { commentHasTextResolver } from "./knowledge/comment/has-text";
+import { commentParentResolver } from "./knowledge/comment/parent";
+import { commentRepliesResolver } from "./knowledge/comment/replies";
+import { resolveCommentResolver } from "./knowledge/comment/resolve";
+import { commentTextUpdatedAtResolver } from "./knowledge/comment/text-updated-at";
+import { updateCommentTextResolver } from "./knowledge/comment/update-text";
 import {
-  executeDemoTask,
-  executeGithubSpecTask,
-  executeGithubCheckTask,
-  executeGithubDiscoverTask,
-  executeGithubReadTask,
-} from "./taskExecutor";
-import { getLinkedAggregation } from "./linkedAggregation/getLinkedAggregation";
+  archiveEntityResolver,
+  createEntityResolver,
+  getAllLatestEntitiesResolver,
+  getEntityResolver,
+  updateEntityResolver,
+} from "./knowledge/entity/entity";
+import { hashInstanceEntityResolver } from "./knowledge/hash-instance/hash-instance";
+import { createOrgResolver } from "./knowledge/org/create-org";
+import { pageContents, updatePageContents } from "./knowledge/page";
+import {
+  createPageResolver,
+  pageCommentsResolver,
+  pageResolver,
+  pagesResolver,
+  parentPageResolver,
+} from "./knowledge/page/page";
+import { setParentPageResolver } from "./knowledge/page/set-parent-page";
+import { updatePageResolver } from "./knowledge/page/update-page";
+import { createUserResolver } from "./knowledge/user/create-user";
+import { isShortnameTakenResolver } from "./knowledge/user/is-shortname-taken";
+import { meResolver } from "./knowledge/user/me";
+import { createLinkedAggregation } from "./linked-aggregation/create-linked-aggregation";
+import { deleteLinkedAggregation } from "./linked-aggregation/delete-linked-aggregation";
+import { getLinkedAggregation } from "./linked-aggregation/get-linked-aggregation";
+import { linkedAggregationResults } from "./linked-aggregation/linked-aggregation-results";
+import { updateLinkedAggregationOperation } from "./linked-aggregation/update-linked-aggregation-operation";
+import { loggedInMiddleware } from "./middlewares/logged-in";
+import { loggedInAndSignedUpMiddleware } from "./middlewares/logged-in-and-signed-up";
+import { loggedInAndSignedUpHashInstanceAdminMiddleware } from "./middlewares/logged-in-and-signed-up-hash-instance-admin";
 import { getAllLatestDataTypes, getDataType } from "./ontology/data-type";
-import {
-  createPropertyTypeResolver,
-  getAllLatestPropertyTypesResolver,
-  getPropertyTypeResolver,
-  updatePropertyTypeResolver,
-} from "./ontology/property-type";
-
 import {
   createEntityTypeResolver,
   getAllLatestEntityTypesResolver,
   getEntityTypeResolver,
   updateEntityTypeResolver,
 } from "./ontology/entity-type";
-import { updatePageContents, pageContents } from "./knowledge/page";
 import {
-  createPageResolver,
-  pageResolver,
-  pagesResolver,
-  parentPageResolver,
-  pageCommentsResolver,
-} from "./knowledge/page/page";
-import { createCommentResolver } from "./knowledge/comment/comment";
-import { blocksResolver } from "./knowledge/block/block";
-import { getBlockProtocolBlocksResolver } from "./blockprotocol/getBlock";
+  createPropertyTypeResolver,
+  getAllLatestPropertyTypesResolver,
+  getPropertyTypeResolver,
+  updatePropertyTypeResolver,
+} from "./ontology/property-type";
 import {
-  createEntityResolver,
-  getEntityResolver,
-  getAllLatestEntitiesResolver,
-  updateEntityResolver,
-  archiveEntityResolver,
-} from "./knowledge/entity/entity";
-import { setParentPageResolver } from "./knowledge/page/set-parent-page";
-import { updatePageResolver } from "./knowledge/page/update-page";
-import { commentHasTextResolver } from "./knowledge/comment/has-text";
-import { commentTextUpdatedAtResolver } from "./knowledge/comment/text-updated-at";
-import { commentRepliesResolver } from "./knowledge/comment/replies";
-import { commentParentResolver } from "./knowledge/comment/parent";
-import { commentAuthorResolver } from "./knowledge/comment/author";
-import { resolveCommentResolver } from "./knowledge/comment/resolve";
-import { deleteCommentResolver } from "./knowledge/comment/delete";
-import { updateCommentTextResolver } from "./knowledge/comment/update-text";
-import { blockChildEntityResolver } from "./knowledge/block/data-entity";
-import { loggedInAndSignedUpHashInstanceAdminMiddleware } from "./middlewares/loggedInAndSignedUpHashInstanceAdmin";
-import { createUserResolver } from "./knowledge/user/create-user";
-import { createOrgResolver } from "./knowledge/org/create-org";
-import { hashInstanceEntityResolver } from "./knowledge/hashInstance/hashInstance";
+  executeDemoTask,
+  executeGithubCheckTask,
+  executeGithubDiscoverTask,
+  executeGithubReadTask,
+  executeGithubSpecTask,
+} from "./task-executor";
 
 /** @todo - Refactor the names of these https://app.asana.com/0/1200211978612931/1203234667392169/f */
 export const resolvers = {

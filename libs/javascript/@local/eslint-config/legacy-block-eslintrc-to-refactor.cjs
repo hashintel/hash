@@ -1,12 +1,6 @@
 /** @type {import("eslint").Linter.Config} */
 module.exports = {
-  plugins: [
-    "@typescript-eslint",
-    "react-hooks",
-    "react",
-    "simple-import-sort",
-    "unicorn",
-  ],
+  plugins: ["@typescript-eslint", "react-hooks", "react", "unicorn"],
   rules: {
     curly: ["error", "multi-line"],
     "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
@@ -17,8 +11,5 @@ module.exports = {
     "react/jsx-no-useless-fragment": "error",
     "react/no-danger": "error",
     "react/self-closing-comp": "error",
-    "simple-import-sort/exports": "error",
-    "simple-import-sort/imports": "error",
-    "unicorn/filename-case": "error",
   },
 };

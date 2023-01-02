@@ -1,16 +1,16 @@
-import { systemUserShortname } from "@hashintel/hash-shared/environment";
+import { extractBaseUri } from "@blockprotocol/type-system";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { GraphApi } from "@hashintel/hash-graph-client";
+import { systemUserShortname } from "@hashintel/hash-shared/environment";
 import { types } from "@hashintel/hash-shared/ontology-types";
-import { getEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
-import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import {
   AccountEntityId,
   AccountId,
   extractAccountId,
 } from "@hashintel/hash-shared/types";
+import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
+import { getEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 
-import { extractBaseUri } from "@blockprotocol/type-system";
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { getRequiredEnv } from "../util";
 import {

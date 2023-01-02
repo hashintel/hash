@@ -1,8 +1,8 @@
 import {
   BaseUri,
-  VersionedUri,
-  validateVersionedUri,
   ParseVersionedUriError,
+  validateVersionedUri,
+  VersionedUri,
 } from "@blockprotocol/type-system";
 
 export class InvalidVersionedUriComponentsError extends Error {
