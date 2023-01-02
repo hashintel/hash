@@ -1,10 +1,11 @@
 import { systemUserShortname } from "@hashintel/hash-shared/environment";
-import { entityIdFromOwnedByIdAndEntityUuid } from "@hashintel/hash-subgraph";
 import { OwnedById } from "@hashintel/hash-shared/types";
+import { entityIdFromOwnedByIdAndEntityUuid } from "@hashintel/hash-subgraph";
+
 import { ImpureGraphFunction } from "../..";
-import { systemUserAccountId } from "../../system-user";
-import { getUserById } from "../../knowledge/system-types/user";
 import { getOrgById } from "../../knowledge/system-types/org";
+import { getUserById } from "../../knowledge/system-types/user";
+import { systemUserAccountId } from "../../system-user";
 
 /**
  * Get the namespace of an account owner by its id

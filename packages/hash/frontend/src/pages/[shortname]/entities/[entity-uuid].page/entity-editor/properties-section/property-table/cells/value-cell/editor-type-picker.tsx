@@ -1,6 +1,7 @@
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box, ButtonBase, Typography } from "@mui/material";
+
 import { OnTypeChange } from "./types";
 import {
   findDataTypeDefinitionByTitle,

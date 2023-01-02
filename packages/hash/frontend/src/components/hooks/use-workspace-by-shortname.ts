@@ -1,8 +1,8 @@
 import { useMemo } from "react";
-import { Org } from "../../lib/org";
-import { User } from "../../lib/user";
-import { useOrgs } from "./useOrgs";
-import { useUsers } from "./useUsers";
+
+import { Org, User } from "../../lib/user-and-org";
+import { useOrgs } from "./use-orgs";
+import { useUsers } from "./use-users";
 
 export const useWorkspaceByShortname = (
   shortname?: string,

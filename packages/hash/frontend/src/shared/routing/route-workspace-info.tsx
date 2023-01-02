@@ -2,13 +2,13 @@ import { useRouter } from "next/router";
 import {
   createContext,
   FunctionComponent,
+  ReactNode,
   useContext,
   useMemo,
-  ReactNode,
 } from "react";
+
 import { useWorkspaceByShortname } from "../../components/hooks/use-workspace-by-shortname";
-import { MinimalOrg } from "../../lib/org";
-import { User } from "../../lib/user";
+import { MinimalOrg, User } from "../../lib/user-and-org";
 
 type RouteWorkspaceInfo = {
   routeWorkspaceShortname: string;

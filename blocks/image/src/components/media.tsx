@@ -6,26 +6,27 @@
  * @see https://app.asana.com/0/1200211978612931/1201906715110980/f
  * @todo Deduplicate this file
  */
-import { useGraphBlockService } from "@blockprotocol/graph/react";
 import {
+  BlockGraphProperties,
   Entity,
   Link,
   LinkGroup,
-  BlockGraphProperties,
   UpdateEntityData,
 } from "@blockprotocol/graph";
+import { useGraphBlockService } from "@blockprotocol/graph/react";
 import {
   Dispatch,
+  FunctionComponent,
+  RefObject,
   SetStateAction,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  FunctionComponent,
-  RefObject,
 } from "react";
 import { unstable_batchedUpdates } from "react-dom";
+
 import { ErrorAlert } from "./error-alert";
 import { MediaWithCaption } from "./media-with-caption";
 import { UploadMediaForm } from "./upload-media-form";

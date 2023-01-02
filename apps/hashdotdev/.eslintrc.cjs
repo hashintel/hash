@@ -6,7 +6,6 @@ module.exports = {
       /* 2022-11-29:  13 */ "@typescript-eslint/no-unsafe-assignment",
       /* 2022-11-29:  13 */ "@typescript-eslint/no-unsafe-member-access",
       /* 2022-11-29:  11 */ "@typescript-eslint/restrict-template-expressions",
-      "unicorn/filename-case",
     ]),
     "jsx-a11y/label-has-associated-control": "off",
     "import/no-default-export": "error",

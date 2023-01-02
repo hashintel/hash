@@ -1,4 +1,4 @@
-import { AggregateOperationInput } from "../apiTypes.gen";
+import { AggregateOperationInput } from "../api-types.gen";
 
 // Where a property needs to resolve to another object or objects of a type,
 // that property should be expressed as this object under a __linkedData key

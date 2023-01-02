@@ -1,4 +1,5 @@
 import { CustomCell, ProvideEditorComponent } from "@glideapps/glide-data-grid";
+
 import { TooltipCellProps } from "../../../../../../../../../components/grid/utils/use-grid-tooltip/types";
 import { PropertyRow } from "../../types";
 

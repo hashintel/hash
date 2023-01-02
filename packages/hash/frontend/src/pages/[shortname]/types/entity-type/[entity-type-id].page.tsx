@@ -15,6 +15,7 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
+
 import { PageErrorState } from "../../../../components/page-error-state";
 import {
   getLayoutWithSidebar,
@@ -80,10 +81,17 @@ const getSchemaFromEditorForm = (
   const links: NonNullable<EntityType["links"]> = {};
 
   for (const link of data.links) {
+    if (
+      typeof link.minValue === "string" ||
+      typeof link.maxValue === "string"
+    ) {
+      throw new Error("Invalid property constraint");
+    }
+
     links[link.$id] = {
       type: "array",
       minItems: link.minValue,
-      maxItems: link.maxValue,
+      ...(link.infinity ? {} : { maxItems: link.maxValue }),
       ordered: false,
       items: { oneOf: link.entityTypes.map((id) => ({ $ref: id })) },
     };
@@ -168,8 +176,10 @@ const Page: NextPageWithLayout = () => {
               >
             ).map(([linkEntityTypeId, link]) => ({
               $id: linkEntityTypeId,
-              minValue: link.minItems,
-              maxValue: link.maxItems,
+              array: true,
+              maxValue: link.maxItems ?? 1,
+              minValue: link.minItems ?? 0,
+              infinity: typeof link.maxItems !== "number",
               entityTypes:
                 "oneOf" in link.items
                   ? link.items.oneOf.map((ref) => ref.$ref)
@@ -237,7 +247,7 @@ const Page: NextPageWithLayout = () => {
         <PropertyTypesContext.Provider value={propertyTypes}>
           <EntityTypeContext.Provider value={entityType}>
             <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
-              <EntityTypesContext.Provider value={entityTypesContextValue.data}>
+              <EntityTypesContext.Provider value={entityTypesContextValue}>
                 <Box
                   sx={{
                     display: "flex",
