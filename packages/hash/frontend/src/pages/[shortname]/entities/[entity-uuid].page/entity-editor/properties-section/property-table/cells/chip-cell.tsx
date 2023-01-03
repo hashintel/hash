@@ -4,6 +4,7 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
+import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
 import {
   Chip,
   ChipProps,
@@ -17,7 +18,7 @@ import { drawChipWithIcon } from "../../../../../../../../components/grid/utils/
 
 export interface ChipCellProps {
   readonly kind: "chip-cell";
-  chips: string[];
+  chips: { text: string; icon?: CustomIcon }[];
   color?: ChipProps["color"];
 }
 
@@ -49,13 +50,15 @@ export const renderChipCell: CustomRenderer<ChipCell> = {
 
     const { bgColor, textColor } = getChipColors(color);
     for (let i = 0; i < chips.length; i++) {
-      const chipWidth = drawChipWithIcon(
+      const { icon, text = "" } = chips[i] ?? {};
+      const chipWidth = drawChipWithIcon({
         args,
-        chips[i] ?? "",
-        chipLeft,
+        text,
+        left: chipLeft,
         textColor,
         bgColor,
-      );
+        icon,
+      });
 
       chipLeft += chipWidth + chipGap;
     }
@@ -81,10 +84,10 @@ export const renderChipCell: CustomRenderer<ChipCell> = {
               },
             }}
           >
-            {chips.map((chip) => (
+            {chips.map(({ text }) => (
               <Chip
-                key={chip}
-                label={chip}
+                key={text}
+                label={text}
                 color={color}
                 icon={<FontAwesomeIcon icon={faAsterisk} />}
               />

@@ -7,6 +7,7 @@ import {
   faTrash,
   IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
+import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
 import { types } from "@hashintel/hash-shared/ontology-types";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Box, Divider, Typography } from "@mui/material";
@@ -25,19 +26,22 @@ import { ValueChip } from "./value-chip";
 
 export const editorSpecs: Record<
   EditorType,
-  { icon: IconDefinition["icon"]; title: string }
+  { icon: IconDefinition["icon"]; title: string; gridIcon: CustomIcon }
 > = {
   boolean: {
     icon: faSquareCheck,
     title: types.dataType.boolean.title,
+    gridIcon: "bpTypeBoolean",
   },
   number: {
     icon: fa100,
     title: types.dataType.number.title,
+    gridIcon: "bpTypeNumber",
   },
   text: {
     icon: faText,
     title: types.dataType.text.title,
+    gridIcon: "bpTypeText",
   },
 };
 
