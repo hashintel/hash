@@ -8,11 +8,13 @@ import {
   Collapse,
   Stack,
   styled,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { FunctionComponent, useEffect, useMemo, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
+import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { usePropertyTypesContextValue } from "../../../../../../use-property-types-context-value";
 import { PropertyTypeFormValues } from "../../../property-type-form-values";
 import { DeleteExpectedValueModal } from "./delete-expected-value-modal";
@@ -216,13 +218,27 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
             <StyledTableRow>
               <StyledTableHeadCell sx={{ flex: 1 }}>NAME</StyledTableHeadCell>
               <StyledTableHeadCell
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                }}
                 ref={(ref: HTMLDivElement | null) => {
                   if (ref) {
                     setAllowArraysColumnWidth(ref.offsetWidth);
                   }
                 }}
               >
-                ALLOW ARRAYS
+                ALLOW MULTIPLE
+                <Tooltip title="Allow multiple values" placement="top">
+                  <FontAwesomeIcon
+                    icon={faCircleQuestion}
+                    sx={{
+                      fontSize: 12,
+                      color: ({ palette }) => palette.gray[40],
+                    }}
+                  />
+                </Tooltip>
               </StyledTableHeadCell>
               <StyledTableHeadCell
                 ref={(ref: HTMLDivElement | null) => {
