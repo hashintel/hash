@@ -63,7 +63,11 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     // draw linked entity chips
     for (const { rightEntity } of sortedLinkedEntities) {
       const label = generateEntityLabel(entitySubgraph, rightEntity);
-      const chipWidth = drawChipWithIcon(args, label, accumulatedLeft);
+      const chipWidth = drawChipWithIcon({
+        args,
+        text: label,
+        left: accumulatedLeft,
+      });
       accumulatedLeft += chipWidth + chipGap;
     }
 
