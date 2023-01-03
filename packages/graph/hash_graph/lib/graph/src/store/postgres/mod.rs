@@ -13,9 +13,9 @@ use std::{
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
+use tokio_postgres::GenericClient;
 #[cfg(feature = "__internal_bench")]
 use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
-use tokio_postgres::{GenericClient, Transaction};
 use type_system::{
     uri::{BaseUri, VersionedUri},
     DataTypeReference, EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
@@ -33,7 +33,7 @@ use crate::{
         postgres::{ontology::OntologyDatabaseType, query::PostgresRecord, version_id::VersionId},
         query::{Filter, OntologyQueryPath},
         AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError,
-        Record, UpdateError,
+        Record, Store, StoreError, Transaction, UpdateError,
     },
     subgraph::edges::GraphResolveDepths,
 };
@@ -109,6 +109,43 @@ pub struct DependencyContext {
 /// A Postgres-backed store
 pub struct PostgresStore<C> {
     client: C,
+}
+
+#[async_trait]
+impl<C: AsClient> Store for PostgresStore<C> {
+    type Transaction<'t>
+    where
+        C: 't,
+    = PostgresStore<tokio_postgres::Transaction<'t>>;
+
+    async fn transaction(&mut self) -> Result<Self::Transaction<'_>, StoreError> {
+        Ok(PostgresStore::new(
+            self.as_mut_client()
+                .transaction()
+                .await
+                .into_report()
+                .change_context(StoreError)?,
+        ))
+    }
+}
+
+#[async_trait]
+impl Transaction for PostgresStore<tokio_postgres::Transaction<'_>> {
+    async fn commit(self) -> Result<(), StoreError> {
+        self.client
+            .commit()
+            .await
+            .into_report()
+            .change_context(StoreError)
+    }
+
+    async fn rollback(self) -> Result<(), StoreError> {
+        self.client
+            .rollback()
+            .await
+            .into_report()
+            .change_context(StoreError)
+    }
 }
 
 impl<C> PostgresStore<C>
@@ -626,15 +663,9 @@ where
             .attach_printable_lazy(|| uri.clone())?
             .get(0))
     }
-
-    /// TODO - DOC
-    #[expect(clippy::missing_const_for_fn, reason = "Compile error")]
-    pub fn into_client(self) -> C {
-        self.client
-    }
 }
 
-impl PostgresStore<Transaction<'_>> {
+impl PostgresStore<tokio_postgres::Transaction<'_>> {
     #[doc(hidden)]
     #[cfg(feature = "__internal_bench")]
     async fn insert_entity_ids(

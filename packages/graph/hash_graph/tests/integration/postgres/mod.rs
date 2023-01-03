@@ -25,9 +25,9 @@ use graph::{
     provenance::{OwnedById, UpdatedById},
     store::{
         query::{Filter, FilterExpression, Parameter},
-        AccountStore, AsClient, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityStore,
+        AccountStore, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityStore,
         EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool, PropertyTypeStore,
-        QueryError, Record, StorePool, UpdateError,
+        QueryError, Record, Store, StorePool, UpdateError,
     },
     subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
 };
@@ -88,13 +88,11 @@ impl DatabaseTestWrapper {
         P: IntoIterator<Item = &'static str>,
         E: IntoIterator<Item = &'static str>,
     {
-        let mut store = PostgresStore::new(
-            self.connection
-                .as_mut_client()
-                .transaction()
-                .await
-                .expect("could not start test transaction"),
-        );
+        let mut store = self
+            .connection
+            .transaction()
+            .await
+            .expect("could not start test transaction");
 
         let account_id = AccountId::new(Uuid::new_v4());
         store

@@ -22,7 +22,8 @@ use crate::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
         postgres::{DependencyContext, DependencyStatus},
         query::Filter,
-        AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
+        AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, Store,
+        Transaction, UpdateError,
     },
     subgraph::{
         edges::{
@@ -355,13 +356,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         actor_id: UpdatedById,
         entity_type_id: &VersionedUri,
     ) -> Result<Vec<EntityMetadata>, InsertionError> {
-        let transaction = PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .into_report()
-                .change_context(InsertionError)?,
-        );
+        let transaction = self.transaction().await.change_context(InsertionError)?;
 
         let entities = entities.into_iter();
         let mut entity_ids = Vec::with_capacity(entities.size_hint().0);
@@ -415,12 +410,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             )
             .await?;
 
-        transaction
-            .client
-            .commit()
-            .await
-            .into_report()
-            .change_context(InsertionError)?;
+        transaction.commit().await.change_context(InsertionError)?;
 
         Ok(entity_ids
             .into_iter()
@@ -489,13 +479,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         // The transaction is required to check if the update happened. If there were no returned
         // row, it either means, that there was no entity with that parameters or a race condition
         // happened.
-        let transaction = PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .into_report()
-                .change_context(UpdateError)?,
-        );
+        let transaction = self.transaction().await.change_context(UpdateError)?;
 
         if transaction
             .as_client()
@@ -559,12 +543,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(UpdateError));
         };
 
-        transaction
-            .client
-            .commit()
-            .await
-            .into_report()
-            .change_context(UpdateError)?;
+        transaction.commit().await.change_context(UpdateError)?;
 
         Ok(EntityMetadata::new(
             EntityEditionId::new(
