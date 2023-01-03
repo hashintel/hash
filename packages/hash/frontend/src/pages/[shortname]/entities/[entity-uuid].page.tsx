@@ -13,7 +13,6 @@ import { useEffect, useState } from "react";
 import { useBlockProtocolGetEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
 import { useBlockProtocolUpdateEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { useBlockProtocolGetEntityType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
-import { useLoadingCallback } from "../../../components/hooks/use-loading-callback";
 import { PageErrorState } from "../../../components/page-error-state";
 import { generateEntityLabel } from "../../../lib/entities";
 import {
@@ -113,7 +112,8 @@ const Page: NextPageWithLayout = () => {
     setDraftEntitySubgraph(entitySubgraphFromDB);
   };
 
-  const [handleSaveChanges, savingChanges] = useLoadingCallback(async () => {
+  const [savingChanges, setSavingChanges] = useState(false);
+  const handleSaveChanges = async () => {
     if (!entitySubgraphFromDB || !draftEntitySubgraph) {
       return;
     }
@@ -124,15 +124,21 @@ const Page: NextPageWithLayout = () => {
       return;
     }
 
-    /** @todo add validation here */
-    await updateEntity({
-      data: {
-        entityId: draftEntity.metadata.editionId.baseId as EntityId,
-        updatedProperties: draftEntity.properties,
-      },
-    });
+    try {
+      setSavingChanges(true);
+
+      /** @todo add validation here */
+      await updateEntity({
+        data: {
+          entityId: draftEntity.metadata.editionId.baseId as EntityId,
+          updatedProperties: draftEntity.properties,
+        },
+      });
+    } finally {
+      setSavingChanges(false);
+    }
     setIsDirty(false);
-  });
+  };
 
   if (loading) {
     return <EntityPageLoadingState />;

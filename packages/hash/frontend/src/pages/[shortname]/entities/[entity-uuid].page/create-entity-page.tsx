@@ -12,7 +12,6 @@ import { useContext, useEffect, useState } from "react";
 
 import { useBlockProtocolCreateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
 import { useBlockProtocolGetEntityType } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
-import { useLoadingCallback } from "../../../../components/hooks/use-loading-callback";
 import { PageErrorState } from "../../../../components/page-error-state";
 import { generateEntityLabel } from "../../../../lib/entities";
 import { WorkspaceContext } from "../../../shared/workspace-context";
@@ -95,7 +94,8 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
     void init();
   }, [entityTypeId, getEntityType]);
 
-  const [handleCreateEntity, creating] = useLoadingCallback(async () => {
+  const [creating, setCreating] = useState(false);
+  const handleCreateEntity = async () => {
     if (!draftEntitySubgraph || !activeWorkspace) {
       return;
     }
@@ -106,23 +106,28 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       return;
     }
 
-    const { data: entity } = await createEntity({
-      data: {
-        entityTypeId,
-        properties: draftEntity.properties,
-      },
-    });
+    try {
+      setCreating(true);
+      const { data: entity } = await createEntity({
+        data: {
+          entityTypeId,
+          properties: draftEntity.properties,
+        },
+      });
 
-    if (!entity) {
-      return;
+      if (!entity) {
+        return;
+      }
+
+      const entityId = extractEntityUuidFromEntityId(
+        entity.metadata.editionId.baseId,
+      );
+
+      void router.push(`/@${activeWorkspace.shortname}/entities/${entityId}`);
+    } finally {
+      setCreating(false);
     }
-
-    const entityId = extractEntityUuidFromEntityId(
-      entity.metadata.editionId.baseId,
-    );
-
-    void router.push(`/@${activeWorkspace.shortname}/entities/${entityId}`);
-  });
+  };
 
   if (loading) {
     return <EntityPageLoadingState />;
