@@ -108,7 +108,7 @@ export const ExpectedValueBadge = ({
           flex={1}
           py={1}
         >
-          <Box>
+          <Box sx={{ display: "flex", alignItems: "center" }}>
             <FontAwesomeIcon
               icon={{
                 icon,
