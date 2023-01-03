@@ -203,7 +203,7 @@ export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
             display: "inline-flex",
             alignItems: "center",
             py: 0.25,
-            px: 1,
+            pr: 1,
             pl: 0.75,
             background: ({ palette }) => palette.gray[90],
             borderBottomRightRadius: 30,
