@@ -14,7 +14,8 @@ interface PrimitiveExpectedValue {
 interface ArrayExpectedValue {
   typeId: "array";
   minItems: number;
-  maxItems?: number;
+  maxItems: number;
+  infinity: boolean;
   itemIds: string[];
 }
 
@@ -75,6 +76,7 @@ export const getDefaultExpectedValue = (
       typeId: "array",
       minItems: 0,
       maxItems: 0,
+      infinity: false,
       itemIds: [],
     };
   }
