@@ -1,4 +1,5 @@
 import { VersionedUri } from "@blockprotocol/type-system";
+import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import {
@@ -14,7 +15,7 @@ import {
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { FunctionComponent, useEffect, useMemo, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
-import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
+
 import { usePropertyTypesContextValue } from "../../../../../../use-property-types-context-value";
 import { PropertyTypeFormValues } from "../../../property-type-form-values";
 import { CustomExpectedValueSelector } from "./custom-expected-value-selector";

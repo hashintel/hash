@@ -1,12 +1,4 @@
 import {
-  forwardRef,
-  FunctionComponent,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import {
   Box,
   Checkbox,
   Collapse,
@@ -16,7 +8,16 @@ import {
   InputProps,
   Typography,
 } from "@mui/material";
+import {
+  forwardRef,
+  FunctionComponent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useController, useFormContext } from "react-hook-form";
+
 import { PropertyTypeFormValues } from "../../../../property-type-form-values";
 
 type ItemInputProps = { width: string } & InputProps;
