@@ -8,7 +8,7 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "start": "nodemon ./src/index.ts --transpile-only"
+    "start": "nodemon ./src/main.ts --transpile-only"
   },
   "dependencies": {
     "body-parser": "1.19.0",
