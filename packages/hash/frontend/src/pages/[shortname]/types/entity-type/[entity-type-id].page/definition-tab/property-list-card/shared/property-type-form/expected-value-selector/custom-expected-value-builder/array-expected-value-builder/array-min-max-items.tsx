@@ -16,7 +16,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useController, useFormContext } from "react-hook-form";
+import { useController, useFormContext, useWatch } from "react-hook-form";
 
 import { PropertyTypeFormValues } from "../../../../property-type-form-values";
 
@@ -24,7 +24,6 @@ type ItemInputProps = { width: string } & InputProps;
 
 const ItemInput = forwardRef(({ width, ...props }: ItemInputProps, ref) => (
   <Input
-    type="number"
     {...props}
     ref={ref}
     sx={({ palette, transitions }) => ({
@@ -52,20 +51,6 @@ const ItemInput = forwardRef(({ width, ...props }: ItemInputProps, ref) => (
       [`.${inputClasses.disabled}`]: {
         WebkitTextFillColor: "initial",
       },
-
-      // <-- Hide number input default arrows -->
-      "& input[type=number]": {
-        WebkitAppearance: "textfield",
-      },
-      "& input[type=number]::-webkit-outer-spin-button": {
-        WebkitAppearance: "none",
-        margin: 0,
-      },
-      "& input[type=number]::-webkit-inner-spin-button": {
-        WebkitAppearance: "none",
-        margin: 0,
-      },
-      // <-- Hide number input default arrows -->
     })}
   />
 ));
@@ -79,14 +64,14 @@ export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
 }) => {
   const { control, setValue } = useFormContext<PropertyTypeFormValues>();
 
-  const minItemsController = useController({
+  const [minItems, maxItems] = useWatch({
     control,
-    name: `flattenedCustomExpectedValueList.${arrayId}.data.minItems`,
+    name: [
+      `flattenedCustomExpectedValueList.${arrayId}.data.minItems`,
+      `flattenedCustomExpectedValueList.${arrayId}.data.maxItems`,
+    ],
   });
-  const maxItemsController = useController({
-    control,
-    name: `flattenedCustomExpectedValueList.${arrayId}.data.maxItems`,
-  });
+
   const infinityController = useController({
     control,
     name: `flattenedCustomExpectedValueList.${arrayId}.data.infinity`,
@@ -151,28 +136,32 @@ export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
           }}
         >
           <ItemInput
-            {...minItemsController.field}
+            value={minItems}
             inputRef={minItemsInputRef}
             width={`${minItemsWidth || 1}ch`}
             onChange={(evt) => {
               const target = evt.target as HTMLInputElement;
+              const valueAsNumber = Number(target.value);
 
-              const min = Number.isNaN(target.valueAsNumber)
-                ? 0
-                : Math.max(0, target.valueAsNumber);
+              if (target.value.length < 5 && !Number.isNaN(valueAsNumber)) {
+                const min = Math.max(0, valueAsNumber);
 
-              if (min > maxItemsController.field.value) {
+                if (min > maxItems) {
+                  setValue(
+                    `flattenedCustomExpectedValueList.${arrayId}.data.maxItems`,
+                    min,
+                    { shouldDirty: true },
+                  );
+                }
                 setValue(
-                  `flattenedCustomExpectedValueList.${arrayId}.data.maxItems`,
+                  `flattenedCustomExpectedValueList.${arrayId}.data.minItems`,
                   min,
-                  { shouldDirty: true },
                 );
-              }
-              minItemsController.field.onChange(min);
 
-              setImmediate(() => {
-                setInputSize();
-              });
+                setImmediate(() => {
+                  setInputSize();
+                });
+              }
             }}
           />
         </Box>
@@ -232,26 +221,33 @@ export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
           >
             <Box>
               <ItemInput
-                {...maxItemsController.field}
+                value={maxItems}
                 inputRef={maxItemsInputRef}
                 disabled={infinityController.field.value}
                 width={`${maxItemsWidth || 1}ch`}
                 onChange={(evt) => {
                   const target = evt.target as HTMLInputElement;
-                  const max = Number.isNaN(target.valueAsNumber)
-                    ? 0
-                    : Math.max(0, target.valueAsNumber);
+                  const valueAsNumber = Number(target.value);
 
-                  if (max < minItemsController.field.value) {
+                  if (target.value.length < 5 && !Number.isNaN(valueAsNumber)) {
+                    const max = Math.max(0, valueAsNumber);
+
+                    if (max < minItems) {
+                      setValue(
+                        `flattenedCustomExpectedValueList.${arrayId}.data.minItems`,
+                        max,
+                        { shouldDirty: true },
+                      );
+                    }
                     setValue(
-                      `flattenedCustomExpectedValueList.${arrayId}.data.minItems`,
+                      `flattenedCustomExpectedValueList.${arrayId}.data.maxItems`,
                       max,
-                      { shouldDirty: true },
                     );
-                  }
-                  maxItemsController.field.onChange(max);
 
-                  setInputSize();
+                    setImmediate(() => {
+                      setInputSize();
+                    });
+                  }
                 }}
               />
             </Box>
