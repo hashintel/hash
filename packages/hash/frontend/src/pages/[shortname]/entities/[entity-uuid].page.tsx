@@ -90,8 +90,6 @@ const Page: NextPageWithLayout = () => {
       return;
     }
 
-    setEntitySubgraphFromDB(subgraph);
-
     const newDraftEntitySubgraph = produce(subgraph, (val) => {
       /** @see https://github.com/immerjs/immer/issues/839 for ts-ignore reason */
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -104,6 +102,7 @@ const Page: NextPageWithLayout = () => {
       }
     });
 
+    setEntitySubgraphFromDB(subgraph);
     setDraftEntitySubgraph(newDraftEntitySubgraph);
   };
 
