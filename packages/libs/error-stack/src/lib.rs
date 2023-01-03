@@ -464,7 +464,6 @@
 )]
 
 extern crate alloc;
-extern crate core;
 
 pub mod future;
 pub mod iter;
@@ -476,6 +475,8 @@ mod report;
 mod result;
 
 mod context;
+#[cfg(any(nightly, feature = "std"))]
+mod error;
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub mod fmt;
 #[cfg(not(any(feature = "std", feature = "hooks")))]
