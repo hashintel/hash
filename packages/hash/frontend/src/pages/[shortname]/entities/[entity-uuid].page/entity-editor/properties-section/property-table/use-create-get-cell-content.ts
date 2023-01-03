@@ -144,6 +144,7 @@ export const useCreateGetCellContent = (
                   return {
                     text: type,
                     icon: editorSpec.gridIcon,
+                    faIconDefinition: { icon: editorSpec.icon },
                   };
                 }),
               },

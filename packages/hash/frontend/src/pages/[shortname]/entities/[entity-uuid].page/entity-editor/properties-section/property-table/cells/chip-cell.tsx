@@ -1,4 +1,4 @@
-import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
+import { faAsterisk, IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import {
   CustomCell,
   CustomRenderer,
@@ -18,7 +18,11 @@ import { drawChipWithIcon } from "../../../../../../../../components/grid/utils/
 
 export interface ChipCellProps {
   readonly kind: "chip-cell";
-  chips: { text: string; icon?: CustomIcon }[];
+  chips: {
+    text: string;
+    icon?: CustomIcon;
+    faIconDefinition?: Pick<IconDefinition, "icon">;
+  }[];
   color?: ChipProps["color"];
 }
 
@@ -84,12 +88,12 @@ export const renderChipCell: CustomRenderer<ChipCell> = {
               },
             }}
           >
-            {chips.map(({ text }) => (
+            {chips.map(({ text, faIconDefinition }) => (
               <Chip
                 key={text}
                 label={text}
                 color={color}
-                icon={<FontAwesomeIcon icon={faAsterisk} />}
+                icon={<FontAwesomeIcon icon={faIconDefinition ?? faAsterisk} />}
               />
             ))}
           </Box>
