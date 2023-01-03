@@ -204,6 +204,18 @@ export const createSchema = (nodes: NodeSpecs) =>
           { style: "text-decoration-line=underline" },
         ],
       },
+      strikethrough: {
+        toDOM: () => ["s", 0],
+        parseDOM: [
+          { tag: "s" },
+          { style: "text-decoration=line-through" },
+          { style: "text-decoration-line=line-through" },
+        ],
+      },
+      highlighted: {
+        toDOM: () => ["span", { style: "background-color: #ff8" }, 0],
+        parseDOM: [{ style: "background-color=#ff8" }],
+      },
       link: {
         attrs: {
           href: { default: "" },
