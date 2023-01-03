@@ -1,24 +1,25 @@
-import { FunctionComponent, useMemo, useContext } from "react";
+import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
+import { Avatar, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import {
   Box,
-  Typography,
   Divider,
-  ListItemText,
   ListItemAvatar,
-  Tooltip,
+  ListItemText,
   Menu,
+  Tooltip,
+  Typography,
 } from "@mui/material";
-import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
 import {
-  usePopupState,
-  bindTrigger,
   bindMenu,
+  bindTrigger,
+  usePopupState,
 } from "material-ui-popup-state/hooks";
-import { Avatar, FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { Button, MenuItem } from "../../ui";
-import { useLogoutFlow } from "../../../components/hooks/useLogoutFlow";
-import { WorkspaceContext } from "../../../pages/shared/workspace-context";
+import { FunctionComponent, useContext, useMemo } from "react";
+
+import { useLogoutFlow } from "../../../components/hooks/use-logout-flow";
 import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
+import { WorkspaceContext } from "../../../pages/shared/workspace-context";
+import { Button, MenuItem } from "../../ui";
 
 type WorkspaceSwitcherProps = {};
 

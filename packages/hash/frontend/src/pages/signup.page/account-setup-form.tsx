@@ -1,10 +1,10 @@
 import { Box } from "@mui/material";
-import { useMemo, FunctionComponent } from "react";
+import { FunctionComponent, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 
-import { SelectInput } from "../../components/forms/SelectInput";
-import { useShortnameInput } from "../../components/hooks/useShortnameInput";
-import { InfoIcon, SpinnerIcon, LogoIcon } from "../../shared/icons";
+import { SelectInput } from "../../components/forms/select-input";
+import { useShortnameInput } from "../../components/hooks/use-shortname-input";
+import { InfoIcon, LogoIcon, SpinnerIcon } from "../../shared/icons";
 import { InvitationInfo, ORG_ROLES } from "../shared/auth-utils";
 
 type AccountSetupFormProps = {

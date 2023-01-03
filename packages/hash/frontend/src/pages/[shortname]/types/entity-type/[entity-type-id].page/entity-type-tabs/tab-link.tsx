@@ -7,6 +7,7 @@ import {
   typographyClasses,
 } from "@mui/material";
 import { FunctionComponent, ReactElement } from "react";
+
 import { Link } from "../../../../../../shared/ui/link";
 
 export type TabLinkProps = {

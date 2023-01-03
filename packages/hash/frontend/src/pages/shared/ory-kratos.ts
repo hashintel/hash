@@ -4,24 +4,25 @@ import {
   ErrorAuthenticatorAssuranceLevelNotSatisfied,
   ErrorBrowserLocationChangeRequired,
   FrontendApi,
-  NeedsPrivilegedSessionError,
   LoginFlow,
+  NeedsPrivilegedSessionError,
   RecoveryFlow,
   RegistrationFlow,
   SettingsFlow,
-  VerificationFlow,
   UiNodeInputAttributes,
   UpdateLoginFlowBody,
-  UpdateRegistrationFlowBody,
   UpdateRecoveryFlowBody,
+  UpdateRegistrationFlowBody,
   UpdateSettingsFlowBody,
-  UpdateVerificationFlowBody,
   UpdateSettingsFlowWithPasswordMethod,
+  UpdateVerificationFlowBody,
+  VerificationFlow,
 } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { AxiosError } from "axios";
 import { NextRouter } from "next/router";
 import { Dispatch, SetStateAction } from "react";
+
 import { isBrowser } from "../../lib/config";
 
 export const oryKratosClient = new FrontendApi(

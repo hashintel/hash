@@ -1,10 +1,11 @@
+import { BaseUri } from "@blockprotocol/type-system";
 import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { getPropertyTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 import { get } from "lodash";
-import { BaseUri } from "@blockprotocol/type-system";
+
+import { isPropertyValueNested } from "../../../../../../../../../lib/typeguards";
 import { PropertyRow } from "../../types";
 import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property-type";
-import { isPropertyValueNested } from "../../../../../../../../../lib/typeguards";
 
 /**
  * This function generates property row data,

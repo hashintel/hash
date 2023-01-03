@@ -3,8 +3,10 @@
  *   https://app.asana.com/0/1201095311341924/1202980861294704 */
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
-import dedent from "dedent";
 import { URLSearchParams } from "node:url";
+
+import dedent from "dedent";
+
 import { EmailTransporter } from "./transporters";
 
 const { FRONTEND_URL } = require("../lib/config");

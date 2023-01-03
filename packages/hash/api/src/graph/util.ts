@@ -1,39 +1,38 @@
 import {
-  PropertyType,
-  EntityType,
-  PropertyValues,
-  DataTypeReference,
-  Object,
-  ValueOrArray,
-  PropertyTypeReference,
-  OneOf,
   Array,
+  DataTypeReference,
+  EntityType,
+  Object,
+  OneOf,
+  PropertyType,
+  PropertyTypeReference,
+  PropertyValues,
+  ValueOrArray,
   VersionedUri,
 } from "@blockprotocol/type-system";
 import {
   PrimitiveDataTypeKey,
   types,
 } from "@hashintel/hash-shared/ontology-types";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import {
   EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
   linkEntityTypeUri,
+  PropertyTypeWithMetadata,
 } from "@hashintel/hash-subgraph";
-import { AxiosError } from "axios";
-import { OwnedById } from "@hashintel/hash-shared/types";
 
-import { GraphApi } from ".";
-import { systemUserAccountId } from "./system-user";
-import {
-  createPropertyType,
-  getPropertyTypeById,
-} from "./ontology/primitive/property-type";
+import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";
+import { GraphApi } from ".";
 import {
   createEntityType,
   getEntityTypeById,
 } from "./ontology/primitive/entity-type";
-import { NotFoundError } from "../lib/error";
+import {
+  createPropertyType,
+  getPropertyTypeById,
+} from "./ontology/primitive/property-type";
+import { systemUserAccountId } from "./system-user";
 
 /** @todo: enable admins to expand upon restricted shortnames block list */
 export const RESTRICTED_SHORTNAMES = [
@@ -191,7 +190,7 @@ export const propertyTypeInitializer = (
               schema: propertyTypeSchema,
               actorId: systemUserAccountId,
             },
-          ).catch((createError: AxiosError) => {
+          ).catch((createError) => {
             logger.warn(`Failed to create property type: ${params.title}`);
             throw createError;
           });
@@ -224,7 +223,6 @@ export type EntityTypeCreatorParams = {
       // Some models may reference themselves. This marker is used to stop infinite loops during initialization by telling the initializer to use a self reference
       | "SELF_REFERENCE"
     )[];
-    required?: boolean;
     minItems?: number;
     maxItems?: number;
     ordered?: boolean;
@@ -288,10 +286,6 @@ export const generateSystemEntityTypeSchema = (
       {},
     ) ?? undefined;
 
-  const requiredLinks = params.outgoingLinks
-    ?.filter(({ required }) => !!required)
-    .map(({ linkEntityType }) => linkEntityType.schema.$id);
-
   return {
     $id: params.entityTypeId,
     title: params.title,
@@ -301,7 +295,6 @@ export const generateSystemEntityTypeSchema = (
     properties,
     required: requiredProperties,
     links,
-    requiredLinks,
   };
 };
 
@@ -367,7 +360,7 @@ export const entityTypeInitializer = (
               schema: entityTypeSchema,
               actorId: systemUserAccountId,
             },
-          ).catch((createError: AxiosError) => {
+          ).catch((createError) => {
             logger.warn(`Failed to create entity type: ${params.title}`);
             throw createError;
           });

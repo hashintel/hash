@@ -6,15 +6,10 @@
 //!
 //! [`Store`]: crate::store::Store
 
-use std::collections::hash_map::RawEntryMut;
-
 use async_trait::async_trait;
 use error_stack::{ensure, Report, Result};
 
-use crate::{
-    store::{query::Filter, QueryError, Record},
-    subgraph::Subgraph,
-};
+use crate::store::{query::Filter, QueryError, Record};
 
 /// Read access to a [`Store`].
 ///
@@ -44,29 +39,6 @@ pub trait Read<R: Record + Send>: Sync {
             Report::new(QueryError).attach_printable(
                 "Expected exactly one record to be returned from the query but none was returned",
             )
-        })
-    }
-
-    /// Looks up a single [`Record`] in the subgraph or reads it from the [`Store`] and inserts it
-    /// if it is not yet in the subgraph.
-    ///
-    /// [`Store`]: crate::store::Store
-    async fn read_into_subgraph<'r>(
-        &self,
-        subgraph: &'r mut Subgraph,
-        edition_id: &R::EditionId,
-    ) -> Result<&'r R, QueryError> {
-        Ok(match R::subgraph_entry(subgraph, edition_id) {
-            RawEntryMut::Occupied(entry) => entry.into_mut(),
-            RawEntryMut::Vacant(entry) => {
-                entry
-                    .insert(
-                        edition_id.clone(),
-                        self.read_one(&R::create_filter_for_edition_id(edition_id))
-                            .await?,
-                    )
-                    .1
-            }
         })
     }
 }

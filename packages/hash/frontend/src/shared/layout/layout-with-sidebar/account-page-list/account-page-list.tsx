@@ -1,57 +1,57 @@
 import {
-  FunctionComponent,
-  useMemo,
-  useState,
-  useCallback,
-  useEffect,
-} from "react";
-import { useLocalstorageState } from "rooks";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  arrayMove,
-} from "@dnd-kit/sortable";
-import {
-  DndContext,
-  DragOverlay,
   closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  UniqueIdentifier,
-  MeasuringStrategy,
+  DndContext,
+  DragEndEvent,
   DragMoveEvent,
   DragOverEvent,
-  DragEndEvent,
+  DragOverlay,
   DragStartEvent,
+  MeasuringStrategy,
+  PointerSensor,
+  UniqueIdentifier,
+  useSensor,
+  useSensors,
 } from "@dnd-kit/core";
-import { isEntityId } from "@hashintel/hash-subgraph";
+import {
+  arrayMove,
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import {
   AccountId,
-  EntityUuid,
-  OwnedById,
-  extractEntityUuidFromEntityId,
   EntityId,
+  EntityUuid,
+  extractEntityUuidFromEntityId,
+  OwnedById,
 } from "@hashintel/hash-shared/types";
-
+import { isEntityId } from "@hashintel/hash-subgraph";
 import { Box, Collapse } from "@mui/material";
-import { useAccountPages } from "../../../../components/hooks/useAccountPages";
-import { useCreatePage } from "../../../../components/hooks/useCreatePage";
-import { useCreateSubPage } from "../../../../components/hooks/useCreateSubPage";
-import { useArchivePage } from "../../../../components/hooks/useArchivePage";
+import {
+  FunctionComponent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { useLocalstorageState } from "rooks";
+
+import { useAccountPages } from "../../../../components/hooks/use-account-pages";
+import { useArchivePage } from "../../../../components/hooks/use-archive-page";
+import { useCreatePage } from "../../../../components/hooks/use-create-page";
+import { useCreateSubPage } from "../../../../components/hooks/use-create-sub-page";
+import { useReorderPage } from "../../../../components/hooks/use-reorder-page";
+import { constructPageRelativeUrl } from "../../../../lib/routes";
 import { NavLink } from "../nav-link";
 import { AccountPageListItem } from "./account-page-list-item";
-import { useReorderPage } from "../../../../components/hooks/useReorderPage";
+import { IDENTATION_WIDTH } from "./page-tree-item";
+import { PagesLoadingState } from "./pages-loading-state";
 import {
+  getLastIndex,
   getProjection,
   getTreeItemList,
   isPageCollapsed,
-  getLastIndex,
   TreeItem,
 } from "./utils";
-import { IDENTATION_WIDTH } from "./page-tree-item";
-import { PagesLoadingState } from "./pages-loading-state";
-import { constructPageRelativeUrl } from "../../../../lib/routes";
 
 type AccountPageListProps = {
   accountId: AccountId;
