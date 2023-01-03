@@ -9,7 +9,7 @@ import {
   tooltipClasses,
   Typography,
 } from "@mui/material";
-import { useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 
 import { DefaultExpectedValueTypeId } from "../../../property-type-form-values";
 import { expectedValuesOptions } from "./expected-values-options";
@@ -18,6 +18,7 @@ interface ExpectedValueBadgeProps {
   typeId: DefaultExpectedValueTypeId;
   prefix?: string;
   deleteTooltip?: string;
+  endNode?: ReactNode;
   onDelete?: () => void;
 }
 
@@ -25,6 +26,7 @@ export const ExpectedValueBadge = ({
   typeId,
   prefix,
   deleteTooltip,
+  endNode,
   onDelete,
 }: ExpectedValueBadgeProps) => {
   const [hovered, setHovered] = useState(false);
@@ -100,47 +102,57 @@ export const ExpectedValueBadge = ({
             : {}),
         }}
       >
-        <Box display="flex" alignItems="center" py={1}>
-          <FontAwesomeIcon
-            icon={{
-              icon,
-            }}
-            sx={{
-              color: ({ palette }) => palette.gray[40],
-              marginRight: 1.5,
-            }}
-          />
-          <Typography
-            variant="smallTextLabels"
-            sx={{
-              fontWeight: 500,
-              color: ({ palette }) => palette.white,
-              py: 0.25,
-              mr: 1.25,
-            }}
-          >
-            {title}
-          </Typography>
-
-          {isDataType ? (
-            <Chip
-              label={
-                <Typography variant="smallCaps" sx={{ fontSize: 11 }}>
-                  DATA TYPE
-                </Typography>
-              }
-              color="blue"
+        <Box
+          display="flex"
+          alignItems="center"
+          justifyContent="space-between"
+          flex={1}
+          py={1}
+        >
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <FontAwesomeIcon
+              icon={{
+                icon,
+              }}
               sx={{
-                mr: 1.25,
-                borderWidth: 0,
-                color: ({ palette }) => palette.blue[70],
-                [`.${chipClasses.label}`]: {
-                  px: 1,
-                  py: 0.25,
-                },
+                color: ({ palette }) => palette.gray[40],
+                marginRight: 1.5,
               }}
             />
-          ) : null}
+            <Typography
+              variant="smallTextLabels"
+              sx={{
+                fontWeight: 500,
+                color: ({ palette }) => palette.white,
+                py: 0.25,
+                mr: 1.25,
+              }}
+            >
+              {title}
+            </Typography>
+
+            {isDataType ? (
+              <Chip
+                label={
+                  <Typography variant="smallCaps" sx={{ fontSize: 11 }}>
+                    DATA TYPE
+                  </Typography>
+                }
+                color="blue"
+                sx={{
+                  mr: 1.25,
+                  borderWidth: 0,
+                  color: ({ palette }) => palette.blue[70],
+                  [`.${chipClasses.label}`]: {
+                    px: 1,
+                    py: 0.25,
+                  },
+                }}
+              />
+            ) : null}
+          </Box>
+
+          <Box pr={1.5}>{endNode}</Box>
         </Box>
 
         {onDelete ? (
