@@ -15,7 +15,7 @@ import { useBlockProtocolGetEntityType } from "../../../../components/hooks/bloc
 import { PageErrorState } from "../../../../components/page-error-state";
 import { generateEntityLabel } from "../../../../lib/entities";
 import { WorkspaceContext } from "../../../shared/workspace-context";
-import { EditBarReusable } from "../../types/entity-type/[entity-type-id].page/edit-bar-reusable";
+import { EditBar } from "../../types/entity-type/[entity-type-id].page/edit-bar";
 import { EntityEditorPage } from "./entity-editor-page";
 import { EntityPageLoadingState } from "./entity-page-loading-state";
 import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
@@ -148,7 +148,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       hideLinksSection
       refetch={async () => {}}
       editBar={
-        <EditBarReusable
+        <EditBar
           label="- this entity has not been created yet"
           visible
           discardButtonProps={{
