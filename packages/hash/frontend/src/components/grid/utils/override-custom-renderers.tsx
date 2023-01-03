@@ -9,7 +9,13 @@ import { MutableRefObject, PropsWithChildren } from "react";
 import { InteractableManager } from "./interactable-manager";
 
 const ScrollLockWrapper = ({ children }: PropsWithChildren) => {
-  useScrollLock(true);
+  /**
+   * We're locking scroll on `main` element,
+   * because our table components are rendered inside `LayoutWithSidebar`.
+   * Which has the overflow-y happening on `main` instead of `body` or `html`
+   * So we need to lock `main` elements scroll when grid editors are visible
+   * */
+  useScrollLock(true, document.getElementsByTagName("main")[0]);
 
   // eslint-disable-next-line react/jsx-no-useless-fragment
   return <>{children}</>;
