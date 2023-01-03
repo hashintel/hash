@@ -94,7 +94,7 @@ export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
 
   const [minItemsWidth, setMinItemsWidth] = useState(0);
   const [maxItemsWidth, setMaxItemsWidth] = useState(0);
-  const [hovered, setHovered] = useState(false);
+  const [maxItemsHovered, setMaxItemsHovered] = useState(false);
 
   const minItemsInputRef = useRef<HTMLInputElement | null>();
   const maxItemsInputRef = useRef<HTMLInputElement | null>();
@@ -174,8 +174,8 @@ export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
 
       <Box
         display="flex"
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
+        onMouseEnter={() => setMaxItemsHovered(true)}
+        onMouseLeave={() => setMaxItemsHovered(false)}
       >
         <Box
           sx={{
@@ -213,7 +213,7 @@ export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
         >
           <Collapse
             orientation="horizontal"
-            in={hovered}
+            in={maxItemsHovered}
             sx={{
               [`.${collapseClasses.wrapperInner}`]: {
                 display: "flex",
@@ -264,7 +264,7 @@ export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
           </Collapse>
           <Collapse
             orientation="horizontal"
-            in={hovered}
+            in={maxItemsHovered}
             sx={{
               [`.${collapseClasses.wrapperInner}`]: {
                 display: "flex",
