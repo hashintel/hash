@@ -1,5 +1,3 @@
-import { faMessage } from "@fortawesome/free-regular-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import {
   Divider,
   Paper,
