@@ -226,7 +226,7 @@ export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
                   const target = evt.target as HTMLInputElement;
                   const valueAsNumber = Number(target.value);
 
-                  if (Number.isNaN(valueAsNumber)) {
+                  if (!Number.isNaN(valueAsNumber)) {
                     const max = Math.max(0, valueAsNumber);
 
                     if (max < minItems) {
