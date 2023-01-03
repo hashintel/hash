@@ -14,6 +14,7 @@ import {
   UpdateRecoveryFlowBody,
   UpdateRegistrationFlowBody,
   UpdateSettingsFlowBody,
+  UpdateSettingsFlowWithPasswordMethod,
   UpdateVerificationFlowBody,
   VerificationFlow,
 } from "@ory/client";
@@ -64,6 +65,7 @@ type Flows = {
   recovery: [RecoveryFlow, UpdateRecoveryFlowBody];
   registration: [RegistrationFlow, UpdateRegistrationFlowBody];
   settings: [SettingsFlow, UpdateSettingsFlowBody];
+  settingsWithPassword: [SettingsFlow, UpdateSettingsFlowWithPasswordMethod];
   verification: [VerificationFlow, UpdateVerificationFlowBody];
 };
 
