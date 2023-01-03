@@ -1,6 +1,7 @@
 import {
   forwardRef,
   FunctionComponent,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -95,11 +96,16 @@ export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
   const [hovered, setHovered] = useState(false);
 
   const minItemsInputRef = useRef<HTMLInputElement | null>();
+  const maxItemsInputRef = useRef<HTMLInputElement | null>();
+
+  const setInputSize = useCallback(() => {
+    setMinItemsWidth(minItemsInputRef.current?.value.length ?? 1);
+    setMaxItemsWidth(maxItemsInputRef.current?.value.length ?? 1);
+  }, []);
 
   useEffect(() => {
-    setMinItemsWidth(minItemsController.field.value.toString().length);
-    setMaxItemsWidth(maxItemsController.field.value.toString().length);
-  }, [minItemsController.field.value, maxItemsController.field.value]);
+    setInputSize();
+  }, [setInputSize]);
 
   return (
     <Box display="flex" gap={1.25}>
@@ -138,12 +144,12 @@ export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
           }}
         >
           <ItemInput
-            // {...minItemsController.field}
-            ref={minItemsInputRef}
-            value={minItemsController.field.value}
+            {...minItemsController.field}
+            inputRef={minItemsInputRef}
             width={`${minItemsWidth || 1}ch`}
             onChange={(evt) => {
               const target = evt.target as HTMLInputElement;
+
               const min = Number.isNaN(target.valueAsNumber)
                 ? 0
                 : Math.max(0, target.valueAsNumber);
@@ -156,6 +162,10 @@ export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
                 );
               }
               minItemsController.field.onChange(min);
+
+              setImmediate(() => {
+                setInputSize();
+              });
             }}
           />
         </Box>
@@ -216,6 +226,7 @@ export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
             <Box>
               <ItemInput
                 {...maxItemsController.field}
+                inputRef={maxItemsInputRef}
                 disabled={infinityController.field.value}
                 width={`${maxItemsWidth || 1}ch`}
                 onChange={(evt) => {
@@ -232,6 +243,8 @@ export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
                     );
                   }
                   maxItemsController.field.onChange(max);
+
+                  setInputSize();
                 }}
               />
             </Box>
