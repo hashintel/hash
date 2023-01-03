@@ -47,7 +47,7 @@ export const useEntityTypeValue = (
       setLoading(true);
       setEntityType(null);
       entityTypeRef.current = null;
-      void aggregateEntityTypes({ data: {} }).then(async (res) => {
+      void aggregateEntityTypes({ data: {} }).then((res) => {
         const subgraph = res.data;
         const relevantEntityTypes = subgraph
           ? getEntityTypesByBaseUri(subgraph, entityTypeBaseUri)
