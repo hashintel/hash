@@ -99,7 +99,7 @@ export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
       <Box
         sx={{
           display: "flex",
-          borderRadius: 30,
+          borderRadius: 7.5,
           overflow: "hidden",
         }}
       >
@@ -110,8 +110,6 @@ export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
             py: 0.25,
             px: 1,
             background: ({ palette }) => palette.gray[80],
-            borderBottomLeftRadius: 30,
-            borderTopLeftRadius: 30,
           }}
         >
           <Typography
@@ -132,8 +130,6 @@ export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
             pr: 1,
             pl: 0.75,
             background: ({ palette }) => palette.gray[90],
-            borderBottomRightRadius: 30,
-            borderTopRightRadius: 30,
           }}
         >
           <ItemInput
@@ -171,7 +167,7 @@ export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
       <Box
         sx={{
           display: "flex",
-          borderRadius: 30,
+          borderRadius: 7.5,
           overflow: "hidden",
         }}
         onMouseEnter={() => setMaxItemsHovered(true)}
