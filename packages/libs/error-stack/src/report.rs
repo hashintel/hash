@@ -664,6 +664,30 @@ impl<C> Report<C> {
     }
 }
 
+impl<C: 'static> From<Report<C>> for Box<dyn Error> {
+    fn from(report: Report<C>) -> Self {
+        Box::new(report.into_error())
+    }
+}
+
+impl<C: 'static> From<Report<C>> for Box<dyn Error + Send> {
+    fn from(report: Report<C>) -> Self {
+        Box::new(report.into_error())
+    }
+}
+
+impl<C: 'static> From<Report<C>> for Box<dyn Error + Sync> {
+    fn from(report: Report<C>) -> Self {
+        Box::new(report.into_error())
+    }
+}
+
+impl<C: 'static> From<Report<C>> for Box<dyn Error + Send + Sync> {
+    fn from(report: Report<C>) -> Self {
+        Box::new(report.into_error())
+    }
+}
+
 #[cfg(feature = "std")]
 impl<Context> std::process::Termination for Report<Context> {
     fn report(self) -> ExitCode {
