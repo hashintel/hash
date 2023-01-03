@@ -87,29 +87,17 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(
       }
     }
 
-    if (isHrefExternal(href)) {
+    if (typeof href === "string" && isHrefExternal(href)) {
       other.rel = "noopener";
       other.target = "_blank";
 
       if (noLinkStyle) {
         return (
-          <Anchor
-            className={className}
-            href={href as string}
-            ref={ref}
-            {...other}
-          />
+          <Anchor className={className} href={href} ref={ref} {...other} />
         );
       }
 
-      return (
-        <MuiLink
-          className={className}
-          href={href as string}
-          ref={ref}
-          {...other}
-        />
-      );
+      return <MuiLink className={className} href={href} ref={ref} {...other} />;
     }
 
     if (noLinkStyle) {
