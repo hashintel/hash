@@ -32,6 +32,7 @@ const ItemInput = forwardRef(({ width, ...props }: ItemInputProps, ref) => (
       height: 16,
       color: palette.white,
       transition: transitions.create("color"),
+      maxWidth: "8ch",
 
       "::before": {
         display: "none",
@@ -143,7 +144,7 @@ export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
               const target = evt.target as HTMLInputElement;
               const valueAsNumber = Number(target.value);
 
-              if (target.value.length < 5 && !Number.isNaN(valueAsNumber)) {
+              if (!Number.isNaN(valueAsNumber)) {
                 const min = Math.max(0, valueAsNumber);
 
                 if (min > maxItems) {
@@ -229,7 +230,7 @@ export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
                   const target = evt.target as HTMLInputElement;
                   const valueAsNumber = Number(target.value);
 
-                  if (target.value.length < 5 && !Number.isNaN(valueAsNumber)) {
+                  if (Number.isNaN(valueAsNumber)) {
                     const max = Math.max(0, valueAsNumber);
 
                     if (max < minItems) {
