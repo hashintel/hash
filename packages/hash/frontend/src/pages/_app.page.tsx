@@ -138,6 +138,7 @@ const publiclyAccessiblePagePathnames = [
   "/[shortname]/[page-slug]",
   "/login",
   "/signup",
+  "/recovery",
 ];
 
 AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {

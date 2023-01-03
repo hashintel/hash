@@ -43,11 +43,38 @@ pub enum EntityQueryPath<'p> {
     /// [`EntityId`]: crate::identifier::knowledge::EntityId
     /// [`Entity`]: crate::knowledge::Entity
     OwnedById,
-    // TODO: DOC: https://app.asana.com/0/0/1203505325130325/f
+    /// The [`EntityRecordId`] of the [`EntityRecordId`] belonging to the [`Entity`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["recordId"]))?;
+    /// assert_eq!(path, EntityQueryPath::RecordId);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`EntityEditionId`]: crate::identifier::knowledge::EntityEditionId
+    /// [`EntityRecordId`]: crate::identifier::knowledge::EntityRecordId
+    /// [`Entity`]: crate::knowledge::Entity
     RecordId,
-    // TODO: DOC: https://app.asana.com/0/0/1203505325130325/f
+    /// The decision time axis of the [`EntityVersion`] belonging to the [`Entity`].
+    ///
+    /// To query for an [`EntityVersion`] the time projection is specified on the
+    /// [`StructuralQuery`].
+    ///
+    /// [`StructuralQuery`]: crate::shared::subgraph::query::StructuralQuery
+    /// [`EntityVersion`]: crate::identifier::knowledge::EntityVersion
+    /// [`Entity`]: crate::knowledge::Entity
     DecisionTime,
-    // TODO: DOC: https://app.asana.com/0/0/1203505325130325/f
+    /// The transaction time axis of the [`EntityVersion`] belonging to the [`Entity`].
+    ///
+    /// To query for an [`EntityVersion`] the time projection is specified on the
+    /// [`StructuralQuery`].
+    ///
+    /// [`StructuralQuery`]: crate::shared::subgraph::query::StructuralQuery
+    /// [`EntityVersion`]: crate::identifier::knowledge::EntityVersion
+    /// [`Entity`]: crate::knowledge::Entity
     TransactionTime,
     // TODO: Remove when adjusting structural queries
     //   see https://app.asana.com/0/0/1203491211535116/f
