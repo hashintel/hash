@@ -1,11 +1,11 @@
 //! Web routes for CRU operations on entities.
 
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use axum::{http::StatusCode, routing::post, Extension, Json, Router};
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
-use type_system::{repr, uri::VersionedUri};
+use type_system::uri::VersionedUri;
 use utoipa::{OpenApi, ToSchema};
 
 use crate::{
@@ -14,13 +14,11 @@ use crate::{
         report_to_status_code,
         utoipa_typedef::{subgraph::Subgraph, EntityIdAndTimestamp},
     },
-    generator::transform_entity_to_type_system,
     identifier::knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryToken, EntityUuid,
         LinkData, LinkOrder,
     },
-    ontology::OntologyElementMetadata,
     provenance::{OwnedById, UpdatedById},
     store::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
@@ -71,25 +69,24 @@ impl RoutedResource for EntityResource {
             "/entities",
             Router::new()
                 .route("/", post(create_entity::<P>).put(update_entity::<P>))
-                .route("/query", post(get_entities_by_query::<P>))
-                .route("/unknown", post(create_unknown_entities::<P>)),
+                .route("/query", post(get_entities_by_query::<P>)),
         )
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-struct CreateEntityRequest {
-    properties: EntityProperties,
+pub struct CreateEntityRequest {
+    pub properties: EntityProperties,
     #[schema(value_type = String)]
-    entity_type_id: VersionedUri,
-    owned_by_id: OwnedById,
-    entity_uuid: Option<EntityUuid>,
-    actor_id: UpdatedById,
+    pub entity_type_id: VersionedUri,
+    pub owned_by_id: OwnedById,
+    pub entity_uuid: Option<EntityUuid>,
+    pub actor_id: UpdatedById,
     // TODO: this could break invariants if we don't move to fractional indexing
     //  https://app.asana.com/0/1201095311341924/1202085856561975/f
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    link_data: Option<LinkData>,
+    pub link_data: Option<LinkData>,
 }
 
 #[utoipa::path(
@@ -254,64 +251,4 @@ async fn update_entity<P: StorePool + Send>(
             }
         })
         .map(Json)
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-struct CreateUnknownEntitiesRequest {
-    owned_by_id: OwnedById,
-    actor_id: UpdatedById,
-    entities: Vec<serde_json::Value>,
-}
-
-#[derive(Debug, Serialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-struct CreateUnknownEntitiesResponse {
-    entity_types: Vec<OntologyElementMetadata>,
-    entities: Vec<EntityMetadata>,
-}
-
-#[utoipa::path(
-    post,
-    path = "/entities/unknown",
-    request_body = CreateUnknownEntities,
-    tag = "Entity",
-    responses(
-        (status = 201, content_type = "application/json", description = "The metadata of the created entity types and entities", body = CreateUnknownEntitiesResponse),
-        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
-
-        (status = 500, description = "Store error occurred"),
-    ),
-)]
-#[tracing::instrument(level = "info", skip(pool))]
-async fn create_unknown_entities<P: StorePool + Send>(
-    pool: Extension<Arc<P>>,
-    body: Json<CreateUnknownEntitiesRequest>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
-    let Json(CreateUnknownEntitiesRequest {
-        owned_by_id,
-        actor_id,
-        entities,
-    }) = body;
-
-    // let mut store = pool.acquire().await.map_err(|report| {
-    //     tracing::error!(error=?report, "Could not acquire store");
-    //     StatusCode::INTERNAL_SERVER_ERROR
-    // })?;
-
-    let mut stream_key_map = HashMap::new();
-
-    // tracing::trace!("{}", serde_json::to_string(&entities).unwrap());
-
-    entities.into_iter().for_each(|unknown_entity| {
-        tracing::trace!("transforming entity");
-        transform_entity_to_type_system(unknown_entity, &mut stream_key_map);
-    });
-
-    let repr_map: HashMap<String, repr::PropertyType> = stream_key_map
-        .into_iter()
-        .map(|(key, val)| (key, val.into()))
-        .collect();
-
-    Ok(serde_json::to_value(&repr_map).unwrap()).map(Json)
 }

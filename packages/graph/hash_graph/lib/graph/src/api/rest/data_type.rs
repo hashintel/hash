@@ -59,11 +59,11 @@ impl RoutedResource for DataTypeResource {
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-struct CreateDataTypeRequest {
+pub struct CreateDataTypeRequest {
     #[schema(value_type = VAR_DATA_TYPE)]
-    schema: repr::DataType,
-    owned_by_id: OwnedById,
-    actor_id: UpdatedById,
+    pub schema: repr::DataType,
+    pub owned_by_id: OwnedById,
+    pub actor_id: UpdatedById,
 }
 
 #[utoipa::path(

@@ -6,10 +6,15 @@ mod api_resource;
 mod middleware;
 
 mod account;
+
 mod data_type;
-mod entity;
 mod entity_type;
 mod property_type;
+
+mod entity;
+
+mod batch;
+
 mod utoipa_typedef;
 
 use std::sync::Arc;
@@ -64,6 +69,7 @@ fn api_resources<P: StorePool + Send + 'static>() -> Vec<Router> {
         property_type::PropertyTypeResource::routes::<P>(),
         entity_type::EntityTypeResource::routes::<P>(),
         entity::EntityResource::routes::<P>(),
+        batch::BatchResource::routes::<P>(),
     ]
 }
 
@@ -74,6 +80,7 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
         property_type::PropertyTypeResource::documentation(),
         entity_type::EntityTypeResource::documentation(),
         entity::EntityResource::documentation(),
+        batch::BatchResource::documentation(),
     ]
 }
 

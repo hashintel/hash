@@ -66,11 +66,11 @@ impl RoutedResource for EntityTypeResource {
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-struct CreateEntityTypeRequest {
+pub struct CreateEntityTypeRequest {
     #[schema(value_type = VAR_ENTITY_TYPE)]
-    schema: repr::EntityType,
-    owned_by_id: OwnedById,
-    actor_id: UpdatedById,
+    pub schema: repr::EntityType,
+    pub owned_by_id: OwnedById,
+    pub actor_id: UpdatedById,
 }
 
 #[utoipa::path(

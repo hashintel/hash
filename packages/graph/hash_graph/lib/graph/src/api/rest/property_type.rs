@@ -63,11 +63,11 @@ impl RoutedResource for PropertyTypeResource {
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-struct CreatePropertyTypeRequest {
+pub struct CreatePropertyTypeRequest {
     #[schema(value_type = VAR_PROPERTY_TYPE)]
-    schema: repr::PropertyType,
-    owned_by_id: OwnedById,
-    actor_id: UpdatedById,
+    pub schema: repr::PropertyType,
+    pub owned_by_id: OwnedById,
+    pub actor_id: UpdatedById,
 }
 
 #[utoipa::path(
