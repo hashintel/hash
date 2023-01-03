@@ -1,6 +1,7 @@
 import { validateVersionedUri } from "@blockprotocol/type-system";
 import { useRouter } from "next/router";
 import { useContext, useEffect, useState } from "react";
+
 import { PageErrorState } from "../../components/page-error-state";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";

@@ -17,9 +17,9 @@ import { useFormContext, useWatch } from "react-hook-form";
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { usePropertyTypesContextValue } from "../../../../../../use-property-types-context-value";
 import { PropertyTypeFormValues } from "../../../property-type-form-values";
+import { CustomExpectedValueSelector } from "./custom-expected-value-selector";
 import { DeleteExpectedValueModal } from "./delete-expected-value-modal";
 import { ExpectedValueBadge } from "./expected-value-badge";
-import { CustomExpectedValueSelector } from "./custom-expected-value-selector";
 
 const StyledTableRow = styled(Box)(({ theme }) => ({
   display: "flex",

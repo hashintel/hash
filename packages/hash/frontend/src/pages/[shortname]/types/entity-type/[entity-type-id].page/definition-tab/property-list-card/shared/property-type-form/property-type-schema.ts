@@ -1,14 +1,15 @@
 import {
+  Array,
   BaseUri,
+  extractBaseUri,
+  Object,
+  OneOf,
   PropertyTypeReference,
   PropertyValues,
   ValueOrArray,
   VersionedUri,
-  Object,
-  OneOf,
-  Array,
-  extractBaseUri,
 } from "@blockprotocol/type-system";
+
 import {
   CustomExpectedValue,
   ExpectedValue,
