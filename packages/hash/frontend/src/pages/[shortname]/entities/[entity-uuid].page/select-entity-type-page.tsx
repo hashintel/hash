@@ -10,23 +10,21 @@ import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
 import { SectionWrapper } from "../../shared/section-wrapper";
 import { WhiteCard } from "../../shared/white-card";
+import { EntityTypeSelector } from "./create-entity-page/entity-type-selector";
+import { EntityTypesContextProvider } from "./create-entity-page/entity-types-context-provider";
 import { EntityPageWrapper } from "./entity-page-wrapper";
 import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
-import { EntityTypeSelector } from "./new-entity-page/entity-type-selector";
-import { EntityTypesContextProvider } from "./new-entity-page/entity-types-context-provider";
 import { LinksSectionEmptyState } from "./shared/links-section-empty-state";
 import { PeersSectionEmptyState } from "./shared/peers-section-empty-state";
 import { PropertiesSectionEmptyState } from "./shared/properties-section-empty-state";
-import { useCreateNewEntityAndRedirect } from "./shared/use-create-new-entity-and-redirect";
 
-export const NewEntityPage = () => {
+export const SelectEntityTypePage = () => {
   const router = useRouter();
   const snackbar = useSnackbar();
   const [isSelectingType, setIsSelectingType] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const { activeWorkspace } = useContext(WorkspaceContext);
-  const createNewEntityAndRedirect = useCreateNewEntityAndRedirect();
 
   if (!activeWorkspace) {
     throw new Error("Active workspace must be set");
@@ -115,7 +113,11 @@ export const NewEntityPage = () => {
                       setIsSelectingType(false);
                       setLoading(true);
 
-                      await createNewEntityAndRedirect(entityType.$id);
+                      await router.push(
+                        `/new/entity?entity-type-id=${encodeURIComponent(
+                          entityType.$id,
+                        )}`,
+                      );
                     } catch (error: any) {
                       snackbar.error(error.message);
                     } finally {

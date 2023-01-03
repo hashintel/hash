@@ -16,6 +16,8 @@ All notable changes to `error-stack` will be documented in this file.
 
 - Add serializing support using [`serde`](https://serde.rs) ([#1290](https://github.com/hashintel/hash/pull/1290))
 - Support `Debug` hooks on `no-std` platforms via the `hooks` feature ([#1556](https://github.com/hashintel/hash/pull/1556))
+- Support converting `Report` into [`Error`](https://doc.rust-lang.org/core/error/trait.Error.html) via `Report::as_error` and `Report::into_error` ([#1749](https://github.com/hashintel/hash/pull/1749))
+- Support converting `Report` into `Box<dyn Error>` via the `From` trait ([#1749](https://github.com/hashintel/hash/pull/1749))
 
 ## [0.2.4](https://github.com/hashintel/hash/tree/error-stack%400.2.4/packages/libs/error-stack) - 2022-11-04
 
