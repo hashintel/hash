@@ -83,7 +83,6 @@ export const filterForAction = <T extends UpdatePageActionKey>(
 ): { action: NonNullable<UpdatePageAction[T]>; index: number }[] =>
   actions.reduce<{ action: NonNullable<UpdatePageAction[T]>; index: number }[]>(
     (acc, current, index) => {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
       if (current != null && key in current) {
         acc.push({ action: current[key]!, index });
       }

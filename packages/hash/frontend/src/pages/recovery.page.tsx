@@ -1,17 +1,17 @@
-import { useRouter } from "next/router";
-import { useEffect, FormEventHandler, useState, useMemo } from "react";
+import { TextField } from "@hashintel/hash-design-system";
+import { Box, Collapse, Container, Typography } from "@mui/material";
 import { RecoveryFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
-import { Typography, Container, Box, Collapse } from "@mui/material";
-import { TextField } from "@hashintel/hash-design-system";
+import { useRouter } from "next/router";
+import { FormEventHandler, useEffect, useMemo, useState } from "react";
 
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
+import { Button } from "../shared/ui";
 import {
   createFlowErrorHandler,
   gatherUiNodeValuesFromFlow,
   oryKratosClient,
 } from "./shared/ory-kratos";
-import { Button } from "../shared/ui";
 
 const extractFlowEmailValue = (flowToSearch: RecoveryFlow | undefined) => {
   const uiCode = flowToSearch?.ui.nodes.find(
