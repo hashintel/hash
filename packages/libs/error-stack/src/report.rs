@@ -15,7 +15,6 @@ use tracing_error::{SpanTrace, SpanTraceStatus};
 #[cfg(nightly)]
 use crate::iter::{RequestRef, RequestValue};
 use crate::{
-    error::ReportError,
     iter::{Frames, FramesMut},
     Context, Frame,
 };
@@ -650,7 +649,7 @@ impl<C> Report<C> {
     where
         C: 'static,
     {
-        ReportError::new(self)
+        crate::error::ReportError::new(self)
     }
 
     /// Returns this `Report` as an [`Error`].
@@ -660,28 +659,32 @@ impl<C> Report<C> {
     where
         C: 'static,
     {
-        ReportError::from_ref(self)
+        crate::error::ReportError::from_ref(self)
     }
 }
 
+#[cfg(any(nightly, feature = "std"))]
 impl<C: 'static> From<Report<C>> for Box<dyn Error> {
     fn from(report: Report<C>) -> Self {
         Box::new(report.into_error())
     }
 }
 
+#[cfg(any(nightly, feature = "std"))]
 impl<C: 'static> From<Report<C>> for Box<dyn Error + Send> {
     fn from(report: Report<C>) -> Self {
         Box::new(report.into_error())
     }
 }
 
+#[cfg(any(nightly, feature = "std"))]
 impl<C: 'static> From<Report<C>> for Box<dyn Error + Sync> {
     fn from(report: Report<C>) -> Self {
         Box::new(report.into_error())
     }
 }
 
+#[cfg(any(nightly, feature = "std"))]
 impl<C: 'static> From<Report<C>> for Box<dyn Error + Send + Sync> {
     fn from(report: Report<C>) -> Self {
         Box::new(report.into_error())
