@@ -11,11 +11,7 @@ use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
 use crate::{
-    api::rest::{
-        report_to_status_code,
-        utoipa_typedef::subgraph::{Edges, Subgraph, Vertex, Vertices},
-    },
-    identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId, GraphElementId},
+    api::rest::{report_to_status_code, utoipa_typedef::subgraph::Subgraph},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, OntologyElementMetadata, PropertyTypeQueryToken,
@@ -23,13 +19,7 @@ use crate::{
     },
     provenance::{OwnedById, UpdatedById},
     store::{BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool},
-    subgraph::{
-        edges::{
-            EdgeResolveDepths, GraphResolveDepths, OntologyEdgeKind, OutgoingEdgeResolveDepth,
-            SharedEdgeKind,
-        },
-        query::{PropertyTypeStructuralQuery, StructuralQuery},
-    },
+    subgraph::query::{PropertyTypeStructuralQuery, StructuralQuery},
 };
 
 #[derive(OpenApi)]
@@ -41,26 +31,12 @@ use crate::{
     ),
     components(
         schemas(
+            PropertyTypeWithMetadata,
+
             CreatePropertyTypeRequest,
             UpdatePropertyTypeRequest,
-            OwnedById,
-            UpdatedById,
-            OntologyTypeEditionId,
-            OntologyElementMetadata,
-            PropertyTypeWithMetadata,
-            PropertyTypeStructuralQuery,
             PropertyTypeQueryToken,
-            GraphElementId,
-            GraphElementEditionId,
-            Vertices,
-            Vertex,
-            OntologyEdgeKind,
-            SharedEdgeKind,
-            GraphResolveDepths,
-            EdgeResolveDepths,
-            OutgoingEdgeResolveDepth,
-            Edges,
-            Subgraph,
+            PropertyTypeStructuralQuery,
         )
     ),
     tags(

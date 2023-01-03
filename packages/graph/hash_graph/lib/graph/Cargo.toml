@@ -11,6 +11,7 @@ axum = "0.6.1"
 bb8-postgres = "0.8.1"
 clap = { version = "4.0.30", features = ["derive", "env"], optional = true }
 chrono = { version = "0.4.23", features = ["serde"] }
+derivative = "2.2.0"
 error-stack = { version = "0.2.4", features = ["spantrace"] }
 futures = "0.3.25"
 hyper = "0.14.23"

@@ -1,11 +1,7 @@
-use std::{
-    borrow::Cow,
-    fmt,
-    fmt::{Debug, Display, Formatter},
-    str::FromStr,
-};
+use std::{borrow::Cow, fmt, str::FromStr};
 
 use chrono::{DateTime, Utc};
+use derivative::Derivative;
 use error_stack::{bail, ensure, Context, IntoReport, Report, ResultExt};
 use serde::Deserialize;
 use type_system::uri::{BaseUri, VersionedUri};
@@ -24,7 +20,11 @@ use crate::{
 };
 
 /// A set of conditions used for queries.
-#[derive(Deserialize)]
+#[derive(Derivative, Deserialize)]
+#[derivative(
+    Debug(bound = "R::QueryPath<'p>: fmt::Debug"),
+    PartialEq(bound = "R::QueryPath<'p>: PartialEq")
+)]
 #[serde(
     rename_all = "camelCase",
     bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>"
@@ -276,7 +276,7 @@ impl<'p> Filter<'p, Entity> {
 
 impl<'p, R: Record> Filter<'p, R>
 where
-    R::QueryPath<'p>: Display,
+    R::QueryPath<'p>: fmt::Display,
 {
     /// Converts the contained [`Parameter`]s to match the type of a `T::Path`.
     ///
@@ -306,46 +306,12 @@ where
     }
 }
 
-// TODO: Derive traits when bounds are generated correctly
-//   see https://github.com/rust-lang/rust/issues/26925
-impl<'p, R> Debug for Filter<'p, R>
-where
-    R: Record<QueryPath<'p>: Debug>,
-{
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::All(filters) => f.debug_tuple("All").field(filters).finish(),
-            Self::Any(filters) => f.debug_tuple("Any").field(filters).finish(),
-            Self::Not(filter) => f.debug_tuple("Not").field(filter).finish(),
-            Self::Equal(lhs, rhs) => f.debug_tuple("Equal").field(lhs).field(rhs).finish(),
-            Self::NotEqual(lhs, rhs) => f.debug_tuple("NotEqual").field(lhs).field(rhs).finish(),
-        }
-    }
-}
-
-// TODO: Derive traits when bounds are generated correctly
-//   see https://github.com/rust-lang/rust/issues/26925
-impl<'p, R> PartialEq for Filter<'p, R>
-where
-    R: Record<QueryPath<'p>: PartialEq>,
-{
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Self::All(lhs), Self::All(rhs)) | (Self::Any(lhs), Self::Any(rhs)) => lhs == rhs,
-            (Self::Not(lhs), Self::Not(rhs)) => lhs == rhs,
-            (Self::Equal(lhs_1, lhs_2), Self::Equal(rhs_1, rhs_2))
-            | (Self::NotEqual(lhs_1, lhs_2), Self::NotEqual(rhs_1, rhs_2)) => {
-                lhs_1 == rhs_1 && lhs_2 == rhs_2
-            }
-            _ => false,
-        }
-    }
-}
-
 /// A leaf value in a [`Filter`].
-// TODO: Derive traits when bounds are generated correctly
-//   see https://github.com/rust-lang/rust/issues/26925
-#[derive(Deserialize)]
+#[derive(Derivative, Deserialize)]
+#[derivative(
+    Debug(bound = "R::QueryPath<'p>: fmt::Debug"),
+    PartialEq(bound = "R::QueryPath<'p>: PartialEq")
+)]
 #[serde(
     rename_all = "camelCase",
     bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>"
@@ -353,35 +319,6 @@ where
 pub enum FilterExpression<'p, R: Record + ?Sized> {
     Path(R::QueryPath<'p>),
     Parameter(Parameter<'p>),
-}
-
-// TODO: Derive traits when bounds are generated correctly
-//   see https://github.com/rust-lang/rust/issues/26925
-impl<'p, R> Debug for FilterExpression<'p, R>
-where
-    R: Record<QueryPath<'p>: Debug>,
-{
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Path(path) => f.debug_tuple("Path").field(path).finish(),
-            Self::Parameter(parameter) => f.debug_tuple("Parameter").field(parameter).finish(),
-        }
-    }
-}
-
-// TODO: Derive traits when bounds are generated correctly
-//   see https://github.com/rust-lang/rust/issues/26925
-impl<'p, R> PartialEq for FilterExpression<'p, R>
-where
-    R: Record<QueryPath<'p>: PartialEq>,
-{
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Self::Path(lhs), Self::Path(rhs)) => lhs == rhs,
-            (Self::Parameter(lhs), Self::Parameter(rhs)) => lhs == rhs,
-            _ => false,
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -524,7 +461,7 @@ mod tests {
 
     fn test_filter_representation<'de, R>(actual: &Filter<'de, R>, expected: &'de serde_json::Value)
     where
-        R: Record<QueryPath<'de>: Debug + Display + PartialEq + Deserialize<'de>>,
+        R: Record<QueryPath<'de>: fmt::Debug + fmt::Display + PartialEq + Deserialize<'de>>,
     {
         let mut expected =
             Filter::<R>::deserialize(expected).expect("Could not deserialize filter");
