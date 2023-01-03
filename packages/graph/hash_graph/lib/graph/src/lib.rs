@@ -73,8 +73,6 @@ pub mod ontology;
 
 pub mod store;
 
-pub mod generator;
-
 pub mod api;
 
 pub use self::shared::*;
