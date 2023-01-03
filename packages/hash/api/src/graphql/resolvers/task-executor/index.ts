@@ -1,5 +1,6 @@
 import { JsonObject } from "@blockprotocol/core";
 import { EntityType } from "@blockprotocol/type-system";
+import { PropertyType } from "@blockprotocol/type-system/dist/cjs";
 import { OwnedById } from "@hashintel/hash-shared/types";
 import { PropertyObject } from "@hashintel/hash-subgraph";
 import { ApolloError } from "apollo-server-express";
@@ -18,6 +19,7 @@ import {
   ResolverFn,
 } from "../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
+import { transformEntityToTypeSystem } from "./generation";
 
 export const executeDemoTask: ResolverFn<
   Promise<string>,
@@ -322,7 +324,12 @@ export const executeAsanaReadTask: ResolverFn<
       "A task-executor wasn't started, so external tasks can't be started",
     );
   } else {
-    // const createdEntities = [];
+    // TODO: implement cached/existing property types and entity types
+    // const entityType = existingEntityChecker.getExisting(entityTypeName);
+    // const existingEntityChecker = await CachedEntityTypes(graphApi, user);
+
+    const streamsToKeyMaps: Record<string, Record<string, PropertyType>> = {};
+    const createdEntities = [];
     try {
       const airbyteRecords: AirbyteRecords = await taskExecutor.runTask(
         Task.AsanaRead,
@@ -330,16 +337,18 @@ export const executeAsanaReadTask: ResolverFn<
       );
       logger.debug(`Received ${airbyteRecords.length} records from Asana`);
 
-      // const existingEntityChecker = await CachedEntityTypes(graphApi, user);
       for (const record of airbyteRecords) {
+        const streamName = `asana-${record.stream}`;
+        logger.debug(`Found record from stream: ${streamName}`);
+        const streamKeyMap = streamsToKeyMaps[streamName] ?? {};
         // const entityTypeName = streamNameToEntityTypeName(record.stream);
+        logger.debug("Transforming record entity to type system");
+        transformEntityToTypeSystem(
+          record.data as JsonObject,
+          streamKeyMap,
+          streamName,
+        );
         // /** @todo - Check if entity already exists */
-        // const entityType = existingEntityChecker.getExisting(entityTypeName);
-        // if (!entityType) {
-        //   throw new Error(
-        //     `Couldn't find EntityType for ingested data with name: ${entityTypeName}`,
-        //   );
-        // }
         //
         // /** @todo - check primary key to see if entity already exists */
         // // Insert the entity
@@ -354,11 +363,12 @@ export const executeAsanaReadTask: ResolverFn<
         // );
         //
         // createdEntities.push(entity.metadata.editionId.baseId);
+        streamsToKeyMaps[streamName] = streamKeyMap;
       }
 
       // logger.debug(`Inserted ${createdEntities.length} entities from Asana`);
       // return JSON.stringify({ createdEntities });
-      return JSON.stringify({ airbyteRecords });
+      return JSON.stringify({ streamsToKeyMaps });
     } catch (err: any) {
       throw new ApolloError(`Task-execution failed: ${err}`);
     }
