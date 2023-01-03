@@ -31,11 +31,10 @@ where
     fn call(&self, value: &'a I, context: &mut HookContext<I>) -> Self::Output;
 }
 
-impl<'a, U: 'a, T, F> SerializeFn<'a, T> for F
+impl<'a, U, T, F> SerializeFn<'a, T> for F
 where
-    F: Fn(&'a T, &mut HookContext<T>) -> U,
-    F: Send + Sync + 'static,
-    U: serde::Serialize,
+    F: Fn(&'a T, &mut HookContext<T>) -> U + Send + Sync + 'static,
+    U: serde::Serialize + 'a,
     T: Send + Sync + 'static,
 {
     type Output = U;
