@@ -1,7 +1,9 @@
 import {
   Array as TypeSystemArray,
   BaseUri,
+  EntityType,
   extractBaseUri,
+  extractVersion,
   OneOf,
   PropertyType,
   PropertyTypeReference,
@@ -9,7 +11,9 @@ import {
   ValueOrArray,
 } from "@blockprotocol/type-system";
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
-import { isEqual } from "lodash";
+import { PropertyObject } from "@hashintel/hash-subgraph";
+import { camelCase, isEqual, upperFirst } from "lodash";
+import { singular } from "pluralize";
 
 const TEXT_DATA_TYPE_ID =
   "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1";
@@ -34,6 +38,10 @@ export type JsonValue =
 
 export type JsonObject = { [key: string]: JsonValue };
 
+export const streamNameToEntityTypeName = (source: string, name: string) => {
+  return singular(upperFirst(camelCase(`${source}_${name}`)));
+};
+
 export const isPropertyValuesArray = (
   propertyValues: PropertyValues,
 ): propertyValues is TypeSystemArray<OneOf<PropertyValues>> =>
@@ -51,37 +59,83 @@ export const addPropertyValuesToPropertyType = (
   }
 };
 
-// post-order traversal of the JSON object tree
+export const addOrUpdatePropertyTypeToEntityType = (
+  entityType: EntityType,
+  propertyType: PropertyType,
+  isArray: boolean,
+) => {
+  const propertyTypeBaseId = extractBaseUri(propertyType.$id);
+  const exists = Object.keys(entityType.properties).find(
+    (existingPropertyBaseId) => existingPropertyBaseId === propertyTypeBaseId,
+  );
+
+  if (!exists) {
+    // eslint-disable-next-line no-param-reassign
+    entityType.properties[propertyTypeBaseId] = isArray
+      ? {
+          type: "array",
+          items: {
+            $ref: propertyType.$id,
+          },
+        }
+      : {
+          $ref: propertyType.$id,
+        };
+  } else {
+    /** @todo - How do we handle conversion to/from array as needed for edge-cases */
+    const existingPropertyDefinition =
+      entityType.properties[propertyTypeBaseId]!;
+
+    if ("$ref" in existingPropertyDefinition) {
+      if (
+        extractVersion(existingPropertyDefinition.$ref) <
+        extractVersion(propertyType.$id)
+      ) {
+        existingPropertyDefinition.$ref = propertyType.$id;
+      }
+    } else if (
+      extractVersion(existingPropertyDefinition.items.$ref) <
+      extractVersion(propertyType.$id)
+    ) {
+      existingPropertyDefinition.items.$ref = propertyType.$id;
+    }
+  }
+};
+
+/* eslint-disable no-param-reassign -- We want to mutate in place for efficiency */
+
+/** @todo - improve doc */
+/// post-order traversal of the JSON object tree
 const traverseJsonValue = (
   key: string | undefined,
-  val: JsonValue,
+  jsonValue: JsonValue,
   streamKeyMap: Record<string, PropertyType>,
   streamName: string,
 ) => {
   let propertyTypeValue: PropertyValues;
-  if (typeof val === "boolean") {
+  if (typeof jsonValue === "boolean") {
     propertyTypeValue = {
       $ref: BOOLEAN_DATA_TYPE_ID,
     };
-  } else if (typeof val === "number") {
+  } else if (typeof jsonValue === "number") {
     propertyTypeValue = {
       $ref: NUMBER_DATA_TYPE_ID,
     };
-  } else if (typeof val === "string") {
+  } else if (typeof jsonValue === "string") {
     propertyTypeValue = {
       $ref: TEXT_DATA_TYPE_ID,
     };
-  } else if (val === null) {
+  } else if (jsonValue === null) {
     propertyTypeValue = {
       $ref: NULL_DATA_TYPE_ID,
     };
-  } else if (Array.isArray(val)) {
-    if (val.length === 0) {
+  } else if (Array.isArray(jsonValue)) {
+    if (jsonValue.length === 0) {
       propertyTypeValue = {
         $ref: EMPTY_LIST_DATA_TYPE_ID,
       };
     } else {
-      const inner = val.map((arrayVal) =>
+      const inner = jsonValue.map((arrayVal) =>
         traverseJsonValue(undefined, arrayVal, streamKeyMap, streamName),
       ) as [PropertyValues, ...PropertyValues[]];
       propertyTypeValue = {
@@ -91,10 +145,10 @@ const traverseJsonValue = (
         },
       };
     }
-  } else if (typeof val === "object") {
+  } else if (typeof jsonValue === "object") {
     const properties: Record<BaseUri, ValueOrArray<PropertyTypeReference>> = {};
 
-    for (const [innerKey, innerVal] of Object.entries(val)) {
+    for (const [innerKey, innerVal] of Object.entries(jsonValue)) {
       const innerPropertyValue = traverseJsonValue(
         innerKey,
         innerVal,
@@ -105,6 +159,9 @@ const traverseJsonValue = (
       if (!propertyTypeId) {
         throw new Error(`Missing property type for key: ${innerKey}`);
       }
+
+      jsonValue[extractBaseUri(propertyTypeId)] = innerVal;
+      delete jsonValue[innerKey];
 
       if (isPropertyValuesArray(innerPropertyValue)) {
         properties[extractBaseUri(propertyTypeId)] = {
@@ -126,7 +183,7 @@ const traverseJsonValue = (
     throw Error(
       `Unsupported JSON type encountered, key: ${
         key ?? "None"
-      }, val: ${val}, typeof: ${typeof val}`,
+      }, val: ${jsonValue}, typeof: ${typeof jsonValue}`,
     );
   }
 
@@ -149,39 +206,68 @@ const traverseJsonValue = (
       addPropertyValuesToPropertyType(propertyType, propertyTypeValue);
     }
 
-    // eslint-disable-next-line no-param-reassign
     streamKeyMap[key] = propertyType;
   }
 
   return propertyTypeValue;
 };
+/* eslint-enable no-param-reassign */
 
-export const transformEntityToTypeSystem = (
-  entity: JsonObject,
+/* eslint-disable no-param-reassign -- We want to mutate in place for efficiency */
+export const rewriteEntityPropertiesInTypeSystem = (
+  entityProperties: JsonObject,
   streamKeyMap: Record<string, PropertyType>,
+  existingEntityType: EntityType | undefined,
   streamName: string,
-) => {
-  for (const [key, val] of Object.entries(entity)) {
+  integration: string,
+): { entityProperties: PropertyObject; entityType: EntityType } => {
+  const title = streamNameToEntityTypeName(integration, streamName);
+
+  /** @todo - improve description and title and such of this */
+  const entityType: EntityType = existingEntityType ?? {
+    $id: generateTypeId({
+      namespace: "alice",
+      kind: "entity-type",
+      title,
+      slugOverride: `generated-${streamName}`,
+    }),
+    kind: "entityType",
+    type: "object",
+    title,
+    description: "An autogenerated type.",
+    properties: {},
+  };
+
+  for (const [key, val] of Object.entries(entityProperties)) {
     if (Array.isArray(val) && val.length !== 0) {
+      let propertyType;
       for (const arrayVal of val) {
         traverseJsonValue(key, arrayVal, streamKeyMap, streamName);
 
-        const propertyTypeId = streamKeyMap[key]?.$id;
-        if (!propertyTypeId) {
+        propertyType = streamKeyMap[key];
+        if (!propertyType) {
           throw new Error(`Missing property type for key: ${key}`);
         }
 
-        // TODO: create entity type
+        addOrUpdatePropertyTypeToEntityType(entityType, propertyType, true);
       }
+      entityProperties[extractBaseUri(propertyType?.$id!)] = val;
+      delete entityProperties[key];
     } else {
       traverseJsonValue(key, val, streamKeyMap, streamName);
 
-      const propertyTypeId = streamKeyMap[key]?.$id;
-      if (!propertyTypeId) {
+      const propertyType = streamKeyMap[key];
+      if (!propertyType) {
         throw new Error(`Missing property type for key: ${key}`);
       }
 
-      // TODO: create entity type
+      addOrUpdatePropertyTypeToEntityType(entityType, propertyType, false);
+
+      entityProperties[extractBaseUri(propertyType.$id)] = val;
+      delete entityProperties[key];
     }
   }
+
+  return { entityProperties: entityProperties as PropertyObject, entityType };
 };
+/* eslint-enable no-param-reassign */

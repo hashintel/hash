@@ -1,5 +1,5 @@
 import { JsonObject } from "@blockprotocol/core";
-import { EntityType } from "@blockprotocol/type-system";
+import { EntityType, VersionedUri } from "@blockprotocol/type-system";
 import { PropertyType } from "@blockprotocol/type-system/dist/cjs";
 import { OwnedById } from "@hashintel/hash-shared/types";
 import { PropertyObject } from "@hashintel/hash-subgraph";
@@ -19,7 +19,10 @@ import {
   ResolverFn,
 } from "../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
-import { transformEntityToTypeSystem } from "./generation";
+import {
+  rewriteEntityPropertiesInTypeSystem,
+  streamNameToEntityTypeName,
+} from "./generation";
 
 export const executeDemoTask: ResolverFn<
   Promise<string>,
@@ -68,11 +71,6 @@ type AirbyteRecords = Array<{
   namespace?: string;
   [k: string]: unknown;
 }>;
-
-const streamNameToEntityTypeName = (name: string) => {
-  const sanitizedName = singular(upperFirst(camelCase(name)));
-  return `Github${sanitizedName}`;
-};
 
 export const executeGithubSpecTask: ResolverFn<
   Promise<string>,
@@ -142,7 +140,10 @@ export const executeGithubDiscoverTask: ResolverFn<
           continue;
         }
 
-        const entityTypeName = streamNameToEntityTypeName(message.name);
+        const entityTypeName = streamNameToEntityTypeName(
+          "Github",
+          message.name,
+        );
 
         if (existingEntityChecker.getExisting(entityTypeName) === undefined) {
           await existingEntityChecker.createNew(
@@ -188,7 +189,10 @@ export const executeGithubReadTask: ResolverFn<
 
       const existingEntityChecker = await CachedEntityTypes(graphApi, user);
       for (const record of airbyteRecords) {
-        const entityTypeName = streamNameToEntityTypeName(record.stream);
+        const entityTypeName = streamNameToEntityTypeName(
+          "Github",
+          record.stream,
+        );
         /** @todo - Check if entity already exists */
         const entityType = existingEntityChecker.getExisting(entityTypeName);
         if (!entityType) {
@@ -329,7 +333,12 @@ export const executeAsanaReadTask: ResolverFn<
     // const existingEntityChecker = await CachedEntityTypes(graphApi, user);
 
     const streamsToKeyMaps: Record<string, Record<string, PropertyType>> = {};
+    const entityTypes: Record<string, EntityType> = {};
     const createdEntities = [];
+
+    /** @todo - remove, left for debugging purposes */
+    const createdEntityProperties = [];
+
     try {
       const airbyteRecords: AirbyteRecords = await taskExecutor.runTask(
         Task.AsanaRead,
@@ -338,19 +347,24 @@ export const executeAsanaReadTask: ResolverFn<
       logger.debug(`Received ${airbyteRecords.length} records from Asana`);
 
       for (const record of airbyteRecords) {
-        const streamName = `asana-${record.stream}`;
-        logger.debug(`Found record from stream: ${streamName}`);
+        const streamName = record.stream;
+
         const streamKeyMap = streamsToKeyMaps[streamName] ?? {};
-        // const entityTypeName = streamNameToEntityTypeName(record.stream);
-        logger.debug("Transforming record entity to type system");
-        transformEntityToTypeSystem(
-          record.data as JsonObject,
-          streamKeyMap,
-          streamName,
-        );
-        // /** @todo - Check if entity already exists */
-        //
-        // /** @todo - check primary key to see if entity already exists */
+        const entityType = entityTypes[streamName];
+        const entityProperties = record.data;
+
+        const { entityType: updatedEntityType } =
+          rewriteEntityPropertiesInTypeSystem(
+            entityProperties as JsonObject,
+            streamKeyMap,
+            entityType,
+            streamName,
+            "asana",
+          );
+
+        createdEntityProperties.push(entityProperties as PropertyObject);
+
+        /** @todo - check primary key to see if entity already exists */
         // // Insert the entity
         // const entity = await createEntity(
         //   { graphApi },
@@ -364,11 +378,18 @@ export const executeAsanaReadTask: ResolverFn<
         //
         // createdEntities.push(entity.metadata.editionId.baseId);
         streamsToKeyMaps[streamName] = streamKeyMap;
+        entityTypes[streamName] = updatedEntityType;
       }
+
+      // const entity = await createEntity({graphApi}, { ownedById: user.accountId as OwnedById, actorId: user.accountId, entityType: entityType.$id})
 
       // logger.debug(`Inserted ${createdEntities.length} entities from Asana`);
       // return JSON.stringify({ createdEntities });
-      return JSON.stringify({ streamsToKeyMaps });
+      return JSON.stringify({
+        entityTypes,
+        streamsToKeyMaps,
+        createdEntityProperties,
+      });
     } catch (err: any) {
       throw new ApolloError(`Task-execution failed: ${err}`);
     }
