@@ -66,7 +66,6 @@ export const getArrayItems = (
           items: {
             oneOf: getArrayItems(data.itemIds, flattenedExpectedValues),
           },
-          minItems: data.minItems,
           ...(data.minItems ? { minItems: data.minItems } : {}),
           ...(data.maxItems && !data.infinity
             ? { maxItems: data.maxItems }
