@@ -8,7 +8,6 @@ import {
   GetHashInstanceEntityQueryQueryVariables,
 } from "../../graphql/api-types.gen";
 import { getHashInstanceEntityQuery } from "../../graphql/queries/knowledge/hash-instance.queries";
-import { useInitTypeSystem } from "../../lib/use-init-type-system";
 
 type HashInstance = {
   userSelfRegistrationIsEnabled: boolean;
@@ -35,12 +34,10 @@ export const useHashInstance = (): {
     fetchPolicy: "no-cache",
   });
 
-  const loadingTypeSystem = useInitTypeSystem();
-
   const { hashInstanceEntity } = data ?? {};
 
   const hashInstance = useMemo<HashInstance | undefined>(() => {
-    if (!hashInstanceEntity || loadingTypeSystem) {
+    if (!hashInstanceEntity) {
       return undefined;
     }
 
@@ -69,7 +66,7 @@ export const useHashInstance = (): {
       userRegistrationByInviteIsEnabled,
       orgSelfRegistrationIsEnabled,
     };
-  }, [hashInstanceEntity, loadingTypeSystem]);
+  }, [hashInstanceEntity]);
 
   return {
     loading,

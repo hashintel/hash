@@ -13,7 +13,7 @@ use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
         ontology::OntologyTypeEditionId,
-        DecisionTimespan, DecisionTimestamp, TransactionTimespan,
+        time::{DecisionTimeVersionTimespan, DecisionTimestamp, TransactionTimeVersionTimespan},
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
@@ -329,8 +329,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_id,
                 EntityRecordId::new(row.get(0)),
                 EntityVersion::new(
-                    DecisionTimespan::new(row.get(1)),
-                    TransactionTimespan::new(row.get(2)),
+                    DecisionTimeVersionTimespan::from_anonymous(row.get(1)),
+                    TransactionTimeVersionTimespan::from_anonymous(row.get(2)),
                 ),
             ),
             entity_type_id,
@@ -550,8 +550,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_id,
                 EntityRecordId::new(row.get(0)),
                 EntityVersion::new(
-                    DecisionTimespan::new(row.get(1)),
-                    TransactionTimespan::new(row.get(2)),
+                    DecisionTimeVersionTimespan::from_anonymous(row.get(1)),
+                    TransactionTimeVersionTimespan::from_anonymous(row.get(2)),
                 ),
             ),
             entity_type_id,

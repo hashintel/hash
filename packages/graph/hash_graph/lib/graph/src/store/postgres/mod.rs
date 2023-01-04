@@ -23,6 +23,14 @@ use type_system::{
 use uuid::Uuid;
 
 pub use self::pool::{AsClient, PostgresStorePool};
+#[cfg(feature = "__internal_bench")]
+use crate::{
+    identifier::knowledge::{EntityId, EntityRecordId, EntityVersion},
+    identifier::time::{
+        DecisionTimeVersionTimespan, DecisionTimestamp, TransactionTimeVersionTimespan,
+    },
+    knowledge::{EntityProperties, LinkOrder},
+};
 use crate::{
     identifier::{account::AccountId, knowledge::EntityEditionId, ontology::OntologyTypeEditionId},
     ontology::{OntologyElementMetadata, OntologyTypeWithMetadata},
@@ -36,14 +44,6 @@ use crate::{
         Record, Store, StoreError, Transaction, UpdateError,
     },
     subgraph::edges::GraphResolveDepths,
-};
-#[cfg(feature = "__internal_bench")]
-use crate::{
-    identifier::{
-        knowledge::{EntityId, EntityRecordId, EntityVersion},
-        DecisionTimespan, DecisionTimestamp, TransactionTimespan,
-    },
-    knowledge::{EntityProperties, LinkOrder},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -915,10 +915,10 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     entity_record_id,
                     tstzrange(
                         CASE WHEN decision_time IS NULL THEN now() ELSE decision_time END,
-                        'infinity',
+                        NULL,
                         '[)'
                     ),
-                    tstzrange(now(), 'infinity', '[)')
+                    tstzrange(now(), NULL, '[)')
                 FROM entity_versions_temp
                 RETURNING decision_time, transaction_time;",
                 &[],
@@ -929,8 +929,8 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .into_iter()
             .map(|row| {
                 EntityVersion::new(
-                    DecisionTimespan::new(row.get(0)),
-                    TransactionTimespan::new(row.get(1)),
+                    DecisionTimeVersionTimespan::from_anonymous(row.get(0)),
+                    TransactionTimeVersionTimespan::from_anonymous(row.get(1)),
                 )
             })
             .collect();

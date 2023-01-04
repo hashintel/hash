@@ -4,7 +4,7 @@ mod entity_type;
 mod links;
 mod property_type;
 
-use std::{borrow::Cow, str::FromStr};
+use std::borrow::Cow;
 
 use error_stack::Result;
 use graph::{
@@ -12,7 +12,7 @@ use graph::{
         account::AccountId,
         knowledge::{EntityEditionId, EntityId},
         ontology::OntologyTypeEditionId,
-        DecisionTimestamp, GraphElementEditionId,
+        GraphElementEditionId,
     },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
@@ -270,7 +270,7 @@ impl DatabaseApi<'_> {
             .create_entity(
                 OwnedById::new(self.account_id),
                 entity_uuid,
-                Some(DecisionTimestamp::from_str("2000-01-01T00:00:00Z").unwrap()),
+                None,
                 UpdatedById::new(self.account_id),
                 false,
                 entity_type_id,
@@ -307,7 +307,7 @@ impl DatabaseApi<'_> {
         self.store
             .update_entity(
                 entity_id,
-                Some(DecisionTimestamp::from_str("2000-01-03T00:00:00Z").unwrap()),
+                None,
                 UpdatedById::new(self.account_id),
                 false,
                 entity_type_id,
@@ -329,7 +329,7 @@ impl DatabaseApi<'_> {
             .create_entity(
                 OwnedById::new(self.account_id),
                 entity_uuid,
-                Some(DecisionTimestamp::from_str("2000-01-02T00:00:00Z").unwrap()),
+                None,
                 UpdatedById::new(self.account_id),
                 false,
                 entity_type_id,
@@ -469,7 +469,7 @@ impl DatabaseApi<'_> {
         self.store
             .update_entity(
                 entity_id,
-                Some(DecisionTimestamp::from_str("2000-01-04T00:00:00Z").unwrap()),
+                None,
                 UpdatedById::new(self.account_id),
                 true,
                 entity_type_id,

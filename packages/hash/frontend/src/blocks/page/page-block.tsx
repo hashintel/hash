@@ -13,7 +13,6 @@ import { FunctionComponent, useLayoutEffect, useRef } from "react";
 import { useLocalstorageState } from "rooks";
 
 import { PageThread } from "../../components/hooks/use-page-comments";
-import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { useIsReadonlyMode } from "../../shared/readonly-mode";
 import { BlockLoadedProvider } from "../on-block-loaded";
 import { UserBlocksProvider } from "../user-blocks";
@@ -48,7 +47,6 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   accountId,
   entityId,
 }) => {
-  const loadingTypeSystem = useInitTypeSystem();
   const root = useRef<HTMLDivElement>(null);
   const client = useApolloClient();
 
@@ -128,7 +126,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   return (
     <UserBlocksProvider value={blocks}>
       <BlockLoadedProvider routeHash={routeHash}>
-        {isReadonlyMode || loadingTypeSystem ? null : (
+        {isReadonlyMode ? null : (
           <PageSectionContainer
             pageComments={pageComments}
             sx={{
