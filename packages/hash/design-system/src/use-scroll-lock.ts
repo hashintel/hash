@@ -8,22 +8,23 @@ const getScrollbarSizeOfDocument = () => {
   return Math.abs(window.innerWidth - documentWidth);
 };
 
-const useLastScrollbarSize = (element?: HTMLElement) => {
+const useLastScrollbarSize = (element: HTMLElement) => {
   const [lastScrollbarSize, setLastScrollbarSize] = useState(0);
   const observerRef = useRef<ResizeObserver>();
 
   useEffect(() => {
     observerRef.current = new ResizeObserver(() => {
-      const scrollbarSize = element
-        ? element.offsetWidth - element.clientWidth
-        : getScrollbarSizeOfDocument();
+      const scrollbarSize =
+        element !== document.body
+          ? element.offsetWidth - element.clientWidth
+          : getScrollbarSizeOfDocument();
 
       if (scrollbarSize > 0) {
         setLastScrollbarSize(scrollbarSize);
       }
     });
 
-    observerRef.current.observe(element ?? document.body);
+    observerRef.current.observe(element);
 
     return () => {
       observerRef.current?.disconnect();
@@ -44,18 +45,20 @@ const removeStylesFromElement = (element: HTMLElement) => {
  * @param active is locked
  * @param elementToLock an HTML element to lock it's scroll. Locks `document.body` if it's left empty
  */
-export const useScrollLock = (active: boolean, elementToLock?: HTMLElement) => {
+export const useScrollLock = (
+  active: boolean,
+  elementToLock: HTMLElement = document.body,
+) => {
   const scrollbarSize = useLastScrollbarSize(elementToLock);
 
   useLayoutEffect(() => {
-    const element = elementToLock ?? document.body;
     if (active && scrollbarSize) {
-      element.style.setProperty("padding-right", `${scrollbarSize}px`);
-      element.style.setProperty("overflow", `hidden`);
+      elementToLock.style.setProperty("padding-right", `${scrollbarSize}px`);
+      elementToLock.style.setProperty("overflow", `hidden`);
     } else {
-      removeStylesFromElement(element);
+      removeStylesFromElement(elementToLock);
     }
 
-    return () => removeStylesFromElement(element);
+    return () => removeStylesFromElement(elementToLock);
   }, [active, scrollbarSize, elementToLock]);
 };
