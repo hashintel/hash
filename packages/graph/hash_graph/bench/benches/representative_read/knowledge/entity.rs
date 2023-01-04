@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
-    identifier::time::{Image, Kernel, Projection, TimeProjection, TimespanBound},
+    identifier::time::TimeProjection,
     knowledge::{EntityQueryPath, EntityUuid},
     store::{
         query::{Filter, FilterExpression, Parameter},
@@ -46,13 +46,7 @@ pub fn bench_get_entity_by_id(
                         ),
                     ]),
                     graph_resolve_depths: GraphResolveDepths::default(),
-                    time_projection: TimeProjection::DecisionTime(Projection {
-                        kernel: Kernel::new(None),
-                        image: Image::new(
-                            Some(TimespanBound::Unbounded),
-                            Some(TimespanBound::Unbounded),
-                        ),
-                    }),
+                    time_projection: TimeProjection::decision(None, ..),
                 })
                 .await
                 .expect("failed to read entity from store");
@@ -80,13 +74,7 @@ pub fn bench_get_entities_by_property(
                     )))),
                 ),
                 graph_resolve_depths,
-                time_projection: TimeProjection::DecisionTime(Projection {
-                    kernel: Kernel::new(None),
-                    image: Image::new(
-                        Some(TimespanBound::Unbounded),
-                        Some(TimespanBound::Unbounded),
-                    ),
-                }),
+                time_projection: TimeProjection::decision(None, ..),
             })
             .await
             .expect("failed to read entity from store");
@@ -114,13 +102,7 @@ pub fn bench_get_link_by_target_by_property(
                     )))),
                 ),
                 graph_resolve_depths,
-                time_projection: TimeProjection::DecisionTime(Projection {
-                    kernel: Kernel::new(None),
-                    image: Image::new(
-                        Some(TimespanBound::Unbounded),
-                        Some(TimespanBound::Unbounded),
-                    ),
-                }),
+                time_projection: TimeProjection::decision(None, ..),
             })
             .await
             .expect("failed to read entity from store");

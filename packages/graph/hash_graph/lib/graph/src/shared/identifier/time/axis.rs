@@ -43,6 +43,22 @@ pub enum TimeProjection {
     TransactionTime(TransactionTimeProjection),
 }
 
+impl TimeProjection {
+    pub fn decision(
+        kernel: Option<Timestamp<TransactionTime>>,
+        image: impl Into<Timespan<DecisionTime>>,
+    ) -> Self {
+        Self::DecisionTime(DecisionTimeProjection::new(kernel, image))
+    }
+
+    pub fn transaction(
+        kernel: Option<Timestamp<DecisionTime>>,
+        image: impl Into<Timespan<TransactionTime>>,
+    ) -> Self {
+        Self::TransactionTime(TransactionTimeProjection::new(kernel, image))
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TimeAxis {
     DecisionTime,
@@ -59,13 +75,7 @@ pub type ProjectedTimestamp = Timestamp<ProjectedTime>;
 
 impl Default for TimeProjection {
     fn default() -> Self {
-        Self::DecisionTime(Projection {
-            kernel: Kernel::new(None),
-            image: Image::new(
-                Some(TimespanBound::Unbounded),
-                Some(TimespanBound::Unbounded),
-            ),
-        })
+        Self::decision(None, ..)
     }
 }
 

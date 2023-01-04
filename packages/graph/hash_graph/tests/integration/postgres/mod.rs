@@ -12,7 +12,7 @@ use graph::{
         account::AccountId,
         knowledge::EntityId,
         ontology::OntologyTypeEditionId,
-        time::{Image, Kernel, Projection, TimeProjection, TimespanBound, TransactionTimestamp},
+        time::{TimeProjection, TransactionTimestamp},
         EntityVertexId, GraphElementVertexId,
     },
     knowledge::{
@@ -168,13 +168,7 @@ impl DatabaseApi<'_> {
             .get_data_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: TimeProjection::DecisionTime(Projection {
-                    kernel: Kernel::new(None),
-                    image: Image::new(
-                        Some(TimespanBound::Unbounded),
-                        Some(TimespanBound::Unbounded),
-                    ),
-                }),
+                time_projection: TimeProjection::decision(None, ..),
             })
             .await?
             .vertices
@@ -214,13 +208,7 @@ impl DatabaseApi<'_> {
             .get_property_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: TimeProjection::DecisionTime(Projection {
-                    kernel: Kernel::new(None),
-                    image: Image::new(
-                        Some(TimespanBound::Unbounded),
-                        Some(TimespanBound::Unbounded),
-                    ),
-                }),
+                time_projection: TimeProjection::decision(None, ..),
             })
             .await?
             .vertices
@@ -260,13 +248,7 @@ impl DatabaseApi<'_> {
             .get_entity_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: TimeProjection::DecisionTime(Projection {
-                    kernel: Kernel::new(None),
-                    image: Image::new(
-                        Some(TimespanBound::Unbounded),
-                        Some(TimespanBound::Unbounded),
-                    ),
-                }),
+                time_projection: TimeProjection::decision(None, ..),
             })
             .await?
             .vertices
@@ -315,13 +297,7 @@ impl DatabaseApi<'_> {
             .get_entity(&StructuralQuery {
                 filter: Entity::create_filter_for_vertex_id(&entity_vertex_id),
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: TimeProjection::TransactionTime(Projection {
-                    kernel: Kernel::new(None),
-                    image: Image::new(
-                        Some(TimespanBound::Unbounded),
-                        Some(TimespanBound::Unbounded),
-                    ),
-                }),
+                time_projection: TimeProjection::decision(None, ..),
             })
             .await?
             .vertices
@@ -417,13 +393,7 @@ impl DatabaseApi<'_> {
             .get_entity(&StructuralQuery {
                 filter,
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: TimeProjection::DecisionTime(Projection {
-                    kernel: Kernel::new(None),
-                    image: Image::new(
-                        Some(TimespanBound::Unbounded),
-                        Some(TimespanBound::Unbounded),
-                    ),
-                }),
+                time_projection: TimeProjection::decision(None, ..),
             })
             .await?;
 
@@ -484,13 +454,7 @@ impl DatabaseApi<'_> {
             .get_entity(&StructuralQuery {
                 filter,
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: TimeProjection::DecisionTime(Projection {
-                    kernel: Kernel::new(None),
-                    image: Image::new(
-                        Some(TimespanBound::Unbounded),
-                        Some(TimespanBound::Unbounded),
-                    ),
-                }),
+                time_projection: TimeProjection::decision(None, ..),
             })
             .await?;
 
