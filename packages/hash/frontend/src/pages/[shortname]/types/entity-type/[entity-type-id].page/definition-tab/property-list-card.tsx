@@ -1,4 +1,9 @@
-import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
+import {
+  OneOf,
+  PropertyType,
+  PropertyValues,
+  VersionedUri,
+} from "@blockprotocol/type-system";
 import { faList } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { OwnedById } from "@hashintel/hash-shared/types";
@@ -9,6 +14,7 @@ import {
   TableFooter,
   TableHead,
 } from "@mui/material";
+import { uniqueId } from "lodash";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import {
@@ -29,7 +35,13 @@ import {
 } from "../shared/property-types-context";
 import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
 import { PropertyTypeForm } from "./property-list-card/shared/property-type-form";
-import { PropertyTypeFormValues } from "./property-list-card/shared/property-type-form-values";
+import {
+  arrayExpectedValueDataDefaults,
+  ExpectedValue,
+  getDefaultExpectedValue,
+  getExpectedValueDescriptor,
+  PropertyTypeFormValues,
+} from "./property-list-card/shared/property-type-form-values";
 import { getPropertyTypeSchema } from "./property-list-card/shared/property-type-form/property-type-schema";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
@@ -159,17 +171,87 @@ export const PropertyTypeRow = ({
         }}
         submitButtonProps={{ children: <>Edit property type</> }}
         disabledFields={["name"]}
-        getDefaultValues={() => ({
-          name: property.title,
-          description: property.description,
-          // @todo handle exotic values
-          expectedValues: property.oneOf.map((dataType) => {
-            if (!("$ref" in dataType)) {
-              throw new Error("Handle exotic data types");
+        getDefaultValues={() => {
+          const flatList: PropertyTypeFormValues["flattenedCustomExpectedValueList"] =
+            {};
+          const expectedValues: ExpectedValue[] = [];
+
+          function walk(arr: OneOf<PropertyValues>, parentId?: string) {
+            for (const item of arr.oneOf) {
+              const id = uniqueId();
+
+              if (parentId) {
+                const parentData = flatList[parentId]?.data;
+
+                if (parentData?.typeId !== "array") {
+                  throw new Error("Parent must be an array");
+                }
+
+                parentData.itemIds.push(id);
+              }
+
+              if ("$ref" in item) {
+                if (!parentId) {
+                  expectedValues.push(item.$ref);
+                }
+
+                // @todo should we do this?
+                flatList[id] = {
+                  id,
+                  data: {
+                    typeId: item.$ref,
+                  },
+                };
+              } else {
+                switch (item.type) {
+                  case "array":
+                    console.log(item);
+                    flatList[id] = {
+                      id,
+                      data: {
+                        typeId: "array",
+                        // @todo check this
+                        infinity: !("maxItems" in item && item.maxItems === 0),
+                        itemIds: [],
+                        minItems:
+                          item.minItems ??
+                          arrayExpectedValueDataDefaults.minItems,
+                        maxItems:
+                          item.maxItems ??
+                          arrayExpectedValueDataDefaults.maxItems,
+                      },
+                      ...(parentId ? { parentId } : {}),
+                    };
+
+                    walk(item.items, id);
+
+                    if (!parentId) {
+                      expectedValues.push(
+                        getExpectedValueDescriptor(id, flatList),
+                      );
+                    }
+
+                    break;
+                  case "object":
+                    console.log("skipping object");
+                    break;
+                }
+              }
             }
-            return dataType.$ref;
-          }),
-        })}
+          }
+
+          walk(property);
+
+          console.log(property, expectedValues, flatList);
+
+          return {
+            name: property.title,
+            description: property.description,
+            // @todo handle exotic values
+            expectedValues,
+            flattenedCustomExpectedValueList: flatList,
+          };
+        }}
       />
     </>
   );

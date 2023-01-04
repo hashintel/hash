@@ -20,13 +20,10 @@ import { useFormContext, useWatch } from "react-hook-form";
 
 import { faCube } from "../../../../../../../../../../shared/icons/pro/fa-cube";
 import {
-  ArrayExpectedValue,
-  ArrayType,
-  ExpectedValue,
   getDefaultExpectedValue,
+  getExpectedValueDescriptor,
   PropertyTypeFormValues,
 } from "../../property-type-form-values";
-import { dataTypeOptions } from "../shared/data-type-options";
 import { ArrayExpectedValueBuilder } from "./custom-expected-value-builder/array-expected-value-builder";
 import { useCustomExpectedValueBuilderContext } from "./shared/custom-expected-value-builder-context";
 import { ObjectExpectedValueBuilder } from "./shared/object-expected-value-builder";
@@ -82,59 +79,6 @@ const ExpectedValueBuilder: FunctionComponent<ExpectedValueBuilderProps> = ({
 
 type CustomExpectedValueBuilderProps = {
   closeMenu: () => void;
-};
-
-const geArrayExpectedValueType = (
-  data: ArrayExpectedValue,
-  flattenedExpectedValues: PropertyTypeFormValues["flattenedCustomExpectedValueList"],
-): ArrayType => {
-  const containsArray = data.itemIds.some((itemId) => {
-    const typeId = flattenedExpectedValues[itemId]?.data?.typeId;
-    return typeId === "array";
-  });
-
-  const containsObject = data.itemIds.some(
-    (itemId) => flattenedExpectedValues[itemId]?.data?.typeId === "object",
-  );
-
-  const containsDataType = data.itemIds.some((itemId) => {
-    const typeId = flattenedExpectedValues[itemId]?.data?.typeId!;
-    return (
-      typeId !== "array" &&
-      typeId !== "object" &&
-      dataTypeOptions.includes(typeId)
-    );
-  });
-
-  if (containsArray && !containsObject && !containsDataType) {
-    return ArrayType.arrayArray;
-  } else if (containsObject && !containsArray && !containsDataType) {
-    return ArrayType.propertyObjectArray;
-  } else if (containsDataType && !containsArray && !containsObject) {
-    return ArrayType.dataTypeArray;
-  }
-
-  return ArrayType.mixedArray;
-};
-
-const getExpectedValueDescriptor = (
-  id: string,
-  flattenedExpectedValues: PropertyTypeFormValues["flattenedCustomExpectedValueList"],
-): ExpectedValue => {
-  const data = flattenedExpectedValues[id]?.data;
-
-  if (data && "itemIds" in data) {
-    return {
-      typeId: "array",
-      arrayType: geArrayExpectedValueType(data, flattenedExpectedValues),
-      id,
-    };
-  }
-
-  return {
-    typeId: "object",
-    id,
-  };
 };
 
 export const CustomExpectedValueBuilder: FunctionComponent<
