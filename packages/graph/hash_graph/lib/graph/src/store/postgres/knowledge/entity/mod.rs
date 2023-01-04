@@ -13,7 +13,7 @@ use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
         ontology::OntologyTypeEditionId,
-        DecisionTimespan, DecisionTimestamp, TransactionTimespan,
+        time::{DecisionTimeVersionTimespan, DecisionTimestamp, TransactionTimeVersionTimespan},
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
@@ -22,7 +22,8 @@ use crate::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
         postgres::{DependencyContext, DependencyStatus},
         query::Filter,
-        AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
+        AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, Store,
+        Transaction, UpdateError,
     },
     subgraph::{
         edges::{
@@ -328,8 +329,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_id,
                 EntityRecordId::new(row.get(0)),
                 EntityVersion::new(
-                    DecisionTimespan::new(row.get(1)),
-                    TransactionTimespan::new(row.get(2)),
+                    DecisionTimeVersionTimespan::from_anonymous(row.get(1)),
+                    TransactionTimeVersionTimespan::from_anonymous(row.get(2)),
                 ),
             ),
             entity_type_id,
@@ -355,13 +356,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         actor_id: UpdatedById,
         entity_type_id: &VersionedUri,
     ) -> Result<Vec<EntityMetadata>, InsertionError> {
-        let transaction = PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .into_report()
-                .change_context(InsertionError)?,
-        );
+        let transaction = self.transaction().await.change_context(InsertionError)?;
 
         let entities = entities.into_iter();
         let mut entity_ids = Vec::with_capacity(entities.size_hint().0);
@@ -415,12 +410,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             )
             .await?;
 
-        transaction
-            .client
-            .commit()
-            .await
-            .into_report()
-            .change_context(InsertionError)?;
+        transaction.commit().await.change_context(InsertionError)?;
 
         Ok(entity_ids
             .into_iter()
@@ -486,16 +476,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .into_report()
             .change_context(UpdateError)?;
 
-        // The transaction is required to check if the update happened. If there were no returned
+        // The transaction is required to check if the update happened. If there is no returned
         // row, it either means, that there was no entity with that parameters or a race condition
         // happened.
-        let transaction = PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .into_report()
-                .change_context(UpdateError)?,
-        );
+        let transaction = self.transaction().await.change_context(UpdateError)?;
 
         if transaction
             .as_client()
@@ -559,20 +543,15 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(UpdateError));
         };
 
-        transaction
-            .client
-            .commit()
-            .await
-            .into_report()
-            .change_context(UpdateError)?;
+        transaction.commit().await.change_context(UpdateError)?;
 
         Ok(EntityMetadata::new(
             EntityEditionId::new(
                 entity_id,
                 EntityRecordId::new(row.get(0)),
                 EntityVersion::new(
-                    DecisionTimespan::new(row.get(1)),
-                    TransactionTimespan::new(row.get(2)),
+                    DecisionTimeVersionTimespan::from_anonymous(row.get(1)),
+                    TransactionTimeVersionTimespan::from_anonymous(row.get(2)),
                 ),
             ),
             entity_type_id,
