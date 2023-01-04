@@ -307,7 +307,7 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
         <DeleteExpectedValueModal
           expectedValueType="array"
           popupState={deleteModalPopupState}
-          editing={!!editingExpectedValueIndex && !index.length}
+          editing={editingExpectedValueIndex !== undefined && !index.length}
           onDelete={onDelete}
           onClose={() => deleteModalPopupState.close()}
           dataTypeCount={dataTypeCount}

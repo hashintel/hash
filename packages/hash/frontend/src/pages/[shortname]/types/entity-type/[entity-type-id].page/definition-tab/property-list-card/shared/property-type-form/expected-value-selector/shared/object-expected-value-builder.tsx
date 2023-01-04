@@ -359,7 +359,7 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
         <DeleteExpectedValueModal
           expectedValueType="property object"
           popupState={deleteModalPopupState}
-          editing={!!editingExpectedValueIndex}
+          editing={editingExpectedValueIndex !== undefined}
           onDelete={onDelete}
           onClose={() => deleteModalPopupState.close()}
           propertyTypeCount={properties.length}
