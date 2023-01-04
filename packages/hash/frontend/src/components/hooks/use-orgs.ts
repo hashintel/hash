@@ -9,7 +9,6 @@ import {
   GetAllLatestEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
 import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { constructOrg, Org } from "../../lib/user-and-org";
 /**
  * Retrieves a list of organizations.
@@ -22,8 +21,6 @@ export const useOrgs = (
   loading: boolean;
   orgs?: Org[];
 } => {
-  const loadingTypeSystem = useInitTypeSystem();
-
   const { data, loading } = useQuery<
     GetAllLatestEntitiesQuery,
     GetAllLatestEntitiesQueryVariables
@@ -45,7 +42,7 @@ export const useOrgs = (
   const { getAllLatestEntities: subgraph } = data ?? {};
 
   const orgs = useMemo(() => {
-    if (!loadingTypeSystem || !subgraph) {
+    if (!subgraph) {
       return undefined;
     }
 
@@ -63,7 +60,7 @@ export const useOrgs = (
           resolvedOrgs,
         }),
     );
-  }, [subgraph, loadingTypeSystem]);
+  }, [subgraph]);
 
   return {
     loading,
