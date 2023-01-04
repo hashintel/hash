@@ -37,7 +37,7 @@ pub use self::{
 pub trait Store:
     AccountStore + DataTypeStore + PropertyTypeStore + EntityTypeStore + EntityStore
 {
-    type Transaction<'t>: Transaction + Send
+    type Transaction<'t>: Transaction
     where
         Self: 't;
 
