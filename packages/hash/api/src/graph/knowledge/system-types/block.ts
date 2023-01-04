@@ -74,7 +74,7 @@ export const getBlockById: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createBlock: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityType"> & {
+  Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
     componentId: string;
     blockData: Entity;
   },
@@ -87,12 +87,10 @@ export const createBlock: ImpureGraphFunction<
       componentId,
   };
 
-  const entityType = SYSTEM_TYPES.entityType.block;
-
   const entity = await createEntity(ctx, {
     ownedById,
     properties,
-    entityType,
+    entityTypeId: SYSTEM_TYPES.entityType.block.schema.$id,
     actorId,
   });
 
