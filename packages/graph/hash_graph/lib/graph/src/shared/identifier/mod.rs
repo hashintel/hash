@@ -5,7 +5,7 @@ use std::{
 };
 
 use chrono::{DateTime, Utc};
-use postgres_protocol::types::{time_from_sql, Range, RangeBound};
+use postgres_protocol::types::{Range, RangeBound};
 use postgres_types::{FromSql, Type};
 use serde::{Deserialize, Serialize};
 use serde_json;
@@ -111,41 +111,11 @@ impl FromSql<'_> for Timespan {
             })
         }
 
-        fn is_negative_infinity(
-            bound: &RangeBound<Option<&[u8]>>,
-        ) -> Result<bool, Box<dyn std::error::Error + Sync + Send>> {
-            Ok(match bound {
-                RangeBound::Inclusive(Some(bytes)) | RangeBound::Exclusive(Some(bytes)) => {
-                    time_from_sql(bytes)? == i64::MIN
-                }
-                _ => false,
-            })
-        }
-
-        fn is_positive_infinity(
-            bound: &RangeBound<Option<&[u8]>>,
-        ) -> Result<bool, Box<dyn std::error::Error + Sync + Send>> {
-            Ok(match bound {
-                RangeBound::Inclusive(Some(bytes)) | RangeBound::Exclusive(Some(bytes)) => {
-                    time_from_sql(bytes)? == i64::MAX
-                }
-                _ => false,
-            })
-        }
-
         match postgres_protocol::types::range_from_sql(buf)? {
             Range::Empty => unimplemented!("Empty ranges are not supported"),
             Range::Nonempty(lower, upper) => Ok(Self {
-                start: if is_negative_infinity(&lower)? {
-                    Bound::Unbounded
-                } else {
-                    parse_bound(&lower)?
-                },
-                end: if is_positive_infinity(&upper)? {
-                    Bound::Unbounded
-                } else {
-                    parse_bound(&upper)?
-                },
+                start: parse_bound(&lower)?,
+                end: parse_bound(&upper)?,
             }),
         }
     }
