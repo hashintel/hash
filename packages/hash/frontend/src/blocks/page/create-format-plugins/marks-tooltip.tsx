@@ -83,7 +83,7 @@ export const MarksTooltip: FunctionComponent<MarksTooltipProps> = ({
         overflow: "hidden",
         position: "absolute",
         left: "50%",
-        marginTop: -0.5,
+        marginTop: -1,
         transform: "translate(-50%, -100%)",
         zIndex: "10",
       }}
