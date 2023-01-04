@@ -1,7 +1,6 @@
 import { Button } from "@hashintel/hash-design-system";
 import { Box, experimental_sx as sx, styled } from "@mui/material";
 import { isNumber } from "lodash";
-import { ReactNode } from "react";
 
 const StyledBox = styled(Box)(
   sx({
@@ -17,26 +16,28 @@ const StyledBox = styled(Box)(
 );
 
 export const ItemLimitInfo = ({ min, max }: { min?: number; max?: number }) => {
-  const nodesToRender: ReactNode[] = [];
+  const minNode = isNumber(min) ? (
+    <>
+      <StyledBox>{min}</StyledBox> values required
+    </>
+  ) : null;
 
-  if (isNumber(min)) {
-    nodesToRender.push(
+  const maxNode = isNumber(max) ? (
+    <>
+      {isNumber(min) && <Box mx={0.5}>{" and "}</Box>}
+      <StyledBox>{max}</StyledBox> values maximum
+    </>
+  ) : null;
+
+  const nodesToRender =
+    minNode || maxNode ? (
       <>
-        <StyledBox>{min}</StyledBox> values required
-      </>,
-    );
-  }
+        {minNode}
+        {maxNode}
+      </>
+    ) : null;
 
-  if (isNumber(max)) {
-    nodesToRender.push(
-      <>
-        {isNumber(min) && <Box mx={0.5}>{" and "}</Box>}
-        <StyledBox>{max}</StyledBox> values maximum
-      </>,
-    );
-  }
-
-  if (!nodesToRender.length) {
+  if (!nodesToRender) {
     return null;
   }
 
