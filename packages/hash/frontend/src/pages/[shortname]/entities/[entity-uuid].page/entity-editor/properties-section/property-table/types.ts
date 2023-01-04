@@ -14,6 +14,8 @@ export type PropertyRow = {
   indent: number;
   verticalLinesForEachIndent: VerticalIndentationLineDir[];
   propertyKeyChain: string[];
+  maxItems?: number;
+  minItems?: number;
 };
 
 export type PropertyColumnKey = Extract<

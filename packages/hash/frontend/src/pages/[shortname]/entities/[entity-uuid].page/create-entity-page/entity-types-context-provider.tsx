@@ -2,14 +2,12 @@ import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { PropsWithChildren, useEffect, useMemo, useState } from "react";
 
 import { useBlockProtocolAggregateEntityTypes } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-entity-types";
-import { useInitTypeSystem } from "../../../../../lib/use-init-type-system";
 import {
   EntityTypesContext,
   EntityTypesContextValues,
 } from "./shared/entity-types-context";
 
 export const EntityTypesContextProvider = ({ children }: PropsWithChildren) => {
-  const typeSystemLoading = useInitTypeSystem();
   const [entityTypes, setEntityTypes] = useState<
     EntityTypesContextValues["types"] | null
   >(null);
@@ -17,9 +15,6 @@ export const EntityTypesContextProvider = ({ children }: PropsWithChildren) => {
 
   useEffect(() => {
     const fetch = async () => {
-      if (typeSystemLoading) {
-        return;
-      }
       await aggregateEntityTypes({ data: {} }).then(({ data: subgraph }) => {
         if (subgraph) {
           setEntityTypes(
@@ -34,7 +29,7 @@ export const EntityTypesContextProvider = ({ children }: PropsWithChildren) => {
     };
 
     void fetch();
-  }, [aggregateEntityTypes, typeSystemLoading]);
+  }, [aggregateEntityTypes]);
 
   const state = useMemo(() => ({ types: entityTypes }), [entityTypes]);
 
