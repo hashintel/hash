@@ -8,7 +8,7 @@ use graph::{
     identifier::account::AccountId,
     knowledge::{EntityProperties, EntityUuid, LinkData},
     provenance::{OwnedById, UpdatedById},
-    store::{AccountStore, AsClient, EntityStore, PostgresStore},
+    store::{AccountStore, AsClient, EntityStore, Store, Transaction},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::{repr, uri::VersionedUri, EntityType};
@@ -113,25 +113,22 @@ const SEED_LINKS: &[(&str, usize, usize)] = &[
 /// single point to swap out the seeding of test data when we can invest time in creating a
 /// representative environment.
 async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
-    let transaction = store_wrapper
+    let mut transaction = store_wrapper
         .store
-        .as_mut_client()
         .transaction()
         .await
         .expect("failed to start transaction");
 
-    let mut store = PostgresStore::new(transaction);
-
     let now = std::time::SystemTime::now();
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
-    store
+    transaction
         .insert_account_id(account_id)
         .await
         .expect("could not insert account id");
 
     seed(
-        &mut store,
+        &mut transaction,
         account_id,
         SEED_DATA_TYPES,
         SEED_PROPERTY_TYPES,
@@ -152,7 +149,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
             .id()
             .clone();
 
-        let uuids = store
+        let uuids = transaction
             .insert_entities_batched_by_type(
                 repeat((OwnedById::new(account_id), None, properties, None, None)).take(quantity),
                 UpdatedById::new(account_id),
@@ -173,7 +170,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
             .id()
             .clone();
 
-        let uuids = store
+        let uuids = transaction
             .insert_entities_batched_by_type(
                 entity_uuids[*left_entity_index]
                     .iter()
@@ -200,8 +197,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
         total_link_entities += uuids.len();
     }
 
-    store
-        .into_client()
+    transaction
         .commit()
         .await
         .expect("failed to commit transaction");
