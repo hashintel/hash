@@ -3,7 +3,10 @@ import { SimpleSpanProcessor } from "@opentelemetry/sdk-trace-base";
 import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
 import { registerInstrumentations } from "@opentelemetry/instrumentation";
 import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
-import { ExpressInstrumentation } from "@opentelemetry/instrumentation-express";
+import {
+  ExpressInstrumentation,
+  ExpressLayerType,
+} from "@opentelemetry/instrumentation-express";
 import { GraphQLInstrumentation } from "@opentelemetry/instrumentation-graphql";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
 
@@ -14,10 +17,12 @@ const traceTimeout = 5000;
 const unregisterInstrumentations = registerInstrumentations({
   instrumentations: [
     new HttpInstrumentation(),
-    new ExpressInstrumentation(),
+    new ExpressInstrumentation({
+      ignoreLayersType: [ExpressLayerType.MIDDLEWARE],
+    }),
     new GraphQLInstrumentation({
       allowValues: true,
-      depth: 2,
+      depth: 5,
     }),
   ],
 });
