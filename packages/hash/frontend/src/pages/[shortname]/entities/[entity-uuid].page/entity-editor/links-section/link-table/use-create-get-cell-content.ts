@@ -61,7 +61,9 @@ export const useCreateGetCellContent = () => {
               copyData: String(row.expectedEntityTypeTitles),
               data: {
                 kind: "chip-cell",
-                chips: row.expectedEntityTypeTitles,
+                chips: row.expectedEntityTypeTitles.map((title) => ({
+                  text: title,
+                })),
                 color: "blue",
               },
             };

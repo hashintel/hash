@@ -7,6 +7,7 @@ import {
   faTrash,
   IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
+import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
 import { types } from "@hashintel/hash-shared/ontology-types";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Box, Divider, Typography } from "@mui/material";
@@ -25,19 +26,22 @@ import { ValueChip } from "./value-chip";
 
 export const editorSpecs: Record<
   EditorType,
-  { icon: IconDefinition["icon"]; title: string }
+  { icon: IconDefinition["icon"]; title: string; gridIcon: CustomIcon }
 > = {
   boolean: {
     icon: faSquareCheck,
     title: types.dataType.boolean.title,
+    gridIcon: "bpTypeBoolean",
   },
   number: {
     icon: fa100,
     title: types.dataType.number.title,
+    gridIcon: "bpTypeNumber",
   },
   text: {
     icon: faText,
     title: types.dataType.text.title,
+    gridIcon: "bpTypeText",
   },
 };
 
@@ -82,6 +86,12 @@ export const SortableRow = ({
   const [draftValue, setDraftValue] = useState(value);
   const [prevEditing, setPrevEditing] = useState(editing);
 
+  const editorType =
+    overriddenEditorType ?? guessEditorTypeFromValue(value, expectedTypes);
+
+  const editorSpec = editorSpecs[editorType];
+
+  const isBooleanEditor = editorType === "boolean";
   const shouldShowActions =
     !isDragging && !isSorting && (hovered || selected || editing);
 
@@ -89,11 +99,6 @@ export const SortableRow = ({
     setPrevEditing(editing);
     setDraftValue(value);
   }
-
-  const editorType =
-    overriddenEditorType ?? guessEditorTypeFromValue(value, expectedTypes);
-
-  const editorSpec = editorSpecs[editorType];
 
   return (
     <Box
@@ -137,8 +142,12 @@ export const SortableRow = ({
       </Typography>
 
       {editing ? (
-        editorType === "boolean" ? (
-          <BooleanInput value={!!draftValue} onChange={setDraftValue} />
+        isBooleanEditor ? (
+          <BooleanInput
+            showChange
+            value={!!draftValue}
+            onChange={setDraftValue}
+          />
         ) : (
           <NumberOrTextInput
             isNumber={editorType === "number"}
@@ -148,6 +157,12 @@ export const SortableRow = ({
             onEnterPressed={() => onSaveChanges(index, draftValue)}
           />
         )
+      ) : isBooleanEditor ? (
+        <BooleanInput
+          showChange={shouldShowActions}
+          value={!!draftValue}
+          onChange={setDraftValue}
+        />
       ) : (
         <ValueChip
           value={value}
@@ -157,7 +172,7 @@ export const SortableRow = ({
         />
       )}
 
-      {shouldShowActions && (
+      {shouldShowActions && !isBooleanEditor && (
         <Box
           display="flex"
           sx={[
