@@ -1,9 +1,8 @@
 use std::{future::Future, pin::Pin};
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{Result, ResultExt};
 use futures::FutureExt;
-use tokio_postgres::GenericClient;
 use type_system::{EntityType, EntityTypeReference, PropertyTypeReference};
 
 use crate::{
@@ -13,7 +12,8 @@ use crate::{
     store::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
-        AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
+        AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, Record, Store,
+        Transaction, UpdateError,
     },
     subgraph::{
         edges::{
@@ -237,13 +237,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         owned_by_id: OwnedById,
         updated_by_id: UpdatedById,
     ) -> Result<OntologyElementMetadata, InsertionError> {
-        let transaction = PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .into_report()
-                .change_context(InsertionError)?,
-        );
+        let transaction = self.transaction().await.change_context(InsertionError)?;
 
         // This clone is currently necessary because we extract the references as we insert them.
         // We can only insert them after the type has been created, and so we currently extract them
@@ -264,12 +258,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             })
             .attach_lazy(|| entity_type.clone())?;
 
-        transaction
-            .client
-            .commit()
-            .await
-            .into_report()
-            .change_context(InsertionError)?;
+        transaction.commit().await.change_context(InsertionError)?;
 
         Ok(metadata)
     }
@@ -313,13 +302,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         entity_type: EntityType,
         updated_by: UpdatedById,
     ) -> Result<OntologyElementMetadata, UpdateError> {
-        let transaction = PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .into_report()
-                .change_context(UpdateError)?,
-        );
+        let transaction = self.transaction().await.change_context(UpdateError)?;
 
         // This clone is currently necessary because we extract the references as we insert them.
         // We can only insert them after the type has been created, and so we currently extract them
@@ -340,12 +323,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             })
             .attach_lazy(|| entity_type.clone())?;
 
-        transaction
-            .client
-            .commit()
-            .await
-            .into_report()
-            .change_context(UpdateError)?;
+        transaction.commit().await.change_context(UpdateError)?;
 
         Ok(metadata)
     }
