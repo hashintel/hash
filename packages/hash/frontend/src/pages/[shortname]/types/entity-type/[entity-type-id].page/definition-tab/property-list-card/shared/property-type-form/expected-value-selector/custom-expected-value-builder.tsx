@@ -20,6 +20,7 @@ import { useFormContext, useWatch } from "react-hook-form";
 
 import { faCube } from "../../../../../../../../../../shared/icons/pro/fa-cube";
 import {
+  ArrayExpectedValue,
   ArrayType,
   ExpectedValue,
   getDefaultExpectedValue,
@@ -83,45 +84,49 @@ type CustomExpectedValueBuilderProps = {
   closeMenu: () => void;
 };
 
-const createExpectedValue = (
+const geArrayExpectedValueType = (
+  data: ArrayExpectedValue,
+  flattenedExpectedValues: PropertyTypeFormValues["flattenedCustomExpectedValueList"],
+): ArrayType => {
+  const containsArray = data.itemIds.some((itemId) => {
+    const typeId = flattenedExpectedValues[itemId]?.data?.typeId;
+    return typeId === "array";
+  });
+
+  const containsObject = data.itemIds.some(
+    (itemId) => flattenedExpectedValues[itemId]?.data?.typeId === "object",
+  );
+
+  const containsDataType = data.itemIds.some((itemId) => {
+    const typeId = flattenedExpectedValues[itemId]?.data?.typeId!;
+    return (
+      typeId !== "array" &&
+      typeId !== "object" &&
+      dataTypeOptions.includes(typeId)
+    );
+  });
+
+  if (containsArray && !containsObject && !containsDataType) {
+    return ArrayType.arrayArray;
+  } else if (containsObject && !containsArray && !containsDataType) {
+    return ArrayType.propertyObjectArray;
+  } else if (containsDataType && !containsArray && !containsObject) {
+    return ArrayType.dataTypeArray;
+  }
+
+  return ArrayType.mixedArray;
+};
+
+const getExpectedValueDescriptor = (
   id: string,
   flattenedExpectedValues: PropertyTypeFormValues["flattenedCustomExpectedValueList"],
 ): ExpectedValue => {
-  const customExpectedValue = flattenedExpectedValues[id];
+  const data = flattenedExpectedValues[id]?.data;
 
-  if (customExpectedValue?.data && "itemIds" in customExpectedValue.data) {
-    const containsArray = customExpectedValue.data.itemIds.some((itemId) => {
-      const typeId = flattenedExpectedValues[itemId]?.data?.typeId;
-      return typeId === "array";
-    });
-
-    const containsObject = customExpectedValue.data.itemIds.some(
-      (itemId) => flattenedExpectedValues[itemId]?.data?.typeId === "object",
-    );
-
-    const containsDataType = customExpectedValue.data.itemIds.some((itemId) => {
-      const typeId = flattenedExpectedValues[itemId]?.data?.typeId!;
-      return (
-        typeId !== "array" &&
-        typeId !== "object" &&
-        dataTypeOptions.includes(typeId)
-      );
-    });
-
-    let arrayType: ArrayType;
-    if (containsArray && !containsObject && !containsDataType) {
-      arrayType = ArrayType.arrayArray;
-    } else if (containsObject && !containsArray && !containsDataType) {
-      arrayType = ArrayType.propertyObjectArray;
-    } else if (containsDataType && !containsArray && !containsObject) {
-      arrayType = ArrayType.dataTypeArray;
-    } else {
-      arrayType = ArrayType.mixedArray;
-    }
-
+  if (data && "itemIds" in data) {
     return {
       typeId: "array",
-      arrayType,
+      arrayType: geArrayExpectedValueType(data, flattenedExpectedValues),
       id,
     };
   }
@@ -337,7 +342,7 @@ export const CustomExpectedValueBuilder: FunctionComponent<
                 "flattenedCustomExpectedValueList",
               );
 
-              const expectedValue = createExpectedValue(
+              const expectedValue = getExpectedValueDescriptor(
                 customExpectedValueId,
                 flattenedExpectedValues,
               );

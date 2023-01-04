@@ -11,7 +11,7 @@ interface PrimitiveExpectedValue {
   typeId: VersionedUri;
 }
 
-interface ArrayExpectedValue {
+export interface ArrayExpectedValue {
   typeId: "array";
   minItems: number;
   maxItems: number;
