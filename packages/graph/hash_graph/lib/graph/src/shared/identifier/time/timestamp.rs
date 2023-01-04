@@ -8,7 +8,7 @@ use utoipa::{openapi, ToSchema};
 
 /// Opaque structure to represent a single point in time.
 ///
-/// The type parameter `A` is the time axis to distinguish between different time axis at compile
+/// The type parameter `A` is the time axis to distinguish between different time axes at compile
 /// time.
 // A generic parameter is used here to avoid implementing the same struct multiple times or using
 // macros. It's reused in other time-related structs as well. This implies that trait bounds are
