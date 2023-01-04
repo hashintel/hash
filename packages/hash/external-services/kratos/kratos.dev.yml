@@ -53,9 +53,6 @@ selfservice:
       after:
         password:
           hooks:
-            # TODO - This does not block writing to the datastore. Update this
-            # configuration to use a "pre-persist" hook when it is officially
-            # supported by kratos.
             - hook: web_hook
               config:
                 can_interrupt: true
