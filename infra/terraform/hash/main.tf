@@ -162,6 +162,7 @@ module "application" {
   api_env_vars = concat(var.hash_api_env_vars, [
     { name = "AWS_REGION", secret = false, value = local.region },
     { name = "SYSTEM_USER_PASSWORD", secret = true, value = sensitive(var.hash_system_user_password) },
+    { name = "BLOCK_PROTOCOL_API_KEY", secret = true, value = sensitive(var.hash_block_protocol_api_key) },
     { name = "KRATOS_API_KEY", secret = true, value = sensitive(var.kratos_api_key) },
     { name = "HASH_SEED_USERS", secret = true, value = sensitive(jsonencode(var.hash_seed_users)) },
     { name = "HASH_REDIS_HOST", secret = false, value = module.redis.node.address },
