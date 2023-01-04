@@ -26,7 +26,7 @@ import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { DefinitionTab } from "./[entity-type-id].page/definition-tab";
-import { EditBar } from "./[entity-type-id].page/edit-bar";
+import { EditBar } from "./[entity-type-id].page/edit-bar-type-editor";
 import { EntitiesTab } from "./[entity-type-id].page/entities-tab";
 import { EntityTypeTabs } from "./[entity-type-id].page/entity-type-tabs";
 import { EntityTypeContext } from "./[entity-type-id].page/shared/entity-type-context";

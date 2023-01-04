@@ -12,10 +12,12 @@ export const EntityPageHeader = ({
   entityLabel,
   lightTitle,
   chip,
+  editBar,
 }: {
   entityLabel: string;
   lightTitle?: boolean;
   chip: ReactNode;
+  editBar?: ReactNode;
 }) => {
   const router = useRouter();
 
@@ -47,6 +49,7 @@ export const EntityPageHeader = ({
         ]}
         scrollToTop={() => {}}
       />
+      {editBar}
       <Box py={3.75}>
         <Container>
           {chip}

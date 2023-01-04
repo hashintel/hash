@@ -20,7 +20,6 @@ import { ReactNode, useContext } from "react";
 import { useForm } from "react-hook-form";
 
 import { useBlockProtocolGetEntityType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
-import { useInitTypeSystem } from "../../../lib/use-init-type-system";
 import {
   getLayoutWithSidebar,
   NextPageWithLayout,
@@ -85,9 +84,7 @@ const Page: NextPageWithLayout = () => {
   const { getEntityType } = useBlockProtocolGetEntityType();
   const { activeWorkspace } = useContext(WorkspaceContext);
 
-  const typeSystemLoading = useInitTypeSystem();
-
-  if (typeSystemLoading || !activeWorkspace) {
+  if (!activeWorkspace) {
     return null;
   }
 

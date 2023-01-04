@@ -1,4 +1,5 @@
 import { VersionedUri } from "@blockprotocol/type-system";
+import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import {
@@ -8,6 +9,7 @@ import {
   Collapse,
   Stack,
   styled,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import { usePopupState } from "material-ui-popup-state/hooks";
@@ -217,13 +219,27 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
             <StyledTableRow>
               <StyledTableHeadCell sx={{ flex: 1 }}>NAME</StyledTableHeadCell>
               <StyledTableHeadCell
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                }}
                 ref={(ref: HTMLDivElement | null) => {
                   if (ref) {
                     setAllowArraysColumnWidth(ref.offsetWidth);
                   }
                 }}
               >
-                ALLOW ARRAYS
+                ALLOW MULTIPLE
+                <Tooltip title="Allow multiple values" placement="top">
+                  <FontAwesomeIcon
+                    icon={faCircleQuestion}
+                    sx={{
+                      fontSize: 12,
+                      color: ({ palette }) => palette.gray[40],
+                    }}
+                  />
+                </Tooltip>
               </StyledTableHeadCell>
               <StyledTableHeadCell
                 ref={(ref: HTMLDivElement | null) => {
