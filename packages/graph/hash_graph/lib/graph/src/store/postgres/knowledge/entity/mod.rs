@@ -476,7 +476,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .into_report()
             .change_context(UpdateError)?;
 
-        // The transaction is required to check if the update happened. If there were no returned
+        // The transaction is required to check if the update happened. If there is no returned
         // row, it either means, that there was no entity with that parameters or a race condition
         // happened.
         let transaction = self.transaction().await.change_context(UpdateError)?;
