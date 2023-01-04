@@ -1,3 +1,6 @@
+import { AccountId } from "@hashintel/hash-shared/types";
+import { EntityEditionId } from "@hashintel/hash-subgraph";
+
 import { StorageType } from "../graphql/api-types.gen";
 
 /** Interface describing a generic storage provider
@@ -14,9 +17,9 @@ export interface StorageProvider {
 }
 
 export interface GetFileEntityStorageKeyParams {
-  accountId: string;
+  accountId: AccountId;
   fileName: string;
-  entityVersionId: string;
+  entityEditionId: EntityEditionId;
 }
 
 export interface UploadableStorageProvider extends StorageProvider {

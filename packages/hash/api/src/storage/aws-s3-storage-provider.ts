@@ -56,9 +56,9 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
   getFileEntityStorageKey({
     accountId,
     fileName,
-    entityVersionId,
+    entityEditionId: { baseId, version },
   }: GetFileEntityStorageKeyParams) {
-    let fileKey = `files/${accountId}/${entityVersionId}`;
+    let fileKey = `files/${accountId}/${baseId}/${version}`;
     // Find and add the file extension to the path if it exists
     const extension = getFileExtension(fileName);
     if (extension) {

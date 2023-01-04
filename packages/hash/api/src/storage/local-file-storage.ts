@@ -75,9 +75,9 @@ export class LocalFileSystemStorageProvider implements StorageProvider {
   getFileEntityStorageKey({
     accountId,
     fileName,
-    entityVersionId,
+    entityEditionId: { baseId, version },
   }: GetFileEntityStorageKeyParams) {
-    let fileKey = `${accountId}-${entityVersionId}`;
+    let fileKey = `${accountId}-${baseId}-${version}`;
     // Find and add the file extension to the path if it exists
     const extension = getFileExtension(fileName);
     if (extension) {
