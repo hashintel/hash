@@ -83,6 +83,55 @@ type CustomExpectedValueBuilderProps = {
   closeMenu: () => void;
 };
 
+const createExpectedValue = (
+  id: string,
+  flattenedExpectedValues: PropertyTypeFormValues["flattenedCustomExpectedValueList"],
+): ExpectedValue => {
+  const customExpectedValue = flattenedExpectedValues[id];
+
+  if (customExpectedValue?.data && "itemIds" in customExpectedValue.data) {
+    const containsArray = customExpectedValue.data.itemIds.some((itemId) => {
+      const typeId = flattenedExpectedValues[itemId]?.data?.typeId;
+      return typeId === "array";
+    });
+
+    const containsObject = customExpectedValue.data.itemIds.some(
+      (itemId) => flattenedExpectedValues[itemId]?.data?.typeId === "object",
+    );
+
+    const containsDataType = customExpectedValue.data.itemIds.some((itemId) => {
+      const typeId = flattenedExpectedValues[itemId]?.data?.typeId!;
+      return (
+        typeId !== "array" &&
+        typeId !== "object" &&
+        dataTypeOptions.includes(typeId)
+      );
+    });
+
+    let arrayType: ArrayType;
+    if (containsArray && !containsObject && !containsDataType) {
+      arrayType = ArrayType.arrayArray;
+    } else if (containsObject && !containsArray && !containsDataType) {
+      arrayType = ArrayType.propertyObjectArray;
+    } else if (containsDataType && !containsArray && !containsObject) {
+      arrayType = ArrayType.dataTypeArray;
+    } else {
+      arrayType = ArrayType.mixedArray;
+    }
+
+    return {
+      typeId: "array",
+      arrayType,
+      id,
+    };
+  }
+
+  return {
+    typeId: "object",
+    id,
+  };
+};
+
 export const CustomExpectedValueBuilder: FunctionComponent<
   CustomExpectedValueBuilderProps
 > = ({ closeMenu }) => {
@@ -287,70 +336,11 @@ export const CustomExpectedValueBuilder: FunctionComponent<
               const flattenedExpectedValues = getValues(
                 "flattenedCustomExpectedValueList",
               );
-              const customExpectedValue =
-                flattenedExpectedValues[customExpectedValueId];
 
-              let expectedValue: ExpectedValue;
-
-              if (
-                customExpectedValue?.data &&
-                "itemIds" in customExpectedValue.data
-              ) {
-                const containsArray = customExpectedValue.data.itemIds.some(
-                  (itemId) => {
-                    const typeId =
-                      flattenedExpectedValues[itemId]?.data?.typeId;
-                    return typeId === "array";
-                  },
-                );
-
-                const containsObject = customExpectedValue.data.itemIds.some(
-                  (itemId) =>
-                    flattenedExpectedValues[itemId]?.data?.typeId === "object",
-                );
-
-                const containsDataType = customExpectedValue.data.itemIds.some(
-                  (itemId) => {
-                    const typeId =
-                      flattenedExpectedValues[itemId]?.data?.typeId!;
-                    return (
-                      typeId !== "array" &&
-                      typeId !== "object" &&
-                      dataTypeOptions.includes(typeId)
-                    );
-                  },
-                );
-
-                let arrayType: ArrayType;
-                if (containsArray && !containsObject && !containsDataType) {
-                  arrayType = ArrayType.arrayArray;
-                } else if (
-                  containsObject &&
-                  !containsArray &&
-                  !containsDataType
-                ) {
-                  arrayType = ArrayType.propertyObjectArray;
-                } else if (
-                  containsDataType &&
-                  !containsArray &&
-                  !containsObject
-                ) {
-                  arrayType = ArrayType.dataTypeArray;
-                } else {
-                  arrayType = ArrayType.mixedArray;
-                }
-
-                expectedValue = {
-                  typeId: "array",
-                  arrayType,
-                  id: customExpectedValueId,
-                };
-              } else {
-                expectedValue = {
-                  typeId: "object",
-                  id: customExpectedValueId,
-                };
-              }
+              const expectedValue = createExpectedValue(
+                customExpectedValueId,
+                flattenedExpectedValues,
+              );
 
               const newExpectedValues = [...getValues("expectedValues")];
               if (editingExpectedValueIndex !== undefined) {
