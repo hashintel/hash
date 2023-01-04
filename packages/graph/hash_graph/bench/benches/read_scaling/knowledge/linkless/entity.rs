@@ -6,7 +6,7 @@ use graph::{
     identifier::account::AccountId,
     knowledge::{EntityMetadata, EntityProperties},
     provenance::{OwnedById, UpdatedById},
-    store::{query::Filter, AccountStore, AsClient, EntityStore, PostgresStore},
+    store::{query::Filter, AccountStore, EntityStore, Store as _, Transaction},
     subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
@@ -24,25 +24,22 @@ async fn seed_db(
     store_wrapper: &mut StoreWrapper,
     total: usize,
 ) -> Vec<EntityMetadata> {
-    let transaction = store_wrapper
+    let mut transaction = store_wrapper
         .store
-        .as_mut_client()
         .transaction()
         .await
         .expect("failed to start transaction");
 
-    let mut store = PostgresStore::new(transaction);
-
     let now = std::time::SystemTime::now();
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
-    store
+    transaction
         .insert_account_id(account_id)
         .await
         .expect("could not insert account id");
 
     seed(
-        &mut store,
+        &mut transaction,
         account_id,
         [data_type::TEXT_V1],
         [
@@ -69,7 +66,7 @@ async fn seed_db(
         .id()
         .clone();
 
-    let entity_metadata_list = store
+    let entity_metadata_list = transaction
         .insert_entities_batched_by_type(
             repeat((OwnedById::new(account_id), None, properties, None, None)).take(total),
             UpdatedById::new(account_id),
@@ -78,8 +75,7 @@ async fn seed_db(
         .await
         .expect("failed to create entities");
 
-    store
-        .into_client()
+    transaction
         .commit()
         .await
         .expect("failed to commit transaction");
