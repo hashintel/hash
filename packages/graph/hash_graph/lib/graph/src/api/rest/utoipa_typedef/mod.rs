@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::identifier::{knowledge::EntityId, TransactionTimestamp};
+use crate::identifier::{knowledge::EntityId, time::TransactionTimestamp};
 
 pub mod subgraph;
 

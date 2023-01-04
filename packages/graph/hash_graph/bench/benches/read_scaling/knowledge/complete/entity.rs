@@ -6,7 +6,7 @@ use graph::{
     identifier::account::AccountId,
     knowledge::{EntityMetadata, EntityProperties, LinkData},
     provenance::{OwnedById, UpdatedById},
-    store::{query::Filter, AccountStore, AsClient, EntityStore, PostgresStore},
+    store::{query::Filter, AccountStore, EntityStore, Store as _, Transaction},
     subgraph::{
         edges::{EdgeResolveDepths, GraphResolveDepths},
         query::StructuralQuery,
@@ -35,25 +35,22 @@ async fn seed_db(
     store_wrapper: &mut StoreWrapper,
     total: usize,
 ) -> DatastoreEntitiesMetadata {
-    let transaction = store_wrapper
+    let mut transaction = store_wrapper
         .store
-        .as_mut_client()
         .transaction()
         .await
         .expect("failed to start transaction");
 
-    let mut store = PostgresStore::new(transaction);
-
     let now = std::time::SystemTime::now();
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
-    store
+    transaction
         .insert_account_id(account_id)
         .await
         .expect("could not insert account id");
 
     seed(
-        &mut store,
+        &mut transaction,
         account_id,
         [data_type::TEXT_V1],
         [
@@ -83,7 +80,7 @@ async fn seed_db(
     let owned_by_id = OwnedById::new(account_id);
     let actor_id = UpdatedById::new(account_id);
 
-    let entity_metadata_list = store
+    let entity_metadata_list = transaction
         .insert_entities_batched_by_type(
             repeat((owned_by_id, None, properties.clone(), None, None)).take(total),
             actor_id,
@@ -92,7 +89,7 @@ async fn seed_db(
         .await
         .expect("failed to create entities");
 
-    let link_entity_metadata_list = store
+    let link_entity_metadata_list = transaction
         .insert_entities_batched_by_type(
             entity_metadata_list
                 .iter()
@@ -119,8 +116,7 @@ async fn seed_db(
         .await
         .expect("failed to create link entities");
 
-    store
-        .into_client()
+    transaction
         .commit()
         .await
         .expect("failed to commit transaction");
