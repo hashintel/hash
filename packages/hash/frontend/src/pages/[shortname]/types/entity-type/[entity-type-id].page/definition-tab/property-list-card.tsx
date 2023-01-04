@@ -29,8 +29,8 @@ import {
 } from "../shared/property-types-context";
 import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
 import { PropertyTypeForm } from "./property-list-card/shared/property-type-form";
-import { getPropertyTypeSchema } from "./property-list-card/shared/property-type-form/property-type-schema";
 import { PropertyTypeFormValues } from "./property-list-card/shared/property-type-form-values";
+import { getPropertyTypeSchema } from "./property-list-card/shared/property-type-form/property-type-schema";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
@@ -48,7 +48,10 @@ import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { useStateCallback } from "./shared/use-state-callback";
 
 const formDataToPropertyType = (data: PropertyTypeFormValues) => ({
-  oneOf: getPropertyTypeSchema(data.expectedValues),
+  oneOf: getPropertyTypeSchema(
+    data.expectedValues,
+    data.flattenedCustomExpectedValueList,
+  ),
   description: data.description,
   title: data.name,
   kind: "propertyType" as const,

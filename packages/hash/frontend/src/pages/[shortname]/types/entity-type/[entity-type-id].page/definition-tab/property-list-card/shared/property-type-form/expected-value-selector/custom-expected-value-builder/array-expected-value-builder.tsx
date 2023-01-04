@@ -135,7 +135,8 @@ type ArrayExpectedValueBuilderProps = {
 export const ArrayExpectedValueBuilder: FunctionComponent<
   ArrayExpectedValueBuilderProps
 > = ({ expectedValueId, prefix, deleteTooltip, onDelete, index = [] }) => {
-  const { setValue, control } = useFormContext<PropertyTypeFormValues>();
+  const { getValues, setValue, control } =
+    useFormContext<PropertyTypeFormValues>();
 
   const flattenedExpectedValues = useWatch({
     control,
@@ -185,7 +186,7 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
           `flattenedCustomExpectedValueList`,
           deleteExpectedValueAndChildren(
             removedExpectedValueId,
-            flattenedExpectedValues,
+            getValues("flattenedCustomExpectedValueList"),
           ),
         );
 
@@ -283,7 +284,7 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
                 const childId = uniqueId();
 
                 setValue(`flattenedCustomExpectedValueList`, {
-                  ...flattenedExpectedValues,
+                  ...getValues("flattenedCustomExpectedValueList"),
                   [childId]: {
                     id: childId,
                     parentId: expectedValueId,

@@ -197,6 +197,7 @@ export const CustomExpectedValueBuilder: FunctionComponent<
 
                   setValue("customExpectedValueId", id);
                   setValue("flattenedCustomExpectedValueList", {
+                    ...getValues("flattenedCustomExpectedValueList"),
                     [id]: {
                       id,
                       data: getDefaultExpectedValue("object"),
@@ -235,6 +236,7 @@ export const CustomExpectedValueBuilder: FunctionComponent<
 
                   setValue("customExpectedValueId", id);
                   setValue("flattenedCustomExpectedValueList", {
+                    ...getValues("flattenedCustomExpectedValueList"),
                     [id]: {
                       id,
                       data: getDefaultExpectedValue("array"),
@@ -342,13 +344,11 @@ export const CustomExpectedValueBuilder: FunctionComponent<
                   typeId: "array",
                   arrayType,
                   id: customExpectedValueId,
-                  flattenedExpectedValues,
                 };
               } else {
                 expectedValue = {
                   typeId: "object",
                   id: customExpectedValueId,
-                  flattenedExpectedValues,
                 };
               }
 

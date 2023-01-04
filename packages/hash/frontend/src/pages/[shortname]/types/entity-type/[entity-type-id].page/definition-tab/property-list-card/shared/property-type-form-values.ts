@@ -44,12 +44,10 @@ export type ExpectedValue =
       typeId: "array";
       arrayType: ArrayType;
       id: string;
-      flattenedExpectedValues: Record<string, CustomExpectedValue>;
     }
   | {
       typeId: "object";
       id: string;
-      flattenedExpectedValues: Record<string, CustomExpectedValue>;
     };
 
 export type PropertyTypeFormValues = {

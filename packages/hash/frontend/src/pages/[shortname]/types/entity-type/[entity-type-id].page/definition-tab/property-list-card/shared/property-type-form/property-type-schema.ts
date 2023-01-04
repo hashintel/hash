@@ -14,6 +14,7 @@ import {
   CustomExpectedValue,
   ExpectedValue,
   Property,
+  PropertyTypeFormValues,
 } from "../property-type-form-values";
 
 export const getObjectSchema = (
@@ -95,11 +96,13 @@ export const getArraySchema = (
   ...(maxItems && !infinity ? { maxItems } : {}),
 });
 
-export const getPropertyTypeSchema = (values: ExpectedValue[]) =>
+export const getPropertyTypeSchema = (
+  values: ExpectedValue[],
+  flattenedExpectedValues: PropertyTypeFormValues["flattenedCustomExpectedValueList"],
+) =>
   values.map((value) => {
     if (typeof value === "object") {
-      const { id, flattenedExpectedValues } = value;
-      const property = flattenedExpectedValues[id];
+      const property = flattenedExpectedValues[value.id];
 
       if (property?.data && "itemIds" in property.data) {
         return getArraySchema(

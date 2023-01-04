@@ -103,7 +103,6 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
       closeCustomExpectedValueBuilder: () => {
         setValue("editingExpectedValueIndex", undefined);
         setValue("customExpectedValueId", undefined);
-        setValue("flattenedCustomExpectedValueList", {});
         setCreatingCustomExpectedValue(false);
 
         // Using setImmediate because the autocomplete input is disabled when
@@ -176,10 +175,6 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
                   if (typeof expectedValue === "object") {
                     setValue("editingExpectedValueIndex", index);
                     setValue("customExpectedValueId", expectedValue.id);
-                    setValue(
-                      "flattenedCustomExpectedValueList",
-                      expectedValue.flattenedExpectedValues,
-                    );
                     openCustomExpectedValueBuilder();
                   }
                 }}
