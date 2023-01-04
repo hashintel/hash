@@ -88,9 +88,7 @@ export const EntitiesTab: FunctionComponent = () => {
                   icon: "bpAsterisk",
                   value: cellValue,
                   onClick: () =>
-                    router.push(
-                      `/@${activeWorkspace?.shortname}/entities/${row.entityId}`,
-                    ),
+                    router.push(`/${row.namespace}/entities/${row.entityId}`),
                 },
               };
             }
@@ -107,7 +105,7 @@ export const EntitiesTab: FunctionComponent = () => {
 
         return blankCell;
       },
-    [columns, router, activeWorkspace],
+    [columns, router],
   );
 
   if (!columns || !rows) {
