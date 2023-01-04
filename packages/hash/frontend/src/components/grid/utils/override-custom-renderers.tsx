@@ -6,6 +6,7 @@ import {
 import { useScrollLock } from "@hashintel/hash-design-system";
 import { MutableRefObject, PropsWithChildren } from "react";
 
+import { useEditBarContext } from "../../../shared/edit-bar-scroller";
 import { InteractableManager } from "./interactable-manager";
 
 const ScrollLockWrapper = ({ children }: PropsWithChildren) => {
@@ -15,7 +16,10 @@ const ScrollLockWrapper = ({ children }: PropsWithChildren) => {
    * Which has the overflow-y happening on `main` instead of `body` or `html`
    * So we need to lock `main` elements scroll when grid editors are visible
    * */
-  useScrollLock(true, document.getElementsByTagName("main")[0]);
+
+  const editBarContext = useEditBarContext();
+
+  useScrollLock(true, editBarContext?.scrollingNode);
 
   // eslint-disable-next-line react/jsx-no-useless-fragment
   return <>{children}</>;
