@@ -455,7 +455,11 @@ impl Modify for TimeSchemaAddon {
                 .schemas
                 .insert("Timestamp".to_owned(), Timestamp::<()>::schema().into());
             components.schemas.insert(
-                "TimespanBound".to_owned(),
+                "LowerBound".to_owned(),
+                TimespanBound::<()>::schema().into(),
+            );
+            components.schemas.insert(
+                "UpperBound".to_owned(),
                 TimespanBound::<()>::schema().into(),
             );
         }

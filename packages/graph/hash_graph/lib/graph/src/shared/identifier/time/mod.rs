@@ -8,6 +8,7 @@ use std::{error::Error, ops::Bound};
 
 use postgres_types::{FromSql, Type};
 
+pub(crate) use self::timespan::TimespanBound;
 pub use self::{
     axis::{
         DecisionTime, DecisionTimeProjection, DecisionTimeVersionTimespan, DecisionTimestamp,

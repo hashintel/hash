@@ -370,16 +370,16 @@ export interface DecisionTimeProjectionImage {
   axis: DecisionTimeProjectionImageAxisEnum;
   /**
    *
-   * @type {TimespanBound}
+   * @type {UpperBound}
    * @memberof DecisionTimeProjectionImage
    */
-  end?: TimespanBound;
+  end?: UpperBound;
   /**
    *
-   * @type {TimespanBound}
+   * @type {LowerBound}
    * @memberof DecisionTimeProjectionImage
    */
-  start?: TimespanBound;
+  start?: LowerBound;
 }
 
 export const DecisionTimeProjectionImageAxisEnum = {
@@ -418,16 +418,16 @@ export type DecisionTimeProjectionImageAllOfAxisEnum =
 export interface DecisionTimeProjectionImageAllOf1 {
   /**
    *
-   * @type {TimespanBound}
+   * @type {UpperBound}
    * @memberof DecisionTimeProjectionImageAllOf1
    */
-  end?: TimespanBound;
+  end?: UpperBound;
   /**
    *
-   * @type {TimespanBound}
+   * @type {LowerBound}
    * @memberof DecisionTimeProjectionImageAllOf1
    */
-  start?: TimespanBound;
+  start?: LowerBound;
 }
 /**
  *
@@ -1226,6 +1226,61 @@ export interface LinkDataAllOf {
   rightEntityId: string;
 }
 /**
+ * @type LowerBound
+ * @export
+ */
+export type LowerBound = LowerBoundOneOf | LowerBoundOneOf1;
+
+/**
+ *
+ * @export
+ * @interface LowerBoundOneOf
+ */
+export interface LowerBoundOneOf {
+  /**
+   *
+   * @type {object}
+   * @memberof LowerBoundOneOf
+   */
+  bound: LowerBoundOneOfBoundEnum;
+}
+
+export const LowerBoundOneOfBoundEnum = {
+  Unbounded: "unbounded",
+} as const;
+
+export type LowerBoundOneOfBoundEnum =
+  typeof LowerBoundOneOfBoundEnum[keyof typeof LowerBoundOneOfBoundEnum];
+
+/**
+ *
+ * @export
+ * @interface LowerBoundOneOf1
+ */
+export interface LowerBoundOneOf1 {
+  /**
+   *
+   * @type {object}
+   * @memberof LowerBoundOneOf1
+   */
+  bound: LowerBoundOneOf1BoundEnum;
+  /**
+   *
+   * @type {string}
+   * @memberof LowerBoundOneOf1
+   */
+  timestamp: string;
+}
+
+export const LowerBoundOneOf1BoundEnum = {
+  Included: "included",
+  Excluded: "excluded",
+} as const;
+
+export type LowerBoundOneOf1BoundEnum =
+  typeof LowerBoundOneOf1BoundEnum[keyof typeof LowerBoundOneOf1BoundEnum];
+
+/**
  *
  * @export
  * @interface NotEqualFilter
@@ -1904,16 +1959,16 @@ export interface ResolvedDecisionTimeProjectionImage {
   axis: ResolvedDecisionTimeProjectionImageAxisEnum;
   /**
    *
-   * @type {TimespanBound}
+   * @type {UpperBound}
    * @memberof ResolvedDecisionTimeProjectionImage
    */
-  end: TimespanBound;
+  end: UpperBound;
   /**
    *
-   * @type {TimespanBound}
+   * @type {LowerBound}
    * @memberof ResolvedDecisionTimeProjectionImage
    */
-  start: TimespanBound;
+  start: LowerBound;
 }
 
 export const ResolvedDecisionTimeProjectionImageAxisEnum = {
@@ -1931,16 +1986,16 @@ export type ResolvedDecisionTimeProjectionImageAxisEnum =
 export interface ResolvedDecisionTimeProjectionImageAllOf {
   /**
    *
-   * @type {TimespanBound}
+   * @type {UpperBound}
    * @memberof ResolvedDecisionTimeProjectionImageAllOf
    */
-  end: TimespanBound;
+  end: UpperBound;
   /**
    *
-   * @type {TimespanBound}
+   * @type {LowerBound}
    * @memberof ResolvedDecisionTimeProjectionImageAllOf
    */
-  start: TimespanBound;
+  start: LowerBound;
 }
 /**
  *
@@ -2010,16 +2065,16 @@ export interface ResolvedTransactionTimeProjectionImage {
   axis: ResolvedTransactionTimeProjectionImageAxisEnum;
   /**
    *
-   * @type {TimespanBound}
+   * @type {UpperBound}
    * @memberof ResolvedTransactionTimeProjectionImage
    */
-  end: TimespanBound;
+  end: UpperBound;
   /**
    *
-   * @type {TimespanBound}
+   * @type {LowerBound}
    * @memberof ResolvedTransactionTimeProjectionImage
    */
-  start: TimespanBound;
+  start: LowerBound;
 }
 
 export const ResolvedTransactionTimeProjectionImageAxisEnum = {
@@ -2151,61 +2206,6 @@ export interface Subgraph {
 export type TimeProjection = DecisionTimeProjection | TransactionTimeProjection;
 
 /**
- * @type TimespanBound
- * @export
- */
-export type TimespanBound = TimespanBoundOneOf | TimespanBoundOneOf1;
-
-/**
- *
- * @export
- * @interface TimespanBoundOneOf
- */
-export interface TimespanBoundOneOf {
-  /**
-   *
-   * @type {object}
-   * @memberof TimespanBoundOneOf
-   */
-  bound: TimespanBoundOneOfBoundEnum;
-}
-
-export const TimespanBoundOneOfBoundEnum = {
-  Unbounded: "unbounded",
-} as const;
-
-export type TimespanBoundOneOfBoundEnum =
-  typeof TimespanBoundOneOfBoundEnum[keyof typeof TimespanBoundOneOfBoundEnum];
-
-/**
- *
- * @export
- * @interface TimespanBoundOneOf1
- */
-export interface TimespanBoundOneOf1 {
-  /**
-   *
-   * @type {object}
-   * @memberof TimespanBoundOneOf1
-   */
-  bound: TimespanBoundOneOf1BoundEnum;
-  /**
-   *
-   * @type {string}
-   * @memberof TimespanBoundOneOf1
-   */
-  timestamp: string;
-}
-
-export const TimespanBoundOneOf1BoundEnum = {
-  Included: "included",
-  Excluded: "excluded",
-} as const;
-
-export type TimespanBoundOneOf1BoundEnum =
-  typeof TimespanBoundOneOf1BoundEnum[keyof typeof TimespanBoundOneOf1BoundEnum];
-
-/**
  * Time axis for the transaction time.  This is used as the generic argument to time-related structs and can be used as tag value.
  * @export
  * @enum {string}
@@ -2251,16 +2251,16 @@ export interface TransactionTimeProjectionImage {
   axis: TransactionTimeProjectionImageAxisEnum;
   /**
    *
-   * @type {TimespanBound}
+   * @type {UpperBound}
    * @memberof TransactionTimeProjectionImage
    */
-  end?: TimespanBound;
+  end?: UpperBound;
   /**
    *
-   * @type {TimespanBound}
+   * @type {LowerBound}
    * @memberof TransactionTimeProjectionImage
    */
-  start?: TimespanBound;
+  start?: LowerBound;
 }
 
 export const TransactionTimeProjectionImageAxisEnum = {
@@ -2638,6 +2638,12 @@ export interface UpdatePropertyTypeRequest {
    */
   typeToUpdate: string;
 }
+/**
+ * @type UpperBound
+ * @export
+ */
+export type UpperBound = LowerBoundOneOf | LowerBoundOneOf1;
+
 /**
  * @type Vertex
  * @export
