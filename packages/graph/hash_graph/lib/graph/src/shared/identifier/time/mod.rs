@@ -11,6 +11,7 @@ pub use self::{
         TransactionTimeVersionTimespan, TransactionTimestamp,
     },
     timestamp::Timestamp,
+    version::VersionTimespan,
 };
 
 fn parse_bound(

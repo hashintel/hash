@@ -322,25 +322,6 @@ export interface DataTypeWithMetadata {
 /**
  *
  * @export
- * @interface DecisionTimeVersionTimespan
- */
-export interface DecisionTimeVersionTimespan {
-  /**
-   *
-   * @type {string}
-   * @memberof DecisionTimeVersionTimespan
-   */
-  end?: string;
-  /**
-   *
-   * @type {string}
-   * @memberof DecisionTimeVersionTimespan
-   */
-  start: string;
-}
-/**
- *
- * @export
  * @interface EdgeResolveDepths
  */
 export interface EdgeResolveDepths {
@@ -1757,25 +1738,6 @@ export interface Subgraph {
    * @memberof Subgraph
    */
   vertices: Vertices;
-}
-/**
- *
- * @export
- * @interface TransactionTimeVersionTimespan
- */
-export interface TransactionTimeVersionTimespan {
-  /**
-   *
-   * @type {string}
-   * @memberof TransactionTimeVersionTimespan
-   */
-  end?: string;
-  /**
-   *
-   * @type {string}
-   * @memberof TransactionTimeVersionTimespan
-   */
-  start: string;
 }
 /**
  * The contents of a Data Type update request
