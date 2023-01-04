@@ -677,16 +677,16 @@ export interface EntityTypeWithMetadata {
 export interface EntityVersion {
   /**
    *
-   * @type {DecisionTimeVersionTimespan}
+   * @type {VersionTimespan}
    * @memberof EntityVersion
    */
-  decisionTime: DecisionTimeVersionTimespan;
+  decisionTime: VersionTimespan;
   /**
    *
-   * @type {TransactionTimeVersionTimespan}
+   * @type {VersionTimespan}
    * @memberof EntityVersion
    */
-  transactionTime: TransactionTimeVersionTimespan;
+  transactionTime: VersionTimespan;
 }
 /**
  *
@@ -2073,6 +2073,25 @@ export interface UpdatePropertyTypeRequest {
    * @memberof UpdatePropertyTypeRequest
    */
   typeToUpdate: string;
+}
+/**
+ *
+ * @export
+ * @interface VersionTimespan
+ */
+export interface VersionTimespan {
+  /**
+   *
+   * @type {string}
+   * @memberof VersionTimespan
+   */
+  end?: string;
+  /**
+   *
+   * @type {string}
+   * @memberof VersionTimespan
+   */
+  start: string;
 }
 /**
  * @type Vertex

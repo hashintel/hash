@@ -1,7 +1,7 @@
 import { VersionedUri } from "@blockprotocol/type-system";
 import { OwnedById } from "@hashintel/hash-shared/types";
 import {
-  EntityEditionId,
+  EntityVertexId,
   extractEntityUuidFromEntityId,
   Subgraph,
   SubgraphRootTypes,
@@ -60,7 +60,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
           throw new Error("subgraph not found");
         }
 
-        const draftEntityEditionId: EntityEditionId = {
+        const draftEntityEditionId: EntityVertexId = {
           baseId: "draft%draft",
           version: new Date().toISOString(),
         };

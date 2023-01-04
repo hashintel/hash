@@ -87,11 +87,29 @@ impl ToSchema for EntityId {
     }
 }
 
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityVersion {
     decision_time: DecisionTimeVersionTimespan,
     transaction_time: TransactionTimeVersionTimespan,
+}
+
+impl ToSchema for EntityVersion {
+    fn schema() -> openapi::Schema {
+        openapi::ObjectBuilder::new()
+            .property(
+                "decisionTime",
+                openapi::Ref::from_schema_name("VersionTimespan"),
+            )
+            .required("decisionTime")
+            .property(
+                "transactionTime",
+                openapi::Ref::from_schema_name("VersionTimespan"),
+            )
+            .required("transactionTime")
+            .build()
+            .into()
+    }
 }
 
 impl EntityVersion {
