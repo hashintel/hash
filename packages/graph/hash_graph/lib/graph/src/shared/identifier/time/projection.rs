@@ -1,18 +1,20 @@
+use std::ops::{Bound, RangeBounds};
+
 use serde::{Deserialize, Serialize};
 use utoipa::{openapi, ToSchema};
 
-use crate::identifier::time::{ResolvedTimespan, Timespan, TimespanBound, Timestamp};
+use crate::identifier::time::{ResolvedTimespan, Timespan, Timestamp};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct Kernel<A> {
-    pub axis: A,
-    pub timestamp: Option<Timestamp<A>>,
+struct Kernel<A> {
+    axis: A,
+    timestamp: Option<Timestamp<A>>,
 }
 
 impl<A: Default> Kernel<A> {
     #[must_use]
-    pub fn new(timestamp: Option<Timestamp<A>>) -> Self {
+    fn new(timestamp: Option<Timestamp<A>>) -> Self {
         Self {
             axis: A::default(),
             timestamp,
@@ -33,9 +35,19 @@ impl<A: ToSchema> ToSchema for Kernel<A> {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct ResolvedKernel<A> {
-    pub axis: A,
-    pub timestamp: Timestamp<A>,
+struct ResolvedKernel<A> {
+    axis: A,
+    timestamp: Timestamp<A>,
+}
+
+impl<A: Default> ResolvedKernel<A> {
+    #[must_use]
+    fn new(timestamp: Timestamp<A>) -> Self {
+        Self {
+            axis: A::default(),
+            timestamp,
+        }
+    }
 }
 
 impl<A: ToSchema> ToSchema for ResolvedKernel<A> {
@@ -52,18 +64,18 @@ impl<A: ToSchema> ToSchema for ResolvedKernel<A> {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct Image<A> {
-    pub axis: A,
+struct Image<A> {
+    axis: A,
     #[serde(flatten)]
-    pub span: Timespan<A>,
+    span: Timespan<A>,
 }
 
 impl<A: Default> Image<A> {
     #[must_use]
-    pub fn new(start: Option<TimespanBound<A>>, end: Option<TimespanBound<A>>) -> Self {
+    fn new(timespan: impl Into<Timespan<A>>) -> Self {
         Self {
             axis: A::default(),
-            span: Timespan { start, end },
+            span: timespan.into(),
         }
     }
 }
@@ -84,10 +96,20 @@ impl<A: ToSchema> ToSchema for Image<A> {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct ResolvedImage<A> {
-    pub axis: A,
+struct ResolvedImage<A> {
+    axis: A,
     #[serde(flatten)]
-    pub span: ResolvedTimespan<A>,
+    span: ResolvedTimespan<A>,
+}
+
+impl<A: Default> ResolvedImage<A> {
+    #[must_use]
+    fn new(timespan: impl RangeBounds<Timestamp<A>>) -> Self {
+        Self {
+            axis: A::default(),
+            span: ResolvedTimespan::new(timespan),
+        }
+    }
 }
 
 impl<A: ToSchema> ToSchema for ResolvedImage<A> {
@@ -107,11 +129,28 @@ impl<A: ToSchema> ToSchema for ResolvedImage<A> {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Projection<K, I> {
-    pub kernel: Kernel<K>,
-    pub image: Image<I>,
+    kernel: Kernel<K>,
+    image: Image<I>,
+}
+
+impl<K: Default, I: Default> Projection<K, I> {
+    pub fn new(kernel: Option<Timestamp<K>>, image: impl Into<Timespan<I>>) -> Self {
+        Self {
+            kernel: Kernel::new(kernel),
+            image: Image::new(image),
+        }
+    }
 }
 
 impl<K, I> Projection<K, I> {
+    pub const fn kernel(&self) -> Option<Timestamp<K>> {
+        self.kernel.timestamp
+    }
+
+    pub const fn image(&self) -> &Timespan<I> {
+        &self.image.span
+    }
+
     pub fn resolve(self) -> ResolvedProjection<K, I> {
         let now = Timestamp::now();
         ResolvedProjection {
@@ -124,18 +163,16 @@ impl<K, I> Projection<K, I> {
             },
             image: ResolvedImage {
                 axis: self.image.axis,
-                span: ResolvedTimespan {
-                    start: self
-                        .image
+                span: ResolvedTimespan::new((
+                    self.image
                         .span
-                        .start
-                        .unwrap_or_else(|| TimespanBound::Included(Timestamp::from_anonymous(now))),
-                    end: self
-                        .image
+                        .start_bound()
+                        .unwrap_or_else(|| Bound::Included(Timestamp::from_anonymous(now))),
+                    self.image
                         .span
-                        .end
-                        .unwrap_or_else(|| TimespanBound::Included(Timestamp::from_anonymous(now))),
-                },
+                        .end_bound()
+                        .unwrap_or_else(|| Bound::Included(Timestamp::from_anonymous(now))),
+                )),
             },
         }
     }
@@ -156,8 +193,27 @@ impl<K: ToSchema, I: ToSchema> ToSchema for Projection<K, I> {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ResolvedProjection<K, I> {
-    pub kernel: ResolvedKernel<K>,
-    pub image: ResolvedImage<I>,
+    kernel: ResolvedKernel<K>,
+    image: ResolvedImage<I>,
+}
+
+impl<K: Default, I: Default> ResolvedProjection<K, I> {
+    pub fn new(kernel: Timestamp<K>, image: impl RangeBounds<Timestamp<I>>) -> Self {
+        Self {
+            kernel: ResolvedKernel::new(kernel),
+            image: ResolvedImage::new(image),
+        }
+    }
+}
+
+impl<K, I> ResolvedProjection<K, I> {
+    pub const fn kernel(&self) -> Timestamp<K> {
+        self.kernel.timestamp
+    }
+
+    pub const fn image(&self) -> &ResolvedTimespan<I> {
+        &self.image.span
+    }
 }
 
 impl<K: ToSchema, I: ToSchema> ToSchema for ResolvedProjection<K, I> {

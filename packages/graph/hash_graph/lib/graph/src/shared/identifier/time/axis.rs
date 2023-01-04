@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 use utoipa::{openapi, ToSchema};
 
 use crate::identifier::time::{
-    timestamp::Timestamp, version::VersionTimespan, Image, Kernel, Projection, ResolvedProjection,
-    ResolvedTimespan, TimespanBound,
+    timestamp::Timestamp, version::VersionTimespan, Projection, ResolvedProjection,
+    ResolvedTimespan, Timespan,
 };
 
 /// Time axis for the decision time.
@@ -122,8 +122,8 @@ impl ResolvedTimeProjection {
     #[must_use]
     pub const fn projected_time(&self) -> ResolvedTimespan<ProjectedTime> {
         match self {
-            Self::DecisionTime(projection) => projection.image.span.cast(),
-            Self::TransactionTime(projection) => projection.image.span.cast(),
+            Self::DecisionTime(projection) => projection.image().cast(),
+            Self::TransactionTime(projection) => projection.image().cast(),
         }
     }
 }

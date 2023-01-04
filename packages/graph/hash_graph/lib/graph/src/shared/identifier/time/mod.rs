@@ -15,8 +15,8 @@ pub use self::{
         ResolvedTransactionTimeProjection, TimeAxis, TimeProjection, TransactionTime,
         TransactionTimeProjection, TransactionTimeVersionTimespan, TransactionTimestamp,
     },
-    projection::{Image, Kernel, Projection, ResolvedImage, ResolvedKernel, ResolvedProjection},
-    timespan::{ResolvedTimespan, Timespan, TimespanBound},
+    projection::{Projection, ResolvedProjection},
+    timespan::{ResolvedTimespan, Timespan},
     timestamp::Timestamp,
 };
 
