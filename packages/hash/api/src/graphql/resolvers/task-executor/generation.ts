@@ -9,11 +9,20 @@ import {
   PropertyTypeReference,
   PropertyValues,
   ValueOrArray,
+  VersionedUri,
 } from "@blockprotocol/type-system";
+import {
+  GraphApi,
+  OntologyElementMetadata,
+} from "@hashintel/hash-graph-client";
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
+import { OwnedById } from "@hashintel/hash-shared/types";
+import { typedEntries } from "@hashintel/hash-shared/util";
 import { PropertyObject } from "@hashintel/hash-subgraph";
 import { camelCase, isEqual, upperFirst } from "lodash";
 import { singular } from "pluralize";
+
+import { User } from "../../../graph/knowledge/system-types/user";
 
 const TEXT_DATA_TYPE_ID =
   "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1";
@@ -102,6 +111,174 @@ export const addOrUpdatePropertyTypeToEntityType = (
   }
 };
 
+export const getReferencedIdsFromPropertyType = (
+  propertyType: PropertyType,
+) => {
+  const recurseOneOf = (oneOf: PropertyValues[]) => {
+    const propertyTypeIds: VersionedUri[] = [];
+
+    for (const oneOfValue of oneOf) {
+      if (isPropertyValuesArray(oneOfValue)) {
+        propertyTypeIds.push(...recurseOneOf(oneOfValue.items.oneOf));
+      } else if ("properties" in oneOfValue) {
+        for (const propertyDefinition of Object.values(oneOfValue.properties)) {
+          if ("items" in propertyDefinition) {
+            propertyTypeIds.push(propertyDefinition.items.$ref);
+          } else {
+            propertyTypeIds.push(propertyDefinition.$ref);
+          }
+        }
+      }
+    }
+
+    return propertyTypeIds;
+  };
+
+  return { propertyTypeIds: recurseOneOf(propertyType.oneOf) };
+};
+
+export const getReferencedIdsFromEntityType = (entityType: EntityType) => {
+  const propertyTypeIds: VersionedUri[] = [];
+  const entityTypeIds: VersionedUri[] = [];
+
+  for (const propertyDefinition of Object.values(entityType.properties)) {
+    if ("items" in propertyDefinition) {
+      propertyTypeIds.push(propertyDefinition.items.$ref);
+    } else {
+      propertyTypeIds.push(propertyDefinition.$ref);
+    }
+  }
+  // TODO: will we ever have inheritance on generated types?
+  // for (const inheritedEntityType of entityType.allOf ?? []) {
+  //   values.push(inheritedEntityType.$ref)
+  // }
+  for (const [linkTypeId, linkDefinition] of typedEntries(
+    entityType.links ?? {},
+  )) {
+    entityTypeIds.push(linkTypeId);
+    if ("items" in linkDefinition && "oneOf" in linkDefinition.items) {
+      entityTypeIds.push(
+        ...linkDefinition.items.oneOf.map((oneOfEntry) => oneOfEntry.$ref),
+      );
+    }
+  }
+
+  return { propertyTypeIds, entityTypeIds };
+};
+
+export const createPropertyTypeTree = async (
+  graphApi: GraphApi,
+  propertyTypeId: VersionedUri,
+  propertyTypeMap: Record<
+    VersionedUri,
+    { schema: PropertyType; created: boolean }
+  >,
+  user: User,
+) => {
+  const record = propertyTypeMap[propertyTypeId]!;
+
+  const createdPropertyTypes: OntologyElementMetadata[] = [];
+
+  if (!record.created) {
+    const { propertyTypeIds } = getReferencedIdsFromPropertyType(record.schema);
+
+    for (const referencedPropertyTypeId of propertyTypeIds) {
+      const { createdPropertyTypes: newCreatedPropertyTypes } =
+        await createPropertyTypeTree(
+          graphApi,
+          referencedPropertyTypeId,
+          propertyTypeMap,
+          user,
+        );
+
+      createdPropertyTypes.push(...newCreatedPropertyTypes);
+    }
+  }
+  if (!record.created) {
+    createdPropertyTypes.push(
+      (
+        await graphApi.createPropertyType({
+          ownedById: user.accountId as OwnedById,
+          actorId: user.accountId,
+          schema: record.schema,
+        })
+      ).data,
+    );
+
+    record.created = true;
+  }
+
+  return { createdPropertyTypes };
+};
+
+export const createEntityTypeTree = async (
+  graphApi: GraphApi,
+  entityTypeId: VersionedUri,
+  entityTypeMap: Record<VersionedUri, { schema: EntityType; created: boolean }>,
+  propertyTypeMap: Record<
+    VersionedUri,
+    { schema: PropertyType; created: boolean }
+  >,
+  user: User,
+) => {
+  const record = entityTypeMap[entityTypeId]!;
+
+  const createdPropertyTypes: OntologyElementMetadata[] = [];
+  const createdEntityTypes: OntologyElementMetadata[] = [];
+
+  if (!record.created) {
+    const { propertyTypeIds, entityTypeIds } = getReferencedIdsFromEntityType(
+      record.schema,
+    );
+
+    for (const referencedPropertyTypeId of propertyTypeIds) {
+      const { createdPropertyTypes: newCreatedPropertyTypes } =
+        await createPropertyTypeTree(
+          graphApi,
+          referencedPropertyTypeId,
+          propertyTypeMap,
+          user,
+        );
+
+      createdPropertyTypes.push(...newCreatedPropertyTypes);
+    }
+
+    for (const referencedEntityTypeId of entityTypeIds) {
+      const {
+        createdPropertyTypes: newCreatedPropertyTypes,
+        createdEntityTypes: newCreatedEntityTypes,
+      } = await createEntityTypeTree(
+        graphApi,
+        referencedEntityTypeId,
+        entityTypeMap,
+        propertyTypeMap,
+        user,
+      );
+
+      createdPropertyTypes.push(...newCreatedPropertyTypes);
+      createdEntityTypes.push(...newCreatedEntityTypes);
+    }
+  }
+  if (!record.created) {
+    createdEntityTypes.push(
+      (
+        await graphApi.createEntityType({
+          ownedById: user.accountId as OwnedById,
+          actorId: user.accountId,
+          schema: record.schema,
+        })
+      ).data,
+    );
+
+    record.created = true;
+  }
+
+  return {
+    createdPropertyTypes,
+    createdEntityTypes,
+  };
+};
+
 /* eslint-disable no-param-reassign -- We want to mutate in place for efficiency */
 
 /** @todo - improve doc */
@@ -148,7 +325,7 @@ const traverseJsonValue = (
   } else if (typeof jsonValue === "object") {
     const properties: Record<BaseUri, ValueOrArray<PropertyTypeReference>> = {};
 
-    for (const [innerKey, innerVal] of Object.entries(jsonValue)) {
+    for (const [innerKey, innerVal] of typedEntries(jsonValue)) {
       const innerPropertyValue = traverseJsonValue(
         innerKey,
         innerVal,
@@ -238,7 +415,7 @@ export const rewriteEntityPropertiesInTypeSystem = (
     properties: {},
   };
 
-  for (const [key, val] of Object.entries(entityProperties)) {
+  for (const [key, val] of typedEntries(entityProperties)) {
     if (Array.isArray(val) && val.length !== 0) {
       let propertyType;
       for (const arrayVal of val) {
@@ -268,6 +445,6 @@ export const rewriteEntityPropertiesInTypeSystem = (
     }
   }
 
-  return { entityProperties: entityProperties as PropertyObject, entityType };
+  return { entityProperties, entityType };
 };
 /* eslint-enable no-param-reassign */

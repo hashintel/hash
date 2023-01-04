@@ -1,11 +1,13 @@
 import { JsonObject } from "@blockprotocol/core";
-import { EntityType, VersionedUri } from "@blockprotocol/type-system";
-import { PropertyType } from "@blockprotocol/type-system/dist/cjs";
+import {
+  EntityType,
+  PropertyType,
+  VersionedUri,
+} from "@blockprotocol/type-system";
 import { OwnedById } from "@hashintel/hash-shared/types";
+import { typedEntries, typedKeys } from "@hashintel/hash-shared/util";
 import { PropertyObject } from "@hashintel/hash-subgraph";
 import { ApolloError } from "apollo-server-express";
-import { camelCase, upperFirst } from "lodash";
-import { singular } from "pluralize";
 
 import { createEntity } from "../../../graph/knowledge/primitive/entity";
 import { CachedEntityTypes, Task } from "../../../task-execution";
@@ -20,6 +22,7 @@ import {
 } from "../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 import {
+  createEntityTypeTree,
   rewriteEntityPropertiesInTypeSystem,
   streamNameToEntityTypeName,
 } from "./generation";
@@ -208,7 +211,7 @@ export const executeGithubReadTask: ResolverFn<
           {
             ownedById: user.accountId as OwnedById,
             actorId: user.accountId,
-            entityType,
+            entityTypeId: entityType.schema.$id,
             properties: record.data as PropertyObject,
           },
         );
@@ -334,10 +337,10 @@ export const executeAsanaReadTask: ResolverFn<
 
     const streamsToKeyMaps: Record<string, Record<string, PropertyType>> = {};
     const entityTypes: Record<string, EntityType> = {};
-    const createdEntities = [];
-
-    /** @todo - remove, left for debugging purposes */
-    const createdEntityProperties = [];
+    const entityTypeIdToEntityProperties: Record<
+      VersionedUri,
+      PropertyObject[]
+    > = {};
 
     try {
       const airbyteRecords: AirbyteRecords = await taskExecutor.runTask(
@@ -353,42 +356,105 @@ export const executeAsanaReadTask: ResolverFn<
         const entityType = entityTypes[streamName];
         const entityProperties = record.data;
 
-        const { entityType: updatedEntityType } =
-          rewriteEntityPropertiesInTypeSystem(
-            entityProperties as JsonObject,
-            streamKeyMap,
-            entityType,
-            streamName,
-            "asana",
+        const {
+          entityProperties: updatedEntityProperties,
+          entityType: updatedEntityType,
+        } = rewriteEntityPropertiesInTypeSystem(
+          entityProperties as JsonObject,
+          streamKeyMap,
+          entityType,
+          streamName,
+          "asana",
+        );
+
+        if (
+          entityTypeIdToEntityProperties[updatedEntityType.$id] !== undefined
+        ) {
+          entityTypeIdToEntityProperties[updatedEntityType.$id]!.push(
+            updatedEntityProperties,
           );
+        } else {
+          entityTypeIdToEntityProperties[updatedEntityType.$id] = [
+            updatedEntityProperties,
+          ];
+        }
 
-        createdEntityProperties.push(entityProperties as PropertyObject);
-
-        /** @todo - check primary key to see if entity already exists */
-        // // Insert the entity
-        // const entity = await createEntity(
-        //   { graphApi },
-        //   {
-        //     ownedById: user.accountId as OwnedById,
-        //     actorId: user.accountId,
-        //     entityType,
-        //     properties: record.data as PropertyObject,
-        //   },
-        // );
-        //
-        // createdEntities.push(entity.metadata.editionId.baseId);
         streamsToKeyMaps[streamName] = streamKeyMap;
         entityTypes[streamName] = updatedEntityType;
       }
 
-      // const entity = await createEntity({graphApi}, { ownedById: user.accountId as OwnedById, actorId: user.accountId, entityType: entityType.$id})
+      const propertyTypeMap: Record<
+        VersionedUri,
+        { schema: PropertyType; created: boolean }
+      > = Object.fromEntries(
+        Object.values(streamsToKeyMaps)
+          .flatMap((keyMaps) => Object.values(keyMaps))
+          .map((propertyType) => [
+            propertyType.$id,
+            { schema: propertyType, created: false },
+          ]),
+      );
+      const entityTypeMap: Record<
+        VersionedUri,
+        { schema: EntityType; created: boolean }
+      > = Object.fromEntries(
+        Object.values(entityTypes).map((entityType) => [
+          entityType.$id,
+          { schema: entityType, created: false },
+        ]),
+      );
 
-      // logger.debug(`Inserted ${createdEntities.length} entities from Asana`);
-      // return JSON.stringify({ createdEntities });
+      const createdEntityTypes = [];
+      const createdPropertyTypes = [];
+      const createdEntities = [];
+
+      for (const entityTypeId of typedKeys(entityTypeMap)) {
+        const {
+          createdPropertyTypes: newCreatedPropertyTypes,
+          createdEntityTypes: newCreatedEntityTypes,
+        } = await createEntityTypeTree(
+          graphApi,
+          entityTypeId,
+          entityTypeMap,
+          propertyTypeMap,
+          user,
+        );
+
+        createdPropertyTypes.push(...newCreatedPropertyTypes);
+        createdEntityTypes.push(...newCreatedEntityTypes);
+      }
+      logger.debug(
+        `Inserted ${createdPropertyTypes.length} property types from Asana`,
+      );
+      logger.debug(
+        `Inserted ${createdEntityTypes.length} entity types from Asana`,
+      );
+
+      for (const [entityTypeId, entityPropertiesList] of typedEntries(
+        entityTypeIdToEntityProperties,
+      )) {
+        for (const entityProperties of entityPropertiesList) {
+          createdEntities.push(
+            await createEntity(
+              { graphApi },
+              {
+                ownedById: user.accountId as OwnedById,
+                actorId: user.accountId,
+                entityTypeId,
+                properties: entityProperties,
+              },
+            ),
+          );
+        }
+      }
+
+      logger.debug(`Inserted ${createdEntities.length} entities from Asana`);
       return JSON.stringify({
         entityTypes,
         streamsToKeyMaps,
-        createdEntityProperties,
+        createdPropertyTypes,
+        createdEntityTypes,
+        createdEntities,
       });
     } catch (err: any) {
       throw new ApolloError(`Task-execution failed: ${err}`);
