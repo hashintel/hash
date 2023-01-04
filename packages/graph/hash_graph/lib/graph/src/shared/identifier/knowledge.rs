@@ -12,7 +12,10 @@ use utoipa::{
 };
 
 use crate::{
-    identifier::{account::AccountId, DecisionTimespan, TransactionTimespan},
+    identifier::{
+        account::AccountId,
+        time::{DecisionTimeVersionTimespan, TransactionTimeVersionTimespan},
+    },
     knowledge::{Entity, EntityUuid},
     provenance::OwnedById,
     subgraph::{Subgraph, SubgraphIndex},
@@ -90,8 +93,8 @@ impl ToSchema for EntityId {
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityVersion {
-    decision_time: DecisionTimespan,
-    transaction_time: TransactionTimespan,
+    decision_time: DecisionTimeVersionTimespan,
+    transaction_time: TransactionTimeVersionTimespan,
 }
 
 impl Serialize for EntityVersion {
@@ -101,9 +104,7 @@ impl Serialize for EntityVersion {
     {
         // TODO: Expose temporal versions to backend
         //   see https://app.asana.com/0/0/1203444301722133/f
-        self.transaction_time()
-            .as_start_bound_timestamp()
-            .serialize(serializer)
+        self.transaction_time().start.serialize(serializer)
     }
 }
 
@@ -119,8 +120,8 @@ impl ToSchema for EntityVersion {
 impl EntityVersion {
     #[must_use]
     pub const fn new(
-        decision_time: DecisionTimespan,
-        transaction_time: TransactionTimespan,
+        decision_time: DecisionTimeVersionTimespan,
+        transaction_time: TransactionTimeVersionTimespan,
     ) -> Self {
         Self {
             decision_time,
@@ -129,12 +130,12 @@ impl EntityVersion {
     }
 
     #[must_use]
-    pub const fn decision_time(&self) -> DecisionTimespan {
+    pub const fn decision_time(&self) -> DecisionTimeVersionTimespan {
         self.decision_time
     }
 
     #[must_use]
-    pub const fn transaction_time(&self) -> TransactionTimespan {
+    pub const fn transaction_time(&self) -> TransactionTimeVersionTimespan {
         self.transaction_time
     }
 }
