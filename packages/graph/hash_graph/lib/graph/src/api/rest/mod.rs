@@ -430,7 +430,7 @@ impl Modify for FilterSchemaAddon {
     }
 }
 
-/// Adds time-related structs to the OpenAPI schema.
+/// Adds time-related structs to the `OpenAPI` schema.
 struct TimeSchemaAddon;
 
 impl Modify for TimeSchemaAddon {
