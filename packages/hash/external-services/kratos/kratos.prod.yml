@@ -1,12 +1,12 @@
-# Based on the quick-start example https://github.com/ory/kratos/blob/master/contrib/quickstart/kratos/email-password/kratos.yml
-
 version: v0.11.0
 
 serve:
   public:
-    base_url: http://localhost:4433/
+    # Set `base_url` through the `SERVE_PUBLIC_BASE_URL` environment variable
     cors:
       enabled: true
+      # Set `allowed_headers` through the `SERVE_PUBLIC_CORS_ALLOWED_HEADERS` environment variable
+      # Set `allowed_origins` through the `SERVE_PUBLIC_CORS_ALLOWED_ORIGINS` environment variable
   admin:
     base_url: http://kratos:4434/
 
@@ -15,9 +15,8 @@ session:
   lifespan: 26280h # 24 h * 365 days * 3 years
 
 selfservice:
-  default_browser_return_url: http://localhost:3000/
-  allowed_return_urls:
-    - http://localhost:3000
+  # Set `default_browser_return_url` through the `SELFSERVICE_DEFAULT_BROWSER_RETURN_URL` environment variable
+  # Set `allowed_return_urls` through the `SELFSERVICE_ALLOWED_RETURN_URLS` environment variable
 
   methods:
     password:
@@ -28,8 +27,7 @@ selfservice:
         # The URL for verification emails are set through the link method
         # but we're using the code method, so we disable this method for usage.
         enabled: false
-        # Set through SELFSERVICE_METHODS_LINK_CONFIG_BASE_URL
-        base_url: http://localhost:3000/api/ory
+        # Set `base_url` through the `SELFSERVICE_METHODS_LINK_CONFIG_BASE_URL` environment variable
     code:
       config:
         # and make sure to enable the code method.
@@ -37,25 +35,24 @@ selfservice:
 
   flows:
     error:
-      ui_url: http://localhost:3000/error
+      # Set `ui_url` through the `SELFSERVICE_FLOWS_ERROR_UI_URL` environment variable
+      {}
 
     logout:
       after:
-        default_browser_return_url: http://localhost:3000/login
+        # Set `default_browser_return_url` through the `SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL` environment variable
+        {}
 
     login:
-      ui_url: http://localhost:3000/login
+      # Set `ui_url` through the `SELFSERVICE_FLOWS_LOGIN_UI_URL` environment variable
       lifespan: 10m
 
     registration:
+      # Set `ui_url` through the `SELFSERVICE_FLOWS_REGISTRATION_UI_URL` environment variable
       lifespan: 10m
-      ui_url: http://localhost:3000/signup
       after:
         password:
           hooks:
-            # TODO - This does not block writing to the datastore. Update this
-            # configuration to use a "pre-persist" hook when it is officially
-            # supported by kratos.
             - hook: web_hook
               config:
                 can_interrupt: true
@@ -71,17 +68,32 @@ selfservice:
                     in: header
             - hook: session
 
-    # Email sending diabled in production for now
     verification:
       use: code
       lifespan: 48h
-      # Set though SELFSERVICE_FLOWS_VERIFICATION_UI_URL
-      ui_url: http://localhost:3000/verification
+      # Set `ui_url` through the `SELFSERVICE_FLOWS_VERIFICATION_UI_URL` environment variable
       enabled: true
 
+    recovery:
+      enabled: true
+      # Set `ui_url` through the `SELFSERVICE_FLOWS_RECOVERY_UI_URL` environment variable
+      use: code
+
+    settings:
+      # Set `ui_url` through the `SELFSERVICE_FLOWS_SETTINGS_UI_URL` environment variable
+      {}
+
+# Cookies must be configured through environment variables
+# Set `path` through the `COOKIES_PATH` environment variable
+# Set `domain` through the `COOKIES_DOMAIN` environment variable
+# Set `same_site` through the `COOKIES_SAME_SITE` environment variable
+
 log:
+  # Default `level` is `info`. Set through the `LOG_LEVEL` environment variable
   level: info
+  # Default `format` is `json`. Set through the `LOG_FORMAT` environment variable
   format: json
+  # Default `leak_sensitive_values` is `false`. Set through the `LOG_LEAK_SENSITIVE_VALUES` environment variable
   leak_sensitive_values: false
 
 ciphers:
@@ -101,7 +113,7 @@ identity:
 
 courier:
   template_override_path: /etc/config/kratos/templates
-# Set SMTP courier through env vars.
-#   smtp:
-#     # Set through COURIER_SMTP_CONNECTION_URI
-#     connection_uri: set-through-env-arg-COURIER_SMTP_CONNECTION_URI
+# SMTP courier must be configured through environment variables
+# Set `from_address` through the `COURIER_SMTP_FROM_ADDRESS` environment variable
+# Set `from_name` through the `COURIER_SMTP_FROM_NAME` environment variable
+# Set `connection_uri` through the `COURIER_SMTP_CONNECTION_URI` environment variable
