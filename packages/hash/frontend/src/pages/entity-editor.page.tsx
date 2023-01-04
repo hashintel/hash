@@ -9,7 +9,6 @@ import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { Container, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 
-import { useAdvancedInitTypeSystem } from "../lib/use-init-type-system";
 import { NextPageWithLayout } from "../shared/layout";
 import { useAuthenticatedUser } from "./shared/auth-info-context";
 import { useBlockProtocolFunctionsWithOntology } from "./type-editor/blockprotocol-ontology-functions-hook";
@@ -153,12 +152,8 @@ const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
 
 const ExampleEntityEditorPage: NextPageWithLayout = () => {
   const { authenticatedUser } = useAuthenticatedUser();
-  const [loadingTypeSystem, _setLoadingTypeSystem] =
-    useAdvancedInitTypeSystem();
 
-  return loadingTypeSystem ? (
-    <Container sx={{ pt: 10 }}>Loading...</Container>
-  ) : (
+  return (
     <Container sx={{ pt: 10 }}>
       <ExampleUsage ownedById={authenticatedUser.accountId as OwnedById} />
     </Container>

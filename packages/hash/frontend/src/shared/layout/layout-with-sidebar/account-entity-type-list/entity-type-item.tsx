@@ -6,7 +6,6 @@ import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
 import { FunctionComponent, useRef } from "react";
 
-import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
 import { Link } from "../../../ui";
 import { EntityTypeMenu } from "./entity-type-menu";
 
@@ -62,10 +61,6 @@ export const EntityTypeItem: FunctionComponent<EntityTypeItemProps> = ({
   });
 
   const router = useRouter();
-  const typeSystemLoading = useInitTypeSystem();
-  if (typeSystemLoading) {
-    return null;
-  }
 
   // @todo once data fetching is moved to server, use that to identify if selected
   const baseUri = extractBaseUri(entityTypeId);
