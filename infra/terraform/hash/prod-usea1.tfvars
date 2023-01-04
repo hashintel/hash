@@ -20,6 +20,8 @@ kratos_env_vars = [
   { name = "SELFSERVICE_FLOWS_REGISTRATION_UI_URL", secret = false, value = "https://alpha.hash.ai/signup" },
   { name = "SELFSERVICE_METHODS_LINK_CONFIG_BASE_URL", secret = false, value = "https://alpha.hash.ai/api/ory" },
   { name = "SELFSERVICE_FLOWS_VERIFICATION_UI_URL", secret = false, value = "https://alpha.hash.ai/verification" },
+  { name = "SELFSERVICE_FLOWS_RECOVERY_UI_URL", secret = false, value = "https://alpha.hash.ai/recovery" },
+  { name = "SELFSERVICE_FLOWS_SETTINGS_UI_URL", secret = false, value = "https://alpha.hash.ai/settings" },
   { name = "LOG_LEAK_SENSITIVE_VALUES", secret = false, value = "false" },
   { name = "COURIER_SMTP_FROM_ADDRESS", secret = false, value = "noreply@hash.ai" },
   { name = "COURIER_SMTP_FROM_NAME", secret = false, value = "HASH" },
