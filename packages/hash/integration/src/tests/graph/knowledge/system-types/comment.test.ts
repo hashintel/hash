@@ -58,7 +58,7 @@ describe("Comment", () => {
       properties: {
         [SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId]: [],
       },
-      entityType: SYSTEM_TYPES.entityType.text,
+      entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
       actorId: testUser.accountId,
     });
 
