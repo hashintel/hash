@@ -43,8 +43,8 @@ use crate::{
         },
     },
     identifier::{
-        ontology::OntologyTypeEditionId, GraphElementEditionId, GraphElementId,
-        TransactionTimestamp,
+        ontology::OntologyTypeEditionId, time::TransactionTimestamp, GraphElementEditionId,
+        GraphElementId,
     },
     ontology::{domain_validator::DomainValidator, OntologyElementMetadata, Selector},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
