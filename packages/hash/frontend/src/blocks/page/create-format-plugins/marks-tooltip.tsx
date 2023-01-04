@@ -47,23 +47,23 @@ interface MarksTooltipProps {
 const marks = [
   {
     name: "strong",
-    icon: <BoldIcon />,
+    Icon: BoldIcon,
   },
   {
     name: "em",
-    icon: <ItalicIcon />,
+    Icon: ItalicIcon,
   },
   {
     name: "underlined",
-    icon: <UnderlineIcon />,
+    Icon: UnderlineIcon,
   },
   {
     name: "strikethrough",
-    icon: <StrikethroughIcon />,
+    Icon: StrikethroughIcon,
   },
   {
     name: "highlighted",
-    icon: <HighlighterIcon />,
+    Icon: HighlighterIcon,
   },
 ];
 
@@ -134,7 +134,7 @@ export const MarksTooltip: FunctionComponent<MarksTooltipProps> = ({
           borderBottomRightRadius: 4,
         })}
       >
-        {marks.map(({ name, icon }) => (
+        {marks.map(({ name, Icon }) => (
           <FormatButton
             value={name}
             sx={{
@@ -154,12 +154,12 @@ export const MarksTooltip: FunctionComponent<MarksTooltipProps> = ({
             }}
             selected={activeMarks.some((mark) => mark.name === name)}
           >
-            {cloneElement(icon, {
-              sx: {
+            <Icon
+              sx={{
                 fill: "inherit",
                 fontSize: 16,
-              },
-            })}
+              }}
+            />
           </FormatButton>
         ))}
       </Stack>
