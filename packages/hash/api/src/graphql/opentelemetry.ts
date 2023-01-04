@@ -29,15 +29,13 @@ const unregisterInstrumentations = registerInstrumentations({
 
 export const registerOpenTelemetryTracing = (
   otlpGrpcEndpoint: string | null,
-) => {
+): (() => void) => {
   if (!otlpGrpcEndpoint) {
     logger.info(
       "No OpenTelemetry Protocol endpoint given. Not sending tracespans anywhere.",
     );
     return () => {};
   }
-
-  // Register server-related instrumentation
 
   const collectorOptions = {
     timeoutMillis: traceTimeout,
