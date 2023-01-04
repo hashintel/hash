@@ -204,13 +204,18 @@ const Page: NextPageWithLayout = () => {
                  */
                 const newEntity = JSON.parse(JSON.stringify(entity)) as Entity;
                 const newEntityVersion = new Date().toISOString();
-                newEntity.metadata.editionId.version.decisionTime.start =
+                newEntity.metadata.version.decisionTime.start =
                   newEntityVersion;
 
                 return entityAndSubgraph
                   ? ({
                       ...entityAndSubgraph,
-                      roots: [newEntity.metadata.editionId],
+                      roots: [
+                        {
+                          baseId: newEntity.metadata.editionId.baseId,
+                          version: newEntityVersion,
+                        },
+                      ],
                       vertices: {
                         ...entityAndSubgraph.vertices,
                         [newEntity.metadata.editionId.baseId]: {
