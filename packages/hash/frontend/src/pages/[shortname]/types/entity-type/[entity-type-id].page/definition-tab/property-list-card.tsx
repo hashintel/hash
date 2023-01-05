@@ -16,7 +16,7 @@ import {
 } from "@mui/material";
 import { uniqueId } from "lodash";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import { useId, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useId, useLayoutEffect, useRef, useState } from "react";
 import {
   Controller,
   useFieldArray,
@@ -200,6 +200,22 @@ export const PropertyTypeRow = ({
   const propertyTypes = usePropertyTypes();
   const property = propertyTypes?.[$id];
 
+  const getDefaultValues = useCallback(() => {
+    if (!property) {
+      throw new Error("Missing property type");
+    }
+
+    const [expectedValues, flattenedCustomExpectedValueList] =
+      propertyTypeToFormDataExpectedValues(property);
+
+    return {
+      name: property.title,
+      description: property.description,
+      expectedValues,
+      flattenedCustomExpectedValueList,
+    };
+  }, [property]);
+
   if (!property) {
     if (propertyTypes) {
       throw new Error("Missing property type");
@@ -264,17 +280,7 @@ export const PropertyTypeRow = ({
         }}
         submitButtonProps={{ children: <>Edit property type</> }}
         disabledFields={["name"]}
-        getDefaultValues={() => {
-          const [expectedValues, flattenedCustomExpectedValueList] =
-            propertyTypeToFormDataExpectedValues(property);
-
-          return {
-            name: property.title,
-            description: property.description,
-            expectedValues,
-            flattenedCustomExpectedValueList,
-          };
-        }}
+        getDefaultValues={getDefaultValues}
       />
     </>
   );

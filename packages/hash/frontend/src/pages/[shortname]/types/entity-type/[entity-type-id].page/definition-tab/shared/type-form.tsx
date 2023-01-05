@@ -309,7 +309,7 @@ export const TypeForm = <T extends TypeFormDefaults>({
   children?: ReactNode;
   nameExists: (name: string) => Promise<boolean>;
 } & TypeFormProps<T>) => {
-  const defaultValues = getDefaultValues();
+  const defaultValues = useMemo(() => getDefaultValues(), [getDefaultValues]);
 
   const formMethods = useForm<T>({
     defaultValues,
