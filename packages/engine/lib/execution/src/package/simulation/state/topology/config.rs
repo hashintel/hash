@@ -313,10 +313,12 @@ impl DistanceFunction {
         #[must_use]
         fn conway(a: &[f64], b: &[f64]) -> f64 {
             debug_assert!(a.len() == b.len());
+            // zipping lines the two coordinates up in a set of hstacked pairs
+            // mapping pulls in each hstack pair and return the abs of their difference
             a.iter()
-                .zip(b.iter()) // Line the two coordinates up in a set of hstacked pairs
-                .map(|(x1, x2)| (*x1 - *x2).abs()) // pull in each hstack pair and return the abs of their difference
-                .fold(0_f64, |a, b| a.max(b)) //
+                .zip(b.iter())
+                .map(|(x1, x2)| (*x1 - *x2).abs())
+                .fold(0_f64, |a, b| a.max(b))
         }
 
         #[must_use]
