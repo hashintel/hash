@@ -48,7 +48,7 @@ export type EntityVersion = {
 export type EntityRecordId = number;
 
 /**
- * An identifier of a specific edition of an `Entity` at a given `EntityVersion`
+ * An identifier of a specific edition of an `Entity` at a given `EntityRecordId`
  */
 export type EntityEditionId = {
   baseId: EntityId;
