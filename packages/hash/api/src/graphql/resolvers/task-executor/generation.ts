@@ -403,7 +403,9 @@ const traverseJsonValue = ({
           namespace,
           kind: "property-type",
           title: key,
-          slugOverride: `generated-${integration}-${streamName}-${key}`,
+          slugOverride: `generated-${integration}-${streamName}-${encodeURIComponent(
+            key,
+          )}`,
         }),
         title: key,
         oneOf: [propertyTypeValue],
