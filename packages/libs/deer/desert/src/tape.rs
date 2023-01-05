@@ -68,11 +68,25 @@ impl<'a, 'de> Tape<'a, 'de> {
         self.trivia.get(n).as_deref().copied()
     }
 
+    /// ## Panics
+    ///
+    /// if range.start > range.end
     pub(crate) fn set_trivia(&mut self, mut range: Range<usize>) {
+        // ensure that the start range smaller than or equal to the end range
+        // doing this we can ensure that `0..1` is valid, but `1..0` is not.
+        assert!(range.start <= range.end);
+
         // automatically adjust so that we're able to always index to the end, even if the the end
         // is out of bounds
-        if range.end >= self.tokens.len() && range.start < self.tokens.len() {
+        if range.end > self.tokens.len() {
             range.end = self.tokens.len();
+        }
+
+        // we have already asserted that `range.start <= range.end`, therefore if range.start is out
+        // of bounds, range.end must be out of bounds as well, in that case we do not need to fill
+        // the slice, as `.get_mut` will return `None`
+        if range.start >= self.tokens.len() {
+            return;
         }
 
         if let Some(slice) = self.trivia.to_mut().get_mut(range) {
