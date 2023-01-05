@@ -16,12 +16,10 @@ import {
   CustomExpectedValue,
   CustomExpectedValueData,
   Property,
-  PropertyTypeFormValues,
-} from "./shared/property-type-form-values";
+} from "./shared/expected-value-types";
+import { PropertyTypeFormValues } from "./shared/property-type-form-values";
 
-const getPropertyTypeReferenceSchema = (
-  $ref: VersionedUri,
-): PropertyTypeReference => ({
+const getPrimitiveSchema = ($ref: VersionedUri): PropertyTypeReference => ({
   $ref,
 });
 
@@ -34,7 +32,7 @@ const getObjectSchema = (
   for (const { id, allowArrays, required } of properties) {
     const baseUri = extractBaseUri(id);
 
-    const propertyTypeReference = getPropertyTypeReferenceSchema(id);
+    const propertyTypeReference = getPrimitiveSchema(id);
 
     if (allowArrays) {
       propertyList[baseUri] = {
@@ -82,7 +80,7 @@ const getExpectedValueDataSchema = (
     case "object":
       return getObjectSchema(data.properties);
     default:
-      return getPropertyTypeReferenceSchema(data.typeId);
+      return getPrimitiveSchema(data.typeId);
   }
 };
 
@@ -120,7 +118,7 @@ export const getPropertyTypeSchema = (
       );
     }
 
-    return getPropertyTypeReferenceSchema(value);
+    return getPrimitiveSchema(value);
   }) as OneOf<PropertyValues>["oneOf"];
 
   return {

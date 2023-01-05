@@ -18,7 +18,7 @@ import {
 } from "react";
 import { useController, useFormContext, useWatch } from "react-hook-form";
 
-import { PropertyTypeFormValues } from "../../../../property-type-form-values";
+import { PropertyTypeFormValues } from "../../../../shared/property-type-form-values";
 
 type ItemInputProps = { width: string } & InputProps;
 

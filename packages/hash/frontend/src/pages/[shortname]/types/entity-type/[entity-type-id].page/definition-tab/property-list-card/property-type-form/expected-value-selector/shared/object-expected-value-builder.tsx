@@ -16,8 +16,8 @@ import { usePopupState } from "material-ui-popup-state/hooks";
 import { FunctionComponent, useEffect, useMemo, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
-import { usePropertyTypesContextValue } from "../../../../../../use-property-types-context-value";
-import { PropertyTypeFormValues } from "../../../property-type-form-values";
+import { usePropertyTypesContextValue } from "../../../../../shared/use-property-types-context-value";
+import { PropertyTypeFormValues } from "../../../shared/property-type-form-values";
 import { CustomExpectedValueSelector } from "./custom-expected-value-selector";
 import { DeleteExpectedValueModal } from "./delete-expected-value-modal";
 import { ExpectedValueBadge } from "./expected-value-badge";

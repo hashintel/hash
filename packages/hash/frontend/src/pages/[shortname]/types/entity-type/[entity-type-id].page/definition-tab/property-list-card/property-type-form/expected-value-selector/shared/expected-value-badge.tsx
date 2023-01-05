@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { ReactNode, useEffect, useRef, useState } from "react";
 
-import { DefaultExpectedValueTypeId } from "../../../property-type-form-values";
+import { DefaultExpectedValueTypeId } from "../../../shared/default-expected-value";
 import { expectedValuesOptions } from "./expected-values-options";
 
 interface ExpectedValueBadgeProps {

@@ -5,13 +5,13 @@ import { usePopupState } from "material-ui-popup-state/hooks";
 import { FunctionComponent, useEffect, useMemo, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
+import { dataTypeOptions as primitiveDataTypeOptions } from "../../../shared/data-type-options";
 import {
-  CustomExpectedValue,
   DefaultExpectedValueTypeId,
   getDefaultExpectedValue,
-  PropertyTypeFormValues,
-} from "../../../property-type-form-values";
-import { dataTypeOptions as primitiveDataTypeOptions } from "../../shared/data-type-options";
+} from "../../../shared/default-expected-value";
+import { CustomExpectedValue } from "../../../shared/expected-value-types";
+import { PropertyTypeFormValues } from "../../../shared/property-type-form-values";
 import { CustomExpectedValueSelector } from "../shared/custom-expected-value-selector";
 import { DeleteExpectedValueModal } from "../shared/delete-expected-value-modal";
 import { ExpectedValueBadge } from "../shared/expected-value-badge";

@@ -18,12 +18,10 @@ import { uniqueId } from "lodash";
 import { FunctionComponent } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
-import { faCube } from "../../../../../../../../../../shared/icons/pro/fa-cube";
-import {
-  getDefaultExpectedValue,
-  getExpectedValueDescriptor,
-  PropertyTypeFormValues,
-} from "../../property-type-form-values";
+import { faCube } from "../../../../../../../../../shared/icons/pro/fa-cube";
+import { getDefaultExpectedValue } from "../../shared/default-expected-value";
+import { getExpectedValueDescriptor } from "../../shared/get-expected-value-descriptor";
+import { PropertyTypeFormValues } from "../../shared/property-type-form-values";
 import { ArrayExpectedValueBuilder } from "./custom-expected-value-builder/array-expected-value-builder";
 import { useCustomExpectedValueBuilderContext } from "./shared/custom-expected-value-builder-context";
 import { ObjectExpectedValueBuilder } from "./shared/object-expected-value-builder";

@@ -33,15 +33,13 @@ import {
   usePropertyTypes,
   useRefetchPropertyTypes,
 } from "../shared/property-types-context";
-import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
-import { PropertyTypeForm } from "./property-list-card/shared/property-type-form";
-import {
-  arrayExpectedValueDataDefaults,
-  ExpectedValue,
-  getExpectedValueDescriptor,
-  PropertyTypeFormValues,
-} from "./property-list-card/shared/property-type-form-values";
 import { getPropertyTypeSchema } from "./property-list-card/get-property-type-schema";
+import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
+import { PropertyTypeForm } from "./property-list-card/property-type-form";
+import { arrayExpectedValueDataDefaults } from "./property-list-card/shared/default-expected-value";
+import { ExpectedValue } from "./property-list-card/shared/expected-value-types";
+import { getExpectedValueDescriptor } from "./property-list-card/shared/get-expected-value-descriptor";
+import { PropertyTypeFormValues } from "./property-list-card/shared/property-type-form-values";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
