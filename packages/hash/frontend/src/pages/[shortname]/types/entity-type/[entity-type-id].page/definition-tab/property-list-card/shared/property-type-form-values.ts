@@ -32,7 +32,7 @@ interface ObjectExpectedValue {
   properties: Property[];
 }
 
-type CustomExpectedValueData =
+export type CustomExpectedValueData =
   | PrimitiveExpectedValue
   | ArrayExpectedValue
   | ObjectExpectedValue;

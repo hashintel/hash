@@ -35,13 +35,13 @@ import {
 } from "../shared/property-types-context";
 import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
 import { PropertyTypeForm } from "./property-list-card/shared/property-type-form";
-import { getPropertyTypeSchema } from "./property-list-card/shared/property-type-form/property-type-schema";
 import {
   arrayExpectedValueDataDefaults,
   ExpectedValue,
   getExpectedValueDescriptor,
   PropertyTypeFormValues,
 } from "./property-list-card/shared/property-type-form-values";
+import { getPropertyTypeSchema } from "./property-list-card/get-property-type-schema";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
@@ -57,16 +57,6 @@ import { QuestionIcon } from "./shared/question-icon";
 import { TypeFormModal } from "./shared/type-form";
 import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { useStateCallback } from "./shared/use-state-callback";
-
-const formDataToPropertyType = (data: PropertyTypeFormValues) => ({
-  oneOf: getPropertyTypeSchema(
-    data.expectedValues,
-    data.flattenedCustomExpectedValueList,
-  ),
-  description: data.description,
-  title: data.name,
-  kind: "propertyType" as const,
-});
 
 const propertyTypeToFormDataExpectedValues = (property: PropertyType) => {
   const descriptors: ExpectedValue[] = [];
@@ -264,7 +254,7 @@ export const PropertyTypeRow = ({
           const res = await updatePropertyType({
             data: {
               propertyTypeId: $id,
-              propertyType: formDataToPropertyType(data),
+              propertyType: getPropertyTypeSchema(data),
             },
           });
 
@@ -357,7 +347,7 @@ export const PropertyListCard = () => {
   const handleSubmit = async (data: PropertyTypeFormValues) => {
     const res = await createPropertyType({
       data: {
-        propertyType: formDataToPropertyType(data),
+        propertyType: getPropertyTypeSchema(data),
       },
     });
 
