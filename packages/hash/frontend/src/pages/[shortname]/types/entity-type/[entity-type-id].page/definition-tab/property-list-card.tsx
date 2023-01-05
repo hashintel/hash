@@ -35,13 +35,13 @@ import {
 } from "../shared/property-types-context";
 import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
 import { PropertyTypeForm } from "./property-list-card/shared/property-type-form";
+import { getPropertyTypeSchema } from "./property-list-card/shared/property-type-form/property-type-schema";
 import {
   arrayExpectedValueDataDefaults,
   ExpectedValue,
   getExpectedValueDescriptor,
   PropertyTypeFormValues,
 } from "./property-list-card/shared/property-type-form-values";
-import { getPropertyTypeSchema } from "./property-list-card/shared/property-type-form/property-type-schema";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
@@ -222,16 +222,40 @@ export const PropertyTypeRow = ({
 
                     walk(item.items, id);
 
-                    if (!parentId) {
-                      expectedValues.push(
-                        getExpectedValueDescriptor(id, flatList),
-                      );
-                    }
-
                     break;
                   case "object":
-                    console.log("skipping object");
+                    flatList[id] = {
+                      id,
+                      data: {
+                        typeId: "object",
+                        properties: Object.values(item.properties).flatMap(
+                          (itemProperty) => {
+                            let propertyId: VersionedUri;
+                            let allowArrays = false;
+                            if ("type" in itemProperty) {
+                              allowArrays = true;
+                              propertyId = itemProperty.items.$ref;
+                            } else {
+                              propertyId = itemProperty.$ref;
+                            }
+
+                            return {
+                              id: propertyId,
+                              allowArrays,
+                              required:
+                                item.required?.includes(propertyId) ?? false,
+                            };
+                          },
+                        ),
+                      },
+                      ...(parentId ? { parentId } : {}),
+                    };
+
                     break;
+                }
+
+                if (!parentId) {
+                  expectedValues.push(getExpectedValueDescriptor(id, flatList));
                 }
               }
             }
