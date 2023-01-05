@@ -26,6 +26,8 @@ export const textBlockNodesFromTokens = (
             ["strong", token.bold] as const,
             ["underlined", token.underline] as const,
             ["em", token.italics] as const,
+            ["strikethrough", token.strikethrough] as const,
+            ["highlighted", token.highlighted] as const,
             [
               "link",
               Boolean(token.link),
@@ -80,6 +82,8 @@ export const textBlockNodeToTextTokens = (node: ComponentNode): TextToken[] => {
           ...(marks.has("strong") ? { bold: true } : {}),
           ...(marks.has("em") ? { italics: true } : {}),
           ...(marks.has("underlined") ? { underline: true } : {}),
+          ...(marks.has("strikethrough") ? { strikethrough: true } : {}),
+          ...(marks.has("highlighted") ? { highlighted: true } : {}),
           ...(marks.has("link")
             ? {
                 link: child.marks.find((mark) => mark.type.name === "link")
