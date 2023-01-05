@@ -60,6 +60,11 @@ variable "hash_system_user_password" {
   description = "Password to give the system user in HASH"
 }
 
+variable "hash_block_protocol_api_key" {
+  type        = string
+  description = "API key to fetch blocks from the BP Hub"
+}
+
 variable "pg_superuser_password" {
   type        = string
   sensitive   = true

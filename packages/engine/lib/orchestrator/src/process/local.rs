@@ -23,7 +23,7 @@ const ENGINE_BIN_PATH_FALLBACK: &str = "./target/debug/hash_engine";
 #[cfg(not(debug_assertions))]
 const ENGINE_BIN_PATH_FALLBACK: &str = "./target/release/hash_engine";
 
-/// A local `hash_engine` subprocess using the [`std::process`] library.  
+/// A local `hash_engine` subprocess using the [`std::process`] library.
 pub struct LocalProcess {
     child: tokio::process::Child,
     client: Option<nano::Client>,
