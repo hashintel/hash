@@ -11,6 +11,7 @@ import {
 } from "@blockprotocol/type-system";
 
 import {
+  ArrayExpectedValue,
   CustomExpectedValue,
   ExpectedValue,
   Property,
@@ -60,16 +61,8 @@ export const getArrayItems = (
 
     if (property?.data) {
       if ("itemIds" in property.data) {
-        const { data } = property;
-
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
-        return getArraySchema(
-          property.data.itemIds,
-          flattenedExpectedValues,
-          data.minItems,
-          data.maxItems,
-          data.infinity,
-        );
+        return getArraySchema(flattenedExpectedValues, property.data);
       } else if ("properties" in property.data) {
         return getObjectSchema(property.data.properties);
       }
@@ -79,13 +72,9 @@ export const getArrayItems = (
     };
   }) as [PropertyValues, ...PropertyValues[]];
 
-// @todo arguments to this are a bit odd
 export const getArraySchema = (
-  itemIds: string[],
   flattenedExpectedValues: Record<string, CustomExpectedValue>,
-  minItems: number,
-  maxItems: number,
-  infinity: boolean,
+  { minItems, maxItems, infinity, itemIds }: ArrayExpectedValue,
 ): Array<OneOf<PropertyValues>> => ({
   type: "array",
   items: {
@@ -104,13 +93,7 @@ export const getPropertyTypeSchema = (
       const property = flattenedExpectedValues[value.id];
 
       if (property?.data && "itemIds" in property.data) {
-        return getArraySchema(
-          property.data.itemIds,
-          flattenedExpectedValues,
-          property.data.minItems,
-          property.data.maxItems,
-          property.data.infinity,
-        );
+        return getArraySchema(flattenedExpectedValues, property.data);
       } else if (property?.data && "properties" in property.data) {
         return getObjectSchema(property.data.properties);
       }
