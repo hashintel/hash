@@ -1,4 +1,5 @@
 import { VersionedUri } from "@blockprotocol/type-system";
+
 import { dataTypeOptions } from "./property-type-form/shared/data-type-options";
 
 export enum ArrayType {
