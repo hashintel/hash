@@ -448,10 +448,13 @@ impl Manifest {
             project_path.to_string_lossy()
         );
 
-        let project_name = project_path.file_name()
-            // Shouldn't be able to fail as it should have been validated by now
+        // Shouldn't be able to fail as it should have been validated by now
+        let project_name = project_path
+            .file_name()
             .ok_or_else(|| Report::new(ManifestError))
-            .attach_printable_lazy(||format!("Project path didn't point to a directory: {project_path:?}"))?
+            .attach_printable_lazy(|| {
+                format!("Project path didn't point to a directory: {project_path:?}")
+            })?
             .to_string_lossy()
             .to_string();
         let experiments_json = project_path.join("experiments.json");
@@ -714,7 +717,9 @@ fn _try_read_local_dependencies<P: AsRef<Path>>(dependency_path: P) -> Result<Ve
     let mut entries = dependency_path
         .read_dir()
         .into_report()
-        .attach_printable_lazy(|| format!("Could not read dependency directory: {dependency_path:?}"))
+        .attach_printable_lazy(|| {
+            format!("Could not read dependency directory: {dependency_path:?}")
+        })
         .change_context(ManifestError)?
         .filter_map(|dir_res| {
             if let Ok(entry) = dir_res {
@@ -730,12 +735,10 @@ fn _try_read_local_dependencies<P: AsRef<Path>>(dependency_path: P) -> Result<Ve
                 .path()
                 .read_dir()
                 .into_report()
-                .attach_printable_lazy(|| {
-                    format!("Could not read directory {:?}", user_dir.path())
-                })
+                .attach_printable_lazy(|| format!("Could not read directory {:?}", user_dir.path()))
                 .change_context(ManifestError)
         })
-        .collect::<Result<Vec<_>>>()? // Intermediary collect and iter to handle errors from read_dir
+        .collect::<Result<Vec<_>>>()?
         .into_iter()
         .flatten()
         .filter_map(|dir_res| {

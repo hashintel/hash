@@ -46,8 +46,8 @@ pub struct MessageBatch {
 
 impl fmt::Debug for MessageBatch {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // todo: improve debug representation
         f.debug_struct("MessageBatch")
-            // todo: improve debug representation
             .field("batch", &"_")
             .field("arrow_schema", &self.arrow_schema)
             .finish()
