@@ -78,7 +78,7 @@ impl From<FieldTypeVariant> for DataType {
                 Field::new("item", DataType::from(field_type.variant), true),
             )),
             FieldTypeVariant::Struct(field_specs) => DataType::Struct(
-                // TODO: Enforce nullability of fields at initialisation.
+                // TODO: Enforce nullability of fields at initialization.
                 //   These structs are necessarily nested within another arrow field. We cannot
                 //   guarantee non-nullability for certain root-level arrow-fields due to how we
                 //   initialise data currently. Because these _are_ nested, we can guarantee
