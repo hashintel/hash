@@ -68,6 +68,100 @@ const formDataToPropertyType = (data: PropertyTypeFormValues) => ({
   kind: "propertyType" as const,
 });
 
+const propertyTypeToFormDataExpectedValues = (property: PropertyType) => {
+  const descriptors: ExpectedValue[] = [];
+  const customExpectedValues: PropertyTypeFormValues["flattenedCustomExpectedValueList"] =
+    {};
+
+  const processProperties = (
+    { oneOf }: OneOf<PropertyValues>,
+    parentId?: string,
+  ) => {
+    for (const expectedValue of oneOf) {
+      const id = uniqueId();
+
+      if (parentId) {
+        const parentData = customExpectedValues[parentId]?.data;
+
+        if (parentData?.typeId !== "array") {
+          throw new Error("Parent must be an array");
+        }
+
+        parentData.itemIds.push(id);
+      }
+
+      if ("$ref" in expectedValue) {
+        customExpectedValues[id] = {
+          id,
+          data: {
+            typeId: expectedValue.$ref,
+          },
+        };
+      } else {
+        switch (expectedValue.type) {
+          case "array":
+            customExpectedValues[id] = {
+              id,
+              data: {
+                typeId: "array",
+                infinity: !("maxItems" in expectedValue),
+                itemIds: [],
+                minItems:
+                  expectedValue.minItems ??
+                  arrayExpectedValueDataDefaults.minItems,
+                maxItems:
+                  expectedValue.maxItems ??
+                  arrayExpectedValueDataDefaults.maxItems,
+              },
+              ...(parentId ? { parentId } : {}),
+            };
+
+            processProperties(expectedValue.items, id);
+
+            break;
+          case "object":
+            customExpectedValues[id] = {
+              id,
+              data: {
+                typeId: "object",
+                properties: Object.values(expectedValue.properties).flatMap(
+                  (itemProperty) => {
+                    let propertyId: VersionedUri;
+                    let allowArrays = false;
+                    if ("type" in itemProperty) {
+                      allowArrays = true;
+                      propertyId = itemProperty.items.$ref;
+                    } else {
+                      propertyId = itemProperty.$ref;
+                    }
+
+                    return {
+                      id: propertyId,
+                      allowArrays,
+                      required:
+                        expectedValue.required?.includes(propertyId) ?? false,
+                    };
+                  },
+                ),
+              },
+              ...(parentId ? { parentId } : {}),
+            };
+
+            break;
+        }
+      }
+
+      if (!parentId) {
+        descriptors.push(getExpectedValueDescriptor(id, customExpectedValues));
+      }
+    }
+  };
+
+  processProperties(property);
+
+  return [descriptors, customExpectedValues] as const;
+};
+
 export const PropertyTypeRow = ({
   propertyIndex,
   onRemove,
@@ -171,104 +265,14 @@ export const PropertyTypeRow = ({
         submitButtonProps={{ children: <>Edit property type</> }}
         disabledFields={["name"]}
         getDefaultValues={() => {
-          const flatList: PropertyTypeFormValues["flattenedCustomExpectedValueList"] =
-            {};
-          const expectedValues: ExpectedValue[] = [];
-
-          function walk(arr: OneOf<PropertyValues>, parentId?: string) {
-            for (const item of arr.oneOf) {
-              const id = uniqueId();
-
-              if (parentId) {
-                const parentData = flatList[parentId]?.data;
-
-                if (parentData?.typeId !== "array") {
-                  throw new Error("Parent must be an array");
-                }
-
-                parentData.itemIds.push(id);
-              }
-
-              if ("$ref" in item) {
-                if (!parentId) {
-                  expectedValues.push(item.$ref);
-                }
-
-                // @todo should we do this?
-                flatList[id] = {
-                  id,
-                  data: {
-                    typeId: item.$ref,
-                  },
-                };
-              } else {
-                switch (item.type) {
-                  case "array":
-                    flatList[id] = {
-                      id,
-                      data: {
-                        typeId: "array",
-                        infinity: !("maxItems" in item),
-                        itemIds: [],
-                        minItems:
-                          item.minItems ??
-                          arrayExpectedValueDataDefaults.minItems,
-                        maxItems:
-                          item.maxItems ??
-                          arrayExpectedValueDataDefaults.maxItems,
-                      },
-                      ...(parentId ? { parentId } : {}),
-                    };
-
-                    walk(item.items, id);
-
-                    break;
-                  case "object":
-                    flatList[id] = {
-                      id,
-                      data: {
-                        typeId: "object",
-                        properties: Object.values(item.properties).flatMap(
-                          (itemProperty) => {
-                            let propertyId: VersionedUri;
-                            let allowArrays = false;
-                            if ("type" in itemProperty) {
-                              allowArrays = true;
-                              propertyId = itemProperty.items.$ref;
-                            } else {
-                              propertyId = itemProperty.$ref;
-                            }
-
-                            return {
-                              id: propertyId,
-                              allowArrays,
-                              required:
-                                item.required?.includes(propertyId) ?? false,
-                            };
-                          },
-                        ),
-                      },
-                      ...(parentId ? { parentId } : {}),
-                    };
-
-                    break;
-                }
-
-                if (!parentId) {
-                  expectedValues.push(getExpectedValueDescriptor(id, flatList));
-                }
-              }
-            }
-          }
-
-          walk(property);
+          const [expectedValues, flattenedCustomExpectedValueList] =
+            propertyTypeToFormDataExpectedValues(property);
 
           return {
             name: property.title,
             description: property.description,
-            // @todo handle exotic values
             expectedValues,
-            flattenedCustomExpectedValueList: flatList,
+            flattenedCustomExpectedValueList,
           };
         }}
       />

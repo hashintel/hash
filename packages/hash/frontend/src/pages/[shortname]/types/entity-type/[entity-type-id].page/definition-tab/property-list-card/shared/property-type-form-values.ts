@@ -131,16 +131,24 @@ export const getExpectedValueDescriptor = (
 ): ExpectedValue => {
   const data = flattenedExpectedValues[id]?.data;
 
-  if (data && "itemIds" in data) {
-    return {
-      typeId: "array",
-      arrayType: getArrayExpectedValueType(data, flattenedExpectedValues),
-      id,
-    };
+  if (!data) {
+    throw new Error("Cannot get expected value descriptor, data missing");
   }
 
-  return {
-    typeId: "object",
-    id,
-  };
+  switch (data.typeId) {
+    case "array":
+      return {
+        typeId: "array",
+        arrayType: getArrayExpectedValueType(data, flattenedExpectedValues),
+        id,
+      };
+    case "object":
+      return {
+        typeId: "object",
+        id,
+      };
+
+    default:
+      return data.typeId;
+  }
 };
