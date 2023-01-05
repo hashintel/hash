@@ -38,7 +38,6 @@ import { PropertyTypeForm } from "./property-list-card/shared/property-type-form
 import {
   arrayExpectedValueDataDefaults,
   ExpectedValue,
-  getDefaultExpectedValue,
   getExpectedValueDescriptor,
   PropertyTypeFormValues,
 } from "./property-list-card/shared/property-type-form-values";
@@ -205,13 +204,11 @@ export const PropertyTypeRow = ({
               } else {
                 switch (item.type) {
                   case "array":
-                    console.log(item);
                     flatList[id] = {
                       id,
                       data: {
                         typeId: "array",
-                        // @todo check this
-                        infinity: !("maxItems" in item && item.maxItems === 0),
+                        infinity: !("maxItems" in item),
                         itemIds: [],
                         minItems:
                           item.minItems ??
@@ -241,8 +238,6 @@ export const PropertyTypeRow = ({
           }
 
           walk(property);
-
-          console.log(property, expectedValues, flatList);
 
           return {
             name: property.title,
