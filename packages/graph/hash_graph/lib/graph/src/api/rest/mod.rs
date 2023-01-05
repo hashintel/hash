@@ -45,7 +45,7 @@ use crate::{
     identifier::{
         ontology::OntologyTypeEditionId,
         time::{Timestamp, TransactionTimestamp, VersionTimespan},
-        GraphElementId, GraphElementVertexId,
+        EntityVertexId, GraphElementId, GraphElementVertexId,
     },
     ontology::{domain_validator::DomainValidator, OntologyElementMetadata, Selector},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
@@ -156,6 +156,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             ProvenanceMetadata,
             OntologyTypeEditionId,
             OntologyElementMetadata,
+            EntityVertexId,
             Selector,
 
             GraphElementId,

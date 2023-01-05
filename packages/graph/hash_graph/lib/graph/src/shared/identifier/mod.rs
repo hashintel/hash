@@ -82,8 +82,8 @@ impl From<EntityVertexId> for GraphElementVertexId {
 impl ToSchema for GraphElementVertexId {
     fn schema() -> openapi::Schema {
         openapi::OneOfBuilder::new()
-            .item(OntologyTypeEditionId::schema())
-            .item(EntityVertexId::schema())
+            .item(openapi::Ref::from_schema_name("OntologyTypeEditionId"))
+            .item(openapi::Ref::from_schema_name("EntityVertexId"))
             .into()
     }
 }

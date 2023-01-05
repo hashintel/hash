@@ -691,6 +691,25 @@ export interface EntityVersion {
 /**
  *
  * @export
+ * @interface EntityVertexId
+ */
+export interface EntityVertexId {
+  /**
+   *
+   * @type {string}
+   * @memberof EntityVertexId
+   */
+  baseId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof EntityVertexId
+   */
+  version: string;
+}
+/**
+ *
+ * @export
  * @interface EqualFilter
  */
 export interface EqualFilter {
@@ -728,48 +747,8 @@ export type GraphElementId = string;
  * @type GraphElementVertexId
  * @export
  */
-export type GraphElementVertexId =
-  | GraphElementVertexIdOneOf
-  | GraphElementVertexIdOneOf1;
+export type GraphElementVertexId = EntityVertexId | OntologyTypeEditionId;
 
-/**
- *
- * @export
- * @interface GraphElementVertexIdOneOf
- */
-export interface GraphElementVertexIdOneOf {
-  /**
-   *
-   * @type {string}
-   * @memberof GraphElementVertexIdOneOf
-   */
-  baseId: string;
-  /**
-   *
-   * @type {number}
-   * @memberof GraphElementVertexIdOneOf
-   */
-  version: number;
-}
-/**
- *
- * @export
- * @interface GraphElementVertexIdOneOf1
- */
-export interface GraphElementVertexIdOneOf1 {
-  /**
-   *
-   * @type {string}
-   * @memberof GraphElementVertexIdOneOf1
-   */
-  baseId: string;
-  /**
-   *
-   * @type {string}
-   * @memberof GraphElementVertexIdOneOf1
-   */
-  version: string;
-}
 /**
  * TODO: DOC - <https://app.asana.com/0/0/1203438518991188/f>
  * @export
@@ -901,10 +880,10 @@ export interface KnowledgeGraphOutwardEdgesOneOf1 {
   reversed: boolean;
   /**
    *
-   * @type {GraphElementVertexIdOneOf}
+   * @type {KnowledgeGraphOutwardEdgesOneOf1RightEndpoint}
    * @memberof KnowledgeGraphOutwardEdgesOneOf1
    */
-  rightEndpoint: GraphElementVertexIdOneOf;
+  rightEndpoint: KnowledgeGraphOutwardEdgesOneOf1RightEndpoint;
 }
 
 export const KnowledgeGraphOutwardEdgesOneOf1KindEnum = {
@@ -914,6 +893,25 @@ export const KnowledgeGraphOutwardEdgesOneOf1KindEnum = {
 export type KnowledgeGraphOutwardEdgesOneOf1KindEnum =
   typeof KnowledgeGraphOutwardEdgesOneOf1KindEnum[keyof typeof KnowledgeGraphOutwardEdgesOneOf1KindEnum];
 
+/**
+ *
+ * @export
+ * @interface KnowledgeGraphOutwardEdgesOneOf1RightEndpoint
+ */
+export interface KnowledgeGraphOutwardEdgesOneOf1RightEndpoint {
+  /**
+   *
+   * @type {string}
+   * @memberof KnowledgeGraphOutwardEdgesOneOf1RightEndpoint
+   */
+  baseId: string;
+  /**
+   *
+   * @type {number}
+   * @memberof KnowledgeGraphOutwardEdgesOneOf1RightEndpoint
+   */
+  version: number;
+}
 /**
  *
  * @export
@@ -1153,10 +1151,10 @@ export interface OntologyOutwardEdgesOneOf {
   reversed: boolean;
   /**
    *
-   * @type {GraphElementVertexIdOneOf}
+   * @type {KnowledgeGraphOutwardEdgesOneOf1RightEndpoint}
    * @memberof OntologyOutwardEdgesOneOf
    */
-  rightEndpoint: GraphElementVertexIdOneOf;
+  rightEndpoint: KnowledgeGraphOutwardEdgesOneOf1RightEndpoint;
 }
 
 export const OntologyOutwardEdgesOneOfKindEnum = {
@@ -1190,10 +1188,10 @@ export interface OntologyOutwardEdgesOneOf1 {
   reversed: boolean;
   /**
    *
-   * @type {GraphElementVertexIdOneOf1}
+   * @type {OntologyOutwardEdgesOneOf1RightEndpoint}
    * @memberof OntologyOutwardEdgesOneOf1
    */
-  rightEndpoint: GraphElementVertexIdOneOf1;
+  rightEndpoint: OntologyOutwardEdgesOneOf1RightEndpoint;
 }
 
 export const OntologyOutwardEdgesOneOf1KindEnum = {
@@ -1203,6 +1201,25 @@ export const OntologyOutwardEdgesOneOf1KindEnum = {
 export type OntologyOutwardEdgesOneOf1KindEnum =
   typeof OntologyOutwardEdgesOneOf1KindEnum[keyof typeof OntologyOutwardEdgesOneOf1KindEnum];
 
+/**
+ *
+ * @export
+ * @interface OntologyOutwardEdgesOneOf1RightEndpoint
+ */
+export interface OntologyOutwardEdgesOneOf1RightEndpoint {
+  /**
+   *
+   * @type {string}
+   * @memberof OntologyOutwardEdgesOneOf1RightEndpoint
+   */
+  baseId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof OntologyOutwardEdgesOneOf1RightEndpoint
+   */
+  version: string;
+}
 /**
  *
  * @export
