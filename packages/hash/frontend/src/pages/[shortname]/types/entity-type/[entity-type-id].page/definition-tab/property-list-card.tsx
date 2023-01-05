@@ -1,9 +1,4 @@
-import {
-  OneOf,
-  PropertyType,
-  PropertyValues,
-  VersionedUri,
-} from "@blockprotocol/type-system";
+import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
 import { faList } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { OwnedById } from "@hashintel/hash-shared/types";
@@ -14,7 +9,6 @@ import {
   TableFooter,
   TableHead,
 } from "@mui/material";
-import { uniqueId } from "lodash";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useCallback, useId, useLayoutEffect, useRef, useState } from "react";
 import {
@@ -36,9 +30,7 @@ import {
 import { getPropertyTypeSchema } from "./property-list-card/get-property-type-schema";
 import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
 import { PropertyTypeForm } from "./property-list-card/property-type-form";
-import { arrayExpectedValueDataDefaults } from "./property-list-card/shared/default-expected-value";
-import { ExpectedValue } from "./property-list-card/shared/expected-value-types";
-import { getExpectedValueDescriptor } from "./property-list-card/shared/get-expected-value-descriptor";
+import { propertyTypeToFormDataExpectedValues } from "./property-list-card/property-type-to-form-data-expected-values";
 import { PropertyTypeFormValues } from "./property-list-card/shared/property-type-form-values";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
@@ -55,100 +47,6 @@ import { QuestionIcon } from "./shared/question-icon";
 import { TypeFormModal } from "./shared/type-form";
 import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { useStateCallback } from "./shared/use-state-callback";
-
-const propertyTypeToFormDataExpectedValues = (property: PropertyType) => {
-  const descriptors: ExpectedValue[] = [];
-  const customExpectedValues: PropertyTypeFormValues["flattenedCustomExpectedValueList"] =
-    {};
-
-  const processProperties = (
-    { oneOf }: OneOf<PropertyValues>,
-    parentId?: string,
-  ) => {
-    for (const expectedValue of oneOf) {
-      const id = uniqueId();
-
-      if (parentId) {
-        const parentData = customExpectedValues[parentId]?.data;
-
-        if (parentData?.typeId !== "array") {
-          throw new Error("Parent must be an array");
-        }
-
-        parentData.itemIds.push(id);
-      }
-
-      if ("$ref" in expectedValue) {
-        customExpectedValues[id] = {
-          id,
-          data: {
-            typeId: expectedValue.$ref,
-          },
-        };
-      } else {
-        switch (expectedValue.type) {
-          case "array":
-            customExpectedValues[id] = {
-              id,
-              data: {
-                typeId: "array",
-                infinity: !("maxItems" in expectedValue),
-                itemIds: [],
-                minItems:
-                  expectedValue.minItems ??
-                  arrayExpectedValueDataDefaults.minItems,
-                maxItems:
-                  expectedValue.maxItems ??
-                  arrayExpectedValueDataDefaults.maxItems,
-              },
-              ...(parentId ? { parentId } : {}),
-            };
-
-            processProperties(expectedValue.items, id);
-
-            break;
-          case "object":
-            customExpectedValues[id] = {
-              id,
-              data: {
-                typeId: "object",
-                properties: Object.values(expectedValue.properties).flatMap(
-                  (itemProperty) => {
-                    let propertyId: VersionedUri;
-                    let allowArrays = false;
-                    if ("type" in itemProperty) {
-                      allowArrays = true;
-                      propertyId = itemProperty.items.$ref;
-                    } else {
-                      propertyId = itemProperty.$ref;
-                    }
-
-                    return {
-                      id: propertyId,
-                      allowArrays,
-                      required:
-                        expectedValue.required?.includes(propertyId) ?? false,
-                    };
-                  },
-                ),
-              },
-              ...(parentId ? { parentId } : {}),
-            };
-
-            break;
-        }
-      }
-
-      if (!parentId) {
-        descriptors.push(getExpectedValueDescriptor(id, customExpectedValues));
-      }
-    }
-  };
-
-  processProperties(property);
-
-  return [descriptors, customExpectedValues] as const;
-};
 
 export const PropertyTypeRow = ({
   propertyIndex,
