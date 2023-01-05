@@ -83,7 +83,7 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
     {
         self.consumed += 1;
 
-        if matches!(self.deserializer.peek(), Token::ArrayEnd) {
+        if self.deserializer.peek() == Token::ArrayEnd {
             // we have reached the ending, if `self.remaining` is set we use the `DeserializerNone`
             // to deserialize any values that require `None`
             if let Some(remaining) = &mut self.remaining {
@@ -115,7 +115,7 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
         let mut result = Ok(());
 
         // ensure that we consume the last token, if it is the wrong token error out
-        if !matches!(self.deserializer.peek(), Token::ArrayEnd) {
+        if self.deserializer.peek() != Token::ArrayEnd {
             let mut error = Report::new(ArrayLengthError.into_error())
                 .attach(ExpectedLength::new(self.consumed));
 

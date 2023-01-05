@@ -3,7 +3,7 @@ use core::fmt::{Debug, Display, Formatter};
 use deer::Number;
 
 // TODO: test
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Token {
     /// A serialized `bool`
     ///
