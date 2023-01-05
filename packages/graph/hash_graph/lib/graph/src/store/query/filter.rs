@@ -58,6 +58,21 @@ where
         )
     }
 
+    /// Creates a `Filter` to search for the latest specific ontology type of kind `R`, identified
+    /// by its [`BaseUri`].
+    #[must_use]
+    pub fn for_latest_base_uri(base_uri: &'p BaseUri) -> Self {
+        Self::All(vec![
+            Self::for_base_uri(base_uri),
+            Self::Equal(
+                Some(FilterExpression::Path(<R::QueryPath<'p>>::version())),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    "latest",
+                )))),
+            ),
+        ])
+    }
+
     /// Creates a `Filter` to filter by a given version.
     #[must_use]
     fn for_version(version: u32) -> Self {
