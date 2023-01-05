@@ -307,7 +307,7 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
         <DeleteExpectedValueModal
           expectedValueType="array"
           popupState={deleteModalPopupState}
-          editing={editingExpectedValueIndex !== undefined && !index.length}
+          editing={editingExpectedValueIndex !== undefined && !index.length} // We only want to show the editing modal for the root array
           onDelete={onDelete}
           onClose={() => deleteModalPopupState.close()}
           dataTypeCount={dataTypeCount}
