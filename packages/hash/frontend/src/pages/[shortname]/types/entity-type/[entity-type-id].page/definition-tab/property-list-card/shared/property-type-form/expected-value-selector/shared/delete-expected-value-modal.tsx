@@ -111,10 +111,10 @@ export const DeleteExpectedValueModal = ({
                       ? "These "
                       : "This "
                   }
-                will be removed from your expected value definition`
-                : "Changes made while editing will be reverted"}{" "}
-              if you continue and will need to be individually re-added should
-              you wish to restore them. Proceed with caution.
+                will be removed from your expected value definition if you continue and will need to be individually re-added should
+                you wish to restore them.`
+                : "Changes made while editing will be reverted if you continue."}{" "}
+              Proceed with caution.
             </Typography>
           </Box>
 
