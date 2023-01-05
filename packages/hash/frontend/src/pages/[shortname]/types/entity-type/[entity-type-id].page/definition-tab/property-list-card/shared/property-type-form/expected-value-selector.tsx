@@ -80,14 +80,32 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
   HTMLInputElement,
   {}
 > = () => {
-  const { control, setValue } = useFormContext<PropertyTypeFormValues>();
+  const { control, setValue, clearErrors } =
+    useFormContext<PropertyTypeFormValues>();
+
+  const [expectedValuesValid, setExpectedValuesValid] = useState(false);
 
   const {
     field: { onChange, onBlur, ...props },
+    formState: {
+      isSubmitting,
+      errors: { expectedValues: expectedValuesError },
+    },
   } = useController({
     control,
-    rules: { required: true },
     name: "expectedValues",
+    rules: {
+      onChange() {
+        clearErrors("expectedValues");
+        setExpectedValuesValid(false);
+      },
+      validate: (value) => {
+        setExpectedValuesValid(!!value.length);
+        return value.length
+          ? true
+          : "Please select at least one expected value";
+      },
+    },
   });
 
   const inputRef = useRef<HTMLInputElement | null>();
@@ -193,6 +211,10 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
             inputRef={inputRef}
             label="Expected values"
             placeholder="Select acceptable values"
+            disabled={isSubmitting}
+            error={!!expectedValuesError}
+            success={expectedValuesValid}
+            helperText={expectedValuesError?.message}
           />
         )}
         sx={{ width: "70%" }}
