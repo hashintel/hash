@@ -9,7 +9,7 @@ resource "aws_ssm_parameter" "api_env_vars" {
   # Only put secrets into SSM
   for_each = { for env_var in var.api_env_vars : env_var.name => env_var if env_var.secret }
 
-  name = "${local.graph_param_prefix}/${each.value.name}"
+  name = "${local.api_param_prefix}/${each.value.name}"
   # Still supports non-secret values
   type      = each.value.secret ? "SecureString" : "String"
   value     = each.value.secret ? sensitive(each.value.value) : each.value.value
