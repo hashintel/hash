@@ -290,8 +290,6 @@ export type TypeFormProps<T extends TypeFormDefaults = TypeFormDefaults> = {
   onSubmit: (data: T) => Promise<void> | void;
   submitButtonProps: TypeFormSubmitProps;
   disabledFields?: (keyof DeepPartial<T>)[];
-
-  // @todo change to not a function
   getDefaultValues: () => DeepPartial<T>;
 };
 
