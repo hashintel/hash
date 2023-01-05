@@ -7,7 +7,7 @@ import {
   toggleButtonClasses,
   useTheme,
 } from "@mui/material";
-import { cloneElement, FunctionComponent } from "react";
+import { FunctionComponent } from "react";
 
 import { BoldIcon } from "../../../shared/icons/bold-icon";
 import { HighlighterIcon } from "../../../shared/icons/hightlighter-icon";
