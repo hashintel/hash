@@ -48,8 +48,8 @@ import {
 } from "react-hook-form";
 
 import { Modal } from "../../../../../../../components/modals/modal";
-import { withHandler } from "./with-handler";
 import { QuestionIcon } from "./question-icon";
+import { withHandler } from "./with-handler";
 
 type TypeFormSubmitProps = Omit<
   ButtonProps,
