@@ -281,7 +281,6 @@ export const createEntityTypeTree = async (
 
 /* eslint-disable no-param-reassign -- We want to mutate in place for efficiency */
 
-/// post-order traversal of the JSON object tree
 /**
  * Does a post-order traversal of a JSON object tree, transforming the object into the Type System.
  *
