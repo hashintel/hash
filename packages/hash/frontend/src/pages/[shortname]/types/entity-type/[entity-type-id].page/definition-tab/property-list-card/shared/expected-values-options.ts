@@ -69,11 +69,6 @@ export const expectedValuesOptions = {
     icon: faListCheck.icon,
     colors: chipColors.blue,
   },
-  dataTypeArray: {
-    title: "Data Type Array",
-    icon: faListCheck.icon,
-    colors: chipColors.blue,
-  },
   propertyObjectArray: {
     title: "Property Object Array",
     icon: faCubes,

@@ -1,7 +1,6 @@
 import { VersionedUri } from "@blockprotocol/type-system";
 
 export enum ArrayType {
-  dataTypeArray = "dataTypeArray",
   propertyObjectArray = "propertyObjectArray",
   mixedArray = "mixedArray",
   arrayArray = "arrayArray",
