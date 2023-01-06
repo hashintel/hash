@@ -8,6 +8,7 @@ import HttpAgent, { HttpsAgent } from "agentkeepalive";
 import { DataSource } from "apollo-datasource";
 import axios, { AxiosError } from "axios";
 
+import { UploadableStorageProvider } from "../storage";
 import { ensureSystemEntitiesExists } from "./system-entities";
 import { ensureSystemTypesExist } from "./system-types";
 import {
@@ -17,6 +18,7 @@ import {
 
 export type ImpureGraphContext = {
   graphApi: GraphApi;
+  storage: UploadableStorageProvider;
   /** @todo: add logger? */
 };
 

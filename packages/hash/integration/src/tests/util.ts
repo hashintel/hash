@@ -11,6 +11,8 @@ import {
 } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
 import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
 import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
+import { StorageType } from "@hashintel/hash-api/src/graphql/api-types.gen";
+import { PresignedPostUpload } from "@hashintel/hash-api/src/storage";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { OrgSize } from "../graphql/api-types.gen";
@@ -33,7 +35,15 @@ export const createTestUser = async (
 ) => {
   await ensureSystemGraphIsInitialized({ graphApi, logger });
 
-  const graphContext: ImpureGraphContext = { graphApi };
+  const graphContext: ImpureGraphContext = {
+    graphApi,
+    storage: {
+      getFileEntityStorageKey: (_params) => "n/a",
+      presignDownload: (_params) => Promise.resolve("n/a"),
+      presignUpload: (_params) => Promise.resolve({} as PresignedPostUpload),
+      storageType: StorageType.LocalFileSystem,
+    },
+  };
 
   const shortname = generateRandomShortname(shortNamePrefix);
 
