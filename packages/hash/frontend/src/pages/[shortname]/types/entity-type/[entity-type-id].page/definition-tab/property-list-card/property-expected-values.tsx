@@ -1,5 +1,6 @@
 import { PropertyType } from "@blockprotocol/type-system";
 import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { Stack } from "@mui/system";
 
 import { expectedValuesOptions } from "./shared/expected-values-options";
 import { getArrayExpectedValueType } from "./shared/get-expected-value-descriptor";
@@ -10,7 +11,7 @@ export const PropertyExpectedValues = ({
 }: {
   property: PropertyType;
 }) => (
-  <>
+  <Stack direction="row" flexWrap="wrap" gap={1}>
     {property.oneOf.map((dataType, index) => {
       let expectedValueOption;
 
@@ -47,5 +48,5 @@ export const PropertyExpectedValues = ({
 
       return null;
     })}
-  </>
+  </Stack>
 );
