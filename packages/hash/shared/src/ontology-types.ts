@@ -50,7 +50,7 @@ export const generateTypeId = ({
   namespace,
   kind,
   title,
-  slugOverride
+  slugOverride,
 }: {
   domain?: string;
   namespace: string;
@@ -67,7 +67,7 @@ export const generateTypeId = ({
     namespace,
     kind,
     title,
-    slugOverride
+    slugOverride,
   })}v/1` as VersionedUri;
 };
 

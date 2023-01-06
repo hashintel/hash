@@ -120,7 +120,7 @@ services:
       HASH_GRAPH_PG_PORT: "5432"
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
       HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
-#      HASH_GRAPH_OTLP_ENDPOINT: "http://telemetry-collector:4317"
+      #      HASH_GRAPH_OTLP_ENDPOINT: "http://telemetry-collector:4317"
       RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-graph=trace,hash_graph=trace,tokio_postgres=debug}"
       RUST_BACKTRACE: 1
     ports:
