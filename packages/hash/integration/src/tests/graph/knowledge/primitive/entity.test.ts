@@ -169,7 +169,7 @@ describe("Entity CRU", () => {
         [namePropertyType.metadata.editionId.baseId]: "Bob",
         [favoriteBookPropertyType.metadata.editionId.baseId]: "some text",
       },
-      entityType,
+      entityTypeId: entityType.schema.$id,
       actorId: testUser.accountId,
     });
   });

@@ -35,7 +35,7 @@ export type EntityTypeWithMetadata = Omit<
 export type { OntologyElementMetadata } from "@hashintel/hash-graph-client";
 
 /** Plain JSON value and object definitions */
-type JsonValue = string | number | boolean | JsonObject | JsonValue[];
+type JsonValue = null | string | number | boolean | JsonObject | JsonValue[];
 type JsonObject = {
   [_: string]: JsonValue;
 };
