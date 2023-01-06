@@ -250,7 +250,13 @@ export const updateEntityResolver: ResolverFn<
   MutationUpdateEntityArgs
 > = async (
   _,
-  { entityId, updatedProperties, leftToRightOrder, rightToLeftOrder },
+  {
+    entityId,
+    updatedProperties,
+    leftToRightOrder,
+    rightToLeftOrder,
+    entityTypeId,
+  },
   { dataSources: { graphApi }, user },
 ) => {
   // The user needs to be signed up if they aren't updating their own user entity
@@ -299,6 +305,7 @@ export const updateEntityResolver: ResolverFn<
       { graphApi },
       {
         entity,
+        entityTypeId: entityTypeId ?? undefined,
         properties: updatedProperties,
         actorId: user.accountId,
       },
