@@ -13,25 +13,28 @@ export const slugifyTypeTitle = (title: string): string =>
 /**
  * Generate the base identifier of a type (its un-versioned URI).
  *
- * @param domain (optional) - the domain of the type, defaults the frontend url.
+ * @param [domain] - the domain of the type, defaults the frontend url.
  * @param namespace - the namespace of the type.
  * @param kind - the "kind" of the type ("entity-type", "property-type", "link-type" or "data-type").
  * @param title - the title of the type.
+ * @param [slugOverride] - optional override for the slug used at the end of the URI
  */
 export const generateBaseTypeId = ({
   domain,
   namespace,
   kind,
   title,
+  slugOverride,
 }: {
   domain?: string;
   namespace: string;
   kind: SchemaKind;
   title: string;
+  slugOverride?: string;
 }): BaseUri =>
-  `${domain ?? frontendUrl}/@${namespace}/types/${kind}/${slugifyTypeTitle(
-    title,
-  )}/` as const;
+  `${domain ?? frontendUrl}/@${namespace}/types/${kind}/${
+    slugOverride ?? slugifyTypeTitle(title)
+  }/` as const;
 
 /**
  * Generate the identifier of a type (its versioned URI).
@@ -40,17 +43,20 @@ export const generateBaseTypeId = ({
  * @param namespace - the namespace of the type.
  * @param kind - the "kind" of the type ("entity-type", "property-type", "link-type" or "data-type").
  * @param title - the title of the type.
+ * @param [slugOverride] - optional override for the slug used at the end of the URI
  */
 export const generateTypeId = ({
   domain,
   namespace,
   kind,
   title,
+  slugOverride,
 }: {
   domain?: string;
   namespace: string;
   kind: SchemaKind;
   title: string;
+  slugOverride?: string;
 }): VersionedUri => {
   // We purposefully don't use `versionedUriFromComponents` here as we want to limit the amount of functional code
   // we're calling when this package is imported (this happens every time on import, not as the result of a call).
@@ -61,6 +67,7 @@ export const generateTypeId = ({
     namespace,
     kind,
     title,
+    slugOverride,
   })}v/1` as VersionedUri;
 };
 

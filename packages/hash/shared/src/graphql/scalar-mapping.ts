@@ -23,7 +23,7 @@ export const scalars = {
   EntityMetadata: "@hashintel/hash-subgraph#EntityMetadata",
   PropertyObject: "@hashintel/hash-subgraph#PropertyObject",
 
-  GraphElementEditionId: "@hashintel/hash-subgraph#GraphElementEditionId",
+  GraphElementVertexId: "@hashintel/hash-subgraph#GraphElementVertexId",
   Edges: "@hashintel/hash-subgraph#Edges",
   Vertices: "@hashintel/hash-subgraph#Vertices",
   LinkData: "@hashintel/hash-subgraph#LinkData",

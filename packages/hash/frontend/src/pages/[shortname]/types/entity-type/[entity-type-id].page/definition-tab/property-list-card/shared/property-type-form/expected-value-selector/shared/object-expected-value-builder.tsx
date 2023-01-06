@@ -159,6 +159,11 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
 
   const { setValue, control } = useFormContext<PropertyTypeFormValues>();
 
+  const editingExpectedValueIndex = useWatch({
+    control,
+    name: `editingExpectedValueIndex`,
+  });
+
   const properties = useWatch({
     control,
     name: `flattenedCustomExpectedValueList.${expectedValueId}.data.properties`,
@@ -354,6 +359,7 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
         <DeleteExpectedValueModal
           expectedValueType="property object"
           popupState={deleteModalPopupState}
+          editing={editingExpectedValueIndex !== undefined}
           onDelete={onDelete}
           onClose={() => deleteModalPopupState.close()}
           propertyTypeCount={properties.length}

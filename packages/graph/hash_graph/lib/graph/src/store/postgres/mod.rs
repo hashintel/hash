@@ -32,7 +32,7 @@ use crate::{
     knowledge::{EntityProperties, LinkOrder},
 };
 use crate::{
-    identifier::{account::AccountId, knowledge::EntityEditionId, ontology::OntologyTypeEditionId},
+    identifier::{account::AccountId, ontology::OntologyTypeEditionId, EntityVertexId},
     ontology::{OntologyElementMetadata, OntologyTypeWithMetadata},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
@@ -103,7 +103,7 @@ where
 #[derive(Default)]
 pub struct DependencyContext {
     pub ontology_dependency_map: DependencyMap<OntologyTypeEditionId>,
-    pub knowledge_dependency_map: DependencyMap<EntityEditionId>,
+    pub knowledge_dependency_map: DependencyMap<EntityVertexId>,
 }
 
 /// A Postgres-backed store
