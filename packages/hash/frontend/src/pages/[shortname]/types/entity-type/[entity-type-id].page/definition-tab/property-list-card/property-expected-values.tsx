@@ -1,5 +1,6 @@
 import { PropertyType } from "@blockprotocol/type-system";
 import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { chipClasses } from "@mui/material";
 import { Stack } from "@mui/system";
 
 import { expectedValuesOptions } from "./shared/expected-values-options";
@@ -42,6 +43,11 @@ export const PropertyExpectedValues = ({
               />
             }
             color="gray"
+            sx={{
+              [`.${chipClasses.label}`]: {
+                color: ({ palette }) => palette.gray[70],
+              },
+            }}
           />
         );
       }
