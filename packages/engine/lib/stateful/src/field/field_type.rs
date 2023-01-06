@@ -78,15 +78,15 @@ impl From<FieldTypeVariant> for DataType {
                 Field::new("item", DataType::from(field_type.variant), true),
             )),
             FieldTypeVariant::Struct(field_specs) => DataType::Struct(
+                // TODO: Enforce nullability of fields at initialization.
+                //   These structs are necessarily nested within another arrow field. We cannot
+                //   guarantee non-nullability for certain root-level arrow-fields due to how we
+                //   initialise data currently. Because these _are_ nested, we can guarantee
+                //   nullability/non-nullability for all inner structs as this is enforced in the
+                //   runners, that is, when setting that top-level object, it's enforced that
+                //   users set all nested data within that object at the same time.
                 field_specs
                     .into_iter()
-                    // TODO: Enforce nullability of fields at initialisation.
-                    // These structs are necessarily nested within another arrow field. We cannot 
-                    // guarantee non-nullability for certain root-level arrow-fields due to how we 
-                    // initialise data currently. Because these _are_ nested, we can guarantee 
-                    // nullability/non-nullability for all inner structs as this is enforced in the 
-                    // runners, that is, when setting that top-level object, it's enforced that 
-                    // users set all nested data within that object at the same time.
                     .map(|field_spec| field_spec.into_arrow_field(true, None))
                     .collect(),
             ),
