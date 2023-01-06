@@ -51,6 +51,13 @@ export let SYSTEM_TYPES: {
     userSelfRegistrationIsEnabled: PropertyTypeWithMetadata;
     userRegistrationByInviteIsEnabled: PropertyTypeWithMetadata;
     orgSelfRegistrationIsEnabled: PropertyTypeWithMetadata;
+
+    // File related
+    fileName: PropertyTypeWithMetadata;
+    fileSize: PropertyTypeWithMetadata;
+    externalFileLink: PropertyTypeWithMetadata;
+    objectStoreKey: PropertyTypeWithMetadata;
+    fileKey: PropertyTypeWithMetadata;
   };
   entityType: {
     hashInstance: EntityTypeWithMetadata;
@@ -65,6 +72,7 @@ export let SYSTEM_TYPES: {
      * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
      */
     dummy: EntityTypeWithMetadata;
+    file: EntityTypeWithMetadata;
   };
   linkEntityType: {
     // HASHInstance-related
@@ -593,6 +601,96 @@ const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
   })(graphApi);
 };
 
+const fileNamePropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.fileName,
+  possibleValues: [{ primitiveDataType: "text" }],
+});
+
+const fileSizePropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.fileSize,
+  possibleValues: [{ primitiveDataType: "number" }],
+});
+
+const objectStoreKeyPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.objectStoreKey,
+  possibleValues: [{ primitiveDataType: "text" }],
+});
+
+const externalFileLinkPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.externalFileLink,
+  possibleValues: [{ primitiveDataType: "text" }],
+});
+
+const fileKeyPropertyTypeInitializer = async (graphApi: GraphApi) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+  const objectStoreKeyPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.objectStoreKey(graphApi);
+
+  const fileSizePropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.fileSize(graphApi);
+
+  const externalFileLinkPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.externalFileLink(graphApi);
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  const objectStoreKeyBaseUri =
+    objectStoreKeyPropertyType.metadata.editionId.baseId;
+
+  const fileSizeBaseUri = fileSizePropertyType.metadata.editionId.baseId;
+
+  const externalFileLinkBaseUri =
+    externalFileLinkPropertyType.metadata.editionId.baseId;
+
+  return propertyTypeInitializer({
+    ...types.propertyType.fileKey,
+    possibleValues: [
+      {
+        propertyTypeObjectProperties: {
+          [objectStoreKeyBaseUri]: {
+            $ref: objectStoreKeyPropertyType.schema.$id,
+          },
+          [fileSizeBaseUri]: {
+            $ref: fileSizePropertyType.schema.$id,
+          },
+        },
+      },
+      {
+        propertyTypeObjectProperties: {
+          [externalFileLinkBaseUri]: {
+            $ref: externalFileLinkPropertyType.schema.$id,
+          },
+        },
+      },
+    ],
+  })(graphApi);
+};
+
+export const fileEntityTypeInitializer = async (graphApi: GraphApi) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const fileNamePropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.fileName(graphApi);
+
+  const fileKeyPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.fileKey(graphApi);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...types.entityType.file,
+    properties: [
+      {
+        propertyType: fileNamePropertyType,
+        required: true,
+      },
+      {
+        propertyType: fileKeyPropertyType,
+        required: true,
+      },
+    ],
+  })(graphApi);
+};
+
 type LazyPromise<T> = (graphApi: GraphApi) => Promise<T>;
 
 type FlattenAndPromisify<T> = {
@@ -637,6 +735,12 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
       orgSelfRegistrationIsEnabledPropertyTypeInitializer,
     userRegistrationByInviteIsEnabled:
       userRegistrationByInviteIsEnabledPropertyTypeInitializer,
+
+    fileName: fileNamePropertyTypeInitializer,
+    fileSize: fileSizePropertyTypeInitializer,
+    externalFileLink: externalFileLinkPropertyTypeInitializer,
+    objectStoreKey: objectStoreKeyPropertyTypeInitializer,
+    fileKey: fileKeyPropertyTypeInitializer,
   },
   entityType: {
     hashInstance: hashInstanceEntityTypeInitializer,
@@ -647,6 +751,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     comment: commentEntityTypeInitializer,
     text: textEntityTypeInitializer,
     dummy: dummyEntityTypeInitializer,
+    file: fileEntityTypeInitializer,
   },
   linkEntityType: {
     admin: adminLinkEntityTypeInitializer,

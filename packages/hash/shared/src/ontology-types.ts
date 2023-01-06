@@ -130,6 +130,10 @@ const systemEntityTypes = {
     title: "HASH Instance",
     description: "An instance of HASH.",
   },
+  file: {
+    title: "File",
+    description: "A file.",
+  },
 } as const;
 
 type SystemEntityTypeKey = keyof typeof systemEntityTypes;
@@ -226,6 +230,27 @@ const systemPropertyTypes = {
   deletedAt: {
     title: "Deleted At",
     description: "Stringified timestamp of when something was deleted.",
+  },
+  fileName: {
+    title: "File Name",
+    description: undefined,
+  },
+  fileSize: {
+    title: "File Size",
+    description: "Size of a file in bytes.",
+  },
+  objectStoreKey: {
+    title: "Object Store Key",
+    description: "Unique identifier for an object in an object store.",
+  },
+  externalFileLink: {
+    title: "External File Link",
+    description: "Link to an external file.",
+  },
+  fileKey: {
+    title: "File Key",
+    description:
+      "Key used to uniquely identify a file in a third-party system.",
   },
 } as const;
 
