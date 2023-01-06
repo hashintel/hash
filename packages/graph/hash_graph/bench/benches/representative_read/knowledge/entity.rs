@@ -3,7 +3,8 @@ use std::borrow::Cow;
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
     identifier::time::{
-        UnresolvedImage, UnresolvedProjection, TimespanBound, UnresolvedKernel, UnresolvedTimeProjection,
+        TimespanBound, UnresolvedImage, UnresolvedKernel, UnresolvedProjection,
+        UnresolvedTimeProjection,
     },
     knowledge::{EntityQueryPath, EntityUuid},
     store::{

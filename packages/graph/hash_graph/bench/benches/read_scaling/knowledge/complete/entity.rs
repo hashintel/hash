@@ -5,7 +5,10 @@ use criterion_macro::criterion;
 use graph::{
     identifier::{
         account::AccountId,
-        time::{UnresolvedImage, UnresolvedProjection, TimespanBound, UnresolvedKernel, UnresolvedTimeProjection},
+        time::{
+            TimespanBound, UnresolvedImage, UnresolvedKernel, UnresolvedProjection,
+            UnresolvedTimeProjection,
+        },
     },
     knowledge::{EntityMetadata, EntityProperties, LinkData},
     provenance::{OwnedById, UpdatedById},

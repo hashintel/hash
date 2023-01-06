@@ -1,7 +1,8 @@
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
     identifier::time::{
-        UnresolvedImage, UnresolvedProjection, TimespanBound, UnresolvedKernel, UnresolvedTimeProjection,
+        TimespanBound, UnresolvedImage, UnresolvedKernel, UnresolvedProjection,
+        UnresolvedTimeProjection,
     },
     store::{query::Filter, EntityTypeStore},
     subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
