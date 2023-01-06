@@ -79,39 +79,59 @@ proptest! {
     }
 }
 
-// TODO: generate those tests instead?
-// we're not testing the individual error messages, as those are tested at the respective error
-// variants and are separate from the returned errors
-#[test]
-fn u8_err_overflow() {
-    assert_tokens_error::<_, u8>(
-        &error! {
-            ns: "deer",
-            id: ["value"],
-            properties: {
-                "expected": u8::reflection(),
-                "received": Number::from(256),
-                "location": []
+// TODO: we're not coercing down into number if possible :/ We might just end up with arbitrary
+//  precision enabled?
+//
+// we're not testing the individual error messages, as those are tested at the
+// respective error variants and are separate from the returned errors
+macro_rules! test_overflow {
+    ($ty:ident) => {
+        mod $ty {
+            use super::*;
+
+            #[test]
+            fn overflow() {
+                let overflow = $ty::MAX as i128 + 1;
+
+                assert_tokens_error::<_, $ty>(
+                    &error! {
+                        ns: "deer",
+                        id: ["value"],
+                        properties: {
+                            "expected": $ty::reflection(),
+                            "received": overflow,
+                            "location": []
+                        }
+                    },
+                    &[Token::I128(overflow)],
+                )
             }
-        },
-        &[Token::Number(Number::from(u8::MAX as u16 + 1))],
-    );
+
+            #[test]
+            fn underflow() {
+                let underflow = $ty::MIN as i128 - 1;
+
+                assert_tokens_error::<_, $ty>(
+                    &error! {
+                        ns: "deer",
+                        id: ["value"],
+                        properties: {
+                            "expected": $ty::reflection(),
+                            "received": underflow,
+                            "location": []
+                        }
+                    },
+                    &[Token::I128(underflow)],
+                )
+            }
+        }
+    };
+
+    [$($ty:ident),* $(,)?] => {
+        $(test_overflow!($ty);)*
+    };
 }
+
+test_overflow![u8, i8, u16, i16, u32, i32, u64, i64];
 
 // TODO: test reflection
-
-#[test]
-fn u8_err_underflow() {
-    assert_tokens_error::<_, u8>(
-        &error! {
-            ns: "deer",
-            id: ["value"],
-            properties: {
-                "expected": u8::reflection(),
-                "received": Number::from(-1),
-                "location": []
-            }
-        },
-        &[Token::Number(Number::from(-1))],
-    )
-}

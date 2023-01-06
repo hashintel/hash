@@ -13,7 +13,7 @@ serde = { version = "1.0.148", default_features = false, features = ['alloc', 'd
 erased-serde = { version = "0.3.23", default_features = false, features = ['alloc'] }
 
 [dev-dependencies]
-serde_json = "1.0.89"
+serde_json = { version = "1.0.89", features = ['arbitrary_precision'] }
 similar-asserts = { version = "1.4.2", features = ['serde'] }
 deer-desert = {path = "./desert"}
 proptest = "1.0.0"

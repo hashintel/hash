@@ -52,6 +52,10 @@ pub enum Token {
     /// ```
     Bool(bool),
     Number(Number),
+    U128(u128),
+    I128(i128),
+    USize(usize),
+    ISize(isize),
     Char(char),
     Str(&'static str),
     BorrowedStr(&'static str),
