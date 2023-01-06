@@ -1,50 +1,81 @@
-import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { extractBaseUri, extractVersion } from "@blockprotocol/type-system";
+import { EntityId } from "@hashintel/hash-shared/types";
+import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { useEffect, useState } from "react";
 
+import { useBlockProtocolUpdateEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
+import { useBlockProtocolAggregateEntityTypes } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-entity-types";
 import { SectionWrapper } from "../../../shared/section-wrapper";
-import { WhiteCard } from "../../../shared/white-card";
 import { useEntityEditor } from "./entity-editor-context";
-
-interface TypeCardProps {
-  url: string;
-  title: string;
-}
-
-const TypeCard = ({ url, title }: TypeCardProps) => {
-  return (
-    <WhiteCard href={url}>
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          px: 1.5,
-          py: 1.25,
-          gap: 1.25,
-          color: ({ palette }) => palette.black,
-        }}
-      >
-        <FontAwesomeIcon icon={faAsterisk} />
-        <Typography variant="smallTextLabels" fontWeight={600}>
-          {title}
-        </Typography>
-      </Box>
-    </WhiteCard>
-  );
-};
+import { TypeCard } from "./types-section/type-card";
 
 export const TypesSection = () => {
-  const { entitySubgraph } = useEntityEditor();
+  const { entitySubgraph, refetch } = useEntityEditor();
 
   const entity = getRoots(entitySubgraph)[0]!;
+  const { updateEntity } = useBlockProtocolUpdateEntity();
+  const {
+    metadata: { editionId, entityTypeId },
+    properties,
+  } = entity;
 
-  const entityTypeTitle = getEntityTypeById(
-    entitySubgraph,
-    entity.metadata.entityTypeId,
-  )!.schema.title;
-  const entityTypeUrl = entity.metadata.entityTypeId.replace(/v\/\d+/, "");
+  const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
+  const [newVersion, setNewVersion] = useState<number>();
+  const [updatingVersion, setUpdatingVersion] = useState(false);
+
+  useEffect(() => {
+    const init = async () => {
+      const res = await aggregateEntityTypes({ data: {} });
+
+      const entityTypeWithSameBaseId = res.data?.roots.find(
+        (root) => root.baseId === extractBaseUri(entityTypeId),
+      );
+
+      if (!entityTypeWithSameBaseId) {
+        return;
+      }
+
+      const currentEntityVersion = extractVersion(entityTypeId);
+
+      if (entityTypeWithSameBaseId.version > currentEntityVersion) {
+        setNewVersion(entityTypeWithSameBaseId.version);
+      }
+    };
+
+    void init();
+  }, [aggregateEntityTypes, entityTypeId]);
+
+  const entityType = getEntityTypeById(entitySubgraph, entityTypeId);
+  const entityTypeTitle = entityType?.schema.title ?? "";
+  const entityTypeUrl = extractBaseUri(entityTypeId);
+
+  const handleUpdateVersion = async () => {
+    if (!newVersion) {
+      return;
+    }
+
+    try {
+      setUpdatingVersion(true);
+
+      const res = await updateEntity({
+        data: {
+          entityTypeId: versionedUriFromComponents(entityTypeUrl, newVersion),
+          entityId: editionId.baseId as EntityId,
+          updatedProperties: properties,
+        },
+      });
+
+      if (res.data) {
+        await refetch();
+        setNewVersion(undefined);
+      }
+    } finally {
+      setUpdatingVersion(false);
+    }
+  };
 
   return (
     <SectionWrapper
@@ -52,7 +83,20 @@ export const TypesSection = () => {
       titleTooltip="Types describe what an entity is, allowing information to be associated with it. Entities can have an unlimited number of types."
     >
       <Box display="flex" gap={2}>
-        <TypeCard url={entityTypeUrl} title={entityTypeTitle} />
+        <TypeCard
+          url={entityTypeUrl}
+          title={entityTypeTitle}
+          version={extractVersion(entityTypeId)}
+          newVersionConfig={
+            newVersion
+              ? {
+                  newVersion,
+                  onUpdateVersion: handleUpdateVersion,
+                  updatingVersion,
+                }
+              : undefined
+          }
+        />
       </Box>
     </SectionWrapper>
   );
