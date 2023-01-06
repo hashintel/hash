@@ -4,9 +4,10 @@ import {
   extractVersion,
   VersionedUri,
 } from "@blockprotocol/type-system";
+
+import { DataTypeWithMetadata } from "../../types/element";
 import { OntologyTypeEditionId } from "../../types/identifier";
 import { Subgraph } from "../../types/subgraph";
-import { DataTypeWithMetadata } from "../../types/element";
 import { isDataTypeVertex } from "../../types/vertex";
 
 /**

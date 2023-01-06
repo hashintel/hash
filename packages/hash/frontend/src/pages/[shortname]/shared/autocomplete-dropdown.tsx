@@ -1,6 +1,8 @@
 import { textFieldBorderRadius } from "@hashintel/hash-design-system";
 import { autocompleteClasses, Box, Paper, PaperProps } from "@mui/material";
 
+import { popperPlacementSelectors } from "./popper-placement-modifier";
+
 export const AutocompleteDropdown = ({
   buttonHeight = 0,
   children,
@@ -18,23 +20,17 @@ export const AutocompleteDropdown = ({
           boxShadow: theme.boxShadows.md,
           pointerEvents: "none",
           borderRadius: `${textFieldBorderRadius}px`,
-          [`[data-popper-placement="top"] &`]: {
+          [`${popperPlacementSelectors.top} &`]: {
             bottom: -buttonHeight,
-            borderBottomLeftRadius: 0,
-            borderBottomRightRadius: 0,
           },
-          [`[data-popper-placement="top-start"] &`]: {
+          [`${popperPlacementSelectors.topStart} &`]: {
             bottom: -buttonHeight,
-            borderBottomLeftRadius: 0,
           },
-          [`[data-popper-placement="bottom"] &`]: {
+          [`${popperPlacementSelectors.bottom} &`]: {
             top: -buttonHeight,
-            borderTopLeftRadius: 0,
-            borderTopRightRadius: 0,
           },
-          [`[data-popper-placement="bottom-start"] &`]: {
+          [`${popperPlacementSelectors.bottomStart} &`]: {
             top: -buttonHeight,
-            borderTopRightRadius: 0,
           },
         })}
         aria-hidden
@@ -47,21 +43,21 @@ export const AutocompleteDropdown = ({
           boxSizing: "border-box",
           borderColor: theme.palette.gray[30],
           boxShadow: "none",
-          [`[data-popper-placement="top"] &`]: {
+          [`${popperPlacementSelectors.top} &`]: {
             borderBottom: 0,
             borderBottomLeftRadius: 0,
             borderBottomRightRadius: 0,
           },
-          [`[data-popper-placement="top-start"] &`]: {
+          [`${popperPlacementSelectors.topStart} &`]: {
             borderBottom: 0,
             borderBottomLeftRadius: 0,
           },
-          [`[data-popper-placement="bottom"] &`]: {
+          [`${popperPlacementSelectors.bottom} &`]: {
             borderTop: 0,
             borderTopLeftRadius: 0,
             borderTopRightRadius: 0,
           },
-          [`[data-popper-placement="bottom-start"] &`]: {
+          [`${popperPlacementSelectors.bottomStart} &`]: {
             borderTop: 0,
             borderTopLeftRadius: 0,
           },

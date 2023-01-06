@@ -2,38 +2,60 @@
 // @todo have webpack polyfill this
 require("setimmediate");
 
+import "./globals.scss";
+
 import { ApolloProvider } from "@apollo/client/react";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import { CacheProvider, EmotionCache } from "@emotion/react";
+import { createEmotionCache, theme } from "@hashintel/hash-design-system";
 import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
-import { FunctionComponent, useEffect, useState } from "react";
-import { ModalProvider } from "react-modal-hook";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
 import { configureScope } from "@sentry/nextjs";
 import { AppProps as NextAppProps } from "next/app";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
-import { CacheProvider, EmotionCache } from "@emotion/react";
-import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
-import { theme, createEmotionCache } from "@hashintel/hash-design-system";
 import { SnackbarProvider } from "notistack";
-import { TypeSystemContextProvider } from "../lib/use-init-type-system";
-import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
-
-import "./globals.scss";
 import {
-  RoutePageInfoProvider,
-  RouteWorkspaceInfoProvider,
-} from "../shared/routing";
-import { WorkspaceContextProvider } from "./shared/workspace-context";
-import { apolloClient } from "../lib/apollo-client";
+  FunctionComponent,
+  PropsWithChildren,
+  Suspense,
+  useEffect,
+  useState,
+} from "react";
+import { ModalProvider } from "react-modal-hook";
+
 import { MeQuery } from "../graphql/api-types.gen";
 import { meQuery } from "../graphql/queries/user.queries";
+import { apolloClient } from "../lib/apollo-client";
 import {
   AuthenticatedUser,
   constructAuthenticatedUser,
 } from "../lib/user-and-org";
-import { fetchKratosSession } from "./shared/ory-kratos";
-import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
-import { setSentryUser } from "./shared/sentry";
+import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
+import {
+  RoutePageInfoProvider,
+  RouteWorkspaceInfoProvider,
+} from "../shared/routing";
 import { AppPage, redirectInGetInitialProps } from "./shared/_app.util";
+import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
+import { fetchKratosSession } from "./shared/ory-kratos";
+import { setSentryUser } from "./shared/sentry";
+import { WorkspaceContextProvider } from "./shared/workspace-context";
+
+// eslint-disable-next-line react/jsx-no-useless-fragment
+const RenderChildren = ({ children }: PropsWithChildren) => <>{children}</>;
+
+const InitTypeSystem = dynamic(
+  async () => {
+    await TypeSystemInitializer.initialize();
+
+    return { default: RenderChildren };
+  },
+  {
+    suspense: true,
+  },
+);
 
 const clientSideEmotionCache = createEmotionCache();
 
@@ -75,33 +97,38 @@ const App: FunctionComponent<AppProps> = ({
   // getServerSideProps. By showing app skeleton on the server, we avoid UI
   // mismatches during rehydration and improve type-safety of param extraction.
   if (ssr || !router.isReady) {
-    return null; // Replace with app skeleton
+    return (
+      <Suspense>
+        <InitTypeSystem />
+      </Suspense>
+    ); // Replace with app skeleton
   }
 
   const getLayout = Component.getLayout ?? getPlainLayout;
 
   return (
-    <>
-      <CacheProvider value={emotionCache}>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <ModalProvider>
-            <RouteWorkspaceInfoProvider>
-              <RoutePageInfoProvider>
-                <WorkspaceContextProvider>
-                  <SnackbarProvider maxSnack={3}>
-                    {getLayout(<Component {...pageProps} />)}
-                  </SnackbarProvider>
-                </WorkspaceContextProvider>
-              </RoutePageInfoProvider>
-            </RouteWorkspaceInfoProvider>
-          </ModalProvider>
-        </ThemeProvider>
-      </CacheProvider>
-      {/* "spin" is used in some inline styles which have been temporarily introduced in https://github.com/hashintel/hash/pull/1471 */}
-      {/* @todo remove when inline styles are replaced with MUI styles */}
-      <GlobalStyles
-        styles={`
+    <Suspense>
+      <InitTypeSystem>
+        <CacheProvider value={emotionCache}>
+          <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <ModalProvider>
+              <RouteWorkspaceInfoProvider>
+                <RoutePageInfoProvider>
+                  <WorkspaceContextProvider>
+                    <SnackbarProvider maxSnack={3}>
+                      {getLayout(<Component {...pageProps} />)}
+                    </SnackbarProvider>
+                  </WorkspaceContextProvider>
+                </RoutePageInfoProvider>
+              </RouteWorkspaceInfoProvider>
+            </ModalProvider>
+          </ThemeProvider>
+        </CacheProvider>
+        {/* "spin" is used in some inline styles which have been temporarily introduced in https://github.com/hashintel/hash/pull/1471 */}
+        {/* @todo remove when inline styles are replaced with MUI styles */}
+        <GlobalStyles
+          styles={`
         @keyframes spin {
           from {
             transform: rotate(0deg);
@@ -111,8 +138,9 @@ const App: FunctionComponent<AppProps> = ({
           }
         };
       `}
-      />
-    </>
+        />
+      </InitTypeSystem>
+    </Suspense>
   );
 };
 
@@ -122,13 +150,11 @@ const AppWithTypeSystemContextProvider: AppPage<AppProps, AppInitialProps> = (
   const { initialAuthenticatedUser } = props;
 
   return (
-    <TypeSystemContextProvider>
-      <ApolloProvider client={apolloClient}>
-        <AuthInfoProvider initialAuthenticatedUser={initialAuthenticatedUser}>
-          <App {...props} />
-        </AuthInfoProvider>
-      </ApolloProvider>
-    </TypeSystemContextProvider>
+    <ApolloProvider client={apolloClient}>
+      <AuthInfoProvider initialAuthenticatedUser={initialAuthenticatedUser}>
+        <App {...props} />
+      </AuthInfoProvider>
+    </ApolloProvider>
   );
 };
 
@@ -137,6 +163,7 @@ const publiclyAccessiblePagePathnames = [
   "/[shortname]/[page-slug]",
   "/login",
   "/signup",
+  "/recovery",
 ];
 
 AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
@@ -168,15 +195,15 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
     return {};
   }
 
-  const userEntityEditionId = (
-    subgraph as Subgraph<SubgraphRootTypes["entity"]>
-  ).roots[0]!;
+  const userEntity = getRoots(
+    subgraph as Subgraph<SubgraphRootTypes["entity"]>,
+  )[0]!;
 
   // The type system package needs to be initialized before calling `constructAuthenticatedUser`
   await TypeSystemInitializer.initialize();
 
   const initialAuthenticatedUser = constructAuthenticatedUser({
-    userEntityEditionId,
+    userEntity,
     subgraph,
     kratosSession,
   });

@@ -10,6 +10,9 @@ mod pool;
 mod postgres;
 mod record;
 
+use async_trait::async_trait;
+use error_stack::Result;
+
 pub use self::{
     account::AccountStore,
     config::{DatabaseConnectionInfo, DatabaseType},
@@ -30,4 +33,19 @@ pub use self::{
 ///
 /// In addition to the errors described in the methods of this trait, further errors might also be
 /// raised depending on the implementation, e.g. connection issues.
-pub trait Store = AccountStore + DataTypeStore + PropertyTypeStore + EntityTypeStore + EntityStore;
+#[async_trait]
+pub trait Store:
+    AccountStore + DataTypeStore + PropertyTypeStore + EntityTypeStore + EntityStore
+{
+    type Transaction<'t>: Transaction
+    where
+        Self: 't;
+
+    async fn transaction(&mut self) -> Result<Self::Transaction<'_>, StoreError>;
+}
+
+#[async_trait]
+pub trait Transaction: Store {
+    async fn commit(self) -> Result<(), StoreError>;
+    async fn rollback(self) -> Result<(), StoreError>;
+}

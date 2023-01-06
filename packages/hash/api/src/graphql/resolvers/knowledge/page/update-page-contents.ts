@@ -1,4 +1,5 @@
 import { ApolloError, UserInputError } from "apollo-server-errors";
+
 import { ImpureGraphContext } from "../../../../graph";
 import {
   addBlockToPage,
@@ -6,23 +7,22 @@ import {
   moveBlockInPage,
   removeBlockFromPage,
 } from "../../../../graph/knowledge/system-types/page";
-
 import { exactlyOne } from "../../../../util";
 import {
-  UpdatePageContentsResult,
   MutationUpdatePageContentsArgs,
   ResolverFn,
+  UpdatePageContentsResult,
 } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { mapPageToGQL, UnresolvedPageGQL } from "../graphql-mapping";
 import {
-  PlaceholderResultsMap,
+  createEntityWithPlaceholdersFn,
   filterForAction,
   handleCreateNewEntity,
   handleInsertNewBlock,
   handleSwapBlockData,
   handleUpdateEntity,
-  createEntityWithPlaceholdersFn,
+  PlaceholderResultsMap,
 } from "./update-page-actions";
 
 /**

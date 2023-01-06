@@ -9,11 +9,12 @@ import {
 } from "@hashintel/hash-design-system";
 import { Box, chipClasses, Collapse, Stack, Typography } from "@mui/material";
 import { useState } from "react";
+
 import { ArrayType } from "../../property-type-form-values";
 import { expectedValuesOptions } from "./shared/expected-values-options";
 
 interface ExpectedValueChipProps {
-  expectedValueType: VersionedUri | ArrayType;
+  expectedValueType: VersionedUri | ArrayType | "object" | "array";
   editable?: boolean;
   onEdit?: () => void;
 }

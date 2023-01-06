@@ -5,7 +5,8 @@ import {
 } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useBlockProtocolAggregateEntities } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolAggregateEntities";
+
+import { useBlockProtocolAggregateEntities } from "../../../../../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-aggregate-entities";
 import { generateEntityLabel } from "../../../../../../../../../lib/entities";
 import { HashSelectorAutocomplete } from "../../../../../../../shared/hash-selector-autocomplete";
 import { useEntityEditor } from "../../../../entity-editor-context";
@@ -61,8 +62,8 @@ export const EntitySelector = ({
           !entityIdsToFilterOut?.includes(entity.metadata.editionId.baseId),
       )
       .sort((a, b) =>
-        a.metadata.editionId.version.localeCompare(
-          b.metadata.editionId.version,
+        a.metadata.version.decisionTime.start.localeCompare(
+          b.metadata.version.decisionTime.start,
         ),
       );
   }, [entities, entityIdsToFilterOut]);

@@ -4,8 +4,9 @@ import {
   extractOwnedByIdFromEntityId,
 } from "@hashintel/hash-shared/types";
 import { Entity, EntityId } from "@hashintel/hash-subgraph";
-import { ImpureGraphFunction, PureGraphFunction } from "../..";
+
 import { EntityTypeMismatchError } from "../../../lib/error";
+import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
   createEntity,
@@ -115,7 +116,7 @@ export const getCommentText: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createComment: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityType"> & {
+  Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
     author: User;
     parent: Entity;
     tokens: TextToken[];
@@ -127,7 +128,7 @@ export const createComment: ImpureGraphFunction<
   const entity = await createEntity(ctx, {
     ownedById,
     properties: {},
-    entityType: SYSTEM_TYPES.entityType.comment,
+    entityTypeId: SYSTEM_TYPES.entityType.comment.schema.$id,
     actorId,
   });
 
@@ -136,7 +137,7 @@ export const createComment: ImpureGraphFunction<
     properties: {
       [SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId]: tokens,
     },
-    entityType: SYSTEM_TYPES.entityType.text,
+    entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
     actorId,
   });
 

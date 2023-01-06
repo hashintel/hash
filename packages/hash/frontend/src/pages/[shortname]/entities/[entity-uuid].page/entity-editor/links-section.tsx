@@ -1,18 +1,19 @@
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import {
+  Chip,
   FontAwesomeIcon,
   IconButton,
-  Chip,
 } from "@hashintel/hash-design-system";
-import { Paper, Stack } from "@mui/material";
-import { useState } from "react";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { getOutgoingLinksForEntityAtMoment } from "@hashintel/hash-subgraph/src/stdlib/edge/link";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
-import { useEntityEditor } from "./entity-editor-context";
-import { LinkTable } from "./links-section/link-table";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { Paper, Stack } from "@mui/material";
+import { useState } from "react";
+
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { LinksSectionEmptyState } from "../shared/links-section-empty-state";
+import { useEntityEditor } from "./entity-editor-context";
+import { LinkTable } from "./links-section/link-table";
 
 export const LinksSection = () => {
   const { entitySubgraph } = useEntityEditor();

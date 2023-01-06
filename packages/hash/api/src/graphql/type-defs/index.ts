@@ -1,20 +1,20 @@
 import { gql } from "apollo-server-express";
 
-import { deprecatedTypedef } from "./deprecated.typedef";
-import { userTypedef } from "./knowledge/user.typedef";
-import { embedTypeDef } from "./embed.typedef";
-import { executeTaskTypedef } from "./taskExecution.typedef";
-import { dataTypeTypedef } from "./ontology/data-type.typedef";
-import { propertyTypeTypedef } from "./ontology/property-type.typedef";
-import { entityTypeTypedef } from "./ontology/entity-type.typedef";
-import { entityTypedef } from "./knowledge/entity.typedef";
-import { pageTypedef } from "./knowledge/page.typedef";
-import { commentTypedef } from "./knowledge/comment.typedef";
-import { blockTypedef } from "./knowledge/block.typedef";
-import { subgraphTypedef } from "./subgraph.typedef";
 import { blockprotocolTypedef } from "./blockprotocol.typedef";
+import { deprecatedTypedef } from "./deprecated.typedef";
+import { embedTypeDef } from "./embed.typedef";
+import { blockTypedef } from "./knowledge/block.typedef";
+import { commentTypedef } from "./knowledge/comment.typedef";
+import { entityTypedef } from "./knowledge/entity.typedef";
+import { hashInstanceTypedef } from "./knowledge/hash-instance.typedef";
 import { orgTypedef } from "./knowledge/org.typedef";
-import { hashInstanceTypedef } from "./knowledge/hashInstance.typedef";
+import { pageTypedef } from "./knowledge/page.typedef";
+import { userTypedef } from "./knowledge/user.typedef";
+import { dataTypeTypedef } from "./ontology/data-type.typedef";
+import { entityTypeTypedef } from "./ontology/entity-type.typedef";
+import { propertyTypeTypedef } from "./ontology/property-type.typedef";
+import { subgraphTypedef } from "./subgraph.typedef";
+import { executeTaskTypedef } from "./task-execution.typedef";
 
 const baseSchema = gql`
   scalar Date

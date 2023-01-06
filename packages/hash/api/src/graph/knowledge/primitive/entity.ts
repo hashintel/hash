@@ -19,12 +19,13 @@ import {
 } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import { ApolloError } from "apollo-server-errors";
-import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
+
 import {
   EntityDefinition,
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
 import { linkedTreeFlatten } from "../../../util";
+import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
 import { getEntityTypeById } from "../../ontology/primitive/entity-type";
 import {
   createLinkEntity,
@@ -35,7 +36,7 @@ import {
 export type CreateEntityParams = {
   ownedById: OwnedById;
   properties: PropertyObject;
-  entityType: EntityTypeWithMetadata;
+  entityTypeId: VersionedUri;
   entityUuid?: EntityUuid;
   actorId: AccountId;
 };
@@ -58,7 +59,7 @@ export const createEntity: ImpureGraphFunction<
 > = async ({ graphApi }, params) => {
   const {
     ownedById,
-    entityType,
+    entityTypeId,
     properties,
     actorId,
     entityUuid: overrideEntityUuid,
@@ -66,7 +67,7 @@ export const createEntity: ImpureGraphFunction<
 
   const { data: metadata } = await graphApi.createEntity({
     ownedById,
-    entityTypeId: entityType.schema.$id,
+    entityTypeId,
     properties,
     entityUuid: overrideEntityUuid,
     actorId,
@@ -192,7 +193,7 @@ export const getOrCreateEntity: ImpureGraphFunction<
       { graphApi },
       {
         ownedById,
-        entityType,
+        entityTypeId: entityType.schema.$id,
         properties: entityProperties,
         actorId,
       },

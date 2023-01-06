@@ -1,17 +1,18 @@
 import {
-  DataTypeWithMetadata as DataTypeWithMetadataGraphApi,
-  EntityTypeWithMetadata as EntityTypeWithMetadataGraphApi,
-  PropertyTypeWithMetadata as PropertyTypeWithMetadataGraphApi,
-  ProvenanceMetadata as ProvenanceMetadataGraphApi,
-} from "@hashintel/hash-graph-client";
-import {
   BaseUri,
   DataType,
   EntityType,
   PropertyType,
   VersionedUri,
 } from "@blockprotocol/type-system";
-import { EntityEditionId, EntityId } from "./identifier";
+import {
+  DataTypeWithMetadata as DataTypeWithMetadataGraphApi,
+  EntityTypeWithMetadata as EntityTypeWithMetadataGraphApi,
+  PropertyTypeWithMetadata as PropertyTypeWithMetadataGraphApi,
+  ProvenanceMetadata as ProvenanceMetadataGraphApi,
+} from "@hashintel/hash-graph-client";
+
+import { EntityEditionId, EntityId, EntityVersion } from "./identifier";
 
 // Due to restrictions with how much OpenAPI can express, we patch the schemas with the better-typed ones from the
 // type-system package.
@@ -34,7 +35,7 @@ export type EntityTypeWithMetadata = Omit<
 export type { OntologyElementMetadata } from "@hashintel/hash-graph-client";
 
 /** Plain JSON value and object definitions */
-type JsonValue = string | number | boolean | JsonObject | JsonValue[];
+type JsonValue = null | string | number | boolean | JsonObject | JsonValue[];
 type JsonObject = {
   [_: string]: JsonValue;
 };
@@ -58,6 +59,7 @@ export type LinkData = {
 export type EntityMetadata = {
   archived: boolean;
   editionId: EntityEditionId;
+  version: EntityVersion;
   entityTypeId: VersionedUri;
   provenance: ProvenanceMetadataGraphApi;
 };

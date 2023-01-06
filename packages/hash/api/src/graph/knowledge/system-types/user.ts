@@ -13,17 +13,18 @@ import {
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
-import {
-  ImpureGraphFunction,
-  PureGraphFunction,
-  zeroedGraphResolveDepths,
-} from "../..";
+
 import {
   kratosIdentityApi,
   KratosUserIdentity,
   KratosUserIdentityTraits,
 } from "../../../auth/ory-kratos";
 import { EntityTypeMismatchError } from "../../../lib/error";
+import {
+  ImpureGraphFunction,
+  PureGraphFunction,
+  zeroedGraphResolveDepths,
+} from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
 import { systemUserAccountId } from "../../system-user";
 import {
@@ -227,7 +228,7 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
  * @param params.accountId (optional) - the pre-populated account Id of the user
  */
 export const createUser: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityType" | "ownedById"> & {
+  Omit<CreateEntityParams, "properties" | "entityTypeId" | "ownedById"> & {
     emails: string[];
     kratosIdentityId: string;
     shortname?: string;
@@ -297,12 +298,10 @@ export const createUser: ImpureGraphFunction<
       : {}),
   };
 
-  const entityType = SYSTEM_TYPES.entityType.user;
-
   const entity = await createEntity(ctx, {
     ownedById: systemUserAccountId as OwnedById,
     properties,
-    entityType,
+    entityTypeId: SYSTEM_TYPES.entityType.user.schema.$id,
     entityUuid: userAccountId as EntityUuid,
     actorId,
   });

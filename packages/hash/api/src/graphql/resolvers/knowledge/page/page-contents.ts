@@ -1,12 +1,13 @@
-import { ApolloError } from "apollo-server-errors";
 import { Entity } from "@hashintel/hash-subgraph";
-import { ResolverFn } from "../../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../../context";
-import { mapBlockToGQL, UnresolvedPageGQL } from "../graphql-mapping";
+import { ApolloError } from "apollo-server-errors";
+
 import {
   getPageBlocks,
   getPageById,
 } from "../../../../graph/knowledge/system-types/page";
+import { ResolverFn } from "../../../api-types.gen";
+import { LoggedInGraphQLContext } from "../../../context";
+import { mapBlockToGQL, UnresolvedPageGQL } from "../graphql-mapping";
 
 export const pageContents: ResolverFn<
   Promise<Entity[]>,

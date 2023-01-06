@@ -1,5 +1,6 @@
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import { Box, ChipProps, Components, PaletteValue, Theme } from "@mui/material";
+
 import { FontAwesomeIcon } from "../../../fontawesome-icon";
 
 const getColors = (

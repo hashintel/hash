@@ -1,4 +1,5 @@
 import { Chip } from "@hashintel/hash-design-system";
+
 import { LinksIcon } from "../../../../../shared/icons";
 import { SectionEmptyState } from "../../../shared/section-empty-state";
 import { SectionWrapper } from "../../../shared/section-wrapper";

@@ -8,11 +8,19 @@ import {
   GetPageQuery,
   GetPageQueryVariables,
 } from "@hashintel/hash-shared/graphql/api-types.gen";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import {
   getPageInfoQuery,
   getPageQuery,
 } from "@hashintel/hash-shared/queries/page.queries";
-import { types } from "@hashintel/hash-shared/ontology-types";
+import {
+  EntityId,
+  entityIdFromOwnedByIdAndEntityUuid,
+  EntityUuid,
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+  OwnedById,
+} from "@hashintel/hash-shared/types";
 import { isSafariBrowser } from "@hashintel/hash-shared/util";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import { alpha, Box, Collapse } from "@mui/material";
@@ -22,35 +30,27 @@ import { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import Head from "next/head";
 import { Router } from "next/router";
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
-import {
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-  entityIdFromOwnedByIdAndEntityUuid,
-  EntityId,
-  OwnedById,
-  EntityUuid,
-} from "@hashintel/hash-shared/types";
 
-// import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
-// import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
-// import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
-import { PageBlock } from "../../blocks/page/PageBlock";
+// import { useCollabPositionReporter } from "../../blocks/page/collab/use-collab-position-reporter";
+// import { useCollabPositions } from "../../blocks/page/collab/use-collab-positions";
+// import { useCollabPositionTracking } from "../../blocks/page/collab/use-collab-position-tracking";
+import { PageBlock } from "../../blocks/page/page-block";
 import {
   PageContextProvider,
   usePageContext,
-} from "../../blocks/page/PageContext";
-import { PageSectionContainer } from "../../blocks/page/PageSectionContainer";
-import { PageTitle } from "../../blocks/page/PageTitle/PageTitle";
+} from "../../blocks/page/page-context";
+import { PageSectionContainer } from "../../blocks/page/page-section-container";
+import { PageTitle } from "../../blocks/page/page-title/page-title";
 import {
   AccountPagesInfo,
   useAccountPages,
-} from "../../components/hooks/useAccountPages";
-import { useArchivePage } from "../../components/hooks/useArchivePage";
-import { usePageComments } from "../../components/hooks/usePageComments";
-import { PageIcon, pageIconVariantSizes } from "../../components/PageIcon";
-import { PageIconButton } from "../../components/PageIconButton";
-import { PageLoadingState } from "../../components/PageLoadingState";
-import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
+} from "../../components/hooks/use-account-pages";
+import { useArchivePage } from "../../components/hooks/use-archive-page";
+import { usePageComments } from "../../components/hooks/use-page-comments";
+import { PageIcon, pageIconVariantSizes } from "../../components/page-icon";
+import { PageIconButton } from "../../components/page-icon-button";
+import { PageLoadingState } from "../../components/page-loading-state";
+import { CollabPositionProvider } from "../../contexts/collab-position-context";
 import {
   GetAllLatestEntitiesQuery,
   GetPageInfoQuery,
@@ -58,10 +58,11 @@ import {
 } from "../../graphql/api-types.gen";
 import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../../lib/apollo-client";
+import { constructPageRelativeUrl } from "../../lib/routes";
 import {
   constructMinimalOrg,
-  MinimalOrg,
   constructMinimalUser,
+  MinimalOrg,
   MinimalUser,
 } from "../../lib/user-and-org";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
@@ -72,7 +73,6 @@ import {
   TOP_CONTEXT_BAR_HEIGHT,
   TopContextBar,
 } from "../shared/top-context-bar";
-import { constructPageRelativeUrl } from "../../lib/routes";
 
 type PageProps = {
   pageWorkspace: MinimalUser | MinimalOrg;
@@ -148,12 +148,10 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   const workspaces = getRootsAsEntities(workspacesSubgraph).map((entity) =>
     entity.metadata.entityTypeId === types.entityType.user.entityTypeId
       ? constructMinimalUser({
-          userEntityEditionId: entity.metadata.editionId,
-          subgraph: workspacesSubgraph,
+          userEntity: entity,
         })
       : constructMinimalOrg({
-          orgEntityEditionId: entity.metadata.editionId,
-          subgraph: workspacesSubgraph,
+          orgEntity: entity,
         }),
   );
 

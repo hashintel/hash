@@ -1,5 +1,6 @@
 import { Dialog } from "@mui/material";
-import { ReactNode, FunctionComponent } from "react";
+import { FunctionComponent, ReactNode } from "react";
+
 import { AuthLayout } from "./auth-layout";
 
 export type AuthModalLayoutProps = {

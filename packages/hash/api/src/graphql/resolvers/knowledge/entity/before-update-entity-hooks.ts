@@ -1,9 +1,9 @@
-import { GraphApi } from "@hashintel/hash-graph-client";
-import { ApolloError, UserInputError } from "apollo-server-express";
-import { types } from "@hashintel/hash-shared/ontology-types";
 import { VersionedUri } from "@blockprotocol/type-system";
+import { GraphApi } from "@hashintel/hash-graph-client";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import { Entity, PropertyObject } from "@hashintel/hash-subgraph";
-import { SYSTEM_TYPES } from "../../../../graph/system-types";
+import { ApolloError, UserInputError } from "apollo-server-express";
+
 import {
   shortnameContainsInvalidCharacter,
   shortnameIsRestricted,
@@ -15,6 +15,7 @@ import {
   getUserFromEntity,
   updateUserKratosIdentityTraits,
 } from "../../../../graph/knowledge/system-types/user";
+import { SYSTEM_TYPES } from "../../../../graph/system-types";
 
 const validateAccountShortname = async (
   graphApi: GraphApi,

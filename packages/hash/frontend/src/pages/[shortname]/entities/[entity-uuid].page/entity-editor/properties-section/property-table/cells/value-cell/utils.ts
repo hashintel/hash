@@ -1,4 +1,5 @@
 import { types } from "@hashintel/hash-shared/ontology-types";
+
 import { EditorType } from "./types";
 
 export const guessEditorTypeFromValue = (

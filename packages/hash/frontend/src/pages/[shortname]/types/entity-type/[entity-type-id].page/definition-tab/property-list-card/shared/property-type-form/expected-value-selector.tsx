@@ -4,25 +4,27 @@ import {
   FontAwesomeIcon,
   TextField,
 } from "@hashintel/hash-design-system";
-import { types } from "@hashintel/hash-shared/ontology-types";
 import { Autocomplete, Box, PaperProps, Typography } from "@mui/material";
-import { forwardRef, ForwardRefRenderFunction, useMemo, useState } from "react";
-import { useController, useFormContext, useWatch } from "react-hook-form";
-import { AutocompleteDropdown } from "../../../../../../../shared/autocomplete-dropdown";
 import {
-  ArrayType,
-  PropertyTypeFormValues,
-} from "../property-type-form-values";
-import { ExpectedValueChip } from "./expected-value-selector/expected-value-chip";
-import { expectedValuesOptions } from "./expected-value-selector/shared/expected-values-options";
-import { dataTypeOptions } from "./shared/data-type-options";
+  forwardRef,
+  ForwardRefRenderFunction,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useController, useFormContext, useWatch } from "react-hook-form";
 
+import { AutocompleteDropdown } from "../../../../../../../shared/autocomplete-dropdown";
 import { StyledPlusCircleIcon } from "../../../../../../../shared/styled-plus-circle-icon";
+import { PropertyTypeFormValues } from "../property-type-form-values";
 import { CustomExpectedValueBuilder } from "./expected-value-selector/custom-expected-value-builder";
+import { ExpectedValueChip } from "./expected-value-selector/expected-value-chip";
 import {
   CustomExpectedValueBuilderContext,
   useCustomExpectedValueBuilderContext,
 } from "./expected-value-selector/shared/custom-expected-value-builder-context";
+import { expectedValuesOptions } from "./expected-value-selector/shared/expected-values-options";
+import { dataTypeOptions } from "./shared/data-type-options";
 
 const ExpectedValueSelectorDropdown = ({ children, ...props }: PaperProps) => {
   const {
@@ -88,6 +90,8 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
     name: "expectedValues",
   });
 
+  const inputRef = useRef<HTMLInputElement | null>();
+
   const [creatingCustomExpectedValue, setCreatingCustomExpectedValue] =
     useState(false);
 
@@ -101,6 +105,13 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
         setValue("customExpectedValueId", undefined);
         setValue("flattenedCustomExpectedValueList", {});
         setCreatingCustomExpectedValue(false);
+
+        // Using setImmediate because the autocomplete input is disabled when
+        // creatingCustomExpectedValue is false and can't be focused until it
+        // is set to true
+        setImmediate(() => {
+          inputRef.current?.focus();
+        });
       },
     }),
     [creatingCustomExpectedValue, setCreatingCustomExpectedValue, setValue],
@@ -145,18 +156,21 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
           expectedValues.map((expectedValue, index) => {
             const typeId =
               typeof expectedValue === "object"
-                ? expectedValue.arrayType
+                ? expectedValue.typeId
                 : expectedValue;
 
-            const editable =
-              typeId in ArrayType ||
-              typeId === types.dataType.object.dataTypeId;
+            const editable = typeId === "array" || typeId === "object";
 
             return (
               <ExpectedValueChip
                 {...getTagProps({ index })}
                 key={typeId}
-                expectedValueType={typeId}
+                expectedValueType={
+                  typeof expectedValue === "object" &&
+                  "arrayType" in expectedValue
+                    ? expectedValue.arrayType
+                    : typeId
+                }
                 editable={editable}
                 onEdit={() => {
                   if (typeof expectedValue === "object") {
@@ -176,6 +190,7 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
         renderInput={(inputProps) => (
           <TextField
             {...inputProps}
+            inputRef={inputRef}
             label="Expected values"
             placeholder="Select acceptable values"
           />

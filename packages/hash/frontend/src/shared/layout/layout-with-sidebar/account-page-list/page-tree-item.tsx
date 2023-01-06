@@ -1,13 +1,13 @@
-import { Box, PopoverPosition, Tooltip, Typography } from "@mui/material";
-import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
-import { faChevronRight, faEllipsis } from "@fortawesome/free-solid-svg-icons";
-import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { CSSProperties, forwardRef, MouseEvent, useState } from "react";
 import { DraggableAttributes } from "@dnd-kit/core";
+import { faChevronRight, faEllipsis } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
 import { EntityId } from "@hashintel/hash-shared/types";
+import { Box, PopoverPosition, Tooltip, Typography } from "@mui/material";
+import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
+import { CSSProperties, forwardRef, MouseEvent, useState } from "react";
 
-import { PAGE_TITLE_PLACEHOLDER } from "../../../../blocks/page/PageTitle/PageTitle";
-import { PageIconButton } from "../../../../components/PageIconButton";
+import { PAGE_TITLE_PLACEHOLDER } from "../../../../blocks/page/page-title/page-title";
+import { PageIconButton } from "../../../../components/page-icon-button";
 import { Link } from "../../../ui";
 import { PageMenu } from "./page-menu";
 

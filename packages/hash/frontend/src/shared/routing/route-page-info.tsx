@@ -1,16 +1,16 @@
+import { EntityUuid } from "@hashintel/hash-shared/types";
 import { useRouter } from "next/router";
 import {
   createContext,
   FunctionComponent,
+  ReactNode,
   useContext,
   useMemo,
-  ReactNode,
 } from "react";
-import { EntityUuid } from "@hashintel/hash-shared/types";
 
 import {
-  parsePageUrlQueryParams,
   isPageParsedUrlQuery,
+  parsePageUrlQueryParams,
 } from "../../pages/[shortname]/[page-slug].page";
 
 type RoutePageInfo = {

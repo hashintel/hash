@@ -1,5 +1,6 @@
-use std::fmt::{Debug, Formatter};
+use std::fmt::Debug;
 
+use derivative::Derivative;
 use serde::Deserialize;
 use utoipa::ToSchema;
 
@@ -150,7 +151,8 @@ use crate::{
 ///
 /// [`RecordPath`]: crate::store::query::QueryPath
 /// [`Parameter`]: crate::store::query::Parameter
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize, ToSchema, Derivative)]
+#[derivative(Debug(bound = "R::QueryPath<'p>: Debug"))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 #[aliases(
     DataTypeStructuralQuery = StructuralQuery<'static, DataTypeWithMetadata>,
@@ -162,18 +164,4 @@ pub struct StructuralQuery<'p, R: Record> {
     #[serde(bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>")]
     pub filter: Filter<'p, R>,
     pub graph_resolve_depths: GraphResolveDepths,
-}
-
-// TODO: Derive traits when bounds are generated correctly
-//   see https://github.com/rust-lang/rust/issues/26925
-impl<'p, R> Debug for StructuralQuery<'p, R>
-where
-    R: Record<QueryPath<'p>: Debug>,
-{
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("StructuralQuery")
-            .field("filter", &self.filter)
-            .field("graph_resolve_depths", &self.graph_resolve_depths)
-            .finish()
-    }
 }

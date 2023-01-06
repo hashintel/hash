@@ -1,14 +1,13 @@
 import { faHome } from "@fortawesome/free-solid-svg-icons";
 import { IconButton } from "@hashintel/hash-design-system";
 import { Box, Drawer, Tooltip } from "@mui/material";
-
 import { useRouter } from "next/router";
 import { FunctionComponent, useContext } from "react";
+
 import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 import { SidebarToggleIcon } from "../../icons";
 import { useRoutePageInfo } from "../../routing";
 import { HEADER_HEIGHT } from "../layout-with-header/page-header";
-
 import { AccountEntityTypeList } from "./account-entity-type-list";
 import { AccountPageList } from "./account-page-list/account-page-list";
 import { useSidebarContext } from "./sidebar-context";

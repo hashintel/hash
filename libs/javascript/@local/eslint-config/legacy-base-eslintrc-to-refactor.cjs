@@ -247,6 +247,8 @@ module.exports = {
         ],
       },
     ],
+    "simple-import-sort/exports": "error",
+    "simple-import-sort/imports": "error",
     "unicorn/filename-case": "error",
     "unicorn/import-style": [
       "error",

@@ -8,6 +8,7 @@ import {
   SxProps,
   Theme,
 } from "@mui/material";
+
 import { Link } from "../../../shared/ui/link";
 
 export const WhiteCard = ({

@@ -1,5 +1,6 @@
 import { Box, Skeleton } from "@mui/material";
-import { pageIconVariantSizes } from "../../../../components/PageIcon";
+
+import { pageIconVariantSizes } from "../../../../components/page-icon";
 
 const LoadingLine = () => {
   return (

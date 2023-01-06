@@ -1,14 +1,13 @@
-import fetch from "node-fetch";
 import { ApolloError } from "apollo-server-errors";
-
+import fetch from "node-fetch";
 import oEmbedData from "oembed-providers/providers.json";
+
 import {
   Embed,
   Maybe,
   QueryEmbedCodeArgs,
   ResolverFn,
 } from "../../api-types.gen";
-
 import { GraphQLContext } from "../../context";
 
 oEmbedData.unshift({

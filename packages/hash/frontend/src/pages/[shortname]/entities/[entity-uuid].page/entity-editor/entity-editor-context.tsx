@@ -6,6 +6,7 @@ import {
   useMemo,
   useState,
 } from "react";
+
 import { EntityEditorProps } from "../entity-editor";
 
 export type TableExpandStatus = Record<string, boolean>;

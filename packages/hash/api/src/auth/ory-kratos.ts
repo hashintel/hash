@@ -4,6 +4,7 @@ import {
   FrontendApi,
   IdentityApi,
 } from "@ory/kratos-client";
+
 import { getRequiredEnv } from "../util";
 
 const publicUrl = getRequiredEnv("ORY_KRATOS_PUBLIC_URL");

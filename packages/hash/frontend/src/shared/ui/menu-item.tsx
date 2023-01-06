@@ -1,8 +1,9 @@
-import { FunctionComponent, forwardRef, ReactNode } from "react";
 import {
   MenuItem as BaseMenuItem,
   MenuItemProps as BaseMenuItemProps,
 } from "@hashintel/hash-design-system";
+import { forwardRef, FunctionComponent, ReactNode } from "react";
+
 import { Link } from "./link";
 
 export type MenuItemProps = {

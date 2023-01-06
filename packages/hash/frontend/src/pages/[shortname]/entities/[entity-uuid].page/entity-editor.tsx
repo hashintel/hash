@@ -1,4 +1,5 @@
 import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
+
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
 import { LinksSection } from "./entity-editor/links-section";
 import { PeersSection } from "./entity-editor/peers-section";
@@ -7,7 +8,7 @@ import { TypesSection } from "./entity-editor/types-section";
 
 export interface EntityEditorProps {
   entitySubgraph: Subgraph<SubgraphRootTypes["entity"]>;
-  setEntity: (entity: Entity | undefined) => void;
+  setEntity: (entity: Entity) => void;
   refetch: () => Promise<void>;
 }
 
@@ -15,7 +16,8 @@ export const EntityEditor = ({
   entitySubgraph,
   setEntity,
   refetch,
-}: EntityEditorProps) => {
+  hideLinksSection,
+}: EntityEditorProps & { hideLinksSection: boolean }) => {
   return (
     <EntityEditorContextProvider
       entitySubgraph={entitySubgraph}
@@ -26,7 +28,7 @@ export const EntityEditor = ({
 
       <PropertiesSection />
 
-      <LinksSection />
+      {!hideLinksSection && <LinksSection />}
 
       <PeersSection />
     </EntityEditorContextProvider>

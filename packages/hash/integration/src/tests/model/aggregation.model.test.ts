@@ -2,6 +2,7 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 import "../load-test-env";
+
 import { PostgresAdapter } from "@hashintel/hash-api/src/db";
 import {
   Aggregation,

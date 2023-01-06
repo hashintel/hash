@@ -2,7 +2,6 @@ import {
   getRequiredEnv,
   waitOnResource,
 } from "@hashintel/hash-backend-utils/environment";
-
 /**
  * This script clears all indices created by the search-loader service. It is intended
  * for use during development.

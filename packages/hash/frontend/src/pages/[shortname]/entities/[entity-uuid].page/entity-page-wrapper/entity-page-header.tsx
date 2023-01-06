@@ -4,6 +4,7 @@ import { Box, Stack, Typography } from "@mui/material";
 import { Container } from "@mui/system";
 import { useRouter } from "next/router";
 import { ReactNode, useContext } from "react";
+
 import { TopContextBar } from "../../../../shared/top-context-bar";
 import { WorkspaceContext } from "../../../../shared/workspace-context";
 
@@ -11,10 +12,12 @@ export const EntityPageHeader = ({
   entityLabel,
   lightTitle,
   chip,
+  editBar,
 }: {
   entityLabel: string;
   lightTitle?: boolean;
   chip: ReactNode;
+  editBar?: ReactNode;
 }) => {
   const router = useRouter();
 
@@ -46,6 +49,7 @@ export const EntityPageHeader = ({
         ]}
         scrollToTop={() => {}}
       />
+      {editBar}
       <Box py={3.75}>
         <Container>
           {chip}

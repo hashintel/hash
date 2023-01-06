@@ -1,5 +1,3 @@
-import produce from "immer";
-import { useMemo, useRef, useState } from "react";
 import {
   closestCenter,
   DndContext,
@@ -15,13 +13,18 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { styled, Box, experimental_sx as sx } from "@mui/material";
-import { ValueCellEditorComponent } from "./types";
-import { SortableItem } from "./array-editor/types";
-import { SortableRow } from "./array-editor/sortable-row";
+import { Box, experimental_sx as sx, styled } from "@mui/material";
+import produce from "immer";
+import { isNumber } from "lodash";
+import { useMemo, useRef, useState } from "react";
+
+import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
 import { AddAnotherButton } from "./array-editor/add-another-button";
 import { DraftRow } from "./array-editor/draft-row";
-import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
+import { ItemLimitInfo } from "./array-editor/item-limit-info";
+import { SortableRow } from "./array-editor/sortable-row";
+import { SortableItem } from "./array-editor/types";
+import { ValueCellEditorComponent } from "./types";
 import { isBlankStringOrNullish } from "./utils";
 
 export const DRAFT_ROW_KEY = "draft";
@@ -41,7 +44,12 @@ export const ArrayEditor: ValueCellEditorComponent = ({
   onChange,
 }) => {
   const listWrapperRef = useRef<HTMLDivElement>(null);
-  const { value: propertyValue, expectedTypes } = cell.data.propertyRow;
+  const {
+    value: propertyValue,
+    expectedTypes,
+    maxItems,
+    minItems,
+  } = cell.data.propertyRow;
 
   const items = useMemo(() => {
     const values = Array.isArray(propertyValue) ? propertyValue : [];
@@ -145,6 +153,9 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     updateItem(index, value);
   };
 
+  const canAddMore = isNumber(maxItems) ? items.length < maxItems : true;
+  const isAddingDraft = editingRow === DRAFT_ROW_KEY;
+
   return (
     <GridEditorWrapper>
       <ListWrapper
@@ -175,18 +186,24 @@ export const ArrayEditor: ValueCellEditorComponent = ({
         </DndContext>
       </ListWrapper>
 
-      {editingRow !== DRAFT_ROW_KEY ? (
+      {canAddMore && !isAddingDraft && (
         <AddAnotherButton
           title="Add Another Value"
           onClick={handleAddAnotherClick}
         />
-      ) : (
+      )}
+
+      {isAddingDraft && (
         <DraftRow
           existingItemCount={items.length}
           expectedTypes={expectedTypes}
           onDraftSaved={addItem}
           onDraftDiscarded={() => setEditingRow("")}
         />
+      )}
+
+      {(!canAddMore || isAddingDraft) && (
+        <ItemLimitInfo min={minItems} max={maxItems} />
       )}
     </GridEditorWrapper>
   );

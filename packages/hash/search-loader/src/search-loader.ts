@@ -4,21 +4,20 @@
  * @todo remove above ts-nocheck as we start re-enabling OpenSearch indexing
  *   https://app.asana.com/0/1200211978612931/1202938382575963/f
  */
-import { StatsD } from "hot-shots";
-
+import { DbAdapter } from "@hashintel/hash-api/src/db";
+import { EntityType as DbEntityType } from "@hashintel/hash-api/src/db/adapter";
+import { Entity, EntityType, Page } from "@hashintel/hash-api/src/model";
+import { EntityVersion } from "@hashintel/hash-backend-utils/pgTables";
 import { QueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/adapter";
 import { SearchAdapter } from "@hashintel/hash-backend-utils/search/adapter";
 import {
-  EntitiesDocument,
   ENTITIES_SEARCH_FIELD,
+  EntitiesDocument,
 } from "@hashintel/hash-backend-utils/search/doc-types";
-import { EntityVersion } from "@hashintel/hash-backend-utils/pgTables";
 import { Wal2JsonMsg } from "@hashintel/hash-backend-utils/wal2json";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
-import { DbAdapter } from "@hashintel/hash-api/src/db";
-import { Entity, EntityType, Page } from "@hashintel/hash-api/src/model";
-import { EntityType as DbEntityType } from "@hashintel/hash-api/src/db/adapter";
 import { sleep } from "@hashintel/hash-shared/sleep";
+import { StatsD } from "hot-shots";
 
 import { logger } from "./config";
 

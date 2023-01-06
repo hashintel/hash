@@ -1,6 +1,7 @@
 import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
 import { faList } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import {
   Checkbox,
   TableBody,
@@ -16,9 +17,9 @@ import {
   useFormContext,
   useWatch,
 } from "react-hook-form";
-import { OwnedById } from "@hashintel/hash-shared/types";
-import { useBlockProtocolCreatePropertyType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
-import { useBlockProtocolUpdatePropertyType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdatePropertyType";
+
+import { useBlockProtocolCreatePropertyType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-property-type";
+import { useBlockProtocolUpdatePropertyType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-property-type";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
 import { useRouteNamespace } from "../../../../shared/use-route-namespace";
 import { EntityTypeEditorForm } from "../shared/form-types";
@@ -26,11 +27,10 @@ import {
   usePropertyTypes,
   useRefetchPropertyTypes,
 } from "../shared/property-types-context";
-import { MultipleValuesCell } from "./property-list-card/multiple-values-cell";
 import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
 import { PropertyTypeForm } from "./property-list-card/shared/property-type-form";
-import { PropertyTypeFormValues } from "./property-list-card/shared/property-type-form-values";
 import { getPropertyTypeSchema } from "./property-list-card/shared/property-type-form/property-type-schema";
+import { PropertyTypeFormValues } from "./property-list-card/shared/property-type-form-values";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
@@ -41,6 +41,7 @@ import {
   EntityTypeTableTitleCellText,
 } from "./shared/entity-type-table";
 import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
+import { MultipleValuesCell } from "./shared/multiple-values-cell";
 import { QuestionIcon } from "./shared/question-icon";
 import { TypeFormModal } from "./shared/type-form";
 import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
@@ -111,7 +112,7 @@ export const PropertyTypeRow = ({
           <PropertyExpectedValues property={property} />
         </TableCell>
 
-        <MultipleValuesCell propertyIndex={propertyIndex} />
+        <MultipleValuesCell index={propertyIndex} variant="property" />
 
         <EntityTypeTableCenteredCell>
           <Controller
@@ -149,10 +150,7 @@ export const PropertyTypeRow = ({
 
           await refetchPropertyTypes?.();
 
-          onUpdateVersionRef.current(
-            // @todo temporary bug fix
-            res.data.schema.$id.replace("//v", "/v") as VersionedUri,
-          );
+          onUpdateVersionRef.current(res.data.schema.$id);
 
           editModalPopupState.close();
         }}
@@ -290,10 +288,18 @@ export const PropertyListCard = () => {
     <EntityTypeTable>
       <TableHead>
         <EntityTypeTableHeaderRow>
-          <TableCell>Property name</TableCell>
-          <TableCell width={180}>Expected values</TableCell>
+          <TableCell width={260}>Property name</TableCell>
+          <TableCell>Expected values</TableCell>
           <EntityTypeTableCenteredCell width={170}>
-            Allow multiple values <QuestionIcon />
+            Allow arrays{" "}
+            <QuestionIcon
+              tooltip={
+                <>
+                  Allowing arrays permits the entry of more than one value for a
+                  given property
+                </>
+              }
+            />
           </EntityTypeTableCenteredCell>
           <EntityTypeTableCenteredCell width={100}>
             Required
@@ -337,15 +343,23 @@ export const PropertyListCard = () => {
                     sx={{
                       ml: 1.25,
                     }}
+                    tooltip={
+                      <>
+                        You should only create a new property type if you can't
+                        find an existing one which corresponds to the
+                        information you're trying to capture.
+                      </>
+                    }
                   />
                 </>
               }
               popupState={createModalPopupState}
               onSubmit={handleSubmit}
               submitButtonProps={{ children: <>Create new property type</> }}
-              getDefaultValues={() =>
-                searchText.length ? { name: searchText } : {}
-              }
+              getDefaultValues={() => ({
+                expectedValues: [],
+                ...(searchText.length ? { name: searchText } : {}),
+              })}
             />
           </>
         ) : (

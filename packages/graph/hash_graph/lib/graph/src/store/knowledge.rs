@@ -3,7 +3,7 @@ use error_stack::Result;
 use type_system::uri::VersionedUri;
 
 use crate::{
-    identifier::{knowledge::EntityId, DecisionTimestamp},
+    identifier::{knowledge::EntityId, time::DecisionTimestamp},
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     provenance::{OwnedById, UpdatedById},
     store::{crud, InsertionError, QueryError, UpdateError},

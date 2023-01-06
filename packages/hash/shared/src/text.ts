@@ -1,8 +1,9 @@
 import { Node, Schema } from "prosemirror-model";
-import { ComponentNode } from "./prosemirror";
-import { TextToken } from "./graphql/types";
+
 import { TextEntityType, TextProperties } from "./entity";
-import { TEXT_TOKEN_PROPERTY_TYPE_BASE_URI } from "./entityStore";
+import { TEXT_TOKEN_PROPERTY_TYPE_BASE_URI } from "./entity-store";
+import { TextToken } from "./graphql/types";
+import { ComponentNode } from "./prosemirror";
 
 export const textBlockNodesFromTokens = (
   tokens: TextToken[],
@@ -25,6 +26,8 @@ export const textBlockNodesFromTokens = (
             ["strong", token.bold] as const,
             ["underlined", token.underline] as const,
             ["em", token.italics] as const,
+            ["strikethrough", token.strikethrough] as const,
+            ["highlighted", token.highlighted] as const,
             [
               "link",
               Boolean(token.link),
@@ -79,6 +82,8 @@ export const textBlockNodeToTextTokens = (node: ComponentNode): TextToken[] => {
           ...(marks.has("strong") ? { bold: true } : {}),
           ...(marks.has("em") ? { italics: true } : {}),
           ...(marks.has("underlined") ? { underline: true } : {}),
+          ...(marks.has("strikethrough") ? { strikethrough: true } : {}),
+          ...(marks.has("highlighted") ? { highlighted: true } : {}),
           ...(marks.has("link")
             ? {
                 link: child.marks.find((mark) => mark.type.name === "link")

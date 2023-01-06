@@ -1,7 +1,7 @@
 import {
   AccountId,
-  OwnedById,
   extractOwnedByIdFromEntityId,
+  OwnedById,
 } from "@hashintel/hash-shared/types";
 import {
   Entity,
@@ -13,12 +13,13 @@ import {
 import { getEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
+
+import { EntityTypeMismatchError } from "../../../lib/error";
 import {
   ImpureGraphFunction,
   PureGraphFunction,
   zeroedGraphResolveDepths,
 } from "../..";
-import { EntityTypeMismatchError } from "../../../lib/error";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
   archiveEntity,
@@ -121,7 +122,7 @@ export const getPageById: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createPage: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityType"> & {
+  Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
     title: string;
     summary?: string;
     prevIndex?: string;
@@ -147,12 +148,10 @@ export const createPage: ImpureGraphFunction<
       : {}),
   };
 
-  const entityType = SYSTEM_TYPES.entityType.page;
-
   const entity = await createEntity(ctx, {
     ownedById,
     properties,
-    entityType,
+    entityTypeId: SYSTEM_TYPES.entityType.page.schema.$id,
     actorId,
   });
 
@@ -171,7 +170,7 @@ export const createPage: ImpureGraphFunction<
                 [SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId]:
                   [],
               },
-              entityType: SYSTEM_TYPES.entityType.text,
+              entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
               actorId,
             }),
             actorId,
@@ -451,8 +450,8 @@ export const getPageBlocks: ImpureGraphFunction<
           a.metadata.editionId.baseId.localeCompare(
             b.metadata.editionId.baseId,
           ) ||
-          a.metadata.editionId.version.localeCompare(
-            b.metadata.editionId.version,
+          a.metadata.version.decisionTime.start.localeCompare(
+            b.metadata.version.decisionTime.start,
           ),
       )
       .map((linkEntity) => getLinkEntityRightEntity(ctx, { linkEntity })),

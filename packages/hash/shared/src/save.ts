@@ -1,9 +1,9 @@
 import { ApolloClient } from "@apollo/client";
+import { EntityId, OwnedById } from "@hashintel/hash-shared/types";
 import { VersionedUri } from "@hashintel/hash-subgraph";
 import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
-import { OwnedById, EntityId } from "@hashintel/hash-shared/types";
 
 import { BlockEntity, isDraftTextEntity } from "./entity";
 import {
@@ -12,13 +12,13 @@ import {
   getDraftEntityByEntityId,
   isDraftBlockEntity,
   TEXT_ENTITY_TYPE_ID,
-} from "./entityStore";
+} from "./entity-store";
 import {
   GetPageQuery,
   GetPageQueryVariables,
+  UpdatePageAction,
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
-  UpdatePageAction,
   UpdatePageContentsResultPlaceholder,
 } from "./graphql/api-types.gen";
 import { isEntityNode } from "./prosemirror";

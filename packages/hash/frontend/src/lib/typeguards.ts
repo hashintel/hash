@@ -1,10 +1,10 @@
 import {
   Array,
-  OneOf,
-  PropertyValues,
   Object,
-  ValueOrArray,
+  OneOf,
   PropertyTypeReference,
+  PropertyValues,
+  ValueOrArray,
 } from "@blockprotocol/type-system";
 
 export function isNonNullable<T>(value: T): value is NonNullable<T> {

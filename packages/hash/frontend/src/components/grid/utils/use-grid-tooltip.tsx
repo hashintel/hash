@@ -4,6 +4,7 @@ import { isEqual } from "lodash";
 import { bindPopover, usePopupState } from "material-ui-popup-state/hooks";
 import { RefObject, useCallback, useState } from "react";
 import { useWindowEventListener } from "rooks";
+
 import {
   GridTooltip,
   TooltipCellProps,
@@ -82,13 +83,6 @@ export const useGridTooltip = (
     tooltipElement: (
       <Popover
         {...bindPopover(popupState)}
-        /**
-         * disabling scroll lock is intended here, even without the "popovers resetting the scroll position" issue
-         * because we don't want user to disable scroll lock when they hover on grid tooltips while scrolling
-         * @todo but in the long run, we should fix our buggy custom `useScrollLock` implementation
-         * it causes the page scroll to reset
-         * @see https://github.com/blockprotocol/blockprotocol/pull/588 the PR solved the same issue on BP repo
-         */
         anchorReference="anchorPosition"
         anchorPosition={tooltipPos}
         transformOrigin={{ horizontal: "center", vertical: "bottom" }}

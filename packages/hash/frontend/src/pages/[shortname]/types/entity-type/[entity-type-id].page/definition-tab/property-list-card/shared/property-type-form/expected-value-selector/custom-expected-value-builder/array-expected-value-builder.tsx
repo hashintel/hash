@@ -1,23 +1,10 @@
-import { faPlus, faSearch } from "@fortawesome/free-solid-svg-icons";
-import {
-  Chip,
-  FontAwesomeIcon,
-  TextField,
-} from "@hashintel/hash-design-system";
-import { types } from "@hashintel/hash-shared/ontology-types";
-import {
-  Autocomplete,
-  autocompleteClasses,
-  Box,
-  Collapse,
-  inputBaseClasses,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { uniqueId } from "lodash";
 import { usePopupState } from "material-ui-popup-state/hooks";
-import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
+import { FunctionComponent, useEffect, useMemo, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
+
 import {
   CustomExpectedValue,
   DefaultExpectedValueTypeId,
@@ -25,14 +12,17 @@ import {
   PropertyTypeFormValues,
 } from "../../../property-type-form-values";
 import { dataTypeOptions as primitiveDataTypeOptions } from "../../shared/data-type-options";
+import { CustomExpectedValueSelector } from "../shared/custom-expected-value-selector";
+import { DeleteExpectedValueModal } from "../shared/delete-expected-value-modal";
+import { ExpectedValueBadge } from "../shared/expected-value-badge";
 import { expectedValuesOptions } from "../shared/expected-values-options";
-import { ExpectedValueBadge } from "./array-expected-value-builder/expected-value-badge";
-import { DeleteExpectedValueModal } from "./array-expected-value-builder/delete-expected-value-modal";
+import { ObjectExpectedValueBuilder } from "../shared/object-expected-value-builder";
+import { ArrayMinMaxItems } from "./array-expected-value-builder/array-min-max-items";
 
 const dataTypeOptions: DefaultExpectedValueTypeId[] = [
   ...primitiveDataTypeOptions,
   "array",
-  types.dataType.object.dataTypeId,
+  "object",
 ];
 
 const deleteExpectedValueAndChildren = (
@@ -73,7 +63,7 @@ const ArrayExpectedValueChild: FunctionComponent<
 
   const { control } = useFormContext<PropertyTypeFormValues>();
 
-  const array = useWatch({
+  const arrayChild = useWatch({
     control,
     name: `flattenedCustomExpectedValueList.${id}`,
   });
@@ -82,24 +72,23 @@ const ArrayExpectedValueChild: FunctionComponent<
     setShow(true);
   }, []);
 
-  if (!array.data) {
+  if (!arrayChild.data) {
     return null;
   }
 
-  const isObject = array.data.typeId === types.dataType.object.dataTypeId;
-
-  const hasContents = "itemIds" in array.data && array.data.itemIds.length;
+  const hasContents =
+    "itemIds" in arrayChild.data && arrayChild.data.itemIds.length;
 
   const deleteChild = () => {
-    if (array.data?.typeId) {
-      onDelete(array.data.typeId);
+    if (arrayChild.data?.typeId) {
+      onDelete(arrayChild.data.typeId);
     }
   };
 
   return (
-    <Collapse in={show && !array.animatingOut} timeout={300}>
+    <Collapse in={show && !arrayChild.animatingOut} timeout={300}>
       <Box mb={1}>
-        {array.data.typeId === "array" ? (
+        {arrayChild.data.typeId === "array" ? (
           // eslint-disable-next-line @typescript-eslint/no-use-before-define
           <ArrayExpectedValueBuilder
             expectedValueId={id}
@@ -110,12 +99,22 @@ const ArrayExpectedValueChild: FunctionComponent<
             index={index}
             onDelete={deleteChild}
           />
+        ) : arrayChild.data.typeId === "object" ? (
+          <ObjectExpectedValueBuilder
+            expectedValueId={id}
+            prefix={firstChild ? "CONTAINING A" : "OR A"}
+            deleteTooltip={`Delete property object${
+              hasContents ? " and its contents" : ""
+            }`}
+            index={index}
+            onDelete={deleteChild}
+          />
         ) : (
           <ExpectedValueBadge
-            typeId={array.data.typeId}
+            typeId={arrayChild.data.typeId}
             prefix={`${
               onlyChild ? "CONTAINING" : firstChild ? "CONTAINING EITHER" : "OR"
-            }${isObject ? " A" : ""}`}
+            }`}
             deleteTooltip="Remove data type"
             onDelete={deleteChild}
           />
@@ -138,9 +137,9 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
 > = ({ expectedValueId, prefix, deleteTooltip, onDelete, index = [] }) => {
   const { setValue, control } = useFormContext<PropertyTypeFormValues>();
 
-  const flattenedExpectedValues = useWatch({
+  const [flattenedExpectedValues, editingExpectedValueIndex] = useWatch({
     control,
-    name: `flattenedCustomExpectedValueList`,
+    name: [`flattenedCustomExpectedValueList`, `editingExpectedValueIndex`],
   });
 
   const itemIds = useWatch({
@@ -148,21 +147,13 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
     name: `flattenedCustomExpectedValueList.${expectedValueId}.data.itemIds`,
   });
 
-  const [autocompleteElem, setAutocompleteElem] =
-    useState<HTMLDivElement | null>(null);
-  const textFieldRef = useRef<HTMLInputElement>(null);
-
   const [dataTypeCount, propertyObjectCount, arrayCount] = useMemo(() => {
     const arrays = itemIds.filter(
       (childId) => flattenedExpectedValues[childId]?.data?.typeId === "array",
     ).length;
 
-    // TODO: change this to flattenedDataTypes[childId]?.data?.typeId === === "object"
-    // when object creation is implemented
     const objects = itemIds.filter(
-      (childId) =>
-        flattenedExpectedValues[childId]?.data?.typeId ===
-        types.dataType.object.dataTypeId,
+      (childId) => flattenedExpectedValues[childId]?.data?.typeId === "object",
     ).length;
 
     const dataTypes = itemIds.length - arrays - objects;
@@ -228,6 +219,7 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
             onDelete?.();
           }
         }}
+        endNode={<ArrayMinMaxItems arrayId={expectedValueId} />}
       />
 
       <Box
@@ -252,25 +244,30 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
           />
         ))}
 
-        <Autocomplete
-          ref={(ref: HTMLDivElement) => setAutocompleteElem(ref)}
+        <CustomExpectedValueSelector
+          inputLabel="Add to array"
+          collapsedWidth={145}
           value={value}
-          multiple
-          popupIcon={null}
-          clearIcon={null}
-          forcePopupIcon={false}
-          selectOnFocus={false}
-          openOnFocus
-          componentsProps={{
-            popper: {
-              sx: {
-                [`.${autocompleteClasses.paper}`]: {
-                  width: autocompleteElem?.getBoundingClientRect().width,
-                },
-              },
-            },
+          options={dataTypeOptions}
+          renderOption={(optProps, opt) => {
+            return (
+              <Box component="li" {...optProps} sx={{ py: 1.5, px: 2.25 }}>
+                <FontAwesomeIcon
+                  icon={{ icon: expectedValuesOptions[opt!]!.icon }}
+                  sx={(theme) => ({ color: theme.palette.gray[50] })}
+                />
+                <Typography
+                  variant="smallTextLabels"
+                  component="span"
+                  ml={1.5}
+                  color={(theme) => theme.palette.gray[80]}
+                >
+                  {expectedValuesOptions[opt!]!.title}
+                </Typography>
+                <Chip color="blue" label="DATA TYPE" sx={{ ml: 1.5 }} />
+              </Box>
+            );
           }}
-          clearOnBlur={false}
           onChange={(_evt, _data, reason, details) => {
             const typeId = details?.option;
             if (typeId) {
@@ -305,99 +302,12 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
               }
             }
           }}
-          renderTags={() => <Box />}
-          renderInput={({ InputProps, ...otherProps }) => {
-            const expanded =
-              textFieldRef.current === document.activeElement ||
-              textFieldRef.current?.value;
-
-            return (
-              <TextField
-                {...otherProps}
-                InputProps={{
-                  ...InputProps,
-                  inputRef: textFieldRef,
-                  sx: ({ palette, transitions }) => ({
-                    height: 42,
-                    transition: transitions.create([
-                      "width",
-                      "background-color",
-                    ]),
-                    padding: "0 16px !important",
-                    fill: palette.gray[50],
-
-                    [`.${inputBaseClasses.input}`]: {
-                      fontSize: "14px !important",
-                      p: "0 !important",
-                      ...(!expanded ? { cursor: "pointer !important" } : {}),
-                    },
-
-                    ...(!expanded
-                      ? {
-                          width: 145,
-                          cursor: "pointer !important",
-                          "&:hover": {
-                            background: palette.gray[20],
-                            fill: palette.gray[80],
-                          },
-                        }
-                      : {}),
-
-                    "& ::placeholder": {
-                      paddingLeft: 0,
-                      transition: transitions.create(["padding-left", "color"]),
-                      ...(!expanded
-                        ? {
-                            paddingLeft: 0.5,
-                            color: `${palette.gray[80]} !important`,
-                            fontWeight: 500,
-                          }
-                        : {}),
-                    },
-                  }),
-                  endAdornment: (
-                    <FontAwesomeIcon
-                      icon={expanded ? faSearch : faPlus}
-                      sx={{
-                        fontSize: 14,
-                        marginLeft: 1,
-                        marginRight: 0.5,
-                        fill: "inherit",
-                      }}
-                    />
-                  ),
-                }}
-                placeholder={
-                  !expanded ? "Add to array" : "Select acceptable values"
-                }
-              />
-            );
-          }}
-          options={dataTypeOptions}
-          getOptionLabel={(opt) => expectedValuesOptions[opt!]!.title}
-          renderOption={(optProps, opt) => {
-            return (
-              <Box component="li" {...optProps} sx={{ py: 1.5, px: 2.25 }}>
-                <FontAwesomeIcon
-                  icon={{ icon: expectedValuesOptions[opt!]!.icon }}
-                  sx={(theme) => ({ color: theme.palette.gray[50] })}
-                />
-                <Typography
-                  variant="smallTextLabels"
-                  component="span"
-                  ml={1.5}
-                  color={(theme) => theme.palette.gray[80]}
-                >
-                  {expectedValuesOptions[opt!]!.title}
-                </Typography>
-                <Chip color="blue" label="DATA TYPE" sx={{ ml: 1.5 }} />
-              </Box>
-            );
-          }}
         />
 
         <DeleteExpectedValueModal
+          expectedValueType="array"
           popupState={deleteModalPopupState}
+          editing={editingExpectedValueIndex !== undefined && !index.length} // We only want to show the editing modal for the root array
           onDelete={onDelete}
           onClose={() => deleteModalPopupState.close()}
           dataTypeCount={dataTypeCount}

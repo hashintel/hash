@@ -12,7 +12,7 @@ use crate::{
     identifier::{
         knowledge::EntityId,
         ontology::{OntologyTypeEditionId, OntologyTypeVersion},
-        TransactionTimestamp,
+        time::TransactionTimestamp,
     },
     store::Record,
     subgraph::edges::{KnowledgeGraphEdgeKind, OntologyOutwardEdges, OutwardEdge, SharedEdgeKind},
@@ -115,10 +115,8 @@ impl Edges {
                                     vertices.earliest_entity_by_id(&id.base_id())
                                 }
                                     .expect("entity must exist in subgraph")
-                                    .edition_id()
-                                    .version()
-                                    .transaction_time()
-                                    .as_start_bound_timestamp();
+                                    .vertex_id()
+                                    .version();
 
                                 KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
                                     kind: edge.kind,
@@ -134,13 +132,13 @@ impl Edges {
                     match map.entry(id.base_id()) {
                         Entry::Occupied(entry) => {
                             entry.into_mut().insert(
-                                id.version().transaction_time().as_start_bound_timestamp(),
+                                id.version(),
                                 edges
                             );
                         }
                         Entry::Vacant(entry) => {
                             entry.insert(BTreeMap::from([(
-                                id.version().transaction_time().as_start_bound_timestamp(),
+                                id.version(),
                                 edges
                             )]));
                         }

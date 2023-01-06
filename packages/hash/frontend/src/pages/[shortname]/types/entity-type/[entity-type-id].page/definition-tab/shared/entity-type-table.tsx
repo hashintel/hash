@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import { Box, experimental_sx, styled } from "@mui/system";
 import { ReactNode } from "react";
+
 import { WhiteCard } from "../../../../../shared/white-card";
 
 export const EntityTypeTableCenteredCell = styled(TableCell)(

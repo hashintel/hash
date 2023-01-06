@@ -1,18 +1,18 @@
 import { VersionedUri } from "@blockprotocol/type-system";
 
-export type EntityTypeEditorPropertyData = {
+type EntityTypeEditorTypeData = {
   $id: VersionedUri;
-  required: boolean;
-  array: boolean;
   minValue: number | string;
   maxValue: number | string;
   infinity: boolean;
+  array: boolean;
 };
 
-export type EntityTypeEditorLinkData = {
-  $id: VersionedUri;
-  minValue: number;
-  maxValue: number;
+export type EntityTypeEditorPropertyData = EntityTypeEditorTypeData & {
+  required: boolean;
+};
+
+export type EntityTypeEditorLinkData = EntityTypeEditorTypeData & {
   entityTypes: VersionedUri[];
 };
 

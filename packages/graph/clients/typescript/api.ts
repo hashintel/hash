@@ -397,12 +397,6 @@ export interface EntityEditionId {
    * @memberof EntityEditionId
    */
   recordId: number;
-  /**
-   *
-   * @type {string}
-   * @memberof EntityEditionId
-   */
-  version: string;
 }
 /**
  *
@@ -472,6 +466,12 @@ export interface EntityMetadata {
    * @memberof EntityMetadata
    */
   provenance: ProvenanceMetadata;
+  /**
+   *
+   * @type {EntityVersion}
+   * @memberof EntityMetadata
+   */
+  version: EntityVersion;
 }
 /**
  * A single token in an [`EntityQueryPath`].
@@ -672,6 +672,44 @@ export interface EntityTypeWithMetadata {
 /**
  *
  * @export
+ * @interface EntityVersion
+ */
+export interface EntityVersion {
+  /**
+   *
+   * @type {VersionTimespan}
+   * @memberof EntityVersion
+   */
+  decisionTime: VersionTimespan;
+  /**
+   *
+   * @type {VersionTimespan}
+   * @memberof EntityVersion
+   */
+  transactionTime: VersionTimespan;
+}
+/**
+ *
+ * @export
+ * @interface EntityVertexId
+ */
+export interface EntityVertexId {
+  /**
+   *
+   * @type {string}
+   * @memberof EntityVertexId
+   */
+  baseId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof EntityVertexId
+   */
+  version: string;
+}
+/**
+ *
+ * @export
  * @interface EqualFilter
  */
 export interface EqualFilter {
@@ -700,62 +738,16 @@ export type Filter =
 export type FilterExpression = ParameterExpression | PathExpression;
 
 /**
- * @type GraphElementEditionId
- * @export
- */
-export type GraphElementEditionId =
-  | GraphElementEditionIdOneOf
-  | GraphElementEditionIdOneOf1;
-
-/**
- *
- * @export
- * @interface GraphElementEditionIdOneOf
- */
-export interface GraphElementEditionIdOneOf {
-  /**
-   *
-   * @type {string}
-   * @memberof GraphElementEditionIdOneOf
-   */
-  baseId: string;
-  /**
-   *
-   * @type {number}
-   * @memberof GraphElementEditionIdOneOf
-   */
-  version: number;
-}
-/**
- *
- * @export
- * @interface GraphElementEditionIdOneOf1
- */
-export interface GraphElementEditionIdOneOf1 {
-  /**
-   *
-   * @type {string}
-   * @memberof GraphElementEditionIdOneOf1
-   */
-  baseId: string;
-  /**
-   *
-   * @type {number}
-   * @memberof GraphElementEditionIdOneOf1
-   */
-  recordId: number;
-  /**
-   *
-   * @type {string}
-   * @memberof GraphElementEditionIdOneOf1
-   */
-  version: string;
-}
-/**
  * @type GraphElementId
  * @export
  */
 export type GraphElementId = string;
+
+/**
+ * @type GraphElementVertexId
+ * @export
+ */
+export type GraphElementVertexId = EntityVertexId | OntologyTypeEditionId;
 
 /**
  * TODO: DOC - <https://app.asana.com/0/0/1203438518991188/f>
@@ -888,10 +880,10 @@ export interface KnowledgeGraphOutwardEdgesOneOf1 {
   reversed: boolean;
   /**
    *
-   * @type {GraphElementEditionIdOneOf}
+   * @type {KnowledgeGraphOutwardEdgesOneOf1RightEndpoint}
    * @memberof KnowledgeGraphOutwardEdgesOneOf1
    */
-  rightEndpoint: GraphElementEditionIdOneOf;
+  rightEndpoint: KnowledgeGraphOutwardEdgesOneOf1RightEndpoint;
 }
 
 export const KnowledgeGraphOutwardEdgesOneOf1KindEnum = {
@@ -901,6 +893,25 @@ export const KnowledgeGraphOutwardEdgesOneOf1KindEnum = {
 export type KnowledgeGraphOutwardEdgesOneOf1KindEnum =
   typeof KnowledgeGraphOutwardEdgesOneOf1KindEnum[keyof typeof KnowledgeGraphOutwardEdgesOneOf1KindEnum];
 
+/**
+ *
+ * @export
+ * @interface KnowledgeGraphOutwardEdgesOneOf1RightEndpoint
+ */
+export interface KnowledgeGraphOutwardEdgesOneOf1RightEndpoint {
+  /**
+   *
+   * @type {string}
+   * @memberof KnowledgeGraphOutwardEdgesOneOf1RightEndpoint
+   */
+  baseId: string;
+  /**
+   *
+   * @type {number}
+   * @memberof KnowledgeGraphOutwardEdgesOneOf1RightEndpoint
+   */
+  version: number;
+}
 /**
  *
  * @export
@@ -1140,10 +1151,10 @@ export interface OntologyOutwardEdgesOneOf {
   reversed: boolean;
   /**
    *
-   * @type {GraphElementEditionIdOneOf}
+   * @type {KnowledgeGraphOutwardEdgesOneOf1RightEndpoint}
    * @memberof OntologyOutwardEdgesOneOf
    */
-  rightEndpoint: GraphElementEditionIdOneOf;
+  rightEndpoint: KnowledgeGraphOutwardEdgesOneOf1RightEndpoint;
 }
 
 export const OntologyOutwardEdgesOneOfKindEnum = {
@@ -1177,10 +1188,10 @@ export interface OntologyOutwardEdgesOneOf1 {
   reversed: boolean;
   /**
    *
-   * @type {GraphElementEditionIdOneOf1}
+   * @type {OntologyOutwardEdgesOneOf1RightEndpoint}
    * @memberof OntologyOutwardEdgesOneOf1
    */
-  rightEndpoint: GraphElementEditionIdOneOf1;
+  rightEndpoint: OntologyOutwardEdgesOneOf1RightEndpoint;
 }
 
 export const OntologyOutwardEdgesOneOf1KindEnum = {
@@ -1190,6 +1201,25 @@ export const OntologyOutwardEdgesOneOf1KindEnum = {
 export type OntologyOutwardEdgesOneOf1KindEnum =
   typeof OntologyOutwardEdgesOneOf1KindEnum[keyof typeof OntologyOutwardEdgesOneOf1KindEnum];
 
+/**
+ *
+ * @export
+ * @interface OntologyOutwardEdgesOneOf1RightEndpoint
+ */
+export interface OntologyOutwardEdgesOneOf1RightEndpoint {
+  /**
+   *
+   * @type {string}
+   * @memberof OntologyOutwardEdgesOneOf1RightEndpoint
+   */
+  baseId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof OntologyOutwardEdgesOneOf1RightEndpoint
+   */
+  version: string;
+}
 /**
  *
  * @export
@@ -1728,10 +1758,10 @@ export interface Subgraph {
   edges: Edges;
   /**
    *
-   * @type {Array<GraphElementEditionId>}
+   * @type {Array<GraphElementVertexId>}
    * @memberof Subgraph
    */
-  roots: Array<GraphElementEditionId>;
+  roots: Array<GraphElementVertexId>;
   /**
    *
    * @type {Vertices}
@@ -2060,6 +2090,25 @@ export interface UpdatePropertyTypeRequest {
    * @memberof UpdatePropertyTypeRequest
    */
   typeToUpdate: string;
+}
+/**
+ *
+ * @export
+ * @interface VersionTimespan
+ */
+export interface VersionTimespan {
+  /**
+   *
+   * @type {string}
+   * @memberof VersionTimespan
+   */
+  end?: string;
+  /**
+   *
+   * @type {string}
+   * @memberof VersionTimespan
+   */
+  start: string;
 }
 /**
  * @type Vertex

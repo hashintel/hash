@@ -1,11 +1,12 @@
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { Box, Typography } from "@mui/material";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { Box, Typography } from "@mui/material";
+
+import { SectionWrapper } from "../../../shared/section-wrapper";
 import { WhiteCard } from "../../../shared/white-card";
 import { useEntityEditor } from "./entity-editor-context";
-import { SectionWrapper } from "../../../shared/section-wrapper";
 
 interface TypeCardProps {
   url: string;

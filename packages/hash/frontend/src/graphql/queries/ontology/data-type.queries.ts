@@ -1,4 +1,5 @@
 import { gql } from "@apollo/client";
+
 import { subgraphFieldsFragment } from "../subgraph";
 
 export const getDataTypeQuery = gql`

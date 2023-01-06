@@ -1,4 +1,5 @@
 import { EntityVersion } from "@hashintel/hash-subgraph";
+
 import {
   getCommentById,
   getCommentText,
@@ -21,5 +22,5 @@ export const commentTextUpdatedAtResolver: ResolverFn<
   );
   const textEntity = await getCommentText({ graphApi }, { comment });
 
-  return textEntity.metadata.editionId.version;
+  return textEntity.metadata.version;
 };

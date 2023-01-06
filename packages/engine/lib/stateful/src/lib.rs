@@ -24,7 +24,7 @@
 //! based on a read-write-lock but abstracts away the lifetime.
 //!
 //! [hEngine]: https://hash.ai/platform/engine
-//! [HASH documentation]: https://hash.ai/docs/simulation/creating-simulations/agent-based-modeling-basics-1   
+//! [HASH documentation]: https://hash.ai/docs/simulation/creating-simulations/agent-based-modeling-basics-1
 
 pub mod agent;
 pub mod context;

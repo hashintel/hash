@@ -2,6 +2,7 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";
+
 import {
   SENTRY_DSN,
   SENTRY_REPLAYS_SESSION_SAMPLE_RATE,

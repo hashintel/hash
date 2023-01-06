@@ -11,29 +11,18 @@ use utoipa::{OpenApi, ToSchema};
 
 use crate::{
     api::rest::{
-        api_resource::RoutedResource,
-        report_to_status_code,
-        utoipa_typedef::subgraph::{
-            Edges, OntologyRootedEdges, OntologyVertices, Subgraph, Vertex, Vertices,
-        },
+        api_resource::RoutedResource, report_to_status_code, utoipa_typedef::subgraph::Subgraph,
     },
-    identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId, GraphElementId},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, EntityTypeQueryToken, EntityTypeWithMetadata, OntologyElementMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, UpdatedById},
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
         EntityTypeStore, StorePool,
     },
-    subgraph::{
-        edges::{
-            EdgeResolveDepths, GraphResolveDepths, OntologyEdgeKind, OntologyOutwardEdges,
-            OutgoingEdgeResolveDepth, SharedEdgeKind,
-        },
-        query::{EntityTypeStructuralQuery, StructuralQuery},
-    },
+    subgraph::query::{EntityTypeStructuralQuery, StructuralQuery},
 };
 
 #[derive(OpenApi)]
@@ -45,30 +34,12 @@ use crate::{
     ),
     components(
         schemas(
+            EntityTypeWithMetadata,
+
             CreateEntityTypeRequest,
             UpdateEntityTypeRequest,
-            OwnedById,
-            UpdatedById,
-            OntologyTypeEditionId,
-            OntologyElementMetadata,
-            EntityTypeWithMetadata,
-            EntityTypeStructuralQuery,
             EntityTypeQueryToken,
-            GraphElementId,
-            GraphElementEditionId,
-            ProvenanceMetadata,
-            OntologyVertices,
-            Vertices,
-            Vertex,
-            OntologyEdgeKind,
-            SharedEdgeKind,
-            OntologyOutwardEdges,
-            OntologyRootedEdges,
-            Edges,
-            GraphResolveDepths,
-            EdgeResolveDepths,
-            OutgoingEdgeResolveDepth,
-            Subgraph,
+            EntityTypeStructuralQuery,
         )
     ),
     tags(

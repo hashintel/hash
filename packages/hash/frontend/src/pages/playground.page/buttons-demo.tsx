@@ -1,10 +1,11 @@
 import { faChevronLeft, faPlus } from "@fortawesome/free-solid-svg-icons";
-import { Box, Typography } from "@mui/material";
 import {
+  FontAwesomeIcon,
   IconButton,
   SubmitButtonWrapper,
-  FontAwesomeIcon,
 } from "@hashintel/hash-design-system";
+import { Box, Typography } from "@mui/material";
+
 import { Button } from "../../shared/ui";
 
 export const ButtonsDemo = () => {

@@ -1,17 +1,21 @@
-use std::str::FromStr;
+use std::{
+    collections::hash_map::{RandomState, RawEntryMut},
+    str::FromStr,
+};
 
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use tokio_postgres::types::ToSql;
-use utoipa::{
-    openapi,
-    openapi::{KnownFormat, SchemaFormat},
-    ToSchema,
-};
+use utoipa::{openapi, ToSchema};
 
 use crate::{
-    identifier::{account::AccountId, DecisionTimespan, TransactionTimespan},
-    knowledge::EntityUuid,
+    identifier::{
+        account::AccountId,
+        time::{DecisionTimeVersionTimespan, TransactionTimeVersionTimespan},
+        EntityVertexId,
+    },
+    knowledge::{Entity, EntityUuid},
     provenance::OwnedById,
+    subgraph::{Subgraph, SubgraphIndex},
 };
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -83,31 +87,27 @@ impl ToSchema for EntityId {
     }
 }
 
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityVersion {
-    decision_time: DecisionTimespan,
-    transaction_time: TransactionTimespan,
-}
-
-impl Serialize for EntityVersion {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        // TODO: Expose temporal versions to backend
-        //   see https://app.asana.com/0/0/1203444301722133/f
-        self.transaction_time()
-            .as_start_bound_timestamp()
-            .serialize(serializer)
-    }
+    decision_time: DecisionTimeVersionTimespan,
+    transaction_time: TransactionTimeVersionTimespan,
 }
 
 impl ToSchema for EntityVersion {
     fn schema() -> openapi::Schema {
-        openapi::schema::ObjectBuilder::new()
-            .schema_type(openapi::SchemaType::String)
-            .format(Some(SchemaFormat::KnownFormat(KnownFormat::DateTime)))
+        openapi::ObjectBuilder::new()
+            .property(
+                "decisionTime",
+                openapi::Ref::from_schema_name("VersionTimespan"),
+            )
+            .required("decisionTime")
+            .property(
+                "transactionTime",
+                openapi::Ref::from_schema_name("VersionTimespan"),
+            )
+            .required("transactionTime")
+            .build()
             .into()
     }
 }
@@ -115,8 +115,8 @@ impl ToSchema for EntityVersion {
 impl EntityVersion {
     #[must_use]
     pub const fn new(
-        decision_time: DecisionTimespan,
-        transaction_time: TransactionTimespan,
+        decision_time: DecisionTimeVersionTimespan,
+        transaction_time: TransactionTimeVersionTimespan,
     ) -> Self {
         Self {
             decision_time,
@@ -125,12 +125,12 @@ impl EntityVersion {
     }
 
     #[must_use]
-    pub const fn decision_time(&self) -> DecisionTimespan {
+    pub const fn decision_time(&self) -> DecisionTimeVersionTimespan {
         self.decision_time
     }
 
     #[must_use]
-    pub const fn transaction_time(&self) -> TransactionTimespan {
+    pub const fn transaction_time(&self) -> TransactionTimeVersionTimespan {
         self.transaction_time
     }
 }
@@ -157,20 +157,23 @@ impl EntityRecordId {
 pub struct EntityEditionId {
     base_id: EntityId,
     record_id: EntityRecordId,
-    version: EntityVersion,
+}
+
+impl SubgraphIndex<Entity> for EntityVertexId {
+    fn subgraph_vertex_entry<'a>(
+        &self,
+        subgraph: &'a mut Subgraph,
+    ) -> RawEntryMut<'a, Self, Entity, RandomState> {
+        subgraph.vertices.entities.raw_entry_mut().from_key(self)
+    }
 }
 
 impl EntityEditionId {
     #[must_use]
-    pub const fn new(
-        entity_id: EntityId,
-        record_id: EntityRecordId,
-        version: EntityVersion,
-    ) -> Self {
+    pub const fn new(entity_id: EntityId, record_id: EntityRecordId) -> Self {
         Self {
             base_id: entity_id,
             record_id,
-            version,
         }
     }
 
@@ -182,10 +185,5 @@ impl EntityEditionId {
     #[must_use]
     pub const fn record_id(&self) -> EntityRecordId {
         self.record_id
-    }
-
-    #[must_use]
-    pub const fn version(&self) -> EntityVersion {
-        self.version
     }
 }

@@ -4,6 +4,7 @@ import {
   GridCellKind,
 } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/hash-design-system/src/theme/palette";
+
 import {
   getCellHorizontalPadding,
   getYCenter,

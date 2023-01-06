@@ -1,14 +1,15 @@
-import clsx from "clsx";
-import { useRouter } from "next/router";
-// eslint-disable-next-line no-restricted-imports
-import NextLink, { LinkProps as NextLinkProps } from "next/link";
 import {
   // eslint-disable-next-line no-restricted-imports
   Link as MuiLink,
   LinkProps as MuiLinkProps,
   styled,
 } from "@mui/material";
+import clsx from "clsx";
+// eslint-disable-next-line no-restricted-imports
+import NextLink, { LinkProps as NextLinkProps } from "next/link";
+import { useRouter } from "next/router";
 import { forwardRef, isValidElement } from "react";
+
 import { Button, isHrefExternal } from "./button";
 
 /**
@@ -86,29 +87,17 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(
       }
     }
 
-    if (isHrefExternal(href)) {
+    if (typeof href === "string" && isHrefExternal(href)) {
       other.rel = "noopener";
       other.target = "_blank";
 
       if (noLinkStyle) {
         return (
-          <Anchor
-            className={className}
-            href={href as string}
-            ref={ref}
-            {...other}
-          />
+          <Anchor className={className} href={href} ref={ref} {...other} />
         );
       }
 
-      return (
-        <MuiLink
-          className={className}
-          href={href as string}
-          ref={ref}
-          {...other}
-        />
-      );
+      return <MuiLink className={className} href={href} ref={ref} {...other} />;
     }
 
     if (noLinkStyle) {

@@ -1,12 +1,13 @@
 import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+
+import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import {
   ImpureGraphFunction,
   PureGraphFunction,
   zeroedGraphResolveDepths,
 } from "../..";
-import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import { SYSTEM_TYPES } from "../../system-types";
 import { systemUserAccountId } from "../../system-user";
 import {
@@ -114,7 +115,7 @@ export const getHashInstance: ImpureGraphFunction<
  * @see {@link EntityModel.create} for the remaining params
  */
 export const createHashInstance: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityType" | "ownedById"> & {
+  Omit<CreateEntityParams, "properties" | "entityTypeId" | "ownedById"> & {
     userSelfRegistrationIsEnabled?: boolean;
     userRegistrationByInviteIsEnabled?: boolean;
     orgSelfRegistrationIsEnabled?: boolean;
@@ -137,8 +138,6 @@ export const createHashInstance: ImpureGraphFunction<
 
   const { actorId } = params;
 
-  const entityType = SYSTEM_TYPES.entityType.hashInstance;
-
   const entity = await createEntity(ctx, {
     ownedById: systemUserAccountId as OwnedById,
     properties: {
@@ -149,7 +148,7 @@ export const createHashInstance: ImpureGraphFunction<
       [SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.metadata.editionId
         .baseId]: params.orgSelfRegistrationIsEnabled ?? true,
     },
-    entityType,
+    entityTypeId: SYSTEM_TYPES.entityType.hashInstance.schema.$id,
     actorId,
   });
 

@@ -1,17 +1,13 @@
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
-import { SYSTEM_TYPES } from "@hashintel/hash-api/src/graph/system-types";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
 import { createEntity } from "@hashintel/hash-api/src/graph/knowledge/primitive/entity";
 import {
-  createBlock,
   Block,
+  createBlock,
 } from "@hashintel/hash-api/src/graph/knowledge/system-types/block";
 import {
   createComment,
@@ -19,7 +15,12 @@ import {
   getCommentParent,
   getCommentText,
 } from "@hashintel/hash-api/src/graph/knowledge/system-types/comment";
+import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
+import { SYSTEM_TYPES } from "@hashintel/hash-api/src/graph/system-types";
+import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { OwnedById } from "@hashintel/hash-shared/types";
+
 import { createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
@@ -57,7 +58,7 @@ describe("Comment", () => {
       properties: {
         [SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId]: [],
       },
-      entityType: SYSTEM_TYPES.entityType.text,
+      entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
       actorId: testUser.accountId,
     });
 

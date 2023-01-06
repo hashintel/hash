@@ -66,8 +66,8 @@ services:
       HASH_GRAPH_PG_PORT: "5432"
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
       HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
-      HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN: "${FRONTEND_URL}/@(?P<shortname>[\\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))/[\\w-]+/"
-      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-graph=trace,hash_graph=trace,tokio_postgres=debug}"
+      HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN: "${FRONTEND_URL}/@(?P<shortname>[\\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))/[\\w\\-_%]+/"
+      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-info}"
       RUST_BACKTRACE: 1
     ports:
       - "4000:4000"
@@ -84,7 +84,7 @@ services:
     read_only: true
     environment:
       - DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${HASH_KRATOS_PG_DEV_DATABASE}
-    command: -c /etc/config/kratos/kratos.dev.yml migrate sql -e --yes
+    command: migrate sql -e --yes
     security_opt:
       - no-new-privileges:true
 
@@ -118,7 +118,7 @@ services:
       SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL: "${FRONTEND_URL}/login"
       SELFSERVICE_FLOWS_LOGIN_UI_URL: "${FRONTEND_URL}/login"
       SELFSERVICE_FLOWS_REGISTRATION_UI_URL: "${FRONTEND_URL}/signup"
-    command: serve -c /etc/config/kratos/kratos.dev.yml --watch-courier
+    command: serve --watch-courier
     security_opt:
       - no-new-privileges:true
     extra_hosts:

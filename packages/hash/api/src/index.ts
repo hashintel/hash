@@ -1,34 +1,35 @@
-import cors from "cors";
-
-import { promisify } from "node:util";
 import http from "node:http";
 import path from "node:path";
+import { promisify } from "node:util";
 
-import { json } from "body-parser";
-import express from "express";
-import helmet from "helmet";
-import { StatsD } from "hot-shots";
-import { customAlphabet } from "nanoid";
-import { createHttpTerminator } from "http-terminator";
-import { OpenSearch } from "@hashintel/hash-backend-utils/search/opensearch";
-import { GracefulShutdown } from "@hashintel/hash-backend-utils/shutdown";
-import { RedisQueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/redis";
-import { AsyncRedisClient } from "@hashintel/hash-backend-utils/redis";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   monorepoRootDir,
   waitOnResource,
 } from "@hashintel/hash-backend-utils/environment";
+import { RedisQueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/redis";
+import { AsyncRedisClient } from "@hashintel/hash-backend-utils/redis";
+import { OpenSearch } from "@hashintel/hash-backend-utils/search/opensearch";
+import { GracefulShutdown } from "@hashintel/hash-backend-utils/shutdown";
+import { json } from "body-parser";
+import cors from "cors";
+import express from "express";
+import helmet from "helmet";
+import { StatsD } from "hot-shots";
+import { createHttpTerminator } from "http-terminator";
+import { customAlphabet } from "nanoid";
 
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import setupAuth from "./auth";
 import { RedisCache } from "./cache";
-// import { createCollabApp } from "./collab/collabApp";
+// import { createCollabApp } from "./collab/collab-app";
 import {
   AwsSesEmailTransporter,
   DummyEmailTransporter,
   EmailTransporter,
 } from "./email/transporters";
-import { createApolloServer } from "./graphql/createApolloServer";
+import { createGraphClient, ensureSystemGraphIsInitialized } from "./graph";
+import { createApolloServer } from "./graphql/create-apollo-server";
+import { getAwsRegion } from "./lib/aws-config";
 import { CORS_CONFIG, FILE_UPLOAD_PROVIDER } from "./lib/config";
 import {
   isDevEnv,
@@ -38,13 +39,11 @@ import {
   port,
 } from "./lib/env-config";
 import { logger } from "./logger";
-import { getRequiredEnv } from "./util";
-import { setupStorageProviders } from "./storage/storage-provider-lookup";
-import { getAwsRegion } from "./lib/aws-config";
-import { setupTelemetry } from "./telemetry/snowplow-setup";
-import { connectToTaskExecutor } from "./task-execution";
-import { createGraphClient, ensureSystemGraphIsInitialized } from "./graph";
 import { seedOrgsAndUsers } from "./seed-data";
+import { setupStorageProviders } from "./storage/storage-provider-lookup";
+import { connectToTaskExecutor } from "./task-execution";
+import { setupTelemetry } from "./telemetry/snowplow-setup";
+import { getRequiredEnv } from "./util";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 

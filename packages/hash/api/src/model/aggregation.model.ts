@@ -1,22 +1,23 @@
 /** @todo - Fix/reimplement linkedAggregations - https://app.asana.com/0/1201095311341924/1202938872166821 */
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
-import jp from "jsonpath";
 import { UserInputError } from "apollo-server-errors";
+import jp from "jsonpath";
 import { get, merge, orderBy } from "lodash";
+
 import {
+  AggregateOperation,
+  AggregateOperationInput,
+  LinkedAggregation as GQLLinkedAggregation,
+} from "../graphql/api-types.gen";
+import {
+  Aggregation,
   Entity,
   isUnupportedJSONPath,
   JSONPathComponent,
   Link,
-  Aggregation,
   User,
 } from ".";
-import {
-  LinkedAggregation as GQLLinkedAggregation,
-  AggregateOperation,
-  AggregateOperationInput,
-} from "../graphql/api-types.gen";
 
 export type GQLLinkedAggregationExternalResolvers = "__typename" | "results";
 

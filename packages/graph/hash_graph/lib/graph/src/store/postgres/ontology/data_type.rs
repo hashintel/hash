@@ -1,16 +1,16 @@
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt};
-use tokio_postgres::GenericClient;
+use error_stack::{Result, ResultExt};
 use type_system::DataType;
 
 use crate::{
     identifier::ontology::OntologyTypeEditionId,
-    ontology::{DataTypeWithMetadata, OntologyElementMetadata, OntologyTypeWithMetadata},
+    ontology::{DataTypeWithMetadata, OntologyElementMetadata},
     provenance::{OwnedById, UpdatedById},
     store::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
-        AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
+        AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, Record, Store,
+        Transaction, UpdateError,
     },
     subgraph::{edges::GraphResolveDepths, query::StructuralQuery, Subgraph},
 };
@@ -33,12 +33,9 @@ impl<C: AsClient> PostgresStore<C> {
 
         let _data_type = match dependency_status {
             DependencyStatus::Unresolved => {
-                <Self as Read<DataTypeWithMetadata>>::read_into_subgraph(
-                    self,
-                    subgraph,
-                    data_type_id,
-                )
-                .await?
+                subgraph
+                    .get_or_read::<DataTypeWithMetadata>(self, data_type_id)
+                    .await?
             }
             DependencyStatus::Resolved => return Ok(()),
         };
@@ -60,24 +57,13 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         owned_by_id: OwnedById,
         updated_by_id: UpdatedById,
     ) -> Result<OntologyElementMetadata, InsertionError> {
-        let transaction = PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .into_report()
-                .change_context(InsertionError)?,
-        );
+        let transaction = self.transaction().await.change_context(InsertionError)?;
 
         let (_, metadata) = transaction
             .create(data_type, owned_by_id, updated_by_id)
             .await?;
 
-        transaction
-            .client
-            .commit()
-            .await
-            .into_report()
-            .change_context(InsertionError)?;
+        transaction.commit().await.change_context(InsertionError)?;
 
         Ok(metadata)
     }
@@ -96,16 +82,20 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         let mut dependency_context = DependencyContext::default();
 
         for data_type in Read::<DataTypeWithMetadata>::read(self, filter).await? {
+            let vertex_id = data_type.vertex_id();
+
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
-            let data_type = data_type.insert_into_subgraph_as_root(&mut subgraph);
+            subgraph.insert(data_type);
 
             self.traverse_data_type(
-                &data_type.metadata().edition_id().clone(),
+                &vertex_id,
                 &mut dependency_context,
                 &mut subgraph,
                 graph_resolve_depths,
             )
             .await?;
+
+            subgraph.roots.insert(vertex_id.into());
         }
 
         Ok(subgraph)
@@ -117,24 +107,13 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         data_type: DataType,
         updated_by_id: UpdatedById,
     ) -> Result<OntologyElementMetadata, UpdateError> {
-        let transaction = PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .into_report()
-                .change_context(UpdateError)?,
-        );
+        let transaction = self.transaction().await.change_context(UpdateError)?;
 
         let (_, metadata) = transaction
             .update::<DataType>(data_type, updated_by_id)
             .await?;
 
-        transaction
-            .client
-            .commit()
-            .await
-            .into_report()
-            .change_context(UpdateError)?;
+        transaction.commit().await.change_context(UpdateError)?;
 
         Ok(metadata)
     }

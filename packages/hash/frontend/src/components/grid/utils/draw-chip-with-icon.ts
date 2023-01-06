@@ -1,5 +1,7 @@
 import { CustomCell } from "@glideapps/glide-data-grid";
 import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
+import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
+
 import { getYCenter } from "../utils";
 import { drawChip } from "./draw-chip";
 
@@ -11,13 +13,21 @@ import { drawChip } from "./draw-chip";
  * @param bgColor background color
  * @returns width of the drawn chip
  */
-export const drawChipWithIcon = (
-  args: DrawArgs<CustomCell>,
-  text: string,
-  left: number,
-  textColor?: string,
-  bgColor?: string,
-) => {
+export const drawChipWithIcon = ({
+  args,
+  text,
+  icon = "bpAsterisk",
+  left,
+  textColor,
+  bgColor,
+}: {
+  args: DrawArgs<CustomCell>;
+  text: string;
+  icon?: CustomIcon;
+  left: number;
+  textColor?: string;
+  bgColor?: string;
+}) => {
   const { ctx, theme } = args;
   const yCenter = getYCenter(args);
 
@@ -35,7 +45,7 @@ export const drawChipWithIcon = (
   drawChip(args, left, chipWidth, bgColor ?? theme.bgBubble);
 
   args.spriteManager.drawSprite(
-    "bpAsterisk",
+    icon,
     "normal",
     ctx,
     iconLeft,

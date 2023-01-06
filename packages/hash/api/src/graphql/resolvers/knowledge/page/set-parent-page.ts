@@ -1,12 +1,12 @@
 import { ApolloError } from "apollo-server-express";
 
-import { LoggedInGraphQLContext } from "../../../context";
-import { MutationSetParentPageArgs, ResolverFn } from "../../../api-types.gen";
-import { mapPageToGQL, UnresolvedPageGQL } from "../graphql-mapping";
 import {
   getPageById,
   setPageParentPage,
 } from "../../../../graph/knowledge/system-types/page";
+import { MutationSetParentPageArgs, ResolverFn } from "../../../api-types.gen";
+import { LoggedInGraphQLContext } from "../../../context";
+import { mapPageToGQL, UnresolvedPageGQL } from "../graphql-mapping";
 
 export const setParentPageResolver: ResolverFn<
   Promise<UnresolvedPageGQL>,

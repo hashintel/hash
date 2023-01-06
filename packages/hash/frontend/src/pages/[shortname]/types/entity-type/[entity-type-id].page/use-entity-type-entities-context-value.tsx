@@ -9,7 +9,8 @@ import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/e
 import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { useEffect, useMemo, useState } from "react";
-import { useBlockProtocolAggregateEntities } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolAggregateEntities";
+
+import { useBlockProtocolAggregateEntities } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-aggregate-entities";
 import { EntityTypeEntitiesContextValue } from "./shared/entity-type-entities-context";
 
 export const useEntityTypeEntitiesContextValue = (

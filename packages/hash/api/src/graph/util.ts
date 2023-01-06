@@ -1,38 +1,38 @@
 import {
-  PropertyType,
-  EntityType,
-  PropertyValues,
-  DataTypeReference,
-  Object,
-  ValueOrArray,
-  PropertyTypeReference,
-  OneOf,
   Array,
+  DataTypeReference,
+  EntityType,
+  Object,
+  OneOf,
+  PropertyType,
+  PropertyTypeReference,
+  PropertyValues,
+  ValueOrArray,
   VersionedUri,
 } from "@blockprotocol/type-system";
 import {
   PrimitiveDataTypeKey,
   types,
 } from "@hashintel/hash-shared/ontology-types";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import {
   EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
   linkEntityTypeUri,
+  PropertyTypeWithMetadata,
 } from "@hashintel/hash-subgraph";
-import { OwnedById } from "@hashintel/hash-shared/types";
 
-import { GraphApi } from ".";
-import { systemUserAccountId } from "./system-user";
-import {
-  createPropertyType,
-  getPropertyTypeById,
-} from "./ontology/primitive/property-type";
+import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";
+import { GraphApi } from ".";
 import {
   createEntityType,
   getEntityTypeById,
 } from "./ontology/primitive/entity-type";
-import { NotFoundError } from "../lib/error";
+import {
+  createPropertyType,
+  getPropertyTypeById,
+} from "./ontology/primitive/property-type";
+import { systemUserAccountId } from "./system-user";
 
 /** @todo: enable admins to expand upon restricted shortnames block list */
 export const RESTRICTED_SHORTNAMES = [
@@ -207,6 +207,11 @@ export const propertyTypeInitializer = (
   };
 };
 
+type linkDestinationConstraint =
+  | EntityTypeWithMetadata
+  // Some models may reference themselves. This marker is used to stop infinite loops during initialization by telling the initializer to use a self reference
+  | "SELF_REFERENCE";
+
 export type EntityTypeCreatorParams = {
   entityTypeId: VersionedUri;
   title: string;
@@ -218,12 +223,10 @@ export type EntityTypeCreatorParams = {
   }[];
   outgoingLinks?: {
     linkEntityType: EntityTypeWithMetadata;
-    destinationEntityTypes: (
-      | EntityTypeWithMetadata
-      // Some models may reference themselves. This marker is used to stop infinite loops during initialization by telling the initializer to use a self reference
-      | "SELF_REFERENCE"
-    )[];
-    required?: boolean;
+    destinationEntityTypes?: [
+      linkDestinationConstraint,
+      ...linkDestinationConstraint[],
+    ];
     minItems?: number;
     maxItems?: number;
     ordered?: boolean;
@@ -272,24 +275,22 @@ export const generateSystemEntityTypeSchema = (
         [linkEntityType.schema.$id]: {
           type: "array",
           ordered,
-          items: {
-            oneOf: destinationEntityTypes.map((entityTypeOrReference) => ({
-              $ref:
-                entityTypeOrReference === "SELF_REFERENCE"
-                  ? params.entityTypeId
-                  : entityTypeOrReference.schema.$id,
-            })),
-          },
+          items: destinationEntityTypes
+            ? {
+                oneOf: destinationEntityTypes.map((entityTypeOrReference) => ({
+                  $ref:
+                    entityTypeOrReference === "SELF_REFERENCE"
+                      ? params.entityTypeId
+                      : entityTypeOrReference.schema.$id,
+                })),
+              }
+            : {},
           minItems,
           maxItems,
         },
       }),
       {},
     ) ?? undefined;
-
-  const requiredLinks = params.outgoingLinks
-    ?.filter(({ required }) => !!required)
-    .map(({ linkEntityType }) => linkEntityType.schema.$id);
 
   return {
     $id: params.entityTypeId,
@@ -300,7 +301,6 @@ export const generateSystemEntityTypeSchema = (
     properties,
     required: requiredProperties,
     links,
-    requiredLinks,
   };
 };
 

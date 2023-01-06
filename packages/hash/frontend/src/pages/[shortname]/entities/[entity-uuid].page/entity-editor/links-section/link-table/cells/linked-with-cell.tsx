@@ -3,19 +3,19 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
-
 import { customColors } from "@hashintel/hash-design-system/src/theme/palette";
 import { EntityId } from "@hashintel/hash-shared/types";
+
 import {
   getCellHorizontalPadding,
   getYCenter,
 } from "../../../../../../../../components/grid/utils";
 import { drawCellFadeOutGradient } from "../../../../../../../../components/grid/utils/draw-cell-fade-out-gradient";
+import { drawChipWithIcon } from "../../../../../../../../components/grid/utils/draw-chip-with-icon";
+import { InteractableManager } from "../../../../../../../../components/grid/utils/interactable-manager";
+import { generateEntityLabel } from "../../../../../../../../lib/entities";
 import { LinkRow } from "../types";
 import { LinkedWithCellEditor } from "./linked-with-cell/linked-with-cell-editor";
-import { generateEntityLabel } from "../../../../../../../../lib/entities";
-import { InteractableManager } from "../../../../../../../../components/grid/utils/interactable-manager";
-import { drawChipWithIcon } from "../../../../../../../../components/grid/utils/draw-chip-with-icon";
 import { sortLinkAndTargetEntities } from "./sort-link-and-target-entities";
 
 export interface LinkedWithCellProps {
@@ -63,7 +63,11 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     // draw linked entity chips
     for (const { rightEntity } of sortedLinkedEntities) {
       const label = generateEntityLabel(entitySubgraph, rightEntity);
-      const chipWidth = drawChipWithIcon(args, label, accumulatedLeft);
+      const chipWidth = drawChipWithIcon({
+        args,
+        text: label,
+        left: accumulatedLeft,
+      });
       accumulatedLeft += chipWidth + chipGap;
     }
 

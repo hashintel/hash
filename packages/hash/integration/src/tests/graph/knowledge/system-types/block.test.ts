@@ -1,16 +1,10 @@
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
-import { generateSystemEntityTypeSchema } from "@hashintel/hash-api/src/graph/util";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import { Entity, EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
-import { createEntityType } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
-import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
+import { createEntity } from "@hashintel/hash-api/src/graph/knowledge/primitive/entity";
 import {
   Block,
   createBlock,
@@ -18,8 +12,15 @@ import {
   getBlockData,
   updateBlockDataEntity,
 } from "@hashintel/hash-api/src/graph/knowledge/system-types/block";
-import { createEntity } from "@hashintel/hash-api/src/graph/knowledge/primitive/entity";
+import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
+import { createEntityType } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
+import { generateSystemEntityTypeSchema } from "@hashintel/hash-api/src/graph/util";
+import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { OwnedById } from "@hashintel/hash-shared/types";
+import { Entity, EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
+
 import { createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
@@ -79,7 +80,7 @@ describe("Block", () => {
     testBlockDataEntity = await createEntity(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       properties: {},
-      entityType: dummyEntityType,
+      entityTypeId: dummyEntityType.schema.$id,
       actorId: testUser.accountId,
     });
   });
@@ -115,7 +116,7 @@ describe("Block", () => {
     const newBlockDataEntity = await createEntity(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       properties: {},
-      entityType: dummyEntityType,
+      entityTypeId: dummyEntityType.schema.$id,
       actorId: testUser.accountId,
     });
 

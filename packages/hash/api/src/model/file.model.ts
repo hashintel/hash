@@ -1,16 +1,16 @@
 /** @todo - Fix Files - https://app.asana.com/0/1202805690238892/1203418451117503/f */
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
-import { ApolloError } from "apollo-server-express";
 import { PresignedPost } from "@aws-sdk/s3-presigned-post";
-import { CreateEntityArgs, Entity, EntityConstructorArgs, File } from ".";
-import { createEntityArgsBuilder, genId } from "../util";
+import { ApolloError } from "apollo-server-express";
 
 import { StorageType } from "../graphql/api-types.gen";
 import {
   getStorageProvider,
   getUploadStorageProvider,
 } from "../storage/storage-provider-lookup";
+import { createEntityArgsBuilder, genId } from "../util";
+import { CreateEntityArgs, Entity, EntityConstructorArgs, File } from ".";
 
 const MAX_FILE_SIZE_BYTES = 1000 * 1000 * 1000;
 

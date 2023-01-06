@@ -1,5 +1,10 @@
-import { FunctionComponent } from "react";
-import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
+import {
+  faArrowDownAZ,
+  faArrowUpZA,
+  faQuestionCircle,
+  IconDefinition,
+} from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import {
   Box,
   ListItemIcon,
@@ -8,13 +13,9 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import {
-  faArrowDownAZ,
-  faArrowUpZA,
-  faQuestionCircle,
-  IconDefinition,
-} from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
+import { FunctionComponent } from "react";
+
 import { MenuItem } from "../../../ui";
 
 export type SortType = "asc" | "desc" | "recent" | "most_used" | "least_used";

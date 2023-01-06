@@ -1,6 +1,7 @@
 import { faList, faListCheck } from "@fortawesome/free-solid-svg-icons";
 import { theme } from "@hashintel/hash-design-system";
 import { types } from "@hashintel/hash-shared/ontology-types";
+
 import { fa100 } from "../../../../../../../../../../../shared/icons/pro/fa-100";
 import { faCube } from "../../../../../../../../../../../shared/icons/pro/fa-cube";
 import { faCubes } from "../../../../../../../../../../../shared/icons/pro/fa-cubes";
@@ -41,10 +42,11 @@ export const expectedValuesOptions = {
     icon: faSquareCheck,
     colors: chipColors.blue,
   },
-  [types.dataType.object.dataTypeId]: {
+  object: {
     title: "Property Object",
     icon: faCube,
     colors: chipColors.purple,
+    allowMultiple: true,
   },
   array: {
     title: "Array",
