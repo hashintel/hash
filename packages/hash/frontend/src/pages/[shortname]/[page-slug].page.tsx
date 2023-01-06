@@ -148,12 +148,10 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   const workspaces = getRootsAsEntities(workspacesSubgraph).map((entity) =>
     entity.metadata.entityTypeId === types.entityType.user.entityTypeId
       ? constructMinimalUser({
-          userEntityEditionId: entity.metadata.editionId,
-          subgraph: workspacesSubgraph,
+          userEntity: entity,
         })
       : constructMinimalOrg({
-          orgEntityEditionId: entity.metadata.editionId,
-          subgraph: workspacesSubgraph,
+          orgEntity: entity,
         }),
   );
 

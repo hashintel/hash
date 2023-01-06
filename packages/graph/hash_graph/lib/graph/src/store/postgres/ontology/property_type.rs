@@ -78,7 +78,7 @@ impl<C: AsClient> PostgresStore<C> {
             if let Some(data_type_ref_uris) = data_type_ref_uris {
                 for data_type_ref in data_type_ref_uris {
                     subgraph.edges.insert(Edge::Ontology {
-                        edition_id: property_type_id.clone(),
+                        vertex_id: property_type_id.clone(),
                         outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
                             kind: OntologyEdgeKind::ConstrainsValuesOn,
                             reversed: false,
@@ -105,7 +105,7 @@ impl<C: AsClient> PostgresStore<C> {
             if let Some(property_type_ref_uris) = property_type_ref_uris {
                 for property_type_ref_uri in property_type_ref_uris {
                     subgraph.edges.insert(Edge::Ontology {
-                        edition_id: property_type_id.clone(),
+                        vertex_id: property_type_id.clone(),
                         outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
                             kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                             reversed: false,
@@ -185,20 +185,20 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         let mut dependency_context = DependencyContext::default();
 
         for property_type in Read::<PropertyTypeWithMetadata>::read(self, filter).await? {
-            let edition_id = property_type.edition_id().clone();
+            let vertex_id = property_type.vertex_id();
 
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
             subgraph.insert(property_type);
 
             self.traverse_property_type(
-                &edition_id,
+                &vertex_id,
                 &mut dependency_context,
                 &mut subgraph,
                 graph_resolve_depths,
             )
             .await?;
 
-            subgraph.roots.insert(edition_id.into());
+            subgraph.roots.insert(vertex_id.into());
         }
 
         Ok(subgraph)

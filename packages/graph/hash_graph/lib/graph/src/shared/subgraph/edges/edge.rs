@@ -2,10 +2,7 @@ use serde::Serialize;
 use utoipa::{openapi, ToSchema};
 
 use crate::{
-    identifier::{
-        knowledge::{EntityEditionId, EntityId},
-        ontology::OntologyTypeEditionId,
-    },
+    identifier::{knowledge::EntityId, ontology::OntologyTypeEditionId, EntityVertexId},
     subgraph::edges::{KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
 };
 
@@ -45,7 +42,7 @@ where
 #[serde(untagged)]
 pub enum OntologyOutwardEdges {
     ToOntology(OutwardEdge<OntologyEdgeKind, OntologyTypeEditionId>),
-    ToKnowledgeGraph(OutwardEdge<SharedEdgeKind, EntityEditionId>),
+    ToKnowledgeGraph(OutwardEdge<SharedEdgeKind, EntityVertexId>),
 }
 
 // WARNING: This MUST be kept up to date with the enum variants.
@@ -55,7 +52,7 @@ impl ToSchema for OntologyOutwardEdges {
     fn schema() -> openapi::Schema {
         openapi::OneOfBuilder::new()
             .item(<OutwardEdge<OntologyEdgeKind, OntologyTypeEditionId>>::schema())
-            .item(<OutwardEdge<SharedEdgeKind, EntityEditionId>>::schema())
+            .item(<OutwardEdge<SharedEdgeKind, EntityVertexId>>::schema())
             .into()
     }
 }
