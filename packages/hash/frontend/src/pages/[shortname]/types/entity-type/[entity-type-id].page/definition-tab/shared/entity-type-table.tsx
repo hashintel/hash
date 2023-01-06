@@ -52,7 +52,14 @@ export const EntityTypeTableTitleCellText = ({
 }: {
   children: ReactNode;
 }) => (
-  <Typography variant="smallTextLabels" fontWeight={500}>
+  <Typography
+    variant="smallTextLabels"
+    fontWeight={500}
+    sx={{
+      display: "flex",
+      alignItems: "center",
+    }}
+  >
     {children}
   </Typography>
 );
