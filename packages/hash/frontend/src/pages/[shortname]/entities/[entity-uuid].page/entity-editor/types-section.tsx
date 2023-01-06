@@ -1,9 +1,17 @@
 import { extractBaseUri, extractVersion } from "@blockprotocol/type-system";
+import { Button } from "@hashintel/hash-design-system";
 import { EntityId } from "@hashintel/hash-shared/types";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
-import { Box } from "@mui/material";
+import {
+  Box,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+} from "@mui/material";
 import { useEffect, useState } from "react";
 
 import { useBlockProtocolUpdateEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
@@ -24,6 +32,7 @@ export const TypesSection = () => {
 
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
   const [newVersion, setNewVersion] = useState<number>();
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [updatingVersion, setUpdatingVersion] = useState(false);
 
   useEffect(() => {
@@ -73,9 +82,13 @@ export const TypesSection = () => {
         setNewVersion(undefined);
       }
     } finally {
+      setUpdateDialogOpen(false);
       setUpdatingVersion(false);
     }
   };
+
+  const handleCloseDialog = () => setUpdateDialogOpen(false);
+  const handleOpenDialog = () => setUpdateDialogOpen(true);
 
   return (
     <SectionWrapper
@@ -91,13 +104,35 @@ export const TypesSection = () => {
             newVersion
               ? {
                   newVersion,
-                  onUpdateVersion: handleUpdateVersion,
-                  updatingVersion,
+                  onUpdateVersion: handleOpenDialog,
                 }
               : undefined
           }
         />
       </Box>
+
+      <Dialog open={updateDialogOpen} onClose={handleCloseDialog}>
+        <DialogTitle>Updating version</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This action could be destructive. Please make sure you know what
+            you're doing.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="tertiary_quiet" onClick={handleCloseDialog}>
+            Cancel
+          </Button>
+          <Button
+            variant="tertiary_quiet"
+            onClick={handleUpdateVersion}
+            loading={updatingVersion}
+            loadingWithoutText
+          >
+            Update
+          </Button>
+        </DialogActions>
+      </Dialog>
     </SectionWrapper>
   );
 };

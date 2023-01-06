@@ -1,9 +1,5 @@
 import { faArrowsRotate, faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import {
-  FontAwesomeIcon,
-  IconButton,
-  LoadingSpinner,
-} from "@hashintel/hash-design-system";
+import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
 import { Box, Tooltip, Typography } from "@mui/material";
 
 import { WhiteCard } from "../../../../shared/white-card";
@@ -13,8 +9,7 @@ interface TypeCardProps {
   title: string;
   version: number;
   newVersionConfig?: {
-    updatingVersion: boolean;
-    onUpdateVersion: () => Promise<void>;
+    onUpdateVersion: () => void;
     newVersion: number;
   };
 }
@@ -25,8 +20,7 @@ export const TypeCard = ({
   version,
   newVersionConfig,
 }: TypeCardProps) => {
-  const { newVersion, onUpdateVersion, updatingVersion } =
-    newVersionConfig ?? {};
+  const { newVersion, onUpdateVersion } = newVersionConfig ?? {};
 
   return (
     <WhiteCard href={url}>
@@ -40,6 +34,9 @@ export const TypeCard = ({
           gap: 1.25,
           color: ({ palette }) => palette.black,
           backgroundColor: newVersionConfig ? "yellow.10" : "white",
+          "&:hover": {
+            backgroundColor: "#FAFFFF",
+          },
         }}
       >
         <FontAwesomeIcon icon={faAsterisk} />
@@ -64,16 +61,17 @@ export const TypeCard = ({
               unpadded
               onClick={(event) => {
                 event.preventDefault();
-                void onUpdateVersion?.();
+                onUpdateVersion?.();
               }}
-              disabled={updatingVersion}
-              sx={{ color: "yellow.80" }}
+              sx={{
+                color: "yellow.80",
+                "&:hover": {
+                  color: "blue.70",
+                  backgroundColor: "blue.20",
+                },
+              }}
             >
-              {updatingVersion ? (
-                <LoadingSpinner />
-              ) : (
-                <FontAwesomeIcon icon={faArrowsRotate} />
-              )}
+              <FontAwesomeIcon icon={faArrowsRotate} />
             </IconButton>
           </Tooltip>
         )}
