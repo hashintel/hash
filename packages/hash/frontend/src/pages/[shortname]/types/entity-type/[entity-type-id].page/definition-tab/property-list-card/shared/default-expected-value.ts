@@ -1,8 +1,7 @@
-import { VersionedUri } from "@blockprotocol/type-system";
-
-import { CustomExpectedValueData } from "./expected-value-types";
-
-export type DefaultExpectedValueTypeId = VersionedUri | "array" | "object";
+import {
+  CustomExpectedValueData,
+  CustomExpectedValueTypeId,
+} from "./expected-value-types";
 
 export const arrayExpectedValueDataDefaults = {
   minItems: 0,
@@ -10,7 +9,7 @@ export const arrayExpectedValueDataDefaults = {
 };
 
 export const getDefaultExpectedValue = (
-  typeId: DefaultExpectedValueTypeId,
+  typeId: CustomExpectedValueTypeId,
 ): CustomExpectedValueData => {
   if (typeId === "object") {
     return {

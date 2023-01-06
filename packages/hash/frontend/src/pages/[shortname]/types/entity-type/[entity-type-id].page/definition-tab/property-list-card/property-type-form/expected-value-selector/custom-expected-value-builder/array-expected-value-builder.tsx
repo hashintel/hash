@@ -6,11 +6,11 @@ import { FunctionComponent, useEffect, useMemo, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import { dataTypeOptions as primitiveDataTypeOptions } from "../../../shared/data-type-options";
+import { getDefaultExpectedValue } from "../../../shared/default-expected-value";
 import {
-  DefaultExpectedValueTypeId,
-  getDefaultExpectedValue,
-} from "../../../shared/default-expected-value";
-import { CustomExpectedValue } from "../../../shared/expected-value-types";
+  CustomExpectedValue,
+  CustomExpectedValueTypeId,
+} from "../../../shared/expected-value-types";
 import { PropertyTypeFormValues } from "../../../shared/property-type-form-values";
 import { CustomExpectedValueSelector } from "../shared/custom-expected-value-selector";
 import { DeleteExpectedValueModal } from "../shared/delete-expected-value-modal";
@@ -19,7 +19,7 @@ import { expectedValuesOptions } from "../shared/expected-values-options";
 import { ObjectExpectedValueBuilder } from "../shared/object-expected-value-builder";
 import { ArrayMinMaxItems } from "./array-expected-value-builder/array-min-max-items";
 
-const dataTypeOptions: DefaultExpectedValueTypeId[] = [
+const dataTypeOptions: CustomExpectedValueTypeId[] = [
   ...primitiveDataTypeOptions,
   "array",
   "object",

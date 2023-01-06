@@ -2,33 +2,23 @@ import { types } from "@hashintel/hash-shared/ontology-types";
 
 import { dataTypeOptions } from "./data-type-options";
 import {
-  ArrayExpectedValue,
   ArrayType,
+  CustomExpectedValueTypeId,
   ExpectedValue,
   FlattenedCustomExpectedValueList,
 } from "./expected-value-types";
 
 const getArrayExpectedValueType = (
-  data: ArrayExpectedValue,
-  flattenedExpectedValues: FlattenedCustomExpectedValueList,
+  childrenTypeArray: CustomExpectedValueTypeId[],
 ): ArrayType => {
-  const containsArray = data.itemIds.some((itemId) => {
-    const typeId = flattenedExpectedValues[itemId]?.data?.typeId;
-    return typeId === "array";
-  });
+  const containsArray = childrenTypeArray.some((type) => type === "array");
 
-  const containsObject = data.itemIds.some(
-    (itemId) => flattenedExpectedValues[itemId]?.data?.typeId === "object",
+  const containsObject = childrenTypeArray.some((type) => type === "object");
+
+  const dataTypes = childrenTypeArray.filter(
+    (type) =>
+      type !== "array" && type !== "object" && dataTypeOptions.includes(type),
   );
-
-  const dataTypes = data.itemIds.filter((itemId) => {
-    const typeId = flattenedExpectedValues[itemId]?.data?.typeId!;
-    return (
-      typeId !== "array" &&
-      typeId !== "object" &&
-      dataTypeOptions.includes(typeId)
-    );
-  });
   const containsDataType = !!dataTypes.length;
 
   if (containsArray && !containsObject && !containsDataType) {
@@ -37,19 +27,13 @@ const getArrayExpectedValueType = (
     return ArrayType.propertyObjectArray;
   } else if (containsDataType && !containsArray && !containsObject) {
     const containsText = dataTypes.some(
-      (itemId) =>
-        flattenedExpectedValues[itemId]?.data?.typeId ===
-        types.dataType.text.dataTypeId,
+      (type) => type === types.dataType.text.dataTypeId,
     );
     const containsBoolean = dataTypes.some(
-      (itemId) =>
-        flattenedExpectedValues[itemId]?.data?.typeId ===
-        types.dataType.boolean.dataTypeId,
+      (type) => type === types.dataType.boolean.dataTypeId,
     );
     const containsNumber = dataTypes.some(
-      (itemId) =>
-        flattenedExpectedValues[itemId]?.data?.typeId ===
-        types.dataType.number.dataTypeId,
+      (type) => type === types.dataType.number.dataTypeId,
     );
 
     if (containsText && !containsBoolean && !containsNumber) {
@@ -78,7 +62,11 @@ export const getExpectedValueDescriptor = (
     case "array":
       return {
         typeId: "array",
-        arrayType: getArrayExpectedValueType(data, flattenedExpectedValues),
+        arrayType: getArrayExpectedValueType(
+          Object.values(flattenedExpectedValues)
+            .filter(({ parentId }) => parentId === id)
+            .map(({ data: childData }) => childData.typeId),
+        ),
         id,
       };
     case "object":

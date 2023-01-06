@@ -22,6 +22,8 @@ export type ExpectedValue =
       id: string;
     };
 
+export type CustomExpectedValueTypeId = VersionedUri | "array" | "object";
+
 interface PrimitiveExpectedValue {
   typeId: VersionedUri;
 }
@@ -55,7 +57,7 @@ export interface CustomExpectedValue {
   id: string;
   parentId?: string;
   animatingOut?: boolean;
-  data?: CustomExpectedValueData;
+  data: CustomExpectedValueData;
 }
 
 export type FlattenedCustomExpectedValueList = Record<
