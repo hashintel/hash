@@ -299,6 +299,12 @@ export interface DataTypeStructuralQuery {
    * @memberof DataTypeStructuralQuery
    */
   graphResolveDepths: GraphResolveDepths;
+  /**
+   *
+   * @type {UnresolvedTimeProjection}
+   * @memberof DataTypeStructuralQuery
+   */
+  timeProjection?: UnresolvedTimeProjection;
 }
 /**
  *
@@ -318,6 +324,113 @@ export interface DataTypeWithMetadata {
    * @memberof DataTypeWithMetadata
    */
   schema: DataType;
+}
+/**
+ * Time axis for the decision time.  This is used as the generic argument to time-related structs and can be used as tag value.
+ * @export
+ * @enum {string}
+ */
+
+export const DecisionTime = {
+  Decision: "decision",
+} as const;
+
+export type DecisionTime = typeof DecisionTime[keyof typeof DecisionTime];
+
+/**
+ *
+ * @export
+ * @interface DecisionTimeImage
+ */
+export interface DecisionTimeImage {
+  /**
+   *
+   * @type {DecisionTime}
+   * @memberof DecisionTimeImage
+   */
+  axis: DecisionTime;
+  /**
+   *
+   * @type {TimespanBound}
+   * @memberof DecisionTimeImage
+   */
+  end: TimespanBound;
+  /**
+   *
+   * @type {TimespanBound}
+   * @memberof DecisionTimeImage
+   */
+  start: TimespanBound;
+}
+/**
+ *
+ * @export
+ * @interface DecisionTimeImageAllOf
+ */
+export interface DecisionTimeImageAllOf {
+  /**
+   *
+   * @type {DecisionTime}
+   * @memberof DecisionTimeImageAllOf
+   */
+  axis: DecisionTime;
+}
+/**
+ *
+ * @export
+ * @interface DecisionTimeImageAllOf1
+ */
+export interface DecisionTimeImageAllOf1 {
+  /**
+   *
+   * @type {TimespanBound}
+   * @memberof DecisionTimeImageAllOf1
+   */
+  end: TimespanBound;
+  /**
+   *
+   * @type {TimespanBound}
+   * @memberof DecisionTimeImageAllOf1
+   */
+  start: TimespanBound;
+}
+/**
+ *
+ * @export
+ * @interface DecisionTimeKernel
+ */
+export interface DecisionTimeKernel {
+  /**
+   *
+   * @type {DecisionTime}
+   * @memberof DecisionTimeKernel
+   */
+  axis: DecisionTime;
+  /**
+   *
+   * @type {string}
+   * @memberof DecisionTimeKernel
+   */
+  timestamp: string;
+}
+/**
+ *
+ * @export
+ * @interface DecisionTimeProjection
+ */
+export interface DecisionTimeProjection {
+  /**
+   *
+   * @type {DecisionTimeImage}
+   * @memberof DecisionTimeProjection
+   */
+  image: DecisionTimeImage;
+  /**
+   *
+   * @type {TransactionTimeKernel}
+   * @memberof DecisionTimeProjection
+   */
+  kernel: TransactionTimeKernel;
 }
 /**
  *
@@ -517,6 +630,12 @@ export interface EntityStructuralQuery {
    * @memberof EntityStructuralQuery
    */
   graphResolveDepths: GraphResolveDepths;
+  /**
+   *
+   * @type {UnresolvedTimeProjection}
+   * @memberof EntityStructuralQuery
+   */
+  timeProjection?: UnresolvedTimeProjection;
 }
 /**
  * Specifies the structure of an Entity Type
@@ -649,6 +768,12 @@ export interface EntityTypeStructuralQuery {
    * @memberof EntityTypeStructuralQuery
    */
   graphResolveDepths: GraphResolveDepths;
+  /**
+   *
+   * @type {UnresolvedTimeProjection}
+   * @memberof EntityTypeStructuralQuery
+   */
+  timeProjection?: UnresolvedTimeProjection;
 }
 /**
  *
@@ -1663,6 +1788,12 @@ export interface PropertyTypeStructuralQuery {
    * @memberof PropertyTypeStructuralQuery
    */
   graphResolveDepths: GraphResolveDepths;
+  /**
+   *
+   * @type {UnresolvedTimeProjection}
+   * @memberof PropertyTypeStructuralQuery
+   */
+  timeProjection?: UnresolvedTimeProjection;
 }
 /**
  *
@@ -1758,16 +1889,331 @@ export interface Subgraph {
   edges: Edges;
   /**
    *
+   * @type {TimeProjection}
+   * @memberof Subgraph
+   */
+  resolvedTimeProjection: TimeProjection;
+  /**
+   *
    * @type {Array<GraphElementVertexId>}
    * @memberof Subgraph
    */
   roots: Array<GraphElementVertexId>;
   /**
    *
+   * @type {UnresolvedTimeProjection}
+   * @memberof Subgraph
+   */
+  timeProjection: UnresolvedTimeProjection;
+  /**
+   *
    * @type {Vertices}
    * @memberof Subgraph
    */
   vertices: Vertices;
+}
+/**
+ * @type TimeProjection
+ * @export
+ */
+export type TimeProjection = DecisionTimeProjection | TransactionTimeProjection;
+
+/**
+ * @type TimespanBound
+ * @export
+ */
+export type TimespanBound = TimespanBoundOneOf | TimespanBoundOneOf1;
+
+/**
+ *
+ * @export
+ * @interface TimespanBoundOneOf
+ */
+export interface TimespanBoundOneOf {
+  /**
+   *
+   * @type {object}
+   * @memberof TimespanBoundOneOf
+   */
+  bound: TimespanBoundOneOfBoundEnum;
+}
+
+export const TimespanBoundOneOfBoundEnum = {
+  Unbounded: "unbounded",
+} as const;
+
+export type TimespanBoundOneOfBoundEnum =
+  typeof TimespanBoundOneOfBoundEnum[keyof typeof TimespanBoundOneOfBoundEnum];
+
+/**
+ *
+ * @export
+ * @interface TimespanBoundOneOf1
+ */
+export interface TimespanBoundOneOf1 {
+  /**
+   *
+   * @type {object}
+   * @memberof TimespanBoundOneOf1
+   */
+  bound: TimespanBoundOneOf1BoundEnum;
+  /**
+   *
+   * @type {string}
+   * @memberof TimespanBoundOneOf1
+   */
+  timestamp: string;
+}
+
+export const TimespanBoundOneOf1BoundEnum = {
+  Included: "included",
+  Excluded: "excluded",
+} as const;
+
+export type TimespanBoundOneOf1BoundEnum =
+  typeof TimespanBoundOneOf1BoundEnum[keyof typeof TimespanBoundOneOf1BoundEnum];
+
+/**
+ * Time axis for the transaction time.  This is used as the generic argument to time-related structs and can be used as tag value.
+ * @export
+ * @enum {string}
+ */
+
+export const TransactionTime = {
+  Transaction: "transaction",
+} as const;
+
+export type TransactionTime =
+  typeof TransactionTime[keyof typeof TransactionTime];
+
+/**
+ *
+ * @export
+ * @interface TransactionTimeImage
+ */
+export interface TransactionTimeImage {
+  /**
+   *
+   * @type {TransactionTime}
+   * @memberof TransactionTimeImage
+   */
+  axis: TransactionTime;
+  /**
+   *
+   * @type {TimespanBound}
+   * @memberof TransactionTimeImage
+   */
+  end: TimespanBound;
+  /**
+   *
+   * @type {TimespanBound}
+   * @memberof TransactionTimeImage
+   */
+  start: TimespanBound;
+}
+/**
+ *
+ * @export
+ * @interface TransactionTimeImageAllOf
+ */
+export interface TransactionTimeImageAllOf {
+  /**
+   *
+   * @type {TransactionTime}
+   * @memberof TransactionTimeImageAllOf
+   */
+  axis: TransactionTime;
+}
+/**
+ *
+ * @export
+ * @interface TransactionTimeKernel
+ */
+export interface TransactionTimeKernel {
+  /**
+   *
+   * @type {TransactionTime}
+   * @memberof TransactionTimeKernel
+   */
+  axis: TransactionTime;
+  /**
+   *
+   * @type {string}
+   * @memberof TransactionTimeKernel
+   */
+  timestamp: string;
+}
+/**
+ *
+ * @export
+ * @interface TransactionTimeProjection
+ */
+export interface TransactionTimeProjection {
+  /**
+   *
+   * @type {TransactionTimeImage}
+   * @memberof TransactionTimeProjection
+   */
+  image: TransactionTimeImage;
+  /**
+   *
+   * @type {DecisionTimeKernel}
+   * @memberof TransactionTimeProjection
+   */
+  kernel: DecisionTimeKernel;
+}
+/**
+ *
+ * @export
+ * @interface UnresolvedDecisionTimeImage
+ */
+export interface UnresolvedDecisionTimeImage {
+  /**
+   *
+   * @type {DecisionTime}
+   * @memberof UnresolvedDecisionTimeImage
+   */
+  axis: DecisionTime;
+  /**
+   *
+   * @type {TimespanBound}
+   * @memberof UnresolvedDecisionTimeImage
+   */
+  end?: TimespanBound;
+  /**
+   *
+   * @type {TimespanBound}
+   * @memberof UnresolvedDecisionTimeImage
+   */
+  start?: TimespanBound;
+}
+/**
+ *
+ * @export
+ * @interface UnresolvedDecisionTimeImageAllOf
+ */
+export interface UnresolvedDecisionTimeImageAllOf {
+  /**
+   *
+   * @type {TimespanBound}
+   * @memberof UnresolvedDecisionTimeImageAllOf
+   */
+  end?: TimespanBound;
+  /**
+   *
+   * @type {TimespanBound}
+   * @memberof UnresolvedDecisionTimeImageAllOf
+   */
+  start?: TimespanBound;
+}
+/**
+ *
+ * @export
+ * @interface UnresolvedDecisionTimeKernel
+ */
+export interface UnresolvedDecisionTimeKernel {
+  /**
+   *
+   * @type {DecisionTime}
+   * @memberof UnresolvedDecisionTimeKernel
+   */
+  axis: DecisionTime;
+  /**
+   *
+   * @type {string}
+   * @memberof UnresolvedDecisionTimeKernel
+   */
+  timestamp?: string;
+}
+/**
+ *
+ * @export
+ * @interface UnresolvedDecisionTimeProjection
+ */
+export interface UnresolvedDecisionTimeProjection {
+  /**
+   *
+   * @type {UnresolvedDecisionTimeImage}
+   * @memberof UnresolvedDecisionTimeProjection
+   */
+  image: UnresolvedDecisionTimeImage;
+  /**
+   *
+   * @type {UnresolvedTransactionTimeKernel}
+   * @memberof UnresolvedDecisionTimeProjection
+   */
+  kernel: UnresolvedTransactionTimeKernel;
+}
+/**
+ * @type UnresolvedTimeProjection
+ * @export
+ */
+export type UnresolvedTimeProjection =
+  | UnresolvedDecisionTimeProjection
+  | UnresolvedTransactionTimeProjection;
+
+/**
+ *
+ * @export
+ * @interface UnresolvedTransactionTimeImage
+ */
+export interface UnresolvedTransactionTimeImage {
+  /**
+   *
+   * @type {TransactionTime}
+   * @memberof UnresolvedTransactionTimeImage
+   */
+  axis: TransactionTime;
+  /**
+   *
+   * @type {TimespanBound}
+   * @memberof UnresolvedTransactionTimeImage
+   */
+  end?: TimespanBound;
+  /**
+   *
+   * @type {TimespanBound}
+   * @memberof UnresolvedTransactionTimeImage
+   */
+  start?: TimespanBound;
+}
+/**
+ *
+ * @export
+ * @interface UnresolvedTransactionTimeKernel
+ */
+export interface UnresolvedTransactionTimeKernel {
+  /**
+   *
+   * @type {TransactionTime}
+   * @memberof UnresolvedTransactionTimeKernel
+   */
+  axis: TransactionTime;
+  /**
+   *
+   * @type {string}
+   * @memberof UnresolvedTransactionTimeKernel
+   */
+  timestamp?: string;
+}
+/**
+ *
+ * @export
+ * @interface UnresolvedTransactionTimeProjection
+ */
+export interface UnresolvedTransactionTimeProjection {
+  /**
+   *
+   * @type {UnresolvedTransactionTimeImage}
+   * @memberof UnresolvedTransactionTimeProjection
+   */
+  image: UnresolvedTransactionTimeImage;
+  /**
+   *
+   * @type {UnresolvedDecisionTimeKernel}
+   * @memberof UnresolvedTransactionTimeProjection
+   */
+  kernel: UnresolvedDecisionTimeKernel;
 }
 /**
  * The contents of a Data Type update request

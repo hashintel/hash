@@ -44,7 +44,14 @@ use crate::{
     },
     identifier::{
         ontology::OntologyTypeEditionId,
-        time::{Timestamp, TransactionTimestamp, VersionTimespan},
+        time::{
+            DecisionTime, DecisionTimeImage, DecisionTimeKernel, DecisionTimeProjection,
+            TimeProjection, TimespanBound, Timestamp, TransactionTime, TransactionTimeImage,
+            TransactionTimeKernel, TransactionTimeProjection, UnresolvedDecisionTimeImage,
+            UnresolvedDecisionTimeKernel, UnresolvedDecisionTimeProjection,
+            UnresolvedTimeProjection, UnresolvedTransactionTimeImage,
+            UnresolvedTransactionTimeKernel, UnresolvedTransactionTimeProjection, VersionTimespan,
+        },
         EntityVertexId, GraphElementId, GraphElementVertexId,
     },
     ontology::{domain_validator::DomainValidator, OntologyElementMetadata, Selector},
@@ -161,7 +168,6 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
 
             GraphElementId,
             GraphElementVertexId,
-            TransactionTimestamp,
             OntologyVertex,
             KnowledgeGraphVertex,
             Vertex,
@@ -180,6 +186,23 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             EdgeResolveDepths,
             OutgoingEdgeResolveDepth,
             Subgraph,
+
+            DecisionTime,
+            TransactionTime,
+            TimeProjection,
+            UnresolvedTimeProjection,
+            UnresolvedDecisionTimeProjection,
+            UnresolvedDecisionTimeImage,
+            UnresolvedDecisionTimeKernel,
+            UnresolvedTransactionTimeProjection,
+            UnresolvedTransactionTimeImage,
+            UnresolvedTransactionTimeKernel,
+            DecisionTimeProjection,
+            DecisionTimeImage,
+            DecisionTimeKernel,
+            TransactionTimeProjection,
+            TransactionTimeImage,
+            TransactionTimeKernel,
         )
     ),
 )]
@@ -443,6 +466,10 @@ impl Modify for TimeSchemaAddon {
             components.schemas.insert(
                 "VersionTimespan".to_owned(),
                 VersionTimespan::<()>::schema().into(),
+            );
+            components.schemas.insert(
+                "TimespanBound".to_owned(),
+                TimespanBound::<()>::schema().into(),
             );
         }
     }
