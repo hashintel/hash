@@ -137,9 +137,9 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
 > = ({ expectedValueId, prefix, deleteTooltip, onDelete, index = [] }) => {
   const { setValue, control } = useFormContext<PropertyTypeFormValues>();
 
-  const flattenedExpectedValues = useWatch({
+  const [flattenedExpectedValues, editingExpectedValueIndex] = useWatch({
     control,
-    name: `flattenedCustomExpectedValueList`,
+    name: [`flattenedCustomExpectedValueList`, `editingExpectedValueIndex`],
   });
 
   const itemIds = useWatch({
@@ -307,6 +307,7 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
         <DeleteExpectedValueModal
           expectedValueType="array"
           popupState={deleteModalPopupState}
+          editing={editingExpectedValueIndex !== undefined && !index.length} // We only want to show the editing modal for the root array
           onDelete={onDelete}
           onClose={() => deleteModalPopupState.close()}
           dataTypeCount={dataTypeCount}

@@ -82,20 +82,20 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         let mut dependency_context = DependencyContext::default();
 
         for data_type in Read::<DataTypeWithMetadata>::read(self, filter).await? {
-            let edition_id = data_type.edition_id().clone();
+            let vertex_id = data_type.vertex_id();
 
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
             subgraph.insert(data_type);
 
             self.traverse_data_type(
-                &edition_id,
+                &vertex_id,
                 &mut dependency_context,
                 &mut subgraph,
                 graph_resolve_depths,
             )
             .await?;
 
-            subgraph.roots.insert(edition_id.into());
+            subgraph.roots.insert(vertex_id.into());
         }
 
         Ok(subgraph)

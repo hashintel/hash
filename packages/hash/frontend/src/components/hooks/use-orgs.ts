@@ -52,10 +52,10 @@ export const useOrgs = (
 
     /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
     return getRoots(subgraph as Subgraph<SubgraphRootTypes["entity"]>).map(
-      ({ metadata: { editionId } }) =>
+      (orgEntity) =>
         constructOrg({
           subgraph,
-          orgEntityEditionId: editionId,
+          orgEntity,
           resolvedUsers,
           resolvedOrgs,
         }),
