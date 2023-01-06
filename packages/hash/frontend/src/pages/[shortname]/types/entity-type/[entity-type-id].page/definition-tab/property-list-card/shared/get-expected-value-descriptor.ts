@@ -8,7 +8,7 @@ import {
   FlattenedCustomExpectedValueList,
 } from "./expected-value-types";
 
-const getArrayExpectedValueType = (
+export const getArrayExpectedValueType = (
   childrenTypeArray: CustomExpectedValueTypeId[],
 ): ArrayType => {
   const containsArray = childrenTypeArray.some((type) => type === "array");
@@ -65,7 +65,7 @@ export const getExpectedValueDescriptor = (
         arrayType: getArrayExpectedValueType(
           Object.values(flattenedExpectedValues)
             .filter(({ parentId }) => parentId === id)
-            .map(({ data: childData }) => childData.typeId),
+            .map(({ data: childData }) => childData!.typeId),
         ),
         id,
       };

@@ -57,7 +57,7 @@ export interface CustomExpectedValue {
   id: string;
   parentId?: string;
   animatingOut?: boolean;
-  data: CustomExpectedValueData;
+  data?: CustomExpectedValueData;
 }
 
 export type FlattenedCustomExpectedValueList = Record<
