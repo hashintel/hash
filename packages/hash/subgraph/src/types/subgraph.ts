@@ -11,6 +11,7 @@ import {
   PropertyTypeWithMetadata,
 } from "./element";
 import { EntityVertexId } from "./identifier";
+import { ResolvedTimeProjection, TimeProjection } from "./time";
 import { Vertices } from "./vertex";
 
 export type SubgraphRootTypes = {
@@ -39,4 +40,6 @@ export type Subgraph<RootType extends SubgraphRootType = SubgraphRootType> = {
   vertices: Vertices;
   edges: Edges;
   depths: GraphResolveDepths;
+  timeProjection: TimeProjection;
+  resolvedTimeProjection: ResolvedTimeProjection;
 };

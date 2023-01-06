@@ -27,6 +27,8 @@ export const scalars = {
   Edges: "@hashintel/hash-subgraph#Edges",
   Vertices: "@hashintel/hash-subgraph#Vertices",
   LinkData: "@hashintel/hash-subgraph#LinkData",
+  TimeProjection: "@hashintel/hash-subgraph#TimeProjection",
+  ResolvedTimeProjection: "@hashintel/hash-subgraph#ResolvedTimeProjection",
 
   OwnedById: "@hashintel/hash-shared/types#OwnedById",
   UpdatedById: "@hashintel/hash-shared/types#UpdatedById",
