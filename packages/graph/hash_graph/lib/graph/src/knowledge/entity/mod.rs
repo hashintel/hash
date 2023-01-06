@@ -10,7 +10,10 @@ use uuid::Uuid;
 
 pub use self::query::{EntityQueryPath, EntityQueryPathVisitor, EntityQueryToken};
 use crate::{
-    identifier::knowledge::{EntityEditionId, EntityId},
+    identifier::{
+        knowledge::{EntityEditionId, EntityId, EntityVersion},
+        EntityVertexId,
+    },
     provenance::ProvenanceMetadata,
     store::{query::Filter, Record},
 };
@@ -170,6 +173,7 @@ impl LinkData {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityMetadata {
     edition_id: EntityEditionId,
+    version: EntityVersion,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
     #[serde(rename = "provenance")]
@@ -181,12 +185,14 @@ impl EntityMetadata {
     #[must_use]
     pub const fn new(
         edition_id: EntityEditionId,
+        version: EntityVersion,
         entity_type_id: VersionedUri,
         provenance_metadata: ProvenanceMetadata,
         archived: bool,
     ) -> Self {
         Self {
             edition_id,
+            version,
             entity_type_id,
             provenance_metadata,
             archived,
@@ -196,6 +202,11 @@ impl EntityMetadata {
     #[must_use]
     pub const fn edition_id(&self) -> EntityEditionId {
         self.edition_id
+    }
+
+    #[must_use]
+    pub const fn version(&self) -> &EntityVersion {
+        &self.version
     }
 
     #[must_use]
@@ -231,6 +242,7 @@ impl Entity {
         properties: EntityProperties,
         link_data: Option<LinkData>,
         identifier: EntityEditionId,
+        version: EntityVersion,
         entity_type_id: VersionedUri,
         provenance_metadata: ProvenanceMetadata,
         archived: bool,
@@ -240,6 +252,7 @@ impl Entity {
             link_data,
             metadata: EntityMetadata::new(
                 identifier,
+                version,
                 entity_type_id,
                 provenance_metadata,
                 archived,
@@ -266,13 +279,21 @@ impl Entity {
 impl Record for Entity {
     type EditionId = EntityEditionId;
     type QueryPath<'p> = EntityQueryPath<'p>;
+    type VertexId = EntityVertexId;
 
     fn edition_id(&self) -> &Self::EditionId {
         &self.metadata.edition_id
     }
 
-    fn create_filter_for_edition_id(edition_id: &Self::EditionId) -> Filter<Self> {
-        Filter::for_entity_by_edition_id(*edition_id)
+    fn vertex_id(&self) -> Self::VertexId {
+        EntityVertexId::new(
+            self.edition_id().base_id(),
+            self.metadata().version().transaction_time().start,
+        )
+    }
+
+    fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
+        Filter::for_entity_by_vertex_id(*vertex_id)
     }
 }
 
