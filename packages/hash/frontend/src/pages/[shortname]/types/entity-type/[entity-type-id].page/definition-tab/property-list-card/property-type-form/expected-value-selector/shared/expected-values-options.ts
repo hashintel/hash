@@ -54,6 +54,21 @@ export const expectedValuesOptions = {
     colors: chipColors.blue,
     allowMultiple: true,
   },
+  textArray: {
+    title: "Text Array",
+    icon: faListCheck.icon,
+    colors: chipColors.blue,
+  },
+  booleanArray: {
+    title: "Boolean Array",
+    icon: faListCheck.icon,
+    colors: chipColors.blue,
+  },
+  numberArray: {
+    title: "Number Array",
+    icon: faListCheck.icon,
+    colors: chipColors.blue,
+  },
   dataTypeArray: {
     title: "Data Type Array",
     icon: faListCheck.icon,

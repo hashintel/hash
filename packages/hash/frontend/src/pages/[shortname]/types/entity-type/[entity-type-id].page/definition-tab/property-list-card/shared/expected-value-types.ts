@@ -5,6 +5,9 @@ export enum ArrayType {
   propertyObjectArray = "propertyObjectArray",
   mixedArray = "mixedArray",
   arrayArray = "arrayArray",
+  textArray = "textArray",
+  booleanArray = "booleanArray",
+  numberArray = "numberArray",
 }
 
 export type ExpectedValue =
