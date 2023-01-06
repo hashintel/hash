@@ -1,4 +1,8 @@
-import { Array, ValueOrArray } from "@blockprotocol/type-system";
+import {
+  Array,
+  extractBaseUri,
+  ValueOrArray,
+} from "@blockprotocol/type-system";
 import { Button } from "@hashintel/hash-design-system";
 import { types } from "@hashintel/hash-shared/ontology-types";
 import { EntityId, OwnedById } from "@hashintel/hash-shared/types";
@@ -101,8 +105,10 @@ const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
   const handleCreateEntity = async () => {
     await createEntity({
       data: {
-        entityTypeId: types.entityType.dummy.entityTypeId,
-        properties: {},
+        entityTypeId: types.entityType.text.entityTypeId,
+        properties: {
+          [extractBaseUri(types.propertyType.tokens.propertyTypeId)]: [],
+        },
       },
     }).then(({ data }) => setCreatedEntity(data));
   };
