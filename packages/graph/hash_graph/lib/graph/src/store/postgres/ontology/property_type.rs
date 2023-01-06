@@ -179,9 +179,14 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         let StructuralQuery {
             ref filter,
             graph_resolve_depths,
+            ref time_projection,
         } = *query;
 
-        let mut subgraph = Subgraph::new(graph_resolve_depths);
+        let mut subgraph = Subgraph::new(
+            graph_resolve_depths,
+            time_projection.clone(),
+            time_projection.clone().resolve(),
+        );
         let mut dependency_context = DependencyContext::default();
 
         for property_type in Read::<PropertyTypeWithMetadata>::read(self, filter).await? {

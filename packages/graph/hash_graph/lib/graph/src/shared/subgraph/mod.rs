@@ -11,6 +11,7 @@ use edges::Edges;
 use error_stack::Result;
 
 use crate::{
+    identifier::time::{TimeProjection, UnresolvedTimeProjection},
     shared::identifier::GraphElementVertexId,
     store::{crud::Read, QueryError, Record},
     subgraph::{edges::GraphResolveDepths, vertices::Vertices},
@@ -26,16 +27,24 @@ pub struct Subgraph {
     pub vertices: Vertices,
     pub edges: Edges,
     pub depths: GraphResolveDepths,
+    pub time_projection: UnresolvedTimeProjection,
+    pub resolved_time_projection: TimeProjection,
 }
 
 impl Subgraph {
     #[must_use]
-    pub fn new(depths: GraphResolveDepths) -> Self {
+    pub fn new(
+        depths: GraphResolveDepths,
+        time_projection: UnresolvedTimeProjection,
+        resolved_time_projection: TimeProjection,
+    ) -> Self {
         Self {
             roots: HashSet::new(),
             vertices: Vertices::default(),
             edges: Edges::default(),
             depths,
+            time_projection,
+            resolved_time_projection,
         }
     }
 
