@@ -2,6 +2,10 @@ version: "3.9"
 
 volumes:
   hash-postgres-data:
+  task-executor-secrets:
+    # We need this volume name to be static or else it's prefixed by the docker compose project name
+    # which means we can't mount it inside the task-executor
+    name: task-executor-secrets
 
 services:
   postgres:
@@ -190,14 +194,33 @@ services:
 
       HASH_OPENSEARCH_ENABLED: "false"
 
-      HASH_TASK_EXECUTOR_HOST: "${HASH_TASK_EXECUTOR_HOST}"
-      HASH_TASK_EXECUTOR_PORT: "${HASH_TASK_EXECUTOR_PORT}"
+      HASH_TASK_EXECUTOR_HOST: "task-executor"
+      HASH_TASK_EXECUTOR_PORT: "5010"
 
       ORY_KRATOS_PUBLIC_URL: "http://kratos:4433"
       ORY_KRATOS_ADMIN_URL: "http://kratos:4434"
       KRATOS_API_KEY: "${KRATOS_API_KEY}"
     ports:
       - "5001:5001"
+
+  task-executor:
+    build:
+      context: ../../../
+      dockerfile: packages/hash/docker/task-executor/Dockerfile
+    deploy:
+      restart_policy:
+        condition: on-failure
+    environment:
+      FRONTEND_URL: "${FRONTEND_URL}"
+      HASH_TASK_EXECUTOR_HOST: "${HASH_TASK_EXECUTOR_HOST}"
+      HASH_TASK_EXECUTOR_PORT: "${HASH_TASK_EXECUTOR_PORT}"
+    volumes:
+      # Give the container access to the docker socket, so that it's able to create *sibling*
+      # containers (needed to be able to run Airbyte connector images)
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+      - task-executor-secrets:/var/run/task-executor-secrets
+    ports:
+      - "5010:5010"
 
   hash-frontend:
     build:

@@ -67,11 +67,11 @@ export class BaseExecutor implements AirbyteExecutor {
       "run",
       "--rm",
       "-v",
-      `${configPath}:/secrets/config.json`,
+      `task-executor-secrets:/var/run/task-executor-secrets`,
       this.imageName,
       "check",
       "--config",
-      "/secrets/config.json",
+      configPath,
     ]);
 
     const messages = parseMessageStream(response);
@@ -97,11 +97,11 @@ export class BaseExecutor implements AirbyteExecutor {
       "run",
       "--rm",
       "-v",
-      `${configPath}:/secrets/config.json`,
+      `task-executor-secrets:/var/run/task-executor-secrets`,
       this.imageName,
       "discover",
       "--config",
-      "/secrets/config.json",
+      configPath,
     ]);
 
     const messages = parseMessageStream(response);
@@ -134,15 +134,13 @@ export class BaseExecutor implements AirbyteExecutor {
       "run",
       "--rm",
       "-v",
-      `${configPath}:/secrets/config.json`,
-      "-v",
-      `${catalogPath}:/secrets/catalog.json`,
+      `task-executor-secrets:/var/run/task-executor-secrets`,
       this.imageName,
       "read",
       "--config",
-      "/secrets/config.json",
+      configPath,
       "--catalog",
-      "/secrets/catalog.json",
+      catalogPath,
     ];
 
     if (statePath) {
