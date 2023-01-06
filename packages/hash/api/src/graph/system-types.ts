@@ -347,7 +347,6 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
     outgoingLinks: [
       {
         linkEntityType: blockDataLinkEntityType,
-        destinationEntityTypes: [],
         minItems: 1,
         maxItems: 1,
       },
