@@ -7,10 +7,13 @@ use crate::{
 ///
 /// [`store`]: crate::store
 pub trait Record: Sized + Send {
-    type EditionId: Send + Sync + SubgraphIndex<Self>;
+    type EditionId;
+    type VertexId: SubgraphIndex<Self> + Send + Sync;
     type QueryPath<'p>: QueryPath + Send + Sync;
 
     fn edition_id(&self) -> &Self::EditionId;
 
-    fn create_filter_for_edition_id(edition_id: &Self::EditionId) -> Filter<Self>;
+    fn vertex_id(&self) -> Self::VertexId;
+
+    fn create_filter_for_vertex_id(edition_id: &Self::VertexId) -> Filter<Self>;
 }

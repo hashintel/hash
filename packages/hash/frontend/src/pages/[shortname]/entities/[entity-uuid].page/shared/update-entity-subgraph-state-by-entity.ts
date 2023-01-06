@@ -16,12 +16,17 @@ export const updateEntitySubgraphStateByEntity = (
      */
     const newEntity = JSON.parse(JSON.stringify(entity)) as Entity;
     const newEntityVersion = new Date().toISOString();
-    newEntity.metadata.editionId.version = newEntityVersion;
+    newEntity.metadata.version.decisionTime.start = newEntityVersion;
 
     return subgraph
       ? ({
           ...subgraph,
-          roots: [newEntity.metadata.editionId],
+          roots: [
+            {
+              baseId: newEntity.metadata.editionId.baseId,
+              version: newEntityVersion,
+            },
+          ],
           vertices: {
             ...subgraph.vertices,
             [newEntity.metadata.editionId.baseId]: {
