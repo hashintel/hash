@@ -9,8 +9,14 @@ use std::borrow::Cow;
 use error_stack::Result;
 use graph::{
     identifier::{
-        account::AccountId, knowledge::EntityId, ontology::OntologyTypeEditionId,
-        time::TransactionTimestamp, EntityVertexId, GraphElementVertexId,
+        account::AccountId,
+        knowledge::EntityId,
+        ontology::OntologyTypeEditionId,
+        time::{
+            TimespanBound, Timestamp, TransactionTime, UnresolvedImage, UnresolvedKernel,
+            UnresolvedProjection, UnresolvedTimeProjection,
+        },
+        EntityVertexId, GraphElementVertexId,
     },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
@@ -163,6 +169,13 @@ impl DatabaseApi<'_> {
             .get_data_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::default(),
+                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                    kernel: UnresolvedKernel::new(None),
+                    image: UnresolvedImage::new(
+                        Some(TimespanBound::Unbounded),
+                        Some(TimespanBound::Unbounded),
+                    ),
+                }),
             })
             .await?
             .vertices
@@ -202,6 +215,13 @@ impl DatabaseApi<'_> {
             .get_property_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::default(),
+                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                    kernel: UnresolvedKernel::new(None),
+                    image: UnresolvedImage::new(
+                        Some(TimespanBound::Unbounded),
+                        Some(TimespanBound::Unbounded),
+                    ),
+                }),
             })
             .await?
             .vertices
@@ -241,6 +261,13 @@ impl DatabaseApi<'_> {
             .get_entity_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::default(),
+                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                    kernel: UnresolvedKernel::new(None),
+                    image: UnresolvedImage::new(
+                        Some(TimespanBound::Unbounded),
+                        Some(TimespanBound::Unbounded),
+                    ),
+                }),
             })
             .await?
             .vertices
@@ -281,7 +308,7 @@ impl DatabaseApi<'_> {
     pub async fn get_entity(
         &self,
         entity_id: EntityId,
-        timestamp: TransactionTimestamp,
+        timestamp: Timestamp<TransactionTime>,
     ) -> Result<Entity, QueryError> {
         let entity_vertex_id = EntityVertexId::new(entity_id, timestamp);
         Ok(self
@@ -289,6 +316,13 @@ impl DatabaseApi<'_> {
             .get_entity(&StructuralQuery {
                 filter: Entity::create_filter_for_vertex_id(&entity_vertex_id),
                 graph_resolve_depths: GraphResolveDepths::default(),
+                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                    kernel: UnresolvedKernel::new(None),
+                    image: UnresolvedImage::new(
+                        Some(TimespanBound::Unbounded),
+                        Some(TimespanBound::Unbounded),
+                    ),
+                }),
             })
             .await?
             .vertices
@@ -384,6 +418,13 @@ impl DatabaseApi<'_> {
             .get_entity(&StructuralQuery {
                 filter,
                 graph_resolve_depths: GraphResolveDepths::default(),
+                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                    kernel: UnresolvedKernel::new(None),
+                    image: UnresolvedImage::new(
+                        Some(TimespanBound::Unbounded),
+                        Some(TimespanBound::Unbounded),
+                    ),
+                }),
             })
             .await?;
 
@@ -444,6 +485,13 @@ impl DatabaseApi<'_> {
             .get_entity(&StructuralQuery {
                 filter,
                 graph_resolve_depths: GraphResolveDepths::default(),
+                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                    kernel: UnresolvedKernel::new(None),
+                    image: UnresolvedImage::new(
+                        Some(TimespanBound::Unbounded),
+                        Some(TimespanBound::Unbounded),
+                    ),
+                }),
             })
             .await?;
 
