@@ -6,7 +6,7 @@ import {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "./element";
-import { EntityId, EntityVersion } from "./identifier";
+import { EntityId, Timestamp } from "./identifier";
 
 // -------------------------------- Vertex Variants --------------------------------
 
@@ -61,6 +61,6 @@ export type Vertices = {
   };
 } & {
   [_: EntityId]: {
-    [_: EntityVersion]: KnowledgeGraphVertex;
+    [_: Timestamp]: KnowledgeGraphVertex;
   };
 };

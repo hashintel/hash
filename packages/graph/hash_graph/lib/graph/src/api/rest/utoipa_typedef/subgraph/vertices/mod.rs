@@ -78,14 +78,13 @@ impl From<crate::subgraph::vertices::Vertices> for Vertices {
                 |mut map, (id, vertex)| {
                     match map.entry(id.base_id()) {
                         Entry::Occupied(entry) => {
-                            entry.into_mut().insert(
-                                id.version().transaction_time().start,
-                                KnowledgeGraphVertex::Entity(vertex),
-                            );
+                            entry
+                                .into_mut()
+                                .insert(id.version(), KnowledgeGraphVertex::Entity(vertex));
                         }
                         Entry::Vacant(entry) => {
                             entry.insert(BTreeMap::from([(
-                                id.version().transaction_time().start,
+                                id.version(),
                                 KnowledgeGraphVertex::Entity(vertex),
                             )]));
                         }
