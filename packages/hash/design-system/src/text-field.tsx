@@ -1,5 +1,5 @@
-import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons";
 import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
+import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   Collapse,
