@@ -63,8 +63,10 @@ describe("Page", () => {
       componentId: "text",
       blockData: await createEntity(graphContext, {
         ownedById: testUser.accountId as OwnedById,
-        entityTypeId: SYSTEM_TYPES.entityType.dummy.schema.$id,
-        properties: {},
+        entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
+        properties: {
+          [SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId]: [],
+        },
         actorId: testUser.accountId,
       }),
       actorId: testUser.accountId,

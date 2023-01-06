@@ -117,10 +117,6 @@ const systemEntityTypes = {
     title: "Text",
     description: undefined,
   },
-  dummy: {
-    title: "Dummy",
-    description: undefined,
-  },
   user: {
     title: "User",
     description: undefined,
