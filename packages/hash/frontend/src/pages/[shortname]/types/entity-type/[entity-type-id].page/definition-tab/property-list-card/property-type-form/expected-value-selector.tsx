@@ -163,7 +163,8 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
             return (
               <ExpectedValueChip
                 {...getTagProps({ index })}
-                key={typeId}
+                // eslint-disable-next-line react/no-array-index-key
+                key={index}
                 expectedValueType={
                   typeof expectedValue === "object" &&
                   "arrayType" in expectedValue
