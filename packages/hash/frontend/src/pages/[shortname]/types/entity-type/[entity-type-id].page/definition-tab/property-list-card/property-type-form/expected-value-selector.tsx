@@ -124,6 +124,8 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
     name: "customExpectedValueId",
   });
 
+  const [inputValue, setInputValue] = useState("");
+
   const [autocompleteFocused, setAutocompleteFocused] = useState(false);
 
   return (
@@ -147,9 +149,19 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
           onBlur();
           setAutocompleteFocused(false);
         }}
-        onChange={(_evt, data) => {
-          onChange(data);
+        onChange={(_evt, data, reason) => {
+          if (reason !== "createOption") {
+            onChange(data);
+          }
+          return false;
         }}
+        inputValue={inputValue}
+        onInputChange={(_evt, value, reason) => {
+          if (reason !== "reset") {
+            setInputValue(value);
+          }
+        }}
+        freeSolo
         {...props}
         renderTags={(expectedValues, getTagProps) =>
           expectedValues.map((expectedValue, index) => {
