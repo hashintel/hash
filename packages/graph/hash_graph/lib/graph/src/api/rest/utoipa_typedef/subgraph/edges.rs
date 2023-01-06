@@ -12,7 +12,7 @@ use crate::{
     identifier::{
         knowledge::EntityId,
         ontology::{OntologyTypeEditionId, OntologyTypeVersion},
-        time::TransactionTimestamp,
+        time::{Timestamp, TransactionTime},
     },
     store::Record,
     subgraph::edges::{KnowledgeGraphEdgeKind, OntologyOutwardEdges, OutwardEdge, SharedEdgeKind},
@@ -40,7 +40,7 @@ impl ToSchema for KnowledgeGraphOutwardEdges {
 #[derive(Default, Debug, Serialize, ToSchema)]
 #[serde(transparent)]
 pub struct KnowledgeGraphRootedEdges(
-    pub HashMap<EntityId, BTreeMap<TransactionTimestamp, Vec<KnowledgeGraphOutwardEdges>>>,
+    pub HashMap<EntityId, BTreeMap<Timestamp<TransactionTime>, Vec<KnowledgeGraphOutwardEdges>>>,
 );
 
 #[derive(Default, Debug, Serialize, ToSchema)]

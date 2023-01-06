@@ -694,7 +694,7 @@ mod tests {
                 account::AccountId,
                 knowledge::EntityId,
                 ontology::{OntologyTypeEditionId, OntologyTypeVersion},
-                time::TransactionTimestamp,
+                time::Timestamp,
                 EntityVertexId,
             },
             knowledge::EntityUuid,
@@ -792,7 +792,7 @@ mod tests {
                     OwnedById::new(AccountId::new(Uuid::new_v4())),
                     EntityUuid::new(Uuid::new_v4()),
                 ),
-                TransactionTimestamp::now(),
+                Timestamp::now(),
             );
 
             let mut compiler = SelectCompiler::<Entity>::with_asterisk();
@@ -825,7 +825,7 @@ mod tests {
                     OwnedById::new(AccountId::new(Uuid::new_v4())),
                     EntityUuid::new(Uuid::new_v4()),
                 ),
-                TransactionTimestamp::now(),
+                Timestamp::now(),
             );
 
             let mut compiler = SelectCompiler::<Entity>::with_asterisk();
@@ -861,7 +861,7 @@ mod tests {
                     OwnedById::new(AccountId::new(Uuid::new_v4())),
                     EntityUuid::new(Uuid::new_v4()),
                 ),
-                TransactionTimestamp::now(),
+                Timestamp::now(),
             );
 
             let mut compiler = SelectCompiler::<Entity>::with_asterisk();
@@ -897,7 +897,7 @@ mod tests {
                     OwnedById::new(AccountId::new(Uuid::new_v4())),
                     EntityUuid::new(Uuid::new_v4()),
                 ),
-                TransactionTimestamp::now(),
+                Timestamp::now(),
             );
 
             let mut compiler = SelectCompiler::<Entity>::with_asterisk();

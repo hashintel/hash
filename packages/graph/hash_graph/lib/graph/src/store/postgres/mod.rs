@@ -26,13 +26,15 @@ pub use self::pool::{AsClient, PostgresStorePool};
 #[cfg(feature = "__internal_bench")]
 use crate::{
     identifier::knowledge::{EntityId, EntityRecordId, EntityVersion},
-    identifier::time::{
-        DecisionTimeVersionTimespan, DecisionTimestamp, TransactionTimeVersionTimespan,
-    },
     knowledge::{EntityProperties, LinkOrder},
 };
 use crate::{
-    identifier::{account::AccountId, ontology::OntologyTypeEditionId, EntityVertexId},
+    identifier::{
+        account::AccountId,
+        ontology::OntologyTypeEditionId,
+        time::{DecisionTime, Timestamp, VersionTimespan},
+        EntityVertexId,
+    },
     ontology::{OntologyElementMetadata, OntologyTypeWithMetadata},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
@@ -845,7 +847,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     async fn insert_entity_versions(
         &self,
         entities: impl IntoIterator<
-            Item = (EntityId, EntityRecordId, Option<DecisionTimestamp>),
+            Item = (EntityId, EntityRecordId, Option<Timestamp<DecisionTime>>),
             IntoIter: Send,
         > + Send,
     ) -> Result<Vec<EntityVersion>, InsertionError> {
@@ -931,8 +933,8 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .into_iter()
             .map(|row| {
                 EntityVersion::new(
-                    DecisionTimeVersionTimespan::from_anonymous(row.get(0)),
-                    TransactionTimeVersionTimespan::from_anonymous(row.get(1)),
+                    VersionTimespan::from_anonymous(row.get(0)),
+                    VersionTimespan::from_anonymous(row.get(1)),
                 )
             })
             .collect();

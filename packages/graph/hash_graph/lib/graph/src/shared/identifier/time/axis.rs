@@ -13,9 +13,6 @@ pub enum DecisionTime {
     Decision,
 }
 
-pub type DecisionTimestamp = Timestamp<DecisionTime>;
-pub type DecisionTimeVersionTimespan = VersionTimespan<DecisionTime>;
-
 /// Time axis for the transaction time.
 ///
 /// This is used as the generic argument to time-related structs and can be used as tag value.
