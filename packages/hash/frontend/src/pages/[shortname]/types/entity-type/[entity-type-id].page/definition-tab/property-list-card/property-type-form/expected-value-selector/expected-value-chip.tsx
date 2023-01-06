@@ -11,7 +11,7 @@ import { Box, chipClasses, Collapse, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
 import { ArrayType } from "../../shared/expected-value-types";
-import { expectedValuesOptions } from "./shared/expected-values-options";
+import { expectedValuesOptions } from "../../shared/expected-values-options";
 
 interface ExpectedValueChipProps {
   expectedValueType: VersionedUri | ArrayType | "object" | "array";

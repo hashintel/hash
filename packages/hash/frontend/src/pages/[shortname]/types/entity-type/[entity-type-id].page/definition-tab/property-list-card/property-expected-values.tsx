@@ -2,6 +2,9 @@ import { PropertyType } from "@blockprotocol/type-system";
 import { Chip } from "@hashintel/hash-design-system";
 import { types } from "@hashintel/hash-shared/ontology-types";
 
+import { expectedValuesOptions } from "./shared/expected-values-options";
+import { getArrayExpectedValueType } from "./shared/get-expected-value-descriptor";
+
 const dataTypeIdToTitle = Object.values(types.dataType).reduce<
   Record<string, string>
 >((prev, dataType) => {
@@ -23,7 +26,13 @@ export const PropertyExpectedValues = ({
       if ("$ref" in dataType) {
         label = dataTypeIdToTitle[dataType.$ref];
       } else if (dataType.type === "array") {
-        label = "Array";
+        const childrenTypes = dataType.items.oneOf.map((item) =>
+          "type" in item ? item.type : item.$ref,
+        );
+
+        const arrayType = getArrayExpectedValueType(childrenTypes);
+
+        label = expectedValuesOptions[arrayType].title;
       }
 
       if (label) {

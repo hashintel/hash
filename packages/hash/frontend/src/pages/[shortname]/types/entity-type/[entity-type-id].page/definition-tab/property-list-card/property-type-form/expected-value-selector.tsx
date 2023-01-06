@@ -17,6 +17,7 @@ import { useController, useFormContext, useWatch } from "react-hook-form";
 import { AutocompleteDropdown } from "../../../../../../shared/autocomplete-dropdown";
 import { StyledPlusCircleIcon } from "../../../../../../shared/styled-plus-circle-icon";
 import { dataTypeOptions } from "../shared/data-type-options";
+import { expectedValuesOptions } from "../shared/expected-values-options";
 import { PropertyTypeFormValues } from "../shared/property-type-form-values";
 import { CustomExpectedValueBuilder } from "./expected-value-selector/custom-expected-value-builder";
 import { ExpectedValueChip } from "./expected-value-selector/expected-value-chip";
@@ -24,7 +25,6 @@ import {
   CustomExpectedValueBuilderContext,
   useCustomExpectedValueBuilderContext,
 } from "./expected-value-selector/shared/custom-expected-value-builder-context";
-import { expectedValuesOptions } from "./expected-value-selector/shared/expected-values-options";
 
 const ExpectedValueSelectorDropdown = ({ children, ...props }: PaperProps) => {
   const {

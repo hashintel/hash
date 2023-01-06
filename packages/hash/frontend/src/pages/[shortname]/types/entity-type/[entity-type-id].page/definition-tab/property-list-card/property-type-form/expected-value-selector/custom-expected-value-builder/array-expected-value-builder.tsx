@@ -11,11 +11,11 @@ import {
   CustomExpectedValue,
   CustomExpectedValueTypeId,
 } from "../../../shared/expected-value-types";
+import { expectedValuesOptions } from "../../../shared/expected-values-options";
 import { PropertyTypeFormValues } from "../../../shared/property-type-form-values";
 import { CustomExpectedValueSelector } from "../shared/custom-expected-value-selector";
 import { DeleteExpectedValueModal } from "../shared/delete-expected-value-modal";
 import { ExpectedValueBadge } from "../shared/expected-value-badge";
-import { expectedValuesOptions } from "../shared/expected-values-options";
 import { ObjectExpectedValueBuilder } from "../shared/object-expected-value-builder";
 import { ArrayMinMaxItems } from "./array-expected-value-builder/array-min-max-items";
 
