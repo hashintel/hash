@@ -1,10 +1,16 @@
-import { faList, faListCheck } from "@fortawesome/free-solid-svg-icons";
+import {
+  faList,
+  faListCheck,
+  faListOl,
+  faListUl,
+} from "@fortawesome/free-solid-svg-icons";
 import { theme } from "@hashintel/hash-design-system";
 import { types } from "@hashintel/hash-shared/ontology-types";
 
 import { fa100 } from "../../../../../../../../shared/icons/pro/fa-100";
 import { faCube } from "../../../../../../../../shared/icons/pro/fa-cube";
 import { faCubes } from "../../../../../../../../shared/icons/pro/fa-cubes";
+import { faListTree } from "../../../../../../../../shared/icons/pro/fa-list-tree";
 import { faSquareCheck } from "../../../../../../../../shared/icons/pro/fa-square-check";
 import { faText } from "../../../../../../../../shared/icons/pro/fa-text";
 
@@ -56,7 +62,7 @@ export const expectedValuesOptions = {
   },
   textArray: {
     title: "Text Array",
-    icon: faListCheck.icon,
+    icon: faListUl.icon,
     colors: chipColors.blue,
   },
   booleanArray: {
@@ -66,7 +72,7 @@ export const expectedValuesOptions = {
   },
   numberArray: {
     title: "Number Array",
-    icon: faListCheck.icon,
+    icon: faListOl.icon,
     colors: chipColors.blue,
   },
   propertyObjectArray: {
@@ -81,7 +87,7 @@ export const expectedValuesOptions = {
   },
   arrayArray: {
     title: "Array of Arrays",
-    icon: faList.icon,
+    icon: faListTree,
     colors: chipColors.turquoise,
   },
 };
