@@ -1,15 +1,16 @@
-[github_banner]: https://hash.dev/?utm_medium=organic&utm_source=github_readme_hash-repo_root-header_banner
-[github_star]: https://github.com/hashintel/hash#
 [discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hash.ai]: https://hash.ai?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hash.dev]: https://hash.dev?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hash]: https://hash.ai/platform/hash?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hash engine]: https://hash.ai/platform/engine?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[hash roadmap]: https://hash.ai/roadmap?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hash user guide]: https://hash.ai/docs?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [glossary of terms]: https://hash.ai/glossary?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [block protocol]: https://github.com/blockprotocol/blockprotocol
 [hiring]: https://hash.ai/careers?utm_medium=organic&utm_source=github_readme_hash-repo_root
 
+[github_banner]: #hash
+[github_star]: https://github.com/hashintel/hash#
 [gh-what-is-hash]: #--what-is-hash
 [gh-getting-started]: #--getting-started
 [gh-examples]: #--examples
@@ -39,10 +40,13 @@ HASH does this by combining various different powerful tools together into one s
 - 🚀 &nbsp; **Quick-start (<5 mins):** try the full hosted platform at [hash.ai], ready to go in seconds
 - 🤖 &nbsp; **Self-hosting:** check out our developer site at [hash.dev] for a guide to running your own instance of HASH
 
-
 ## [![a](/.github/assets/gh_icon_examples_20px-base.svg)][gh-examples] &nbsp; Examples
 
+_Coming soon_
+
 ## [![a](/.github/assets/gh_icon_roadmap_20px-base.svg)][gh-roadmap] &nbsp; Roadmap
+
+Browse see the [HASH roadmap] at for more information about upcoming features and releases.
 
 ## [![a](/.github/assets/gh_icon_repo-structure_20px-base.svg)][gh-repo-structure] &nbsp; About this repository
 
