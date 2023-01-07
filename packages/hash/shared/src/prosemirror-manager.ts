@@ -436,8 +436,8 @@ export class ProsemirrorManager {
     if (
       targetChildEntity.metadata.editionId.baseId ===
         childEntity.metadata.editionId.baseId &&
-      targetChildEntity.metadata.editionId.version ===
-        childEntity.metadata.editionId.version
+      targetChildEntity.metadata.editionId.recordId ===
+        childEntity.metadata.editionId.recordId
     ) {
       return;
     }

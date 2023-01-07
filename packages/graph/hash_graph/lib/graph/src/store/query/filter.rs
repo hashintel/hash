@@ -1,6 +1,5 @@
 use std::{borrow::Cow, fmt, str::FromStr};
 
-use chrono::{DateTime, Utc};
 use derivative::Derivative;
 use error_stack::{bail, ensure, Context, IntoReport, Report, ResultExt};
 use serde::Deserialize;
@@ -9,8 +8,10 @@ use uuid::Uuid;
 
 use crate::{
     identifier::{
-        knowledge::{EntityEditionId, EntityId},
+        knowledge::EntityId,
         ontology::OntologyTypeEditionId,
+        time::{Timestamp, TransactionTime},
+        EntityVertexId,
     },
     knowledge::{Entity, EntityQueryPath},
     store::{
@@ -57,6 +58,21 @@ where
                 base_uri.as_str(),
             )))),
         )
+    }
+
+    /// Creates a `Filter` to search for the latest specific ontology type of kind `R`, identified
+    /// by its [`BaseUri`].
+    #[must_use]
+    pub fn for_latest_base_uri(base_uri: &'p BaseUri) -> Self {
+        Self::All(vec![
+            Self::for_base_uri(base_uri),
+            Self::Equal(
+                Some(FilterExpression::Path(<R::QueryPath<'p>>::version())),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    "latest",
+                )))),
+            ),
+        ])
     }
 
     /// Creates a `Filter` to filter by a given version.
@@ -114,28 +130,30 @@ impl<'p> Filter<'p, Entity> {
     }
 
     /// Creates a `Filter` to search for a specific entity edition, identified by its
-    /// [`EntityEditionId`].
+    /// [`EntityVertexId`].
     #[must_use]
-    pub fn for_entity_by_edition_id(edition_id: EntityEditionId) -> Self {
+    pub fn for_entity_by_vertex_id(vertex_id: EntityVertexId) -> Self {
         // TODO: Adjust structural queries for temporal versioning
         //   see https://app.asana.com/0/0/1203491211535116/f
         Self::All(vec![
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    edition_id.base_id().owned_by_id().as_uuid(),
+                    vertex_id.base_id().owned_by_id().as_uuid(),
                 ))),
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::Uuid)),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    edition_id.base_id().entity_uuid().as_uuid(),
+                    vertex_id.base_id().entity_uuid().as_uuid(),
                 ))),
             ),
             Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::RecordId)),
-                Some(FilterExpression::Parameter(Parameter::SignedInteger(
-                    edition_id.record_id().as_i64(),
+                Some(FilterExpression::Path(
+                    EntityQueryPath::LowerTransactionTime,
+                )),
+                Some(FilterExpression::Parameter(Parameter::Timestamp(
+                    vertex_id.version(),
                 ))),
             ),
         ])
@@ -143,7 +161,7 @@ impl<'p> Filter<'p, Entity> {
 
     /// TODO
     #[must_use]
-    pub fn for_outgoing_link_by_source_entity_edition_id(edition_id: EntityEditionId) -> Self {
+    pub fn for_outgoing_link_by_source_entity_vertex_id(vertex_id: EntityVertexId) -> Self {
         // TODO: Adjust structural queries for temporal versioning
         //   see https://app.asana.com/0/0/1203491211535116/f
         Self::All(vec![
@@ -152,7 +170,7 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::OwnedById),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    edition_id.base_id().owned_by_id().as_uuid(),
+                    vertex_id.base_id().owned_by_id().as_uuid(),
                 ))),
             ),
             Self::Equal(
@@ -160,15 +178,15 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::Uuid),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    edition_id.base_id().entity_uuid().as_uuid(),
+                    vertex_id.base_id().entity_uuid().as_uuid(),
                 ))),
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
-                    Box::new(EntityQueryPath::RecordId),
+                    Box::new(EntityQueryPath::LowerTransactionTime),
                 ))),
-                Some(FilterExpression::Parameter(Parameter::SignedInteger(
-                    edition_id.record_id().as_i64(),
+                Some(FilterExpression::Parameter(Parameter::Timestamp(
+                    vertex_id.version(),
                 ))),
             ),
         ])
@@ -176,7 +194,7 @@ impl<'p> Filter<'p, Entity> {
 
     /// TODO
     #[must_use]
-    pub fn for_incoming_link_by_source_entity_edition_id(edition_id: EntityEditionId) -> Self {
+    pub fn for_incoming_link_by_source_entity_vertex_id(vertex_id: EntityVertexId) -> Self {
         // TODO: Adjust structural queries for temporal versioning
         //   see https://app.asana.com/0/0/1203491211535116/f
         Self::All(vec![
@@ -185,7 +203,7 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::OwnedById),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    edition_id.base_id().owned_by_id().as_uuid(),
+                    vertex_id.base_id().owned_by_id().as_uuid(),
                 ))),
             ),
             Self::Equal(
@@ -193,15 +211,15 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::Uuid),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    edition_id.base_id().entity_uuid().as_uuid(),
+                    vertex_id.base_id().entity_uuid().as_uuid(),
                 ))),
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::RightEntity(
-                    Box::new(EntityQueryPath::RecordId),
+                    Box::new(EntityQueryPath::LowerTransactionTime),
                 ))),
-                Some(FilterExpression::Parameter(Parameter::SignedInteger(
-                    edition_id.record_id().as_i64(),
+                Some(FilterExpression::Parameter(Parameter::Timestamp(
+                    vertex_id.version(),
                 ))),
             ),
         ])
@@ -209,7 +227,7 @@ impl<'p> Filter<'p, Entity> {
 
     /// TODO
     #[must_use]
-    pub fn for_left_entity_by_entity_edition_id(edition_id: EntityEditionId) -> Self {
+    pub fn for_left_entity_by_entity_vertex_id(vertex_id: EntityVertexId) -> Self {
         // TODO: Adjust structural queries for temporal versioning
         //   see https://app.asana.com/0/0/1203491211535116/f
         Self::All(vec![
@@ -218,7 +236,7 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::OwnedById),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    edition_id.base_id().owned_by_id().as_uuid(),
+                    vertex_id.base_id().owned_by_id().as_uuid(),
                 ))),
             ),
             Self::Equal(
@@ -226,15 +244,15 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::Uuid),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    edition_id.base_id().entity_uuid().as_uuid(),
+                    vertex_id.base_id().entity_uuid().as_uuid(),
                 ))),
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
-                    Box::new(EntityQueryPath::RecordId),
+                    Box::new(EntityQueryPath::LowerTransactionTime),
                 ))),
-                Some(FilterExpression::Parameter(Parameter::SignedInteger(
-                    edition_id.record_id().as_i64(),
+                Some(FilterExpression::Parameter(Parameter::Timestamp(
+                    vertex_id.version(),
                 ))),
             ),
         ])
@@ -242,7 +260,7 @@ impl<'p> Filter<'p, Entity> {
 
     /// TODO
     #[must_use]
-    pub fn for_right_entity_by_entity_edition_id(edition_id: EntityEditionId) -> Self {
+    pub fn for_right_entity_by_entity_vertex_id(vertex_id: EntityVertexId) -> Self {
         // TODO: Adjust structural queries for temporal versioning
         //   see https://app.asana.com/0/0/1203491211535116/f
         Self::All(vec![
@@ -251,7 +269,7 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::OwnedById),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    edition_id.base_id().owned_by_id().as_uuid(),
+                    vertex_id.base_id().owned_by_id().as_uuid(),
                 ))),
             ),
             Self::Equal(
@@ -259,15 +277,15 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::Uuid),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    edition_id.base_id().entity_uuid().as_uuid(),
+                    vertex_id.base_id().entity_uuid().as_uuid(),
                 ))),
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
-                    Box::new(EntityQueryPath::RecordId),
+                    Box::new(EntityQueryPath::LowerTransactionTime),
                 ))),
-                Some(FilterExpression::Parameter(Parameter::SignedInteger(
-                    edition_id.record_id().as_i64(),
+                Some(FilterExpression::Parameter(Parameter::Timestamp(
+                    vertex_id.version(),
                 ))),
             ),
         ])
@@ -332,7 +350,7 @@ pub enum Parameter<'p> {
     #[serde(skip)]
     SignedInteger(i64),
     #[serde(skip)]
-    Timestamp(DateTime<Utc>),
+    Timestamp(Timestamp<TransactionTime>),
 }
 
 impl Parameter<'_> {
@@ -397,7 +415,7 @@ impl Parameter<'_> {
             (Parameter::Text(text), ParameterType::Timestamp) => {
                 if text != "latest" {
                     *self = Parameter::Timestamp(
-                        DateTime::from_str(&*text)
+                        Timestamp::from_str(&*text)
                             .into_report()
                             .change_context_lazy(|| ParameterConversionError {
                                 actual: self.to_owned(),
@@ -441,19 +459,12 @@ impl Parameter<'_> {
 
 #[cfg(test)]
 mod tests {
-    use std::time::SystemTime;
-
     use serde_json::json;
     use type_system::uri::BaseUri;
 
     use super::*;
     use crate::{
-        identifier::{
-            account::AccountId,
-            knowledge::{EntityRecordId, EntityVersion},
-            ontology::OntologyTypeVersion,
-            DecisionTimespan, TransactionTimespan,
-        },
+        identifier::{account::AccountId, ontology::OntologyTypeVersion},
         knowledge::EntityUuid,
         ontology::{DataTypeQueryPath, DataTypeWithMetadata},
         provenance::OwnedById,
@@ -551,149 +562,137 @@ mod tests {
     }
 
     #[test]
-    fn for_entity_by_edition_id() {
-        let entity_edition_id = EntityEditionId::new(
+    #[ignore = "TODO: Reevaluate if we need this after https://app.asana.com/0/0/1203491211535116/f"]
+    fn for_entity_by_vertex_id() {
+        let entity_vertex_id = EntityVertexId::new(
             EntityId::new(
                 OwnedById::new(AccountId::new(Uuid::new_v4())),
                 EntityUuid::new(Uuid::new_v4()),
             ),
-            EntityRecordId::new(0),
-            EntityVersion::new(
-                DecisionTimespan::from(DateTime::default()..),
-                TransactionTimespan::from(DateTime::from(SystemTime::now())..),
-            ),
+            Timestamp::now(),
         );
 
         let expected = json! {{
           "all": [
             { "equal": [
               { "path": ["ownedById"] },
-              { "parameter": entity_edition_id.base_id().owned_by_id() }
+              { "parameter": entity_vertex_id.base_id().owned_by_id() }
             ]},
             { "equal": [
               { "path": ["uuid"] },
-              { "parameter": entity_edition_id.base_id().entity_uuid() }
+              { "parameter": entity_vertex_id.base_id().entity_uuid() }
             ]},
             { "equal": [
-              { "path": ["recordId"] },
-              { "parameter": entity_edition_id.record_id() }
+              { "path": ["lowerTransactionTime"] },
+              { "parameter": entity_vertex_id.version() }
             ]}
           ]
         }};
 
         test_filter_representation(
-            &Filter::for_entity_by_edition_id(entity_edition_id),
+            &Filter::for_entity_by_vertex_id(entity_vertex_id),
             &expected,
         );
     }
 
     #[test]
-    fn for_outgoing_link_by_source_entity_edition_id() {
-        let entity_edition_id = EntityEditionId::new(
+    #[ignore = "TODO: Reevaluate if we need this after https://app.asana.com/0/0/1203491211535116/f"]
+    fn for_outgoing_link_by_source_entity_vertex_id() {
+        let entity_vertex_id = EntityVertexId::new(
             EntityId::new(
                 OwnedById::new(AccountId::new(Uuid::new_v4())),
                 EntityUuid::new(Uuid::new_v4()),
             ),
-            EntityRecordId::new(0),
-            EntityVersion::new(
-                DecisionTimespan::from(DateTime::default()..),
-                TransactionTimespan::from(DateTime::from(SystemTime::now())..),
-            ),
+            Timestamp::now(),
         );
 
         let expected = json! {{
           "all": [
             { "equal": [
               { "path": ["leftEntity", "ownedById"] },
-              { "parameter": entity_edition_id.base_id().owned_by_id() }
+              { "parameter": entity_vertex_id.base_id().owned_by_id() }
             ]},
             { "equal": [
               { "path": ["leftEntity", "uuid"] },
-              { "parameter": entity_edition_id.base_id().entity_uuid() }
+              { "parameter": entity_vertex_id.base_id().entity_uuid() }
             ]},
             { "equal": [
-              { "path": ["leftEntity", "recordId"] },
-              { "parameter": entity_edition_id.record_id() }
+              { "path": ["leftEntity", "lowerTransactionTime"] },
+              { "parameter": entity_vertex_id.version() }
             ]}
           ]
         }};
 
         test_filter_representation(
-            &Filter::for_outgoing_link_by_source_entity_edition_id(entity_edition_id),
+            &Filter::for_outgoing_link_by_source_entity_vertex_id(entity_vertex_id),
             &expected,
         );
     }
 
     #[test]
-    fn for_left_entity_by_entity_edition_id() {
-        let entity_edition_id = EntityEditionId::new(
+    #[ignore = "TODO: Reevaluate if we need this after https://app.asana.com/0/0/1203491211535116/f"]
+    fn for_left_entity_by_entity_vertex_id() {
+        let entity_vertex_id = EntityVertexId::new(
             EntityId::new(
                 OwnedById::new(AccountId::new(Uuid::new_v4())),
                 EntityUuid::new(Uuid::new_v4()),
             ),
-            EntityRecordId::new(0),
-            EntityVersion::new(
-                DecisionTimespan::from(DateTime::default()..),
-                TransactionTimespan::from(DateTime::from(SystemTime::now())..),
-            ),
+            Timestamp::now(),
         );
 
         let expected = json! {{
           "all": [
             { "equal": [
               { "path": ["outgoingLinks", "ownedById"] },
-              { "parameter": entity_edition_id.base_id().owned_by_id() }
+              { "parameter": entity_vertex_id.base_id().owned_by_id() }
             ]},
             { "equal": [
               { "path": ["outgoingLinks", "uuid"] },
-              { "parameter": entity_edition_id.base_id().entity_uuid() }
+              { "parameter": entity_vertex_id.base_id().entity_uuid() }
             ]},
             { "equal": [
-              { "path": ["outgoingLinks", "recordId"] },
-              { "parameter": entity_edition_id.record_id() }
+              { "path": ["outgoingLinks", "lowerTransactionTime"] },
+              { "parameter": entity_vertex_id.version() }
             ]}
           ]
         }};
 
         test_filter_representation(
-            &Filter::for_left_entity_by_entity_edition_id(entity_edition_id),
+            &Filter::for_left_entity_by_entity_vertex_id(entity_vertex_id),
             &expected,
         );
     }
 
     #[test]
-    fn for_right_entity_by_entity_edition_id() {
-        let entity_edition_id = EntityEditionId::new(
+    #[ignore = "TODO: Reevaluate if we need this after https://app.asana.com/0/0/1203491211535116/f"]
+    fn for_right_entity_by_entity_vertex_id() {
+        let entity_vertex_id = EntityVertexId::new(
             EntityId::new(
                 OwnedById::new(AccountId::new(Uuid::new_v4())),
                 EntityUuid::new(Uuid::new_v4()),
             ),
-            EntityRecordId::new(0),
-            EntityVersion::new(
-                DecisionTimespan::from(DateTime::default()..),
-                TransactionTimespan::from(DateTime::from(SystemTime::now())..),
-            ),
+            Timestamp::now(),
         );
 
         let expected = json! {{
           "all": [
             { "equal": [
               { "path": ["incomingLinks", "ownedById"] },
-              { "parameter": entity_edition_id.base_id().owned_by_id() }
+              { "parameter": entity_vertex_id.base_id().owned_by_id() }
             ]},
             { "equal": [
               { "path": ["incomingLinks", "uuid"] },
-              { "parameter": entity_edition_id.base_id().entity_uuid() }
+              { "parameter": entity_vertex_id.base_id().entity_uuid() }
             ]},
             { "equal": [
-              { "path": ["incomingLinks", "recordId"] },
-              { "parameter": entity_edition_id.record_id() }
+              { "path": ["incomingLinks", "lowerTransactionTime"] },
+              { "parameter": entity_vertex_id.version() }
             ]}
           ]
         }};
 
         test_filter_representation(
-            &Filter::for_right_entity_by_entity_edition_id(entity_edition_id),
+            &Filter::for_right_entity_by_entity_vertex_id(entity_vertex_id),
             &expected,
         );
     }

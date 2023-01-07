@@ -86,7 +86,9 @@ impl NngReceiver {
 
     pub fn init(&self, init_msg: &ExperimentInitRunnerMsg) -> PythonResult<()> {
         let _init_request = self.from_py.recv()?;
-        self.from_py // Only case where `from_py` is used for sending
+
+        // Only case where `from_py` is used for sending
+        self.from_py
             .send(experiment_init_to_nng(init_msg)?)
             .map_err(|(msg, err)| PythonError::NngSend(msg, err))?;
 

@@ -1,9 +1,16 @@
-import { BaseUri } from "@blockprotocol/type-system";
+import {
+  BaseUri,
+  PropertyTypeReference,
+  ValueOrArray,
+} from "@blockprotocol/type-system";
 import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { getPropertyTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 import { get } from "lodash";
 
-import { isPropertyValueNested } from "../../../../../../../../../lib/typeguards";
+import {
+  isPropertyValueArray,
+  isPropertyValueNested,
+} from "../../../../../../../../../lib/typeguards";
 import { PropertyRow } from "../../types";
 import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property-type";
 
@@ -44,7 +51,7 @@ export const generatePropertyRowRecursively = ({
   entitySubgraph,
   requiredPropertyTypes,
   depth = 0,
-  isAllowMultiple = false,
+  propertyOnEntityTypeSchema,
 }: {
   propertyTypeBaseUri: BaseUri;
   propertyKeyChain: BaseUri[];
@@ -52,7 +59,8 @@ export const generatePropertyRowRecursively = ({
   entitySubgraph: Subgraph<SubgraphRootTypes["entity"]>;
   requiredPropertyTypes: BaseUri[];
   depth?: number;
-  isAllowMultiple?: boolean;
+
+  propertyOnEntityTypeSchema?: ValueOrArray<PropertyTypeReference>;
 }): PropertyRow => {
   const propertyTypeVersions = getPropertyTypesByBaseUri(
     entitySubgraph,
@@ -71,6 +79,9 @@ export const generatePropertyRowRecursively = ({
   const { isArray: isPropertyTypeArray, expectedTypes } =
     getExpectedTypesOfPropertyType(propertyType, entitySubgraph);
 
+  const isAllowMultiple =
+    !!propertyOnEntityTypeSchema && "type" in propertyOnEntityTypeSchema;
+
   const isArray = isPropertyTypeArray || isAllowMultiple;
 
   const required = !!requiredPropertyTypes.includes(propertyTypeBaseUri);
@@ -81,10 +92,11 @@ export const generatePropertyRowRecursively = ({
   const children: PropertyRow[] = [];
 
   const firstOneOf = propertyType.oneOf[0];
-  const isNested = isPropertyValueNested(firstOneOf);
+  const isFirstOneOfNested = isPropertyValueNested(firstOneOf);
+  const isFirstOneOfArray = isPropertyValueArray(firstOneOf);
 
   // if first `oneOf` of property type is nested property, it means it should have children
-  if (isNested) {
+  if (isFirstOneOfNested) {
     for (const subPropertyTypeBaseUri of Object.keys(firstOneOf.properties)) {
       children.push(
         generatePropertyRowRecursively({
@@ -103,12 +115,32 @@ export const generatePropertyRowRecursively = ({
 
   const rowId = propertyKeyChain.join(".");
 
+  const minMaxConfig: Pick<PropertyRow, "maxItems" | "minItems"> = {};
+
+  // set minItems - maxItems
+  if (isArray) {
+    /**
+     * since "array of arrays" is not supported on entity editor yet,
+     * we're checking if "entity type schema allows multiple of one property"
+     * or
+     * "property type is an array"
+     */
+    if (isAllowMultiple) {
+      minMaxConfig.maxItems = propertyOnEntityTypeSchema.maxItems;
+      minMaxConfig.minItems = propertyOnEntityTypeSchema.minItems;
+    } else if (isFirstOneOfArray) {
+      minMaxConfig.maxItems = firstOneOf.maxItems;
+      minMaxConfig.minItems = firstOneOf.minItems;
+    }
+  }
+
   return {
     rowId,
     title: propertyType.title,
     value,
     expectedTypes,
     isArray,
+    ...minMaxConfig,
     required,
     depth,
     children,

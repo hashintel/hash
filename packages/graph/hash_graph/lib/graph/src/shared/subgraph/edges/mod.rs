@@ -1,6 +1,6 @@
 use std::collections::{hash_map::Entry, HashMap, HashSet};
 
-use crate::identifier::{knowledge::EntityEditionId, ontology::OntologyTypeEditionId};
+use crate::identifier::{ontology::OntologyTypeEditionId, EntityVertexId};
 
 mod edge;
 mod kind;
@@ -16,16 +16,16 @@ pub use self::{
 #[derive(Default, Debug)]
 pub struct Edges {
     pub ontology: HashMap<OntologyTypeEditionId, HashSet<OntologyOutwardEdges>>,
-    pub knowledge_graph: HashMap<EntityEditionId, HashSet<KnowledgeGraphOutwardEdges>>,
+    pub knowledge_graph: HashMap<EntityVertexId, HashSet<KnowledgeGraphOutwardEdges>>,
 }
 
 pub enum Edge {
     Ontology {
-        edition_id: OntologyTypeEditionId,
+        vertex_id: OntologyTypeEditionId,
         outward_edge: OntologyOutwardEdges,
     },
     KnowledgeGraph {
-        edition_id: EntityEditionId,
+        vertex_id: EntityVertexId,
         outward_edge: KnowledgeGraphOutwardEdges,
     },
 }
@@ -45,9 +45,9 @@ impl Edges {
     pub fn insert(&mut self, edge: Edge) -> bool {
         match edge {
             Edge::Ontology {
-                edition_id,
+                vertex_id,
                 outward_edge,
-            } => match self.ontology.entry(edition_id) {
+            } => match self.ontology.entry(vertex_id) {
                 Entry::Occupied(entry) => entry.into_mut().insert(outward_edge),
                 Entry::Vacant(entry) => {
                     entry.insert(HashSet::from([outward_edge]));
@@ -55,9 +55,9 @@ impl Edges {
                 }
             },
             Edge::KnowledgeGraph {
-                edition_id,
+                vertex_id,
                 outward_edge,
-            } => match self.knowledge_graph.entry(edition_id) {
+            } => match self.knowledge_graph.entry(vertex_id) {
                 Entry::Occupied(entry) => entry.into_mut().insert(outward_edge),
                 Entry::Vacant(entry) => {
                     entry.insert(HashSet::from([outward_edge]));
@@ -68,8 +68,8 @@ impl Edges {
     }
 
     pub fn extend(&mut self, other: Self) {
-        for (edition_id, edges) in other.ontology {
-            match self.ontology.entry(edition_id) {
+        for (vertex_id, edges) in other.ontology {
+            match self.ontology.entry(vertex_id) {
                 Entry::Occupied(entry) => entry.into_mut().extend(edges),
                 Entry::Vacant(entry) => {
                     entry.insert(edges);
@@ -77,8 +77,8 @@ impl Edges {
             }
         }
 
-        for (edition_id, edges) in other.knowledge_graph {
-            match self.knowledge_graph.entry(edition_id) {
+        for (vertex_id, edges) in other.knowledge_graph {
+            match self.knowledge_graph.entry(vertex_id) {
                 Entry::Occupied(entry) => entry.into_mut().extend(edges),
                 Entry::Vacant(entry) => {
                     entry.insert(edges);

@@ -8,7 +8,6 @@ import {
   AggregateEntityTypesMessageCallback,
   AggregatePropertyTypesMessageCallback,
 } from "../../components/hooks/block-protocol-functions/ontology/ontology-types-shim";
-import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { NextPageWithLayout } from "../../shared/layout";
 import { Button } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
@@ -108,11 +107,8 @@ const Page: NextPageWithLayout = () => {
   // The user is important to allow using Block Protocol functions
   // such as: `const functions = useBlockProtocolFunctionsWithOntology(user.accountId);`
   const { authenticatedUser } = useAuthenticatedUser();
-  const loadingTypeSystem = useInitTypeSystem();
 
-  return loadingTypeSystem ? (
-    <Container sx={{ pt: 10 }}>Loading...</Container>
-  ) : (
+  return (
     <Container sx={{ pt: 10 }}>
       Hello!
       <ExampleUsage accountId={authenticatedUser.accountId} />
