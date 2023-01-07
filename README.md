@@ -10,19 +10,43 @@
 [block protocol]: https://github.com/blockprotocol/blockprotocol
 [hiring]: https://hash.ai/careers?utm_medium=organic&utm_source=github_readme_hash-repo_root
 
+[gh-what-is-hash]: #--what-is-hash
+[gh-getting-started]: #--getting-started
+[gh-examples]: #--examples
+[gh-roadmap]: #--roadmap
+[gh-repo-structure]: #--about-this-repository
+[gh-contributing]: #--contributing
+[gh-license]: #--license
+[gh-security]: #--security
+[gh-contact]: #--contact
+
 [![github_banner](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/ec83e48d-5a46-4c3f-a603-5d9fc43ff400/github)][github_banner]
 
 [![discord](https://img.shields.io/discord/840573247803097118)][discord] [![github_star](https://img.shields.io/github/stars/hashintel/hash?label=Star%20on%20GitHub&style=social)][github_star]
 
 # HASH
 
-## Welcome
+This is HASH's _public monorepo_ which contains our public code, docs, and other key resources.
 
-This is HASH's _public monorepo_ which contains our open-source, fair-source and commons-licensed code, docs, and other key resources. You can learn more about our big picture vision at [hash.dev] or sign up for free to the hosted version at [hash.ai] 
+## [![a](/.github/assets/gh_icon_what-is-hash_20px-base.svg)][gh-what-is-hash] &nbsp; What is HASH?
 
-## Repository structure
+**HASH is a platform for decision-making, which helps you integrate, understand and use data in a variety of different ways.**
 
-### Top-level
+HASH does this by combining various different powerful tools together into one simple interface. These range from data pipelines and a graph database, through to an all-in-one workspace, no-code tool builder, and agent-based simulation engine.
+
+## [![a](/.github/assets/gh_icon_getting-started_20px-base.svg)][gh-getting-started] &nbsp; Getting started
+
+- **Quick-start:** try the full, infinitely-scalable hosted platform at [hash.ai] to see what all the fuss is about
+- **Self-hosting:** check out our developer site at [hash.dev] 
+
+
+## [![a](/.github/assets/gh_icon_examples_20px-base.svg)][gh-examples] &nbsp; Examples
+
+## [![a](/.github/assets/gh_icon_roadmap_20px-base.svg)][gh-roadmap] &nbsp; Roadmap
+
+## [![a](/.github/assets/gh_icon_repo-structure_20px-base.svg)][gh-repo-structure] &nbsp; About this repository
+
+### Top-level layout
 
 This repository's contents is divided across four primary sections:
 
@@ -31,9 +55,9 @@ This repository's contents is divided across four primary sections:
 - [`/infra`- infrastructure](#infrastructure): deployment scripts and other tools used to run our apps
 - [`/libs` - libraries](#libraries): includes npm packages and Rust crates
 
-### Applications
+### Applications 
 
-#### Site code and content
+Site code and content:
 
 - [`/apps/hashdotai`](apps/hashdotai): contains the [HASH user guide] and [glossary of terms] content
 - [`/apps/hashdotdev`](apps/hashdotdev): contains the [hash.dev] developer-education website content and code
@@ -52,22 +76,24 @@ This repository's contents is divided across four primary sections:
 - [`/packages/engine`](packages/engine): codebase for our next-gen version of [HASH Engine] - a versatile agent-based simulation engine written in Rust
 - [`/packages/libs`](packages/libs): source code for our open-source developer libraries
 
-## Contributing
+## [![a](/.github/assets/gh_icon_contributing_20px-base.svg)][gh-contributing] &nbsp; Contributing
 
 Please see [CONTRIBUTING](CONTRIBUTING.md) if you're interested in getting involved in the design or development of HASH.
 
 We're also [hiring] for a number of key roles. If you contribute to HASH's public monorepo be sure to mention this in your application.
 
-## License
+## [![a](/.github/assets/gh_icon_license_20px-base.svg)][gh-license] &nbsp; License
 
-Please see [LICENSE](LICENSE.md) for more information about the terms under which the various parts of this repository are made available
+Please see [LICENSE](LICENSE.md) for more information about the terms under which the various parts of this repository are made available.
 
-## Security
+## [![a](/.github/assets/gh_icon_security_20px-base.svg)][gh-security] &nbsp; Security
 
-Please see [SECURITY](SECURITY.md) for instructions around reporting issues, and details of which package versions we actively support
+Please see [SECURITY](SECURITY.md) for instructions around reporting issues, and details of which package versions we actively support.
 
-## Contact
+## [![a](/.github/assets/gh_icon_contact_20px-base.svg)][gh-contact] &nbsp; Contact
 
-Find us on Twitter at [@hashintel](https://twitter.com/hashintel), or join our [Discord] community for quick help and support.
+Find us on Twitter at [@hashintel](https://twitter.com/hashintel), or email [support@hash.ai](mailto:support@hash.ai)
+
+You can also join our [Discord] community for quick help and support.
 
 Project permalink: `https://github.com/hashintel/hash`
