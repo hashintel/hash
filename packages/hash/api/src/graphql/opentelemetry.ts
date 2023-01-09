@@ -31,7 +31,7 @@ export const registerOpenTelemetryTracing = (
   otlpGrpcEndpoint: string | null,
 ): (() => void) => {
   if (!otlpGrpcEndpoint) {
-    logger.info(
+    logger.warn(
       "No OpenTelemetry Protocol endpoint given. Not sending tracespans anywhere.",
     );
     return () => {};
