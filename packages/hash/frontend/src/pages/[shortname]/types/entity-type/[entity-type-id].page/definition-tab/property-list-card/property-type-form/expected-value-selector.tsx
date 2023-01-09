@@ -18,6 +18,8 @@ import { AutocompleteDropdown } from "../../../../../../shared/autocomplete-drop
 import { StyledPlusCircleIcon } from "../../../../../../shared/styled-plus-circle-icon";
 import { useStateCallback } from "../../shared/use-state-callback";
 import { dataTypeOptions } from "../shared/data-type-options";
+import { FlattenedCustomExpectedValueList } from "../shared/expected-value-types";
+import { getExpectedValueDescriptor } from "../shared/get-expected-value-descriptor";
 import { PropertyTypeFormValues } from "../shared/property-type-form-values";
 import { CustomExpectedValueBuilder } from "./expected-value-selector/custom-expected-value-builder";
 import { ExpectedValueChip } from "./expected-value-selector/expected-value-chip";
@@ -34,11 +36,47 @@ const ExpectedValueSelectorDropdown = ({ children, ...props }: PaperProps) => {
     closeCustomExpectedValueBuilder,
   } = useCustomExpectedValueBuilderContext();
 
+  const { getValues, setValue } = useFormContext<PropertyTypeFormValues>();
+
+  const handleSave = (newValues: FlattenedCustomExpectedValueList) => {
+    const [
+      customExpectedValueId,
+      editingExpectedValueIndex,
+      existingExpectedValues,
+    ] = getValues([
+      "customExpectedValueId",
+      "editingExpectedValueIndex",
+      "expectedValues",
+    ]);
+
+    if (!customExpectedValueId) {
+      throw new Error("Cannot save if not editing");
+    }
+
+    const expectedValue = getExpectedValueDescriptor(
+      customExpectedValueId,
+      newValues,
+    );
+
+    const newExpectedValues = [...existingExpectedValues];
+
+    if (editingExpectedValueIndex !== undefined) {
+      newExpectedValues[editingExpectedValueIndex] = expectedValue;
+    } else {
+      newExpectedValues.push(expectedValue);
+    }
+    setValue("expectedValues", newExpectedValues);
+    setValue("flattenedCustomExpectedValueList", newValues);
+
+    closeCustomExpectedValueBuilder();
+  };
+
   return (
     <AutocompleteDropdown {...props}>
       {customExpectedValueBuilderOpen ? (
         <CustomExpectedValueBuilder
-          closeMenu={closeCustomExpectedValueBuilder}
+          onCancel={closeCustomExpectedValueBuilder}
+          onSave={handleSave}
         />
       ) : (
         <>

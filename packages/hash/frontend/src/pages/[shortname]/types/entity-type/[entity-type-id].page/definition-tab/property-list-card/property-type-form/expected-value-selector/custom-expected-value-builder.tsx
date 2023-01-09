@@ -15,12 +15,12 @@ import {
   Typography,
 } from "@mui/material";
 import { uniqueId } from "lodash";
-import { FunctionComponent } from "react";
+import { FunctionComponent, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import { faCube } from "../../../../../../../../../shared/icons/pro/fa-cube";
 import { getDefaultExpectedValue } from "../../shared/default-expected-value";
-import { getExpectedValueDescriptor } from "../../shared/get-expected-value-descriptor";
+import { FlattenedCustomExpectedValueList } from "../../shared/expected-value-types";
 import { PropertyTypeFormValues } from "../../shared/property-type-form-values";
 import { ArrayExpectedValueBuilder } from "./custom-expected-value-builder/array-expected-value-builder";
 import { useCustomExpectedValueBuilderContext } from "./shared/custom-expected-value-builder-context";
@@ -76,23 +76,19 @@ const ExpectedValueBuilder: FunctionComponent<ExpectedValueBuilderProps> = ({
 };
 
 type CustomExpectedValueBuilderProps = {
-  closeMenu: () => void;
+  onCancel: () => void;
+  onSave: (updatedValues: FlattenedCustomExpectedValueList) => void;
 };
 
 export const CustomExpectedValueBuilder: FunctionComponent<
   CustomExpectedValueBuilderProps
-> = ({ closeMenu }) => {
+> = ({ onCancel, onSave }) => {
   const { getValues, setValue, control } =
     useFormContext<PropertyTypeFormValues>();
 
   const customExpectedValueId = useWatch({
     control,
     name: "customExpectedValueId",
-  });
-
-  const editingExpectedValueIndex = useWatch({
-    control,
-    name: "editingExpectedValueIndex",
   });
 
   return (
@@ -128,7 +124,7 @@ export const CustomExpectedValueBuilder: FunctionComponent<
           </Stack>
 
           <Button
-            onClick={closeMenu}
+            onClick={onCancel}
             sx={({ palette, transitions }) => ({
               padding: 0,
               minWidth: 0,
@@ -277,25 +273,7 @@ export const CustomExpectedValueBuilder: FunctionComponent<
           <Button
             size="small"
             onClick={() => {
-              const flattenedExpectedValues = getValues(
-                "flattenedCustomExpectedValueList",
-              );
-
-              const expectedValue = getExpectedValueDescriptor(
-                customExpectedValueId,
-                flattenedExpectedValues,
-              );
-
-              const newExpectedValues = [...getValues("expectedValues")];
-
-              if (editingExpectedValueIndex !== undefined) {
-                newExpectedValues[editingExpectedValueIndex] = expectedValue;
-              } else {
-                newExpectedValues.push(expectedValue);
-              }
-              setValue(`expectedValues`, newExpectedValues);
-
-              closeMenu();
+              onSave(getValues("flattenedCustomExpectedValueList"));
             }}
           >
             Save expected value
