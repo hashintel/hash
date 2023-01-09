@@ -82,9 +82,6 @@ type CustomExpectedValueBuilderProps = {
 export const CustomExpectedValueBuilder: FunctionComponent<
   CustomExpectedValueBuilderProps
 > = ({ closeMenu }) => {
-  const { closeCustomExpectedValueBuilder } =
-    useCustomExpectedValueBuilderContext();
-
   const { getValues, setValue, control } =
     useFormContext<PropertyTypeFormValues>();
 
@@ -290,6 +287,7 @@ export const CustomExpectedValueBuilder: FunctionComponent<
               );
 
               const newExpectedValues = [...getValues("expectedValues")];
+
               if (editingExpectedValueIndex !== undefined) {
                 newExpectedValues[editingExpectedValueIndex] = expectedValue;
               } else {
@@ -297,7 +295,7 @@ export const CustomExpectedValueBuilder: FunctionComponent<
               }
               setValue(`expectedValues`, newExpectedValues);
 
-              closeCustomExpectedValueBuilder();
+              closeMenu();
             }}
           >
             Save expected value
