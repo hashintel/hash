@@ -64,7 +64,7 @@ fn invalid_bounds() -> ! {
     panic!("interval lower bound must be less than or equal to its upper bound")
 }
 
-#[cfg(all(test, feature = "canonicalize", feature = "continuous"))]
+#[cfg(all(test, feature = "canonicalize"))]
 mod tests {
     use core::ops::Bound;
 

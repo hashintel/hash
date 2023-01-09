@@ -51,7 +51,7 @@ impl<T> Interval<T> for CanonicalInterval<T> {
     where
         T: PartialOrd,
     {
-        match lower.cmp_upper_values(&upper) {
+        match lower.cmp_values(&upper) {
             Ordering::Less => Self::NonEmpty { lower, upper },
             Ordering::Equal => Self::empty(),
             Ordering::Greater => invalid_bounds(),

@@ -120,15 +120,6 @@ pub trait LowerBoundComparison<T: PartialOrd>: LowerBound<T> {
         )
     }
 
-    fn cmp_lower_values(&self, other: &impl LowerBound<T>) -> Ordering {
-        compare_bound_values(
-            self.as_bound(),
-            other.as_bound(),
-            BoundType::Lower,
-            BoundType::Lower,
-        )
-    }
-
     fn cmp_upper(&self, other: &impl UpperBound<T>) -> Ordering {
         compare_bounds(
             self.as_bound(),
@@ -138,7 +129,8 @@ pub trait LowerBoundComparison<T: PartialOrd>: LowerBound<T> {
         )
     }
 
-    fn cmp_upper_values(&self, other: &impl UpperBound<T>) -> Ordering {
+    #[cfg(any(feature = "canonical", feature = "continuous"))]
+    fn cmp_values(&self, other: &impl UpperBound<T>) -> Ordering {
         compare_bound_values(
             self.as_bound(),
             other.as_bound(),
@@ -168,35 +160,11 @@ pub trait UpperBoundComparison<T: PartialEq>: UpperBound<T> {
         )
     }
 
-    fn cmp_lower_values(&self, other: &impl LowerBound<T>) -> Ordering
-    where
-        T: PartialOrd,
-    {
-        compare_bound_values(
-            self.as_bound(),
-            other.as_bound(),
-            BoundType::Upper,
-            BoundType::Lower,
-        )
-    }
-
     fn cmp_upper(&self, other: &impl UpperBound<T>) -> Ordering
     where
         T: PartialOrd,
     {
         compare_bounds(
-            self.as_bound(),
-            other.as_bound(),
-            BoundType::Upper,
-            BoundType::Upper,
-        )
-    }
-
-    fn cmp_upper_values(&self, other: &impl UpperBound<T>) -> Ordering
-    where
-        T: PartialOrd,
-    {
-        compare_bound_values(
             self.as_bound(),
             other.as_bound(),
             BoundType::Upper,
@@ -226,6 +194,7 @@ enum BoundType {
     Upper,
 }
 
+#[cfg(any(feature = "canonical", feature = "continuous"))]
 fn compare_bound_values<T: PartialOrd>(
     lhs: Bound<&T>,
     rhs: Bound<&T>,
