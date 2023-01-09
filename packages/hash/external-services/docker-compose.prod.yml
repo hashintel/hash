@@ -66,7 +66,7 @@ services:
       HASH_GRAPH_PG_PORT: "5432"
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
       HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
-      HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN: "${FRONTEND_URL}/@(?P<shortname>[\\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))/[\\w-]+/"
+      HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN: "${FRONTEND_URL}/@(?P<shortname>[\\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))/[\\w\\-_%]+/"
       RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-info}"
       RUST_BACKTRACE: 1
     ports:

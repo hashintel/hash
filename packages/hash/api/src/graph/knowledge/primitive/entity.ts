@@ -36,7 +36,7 @@ import {
 export type CreateEntityParams = {
   ownedById: OwnedById;
   properties: PropertyObject;
-  entityType: EntityTypeWithMetadata;
+  entityTypeId: VersionedUri;
   entityUuid?: EntityUuid;
   actorId: AccountId;
 };
@@ -59,7 +59,7 @@ export const createEntity: ImpureGraphFunction<
 > = async ({ graphApi }, params) => {
   const {
     ownedById,
-    entityType,
+    entityTypeId,
     properties,
     actorId,
     entityUuid: overrideEntityUuid,
@@ -67,7 +67,7 @@ export const createEntity: ImpureGraphFunction<
 
   const { data: metadata } = await graphApi.createEntity({
     ownedById,
-    entityTypeId: entityType.schema.$id,
+    entityTypeId,
     properties,
     entityUuid: overrideEntityUuid,
     actorId,
@@ -193,7 +193,7 @@ export const getOrCreateEntity: ImpureGraphFunction<
       { graphApi },
       {
         ownedById,
-        entityType,
+        entityTypeId: entityType.schema.$id,
         properties: entityProperties,
         actorId,
       },
