@@ -3,7 +3,13 @@ use std::{iter::repeat, str::FromStr};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use graph::{
-    identifier::account::AccountId,
+    identifier::{
+        account::AccountId,
+        time::{
+            TimespanBound, UnresolvedImage, UnresolvedKernel, UnresolvedProjection,
+            UnresolvedTimeProjection,
+        },
+    },
     knowledge::{EntityMetadata, EntityProperties},
     provenance::{OwnedById, UpdatedById},
     store::{query::Filter, AccountStore, EntityStore, Store as _, Transaction},
@@ -111,6 +117,13 @@ pub fn bench_get_entity_by_id(
                 .get_entity(&StructuralQuery {
                     filter: Filter::for_entity_by_entity_id(entity_edition_id.base_id()),
                     graph_resolve_depths: GraphResolveDepths::default(),
+                    time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                        kernel: UnresolvedKernel::new(None),
+                        image: UnresolvedImage::new(
+                            Some(TimespanBound::Unbounded),
+                            Some(TimespanBound::Unbounded),
+                        ),
+                    }),
                 })
                 .await
                 .expect("failed to read entity from store");
