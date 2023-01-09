@@ -49,6 +49,36 @@ test("Graph API subgraph type is compatible with library type", () => {
         outgoing: 0,
       },
     },
+    timeProjection: {
+      kernel: {
+        axis: "transaction",
+        timestamp: undefined,
+      },
+      image: {
+        axis: "decision",
+        start: {
+          bound: "unbounded",
+        },
+        end: {
+          bound: "unbounded",
+        },
+      },
+    },
+    resolvedTimeProjection: {
+      kernel: {
+        axis: "transaction",
+        timestamp: "2022-01-01T0:0:0",
+      },
+      image: {
+        axis: "decision",
+        start: {
+          bound: "unbounded",
+        },
+        end: {
+          bound: "unbounded",
+        },
+      },
+    },
   };
 
   // We just want to check for errors in the type when building the object, no need to use the return value
@@ -57,5 +87,7 @@ test("Graph API subgraph type is compatible with library type", () => {
     vertices: mapVertices(subgraphGraphApi.vertices),
     edges: mapEdges(subgraphGraphApi.edges),
     depths: subgraphGraphApi.depths,
+    timeProjection: subgraphGraphApi.timeProjection,
+    resolvedTimeProjection: subgraphGraphApi.resolvedTimeProjection,
   };
 });

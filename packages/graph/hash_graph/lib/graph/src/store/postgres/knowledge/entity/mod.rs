@@ -13,7 +13,7 @@ use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
         ontology::OntologyTypeEditionId,
-        time::{DecisionTimeVersionTimespan, DecisionTimestamp, TransactionTimeVersionTimespan},
+        time::{DecisionTime, Timestamp, VersionTimespan},
         EntityVertexId,
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
@@ -251,7 +251,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         &mut self,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
-        decision_time: Option<DecisionTimestamp>,
+        decision_time: Option<Timestamp<DecisionTime>>,
         updated_by_id: UpdatedById,
         archived: bool,
         entity_type_id: VersionedUri,
@@ -328,8 +328,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(EntityMetadata::new(
             EntityEditionId::new(entity_id, EntityRecordId::new(row.get(0))),
             EntityVersion::new(
-                DecisionTimeVersionTimespan::from_anonymous(row.get(1)),
-                TransactionTimeVersionTimespan::from_anonymous(row.get(2)),
+                VersionTimespan::from_anonymous(row.get(1)),
+                VersionTimespan::from_anonymous(row.get(2)),
             ),
             entity_type_id,
             ProvenanceMetadata::new(updated_by_id),
@@ -347,7 +347,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 Option<EntityUuid>,
                 EntityProperties,
                 Option<LinkData>,
-                Option<DecisionTimestamp>,
+                Option<Timestamp<DecisionTime>>,
             ),
             IntoIter: Send,
         > + Send,
@@ -431,9 +431,14 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let StructuralQuery {
             ref filter,
             graph_resolve_depths,
+            ref time_projection,
         } = *query;
 
-        let mut subgraph = Subgraph::new(graph_resolve_depths);
+        let mut subgraph = Subgraph::new(
+            graph_resolve_depths,
+            time_projection.clone(),
+            time_projection.clone().resolve(),
+        );
         let mut dependency_context = DependencyContext::default();
 
         for entity in Read::<Entity>::read(self, filter).await? {
@@ -459,7 +464,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     async fn update_entity(
         &mut self,
         entity_id: EntityId,
-        decision_time: Option<DecisionTimestamp>,
+        decision_time: Option<Timestamp<DecisionTime>>,
         updated_by_id: UpdatedById,
         archived: bool,
         entity_type_id: VersionedUri,
@@ -547,8 +552,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(EntityMetadata::new(
             EntityEditionId::new(entity_id, EntityRecordId::new(row.get(0))),
             EntityVersion::new(
-                DecisionTimeVersionTimespan::from_anonymous(row.get(1)),
-                TransactionTimeVersionTimespan::from_anonymous(row.get(2)),
+                VersionTimespan::from_anonymous(row.get(1)),
+                VersionTimespan::from_anonymous(row.get(2)),
             ),
             entity_type_id,
             ProvenanceMetadata::new(updated_by_id),

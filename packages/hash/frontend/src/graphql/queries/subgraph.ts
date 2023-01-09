@@ -33,5 +33,7 @@ export const subgraphFieldsFragment = gql`
         outgoing
       }
     }
+    timeProjection
+    resolvedTimeProjection
   }
 `;

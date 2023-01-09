@@ -65,8 +65,10 @@ use core::{
 
 use error_stack::{Context, Frame, IntoReport, Report, Result};
 pub use extra::{
-    ArrayLengthError, ExpectedLength, ObjectItemsExtraError, ReceivedKey, ReceivedLength,
+    ArrayLengthError, ExpectedLength, ObjectItemsExtraError, ObjectLengthError, ReceivedKey,
+    ReceivedLength,
 };
+pub use internal::BoundedContractViolationError;
 pub use location::Location;
 use serde::ser::SerializeMap;
 pub use r#type::{ExpectedType, ReceivedType, TypeError};
@@ -79,6 +81,7 @@ pub use value::{MissingError, ReceivedValue, ValueError};
 use crate::error::serialize::{impl_serialize, Export};
 
 mod extra;
+mod internal;
 mod location;
 mod macros;
 mod serialize;
