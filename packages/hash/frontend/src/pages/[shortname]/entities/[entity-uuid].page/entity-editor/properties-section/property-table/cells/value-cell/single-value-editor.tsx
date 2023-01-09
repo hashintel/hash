@@ -75,7 +75,8 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     <GridEditorWrapper sx={{ px: 2 }}>
       <NumberOrTextInput
         isNumber={isNumber}
-        value={value as string | number}
+        /** we prevent passing `undefined` as value by using `??` operators here */
+        value={isNumber ? ((value ?? 0) as number) : ((value ?? "") as string)}
         onChange={(newValue) => {
           const newCell = produce(cell, (draftCell) => {
             draftCell.data.propertyRow.value = newValue;
