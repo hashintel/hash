@@ -120,7 +120,10 @@ services:
       HASH_GRAPH_PG_PORT: "5432"
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
       HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
-      HASH_GRAPH_OTLP_ENDPOINT: "http://telemetry-collector:4317"
+      # For unknown reasons, our error return values are consumed when we
+      # configure the OTLP endpoint for the Graph. For now we've disabled traces.
+      # https://app.asana.com/0/1201095311341924/1203636955054323/f
+      # HASH_GRAPH_OTLP_ENDPOINT: "http://telemetry-collector:4317"
       RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-graph=trace,hash_graph=trace,tokio_postgres=debug}"
       RUST_BACKTRACE: 1
     ports:
