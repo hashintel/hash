@@ -32,7 +32,7 @@ export const PropertyExpectedValues = ({
         return (
           <Chip
             // eslint-disable-next-line react/no-array-index-key
-            key={`${property.$id}-${index}`}
+            key={index}
             label={expectedValueOption.title}
             icon={
               <FontAwesomeIcon
