@@ -65,7 +65,13 @@ export const getExpectedValueDescriptor = (
         arrayType: getArrayExpectedValueType(
           Object.values(flattenedExpectedValues)
             .filter(({ parentId }) => parentId === id)
-            .map(({ data: childData }) => childData!.typeId),
+            .map(({ data: childData }) => {
+              if (typeof childData !== "object") {
+                throw new Error("Expected value doesn't have data");
+              }
+
+              return childData.typeId;
+            }),
         ),
         id,
       };
