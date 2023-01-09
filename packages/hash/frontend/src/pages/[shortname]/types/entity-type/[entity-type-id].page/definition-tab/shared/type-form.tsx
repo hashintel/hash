@@ -35,6 +35,7 @@ import {
   ReactNode,
   Ref,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import {
@@ -45,8 +46,8 @@ import {
 } from "react-hook-form";
 
 import { Modal } from "../../../../../../../components/modals/modal";
-import { withHandler } from "../property-list-card/shared/with-handler";
 import { QuestionIcon } from "./question-icon";
+import { withHandler } from "./with-handler";
 
 type TypeFormSubmitProps = Omit<
   ButtonProps,
@@ -276,7 +277,7 @@ export const TypeForm = <T extends TypeFormDefaults>({
   children?: ReactNode;
   nameExists: (name: string) => Promise<boolean>;
 } & TypeFormProps<T>) => {
-  const defaultValues = getDefaultValues();
+  const defaultValues = useMemo(() => getDefaultValues(), [getDefaultValues]);
 
   const formMethods = useForm<T>({
     defaultValues,

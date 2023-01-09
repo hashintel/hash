@@ -18,16 +18,11 @@ import { uniqueId } from "lodash";
 import { FunctionComponent } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
-import { faCube } from "../../../../../../../../../../shared/icons/pro/fa-cube";
-import {
-  ArrayType,
-  ExpectedValue,
-  getDefaultExpectedValue,
-  PropertyTypeFormValues,
-} from "../../property-type-form-values";
-import { dataTypeOptions } from "../shared/data-type-options";
+import { faCube } from "../../../../../../../../../shared/icons/pro/fa-cube";
+import { getDefaultExpectedValue } from "../../shared/default-expected-value";
 import { ArrayExpectedValueBuilder } from "./custom-expected-value-builder/array-expected-value-builder";
 import { useCustomExpectedValueBuilderContext } from "./shared/custom-expected-value-builder-context";
+import { ExpectedValueSelectorFormValues } from "./shared/expected-value-selector-form-values";
 import { ObjectExpectedValueBuilder } from "./shared/object-expected-value-builder";
 
 const CustomChip: FunctionComponent<ChipProps & { borderColor?: string }> = ({
@@ -49,10 +44,9 @@ interface ExpectedValueBuilderProps {
 const ExpectedValueBuilder: FunctionComponent<ExpectedValueBuilderProps> = ({
   expectedValueId,
 }) => {
-  const { control } = useFormContext<PropertyTypeFormValues>();
+  const { control } = useFormContext<ExpectedValueSelectorFormValues>();
 
-  const { closeCustomExpectedValueBuilder } =
-    useCustomExpectedValueBuilderContext();
+  const { handleCancel } = useCustomExpectedValueBuilderContext();
 
   const customDataType = useWatch({
     control,
@@ -64,14 +58,14 @@ const ExpectedValueBuilder: FunctionComponent<ExpectedValueBuilderProps> = ({
       return (
         <ArrayExpectedValueBuilder
           expectedValueId={expectedValueId}
-          onDelete={closeCustomExpectedValueBuilder}
+          onDelete={handleCancel}
         />
       );
     case "object":
       return (
         <ObjectExpectedValueBuilder
           expectedValueId={expectedValueId}
-          onDelete={closeCustomExpectedValueBuilder}
+          onDelete={handleCancel}
         />
       );
     default:
@@ -79,27 +73,18 @@ const ExpectedValueBuilder: FunctionComponent<ExpectedValueBuilderProps> = ({
   }
 };
 
-type CustomExpectedValueBuilderProps = {
-  closeMenu: () => void;
-};
+type CustomExpectedValueBuilderProps = {};
 
 export const CustomExpectedValueBuilder: FunctionComponent<
   CustomExpectedValueBuilderProps
-> = ({ closeMenu }) => {
-  const { closeCustomExpectedValueBuilder } =
-    useCustomExpectedValueBuilderContext();
-
+> = () => {
+  const { handleSave, handleCancel } = useCustomExpectedValueBuilderContext();
   const { getValues, setValue, control } =
-    useFormContext<PropertyTypeFormValues>();
+    useFormContext<ExpectedValueSelectorFormValues>();
 
   const customExpectedValueId = useWatch({
     control,
     name: "customExpectedValueId",
-  });
-
-  const editingExpectedValueIndex = useWatch({
-    control,
-    name: "editingExpectedValueIndex",
   });
 
   return (
@@ -135,7 +120,7 @@ export const CustomExpectedValueBuilder: FunctionComponent<
           </Stack>
 
           <Button
-            onClick={closeMenu}
+            onClick={handleCancel}
             sx={({ palette, transitions }) => ({
               padding: 0,
               minWidth: 0,
@@ -197,6 +182,7 @@ export const CustomExpectedValueBuilder: FunctionComponent<
 
                   setValue("customExpectedValueId", id);
                   setValue("flattenedCustomExpectedValueList", {
+                    ...getValues("flattenedCustomExpectedValueList"),
                     [id]: {
                       id,
                       data: getDefaultExpectedValue("object"),
@@ -235,6 +221,7 @@ export const CustomExpectedValueBuilder: FunctionComponent<
 
                   setValue("customExpectedValueId", id);
                   setValue("flattenedCustomExpectedValueList", {
+                    ...getValues("flattenedCustomExpectedValueList"),
                     [id]: {
                       id,
                       data: getDefaultExpectedValue("array"),
@@ -282,85 +269,7 @@ export const CustomExpectedValueBuilder: FunctionComponent<
           <Button
             size="small"
             onClick={() => {
-              const flattenedExpectedValues = getValues(
-                "flattenedCustomExpectedValueList",
-              );
-              const customExpectedValue =
-                flattenedExpectedValues[customExpectedValueId];
-
-              let expectedValue: ExpectedValue;
-
-              if (
-                customExpectedValue?.data &&
-                "itemIds" in customExpectedValue.data
-              ) {
-                const containsArray = customExpectedValue.data.itemIds.some(
-                  (itemId) => {
-                    const typeId =
-                      flattenedExpectedValues[itemId]?.data?.typeId;
-                    return typeId === "array";
-                  },
-                );
-
-                const containsObject = customExpectedValue.data.itemIds.some(
-                  (itemId) =>
-                    flattenedExpectedValues[itemId]?.data?.typeId === "object",
-                );
-
-                const containsDataType = customExpectedValue.data.itemIds.some(
-                  (itemId) => {
-                    const typeId =
-                      flattenedExpectedValues[itemId]?.data?.typeId!;
-                    return (
-                      typeId !== "array" &&
-                      typeId !== "object" &&
-                      dataTypeOptions.includes(typeId)
-                    );
-                  },
-                );
-
-                let arrayType: ArrayType;
-                if (containsArray && !containsObject && !containsDataType) {
-                  arrayType = ArrayType.arrayArray;
-                } else if (
-                  containsObject &&
-                  !containsArray &&
-                  !containsDataType
-                ) {
-                  arrayType = ArrayType.propertyObjectArray;
-                } else if (
-                  containsDataType &&
-                  !containsArray &&
-                  !containsObject
-                ) {
-                  arrayType = ArrayType.dataTypeArray;
-                } else {
-                  arrayType = ArrayType.mixedArray;
-                }
-
-                expectedValue = {
-                  typeId: "array",
-                  arrayType,
-                  id: customExpectedValueId,
-                  flattenedExpectedValues,
-                };
-              } else {
-                expectedValue = {
-                  typeId: "object",
-                  id: customExpectedValueId,
-                  flattenedExpectedValues,
-                };
-              }
-
-              const newExpectedValues = [...getValues("expectedValues")];
-              if (editingExpectedValueIndex !== undefined) {
-                newExpectedValues[editingExpectedValueIndex] = expectedValue;
-              } else {
-                newExpectedValues.push(expectedValue);
-              }
-              setValue(`expectedValues`, newExpectedValues);
-
-              closeCustomExpectedValueBuilder();
+              handleSave();
             }}
           >
             Save expected value
