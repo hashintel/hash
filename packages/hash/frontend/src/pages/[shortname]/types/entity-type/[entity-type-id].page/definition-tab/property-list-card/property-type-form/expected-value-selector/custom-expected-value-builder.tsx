@@ -46,8 +46,7 @@ const ExpectedValueBuilder: FunctionComponent<ExpectedValueBuilderProps> = ({
 }) => {
   const { control } = useFormContext<ExpectedValueSelectorFormValues>();
 
-  const { closeCustomExpectedValueBuilder } =
-    useCustomExpectedValueBuilderContext();
+  const { handleCancel } = useCustomExpectedValueBuilderContext();
 
   const customDataType = useWatch({
     control,
@@ -59,14 +58,14 @@ const ExpectedValueBuilder: FunctionComponent<ExpectedValueBuilderProps> = ({
       return (
         <ArrayExpectedValueBuilder
           expectedValueId={expectedValueId}
-          onDelete={closeCustomExpectedValueBuilder}
+          onDelete={handleCancel}
         />
       );
     case "object":
       return (
         <ObjectExpectedValueBuilder
           expectedValueId={expectedValueId}
-          onDelete={closeCustomExpectedValueBuilder}
+          onDelete={handleCancel}
         />
       );
     default:
@@ -74,15 +73,12 @@ const ExpectedValueBuilder: FunctionComponent<ExpectedValueBuilderProps> = ({
   }
 };
 
-type CustomExpectedValueBuilderProps = {
-  // @todo take these from context
-  onCancel: () => void;
-  onSave: () => void;
-};
+type CustomExpectedValueBuilderProps = {};
 
 export const CustomExpectedValueBuilder: FunctionComponent<
   CustomExpectedValueBuilderProps
-> = ({ onCancel, onSave }) => {
+> = () => {
+  const { handleSave, handleCancel } = useCustomExpectedValueBuilderContext();
   const { getValues, setValue, control } =
     useFormContext<ExpectedValueSelectorFormValues>();
 
@@ -124,7 +120,7 @@ export const CustomExpectedValueBuilder: FunctionComponent<
           </Stack>
 
           <Button
-            onClick={onCancel}
+            onClick={handleCancel}
             sx={({ palette, transitions }) => ({
               padding: 0,
               minWidth: 0,
@@ -273,7 +269,7 @@ export const CustomExpectedValueBuilder: FunctionComponent<
           <Button
             size="small"
             onClick={() => {
-              onSave();
+              handleSave();
             }}
           >
             Save expected value

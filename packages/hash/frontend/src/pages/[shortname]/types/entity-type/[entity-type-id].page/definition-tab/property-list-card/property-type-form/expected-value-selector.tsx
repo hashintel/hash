@@ -37,20 +37,13 @@ import { ExpectedValueSelectorFormValues } from "./expected-value-selector/share
 import { expectedValuesOptions } from "./expected-value-selector/shared/expected-values-options";
 
 const ExpectedValueSelectorDropdown = ({ children, ...props }: PaperProps) => {
-  const {
-    customExpectedValueBuilderOpen,
-    openCustomExpectedValueBuilder,
-    closeCustomExpectedValueBuilder,
-    handleSave,
-  } = useCustomExpectedValueBuilderContext();
+  const { customExpectedValueBuilderOpen, handleEdit } =
+    useCustomExpectedValueBuilderContext();
 
   return (
     <AutocompleteDropdown {...props}>
       {customExpectedValueBuilderOpen ? (
-        <CustomExpectedValueBuilder
-          onCancel={closeCustomExpectedValueBuilder}
-          onSave={handleSave}
-        />
+        <CustomExpectedValueBuilder />
       ) : (
         <>
           {children}
@@ -69,7 +62,7 @@ const ExpectedValueSelectorDropdown = ({ children, ...props }: PaperProps) => {
               event.preventDefault();
             }}
             onClick={() => {
-              openCustomExpectedValueBuilder();
+              handleEdit();
             }}
           >
             <Typography
@@ -139,7 +132,7 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
 
       return {
         customExpectedValueBuilderOpen: creatingCustomExpectedValue,
-        openCustomExpectedValueBuilder: (index?: number, id?: string) => {
+        handleEdit: (index?: number, id?: string) => {
           expectedValueSelectorFormMethods.setValue(
             "flattenedCustomExpectedValueList",
             propertyTypeFormMethods.getValues(
@@ -156,7 +149,7 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
           );
           setCreatingCustomExpectedValue(true);
         },
-        closeCustomExpectedValueBuilder,
+        handleCancel: closeCustomExpectedValueBuilder,
         handleSave: () => {
           const [customExpectedValueId, editingExpectedValueIndex, newValues] =
             expectedValueSelectorFormMethods.getValues([
@@ -199,7 +192,7 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
       setCreatingCustomExpectedValue,
     ]);
 
-  const { customExpectedValueBuilderOpen, openCustomExpectedValueBuilder } =
+  const { customExpectedValueBuilderOpen, handleEdit } =
     customExpectedValueBuilderContextValue;
 
   const creatingExpectedValue = useWatch({
@@ -257,7 +250,7 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
                   editable={editable}
                   onEdit={() => {
                     if (typeof expectedValue === "object") {
-                      openCustomExpectedValueBuilder(index, expectedValue.id);
+                      handleEdit(index, expectedValue.id);
                     }
                   }}
                 />
