@@ -10,7 +10,7 @@ import {
   TableHead,
 } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import { useId, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useId, useLayoutEffect, useRef, useState } from "react";
 import {
   Controller,
   useFieldArray,
@@ -27,9 +27,10 @@ import {
   usePropertyTypes,
   useRefetchPropertyTypes,
 } from "../shared/property-types-context";
+import { getPropertyTypeSchema } from "./property-list-card/get-property-type-schema";
 import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
-import { PropertyTypeForm } from "./property-list-card/shared/property-type-form";
-import { getPropertyTypeSchema } from "./property-list-card/shared/property-type-form/property-type-schema";
+import { PropertyTypeForm } from "./property-list-card/property-type-form";
+import { propertyTypeToFormDataExpectedValues } from "./property-list-card/property-type-to-form-data-expected-values";
 import { PropertyTypeFormValues } from "./property-list-card/shared/property-type-form-values";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
@@ -46,13 +47,6 @@ import { QuestionIcon } from "./shared/question-icon";
 import { TypeFormModal } from "./shared/type-form";
 import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { useStateCallback } from "./shared/use-state-callback";
-
-const formDataToPropertyType = (data: PropertyTypeFormValues) => ({
-  oneOf: getPropertyTypeSchema(data.expectedValues),
-  description: data.description,
-  title: data.name,
-  kind: "propertyType" as const,
-});
 
 export const PropertyTypeRow = ({
   propertyIndex,
@@ -91,6 +85,22 @@ export const PropertyTypeRow = ({
 
   const propertyTypes = usePropertyTypes();
   const property = propertyTypes?.[$id];
+
+  const getDefaultValues = useCallback(() => {
+    if (!property) {
+      throw new Error("Missing property type");
+    }
+
+    const [expectedValues, flattenedCustomExpectedValueList] =
+      propertyTypeToFormDataExpectedValues(property);
+
+    return {
+      name: property.title,
+      description: property.description,
+      expectedValues,
+      flattenedCustomExpectedValueList,
+    };
+  }, [property]);
 
   if (!property) {
     if (propertyTypes) {
@@ -140,7 +150,7 @@ export const PropertyTypeRow = ({
           const res = await updatePropertyType({
             data: {
               propertyTypeId: $id,
-              propertyType: formDataToPropertyType(data),
+              propertyType: getPropertyTypeSchema(data),
             },
           });
 
@@ -156,17 +166,7 @@ export const PropertyTypeRow = ({
         }}
         submitButtonProps={{ children: <>Edit property type</> }}
         disabledFields={["name"]}
-        getDefaultValues={() => ({
-          name: property.title,
-          description: property.description,
-          // @todo handle exotic values
-          expectedValues: property.oneOf.map((dataType) => {
-            if (!("$ref" in dataType)) {
-              throw new Error("Handle exotic data types");
-            }
-            return dataType.$ref;
-          }),
-        })}
+        getDefaultValues={getDefaultValues}
       />
     </>
   );
@@ -243,7 +243,7 @@ export const PropertyListCard = () => {
   const handleSubmit = async (data: PropertyTypeFormValues) => {
     const res = await createPropertyType({
       data: {
-        propertyType: formDataToPropertyType(data),
+        propertyType: getPropertyTypeSchema(data),
       },
     });
 
