@@ -225,8 +225,7 @@ fn span_on_response(
     span: &tracing::Span,
 ) {
     let status = response.status().as_u16();
-    span.record("http.status_code", &tracing::field::display(status));
-    span.record("otel.status_code", "OK");
+    span.record("http.status_code", tracing::field::display(status));
 }
 
 #[expect(
