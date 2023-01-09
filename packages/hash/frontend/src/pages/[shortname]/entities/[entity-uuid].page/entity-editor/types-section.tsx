@@ -31,7 +31,16 @@ export const TypesSection = () => {
   useEffect(() => {
     const init = async () => {
       /** @todo instead of aggregating all types, use filtering by baseId when it's available to use */
-      const res = await aggregateEntityTypes({ data: {} });
+      const res = await aggregateEntityTypes({
+        data: {
+          graphResolveDepths: {
+            constrainsValuesOn: { outgoing: 0 },
+            constrainsPropertiesOn: { outgoing: 0 },
+            constrainsLinksOn: { outgoing: 0 },
+            constrainsLinkDestinationsOn: { outgoing: 0 },
+          },
+        },
+      });
 
       const baseId = extractBaseUri(entityTypeId);
       const entityTypeWithSameBaseId = res.data?.roots.find(
