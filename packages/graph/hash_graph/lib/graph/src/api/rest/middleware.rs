@@ -90,9 +90,9 @@ where
 
 pub fn span_trace_layer() -> TraceLayer<
     SharedClassifier<ServerErrorsAsFailures>,
-    impl Fn(&hyper::Request<hyper::Body>) -> tracing::Span + Clone,
+    impl Fn(&Request<Body>) -> tracing::Span + Clone,
     DefaultOnRequest,
-    impl Fn(&hyper::Response<axum::body::BoxBody>, std::time::Duration, &tracing::Span) + Clone,
+    impl Fn(&Response<axum::body::BoxBody>, Duration, &tracing::Span) + Clone,
     DefaultOnBodyChunk,
     DefaultOnEos,
     impl Fn(ServerErrorsFailureClass, Duration, &tracing::Span) + Clone,
@@ -112,10 +112,7 @@ impl<'a> Extractor for HeaderExtractor<'a> {
     }
 
     fn keys(&self) -> Vec<&str> {
-        self.0
-            .keys()
-            .map(hyper::header::HeaderName::as_str)
-            .collect()
+        self.0.keys().map(header::HeaderName::as_str).collect()
     }
 }
 
@@ -148,7 +145,7 @@ fn parse_x_forwarded_for(headers: &http::HeaderMap) -> Option<Cow<'_, str>> {
 }
 
 // Based on https://github.com/tokio-rs/axum/pull/769
-fn span_maker(request: &hyper::Request<hyper::Body>) -> tracing::Span {
+fn span_maker(request: &Request<Body>) -> tracing::Span {
     let target = request.uri();
     let scheme: Cow<'static, str> = target.scheme().map_or_else(
         || "HTTP".into(),
@@ -223,7 +220,7 @@ fn span_maker(request: &hyper::Request<hyper::Body>) -> tracing::Span {
 }
 
 fn span_on_response(
-    response: &hyper::Response<axum::body::BoxBody>,
+    response: &Response<axum::body::BoxBody>,
     _latency: Duration,
     span: &tracing::Span,
 ) {
