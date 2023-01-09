@@ -1,4 +1,4 @@
-#![cfg_attr(not(test), no_std)]
+#![no_std]
 // Not required, reason: code quality
 #![feature(lint_reasons)]
 // Used to canonicalize intervals
