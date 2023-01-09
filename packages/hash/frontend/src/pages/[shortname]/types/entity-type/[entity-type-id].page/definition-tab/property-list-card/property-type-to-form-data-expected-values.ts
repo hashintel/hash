@@ -41,6 +41,7 @@ export const propertyTypeToFormDataExpectedValues = (
           data: {
             typeId: expectedValue.$ref,
           },
+          ...(parentId ? { parentId } : {}),
         };
       } else {
         switch (expectedValue.type) {
