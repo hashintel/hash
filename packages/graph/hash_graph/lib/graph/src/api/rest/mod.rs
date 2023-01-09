@@ -28,7 +28,7 @@ use utoipa::{
         self, schema, schema::RefOr, ArrayBuilder, KnownFormat, ObjectBuilder, OneOfBuilder, Ref,
         SchemaFormat, SchemaType,
     },
-    Modify, OpenApi,
+    Modify, OpenApi, ToSchema,
 };
 
 use self::{api_resource::RoutedResource, middleware::span_trace_layer};
@@ -42,8 +42,16 @@ use crate::{
         },
     },
     identifier::{
-        ontology::OntologyTypeEditionId, time::TransactionTimestamp, GraphElementEditionId,
-        GraphElementId,
+        ontology::OntologyTypeEditionId,
+        time::{
+            DecisionTime, DecisionTimeImage, DecisionTimeKernel, DecisionTimeProjection,
+            TimeProjection, TimespanBound, Timestamp, TransactionTime, TransactionTimeImage,
+            TransactionTimeKernel, TransactionTimeProjection, UnresolvedDecisionTimeImage,
+            UnresolvedDecisionTimeKernel, UnresolvedDecisionTimeProjection,
+            UnresolvedTimeProjection, UnresolvedTransactionTimeImage,
+            UnresolvedTransactionTimeKernel, UnresolvedTransactionTimeProjection, VersionTimespan,
+        },
+        EntityVertexId, GraphElementId, GraphElementVertexId,
     },
     ontology::{domain_validator::DomainValidator, OntologyElementMetadata, Selector},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
@@ -146,7 +154,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
     tags(
         (name = "Graph", description = "HASH Graph API")
     ),
-    modifiers(&MergeAddon, &ExternalRefAddon, &OperationGraphTagAddon, &FilterSchemaAddon),
+    modifiers(&MergeAddon, &ExternalRefAddon, &OperationGraphTagAddon, &FilterSchemaAddon, &TimeSchemaAddon),
     components(
         schemas(
             OwnedById,
@@ -154,11 +162,11 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             ProvenanceMetadata,
             OntologyTypeEditionId,
             OntologyElementMetadata,
+            EntityVertexId,
             Selector,
 
             GraphElementId,
-            GraphElementEditionId,
-            TransactionTimestamp,
+            GraphElementVertexId,
             OntologyVertex,
             KnowledgeGraphVertex,
             Vertex,
@@ -177,6 +185,23 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             EdgeResolveDepths,
             OutgoingEdgeResolveDepth,
             Subgraph,
+
+            DecisionTime,
+            TransactionTime,
+            TimeProjection,
+            UnresolvedTimeProjection,
+            UnresolvedDecisionTimeProjection,
+            UnresolvedDecisionTimeImage,
+            UnresolvedDecisionTimeKernel,
+            UnresolvedTransactionTimeProjection,
+            UnresolvedTransactionTimeImage,
+            UnresolvedTransactionTimeKernel,
+            DecisionTimeProjection,
+            DecisionTimeImage,
+            DecisionTimeKernel,
+            TransactionTimeProjection,
+            TransactionTimeImage,
+            TransactionTimeKernel,
         )
     ),
 )]
@@ -423,6 +448,27 @@ impl Modify for FilterSchemaAddon {
                         .build(),
                 )
                 .into(),
+            );
+        }
+    }
+}
+
+/// Adds time-related structs to the `OpenAPI` schema.
+struct TimeSchemaAddon;
+
+impl Modify for TimeSchemaAddon {
+    fn modify(&self, openapi: &mut openapi::OpenApi) {
+        if let Some(ref mut components) = openapi.components {
+            components
+                .schemas
+                .insert("Timestamp".to_owned(), Timestamp::<()>::schema().into());
+            components.schemas.insert(
+                "VersionTimespan".to_owned(),
+                VersionTimespan::<()>::schema().into(),
+            );
+            components.schemas.insert(
+                "TimespanBound".to_owned(),
+                TimespanBound::<()>::schema().into(),
             );
         }
     }

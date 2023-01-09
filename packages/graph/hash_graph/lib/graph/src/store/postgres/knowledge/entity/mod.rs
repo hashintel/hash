@@ -13,7 +13,8 @@ use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
         ontology::OntologyTypeEditionId,
-        time::{DecisionTimeVersionTimespan, DecisionTimestamp, TransactionTimeVersionTimespan},
+        time::{DecisionTime, Timestamp, VersionTimespan},
+        EntityVertexId,
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
@@ -42,7 +43,7 @@ impl<C: AsClient> PostgresStore<C> {
     #[tracing::instrument(level = "trace", skip(self, dependency_context, subgraph))]
     pub(crate) fn traverse_entity<'a>(
         &'a self,
-        entity_edition_id: EntityEditionId,
+        entity_vertex_id: EntityVertexId,
         dependency_context: &'a mut DependencyContext,
         subgraph: &'a mut Subgraph,
         current_resolve_depth: GraphResolveDepths,
@@ -50,12 +51,12 @@ impl<C: AsClient> PostgresStore<C> {
         async move {
             let dependency_status = dependency_context
                 .knowledge_dependency_map
-                .insert(&entity_edition_id, current_resolve_depth);
+                .insert(&entity_vertex_id, current_resolve_depth);
 
             let entity = match dependency_status {
                 DependencyStatus::Unresolved => {
                     subgraph
-                        .get_or_read::<Entity>(self, &entity_edition_id)
+                        .get_or_read::<Entity>(self, &entity_vertex_id)
                         .await?
                 }
 
@@ -66,7 +67,7 @@ impl<C: AsClient> PostgresStore<C> {
                 let entity_type_id =
                     OntologyTypeEditionId::from(entity.metadata().entity_type_id());
                 subgraph.edges.insert(Edge::KnowledgeGraph {
-                    edition_id: entity_edition_id,
+                    vertex_id: entity_vertex_id,
                     outward_edge: KnowledgeGraphOutwardEdges::ToOntology(OutwardEdge {
                         kind: SharedEdgeKind::IsOfType,
                         reversed: false,
@@ -92,12 +93,12 @@ impl<C: AsClient> PostgresStore<C> {
             if current_resolve_depth.has_left_entity.incoming > 0 {
                 for outgoing_link_entity in <Self as Read<Entity>>::read(
                     self,
-                    &Filter::for_outgoing_link_by_source_entity_edition_id(entity_edition_id),
+                    &Filter::for_outgoing_link_by_source_entity_vertex_id(entity_vertex_id),
                 )
                 .await?
                 {
                     subgraph.edges.insert(Edge::KnowledgeGraph {
-                        edition_id: entity_edition_id,
+                        vertex_id: entity_vertex_id,
                         outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
                             // (HasLeftEntity, reversed=true) is equivalent to an
                             // outgoing link `Entity`
@@ -107,11 +108,11 @@ impl<C: AsClient> PostgresStore<C> {
                         }),
                     });
 
-                    let outgoing_link_entity_edition_id = *outgoing_link_entity.edition_id();
+                    let outgoing_link_entity_vertex_id = outgoing_link_entity.vertex_id();
                     subgraph.insert(outgoing_link_entity);
 
                     self.traverse_entity(
-                        outgoing_link_entity_edition_id,
+                        outgoing_link_entity_vertex_id,
                         dependency_context,
                         subgraph,
                         GraphResolveDepths {
@@ -129,12 +130,12 @@ impl<C: AsClient> PostgresStore<C> {
             if current_resolve_depth.has_right_entity.incoming > 0 {
                 for incoming_link_entity in <Self as Read<Entity>>::read(
                     self,
-                    &Filter::for_incoming_link_by_source_entity_edition_id(entity_edition_id),
+                    &Filter::for_incoming_link_by_source_entity_vertex_id(entity_vertex_id),
                 )
                 .await?
                 {
                     subgraph.edges.insert(Edge::KnowledgeGraph {
-                        edition_id: entity_edition_id,
+                        vertex_id: entity_vertex_id,
                         outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
                             // (HasRightEntity, reversed=true) is equivalent to an
                             // incoming link `Entity`
@@ -144,11 +145,11 @@ impl<C: AsClient> PostgresStore<C> {
                         }),
                     });
 
-                    let incoming_link_entity_edition_id = *incoming_link_entity.edition_id();
+                    let incoming_link_entity_vertex_id = incoming_link_entity.vertex_id();
                     subgraph.insert(incoming_link_entity);
 
                     self.traverse_entity(
-                        incoming_link_entity_edition_id,
+                        incoming_link_entity_vertex_id,
                         dependency_context,
                         subgraph,
                         GraphResolveDepths {
@@ -166,12 +167,12 @@ impl<C: AsClient> PostgresStore<C> {
             if current_resolve_depth.has_left_entity.outgoing > 0 {
                 for left_entity in <Self as Read<Entity>>::read(
                     self,
-                    &Filter::for_left_entity_by_entity_edition_id(entity_edition_id),
+                    &Filter::for_left_entity_by_entity_vertex_id(entity_vertex_id),
                 )
                 .await?
                 {
                     subgraph.edges.insert(Edge::KnowledgeGraph {
-                        edition_id: entity_edition_id,
+                        vertex_id: entity_vertex_id,
                         outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
                             // (HasLeftEndpoint, reversed=true) is equivalent to an
                             // outgoing `Link` `Entity`
@@ -181,11 +182,11 @@ impl<C: AsClient> PostgresStore<C> {
                         }),
                     });
 
-                    let left_entity_edition_id = *left_entity.edition_id();
+                    let left_entity_vertex_id = left_entity.vertex_id();
                     subgraph.insert(left_entity);
 
                     self.traverse_entity(
-                        left_entity_edition_id,
+                        left_entity_vertex_id,
                         dependency_context,
                         subgraph,
                         GraphResolveDepths {
@@ -203,12 +204,12 @@ impl<C: AsClient> PostgresStore<C> {
             if current_resolve_depth.has_right_entity.outgoing > 0 {
                 for right_entity in <Self as Read<Entity>>::read(
                     self,
-                    &Filter::for_right_entity_by_entity_edition_id(entity_edition_id),
+                    &Filter::for_right_entity_by_entity_vertex_id(entity_vertex_id),
                 )
                 .await?
                 {
                     subgraph.edges.insert(Edge::KnowledgeGraph {
-                        edition_id: entity_edition_id,
+                        vertex_id: entity_vertex_id,
                         outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
                             // (HasLeftEndpoint, reversed=true) is equivalent to an
                             // outgoing `Link` `Entity`
@@ -218,11 +219,11 @@ impl<C: AsClient> PostgresStore<C> {
                         }),
                     });
 
-                    let right_entity_edition_id = *right_entity.edition_id();
+                    let right_entity_vertex_id = right_entity.vertex_id();
                     subgraph.insert(right_entity);
 
                     self.traverse_entity(
-                        right_entity_edition_id,
+                        right_entity_vertex_id,
                         dependency_context,
                         subgraph,
                         GraphResolveDepths {
@@ -250,7 +251,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         &mut self,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
-        decision_time: Option<DecisionTimestamp>,
+        decision_time: Option<Timestamp<DecisionTime>>,
         updated_by_id: UpdatedById,
         archived: bool,
         entity_type_id: VersionedUri,
@@ -325,13 +326,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .change_context(InsertionError)?;
 
         Ok(EntityMetadata::new(
-            EntityEditionId::new(
-                entity_id,
-                EntityRecordId::new(row.get(0)),
-                EntityVersion::new(
-                    DecisionTimeVersionTimespan::from_anonymous(row.get(1)),
-                    TransactionTimeVersionTimespan::from_anonymous(row.get(2)),
-                ),
+            EntityEditionId::new(entity_id, EntityRecordId::new(row.get(0))),
+            EntityVersion::new(
+                VersionTimespan::from_anonymous(row.get(1)),
+                VersionTimespan::from_anonymous(row.get(2)),
             ),
             entity_type_id,
             ProvenanceMetadata::new(updated_by_id),
@@ -349,7 +347,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 Option<EntityUuid>,
                 EntityProperties,
                 Option<LinkData>,
-                Option<DecisionTimestamp>,
+                Option<Timestamp<DecisionTime>>,
             ),
             IntoIter: Send,
         > + Send,
@@ -418,7 +416,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .zip(entity_record_ids)
             .map(|(((entity_id, ..), entity_version), entity_record_id)| {
                 EntityMetadata::new(
-                    EntityEditionId::new(entity_id, entity_record_id, entity_version),
+                    EntityEditionId::new(entity_id, entity_record_id),
+                    entity_version,
                     entity_type_id.clone(),
                     ProvenanceMetadata::new(actor_id),
                     false,
@@ -432,25 +431,30 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let StructuralQuery {
             ref filter,
             graph_resolve_depths,
+            ref time_projection,
         } = *query;
 
-        let mut subgraph = Subgraph::new(graph_resolve_depths);
+        let mut subgraph = Subgraph::new(
+            graph_resolve_depths,
+            time_projection.clone(),
+            time_projection.clone().resolve(),
+        );
         let mut dependency_context = DependencyContext::default();
 
         for entity in Read::<Entity>::read(self, filter).await? {
-            let edition_id = *entity.edition_id();
+            let vertex_id = entity.vertex_id();
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
             subgraph.insert(entity);
 
             self.traverse_entity(
-                edition_id,
+                vertex_id,
                 &mut dependency_context,
                 &mut subgraph,
                 graph_resolve_depths,
             )
             .await?;
 
-            subgraph.roots.insert(edition_id.into());
+            subgraph.roots.insert(vertex_id.into());
         }
 
         Ok(subgraph)
@@ -460,7 +464,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     async fn update_entity(
         &mut self,
         entity_id: EntityId,
-        decision_time: Option<DecisionTimestamp>,
+        decision_time: Option<Timestamp<DecisionTime>>,
         updated_by_id: UpdatedById,
         archived: bool,
         entity_type_id: VersionedUri,
@@ -546,13 +550,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         transaction.commit().await.change_context(UpdateError)?;
 
         Ok(EntityMetadata::new(
-            EntityEditionId::new(
-                entity_id,
-                EntityRecordId::new(row.get(0)),
-                EntityVersion::new(
-                    DecisionTimeVersionTimespan::from_anonymous(row.get(1)),
-                    TransactionTimeVersionTimespan::from_anonymous(row.get(2)),
-                ),
+            EntityEditionId::new(entity_id, EntityRecordId::new(row.get(0))),
+            EntityVersion::new(
+                VersionTimespan::from_anonymous(row.get(1)),
+                VersionTimespan::from_anonymous(row.get(2)),
             ),
             entity_type_id,
             ProvenanceMetadata::new(updated_by_id),

@@ -23,10 +23,12 @@ export const scalars = {
   EntityMetadata: "@hashintel/hash-subgraph#EntityMetadata",
   PropertyObject: "@hashintel/hash-subgraph#PropertyObject",
 
-  GraphElementEditionId: "@hashintel/hash-subgraph#GraphElementEditionId",
+  GraphElementVertexId: "@hashintel/hash-subgraph#GraphElementVertexId",
   Edges: "@hashintel/hash-subgraph#Edges",
   Vertices: "@hashintel/hash-subgraph#Vertices",
   LinkData: "@hashintel/hash-subgraph#LinkData",
+  TimeProjection: "@hashintel/hash-subgraph#TimeProjection",
+  ResolvedTimeProjection: "@hashintel/hash-subgraph#ResolvedTimeProjection",
 
   OwnedById: "@hashintel/hash-shared/types#OwnedById",
   UpdatedById: "@hashintel/hash-shared/types#UpdatedById",

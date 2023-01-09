@@ -73,10 +73,8 @@ impl RecordBatch {
         // we can just check the first column here because (this is TODO) when we create the
         // [`RecordBatch`] we check that all the columns have the same length
 
-        self.columns.get(0)
-            .map(|col| col.len())
-            // if there are no columns then we definitely don't have any rows, so return 0
-            .unwrap_or(0)
+        // if there are no columns then we definitely don't have any rows, so return 0
+        self.columns.get(0).map(|col| col.len()).unwrap_or(0)
     }
 
     /// Returns the schema of the RecordBatch.

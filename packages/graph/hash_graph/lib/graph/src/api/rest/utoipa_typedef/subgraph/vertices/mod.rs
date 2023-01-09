@@ -9,7 +9,11 @@ use utoipa::{
 
 pub use self::vertex::*;
 use crate::{
-    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion, time::TransactionTimestamp},
+    identifier::{
+        knowledge::EntityId,
+        ontology::OntologyTypeVersion,
+        time::{Timestamp, TransactionTime},
+    },
     knowledge::Entity,
 };
 
@@ -22,7 +26,7 @@ pub struct OntologyVertices(pub HashMap<BaseUri, BTreeMap<OntologyTypeVersion, O
 #[derive(Serialize, ToSchema)]
 #[serde(transparent)]
 pub struct KnowledgeGraphVertices(
-    HashMap<EntityId, BTreeMap<TransactionTimestamp, KnowledgeGraphVertex>>,
+    HashMap<EntityId, BTreeMap<Timestamp<TransactionTime>, KnowledgeGraphVertex>>,
 );
 
 #[derive(Serialize)]
@@ -78,14 +82,13 @@ impl From<crate::subgraph::vertices::Vertices> for Vertices {
                 |mut map, (id, vertex)| {
                     match map.entry(id.base_id()) {
                         Entry::Occupied(entry) => {
-                            entry.into_mut().insert(
-                                id.version().transaction_time().start,
-                                KnowledgeGraphVertex::Entity(vertex),
-                            );
+                            entry
+                                .into_mut()
+                                .insert(id.version(), KnowledgeGraphVertex::Entity(vertex));
                         }
                         Entry::Vacant(entry) => {
                             entry.insert(BTreeMap::from([(
-                                id.version().transaction_time().start,
+                                id.version(),
                                 KnowledgeGraphVertex::Entity(vertex),
                             )]));
                         }

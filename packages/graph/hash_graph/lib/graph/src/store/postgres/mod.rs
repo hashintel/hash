@@ -23,16 +23,8 @@ use type_system::{
 use uuid::Uuid;
 
 pub use self::pool::{AsClient, PostgresStorePool};
-#[cfg(feature = "__internal_bench")]
 use crate::{
-    identifier::knowledge::{EntityId, EntityRecordId, EntityVersion},
-    identifier::time::{
-        DecisionTimeVersionTimespan, DecisionTimestamp, TransactionTimeVersionTimespan,
-    },
-    knowledge::{EntityProperties, LinkOrder},
-};
-use crate::{
-    identifier::{account::AccountId, knowledge::EntityEditionId, ontology::OntologyTypeEditionId},
+    identifier::{account::AccountId, ontology::OntologyTypeEditionId, EntityVertexId},
     ontology::{OntologyElementMetadata, OntologyTypeWithMetadata},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
@@ -44,6 +36,14 @@ use crate::{
         Record, Store, StoreError, Transaction, UpdateError,
     },
     subgraph::edges::GraphResolveDepths,
+};
+#[cfg(feature = "__internal_bench")]
+use crate::{
+    identifier::{
+        knowledge::{EntityId, EntityRecordId, EntityVersion},
+        time::{DecisionTime, Timestamp, VersionTimespan},
+    },
+    knowledge::{EntityProperties, LinkOrder},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -103,7 +103,7 @@ where
 #[derive(Default)]
 pub struct DependencyContext {
     pub ontology_dependency_map: DependencyMap<OntologyTypeEditionId>,
-    pub knowledge_dependency_map: DependencyMap<EntityEditionId>,
+    pub knowledge_dependency_map: DependencyMap<EntityVertexId>,
 }
 
 /// A Postgres-backed store
@@ -391,10 +391,12 @@ where
 
         // TODO - address potential race condition
         //  https://app.asana.com/0/1202805690238892/1203201674100967/f
-        let previous_ontology_type =
-            <Self as Read<T::WithMetadata>>::read_one(self, &Filter::for_base_uri(uri.base_uri()))
-                .await
-                .change_context(UpdateError)?;
+        let previous_ontology_type = <Self as Read<T::WithMetadata>>::read_one(
+            self,
+            &Filter::for_latest_base_uri(uri.base_uri()),
+        )
+        .await
+        .change_context(UpdateError)?;
 
         let owned_by_id = previous_ontology_type.metadata().owned_by_id();
 
@@ -843,7 +845,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     async fn insert_entity_versions(
         &self,
         entities: impl IntoIterator<
-            Item = (EntityId, EntityRecordId, Option<DecisionTimestamp>),
+            Item = (EntityId, EntityRecordId, Option<Timestamp<DecisionTime>>),
             IntoIter: Send,
         > + Send,
     ) -> Result<Vec<EntityVersion>, InsertionError> {
@@ -929,8 +931,8 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .into_iter()
             .map(|row| {
                 EntityVersion::new(
-                    DecisionTimeVersionTimespan::from_anonymous(row.get(0)),
-                    TransactionTimeVersionTimespan::from_anonymous(row.get(1)),
+                    VersionTimespan::from_anonymous(row.get(0)),
+                    VersionTimespan::from_anonymous(row.get(1)),
                 )
             })
             .collect();

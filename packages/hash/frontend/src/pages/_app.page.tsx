@@ -9,6 +9,7 @@ import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { CacheProvider, EmotionCache } from "@emotion/react";
 import { createEmotionCache, theme } from "@hashintel/hash-design-system";
 import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
 import { configureScope } from "@sentry/nextjs";
 import { AppProps as NextAppProps } from "next/app";
@@ -194,15 +195,15 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
     return {};
   }
 
-  const userEntityEditionId = (
-    subgraph as Subgraph<SubgraphRootTypes["entity"]>
-  ).roots[0]!;
+  const userEntity = getRoots(
+    subgraph as Subgraph<SubgraphRootTypes["entity"]>,
+  )[0]!;
 
   // The type system package needs to be initialized before calling `constructAuthenticatedUser`
   await TypeSystemInitializer.initialize();
 
   const initialAuthenticatedUser = constructAuthenticatedUser({
-    userEntityEditionId,
+    userEntity,
     subgraph,
     kratosSession,
   });

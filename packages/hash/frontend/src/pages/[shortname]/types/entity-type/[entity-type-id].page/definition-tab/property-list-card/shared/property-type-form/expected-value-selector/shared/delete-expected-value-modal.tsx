@@ -33,6 +33,7 @@ const CountGroup = ({ items }: { items: CountItemProps[] }) => (
 interface DeleteExpectedValueModalProps {
   expectedValueType: "array" | "property object";
   popupState: PopupState;
+  editing: boolean;
   onClose: () => void;
   onDelete?: () => void;
   dataTypeCount?: number;
@@ -44,6 +45,7 @@ interface DeleteExpectedValueModalProps {
 export const DeleteExpectedValueModal = ({
   expectedValueType,
   popupState,
+  editing,
   onClose,
   onDelete,
   dataTypeCount = 0,
@@ -83,7 +85,9 @@ export const DeleteExpectedValueModal = ({
               fontWeight: 500,
             }}
           >
-            Remove {expectedValueType} and its contents
+            {!editing
+              ? `Remove ${expectedValueType} and its contents`
+              : `Revert changes made to ${expectedValueType}`}
           </Typography>
 
           <IconButton
@@ -100,13 +104,17 @@ export const DeleteExpectedValueModal = ({
               sx={{ color: ({ palette }) => palette.gray[80] }}
             >
               This {expectedValueType} contains{" "}
-              <CountGroup items={countArray} />
-              {dataTypeCount + propertyObjectCount + arrayCount > 1
-                ? " These "
-                : " This "}
-              will be removed from your expected value definition if you
-              continue and will need to be individually re-added should you wish
-              to restore them. Proceed with caution.
+              <CountGroup items={countArray} />{" "}
+              {!editing
+                ? `${
+                    dataTypeCount + propertyObjectCount + arrayCount > 1
+                      ? "These "
+                      : "This "
+                  }
+                will be removed from your expected value definition if you continue and will need to be individually re-added should
+                you wish to restore them.`
+                : "Changes made while editing will be reverted if you continue."}{" "}
+              Proceed with caution.
             </Typography>
           </Box>
 
@@ -119,7 +127,7 @@ export const DeleteExpectedValueModal = ({
                 onClose();
               }}
             >
-              Confirm deletion
+              {!editing ? "Confirm deletion" : "Revert changes"}
             </Button>
             <Button variant="tertiary" size="small" onClick={onClose}>
               Cancel
