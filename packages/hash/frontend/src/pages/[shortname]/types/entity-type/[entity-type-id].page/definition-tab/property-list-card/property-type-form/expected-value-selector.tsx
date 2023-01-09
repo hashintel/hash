@@ -100,6 +100,9 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
       defaultValues: {
         flattenedCustomExpectedValueList: {},
       },
+      shouldFocusError: true,
+      mode: "onBlur",
+      reValidateMode: "onChange",
     });
 
   const { field: expectedValuesField } = useController({
