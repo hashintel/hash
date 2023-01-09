@@ -1,23 +1,16 @@
 import { extractBaseUri, extractVersion } from "@blockprotocol/type-system";
-import { Button } from "@hashintel/hash-design-system";
 import { EntityId } from "@hashintel/hash-shared/types";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
-import {
-  Box,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-} from "@mui/material";
+import { Box } from "@mui/material";
 import { useEffect, useState } from "react";
 
 import { useBlockProtocolUpdateEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { useBlockProtocolAggregateEntityTypes } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-entity-types";
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { useEntityEditor } from "./entity-editor-context";
+import { EntityVersionUpdateModal } from "./types-section/entity-version-update-moda";
 import { TypeCard } from "./types-section/type-card";
 
 export const TypesSection = () => {
@@ -32,7 +25,7 @@ export const TypesSection = () => {
 
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
   const [newVersion, setNewVersion] = useState<number>();
-  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
+  const [updateModalOpen, setUpdateModalOpen] = useState(false);
   const [updatingVersion, setUpdatingVersion] = useState(false);
 
   useEffect(() => {
@@ -82,13 +75,14 @@ export const TypesSection = () => {
         setNewVersion(undefined);
       }
     } finally {
-      setUpdateDialogOpen(false);
+      setUpdateModalOpen(false);
       setUpdatingVersion(false);
     }
   };
 
-  const handleCloseDialog = () => setUpdateDialogOpen(false);
-  const handleOpenDialog = () => setUpdateDialogOpen(true);
+  const closeModal = () => setUpdateModalOpen(false);
+  const openModal = () => setUpdateModalOpen(true);
+  const currentVersion = extractVersion(entityTypeId);
 
   return (
     <SectionWrapper
@@ -99,40 +93,27 @@ export const TypesSection = () => {
         <TypeCard
           url={entityTypeUrl}
           title={entityTypeTitle}
-          version={extractVersion(entityTypeId)}
+          version={currentVersion}
           newVersionConfig={
             newVersion
               ? {
                   newVersion,
-                  onUpdateVersion: handleOpenDialog,
+                  onUpdateVersion: openModal,
                 }
               : undefined
           }
         />
       </Box>
 
-      <Dialog open={updateDialogOpen} onClose={handleCloseDialog}>
-        <DialogTitle>Updating version</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            This action could be destructive. Please make sure you know what
-            you're doing.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button variant="tertiary_quiet" onClick={handleCloseDialog}>
-            Cancel
-          </Button>
-          <Button
-            variant="tertiary_quiet"
-            onClick={handleUpdateVersion}
-            loading={updatingVersion}
-            loadingWithoutText
-          >
-            Update
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <EntityVersionUpdateModal
+        open={updateModalOpen}
+        onClose={closeModal}
+        currentVersion={currentVersion}
+        newVersion={newVersion}
+        entityTypeTitle={entityTypeTitle}
+        onUpdateVersion={handleUpdateVersion}
+        updatingVersion={updatingVersion}
+      />
     </SectionWrapper>
   );
 };
