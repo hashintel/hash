@@ -15,15 +15,14 @@ import {
   Typography,
 } from "@mui/material";
 import { uniqueId } from "lodash";
-import { FunctionComponent, useState } from "react";
+import { FunctionComponent } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import { faCube } from "../../../../../../../../../shared/icons/pro/fa-cube";
 import { getDefaultExpectedValue } from "../../shared/default-expected-value";
-import { FlattenedCustomExpectedValueList } from "../../shared/expected-value-types";
-import { PropertyTypeFormValues } from "../../shared/property-type-form-values";
 import { ArrayExpectedValueBuilder } from "./custom-expected-value-builder/array-expected-value-builder";
 import { useCustomExpectedValueBuilderContext } from "./shared/custom-expected-value-builder-context";
+import { ExpectedValueSelectorFormValues } from "./shared/expected-value-selector-form-values";
 import { ObjectExpectedValueBuilder } from "./shared/object-expected-value-builder";
 
 const CustomChip: FunctionComponent<ChipProps & { borderColor?: string }> = ({
@@ -45,7 +44,7 @@ interface ExpectedValueBuilderProps {
 const ExpectedValueBuilder: FunctionComponent<ExpectedValueBuilderProps> = ({
   expectedValueId,
 }) => {
-  const { control } = useFormContext<PropertyTypeFormValues>();
+  const { control } = useFormContext<ExpectedValueSelectorFormValues>();
 
   const { closeCustomExpectedValueBuilder } =
     useCustomExpectedValueBuilderContext();
@@ -76,15 +75,16 @@ const ExpectedValueBuilder: FunctionComponent<ExpectedValueBuilderProps> = ({
 };
 
 type CustomExpectedValueBuilderProps = {
+  // @todo take these from context
   onCancel: () => void;
-  onSave: (updatedValues: FlattenedCustomExpectedValueList) => void;
+  onSave: () => void;
 };
 
 export const CustomExpectedValueBuilder: FunctionComponent<
   CustomExpectedValueBuilderProps
 > = ({ onCancel, onSave }) => {
   const { getValues, setValue, control } =
-    useFormContext<PropertyTypeFormValues>();
+    useFormContext<ExpectedValueSelectorFormValues>();
 
   const customExpectedValueId = useWatch({
     control,
@@ -273,7 +273,7 @@ export const CustomExpectedValueBuilder: FunctionComponent<
           <Button
             size="small"
             onClick={() => {
-              onSave(getValues("flattenedCustomExpectedValueList"));
+              onSave();
             }}
           >
             Save expected value

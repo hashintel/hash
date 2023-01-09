@@ -17,10 +17,10 @@ import { FunctionComponent, useEffect, useMemo, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import { usePropertyTypesContextValue } from "../../../../../shared/use-property-types-context-value";
-import { PropertyTypeFormValues } from "../../../shared/property-type-form-values";
 import { CustomExpectedValueSelector } from "./custom-expected-value-selector";
 import { DeleteExpectedValueModal } from "./delete-expected-value-modal";
 import { ExpectedValueBadge } from "./expected-value-badge";
+import { ExpectedValueSelectorFormValues } from "./expected-value-selector-form-values";
 
 const StyledTableRow = styled(Box)(({ theme }) => ({
   display: "flex",
@@ -61,7 +61,8 @@ const ObjectExpectedValueRow: FunctionComponent<
 }) => {
   const [show, setShow] = useState(false);
 
-  const { setValue, control } = useFormContext<PropertyTypeFormValues>();
+  const { setValue, control } =
+    useFormContext<ExpectedValueSelectorFormValues>();
   const { allowArrays, required, animatingOut } = useWatch({
     control,
     name: `flattenedCustomExpectedValueList.${objectId}.data.properties.${propertyIndex}`,
@@ -157,7 +158,8 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
 > = ({ expectedValueId, prefix, deleteTooltip, onDelete, index = [] }) => {
   const { types: propertyTypes } = usePropertyTypesContextValue();
 
-  const { setValue, control } = useFormContext<PropertyTypeFormValues>();
+  const { setValue, control } =
+    useFormContext<ExpectedValueSelectorFormValues>();
 
   const editingExpectedValueIndex = useWatch({
     control,

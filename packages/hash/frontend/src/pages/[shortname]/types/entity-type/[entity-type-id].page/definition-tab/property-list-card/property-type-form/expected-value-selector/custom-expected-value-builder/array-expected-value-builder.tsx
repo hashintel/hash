@@ -11,10 +11,10 @@ import {
   getDefaultExpectedValue,
 } from "../../../shared/default-expected-value";
 import { CustomExpectedValue } from "../../../shared/expected-value-types";
-import { PropertyTypeFormValues } from "../../../shared/property-type-form-values";
 import { CustomExpectedValueSelector } from "../shared/custom-expected-value-selector";
 import { DeleteExpectedValueModal } from "../shared/delete-expected-value-modal";
 import { ExpectedValueBadge } from "../shared/expected-value-badge";
+import { ExpectedValueSelectorFormValues } from "../shared/expected-value-selector-form-values";
 import { expectedValuesOptions } from "../shared/expected-values-options";
 import { ObjectExpectedValueBuilder } from "../shared/object-expected-value-builder";
 import { ArrayMinMaxItems } from "./array-expected-value-builder/array-min-max-items";
@@ -61,7 +61,7 @@ const ArrayExpectedValueChild: FunctionComponent<
 > = ({ id, index, onlyChild, firstChild, onDelete }) => {
   const [show, setShow] = useState(false);
 
-  const { control } = useFormContext<PropertyTypeFormValues>();
+  const { control } = useFormContext<ExpectedValueSelectorFormValues>();
 
   const arrayChild = useWatch({
     control,
@@ -136,7 +136,7 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
   ArrayExpectedValueBuilderProps
 > = ({ expectedValueId, prefix, deleteTooltip, onDelete, index = [] }) => {
   const { getValues, setValue, control } =
-    useFormContext<PropertyTypeFormValues>();
+    useFormContext<ExpectedValueSelectorFormValues>();
 
   const [flattenedExpectedValues, editingExpectedValueIndex] = useWatch({
     control,
