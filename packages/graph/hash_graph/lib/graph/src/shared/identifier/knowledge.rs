@@ -10,7 +10,7 @@ use utoipa::{openapi, ToSchema};
 use crate::{
     identifier::{
         account::AccountId,
-        time::{DecisionTime, TransactionTime, VersionInterval},
+        time::{DecisionTime, TransactionTime, VersionTimespan},
         EntityVertexId,
     },
     knowledge::{Entity, EntityUuid},
@@ -90,8 +90,8 @@ impl ToSchema for EntityId {
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityVersion {
-    decision_time: VersionInterval<DecisionTime>,
-    transaction_time: VersionInterval<TransactionTime>,
+    decision_time: VersionTimespan<DecisionTime>,
+    transaction_time: VersionTimespan<TransactionTime>,
 }
 
 impl ToSchema for EntityVersion {
@@ -115,8 +115,8 @@ impl ToSchema for EntityVersion {
 impl EntityVersion {
     #[must_use]
     pub const fn new(
-        decision_time: VersionInterval<DecisionTime>,
-        transaction_time: VersionInterval<TransactionTime>,
+        decision_time: VersionTimespan<DecisionTime>,
+        transaction_time: VersionTimespan<TransactionTime>,
     ) -> Self {
         Self {
             decision_time,
@@ -125,12 +125,12 @@ impl EntityVersion {
     }
 
     #[must_use]
-    pub const fn decision_time(&self) -> VersionInterval<DecisionTime> {
+    pub const fn decision_time(&self) -> VersionTimespan<DecisionTime> {
         self.decision_time
     }
 
     #[must_use]
-    pub const fn transaction_time(&self) -> VersionInterval<TransactionTime> {
+    pub const fn transaction_time(&self) -> VersionTimespan<TransactionTime> {
         self.transaction_time
     }
 }

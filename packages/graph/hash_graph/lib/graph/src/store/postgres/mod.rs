@@ -41,7 +41,7 @@ use crate::{
 use crate::{
     identifier::{
         knowledge::{EntityId, EntityRecordId, EntityVersion},
-        time::{DecisionTime, Timestamp, VersionInterval},
+        time::{DecisionTime, Timestamp, VersionTimespan},
     },
     knowledge::{EntityProperties, LinkOrder},
 };
@@ -931,8 +931,8 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .into_iter()
             .map(|row| {
                 EntityVersion::new(
-                    VersionInterval::from_anonymous(row.get(0)),
-                    VersionInterval::from_anonymous(row.get(1)),
+                    VersionTimespan::from_anonymous(row.get(0)),
+                    VersionTimespan::from_anonymous(row.get(1)),
                 )
             })
             .collect();
