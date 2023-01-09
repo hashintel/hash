@@ -1,6 +1,7 @@
 use alloc::{boxed::Box, collections::BTreeMap};
 use core::any::{Any, TypeId};
 
+#[derive(Debug)]
 pub struct Context {
     inner: BTreeMap<TypeId, Box<dyn Any>>,
 }

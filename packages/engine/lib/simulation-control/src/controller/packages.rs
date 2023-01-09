@@ -230,11 +230,13 @@ impl Packages {
         let mut keys_and_columns = self
             .context
             .iter()
-            // TODO: remove the need for this by creating a method to generate empty arrow columns
-            //       from the schema
             .map(|package| {
-                package
-                    .get_empty_arrow_columns(num_agents, &sim_run_config.simulation_config().schema.context_schema)
+                // TODO: remove the need for this by creating a method to generate empty arrow
+                //       columns from the schema
+                package.get_empty_arrow_columns(
+                    num_agents,
+                    &sim_run_config.simulation_config().schema.context_schema,
+                )
             })
             .collect::<execution::Result<Vec<_>>>()?
             .into_iter()

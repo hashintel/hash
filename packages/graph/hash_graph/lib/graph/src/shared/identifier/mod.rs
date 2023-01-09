@@ -9,8 +9,9 @@ use type_system::uri::BaseUri;
 use utoipa::{openapi, ToSchema};
 
 use crate::identifier::{
-    knowledge::{EntityEditionId, EntityId},
+    knowledge::EntityId,
     ontology::OntologyTypeEditionId,
+    time::{Timestamp, TransactionTime},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -34,21 +35,45 @@ impl ToSchema for GraphElementId {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
-#[serde(untagged)]
-pub enum GraphElementEditionId {
-    Ontology(OntologyTypeEditionId),
-    KnowledgeGraph(EntityEditionId),
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct EntityVertexId {
+    base_id: EntityId,
+    version: Timestamp<TransactionTime>,
 }
 
-impl From<OntologyTypeEditionId> for GraphElementEditionId {
+impl EntityVertexId {
+    #[must_use]
+    pub const fn new(base_id: EntityId, version: Timestamp<TransactionTime>) -> Self {
+        Self { base_id, version }
+    }
+
+    #[must_use]
+    pub const fn base_id(&self) -> EntityId {
+        self.base_id
+    }
+
+    #[must_use]
+    pub const fn version(&self) -> Timestamp<TransactionTime> {
+        self.version
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
+#[serde(untagged)]
+pub enum GraphElementVertexId {
+    Ontology(OntologyTypeEditionId),
+    KnowledgeGraph(EntityVertexId),
+}
+
+impl From<OntologyTypeEditionId> for GraphElementVertexId {
     fn from(id: OntologyTypeEditionId) -> Self {
         Self::Ontology(id)
     }
 }
 
-impl From<EntityEditionId> for GraphElementEditionId {
-    fn from(id: EntityEditionId) -> Self {
+impl From<EntityVertexId> for GraphElementVertexId {
+    fn from(id: EntityVertexId) -> Self {
         Self::KnowledgeGraph(id)
     }
 }
@@ -56,11 +81,11 @@ impl From<EntityEditionId> for GraphElementEditionId {
 // WARNING: This MUST be kept up to date with the enum variants.
 //   We have to do this because utoipa doesn't understand serde untagged:
 //   https://github.com/juhaku/utoipa/issues/320
-impl ToSchema for GraphElementEditionId {
+impl ToSchema for GraphElementVertexId {
     fn schema() -> openapi::Schema {
         openapi::OneOfBuilder::new()
-            .item(OntologyTypeEditionId::schema())
-            .item(EntityEditionId::schema())
+            .item(openapi::Ref::from_schema_name("OntologyTypeEditionId"))
+            .item(openapi::Ref::from_schema_name("EntityVertexId"))
             .into()
     }
 }

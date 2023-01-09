@@ -4,7 +4,7 @@ import {
   BlockComponent,
   useGraphBlockService,
 } from "@blockprotocol/graph/react";
-import { TDDocument, Tldraw, TldrawApp } from "@tldraw/tldraw";
+import { TDDocument, TDShapeType, Tldraw, TldrawApp } from "@tldraw/tldraw";
 import {
   SyntheticEvent,
   useCallback,
@@ -166,6 +166,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   const handleMount = useCallback(
     (app: TldrawApp) => {
       rTldrawApp.current = app;
+      app.selectTool(TDShapeType.Draw);
 
       if (localState.darkMode !== rTldrawApp.current.settings.isDarkMode) {
         rTldrawApp.current.toggleDarkMode();

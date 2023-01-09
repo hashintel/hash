@@ -1,5 +1,5 @@
 use core::fmt;
-use std::{any::type_name, error::Error, marker::PhantomData, time::SystemTime};
+use std::{any::type_name, error::Error, marker::PhantomData, str::FromStr, time::SystemTime};
 
 use chrono::{DateTime, Utc};
 use derivative::Derivative;
@@ -40,6 +40,12 @@ impl<A> fmt::Debug for Timestamp<A> {
     }
 }
 
+impl<A> fmt::Display for Timestamp<A> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.time, fmt)
+    }
+}
+
 impl<A> Timestamp<A> {
     #[must_use]
     pub fn now() -> Self {
@@ -63,6 +69,17 @@ impl<A> Timestamp<A> {
             axis: PhantomData,
             time: time.time,
         }
+    }
+}
+
+impl<A> FromStr for Timestamp<A> {
+    type Err = chrono::ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self {
+            axis: PhantomData,
+            time: DateTime::from_str(s)?,
+        })
     }
 }
 

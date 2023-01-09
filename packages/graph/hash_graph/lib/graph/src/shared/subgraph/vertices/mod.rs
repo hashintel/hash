@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    identifier::{knowledge::EntityEditionId, ontology::OntologyTypeEditionId},
+    identifier::{ontology::OntologyTypeEditionId, EntityVertexId},
     knowledge::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
 };
@@ -11,5 +11,5 @@ pub struct Vertices {
     pub data_types: HashMap<OntologyTypeEditionId, DataTypeWithMetadata>,
     pub property_types: HashMap<OntologyTypeEditionId, PropertyTypeWithMetadata>,
     pub entity_types: HashMap<OntologyTypeEditionId, EntityTypeWithMetadata>,
-    pub entities: HashMap<EntityEditionId, Entity>,
+    pub entities: HashMap<EntityVertexId, Entity>,
 }
