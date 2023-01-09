@@ -19,6 +19,7 @@ import {
 
 import {
   EntityId,
+  EntityVersion,
   isEntityId,
   KnowledgeGraphVertex,
   OntologyVertex,
@@ -122,8 +123,9 @@ const mapKnowledgeGraphVertex = (
         ...vertex.inner.metadata,
         editionId: {
           baseId: vertex.inner.metadata.editionId.baseId as EntityId,
-          version: vertex.inner.metadata.editionId.version,
+          recordId: vertex.inner.metadata.editionId.recordId,
         },
+        version: vertex.inner.metadata.version as EntityVersion,
         entityTypeId: vertex.inner.metadata.entityTypeId as VersionedUri,
       },
     },

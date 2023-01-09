@@ -166,9 +166,12 @@ export const createEntityStore = (
         if (draftData[draftId]) {
           if (
             new Date(
-              draftData[draftId]!.metadata.editionId.version ?? 0,
+              draftData[draftId]!.metadata.editionId.version?.decisionTime
+                .start ?? 0,
             ).getTime() >
-            new Date(draftEntity.metadata.editionId.version ?? 0).getTime()
+            new Date(
+              draftEntity.metadata.editionId.version?.decisionTime.start ?? 0,
+            ).getTime()
           ) {
             Object.assign(draftEntity, draftData[draftId]);
           }

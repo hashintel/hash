@@ -686,18 +686,16 @@ mod tests {
     }
 
     mod predefined {
-        use std::time::SystemTime;
-
-        use chrono::DateTime;
         use type_system::uri::{BaseUri, VersionedUri};
 
         use super::*;
         use crate::{
             identifier::{
                 account::AccountId,
-                knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
+                knowledge::EntityId,
                 ontology::{OntologyTypeEditionId, OntologyTypeVersion},
-                DecisionTimespan, TransactionTimespan,
+                time::Timestamp,
+                EntityVertexId,
             },
             knowledge::EntityUuid,
             provenance::OwnedById,
@@ -789,21 +787,17 @@ mod tests {
 
         #[test]
         fn for_entity_by_edition_id() {
-            let entity_edition_id = EntityEditionId::new(
+            let entity_vertex_id = EntityVertexId::new(
                 EntityId::new(
                     OwnedById::new(AccountId::new(Uuid::new_v4())),
                     EntityUuid::new(Uuid::new_v4()),
                 ),
-                EntityRecordId::new(0),
-                EntityVersion::new(
-                    DecisionTimespan::from(DateTime::default()..),
-                    TransactionTimespan::from(DateTime::from(SystemTime::now())..),
-                ),
+                Timestamp::now(),
             );
 
             let mut compiler = SelectCompiler::<Entity>::with_asterisk();
 
-            let filter = Filter::for_entity_by_edition_id(entity_edition_id);
+            let filter = Filter::for_entity_by_vertex_id(entity_vertex_id);
             compiler.add_filter(&filter);
 
             test_compilation(
@@ -814,33 +808,29 @@ mod tests {
                 WHERE "entities_0_0_0"."decision_time" @> now()
                   AND ("entities_0_0_0"."owned_by_id" = $1)
                   AND ("entities_0_0_0"."entity_uuid" = $2)
-                  AND ("entities_0_0_0"."entity_record_id" = $3)
+                  AND (lower("entities_0_0_0"."transaction_time") = $3)
                 "#,
                 &[
-                    &entity_edition_id.base_id().owned_by_id().as_uuid(),
-                    &entity_edition_id.base_id().entity_uuid().as_uuid(),
-                    &entity_edition_id.record_id().as_i64(),
+                    &entity_vertex_id.base_id().owned_by_id().as_uuid(),
+                    &entity_vertex_id.base_id().entity_uuid().as_uuid(),
+                    &entity_vertex_id.version(),
                 ],
             );
         }
 
         #[test]
-        fn for_outgoing_link_by_source_entity_edition_id() {
-            let entity_edition_id = EntityEditionId::new(
+        fn for_outgoing_link_by_source_entity_vertex_id() {
+            let entity_vertex_id = EntityVertexId::new(
                 EntityId::new(
                     OwnedById::new(AccountId::new(Uuid::new_v4())),
                     EntityUuid::new(Uuid::new_v4()),
                 ),
-                EntityRecordId::new(0),
-                EntityVersion::new(
-                    DecisionTimespan::from(DateTime::default()..),
-                    TransactionTimespan::from(DateTime::from(SystemTime::now())..),
-                ),
+                Timestamp::now(),
             );
 
             let mut compiler = SelectCompiler::<Entity>::with_asterisk();
 
-            let filter = Filter::for_outgoing_link_by_source_entity_edition_id(entity_edition_id);
+            let filter = Filter::for_outgoing_link_by_source_entity_vertex_id(entity_vertex_id);
             compiler.add_filter(&filter);
 
             test_compilation(
@@ -854,33 +844,29 @@ mod tests {
                   AND "entities_0_1_0"."decision_time" @> now()
                   AND ("entities_0_0_0"."left_owned_by_id" = $1)
                   AND ("entities_0_0_0"."left_entity_uuid" = $2)
-                  AND ("entities_0_1_0"."entity_record_id" = $3)
+                  AND (lower("entities_0_1_0"."transaction_time") = $3)
                 "#,
                 &[
-                    &entity_edition_id.base_id().owned_by_id().as_uuid(),
-                    &entity_edition_id.base_id().entity_uuid().as_uuid(),
-                    &entity_edition_id.record_id().as_i64(),
+                    &entity_vertex_id.base_id().owned_by_id().as_uuid(),
+                    &entity_vertex_id.base_id().entity_uuid().as_uuid(),
+                    &entity_vertex_id.version(),
                 ],
             );
         }
 
         #[test]
-        fn for_left_entity_by_entity_edition_id() {
-            let entity_edition_id = EntityEditionId::new(
+        fn for_left_entity_by_entity_vertex_id() {
+            let entity_vertex_id = EntityVertexId::new(
                 EntityId::new(
                     OwnedById::new(AccountId::new(Uuid::new_v4())),
                     EntityUuid::new(Uuid::new_v4()),
                 ),
-                EntityRecordId::new(0),
-                EntityVersion::new(
-                    DecisionTimespan::from(DateTime::default()..),
-                    TransactionTimespan::from(DateTime::from(SystemTime::now())..),
-                ),
+                Timestamp::now(),
             );
 
             let mut compiler = SelectCompiler::<Entity>::with_asterisk();
 
-            let filter = Filter::for_left_entity_by_entity_edition_id(entity_edition_id);
+            let filter = Filter::for_left_entity_by_entity_vertex_id(entity_vertex_id);
             compiler.add_filter(&filter);
 
             test_compilation(
@@ -894,33 +880,29 @@ mod tests {
                   AND "entities_0_1_0"."decision_time" @> now()
                   AND ("entities_0_1_0"."owned_by_id" = $1)
                   AND ("entities_0_1_0"."entity_uuid" = $2)
-                  AND ("entities_0_1_0"."entity_record_id" = $3)
+                  AND (lower("entities_0_1_0"."transaction_time") = $3)
                 "#,
                 &[
-                    &entity_edition_id.base_id().owned_by_id().as_uuid(),
-                    &entity_edition_id.base_id().entity_uuid().as_uuid(),
-                    &entity_edition_id.record_id().as_i64(),
+                    &entity_vertex_id.base_id().owned_by_id().as_uuid(),
+                    &entity_vertex_id.base_id().entity_uuid().as_uuid(),
+                    &entity_vertex_id.version(),
                 ],
             );
         }
 
         #[test]
-        fn for_right_entity_by_entity_edition_id() {
-            let entity_edition_id = EntityEditionId::new(
+        fn for_right_entity_by_entity_vertex_id() {
+            let entity_vertex_id = EntityVertexId::new(
                 EntityId::new(
                     OwnedById::new(AccountId::new(Uuid::new_v4())),
                     EntityUuid::new(Uuid::new_v4()),
                 ),
-                EntityRecordId::new(0),
-                EntityVersion::new(
-                    DecisionTimespan::from(DateTime::default()..),
-                    TransactionTimespan::from(DateTime::from(SystemTime::now())..),
-                ),
+                Timestamp::now(),
             );
 
             let mut compiler = SelectCompiler::<Entity>::with_asterisk();
 
-            let filter = Filter::for_right_entity_by_entity_edition_id(entity_edition_id);
+            let filter = Filter::for_right_entity_by_entity_vertex_id(entity_vertex_id);
             compiler.add_filter(&filter);
 
             test_compilation(
@@ -934,12 +916,12 @@ mod tests {
                   AND "entities_0_1_0"."decision_time" @> now()
                   AND ("entities_0_1_0"."owned_by_id" = $1)
                   AND ("entities_0_1_0"."entity_uuid" = $2)
-                  AND ("entities_0_1_0"."entity_record_id" = $3)
+                  AND (lower("entities_0_1_0"."transaction_time") = $3)
                 "#,
                 &[
-                    &entity_edition_id.base_id().owned_by_id().as_uuid(),
-                    &entity_edition_id.base_id().entity_uuid().as_uuid(),
-                    &entity_edition_id.record_id().as_i64(),
+                    &entity_vertex_id.base_id().owned_by_id().as_uuid(),
+                    &entity_vertex_id.base_id().entity_uuid().as_uuid(),
+                    &entity_vertex_id.version(),
                 ],
             );
         }

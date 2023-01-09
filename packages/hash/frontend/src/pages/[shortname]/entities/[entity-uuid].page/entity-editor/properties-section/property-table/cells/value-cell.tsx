@@ -53,7 +53,13 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
       });
     } else {
       // draw plain text
-      const text = Array.isArray(value) ? value.join(", ") : String(value);
+      const text = Array.isArray(value)
+        ? value
+            .map((val) =>
+              typeof val === "boolean" ? (val ? "True" : "False") : val,
+            )
+            .join(", ")
+        : String(value);
       ctx.fillText(text, left, yCenter);
     }
 

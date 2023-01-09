@@ -147,9 +147,8 @@ impl IntoAgents for RecordBatch {
         for mut state in agent_states {
             // This function consumes `agent_states`, so it's ok to change `state` in-place.
             state.custom.retain(|field, value| {
-                !value.is_null() ||                    // Cheap check.
-                    group_field_names.contains(&field.as_str())
-                // Expensive check.
+                // `is_null` is a cheap check, fallback to expensive check
+                !value.is_null() || group_field_names.contains(&field.as_str())
             });
             filtered_states.push(state);
         }

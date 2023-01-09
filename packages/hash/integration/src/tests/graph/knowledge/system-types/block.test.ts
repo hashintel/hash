@@ -80,7 +80,7 @@ describe("Block", () => {
     testBlockDataEntity = await createEntity(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       properties: {},
-      entityType: dummyEntityType,
+      entityTypeId: dummyEntityType.schema.$id,
       actorId: testUser.accountId,
     });
   });
@@ -116,7 +116,7 @@ describe("Block", () => {
     const newBlockDataEntity = await createEntity(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       properties: {},
-      entityType: dummyEntityType,
+      entityTypeId: dummyEntityType.schema.$id,
       actorId: testUser.accountId,
     });
 

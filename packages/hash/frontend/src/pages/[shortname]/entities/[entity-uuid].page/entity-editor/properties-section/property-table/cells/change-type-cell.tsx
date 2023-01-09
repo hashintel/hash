@@ -16,7 +16,9 @@ import { drawChipWithIcon } from "../../../../../../../../components/grid/utils/
 import { propertyGridIndexes } from "../constants";
 import { PropertyRow } from "../types";
 import { getChipColors } from "./chip-cell";
+import { editorSpecs } from "./value-cell/array-editor/sortable-row";
 import { ValueCell } from "./value-cell/types";
+import { guessEditorTypeFromExpectedType } from "./value-cell/utils";
 
 export interface ChangeTypeCellProps {
   readonly kind: "change-type-cell";
@@ -53,8 +55,18 @@ export const createRenderChangeTypeCell = (
       ctx.font = changeTextFont;
       const changeTextWidth = ctx.measureText(changeText).width;
 
+      const editorSpec =
+        editorSpecs[guessEditorTypeFromExpectedType(currentType)];
+
       const drawTheLeftChip = () =>
-        drawChipWithIcon(args, currentType, chipLeft, textColor, bgColor);
+        drawChipWithIcon({
+          args,
+          text: currentType,
+          left: chipLeft,
+          textColor,
+          bgColor,
+          icon: editorSpec.gridIcon,
+        });
 
       const chipWidth = drawTheLeftChip();
 

@@ -17,6 +17,7 @@ import { DeleteExpectedValueModal } from "../shared/delete-expected-value-modal"
 import { ExpectedValueBadge } from "../shared/expected-value-badge";
 import { expectedValuesOptions } from "../shared/expected-values-options";
 import { ObjectExpectedValueBuilder } from "../shared/object-expected-value-builder";
+import { ArrayMinMaxItems } from "./array-expected-value-builder/array-min-max-items";
 
 const dataTypeOptions: DefaultExpectedValueTypeId[] = [
   ...primitiveDataTypeOptions,
@@ -136,9 +137,9 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
 > = ({ expectedValueId, prefix, deleteTooltip, onDelete, index = [] }) => {
   const { setValue, control } = useFormContext<PropertyTypeFormValues>();
 
-  const flattenedExpectedValues = useWatch({
+  const [flattenedExpectedValues, editingExpectedValueIndex] = useWatch({
     control,
-    name: `flattenedCustomExpectedValueList`,
+    name: [`flattenedCustomExpectedValueList`, `editingExpectedValueIndex`],
   });
 
   const itemIds = useWatch({
@@ -218,6 +219,7 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
             onDelete?.();
           }
         }}
+        endNode={<ArrayMinMaxItems arrayId={expectedValueId} />}
       />
 
       <Box
@@ -305,6 +307,7 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
         <DeleteExpectedValueModal
           expectedValueType="array"
           popupState={deleteModalPopupState}
+          editing={editingExpectedValueIndex !== undefined && !index.length} // We only want to show the editing modal for the root array
           onDelete={onDelete}
           onClose={() => deleteModalPopupState.close()}
           dataTypeCount={dataTypeCount}

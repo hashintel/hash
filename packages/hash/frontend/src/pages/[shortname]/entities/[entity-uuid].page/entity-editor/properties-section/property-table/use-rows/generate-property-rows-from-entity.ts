@@ -23,9 +23,11 @@ export const generatePropertyRowsFromEntity = (
 
   return Object.keys(entityType.schema.properties).map(
     (propertyTypeBaseUri) => {
-      const property = entityType.schema.properties[propertyTypeBaseUri] ?? {};
+      const property = entityType.schema.properties[propertyTypeBaseUri];
 
-      const isAllowMultiple = "type" in property && property.type === "array";
+      if (!property) {
+        throw new Error("Property not found");
+      }
 
       return generatePropertyRowRecursively({
         propertyTypeBaseUri,
@@ -33,7 +35,7 @@ export const generatePropertyRowsFromEntity = (
         entity,
         entitySubgraph,
         requiredPropertyTypes,
-        isAllowMultiple,
+        propertyOnEntityTypeSchema: property,
       });
     },
   );

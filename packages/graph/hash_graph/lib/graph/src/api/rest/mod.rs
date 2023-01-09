@@ -29,14 +29,38 @@ use utoipa::{
         self, schema, schema::RefOr, ArrayBuilder, KnownFormat, ObjectBuilder, OneOfBuilder, Ref,
         SchemaFormat, SchemaType,
     },
-    Modify, OpenApi,
+    Modify, OpenApi, ToSchema,
 };
 
 use self::{api_resource::RoutedResource, middleware::span_maker};
 use crate::{
-    api::rest::middleware::log_request_and_response,
-    ontology::{domain_validator::DomainValidator, Selector},
+    api::rest::{
+        middleware::log_request_and_response,
+        utoipa_typedef::subgraph::{
+            Edges, KnowledgeGraphOutwardEdges, KnowledgeGraphRootedEdges, KnowledgeGraphVertex,
+            KnowledgeGraphVertices, OntologyRootedEdges, OntologyVertex, OntologyVertices,
+            Subgraph, Vertex, Vertices,
+        },
+    },
+    identifier::{
+        ontology::OntologyTypeEditionId,
+        time::{
+            DecisionTime, DecisionTimeImage, DecisionTimeKernel, DecisionTimeProjection,
+            TimeProjection, TimespanBound, Timestamp, TransactionTime, TransactionTimeImage,
+            TransactionTimeKernel, TransactionTimeProjection, UnresolvedDecisionTimeImage,
+            UnresolvedDecisionTimeKernel, UnresolvedDecisionTimeProjection,
+            UnresolvedTimeProjection, UnresolvedTransactionTimeImage,
+            UnresolvedTransactionTimeKernel, UnresolvedTransactionTimeProjection, VersionTimespan,
+        },
+        EntityVertexId, GraphElementId, GraphElementVertexId,
+    },
+    ontology::{domain_validator::DomainValidator, OntologyElementMetadata, Selector},
+    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{QueryError, StorePool},
+    subgraph::edges::{
+        EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
+        OntologyOutwardEdges, OutgoingEdgeResolveDepth, SharedEdgeKind,
+    },
 };
 
 static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/json_schemas");
@@ -131,10 +155,54 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
     tags(
         (name = "Graph", description = "HASH Graph API")
     ),
-    modifiers(&MergeAddon, &ExternalRefAddon, &OperationGraphTagAddon, &FilterSchemaAddon),
+    modifiers(&MergeAddon, &ExternalRefAddon, &OperationGraphTagAddon, &FilterSchemaAddon, &TimeSchemaAddon),
     components(
         schemas(
+            OwnedById,
+            UpdatedById,
+            ProvenanceMetadata,
+            OntologyTypeEditionId,
+            OntologyElementMetadata,
+            EntityVertexId,
             Selector,
+
+            GraphElementId,
+            GraphElementVertexId,
+            OntologyVertex,
+            KnowledgeGraphVertex,
+            Vertex,
+            KnowledgeGraphVertices,
+            OntologyVertices,
+            Vertices,
+            SharedEdgeKind,
+            KnowledgeGraphEdgeKind,
+            OntologyEdgeKind,
+            OntologyOutwardEdges,
+            KnowledgeGraphOutwardEdges,
+            OntologyRootedEdges,
+            KnowledgeGraphRootedEdges,
+            Edges,
+            GraphResolveDepths,
+            EdgeResolveDepths,
+            OutgoingEdgeResolveDepth,
+            Subgraph,
+
+            DecisionTime,
+            TransactionTime,
+            TimeProjection,
+            UnresolvedTimeProjection,
+            UnresolvedDecisionTimeProjection,
+            UnresolvedDecisionTimeImage,
+            UnresolvedDecisionTimeKernel,
+            UnresolvedTransactionTimeProjection,
+            UnresolvedTransactionTimeImage,
+            UnresolvedTransactionTimeKernel,
+            DecisionTimeProjection,
+            DecisionTimeImage,
+            DecisionTimeKernel,
+            TransactionTimeProjection,
+            TransactionTimeImage,
+            TransactionTimeKernel,
         )
     ),
 )]
@@ -381,6 +449,27 @@ impl Modify for FilterSchemaAddon {
                         .build(),
                 )
                 .into(),
+            );
+        }
+    }
+}
+
+/// Adds time-related structs to the `OpenAPI` schema.
+struct TimeSchemaAddon;
+
+impl Modify for TimeSchemaAddon {
+    fn modify(&self, openapi: &mut openapi::OpenApi) {
+        if let Some(ref mut components) = openapi.components {
+            components
+                .schemas
+                .insert("Timestamp".to_owned(), Timestamp::<()>::schema().into());
+            components.schemas.insert(
+                "VersionTimespan".to_owned(),
+                VersionTimespan::<()>::schema().into(),
+            );
+            components.schemas.insert(
+                "TimespanBound".to_owned(),
+                TimespanBound::<()>::schema().into(),
             );
         }
     }

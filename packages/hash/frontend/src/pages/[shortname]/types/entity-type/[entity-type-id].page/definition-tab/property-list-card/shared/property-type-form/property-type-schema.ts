@@ -66,8 +66,10 @@ export const getArrayItems = (
           items: {
             oneOf: getArrayItems(data.itemIds, flattenedExpectedValues),
           },
-          minItems: data.minItems,
-          maxItems: data.maxItems,
+          ...(data.minItems ? { minItems: data.minItems } : {}),
+          ...(data.maxItems && !data.infinity
+            ? { maxItems: data.maxItems }
+            : {}),
         };
       } else if ("properties" in property.data) {
         return getObjectSchema(property.data.properties);
@@ -81,15 +83,16 @@ export const getArrayItems = (
 export const getArraySchema = (
   itemIds: string[],
   flattenedExpectedValues: Record<string, CustomExpectedValue>,
-  minItems?: number,
-  maxItems?: number,
+  minItems: number,
+  maxItems: number,
+  infinity: boolean,
 ): Array<OneOf<PropertyValues>> => ({
   type: "array",
   items: {
     oneOf: getArrayItems(itemIds, flattenedExpectedValues),
   },
-  minItems,
-  maxItems,
+  ...(minItems ? { minItems } : {}),
+  ...(maxItems && !infinity ? { maxItems } : {}),
 });
 
 export const getPropertyTypeSchema = (values: ExpectedValue[]) =>
@@ -104,6 +107,7 @@ export const getPropertyTypeSchema = (values: ExpectedValue[]) =>
           flattenedExpectedValues,
           property.data.minItems,
           property.data.maxItems,
+          property.data.infinity,
         );
       } else if (property?.data && "properties" in property.data) {
         return getObjectSchema(property.data.properties);
