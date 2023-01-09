@@ -138,18 +138,18 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
         customExpectedValueBuilderOpen: creatingCustomExpectedValue,
         openCustomExpectedValueBuilder: (index?: number, id?: string) => {
           expectedValueSelectorFormMethods.setValue(
+            "flattenedCustomExpectedValueList",
+            propertyTypeFormMethods.getValues(
+              "flattenedCustomExpectedValueList",
+            ),
+          );
+          expectedValueSelectorFormMethods.setValue(
             "editingExpectedValueIndex",
             index,
           );
           expectedValueSelectorFormMethods.setValue(
             "customExpectedValueId",
             id,
-          );
-          expectedValueSelectorFormMethods.setValue(
-            "flattenedCustomExpectedValueList",
-            propertyTypeFormMethods.getValues(
-              "flattenedCustomExpectedValueList",
-            ),
           );
           setCreatingCustomExpectedValue(true);
         },
