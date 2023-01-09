@@ -1,7 +1,5 @@
-import {
-  faCheckCircle,
-  faCircleExclamation,
-} from "@fortawesome/free-solid-svg-icons";
+import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
+import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   Collapse,
@@ -56,7 +54,7 @@ export const getInputProps = ({
           <FontAwesomeIcon
             icon={success ? faCheckCircle : faCircleExclamation}
             sx={({ palette }) => ({
-              color: success ? palette.green[60] : palette.red[60],
+              color: success ? palette.blue[70] : palette.red[60],
             })}
           />
         </InputAdornment>
@@ -70,11 +68,7 @@ export const getInputProps = ({
       ({ palette }) => ({
         [`& .${outlinedInputClasses.notchedOutline}, &:hover .${outlinedInputClasses.notchedOutline}`]:
           {
-            borderColor: success
-              ? palette.green[60]
-              : error
-              ? palette.red[40]
-              : palette.gray[30],
+            borderColor: error ? palette.red[40] : palette.gray[30],
           },
         ...(multiline &&
           autoResize && {
