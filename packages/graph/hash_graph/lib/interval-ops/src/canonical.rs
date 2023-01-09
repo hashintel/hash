@@ -77,28 +77,28 @@ impl<T> Interval<T> for CanonicalInterval<T> {
     }
 }
 
-impl<T: PartialOrd> Add for CanonicalInterval<T> {
+impl<T: PartialOrd, I: Interval<T>> Add<I> for CanonicalInterval<T> {
     type Output = Self;
 
-    fn add(self, rhs: Self) -> Self::Output {
+    fn add(self, rhs: I) -> Self::Output {
         self.union(rhs)
             .expect("interval union result in disjoint spans")
     }
 }
 
-impl<T: PartialOrd> Sub for CanonicalInterval<T> {
+impl<T: PartialOrd, I: Interval<T>> Sub<I> for CanonicalInterval<T> {
     type Output = Self;
 
-    fn sub(self, rhs: Self) -> Self::Output {
+    fn sub(self, rhs: I) -> Self::Output {
         self.difference(rhs)
             .expect("interval difference result in disjoint spans")
     }
 }
 
-impl<T: PartialOrd> Mul for CanonicalInterval<T> {
+impl<T: PartialOrd, I: Interval<T>> Mul<I> for CanonicalInterval<T> {
     type Output = Self;
 
-    fn mul(self, rhs: Self) -> Self::Output {
+    fn mul(self, rhs: I) -> Self::Output {
         self.intersect(rhs)
     }
 }
