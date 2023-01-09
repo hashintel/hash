@@ -16,6 +16,7 @@ import { useController, useFormContext, useWatch } from "react-hook-form";
 
 import { AutocompleteDropdown } from "../../../../../../shared/autocomplete-dropdown";
 import { StyledPlusCircleIcon } from "../../../../../../shared/styled-plus-circle-icon";
+import { useStateCallback } from "../../shared/use-state-callback";
 import { dataTypeOptions } from "../shared/data-type-options";
 import { PropertyTypeFormValues } from "../shared/property-type-form-values";
 import { CustomExpectedValueBuilder } from "./expected-value-selector/custom-expected-value-builder";
@@ -93,7 +94,7 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
   const inputRef = useRef<HTMLInputElement | null>();
 
   const [creatingCustomExpectedValue, setCreatingCustomExpectedValue] =
-    useState(false);
+    useStateCallback(false);
 
   const customExpectedValueBuilderContextValue = useMemo(
     () => ({
@@ -103,12 +104,7 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
       closeCustomExpectedValueBuilder: () => {
         setValue("editingExpectedValueIndex", undefined);
         setValue("customExpectedValueId", undefined);
-        setCreatingCustomExpectedValue(false);
-
-        // Using setImmediate because the autocomplete input is disabled when
-        // creatingCustomExpectedValue is false and can't be focused until it
-        // is set to true
-        setImmediate(() => {
+        setCreatingCustomExpectedValue(false, () => {
           inputRef.current?.focus();
         });
       },
