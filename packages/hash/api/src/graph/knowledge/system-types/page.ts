@@ -452,8 +452,8 @@ export const getPageBlocks: ImpureGraphFunction<
           a.metadata.editionId.baseId.localeCompare(
             b.metadata.editionId.baseId,
           ) ||
-          a.metadata.editionId.version.localeCompare(
-            b.metadata.editionId.version,
+          a.metadata.version.decisionTime.start.localeCompare(
+            b.metadata.version.decisionTime.start,
           ),
       )
       .map((linkEntity) => getLinkEntityRightEntity(ctx, { linkEntity })),

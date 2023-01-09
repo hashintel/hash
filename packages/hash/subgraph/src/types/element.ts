@@ -12,7 +12,7 @@ import {
   ProvenanceMetadata as ProvenanceMetadataGraphApi,
 } from "@hashintel/hash-graph-client";
 
-import { EntityEditionId, EntityId } from "./identifier";
+import { EntityEditionId, EntityId, EntityVersion } from "./identifier";
 
 // Due to restrictions with how much OpenAPI can express, we patch the schemas with the better-typed ones from the
 // type-system package.
@@ -59,6 +59,7 @@ export type LinkData = {
 export type EntityMetadata = {
   archived: boolean;
   editionId: EntityEditionId;
+  version: EntityVersion;
   entityTypeId: VersionedUri;
   provenance: ProvenanceMetadataGraphApi;
 };

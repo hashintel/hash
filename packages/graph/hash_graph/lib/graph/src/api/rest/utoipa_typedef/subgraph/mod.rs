@@ -11,12 +11,12 @@ pub use self::{
         Vertices,
     },
 };
-use crate::{identifier::GraphElementEditionId, subgraph::edges::GraphResolveDepths};
+use crate::{identifier::GraphElementVertexId, subgraph::edges::GraphResolveDepths};
 
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Subgraph {
-    roots: Vec<GraphElementEditionId>,
+    roots: Vec<GraphElementVertexId>,
     vertices: Vertices,
     edges: Edges,
     depths: GraphResolveDepths,

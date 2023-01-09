@@ -1,16 +1,12 @@
 import { Subgraph as SubgraphGraphApi } from "@hashintel/hash-graph-client";
 
-import {
-  isEntityEditionId,
-  isOntologyTypeEditionId,
-  Subgraph,
-} from "../../src";
+import { isEntityVertexId, isOntologyTypeEditionId, Subgraph } from "../../src";
 
 export const mapRoots = (
   roots: SubgraphGraphApi["roots"],
 ): Subgraph["roots"] => {
   return roots.map((root) => {
-    if (isEntityEditionId(root)) {
+    if (isEntityVertexId(root)) {
       return root;
     } else if (isOntologyTypeEditionId(root)) {
       return root;
