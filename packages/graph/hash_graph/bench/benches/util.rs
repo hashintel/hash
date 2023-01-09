@@ -131,6 +131,7 @@ impl Drop for StoreWrapper {
         if !(self.delete_on_drop) {
             return;
         }
+        #[allow(unsafe_code)]
         // We're in the process of dropping the parent struct, we just need to ensure we release
         // the connections of this pool before deleting the database
         // SAFETY: The values of `store` and `pool` are not accessed after dropping
@@ -139,7 +140,7 @@ impl Drop for StoreWrapper {
             ManuallyDrop::drop(&mut self.pool);
         }
 
-        let runtime = Runtime::new().unwrap();
+        let runtime = Runtime::new().expect("could not create runtime");
         runtime.block_on(async {
             let conn = self
                 .source_db_pool
@@ -170,9 +171,9 @@ pub async fn seed<D, P, E, C>(
     property_types: P,
     entity_types: E,
 ) where
-    D: IntoIterator<Item = &'static str>,
-    P: IntoIterator<Item = &'static str>,
-    E: IntoIterator<Item = &'static str>,
+    D: IntoIterator<Item = &'static str, IntoIter: Send> + Send,
+    P: IntoIterator<Item = &'static str, IntoIter: Send> + Send,
+    E: IntoIterator<Item = &'static str, IntoIter: Send> + Send,
     C: AsClient,
 {
     for data_type_str in data_types {
@@ -196,7 +197,7 @@ pub async fn seed<D, P, E, C>(
                         .await
                         .expect("failed to update data type");
                 } else {
-                    Err(report).expect("failed to create data type")
+                    panic!("failed to create data type: {report:?}");
                 }
             }
         }
@@ -224,7 +225,7 @@ pub async fn seed<D, P, E, C>(
                         .await
                         .expect("failed to update property type");
                 } else {
-                    Err(report).expect("failed to create property type")
+                    panic!("failed to create property type: {report:?}");
                 }
             }
         }
@@ -252,7 +253,7 @@ pub async fn seed<D, P, E, C>(
                         .await
                         .expect("failed to update entity type");
                 } else {
-                    Err(report).expect("failed to create entity type")
+                    panic!("failed to create entity type: {report:?}");
                 }
             }
         }
@@ -260,7 +261,7 @@ pub async fn seed<D, P, E, C>(
 }
 
 pub fn setup(db_name: &str, fail_on_exists: bool, delete_on_drop: bool) -> (Runtime, StoreWrapper) {
-    let runtime = Runtime::new().unwrap();
+    let runtime = Runtime::new().expect("could not create runtime");
 
     let store_wrapper =
         runtime.block_on(StoreWrapper::new(db_name, fail_on_exists, delete_on_drop));
