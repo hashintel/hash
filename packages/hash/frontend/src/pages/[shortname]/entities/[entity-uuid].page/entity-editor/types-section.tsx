@@ -10,7 +10,7 @@ import { useBlockProtocolUpdateEntity } from "../../../../../components/hooks/bl
 import { useBlockProtocolAggregateEntityTypes } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-entity-types";
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { useEntityEditor } from "./entity-editor-context";
-import { EntityVersionUpdateModal } from "./types-section/entity-version-update-moda";
+import { EntityTypeUpdateModal } from "./types-section/entity-type-update-modal";
 import { TypeCard } from "./types-section/type-card";
 
 export const TypesSection = () => {
@@ -30,10 +30,12 @@ export const TypesSection = () => {
 
   useEffect(() => {
     const init = async () => {
+      /** @todo instead of aggregating all types, use filtering by baseId when it's available to use */
       const res = await aggregateEntityTypes({ data: {} });
 
+      const baseId = extractBaseUri(entityTypeId);
       const entityTypeWithSameBaseId = res.data?.roots.find(
-        (root) => root.baseId === extractBaseUri(entityTypeId),
+        (root) => root.baseId === baseId,
       );
 
       if (!entityTypeWithSameBaseId) {
@@ -52,7 +54,7 @@ export const TypesSection = () => {
 
   const entityType = getEntityTypeById(entitySubgraph, entityTypeId);
   const entityTypeTitle = entityType?.schema.title ?? "";
-  const entityTypeUrl = extractBaseUri(entityTypeId);
+  const entityTypeBaseUri = extractBaseUri(entityTypeId);
 
   const handleUpdateVersion = async () => {
     if (!newVersion) {
@@ -64,7 +66,10 @@ export const TypesSection = () => {
 
       const res = await updateEntity({
         data: {
-          entityTypeId: versionedUriFromComponents(entityTypeUrl, newVersion),
+          entityTypeId: versionedUriFromComponents(
+            entityTypeBaseUri,
+            newVersion,
+          ),
           entityId: editionId.baseId as EntityId,
           updatedProperties: properties,
         },
@@ -91,7 +96,7 @@ export const TypesSection = () => {
     >
       <Box display="flex" gap={2}>
         <TypeCard
-          url={entityTypeUrl}
+          url={entityTypeBaseUri}
           title={entityTypeTitle}
           version={currentVersion}
           newVersionConfig={
@@ -105,7 +110,7 @@ export const TypesSection = () => {
         />
       </Box>
 
-      <EntityVersionUpdateModal
+      <EntityTypeUpdateModal
         open={updateModalOpen}
         onClose={closeModal}
         currentVersion={currentVersion}

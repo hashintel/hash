@@ -4,7 +4,7 @@ import { Box, Stack, Typography } from "@mui/material";
 
 import { Modal } from "../../../../../../components/modals/modal";
 
-interface EntityVersionUpdateModalProps {
+interface EntityTypeUpdateModalProps {
   open: boolean;
   onClose: () => void;
   entityTypeTitle: string;
@@ -14,7 +14,7 @@ interface EntityVersionUpdateModalProps {
   updatingVersion: boolean;
 }
 
-export const EntityVersionUpdateModal = ({
+export const EntityTypeUpdateModal = ({
   open,
   onClose,
   currentVersion,
@@ -22,7 +22,7 @@ export const EntityVersionUpdateModal = ({
   newVersion,
   onUpdateVersion,
   updatingVersion,
-}: EntityVersionUpdateModalProps) => {
+}: EntityTypeUpdateModalProps) => {
   return (
     <Modal
       open={open}
