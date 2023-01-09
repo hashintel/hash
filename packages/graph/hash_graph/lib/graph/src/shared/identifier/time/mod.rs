@@ -21,7 +21,7 @@ pub use self::{
     },
     timespan::{Timespan, TimespanBound, UnresolvedTimespan},
     timestamp::Timestamp,
-    version::VersionTimespan,
+    version::VersionInterval,
 };
 
 fn is_infinity(bytes: &[u8]) -> Result<bool, Box<dyn Error + Send + Sync>> {

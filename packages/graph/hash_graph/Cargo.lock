@@ -737,6 +737,7 @@ dependencies = [
  "graph-test-data",
  "hyper",
  "include_dir",
+ "interval-ops",
  "opentelemetry",
  "opentelemetry-otlp",
  "postgres-protocol",

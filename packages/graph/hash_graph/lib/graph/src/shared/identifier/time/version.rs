@@ -1,5 +1,10 @@
-use std::{collections::Bound, error::Error, ops::RangeBounds};
+use std::{
+    collections::Bound,
+    error::Error,
+    ops::{Add, Mul, RangeBounds, Sub},
+};
 
+use interval_ops::{ContinuousInterval, Interval, LowerBound, UpperBound};
 use postgres_types::{FromSql, Type};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -7,64 +12,113 @@ use utoipa::ToSchema;
 use crate::identifier::time::timestamp::Timestamp;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
-pub struct VersionTimespan<A> {
+pub struct VersionInterval<A> {
     pub start: Timestamp<A>,
     pub end: Option<Timestamp<A>>,
 }
 
-impl<A> VersionTimespan<A> {
-    #[must_use]
-    pub const fn new(start: Timestamp<A>, end: Option<Timestamp<A>>) -> Self {
-        Self { start, end }
+impl<A> Interval<Timestamp<A>> for VersionInterval<A> {
+    type LowerBound = Timestamp<A>;
+    type UpperBound = Option<Timestamp<A>>;
+
+    fn empty() -> Self {
+        unimplemented!("An empty interval is not a valid version interval")
     }
 
-    #[must_use]
-    pub fn from_anonymous(timespan: VersionTimespan<()>) -> Self {
-        Self {
-            start: Timestamp::from_anonymous(timespan.start),
-            end: timespan.end.map(Timestamp::from_anonymous),
+    fn from_bounds(lower: Timestamp<A>, upper: Option<Timestamp<A>>) -> Self {
+        if let Some(upper) = upper {
+            assert!(
+                lower <= upper,
+                "Lower bound must be less than or equal to upper bound"
+            );
         }
+
+        Self {
+            start: lower,
+            end: upper,
+        }
+    }
+
+    fn bounds(&self) -> Option<(&Self::LowerBound, &Self::UpperBound)> {
+        Some((&self.start, &self.end))
+    }
+
+    fn into_bounds(self) -> Option<(Self::LowerBound, Self::UpperBound)> {
+        Some((self.start, self.end))
+    }
+
+    fn is_empty(&self) -> bool {
+        false
     }
 }
 
-impl<A> RangeBounds<Timestamp<A>> for VersionTimespan<A> {
+impl<A> VersionInterval<A> {
+    #[must_use]
+    pub fn from_anonymous(interval: VersionInterval<()>) -> Self {
+        Self {
+            start: Timestamp::from_anonymous(interval.start),
+            end: interval.end.map(Timestamp::from_anonymous),
+        }
+    }
+
+    #[must_use]
+    pub fn into_continuous_interval(self) -> ContinuousInterval<Timestamp<A>> {
+        ContinuousInterval::from_range(self)
+    }
+}
+
+impl<A> RangeBounds<Timestamp<A>> for VersionInterval<A> {
     fn start_bound(&self) -> Bound<&Timestamp<A>> {
-        Bound::Included(&self.start)
+        LowerBound::as_bound(&self.start)
     }
 
     fn end_bound(&self) -> Bound<&Timestamp<A>> {
-        self.end.as_ref().map_or(Bound::Unbounded, Bound::Excluded)
+        UpperBound::as_bound(&self.end)
     }
 }
 
-impl FromSql<'_> for VersionTimespan<()> {
+impl FromSql<'_> for VersionInterval<()> {
     fn from_sql(_: &Type, buf: &[u8]) -> Result<Self, Box<dyn Error + Send + Sync>> {
         match postgres_protocol::types::range_from_sql(buf)? {
             postgres_protocol::types::Range::Empty => {
                 unimplemented!("Empty ranges are not supported")
             }
             postgres_protocol::types::Range::Nonempty(lower, upper) => Ok(Self {
-                start: match super::parse_bound(&lower)? {
-                    Bound::Included(timestamp) => timestamp,
-                    Bound::Excluded(_) => unimplemented!(
-                        "Excluded lower bounds are not supported on version timespans"
-                    ),
-                    Bound::Unbounded => unimplemented!(
-                        "Unbounded lower bounds are not supported on version timespans"
-                    ),
-                },
-                end: match super::parse_bound(&upper)? {
-                    Bound::Included(_) => unimplemented!(
-                        "Included upper bounds are not supported on version timespans"
-                    ),
-                    Bound::Excluded(timestamp) => Some(timestamp),
-                    Bound::Unbounded => None,
-                },
+                start: LowerBound::from_bound(super::parse_bound(&lower)?),
+                end: UpperBound::from_bound(super::parse_bound(&upper)?),
             }),
         }
     }
 
     fn accepts(ty: &Type) -> bool {
         matches!(ty, &Type::TSTZ_RANGE)
+    }
+}
+
+impl<A> Add<ContinuousInterval<Timestamp<A>>> for VersionInterval<A> {
+    type Output = ContinuousInterval<Timestamp<A>>;
+
+    fn add(self, rhs: ContinuousInterval<Timestamp<A>>) -> Self::Output {
+        self.into_continuous_interval()
+            .union(rhs)
+            .expect("interval union result in disjoint spans")
+    }
+}
+
+impl<A> Sub<ContinuousInterval<Timestamp<A>>> for VersionInterval<A> {
+    type Output = ContinuousInterval<Timestamp<A>>;
+
+    fn sub(self, rhs: ContinuousInterval<Timestamp<A>>) -> Self::Output {
+        self.into_continuous_interval()
+            .difference(rhs)
+            .expect("interval difference result in disjoint spans")
+    }
+}
+
+impl<A> Mul<ContinuousInterval<Timestamp<A>>> for VersionInterval<A> {
+    type Output = ContinuousInterval<Timestamp<A>>;
+
+    fn mul(self, rhs: ContinuousInterval<Timestamp<A>>) -> Self::Output {
+        self.into_continuous_interval().intersect(rhs)
     }
 }

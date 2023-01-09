@@ -50,7 +50,7 @@ use crate::{
             TransactionTimeKernel, TransactionTimeProjection, UnresolvedDecisionTimeImage,
             UnresolvedDecisionTimeKernel, UnresolvedDecisionTimeProjection,
             UnresolvedTimeProjection, UnresolvedTransactionTimeImage,
-            UnresolvedTransactionTimeKernel, UnresolvedTransactionTimeProjection, VersionTimespan,
+            UnresolvedTransactionTimeKernel, UnresolvedTransactionTimeProjection, VersionInterval,
         },
         EntityVertexId, GraphElementId, GraphElementVertexId,
     },
@@ -465,7 +465,7 @@ impl Modify for TimeSchemaAddon {
                 .insert("Timestamp".to_owned(), Timestamp::<()>::schema().into());
             components.schemas.insert(
                 "VersionTimespan".to_owned(),
-                VersionTimespan::<()>::schema().into(),
+                VersionInterval::<()>::schema().into(),
             );
             components.schemas.insert(
                 "TimespanBound".to_owned(),
