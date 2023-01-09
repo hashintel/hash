@@ -80,6 +80,10 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
                     entityTypeId,
                     provenance: { updatedById: "" },
                     archived: false,
+                    version: {
+                      decisionTime: { start: draftEntityVertexId.version },
+                      transactionTime: { start: draftEntityVertexId.version },
+                    },
                   },
                 },
               },
