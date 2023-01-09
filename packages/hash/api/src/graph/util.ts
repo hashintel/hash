@@ -207,6 +207,11 @@ export const propertyTypeInitializer = (
   };
 };
 
+type linkDestinationConstraint =
+  | EntityTypeWithMetadata
+  // Some models may reference themselves. This marker is used to stop infinite loops during initialization by telling the initializer to use a self reference
+  | "SELF_REFERENCE";
+
 export type EntityTypeCreatorParams = {
   entityTypeId: VersionedUri;
   title: string;
@@ -218,11 +223,10 @@ export type EntityTypeCreatorParams = {
   }[];
   outgoingLinks?: {
     linkEntityType: EntityTypeWithMetadata;
-    destinationEntityTypes: (
-      | EntityTypeWithMetadata
-      // Some models may reference themselves. This marker is used to stop infinite loops during initialization by telling the initializer to use a self reference
-      | "SELF_REFERENCE"
-    )[];
+    destinationEntityTypes?: [
+      linkDestinationConstraint,
+      ...linkDestinationConstraint[],
+    ];
     minItems?: number;
     maxItems?: number;
     ordered?: boolean;
@@ -271,14 +275,16 @@ export const generateSystemEntityTypeSchema = (
         [linkEntityType.schema.$id]: {
           type: "array",
           ordered,
-          items: {
-            oneOf: destinationEntityTypes.map((entityTypeOrReference) => ({
-              $ref:
-                entityTypeOrReference === "SELF_REFERENCE"
-                  ? params.entityTypeId
-                  : entityTypeOrReference.schema.$id,
-            })),
-          },
+          items: destinationEntityTypes
+            ? {
+                oneOf: destinationEntityTypes.map((entityTypeOrReference) => ({
+                  $ref:
+                    entityTypeOrReference === "SELF_REFERENCE"
+                      ? params.entityTypeId
+                      : entityTypeOrReference.schema.$id,
+                })),
+              }
+            : {},
           minItems,
           maxItems,
         },

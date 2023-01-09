@@ -20,10 +20,9 @@ import { useFormContext, useWatch } from "react-hook-form";
 
 import { faCube } from "../../../../../../../../../shared/icons/pro/fa-cube";
 import { getDefaultExpectedValue } from "../../shared/default-expected-value";
-import { getExpectedValueDescriptor } from "../../shared/get-expected-value-descriptor";
-import { PropertyTypeFormValues } from "../../shared/property-type-form-values";
 import { ArrayExpectedValueBuilder } from "./custom-expected-value-builder/array-expected-value-builder";
 import { useCustomExpectedValueBuilderContext } from "./shared/custom-expected-value-builder-context";
+import { ExpectedValueSelectorFormValues } from "./shared/expected-value-selector-form-values";
 import { ObjectExpectedValueBuilder } from "./shared/object-expected-value-builder";
 
 const CustomChip: FunctionComponent<ChipProps & { borderColor?: string }> = ({
@@ -45,10 +44,9 @@ interface ExpectedValueBuilderProps {
 const ExpectedValueBuilder: FunctionComponent<ExpectedValueBuilderProps> = ({
   expectedValueId,
 }) => {
-  const { control } = useFormContext<PropertyTypeFormValues>();
+  const { control } = useFormContext<ExpectedValueSelectorFormValues>();
 
-  const { closeCustomExpectedValueBuilder } =
-    useCustomExpectedValueBuilderContext();
+  const { handleCancel } = useCustomExpectedValueBuilderContext();
 
   const customDataType = useWatch({
     control,
@@ -60,14 +58,14 @@ const ExpectedValueBuilder: FunctionComponent<ExpectedValueBuilderProps> = ({
       return (
         <ArrayExpectedValueBuilder
           expectedValueId={expectedValueId}
-          onDelete={closeCustomExpectedValueBuilder}
+          onDelete={handleCancel}
         />
       );
     case "object":
       return (
         <ObjectExpectedValueBuilder
           expectedValueId={expectedValueId}
-          onDelete={closeCustomExpectedValueBuilder}
+          onDelete={handleCancel}
         />
       );
     default:
@@ -75,27 +73,18 @@ const ExpectedValueBuilder: FunctionComponent<ExpectedValueBuilderProps> = ({
   }
 };
 
-type CustomExpectedValueBuilderProps = {
-  closeMenu: () => void;
-};
+type CustomExpectedValueBuilderProps = {};
 
 export const CustomExpectedValueBuilder: FunctionComponent<
   CustomExpectedValueBuilderProps
-> = ({ closeMenu }) => {
-  const { closeCustomExpectedValueBuilder } =
-    useCustomExpectedValueBuilderContext();
-
+> = () => {
+  const { handleSave, handleCancel } = useCustomExpectedValueBuilderContext();
   const { getValues, setValue, control } =
-    useFormContext<PropertyTypeFormValues>();
+    useFormContext<ExpectedValueSelectorFormValues>();
 
   const customExpectedValueId = useWatch({
     control,
     name: "customExpectedValueId",
-  });
-
-  const editingExpectedValueIndex = useWatch({
-    control,
-    name: "editingExpectedValueIndex",
   });
 
   return (
@@ -131,7 +120,7 @@ export const CustomExpectedValueBuilder: FunctionComponent<
           </Stack>
 
           <Button
-            onClick={closeMenu}
+            onClick={handleCancel}
             sx={({ palette, transitions }) => ({
               padding: 0,
               minWidth: 0,
@@ -280,24 +269,7 @@ export const CustomExpectedValueBuilder: FunctionComponent<
           <Button
             size="small"
             onClick={() => {
-              const flattenedExpectedValues = getValues(
-                "flattenedCustomExpectedValueList",
-              );
-
-              const expectedValue = getExpectedValueDescriptor(
-                customExpectedValueId,
-                flattenedExpectedValues,
-              );
-
-              const newExpectedValues = [...getValues("expectedValues")];
-              if (editingExpectedValueIndex !== undefined) {
-                newExpectedValues[editingExpectedValueIndex] = expectedValue;
-              } else {
-                newExpectedValues.push(expectedValue);
-              }
-              setValue(`expectedValues`, newExpectedValues);
-
-              closeCustomExpectedValueBuilder();
+              handleSave();
             }}
           >
             Save expected value
