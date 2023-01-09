@@ -1,42 +1,6 @@
 use core::{cmp::Ordering, ops::Bound};
 
-use crate::bounds::{
-    LowerBound, LowerBoundComparison, LowerBoundObject, UpperBound, UpperBoundComparison,
-    UpperBoundObject,
-};
-
-#[expect(
-    clippy::type_complexity,
-    reason = "Only used internally in this module"
-)]
-fn into_bounds_object<T, I: Interval<T>>(
-    interval: I,
-) -> Option<(
-    LowerBoundObject<I::LowerBound, T>,
-    UpperBoundObject<I::UpperBound, T>,
-)> {
-    interval
-        .into_bounds()
-        .map(|(lower, upper)| (LowerBoundObject::new(lower), UpperBoundObject::new(upper)))
-}
-
-#[expect(
-    clippy::type_complexity,
-    reason = "Only used internally in this module"
-)]
-fn as_bounds_object<T, I: Interval<T>>(
-    interval: &I,
-) -> Option<(
-    LowerBoundObject<Bound<&T>, T>,
-    UpperBoundObject<Bound<&T>, T>,
-)> {
-    interval.bounds().map(|(lower, upper)| {
-        (
-            LowerBoundObject::new(lower.as_bound()),
-            UpperBoundObject::new(upper.as_bound()),
-        )
-    })
-}
+use crate::bounds::{LowerBound, LowerBoundComparison, UpperBound, UpperBoundComparison};
 
 pub trait Interval<T>: Sized {
     type LowerBound: LowerBound<T>;
@@ -66,16 +30,27 @@ pub trait Interval<T>: Sized {
 
     /// Returns `true` if both intervals have any points in common.
     #[must_use]
-    fn overlaps(&self, other: &Self) -> bool
+    fn overlaps(&self, other: &impl Interval<T>) -> bool
     where
         T: PartialOrd,
     {
-        match (as_bounds_object(self), as_bounds_object(other)) {
+        match (self.bounds(), other.bounds()) {
             // Range A:    [-----] | [-----]
             // Range B: [-----]    |    [-----]
             (Some((lhs_lower, lhs_upper)), Some((rhs_lower, rhs_upper))) => {
-                lhs_lower >= rhs_lower && lhs_lower <= rhs_upper
-                    || rhs_lower >= lhs_lower && rhs_lower <= lhs_upper
+                matches!(
+                    lhs_lower.cmp_lower(rhs_lower),
+                    Ordering::Greater | Ordering::Equal
+                ) && matches!(
+                    lhs_lower.cmp_upper(rhs_upper),
+                    Ordering::Less | Ordering::Equal
+                ) || matches!(
+                    rhs_lower.cmp_lower(lhs_lower),
+                    Ordering::Greater | Ordering::Equal
+                ) && matches!(
+                    rhs_lower.cmp_upper(lhs_upper),
+                    Ordering::Less | Ordering::Equal
+                )
             }
             // At least one range is empty
             // Range A:   empty   | [-------] |   empty
@@ -86,16 +61,16 @@ pub trait Interval<T>: Sized {
 
     /// Returns `true` if both intervals are adjacent but do not overlap.
     #[must_use]
-    fn is_adjacent_to(&self, other: &Self) -> bool
+    fn is_adjacent_to(&self, other: &impl Interval<T>) -> bool
     where
         T: PartialOrd,
     {
-        match (as_bounds_object(self), as_bounds_object(other)) {
+        match (self.bounds(), other.bounds()) {
             // Either the end bound of range a is the start bound of range b, or vice versa
             // Range A:       [-----] | [-----]
             // Range B: [-----]       |       [-----]
             (Some((lhs_lower, lhs_upper)), Some((rhs_lower, rhs_upper))) => {
-                lhs_upper.is_adjacent_to(&rhs_lower) || rhs_upper.is_adjacent_to(&lhs_lower)
+                rhs_upper.is_adjacent_to(lhs_lower) || lhs_upper.is_adjacent_to(rhs_lower)
             }
             _ => false,
         }
@@ -106,25 +81,38 @@ pub trait Interval<T>: Sized {
     /// In comparison to [`Self::union`], this method does not require the intervals to be adjacent
     /// or overlapping.
     #[must_use]
-    fn merge(self, other: Self) -> Self
+    fn merge(self, other: impl Interval<T>) -> Self
     where
         T: PartialOrd,
     {
-        match (into_bounds_object(self), into_bounds_object(other)) {
+        match (self.into_bounds(), other.into_bounds()) {
             (None, None) => Self::empty(),
             // At least one range is empty
             // Range A:   empty   | [-------]
             // Range B: [-------] |   empty
             // Result:  [-------] | [-------]
-            (None, Some((lower, upper))) | (Some((lower, upper)), None) => {
-                Self::from_bounds(lower.0, upper.0)
-            }
+            (Some((lower, upper)), None) => Self::from_bounds(lower, upper),
+            (None, Some((lower, upper))) => Self::from_bounds(
+                <Self::LowerBound as LowerBound<T>>::from_bound(lower.into_bound()),
+                <Self::UpperBound as UpperBound<T>>::from_bound(upper.into_bound()),
+            ),
             // Range A:   [-----] | [-----]   | [-----]         |         [-----] | [---------]
             // Range B: [-----]   |   [-----] |         [-----] | [-----]         |   [-----]
             // Result:  [-------] | [-------] | [-------------] | [-------------] | [---------]
-            (Some((lhs_lower, lhs_upper)), Some((rhs_lower, rhs_upper))) => {
-                Self::from_bounds(lhs_lower.min(rhs_lower).0, lhs_upper.max(rhs_upper).0)
-            }
+            (Some((lhs_lower, lhs_upper)), Some((rhs_lower, rhs_upper))) => Self::from_bounds(
+                match lhs_lower.cmp_lower(&rhs_lower) {
+                    Ordering::Less | Ordering::Equal => lhs_lower,
+                    Ordering::Greater => {
+                        <Self::LowerBound as LowerBound<T>>::from_bound(rhs_lower.into_bound())
+                    }
+                },
+                match lhs_upper.cmp_upper(&rhs_upper) {
+                    Ordering::Greater | Ordering::Equal => lhs_upper,
+                    Ordering::Less => {
+                        <Self::UpperBound as UpperBound<T>>::from_bound(rhs_upper.into_bound())
+                    }
+                },
+            ),
         }
     }
 
@@ -139,12 +127,17 @@ pub trait Interval<T>: Sized {
     /// `Option`, it returns `Self` and panics if the resulting interval would be two disjoint
     /// intervals.
     #[must_use]
-    fn union(self, other: Self) -> Option<Self>
+    fn union(self, other: impl Interval<T>) -> Option<Self>
     where
         T: PartialOrd,
     {
         if self.is_empty() {
-            return Some(other);
+            return other.into_bounds().map(|(lower, upper)| {
+                Self::from_bounds(
+                    <Self::LowerBound as LowerBound<T>>::from_bound(lower.into_bound()),
+                    <Self::UpperBound as UpperBound<T>>::from_bound(upper.into_bound()),
+                )
+            });
         }
         if other.is_empty() {
             return Some(self);
@@ -157,20 +150,31 @@ pub trait Interval<T>: Sized {
     ///
     /// The `intersection` method is the same as the `*` operator.
     #[must_use]
-    fn intersect(self, other: Self) -> Self
+    fn intersect(self, other: impl Interval<T>) -> Self
     where
         T: PartialOrd,
     {
         if self.overlaps(&other) {
-            match (into_bounds_object(self), into_bounds_object(other)) {
+            match (self.into_bounds(), other.into_bounds()) {
                 (None, _) | (_, None) => unreachable!("`overlaps()` returned true"),
                 // The ranges overlaps
                 // Range A:   [-----] | [-----]
                 // Range B: [-----]   |   [-----]
                 // Result:    [---]   |   [---]
-                (Some((lhs_lower, lhs_upper)), Some((rhs_lower, rhs_upper))) => {
-                    Self::from_bounds(lhs_lower.max(rhs_lower).0, lhs_upper.min(rhs_upper).0)
-                }
+                (Some((lhs_lower, lhs_upper)), Some((rhs_lower, rhs_upper))) => Self::from_bounds(
+                    match lhs_lower.cmp_lower(&rhs_lower) {
+                        Ordering::Less | Ordering::Equal => {
+                            <Self::LowerBound as LowerBound<T>>::from_bound(rhs_lower.into_bound())
+                        }
+                        Ordering::Greater => lhs_lower,
+                    },
+                    match lhs_upper.cmp_upper(&rhs_upper) {
+                        Ordering::Less | Ordering::Equal => lhs_upper,
+                        Ordering::Greater => {
+                            <Self::UpperBound as UpperBound<T>>::from_bound(rhs_upper.into_bound())
+                        }
+                    },
+                ),
             }
         } else {
             // Ranges do not overlap
@@ -190,15 +194,13 @@ pub trait Interval<T>: Sized {
     /// `Option`, it returns `Self` and panics if the resulting interval would be two disjoint
     /// intervals.
     #[must_use]
-    fn difference(self, other: Self) -> Option<Self>
+    fn difference(self, other: impl Interval<T>) -> Option<Self>
     where
         T: PartialOrd,
-        Self::LowerBound: LowerBound<T, UpperBound = Self::UpperBound>,
-        Self::UpperBound: UpperBound<T, LowerBound = Self::LowerBound>,
     {
-        match (into_bounds_object(self), into_bounds_object(other)) {
+        match (self.into_bounds(), other.into_bounds()) {
             (None, _) => Some(Self::empty()),
-            (Some((lower, upper)), None) => Some(Self::from_bounds(lower.0, upper.0)),
+            (Some((lower, upper)), None) => Some(Self::from_bounds(lower, upper)),
             (Some((lhs_lower, lhs_upper)), Some((rhs_lower, rhs_upper))) => {
                 match (
                     lhs_lower.cmp_lower(&rhs_lower),
@@ -217,7 +219,7 @@ pub trait Interval<T>: Sized {
                     // Range B: [-------]
                     // Result:              [--------]
                     (_, Ordering::Greater, ..) | (_, _, Ordering::Less, _) => {
-                        Some(Self::from_bounds(lhs_lower.0, lhs_upper.0))
+                        Some(Self::from_bounds(lhs_lower, lhs_upper))
                     }
 
                     // Range A is completely contained in range B
@@ -237,7 +239,16 @@ pub trait Interval<T>: Sized {
                         _,
                         Ordering::Greater | Ordering::Equal,
                         Ordering::Less | Ordering::Equal,
-                    ) => Some(Self::from_bounds(lhs_lower.0, rhs_lower.into_upper().0)),
+                    ) => Some(Self::from_bounds(
+                        lhs_lower,
+                        <Self::UpperBound as UpperBound<T>>::from_bound(
+                            match rhs_lower.into_bound() {
+                                Bound::Included(bound) => Bound::Excluded(bound),
+                                Bound::Excluded(bound) => Bound::Included(bound),
+                                Bound::Unbounded => Bound::Unbounded,
+                            },
+                        ),
+                    )),
 
                     // Range A ends after range b
                     // Range A:   [-----] | [-------]
@@ -248,7 +259,16 @@ pub trait Interval<T>: Sized {
                         Ordering::Less | Ordering::Equal,
                         _,
                         Ordering::Greater,
-                    ) => Some(Self::from_bounds(rhs_upper.into_lower().0, lhs_upper.0)),
+                    ) => Some(Self::from_bounds(
+                        <Self::LowerBound as LowerBound<T>>::from_bound(
+                            match rhs_upper.into_bound() {
+                                Bound::Included(bound) => Bound::Excluded(bound),
+                                Bound::Excluded(bound) => Bound::Included(bound),
+                                Bound::Unbounded => Bound::Unbounded,
+                            },
+                        ),
+                        lhs_upper,
+                    )),
                 }
             }
         }

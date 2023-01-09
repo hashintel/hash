@@ -1,21 +1,22 @@
-use core::{cmp::Ordering, fmt, marker::PhantomData, ops::Bound};
+#[cfg(any(feature = "canonical", feature = "continuous"))]
+use core::fmt;
+use core::{cmp::Ordering, ops::Bound};
 
 use crate::invalid_bounds;
 
 pub trait LowerBound<T> {
-    type UpperBound: UpperBound<T>;
-
     fn as_bound(&self) -> Bound<&T>;
-    fn into_upper(self) -> Self::UpperBound;
+    fn into_bound(self) -> Bound<T>;
+    fn from_bound(bound: Bound<T>) -> Self;
 }
 
 pub trait UpperBound<T> {
-    type LowerBound: LowerBound<T>;
-
     fn as_bound(&self) -> Bound<&T>;
-    fn into_lower(self) -> Self::LowerBound;
+    fn into_bound(self) -> Bound<T>;
+    fn from_bound(bound: Bound<T>) -> Self;
 }
 
+#[cfg(any(feature = "canonical", feature = "continuous"))]
 #[expect(clippy::use_debug, reason = "Only used in `Debug` implementations")]
 pub fn debug_lower_bound<T: fmt::Debug>(
     bound: &impl LowerBound<T>,
@@ -28,6 +29,7 @@ pub fn debug_lower_bound<T: fmt::Debug>(
     }
 }
 
+#[cfg(any(feature = "canonical", feature = "continuous"))]
 #[expect(clippy::use_debug, reason = "Only used in `Debug` implementations")]
 pub fn debug_upper_bound<T: fmt::Debug>(
     bound: &impl UpperBound<T>,
@@ -41,98 +43,109 @@ pub fn debug_upper_bound<T: fmt::Debug>(
 }
 
 impl<T> LowerBound<T> for Bound<T> {
-    type UpperBound = Self;
-
     fn as_bound(&self) -> Bound<&T> {
         self.as_ref()
     }
 
-    fn into_upper(self) -> Self::UpperBound {
-        match self {
-            Self::Included(value) => Self::Excluded(value),
-            Self::Excluded(value) => Self::Included(value),
-            Self::Unbounded => Self::Unbounded,
-        }
-    }
-}
-
-impl<T> LowerBound<T> for Bound<&T> {
-    type UpperBound = Self;
-
-    fn as_bound(&self) -> Bound<&T> {
-        *self
+    fn into_bound(self) -> Self {
+        self
     }
 
-    fn into_upper(self) -> Self::UpperBound {
-        match self {
-            Self::Included(value) => Self::Excluded(value),
-            Self::Excluded(value) => Self::Included(value),
-            Self::Unbounded => Self::Unbounded,
-        }
+    fn from_bound(bound: Self) -> Self {
+        bound
     }
 }
 
 impl<T> UpperBound<T> for Bound<T> {
-    type LowerBound = Self;
-
     fn as_bound(&self) -> Bound<&T> {
         self.as_ref()
     }
 
-    fn into_lower(self) -> Self::LowerBound {
-        match self {
-            Self::Included(value) => Self::Excluded(value),
-            Self::Excluded(value) => Self::Included(value),
-            Self::Unbounded => Self::Unbounded,
-        }
-    }
-}
-
-impl<T> UpperBound<T> for Bound<&T> {
-    type LowerBound = Self;
-
-    fn as_bound(&self) -> Bound<&T> {
-        *self
+    fn into_bound(self) -> Self {
+        self
     }
 
-    fn into_lower(self) -> Self::LowerBound {
-        match self {
-            Self::Included(value) => Self::Excluded(value),
-            Self::Excluded(value) => Self::Included(value),
-            Self::Unbounded => Self::Unbounded,
-        }
+    fn from_bound(bound: Self) -> Self {
+        bound
     }
 }
 
 impl<T> LowerBound<T> for Option<T> {
-    type UpperBound = Self;
-
     fn as_bound(&self) -> Bound<&T> {
         self.as_ref().map_or(Bound::Unbounded, Bound::Included)
     }
 
-    fn into_upper(self) -> Self::UpperBound {
-        self
+    fn into_bound(self) -> Bound<T> {
+        self.map_or(Bound::Unbounded, Bound::Included)
+    }
+
+    fn from_bound(bound: Bound<T>) -> Self {
+        match bound {
+            Bound::Included(value) => Some(value),
+            Bound::Excluded(_) => {
+                panic!("excluded lower bounds are not supported on canonical intervals")
+            }
+            Bound::Unbounded => None,
+        }
     }
 }
 
 impl<T> UpperBound<T> for Option<T> {
-    type LowerBound = Self;
-
     fn as_bound(&self) -> Bound<&T> {
         self.as_ref().map_or(Bound::Unbounded, Bound::Excluded)
     }
 
-    fn into_lower(self) -> Self::LowerBound {
-        self
+    fn into_bound(self) -> Bound<T> {
+        self.map_or(Bound::Unbounded, Bound::Excluded)
+    }
+
+    fn from_bound(bound: Bound<T>) -> Self {
+        match bound {
+            Bound::Included(_) => {
+                panic!("included upper bounds are not supported on canonical intervals")
+            }
+            Bound::Excluded(value) => Some(value),
+            Bound::Unbounded => None,
+        }
     }
 }
 
 pub trait LowerBoundComparison<T: PartialOrd>: LowerBound<T> {
-    fn cmp_lower(&self, other: &Self) -> Ordering;
-    fn cmp_lower_values(&self, other: &Self) -> Ordering;
-    fn cmp_upper(&self, other: &Self::UpperBound) -> Ordering;
-    fn cmp_upper_values(&self, other: &Self::UpperBound) -> Ordering;
+    fn cmp_lower(&self, other: &impl LowerBound<T>) -> Ordering {
+        compare_bounds(
+            self.as_bound(),
+            other.as_bound(),
+            BoundType::Lower,
+            BoundType::Lower,
+        )
+    }
+
+    fn cmp_lower_values(&self, other: &impl LowerBound<T>) -> Ordering {
+        compare_bound_values(
+            self.as_bound(),
+            other.as_bound(),
+            BoundType::Lower,
+            BoundType::Lower,
+        )
+    }
+
+    fn cmp_upper(&self, other: &impl UpperBound<T>) -> Ordering {
+        compare_bounds(
+            self.as_bound(),
+            other.as_bound(),
+            BoundType::Lower,
+            BoundType::Upper,
+        )
+    }
+
+    fn cmp_upper_values(&self, other: &impl UpperBound<T>) -> Ordering {
+        compare_bound_values(
+            self.as_bound(),
+            other.as_bound(),
+            BoundType::Lower,
+            BoundType::Upper,
+        )
+    }
 }
 
 impl<B, T> LowerBoundComparison<T> for B
@@ -140,57 +153,13 @@ where
     T: PartialOrd,
     B: LowerBound<T>,
 {
-    fn cmp_lower(&self, other: &Self) -> Ordering {
-        compare_bounds(
-            self.as_bound(),
-            other.as_bound(),
-            BoundType::Lower,
-            BoundType::Lower,
-        )
-    }
-
-    fn cmp_lower_values(&self, other: &Self) -> Ordering {
-        compare_bound_values(
-            self.as_bound(),
-            other.as_bound(),
-            BoundType::Lower,
-            BoundType::Lower,
-        )
-    }
-
-    fn cmp_upper(&self, other: &Self::UpperBound) -> Ordering {
-        compare_bounds(
-            self.as_bound(),
-            other.as_bound(),
-            BoundType::Lower,
-            BoundType::Upper,
-        )
-    }
-
-    fn cmp_upper_values(&self, other: &Self::UpperBound) -> Ordering {
-        compare_bound_values(
-            self.as_bound(),
-            other.as_bound(),
-            BoundType::Lower,
-            BoundType::Upper,
-        )
-    }
 }
 
-pub trait UpperBoundComparison<T>: UpperBound<T> {
-    fn cmp_lower(&self, other: &Self::LowerBound) -> Ordering;
-    fn cmp_lower_values(&self, other: &Self::LowerBound) -> Ordering;
-    fn cmp_upper(&self, other: &Self) -> Ordering;
-    fn cmp_upper_values(&self, other: &Self) -> Ordering;
-    fn is_adjacent_to(&self, other: &Self::LowerBound) -> bool;
-}
-
-impl<B, T> UpperBoundComparison<T> for B
-where
-    T: PartialOrd,
-    B: UpperBound<T>,
-{
-    fn cmp_lower(&self, other: &Self::LowerBound) -> Ordering {
+pub trait UpperBoundComparison<T: PartialEq>: UpperBound<T> {
+    fn cmp_lower(&self, other: &impl LowerBound<T>) -> Ordering
+    where
+        T: PartialOrd,
+    {
         compare_bounds(
             self.as_bound(),
             other.as_bound(),
@@ -199,7 +168,10 @@ where
         )
     }
 
-    fn cmp_lower_values(&self, other: &Self::LowerBound) -> Ordering {
+    fn cmp_lower_values(&self, other: &impl LowerBound<T>) -> Ordering
+    where
+        T: PartialOrd,
+    {
         compare_bound_values(
             self.as_bound(),
             other.as_bound(),
@@ -208,7 +180,10 @@ where
         )
     }
 
-    fn cmp_upper(&self, other: &Self) -> Ordering {
+    fn cmp_upper(&self, other: &impl UpperBound<T>) -> Ordering
+    where
+        T: PartialOrd,
+    {
         compare_bounds(
             self.as_bound(),
             other.as_bound(),
@@ -217,7 +192,10 @@ where
         )
     }
 
-    fn cmp_upper_values(&self, other: &Self) -> Ordering {
+    fn cmp_upper_values(&self, other: &impl UpperBound<T>) -> Ordering
+    where
+        T: PartialOrd,
+    {
         compare_bound_values(
             self.as_bound(),
             other.as_bound(),
@@ -226,7 +204,7 @@ where
         )
     }
 
-    fn is_adjacent_to(&self, other: &Self::LowerBound) -> bool {
+    fn is_adjacent_to(&self, other: &impl LowerBound<T>) -> bool {
         match (self.as_bound(), other.as_bound()) {
             (Bound::Included(lhs), Bound::Excluded(rhs))
             | (Bound::Excluded(lhs), Bound::Included(rhs)) => lhs == rhs,
@@ -235,168 +213,11 @@ where
     }
 }
 
-/// Thin wrapper around `IntervalLowerBound` to implement comparison traits.
-pub struct LowerBoundObject<B, T>(pub B, PhantomData<T>);
-
-impl<B, T> LowerBoundObject<B, T> {
-    pub const fn new(bound: B) -> Self {
-        Self(bound, PhantomData)
-    }
-}
-
-impl<B, T> PartialEq for LowerBoundObject<B, T>
+impl<B, T> UpperBoundComparison<T> for B
 where
     T: PartialOrd,
-    B: LowerBound<T>,
-{
-    fn eq(&self, other: &Self) -> bool {
-        self.cmp_lower(other) == Ordering::Equal
-    }
-}
-
-impl<B, T> Eq for LowerBoundObject<B, T>
-where
-    T: PartialOrd,
-    B: LowerBound<T>,
-{
-}
-
-impl<B, T> PartialOrd for LowerBoundObject<B, T>
-where
-    T: PartialOrd,
-    B: LowerBound<T>,
-{
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp_lower(other))
-    }
-}
-
-impl<B, T> Ord for LowerBoundObject<B, T>
-where
-    T: PartialOrd,
-    B: LowerBound<T>,
-{
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.cmp_lower(other)
-    }
-}
-
-impl<B, T> PartialEq<UpperBoundObject<B::UpperBound, T>> for LowerBoundObject<B, T>
-where
-    B: LowerBound<T>,
-    T: PartialOrd,
-{
-    fn eq(&self, other: &UpperBoundObject<B::UpperBound, T>) -> bool {
-        self.cmp_upper(other) == Ordering::Equal
-    }
-}
-
-impl<B, T> PartialOrd<UpperBoundObject<B::UpperBound, T>> for LowerBoundObject<B, T>
-where
-    B: LowerBound<T>,
-    T: PartialOrd,
-{
-    fn partial_cmp(&self, other: &UpperBoundObject<B::UpperBound, T>) -> Option<Ordering> {
-        Some(self.cmp_upper(other))
-    }
-}
-
-impl<B, T> LowerBound<T> for LowerBoundObject<B, T>
-where
-    B: LowerBound<T>,
-    T: PartialOrd,
-{
-    type UpperBound = UpperBoundObject<B::UpperBound, T>;
-
-    fn as_bound(&self) -> Bound<&T> {
-        self.0.as_bound()
-    }
-
-    fn into_upper(self) -> Self::UpperBound {
-        UpperBoundObject::new(self.0.into_upper())
-    }
-}
-
-/// Thin wrapper around `IntervalUpperBound` to implement comparison traits.
-pub struct UpperBoundObject<B, T>(pub B, PhantomData<T>);
-
-impl<B, T> UpperBoundObject<B, T> {
-    pub const fn new(bound: B) -> Self {
-        Self(bound, PhantomData)
-    }
-}
-
-impl<B, T> PartialEq for UpperBoundObject<B, T>
-where
     B: UpperBound<T>,
-    T: PartialOrd,
 {
-    fn eq(&self, other: &Self) -> bool {
-        self.cmp_upper(other) == Ordering::Equal
-    }
-}
-
-impl<B, T> Eq for UpperBoundObject<B, T>
-where
-    B: UpperBound<T>,
-    T: PartialOrd,
-{
-}
-
-impl<B, T> PartialOrd for UpperBoundObject<B, T>
-where
-    B: UpperBound<T>,
-    T: PartialOrd,
-{
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp_upper(other))
-    }
-}
-
-impl<B, T> Ord for UpperBoundObject<B, T>
-where
-    B: UpperBound<T>,
-    T: PartialOrd,
-{
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.cmp_upper(other)
-    }
-}
-
-impl<B, T> PartialEq<LowerBoundObject<B::LowerBound, T>> for UpperBoundObject<B, T>
-where
-    B: UpperBound<T>,
-    T: PartialOrd,
-{
-    fn eq(&self, other: &LowerBoundObject<B::LowerBound, T>) -> bool {
-        self.cmp_lower(other) == Ordering::Equal
-    }
-}
-
-impl<B, T> PartialOrd<LowerBoundObject<B::LowerBound, T>> for UpperBoundObject<B, T>
-where
-    B: UpperBound<T>,
-    T: PartialOrd,
-{
-    fn partial_cmp(&self, other: &LowerBoundObject<B::LowerBound, T>) -> Option<Ordering> {
-        Some(self.cmp_lower(other))
-    }
-}
-
-impl<B, T> UpperBound<T> for UpperBoundObject<B, T>
-where
-    B: UpperBound<T>,
-    T: PartialOrd,
-{
-    type LowerBound = LowerBoundObject<B::LowerBound, T>;
-
-    fn as_bound(&self) -> Bound<&T> {
-        self.0.as_bound()
-    }
-
-    fn into_lower(self) -> Self::LowerBound {
-        LowerBoundObject::new(self.0.into_lower())
-    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
