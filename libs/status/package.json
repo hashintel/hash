@@ -1,0 +1,23 @@
+{
+  "name": "@hashintel/status",
+  "version": "0.0.0-private",
+  "private": true,
+  "license": "(MIT OR Apache-2.0)",
+  "type": "module",
+  "exports": {
+    ".": "./pkg/src/main.ts"
+  },
+  "scripts": {
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit"
+  },
+  "dependencies": {
+    "typescript": "4.9.4"
+  },
+  "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "eslint": "8.29.0"
+  }
+}
