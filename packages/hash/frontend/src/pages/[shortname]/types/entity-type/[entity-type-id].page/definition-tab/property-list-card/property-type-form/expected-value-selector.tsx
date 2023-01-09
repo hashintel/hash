@@ -34,42 +34,8 @@ const ExpectedValueSelectorDropdown = ({ children, ...props }: PaperProps) => {
     customExpectedValueBuilderOpen,
     openCustomExpectedValueBuilder,
     closeCustomExpectedValueBuilder,
+    handleSave,
   } = useCustomExpectedValueBuilderContext();
-
-  const { getValues, setValue } = useFormContext<PropertyTypeFormValues>();
-
-  const handleSave = (newValues: FlattenedCustomExpectedValueList) => {
-    const [
-      customExpectedValueId,
-      editingExpectedValueIndex,
-      existingExpectedValues,
-    ] = getValues([
-      "customExpectedValueId",
-      "editingExpectedValueIndex",
-      "expectedValues",
-    ]);
-
-    if (!customExpectedValueId) {
-      throw new Error("Cannot save if not editing");
-    }
-
-    const expectedValue = getExpectedValueDescriptor(
-      customExpectedValueId,
-      newValues,
-    );
-
-    const newExpectedValues = [...existingExpectedValues];
-
-    if (editingExpectedValueIndex !== undefined) {
-      newExpectedValues[editingExpectedValueIndex] = expectedValue;
-    } else {
-      newExpectedValues.push(expectedValue);
-    }
-    setValue("expectedValues", newExpectedValues);
-    setValue("flattenedCustomExpectedValueList", newValues);
-
-    closeCustomExpectedValueBuilder();
-  };
 
   return (
     <AutocompleteDropdown {...props}>
@@ -119,7 +85,8 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
   HTMLInputElement,
   {}
 > = () => {
-  const { control, setValue } = useFormContext<PropertyTypeFormValues>();
+  const { control, setValue, getValues } =
+    useFormContext<PropertyTypeFormValues>();
 
   const {
     field: { onChange, onBlur, ...props },
@@ -134,21 +101,60 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
   const [creatingCustomExpectedValue, setCreatingCustomExpectedValue] =
     useStateCallback(false);
 
-  const customExpectedValueBuilderContextValue = useMemo(
-    () => ({
+  const customExpectedValueBuilderContextValue = useMemo(() => {
+    const closeCustomExpectedValueBuilder = () => {
+      setValue("editingExpectedValueIndex", undefined);
+      setValue("customExpectedValueId", undefined);
+      setCreatingCustomExpectedValue(false, () => {
+        inputRef.current?.focus();
+      });
+    };
+
+    return {
       customExpectedValueBuilderOpen: creatingCustomExpectedValue,
       openCustomExpectedValueBuilder: () =>
         setCreatingCustomExpectedValue(true),
-      closeCustomExpectedValueBuilder: () => {
-        setValue("editingExpectedValueIndex", undefined);
-        setValue("customExpectedValueId", undefined);
-        setCreatingCustomExpectedValue(false, () => {
-          inputRef.current?.focus();
-        });
+      closeCustomExpectedValueBuilder,
+
+      handleSave: (newValues: FlattenedCustomExpectedValueList) => {
+        const [
+          customExpectedValueId,
+          editingExpectedValueIndex,
+          existingExpectedValues,
+        ] = getValues([
+          "customExpectedValueId",
+          "editingExpectedValueIndex",
+          "expectedValues",
+        ]);
+
+        if (!customExpectedValueId) {
+          throw new Error("Cannot save if not editing");
+        }
+
+        const expectedValue = getExpectedValueDescriptor(
+          customExpectedValueId,
+          newValues,
+        );
+
+        const newExpectedValues = [...existingExpectedValues];
+
+        if (editingExpectedValueIndex !== undefined) {
+          newExpectedValues[editingExpectedValueIndex] = expectedValue;
+        } else {
+          newExpectedValues.push(expectedValue);
+        }
+        setValue("expectedValues", newExpectedValues);
+        setValue("flattenedCustomExpectedValueList", newValues);
+
+        closeCustomExpectedValueBuilder();
       },
-    }),
-    [creatingCustomExpectedValue, setCreatingCustomExpectedValue, setValue],
-  );
+    };
+  }, [
+    creatingCustomExpectedValue,
+    getValues,
+    setCreatingCustomExpectedValue,
+    setValue,
+  ]);
 
   const { customExpectedValueBuilderOpen, openCustomExpectedValueBuilder } =
     customExpectedValueBuilderContextValue;
