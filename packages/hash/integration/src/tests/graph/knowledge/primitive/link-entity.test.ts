@@ -139,7 +139,7 @@ describe("Link entity", () => {
     await Promise.all([
       createEntity(graphContext, {
         ownedById: testUser.accountId as OwnedById,
-        entityType: testEntityType,
+        entityTypeId: testEntityType.schema.$id,
         properties: {},
         actorId: testUser.accountId,
       }).then((entity) => {
@@ -147,7 +147,7 @@ describe("Link entity", () => {
       }),
       createEntity(graphContext, {
         ownedById: testUser.accountId as OwnedById,
-        entityType: testEntityType,
+        entityTypeId: testEntityType.schema.$id,
         properties: {},
         actorId: testUser.accountId,
       }).then((entity) => {
@@ -155,7 +155,7 @@ describe("Link entity", () => {
       }),
       createEntity(graphContext, {
         ownedById: testUser.accountId as OwnedById,
-        entityType: testEntityType,
+        entityTypeId: testEntityType.schema.$id,
         properties: {},
         actorId: testUser.accountId,
       }).then((entity) => {
