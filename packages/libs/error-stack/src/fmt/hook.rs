@@ -494,10 +494,15 @@ mod default {
 
     fn location(location: &Location<'static>, context: &mut HookContext<Location<'static>>) {
         #[cfg(feature = "pretty-print")]
-        context.push_body(format!(
-            "{}",
-            location.if_supports_color(Stream::Stdout, OwoColorize::bright_black)
-        ));
+        {
+            let output = format!("at {location}");
+            let output_as_str = output.as_str();
+
+            let display =
+                output_as_str.if_supports_color(Stream::Stdout, OwoColorize::bright_black);
+
+            context.push_body(display.to_string());
+        }
 
         #[cfg(not(feature = "pretty-print"))]
         context.push_body(format!("at {location}"));
