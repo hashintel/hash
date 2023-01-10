@@ -37,7 +37,7 @@ utoipa = { version = "2.4.2", features = ["uuid"] }
 include_dir = "0.7.3"
 
 [dev-dependencies]
-tokio = { version = "1.23.0", features = ["rt-multi-thread", "macros", "tracing"] }
+tokio = { version = "1.23.1", features = ["rt-multi-thread", "macros", "tracing"] }
 graph-test-data = { path = "../../tests/test_data" }
 criterion = "0.4.0"
 

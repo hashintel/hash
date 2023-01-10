@@ -2,6 +2,10 @@ use std::borrow::Cow;
 
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
+    identifier::time::{
+        TimespanBound, UnresolvedImage, UnresolvedKernel, UnresolvedProjection,
+        UnresolvedTimeProjection,
+    },
     knowledge::{EntityQueryPath, EntityUuid},
     store::{
         query::{Filter, FilterExpression, Parameter},
@@ -23,7 +27,10 @@ pub fn bench_get_entity_by_id(
     b.to_async(runtime).iter_batched(
         || {
             // Each iteration, *before timing*, pick a random entity from the sample to query
-            *entity_uuids.iter().choose(&mut thread_rng()).unwrap()
+            *entity_uuids
+                .iter()
+                .choose(&mut thread_rng())
+                .expect("could not choose random entity")
         },
         |entity_uuid| async move {
             let subgraph = store
@@ -45,6 +52,13 @@ pub fn bench_get_entity_by_id(
                         ),
                     ]),
                     graph_resolve_depths: GraphResolveDepths::default(),
+                    time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                        kernel: UnresolvedKernel::new(None),
+                        image: UnresolvedImage::new(
+                            Some(TimespanBound::Unbounded),
+                            Some(TimespanBound::Unbounded),
+                        ),
+                    }),
                 })
                 .await
                 .expect("failed to read entity from store");
@@ -72,6 +86,13 @@ pub fn bench_get_entities_by_property(
                     )))),
                 ),
                 graph_resolve_depths,
+                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                    kernel: UnresolvedKernel::new(None),
+                    image: UnresolvedImage::new(
+                        Some(TimespanBound::Unbounded),
+                        Some(TimespanBound::Unbounded),
+                    ),
+                }),
             })
             .await
             .expect("failed to read entity from store");
@@ -99,6 +120,13 @@ pub fn bench_get_link_by_target_by_property(
                     )))),
                 ),
                 graph_resolve_depths,
+                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                    kernel: UnresolvedKernel::new(None),
+                    image: UnresolvedImage::new(
+                        Some(TimespanBound::Unbounded),
+                        Some(TimespanBound::Unbounded),
+                    ),
+                }),
             })
             .await
             .expect("failed to read entity from store");

@@ -1,3 +1,4 @@
+#![feature(lint_reasons)]
 #![forbid(unsafe_code)]
 
 mod args;
@@ -40,6 +41,7 @@ impl fmt::Display for GraphError {
 ///
 /// This will include things that are mocks or stubs to make up for missing pieces of infrastructure
 /// that haven't been created yet.
+#[expect(clippy::too_many_lines, reason = "temporary solution")]
 async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphError> {
     // TODO: how do we make these URIs compliant
     let text = DataType::new(
@@ -123,7 +125,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         "Empty List".to_owned(),
         Some("An Empty List".to_owned()),
         "array".to_owned(),
-        [("const".to_owned(), json!([]))].into_iter().collect(),
+        HashMap::from([("const".to_owned(), json!([]))]),
     );
 
     let link_entity_type = EntityType::new(
@@ -214,7 +216,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
 
 #[tokio::main]
 async fn main() -> Result<(), GraphError> {
-    let args = Args::parse();
+    let args = Args::parse_args();
     let _log_guard = init_logger(
         args.log_config.log_format,
         args.log_config.log_folder,
@@ -248,7 +250,7 @@ async fn main() -> Result<(), GraphError> {
     axum::Server::bind(&addr)
         .serve(rest_router.into_make_service_with_connect_info::<SocketAddr>())
         .await
-        .unwrap();
+        .expect("failed to start server");
 
     Ok(())
 }

@@ -1,6 +1,41 @@
-import { faCaretDown } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { CSSProperties, FunctionComponent } from "react";
+import {
+  Divider,
+  Paper,
+  Stack,
+  styled,
+  ToggleButton,
+  toggleButtonClasses,
+  useTheme,
+} from "@mui/material";
+import { FunctionComponent } from "react";
+
+import { BoldIcon } from "../../../shared/icons/bold-icon";
+import { HighlighterIcon } from "../../../shared/icons/hightlighter-icon";
+import { ItalicIcon } from "../../../shared/icons/italic-icon";
+import { LinkIcon } from "../../../shared/icons/link-icon";
+import { StrikethroughIcon } from "../../../shared/icons/strikethrough-icon";
+import { UnderlineIcon } from "../../../shared/icons/underline-icon";
+
+const FormatButton = styled(ToggleButton)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  cursor: "pointer",
+  px: 1.5,
+  py: 1,
+  height: 34,
+  borderWidth: 0,
+  borderRadius: 0,
+
+  backgroundColor: theme.palette.white,
+  color: theme.palette.gray[80],
+  fill: theme.palette.gray[60],
+
+  [`&.${toggleButtonClasses.selected}`]: {
+    backgroundColor: theme.palette.gray[20],
+    color: theme.palette.gray[90],
+    fill: theme.palette.gray[70],
+  },
+}));
 
 interface MarksTooltipProps {
   activeMarks: { name: string; attrs?: Record<string, string> }[];
@@ -12,19 +47,23 @@ interface MarksTooltipProps {
 const marks = [
   {
     name: "strong",
-    text: "B",
+    Icon: BoldIcon,
   },
   {
     name: "em",
-    text: "I",
+    Icon: ItalicIcon,
   },
   {
     name: "underlined",
-    text: "U",
+    Icon: UnderlineIcon,
   },
   {
-    name: "link",
-    text: "Link",
+    name: "strikethrough",
+    Icon: StrikethroughIcon,
+  },
+  {
+    name: "highlighted",
+    Icon: HighlighterIcon,
   },
 ];
 
@@ -34,88 +73,96 @@ export const MarksTooltip: FunctionComponent<MarksTooltipProps> = ({
   focusEditorView,
   openLinkModal,
 }) => {
-  const getMarkBtnStyle = (name: string): CSSProperties => {
-    const isActive = activeMarks.find((mark) => mark.name === name);
-
-    if (isActive) {
-      if (name === "link") {
-        return {
-          color: "#3B82F6",
-        };
-      }
-
-      return {
-        backgroundColor: "#3B82F6",
-        color: "#ffffff",
-      };
-    } else {
-      return {
-        backgroundColor: "#ffffff",
-        color: "#000000",
-      };
-    }
-  };
-
-  const handleToggleMark = (name: string) => {
-    if (name === "link") {
-      openLinkModal();
-    } else {
-      toggleMark(name);
-    }
-
-    focusEditorView();
-  };
+  const theme = useTheme();
 
   return (
-    <div
-      style={{
-        // @todo use shadows from MUI theme https://app.asana.com/0/1203179076056209/1203480105875518/f
-        boxShadow:
-          "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-        left: "50%",
-        marginTop: "-0.25rem",
+    <Paper
+      elevation={4}
+      sx={{
+        display: "flex",
+        overflow: "hidden",
         position: "absolute",
+        left: "50%",
+        marginTop: -1,
         transform: "translate(-50%, -100%)",
         zIndex: "10",
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          backgroundColor: "#ffffff",
-        }}
+      <Stack
+        direction="row"
+        sx={({ palette }) => ({
+          overflow: "hidden",
+          border: `1px solid ${palette.gray[20]}`,
+          borderRightWidth: 0,
+          borderTopLeftRadius: 4,
+          borderBottomLeftRadius: 4,
+        })}
       >
-        {marks.map(({ name, text }) => (
-          <button
-            style={{
-              alignItems: "center",
-              borderColor: "#D1D5DB",
-              borderWidth: "0",
-              cursor: "pointer",
-              display: "flex",
-              paddingBottom: "0.25rem",
-              paddingLeft: "1rem",
-              paddingRight: "1rem",
-              paddingTop: "0.25rem",
-              ...getMarkBtnStyle(name),
+        <FormatButton
+          value="link"
+          selected={activeMarks.some((mark) => mark.name === "link")}
+          onClick={() => {
+            openLinkModal();
+            focusEditorView();
+          }}
+        >
+          <LinkIcon
+            sx={{
+              fill: "inherit",
+              fontSize: 16,
+              mr: 0.5,
+            }}
+          />
+          Link
+        </FormatButton>
+      </Stack>
+
+      <Divider
+        color={theme.palette.gray[30]}
+        sx={{ width: "1px", color: "red" }}
+      />
+
+      <Stack
+        direction="row"
+        sx={({ palette }) => ({
+          p: 0.125,
+          gap: 0.125,
+          overflow: "hidden",
+          border: `1px solid ${palette.gray[20]}`,
+          borderLeftWidth: 0,
+          borderTopRightRadius: 4,
+          borderBottomRightRadius: 4,
+        })}
+      >
+        {marks.map(({ name, Icon }) => (
+          <FormatButton
+            value={name}
+            sx={{
+              px: 1,
+              height: 32,
+              borderRadius: 0.5,
+              fill: theme.palette.gray[80],
+
+              [`&.${toggleButtonClasses.selected}`]: {
+                fill: theme.palette.gray[90],
+              },
             }}
             key={name}
-            onClick={() => handleToggleMark(name)}
-            type="button"
+            onClick={() => {
+              toggleMark(name);
+              focusEditorView();
+            }}
+            selected={activeMarks.some((mark) => mark.name === name)}
           >
-            {text}
-            {name === "link" && (
-              <FontAwesomeIcon
-                icon={faCaretDown}
-                style={{
-                  marginLeft: "0.5rem",
-                  fontSize: 10,
-                }}
-              />
-            )}
-          </button>
+            <Icon
+              sx={{
+                fill: "inherit",
+                fontSize: 16,
+              }}
+            />
+          </FormatButton>
         ))}
-      </div>
-    </div>
+      </Stack>
+    </Paper>
   );
 };
