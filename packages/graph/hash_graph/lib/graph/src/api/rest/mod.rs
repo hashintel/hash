@@ -23,7 +23,6 @@ use axum::{
 };
 use error_stack::Report;
 use include_dir::{include_dir, Dir};
-use tower_http::trace::TraceLayer;
 use utoipa::{
     openapi::{
         self, schema, schema::RefOr, ArrayBuilder, KnownFormat, ObjectBuilder, OneOfBuilder, Ref,
@@ -32,7 +31,7 @@ use utoipa::{
     Modify, OpenApi, ToSchema,
 };
 
-use self::{api_resource::RoutedResource, middleware::span_maker};
+use self::{api_resource::RoutedResource, middleware::span_trace_layer};
 use crate::{
     api::rest::{
         middleware::log_request_and_response,
@@ -114,7 +113,7 @@ pub fn rest_api_router<P: StorePool + Send + 'static>(
         .layer(Extension(store))
         .layer(Extension(domain_regex))
         .layer(axum::middleware::from_fn(log_request_and_response))
-        .layer(TraceLayer::new_for_http().make_span_with(span_maker))
+        .layer(span_trace_layer())
         .nest(
             "/api-doc",
             Router::new()
