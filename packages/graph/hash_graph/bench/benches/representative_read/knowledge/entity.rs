@@ -27,7 +27,10 @@ pub fn bench_get_entity_by_id(
     b.to_async(runtime).iter_batched(
         || {
             // Each iteration, *before timing*, pick a random entity from the sample to query
-            *entity_uuids.iter().choose(&mut thread_rng()).unwrap()
+            *entity_uuids
+                .iter()
+                .choose(&mut thread_rng())
+                .expect("could not choose random entity")
         },
         |entity_uuid| async move {
             let subgraph = store

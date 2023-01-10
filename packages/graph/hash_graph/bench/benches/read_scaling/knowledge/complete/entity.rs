@@ -14,7 +14,7 @@ use graph::{
     provenance::{OwnedById, UpdatedById},
     store::{query::Filter, AccountStore, EntityStore, Store as _, Transaction},
     subgraph::{
-        edges::{EdgeResolveDepths, GraphResolveDepths},
+        edges::{EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth},
         query::StructuralQuery,
     },
 };
@@ -132,7 +132,7 @@ async fn seed_db(
         store_wrapper.bench_db_name,
         total,
         link_entity_metadata_list.len(),
-        now.elapsed().unwrap()
+        now.elapsed().expect("failed to get elapsed time")
     );
 
     DatastoreEntitiesMetadata {
@@ -156,7 +156,7 @@ pub fn bench_get_entity_by_id(
                 .iter()
                 .map(EntityMetadata::edition_id)
                 .choose(&mut thread_rng())
-                .unwrap()
+                .expect("could not choose random entity")
         },
         |entity_edition_id| async move {
             store
@@ -187,8 +187,9 @@ fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
 
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id =
-        AccountId::new(Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").unwrap());
+    let account_id = AccountId::new(
+        Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
+    );
 
     for size in [1, 5, 10, 25, 50] {
         // TODO: reuse the database if it already exists like we do for representative_read
@@ -213,16 +214,16 @@ fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
                     store,
                     entity_metadata_list,
                     GraphResolveDepths {
-                        inherits_from: Default::default(),
-                        constrains_values_on: Default::default(),
-                        constrains_properties_on: Default::default(),
-                        constrains_links_on: Default::default(),
-                        constrains_link_destinations_on: Default::default(),
-                        is_of_type: Default::default(),
-                        has_left_entity: Default::default(),
-                        has_right_entity: Default::default(),
+                        inherits_from: OutgoingEdgeResolveDepth::default(),
+                        constrains_values_on: OutgoingEdgeResolveDepth::default(),
+                        constrains_properties_on: OutgoingEdgeResolveDepth::default(),
+                        constrains_links_on: OutgoingEdgeResolveDepth::default(),
+                        constrains_link_destinations_on: OutgoingEdgeResolveDepth::default(),
+                        is_of_type: OutgoingEdgeResolveDepth::default(),
+                        has_left_entity: EdgeResolveDepths::default(),
+                        has_right_entity: EdgeResolveDepths::default(),
                     },
-                )
+                );
             },
         );
     }
@@ -237,8 +238,9 @@ fn bench_scaling_read_entity_one_depth(c: &mut Criterion) {
 
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id =
-        AccountId::new(Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").unwrap());
+    let account_id = AccountId::new(
+        Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
+    );
 
     for size in [1, 5, 10, 25, 50] {
         // TODO: reuse the database if it already exists like we do for representative_read
@@ -263,12 +265,12 @@ fn bench_scaling_read_entity_one_depth(c: &mut Criterion) {
                     store,
                     entity_metadata_list,
                     GraphResolveDepths {
-                        inherits_from: Default::default(),
-                        constrains_values_on: Default::default(),
-                        constrains_properties_on: Default::default(),
-                        constrains_links_on: Default::default(),
-                        constrains_link_destinations_on: Default::default(),
-                        is_of_type: Default::default(),
+                        inherits_from: OutgoingEdgeResolveDepth::default(),
+                        constrains_values_on: OutgoingEdgeResolveDepth::default(),
+                        constrains_properties_on: OutgoingEdgeResolveDepth::default(),
+                        constrains_links_on: OutgoingEdgeResolveDepth::default(),
+                        constrains_link_destinations_on: OutgoingEdgeResolveDepth::default(),
+                        is_of_type: OutgoingEdgeResolveDepth::default(),
                         has_left_entity: EdgeResolveDepths {
                             incoming: 1,
                             outgoing: 1,
@@ -278,7 +280,7 @@ fn bench_scaling_read_entity_one_depth(c: &mut Criterion) {
                             outgoing: 1,
                         },
                     },
-                )
+                );
             },
         );
     }
