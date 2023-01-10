@@ -4,7 +4,7 @@ use core::{
     ops::Bound,
 };
 
-use crate::bounds::{LowerBound, LowerBoundHelper, UpperBound, UpperBoundComparison};
+use crate::bounds::{LowerBound, LowerBoundHelper, UpperBound, UpperBoundHelper};
 
 pub trait IntervalBounds<T> {
     fn lower_bound(&self) -> Bound<&T>;
@@ -121,6 +121,17 @@ pub trait Interval<T>: Sized {
     {
         self.upper_bound().is_adjacent_to(other.lower_bound())
             || other.upper_bound().is_adjacent_to(self.lower_bound())
+    }
+
+    /// Returns the complement of this interval.
+    #[must_use]
+    fn complement(self) -> IntervalIter<Self>
+    where
+        T: PartialOrd,
+    {
+        let lower = <Self::LowerBound as LowerBound<T>>::from_bound(Bound::Unbounded);
+        let upper = <Self::UpperBound as UpperBound<T>>::from_bound(Bound::Unbounded);
+        Self::from_bounds(lower, upper).difference(self)
     }
 
     /// Returns a new interval that contains all points in both intervals.
@@ -328,6 +339,16 @@ mod tests {
         assert_equality(lhs.union(rhs), union, "union");
         assert_equality(lhs.merge(rhs), merge, "merge");
         assert_equality(lhs.difference(rhs), difference, "difference");
+
+        let calculated_difference = rhs
+            .complement()
+            .filter_map(|rhs_complement| lhs.intersect(rhs_complement))
+            .collect::<Vec<_>>();
+        assert_equality(
+            calculated_difference,
+            lhs.difference(rhs),
+            "difference calculated by complement",
+        );
 
         if lhs.union(rhs).len() == 1 && lhs.intersect(rhs).is_some() {
             assert!(

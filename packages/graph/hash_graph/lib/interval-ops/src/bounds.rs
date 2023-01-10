@@ -1,5 +1,3 @@
-#[cfg(any(feature = "canonical", feature = "continuous"))]
-use core::fmt;
 use core::{cmp::Ordering, ops::Bound};
 
 use crate::invalid_bounds;
@@ -126,7 +124,7 @@ where
 {
 }
 
-pub trait UpperBoundComparison<T: PartialEq>: UpperBound<T> {
+pub trait UpperBoundHelper<T: PartialEq>: UpperBound<T> {
     fn cmp_lower(&self, other: &impl LowerBound<T>) -> Ordering
     where
         T: PartialOrd,
@@ -167,7 +165,7 @@ pub trait UpperBoundComparison<T: PartialEq>: UpperBound<T> {
     }
 }
 
-impl<B, T> UpperBoundComparison<T> for B
+impl<B, T> UpperBoundHelper<T> for B
 where
     T: PartialOrd,
     B: UpperBound<T>,
