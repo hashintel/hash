@@ -6,7 +6,7 @@ publish = false
 description = "HASH Graph API"
 
 [dependencies]
-interval-ops = { path = "../interval-ops", features = ["continuous"] }
+interval-ops = { path = "../interval-ops" }
 
 async-trait = "0.1.60"
 axum = "0.6.1"

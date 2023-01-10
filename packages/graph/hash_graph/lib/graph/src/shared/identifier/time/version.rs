@@ -1,10 +1,6 @@
-use std::{
-    collections::Bound,
-    error::Error,
-    ops::{Add, Mul, RangeBounds, Sub},
-};
+use std::{collections::Bound, error::Error, ops::RangeBounds};
 
-use interval_ops::{ContinuousInterval, Interval, LowerBound, UpperBound};
+use interval_ops::{Interval, IntervalBounds, LowerBound, UpperBound};
 use postgres_protocol::types::timestamp_from_sql;
 use postgres_types::{FromSql, Type};
 use serde::{Deserialize, Serialize};
@@ -22,10 +18,6 @@ impl<A> Interval<Timestamp<A>> for VersionTimespan<A> {
     type LowerBound = Timestamp<A>;
     type UpperBound = Option<Timestamp<A>>;
 
-    fn empty() -> Self {
-        unimplemented!("An empty interval is not a valid version interval")
-    }
-
     fn from_bounds(lower: Timestamp<A>, upper: Option<Timestamp<A>>) -> Self {
         if let Some(upper) = upper {
             assert!(
@@ -40,16 +32,16 @@ impl<A> Interval<Timestamp<A>> for VersionTimespan<A> {
         }
     }
 
-    fn bounds(&self) -> Option<(&Self::LowerBound, &Self::UpperBound)> {
-        Some((&self.start, &self.end))
+    fn lower_bound(&self) -> &Self::LowerBound {
+        &self.start
     }
 
-    fn into_bounds(self) -> Option<(Self::LowerBound, Self::UpperBound)> {
-        Some((self.start, self.end))
+    fn upper_bound(&self) -> &Self::UpperBound {
+        &self.end
     }
 
-    fn is_empty(&self) -> bool {
-        false
+    fn into_bound(self) -> (Self::LowerBound, Self::UpperBound) {
+        (self.start, self.end)
     }
 }
 
@@ -63,8 +55,8 @@ impl<A> VersionTimespan<A> {
     }
 
     #[must_use]
-    pub fn into_continuous_interval(self) -> ContinuousInterval<Timestamp<A>> {
-        ContinuousInterval::from_range(self)
+    pub fn into_continuous_interval(self) -> IntervalBounds<Timestamp<A>> {
+        IntervalBounds::from_range(self)
     }
 }
 
@@ -126,33 +118,5 @@ impl FromSql<'_> for VersionTimespan<()> {
 
     fn accepts(ty: &Type) -> bool {
         matches!(ty, &Type::TSTZ_RANGE)
-    }
-}
-
-impl<A, I: Interval<Timestamp<A>>> Add<I> for VersionTimespan<A> {
-    type Output = ContinuousInterval<Timestamp<A>>;
-
-    fn add(self, rhs: I) -> Self::Output {
-        self.into_continuous_interval()
-            .union(rhs)
-            .expect("interval union result in disjoint spans")
-    }
-}
-
-impl<A, I: Interval<Timestamp<A>>> Sub<I> for VersionTimespan<A> {
-    type Output = ContinuousInterval<Timestamp<A>>;
-
-    fn sub(self, rhs: I) -> Self::Output {
-        self.into_continuous_interval()
-            .difference(rhs)
-            .expect("interval difference result in disjoint spans")
-    }
-}
-
-impl<A, I: Interval<Timestamp<A>>> Mul<I> for VersionTimespan<A> {
-    type Output = ContinuousInterval<Timestamp<A>>;
-
-    fn mul(self, rhs: I) -> Self::Output {
-        self.into_continuous_interval().intersect(rhs)
     }
 }

@@ -1,10 +1,7 @@
-use std::{
-    collections::Bound,
-    ops::{Add, Mul, Sub},
-};
+use std::collections::Bound;
 
 use derivative::Derivative;
-use interval_ops::{ContinuousInterval, Interval, LowerBound, UpperBound};
+use interval_ops::{Interval, IntervalBounds, LowerBound, UpperBound};
 use serde::{Deserialize, Serialize};
 use utoipa::{openapi, ToSchema};
 
@@ -142,18 +139,14 @@ pub struct Timespan<A> {
 
 impl<A> Timespan<A> {
     #[must_use]
-    pub fn into_continuous_interval(self) -> ContinuousInterval<Timestamp<A>> {
-        ContinuousInterval::from_range((Bound::from(self.start), Bound::from(self.end)))
+    pub fn into_continuous_interval(self) -> IntervalBounds<Timestamp<A>> {
+        IntervalBounds::from_range((Bound::from(self.start), Bound::from(self.end)))
     }
 }
 
 impl<A> Interval<Timestamp<A>> for Timespan<A> {
     type LowerBound = TimespanBound<A>;
     type UpperBound = TimespanBound<A>;
-
-    fn empty() -> Self {
-        unimplemented!("An empty interval is not a valid time interval")
-    }
 
     fn from_bounds(lower: Self::LowerBound, upper: Self::UpperBound) -> Self
     where
@@ -165,43 +158,15 @@ impl<A> Interval<Timestamp<A>> for Timespan<A> {
         }
     }
 
-    fn bounds(&self) -> Option<(&Self::LowerBound, &Self::UpperBound)> {
-        Some((&self.start, &self.end))
+    fn lower_bound(&self) -> &Self::LowerBound {
+        &self.start
     }
 
-    fn into_bounds(self) -> Option<(Self::LowerBound, Self::UpperBound)> {
-        Some((self.start, self.end))
+    fn upper_bound(&self) -> &Self::UpperBound {
+        &self.end
     }
 
-    fn is_empty(&self) -> bool {
-        false
-    }
-}
-
-impl<A, I: Interval<Timestamp<A>>> Add<I> for Timespan<A> {
-    type Output = ContinuousInterval<Timestamp<A>>;
-
-    fn add(self, rhs: I) -> Self::Output {
-        self.into_continuous_interval()
-            .union(rhs)
-            .expect("interval union result in disjoint spans")
-    }
-}
-
-impl<A, I: Interval<Timestamp<A>>> Sub<I> for Timespan<A> {
-    type Output = ContinuousInterval<Timestamp<A>>;
-
-    fn sub(self, rhs: I) -> Self::Output {
-        self.into_continuous_interval()
-            .difference(rhs)
-            .expect("interval difference result in disjoint spans")
-    }
-}
-
-impl<A, I: Interval<Timestamp<A>>> Mul<I> for Timespan<A> {
-    type Output = ContinuousInterval<Timestamp<A>>;
-
-    fn mul(self, rhs: I) -> Self::Output {
-        self.into_continuous_interval().intersect(rhs)
+    fn into_bound(self) -> (Self::LowerBound, Self::UpperBound) {
+        (self.start, self.end)
     }
 }
