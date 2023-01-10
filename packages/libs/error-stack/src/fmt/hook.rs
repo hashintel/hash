@@ -14,11 +14,33 @@ pub(crate) use default::install_builtin_hooks;
 
 use crate::fmt::Frame;
 
+/// The available modes of color support, can be obtained through [`HookContext::mode`]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Default)]
 pub enum ColorMode {
+    /// User preference to disable all colors
+    ///
+    /// If this is the variant is present, [`owo-colors`](https://docs.rs/owo-colors) color
+    /// support has been temporarily disabled and closures given to
+    /// [`owo_colors::OwoColorize::if_supports_color`] will not be executed.
+    ///
+    /// This will also be present if the user has disabled or the output stream does not support
+    /// colors.
     None,
-    Color,
+
+    /// User preference to enable colors
+    ///
+    /// The user has signalled that colors are supported, this is the case if `pretty-print` has
+    /// been enabled, the terminal supports it and support wasn't forcefully disabled through
+    /// [`owo_colors::set_override`].
+    ///
+    /// Closures given to [`owo_colors::OwoColorize::if_supports_color`] will be executed.
     #[default]
+    Color,
+
+    /// User preference to enable styles, but discourage colors
+    ///
+    /// This is the same as [`ColorMode::Color`], but signals to the user that while colors are
+    /// supported, the user prefers instead the use of emphasis, like bold and italic text.
     Emphasis,
 }
 
@@ -34,6 +56,8 @@ impl Format {
     pub(crate) const fn new(alternate: bool, mode: ColorMode) -> Self {
         Self {
             alternate,
+            mode,
+
             body: Vec::new(),
             appendix: Vec::new(),
         }
@@ -235,6 +259,14 @@ pub type HookContext<T> = crate::hook::context::HookContext<Format, T>;
 impl<T> HookContext<T> {
     pub(crate) fn appendix(&self) -> &[String] {
         self.inner().extra().appendix()
+    }
+
+    /// The requested [`ColorMode`] for this invocation of hooks.
+    ///
+    /// Hooks can be invoked in different color modes, which represent the preferences of an
+    /// end-user.
+    pub fn mode(&self) -> ColorMode {
+        self.inner().extra().mode
     }
 
     /// The contents of the appendix are going to be displayed after the body in the order they have
