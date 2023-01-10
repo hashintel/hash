@@ -2,7 +2,7 @@ import { EntityType } from "@blockprotocol/type-system";
 import { EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
 import { FunctionComponent, useRef, useState } from "react";
 
-import { useEntityTypesOptional } from "../../../../shared/entity-types-context/hooks";
+import { useEntityTypesOptional } from "../../../../../shared/entity-types-context/hooks";
 import { HashSelectorAutocomplete } from "../../../shared/hash-selector-autocomplete";
 
 export const EntityTypeSelector: FunctionComponent<{

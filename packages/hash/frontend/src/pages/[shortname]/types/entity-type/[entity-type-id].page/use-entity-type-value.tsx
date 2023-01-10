@@ -17,7 +17,7 @@ import {
   useEntityTypesLoading,
   useEntityTypesSubgraphOptional,
   useFetchEntityTypes,
-} from "../../../../shared/entity-types-context/hooks";
+} from "../../../../../shared/entity-types-context/hooks";
 
 export const useEntityTypeValue = (
   entityTypeBaseUri: string | null,

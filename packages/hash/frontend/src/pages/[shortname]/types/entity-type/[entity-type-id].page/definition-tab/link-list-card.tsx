@@ -31,7 +31,7 @@ import {
   useFetchEntityTypes,
   useLinkEntityTypes,
   useLinkEntityTypesOptional,
-} from "../../../../../shared/entity-types-context/hooks";
+} from "../../../../../../shared/entity-types-context/hooks";
 import { HashSelectorAutocomplete } from "../../../../shared/hash-selector-autocomplete";
 import {
   addPopperPositionClassPopperModifier,
