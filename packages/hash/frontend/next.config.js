@@ -52,33 +52,68 @@ process.env.NEXT_PUBLIC_SENTRY_REPLAY_SESSION_SAMPLE_RATE =
  */
 module.exports = withSentryConfig(
   withBundleAnalyzer(
-    withTM({
-      pageExtensions: ["page.tsx", "page.ts", "page.jsx", "page.jsx", "api.ts"],
+    withTM(
+      /** @type {import('next').NextConfig} */
+      {
+        pageExtensions: [
+          "page.tsx",
+          "page.ts",
+          "page.jsx",
+          "page.jsx",
+          "api.ts",
+        ],
 
-      // We call linters in GitHub Actions for all pull requests. By not linting
-      // again during `next build`, we save CI minutes and unlock more feedback.
-      // Thus, we can get Playwright test results and Preview releases for WIP PRs.
-      eslint: { ignoreDuringBuilds: true },
-      typescript: { ignoreBuildErrors: true },
+        // We call linters in GitHub Actions for all pull requests. By not linting
+        // again during `next build`, we save CI minutes and unlock more feedback.
+        // Thus, we can get Playwright test results and Preview releases for WIP PRs.
+        eslint: { ignoreDuringBuilds: true },
+        typescript: { ignoreBuildErrors: true },
 
-      sentry: {
-        autoInstrumentServerFunctions: false,
-        hideSourceMaps: false,
+        sentry: {
+          autoInstrumentServerFunctions: false,
+          hideSourceMaps: false,
+        },
+
+        experimental: {
+          allowMiddlewareResponseBody: true,
+        },
+
+        webpack: (webpackConfig, { isServer }) => {
+          webpackConfig.module.rules.push({
+            test: /\.svg$/,
+            use: [require.resolve("@svgr/webpack")],
+          });
+
+          // eslint-disable-next-line no-param-reassign
+          webpackConfig.experiments.asyncWebAssembly = true;
+          if (!isServer) {
+            // eslint-disable-next-line no-param-reassign
+            webpackConfig.output.publicPath = `/_next/`;
+          } else {
+            // eslint-disable-next-line no-param-reassign
+            webpackConfig.output.publicPath = `./`;
+          }
+          // eslint-disable-next-line no-param-reassign
+          webpackConfig.output.assetModuleFilename = `static/[hash][ext]`;
+          webpackConfig.module.rules.push({
+            test: /\.(wasm)$/,
+            type: "asset/resource",
+          });
+
+          // eslint-disable-next-line no-param-reassign
+          webpackConfig.resolve.alias["@blockprotocol/type-system"] =
+            "@blockprotocol/type-system/slim";
+
+          // eslint-disable-next-line no-param-reassign
+          webpackConfig.resolve.alias["@blockprotocol/type-system-wasm$"] =
+            require.resolve(
+              "@blockprotocol/type-system/dist/wasm/type-system.wasm",
+            );
+
+          return webpackConfig;
+        },
       },
-
-      experimental: {
-        allowMiddlewareResponseBody: true,
-      },
-
-      webpack: (webpackConfig) => {
-        webpackConfig.module.rules.push({
-          test: /\.svg$/,
-          use: [require.resolve("@svgr/webpack")],
-        });
-
-        return webpackConfig;
-      },
-    }),
+    ),
   ),
   sentryWebpackPluginOptions,
 );

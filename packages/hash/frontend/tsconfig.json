@@ -6,7 +6,11 @@
     "jsx": "preserve",
     "lib": ["dom", "dom.iterable", "esnext"],
     "target": "es5",
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "@blockprotocol/type-system/*": ["@blockprotocol/type-system/slim/*"],
+      "@blockprotocol/type-system-wasm": ["@blockprotocol/type-system/dist/wasm/type-system.wasm"],
+    }
   },
   "include": [
     "assets.d.ts",
