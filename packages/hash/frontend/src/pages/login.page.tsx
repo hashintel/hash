@@ -180,9 +180,7 @@ const LoginPage: NextPageWithLayout = () => {
           display: "flex",
           flexDirection: "column",
           maxWidth: 500,
-          "> *:not(:first-child)": {
-            marginTop: 1,
-          },
+          gap: 1,
         }}
       >
         <TextField

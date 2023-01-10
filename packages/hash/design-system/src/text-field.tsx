@@ -36,6 +36,7 @@ const useFrozenValue = <T extends any>(value: T): T => {
 
 export const getInputProps = ({
   success,
+  variant,
   error,
   multiline,
   autoResize,
@@ -43,7 +44,7 @@ export const getInputProps = ({
 }: InputProps &
   Pick<
     TextFieldProps,
-    "success" | "error" | "multiline" | "autoResize"
+    "success" | "error" | "multiline" | "autoResize" | "variant"
   > = {}): InputProps => {
   const { sx: InputPropsSx = [], ...otherInputProps } = otherProps;
 
@@ -79,7 +80,10 @@ export const getInputProps = ({
       }),
       ...(Array.isArray(InputPropsSx) ? InputPropsSx : [InputPropsSx]),
     ],
-    ...{ notched: false },
+    /** `notched` is only expected for `outlined` variant, passing it for other variants gives a console warning
+     * @see https://github.com/mui/material-ui/issues/32550 for context
+     */
+    ...(variant === "outlined" ? { notched: false } : {}),
     ...otherInputProps,
     endAdornment:
       error || success ? renderEndAdornment() : otherProps.endAdornment,
@@ -95,6 +99,7 @@ export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
   (
     {
       helperText,
+      variant = "outlined",
       sx,
       InputProps: inputProps = {},
       success,
@@ -121,6 +126,7 @@ export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
           },
           ...(Array.isArray(sx) ? sx : [sx]),
         ]}
+        variant={variant}
         {...textFieldProps}
         error={error}
         label={
@@ -147,6 +153,7 @@ export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
         InputLabelProps={inputLabelProps}
         InputProps={getInputProps({
           ...inputProps,
+          variant,
           success,
           error,
           autoResize,
