@@ -357,6 +357,26 @@ mod tests {
         // lhs.difference(rhs).union(rhs.difference(lhs)), "symmetric difference");
     }
 
+    fn unbounded_unbounded() -> IntervalBounds<u32> {
+        IntervalBounds::from_bounds(Bound::Unbounded, Bound::Unbounded)
+    }
+
+    fn included_unbounded(lower: u32) -> IntervalBounds<u32> {
+        IntervalBounds::from_bounds(Bound::Included(lower), Bound::Unbounded)
+    }
+
+    fn excluded_unbounded(lower: u32) -> IntervalBounds<u32> {
+        IntervalBounds::from_bounds(Bound::Excluded(lower), Bound::Unbounded)
+    }
+
+    fn unbounded_included(upper: u32) -> IntervalBounds<u32> {
+        IntervalBounds::from_bounds(Bound::Unbounded, Bound::Included(upper))
+    }
+
+    fn unbounded_excluded(upper: u32) -> IntervalBounds<u32> {
+        IntervalBounds::from_bounds(Bound::Unbounded, Bound::Excluded(upper))
+    }
+
     fn included_included(lower: u32, upper: u32) -> IntervalBounds<u32> {
         IntervalBounds::from_bounds(Bound::Included(lower), Bound::Included(upper))
     }
@@ -741,6 +761,52 @@ mod tests {
             [excluded_excluded(0, 15)],
             [excluded_excluded(0, 15)],
             [included_excluded(10, 15)],
+        );
+
+        // Range A:      ------]   |   [------
+        // Range B:        [------ | ------]
+        // intersection:   [---]   |   [---]
+        // union:        --------- | ---------
+        // merge:        --------- | ---------
+        // difference:   --)       |       (--
+        test(
+            unbounded_included(10),
+            included_unbounded(5),
+            [included_included(5, 10)],
+            [unbounded_unbounded()],
+            [unbounded_unbounded()],
+            [unbounded_excluded(5)],
+        );
+        test(
+            included_unbounded(5),
+            unbounded_included(10),
+            [included_included(5, 10)],
+            [unbounded_unbounded()],
+            [unbounded_unbounded()],
+            [excluded_unbounded(10)],
+        );
+
+        // Range A:      ------)   |   (------
+        // Range B:        (------ | ------)
+        // intersection:   (---)   |   (---)
+        // union:        --------- | ---------
+        // merge:        --------- | ---------
+        // difference:   --]       |       [--
+        test(
+            unbounded_excluded(10),
+            excluded_unbounded(5),
+            [excluded_excluded(5, 10)],
+            [unbounded_unbounded()],
+            [unbounded_unbounded()],
+            [unbounded_included(5)],
+        );
+        test(
+            excluded_unbounded(5),
+            unbounded_excluded(10),
+            [excluded_excluded(5, 10)],
+            [unbounded_unbounded()],
+            [unbounded_unbounded()],
+            [included_unbounded(10)],
         );
     }
 
@@ -1257,46 +1323,68 @@ mod tests {
             [included_included(0, 15)],
             [],
         );
+
+        // Range A:      --------- |   (---)
+        // Range B:        (---)   | ---------
+        // intersection:   (---)   |   (---)
+        // union:        --------- | ---------
+        // merge:        --------- | ---------
+        // difference:   --]   [-- |   empty
+        test(
+            unbounded_unbounded(),
+            excluded_excluded(5, 10),
+            [excluded_excluded(5, 10)],
+            [unbounded_unbounded()],
+            [unbounded_unbounded()],
+            [unbounded_included(5), included_unbounded(10)],
+        );
+        test(
+            excluded_excluded(5, 10),
+            unbounded_unbounded(),
+            [excluded_excluded(5, 10)],
+            [unbounded_unbounded()],
+            [unbounded_unbounded()],
+            [],
+        );
+
+        // Range A:      --------- |   [---]
+        // Range B:        [---]   | ---------
+        // intersection:   [---]   |   [---]
+        // union:        --------- | ---------
+        // merge:        --------- | ---------
+        // difference:   --)   (-- |   empty
+        test(
+            unbounded_unbounded(),
+            included_included(5, 10),
+            [included_included(5, 10)],
+            [unbounded_unbounded()],
+            [unbounded_unbounded()],
+            [unbounded_excluded(5), excluded_unbounded(10)],
+        );
+        test(
+            included_included(5, 10),
+            unbounded_unbounded(),
+            [included_included(5, 10)],
+            [unbounded_unbounded()],
+            [unbounded_unbounded()],
+            [],
+        );
     }
 
     #[test]
     fn test_equal() {
-        // Range:        [---] | (---] | [---) | (---)
-        // intersection: [---] | (---] | [---) | (---)
-        // union:        [---] | (---] | [---) | (---)
-        // merge:        [---] | (---] | [---) | (---)
-        // difference:   empty | empty | empty | empty
-        test(
+        for interval in [
             included_included(0, 5),
-            included_included(0, 5),
-            [included_included(0, 5)],
-            [included_included(0, 5)],
-            [included_included(0, 5)],
-            [],
-        );
-        test(
             excluded_included(0, 5),
-            excluded_included(0, 5),
-            [excluded_included(0, 5)],
-            [excluded_included(0, 5)],
-            [excluded_included(0, 5)],
-            [],
-        );
-        test(
             included_excluded(0, 5),
-            included_excluded(0, 5),
-            [included_excluded(0, 5)],
-            [included_excluded(0, 5)],
-            [included_excluded(0, 5)],
-            [],
-        );
-        test(
             excluded_excluded(0, 5),
-            excluded_excluded(0, 5),
-            [excluded_excluded(0, 5)],
-            [excluded_excluded(0, 5)],
-            [excluded_excluded(0, 5)],
-            [],
-        );
+            included_unbounded(0),
+            unbounded_included(5),
+            excluded_unbounded(0),
+            unbounded_excluded(5),
+            unbounded_unbounded(),
+        ] {
+            test(interval, interval, [interval], [interval], [interval], []);
+        }
     }
 }
