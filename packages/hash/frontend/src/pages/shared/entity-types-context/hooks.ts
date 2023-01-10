@@ -13,8 +13,11 @@ export const useLinkEntityTypes = () => {
   return linkTypes;
 };
 
+export const useEntityTypesOptional = () =>
+  useEntityTypesContextRequired().entityTypes;
+
 export const useEntityTypes = () => {
-  const { entityTypes } = useEntityTypesContextRequired();
+  const entityTypes = useEntityTypesOptional();
 
   if (!entityTypes) {
     throw new Error("Entity types not loaded yet");

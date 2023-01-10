@@ -1,25 +1,21 @@
 import { EntityType } from "@blockprotocol/type-system";
-import { FunctionComponent, useContext, useRef, useState } from "react";
+import { EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
+import { FunctionComponent, useRef, useState } from "react";
 
+import { useEntityTypesOptional } from "../../../../shared/entity-types-context/hooks";
 import { HashSelectorAutocomplete } from "../../../shared/hash-selector-autocomplete";
-import { EntityTypesContext } from "./shared/entity-types-context";
 
-const useEntityTypes = () => {
-  return useContext(EntityTypesContext)?.types;
-};
-
-// @todo reduce duplication
 export const EntityTypeSelector: FunctionComponent<{
   onSelect: (entityType: EntityType) => void;
   onCancel: () => void;
   onCreateNew: (searchValue: string) => void;
 }> = ({ onCancel, onSelect, onCreateNew }) => {
   const [search, setSearch] = useState("");
-  const entityTypesObject = useEntityTypes();
+  const entityTypesObject = useEntityTypesOptional();
   const entityTypes = Object.values(entityTypesObject ?? {});
 
   const [open, setOpen] = useState(false);
-  const highlightedRef = useRef<null | EntityType>(null);
+  const highlightedRef = useRef<null | EntityTypeWithMetadata>(null);
 
   return (
     <HashSelectorAutocomplete
@@ -35,7 +31,7 @@ export const EntityTypeSelector: FunctionComponent<{
         variant: "entityType",
       }}
       options={entityTypes}
-      optionToRenderData={({ $id, title, description }) => ({
+      optionToRenderData={({ schema: { $id, title, description } }) => ({
         $id,
         title,
         description,
@@ -55,7 +51,7 @@ export const EntityTypeSelector: FunctionComponent<{
       }}
       onChange={(_, option) => {
         if (option) {
-          onSelect(option);
+          onSelect(option.schema);
         }
       }}
       onKeyUp={(evt) => {

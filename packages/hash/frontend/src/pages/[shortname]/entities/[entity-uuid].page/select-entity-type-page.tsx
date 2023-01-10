@@ -5,13 +5,13 @@ import { useRouter } from "next/router";
 import { useContext, useState } from "react";
 
 import { useSnackbar } from "../../../../components/hooks/use-snackbar";
+import { EntityTypesContextProvider } from "../../../shared/entity-types-context/provider";
 import { WorkspaceContext } from "../../../shared/workspace-context";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
 import { SectionWrapper } from "../../shared/section-wrapper";
 import { WhiteCard } from "../../shared/white-card";
 import { EntityTypeSelector } from "./create-entity-page/entity-type-selector";
-import { EntityTypesContextProvider } from "./create-entity-page/entity-types-context-provider";
 import { EntityPageWrapper } from "./entity-page-wrapper";
 import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
 import { LinksSectionEmptyState } from "./shared/links-section-empty-state";
@@ -93,7 +93,6 @@ export const SelectEntityTypePage = () => {
           </Box>
 
           <Divider />
-
           <EntityTypesContextProvider>
             <Box
               sx={{
