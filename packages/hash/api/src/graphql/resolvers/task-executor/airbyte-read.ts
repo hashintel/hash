@@ -1,22 +1,23 @@
-import { Task, TaskExecutor } from "../../../task-execution";
+import { JsonObject } from "@blockprotocol/core";
 import {
   EntityType,
   PropertyType,
   VersionedUri,
 } from "@blockprotocol/type-system";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { GraphApi } from "@hashintel/hash-graph-client";
+import { OwnedById } from "@hashintel/hash-shared/types";
+import { typedEntries, typedKeys } from "@hashintel/hash-shared/util";
 import { PropertyObject } from "@hashintel/hash-subgraph";
+import { ApolloError } from "apollo-server-express";
+
+import { createEntity } from "../../../graph/knowledge/primitive/entity";
+import { User } from "../../../graph/knowledge/system-types/user";
+import { Task, TaskExecutor } from "../../../task-execution";
 import {
   createEntityTypeTree,
   rewriteEntityPropertiesInTypeSystem,
 } from "./generation";
-import { JsonObject } from "@blockprotocol/core";
-import { typedEntries, typedKeys } from "@hashintel/hash-shared/util";
-import { createEntity } from "../../../graph/knowledge/primitive/entity";
-import { OwnedById } from "@hashintel/hash-shared/types";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { User } from "../../../graph/knowledge/system-types/user";
-import { ApolloError } from "apollo-server-express";
-import { GraphApi } from "@hashintel/hash-graph-client";
 
 type AirbyteRecords = Array<{
   /**

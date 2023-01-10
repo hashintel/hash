@@ -59,10 +59,10 @@ import {
   updatePropertyTypeResolver,
 } from "./ontology/property-type";
 import {
+  executeAsanaCheckTask,
   executeAsanaDiscoverTask,
   executeAsanaReadTask,
   executeAsanaSpecTask,
-  executeAsanaCheckTask,
   executeDemoTask,
   executeGithubCheckTask,
   executeGithubDiscoverTask,

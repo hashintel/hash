@@ -5,8 +5,8 @@ import express from "express";
 
 import { ConfiguredAirbyteCatalog } from "./airbyte/protocol";
 import { executeTask } from "./execution";
-import { GithubIngestor } from "./tasks/source-github";
 import { AsanaIngestor } from "./tasks/source-asana";
+import { GithubIngestor } from "./tasks/source-github";
 
 /** @todo - Could be from env-var */
 const port = 5010;
