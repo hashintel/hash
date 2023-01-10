@@ -5,6 +5,7 @@ import express from "express";
 
 import { ConfiguredAirbyteCatalog } from "./airbyte/protocol";
 import { executeTask } from "./execution";
+import { AsanaIngestor } from "./tasks/source-asana";
 import { GithubIngestor } from "./tasks/source-github";
 
 /** @todo - Could be from env-var */
@@ -76,6 +77,65 @@ app.post("/github/read", (req, res) => {
     ),
   ) as ConfiguredAirbyteCatalog;
   new GithubIngestor()
+    .runRead(config, configuredCatalog)
+    .then((result) => res.status(200).json(result))
+    .catch((error) => res.status(500).json({ error: stringifyError(error) }));
+});
+
+app.post("/asana/spec", (_, res) => {
+  new AsanaIngestor()
+    .runSpec()
+    .then((result) => res.status(200).json(result))
+    .catch((error) => res.status(500).json({ error: stringifyError(error) }));
+});
+
+app.post("/asana/check", (req, res) => {
+  const config = req.body as unknown;
+  new AsanaIngestor()
+    .runCheck(config)
+    .then((result) => res.status(200).json(result))
+    .catch((error) => {
+      res.status(500).json({ error: stringifyError(error) });
+    });
+});
+
+app.post("/asana/discover", (req, res) => {
+  const config = req.body as unknown;
+  new AsanaIngestor()
+    .runDiscover(config)
+    .then((result) => {
+      const configuredCatalog: ConfiguredAirbyteCatalog = {
+        streams: result.map((airbyteStream) => {
+          return {
+            stream: airbyteStream,
+            sync_mode:
+              "full_refresh" /** @todo - We don't want to always default to this */,
+            destination_sync_mode:
+              "overwrite" /** @todo - This doesn't matter right now as we haven't built a destination connector */,
+          };
+        }),
+      };
+
+      /** @todo - This should be configurable by the user, and we shouldn't just write it to disk like this */
+      writeFileSync(
+        `${process.cwd()}/src/tasks/source-asana/secrets/catalog.json`,
+        JSON.stringify(configuredCatalog),
+      );
+      res.status(200).json(result);
+    })
+    .catch((error) => res.status(500).json({ error: stringifyError(error) }));
+});
+
+app.post("/asana/read", (req, res) => {
+  const config = req.body as unknown;
+  // Can be replaced with readJsonSync from fs-extra
+  const configuredCatalog = JSON.parse(
+    readFileSync(
+      `${process.cwd()}/src/tasks/source-asana/secrets/catalog.json`,
+      "utf8",
+    ),
+  ) as ConfiguredAirbyteCatalog;
+  new AsanaIngestor()
     .runRead(config, configuredCatalog)
     .then((result) => res.status(200).json(result))
     .catch((error) => res.status(500).json({ error: stringifyError(error) }));
