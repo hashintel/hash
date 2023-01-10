@@ -40,7 +40,7 @@ export class BaseExecutor implements AirbyteExecutor {
   async runSpec(): Promise<ConnectorSpecification> {
     const response = await executeTask("docker", [
       "run",
-      "--rm",
+      // "--rm",
       this.imageName,
       "spec",
     ]);
@@ -65,7 +65,7 @@ export class BaseExecutor implements AirbyteExecutor {
 
     const response = await executeTask("docker", [
       "run",
-      "--rm",
+      // "--rm",
       "-v",
       `task-executor-secrets:/var/run/task-executor-secrets`,
       this.imageName,
@@ -95,7 +95,7 @@ export class BaseExecutor implements AirbyteExecutor {
 
     const response = await executeTask("docker", [
       "run",
-      "--rm",
+      // "--rm",
       "-v",
       `task-executor-secrets:/var/run/task-executor-secrets`,
       this.imageName,
@@ -132,7 +132,7 @@ export class BaseExecutor implements AirbyteExecutor {
 
     const args = [
       "run",
-      "--rm",
+      // "--rm",
       "-v",
       `task-executor-secrets:/var/run/task-executor-secrets`,
       this.imageName,

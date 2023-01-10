@@ -10,8 +10,6 @@ import { OwnedById } from "@hashintel/hash-shared/types";
 import { typedEntries, typedKeys } from "@hashintel/hash-shared/util";
 import { PropertyObject } from "@hashintel/hash-subgraph";
 import { ApolloError } from "apollo-server-express";
-
-import { createEntity } from "../../../graph/knowledge/primitive/entity";
 import { User } from "../../../graph/knowledge/system-types/user";
 import { Task, TaskExecutor } from "../../../task-execution";
 import {
@@ -68,6 +66,7 @@ export const readFromAirbyte = async ({
     task,
     config,
   );
+
   logger.debug(
     `Received ${airbyteRecords.length} records from ${integrationName}. Traversing and rewriting into the type system.`,
   );
@@ -142,17 +141,22 @@ export const readFromAirbyte = async ({
   const createdPropertyTypes = [];
   const createdEntities = [];
 
+  const visited: VersionedUri[] = [];
   /** @todo - Check if entity type already exists */
   for (const entityTypeId of typedKeys(entityTypeMap)) {
+    logger.debug(`Creating entity type with ID: ${entityTypeId}`);
     const {
       createdPropertyTypes: newCreatedPropertyTypes,
       createdEntityTypes: newCreatedEntityTypes,
     } = await createEntityTypeTree(
       graphApi,
+      logger,
       entityTypeId,
       entityTypeMap,
       propertyTypeMap,
       user,
+      visited,
+      [],
     );
 
     createdPropertyTypes.push(...newCreatedPropertyTypes);
@@ -170,18 +174,25 @@ export const readFromAirbyte = async ({
   for (const [entityTypeId, entityPropertiesList] of typedEntries(
     entityTypeIdToEntityProperties,
   )) {
+    logger.debug(`Creating entities with type: ${entityTypeId}`);
     for (const entityProperties of entityPropertiesList) {
-      createdEntities.push(
-        await createEntity(
-          { graphApi },
-          {
+      try {
+        const metadata = (
+          await graphApi.createEntity({
             ownedById: user.accountId as OwnedById,
             actorId: user.accountId,
             entityTypeId,
             properties: entityProperties,
-          },
-        ),
-      );
+          })
+        ).data;
+        createdEntities.push(metadata);
+      } catch (err) {
+        throw new Error(
+          `failed to create entity:\n - err: ${JSON.stringify(
+            err,
+          )}\n - properties: ${JSON.stringify(entityProperties)}`,
+        );
+      }
     }
   }
 
