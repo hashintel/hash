@@ -25,13 +25,13 @@ import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { useBlockProtocolCreateEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
 import { useBlockProtocolGetEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
 import { useBlockProtocolUpdateEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-entity-type";
-import { LinkIcon } from "../../../../../../shared/icons/link";
 import {
   useEntityTypes,
   useFetchEntityTypes,
   useLinkEntityTypes,
   useLinkEntityTypesOptional,
 } from "../../../../../../shared/entity-types-context/hooks";
+import { LinkIcon } from "../../../../../../shared/icons/link";
 import { HashSelectorAutocomplete } from "../../../../shared/hash-selector-autocomplete";
 import {
   addPopperPositionClassPopperModifier,
