@@ -36,10 +36,10 @@ import { EntityTypeEditorForm } from "./[entity-type-id].page/shared/form-types"
 import { getEntityTypeBaseUri } from "./[entity-type-id].page/shared/get-entity-type-base-uri";
 import { PropertyTypesContext } from "./[entity-type-id].page/shared/property-types-context";
 import { useCurrentTab } from "./[entity-type-id].page/shared/tabs";
+import { usePropertyTypesContextValue } from "./[entity-type-id].page/shared/use-property-types-context-value";
 import { useEntityTypeEntitiesContextValue } from "./[entity-type-id].page/use-entity-type-entities-context-value";
 import { useEntityTypeValue } from "./[entity-type-id].page/use-entity-type-value";
 import { useEntityTypesContextValue } from "./[entity-type-id].page/use-entity-types-context-value";
-import { usePropertyTypesContextValue } from "./[entity-type-id].page/use-property-types-context-value";
 
 const getSchemaFromEditorForm = (
   data: EntityTypeEditorForm,

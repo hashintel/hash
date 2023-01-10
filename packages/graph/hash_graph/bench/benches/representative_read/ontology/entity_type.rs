@@ -25,13 +25,12 @@ pub fn bench_get_entity_type_by_id(
             entity_type_ids
                 .iter()
                 .choose(&mut thread_rng())
-                .unwrap()
-                .clone()
+                .expect("could not choose random entity type")
         },
         |entity_type_id| async move {
             store
                 .get_entity_type(&StructuralQuery {
-                    filter: Filter::for_versioned_uri(&entity_type_id),
+                    filter: Filter::for_versioned_uri(entity_type_id),
                     graph_resolve_depths: GraphResolveDepths::default(),
                     time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                         kernel: UnresolvedKernel::new(None),
