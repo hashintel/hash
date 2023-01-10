@@ -210,7 +210,7 @@ pub trait Interval<T>: Sized {
     /// The `difference` method is the same as the `-` operator, however, instead of returning an
     /// `Option`, it returns `Self` and panics if the resulting interval would be two disjoint
     /// intervals.
-    fn difference(self, other: impl Interval<T>) -> IntervalIter<Self>
+    fn difference(self, other: Self) -> IntervalIter<Self>
     where
         T: PartialOrd,
     {
@@ -1207,6 +1207,55 @@ mod tests {
             [included_excluded(0, 5), excluded_included(5, 10)],
             [included_included(0, 10)],
             [excluded_included(5, 10)],
+        );
+    }
+
+    #[test]
+    fn test_contained() {
+        // Range A:      [-------] |   [---]
+        // Range B:        [---]   | [-------]
+        // intersection:   [---]   |   [---]
+        // union:        [-------] | [-------]
+        // merge:        [-------] | [-------]
+        // difference:   [-)   (-] |   empty
+        test(
+            included_included(0, 15),
+            included_included(5, 10),
+            [included_included(5, 10)],
+            [included_included(0, 15)],
+            [included_included(0, 15)],
+            [included_excluded(0, 5), excluded_included(10, 15)],
+        );
+        test(
+            included_included(5, 10),
+            included_included(0, 15),
+            [included_included(5, 10)],
+            [included_included(0, 15)],
+            [included_included(0, 15)],
+            [],
+        );
+
+        // Range A:      [-------] |   (---)
+        // Range B:        (---)   | [-------]
+        // intersection:   (---)   |   (---)
+        // union:        [-------] | [-------]
+        // merge:        [-------] | [-------]
+        // difference:   [-]   [-] |   empty
+        test(
+            included_included(0, 15),
+            excluded_excluded(5, 10),
+            [excluded_excluded(5, 10)],
+            [included_included(0, 15)],
+            [included_included(0, 15)],
+            [included_included(0, 5), included_included(10, 15)],
+        );
+        test(
+            excluded_excluded(5, 10),
+            included_included(0, 15),
+            [excluded_excluded(5, 10)],
+            [included_included(0, 15)],
+            [included_included(0, 15)],
+            [],
         );
     }
 
