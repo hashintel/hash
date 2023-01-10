@@ -2,8 +2,9 @@ import { createContext, useContext } from "react";
 
 export type CustomExpectedValueBuilderContextValue = {
   customExpectedValueBuilderOpen: boolean;
-  openCustomExpectedValueBuilder: () => void;
-  closeCustomExpectedValueBuilder: () => void;
+  handleEdit: (index?: number, id?: string) => void;
+  handleCancel: () => void;
+  handleSave: () => void;
 };
 export const CustomExpectedValueBuilderContext =
   createContext<CustomExpectedValueBuilderContextValue | null>(null);
