@@ -109,7 +109,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
     const entity = await createEntity(ctx, {
       ownedById,
       properties,
-      entityType: SYSTEM_TYPES.entityType.file,
+      entityTypeId: SYSTEM_TYPES.entityType.file.schema.$id,
       actorId,
     });
 
