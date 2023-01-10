@@ -435,6 +435,8 @@ impl Hooks {
 mod default {
     #![allow(unused_imports)]
 
+    #[cfg(feature = "pretty-print")]
+    use alloc::string::ToString;
     use alloc::{format, vec, vec::Vec};
     use core::{
         any::TypeId,
@@ -492,16 +494,42 @@ mod default {
         });
     }
 
+    #[cfg(feature = "pretty-print")]
+    enum LocationDisplay<'a> {
+        Color(&'a Location<'static>),
+        None(&'a Location<'static>),
+    }
+
+    #[cfg(feature = "pretty-print")]
+    impl<'a> LocationDisplay<'a> {
+        const fn location(&self) -> &'a Location<'static> {
+            match self {
+                Self::Color(location) | Self::None(location) => location,
+            }
+        }
+    }
+
+    #[cfg(feature = "pretty-print")]
+    impl<'a> core::fmt::Display for LocationDisplay<'a> {
+        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+            match self {
+                Self::Color(location) => {
+                    core::fmt::Display::fmt(&OwoColorize::bright_black(location), f)
+                }
+                Self::None(location) => f.write_fmt(format_args!("at {location}")),
+            }
+        }
+    }
+
     fn location(location: &Location<'static>, context: &mut HookContext<Location<'static>>) {
         #[cfg(feature = "pretty-print")]
         {
-            let output = format!("at {location}");
-            let output_as_str = output.as_str();
+            let display = LocationDisplay::None(location);
+            let body = display.if_supports_color(Stream::Stdout, |value| {
+                LocationDisplay::Color(value.location())
+            });
 
-            let display =
-                output_as_str.if_supports_color(Stream::Stdout, OwoColorize::bright_black);
-
-            context.push_body(display.to_string());
+            context.push_body(body.to_string());
         }
 
         #[cfg(not(feature = "pretty-print"))]
