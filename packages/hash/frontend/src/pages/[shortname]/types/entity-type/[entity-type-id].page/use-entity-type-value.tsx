@@ -30,11 +30,6 @@ export const useEntityTypeValue = (
     accountId as OwnedById | null,
   );
 
-  const onCompletedRef = useRef(onCompleted);
-  useLayoutEffect(() => {
-    onCompletedRef.current = onCompleted;
-  });
-
   const entityTypesSubgraph = useEntityTypesSubgraphOptional();
   const entityTypesLoading = useEntityTypesLoading() || !entityTypeBaseUri;
   const refetch = useFetchEntityTypes();
