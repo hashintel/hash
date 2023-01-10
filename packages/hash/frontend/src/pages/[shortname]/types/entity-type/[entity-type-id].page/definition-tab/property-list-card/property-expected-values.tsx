@@ -6,7 +6,6 @@ import { Stack } from "@mui/system";
 import { expectedValuesOptions } from "./shared/expected-values-options";
 import { getArrayExpectedValueType } from "./shared/get-expected-value-descriptor";
 
-// @todo handle this being too many
 export const PropertyExpectedValues = ({
   property,
 }: {
