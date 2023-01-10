@@ -24,6 +24,7 @@ import { AutocompleteDropdown } from "../../../../../../shared/autocomplete-drop
 import { StyledPlusCircleIcon } from "../../../../../../shared/styled-plus-circle-icon";
 import { useStateCallback } from "../../shared/use-state-callback";
 import { dataTypeOptions } from "../shared/data-type-options";
+import { expectedValuesOptions } from "../shared/expected-values-options";
 import { getExpectedValueDescriptor } from "../shared/get-expected-value-descriptor";
 import { PropertyTypeFormValues } from "../shared/property-type-form-values";
 import { CustomExpectedValueBuilder } from "./expected-value-selector/custom-expected-value-builder";
@@ -34,7 +35,6 @@ import {
   useCustomExpectedValueBuilderContext,
 } from "./expected-value-selector/shared/custom-expected-value-builder-context";
 import { ExpectedValueSelectorFormValues } from "./expected-value-selector/shared/expected-value-selector-form-values";
-import { expectedValuesOptions } from "./expected-value-selector/shared/expected-values-options";
 
 const ExpectedValueSelectorDropdown = ({ children, ...props }: PaperProps) => {
   const { customExpectedValueBuilderOpen, handleEdit } =
@@ -219,6 +219,8 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
     name: "customExpectedValueId",
   });
 
+  const [inputValue, setInputValue] = useState("");
+
   const [autocompleteFocused, setAutocompleteFocused] = useState(false);
 
   return (
@@ -244,9 +246,19 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
             expectedValuesField.onBlur();
             setAutocompleteFocused(false);
           }}
-          onChange={(_evt, data) => {
-            expectedValuesField.onChange(data);
+          onChange={(_evt, data, reason) => {
+            if (reason !== "createOption") {
+              expectedValuesField.onChange(data);
+            }
+            return false;
           }}
+          inputValue={inputValue}
+          onInputChange={(_evt, value, reason) => {
+            if (reason !== "reset") {
+              setInputValue(value);
+            }
+          }}
+          freeSolo
           renderTags={(expectedValues, getTagProps) =>
             expectedValues.map((expectedValue, index) => {
               const typeId =
@@ -259,7 +271,11 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
               return (
                 <ExpectedValueChip
                   {...getTagProps({ index })}
-                  key={typeId}
+                  key={
+                    typeof expectedValue === "object"
+                      ? expectedValue.id
+                      : expectedValue
+                  }
                   expectedValueType={
                     typeof expectedValue === "object" &&
                     "arrayType" in expectedValue

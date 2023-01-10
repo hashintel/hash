@@ -1,10 +1,12 @@
 import { VersionedUri } from "@blockprotocol/type-system";
 
 export enum ArrayType {
-  dataTypeArray = "dataTypeArray",
   propertyObjectArray = "propertyObjectArray",
   mixedArray = "mixedArray",
   arrayArray = "arrayArray",
+  textArray = "textArray",
+  booleanArray = "booleanArray",
+  numberArray = "numberArray",
 }
 
 export type ExpectedValue =
@@ -18,6 +20,8 @@ export type ExpectedValue =
       typeId: "object";
       id: string;
     };
+
+export type CustomExpectedValueTypeId = VersionedUri | "array" | "object";
 
 interface PrimitiveExpectedValue {
   typeId: VersionedUri;
