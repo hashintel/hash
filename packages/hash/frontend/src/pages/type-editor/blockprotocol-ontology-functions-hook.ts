@@ -28,7 +28,7 @@ import { useBlockProtocolGetEntityType } from "../../components/hooks/block-prot
 import { useBlockProtocolGetPropertyType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-property-type";
 import { useBlockProtocolUpdateEntityType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-entity-type";
 import { useBlockProtocolUpdatePropertyType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-property-type";
-import { useBlockProtocolFileUpload } from "../../components/hooks/block-protocol-functions/use-block-protocol-file-upload";
+import { useBlockProtocolFileUpload } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-file-upload";
 import { useIsReadonlyMode } from "../../shared/readonly-mode";
 
 export type GraphMessageCallbacks = Omit<
