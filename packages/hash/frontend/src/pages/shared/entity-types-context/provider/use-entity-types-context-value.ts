@@ -1,6 +1,7 @@
 import { linkEntityTypeUri } from "@hashintel/hash-subgraph";
 import { getEntityTypes } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import { useBlockProtocolAggregateEntityTypes } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-entity-types";
 import {
   EntityTypesContextValue,
@@ -11,6 +12,8 @@ export const useEntityTypesContextValue = (): EntityTypesContextValue => {
   const [types, setTypes] = useState<Omit<EntityTypesContextValue, "refetch">>({
     entityTypes: null,
     linkTypes: null,
+    subgraph: null,
+    loading: true,
   });
 
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
@@ -21,6 +24,8 @@ export const useEntityTypesContextValue = (): EntityTypesContextValue => {
     controllerRef.current?.abort();
     const controller = new AbortController();
     controllerRef.current = controller;
+
+    setTypes((currentTypes) => ({ ...currentTypes, loading: true }));
 
     const res = await aggregateEntityTypes({ data: {} });
 
@@ -46,6 +51,8 @@ export const useEntityTypesContextValue = (): EntityTypesContextValue => {
     setTypes({
       entityTypes: nonLinkEntityTypesRecord,
       linkTypes: linkEntityTypesRecord,
+      subgraph: subgraph ?? null,
+      loading: false,
     });
   }, [aggregateEntityTypes]);
 

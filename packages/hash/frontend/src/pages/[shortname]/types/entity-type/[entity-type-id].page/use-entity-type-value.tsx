@@ -6,13 +6,18 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 
-import { useBlockProtocolAggregateEntityTypes } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-entity-types";
 import { useBlockProtocolCreateEntityType } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
 import { useBlockProtocolUpdateEntityType } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-entity-type";
+import {
+  useEntityTypesLoading,
+  useEntityTypesSubgraphOptional,
+  useFetchEntityTypes,
+} from "../../../../shared/entity-types-context/hooks";
 
 export const useEntityTypeValue = (
   entityTypeBaseUri: string | null,
@@ -20,69 +25,82 @@ export const useEntityTypeValue = (
   onCompleted?: (entityType: EntityType) => void,
 ) => {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
 
   const { createEntityType } = useBlockProtocolCreateEntityType(
     accountId as OwnedById | null,
   );
-
-  const [entityType, setEntityType] = useState<EntityType | null>(null);
-  const entityTypeRef = useRef(entityType);
 
   const onCompletedRef = useRef(onCompleted);
   useLayoutEffect(() => {
     onCompletedRef.current = onCompleted;
   });
 
-  const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
+  const entityTypesSubgraph = useEntityTypesSubgraphOptional();
+  const entityTypesLoading = useEntityTypesLoading() || !entityTypeBaseUri;
+  const refetch = useFetchEntityTypes();
+
   const { updateEntityType } = useBlockProtocolUpdateEntityType();
 
-  useEffect(() => {
-    let cancelled = false;
-
-    if (
-      entityTypeBaseUri &&
-      (!entityType || extractBaseUri(entityType.$id) !== entityTypeBaseUri)
-    ) {
-      setLoading(true);
-      setEntityType(null);
-      entityTypeRef.current = null;
-      void aggregateEntityTypes({ data: {} }).then((res) => {
-        const subgraph = res.data;
-        const relevantEntityTypes = subgraph
-          ? getEntityTypesByBaseUri(subgraph, entityTypeBaseUri)
-          : [];
-
-        /** @todo - pick the latest version? */
-        // @todo handle adding any linked properties to known property types
-        const relevantEntityType =
-          relevantEntityTypes.length > 0
-            ? relevantEntityTypes[0]!.schema
-            : null;
-
-        if (!cancelled) {
-          setLoading(false);
-          setEntityType(relevantEntityType);
-          entityTypeRef.current = relevantEntityType;
-          if (relevantEntityType) {
-            onCompletedRef.current?.(relevantEntityType);
-          }
-        }
-      });
-      return () => {
-        cancelled = true;
-        setLoading(false);
-      };
+  const availableEntityType = useMemo(() => {
+    if (entityTypesLoading || !entityTypeBaseUri) {
+      return null;
     }
-  }, [aggregateEntityTypes, entityType, entityTypeBaseUri]);
+
+    const relevantEntityTypes = entityTypesSubgraph
+      ? getEntityTypesByBaseUri(entityTypesSubgraph, entityTypeBaseUri)
+      : [];
+
+    /** @todo - pick the latest version? */
+    // @todo handle adding any linked properties to known property types
+    return relevantEntityTypes.length > 0
+      ? relevantEntityTypes[0]!.schema
+      : null;
+  }, [entityTypeBaseUri, entityTypesSubgraph, entityTypesLoading]);
+
+  const [rememberedEntityType, setRememberedEntityType] =
+    useState<EntityType | null>(availableEntityType);
+
+  if (
+    rememberedEntityType !== availableEntityType &&
+    (availableEntityType ||
+      (rememberedEntityType &&
+        extractBaseUri(rememberedEntityType.$id) !== entityTypeBaseUri))
+  ) {
+    setRememberedEntityType(availableEntityType);
+  }
+
+  const rememberedEntityTypeRef = useRef(rememberedEntityType);
+  useLayoutEffect(() => {
+    rememberedEntityTypeRef.current = rememberedEntityType;
+  });
+
+  const completedRef = useRef<EntityType | null>(null);
+
+  useLayoutEffect(() => {
+    if (completedRef.current !== rememberedEntityType && rememberedEntityType) {
+      completedRef.current = rememberedEntityType;
+      onCompleted?.(rememberedEntityType);
+    }
+  });
+
+  const entityTypeUnavailable = entityTypesLoading && !rememberedEntityType;
+
+  const lastFetchedBaseUri = useRef(entityTypeBaseUri);
+
+  useEffect(() => {
+    if (lastFetchedBaseUri.current !== entityTypeBaseUri) {
+      lastFetchedBaseUri.current = entityTypeBaseUri;
+      void refetch();
+    }
+  }, [entityTypeBaseUri, refetch]);
 
   const updateCallback = useCallback(
     async (partialEntityType: Partial<Omit<EntityType, "$id">>) => {
-      if (!entityTypeRef.current) {
+      if (!rememberedEntityTypeRef.current) {
         throw new Error("Cannot update yet");
       }
 
-      const currentEntity = entityTypeRef.current;
+      const currentEntity = rememberedEntityTypeRef.current;
       const { $id, ...restOfEntityType } = currentEntity;
 
       const res = await updateEntityType({
@@ -95,15 +113,11 @@ export const useEntityTypeValue = (
         },
       });
 
-      if (entityTypeRef.current === currentEntity && res.data) {
-        setEntityType(res.data.schema);
-        setLoading(false);
-        entityTypeRef.current = res.data.schema;
-      }
+      await refetch();
 
       return res;
     },
-    [setEntityType, updateEntityType],
+    [refetch, updateEntityType],
   );
 
   const publishDraft = useCallback(
@@ -118,22 +132,21 @@ export const useEntityTypeValue = (
         throw new Error("Could not publish changes");
       }
 
+      await refetch();
+
       const newUrl = extractBaseUri(res.data.schema.$id);
 
       if (newUrl) {
-        setEntityType(res.data.schema);
-        setLoading(false);
-        entityTypeRef.current = res.data.schema;
         await router.replace(newUrl, newUrl, { shallow: true });
       }
     },
-    [createEntityType, router, setEntityType],
+    [createEntityType, refetch, router],
   );
 
   return [
-    loading ? null : entityType,
+    entityTypeUnavailable ? null : rememberedEntityType,
     updateCallback,
     publishDraft,
-    { loading },
+    { loading: entityTypeUnavailable },
   ] as const;
 };

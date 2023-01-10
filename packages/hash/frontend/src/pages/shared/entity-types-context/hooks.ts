@@ -1,10 +1,13 @@
 import { useEntityTypesContextRequired } from "./hooks/use-entity-types-context-required";
 
 export const useEntityTypesLoading = () =>
-  useEntityTypesContextRequired().entityTypes === null;
+  useEntityTypesContextRequired().loading;
+
+export const useLinkEntityTypesOptional = () =>
+  useEntityTypesContextRequired().linkTypes;
 
 export const useLinkEntityTypes = () => {
-  const { linkTypes } = useEntityTypesContextRequired();
+  const linkTypes = useLinkEntityTypesOptional();
 
   if (!linkTypes) {
     throw new Error("Link entity types not loaded yet");
@@ -15,6 +18,9 @@ export const useLinkEntityTypes = () => {
 
 export const useEntityTypesOptional = () =>
   useEntityTypesContextRequired().entityTypes;
+
+export const useEntityTypesSubgraphOptional = () =>
+  useEntityTypesContextRequired().subgraph;
 
 export const useEntityTypes = () => {
   const entityTypes = useEntityTypesOptional();
