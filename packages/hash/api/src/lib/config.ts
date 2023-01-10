@@ -1,7 +1,7 @@
 import { frontendUrl } from "@hashintel/hash-shared/environment";
 import corsMiddleware from "cors";
 
-import { StorageType } from "../graphql/api-types.gen";
+import { StorageType } from "../storage";
 
 function getEnvStorageType(): StorageType {
   const envUploadProvider = process.env.FILE_UPLOAD_PROVIDER as string;

@@ -4,7 +4,7 @@
 import { PresignedPost } from "@aws-sdk/s3-presigned-post";
 import { ApolloError } from "apollo-server-express";
 
-import { StorageType } from "../graphql/api-types.gen";
+import { StorageType } from "../storage";
 import {
   getStorageProvider,
   getUploadStorageProvider,

@@ -1,6 +1,10 @@
 import { AccountId } from "@hashintel/hash-shared/types";
 
-import { StorageType } from "../graphql/api-types.gen";
+export enum StorageType {
+  AwsS3 = "AWS_S3",
+  ExternalLink = "EXTERNAL_LINK",
+  LocalFileSystem = "LOCAL_FILE_SYSTEM",
+}
 
 /** Interface describing a generic storage provider
  * used for allowing the download and upload files via presigned request.

@@ -6,13 +6,13 @@ import appRoot from "app-root-path";
 import express, { Express } from "express";
 import multer, { Multer, StorageEngine } from "multer";
 
-import { StorageType } from "../graphql/api-types.gen";
 import {
   GetFileEntityStorageKeyParams,
   PresignedDownloadRequest,
   PresignedPostUpload,
   PresignedStorageRequest,
   StorageProvider,
+  StorageType,
 } from "./storage-provider";
 import { getFileExtension } from "./storage-utils";
 
