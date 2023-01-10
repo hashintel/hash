@@ -18,7 +18,7 @@ import {
 } from "react";
 import { useController, useFormContext, useWatch } from "react-hook-form";
 
-import { PropertyTypeFormValues } from "../../../../property-type-form-values";
+import { ExpectedValueSelectorFormValues } from "../../shared/expected-value-selector-form-values";
 
 type ItemInputProps = { width: string } & InputProps;
 
@@ -63,7 +63,8 @@ interface ArrayMinMaxItemsProps {
 export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
   arrayId,
 }) => {
-  const { control, setValue } = useFormContext<PropertyTypeFormValues>();
+  const { control, setValue } =
+    useFormContext<ExpectedValueSelectorFormValues>();
 
   const [minItems, maxItems] = useWatch({
     control,
