@@ -1,50 +1,102 @@
-import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { extractBaseUri, extractVersion } from "@blockprotocol/type-system";
+import { EntityId } from "@hashintel/hash-shared/types";
+import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { useEffect, useState } from "react";
 
+import { useBlockProtocolUpdateEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
+import { useBlockProtocolAggregateEntityTypes } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-entity-types";
 import { SectionWrapper } from "../../../shared/section-wrapper";
-import { WhiteCard } from "../../../shared/white-card";
 import { useEntityEditor } from "./entity-editor-context";
-
-interface TypeCardProps {
-  url: string;
-  title: string;
-}
-
-const TypeCard = ({ url, title }: TypeCardProps) => {
-  return (
-    <WhiteCard href={url}>
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          px: 1.5,
-          py: 1.25,
-          gap: 1.25,
-          color: ({ palette }) => palette.black,
-        }}
-      >
-        <FontAwesomeIcon icon={faAsterisk} />
-        <Typography variant="smallTextLabels" fontWeight={600}>
-          {title}
-        </Typography>
-      </Box>
-    </WhiteCard>
-  );
-};
+import { EntityTypeUpdateModal } from "./types-section/entity-type-update-modal";
+import { TypeCard } from "./types-section/type-card";
 
 export const TypesSection = () => {
-  const { entitySubgraph } = useEntityEditor();
+  const { entitySubgraph, refetch } = useEntityEditor();
 
   const entity = getRoots(entitySubgraph)[0]!;
+  const { updateEntity } = useBlockProtocolUpdateEntity();
+  const {
+    metadata: { editionId, entityTypeId },
+    properties,
+  } = entity;
 
-  const entityTypeTitle = getEntityTypeById(
-    entitySubgraph,
-    entity.metadata.entityTypeId,
-  )!.schema.title;
-  const entityTypeUrl = entity.metadata.entityTypeId.replace(/v\/\d+/, "");
+  const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
+  const [newVersion, setNewVersion] = useState<number>();
+  const [updateModalOpen, setUpdateModalOpen] = useState(false);
+  const [updatingVersion, setUpdatingVersion] = useState(false);
+
+  useEffect(() => {
+    const init = async () => {
+      /** @todo instead of aggregating all types, use filtering by baseId when it's available to use */
+      const res = await aggregateEntityTypes({
+        data: {
+          graphResolveDepths: {
+            constrainsValuesOn: { outgoing: 0 },
+            constrainsPropertiesOn: { outgoing: 0 },
+            constrainsLinksOn: { outgoing: 0 },
+            constrainsLinkDestinationsOn: { outgoing: 0 },
+          },
+        },
+      });
+
+      const baseId = extractBaseUri(entityTypeId);
+      const entityTypeWithSameBaseId = res.data?.roots.find(
+        (root) => root.baseId === baseId,
+      );
+
+      if (!entityTypeWithSameBaseId) {
+        return;
+      }
+
+      const currentEntityVersion = extractVersion(entityTypeId);
+
+      if (entityTypeWithSameBaseId.version > currentEntityVersion) {
+        setNewVersion(entityTypeWithSameBaseId.version);
+      }
+    };
+
+    void init();
+  }, [aggregateEntityTypes, entityTypeId]);
+
+  const entityType = getEntityTypeById(entitySubgraph, entityTypeId);
+  const entityTypeTitle = entityType?.schema.title ?? "";
+  const entityTypeBaseUri = extractBaseUri(entityTypeId);
+
+  const handleUpdateVersion = async () => {
+    if (!newVersion) {
+      return;
+    }
+
+    try {
+      setUpdatingVersion(true);
+
+      const res = await updateEntity({
+        data: {
+          entityTypeId: versionedUriFromComponents(
+            entityTypeBaseUri,
+            newVersion,
+          ),
+          entityId: editionId.baseId as EntityId,
+          updatedProperties: properties,
+        },
+      });
+
+      if (res.data) {
+        await refetch();
+        setNewVersion(undefined);
+      }
+    } finally {
+      setUpdateModalOpen(false);
+      setUpdatingVersion(false);
+    }
+  };
+
+  const closeModal = () => setUpdateModalOpen(false);
+  const openModal = () => setUpdateModalOpen(true);
+  const currentVersion = extractVersion(entityTypeId);
 
   return (
     <SectionWrapper
@@ -52,8 +104,32 @@ export const TypesSection = () => {
       titleTooltip="Types describe what an entity is, allowing information to be associated with it. Entities can have an unlimited number of types."
     >
       <Box display="flex" gap={2}>
-        <TypeCard url={entityTypeUrl} title={entityTypeTitle} />
+        <TypeCard
+          url={entityTypeBaseUri}
+          title={entityTypeTitle}
+          version={currentVersion}
+          newVersionConfig={
+            newVersion
+              ? {
+                  newVersion,
+                  onUpdateVersion: openModal,
+                }
+              : undefined
+          }
+        />
       </Box>
+
+      {newVersion && (
+        <EntityTypeUpdateModal
+          open={updateModalOpen}
+          onClose={closeModal}
+          currentVersion={currentVersion}
+          newVersion={newVersion}
+          entityTypeTitle={entityTypeTitle}
+          onUpdateVersion={handleUpdateVersion}
+          updatingVersion={updatingVersion}
+        />
+      )}
     </SectionWrapper>
   );
 };

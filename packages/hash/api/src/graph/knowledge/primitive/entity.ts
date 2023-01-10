@@ -323,12 +323,13 @@ export const createEntityWithLinks: ImpureGraphFunction<
 export const updateEntity: ImpureGraphFunction<
   {
     entity: Entity;
+    entityTypeId?: VersionedUri;
     properties: PropertyObject;
     actorId: AccountId;
   },
   Promise<Entity>
 > = async ({ graphApi }, params) => {
-  const { entity, properties, actorId } = params;
+  const { entity, properties, actorId, entityTypeId } = params;
 
   const { data: metadata } = await graphApi.updateEntity({
     actorId,
@@ -338,7 +339,7 @@ export const updateEntity: ImpureGraphFunction<
      *
      * @see https://app.asana.com/0/1201095311341924/1203285029221330/f
      * */
-    entityTypeId: entity.metadata.entityTypeId,
+    entityTypeId: entityTypeId ?? entity.metadata.entityTypeId,
     archived: entity.metadata.archived,
     properties,
   });
