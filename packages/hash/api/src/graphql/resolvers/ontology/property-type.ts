@@ -13,6 +13,7 @@ import {
   ResolverFn,
 } from "../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../context";
+import { dataSourceToImpureGraphContext } from "../util";
 
 export const createPropertyTypeResolver: ResolverFn<
   Promise<PropertyTypeWithMetadata>,
@@ -20,18 +21,16 @@ export const createPropertyTypeResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationCreatePropertyTypeArgs
 > = async (_, params, { dataSources, user }) => {
-  const { graphApi } = dataSources;
+  const context = dataSourceToImpureGraphContext(dataSources);
+
   const { ownedById, propertyType } = params;
 
-  const createdPropertyType = await createPropertyType(
-    { graphApi },
-    {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-      ownedById: (ownedById as OwnedById) ?? user.accountId,
-      schema: propertyType,
-      actorId: user.accountId,
-    },
-  );
+  const createdPropertyType = await createPropertyType(context, {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
+    ownedById: (ownedById as OwnedById) ?? user.accountId,
+    schema: propertyType,
+    actorId: user.accountId,
+  });
 
   return createdPropertyType;
 };
@@ -115,18 +114,16 @@ export const updatePropertyTypeResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationUpdatePropertyTypeArgs
 > = async (_, params, { dataSources, user }) => {
-  const { graphApi } = dataSources;
+  const context = dataSourceToImpureGraphContext(dataSources);
+
   const { propertyTypeId, updatedPropertyType: updatedPropertyTypeSchema } =
     params;
 
-  const updatedPropertyType = await updatePropertyType(
-    { graphApi },
-    {
-      propertyTypeId,
-      schema: updatedPropertyTypeSchema,
-      actorId: user.accountId,
-    },
-  );
+  const updatedPropertyType = await updatePropertyType(context, {
+    propertyTypeId,
+    schema: updatedPropertyTypeSchema,
+    actorId: user.accountId,
+  });
 
   return updatedPropertyType;
 };

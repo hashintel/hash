@@ -1,6 +1,7 @@
 import { getBlockById } from "../../../../graph/knowledge/system-types/block";
 import { QueryBlocksArgs, ResolverFn } from "../../../api-types.gen";
 import { GraphQLContext } from "../../../context";
+import { dataSourceToImpureGraphContext } from "../../util";
 import { UnresolvedBlockGQL } from "../graphql-mapping";
 
 export const blocksResolver: ResolverFn<
@@ -8,9 +9,11 @@ export const blocksResolver: ResolverFn<
   {},
   GraphQLContext,
   QueryBlocksArgs
-> = async (_, params, { dataSources: { graphApi } }) => {
+> = async (_, params, { dataSources }) => {
+  const ctx = dataSourceToImpureGraphContext(dataSources);
+
   const blocks = await Promise.all(
-    params.blocks.map((entityId) => getBlockById({ graphApi }, { entityId })),
+    params.blocks.map((entityId) => getBlockById(ctx, { entityId })),
   );
 
   return blocks.map(({ componentId, entity }) => ({

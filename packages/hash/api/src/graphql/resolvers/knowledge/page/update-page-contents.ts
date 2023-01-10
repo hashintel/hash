@@ -1,6 +1,5 @@
 import { ApolloError, UserInputError } from "apollo-server-errors";
 
-import { ImpureGraphContext } from "../../../../graph";
 import {
   addBlockToPage,
   getPageById,
@@ -14,6 +13,7 @@ import {
   UpdatePageContentsResult,
 } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
+import { dataSourceToImpureGraphContext } from "../../util";
 import { mapPageToGQL, UnresolvedPageGQL } from "../graphql-mapping";
 import {
   createEntityWithPlaceholdersFn,
@@ -42,6 +42,8 @@ export const updatePageContents: ResolverFn<
   LoggedInGraphQLContext,
   MutationUpdatePageContentsArgs
 > = async (_, { entityId: pageEntityId, actions }, { dataSources, user }) => {
+  const context = dataSourceToImpureGraphContext(dataSources);
+
   for (const [i, action] of actions.entries()) {
     if (
       !exactlyOne(
@@ -61,12 +63,9 @@ export const updatePageContents: ResolverFn<
   }
 
   const placeholderResults = new PlaceholderResultsMap();
-  const { graphApi } = dataSources;
-
-  const graphContext: ImpureGraphContext = { graphApi };
 
   const createEntityWithPlaceholders = createEntityWithPlaceholdersFn(
-    graphApi,
+    context,
     placeholderResults,
   );
 
@@ -98,7 +97,7 @@ export const updatePageContents: ResolverFn<
   // Create any _new_ blocks
   const insertedBlocks = await Promise.all(
     filterForAction(actions, "insertBlock").map(({ action, index }) =>
-      handleInsertNewBlock(graphApi, {
+      handleInsertNewBlock(context, {
         user,
         insertBlockAction: action,
         index,
@@ -111,7 +110,7 @@ export const updatePageContents: ResolverFn<
   // Perform any block data swapping updates.
   await Promise.all(
     filterForAction(actions, "swapBlockData").map(({ action }) =>
-      handleSwapBlockData(graphApi, {
+      handleSwapBlockData(context, {
         user,
         swapBlockDataAction: action,
       }),
@@ -121,11 +120,11 @@ export const updatePageContents: ResolverFn<
   // Perform any entity updates.
   await Promise.all(
     filterForAction(actions, "updateEntity").map(async ({ action }) =>
-      handleUpdateEntity(graphApi, { user, action, placeholderResults }),
+      handleUpdateEntity(context, { user, action, placeholderResults }),
     ),
   );
 
-  const page = await getPageById(graphContext, {
+  const page = await getPageById(context, {
     entityId: pageEntityId,
   });
 
@@ -139,7 +138,7 @@ export const updatePageContents: ResolverFn<
   for (const [i, action] of actions.entries()) {
     try {
       if (action.insertBlock) {
-        await addBlockToPage(graphContext, {
+        await addBlockToPage(context, {
           page,
           block: insertedBlocks[insertCount]!,
           position: action.insertBlock.position,
@@ -147,13 +146,13 @@ export const updatePageContents: ResolverFn<
         });
         insertCount += 1;
       } else if (action.moveBlock) {
-        await moveBlockInPage(graphContext, {
+        await moveBlockInPage(context, {
           ...action.moveBlock,
           page,
           actorId: user.accountId,
         });
       } else if (action.removeBlock) {
-        await removeBlockFromPage(graphContext, {
+        await removeBlockFromPage(context, {
           page,
           position: action.removeBlock.position,
           actorId: user.accountId,

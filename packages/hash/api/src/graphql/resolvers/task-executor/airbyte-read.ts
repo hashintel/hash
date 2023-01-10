@@ -5,12 +5,12 @@ import {
   VersionedUri,
 } from "@blockprotocol/type-system";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { GraphApi } from "@hashintel/hash-graph-client";
 import { OwnedById } from "@hashintel/hash-shared/types";
 import { typedEntries, typedKeys } from "@hashintel/hash-shared/util";
 import { PropertyObject } from "@hashintel/hash-subgraph";
 import { ApolloError } from "apollo-server-express";
 
+import { ImpureGraphContext } from "../../../graph";
 import { createEntity } from "../../../graph/knowledge/primitive/entity";
 import { User } from "../../../graph/knowledge/system-types/user";
 import { Task, TaskExecutor } from "../../../task-execution";
@@ -46,7 +46,7 @@ export const readFromAirbyte = async ({
   user,
   taskExecutor,
   logger,
-  graphApi,
+  context,
   config,
   integrationName,
 }: {
@@ -54,7 +54,7 @@ export const readFromAirbyte = async ({
   user: User;
   taskExecutor: TaskExecutor;
   logger: Logger;
-  graphApi: GraphApi;
+  context: ImpureGraphContext;
   config: any;
   integrationName: string;
 }) => {
@@ -148,7 +148,7 @@ export const readFromAirbyte = async ({
       createdPropertyTypes: newCreatedPropertyTypes,
       createdEntityTypes: newCreatedEntityTypes,
     } = await createEntityTypeTree(
-      graphApi,
+      context.graphApi,
       entityTypeId,
       entityTypeMap,
       propertyTypeMap,
@@ -172,15 +172,12 @@ export const readFromAirbyte = async ({
   )) {
     for (const entityProperties of entityPropertiesList) {
       createdEntities.push(
-        await createEntity(
-          { graphApi },
-          {
-            ownedById: user.accountId as OwnedById,
-            actorId: user.accountId,
-            entityTypeId,
-            properties: entityProperties,
-          },
-        ),
+        await createEntity(context, {
+          ownedById: user.accountId as OwnedById,
+          actorId: user.accountId,
+          entityTypeId,
+          properties: entityProperties,
+        }),
       );
     }
   }

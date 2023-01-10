@@ -6,6 +6,7 @@ import {
 } from "../../../../graph/knowledge/system-types/page";
 import { MutationSetParentPageArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
+import { dataSourceToImpureGraphContext } from "../../util";
 import { mapPageToGQL, UnresolvedPageGQL } from "../graphql-mapping";
 
 export const setParentPageResolver: ResolverFn<
@@ -16,38 +17,31 @@ export const setParentPageResolver: ResolverFn<
 > = async (
   _,
   { pageEntityId, parentPageEntityId, prevIndex = null, nextIndex = null },
-  { dataSources: { graphApi }, user },
+  { dataSources, user },
 ) => {
+  const context = dataSourceToImpureGraphContext(dataSources);
+
   if (pageEntityId === parentPageEntityId) {
     throw new ApolloError("A page cannot be the parent of itself");
   }
 
-  const page = await getPageById(
-    { graphApi },
-    {
-      entityId: pageEntityId,
-    },
-  );
+  const page = await getPageById(context, {
+    entityId: pageEntityId,
+  });
 
   const newParentPage = parentPageEntityId
-    ? await getPageById(
-        { graphApi },
-        {
-          entityId: parentPageEntityId,
-        },
-      )
+    ? await getPageById(context, {
+        entityId: parentPageEntityId,
+      })
     : null;
 
-  const updatedPage = await setPageParentPage(
-    { graphApi },
-    {
-      page,
-      parentPage: newParentPage,
-      actorId: user.accountId,
-      prevIndex,
-      nextIndex,
-    },
-  );
+  const updatedPage = await setPageParentPage(context, {
+    page,
+    parentPage: newParentPage,
+    actorId: user.accountId,
+    prevIndex,
+    nextIndex,
+  });
 
   return mapPageToGQL(updatedPage);
 };

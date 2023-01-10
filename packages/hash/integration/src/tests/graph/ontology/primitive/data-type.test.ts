@@ -1,6 +1,5 @@
 import { DataType, TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
-  createGraphClient,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
@@ -10,12 +9,11 @@ import {
   getDataTypeById,
   updateDataType,
 } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { OwnedById } from "@hashintel/hash-shared/types";
 import { DataTypeWithMetadata } from "@hashintel/hash-subgraph";
 
-import { createTestUser } from "../../../util";
+import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -25,15 +23,7 @@ const logger = new Logger({
   serviceName: "integration-tests",
 });
 
-const graphApiHost = getRequiredEnv("HASH_GRAPH_API_HOST");
-const graphApiPort = parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10);
-
-const graphApi = createGraphClient(logger, {
-  host: graphApiHost,
-  port: graphApiPort,
-});
-
-const graphContext: ImpureGraphContext = { graphApi };
+const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 
 let testUser: User;
 let testUser2: User;
@@ -53,10 +43,10 @@ const dataTypeSchema: Pick<
 
 beforeAll(async () => {
   await TypeSystemInitializer.initialize();
-  await ensureSystemGraphIsInitialized({ graphApi, logger });
+  await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
-  testUser = await createTestUser(graphApi, "data-type-test-1", logger);
-  testUser2 = await createTestUser(graphApi, "data-type-test-2", logger);
+  testUser = await createTestUser(graphContext, "data-type-test-1", logger);
+  testUser2 = await createTestUser(graphContext, "data-type-test-2", logger);
 });
 
 describe("Data type CRU", () => {

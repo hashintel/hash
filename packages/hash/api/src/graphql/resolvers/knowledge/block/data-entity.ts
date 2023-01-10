@@ -6,6 +6,7 @@ import {
 } from "../../../../graph/knowledge/system-types/block";
 import { QueryBlocksArgs, ResolverFn } from "../../../api-types.gen";
 import { GraphQLContext } from "../../../context";
+import { dataSourceToImpureGraphContext } from "../../util";
 import { mapEntityToGQL, UnresolvedBlockGQL } from "../graphql-mapping";
 
 export const blockChildEntityResolver: ResolverFn<
@@ -13,13 +14,12 @@ export const blockChildEntityResolver: ResolverFn<
   UnresolvedBlockGQL,
   GraphQLContext,
   QueryBlocksArgs
-> = async ({ metadata }, _, { dataSources: { graphApi } }) => {
-  const block = await getBlockById(
-    { graphApi },
-    {
-      entityId: metadata.editionId.baseId,
-    },
-  );
+> = async ({ metadata }, _, { dataSources }) => {
+  const ctx = dataSourceToImpureGraphContext(dataSources);
 
-  return mapEntityToGQL(await getBlockData({ graphApi }, { block }));
+  const block = await getBlockById(ctx, {
+    entityId: metadata.editionId.baseId,
+  });
+
+  return mapEntityToGQL(await getBlockData(ctx, { block }));
 };

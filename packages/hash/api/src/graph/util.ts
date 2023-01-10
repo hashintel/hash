@@ -23,7 +23,7 @@ import {
 
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";
-import { GraphApi } from ".";
+import { ImpureGraphContext } from ".";
 import {
   createEntityType,
   getEntityTypeById,
@@ -160,37 +160,31 @@ export const generateSystemPropertyTypeSchema = (
  */
 export const propertyTypeInitializer = (
   params: PropertyTypeCreatorParams,
-): ((graphApi: GraphApi) => Promise<PropertyTypeWithMetadata>) => {
+): ((context: ImpureGraphContext) => Promise<PropertyTypeWithMetadata>) => {
   let propertyType: PropertyTypeWithMetadata;
 
-  return async (graphApi?: GraphApi) => {
+  return async (ctx?: ImpureGraphContext) => {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     if (propertyType) {
       return propertyType;
-    } else if (!graphApi) {
+    } else if (!ctx) {
       throw new Error(
-        `property type ${params.title} was uninitialized, and function was called without passing a graphApi object`,
+        `property type ${params.title} was uninitialized, and function was called without passing a impure graph object`,
       );
     } else {
       const propertyTypeSchema = generateSystemPropertyTypeSchema(params);
 
       // initialize
-      propertyType = await getPropertyTypeById(
-        { graphApi },
-        {
-          propertyTypeId: propertyTypeSchema.$id,
-        },
-      ).catch(async (error: Error) => {
+      propertyType = await getPropertyTypeById(ctx, {
+        propertyTypeId: propertyTypeSchema.$id,
+      }).catch(async (error: Error) => {
         if (error instanceof NotFoundError) {
           // The type was missing, try and create it
-          return await createPropertyType(
-            { graphApi },
-            {
-              ownedById: systemUserAccountId as OwnedById,
-              schema: propertyTypeSchema,
-              actorId: systemUserAccountId,
-            },
-          ).catch((createError) => {
+          return await createPropertyType(ctx, {
+            ownedById: systemUserAccountId as OwnedById,
+            schema: propertyTypeSchema,
+            actorId: systemUserAccountId,
+          }).catch((createError) => {
             logger.warn(`Failed to create property type: ${params.title}`);
             throw createError;
           });
@@ -334,15 +328,15 @@ export const generateSystemLinkEntityTypeSchema = (
  */
 export const entityTypeInitializer = (
   params: EntityTypeCreatorParams | LinkEntityTypeCreatorParams,
-): ((graphApi: GraphApi) => Promise<EntityTypeWithMetadata>) => {
+): ((context: ImpureGraphContext) => Promise<EntityTypeWithMetadata>) => {
   let entityType: EntityTypeWithMetadata | undefined;
 
-  return async (graphApi?: GraphApi) => {
+  return async (ctx?: ImpureGraphContext) => {
     if (entityType) {
       return entityType;
-    } else if (!graphApi) {
+    } else if (!ctx) {
       throw new Error(
-        `entity type ${params.title} was uninitialized, and function was called without passing a graphApi object`,
+        `entity type ${params.title} was uninitialized, and function was called without passing a impure graph object`,
       );
     } else {
       const entityTypeSchema =
@@ -351,22 +345,16 @@ export const entityTypeInitializer = (
           : generateSystemEntityTypeSchema(params);
 
       // initialize
-      entityType = await getEntityTypeById(
-        { graphApi },
-        {
-          entityTypeId: entityTypeSchema.$id,
-        },
-      ).catch(async (error: Error) => {
+      entityType = await getEntityTypeById(ctx, {
+        entityTypeId: entityTypeSchema.$id,
+      }).catch(async (error: Error) => {
         if (error instanceof NotFoundError) {
           // The type was missing, try and create it
-          return await createEntityType(
-            { graphApi },
-            {
-              ownedById: systemUserAccountId as OwnedById,
-              schema: entityTypeSchema,
-              actorId: systemUserAccountId,
-            },
-          ).catch((createError) => {
+          return await createEntityType(ctx, {
+            ownedById: systemUserAccountId as OwnedById,
+            schema: entityTypeSchema,
+            actorId: systemUserAccountId,
+          }).catch((createError) => {
             logger.warn(`Failed to create entity type: ${params.title}`);
             throw createError;
           });
