@@ -5,8 +5,8 @@ import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
 import { GraphApi } from "../graph";
 import { User } from "../graph/knowledge/system-types/user";
+import { StorageType } from "../storage";
 import { TaskExecutor } from "../task-execution";
-import { StorageType } from "./api-types.gen";
 
 /**
  * Apollo context object with dataSources. For details see:
