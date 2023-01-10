@@ -35,7 +35,7 @@ export const TypeCard = ({
           color: ({ palette }) => palette.black,
           backgroundColor: newVersionConfig ? "yellow.10" : "white",
           "&:hover": {
-            backgroundColor: "#FAFFFF",
+            backgroundColor: "blue.5",
           },
         }}
       >
