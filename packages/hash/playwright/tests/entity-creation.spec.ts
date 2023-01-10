@@ -3,11 +3,13 @@ import { resetDb } from "./shared/reset-db";
 import { expect, Locator, Page, test } from "./shared/runtime";
 
 const getCellText = async (
-  canvasLocator: Locator,
+  canvas: Locator,
+  /** zero-based (first column -> 0) */
   colIndex: number,
+  /** zero-based (first row after header row -> 0) */
   rowIndex: number,
 ) => {
-  const text = await canvasLocator
+  const text = await canvas
     .getByTestId(`glide-cell-${colIndex}-${rowIndex}`)
     .textContent();
   return text;
@@ -17,16 +19,17 @@ const ROW_HEIGHT = 42;
 
 const clickOnValueCell = async (
   page: Page,
-  canvasLocator: Locator,
-  colIndex: number,
+  canvas: Locator,
+  /** zero-based (first row after header row -> 0) */
+  rowIndex: number,
 ) => {
-  const canvasPos = await canvasLocator.boundingBox();
+  const canvasPos = await canvas.boundingBox();
 
   if (!canvasPos) {
     throw new Error("canvasPos not found");
   }
 
-  const cellY = canvasPos.y + 20 + ROW_HEIGHT * (colIndex + 1);
+  const cellY = canvasPos.y + 20 + ROW_HEIGHT * (rowIndex + 1);
   const cellX = canvasPos.x + 300;
   await page.mouse.move(cellX, cellY);
   await page.mouse.click(cellX, cellY);
@@ -35,9 +38,6 @@ const clickOnValueCell = async (
 test.beforeEach(async () => {
   await resetDb();
 });
-
-const value1 = "John";
-const value2 = "Doe";
 
 /** This is a temporary test to commit the progress made on testing `Grid` component. */
 test("user can update values on property table", async ({ page }) => {
@@ -65,16 +65,16 @@ test("user can update values on property table", async ({ page }) => {
   const canvas = page.locator(".dvn-underlay > canvas:first-of-type").first();
 
   await clickOnValueCell(page, canvas, 0);
-  await page.keyboard.type(value1);
+  await page.keyboard.type("John");
   await page.keyboard.press("Enter");
 
   await clickOnValueCell(page, canvas, 1);
-  await page.keyboard.type(value2);
+  await page.keyboard.type("Doe");
   await page.keyboard.press("Enter");
 
   const cell1Text = await getCellText(canvas, 1, 0);
   const cell2Text = await getCellText(canvas, 1, 1);
 
-  expect(cell1Text).toBe(value1);
-  expect(cell2Text).toBe(value2);
+  expect(cell1Text).toBe("John");
+  expect(cell2Text).toBe("Doe");
 });
