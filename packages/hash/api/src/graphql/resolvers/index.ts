@@ -59,6 +59,10 @@ import {
   updatePropertyTypeResolver,
 } from "./ontology/property-type";
 import {
+  executeAsanaCheckTask,
+  executeAsanaDiscoverTask,
+  executeAsanaReadTask,
+  executeAsanaSpecTask,
   executeDemoTask,
   executeGithubCheckTask,
   executeGithubDiscoverTask,
@@ -119,6 +123,12 @@ export const resolvers = {
       executeGithubDiscoverTask,
     ),
     executeGithubReadTask: loggedInAndSignedUpMiddleware(executeGithubReadTask),
+    executeAsanaSpecTask,
+    executeAsanaCheckTask,
+    executeAsanaDiscoverTask: loggedInAndSignedUpMiddleware(
+      executeAsanaDiscoverTask,
+    ),
+    executeAsanaReadTask: loggedInAndSignedUpMiddleware(executeAsanaReadTask),
     // Ontology
     createPropertyType: loggedInAndSignedUpMiddleware(
       createPropertyTypeResolver,

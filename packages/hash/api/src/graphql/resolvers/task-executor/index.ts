@@ -1,27 +1,24 @@
 import { JsonObject } from "@blockprotocol/core";
-import {
-  EntityType,
-  PropertyType,
-  VersionedUri,
-} from "@blockprotocol/type-system";
-import { OwnedById } from "@hashintel/hash-shared/types";
-import { typedEntries, typedKeys } from "@hashintel/hash-shared/util";
-import { PropertyObject } from "@hashintel/hash-subgraph";
 import { ApolloError } from "apollo-server-express";
 
-import { createEntity } from "../../../graph/knowledge/primitive/entity";
 import { Task } from "../../../task-execution";
 import {
+  MutationExecuteAsanaCheckTaskArgs,
+  MutationExecuteAsanaDiscoverTaskArgs,
+  MutationExecuteAsanaReadTaskArgs,
   MutationExecuteGithubCheckTaskArgs,
   MutationExecuteGithubDiscoverTaskArgs,
   MutationExecuteGithubReadTaskArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
-import {
-  createEntityTypeTree,
-  rewriteEntityPropertiesInTypeSystem,
-} from "./generation";
+import { readFromAirbyte } from "./airbyte-read";
+
+/** @todo - Make Airbyte types available in api package */
+type AirbyteCatalog = Array<{
+  name?: string;
+  json_schema?: JsonObject;
+}>;
 
 export const executeDemoTask: ResolverFn<
   Promise<string>,
@@ -83,34 +80,6 @@ export const executeGithubCheckTask: ResolverFn<
   }
 };
 
-/** @todo - Make Airbyte types available in api package */
-type AirbyteCatalog = Array<{
-  name?: string;
-  json_schema?: JsonObject;
-}>;
-
-type AirbyteRecords = Array<{
-  /**
-   * the name of this record's stream
-   */
-  stream: string;
-  /**
-   * the record data
-   */
-  data: {
-    [k: string]: unknown;
-  };
-  /**
-   * when the data was emitted from the source. epoch in millisecond.
-   */
-  emitted_at: number;
-  /**
-   * the namespace of this record's stream
-   */
-  namespace?: string;
-  [k: string]: unknown;
-}>;
-
 export const executeGithubDiscoverTask: ResolverFn<
   Promise<string>,
   {},
@@ -151,141 +120,110 @@ export const executeGithubReadTask: ResolverFn<
     );
   }
 
-  if (!user.shortname) {
+  try {
+    return await readFromAirbyte({
+      task: Task.GithubRead,
+      user,
+      taskExecutor,
+      logger,
+      graphApi,
+      config,
+      integrationName: "Github",
+    });
+  } catch (err: any) {
+    throw new ApolloError(`Task-execution failed: ${err}`);
+  }
+};
+
+export const executeAsanaSpecTask: ResolverFn<
+  Promise<string>,
+  {},
+  GraphQLContext,
+  {}
+> = async (_, __, { dataSources: { taskExecutor } }) => {
+  if (!taskExecutor) {
     throw new ApolloError(
-      "User must have completed the sign-up process and have a shortname",
+      "A task-executor wasn't started, so external tasks can't be started",
+    );
+  } else {
+    return await taskExecutor
+      .runTask(Task.AsanaSpec)
+      .then((res) => JSON.stringify(res))
+      .catch((err: any) => {
+        throw new ApolloError(`Task-execution failed: ${err}`);
+      });
+  }
+};
+
+export const executeAsanaCheckTask: ResolverFn<
+  Promise<string>,
+  {},
+  GraphQLContext,
+  MutationExecuteAsanaCheckTaskArgs
+> = async (_, { config }, { dataSources: { taskExecutor } }) => {
+  if (!taskExecutor) {
+    throw new ApolloError(
+      "A task-executor wasn't started, so external tasks can't be started",
+    );
+  } else {
+    return await taskExecutor
+      .runTask(Task.AsanaCheck, config)
+      .then((res) => JSON.stringify(res))
+      .catch((err) => {
+        throw new ApolloError(`Task-execution failed: ${err}`);
+      });
+  }
+};
+
+export const executeAsanaDiscoverTask: ResolverFn<
+  Promise<string>,
+  {},
+  LoggedInGraphQLContext,
+  MutationExecuteAsanaDiscoverTaskArgs
+> = async (_, { config }, { dataSources: { taskExecutor } }) => {
+  if (!taskExecutor) {
+    throw new ApolloError(
+      "A task-executor wasn't started, so external tasks can't be started",
+    );
+  } else {
+    try {
+      const catalog: AirbyteCatalog = await taskExecutor.runTask(
+        Task.AsanaDiscover,
+        config,
+      );
+
+      return JSON.stringify(catalog);
+    } catch (err: any) {
+      throw new ApolloError(`Task-execution failed: ${err}`);
+    }
+  }
+};
+
+export const executeAsanaReadTask: ResolverFn<
+  Promise<string>,
+  {},
+  LoggedInGraphQLContext,
+  MutationExecuteAsanaReadTaskArgs
+> = async (
+  _,
+  { config },
+  { dataSources: { graphApi, taskExecutor }, user, logger },
+) => {
+  if (!taskExecutor) {
+    throw new ApolloError(
+      "A task-executor wasn't started, so external tasks can't be started",
     );
   }
 
   try {
-    const airbyteRecords: AirbyteRecords = await taskExecutor.runTask(
-      Task.GithubRead,
+    return await readFromAirbyte({
+      task: Task.AsanaRead,
+      user,
+      taskExecutor,
+      logger,
+      graphApi,
       config,
-    );
-    logger.debug(
-      `Received ${airbyteRecords.length} records from Github. Traversing and rewriting into the type system.`,
-    );
-
-    const streamToKeyToPropertyTypes: Record<
-      string,
-      Record<string, PropertyType>
-    > = {};
-    const streamToEntityTypes: Record<string, EntityType> = {};
-    const entityTypeIdToEntityProperties: Record<
-      VersionedUri,
-      PropertyObject[]
-    > = {};
-
-    for (const record of airbyteRecords) {
-      const streamName = record.stream;
-
-      const streamKeyMap = streamToKeyToPropertyTypes[streamName] ?? {};
-      const entityType = streamToEntityTypes[streamName];
-      const entityProperties = record.data;
-
-      const {
-        entityProperties: updatedEntityProperties,
-        entityType: updatedEntityType,
-      } = rewriteEntityPropertiesInTypeSystem(
-        entityProperties as JsonObject,
-        streamKeyMap,
-        entityType,
-        streamName,
-        "Github",
-        user.shortname,
-      );
-
-      if (entityTypeIdToEntityProperties[updatedEntityType.$id] !== undefined) {
-        entityTypeIdToEntityProperties[updatedEntityType.$id]!.push(
-          updatedEntityProperties,
-        );
-      } else {
-        entityTypeIdToEntityProperties[updatedEntityType.$id] = [
-          updatedEntityProperties,
-        ];
-      }
-
-      streamToKeyToPropertyTypes[streamName] = streamKeyMap;
-      streamToEntityTypes[streamName] = updatedEntityType;
-    }
-
-    logger.debug(
-      "Finished rewriting data into entities and types, inserting into the Graph.",
-    );
-
-    const propertyTypeMap: Record<
-      VersionedUri,
-      { schema: PropertyType; created: boolean }
-    > = Object.fromEntries(
-      Object.values(streamToKeyToPropertyTypes)
-        .flatMap((keyMaps) => Object.values(keyMaps))
-        .map((propertyType) => [
-          propertyType.$id,
-          { schema: propertyType, created: false },
-        ]),
-    );
-    const entityTypeMap: Record<
-      VersionedUri,
-      { schema: EntityType; created: boolean }
-    > = Object.fromEntries(
-      Object.values(streamToEntityTypes).map((entityType) => [
-        entityType.$id,
-        { schema: entityType, created: false },
-      ]),
-    );
-
-    const createdEntityTypes = [];
-    const createdPropertyTypes = [];
-    const createdEntities = [];
-
-    /** @todo - Check if entity type already exists */
-    for (const entityTypeId of typedKeys(entityTypeMap)) {
-      const {
-        createdPropertyTypes: newCreatedPropertyTypes,
-        createdEntityTypes: newCreatedEntityTypes,
-      } = await createEntityTypeTree(
-        graphApi,
-        entityTypeId,
-        entityTypeMap,
-        propertyTypeMap,
-        user,
-      );
-
-      createdPropertyTypes.push(...newCreatedPropertyTypes);
-      createdEntityTypes.push(...newCreatedEntityTypes);
-    }
-
-    logger.debug(
-      `Inserted ${createdPropertyTypes.length} property types from Asana`,
-    );
-    logger.debug(
-      `Inserted ${createdEntityTypes.length} entity types from Asana`,
-    );
-
-    /** @todo - check primary key to see if entity already exists */
-    for (const [entityTypeId, entityPropertiesList] of typedEntries(
-      entityTypeIdToEntityProperties,
-    )) {
-      for (const entityProperties of entityPropertiesList) {
-        createdEntities.push(
-          await createEntity(
-            { graphApi },
-            {
-              ownedById: user.accountId as OwnedById,
-              actorId: user.accountId,
-              entityTypeId,
-              properties: entityProperties,
-            },
-          ),
-        );
-      }
-    }
-
-    logger.debug(`Inserted ${createdEntities.length} entities from Asana`);
-    return JSON.stringify({
-      createdPropertyTypes,
-      createdEntityTypes,
-      createdEntities,
+      integrationName: "Asana",
     });
   } catch (err: any) {
     throw new ApolloError(`Task-execution failed: ${err}`);
