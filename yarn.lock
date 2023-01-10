@@ -3042,14 +3042,6 @@
     pirates "^4.0.5"
     source-map-support "^0.5.16"
 
-"@babel/runtime-corejs3@^7.16.5":
-  version "7.20.7"
-  resolved "https://registry.yarnpkg.com/@babel/runtime-corejs3/-/runtime-corejs3-7.20.7.tgz#a1e5ea3d758ba6beb715210142912e3f29981d84"
-  integrity sha512-jr9lCZ4RbRQmCR28Q8U8Fu49zvFqLxTY9AMOUz+iyMohMoAgpEcVxY+wJNay99oXOpOcCTODkk70NDN2aaJEeg==
-  dependencies:
-    core-js-pure "^3.25.1"
-    regenerator-runtime "^0.13.11"
-
 "@babel/runtime@7.5.0":
   version "7.5.0"
   resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.5.0.tgz#49dcbcd637099a55d3a61e590a00d6861393b1b5"
@@ -10103,7 +10095,7 @@ core-js-compat@^3.21.0, core-js-compat@^3.25.1:
   dependencies:
     browserslist "^4.21.4"
 
-core-js-pure@^3.23.3, core-js-pure@^3.25.1:
+core-js-pure@^3.23.3:
   version "3.27.1"
   resolved "https://registry.yarnpkg.com/core-js-pure/-/core-js-pure-3.27.1.tgz#ede4a6b8440585c7190062757069c01d37a19dca"
   integrity sha512-BS2NHgwwUppfeoqOXqi08mUqS5FiZpuRuJJpKsaME7kJz0xxuk0xkhDdfMIlP/zLa80krBqss1LtD7f889heAw==
@@ -11148,10 +11140,10 @@ eslint-module-utils@^2.7.3:
     debug "^3.2.7"
     find-up "^2.1.0"
 
-eslint-plugin-canonical@3.2.1:
-  version "3.2.1"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-canonical/-/eslint-plugin-canonical-3.2.1.tgz#468328cfd2ca617320416f60d5bef95f25fbd3c6"
-  integrity sha512-3sidNXzCpl6Xt/GgTtu3gEbuCRVDFvSAj40rMu9gGnqu36DOFCGUk7pTx4Hbsqblzht6PeddmYp62Mwye/5jwQ==
+eslint-plugin-canonical@3.1.0:
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-canonical/-/eslint-plugin-canonical-3.1.0.tgz#f7c9dfe53ccee512eb4d7531419eddf2becaa97a"
+  integrity sha512-bZQiH2L3aIqC8WnMFnYMVtBW8HCZrQRUvn20FsbMiy56H6txjGS+uOxiItoNQjFDc9ADDruKgEFKm/Hi7jYBmw==
   dependencies:
     is-get-set-prop "^1.0.0"
     is-js-type "^2.0.0"
@@ -11159,7 +11151,6 @@ eslint-plugin-canonical@3.2.1:
     is-proto-prop "^2.0.0"
     lodash "^4.17.21"
     natural-compare "^1.4.0"
-    xregexp "^5.1.1"
 
 eslint-plugin-import@2.26.0:
   version "2.26.0"
@@ -21541,13 +21532,6 @@ xml-parser-xo@^3.2.0:
   version "3.2.0"
   resolved "https://registry.yarnpkg.com/xml-parser-xo/-/xml-parser-xo-3.2.0.tgz#c633ab55cf1976d6b03ab4a6a85045093ac32b73"
   integrity sha512-8LRU6cq+d7mVsoDaMhnkkt3CTtAs4153p49fRo+HIB3I1FD1o5CeXRjRH29sQevIfVJIcPjKSsPU/+Ujhq09Rg==
-
-xregexp@^5.1.1:
-  version "5.1.1"
-  resolved "https://registry.yarnpkg.com/xregexp/-/xregexp-5.1.1.tgz#6d3fe18819e3143aaf52f9284d34f49a59583ebb"
-  integrity sha512-fKXeVorD+CzWvFs7VBuKTYIW63YD1e1osxwQ8caZ6o1jg6pDAbABDG54LCIq0j5cy7PjRvGIq6sef9DYPXpncg==
-  dependencies:
-    "@babel/runtime-corejs3" "^7.16.5"
 
 xss@^1.0.8:
   version "1.0.9"
