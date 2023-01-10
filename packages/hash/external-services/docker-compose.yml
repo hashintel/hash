@@ -93,7 +93,7 @@ services:
     ports:
       - 16686:16686
       # To expose OTLP collector over gRPC on the host
-      # - 4317:4317
+      - 4317:4317
       # To expose OTLP collector over HTTP on the host
       # - 4318:4318
     environment:
