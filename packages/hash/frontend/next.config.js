@@ -101,14 +101,16 @@ module.exports = withSentryConfig(
           });
 
           // eslint-disable-next-line no-param-reassign
-          webpackConfig.resolve.alias["@blockprotocol/type-system"] =
+          webpackConfig.resolve.alias["@blockprotocol/type-system$"] =
             "@blockprotocol/type-system/slim";
 
+          // WebStorm doesn't understand exports so we have to use the full import path,
+          // but we can't because it's not in the exports so webpack complains
+          // This fixes that
           // eslint-disable-next-line no-param-reassign
-          webpackConfig.resolve.alias["@blockprotocol/type-system-wasm$"] =
-            require.resolve(
-              "@blockprotocol/type-system/dist/wasm/type-system.wasm",
-            );
+          webpackConfig.resolve.alias[
+            "@blockprotocol/type-system/dist/wasm/type-system.wasm"
+          ] = require.resolve("@blockprotocol/type-system/type-system.wasm");
 
           return webpackConfig;
         },

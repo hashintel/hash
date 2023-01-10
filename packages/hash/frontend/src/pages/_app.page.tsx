@@ -6,7 +6,7 @@ import "./globals.scss";
 
 import { ApolloProvider } from "@apollo/client/react";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import wasm from "@blockprotocol/type-system-wasm/type-system.wasm";
+import wasm from "@blockprotocol/type-system/dist/wasm/type-system.wasm";
 import { CacheProvider, EmotionCache } from "@emotion/react";
 import { createEmotionCache, theme } from "@hashintel/hash-design-system";
 import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
@@ -56,23 +56,20 @@ export const initWasm = async () => {
     // @ts-expect-error -- We need Node's native require here, and it's safe as this is a server-only block
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     const wasmPath = __non_webpack_require__.resolve(
-      "demo-package/demo-package.wasm",
+      "@blockprotocol/type-system/type-system.wasm",
     );
-    console.log(`Reading wasm from ${wasmPath}`);
     const contents = await fs.readFile(wasmPath);
 
-    console.log(`Compiling wasm`);
     wasmModule = await WebAssembly.compile(contents);
   } else {
     wasmModule = wasm;
   }
-  console.log("Initializing wasm");
   await TypeSystemInitializer.initialize(wasmModule);
 };
 
 const InitTypeSystem = dynamic(
   async () => {
-    await TypeSystemInitializer.initialize();
+    await initWasm();
 
     return { default: RenderChildren };
   },
