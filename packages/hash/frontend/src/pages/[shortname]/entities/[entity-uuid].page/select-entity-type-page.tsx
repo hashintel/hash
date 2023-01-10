@@ -5,7 +5,6 @@ import { useRouter } from "next/router";
 import { useContext, useState } from "react";
 
 import { useSnackbar } from "../../../../components/hooks/use-snackbar";
-import { EntityTypesContextProvider } from "../../../shared/entity-types-context/provider";
 import { WorkspaceContext } from "../../../shared/workspace-context";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
@@ -93,64 +92,62 @@ export const SelectEntityTypePage = () => {
           </Box>
 
           <Divider />
-          <EntityTypesContextProvider>
-            <Box
-              sx={{
-                display: "flex",
-                gap: 1,
-                alignItems: "center",
-                p: 3,
-                justifyContent: "center",
-                flexWrap: "wrap",
-              }}
-            >
-              {isSelectingType ? (
-                <EntityTypeSelector
-                  onCancel={() => setIsSelectingType(false)}
-                  onSelect={async (entityType) => {
-                    try {
-                      setIsSelectingType(false);
-                      setLoading(true);
+          <Box
+            sx={{
+              display: "flex",
+              gap: 1,
+              alignItems: "center",
+              p: 3,
+              justifyContent: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            {isSelectingType ? (
+              <EntityTypeSelector
+                onCancel={() => setIsSelectingType(false)}
+                onSelect={async (entityType) => {
+                  try {
+                    setIsSelectingType(false);
+                    setLoading(true);
 
-                      await router.push(
-                        `/new/entity?entity-type-id=${encodeURIComponent(
-                          entityType.$id,
-                        )}`,
-                      );
-                    } catch (error: any) {
-                      snackbar.error(error.message);
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
-                  onCreateNew={(searchValue) => {
-                    let href = `/new/types/entity-type`;
-                    if (searchValue) {
-                      href += `?name=${encodeURIComponent(searchValue)}`;
-                    }
+                    await router.push(
+                      `/new/entity?entity-type-id=${encodeURIComponent(
+                        entityType.$id,
+                      )}`,
+                    );
+                  } catch (error: any) {
+                    snackbar.error(error.message);
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                onCreateNew={(searchValue) => {
+                  let href = `/new/types/entity-type`;
+                  if (searchValue) {
+                    href += `?name=${encodeURIComponent(searchValue)}`;
+                  }
 
-                    void router.push(href);
-                  }}
-                />
-              ) : (
-                <>
-                  <Button
-                    loading={loading}
-                    onClick={() => setIsSelectingType(true)}
-                    startIcon={!loading && <FontAwesomeIcon icon={faPlus} />}
-                    sx={{ fontSize: 14, paddingX: 2 }}
-                  >
-                    Add a type
-                  </Button>
-                  {!loading && (
-                    <Typography variant="smallTextLabels" fontWeight={600}>
-                      to start using this entity
-                    </Typography>
-                  )}
-                </>
-              )}
-            </Box>
-          </EntityTypesContextProvider>
+                  void router.push(href);
+                }}
+              />
+            ) : (
+              <>
+                <Button
+                  loading={loading}
+                  onClick={() => setIsSelectingType(true)}
+                  startIcon={!loading && <FontAwesomeIcon icon={faPlus} />}
+                  sx={{ fontSize: 14, paddingX: 2 }}
+                >
+                  Add a type
+                </Button>
+                {!loading && (
+                  <Typography variant="smallTextLabels" fontWeight={600}>
+                    to start using this entity
+                  </Typography>
+                )}
+              </>
+            )}
+          </Box>
         </WhiteCard>
       </SectionWrapper>
 

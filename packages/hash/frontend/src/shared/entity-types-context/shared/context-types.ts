@@ -13,4 +13,5 @@ export type EntityTypesContextValue = {
   loading: boolean;
 
   refetch: () => Promise<void>;
+  ensureFetched: () => void;
 };

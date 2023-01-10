@@ -21,7 +21,7 @@ import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../../shared/layout";
-import { EntityTypesContextProvider } from "../../../shared/entity-types-context/provider";
+import { EntityTypesContextProvider } from "../../../../shared/entity-types-context/provider";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
@@ -107,7 +107,7 @@ type Entries<T> = {
   [K in keyof T]: [K, T[K]];
 }[keyof T][];
 
-const EntityTypePage = () => {
+const Page: NextPageWithLayout = () => {
   const router = useRouter();
 
   // @todo how to handle remote types
@@ -365,14 +365,6 @@ const EntityTypePage = () => {
         })}
       />
     </>
-  );
-};
-
-const Page: NextPageWithLayout = () => {
-  return (
-    <EntityTypesContextProvider>
-      <EntityTypePage />
-    </EntityTypesContextProvider>
   );
 };
 
