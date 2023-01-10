@@ -55,6 +55,7 @@ fn bench_representative_read_entity(c: &mut Criterion) {
 }
 
 #[criterion]
+#[expect(clippy::too_many_lines)]
 fn bench_representative_read_multiple_entities(c: &mut Criterion) {
     let mut group = c.benchmark_group("representative_read_multiple_entities");
     let (runtime, store_wrapper) = setup(DB_NAME, false, false);

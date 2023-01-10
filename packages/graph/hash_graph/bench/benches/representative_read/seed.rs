@@ -207,7 +207,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
         store_wrapper.bench_db_name,
         total_entities,
         total_link_entities,
-        now.elapsed().unwrap()
+        now.elapsed().expect("failed to get elapsed time")
     );
 }
 
@@ -239,7 +239,10 @@ async fn get_samples(account_id: AccountId, store_wrapper: &mut StoreWrapper) ->
         entity_types,
     };
 
-    let sample_map = samples.entities.get_mut(&account_id).unwrap();
+    let sample_map = samples
+        .entities
+        .get_mut(&account_id)
+        .expect("could not get sample map");
 
     for entity_type_id in SEED_ENTITIES.map(|(entity_type_str, ..)| {
         let entity_type_repr: repr::EntityType = serde_json::from_str(entity_type_str)
@@ -265,7 +268,7 @@ async fn get_samples(account_id: AccountId, store_wrapper: &mut StoreWrapper) ->
                 "#,
                 &[
                     &entity_type_id.base_uri().as_str(),
-                    &(entity_type_id.version() as i64),
+                    &i64::from(entity_type_id.version()),
                 ],
             )
             .await
@@ -291,8 +294,9 @@ pub async fn setup_and_extract_samples(store_wrapper: &mut StoreWrapper) -> Samp
     //  https://app.asana.com/0/1200211978612931/1203071961523000/f
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id =
-        AccountId::new(Uuid::from_str("d4e16033-c281-4cde-aa35-9085bf2e7579").unwrap());
+    let account_id = AccountId::new(
+        Uuid::from_str("d4e16033-c281-4cde-aa35-9085bf2e7579").expect("invalid UUID"),
+    );
 
     // We use the existence of the account ID as a marker for if the DB has been seeded already
     let already_seeded: bool = store_wrapper
