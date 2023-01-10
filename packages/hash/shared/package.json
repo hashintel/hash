@@ -26,7 +26,7 @@
     "@blockprotocol/core": "0.0.12",
     "@hashintel/hash-graph-client": "0.0.0-private",
     "@hashintel/hash-subgraph": "0.0.0-private",
-    "@sentry/browser": "7.28.0",
+    "@sentry/browser": "7.30.0",
     "immer": "9.0.6",
     "jsonschema": "1.4.0",
     "lodash": "4.17.21",
