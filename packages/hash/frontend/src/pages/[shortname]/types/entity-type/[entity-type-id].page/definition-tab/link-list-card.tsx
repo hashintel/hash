@@ -39,7 +39,7 @@ import {
   useEntityTypesLoading,
   useFetchEntityTypes,
   useLinkEntityTypes,
-} from "../shared/entity-types-context";
+} from "../../../../../shared/entity-types-context/hooks";
 import { EntityTypeEditorForm } from "../shared/form-types";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {

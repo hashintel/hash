@@ -21,6 +21,7 @@ import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../../shared/layout";
+import { EntityTypesContextProvider } from "../../../shared/entity-types-context/provider";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
@@ -31,7 +32,6 @@ import { EntitiesTab } from "./[entity-type-id].page/entities-tab";
 import { EntityTypeTabs } from "./[entity-type-id].page/entity-type-tabs";
 import { EntityTypeContext } from "./[entity-type-id].page/shared/entity-type-context";
 import { EntityTypeEntitiesContext } from "./[entity-type-id].page/shared/entity-type-entities-context";
-import { EntityTypesContext } from "./[entity-type-id].page/shared/entity-types-context";
 import { EntityTypeEditorForm } from "./[entity-type-id].page/shared/form-types";
 import { getEntityTypeBaseUri } from "./[entity-type-id].page/shared/get-entity-type-base-uri";
 import { PropertyTypesContext } from "./[entity-type-id].page/shared/property-types-context";
@@ -39,7 +39,6 @@ import { useCurrentTab } from "./[entity-type-id].page/shared/tabs";
 import { usePropertyTypesContextValue } from "./[entity-type-id].page/shared/use-property-types-context-value";
 import { useEntityTypeEntitiesContextValue } from "./[entity-type-id].page/use-entity-type-entities-context-value";
 import { useEntityTypeValue } from "./[entity-type-id].page/use-entity-type-value";
-import { useEntityTypesContextValue } from "./[entity-type-id].page/use-entity-types-context-value";
 
 const getSchemaFromEditorForm = (
   data: EntityTypeEditorForm,
@@ -124,7 +123,6 @@ const Page: NextPageWithLayout = () => {
     useEntityTypeEntitiesContextValue(baseEntityTypeUri);
 
   const propertyTypes = usePropertyTypesContextValue();
-  const entityTypesContextValue = useEntityTypesContextValue();
 
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
@@ -247,7 +245,7 @@ const Page: NextPageWithLayout = () => {
         <PropertyTypesContext.Provider value={propertyTypes}>
           <EntityTypeContext.Provider value={entityType}>
             <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
-              <EntityTypesContext.Provider value={entityTypesContextValue}>
+              <EntityTypesContextProvider>
                 <Box
                   sx={{
                     display: "flex",
@@ -355,7 +353,7 @@ const Page: NextPageWithLayout = () => {
                     </Container>
                   </Box>
                 </Box>
-              </EntityTypesContext.Provider>
+              </EntityTypesContextProvider>
             </EntityTypeEntitiesContext.Provider>
           </EntityTypeContext.Provider>
         </PropertyTypesContext.Provider>

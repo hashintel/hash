@@ -1,12 +1,11 @@
 import { linkEntityTypeUri } from "@hashintel/hash-subgraph";
 import { getEntityTypes } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
-import { useBlockProtocolAggregateEntityTypes } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-entity-types";
+import { useBlockProtocolAggregateEntityTypes } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-entity-types";
 import {
   EntityTypesContextValue,
   EntityTypesSet,
-} from "./shared/entity-types-context";
+} from "../shared/context-types";
 
 export const useEntityTypesContextValue = (): EntityTypesContextValue => {
   const [types, setTypes] = useState<Omit<EntityTypesContextValue, "refetch">>({
