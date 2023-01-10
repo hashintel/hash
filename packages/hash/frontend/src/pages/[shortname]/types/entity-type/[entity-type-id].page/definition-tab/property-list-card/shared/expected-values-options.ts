@@ -1,12 +1,18 @@
-import { faList, faListCheck } from "@fortawesome/free-solid-svg-icons";
+import {
+  faList,
+  faListCheck,
+  faListOl,
+  faListUl,
+} from "@fortawesome/free-solid-svg-icons";
 import { theme } from "@hashintel/hash-design-system";
 import { types } from "@hashintel/hash-shared/ontology-types";
 
-import { fa100 } from "../../../../../../../../../../../shared/icons/pro/fa-100";
-import { faCube } from "../../../../../../../../../../../shared/icons/pro/fa-cube";
-import { faCubes } from "../../../../../../../../../../../shared/icons/pro/fa-cubes";
-import { faSquareCheck } from "../../../../../../../../../../../shared/icons/pro/fa-square-check";
-import { faText } from "../../../../../../../../../../../shared/icons/pro/fa-text";
+import { fa100 } from "../../../../../../../../shared/icons/pro/fa-100";
+import { faCube } from "../../../../../../../../shared/icons/pro/fa-cube";
+import { faCubes } from "../../../../../../../../shared/icons/pro/fa-cubes";
+import { faListTree } from "../../../../../../../../shared/icons/pro/fa-list-tree";
+import { faSquareCheck } from "../../../../../../../../shared/icons/pro/fa-square-check";
+import { faText } from "../../../../../../../../shared/icons/pro/fa-text";
 
 const chipColors = {
   blue: {
@@ -54,9 +60,19 @@ export const expectedValuesOptions = {
     colors: chipColors.blue,
     allowMultiple: true,
   },
-  dataTypeArray: {
-    title: "Data Type Array",
+  textArray: {
+    title: "Text Array",
+    icon: faListUl.icon,
+    colors: chipColors.blue,
+  },
+  booleanArray: {
+    title: "Boolean Array",
     icon: faListCheck.icon,
+    colors: chipColors.blue,
+  },
+  numberArray: {
+    title: "Number Array",
+    icon: faListOl.icon,
     colors: chipColors.blue,
   },
   propertyObjectArray: {
@@ -71,7 +87,7 @@ export const expectedValuesOptions = {
   },
   arrayArray: {
     title: "Array of Arrays",
-    icon: faList.icon,
+    icon: faListTree,
     colors: chipColors.turquoise,
   },
 };
