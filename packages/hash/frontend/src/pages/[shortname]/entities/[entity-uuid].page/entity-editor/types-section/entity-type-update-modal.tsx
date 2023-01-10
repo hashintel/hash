@@ -9,7 +9,7 @@ interface EntityTypeUpdateModalProps {
   onClose: () => void;
   entityTypeTitle: string;
   currentVersion: number;
-  newVersion?: number;
+  newVersion: number;
   onUpdateVersion: () => Promise<void>;
   updatingVersion: boolean;
 }

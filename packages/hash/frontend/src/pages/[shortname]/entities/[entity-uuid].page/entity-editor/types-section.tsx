@@ -119,15 +119,17 @@ export const TypesSection = () => {
         />
       </Box>
 
-      <EntityTypeUpdateModal
-        open={updateModalOpen}
-        onClose={closeModal}
-        currentVersion={currentVersion}
-        newVersion={newVersion}
-        entityTypeTitle={entityTypeTitle}
-        onUpdateVersion={handleUpdateVersion}
-        updatingVersion={updatingVersion}
-      />
+      {newVersion && (
+        <EntityTypeUpdateModal
+          open={updateModalOpen}
+          onClose={closeModal}
+          currentVersion={currentVersion}
+          newVersion={newVersion}
+          entityTypeTitle={entityTypeTitle}
+          onUpdateVersion={handleUpdateVersion}
+          updatingVersion={updatingVersion}
+        />
+      )}
     </SectionWrapper>
   );
 };
