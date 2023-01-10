@@ -17,5 +17,5 @@ Tasks are executed on child processes: \* Python scripts are executed within a v
 ## Setup
 
 - Airbyte connector based tasks require a `secrets` folder in the respective task folder.
-  For now this means that before using the GitHub integration you should make a `task-executor/src/tasks/source-github/secrets` folder.
+  For now this means that before using the GitHub integration you should make a `task-executor/src/tasks/source-github/secrets` folder and for the Asana integration you should make a `task-executor/src/tasks/source-asana/secrets` directory.
   This will be used to store the artifacts like `catalog.json`.
