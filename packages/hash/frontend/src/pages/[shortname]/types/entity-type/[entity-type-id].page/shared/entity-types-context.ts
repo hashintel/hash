@@ -4,26 +4,47 @@ import { createContext, useContext } from "react";
 // @todo deduplicate
 export type EntityTypesSet = Record<VersionedUri, EntityTypeWithMetadata>;
 export type EntityTypesContextValue = {
-  entityTypes: EntityTypesSet;
-  linkTypes: EntityTypesSet;
+  entityTypes: EntityTypesSet | null;
+  linkTypes: EntityTypesSet | null;
   refetch: () => Promise<void>;
 };
+
 export const EntityTypesContext = createContext<EntityTypesContextValue | null>(
   null,
 );
 
-export const useEntityTypesLoading = () =>
-  useContext(EntityTypesContext) === null;
-
-const useEntityTypesContext = () => {
+const useEntityTypesContextRequired = () => {
   const context = useContext(EntityTypesContext);
 
   if (!context) {
-    throw new Error("Entity types not loaded yet");
+    throw new Error("Context missing");
   }
+
   return context;
 };
 
-export const useLinkEntityTypes = () => useEntityTypesContext().linkTypes;
-export const useEntityTypes = () => useEntityTypesContext().entityTypes;
-export const useFetchEntityTypes = () => useEntityTypesContext().refetch;
+export const useEntityTypesLoading = () =>
+  useEntityTypesContextRequired().entityTypes === null;
+
+export const useLinkEntityTypes = () => {
+  const { linkTypes } = useEntityTypesContextRequired();
+
+  if (!linkTypes) {
+    throw new Error("Link entity types not loaded yet");
+  }
+
+  return linkTypes;
+};
+
+export const useEntityTypes = () => {
+  const { entityTypes } = useEntityTypesContextRequired();
+
+  if (!entityTypes) {
+    throw new Error("Entity types not loaded yet");
+  }
+
+  return entityTypes;
+};
+
+export const useFetchEntityTypes = () =>
+  useEntityTypesContextRequired().refetch;
