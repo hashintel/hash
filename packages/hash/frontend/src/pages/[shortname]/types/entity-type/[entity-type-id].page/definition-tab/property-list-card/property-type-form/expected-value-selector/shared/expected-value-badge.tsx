@@ -11,11 +11,11 @@ import {
 } from "@mui/material";
 import { ReactNode, useEffect, useRef, useState } from "react";
 
-import { DefaultExpectedValueTypeId } from "../../../shared/default-expected-value";
-import { expectedValuesOptions } from "./expected-values-options";
+import { CustomExpectedValueTypeId } from "../../../shared/expected-value-types";
+import { expectedValuesOptions } from "../../../shared/expected-values-options";
 
 interface ExpectedValueBadgeProps {
-  typeId: DefaultExpectedValueTypeId;
+  typeId: CustomExpectedValueTypeId;
   prefix?: string;
   deleteTooltip?: string;
   endNode?: ReactNode;

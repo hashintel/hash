@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { OwnedById } from "@hashintel/hash-shared/types";
 import {
   Checkbox,
+  Fade,
   TableBody,
   TableCell,
   TableFooter,
@@ -59,9 +60,12 @@ export const PropertyTypeRow = ({
 }) => {
   const { control } = useFormContext<EntityTypeEditorForm>();
 
-  const [$id] = useWatch({
+  const [$id, array] = useWatch({
     control,
-    name: [`properties.${propertyIndex}.$id`],
+    name: [
+      `properties.${propertyIndex}.$id`,
+      `properties.${propertyIndex}.array`,
+    ],
   });
 
   const popupId = useId();
@@ -116,6 +120,16 @@ export const PropertyTypeRow = ({
         <TableCell>
           <EntityTypeTableTitleCellText>
             {property.title}
+            <Fade in={array} appear={false}>
+              <FontAwesomeIcon
+                sx={{
+                  color: ({ palette }) => palette.gray[70],
+                  fontSize: 14,
+                  ml: 1,
+                }}
+                icon={faList}
+              />
+            </Fade>
           </EntityTypeTableTitleCellText>
         </TableCell>
         <TableCell>
