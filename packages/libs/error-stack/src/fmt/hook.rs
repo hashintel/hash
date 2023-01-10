@@ -14,15 +14,24 @@ pub(crate) use default::install_builtin_hooks;
 
 use crate::fmt::Frame;
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Default)]
+pub enum ColorMode {
+    None,
+    Color,
+    #[default]
+    Emphasis,
+}
+
 pub struct Format {
     alternate: bool,
+    mode: ColorMode,
 
     body: Vec<String>,
     appendix: Vec<String>,
 }
 
 impl Format {
-    pub(crate) const fn new(alternate: bool) -> Self {
+    pub(crate) const fn new(alternate: bool, mode: ColorMode) -> Self {
         Self {
             alternate,
             body: Vec::new(),
