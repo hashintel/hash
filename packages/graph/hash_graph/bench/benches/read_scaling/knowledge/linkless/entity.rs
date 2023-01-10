@@ -90,7 +90,7 @@ async fn seed_db(
         "Finished seeding database {} with {} entities after {:#?}",
         store_wrapper.bench_db_name,
         total,
-        now.elapsed().unwrap()
+        now.elapsed().expect("could not get elapsed time")
     );
 
     entity_metadata_list
@@ -110,7 +110,7 @@ pub fn bench_get_entity_by_id(
                 .iter()
                 .map(EntityMetadata::edition_id)
                 .choose(&mut thread_rng())
-                .unwrap()
+                .expect("could not choose random entity")
         },
         |entity_edition_id| async move {
             store
@@ -137,8 +137,9 @@ fn bench_scaling_read_entity(c: &mut Criterion) {
     let mut group = c.benchmark_group("scaling_read_entity_linkless");
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id =
-        AccountId::new(Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").unwrap());
+    let account_id = AccountId::new(
+        Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
+    );
 
     for size in [1, 10, 100, 1_000, 10_000] {
         let (runtime, mut store_wrapper) = setup(DB_NAME, true, true);
@@ -153,7 +154,7 @@ fn bench_scaling_read_entity(c: &mut Criterion) {
             ),
             &(account_id, entity_uuids),
             |b, (_account_id, entity_metadata_list)| {
-                bench_get_entity_by_id(b, &runtime, store, entity_metadata_list)
+                bench_get_entity_by_id(b, &runtime, store, entity_metadata_list);
             },
         );
     }

@@ -122,7 +122,7 @@ export const EntityTypeTableButtonRow = ({
 
 export const EntityTypeTable = ({ children }: { children: ReactNode }) => {
   return (
-    <WhiteCard>
+    <WhiteCard sx={{ overflow: "visible" }}>
       <Box sx={{ p: 0.5 }}>
         {" "}
         <Table
