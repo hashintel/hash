@@ -221,6 +221,18 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                 rhs.as_ref()
                     .map(|expression| self.compile_filter_expression(expression)),
             ),
+            Filter::StartsWith(lhs, rhs) => Condition::StartsWith(
+                self.compile_filter_expression(lhs),
+                self.compile_filter_expression(rhs),
+            ),
+            Filter::EndsWith(lhs, rhs) => Condition::EndsWith(
+                self.compile_filter_expression(lhs),
+                self.compile_filter_expression(rhs),
+            ),
+            Filter::Contains(lhs, rhs) => Condition::Contains(
+                self.compile_filter_expression(lhs),
+                self.compile_filter_expression(rhs),
+            ),
         }
     }
 
