@@ -495,28 +495,20 @@ mod default {
     }
 
     #[cfg(feature = "pretty-print")]
-    enum LocationDisplay<'a> {
-        Color(&'a Location<'static>),
-        None(&'a Location<'static>),
-    }
-
-    #[cfg(feature = "pretty-print")]
-    impl<'a> LocationDisplay<'a> {
-        const fn location(&self) -> &'a Location<'static> {
-            match self {
-                Self::Color(location) | Self::None(location) => location,
-            }
-        }
+    struct LocationDisplay<'a> {
+        location: &'a Location<'static>,
+        supports_color: bool,
     }
 
     #[cfg(feature = "pretty-print")]
     impl<'a> core::fmt::Display for LocationDisplay<'a> {
         fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-            match self {
-                Self::Color(location) => {
-                    core::fmt::Display::fmt(&OwoColorize::bright_black(location), f)
-                }
-                Self::None(location) => f.write_fmt(format_args!("at {location}")),
+            let location = self.location;
+
+            if self.supports_color {
+                core::fmt::Display::fmt(&OwoColorize::bright_black(location), f)
+            } else {
+                f.write_fmt(format_args!("at {location}"))
             }
         }
     }
@@ -524,9 +516,14 @@ mod default {
     fn location(location: &Location<'static>, context: &mut HookContext<Location<'static>>) {
         #[cfg(feature = "pretty-print")]
         {
-            let display = LocationDisplay::None(location);
-            let body = display.if_supports_color(Stream::Stdout, |value| {
-                LocationDisplay::Color(value.location())
+            let display = LocationDisplay {
+                location,
+                supports_color: false,
+            };
+
+            let body = display.if_supports_color(Stream::Stdout, |value| LocationDisplay {
+                location: value.location,
+                supports_color: true,
             });
 
             context.push_body(body.to_string());
