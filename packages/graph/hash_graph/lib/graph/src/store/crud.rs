@@ -9,7 +9,10 @@
 use async_trait::async_trait;
 use error_stack::{ensure, Report, Result};
 
-use crate::store::{query::Filter, QueryError, Record};
+use crate::{
+    identifier::time::TimeProjection,
+    store::{query::Filter, QueryError, Record},
+};
 
 /// Read access to a [`Store`].
 ///
@@ -23,11 +26,19 @@ pub trait Read<R: Record + Send>: Sync {
     /// Returns a value from the [`Store`] specified by the passed `query`.
     ///
     /// [`Store`]: crate::store::Store
-    async fn read(&self, query: &Filter<R>) -> Result<Vec<R>, QueryError>;
+    async fn read(
+        &self,
+        query: &Filter<R>,
+        time_projection: &TimeProjection,
+    ) -> Result<Vec<R>, QueryError>;
 
     #[tracing::instrument(level = "info", skip(self, query))]
-    async fn read_one(&self, query: &Filter<R>) -> Result<R, QueryError> {
-        let mut records = self.read(query).await?;
+    async fn read_one(
+        &self,
+        query: &Filter<R>,
+        time_projection: &TimeProjection,
+    ) -> Result<R, QueryError> {
+        let mut records = self.read(query, time_projection).await?;
         ensure!(
             records.len() <= 1,
             Report::new(QueryError).attach_printable(format!(

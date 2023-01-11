@@ -3,7 +3,7 @@ use utoipa::ToSchema;
 
 use crate::identifier::{
     knowledge::EntityId,
-    time::{Timestamp, TransactionTime},
+    time::{ProjectedTime, Timestamp},
 };
 
 pub mod subgraph;
@@ -12,5 +12,5 @@ pub mod subgraph;
 #[serde(rename_all = "camelCase")]
 pub struct EntityIdAndTimestamp {
     pub base_id: EntityId,
-    pub timestamp: Timestamp<TransactionTime>,
+    pub timestamp: Timestamp<ProjectedTime>,
 }

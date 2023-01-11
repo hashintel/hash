@@ -11,7 +11,7 @@ use crate::{
     identifier::{
         account::AccountId,
         knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
-        time::VersionTimespan,
+        time::{TimeProjection, VersionTimespan},
     },
     knowledge::{Entity, EntityProperties, EntityQueryPath, EntityUuid, LinkData},
     ontology::EntityTypeQueryPath,
@@ -27,7 +27,11 @@ use crate::{
 #[async_trait]
 impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
     #[tracing::instrument(level = "info", skip(self))]
-    async fn read(&self, filter: &Filter<Entity>) -> Result<Vec<Entity>, QueryError> {
+    async fn read(
+        &self,
+        filter: &Filter<Entity>,
+        time_projection: &TimeProjection,
+    ) -> Result<Vec<Entity>, QueryError> {
         // We can't define these inline otherwise we'll drop while borrowed
         let left_entity_uuid_path = EntityQueryPath::LeftEntity(Box::new(EntityQueryPath::Uuid));
         let left_owned_by_id_query_path =
@@ -36,7 +40,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         let right_owned_by_id_query_path =
             EntityQueryPath::RightEntity(Box::new(EntityQueryPath::OwnedById));
 
-        let mut compiler = SelectCompiler::new();
+        let mut compiler = SelectCompiler::new(time_projection);
 
         let owned_by_id_index = compiler.add_selection_path(&EntityQueryPath::OwnedById);
         let entity_uuid_index = compiler.add_selection_path(&EntityQueryPath::Uuid);

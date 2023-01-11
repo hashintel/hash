@@ -4,7 +4,6 @@ import {
   IconButton,
   TextField,
 } from "@hashintel/hash-design-system";
-import { EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import {
   Box,
@@ -25,7 +24,7 @@ import {
 } from "react";
 import { TransitionGroup } from "react-transition-group";
 
-import { useBlockProtocolAggregateEntityTypes } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-entity-types";
+import { useEntityTypesSubgraphOptional } from "../../entity-types-context/hooks";
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
 import {
   SortActionsDropdown,
@@ -143,21 +142,11 @@ export const AccountEntityTypeList: FunctionComponent<
     }
   }, [searchVisible]);
 
-  const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
-
-  const [allEntityTypes, setAllEntityTypes] = useState<
-    EntityTypeWithMetadata[] | null
-  >(null);
-
-  useEffect(() => {
-    void aggregateEntityTypes({ data: {} }).then((result) => {
-      if (result.data) {
-        const roots = getRoots(result.data);
-
-        setAllEntityTypes(roots);
-      }
-    });
-  }, [aggregateEntityTypes]);
+  const entityTypesSubgraph = useEntityTypesSubgraphOptional();
+  const allEntityTypes = useMemo(
+    () => (entityTypesSubgraph ? getRoots(entityTypesSubgraph) : null),
+    [entityTypesSubgraph],
+  );
 
   const accountEntityTypes = useMemo(() => {
     if (allEntityTypes) {

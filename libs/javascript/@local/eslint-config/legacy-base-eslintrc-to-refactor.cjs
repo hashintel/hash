@@ -70,6 +70,7 @@ module.exports = {
           "^@hashintel",
           "^@blockprotocol/graph",
           "^@blockprotocol/hook",
+          "^@blockprotocol/type-system",
         ],
       },
     ],
