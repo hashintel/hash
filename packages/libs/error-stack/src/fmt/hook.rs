@@ -446,9 +446,12 @@ impl Hooks {
 mod default {
     #![allow(unused_imports)]
 
+    #[cfg(feature = "pretty-print")]
+    use alloc::string::ToString;
     use alloc::{format, vec, vec::Vec};
     use core::{
         any::TypeId,
+        fmt::Write,
         panic::Location,
         sync::atomic::{AtomicBool, Ordering},
     };
@@ -464,6 +467,8 @@ mod default {
     #[cfg(feature = "spantrace")]
     use tracing_error::SpanTrace;
 
+    #[cfg(feature = "pretty-print")]
+    use crate::fmt::location::LocationDisplay;
     use crate::{
         fmt::{
             hook::{into_boxed_hook, BoxedHook, HookContext},
@@ -507,15 +512,7 @@ mod default {
     }
 
     fn location(location: &Location<'static>, context: &mut HookContext<Location<'static>>) {
-        let body = match context.mode() {
-            ColorMode::None => format!("at {location}"),
-            #[cfg(feature = "pretty-print")]
-            ColorMode::Color => format!("{}", location.bright_black()),
-            #[cfg(feature = "pretty-print")]
-            ColorMode::Emphasis => format!("{}", location.italic()),
-        };
-
-        context.push_body(body);
+        context.push_body(LocationDisplay::new(location, context.mode()).render());
     }
 
     #[cfg(all(feature = "std", rust_1_65))]
