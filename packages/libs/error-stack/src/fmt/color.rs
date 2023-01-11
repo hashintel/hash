@@ -76,7 +76,10 @@ impl ColorPreference {
     }
 }
 
-/// The available modes of color support, can be obtained through [`HookContext::mode`]
+/// The available modes of color support
+///
+/// Can be accessed through [`crate::fmt::HookContext::mode`], and set via
+/// [`Report::format_color_mode_preference`]
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 // This is for ease of use, if pretty-print is enabled this will be visible
 #[allow(unreachable_pub)]
@@ -140,7 +143,7 @@ impl Report<()> {
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(value), context| {
     ///     let body = format!("suggestion: {value}");
-    ///     let styles = match context.mode() {
+    ///     match context.mode() {
     ///         ColorMode::Color => context.push_body(body.green().to_string()),
     ///         ColorMode::Emphasis => context.push_body(body.italic().to_string()),
     ///         ColorMode::None => context.push_body(body)
