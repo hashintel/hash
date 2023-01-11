@@ -30,8 +30,8 @@ services:
     # `listen_addresses` and other postgres config to lock down access.
     # The database port isn't forwarded outside the docker network.
     # Uncomment the next lines to debug/introspect the instance.
-    # ports:
-    #   - "5432:5432"
+    ports:
+      - "5432:5432"
     volumes:
       - hash-postgres-data:/var/lib/postgresql/data
       - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro

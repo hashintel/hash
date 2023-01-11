@@ -10,12 +10,14 @@ import { OwnedById } from "@hashintel/hash-shared/types";
 import { typedEntries, typedKeys } from "@hashintel/hash-shared/util";
 import { PropertyObject } from "@hashintel/hash-subgraph";
 import { ApolloError } from "apollo-server-express";
+import { readFile } from "node:fs/promises";
 import { User } from "../../../graph/knowledge/system-types/user";
 import { Task, TaskExecutor } from "../../../task-execution";
 import {
   createEntityTypeTree,
   rewriteEntityPropertiesInTypeSystem,
 } from "./generation";
+import { AirbyteMessage } from "@hashintel/hash-task-executor/src/airbyte/protocol";
 
 type AirbyteRecords = Array<{
   /**
@@ -62,10 +64,21 @@ export const readFromAirbyte = async ({
     );
   }
 
-  const airbyteRecords: AirbyteRecords = await taskExecutor.runTask(
-    task,
-    config,
-  );
+  // const airbyteRecords: AirbyteRecords = await taskExecutor.runTask(
+  //   task,
+  //   config,
+  // );
+
+  const recordsString = await readFile("./asana_output.jsonl", {
+    encoding: "utf-8",
+  });
+
+  const airbyteRecords = recordsString
+    .split("\n")
+    .filter((msg) => msg !== "")
+    .map((msg) => JSON.parse(msg) as AirbyteMessage)
+    .filter((message) => message.type === "RECORD" && message.record)
+    .map((message) => message.record!);
 
   logger.debug(
     `Received ${airbyteRecords.length} records from ${integrationName}. Traversing and rewriting into the type system.`,

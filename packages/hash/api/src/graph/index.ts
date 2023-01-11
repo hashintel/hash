@@ -69,6 +69,11 @@ export class GraphApiError extends Error {
   payload: JSONValue;
 
   constructor(axiosError: AxiosError) {
+    console.error(
+      `Axios error: ${axiosError}, ${
+        axiosError.status
+      }, ${axiosError.toJSON()}`,
+    );
     const responseData = axiosError.response?.data;
 
     const message = `GraphApi error: ${

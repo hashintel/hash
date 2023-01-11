@@ -10,7 +10,7 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "start": "cross-env NODE_ENV=production node --max-old-space-size=2048 ./node_modules/.bin/ts-node --transpile-only ./src/index.ts",
+    "start": "cross-env NODE_ENV=production node --max-old-space-size=8192 ./node_modules/.bin/ts-node --transpile-only ./src/index.ts",
     "test": "jest"
   },
   "dependencies": {
