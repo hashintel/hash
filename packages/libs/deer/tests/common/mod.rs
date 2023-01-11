@@ -37,7 +37,7 @@ impl PartialEq<Value> for Error {
                     .get("namespace")
                     .map_or(false, |other| other == self.namespace);
                 let id = other.get("id").map_or(false, |other| {
-                    other == &to_value(&self.id).expect("should be valid JSON")
+                    other == &to_value(self.id).expect("should be valid JSON")
                 });
                 let properties = other
                     .get("properties")
