@@ -9,6 +9,8 @@
 [block protocol]: https://github.com/blockprotocol/blockprotocol
 [hiring]: https://hash.ai/careers?utm_medium=organic&utm_source=github_readme_hash-repo_root
 
+<!-- markdownlint-disable link-fragments -->
+
 [github_banner]: #hash
 [github_star]: https://github.com/hashintel/hash#
 [gh-what-is-hash]: #--what-is-hash
@@ -59,7 +61,7 @@ This repository's contents is divided across four primary sections:
 - [`/infra`- infrastructure](#infrastructure): deployment scripts and other tools used to run our apps
 - [`/libs` - libraries](#libraries): includes npm packages and Rust crates
 
-### Applications 
+### Applications
 
 Site code and content:
 

@@ -12,7 +12,6 @@ Whatever **instance** of HASH you're using, your data is private by default, vis
 
 In the future, instances of HASH will be able to talk to and sync data with one another, entirely at your option.
 
-
 ## Graphs
 
 Every account (both those of **users** and **organizations**) in [HASH](https://hash.ai/platform/hash) has their own _graph_. An account's graph acts as its canonical reference, or primary "source of truth".
