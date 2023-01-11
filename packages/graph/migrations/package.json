@@ -24,7 +24,7 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/node-pg-migrate": "2.3.1",
-    "eslint": "8.29.0",
+    "eslint": "8.31.0",
     "httpyac": "5.8.2"
   }
 }

@@ -37,6 +37,7 @@ export const customColors = {
     100: "#0E1114",
   },
   blue: {
+    5: "#FAFFFF",
     10: "#F7FDFF",
     20: "#E0F4FF",
     30: "#B4E2FD",
