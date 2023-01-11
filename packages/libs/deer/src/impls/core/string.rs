@@ -31,7 +31,7 @@ impl<'de: 'a, 'a> Deserialize<'de> for &'a str {
     type Reflection = str;
 
     fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
-        de.deserialize_str(StrVisitor(Default::default()))
+        de.deserialize_str(StrVisitor(PhantomData))
             .change_context(DeserializeError)
     }
 }
@@ -59,7 +59,7 @@ impl Reflection for char {
 }
 
 impl<'de> Deserialize<'de> for char {
-    type Reflection = char;
+    type Reflection = Self;
 
     fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
         de.deserialize_char(CharVisitor)
