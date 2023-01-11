@@ -31,4 +31,4 @@ export const primitiveJsonTypes = [
   "null",
   "string",
 ] as const;
-export type PrimitiveJsonType = typeof primitiveJsonTypes[number];
+export type PrimitiveJsonType = (typeof primitiveJsonTypes)[number];

@@ -25,9 +25,9 @@ const KNOWLEDGE_GRAPH_EDGE_KIND = [
 ] as const;
 const SHARED_EDGE_KIND = ["IS_OF_TYPE"] as const;
 
-export type OntologyEdgeKind = typeof ONTOLOGY_EDGE_KINDS[number];
-export type KnowledgeGraphEdgeKind = typeof KNOWLEDGE_GRAPH_EDGE_KIND[number];
-export type SharedEdgeKind = typeof SHARED_EDGE_KIND[number];
+export type OntologyEdgeKind = (typeof ONTOLOGY_EDGE_KINDS)[number];
+export type KnowledgeGraphEdgeKind = (typeof KNOWLEDGE_GRAPH_EDGE_KIND)[number];
+export type SharedEdgeKind = (typeof SHARED_EDGE_KIND)[number];
 
 export const isOntologyEdgeKind = (kind: string): kind is OntologyEdgeKind => {
   return (ONTOLOGY_EDGE_KINDS as ReadonlyArray<string>).includes(kind);
