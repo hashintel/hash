@@ -16,8 +16,6 @@
       "packages/hash/frontend",
       "packages/hash/integration",
       "packages/hash/playwright",
-      "apps/hash-realtime",
-      "apps/hash-search-realtime",
       "packages/hash/shared",
       "packages/hash/task-executor",
       "packages/hash/subgraph"
