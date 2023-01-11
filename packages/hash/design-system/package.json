@@ -38,8 +38,8 @@
     "@storybook/testing-library": "^0.0.14-next.1",
     "@types/react": "18.0.25",
     "@types/react-dom": "18.0.8",
-    "eslint": "8.29.0",
-    "eslint-plugin-storybook": "0.6.8",
+    "eslint": "8.31.0",
+    "eslint-plugin-storybook": "0.6.10",
     "storybook": "7.0.0-beta.14",
     "typescript": "4.9.4"
   },
