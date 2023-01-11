@@ -130,11 +130,38 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   }
 };
 
-// export const createFileFromExternalLink: ImpureGraphFunction<
-//   Omit<CreateEntityParams, "properties" | "entityType"> & {
-//     name: string;
-//     size: number;
-//     mediaType: string;
-//   },
-//   Promise<File>
-// > = async (ctx, params): Promise<File> => {};
+export const createFileFromExternalLink: ImpureGraphFunction<
+  Omit<CreateEntityParams, "properties" | "entityType"> & {
+    url: string;
+    mediaType: string;
+  },
+  Promise<Entity>
+> = async (ctx, params): Promise<Entity> => {
+  const { ownedById, actorId, mediaType, url } = params;
+
+  const key = url;
+
+  try {
+    const properties: PropertyObject = {
+      [SYSTEM_TYPES.propertyType.fileMediaType.metadata.editionId.baseId]:
+        mediaType,
+      [SYSTEM_TYPES.propertyType.fileKey.metadata.editionId.baseId]: {
+        [SYSTEM_TYPES.propertyType.externalFileLink.metadata.editionId.baseId]:
+          key,
+      },
+    };
+
+    const entity = await createEntity(ctx, {
+      ownedById,
+      properties,
+      entityTypeId: SYSTEM_TYPES.entityType.file.schema.$id,
+      actorId,
+    });
+
+    return entity;
+  } catch (error) {
+    throw new Error(
+      `There was an error creating the file entity from a link: ${error}`,
+    );
+  }
+};
