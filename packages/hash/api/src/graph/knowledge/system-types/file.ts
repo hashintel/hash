@@ -85,7 +85,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   ctx,
   params,
 ): Promise<{ presignedPost: PresignedPostUpload; file: File }> => {
-  const { storage } = ctx;
+  const { uploadProvider } = ctx;
   const { ownedById, actorId, name, size } = params;
 
   if (size > MAX_FILE_SIZE_BYTES) {
@@ -94,7 +94,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
 
   const fileIdentifier = genId();
 
-  const key = storage.getFileEntityStorageKey({
+  const key = uploadProvider.getFileEntityStorageKey({
     accountId: ownedById,
     fileName: name,
     uniqueIdenitifier: fileIdentifier,
@@ -113,7 +113,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
       actorId,
     });
 
-    const presignedPost = await storage.presignUpload({
+    const presignedPost = await uploadProvider.presignUpload({
       key,
       fields: {},
       expiresInSeconds: UPLOAD_URL_EXPIRATION_SECONDS,
