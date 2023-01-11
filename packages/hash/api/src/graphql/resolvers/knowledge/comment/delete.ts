@@ -13,13 +13,13 @@ export const deleteCommentResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationDeleteCommentArgs
 > = async (_, { entityId }, { dataSources, user }) => {
-  const ctx = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourceToImpureGraphContext(dataSources);
 
-  const comment = await getCommentById(ctx, {
+  const comment = await getCommentById(context, {
     entityId,
   });
 
-  const updatedComment = await deleteComment(ctx, {
+  const updatedComment = await deleteComment(context, {
     comment,
     actorId: user.accountId,
   });

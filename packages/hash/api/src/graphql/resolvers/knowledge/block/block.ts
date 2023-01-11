@@ -10,10 +10,10 @@ export const blocksResolver: ResolverFn<
   GraphQLContext,
   QueryBlocksArgs
 > = async (_, params, { dataSources }) => {
-  const ctx = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourceToImpureGraphContext(dataSources);
 
   const blocks = await Promise.all(
-    params.blocks.map((entityId) => getBlockById(ctx, { entityId })),
+    params.blocks.map((entityId) => getBlockById(context, { entityId })),
   );
 
   return blocks.map(({ componentId, entity }) => ({

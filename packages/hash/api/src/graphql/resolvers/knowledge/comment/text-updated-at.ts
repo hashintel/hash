@@ -15,12 +15,12 @@ export const commentTextUpdatedAtResolver: ResolverFn<
   LoggedInGraphQLContext,
   {}
 > = async ({ metadata }, _, { dataSources }) => {
-  const ctx = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourceToImpureGraphContext(dataSources);
 
-  const comment = await getCommentById(ctx, {
+  const comment = await getCommentById(context, {
     entityId: metadata.editionId.baseId,
   });
-  const textEntity = await getCommentText(ctx, { comment });
+  const textEntity = await getCommentText(context, { comment });
 
   return textEntity.metadata.version;
 };

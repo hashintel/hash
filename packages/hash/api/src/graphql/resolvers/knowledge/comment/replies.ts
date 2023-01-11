@@ -13,12 +13,12 @@ export const commentRepliesResolver: ResolverFn<
   LoggedInGraphQLContext,
   {}
 > = async ({ metadata }, _, { dataSources }) => {
-  const ctx = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourceToImpureGraphContext(dataSources);
 
-  const comment = await getCommentById(ctx, {
+  const comment = await getCommentById(context, {
     entityId: metadata.editionId.baseId,
   });
-  const replies = await getCommentReplies(ctx, { comment });
+  const replies = await getCommentReplies(context, { comment });
 
   return replies.filter((reply) => !reply.deletedAt).map(mapCommentToGQL);
 };

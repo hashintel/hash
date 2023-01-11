@@ -13,13 +13,13 @@ export const createCommentResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationCreateCommentArgs
 > = async (_, { parentEntityId, tokens }, { dataSources, user }) => {
-  const ctx = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourceToImpureGraphContext(dataSources);
 
-  const parent = await getLatestEntityById(ctx, {
+  const parent = await getLatestEntityById(context, {
     entityId: parentEntityId,
   });
 
-  const comment = await createComment(ctx, {
+  const comment = await createComment(context, {
     tokens,
     ownedById: extractOwnedByIdFromEntityId(parent.metadata.editionId.baseId),
     parent,

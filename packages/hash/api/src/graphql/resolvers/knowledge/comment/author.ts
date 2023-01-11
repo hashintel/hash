@@ -15,12 +15,12 @@ export const commentAuthorResolver: ResolverFn<
   LoggedInGraphQLContext,
   {}
 > = async ({ metadata }, _, { dataSources }) => {
-  const ctx = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourceToImpureGraphContext(dataSources);
 
-  const comment = await getCommentById(ctx, {
+  const comment = await getCommentById(context, {
     entityId: metadata.editionId.baseId,
   });
-  const author = await getCommentAuthor(ctx, { comment });
+  const author = await getCommentAuthor(context, { comment });
 
   return mapEntityToGQL(author.entity);
 };

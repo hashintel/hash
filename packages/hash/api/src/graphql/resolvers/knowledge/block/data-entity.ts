@@ -15,11 +15,11 @@ export const blockChildEntityResolver: ResolverFn<
   GraphQLContext,
   QueryBlocksArgs
 > = async ({ metadata }, _, { dataSources }) => {
-  const ctx = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourceToImpureGraphContext(dataSources);
 
-  const block = await getBlockById(ctx, {
+  const block = await getBlockById(context, {
     entityId: metadata.editionId.baseId,
   });
 
-  return mapEntityToGQL(await getBlockData(ctx, { block }));
+  return mapEntityToGQL(await getBlockData(context, { block }));
 };

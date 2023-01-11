@@ -15,12 +15,12 @@ export const commentParentResolver: ResolverFn<
   LoggedInGraphQLContext,
   {}
 > = async ({ metadata }, _, { dataSources }) => {
-  const ctx = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourceToImpureGraphContext(dataSources);
 
-  const comment = await getCommentById(ctx, {
+  const comment = await getCommentById(context, {
     entityId: metadata.editionId.baseId,
   });
-  const parent = await getCommentParent(ctx, { comment });
+  const parent = await getCommentParent(context, { comment });
 
   return mapEntityToGQL(parent);
 };
