@@ -142,6 +142,7 @@
 //! [`atomic`]: std::sync::atomic
 //! [`Error::provide`]: core::error::Error::provide
 
+mod color;
 #[cfg(any(feature = "std", feature = "hooks"))]
 mod hook;
 
@@ -159,12 +160,13 @@ use core::{
     mem,
 };
 
+pub use color::ColorMode;
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub use hook::HookContext;
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub(crate) use hook::{install_builtin_hooks, Format, Hooks};
 #[cfg(feature = "pretty-print")]
-use owo_colors::{OwoColorize, Stream, Style as OwOStyle};
+use owo_colors::{OwoColorize, Style as OwOStyle};
 
 use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
@@ -269,6 +271,16 @@ impl Display for Symbol {
 #[derive(Debug, Copy, Clone)]
 struct Style {
     bold: bool,
+}
+
+impl Style {
+    pub(crate) fn apply(self, fmt: &mut Formatter, value: &str, mode: ColorMode) -> fmt::Result {
+        match mode {
+            ColorMode::None => Display::fmt(value, fmt),
+            #[cfg(feature = "pretty-print")]
+            ColorMode::Color | ColorMode::Emphasis => Display::fmt(&value.style(self.into()), fmt),
+        }
+    }
 }
 
 impl Style {
@@ -468,22 +480,30 @@ impl Instruction {
     }
 }
 
+struct InstructionDisplay<'a> {
+    mode: ColorMode,
+    instruction: &'a Instruction,
+}
+
 #[cfg(feature = "pretty-print")]
-impl Display for Instruction {
+impl Display for InstructionDisplay<'_> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        match self.prepare() {
+        // TODO: this must be removed ~> cached ~> should be overridable
+        let Self { mode, instruction } = self;
+
+        match instruction.prepare() {
             PreparedInstruction::Symbols(symbols) => {
                 for symbol in symbols {
-                    Display::fmt(
-                        &symbol.if_supports_color(Stream::Stdout, OwoColorize::red),
-                        fmt,
-                    )?;
+                    match mode {
+                        ColorMode::None => Display::fmt(symbol, fmt)?,
+                        #[cfg(feature = "pretty-print")]
+                        ColorMode::Color => Display::fmt(&symbol.red(), fmt)?,
+                        #[cfg(feature = "pretty-print")]
+                        ColorMode::Emphasis => Display::fmt(&symbol.bold(), fmt)?,
+                    };
                 }
             }
-            PreparedInstruction::Content(value, &style) => Display::fmt(
-                &value.if_supports_color(Stream::Stdout, |value| value.style(style.into())),
-                fmt,
-            )?,
+            PreparedInstruction::Content(value, &style) => style.apply(fmt, value, *mode)?,
         }
 
         Ok(())
@@ -491,7 +511,7 @@ impl Display for Instruction {
 }
 
 #[cfg(not(feature = "pretty-print"))]
-impl Display for Instruction {
+impl Display for InstructionDisplay<'_> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         match self.prepare() {
             PreparedInstruction::Symbols(symbols) => {
@@ -524,10 +544,23 @@ impl Line {
     }
 }
 
-impl Display for Line {
+struct LineDisplay<'a> {
+    mode: ColorMode,
+    line: &'a Line,
+}
+
+impl Display for LineDisplay<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        for instruction in self.0.iter().rev() {
-            Display::fmt(instruction, f)?;
+        let Self { mode, line } = self;
+
+        for instruction in line.0.iter().rev() {
+            Display::fmt(
+                &InstructionDisplay {
+                    mode: *mode,
+                    instruction,
+                },
+                f,
+            )?;
         }
 
         Ok(())
@@ -946,8 +979,11 @@ fn debug_frame(
 
 impl<C> Debug for Report<C> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        let mode = ColorMode::load();
+        // TODO: set temporary override!
+
         #[cfg(any(feature = "std", feature = "hooks"))]
-        let mut context = HookContext::new(Format::new(fmt.alternate()));
+        let mut context = HookContext::new(Format::new(fmt.alternate(), mode));
 
         #[cfg_attr(not(any(feature = "std", feature = "hooks")), allow(unused_mut))]
         let mut lines = self
@@ -974,7 +1010,7 @@ impl<C> Debug for Report<C> {
                         .into_vec()
                 }
             })
-            .map(|line| line.to_string())
+            .map(|line| LineDisplay { mode, line: &line }.to_string())
             .collect::<Vec<_>>()
             .join("\n");
 
