@@ -1,3 +1,5 @@
+#[cfg(target_has_atomic = "8")]
+use core::sync::atomic::{AtomicBool, AtomicI8, AtomicU8};
 #[cfg(nightly)]
 #[cfg(target_has_atomic = "128")]
 use core::sync::atomic::{AtomicI128, AtomicU128};
@@ -7,8 +9,6 @@ use core::sync::atomic::{AtomicI16, AtomicU16};
 use core::sync::atomic::{AtomicI32, AtomicU32};
 #[cfg(target_has_atomic = "64")]
 use core::sync::atomic::{AtomicI64, AtomicU64};
-#[cfg(target_has_atomic = "8")]
-use core::sync::atomic::{AtomicI8, AtomicU8};
 #[cfg(target_has_atomic = "ptr")]
 use core::sync::atomic::{AtomicIsize, AtomicUsize};
 
@@ -41,6 +41,8 @@ macro_rules! impl_atomic {
 }
 
 impl_atomic![
+    #[cfg(target_has_atomic = "8")]
+    AtomicBool <- bool,
     #[cfg(target_has_atomic = "8")]
     AtomicU8 <- u8,
     #[cfg(target_has_atomic = "16")]
