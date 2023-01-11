@@ -4,7 +4,7 @@ use deer::Number;
 
 // TODO: test
 // TODO: this should be `Copy`, but `Number` has no &'static constructor
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     /// A serialized [`bool`]
     ///
