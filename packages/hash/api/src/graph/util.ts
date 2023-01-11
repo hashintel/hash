@@ -169,7 +169,7 @@ export const propertyTypeInitializer = (
       return propertyType;
     } else if (!context) {
       throw new Error(
-        `property type ${params.title} was uninitialized, and function was called without passing a impure graph object`,
+        `property type ${params.title} was uninitialized, and function was called without passing a context object`,
       );
     } else {
       const propertyTypeSchema = generateSystemPropertyTypeSchema(params);
@@ -336,7 +336,7 @@ export const entityTypeInitializer = (
       return entityType;
     } else if (!context) {
       throw new Error(
-        `entity type ${params.title} was uninitialized, and function was called without passing a impure graph object`,
+        `entity type ${params.title} was uninitialized, and function was called without passing a context object`,
       );
     } else {
       const entityTypeSchema =
