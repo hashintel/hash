@@ -4,7 +4,6 @@ import NextNProgress from "nextjs-progressbar";
 import { FunctionComponent, ReactElement, ReactNode } from "react";
 
 import { isProduction } from "../../lib/config";
-import { EntityTypesContextProvider } from "../entity-types-context/provider";
 
 export const PlainLayout: FunctionComponent<{
   children?: ReactNode;
@@ -23,7 +22,7 @@ export const PlainLayout: FunctionComponent<{
         options={{ showSpinner: false }}
         showOnShallow
       />
-      <EntityTypesContextProvider>{children}</EntityTypesContextProvider>
+      {children}
     </>
   );
 };

@@ -1,6 +1,6 @@
 import { linkEntityTypeUri } from "@hashintel/hash-subgraph";
 import { getEntityTypes } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import { useBlockProtocolAggregateEntityTypes } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-entity-types";
 import {
@@ -16,11 +16,6 @@ export const useEntityTypesContextValue = (): EntityTypesContextValue => {
     linkTypes: null,
     subgraph: null,
     loading: true,
-  });
-
-  const typesRef = useRef(types);
-  useLayoutEffect(() => {
-    typesRef.current = types;
   });
 
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
