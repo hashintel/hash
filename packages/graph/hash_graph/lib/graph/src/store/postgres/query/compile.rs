@@ -4,7 +4,7 @@ use postgres_types::ToSql;
 use tokio_postgres::row::RowIndex;
 
 use crate::{
-    identifier::time::{TimeAxis, TimeProjection, Timespan, TimespanBound},
+    identifier::time::{TimeAxis, TimeProjection},
     store::{
         postgres::query::{
             expression::Constant,
@@ -25,7 +25,8 @@ use crate::{
 
 pub struct TemporalTableInfo {
     tables: HashSet<AliasedTable>,
-    parameter_index: usize,
+    kernel_index: usize,
+    image_index: usize,
 }
 
 pub struct CompilerArtifacts<'p> {
@@ -45,15 +46,6 @@ pub struct SelectCompiler<'c, 'p, T> {
 impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     /// Creates a new, empty compiler.
     pub fn new(time_projection: &'p TimeProjection) -> Self {
-        assert_eq!(
-            time_projection.image(),
-            Timespan {
-                start: TimespanBound::Unbounded,
-                end: TimespanBound::Unbounded
-            },
-            "custom time projection images are not supported yet"
-        );
-
         Self {
             statement: SelectStatement {
                 with: WithExpression::default(),
@@ -92,14 +84,21 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     fn pin_entity_table(&mut self, alias: Alias) {
         let table = Table::Entities.aliased(alias);
         let temporal_table_info = self.artifacts.temporal_tables.get_or_insert_with(|| {
-            self.artifacts.parameters.push(match self.time_projection {
-                TimeProjection::DecisionTime(projection) => &projection.kernel.timestamp,
-                TimeProjection::TransactionTime(projection) => &projection.kernel.timestamp,
-            });
+            match self.time_projection {
+                TimeProjection::DecisionTime(projection) => {
+                    self.artifacts.parameters.push(&projection.kernel.timestamp);
+                    self.artifacts.parameters.push(&projection.image.span);
+                }
+                TimeProjection::TransactionTime(projection) => {
+                    self.artifacts.parameters.push(&projection.kernel.timestamp);
+                    self.artifacts.parameters.push(&projection.image.span);
+                }
+            };
 
             TemporalTableInfo {
                 tables: HashSet::new(),
-                parameter_index: self.artifacts.parameters.len(),
+                kernel_index: self.artifacts.parameters.len() - 1,
+                image_index: self.artifacts.parameters.len(),
             }
         });
 
@@ -116,7 +115,20 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                         })
                         .aliased(alias),
                     ),
-                    Expression::Parameter(temporal_table_info.parameter_index),
+                    Expression::Parameter(temporal_table_info.kernel_index),
+                ));
+
+            self.statement
+                .where_expression
+                .add_condition(Condition::Overlaps(
+                    Expression::Column(
+                        Column::Entities(match self.time_projection.time_axis() {
+                            TimeAxis::DecisionTime => Entities::DecisionTime,
+                            TimeAxis::TransactionTime => Entities::TransactionTime,
+                        })
+                        .aliased(alias),
+                    ),
+                    Expression::Parameter(temporal_table_info.image_index),
                 ));
             temporal_table_info.tables.insert(table);
         }

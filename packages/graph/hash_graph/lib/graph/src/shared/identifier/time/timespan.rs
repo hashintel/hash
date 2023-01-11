@@ -1,7 +1,9 @@
-use std::collections::Bound;
+use std::{error::Error, ops::Bound};
 
 use derivative::Derivative;
 use interval_ops::{Interval, IntervalBounds, LowerBound, UpperBound};
+use postgres_protocol::types::RangeBound;
+use postgres_types::{private::BytesMut, ToSql};
 use serde::{Deserialize, Serialize};
 use utoipa::{openapi, ToSchema};
 
@@ -26,6 +28,7 @@ pub enum TimespanBound<A> {
     Included(Timestamp<A>),
     Excluded(Timestamp<A>),
 }
+
 impl<A> TimespanBound<A> {
     #[must_use]
     pub const fn cast<B>(&self) -> TimespanBound<B> {
@@ -186,5 +189,41 @@ impl<A> Interval<Timestamp<A>> for Timespan<A> {
 
     fn into_bound(self) -> (Self::LowerBound, Self::UpperBound) {
         (self.start, self.end)
+    }
+}
+
+impl<A> ToSql for Timespan<A> {
+    postgres_types::accepts!(TSTZ_RANGE);
+
+    postgres_types::to_sql_checked!();
+
+    fn to_sql(
+        &self,
+        _: &postgres_types::Type,
+        buf: &mut BytesMut,
+    ) -> Result<postgres_types::IsNull, Box<dyn Error + Sync + Send>> {
+        fn bound_to_sql<A>(
+            bound: TimespanBound<A>,
+            buf: &mut BytesMut,
+        ) -> Result<RangeBound<postgres_protocol::IsNull>, Box<dyn Error + Sync + Send>> {
+            Ok(match bound {
+                TimespanBound::Unbounded => RangeBound::Unbounded,
+                TimespanBound::Included(timestamp) => {
+                    timestamp.to_sql(&postgres_types::Type::TIMESTAMPTZ, buf)?;
+                    RangeBound::Inclusive(postgres_protocol::IsNull::No)
+                }
+                TimespanBound::Excluded(timestamp) => {
+                    timestamp.to_sql(&postgres_types::Type::TIMESTAMPTZ, buf)?;
+                    RangeBound::Inclusive(postgres_protocol::IsNull::No)
+                }
+            })
+        }
+
+        postgres_protocol::types::range_to_sql(
+            |buf| bound_to_sql(self.start.clone(), buf),
+            |buf| bound_to_sql(self.end.clone(), buf),
+            buf,
+        )?;
+        Ok(postgres_types::IsNull::No)
     }
 }
