@@ -33,8 +33,9 @@ impl<C: AsClient> PostgresStore<C> {
 
         let _data_type = match dependency_status {
             DependencyStatus::Unresolved => {
+                let time_projection = subgraph.resolved_time_projection.clone();
                 subgraph
-                    .get_or_read::<DataTypeWithMetadata>(self, data_type_id)
+                    .get_or_read::<DataTypeWithMetadata>(self, data_type_id, &time_projection)
                     .await?
             }
             DependencyStatus::Resolved => return Ok(()),
@@ -85,12 +86,15 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             time_projection.clone().resolve(),
         );
         let mut dependency_context = DependencyContext::default();
+        let time_axis = subgraph.resolved_time_projection.time_axis();
 
-        for data_type in Read::<DataTypeWithMetadata>::read(self, filter).await? {
-            let vertex_id = data_type.vertex_id();
-
+        for data_type in
+            Read::<DataTypeWithMetadata>::read(self, filter, &subgraph.resolved_time_projection)
+                .await?
+        {
+            let vertex_id = data_type.vertex_id(time_axis);
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
-            subgraph.insert(data_type);
+            subgraph.insert(&vertex_id, data_type);
 
             self.traverse_data_type(
                 &vertex_id,

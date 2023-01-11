@@ -10,13 +10,13 @@ use postgres_protocol::types::timestamp_from_sql;
 use postgres_types::{FromSql, Type};
 
 pub use self::{
-    axis::{DecisionTime, TimeProjection, TransactionTime, UnresolvedTimeProjection},
+    axis::{DecisionTime, ProjectedTime, TimeAxis, TransactionTime},
     projection::{
         DecisionTimeImage, DecisionTimeKernel, DecisionTimeProjection, Image, Kernel,
-        TransactionTimeImage, TransactionTimeKernel, TransactionTimeProjection,
+        TimeProjection, TransactionTimeImage, TransactionTimeKernel, TransactionTimeProjection,
         UnresolvedDecisionTimeImage, UnresolvedDecisionTimeKernel,
         UnresolvedDecisionTimeProjection, UnresolvedImage, UnresolvedKernel, UnresolvedProjection,
-        UnresolvedTransactionTimeImage, UnresolvedTransactionTimeKernel,
+        UnresolvedTimeProjection, UnresolvedTransactionTimeImage, UnresolvedTransactionTimeKernel,
         UnresolvedTransactionTimeProjection,
     },
     timespan::{Timespan, TimespanBound, UnresolvedTimespan},
