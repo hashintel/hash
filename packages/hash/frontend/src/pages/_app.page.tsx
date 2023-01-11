@@ -33,6 +33,7 @@ import {
   AuthenticatedUser,
   constructAuthenticatedUser,
 } from "../lib/user-and-org";
+import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import {
   RoutePageInfoProvider,
@@ -138,7 +139,9 @@ const App: FunctionComponent<AppProps> = ({
                 <RoutePageInfoProvider>
                   <WorkspaceContextProvider>
                     <SnackbarProvider maxSnack={3}>
-                      {getLayout(<Component {...pageProps} />)}
+                      <EntityTypesContextProvider>
+                        {getLayout(<Component {...pageProps} />)}
+                      </EntityTypesContextProvider>
                     </SnackbarProvider>
                   </WorkspaceContextProvider>
                 </RoutePageInfoProvider>
