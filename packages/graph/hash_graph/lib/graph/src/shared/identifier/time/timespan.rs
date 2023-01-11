@@ -26,6 +26,16 @@ pub enum TimespanBound<A> {
     Included(Timestamp<A>),
     Excluded(Timestamp<A>),
 }
+impl<A> TimespanBound<A> {
+    #[must_use]
+    pub const fn cast<B>(&self) -> TimespanBound<B> {
+        match self {
+            Self::Unbounded => TimespanBound::Unbounded,
+            Self::Included(timestamp) => TimespanBound::Included(timestamp.cast()),
+            Self::Excluded(timestamp) => TimespanBound::Excluded(timestamp.cast()),
+        }
+    }
+}
 
 impl<A> From<Bound<Timestamp<A>>> for TimespanBound<A> {
     fn from(bound: Bound<Timestamp<A>>) -> Self {
@@ -138,6 +148,14 @@ pub struct Timespan<A> {
 }
 
 impl<A> Timespan<A> {
+    #[must_use]
+    pub const fn cast<B>(&self) -> Timespan<B> {
+        Timespan {
+            start: self.start.cast(),
+            end: self.end.cast(),
+        }
+    }
+
     #[must_use]
     pub fn into_interval_bounds(self) -> IntervalBounds<Timestamp<A>> {
         IntervalBounds::from_range((Bound::from(self.start), Bound::from(self.end)))

@@ -12,7 +12,7 @@ use crate::{
     identifier::{
         knowledge::EntityId,
         ontology::OntologyTypeVersion,
-        time::{Timestamp, TransactionTime},
+        time::{ProjectedTime, Timestamp},
     },
     knowledge::Entity,
 };
@@ -26,7 +26,7 @@ pub struct OntologyVertices(pub HashMap<BaseUri, BTreeMap<OntologyTypeVersion, O
 #[derive(Serialize, ToSchema)]
 #[serde(transparent)]
 pub struct KnowledgeGraphVertices(
-    HashMap<EntityId, BTreeMap<Timestamp<TransactionTime>, KnowledgeGraphVertex>>,
+    HashMap<EntityId, BTreeMap<Timestamp<ProjectedTime>, KnowledgeGraphVertex>>,
 );
 
 #[derive(Serialize)]
