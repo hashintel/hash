@@ -2,8 +2,8 @@ import { JSONObjectResolver } from "graphql-scalars";
 
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
-import { fileFields } from "./file";
-import { requestFileUpload } from "./file/request-file-upload";
+import { fileFields } from "./knowledge/file";
+import { requestFileUpload } from "./knowledge/file/request-file-upload";
 import { blocksResolver } from "./knowledge/block/block";
 import { blockChildEntityResolver } from "./knowledge/block/data-entity";
 import { commentAuthorResolver } from "./knowledge/comment/author";

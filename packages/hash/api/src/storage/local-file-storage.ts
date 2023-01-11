@@ -20,6 +20,7 @@ const UPLOAD_BASE_URL = "/local-file-storage-upload";
 const DOWNLOAD_BASE_URL = "/uploads";
 
 export interface LocalFileSystemStorageProviderConstructorArgs {
+  app: Express;
   /** relative path or folder name where to store uploaded files */
   fileUploadPath: string;
   /** Base URL of the API for generating upload/download URLs */
@@ -38,6 +39,7 @@ export class LocalFileSystemStorageProvider implements StorageProvider {
   private apiOrigin: string;
 
   constructor({
+    app,
     fileUploadPath,
     apiOrigin,
   }: LocalFileSystemStorageProviderConstructorArgs) {
@@ -53,6 +55,8 @@ export class LocalFileSystemStorageProvider implements StorageProvider {
       filename: (req, file, cb) => this.getFilenameForUpload(req, file, cb),
     });
     this.upload = multer({ storage: this.storage });
+
+    this.setupExpressRoutes(app);
   }
 
   async presignUpload(

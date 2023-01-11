@@ -1,14 +1,14 @@
 /** @todo - Fix Files - https://app.asana.com/0/1202805690238892/1203418451117503/f */
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
-import { File } from "../../../model";
-import { genId } from "../../../util";
+import { File } from "../../../../model";
+import { genId } from "../../../../util";
 import {
   Entity,
   MutationCreateFileFromLinkArgs,
   ResolverFn,
-} from "../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../context";
+} from "../../../api-types.gen";
+import { LoggedInGraphQLContext } from "../../../context";
 
 function guessFileNameFromURL(url: string): string {
   const fileNameRegex = /[^/\\&?]+\w+(?=([?&].*$|$))/;

@@ -1,4 +1,4 @@
-import { Entity } from "@hashintel/hash-subgraph";
+import { Entity, PropertyObject } from "@hashintel/hash-subgraph";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { PresignedPostUpload } from "../../../storage";
@@ -80,11 +80,11 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
     size: number;
     mediaType: string;
   },
-  Promise<{ presignedPost: PresignedPostUpload; file: File }>
+  Promise<{ presignedPost: PresignedPostUpload; entity: Entity }>
 > = async (
   ctx,
   params,
-): Promise<{ presignedPost: PresignedPostUpload; file: File }> => {
+): Promise<{ presignedPost: PresignedPostUpload; entity: Entity }> => {
   const { uploadProvider } = ctx;
   const { ownedById, actorId, name, size } = params;
 
@@ -101,9 +101,13 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   });
 
   try {
-    const properties: File = {
-      fileName: name,
-      fileKey: { type: "ObjectStoreKey", fileSize: size, objectStoreKey: key },
+    const properties: PropertyObject = {
+      [SYSTEM_TYPES.propertyType.fileName.metadata.editionId.baseId]: name,
+      [SYSTEM_TYPES.propertyType.fileKey.metadata.editionId.baseId]: {
+        [SYSTEM_TYPES.propertyType.fileSize.metadata.editionId.baseId]: size,
+        [SYSTEM_TYPES.propertyType.objectStoreKey.metadata.editionId.baseId]:
+          key,
+      },
     };
 
     const entity = await createEntity(ctx, {
@@ -121,7 +125,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
 
     return {
       presignedPost,
-      file: getFileFromEntity({ entity }),
+      entity,
     };
   } catch (error) {
     throw new Error(`There was an error requesting the file upload: ${error}`);

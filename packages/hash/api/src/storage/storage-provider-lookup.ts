@@ -13,18 +13,20 @@ import {
   UploadableStorageProvider,
 } from "./storage-provider";
 
-type StorageProviderInitialiser = () =>
-  | StorageProvider
-  | UploadableStorageProvider;
+type StorageProviderInitialiser = (
+  app: Express,
+) => StorageProvider | UploadableStorageProvider;
 
 const storageProviderInitialiserLookup: Record<
   StorageType,
   StorageProviderInitialiser
 > = {
-  [StorageType.AwsS3]: () => new AwsS3StorageProvider(getAwsS3Config()),
-  [StorageType.ExternalLink]: () => new ExternalStorageProvider(),
-  [StorageType.LocalFileSystem]: () =>
+  [StorageType.AwsS3]: (_app: Express) =>
+    new AwsS3StorageProvider(getAwsS3Config()),
+  [StorageType.ExternalLink]: (_app: Express) => new ExternalStorageProvider(),
+  [StorageType.LocalFileSystem]: (app: Express) =>
     new LocalFileSystemStorageProvider({
+      app,
       fileUploadPath: LOCAL_FILE_UPLOAD_PATH,
       apiOrigin,
     }),
@@ -35,24 +37,22 @@ const storageProviderInitialiserLookup: Record<
 const storageProviderLookup: StorageProviderLookup = {};
 let uploadStorageProvider: StorageType = StorageType.LocalFileSystem;
 
-function initialiseStorageProvider(provider: StorageType) {
+function initialiseStorageProvider(app: Express, provider: StorageType) {
   const initialiser = storageProviderInitialiserLookup[provider];
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-  if (!initialiser) {
-    throw new Error(
-      `No storage provider available for storage type: ${provider}`,
-    );
-  }
-  const newProvider = initialiser();
+
+  const newProvider = initialiser(app);
   storageProviderLookup[provider] = newProvider;
   return newProvider;
 }
 
-export function getStorageProvider(provider: StorageType): StorageProvider {
+export function getStorageProvider(
+  app: Express,
+  provider: StorageType,
+): StorageProvider {
   if (storageProviderLookup[provider]) {
     return storageProviderLookup[provider]!;
   } else {
-    return initialiseStorageProvider(provider);
+    return initialiseStorageProvider(app, provider);
   }
 }
 
@@ -70,13 +70,7 @@ export function setupStorageProviders(
   app: Express,
   fileUploadProvider: StorageType,
 ): UploadableStorageProvider {
-  const localFileStorage = initialiseStorageProvider(
-    StorageType.LocalFileSystem,
-  ) as LocalFileSystemStorageProvider;
-  // Sets up routes needed to handle download/upload
-  localFileStorage.setupExpressRoutes(app);
-  initialiseStorageProvider(fileUploadProvider);
+  initialiseStorageProvider(app, fileUploadProvider);
   uploadStorageProvider = fileUploadProvider;
-
   return getUploadStorageProvider();
 }
