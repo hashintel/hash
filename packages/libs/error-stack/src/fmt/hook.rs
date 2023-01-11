@@ -446,9 +446,7 @@ impl Hooks {
 mod default {
     #![allow(unused_imports)]
 
-    #[cfg(feature = "pretty-print")]
-    use alloc::string::ToString;
-    use alloc::{format, vec, vec::Vec};
+    use alloc::{format, string::ToString, vec, vec::Vec};
     use core::{
         any::TypeId,
         fmt::Write,
@@ -467,11 +465,10 @@ mod default {
     #[cfg(feature = "spantrace")]
     use tracing_error::SpanTrace;
 
-    #[cfg(feature = "pretty-print")]
-    use crate::fmt::location::LocationDisplay;
     use crate::{
         fmt::{
             hook::{into_boxed_hook, BoxedHook, HookContext},
+            location::LocationDisplay,
             ColorMode,
         },
         Frame, Report,
@@ -512,7 +509,7 @@ mod default {
     }
 
     fn location(location: &Location<'static>, context: &mut HookContext<Location<'static>>) {
-        context.push_body(LocationDisplay::new(location, context.mode()).render());
+        context.push_body(LocationDisplay::new(location, context.mode()).to_string());
     }
 
     #[cfg(all(feature = "std", rust_1_65))]

@@ -145,7 +145,6 @@
 mod color;
 #[cfg(any(feature = "std", feature = "hooks"))]
 mod hook;
-#[cfg(feature = "pretty-print")]
 mod location;
 
 use alloc::{
@@ -162,12 +161,15 @@ use core::{
     mem,
 };
 
+#[cfg(not(feature = "pretty-print"))]
+use color::ColorMode;
+#[cfg(feature = "pretty-print")]
 pub use color::ColorMode;
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub use hook::HookContext;
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub(crate) use hook::{install_builtin_hooks, Format, Hooks};
-#[cfg(all(not(any(feature = "std", feature = "hooks")), feature = "pretty-print"))]
+#[cfg(not(any(feature = "std", feature = "hooks")))]
 use location::LocationDisplay;
 #[cfg(feature = "pretty-print")]
 use owo_colors::{OwoColorize, Style as OwOStyle};
@@ -278,6 +280,8 @@ struct Style {
 }
 
 impl Style {
+    // Reason: conditionally disabled
+    #[allow(clippy::unused_self)]
     pub(crate) fn apply(self, fmt: &mut Formatter, value: &str, mode: ColorMode) -> fmt::Result {
         match mode {
             ColorMode::None => Display::fmt(value, fmt),
@@ -489,10 +493,8 @@ struct InstructionDisplay<'a> {
     instruction: &'a Instruction,
 }
 
-#[cfg(feature = "pretty-print")]
 impl Display for InstructionDisplay<'_> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        // TODO: this must be removed ~> cached ~> should be overridable
         let Self { mode, instruction } = self;
 
         match instruction.prepare() {
@@ -508,22 +510,6 @@ impl Display for InstructionDisplay<'_> {
                 }
             }
             PreparedInstruction::Content(value, &style) => style.apply(fmt, value, *mode)?,
-        }
-
-        Ok(())
-    }
-}
-
-#[cfg(not(feature = "pretty-print"))]
-impl Display for InstructionDisplay<'_> {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        match self.instruction.prepare() {
-            PreparedInstruction::Symbols(symbols) => {
-                for symbol in symbols {
-                    Display::fmt(symbol, fmt)?;
-                }
-            }
-            PreparedInstruction::Content(value, _) => fmt.write_str(value)?,
         }
 
         Ok(())
@@ -707,6 +693,7 @@ impl Opaque {
 
 fn debug_attachments_invoke<'a>(
     frames: impl IntoIterator<Item = &'a Frame>,
+    #[cfg(not(any(feature = "std", feature = "hooks")))] mode: ColorMode,
     #[cfg(any(feature = "std", feature = "hooks"))] context: &mut HookContext<Frame>,
 ) -> (Opaque, Vec<String>) {
     let mut opaque = Opaque::new();
@@ -737,17 +724,10 @@ fn debug_attachments_invoke<'a>(
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
                 Some(vec![attachment.to_string()])
             }
-            #[cfg(all(not(any(feature = "std", feature = "hooks")), feature = "pretty-print"))]
+            #[cfg(not(any(feature = "std", feature = "hooks")))]
             FrameKind::Attachment(AttachmentKind::Opaque(_)) => frame
                 .downcast_ref::<core::panic::Location<'static>>()
-                .map(|location| vec![LocationDisplay::new(location).render()]),
-            #[cfg(all(
-                not(any(feature = "std", feature = "hooks")),
-                not(feature = "pretty-print")
-            ))]
-            FrameKind::Attachment(AttachmentKind::Opaque(_)) => frame
-                .downcast_ref::<core::panic::Location>()
-                .map(|location| vec![format!("at {location}")]),
+                .map(|location| vec![LocationDisplay::new(location, mode).to_string()]),
         })
         .flat_map(|body| {
             body.unwrap_or_else(|| {
@@ -765,12 +745,15 @@ fn debug_attachments_invoke<'a>(
 fn debug_attachments<'a>(
     position: Position,
     frames: impl IntoIterator<Item = &'a Frame>,
+    #[cfg(not(any(feature = "std", feature = "hooks")))] mode: ColorMode,
     #[cfg(any(feature = "std", feature = "hooks"))] context: &mut HookContext<Frame>,
 ) -> Lines {
     let last = matches!(position, Position::Final);
 
     let (opaque, entries) = debug_attachments_invoke(
         frames,
+        #[cfg(not(any(feature = "std", feature = "hooks")))]
+        mode,
         #[cfg(any(feature = "std", feature = "hooks"))]
         context,
     );
@@ -897,6 +880,7 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
 fn debug_frame(
     root: &Frame,
     prefix: &[&Frame],
+    #[cfg(not(any(feature = "std", feature = "hooks")))] mode: ColorMode,
     #[cfg(any(feature = "std", feature = "hooks"))] context: &mut HookContext<Frame>,
 ) -> Vec<Lines> {
     let (stack, sources) = collect(root, prefix);
@@ -938,6 +922,8 @@ fn debug_frame(
                     Position::Inner
                 },
                 once(head).chain(body),
+                #[cfg(not(any(feature = "std", feature = "hooks")))]
+                mode,
                 #[cfg(any(feature = "std", feature = "hooks"))]
                 context,
             );
@@ -954,6 +940,8 @@ fn debug_frame(
                 debug_frame(
                     source,
                     &prefix,
+                    #[cfg(not(any(feature = "std", feature = "hooks")))]
+                    mode,
                     #[cfg(any(feature = "std", feature = "hooks"))]
                     context,
                 )
@@ -991,6 +979,8 @@ impl<C> Debug for Report<C> {
                 debug_frame(
                     frame,
                     &[],
+                    #[cfg(not(any(feature = "std", feature = "hooks")))]
+                    mode,
                     #[cfg(any(feature = "std", feature = "hooks"))]
                     context.cast(),
                 )

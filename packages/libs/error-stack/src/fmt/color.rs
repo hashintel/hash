@@ -1,12 +1,11 @@
-#[cfg(feature = "std")]
+use core::fmt::Write;
+#[cfg(all(feature = "std", feature = "pretty-print"))]
 use core::sync::atomic::AtomicBool;
-use core::{
-    fmt::Write,
-    sync::atomic::{AtomicU8, Ordering},
-};
+#[cfg(feature = "pretty-print")]
+use core::sync::atomic::{AtomicU8, Ordering};
 
-#[cfg(feature = "std")]
-use owo_colors::Stream;
+#[cfg(all(feature = "std", feature = "pretty-print"))]
+use owo_colors::{OwoColorize, Stream};
 
 use crate::Report;
 
@@ -29,9 +28,10 @@ fn has_stdout_color_support() -> ColorMode {
     // force the if_supports_color to be executed
     core::write!(VoidWriter, "{display}").expect("should be infallible");
 
-    match supported.load(Ordering::Relaxed) {
-        true => ColorMode::Color,
-        false => ColorMode::None,
+    if supported.load(Ordering::Relaxed) {
+        ColorMode::Color
+    } else {
+        ColorMode::None
     }
 }
 
@@ -78,6 +78,8 @@ impl ColorPreference {
 
 /// The available modes of color support, can be obtained through [`HookContext::mode`]
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
+// This is for ease of use, if pretty-print is enabled this will be visible
+#[allow(unreachable_pub)]
 pub enum ColorMode {
     /// User preference to disable all colors
     ///
@@ -108,7 +110,7 @@ impl ColorMode {
     }
 
     #[cfg(not(feature = "pretty-print"))]
-    pub(super) fn load() -> Self {
+    pub(super) const fn load() -> Self {
         has_stdout_color_support()
     }
 }

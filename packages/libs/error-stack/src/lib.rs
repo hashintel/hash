@@ -477,9 +477,9 @@ mod result;
 mod context;
 #[cfg(any(nightly, feature = "std"))]
 mod error;
-#[cfg(any(feature = "std", feature = "hooks"))]
+#[cfg(any(feature = "std", feature = "hooks", feature = "pretty-print"))]
 pub mod fmt;
-#[cfg(not(any(feature = "std", feature = "hooks")))]
+#[cfg(not(any(feature = "std", feature = "hooks", feature = "pretty-print")))]
 mod fmt;
 #[cfg(any(feature = "std", feature = "hooks"))]
 mod hook;

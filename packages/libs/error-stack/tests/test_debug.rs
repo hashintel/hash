@@ -3,9 +3,11 @@
 // unsafe code.
 #![cfg(not(miri))]
 #![cfg_attr(all(nightly, feature = "std"), feature(error_generic_member_access))]
-
 mod common;
+
 use common::*;
+#[cfg(feature = "pretty-print")]
+use error_stack::fmt::ColorMode;
 #[allow(unused_imports)]
 use error_stack::Report;
 use insta::assert_snapshot;
@@ -40,15 +42,13 @@ fn setup_backtrace() {
 
 #[cfg(feature = "pretty-print")]
 fn setup_color() {
-    owo_colors::set_override(false);
+    Report::format_color_mode_preference(Some(ColorMode::None));
 }
-
-#[cfg(not(feature = "pretty-print"))]
-fn setup_color() {}
 
 fn setup() {
     setup_tracing();
     setup_backtrace();
+    #[cfg(feature = "pretty-print")]
     setup_color();
 }
 
