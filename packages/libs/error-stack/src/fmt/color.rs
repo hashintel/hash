@@ -35,7 +35,7 @@ fn has_stdout_color_support() -> ColorMode {
     }
 }
 
-#[cfg(all(feature = "pretty-print", not(feature = "std")))]
+#[cfg(not(all(feature = "pretty-print", feature = "std")))]
 const fn has_stdout_color_support() -> ColorMode {
     ColorMode::None
 }
