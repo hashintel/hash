@@ -124,11 +124,16 @@ pub trait Interval<T>: Sized {
     }
 
     /// Returns the complement of this interval.
+    ///
+    /// A complement is the interval of all points that are not in the this interval. The resulting
+    /// interval and this interval do not overlap.
     #[must_use]
     fn complement(self) -> IntervalIter<Self>
     where
         T: PartialOrd,
     {
+        // Range:        [-----]   | ---)    | ---]    |    (--- |    [---
+        // Complement: --)     (-- |    [--- |    (--- | ---]    | ---)
         let lower = <Self::LowerBound as LowerBound<T>>::from_bound(Bound::Unbounded);
         let upper = <Self::UpperBound as UpperBound<T>>::from_bound(Bound::Unbounded);
         Self::from_bounds(lower, upper).difference(self)
