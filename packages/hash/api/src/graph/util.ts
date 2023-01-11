@@ -163,11 +163,11 @@ export const propertyTypeInitializer = (
 ): ((context: ImpureGraphContext) => Promise<PropertyTypeWithMetadata>) => {
   let propertyType: PropertyTypeWithMetadata;
 
-  return async (ctx?: ImpureGraphContext) => {
+  return async (context?: ImpureGraphContext) => {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     if (propertyType) {
       return propertyType;
-    } else if (!ctx) {
+    } else if (!context) {
       throw new Error(
         `property type ${params.title} was uninitialized, and function was called without passing a impure graph object`,
       );
@@ -175,12 +175,12 @@ export const propertyTypeInitializer = (
       const propertyTypeSchema = generateSystemPropertyTypeSchema(params);
 
       // initialize
-      propertyType = await getPropertyTypeById(ctx, {
+      propertyType = await getPropertyTypeById(context, {
         propertyTypeId: propertyTypeSchema.$id,
       }).catch(async (error: Error) => {
         if (error instanceof NotFoundError) {
           // The type was missing, try and create it
-          return await createPropertyType(ctx, {
+          return await createPropertyType(context, {
             ownedById: systemUserAccountId as OwnedById,
             schema: propertyTypeSchema,
             actorId: systemUserAccountId,
@@ -331,10 +331,10 @@ export const entityTypeInitializer = (
 ): ((context: ImpureGraphContext) => Promise<EntityTypeWithMetadata>) => {
   let entityType: EntityTypeWithMetadata | undefined;
 
-  return async (ctx?: ImpureGraphContext) => {
+  return async (context?: ImpureGraphContext) => {
     if (entityType) {
       return entityType;
-    } else if (!ctx) {
+    } else if (!context) {
       throw new Error(
         `entity type ${params.title} was uninitialized, and function was called without passing a impure graph object`,
       );
@@ -345,12 +345,12 @@ export const entityTypeInitializer = (
           : generateSystemEntityTypeSchema(params);
 
       // initialize
-      entityType = await getEntityTypeById(ctx, {
+      entityType = await getEntityTypeById(context, {
         entityTypeId: entityTypeSchema.$id,
       }).catch(async (error: Error) => {
         if (error instanceof NotFoundError) {
           // The type was missing, try and create it
-          return await createEntityType(ctx, {
+          return await createEntityType(context, {
             ownedById: systemUserAccountId as OwnedById,
             schema: entityTypeSchema,
             actorId: systemUserAccountId,
