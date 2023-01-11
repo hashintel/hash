@@ -25,6 +25,12 @@ import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { useBlockProtocolCreateEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
 import { useBlockProtocolGetEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
 import { useBlockProtocolUpdateEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-entity-type";
+import {
+  useEntityTypes,
+  useFetchEntityTypes,
+  useLinkEntityTypes,
+  useLinkEntityTypesOptional,
+} from "../../../../../../shared/entity-types-context/hooks";
 import { LinkIcon } from "../../../../../../shared/icons/link";
 import { HashSelectorAutocomplete } from "../../../../shared/hash-selector-autocomplete";
 import {
@@ -34,12 +40,6 @@ import {
 } from "../../../../shared/popper-placement-modifier";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
 import { useRouteNamespace } from "../../../../shared/use-route-namespace";
-import {
-  useEntityTypes,
-  useEntityTypesLoading,
-  useFetchEntityTypes,
-  useLinkEntityTypes,
-} from "../shared/entity-types-context";
 import { EntityTypeEditorForm } from "../shared/form-types";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
@@ -378,8 +378,7 @@ const InsertLinkRow = (
 export const LinkListCard = () => {
   const { control, setValue } = useFormContext<EntityTypeEditorForm>();
   const { fields, append, remove } = useFieldArray({ control, name: "links" });
-  const loading = useEntityTypesLoading();
-
+  const linkEntityTypes = useLinkEntityTypesOptional();
   const [addingNewLink, setAddingNewLink] = useStateCallback(false);
   const addingNewLinkRef = useRef<HTMLInputElement>(null);
   const [searchText, setSearchText] = useState("");
@@ -433,7 +432,7 @@ export const LinkListCard = () => {
   };
 
   // @todo loading state
-  if (loading) {
+  if (!linkEntityTypes) {
     return null;
   }
 
