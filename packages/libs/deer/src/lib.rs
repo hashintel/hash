@@ -30,15 +30,16 @@
 //  only be generated through `*Access` implementations.
 
 use alloc::{string::String, vec::Vec};
+use std::marker::PhantomData;
 
 use error_stack::{Report, Result, ResultExt};
-use num_traits::ToPrimitive;
+use num_traits::{FromPrimitive, ToPrimitive};
 pub use schema::{Document, Reflection, Schema};
 
 pub use crate::{context::Context, number::Number};
 use crate::{
     error::{
-        ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, MissingError,
+        ArrayAccessError, DeserializeError, DeserializerError, Error, ExpectedType, MissingError,
         ObjectAccessError, ReceivedType, ReceivedValue, TypeError, ValueError, Variant,
         VisitorError,
     },
@@ -288,17 +289,53 @@ pub trait Visitor<'de>: Sized {
 
 // internal visitor, which is used during the default implementation of the `deserialize_i*` and
 // `deserialize_u*` methods.
-struct NumberVisitor;
+struct NumberVisitor<T: Reflection>(PhantomData<fn() -> *const T>);
 
-impl Visitor<'_> for NumberVisitor {
+impl<T: Reflection> NumberVisitor<T> {
+    fn value_error(
+        &self,
+        value: impl erased_serde::Serialize + Send + Sync + 'static,
+    ) -> Report<VisitorError> {
+        Report::new(ValueError.into_error())
+            .attach(ReceivedValue::new(value))
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError)
+    }
+}
+
+impl<T: Reflection> Visitor<'_> for NumberVisitor<T> {
     type Value = Number;
 
     fn expecting(&self) -> Document {
-        Number::reflection()
+        T::document()
     }
 
     fn visit_number(self, v: Number) -> Result<Self::Value, VisitorError> {
         Ok(v)
+    }
+
+    fn visit_i128(self, v: i128) -> Result<Self::Value, VisitorError> {
+        Number::from_i128(v)
+            .ok_or_else(|| self.value_error(v))
+            .and_then(|number| self.visit_number(number))
+    }
+
+    fn visit_isize(self, v: isize) -> Result<Self::Value, VisitorError> {
+        Number::from_isize(v)
+            .ok_or_else(|| self.value_error(v))
+            .and_then(|number| self.visit_number(number))
+    }
+
+    fn visit_u128(self, v: u128) -> Result<Self::Value, VisitorError> {
+        Number::from_u128(v)
+            .ok_or_else(|| self.value_error(v))
+            .and_then(|number| self.visit_number(number))
+    }
+
+    fn visit_usize(self, v: usize) -> Result<Self::Value, VisitorError> {
+        Number::from_usize(v)
+            .ok_or_else(|| self.value_error(v))
+            .and_then(|number| self.visit_number(number))
     }
 }
 
@@ -318,7 +355,7 @@ macro_rules! derive_from_number {
         where
             V: Visitor<'de>,
         {
-            let n = self.deserialize_number(NumberVisitor)?;
+            let n = self.deserialize_number(NumberVisitor::<<$schema as Deserialize>::Reflection>(PhantomData))?;
             let v = n
                 .$to()
                 .ok_or_else(||
