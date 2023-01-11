@@ -198,7 +198,7 @@ impl Document {
             .find(|(_, other)| **other == reference)
             .map(|(type_id, _)| type_id)?;
 
-        self.schemas.get(&type_id)
+        self.schemas.get(type_id)
     }
 
     #[must_use]
