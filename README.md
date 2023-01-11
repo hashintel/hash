@@ -48,7 +48,7 @@ _Coming soon_
 
 ## [![a](/.github/assets/gh_icon_roadmap_20px-base.svg)][gh-roadmap] &nbsp; Roadmap
 
-Browse see the [HASH roadmap] at for more information about upcoming features and releases.
+Browse the [HASH roadmap] at for more information about upcoming features and releases.
 
 ## [![a](/.github/assets/gh_icon_repo-structure_20px-base.svg)][gh-repo-structure] &nbsp; About this repository
 
