@@ -6,7 +6,7 @@ use num_traits::cast::FromPrimitive;
 use proptest::prelude::*;
 use serde_json::json;
 
-use crate::common::Errors;
+// we do not test atomics, as they only delegate to `Atomic*` and are not `PartialEq`
 
 proptest! {
     #[test]
@@ -68,16 +68,6 @@ proptest! {
     fn isize_ok(value in any::<isize>()) {
         assert_tokens(&value, &[Token::ISize(value)]);
     }
-
-    #[test]
-    fn f32_ok(value in any::<f32>()) {
-        assert_tokens(&value, &[Token::Number(Number::from(value))]);
-    }
-
-    #[test]
-    fn f64_ok(value in any::<f64>()) {
-        assert_tokens(&value, &[Token::Number(Number::from(value))]);
-    }
 }
 
 // TODO: we're not coercing down into number if possible :/ We might just end up with arbitrary
@@ -87,11 +77,9 @@ proptest! {
 // respective error variants and are separate from the returned errors
 macro_rules! test_overflow {
     ($ty:ident) => {
-        mod $ty {
-            use super::*;
-
+        paste::paste! {
             #[test]
-            fn overflow() {
+            fn [<$ty:lower _err_overflow >]() {
                 let overflow = $ty::MAX as i128 + 1;
                 let overflow = Number::from_i128(overflow).expect("fits into number");
 
@@ -110,7 +98,7 @@ macro_rules! test_overflow {
             }
 
             #[test]
-            fn underflow() {
+            fn [<$ty:lower _err_underflow >]() {
                 let underflow = $ty::MIN as i128 - 1;
                 let underflow = Number::from_i128(underflow).expect("fits into number");
 

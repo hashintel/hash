@@ -30,7 +30,7 @@
 //  only be generated through `*Access` implementations.
 
 use alloc::{string::String, vec::Vec};
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 
 use error_stack::{Report, Result, ResultExt};
 use num_traits::{FromPrimitive, ToPrimitive};
@@ -39,7 +39,7 @@ pub use schema::{Document, Reflection, Schema};
 pub use crate::{context::Context, number::Number};
 use crate::{
     error::{
-        ArrayAccessError, DeserializeError, DeserializerError, Error, ExpectedType, MissingError,
+        ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, MissingError,
         ObjectAccessError, ReceivedType, ReceivedValue, TypeError, ValueError, Variant,
         VisitorError,
     },
