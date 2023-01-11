@@ -8,7 +8,6 @@ module.exports = {
       /* 2022-11-29:   5 */ "@typescript-eslint/no-unsafe-call",
       /* 2022-11-29:   7 */ "@typescript-eslint/no-unsafe-member-access",
       /* 2022-11-29:   7 */ "@typescript-eslint/no-unsafe-return",
-      "unicorn/filename-case",
     ]),
     "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
   },

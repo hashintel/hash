@@ -1,4 +1,4 @@
-import { useState, FunctionComponent } from "react";
+import { FunctionComponent, useState } from "react";
 
 import { HumanGreetingIcon, PeopleIcon, SpinnerIcon } from "../../shared/icons";
 

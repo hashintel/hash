@@ -1,27 +1,28 @@
-import { useRouter } from "next/router";
-import {
-  useEffect,
-  FormEventHandler,
-  useState,
-  useMemo,
-  useContext,
-} from "react";
-import { LoginFlow } from "@ory/client";
-import { Typography, Container, Box } from "@mui/material";
 import { TextField } from "@hashintel/hash-design-system";
+import { Box, Container, Typography } from "@mui/material";
+import { LoginFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { AxiosError } from "axios";
+import { useRouter } from "next/router";
+import {
+  FormEventHandler,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import { useHashInstance } from "../components/hooks/use-hash-instance";
+import { useLogoutFlow } from "../components/hooks/use-logout-flow";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
+import { Button } from "../shared/ui";
+import { useAuthInfo } from "./shared/auth-info-context";
 import {
   createFlowErrorHandler,
   mustGetCsrfTokenFromFlow,
   oryKratosClient,
 } from "./shared/ory-kratos";
-import { Button } from "../shared/ui";
-import { useLogoutFlow } from "../components/hooks/useLogoutFlow";
-import { useHashInstance } from "../components/hooks/useHashInstance";
 import { WorkspaceContext } from "./shared/workspace-context";
-import { useAuthInfo } from "./shared/auth-info-context";
 
 const LoginPage: NextPageWithLayout = () => {
   // Get ?flow=... from the URL
@@ -179,9 +180,7 @@ const LoginPage: NextPageWithLayout = () => {
           display: "flex",
           flexDirection: "column",
           maxWidth: 500,
-          "> *": {
-            marginTop: 1,
-          },
+          gap: 1,
         }}
       >
         <TextField
@@ -229,10 +228,12 @@ const LoginPage: NextPageWithLayout = () => {
                 Create account
               </Button>
             ) : null}
-            {/* @todo: implement kratos recovery flow, and add button here */}
-            {/* <Button variant="secondary" href="/recovery">
+            <Button
+              variant="secondary"
+              href={{ pathname: "/recovery", query: { email } }}
+            >
               Recover your account
-            </Button> */}
+            </Button>
           </>
         )}
       </Box>

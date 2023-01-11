@@ -1,9 +1,9 @@
-import { DataSource } from "apollo-datasource";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
 import {
   AsyncRedisClient,
   RedisConfig,
 } from "@hashintel/hash-backend-utils/redis";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { DataSource } from "apollo-datasource";
 
 import { CacheAdapter } from "./adapter";
 

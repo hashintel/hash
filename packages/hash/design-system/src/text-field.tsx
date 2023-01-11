@@ -1,7 +1,5 @@
-import {
-  faCheckCircle,
-  faCircleExclamation,
-} from "@fortawesome/free-solid-svg-icons";
+import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
+import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   Collapse,
@@ -14,6 +12,7 @@ import {
   Typography,
 } from "@mui/material";
 import { forwardRef, FunctionComponent, useState } from "react";
+
 import { FontAwesomeIcon } from "./fontawesome-icon";
 
 type TextFieldProps = {
@@ -37,6 +36,7 @@ const useFrozenValue = <T extends any>(value: T): T => {
 
 export const getInputProps = ({
   success,
+  variant,
   error,
   multiline,
   autoResize,
@@ -44,7 +44,7 @@ export const getInputProps = ({
 }: InputProps &
   Pick<
     TextFieldProps,
-    "success" | "error" | "multiline" | "autoResize"
+    "success" | "error" | "multiline" | "autoResize" | "variant"
   > = {}): InputProps => {
   const { sx: InputPropsSx = [], ...otherInputProps } = otherProps;
 
@@ -55,7 +55,7 @@ export const getInputProps = ({
           <FontAwesomeIcon
             icon={success ? faCheckCircle : faCircleExclamation}
             sx={({ palette }) => ({
-              color: success ? palette.green[60] : palette.red[60],
+              color: success ? palette.blue[70] : palette.red[60],
             })}
           />
         </InputAdornment>
@@ -69,11 +69,7 @@ export const getInputProps = ({
       ({ palette }) => ({
         [`& .${outlinedInputClasses.notchedOutline}, &:hover .${outlinedInputClasses.notchedOutline}`]:
           {
-            borderColor: success
-              ? palette.green[60]
-              : error
-              ? palette.red[40]
-              : palette.gray[30],
+            borderColor: error ? palette.red[40] : palette.gray[30],
           },
         ...(multiline &&
           autoResize && {
@@ -84,7 +80,10 @@ export const getInputProps = ({
       }),
       ...(Array.isArray(InputPropsSx) ? InputPropsSx : [InputPropsSx]),
     ],
-    ...{ notched: false },
+    /** `notched` is only expected for `outlined` variant, passing it for other variants gives a console warning
+     * @see https://github.com/mui/material-ui/issues/32550 for context
+     */
+    ...(variant === "outlined" ? { notched: false } : {}),
     ...otherInputProps,
     endAdornment:
       error || success ? renderEndAdornment() : otherProps.endAdornment,
@@ -100,6 +99,7 @@ export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
   (
     {
       helperText,
+      variant = "outlined",
       sx,
       InputProps: inputProps = {},
       success,
@@ -126,6 +126,7 @@ export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
           },
           ...(Array.isArray(sx) ? sx : [sx]),
         ]}
+        variant={variant}
         {...textFieldProps}
         error={error}
         label={
@@ -152,6 +153,7 @@ export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
         InputLabelProps={inputLabelProps}
         InputProps={getInputProps({
           ...inputProps,
+          variant,
           success,
           error,
           autoResize,

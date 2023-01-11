@@ -1,7 +1,7 @@
 import {
-  topologicalSort,
-  linkedTreeFlatten,
   intersection,
+  linkedTreeFlatten,
+  topologicalSort,
   treeFromParentReferences,
 } from "./util";
 

@@ -1,24 +1,26 @@
 import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
 import { faList } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { OwnedById } from "@hashintel/hash-shared/types";
 import {
   Checkbox,
+  Fade,
   TableBody,
   TableCell,
   TableFooter,
   TableHead,
 } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import { useId, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useId, useLayoutEffect, useRef, useState } from "react";
 import {
   Controller,
   useFieldArray,
   useFormContext,
   useWatch,
 } from "react-hook-form";
-import { OwnedById } from "@hashintel/hash-shared/types";
-import { useBlockProtocolCreatePropertyType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
-import { useBlockProtocolUpdatePropertyType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdatePropertyType";
+
+import { useBlockProtocolCreatePropertyType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-property-type";
+import { useBlockProtocolUpdatePropertyType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-property-type";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
 import { useRouteNamespace } from "../../../../shared/use-route-namespace";
 import { EntityTypeEditorForm } from "../shared/form-types";
@@ -26,11 +28,11 @@ import {
   usePropertyTypes,
   useRefetchPropertyTypes,
 } from "../shared/property-types-context";
-import { MultipleValuesCell } from "./property-list-card/multiple-values-cell";
+import { getPropertyTypeSchema } from "./property-list-card/get-property-type-schema";
 import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
-import { PropertyTypeForm } from "./property-list-card/shared/property-type-form";
+import { PropertyTypeForm } from "./property-list-card/property-type-form";
+import { propertyTypeToFormDataExpectedValues } from "./property-list-card/property-type-to-form-data-expected-values";
 import { PropertyTypeFormValues } from "./property-list-card/shared/property-type-form-values";
-import { getPropertyTypeSchema } from "./property-list-card/shared/property-type-form/property-type-schema";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
@@ -41,17 +43,11 @@ import {
   EntityTypeTableTitleCellText,
 } from "./shared/entity-type-table";
 import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
+import { MultipleValuesCell } from "./shared/multiple-values-cell";
 import { QuestionIcon } from "./shared/question-icon";
 import { TypeFormModal } from "./shared/type-form";
 import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { useStateCallback } from "./shared/use-state-callback";
-
-const formDataToPropertyType = (data: PropertyTypeFormValues) => ({
-  oneOf: getPropertyTypeSchema(data.expectedValues),
-  description: data.description,
-  title: data.name,
-  kind: "propertyType" as const,
-});
 
 export const PropertyTypeRow = ({
   propertyIndex,
@@ -64,9 +60,12 @@ export const PropertyTypeRow = ({
 }) => {
   const { control } = useFormContext<EntityTypeEditorForm>();
 
-  const [$id] = useWatch({
+  const [$id, array] = useWatch({
     control,
-    name: [`properties.${propertyIndex}.$id`],
+    name: [
+      `properties.${propertyIndex}.$id`,
+      `properties.${propertyIndex}.array`,
+    ],
   });
 
   const popupId = useId();
@@ -91,6 +90,22 @@ export const PropertyTypeRow = ({
   const propertyTypes = usePropertyTypes();
   const property = propertyTypes?.[$id];
 
+  const getDefaultValues = useCallback(() => {
+    if (!property) {
+      throw new Error("Missing property type");
+    }
+
+    const [expectedValues, flattenedCustomExpectedValueList] =
+      propertyTypeToFormDataExpectedValues(property);
+
+    return {
+      name: property.title,
+      description: property.description,
+      expectedValues,
+      flattenedCustomExpectedValueList,
+    };
+  }, [property]);
+
   if (!property) {
     if (propertyTypes) {
       throw new Error("Missing property type");
@@ -105,13 +120,23 @@ export const PropertyTypeRow = ({
         <TableCell>
           <EntityTypeTableTitleCellText>
             {property.title}
+            <Fade in={array} appear={false}>
+              <FontAwesomeIcon
+                sx={{
+                  color: ({ palette }) => palette.gray[70],
+                  fontSize: 14,
+                  ml: 1,
+                }}
+                icon={faList}
+              />
+            </Fade>
           </EntityTypeTableTitleCellText>
         </TableCell>
         <TableCell>
           <PropertyExpectedValues property={property} />
         </TableCell>
 
-        <MultipleValuesCell propertyIndex={propertyIndex} />
+        <MultipleValuesCell index={propertyIndex} variant="property" />
 
         <EntityTypeTableCenteredCell>
           <Controller
@@ -139,7 +164,7 @@ export const PropertyTypeRow = ({
           const res = await updatePropertyType({
             data: {
               propertyTypeId: $id,
-              propertyType: formDataToPropertyType(data),
+              propertyType: getPropertyTypeSchema(data),
             },
           });
 
@@ -149,26 +174,13 @@ export const PropertyTypeRow = ({
 
           await refetchPropertyTypes?.();
 
-          onUpdateVersionRef.current(
-            // @todo temporary bug fix
-            res.data.schema.$id.replace("//v", "/v") as VersionedUri,
-          );
+          onUpdateVersionRef.current(res.data.schema.$id);
 
           editModalPopupState.close();
         }}
         submitButtonProps={{ children: <>Edit property type</> }}
         disabledFields={["name"]}
-        getDefaultValues={() => ({
-          name: property.title,
-          description: property.description,
-          // @todo handle exotic values
-          expectedValues: property.oneOf.map((dataType) => {
-            if (!("$ref" in dataType)) {
-              throw new Error("Handle exotic data types");
-            }
-            return dataType.$ref;
-          }),
-        })}
+        getDefaultValues={getDefaultValues}
       />
     </>
   );
@@ -245,7 +257,7 @@ export const PropertyListCard = () => {
   const handleSubmit = async (data: PropertyTypeFormValues) => {
     const res = await createPropertyType({
       data: {
-        propertyType: formDataToPropertyType(data),
+        propertyType: getPropertyTypeSchema(data),
       },
     });
 
@@ -290,10 +302,18 @@ export const PropertyListCard = () => {
     <EntityTypeTable>
       <TableHead>
         <EntityTypeTableHeaderRow>
-          <TableCell>Property name</TableCell>
-          <TableCell width={180}>Expected values</TableCell>
+          <TableCell width={260}>Property name</TableCell>
+          <TableCell>Expected values</TableCell>
           <EntityTypeTableCenteredCell width={170}>
-            Allow multiple values <QuestionIcon />
+            Allow arrays{" "}
+            <QuestionIcon
+              tooltip={
+                <>
+                  Allowing arrays permits the entry of more than one value for a
+                  given property
+                </>
+              }
+            />
           </EntityTypeTableCenteredCell>
           <EntityTypeTableCenteredCell width={100}>
             Required
@@ -337,15 +357,23 @@ export const PropertyListCard = () => {
                     sx={{
                       ml: 1.25,
                     }}
+                    tooltip={
+                      <>
+                        You should only create a new property type if you can't
+                        find an existing one which corresponds to the
+                        information you're trying to capture.
+                      </>
+                    }
                   />
                 </>
               }
               popupState={createModalPopupState}
               onSubmit={handleSubmit}
               submitButtonProps={{ children: <>Create new property type</> }}
-              getDefaultValues={() =>
-                searchText.length ? { name: searchText } : {}
-              }
+              getDefaultValues={() => ({
+                expectedValues: [],
+                ...(searchText.length ? { name: searchText } : {}),
+              })}
             />
           </>
         ) : (

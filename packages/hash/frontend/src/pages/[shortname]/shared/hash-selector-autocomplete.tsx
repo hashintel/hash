@@ -17,8 +17,14 @@ import {
 } from "@mui/material";
 import clsx from "clsx";
 import { Ref, useMemo } from "react";
-import { OntologyChip, parseUriForOntologyChip } from "./ontology-chip";
+
 import { AutocompleteDropdown } from "./autocomplete-dropdown";
+import { OntologyChip, parseUriForOntologyChip } from "./ontology-chip";
+import {
+  addPopperPositionClassPopperModifier,
+  popperPlacementInputNoBorder,
+  popperPlacementInputNoRadius,
+} from "./popper-placement-modifier";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 
 const TYPE_SELECTOR_HEIGHT = 57;
@@ -131,23 +137,13 @@ export const HashSelectorAutocomplete = <
 >) => {
   const modifiers = useMemo(
     (): PopperProps["modifiers"] => [
-      {
-        name: "addPositionClass",
-        enabled: true,
-        phase: "write",
-        fn({ state }) {
-          if (state.elements.reference instanceof HTMLElement) {
-            state.elements.reference.setAttribute(
-              "data-popper-placement",
-              state.placement,
-            );
-          }
-        },
-      },
+      addPopperPositionClassPopperModifier,
       {
         name: "preventOverflow",
         enabled: false,
       },
+      { name: "flip", enabled: false },
+      { name: "preventOverflow", enabled: false },
     ],
     [],
   );
@@ -177,33 +173,25 @@ export const HashSelectorAutocomplete = <
                 })}
               />
             ),
-            sx: (theme) => ({
-              // The popover needs to know how tall this is to draw
-              // a shadow around it
-              height: TYPE_SELECTOR_HEIGHT,
+            sx: [
+              (theme) => ({
+                // The popover needs to know how tall this is to draw
+                // a shadow around it
+                height: TYPE_SELECTOR_HEIGHT,
 
-              // Focus is handled by the options popover
-              "&.Mui-focused": {
-                boxShadow: "none",
-              },
-
-              [`.${outlinedInputClasses.notchedOutline}`]: {
-                border: `1px solid ${theme.palette.gray[30]} !important`,
-              },
-
-              ...(open && {
-                [`&[data-popper-placement="bottom"]`]: {
-                  borderBottom: 0,
-                  borderBottomLeftRadius: 0,
-                  borderBottomRightRadius: 0,
+                // Focus is handled by the options popover
+                "&.Mui-focused": {
+                  boxShadow: "none",
                 },
-                [`&[data-popper-placement="top"]`]: {
-                  borderTop: 0,
-                  borderTopLeftRadius: 0,
-                  borderTopRightRadius: 0,
+
+                [`.${outlinedInputClasses.notchedOutline}`]: {
+                  border: `1px solid ${theme.palette.gray[30]} !important`,
                 },
               }),
-            }),
+              ...(open
+                ? [popperPlacementInputNoRadius, popperPlacementInputNoBorder]
+                : []),
+            ],
           }}
         />
       )}

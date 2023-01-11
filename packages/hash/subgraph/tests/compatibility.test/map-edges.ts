@@ -1,13 +1,14 @@
+import { validateBaseUri } from "@blockprotocol/type-system";
 import {
   Edges as EdgesGraphApi,
   KnowledgeGraphOutwardEdges,
   OntologyOutwardEdges,
 } from "@hashintel/hash-graph-client";
-import { validateBaseUri } from "@blockprotocol/type-system";
+
 import {
   Edges,
-  isEntityAndTimestamp,
   isEntityId,
+  isEntityIdAndTimestamp,
   isKnowledgeGraphOutwardEdge,
   isOntologyOutwardEdge,
   isOntologyTypeEditionId,
@@ -29,7 +30,7 @@ export const mapOutwardEdge = (
     // Knowledge-graph edge-kind cases
     case "HAS_LEFT_ENTITY":
     case "HAS_RIGHT_ENTITY": {
-      if (!isEntityAndTimestamp(outwardEdge.rightEndpoint)) {
+      if (!isEntityIdAndTimestamp(outwardEdge.rightEndpoint)) {
         throw new Error(
           `Expected an \`EntityAndTimestamp\` for knowledge-graph edge-kind endpoint but found:\n${JSON.stringify(
             outwardEdge,

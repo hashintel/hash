@@ -1,12 +1,12 @@
-import { Subgraph } from "../../types/subgraph";
-import {
-  EntityEditionId,
-  EntityId,
-  isEntityEditionId,
-} from "../../types/identifier";
-import { isEntityVertex } from "../../types/vertex";
-import { Entity } from "../../types/element";
 import { mustBeDefined } from "../../shared/invariant";
+import { Entity } from "../../types/element";
+import {
+  EntityId,
+  EntityVertexId,
+  isEntityVertexId,
+} from "../../types/identifier";
+import { Subgraph } from "../../types/subgraph";
+import { isEntityVertex } from "../../types/vertex";
 
 /**
  * Returns all `Entity`s within the vertices of the subgraph
@@ -31,11 +31,11 @@ export const getEntities = (subgraph: Subgraph): Entity[] => {
  * @param entityEditionId
  * @throws if the vertex isn't an `EntityVertex`
  */
-export const getEntityByEditionId = (
+export const getEntityByVertexId = (
   subgraph: Subgraph,
-  entityEditionId: EntityEditionId,
+  entityVertexId: EntityVertexId,
 ): Entity | undefined => {
-  const { baseId: entityId, version } = entityEditionId;
+  const { baseId: entityId, version } = entityVertexId;
   const vertex = subgraph.vertices[entityId]?.[version];
 
   if (!vertex) {
@@ -115,18 +115,18 @@ export const getEntityAtTimestamp = (
  * @throws if the subgraph is malformed and there isn't a vertex associated with the root ID
  */
 export const getRootsAsEntities = (subgraph: Subgraph): Entity[] => {
-  return subgraph.roots.map((rootEditionId) => {
-    if (!isEntityEditionId(rootEditionId)) {
+  return subgraph.roots.map((rootVertexId) => {
+    if (!isEntityVertexId(rootVertexId)) {
       throw new Error(
-        `expected roots to be \`EntityEditionId\`s but found:\n${JSON.stringify(
-          rootEditionId,
+        `expected roots to be \`EntityVertexId\`s but found:\n${JSON.stringify(
+          rootVertexId,
         )}`,
       );
     }
     const rootVertex = mustBeDefined(
-      subgraph.vertices[rootEditionId.baseId]?.[rootEditionId.version],
+      subgraph.vertices[rootVertexId.baseId]?.[rootVertexId.version],
       `roots should have corresponding vertices but ${JSON.stringify(
-        rootEditionId,
+        rootVertexId,
       )} was missing`,
     );
 

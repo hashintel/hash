@@ -1,17 +1,17 @@
+import { Box } from "@mui/material";
 import {
+  ClipboardEventHandler,
+  FormEvent,
+  FunctionComponent,
   useCallback,
   useEffect,
   useRef,
   useState,
-  FunctionComponent,
-  ClipboardEventHandler,
-  FormEvent,
 } from "react";
 
-import { Box } from "@mui/material";
-import { LogoIcon, HashIcon, KeyboardReturnIcon } from "../../shared/icons";
-import { InviteHeader } from "./invite-header";
+import { HashIcon, KeyboardReturnIcon, LogoIcon } from "../../shared/icons";
 import { InvitationInfo, SYNTHETIC_LOADING_TIME_MS } from "./auth-utils";
+import { InviteHeader } from "./invite-header";
 
 type VerifyCodeProps = {
   defaultCode?: string;

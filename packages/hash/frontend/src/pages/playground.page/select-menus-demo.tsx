@@ -1,9 +1,16 @@
-import { faStar, faSmile } from "@fortawesome/free-regular-svg-icons";
+import { faSmile, faStar } from "@fortawesome/free-regular-svg-icons";
 import {
   faChevronRight,
   faGear,
   faPerson,
 } from "@fortawesome/free-solid-svg-icons";
+import {
+  Avatar,
+  Chip,
+  FontAwesomeIcon,
+  MenuCheckboxItem,
+  Select,
+} from "@hashintel/hash-design-system";
 import {
   Box,
   FormControl,
@@ -14,13 +21,7 @@ import {
   MenuList,
   Stack,
 } from "@mui/material";
-import {
-  Avatar,
-  Chip,
-  Select,
-  FontAwesomeIcon,
-  MenuCheckboxItem,
-} from "@hashintel/hash-design-system";
+
 import { MenuItem } from "../../shared/ui";
 import { SelectWithSearch } from "./select/select-with-search";
 import { SelectWithSearchAndCheckbox } from "./select/select-with-search-checkbox";

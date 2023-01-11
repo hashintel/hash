@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import { Box, experimental_sx, styled } from "@mui/system";
 import { ReactNode } from "react";
+
 import { WhiteCard } from "../../../../../shared/white-card";
 
 export const EntityTypeTableCenteredCell = styled(TableCell)(
@@ -51,7 +52,14 @@ export const EntityTypeTableTitleCellText = ({
 }: {
   children: ReactNode;
 }) => (
-  <Typography variant="smallTextLabels" fontWeight={500}>
+  <Typography
+    variant="smallTextLabels"
+    fontWeight={500}
+    sx={{
+      display: "flex",
+      alignItems: "center",
+    }}
+  >
     {children}
   </Typography>
 );
@@ -121,7 +129,7 @@ export const EntityTypeTableButtonRow = ({
 
 export const EntityTypeTable = ({ children }: { children: ReactNode }) => {
   return (
-    <WhiteCard>
+    <WhiteCard sx={{ overflow: "visible" }}>
       <Box sx={{ p: 0.5 }}>
         {" "}
         <Table

@@ -1,5 +1,5 @@
-import { FunctionComponent } from "react";
 import { Box, BoxProps } from "@mui/material";
+import { FunctionComponent } from "react";
 
 interface AvatarProps extends BoxProps {
   title?: string;

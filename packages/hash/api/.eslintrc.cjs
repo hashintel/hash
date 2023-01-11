@@ -14,7 +14,6 @@ module.exports = {
       /* 2022-11-29:  13 */ "@typescript-eslint/require-await",
       /* 2022-11-29:  35 */ "@typescript-eslint/restrict-template-expressions",
       "canonical/filename-no-index",
-      "unicorn/filename-case",
     ]),
   },
   ignorePatterns: [

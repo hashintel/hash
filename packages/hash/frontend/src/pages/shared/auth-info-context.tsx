@@ -1,5 +1,6 @@
 import { useLazyQuery } from "@apollo/client";
 import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import {
   createContext,
   FunctionComponent,
@@ -10,6 +11,7 @@ import {
   useMemo,
   useState,
 } from "react";
+
 import { MeQuery } from "../../graphql/api-types.gen";
 import { meQuery } from "../../graphql/queries/user.queries";
 import {
@@ -62,12 +64,12 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
       setAuthenticatedUser(undefined);
       return {};
     }
-    const userEntityEditionId = (
-      subgraph as Subgraph<SubgraphRootTypes["entity"]>
-    ).roots[0]!;
+    const userEntity = getRoots(
+      subgraph as Subgraph<SubgraphRootTypes["entity"]>,
+    )[0]!;
 
     const latestAuthenticatedUser = constructAuthenticatedUser({
-      userEntityEditionId,
+      userEntity,
       subgraph,
       kratosSession,
     });

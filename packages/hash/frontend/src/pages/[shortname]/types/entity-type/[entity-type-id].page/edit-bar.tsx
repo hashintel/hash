@@ -1,27 +1,18 @@
-import { faSmile } from "@fortawesome/free-regular-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { Box, Collapse, Container, Stack, Typography } from "@mui/material";
-import { ReactNode, useEffect, useRef, useState } from "react";
-import { useFormState } from "react-hook-form";
-import { PencilSimpleLine } from "../../../../../shared/icons/svg";
+import {
+  Box,
+  Collapse,
+  Container,
+  Stack,
+  styled,
+  Typography,
+} from "@mui/material";
+import { ReactNode, useEffect, useRef } from "react";
+
 import { useEditBarContext } from "../../../../../shared/edit-bar-scroller";
+import { PencilSimpleLine } from "../../../../../shared/icons/svg";
 import { Button, ButtonProps } from "../../../../../shared/ui/button";
-import { EntityTypeEditorForm } from "./shared/form-types";
 
-const useFrozenValue = <T extends any>(value: T): T => {
-  const { isDirty } = useFormState<EntityTypeEditorForm>();
-
-  const [frozen, setFrozen] = useState(value);
-
-  if (isDirty && frozen !== value) {
-    setFrozen(value);
-  }
-
-  return frozen;
-};
-
-// @todo disabled button styles
-const EditBarContents = ({
+export const EditBarContents = ({
   icon,
   title,
   label,
@@ -34,10 +25,6 @@ const EditBarContents = ({
   discardButtonProps: ButtonProps;
   confirmButtonProps: ButtonProps;
 }) => {
-  const { isSubmitting } = useFormState<EntityTypeEditorForm>();
-
-  const frozenSubmitting = useFrozenValue(isSubmitting);
-
   return (
     <Container
       sx={{
@@ -65,7 +52,6 @@ const EditBarContents = ({
               color: "white",
             },
           })}
-          disabled={frozenSubmitting}
           {...discardButtonProps}
         >
           {discardButtonProps.children}
@@ -74,9 +60,7 @@ const EditBarContents = ({
           variant="secondary"
           size="xs"
           type="submit"
-          loading={frozenSubmitting}
           loadingWithoutText
-          disabled={frozenSubmitting}
           data-testid="editbar-confirm"
           {...confirmButtonProps}
         >
@@ -94,7 +78,7 @@ const EditBarContents = ({
  * offset of content underneath the edit bar to keep elements in *roughly* the
  * same position.
  */
-const useFreezeScrollWhileTransitioning = () => {
+export const useFreezeScrollWhileTransitioning = () => {
   const observerRef = useRef<ResizeObserver | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const editBarContext = useEditBarContext();
@@ -213,60 +197,44 @@ const useFreezeScrollWhileTransitioning = () => {
   return ref;
 };
 
+export const EditBarContainer = styled(Box)(({ theme }) => ({
+  height: 66,
+  backgroundColor: theme.palette.blue[70],
+  color: theme.palette.white,
+  display: "flex",
+  alignItems: "center",
+}));
+
 export const EditBar = ({
-  currentVersion,
   discardButtonProps,
+  confirmButtonProps,
+  visible,
+  label,
 }: {
-  currentVersion: number;
+  visible: boolean;
   discardButtonProps: Partial<ButtonProps>;
+  confirmButtonProps: Partial<ButtonProps>;
+  label?: ReactNode;
 }) => {
-  const { isDirty } = useFormState<EntityTypeEditorForm>();
-  const frozenVersion = useFrozenValue(currentVersion);
   const ref = useFreezeScrollWhileTransitioning();
 
-  const collapseIn = currentVersion === 0 || isDirty;
-
-  const frozenDiscardButtonProps = useFrozenValue(discardButtonProps);
-
   return (
-    <Collapse in={collapseIn} ref={ref}>
-      <Box
-        sx={(theme) => ({
-          height: 66,
-          backgroundColor: theme.palette.blue[70],
-          color: theme.palette.white,
-          display: "flex",
-          alignItems: "center",
-        })}
-      >
-        {frozenVersion === 0 ? (
-          <EditBarContents
-            icon={<FontAwesomeIcon icon={faSmile} sx={{ fontSize: 14 }} />}
-            title="Currently editing"
-            label="- this type has not yet been created"
-            discardButtonProps={{
-              children: "Discard this type",
-              ...frozenDiscardButtonProps,
-            }}
-            confirmButtonProps={{
-              children: "Create",
-            }}
-          />
-        ) : (
-          <EditBarContents
-            icon={<PencilSimpleLine />}
-            title="Currently editing"
-            label={`Version ${frozenVersion} -> ${frozenVersion + 1}`}
-            discardButtonProps={{
-              children: "Discard changes",
-              ...frozenDiscardButtonProps,
-            }}
-            confirmButtonProps={{
-              children: "Publish update",
-            }}
-          />
-        )}
-      </Box>
+    <Collapse in={visible} ref={ref}>
+      <EditBarContainer>
+        <EditBarContents
+          icon={<PencilSimpleLine />}
+          title="Currently editing"
+          label={label}
+          discardButtonProps={{
+            children: "Discard changes",
+            ...discardButtonProps,
+          }}
+          confirmButtonProps={{
+            children: "Publish update",
+            ...confirmButtonProps,
+          }}
+        />
+      </EditBarContainer>
     </Collapse>
   );
 };

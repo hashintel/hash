@@ -1,6 +1,7 @@
 import { Subgraph } from "@hashintel/hash-subgraph";
+
 import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity";
-import { ResolverFn, QueryMeArgs } from "../../../api-types.gen";
+import { QueryMeArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 
 export const meResolver: ResolverFn<

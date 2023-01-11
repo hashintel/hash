@@ -15,6 +15,7 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
+
 import { PageErrorState } from "../../../../components/page-error-state";
 import {
   getLayoutWithSidebar,
@@ -25,7 +26,7 @@ import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { DefinitionTab } from "./[entity-type-id].page/definition-tab";
-import { EditBar } from "./[entity-type-id].page/edit-bar";
+import { EditBar } from "./[entity-type-id].page/edit-bar-type-editor";
 import { EntitiesTab } from "./[entity-type-id].page/entities-tab";
 import { EntityTypeTabs } from "./[entity-type-id].page/entity-type-tabs";
 import { EntityTypeContext } from "./[entity-type-id].page/shared/entity-type-context";
@@ -35,10 +36,10 @@ import { EntityTypeEditorForm } from "./[entity-type-id].page/shared/form-types"
 import { getEntityTypeBaseUri } from "./[entity-type-id].page/shared/get-entity-type-base-uri";
 import { PropertyTypesContext } from "./[entity-type-id].page/shared/property-types-context";
 import { useCurrentTab } from "./[entity-type-id].page/shared/tabs";
+import { usePropertyTypesContextValue } from "./[entity-type-id].page/shared/use-property-types-context-value";
 import { useEntityTypeEntitiesContextValue } from "./[entity-type-id].page/use-entity-type-entities-context-value";
 import { useEntityTypeValue } from "./[entity-type-id].page/use-entity-type-value";
 import { useEntityTypesContextValue } from "./[entity-type-id].page/use-entity-types-context-value";
-import { usePropertyTypesContextValue } from "./[entity-type-id].page/use-property-types-context-value";
 
 const getSchemaFromEditorForm = (
   data: EntityTypeEditorForm,
@@ -80,10 +81,17 @@ const getSchemaFromEditorForm = (
   const links: NonNullable<EntityType["links"]> = {};
 
   for (const link of data.links) {
+    if (
+      typeof link.minValue === "string" ||
+      typeof link.maxValue === "string"
+    ) {
+      throw new Error("Invalid property constraint");
+    }
+
     links[link.$id] = {
       type: "array",
       minItems: link.minValue,
-      maxItems: link.maxValue,
+      ...(link.infinity ? {} : { maxItems: link.maxValue }),
       ordered: false,
       items: { oneOf: link.entityTypes.map((id) => ({ $ref: id })) },
     };
@@ -168,8 +176,10 @@ const Page: NextPageWithLayout = () => {
               >
             ).map(([linkEntityTypeId, link]) => ({
               $id: linkEntityTypeId,
-              minValue: link.minItems,
-              maxValue: link.maxItems,
+              array: true,
+              maxValue: link.maxItems ?? 1,
+              minValue: link.minItems ?? 0,
+              infinity: typeof link.maxItems !== "number",
               entityTypes:
                 "oneOf" in link.items
                   ? link.items.oneOf.map((ref) => ref.$ref)

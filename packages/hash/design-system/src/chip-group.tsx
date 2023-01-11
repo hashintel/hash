@@ -1,5 +1,5 @@
+import { Box, BoxProps, chipClasses } from "@mui/material";
 import { Children, forwardRef, FunctionComponent, ReactNode } from "react";
-import { Box, chipClasses, BoxProps } from "@mui/material";
 
 type ChipGroupProps = {
   children: ReactNode;

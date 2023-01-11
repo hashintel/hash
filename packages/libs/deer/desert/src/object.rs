@@ -195,7 +195,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
             *remaining = remaining.saturating_sub(1);
         }
 
-        let (key, value) = if matches!(self.deserializer.peek(), Token::ObjectEnd) {
+        let (key, value) = if self.deserializer.peek() == Token::ObjectEnd {
             // we're not in bounded mode, which means we need to signal that we're done
             self.remaining?;
 
@@ -239,7 +239,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
         let mut result = Ok(());
 
         // ensure that we consume the last token, if it is the wrong token error out
-        if !matches!(self.deserializer.peek(), Token::ObjectEnd) {
+        if self.deserializer.peek() != Token::ObjectEnd {
             let mut error = Report::new(ObjectLengthError.into_error())
                 .attach(ExpectedLength::new(self.consumed));
 

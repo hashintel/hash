@@ -4,6 +4,8 @@ import {
   GridCellKind,
 } from "@glideapps/glide-data-grid";
 import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
+import { customColors } from "@hashintel/hash-design-system/src/theme/palette";
+
 import { getCellHorizontalPadding } from "../../../../../../components/grid/utils";
 import { drawTextWithIcon } from "../../../../../../components/grid/utils/draw-text-with-icon";
 
@@ -11,6 +13,7 @@ export interface TextIconCellProps {
   readonly kind: "text-icon-cell";
   value: string;
   icon: CustomIcon;
+  onClick?: () => void;
 }
 
 export type TextIconCell = CustomCell<TextIconCellProps>;
@@ -29,6 +32,8 @@ export const renderTextIconCell: CustomRenderer<TextIconCell> = {
     // prepare to fill text
     ctx.font = theme.baseFontStyle;
 
+    const color = args.highlighted ? customColors.blue[70] : theme.textHeader;
+
     drawTextWithIcon({
       args,
       icon,
@@ -36,6 +41,12 @@ export const renderTextIconCell: CustomRenderer<TextIconCell> = {
       left: iconLeft,
       iconSize: 12,
       gap: 8,
+      textColor: color,
+      iconColor: color,
     });
+  },
+  onClick: (args) => {
+    args.cell.data.onClick?.();
+    return undefined;
   },
 };

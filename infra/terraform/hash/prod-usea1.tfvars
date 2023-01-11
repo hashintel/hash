@@ -20,13 +20,15 @@ kratos_env_vars = [
   { name = "SELFSERVICE_FLOWS_REGISTRATION_UI_URL", secret = false, value = "https://alpha.hash.ai/signup" },
   { name = "SELFSERVICE_METHODS_LINK_CONFIG_BASE_URL", secret = false, value = "https://alpha.hash.ai/api/ory" },
   { name = "SELFSERVICE_FLOWS_VERIFICATION_UI_URL", secret = false, value = "https://alpha.hash.ai/verification" },
+  { name = "SELFSERVICE_FLOWS_RECOVERY_UI_URL", secret = false, value = "https://alpha.hash.ai/recovery" },
+  { name = "SELFSERVICE_FLOWS_SETTINGS_UI_URL", secret = false, value = "https://alpha.hash.ai/settings" },
   { name = "LOG_LEAK_SENSITIVE_VALUES", secret = false, value = "false" },
   { name = "COURIER_SMTP_FROM_ADDRESS", secret = false, value = "noreply@hash.ai" },
   { name = "COURIER_SMTP_FROM_NAME", secret = false, value = "HASH" },
 ]
 
 hash_graph_env_vars = [
-  { name = "HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN", secret = false, value = "https://alpha.hash.ai/@(?P<shortname>[\\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type))/[\\w-]+/" },
+  { name = "HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN", secret = false, value = "https://alpha.hash.ai/@(?P<shortname>[\\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type))/[\\w\\-_%]+/" },
   { name = "HASH_GRAPH_LOG_FORMAT", secret = false, value = "pretty" },
   { name = "RUST_LOG", secret = false, value = "graph=info,hash_graph=info,tokio_postgres=info" },
   { name = "RUST_BACKTRACE", secret = false, value = "1" }

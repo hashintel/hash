@@ -8,7 +8,8 @@ import {
 } from "@hashintel/hash-shared/types";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import { useEffect, useMemo, useState } from "react";
-import { useBlockProtocolGetEntity } from "./blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
+
+import { useBlockProtocolGetEntity } from "./block-protocol-functions/knowledge/use-block-protocol-get-entity";
 import { useWorkspaceByShortname } from "./use-workspace-by-shortname";
 
 export const useWorkspaceShortnameByEntityUuid = (params: {

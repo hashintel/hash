@@ -1,7 +1,7 @@
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { RESTRICTED_SHORTNAMES } from "../../util";
-import { getUserByShortname } from "./user";
 import { getOrgByShortname } from "./org";
+import { getUserByShortname } from "./user";
 
 // Validations for shortnames
 /**

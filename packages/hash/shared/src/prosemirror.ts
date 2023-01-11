@@ -1,6 +1,7 @@
 import { toggleMark } from "prosemirror-commands";
-import { NodeSpec, NodeType, Node, Schema } from "prosemirror-model";
 import { keymap } from "prosemirror-keymap";
+import { Node, NodeSpec, NodeType, Schema } from "prosemirror-model";
+
 import { paragraphBlockComponentId } from "./blocks";
 
 type NodeWithAttrs<Attrs extends {}> = Omit<Node, "attrs"> & {
@@ -202,6 +203,18 @@ export const createSchema = (nodes: NodeSpecs) =>
           { style: "text-decoration=underline" },
           { style: "text-decoration-line=underline" },
         ],
+      },
+      strikethrough: {
+        toDOM: () => ["s", 0],
+        parseDOM: [
+          { tag: "s" },
+          { style: "text-decoration=line-through" },
+          { style: "text-decoration-line=line-through" },
+        ],
+      },
+      highlighted: {
+        toDOM: () => ["span", { style: "background-color: #ff8" }, 0],
+        parseDOM: [{ style: "background-color=#ff8" }],
       },
       link: {
         attrs: {

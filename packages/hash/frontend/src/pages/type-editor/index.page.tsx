@@ -1,16 +1,14 @@
 import { types } from "@hashintel/hash-shared/ontology-types";
+import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import { Box, Container } from "@mui/material";
 import { useCallback, useState } from "react";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 
 import {
   AggregateDataTypesMessageCallback,
   AggregateEntityTypesMessageCallback,
   AggregatePropertyTypesMessageCallback,
-} from "../../components/hooks/blockProtocolFunctions/ontology/ontology-types-shim";
-import { useInitTypeSystem } from "../../lib/use-init-type-system";
+} from "../../components/hooks/block-protocol-functions/ontology/ontology-types-shim";
 import { NextPageWithLayout } from "../../shared/layout";
-
 import { Button } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { useBlockProtocolFunctionsWithOntology } from "./blockprotocol-ontology-functions-hook";
@@ -109,11 +107,8 @@ const Page: NextPageWithLayout = () => {
   // The user is important to allow using Block Protocol functions
   // such as: `const functions = useBlockProtocolFunctionsWithOntology(user.accountId);`
   const { authenticatedUser } = useAuthenticatedUser();
-  const loadingTypeSystem = useInitTypeSystem();
 
-  return loadingTypeSystem ? (
-    <Container sx={{ pt: 10 }}>Loading...</Container>
-  ) : (
+  return (
     <Container sx={{ pt: 10 }}>
       Hello!
       <ExampleUsage accountId={authenticatedUser.accountId} />

@@ -1,1 +1,1 @@
-//! Placeholder for future support of macros.
+#![doc = include_str!("../README.md")]

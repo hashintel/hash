@@ -1,29 +1,30 @@
 import { Components, Theme } from "@mui/material";
-import { MuiChipThemeOptions } from "./components/data-display/mui-chip-theme-options";
+
 import {
   MuiIconButtonThemeOptions,
   MuiListItemButtonThemeOptions,
+  MuiListItemSecondaryActionThemeOptions,
   MuiListItemTextThemeOptions,
   MuiTooltipThemeOptions,
-  MuiListItemSecondaryActionThemeOptions,
 } from "./components/data-display";
-import {
-  MuiDrawerThemeOptions,
-  MuiMenuThemeOptions,
-  MuiMenuItemThemeOptions,
-} from "./components/navigation";
+import { MuiChipThemeOptions } from "./components/data-display/mui-chip-theme-options";
+import { MuiSkeletonThemeOptions } from "./components/feedback/mui-skeleton-theme-options";
 import {
   MuiButtonThemeOptions,
+  MuiCheckboxThemeOptions,
+  MuiFormHelperTextThemeOptions,
+  MuiInputLabelThemeOptions,
   MuiOutlinedInputThemeOptions,
   MuiRadioThemeOptions,
-  MuiCheckboxThemeOptions,
-  MuiInputLabelThemeOptions,
   MuiSwitchThemeOptions,
-  MuiFormHelperTextThemeOptions,
 } from "./components/inputs";
-import { MuiCssBaselineThemeOptions } from "./components/utils";
 import { MuiSelectThemeOptions } from "./components/inputs/mui-select-theme-options";
-import { MuiSkeletonThemeOptions } from "./components/feedback/mui-skeleton-theme-options";
+import {
+  MuiDrawerThemeOptions,
+  MuiMenuItemThemeOptions,
+  MuiMenuThemeOptions,
+} from "./components/navigation";
+import { MuiCssBaselineThemeOptions } from "./components/utils";
 
 export const components: Components<Theme> = {
   /** ===== INPUTS ===== */

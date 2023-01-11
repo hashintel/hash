@@ -1,4 +1,5 @@
 import NextErrorComponent, { ErrorProps } from "next/error";
+
 import { getLayoutWithHeader, NextPageWithLayout } from "../shared/layout";
 
 const NotFoundPage: NextPageWithLayout<ErrorProps> = () => {

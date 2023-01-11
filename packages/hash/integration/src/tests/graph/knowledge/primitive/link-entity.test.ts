@@ -1,25 +1,9 @@
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-
-import {
-  EntityTypeCreatorParams,
-  generateSystemEntityTypeSchema,
-} from "@hashintel/hash-api/src/graph/util";
-
-import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import {
-  Entity,
-  EntityTypeWithMetadata,
-  linkEntityTypeUri,
-} from "@hashintel/hash-subgraph";
-import { createEntityType } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
-import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
 import {
   archiveEntity,
   createEntity,
@@ -31,7 +15,22 @@ import {
   getLinkEntityRightEntity,
   LinkEntity,
 } from "@hashintel/hash-api/src/graph/knowledge/primitive/link-entity";
+import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
+import { createEntityType } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
+import {
+  EntityTypeCreatorParams,
+  generateSystemEntityTypeSchema,
+} from "@hashintel/hash-api/src/graph/util";
+import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { OwnedById } from "@hashintel/hash-shared/types";
+import {
+  Entity,
+  EntityTypeWithMetadata,
+  linkEntityTypeUri,
+} from "@hashintel/hash-subgraph";
+
 import { createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
@@ -140,7 +139,7 @@ describe("Link entity", () => {
     await Promise.all([
       createEntity(graphContext, {
         ownedById: testUser.accountId as OwnedById,
-        entityType: testEntityType,
+        entityTypeId: testEntityType.schema.$id,
         properties: {},
         actorId: testUser.accountId,
       }).then((entity) => {
@@ -148,7 +147,7 @@ describe("Link entity", () => {
       }),
       createEntity(graphContext, {
         ownedById: testUser.accountId as OwnedById,
-        entityType: testEntityType,
+        entityTypeId: testEntityType.schema.$id,
         properties: {},
         actorId: testUser.accountId,
       }).then((entity) => {
@@ -156,7 +155,7 @@ describe("Link entity", () => {
       }),
       createEntity(graphContext, {
         ownedById: testUser.accountId as OwnedById,
-        entityType: testEntityType,
+        entityTypeId: testEntityType.schema.$id,
         properties: {},
         actorId: testUser.accountId,
       }).then((entity) => {

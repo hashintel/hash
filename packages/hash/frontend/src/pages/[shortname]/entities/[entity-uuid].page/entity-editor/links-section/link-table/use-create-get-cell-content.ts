@@ -1,11 +1,12 @@
 import { GridCellKind, Item } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
+
 import { ChipCell } from "../../properties-section/property-table/cells/chip-cell";
+import { SummaryChipCell } from "../../properties-section/property-table/cells/summary-chip-cell";
 import { LinkCell } from "./cells/link-cell";
 import { LinkedWithCell } from "./cells/linked-with-cell";
 import { linkGridIndexes } from "./constants";
 import { LinkRow } from "./types";
-import { SummaryChipCell } from "../../properties-section/property-table/cells/summary-chip-cell";
 
 export const useCreateGetCellContent = () => {
   const createGetCellContent = useCallback(
@@ -60,7 +61,9 @@ export const useCreateGetCellContent = () => {
               copyData: String(row.expectedEntityTypeTitles),
               data: {
                 kind: "chip-cell",
-                chips: row.expectedEntityTypeTitles,
+                chips: row.expectedEntityTypeTitles.map((title) => ({
+                  text: title,
+                })),
                 color: "blue",
               },
             };

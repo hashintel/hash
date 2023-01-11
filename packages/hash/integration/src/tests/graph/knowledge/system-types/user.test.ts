@@ -1,16 +1,13 @@
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import {
+  createKratosIdentity,
+  kratosIdentityApi,
+} from "@hashintel/hash-api/src/auth/ory-kratos";
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-
-import {
-  kratosIdentityApi,
-  createKratosIdentity,
-} from "@hashintel/hash-api/src/auth/ory-kratos";
-import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
 import {
   createUser,
   getUserByKratosIdentityId,
@@ -21,9 +18,12 @@ import {
   updateUserShortname,
   User,
 } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
+import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
+import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { EntityUuid } from "@hashintel/hash-shared/types";
+import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
+
 import { createTestOrg, generateRandomShortname } from "../../../util";
 
 jest.setTimeout(60000);

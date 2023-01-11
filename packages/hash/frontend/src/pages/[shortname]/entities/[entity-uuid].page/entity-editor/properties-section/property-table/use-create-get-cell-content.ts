@@ -1,22 +1,26 @@
 import { GridCellKind, Item } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
+
 import {
   BlankCell,
   blankCell,
 } from "../../../../../../../components/grid/utils";
-import { getPropertyCountSummary } from "../get-property-count-summary";
-import { SummaryChipCell } from "./cells/summary-chip-cell";
 import { UseGridTooltipResponse } from "../../../../../../../components/grid/utils/use-grid-tooltip/types";
+import { getPropertyCountSummary } from "../get-property-count-summary";
+import { isValueEmpty } from "../is-value-empty";
+import { ChangeTypeCell } from "./cells/change-type-cell";
 import { ChipCell } from "./cells/chip-cell";
 import { PropertyNameCell } from "./cells/property-name-cell";
+import { SummaryChipCell } from "./cells/summary-chip-cell";
+import { editorSpecs } from "./cells/value-cell/array-editor/sortable-row";
 import { ValueCell } from "./cells/value-cell/types";
+import {
+  guessEditorTypeFromExpectedType,
+  guessEditorTypeFromValue,
+} from "./cells/value-cell/utils";
 import { propertyGridIndexes } from "./constants";
 import { getTooltipsOfPropertyRow } from "./get-tooltips-of-property-row";
 import { PropertyRow } from "./types";
-import { isValueEmpty } from "../is-value-empty";
-import { ChangeTypeCell } from "./cells/change-type-cell";
-import { guessEditorTypeFromValue } from "./cells/value-cell/utils";
-import { editorSpecs } from "./cells/value-cell/array-editor/sortable-row";
 
 export const useCreateGetCellContent = (
   showTooltip: UseGridTooltipResponse["showTooltip"],
@@ -133,7 +137,16 @@ export const useCreateGetCellContent = (
               copyData: String(row.expectedTypes),
               data: {
                 kind: "chip-cell",
-                chips: row.expectedTypes,
+                chips: row.expectedTypes.map((type) => {
+                  const editorSpec =
+                    editorSpecs[guessEditorTypeFromExpectedType(type)];
+
+                  return {
+                    text: type,
+                    icon: editorSpec.gridIcon,
+                    faIconDefinition: { icon: editorSpec.icon },
+                  };
+                }),
               },
             };
         }

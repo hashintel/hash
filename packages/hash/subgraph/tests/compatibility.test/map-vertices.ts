@@ -1,12 +1,4 @@
 import {
-  DataType as DataTypeGraphApi,
-  EntityType as EntityTypeGraphApi,
-  OntologyVertex as OntologyVertexGraphApi,
-  KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
-  PropertyType as PropertyTypeGraphApi,
-  Vertices as VerticesGraphApi,
-} from "@hashintel/hash-graph-client";
-import {
   DataType,
   EntityType,
   OneOf,
@@ -17,12 +9,22 @@ import {
   VersionedUri,
 } from "@blockprotocol/type-system";
 import {
-  isEntityId,
-  OntologyVertex,
-  KnowledgeGraphVertex,
-  Vertices,
-  PropertyObject,
+  DataType as DataTypeGraphApi,
+  EntityType as EntityTypeGraphApi,
+  KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
+  OntologyVertex as OntologyVertexGraphApi,
+  PropertyType as PropertyTypeGraphApi,
+  Vertices as VerticesGraphApi,
+} from "@hashintel/hash-graph-client";
+
+import {
   EntityId,
+  EntityVersion,
+  isEntityId,
+  KnowledgeGraphVertex,
+  OntologyVertex,
+  PropertyObject,
+  Vertices,
 } from "../../src";
 
 const mapDataType = (dataType: DataTypeGraphApi): DataType => {
@@ -121,8 +123,9 @@ const mapKnowledgeGraphVertex = (
         ...vertex.inner.metadata,
         editionId: {
           baseId: vertex.inner.metadata.editionId.baseId as EntityId,
-          version: vertex.inner.metadata.editionId.version,
+          recordId: vertex.inner.metadata.editionId.recordId,
         },
+        version: vertex.inner.metadata.version as EntityVersion,
         entityTypeId: vertex.inner.metadata.entityTypeId as VersionedUri,
       },
     },

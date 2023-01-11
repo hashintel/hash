@@ -1,7 +1,8 @@
 import { UniqueIdentifier } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import { EntityId } from "@hashintel/hash-shared/types";
-import { AccountPage } from "../../../../components/hooks/useAccountPages";
+
+import { AccountPage } from "../../../../components/hooks/use-account-pages";
 
 export interface TreeItem {
   page: AccountPage;

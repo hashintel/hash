@@ -1,5 +1,6 @@
 import { VersionedUri } from "@blockprotocol/type-system";
 import { DocumentNode } from "graphql";
+
 import {
   GetDataTypeQueryVariables,
   GetEntityTypeQueryVariables,

@@ -1,4 +1,4 @@
-import { Components, Theme, switchClasses } from "@mui/material";
+import { Components, switchClasses, Theme } from "@mui/material";
 
 const focusBorderOffset = 4;
 const focusBorderWidth = 2;

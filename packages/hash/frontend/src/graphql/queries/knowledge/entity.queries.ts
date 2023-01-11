@@ -1,4 +1,5 @@
 import { gql } from "@apollo/client";
+
 import { subgraphFieldsFragment } from "../subgraph";
 
 export const createEntityMutation = gql`
@@ -80,6 +81,7 @@ export const updateEntityMutation = gql`
     $updatedProperties: PropertyObject!
     $leftToRightOrder: Int
     $rightToLeftOrder: Int
+    $entityTypeId: VersionedUri
   ) {
     # This is a scalar, which has no selection.
     updateEntity(
@@ -87,6 +89,7 @@ export const updateEntityMutation = gql`
       updatedProperties: $updatedProperties
       leftToRightOrder: $leftToRightOrder
       rightToLeftOrder: $rightToLeftOrder
+      entityTypeId: $entityTypeId
     )
   }
 `;

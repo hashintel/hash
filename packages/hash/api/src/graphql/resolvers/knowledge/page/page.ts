@@ -4,6 +4,7 @@ import {
   OwnedById,
   Uuid,
 } from "@hashintel/hash-shared/types";
+
 import { getOrgById } from "../../../../graph/knowledge/system-types/org";
 import {
   createPage,
@@ -13,10 +14,8 @@ import {
   getPageParentPage,
 } from "../../../../graph/knowledge/system-types/page";
 import { getUserById } from "../../../../graph/knowledge/system-types/user";
-
 import { systemUserAccountId } from "../../../../graph/system-user";
 import { EntityTypeMismatchError } from "../../../../lib/error";
-
 import {
   MutationCreatePageArgs,
   QueryPageArgs,
@@ -26,10 +25,10 @@ import {
 } from "../../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import {
-  UnresolvedPageGQL,
+  mapCommentToGQL,
   mapPageToGQL,
   UnresolvedCommentGQL,
-  mapCommentToGQL,
+  UnresolvedPageGQL,
 } from "../graphql-mapping";
 
 export const pageResolver: ResolverFn<

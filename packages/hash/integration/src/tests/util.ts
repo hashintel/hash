@@ -4,14 +4,15 @@ import {
   GraphApi,
   ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
-import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
+import { createOrg } from "@hashintel/hash-api/src/graph/knowledge/system-types/org";
 import {
   createUser,
   updateUserShortname,
 } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
-import { createOrg } from "@hashintel/hash-api/src/graph/knowledge/system-types/org";
+import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
+import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
+
 import { OrgSize } from "../graphql/api-types.gen";
 
 const randomStringSuffix = () => {

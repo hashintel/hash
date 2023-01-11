@@ -3,19 +3,20 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
-import { types } from "@hashintel/hash-shared/ontology-types";
 import { customColors } from "@hashintel/hash-design-system/src/theme/palette";
-import { InteractableManager } from "../../../../../../../../components/grid/utils/interactable-manager";
-import { drawInteractableTooltipIcons } from "../../../../../../../../components/grid/utils/use-grid-tooltip/draw-interactable-tooltip-icons";
+import { types } from "@hashintel/hash-shared/ontology-types";
+
 import {
   getCellHorizontalPadding,
   getYCenter,
 } from "../../../../../../../../components/grid/utils";
 import { drawTextWithIcon } from "../../../../../../../../components/grid/utils/draw-text-with-icon";
+import { InteractableManager } from "../../../../../../../../components/grid/utils/interactable-manager";
+import { drawInteractableTooltipIcons } from "../../../../../../../../components/grid/utils/use-grid-tooltip/draw-interactable-tooltip-icons";
 import { isValueEmpty } from "../../is-value-empty";
-import { ValueCell } from "./value-cell/types";
-import { SingleValueEditor } from "./value-cell/single-value-editor";
 import { ArrayEditor } from "./value-cell/array-editor";
+import { SingleValueEditor } from "./value-cell/single-value-editor";
+import { ValueCell } from "./value-cell/types";
 
 export const renderValueCell: CustomRenderer<ValueCell> = {
   kind: GridCellKind.Custom,
@@ -52,7 +53,13 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
       });
     } else {
       // draw plain text
-      const text = Array.isArray(value) ? value.join(", ") : String(value);
+      const text = Array.isArray(value)
+        ? value
+            .map((val) =>
+              typeof val === "boolean" ? (val ? "True" : "False") : val,
+            )
+            .join(", ")
+        : String(value);
       ctx.fillText(text, left, yCenter);
     }
 

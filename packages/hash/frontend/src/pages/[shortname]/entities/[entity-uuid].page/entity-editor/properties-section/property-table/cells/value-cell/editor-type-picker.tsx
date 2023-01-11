@@ -1,6 +1,7 @@
-import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box, ButtonBase, Typography } from "@mui/material";
+
+import { editorSpecs } from "./array-editor/sortable-row";
 import { OnTypeChange } from "./types";
 import {
   findDataTypeDefinitionByTitle,
@@ -16,6 +17,7 @@ const ExpectedTypeButton = ({
   title: string;
   description?: string;
 }) => {
+  const editorSpec = editorSpecs[guessEditorTypeFromExpectedType(title)];
   return (
     <ButtonBase
       onClick={onClick}
@@ -35,7 +37,7 @@ const ExpectedTypeButton = ({
         },
       }}
     >
-      <FontAwesomeIcon icon={faAsterisk} />
+      <FontAwesomeIcon icon={{ icon: editorSpec.icon }} />
       <Typography variant="smallTextLabels">{title}</Typography>
       {!!description && (
         <Typography variant="microText" color="gray.50" textAlign="start">

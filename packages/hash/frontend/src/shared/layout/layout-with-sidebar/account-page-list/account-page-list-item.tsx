@@ -1,10 +1,11 @@
-import { FunctionComponent, CSSProperties } from "react";
 import {
-  useSortable,
   AnimateLayoutChanges,
   defaultAnimateLayoutChanges,
+  useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { CSSProperties, FunctionComponent } from "react";
+
 import { PageTreeItem, PageTreeItemProps } from "./page-tree-item";
 
 const animateLayoutChanges: AnimateLayoutChanges = (args) => {

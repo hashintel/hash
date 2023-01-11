@@ -1,5 +1,6 @@
 import { Checkbox, ListItemIcon } from "@mui/material";
 import { forwardRef, ForwardRefRenderFunction, ReactNode } from "react";
+
 import { MenuItem, MenuItemProps } from "./menu-item";
 
 export type MenuCheckboxItemProps = {

@@ -1,9 +1,8 @@
 use std::{future::Future, pin::Pin};
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{Result, ResultExt};
 use futures::FutureExt;
-use tokio_postgres::GenericClient;
 use type_system::{EntityType, EntityTypeReference, PropertyTypeReference};
 
 use crate::{
@@ -13,7 +12,8 @@ use crate::{
     store::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
-        AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
+        AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, Record, Store,
+        Transaction, UpdateError,
     },
     subgraph::{
         edges::{
@@ -44,12 +44,9 @@ impl<C: AsClient> PostgresStore<C> {
 
             let entity_type = match dependency_status {
                 DependencyStatus::Unresolved => {
-                    <Self as Read<EntityTypeWithMetadata>>::read_into_subgraph(
-                        self,
-                        subgraph,
-                        entity_type_id,
-                    )
-                    .await?
+                    subgraph
+                        .get_or_read::<EntityTypeWithMetadata>(self, entity_type_id)
+                        .await?
                 }
                 DependencyStatus::Resolved => return Ok(()),
             };
@@ -106,7 +103,7 @@ impl<C: AsClient> PostgresStore<C> {
             if let Some(property_type_ref_uris) = property_type_ref_uris {
                 for property_type_ref_uri in property_type_ref_uris {
                     subgraph.edges.insert(Edge::Ontology {
-                        edition_id: entity_type_id.clone(),
+                        vertex_id: entity_type_id.clone(),
                         outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
                             kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                             reversed: false,
@@ -134,7 +131,7 @@ impl<C: AsClient> PostgresStore<C> {
             if let Some(inherits_from_type_ref_uris) = inherits_from_type_ref_uris {
                 for inherits_from_type_ref_uri in inherits_from_type_ref_uris {
                     subgraph.edges.insert(Edge::Ontology {
-                        edition_id: entity_type_id.clone(),
+                        vertex_id: entity_type_id.clone(),
                         outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
                             kind: OntologyEdgeKind::InheritsFrom,
                             reversed: false,
@@ -164,7 +161,7 @@ impl<C: AsClient> PostgresStore<C> {
                 for (link_type_uri, destination_type_uris) in link_mappings {
                     if current_resolve_depth.constrains_links_on.outgoing > 0 {
                         subgraph.edges.insert(Edge::Ontology {
-                            edition_id: entity_type_id.clone(),
+                            vertex_id: entity_type_id.clone(),
                             outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
                                 kind: OntologyEdgeKind::ConstrainsLinksOn,
                                 reversed: false,
@@ -194,7 +191,7 @@ impl<C: AsClient> PostgresStore<C> {
                         {
                             for destination_type_uri in destination_type_uris {
                                 subgraph.edges.insert(Edge::Ontology {
-                                    edition_id: entity_type_id.clone(),
+                                    vertex_id: entity_type_id.clone(),
                                     outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
                                         kind: OntologyEdgeKind::ConstrainsLinkDestinationsOn,
                                         reversed: false,
@@ -240,13 +237,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         owned_by_id: OwnedById,
         updated_by_id: UpdatedById,
     ) -> Result<OntologyElementMetadata, InsertionError> {
-        let transaction = PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .into_report()
-                .change_context(InsertionError)?,
-        );
+        let transaction = self.transaction().await.change_context(InsertionError)?;
 
         // This clone is currently necessary because we extract the references as we insert them.
         // We can only insert them after the type has been created, and so we currently extract them
@@ -267,12 +258,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             })
             .attach_lazy(|| entity_type.clone())?;
 
-        transaction
-            .client
-            .commit()
-            .await
-            .into_report()
-            .change_context(InsertionError)?;
+        transaction.commit().await.change_context(InsertionError)?;
 
         Ok(metadata)
     }
@@ -285,22 +271,31 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         let StructuralQuery {
             ref filter,
             graph_resolve_depths,
+            ref time_projection,
         } = *query;
 
-        let mut subgraph = Subgraph::new(graph_resolve_depths);
+        let mut subgraph = Subgraph::new(
+            graph_resolve_depths,
+            time_projection.clone(),
+            time_projection.clone().resolve(),
+        );
         let mut dependency_context = DependencyContext::default();
 
         for entity_type in Read::<EntityTypeWithMetadata>::read(self, filter).await? {
+            let vertex_id = entity_type.vertex_id();
+
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
-            let entity_type = entity_type.insert_into_subgraph_as_root(&mut subgraph);
+            subgraph.insert(entity_type);
 
             self.traverse_entity_type(
-                &entity_type.metadata().edition_id().clone(),
+                &vertex_id,
                 &mut dependency_context,
                 &mut subgraph,
                 graph_resolve_depths,
             )
             .await?;
+
+            subgraph.roots.insert(vertex_id.into());
         }
 
         Ok(subgraph)
@@ -312,13 +307,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         entity_type: EntityType,
         updated_by: UpdatedById,
     ) -> Result<OntologyElementMetadata, UpdateError> {
-        let transaction = PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .into_report()
-                .change_context(UpdateError)?,
-        );
+        let transaction = self.transaction().await.change_context(UpdateError)?;
 
         // This clone is currently necessary because we extract the references as we insert them.
         // We can only insert them after the type has been created, and so we currently extract them
@@ -339,12 +328,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             })
             .attach_lazy(|| entity_type.clone())?;
 
-        transaction
-            .client
-            .commit()
-            .await
-            .into_report()
-            .change_context(UpdateError)?;
+        transaction.commit().await.change_context(UpdateError)?;
 
         Ok(metadata)
     }

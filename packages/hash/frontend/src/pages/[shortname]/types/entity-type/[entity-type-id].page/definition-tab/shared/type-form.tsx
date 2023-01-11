@@ -17,7 +17,6 @@ import {
   Divider,
   inputLabelClasses,
   Stack,
-  Tooltip,
   Typography,
 } from "@mui/material";
 import {
@@ -41,15 +40,14 @@ import {
 } from "react";
 import {
   DeepPartial,
-  FieldValues,
   FormProvider,
   useForm,
   useFormContext,
-  UseFormTrigger,
 } from "react-hook-form";
-import { Modal } from "../../../../../../../components/Modals/Modal";
-import { withHandler } from "../property-list-card/shared/with-handler";
+
+import { Modal } from "../../../../../../../components/modals/modal";
 import { QuestionIcon } from "./question-icon";
+import { withHandler } from "./with-handler";
 
 type TypeFormSubmitProps = Omit<
   ButtonProps,
@@ -114,7 +112,7 @@ export const TypeFormNameField = ({
   );
 };
 
-// @todo handle this field having a different description
+// @todo handle this field having a different type than property
 export const TypeFormDescriptionField = ({
   defaultValues,
   fieldDisabled,
@@ -151,31 +149,16 @@ export const TypeFormDescriptionField = ({
       label={
         <>
           Description{" "}
-          <Tooltip
-            placement="top"
-            title="Descriptions help people understand what property types can be used for, and help make them more discoverable (allowing for reuse)."
-            PopperProps={{
-              modifiers: [
-                {
-                  name: "offset",
-                  options: {
-                    offset: [0, 8],
-                  },
-                },
-              ],
+          <Box
+            sx={{
+              order: 1,
+              ml: 0.75,
+              display: "flex",
+              alignItems: "center",
             }}
           >
-            <Box
-              sx={{
-                order: 1,
-                ml: 0.75,
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              <QuestionIcon />
-            </Box>
-          </Tooltip>
+            <QuestionIcon tooltip="Descriptions help people understand what property types can be used for, and help make them more discoverable (allowing for reuse)." />
+          </Box>
         </>
       }
       required={descriptionRequired}
@@ -203,40 +186,12 @@ export const TypeFormDescriptionField = ({
   );
 };
 
-const keys = <T extends {}>(obj: T): (keyof T)[] => Object.keys(obj) as any;
-
-export const useTriggerValidation = <T extends FieldValues>(
-  defaultValues: DeepPartial<T>,
-  disabledFields: (keyof DeepPartial<T>)[],
-  trigger: UseFormTrigger<T>,
-) => {
-  const triggerKeys = keys(defaultValues).filter(
-    (key) =>
-      typeof defaultValues[key] !== "undefined" &&
-      !disabledFields.includes(key),
-  );
-  const stringifiedKeys = JSON.stringify(triggerKeys);
-  const memoKeys: typeof triggerKeys = useMemo(
-    () => JSON.parse(stringifiedKeys),
-    [stringifiedKeys],
-  );
-
-  useEffect(() => {
-    for (const key of memoKeys) {
-      void trigger(
-        // @ts-expect-error trigger expects Path<T>, but key is already equivalent
-        key,
-      );
-    }
-  }, [trigger, memoKeys]);
-};
-
 export const generateInitialTypeUri = (baseUri: string) =>
   versionedUriFromComponents(baseUri, 1);
 
 export const useGenerateTypeBaseUri = (kind: SchemaKind) => {
   const router = useRouter();
-  const shortname = router.query["account-slug"]?.toString().slice(1) ?? "";
+  const shortname = router.query.shortname?.toString().slice(1) ?? "";
 
   return (value: string) => {
     if (!shortname) {
@@ -322,23 +277,20 @@ export const TypeForm = <T extends TypeFormDefaults>({
   children?: ReactNode;
   nameExists: (name: string) => Promise<boolean>;
 } & TypeFormProps<T>) => {
-  const defaultValues = getDefaultValues();
+  const defaultValues = useMemo(() => getDefaultValues(), [getDefaultValues]);
 
   const formMethods = useForm<T>({
     defaultValues,
     shouldFocusError: true,
-    mode: "onBlur",
-    reValidateMode: "onChange",
+    mode: "onSubmit",
+    reValidateMode: "onSubmit",
   });
 
   const {
     handleSubmit: wrapHandleSubmit,
-    formState: { isSubmitting, isValid },
+    formState: { isSubmitting },
     setFocus,
-    trigger,
   } = formMethods;
-
-  useTriggerValidation(defaultValues, disabledFields, trigger);
 
   const defaultField = defaultValues.name ? "description" : "name";
 
@@ -421,7 +373,7 @@ export const TypeForm = <T extends TypeFormDefaults>({
           <Button
             {...submitButtonProps}
             loading={isSubmitting}
-            disabled={isSubmitting || !isValid}
+            disabled={isSubmitting}
             type="submit"
             size="small"
           >

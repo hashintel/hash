@@ -1,8 +1,9 @@
 import { Subgraph } from "@hashintel/hash-subgraph";
+
 import {
+  QueryGetAllLatestDataTypesArgs,
   QueryGetDataTypeArgs,
   ResolverFn,
-  QueryGetAllLatestDataTypesArgs,
 } from "../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 

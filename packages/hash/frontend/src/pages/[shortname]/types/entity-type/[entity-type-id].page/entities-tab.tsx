@@ -1,14 +1,17 @@
+import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import {
   faAsterisk,
   faMagnifyingGlass,
 } from "@fortawesome/free-solid-svg-icons";
-import { GridCell, GridCellKind, Item } from "@glideapps/glide-data-grid";
+import { GridCellKind, Item, TextCell } from "@glideapps/glide-data-grid";
 import {
   Chip,
   FontAwesomeIcon,
   IconButton,
 } from "@hashintel/hash-design-system";
+import { extractOwnedByIdFromEntityId } from "@hashintel/hash-subgraph";
 import { Box, Paper, Stack } from "@mui/material";
+import { useRouter } from "next/router";
 import {
   FunctionComponent,
   useCallback,
@@ -16,25 +19,28 @@ import {
   useMemo,
   useState,
 } from "react";
-import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
-import { extractOwnedByIdFromEntityId } from "@hashintel/hash-subgraph";
+
+import { Grid } from "../../../../../components/grid/grid";
+import { BlankCell, blankCell } from "../../../../../components/grid/utils";
+import { EarthIcon } from "../../../../../shared/icons/earth-icon";
+import { HomeIcon } from "../../../../../shared/icons/home-icon";
+import { WorkspaceContext } from "../../../../shared/workspace-context";
+import { SectionEmptyState } from "../../../shared/section-empty-state";
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { WhiteChip } from "../../../shared/white-chip";
-import { blankCell } from "../../../../../components/grid/utils";
-import { HomeIcon } from "../../../../../shared/icons/home-icon";
-import { EarthIcon } from "../../../../../shared/icons/earth-icon";
-import { renderTextIconCell } from "./entities-tab/text-icon-cell";
+import {
+  renderTextIconCell,
+  TextIconCell,
+} from "./entities-tab/text-icon-cell";
 import {
   TypeEntitiesRow,
   useEntitiesTable,
 } from "./entities-tab/use-entities-table";
 import { useEntityType } from "./shared/entity-type-context";
-import { Grid } from "../../../../../components/grid/grid";
-import { SectionEmptyState } from "../../../shared/section-empty-state";
-import { WorkspaceContext } from "../../../../shared/workspace-context";
 import { useEntityTypeEntities } from "./shared/entity-type-entities-context";
 
 export const EntitiesTab: FunctionComponent = () => {
+  const router = useRouter();
   const entityType = useEntityType();
   const { entities, entityTypes, propertyTypes, subgraph } =
     useEntityTypeEntities();
@@ -62,11 +68,10 @@ export const EntitiesTab: FunctionComponent = () => {
   }, [entities, activeWorkspaceAccountId]);
 
   const createGetCellContent = useCallback(
-    (_rows: TypeEntitiesRow[]) =>
-      ([colIndex, rowIndex]: Item): GridCell => {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
-        if (_rows && columns) {
-          const row = _rows[rowIndex];
+    (entityRows: TypeEntitiesRow[]) =>
+      ([colIndex, rowIndex]: Item): TextIconCell | TextCell | BlankCell => {
+        if (columns) {
+          const row = entityRows[rowIndex];
           const columnId = columns[colIndex]?.id;
           const cellValue = columnId && row?.[columnId];
 
@@ -77,10 +82,13 @@ export const EntitiesTab: FunctionComponent = () => {
                 allowOverlay: false,
                 readonly: true,
                 copyData: cellValue,
+                cursor: "pointer",
                 data: {
                   kind: "text-icon-cell",
                   icon: "bpAsterisk",
                   value: cellValue,
+                  onClick: () =>
+                    router.push(`/${row.namespace}/entities/${row.entityId}`),
                 },
               };
             }
@@ -97,7 +105,7 @@ export const EntitiesTab: FunctionComponent = () => {
 
         return blankCell;
       },
-    [columns],
+    [columns, router],
   );
 
   if (!columns || !rows) {

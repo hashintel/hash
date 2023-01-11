@@ -1,11 +1,11 @@
-import { createTheme, ThemeOptions } from "@mui/material";
 import createCache from "@emotion/cache";
+import { createTheme, ThemeOptions } from "@mui/material";
 
-import { palette } from "./theme/palette";
-import { typography } from "./theme/typography";
-import { shadows, boxShadows, dropShadows } from "./theme/shadows";
 import { borderRadii } from "./theme/border-radii";
 import { components } from "./theme/components";
+import { palette } from "./theme/palette";
+import { boxShadows, dropShadows, shadows } from "./theme/shadows";
+import { typography } from "./theme/typography";
 
 export const theme = createTheme({
   palette,

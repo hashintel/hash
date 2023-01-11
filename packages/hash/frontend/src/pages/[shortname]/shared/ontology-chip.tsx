@@ -11,6 +11,7 @@ import {
   typographyClasses,
 } from "@mui/material";
 import { forwardRef, ForwardRefRenderFunction, ReactNode } from "react";
+
 import { HashOntologyIcon } from "./hash-ontology-icon";
 
 export const parseUriForOntologyChip = (uri: string) => {

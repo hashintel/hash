@@ -3,19 +3,20 @@ import {
   faQuestionCircle,
 } from "@fortawesome/free-solid-svg-icons";
 import {
-  Box,
-  Switch,
-  Radio,
-  Checkbox,
-  Stack,
-  InputAdornment,
-  Typography,
-} from "@mui/material";
-import {
+  FontAwesomeIcon,
   FormInline,
   TextField,
-  FontAwesomeIcon,
 } from "@hashintel/hash-design-system";
+import {
+  Box,
+  Checkbox,
+  InputAdornment,
+  Radio,
+  Stack,
+  Switch,
+  Typography,
+} from "@mui/material";
+
 import { Button } from "../../shared/ui";
 
 export const InputsDemo = () => {

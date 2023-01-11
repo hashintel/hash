@@ -1,4 +1,5 @@
 import { TextField } from "@hashintel/hash-design-system";
+
 import { CellInputProps } from "./types";
 
 export const NumberOrTextInput = ({

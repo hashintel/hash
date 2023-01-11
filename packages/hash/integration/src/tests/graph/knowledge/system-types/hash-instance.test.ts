@@ -1,13 +1,11 @@
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
-import { SYSTEM_TYPES } from "@hashintel/hash-api/src/graph/system-types";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import { getEntityOutgoingLinks } from "@hashintel/hash-api/src/graph/knowledge/primitive/entity";
+import { getLinkEntityRightEntity } from "@hashintel/hash-api/src/graph/knowledge/primitive/link-entity";
 import {
   addHashInstanceAdmin,
   getHashInstance,
@@ -18,8 +16,11 @@ import {
   isUserHashInstanceAdmin,
   User,
 } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
-import { getEntityOutgoingLinks } from "@hashintel/hash-api/src/graph/knowledge/primitive/entity";
-import { getLinkEntityRightEntity } from "@hashintel/hash-api/src/graph/knowledge/primitive/link-entity";
+import { SYSTEM_TYPES } from "@hashintel/hash-api/src/graph/system-types";
+import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
+import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
+
 import { createTestUser } from "../../../util";
 
 jest.setTimeout(60000);

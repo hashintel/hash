@@ -1,4 +1,4 @@
-import { Components, CSSObject, Theme, buttonClasses } from "@mui/material";
+import { buttonClasses, Components, CSSObject, Theme } from "@mui/material";
 
 const buttonFocusBorderOffset = { md: 4, lg: 6 };
 const buttonFocusBorderWidth = { md: 2, lg: 3 };

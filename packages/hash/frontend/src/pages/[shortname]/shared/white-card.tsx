@@ -8,6 +8,7 @@ import {
   SxProps,
   Theme,
 } from "@mui/material";
+
 import { Link } from "../../../shared/ui/link";
 
 export const WhiteCard = ({
@@ -15,11 +16,13 @@ export const WhiteCard = ({
   href,
   children,
   actionSx = [],
+  sx = [],
 }: {
   onClick?: CardActionAreaProps["onClick"];
   href?: string;
   children: CardContentProps["children"];
   actionSx?: SxProps<Theme>;
+  sx?: SxProps<Theme>;
 }) => {
   const cardContent = (
     <CardContent
@@ -37,7 +40,8 @@ export const WhiteCard = ({
       sx={[
         (theme) => ({
           boxShadow: theme.boxShadows.xs,
-          overflow: "visible",
+          overflow: "hidden",
+          borderRadius: 1.5,
         }),
         onClick
           ? (theme) => ({
@@ -46,6 +50,7 @@ export const WhiteCard = ({
               },
             })
           : {},
+        ...(Array.isArray(sx) ? sx : [sx]),
       ]}
     >
       {/**

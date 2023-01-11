@@ -36,7 +36,7 @@ pub struct Args {
     ///   `(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))`
     #[clap(
         long,
-        default_value_t = Regex::new(r"http://localhost:3000/@(?P<shortname>[\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))/[\w-]+/").unwrap(),
+        default_value_t = Regex::new(r"http://localhost:3000/@(?P<shortname>[\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))/[\w\-_%]+/").unwrap(),
         env = "HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN"
     )]
     pub allowed_url_domain: Regex,
@@ -52,12 +52,12 @@ pub struct Args {
 
 impl Args {
     /// Parse the arguments passed to the program.
-    pub fn parse() -> Self {
-        let args = <Args as Parser>::parse();
+    pub fn parse_args() -> Self {
+        let args = Self::parse();
         if let Some(shell) = args.generate_completion {
             clap_complete::generate(
                 shell,
-                &mut Args::augment_args(Command::new(env!("CARGO_PKG_NAME"))),
+                &mut Self::augment_args(Command::new(env!("CARGO_PKG_NAME"))),
                 env!("CARGO_PKG_NAME"),
                 &mut std::io::stdout(),
             );

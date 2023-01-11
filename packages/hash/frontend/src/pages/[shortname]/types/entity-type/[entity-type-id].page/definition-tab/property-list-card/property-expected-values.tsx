@@ -1,36 +1,57 @@
 import { PropertyType } from "@blockprotocol/type-system";
-import { Chip } from "@hashintel/hash-design-system";
-import { types } from "@hashintel/hash-shared/ontology-types";
+import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { chipClasses } from "@mui/material";
+import { Stack } from "@mui/system";
 
-const dataTypeIdToTitle = Object.values(types.dataType).reduce<
-  Record<string, string>
->((prev, dataType) => {
-  const { dataTypeId, title } = dataType;
+import { expectedValuesOptions } from "./shared/expected-values-options";
+import { getArrayExpectedValueType } from "./shared/get-expected-value-descriptor";
 
-  return { ...prev, [dataTypeId]: title };
-}, {});
-
-// @todo handle this being too many
 export const PropertyExpectedValues = ({
   property,
 }: {
   property: PropertyType;
 }) => (
-  <>
-    {property.oneOf.map((dataType) => {
-      let label;
+  <Stack direction="row" flexWrap="wrap" gap={1}>
+    {property.oneOf.map((dataType, index) => {
+      let expectedValueOption;
 
       if ("$ref" in dataType) {
-        label = dataTypeIdToTitle[dataType.$ref];
+        expectedValueOption = expectedValuesOptions[dataType.$ref];
       } else if (dataType.type === "array") {
-        label = "Array";
+        const childrenTypes = dataType.items.oneOf.map((item) =>
+          "type" in item ? item.type : item.$ref,
+        );
+
+        const arrayType = getArrayExpectedValueType(childrenTypes);
+
+        expectedValueOption = expectedValuesOptions[arrayType];
       }
 
-      if (label) {
-        return <Chip key={label} label={label} color="gray" />;
+      if (expectedValueOption) {
+        return (
+          <Chip
+            // eslint-disable-next-line react/no-array-index-key
+            key={index}
+            label={expectedValueOption.title}
+            icon={
+              <FontAwesomeIcon
+                icon={{
+                  icon: expectedValueOption.icon,
+                }}
+                sx={{ fontSize: "1em", mr: "1ch" }}
+              />
+            }
+            color="gray"
+            sx={{
+              [`.${chipClasses.label}`]: {
+                color: ({ palette }) => palette.gray[70],
+              },
+            }}
+          />
+        );
       }
 
       return null;
     })}
-  </>
+  </Stack>
 );

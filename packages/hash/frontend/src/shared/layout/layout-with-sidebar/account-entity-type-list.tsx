@@ -24,7 +24,8 @@ import {
   useState,
 } from "react";
 import { TransitionGroup } from "react-transition-group";
-import { useBlockProtocolAggregateEntityTypes } from "../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateEntityTypes";
+
+import { useBlockProtocolAggregateEntityTypes } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-entity-types";
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
 import {
   SortActionsDropdown,

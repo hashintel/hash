@@ -13,9 +13,9 @@ use std::{
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
+use tokio_postgres::GenericClient;
 #[cfg(feature = "__internal_bench")]
 use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
-use tokio_postgres::{GenericClient, Transaction};
 use type_system::{
     uri::{BaseUri, VersionedUri},
     DataTypeReference, EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
@@ -24,7 +24,7 @@ use uuid::Uuid;
 
 pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
-    identifier::{account::AccountId, knowledge::EntityEditionId, ontology::OntologyTypeEditionId},
+    identifier::{account::AccountId, ontology::OntologyTypeEditionId, EntityVertexId},
     ontology::{OntologyElementMetadata, OntologyTypeWithMetadata},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
@@ -33,7 +33,7 @@ use crate::{
         postgres::{ontology::OntologyDatabaseType, query::PostgresRecord, version_id::VersionId},
         query::{Filter, OntologyQueryPath},
         AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError,
-        Record, UpdateError,
+        Record, Store, StoreError, Transaction, UpdateError,
     },
     subgraph::edges::GraphResolveDepths,
 };
@@ -41,7 +41,7 @@ use crate::{
 use crate::{
     identifier::{
         knowledge::{EntityId, EntityRecordId, EntityVersion},
-        DecisionTimespan, DecisionTimestamp, TransactionTimespan,
+        time::{DecisionTime, Timestamp, VersionTimespan},
     },
     knowledge::{EntityProperties, LinkOrder},
 };
@@ -103,12 +103,49 @@ where
 #[derive(Default)]
 pub struct DependencyContext {
     pub ontology_dependency_map: DependencyMap<OntologyTypeEditionId>,
-    pub knowledge_dependency_map: DependencyMap<EntityEditionId>,
+    pub knowledge_dependency_map: DependencyMap<EntityVertexId>,
 }
 
 /// A Postgres-backed store
 pub struct PostgresStore<C> {
     client: C,
+}
+
+#[async_trait]
+impl<C: AsClient> Store for PostgresStore<C> {
+    type Transaction<'t>
+    where
+        C: 't,
+    = PostgresStore<tokio_postgres::Transaction<'t>>;
+
+    async fn transaction(&mut self) -> Result<Self::Transaction<'_>, StoreError> {
+        Ok(PostgresStore::new(
+            self.as_mut_client()
+                .transaction()
+                .await
+                .into_report()
+                .change_context(StoreError)?,
+        ))
+    }
+}
+
+#[async_trait]
+impl Transaction for PostgresStore<tokio_postgres::Transaction<'_>> {
+    async fn commit(self) -> Result<(), StoreError> {
+        self.client
+            .commit()
+            .await
+            .into_report()
+            .change_context(StoreError)
+    }
+
+    async fn rollback(self) -> Result<(), StoreError> {
+        self.client
+            .rollback()
+            .await
+            .into_report()
+            .change_context(StoreError)
+    }
 }
 
 impl<C> PostgresStore<C>
@@ -354,10 +391,12 @@ where
 
         // TODO - address potential race condition
         //  https://app.asana.com/0/1202805690238892/1203201674100967/f
-        let previous_ontology_type =
-            <Self as Read<T::WithMetadata>>::read_one(self, &Filter::for_base_uri(uri.base_uri()))
-                .await
-                .change_context(UpdateError)?;
+        let previous_ontology_type = <Self as Read<T::WithMetadata>>::read_one(
+            self,
+            &Filter::for_latest_base_uri(uri.base_uri()),
+        )
+        .await
+        .change_context(UpdateError)?;
 
         let owned_by_id = previous_ontology_type.metadata().owned_by_id();
 
@@ -626,15 +665,9 @@ where
             .attach_printable_lazy(|| uri.clone())?
             .get(0))
     }
-
-    /// TODO - DOC
-    #[expect(clippy::missing_const_for_fn, reason = "Compile error")]
-    pub fn into_client(self) -> C {
-        self.client
-    }
 }
 
-impl PostgresStore<Transaction<'_>> {
+impl PostgresStore<tokio_postgres::Transaction<'_>> {
     #[doc(hidden)]
     #[cfg(feature = "__internal_bench")]
     async fn insert_entity_ids(
@@ -812,7 +845,7 @@ impl PostgresStore<Transaction<'_>> {
     async fn insert_entity_versions(
         &self,
         entities: impl IntoIterator<
-            Item = (EntityId, EntityRecordId, Option<DecisionTimestamp>),
+            Item = (EntityId, EntityRecordId, Option<Timestamp<DecisionTime>>),
             IntoIter: Send,
         > + Send,
     ) -> Result<Vec<EntityVersion>, InsertionError> {
@@ -884,10 +917,10 @@ impl PostgresStore<Transaction<'_>> {
                     entity_record_id,
                     tstzrange(
                         CASE WHEN decision_time IS NULL THEN now() ELSE decision_time END,
-                        'infinity',
+                        NULL,
                         '[)'
                     ),
-                    tstzrange(now(), 'infinity', '[)')
+                    tstzrange(now(), NULL, '[)')
                 FROM entity_versions_temp
                 RETURNING decision_time, transaction_time;",
                 &[],
@@ -898,8 +931,8 @@ impl PostgresStore<Transaction<'_>> {
             .into_iter()
             .map(|row| {
                 EntityVersion::new(
-                    DecisionTimespan::new(row.get(0)),
-                    TransactionTimespan::new(row.get(1)),
+                    VersionTimespan::from_anonymous(row.get(0)),
+                    VersionTimespan::from_anonymous(row.get(1)),
                 )
             })
             .collect();

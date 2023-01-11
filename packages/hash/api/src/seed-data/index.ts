@@ -1,8 +1,6 @@
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { GraphApi } from "@hashintel/hash-graph-client";
-import { ensureUsersAreSeeded } from "./seed-users";
-import { PageDefinition, seedPages } from "./seed-pages";
-import { systemUserAccountId } from "../graph/system-user";
+
 import {
   createOrg,
   getOrgByShortname,
@@ -10,6 +8,9 @@ import {
   OrgSize,
 } from "../graph/knowledge/system-types/org";
 import { joinOrg } from "../graph/knowledge/system-types/user";
+import { systemUserAccountId } from "../graph/system-user";
+import { PageDefinition, seedPages } from "./seed-pages";
+import { ensureUsersAreSeeded } from "./seed-users";
 
 // Seed Org with some pages.
 const seedOrg = async (params: {

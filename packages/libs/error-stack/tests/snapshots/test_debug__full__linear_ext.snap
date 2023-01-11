@@ -3,16 +3,16 @@ source: tests/test_debug.rs
 expression: "format!(\"{report:#?}\")"
 ---
 context B
-├╴ tests/test_debug.rs:304:14
+├╴ at tests/test_debug.rs:304:14
 ├╴ printable C
 │
 ├─▶ context A
-│   ├╴ tests/test_debug.rs:301:14
+│   ├╴ at tests/test_debug.rs:301:14
 │   ├╴ printable B
 │   ╰╴ 1 additional opaque attachment
 │
 ╰─▶ root error
-    ├╴ tests/common.rs:4:5
+    ├╴ at tests/common.rs:4:5
     ├╴ backtrace (1)
     ├╴ span trace with 2 frames (1)
     ├╴ printable A

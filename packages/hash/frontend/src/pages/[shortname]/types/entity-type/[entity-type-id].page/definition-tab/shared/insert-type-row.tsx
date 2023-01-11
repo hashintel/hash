@@ -6,11 +6,12 @@ import {
 } from "@mui/material";
 import { bindTrigger, PopupState } from "material-ui-popup-state/hooks";
 import { Dispatch, Ref, SetStateAction, useRef } from "react";
+
 import {
   TypeSelector,
   TypeSelectorType,
-} from "../property-list-card/insert-property-row/type-selector";
-import { withHandler } from "../property-list-card/shared/with-handler";
+} from "./insert-property-row/type-selector";
+import { withHandler } from "./with-handler";
 
 export type InsertTypeRowProps<T extends TypeSelectorType> = {
   inputRef: Ref<HTMLInputElement | null>;

@@ -1,4 +1,4 @@
-import { DataType, PropertyType, EntityType } from "@blockprotocol/type-system";
+import { DataType, EntityType, PropertyType } from "@blockprotocol/type-system";
 import { EntityId } from "@hashintel/hash-subgraph";
 
 export type TextToken =
@@ -8,6 +8,8 @@ export type TextToken =
       bold?: boolean;
       italics?: boolean;
       underline?: boolean;
+      strikethrough?: boolean;
+      highlighted?: boolean;
       link?: string;
     }
   | { tokenType: "hardBreak" }

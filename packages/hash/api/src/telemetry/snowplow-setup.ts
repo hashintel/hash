@@ -1,11 +1,12 @@
 import {
-  tracker as createTracker,
+  buildStructEvent,
+  Emitter,
   gotEmitter,
   HttpProtocol,
-  buildStructEvent,
   Tracker,
-  Emitter,
+  tracker as createTracker,
 } from "@snowplow/node-tracker";
+
 import { getRequiredEnv } from "../util";
 
 /**

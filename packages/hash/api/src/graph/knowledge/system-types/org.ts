@@ -13,12 +13,13 @@ import {
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+
+import { EntityTypeMismatchError } from "../../../lib/error";
 import {
   ImpureGraphFunction,
   PureGraphFunction,
   zeroedGraphResolveDepths,
 } from "../..";
-import { EntityTypeMismatchError } from "../../../lib/error";
 import { SYSTEM_TYPES } from "../../system-types";
 import { systemUserAccountId } from "../../system-user";
 import {
@@ -96,7 +97,7 @@ export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createOrg: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityType" | "ownedById"> & {
+  Omit<CreateEntityParams, "properties" | "entityTypeId" | "ownedById"> & {
     shortname: string;
     name: string;
     providedInfo?: OrgProvidedInfo;
@@ -136,12 +137,10 @@ export const createOrg: ImpureGraphFunction<
       : {}),
   };
 
-  const entityType = SYSTEM_TYPES.entityType.org;
-
   const entity = await createEntity(ctx, {
     ownedById: systemUserAccountId as OwnedById,
     properties,
-    entityType,
+    entityTypeId: SYSTEM_TYPES.entityType.org.schema.$id,
     entityUuid: orgAccountId as EntityUuid,
     actorId,
   });

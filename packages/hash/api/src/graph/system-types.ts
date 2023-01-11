@@ -6,9 +6,9 @@ import {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@hashintel/hash-subgraph";
-import { logger } from "../logger";
 
-import { propertyTypeInitializer, entityTypeInitializer } from "./util";
+import { logger } from "../logger";
+import { entityTypeInitializer, propertyTypeInitializer } from "./util";
 
 // eslint-disable-next-line import/no-mutable-exports
 export let SYSTEM_TYPES: {
@@ -60,11 +60,6 @@ export let SYSTEM_TYPES: {
     comment: EntityTypeWithMetadata;
     page: EntityTypeWithMetadata;
     text: EntityTypeWithMetadata;
-    /**
-     * @todo: deprecate all uses of this dummy entity type
-     * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
-     */
-    dummy: EntityTypeWithMetadata;
   };
   linkEntityType: {
     // HASHInstance-related
@@ -316,7 +311,6 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
       {
         linkEntityType: orgMembershipLinkEntityType,
         destinationEntityTypes: [orgEntityType],
-        maxItems: 1,
       },
     ],
   })(graphApi);
@@ -340,10 +334,6 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
   const blockDataLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.blockData(graphApi);
 
-  const dummyEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.dummy(
-    graphApi,
-  );
-
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
@@ -357,12 +347,7 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
     outgoingLinks: [
       {
         linkEntityType: blockDataLinkEntityType,
-        /**
-         * @todo: unset this when the destination entity type can be undefined
-         * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
-         */
-        destinationEntityTypes: [dummyEntityType],
-        required: true,
+        minItems: 1,
         maxItems: 1,
       },
     ],
@@ -394,17 +379,6 @@ const textEntityTypeInitializer = async (graphApi: GraphApi) => {
         array: true,
       },
     ],
-  })(graphApi);
-};
-
-/**
- * @todo: remove this dummy entity type once we are able to define the block data link type without it
- * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
- */
-const dummyEntityTypeInitializer = async (graphApi: GraphApi) => {
-  return entityTypeInitializer({
-    ...types.entityType.dummy,
-    properties: [],
   })(graphApi);
 };
 
@@ -499,7 +473,7 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
       {
         linkEntityType: containsLinkEntityType,
         destinationEntityTypes: [blockEntityType],
-        required: true,
+        minItems: 1,
         ordered: true,
       },
       {
@@ -575,19 +549,19 @@ const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
       {
         linkEntityType: hasTextLinkEntityType,
         destinationEntityTypes: [textEntityType],
-        required: true,
+        minItems: 1,
         maxItems: 1,
       },
       {
         linkEntityType: parentLinkTypeType,
         destinationEntityTypes: ["SELF_REFERENCE", blockEntityType],
-        required: true,
+        minItems: 1,
         maxItems: 1,
       },
       {
         linkEntityType: authorLinkTypeType,
         destinationEntityTypes: [userEntityType],
-        required: true,
+        minItems: 1,
         maxItems: 1,
       },
     ],
@@ -647,7 +621,6 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     page: pageEntityTypeInitializer,
     comment: commentEntityTypeInitializer,
     text: textEntityTypeInitializer,
-    dummy: dummyEntityTypeInitializer,
   },
   linkEntityType: {
     admin: adminLinkEntityTypeInitializer,

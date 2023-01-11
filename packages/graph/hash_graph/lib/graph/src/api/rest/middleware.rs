@@ -1,4 +1,4 @@
-use std::{borrow::Cow, net::SocketAddr};
+use std::{borrow::Cow, net::SocketAddr, time::Duration};
 
 use axum::{
     body::{Body, Bytes, HttpBody},
@@ -13,7 +13,11 @@ use opentelemetry::{
     sdk::trace::{IdGenerator, RandomIdGenerator},
     trace::{SpanContext, SpanId, TraceContextExt},
 };
-use tracing::{enabled, Level};
+use tower_http::{
+    classify::{ServerErrorsAsFailures, ServerErrorsFailureClass, SharedClassifier},
+    trace::{DefaultOnBodyChunk, DefaultOnEos, DefaultOnRequest, TraceLayer},
+};
+use tracing::{enabled, field::Empty, Level};
 
 // *Heavily* inspired by
 // https://github.com/tokio-rs/axum/blob/main/examples/print-request-response/src/main.rs
@@ -84,6 +88,21 @@ where
     Ok(bytes)
 }
 
+pub fn span_trace_layer() -> TraceLayer<
+    SharedClassifier<ServerErrorsAsFailures>,
+    impl Fn(&Request<Body>) -> tracing::Span + Clone,
+    DefaultOnRequest,
+    impl Fn(&Response<axum::body::BoxBody>, Duration, &tracing::Span) + Clone,
+    DefaultOnBodyChunk,
+    DefaultOnEos,
+    impl Fn(ServerErrorsFailureClass, Duration, &tracing::Span) + Clone,
+> {
+    TraceLayer::new_for_http()
+        .make_span_with(span_maker)
+        .on_failure(span_on_failure)
+        .on_response(span_on_response)
+}
+
 struct HeaderExtractor<'a>(&'a http::HeaderMap);
 // Let OpenTelemetry pick the field names to make our headers "standardized".
 // We would have to set `traceparent` in a header to correlate spans.
@@ -93,10 +112,7 @@ impl<'a> Extractor for HeaderExtractor<'a> {
     }
 
     fn keys(&self) -> Vec<&str> {
-        self.0
-            .keys()
-            .map(hyper::header::HeaderName::as_str)
-            .collect()
+        self.0.keys().map(header::HeaderName::as_str).collect()
     }
 }
 
@@ -129,7 +145,7 @@ fn parse_x_forwarded_for(headers: &http::HeaderMap) -> Option<Cow<'_, str>> {
 }
 
 // Based on https://github.com/tokio-rs/axum/pull/769
-pub fn span_maker(request: &hyper::Request<hyper::Body>) -> tracing::Span {
+fn span_maker(request: &Request<Body>) -> tracing::Span {
     let target = request.uri();
     let scheme: Cow<'static, str> = target.scheme().map_or_else(
         || "HTTP".into(),
@@ -196,7 +212,35 @@ pub fn span_maker(request: &hyper::Request<hyper::Body>) -> tracing::Span {
         http.client_ip = %client_ip,
         http.user_agent = %user_agent,
         http.host = %host,
+        http.status_code = Empty,
+        otel.status_code = Empty,
     );
     tracing_opentelemetry::OpenTelemetrySpanExt::set_parent(&span, remote_context);
     span
+}
+
+fn span_on_response(
+    response: &Response<axum::body::BoxBody>,
+    _latency: Duration,
+    span: &tracing::Span,
+) {
+    let status = response.status().as_u16();
+    span.record("http.status_code", tracing::field::display(status));
+}
+
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "The failure argument isn't consumed, but passed by value from the TraceLayer."
+)]
+fn span_on_failure(failure: ServerErrorsFailureClass, _duration: Duration, span: &tracing::Span) {
+    match failure {
+        ServerErrorsFailureClass::StatusCode(status) => {
+            if status.is_server_error() {
+                span.record("otel.status_code", "ERROR");
+            }
+        }
+        ServerErrorsFailureClass::Error(_) => {
+            span.record("otel.status_code", "ERROR");
+        }
+    }
 }

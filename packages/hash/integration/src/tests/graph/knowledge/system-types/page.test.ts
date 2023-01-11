@@ -1,31 +1,32 @@
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
-import { SYSTEM_TYPES } from "@hashintel/hash-api/src/graph/system-types";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
 import { createEntity } from "@hashintel/hash-api/src/graph/knowledge/primitive/entity";
-import {
-  Page,
-  createPage,
-  getPageBlocks,
-  getPageById,
-  getAllPagesInWorkspace,
-  getPageParentPage,
-  setPageParentPage,
-  addBlockToPage,
-  moveBlockInPage,
-  removeBlockFromPage,
-} from "@hashintel/hash-api/src/graph/knowledge/system-types/page";
 import {
   Block,
   createBlock,
 } from "@hashintel/hash-api/src/graph/knowledge/system-types/block";
+import {
+  addBlockToPage,
+  createPage,
+  getAllPagesInWorkspace,
+  getPageBlocks,
+  getPageById,
+  getPageParentPage,
+  moveBlockInPage,
+  Page,
+  removeBlockFromPage,
+  setPageParentPage,
+} from "@hashintel/hash-api/src/graph/knowledge/system-types/page";
+import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
+import { SYSTEM_TYPES } from "@hashintel/hash-api/src/graph/system-types";
+import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { OwnedById } from "@hashintel/hash-shared/types";
+
 import { createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
@@ -62,8 +63,10 @@ describe("Page", () => {
       componentId: "text",
       blockData: await createEntity(graphContext, {
         ownedById: testUser.accountId as OwnedById,
-        entityType: SYSTEM_TYPES.entityType.dummy,
-        properties: {},
+        entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
+        properties: {
+          [SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId]: [],
+        },
         actorId: testUser.accountId,
       }),
       actorId: testUser.accountId,

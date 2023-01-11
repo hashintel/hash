@@ -1,12 +1,13 @@
 import { BaseUri } from "@blockprotocol/type-system";
+
 import {
-  isEntityEditionId,
-  isOntologyTypeEditionId,
   EntityId,
-  Timestamp,
-  EntityEditionId,
   EntityIdAndTimestamp,
+  EntityVertexId,
+  isEntityVertexId,
+  isOntologyTypeEditionId,
   OntologyTypeEditionId,
+  Timestamp,
 } from "./identifier";
 
 // -------------------------------- Edge Kinds --------------------------------
@@ -56,7 +57,7 @@ type GenericOutwardEdge<K, E> = {
 
 export type OntologyOutwardEdge =
   | GenericOutwardEdge<OntologyEdgeKind, OntologyTypeEditionId>
-  | GenericOutwardEdge<SharedEdgeKind, EntityEditionId>;
+  | GenericOutwardEdge<SharedEdgeKind, EntityVertexId>;
 
 export type KnowledgeGraphOutwardEdge =
   | GenericOutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>
@@ -69,7 +70,7 @@ export const isOntologyOutwardEdge = (
 ): edge is OntologyOutwardEdge => {
   return (
     isOntologyEdgeKind(edge.kind) ||
-    (isSharedEdgeKind(edge.kind) && isEntityEditionId(edge.rightEndpoint))
+    (isSharedEdgeKind(edge.kind) && isEntityVertexId(edge.rightEndpoint))
   );
 };
 

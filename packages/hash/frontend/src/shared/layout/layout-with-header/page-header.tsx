@@ -1,14 +1,14 @@
+import { Box, useMediaQuery, useTheme } from "@mui/material";
 import { FunctionComponent, ReactNode } from "react";
-import { Box, useTheme, useMediaQuery } from "@mui/material";
 
-import { useLogoutFlow } from "../../../components/hooks/useLogoutFlow";
-import { AccountDropdown } from "./account-dropdown";
-import { SearchBar } from "./search-bar";
-import { ActionsDropdown } from "./actions-dropdown";
-import { Button, Link } from "../../ui";
-import { HashAlphaNavIcon } from "../../icons";
-import { useHashInstance } from "../../../components/hooks/useHashInstance";
+import { useHashInstance } from "../../../components/hooks/use-hash-instance";
+import { useLogoutFlow } from "../../../components/hooks/use-logout-flow";
 import { useAuthInfo } from "../../../pages/shared/auth-info-context";
+import { HashAlphaNavIcon } from "../../icons";
+import { Button, Link } from "../../ui";
+import { AccountDropdown } from "./account-dropdown";
+import { ActionsDropdown } from "./actions-dropdown";
+import { SearchBar } from "./search-bar";
 
 const Nav: FunctionComponent<{ children?: ReactNode }> = ({ children }) => (
   <Box

@@ -12,35 +12,19 @@ use crate::{
     api::rest::{
         api_resource::RoutedResource,
         report_to_status_code,
-        utoipa_typedef::{
-            subgraph::{
-                Edges, KnowledgeGraphOutwardEdges, KnowledgeGraphRootedEdges, KnowledgeGraphVertex,
-                KnowledgeGraphVertices, OntologyRootedEdges, OntologyVertex, OntologyVertices,
-                Subgraph, Vertex, Vertices,
-            },
-            EntityIdAndTimestamp,
-        },
+        utoipa_typedef::{subgraph::Subgraph, EntityIdAndTimestamp},
     },
-    identifier::{
-        knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
-        GraphElementEditionId, GraphElementId, TransactionTimestamp,
-    },
+    identifier::knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryToken, EntityUuid,
         LinkData, LinkOrder,
     },
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, UpdatedById},
     store::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
         EntityStore, StorePool,
     },
-    subgraph::{
-        edges::{
-            EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
-            OntologyOutwardEdges, OutgoingEdgeResolveDepth, SharedEdgeKind,
-        },
-        query::{EntityStructuralQuery, StructuralQuery},
-    },
+    subgraph::query::{EntityStructuralQuery, StructuralQuery},
 };
 
 #[derive(OpenApi)]
@@ -52,46 +36,25 @@ use crate::{
     ),
     components(
         schemas(
-            OwnedById,
-            UpdatedById,
             CreateEntityRequest,
             UpdateEntityRequest,
+            EntityQueryToken,
+            EntityStructuralQuery,
+
+            Entity,
             EntityUuid,
             EntityId,
             EntityEditionId,
             EntityIdAndTimestamp,
             EntityMetadata,
-            Entity,
             EntityLinkOrder,
             EntityProperties,
             EntityRecordId,
             EntityVersion,
             EntityStructuralQuery,
             EntityQueryToken,
-            TransactionTimestamp,
             LinkData,
             LinkOrder,
-            ProvenanceMetadata,
-            GraphElementId,
-            GraphElementEditionId,
-            OntologyVertex,
-            KnowledgeGraphVertex,
-            Vertex,
-            KnowledgeGraphVertices,
-            OntologyVertices,
-            Vertices,
-            SharedEdgeKind,
-            KnowledgeGraphEdgeKind,
-            OntologyEdgeKind,
-            OntologyOutwardEdges,
-            KnowledgeGraphOutwardEdges,
-            OntologyRootedEdges,
-            KnowledgeGraphRootedEdges,
-            Edges,
-            GraphResolveDepths,
-            EdgeResolveDepths,
-            OutgoingEdgeResolveDepth,
-            Subgraph,
         )
     ),
     tags(

@@ -1,29 +1,10 @@
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
   zeroedGraphResolveDepths,
 } from "@hashintel/hash-api/src/graph";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-
-import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
-import { generateSystemEntityTypeSchema } from "@hashintel/hash-api/src/graph/util";
-import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import {
-  Entity,
-  DataTypeWithMetadata,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-  Subgraph,
-  SubgraphRootTypes,
-  extractOwnedByIdFromEntityId,
-  linkEntityTypeUri,
-} from "@hashintel/hash-subgraph";
-import { createPropertyType } from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
-import { createEntityType } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
-import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import {
   createEntity,
   createEntityWithLinks,
@@ -31,9 +12,28 @@ import {
   getLatestEntityById,
   updateEntity,
 } from "@hashintel/hash-api/src/graph/knowledge/primitive/entity";
-import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
 import { getLinkEntityRightEntity } from "@hashintel/hash-api/src/graph/knowledge/primitive/link-entity";
+import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
+import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
+import { createEntityType } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
+import { createPropertyType } from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
+import { generateSystemEntityTypeSchema } from "@hashintel/hash-api/src/graph/util";
+import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { EntityId, OwnedById } from "@hashintel/hash-shared/types";
+import {
+  DataTypeWithMetadata,
+  Entity,
+  EntityTypeWithMetadata,
+  extractOwnedByIdFromEntityId,
+  linkEntityTypeUri,
+  PropertyTypeWithMetadata,
+  Subgraph,
+  SubgraphRootTypes,
+} from "@hashintel/hash-subgraph";
+import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+
 import { createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
@@ -169,7 +169,7 @@ describe("Entity CRU", () => {
         [namePropertyType.metadata.editionId.baseId]: "Bob",
         [favoriteBookPropertyType.metadata.editionId.baseId]: "some text",
       },
-      entityType,
+      entityTypeId: entityType.schema.$id,
       actorId: testUser.accountId,
     });
   });
@@ -182,8 +182,8 @@ describe("Entity CRU", () => {
     expect(fetchedEntity.metadata.editionId.baseId).toEqual(
       createdEntity.metadata.editionId.baseId,
     );
-    expect(fetchedEntity.metadata.editionId.version).toEqual(
-      createdEntity.metadata.editionId.version,
+    expect(fetchedEntity.metadata.editionId.recordId).toEqual(
+      createdEntity.metadata.editionId.recordId,
     );
   });
 
@@ -239,8 +239,8 @@ describe("Entity CRU", () => {
     expect(allEntitys.length).toBeGreaterThanOrEqual(1);
     expect(newlyUpdated).toBeDefined();
 
-    expect(newlyUpdated?.metadata.editionId.version).toEqual(
-      updatedEntity.metadata.editionId.version,
+    expect(newlyUpdated?.metadata.editionId.recordId).toEqual(
+      updatedEntity.metadata.editionId.recordId,
     );
     expect(
       newlyUpdated?.properties[namePropertyType.metadata.editionId.baseId],

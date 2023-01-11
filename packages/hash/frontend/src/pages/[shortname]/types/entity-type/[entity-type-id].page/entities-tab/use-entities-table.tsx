@@ -5,12 +5,19 @@ import {
   PropertyType,
 } from "@blockprotocol/type-system";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
-import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
+import {
+  Entity,
+  extractEntityUuidFromEntityId,
+  Subgraph,
+  SubgraphRootTypes,
+} from "@hashintel/hash-subgraph";
 import { useMemo } from "react";
+
+import { useGetOwnerForEntity } from "../../../../../../components/hooks/use-get-owner-for-entity";
 import { generateEntityLabel } from "../../../../../../lib/entities";
-import { useGetOwnerForEntity } from "../../../../../../components/hooks/useGetOwnerForEntity";
 
 export interface TypeEntitiesRow {
+  entityId: string;
   entity: string;
   entityTypeVersion: string;
   namespace: string;
@@ -84,7 +91,12 @@ export const useEntitiesTable = (
 
         const { shortname: entityNamespace } = getOwnerForEntity(entity);
 
+        const entityId = extractEntityUuidFromEntityId(
+          entity.metadata.editionId.baseId,
+        );
+
         return {
+          entityId,
           entity: entityLabel,
           entityTypeVersion: entityType
             ? `v${extractVersion(entityType.$id)} ${entityType.title}`

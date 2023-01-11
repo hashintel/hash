@@ -1,5 +1,6 @@
-import { GraphQLError } from "graphql";
 import { ParsedUrlQueryInput } from "node:querystring";
+
+import { GraphQLError } from "graphql";
 
 export const SYNTHETIC_LOADING_TIME_MS = 700;
 
