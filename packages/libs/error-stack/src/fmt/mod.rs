@@ -517,7 +517,7 @@ impl Display for InstructionDisplay<'_> {
 #[cfg(not(feature = "pretty-print"))]
 impl Display for InstructionDisplay<'_> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        match self.prepare() {
+        match self.instruction.prepare() {
             PreparedInstruction::Symbols(symbols) => {
                 for symbol in symbols {
                     Display::fmt(symbol, fmt)?;
