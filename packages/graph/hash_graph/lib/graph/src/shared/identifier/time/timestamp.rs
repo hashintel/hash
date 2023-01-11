@@ -1,8 +1,12 @@
 use core::fmt;
-use std::{any::type_name, error::Error, marker::PhantomData, str::FromStr, time::SystemTime};
+use std::{
+    any::type_name, collections::Bound, error::Error, marker::PhantomData, str::FromStr,
+    time::SystemTime,
+};
 
 use chrono::{DateTime, Utc};
 use derivative::Derivative;
+use interval_ops::LowerBound;
 use postgres_types::{private::BytesMut, FromSql, ToSql, Type};
 use serde::{Deserialize, Serialize};
 use utoipa::{openapi, ToSchema};
@@ -29,6 +33,32 @@ pub struct Timestamp<A> {
     #[serde(skip)]
     axis: PhantomData<A>,
     time: DateTime<Utc>,
+}
+
+impl<A> LowerBound<Self> for Timestamp<A> {
+    fn as_bound(&self) -> Bound<&Self> {
+        Bound::Included(self)
+    }
+
+    fn into_bound(self) -> Bound<Self> {
+        Bound::Included(self)
+    }
+
+    fn from_bound(bound: Bound<Self>) -> Self {
+        match bound {
+            Bound::Included(timestamp) => timestamp,
+            Bound::Excluded(_) => {
+                unimplemented!(
+                    "Excluded bounds are not permitted as lower bounds for version intervals"
+                )
+            }
+            Bound::Unbounded => {
+                unimplemented!(
+                    "Unbounded bounds are not permitted as lower bounds for version intervals"
+                )
+            }
+        }
+    }
 }
 
 impl<A> fmt::Debug for Timestamp<A> {
