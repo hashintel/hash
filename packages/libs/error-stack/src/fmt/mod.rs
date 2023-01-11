@@ -164,13 +164,9 @@ use core::{
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub use hook::HookContext;
 #[cfg(any(feature = "std", feature = "hooks"))]
-<<<<<<< HEAD
 pub(crate) use hook::{install_builtin_debug_hooks, FmtHooks, Format};
-=======
-pub(crate) use hook::{install_builtin_hooks, Format, Hooks};
 #[cfg(all(not(any(feature = "std", feature = "hooks")), feature = "pretty-print"))]
 use location::LocationDisplay;
->>>>>>> origin/main
 #[cfg(feature = "pretty-print")]
 use owo_colors::{OwoColorize, Stream, Style as OwOStyle};
 
