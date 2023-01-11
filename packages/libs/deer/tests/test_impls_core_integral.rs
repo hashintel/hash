@@ -8,6 +8,7 @@ use serde_json::json;
 
 // we do not test atomics, as they only delegate to `Atomic*` and are not `PartialEq`
 
+#[cfg(not(miri))]
 proptest! {
     #[test]
     fn u8_ok(value in any::<u8>()) {

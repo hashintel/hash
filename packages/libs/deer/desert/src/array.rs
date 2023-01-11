@@ -81,28 +81,32 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
     where
         T: Deserialize<'de>,
     {
-        self.consumed += 1;
+        if let Some(remaining) = &mut self.remaining {
+            if *remaining == 0 {
+                return None;
+            }
+
+            *remaining = remaining.saturating_sub(1);
+        }
 
         if matches!(self.deserializer.peek(), Token::ArrayEnd) {
             // we have reached the ending, if `self.remaining` is set we use the `DeserializerNone`
             // to deserialize any values that require `None`
-            if let Some(remaining) = &mut self.remaining {
-                if *remaining == 0 {
-                    return None;
-                }
-
-                *remaining = remaining.saturating_sub(1);
-
+            if self.remaining.is_some() {
+                // previous statement ensures that remaining is decremented and wasn't 0
                 let value = T::deserialize(DeserializerNone {
                     context: self.deserializer.context(),
                 });
 
+                self.consumed += 1;
                 Some(value.change_context(ArrayAccessError))
             } else {
                 None
             }
         } else {
             let value = T::deserialize(&mut *self.deserializer);
+            self.consumed += 1;
+
             Some(value.change_context(ArrayAccessError))
         }
     }
@@ -129,6 +133,11 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
         // bump until the very end, which ensures that deserialize calls after this might succeed!
         let bump = self
             .scan_end()
+            .map(
+                // we need to convert the index (peek index) into an amount to bump
+                // which means we need to increment
+                |index| index + 1,
+            )
             .unwrap_or_else(|| self.deserializer.tape().remaining());
         self.deserializer.tape_mut().bump_n(bump);
 

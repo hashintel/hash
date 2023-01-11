@@ -2,6 +2,7 @@ use deer::Number;
 use deer_desert::{assert_tokens, Token};
 use proptest::prelude::*;
 
+#[cfg(not(miri))]
 proptest! {
     #[test]
     fn f32_ok(value in any::<f32>()) {

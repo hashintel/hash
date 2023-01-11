@@ -1,6 +1,7 @@
 use deer_desert::{assert_tokens, Token};
 use proptest::prelude::*;
 
+#[cfg(not(miri))]
 proptest! {
     #[test]
     fn char_ok(value in any::<char>()) {

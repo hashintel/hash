@@ -1,9 +1,12 @@
 use core::{marker::PhantomData, mem, mem::MaybeUninit, ptr};
 
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 
 use crate::{
-    error::{ArrayAccessError, DeserializeError, Location, VisitorError},
+    error::{
+        ArrayAccessError, ArrayLengthError, DeserializeError, ExpectedLength, Location,
+        ReceivedLength, Variant, VisitorError,
+    },
     ArrayAccess, Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
 };
 
@@ -21,6 +24,7 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
         A: ArrayAccess<'de>,
     {
         v.set_bounded(N).change_context(VisitorError)?;
+        let size_hint = v.size_hint();
 
         let mut result: Result<(), ArrayAccessError> = Ok(());
 
@@ -70,9 +74,25 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
             }
         }
 
+        if let Some(size_hint) = size_hint {
+            // The deserializer should emit this if there are too many, meaning we only need to emit
+            // if it is less!
+            if size_hint < N {
+                let error = Report::new(ArrayLengthError.into_error())
+                    .attach(ReceivedLength::new(size_hint))
+                    .attach(ExpectedLength::new(N))
+                    .change_context(ArrayAccessError);
+
+                // we received less items, which means we can emit another error
+                match &mut result {
+                    Err(result) => result.extend_one(error),
+                    result => *result = Err(error),
+                }
+            }
+        }
+
         // we do not need to check if we have enough items, as `set_bounded` guarantees that we
         // visit exactly `N` times and `v.end()` ensures that there aren't too many items.
-
         if result.is_err() {
             // we will error out, but as to not leak memory we drop all previously written items
             for item in &mut array[0..index] {
@@ -105,8 +125,10 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
     }
 }
 
+type UnsizedArray<T, const N: usize> = ([(); N], T);
+
 pub struct ArrayReflection<T: Reflection + ?Sized, const N: usize>(
-    PhantomData<fn() -> ([(); N], T)>,
+    PhantomData<fn() -> UnsizedArray<T, N>>,
 );
 
 impl<T: Reflection + ?Sized, const N: usize> Reflection for ArrayReflection<T, N> {
