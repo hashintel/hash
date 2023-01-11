@@ -54,7 +54,7 @@
     "seed-data:redis": "yarn workspace @hashintel/hash-realtime clear-redis",
     "seed-data": "concurrently \"yarn:seed-data:*\"",
     "test:backend-integration": "yarn workspace @tests/hash-backend-integration test",
-    "test:playwright": "yarn workspace @hashintel/hash-playwright playwright test",
+    "test:playwright": "yarn workspace @tests/hash-playwright playwright test",
     "test:unit": "yarn workspace @hashintel/hash-api test && yarn workspace @hashintel/hash-backend-utils test && yarn workspace @hashintel/hash-shared test"
   },
   "lint-staged": {
