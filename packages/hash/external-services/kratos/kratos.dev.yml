@@ -1,5 +1,3 @@
-# Based on the quick-start example https://github.com/ory/kratos/blob/master/contrib/quickstart/kratos/email-password/kratos.yml
-
 version: v0.11.0
 
 serve:
@@ -53,9 +51,6 @@ selfservice:
       after:
         password:
           hooks:
-            # TODO - This does not block writing to the datastore. Update this
-            # configuration to use a "pre-persist" hook when it is officially
-            # supported by kratos.
             - hook: web_hook
               config:
                 can_interrupt: true
@@ -77,6 +72,16 @@ selfservice:
       # Set though SELFSERVICE_FLOWS_VERIFICATION_UI_URL
       ui_url: http://localhost:3000/verification
       enabled: true
+
+    recovery:
+      enabled: true
+      # Set through SELFSERVICE_FLOWS_RECOVERY_UI_URL
+      ui_url: http://localhost:3000/recovery
+      use: code
+
+    settings:
+      # Set through SELFSERVICE_FLOWS_SETTINGS_UI_URL
+      ui_url: http://localhost:3000/settings
 
 log:
   level: debug

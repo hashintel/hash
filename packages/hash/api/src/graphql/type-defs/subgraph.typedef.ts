@@ -3,10 +3,12 @@ import { gql } from "apollo-server-express";
 /** @todo - docs */
 
 export const subgraphTypedef = gql`
-  scalar GraphElementEditionId
+  scalar GraphElementVertexId
   scalar VersionedUri
   scalar Vertices
   scalar Edges
+  scalar TimeProjection
+  scalar ResolvedTimeProjection
 
   # TODO: Replace with \`EdgeResolveDepths\`
   #   see https://app.asana.com/0/1201095311341924/1203399511264512/f
@@ -39,9 +41,11 @@ export const subgraphTypedef = gql`
   }
 
   type Subgraph {
-    roots: [GraphElementEditionId!]!
+    roots: [GraphElementVertexId!]!
     vertices: Vertices!
     edges: Edges!
     depths: ResolveDepths!
+    timeProjection: TimeProjection!
+    resolvedTimeProjection: ResolvedTimeProjection!
   }
 `;

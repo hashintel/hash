@@ -5,10 +5,10 @@ expression: "format!(\"{report:?}\")"
 context D
 ├╴ usize: 420
 ├╴ &'static str: Invalid User Input
-├╴ tests/test_debug.rs:396:38
+├╴ at tests/test_debug.rs:597:38
 │
 ╰─▶ root error
-    ├╴ tests/common/mod.rs:4:5
+    ├╴ at tests/common.rs:4:5
     ├╴ backtrace (1)
     ╰╴ span trace with 2 frames (1)
 

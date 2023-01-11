@@ -6,25 +6,34 @@ import "./globals.scss";
 
 import { ApolloProvider } from "@apollo/client/react";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import wasm from "@blockprotocol/type-system/type-system.wasm";
 import { CacheProvider, EmotionCache } from "@emotion/react";
 import { createEmotionCache, theme } from "@hashintel/hash-design-system";
 import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
 import { configureScope } from "@sentry/nextjs";
 import { AppProps as NextAppProps } from "next/app";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { SnackbarProvider } from "notistack";
-import { FunctionComponent, useEffect, useState } from "react";
+import {
+  FunctionComponent,
+  PropsWithChildren,
+  Suspense,
+  useEffect,
+  useState,
+} from "react";
 import { ModalProvider } from "react-modal-hook";
 
 import { MeQuery } from "../graphql/api-types.gen";
 import { meQuery } from "../graphql/queries/user.queries";
 import { apolloClient } from "../lib/apollo-client";
-import { TypeSystemContextProvider } from "../lib/use-init-type-system";
 import {
   AuthenticatedUser,
   constructAuthenticatedUser,
 } from "../lib/user-and-org";
+import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import {
   RoutePageInfoProvider,
@@ -35,6 +44,40 @@ import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
 import { fetchKratosSession } from "./shared/ory-kratos";
 import { setSentryUser } from "./shared/sentry";
 import { WorkspaceContextProvider } from "./shared/workspace-context";
+
+// eslint-disable-next-line react/jsx-no-useless-fragment
+const RenderChildren = ({ children }: PropsWithChildren) => <>{children}</>;
+
+export const initWasm = async () => {
+  let wasmModule;
+  if (typeof window === "undefined") {
+    // eslint-disable-next-line unicorn/prefer-node-protocol
+    const { default: fs } = await import("fs/promises");
+
+    // @ts-expect-error -- We need Node's native require here, and it's safe as this is a server-only block
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    const wasmPath = __non_webpack_require__.resolve(
+      "@blockprotocol/type-system/type-system.wasm",
+    );
+    const contents = await fs.readFile(wasmPath);
+
+    wasmModule = await WebAssembly.compile(contents);
+  } else {
+    wasmModule = wasm;
+  }
+  await TypeSystemInitializer.initialize(wasmModule);
+};
+
+const InitTypeSystem = dynamic(
+  async () => {
+    await initWasm();
+
+    return { default: RenderChildren };
+  },
+  {
+    suspense: true,
+  },
+);
 
 const clientSideEmotionCache = createEmotionCache();
 
@@ -76,33 +119,40 @@ const App: FunctionComponent<AppProps> = ({
   // getServerSideProps. By showing app skeleton on the server, we avoid UI
   // mismatches during rehydration and improve type-safety of param extraction.
   if (ssr || !router.isReady) {
-    return null; // Replace with app skeleton
+    return (
+      <Suspense>
+        <InitTypeSystem />
+      </Suspense>
+    ); // Replace with app skeleton
   }
 
   const getLayout = Component.getLayout ?? getPlainLayout;
 
   return (
-    <>
-      <CacheProvider value={emotionCache}>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <ModalProvider>
-            <RouteWorkspaceInfoProvider>
-              <RoutePageInfoProvider>
-                <WorkspaceContextProvider>
-                  <SnackbarProvider maxSnack={3}>
-                    {getLayout(<Component {...pageProps} />)}
-                  </SnackbarProvider>
-                </WorkspaceContextProvider>
-              </RoutePageInfoProvider>
-            </RouteWorkspaceInfoProvider>
-          </ModalProvider>
-        </ThemeProvider>
-      </CacheProvider>
-      {/* "spin" is used in some inline styles which have been temporarily introduced in https://github.com/hashintel/hash/pull/1471 */}
-      {/* @todo remove when inline styles are replaced with MUI styles */}
-      <GlobalStyles
-        styles={`
+    <Suspense>
+      <InitTypeSystem>
+        <CacheProvider value={emotionCache}>
+          <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <ModalProvider>
+              <RouteWorkspaceInfoProvider>
+                <RoutePageInfoProvider>
+                  <WorkspaceContextProvider>
+                    <SnackbarProvider maxSnack={3}>
+                      <EntityTypesContextProvider>
+                        {getLayout(<Component {...pageProps} />)}
+                      </EntityTypesContextProvider>
+                    </SnackbarProvider>
+                  </WorkspaceContextProvider>
+                </RoutePageInfoProvider>
+              </RouteWorkspaceInfoProvider>
+            </ModalProvider>
+          </ThemeProvider>
+        </CacheProvider>
+        {/* "spin" is used in some inline styles which have been temporarily introduced in https://github.com/hashintel/hash/pull/1471 */}
+        {/* @todo remove when inline styles are replaced with MUI styles */}
+        <GlobalStyles
+          styles={`
         @keyframes spin {
           from {
             transform: rotate(0deg);
@@ -112,8 +162,9 @@ const App: FunctionComponent<AppProps> = ({
           }
         };
       `}
-      />
-    </>
+        />
+      </InitTypeSystem>
+    </Suspense>
   );
 };
 
@@ -123,13 +174,11 @@ const AppWithTypeSystemContextProvider: AppPage<AppProps, AppInitialProps> = (
   const { initialAuthenticatedUser } = props;
 
   return (
-    <TypeSystemContextProvider>
-      <ApolloProvider client={apolloClient}>
-        <AuthInfoProvider initialAuthenticatedUser={initialAuthenticatedUser}>
-          <App {...props} />
-        </AuthInfoProvider>
-      </ApolloProvider>
-    </TypeSystemContextProvider>
+    <ApolloProvider client={apolloClient}>
+      <AuthInfoProvider initialAuthenticatedUser={initialAuthenticatedUser}>
+        <App {...props} />
+      </AuthInfoProvider>
+    </ApolloProvider>
   );
 };
 
@@ -138,6 +187,7 @@ const publiclyAccessiblePagePathnames = [
   "/[shortname]/[page-slug]",
   "/login",
   "/signup",
+  "/recovery",
 ];
 
 AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
@@ -169,15 +219,15 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
     return {};
   }
 
-  const userEntityEditionId = (
-    subgraph as Subgraph<SubgraphRootTypes["entity"]>
-  ).roots[0]!;
+  const userEntity = getRoots(
+    subgraph as Subgraph<SubgraphRootTypes["entity"]>,
+  )[0]!;
 
   // The type system package needs to be initialized before calling `constructAuthenticatedUser`
   await TypeSystemInitializer.initialize();
 
   const initialAuthenticatedUser = constructAuthenticatedUser({
-    userEntityEditionId,
+    userEntity,
     subgraph,
     kratosSession,
   });

@@ -435,9 +435,12 @@ impl FmtHooks {
 mod default {
     #![allow(unused_imports)]
 
+    #[cfg(feature = "pretty-print")]
+    use alloc::string::ToString;
     use alloc::{format, vec, vec::Vec};
     use core::{
         any::TypeId,
+        fmt::Write,
         panic::Location,
         sync::atomic::{AtomicBool, Ordering},
     };
@@ -453,6 +456,8 @@ mod default {
     #[cfg(feature = "spantrace")]
     use tracing_error::SpanTrace;
 
+    #[cfg(feature = "pretty-print")]
+    use crate::fmt::location::LocationDisplay;
     use crate::{
         fmt::hook::{into_boxed_hook, BoxedHook, HookContext},
         Frame, Report,
@@ -494,10 +499,7 @@ mod default {
 
     fn location(location: &Location<'static>, context: &mut HookContext<Location<'static>>) {
         #[cfg(feature = "pretty-print")]
-        context.push_body(format!(
-            "{}",
-            location.if_supports_color(Stream::Stdout, OwoColorize::bright_black)
-        ));
+        context.push_body(LocationDisplay::new(location).render());
 
         #[cfg(not(feature = "pretty-print"))]
         context.push_body(format!("at {location}"));

@@ -4,15 +4,19 @@ mod entity_type;
 mod links;
 mod property_type;
 
-use std::{borrow::Cow, str::FromStr};
+use std::borrow::Cow;
 
 use error_stack::Result;
 use graph::{
     identifier::{
         account::AccountId,
-        knowledge::{EntityEditionId, EntityId},
+        knowledge::EntityId,
         ontology::OntologyTypeEditionId,
-        DecisionTimestamp, GraphElementEditionId,
+        time::{
+            TimespanBound, Timestamp, TransactionTime, UnresolvedImage, UnresolvedKernel,
+            UnresolvedProjection, UnresolvedTimeProjection,
+        },
+        EntityVertexId, GraphElementVertexId,
     },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
@@ -25,9 +29,9 @@ use graph::{
     provenance::{OwnedById, UpdatedById},
     store::{
         query::{Filter, FilterExpression, Parameter},
-        AccountStore, AsClient, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityStore,
+        AccountStore, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityStore,
         EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool, PropertyTypeStore,
-        QueryError, Record, StorePool, UpdateError,
+        QueryError, Record, Store, StorePool, UpdateError,
     },
     subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
 };
@@ -88,13 +92,11 @@ impl DatabaseTestWrapper {
         P: IntoIterator<Item = &'static str>,
         E: IntoIterator<Item = &'static str>,
     {
-        let mut store = PostgresStore::new(
-            self.connection
-                .as_mut_client()
-                .transaction()
-                .await
-                .expect("could not start test transaction"),
-        );
+        let mut store = self
+            .connection
+            .transaction()
+            .await
+            .expect("could not start test transaction");
 
         let account_id = AccountId::new(Uuid::new_v4());
         store
@@ -167,6 +169,13 @@ impl DatabaseApi<'_> {
             .get_data_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::default(),
+                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                    kernel: UnresolvedKernel::new(None),
+                    image: UnresolvedImage::new(
+                        Some(TimespanBound::Unbounded),
+                        Some(TimespanBound::Unbounded),
+                    ),
+                }),
             })
             .await?
             .vertices
@@ -206,6 +215,13 @@ impl DatabaseApi<'_> {
             .get_property_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::default(),
+                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                    kernel: UnresolvedKernel::new(None),
+                    image: UnresolvedImage::new(
+                        Some(TimespanBound::Unbounded),
+                        Some(TimespanBound::Unbounded),
+                    ),
+                }),
             })
             .await?
             .vertices
@@ -245,6 +261,13 @@ impl DatabaseApi<'_> {
             .get_entity_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::default(),
+                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                    kernel: UnresolvedKernel::new(None),
+                    image: UnresolvedImage::new(
+                        Some(TimespanBound::Unbounded),
+                        Some(TimespanBound::Unbounded),
+                    ),
+                }),
             })
             .await?
             .vertices
@@ -272,7 +295,7 @@ impl DatabaseApi<'_> {
             .create_entity(
                 OwnedById::new(self.account_id),
                 entity_uuid,
-                Some(DecisionTimestamp::from_str("2000-01-01T00:00:00Z").unwrap()),
+                None,
                 UpdatedById::new(self.account_id),
                 false,
                 entity_type_id,
@@ -284,18 +307,27 @@ impl DatabaseApi<'_> {
 
     pub async fn get_entity(
         &self,
-        entity_edition_id: EntityEditionId,
+        entity_id: EntityId,
+        timestamp: Timestamp<TransactionTime>,
     ) -> Result<Entity, QueryError> {
+        let entity_vertex_id = EntityVertexId::new(entity_id, timestamp.cast());
         Ok(self
             .store
             .get_entity(&StructuralQuery {
-                filter: Entity::create_filter_for_edition_id(&entity_edition_id),
+                filter: Entity::create_filter_for_vertex_id(&entity_vertex_id),
                 graph_resolve_depths: GraphResolveDepths::default(),
+                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                    kernel: UnresolvedKernel::new(None),
+                    image: UnresolvedImage::new(
+                        Some(TimespanBound::Unbounded),
+                        Some(TimespanBound::Unbounded),
+                    ),
+                }),
             })
             .await?
             .vertices
             .entities
-            .remove(&entity_edition_id)
+            .remove(&entity_vertex_id)
             .expect("no entity found"))
     }
 
@@ -309,7 +341,7 @@ impl DatabaseApi<'_> {
         self.store
             .update_entity(
                 entity_id,
-                Some(DecisionTimestamp::from_str("2000-01-03T00:00:00Z").unwrap()),
+                None,
                 UpdatedById::new(self.account_id),
                 false,
                 entity_type_id,
@@ -331,7 +363,7 @@ impl DatabaseApi<'_> {
             .create_entity(
                 OwnedById::new(self.account_id),
                 entity_uuid,
-                Some(DecisionTimestamp::from_str("2000-01-02T00:00:00Z").unwrap()),
+                None,
                 UpdatedById::new(self.account_id),
                 false,
                 entity_type_id,
@@ -386,6 +418,13 @@ impl DatabaseApi<'_> {
             .get_entity(&StructuralQuery {
                 filter,
                 graph_resolve_depths: GraphResolveDepths::default(),
+                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                    kernel: UnresolvedKernel::new(None),
+                    image: UnresolvedImage::new(
+                        Some(TimespanBound::Unbounded),
+                        Some(TimespanBound::Unbounded),
+                    ),
+                }),
             })
             .await?;
 
@@ -393,8 +432,8 @@ impl DatabaseApi<'_> {
             .roots
             .into_iter()
             .filter_map(|edition_id| match edition_id {
-                GraphElementEditionId::Ontology(_) => None,
-                GraphElementEditionId::KnowledgeGraph(edition_id) => {
+                GraphElementVertexId::Ontology(_) => None,
+                GraphElementVertexId::KnowledgeGraph(edition_id) => {
                     subgraph.vertices.entities.remove(&edition_id)
                 }
             })
@@ -446,6 +485,13 @@ impl DatabaseApi<'_> {
             .get_entity(&StructuralQuery {
                 filter,
                 graph_resolve_depths: GraphResolveDepths::default(),
+                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                    kernel: UnresolvedKernel::new(None),
+                    image: UnresolvedImage::new(
+                        Some(TimespanBound::Unbounded),
+                        Some(TimespanBound::Unbounded),
+                    ),
+                }),
             })
             .await?;
 
@@ -453,8 +499,8 @@ impl DatabaseApi<'_> {
             .roots
             .into_iter()
             .filter_map(|edition_id| match edition_id {
-                GraphElementEditionId::Ontology(_) => None,
-                GraphElementEditionId::KnowledgeGraph(edition_id) => {
+                GraphElementVertexId::Ontology(_) => None,
+                GraphElementVertexId::KnowledgeGraph(edition_id) => {
                     subgraph.vertices.entities.remove(&edition_id)
                 }
             })
@@ -471,7 +517,7 @@ impl DatabaseApi<'_> {
         self.store
             .update_entity(
                 entity_id,
-                Some(DecisionTimestamp::from_str("2000-01-04T00:00:00Z").unwrap()),
+                None,
                 UpdatedById::new(self.account_id),
                 true,
                 entity_type_id,

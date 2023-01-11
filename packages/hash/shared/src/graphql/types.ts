@@ -8,6 +8,8 @@ export type TextToken =
       bold?: boolean;
       italics?: boolean;
       underline?: boolean;
+      strikethrough?: boolean;
+      highlighted?: boolean;
       link?: string;
     }
   | { tokenType: "hardBreak" }

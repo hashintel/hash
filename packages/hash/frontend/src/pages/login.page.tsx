@@ -180,9 +180,7 @@ const LoginPage: NextPageWithLayout = () => {
           display: "flex",
           flexDirection: "column",
           maxWidth: 500,
-          "> *": {
-            marginTop: 1,
-          },
+          gap: 1,
         }}
       >
         <TextField
@@ -230,10 +228,12 @@ const LoginPage: NextPageWithLayout = () => {
                 Create account
               </Button>
             ) : null}
-            {/* @todo: implement kratos recovery flow, and add button here */}
-            {/* <Button variant="secondary" href="/recovery">
+            <Button
+              variant="secondary"
+              href={{ pathname: "/recovery", query: { email } }}
+            >
               Recover your account
-            </Button> */}
+            </Button>
           </>
         )}
       </Box>

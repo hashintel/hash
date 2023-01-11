@@ -40,8 +40,10 @@ hash_seed_users = [
 
 hash_system_user_password = "changeme"
 
-secrets_cookie = "VERY-INSECURE-AND-SHOULD-ONLY-BE-USED-IN-DEV"
-secrets_cipher = "32-LONG-SECRET-NOT-SECURE-AT-ALL"
+hash_block_protocol_api_key = "Generate at https://blockprotocol.org/settings/api-keys"
+
+kratos_secrets_cookie = "VERY-INSECURE-AND-SHOULD-ONLY-BE-USED-IN-DEV"
+kratos_secrets_cipher = "32-LONG-SECRET-NOT-SECURE-AT-ALL"
 
 kratos_api_key = "secret"
 

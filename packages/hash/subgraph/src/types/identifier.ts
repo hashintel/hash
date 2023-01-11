@@ -35,27 +35,41 @@ export const extractEntityUuidFromEntityId = (entityId: EntityId): string => {
 /** @todo - consider Type Branding this */
 export type Timestamp = string;
 
-// ISO-formatted datetime string
-export type EntityVersion = Timestamp;
+export type VersionTimespan = {
+  start: Timestamp;
+  end?: Timestamp;
+};
+
+export type EntityVersion = {
+  decisionTime: VersionTimespan;
+  transactionTime: VersionTimespan;
+};
+
+export type EntityRecordId = number;
 
 /**
- * An identifier of a specific edition of an `Entity` at a given `EntityVersion`
+ * An identifier of a specific edition of an `Entity` at a given `EntityRecordId`
  */
 export type EntityEditionId = {
   baseId: EntityId;
-  version: EntityVersion;
+  recordId: EntityRecordId;
+};
+
+export type EntityVertexId = {
+  baseId: EntityId;
+  version: Timestamp;
 };
 
 /**
  * A string representation of an `EntityEditionId`.
  * Can be useful for storing in keys of objects and other similar string-focused situations.
  */
-export type EntityEditionIdString = `${EntityId}/v/${EntityVersion}`;
+export type EntityEditionIdString = `${EntityId}/v/${EntityRecordId}`;
 
 export const entityEditionIdToString = (
   entityEditionId: EntityEditionId,
 ): EntityEditionIdString =>
-  `${entityEditionId.baseId}/v/${entityEditionId.version}`;
+  `${entityEditionId.baseId}/v/${entityEditionId.recordId}`;
 
 /**
  * A tuple struct of a given `EntityId` and timestamp, used to identify an `Entity` at a given moment of time, where
@@ -69,7 +83,7 @@ export type EntityIdAndTimestamp = {
 
 export type { OntologyTypeEditionId };
 
-export type GraphElementEditionId = EntityEditionId | OntologyTypeEditionId;
+export type GraphElementVertexId = EntityVertexId | OntologyTypeEditionId;
 
 export const ontologyTypeEditionIdToVersionedUri = (
   ontologyTypeEditionId: OntologyTypeEditionId,
@@ -87,16 +101,16 @@ export const isEntityId = (entityId: string): entityId is EntityId => {
   );
 };
 
-export const isEntityEditionId = (
-  editionId: object,
-): editionId is EntityEditionId => {
+export const isEntityVertexId = (
+  vertexId: object,
+): vertexId is EntityVertexId => {
   return (
-    "baseId" in editionId &&
-    typeof editionId.baseId === "string" &&
-    isEntityId(editionId.baseId) &&
-    "version" in editionId &&
-    typeof editionId.version === "string" &&
-    !Number.isNaN(Date.parse(editionId.version))
+    "baseId" in vertexId &&
+    typeof vertexId.baseId === "string" &&
+    isEntityId(vertexId.baseId) &&
+    "version" in vertexId &&
+    typeof vertexId.version === "string" &&
+    !Number.isNaN(Date.parse(vertexId.version))
   );
 };
 
@@ -113,16 +127,16 @@ export const isOntologyTypeEditionId = (
   );
 };
 
-export const isEntityAndTimestamp = (
-  editionId: object,
-): editionId is EntityIdAndTimestamp => {
+export const isEntityIdAndTimestamp = (
+  entityIdAndTimestamp: object,
+): entityIdAndTimestamp is EntityIdAndTimestamp => {
   return (
-    "baseId" in editionId &&
-    typeof editionId.baseId === "string" &&
-    isEntityId(editionId.baseId) &&
-    "timestamp" in editionId &&
-    typeof editionId.timestamp === "string" &&
-    !Number.isNaN(Date.parse(editionId.timestamp))
+    "baseId" in entityIdAndTimestamp &&
+    typeof entityIdAndTimestamp.baseId === "string" &&
+    isEntityId(entityIdAndTimestamp.baseId) &&
+    "timestamp" in entityIdAndTimestamp &&
+    typeof entityIdAndTimestamp.timestamp === "string" &&
+    !Number.isNaN(Date.parse(entityIdAndTimestamp.timestamp))
   );
 };
 

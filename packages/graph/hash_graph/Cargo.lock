@@ -737,6 +737,7 @@ dependencies = [
  "graph-test-data",
  "hyper",
  "include_dir",
+ "interval-ops",
  "opentelemetry",
  "opentelemetry-otlp",
  "postgres-protocol",
@@ -1008,6 +1009,10 @@ checksum = "7a5bbe824c507c5da5956355e86a746d82e0e1464f65d862cc5e71da70e94b2c"
 dependencies = [
  "cfg-if",
 ]
+
+[[package]]
+name = "interval-ops"
+version = "0.0.0"
 
 [[package]]
 name = "io-lifetimes"
@@ -2063,9 +2068,9 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
 name = "tokio"
-version = "1.23.0"
+version = "1.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eab6d665857cc6ca78d6e80303a02cea7a7851e85dfbd77cbdc09bd129f1ef46"
+checksum = "1d9f76183f91ecfb55e1d7d5602bd1d979e38a3a522fe900241cf195624d67ae"
 dependencies = [
  "autocfg",
  "bytes",

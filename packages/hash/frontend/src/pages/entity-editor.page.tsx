@@ -1,4 +1,8 @@
-import { Array, ValueOrArray } from "@blockprotocol/type-system";
+import {
+  Array,
+  extractBaseUri,
+  ValueOrArray,
+} from "@blockprotocol/type-system";
 import { Button } from "@hashintel/hash-design-system";
 import { types } from "@hashintel/hash-shared/ontology-types";
 import { EntityId, OwnedById } from "@hashintel/hash-shared/types";
@@ -9,7 +13,6 @@ import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { Container, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 
-import { useAdvancedInitTypeSystem } from "../lib/use-init-type-system";
 import { NextPageWithLayout } from "../shared/layout";
 import { useAuthenticatedUser } from "./shared/auth-info-context";
 import { useBlockProtocolFunctionsWithOntology } from "./type-editor/blockprotocol-ontology-functions-hook";
@@ -102,8 +105,10 @@ const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
   const handleCreateEntity = async () => {
     await createEntity({
       data: {
-        entityTypeId: types.entityType.dummy.entityTypeId,
-        properties: {},
+        entityTypeId: types.entityType.text.entityTypeId,
+        properties: {
+          [extractBaseUri(types.propertyType.tokens.propertyTypeId)]: [],
+        },
       },
     }).then(({ data }) => setCreatedEntity(data));
   };
@@ -153,12 +158,8 @@ const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
 
 const ExampleEntityEditorPage: NextPageWithLayout = () => {
   const { authenticatedUser } = useAuthenticatedUser();
-  const [loadingTypeSystem, _setLoadingTypeSystem] =
-    useAdvancedInitTypeSystem();
 
-  return loadingTypeSystem ? (
-    <Container sx={{ pt: 10 }}>Loading...</Container>
-  ) : (
+  return (
     <Container sx={{ pt: 10 }}>
       <ExampleUsage ownedById={authenticatedUser.accountId as OwnedById} />
     </Container>

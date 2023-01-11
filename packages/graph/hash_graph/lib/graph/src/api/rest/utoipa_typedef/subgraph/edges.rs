@@ -12,7 +12,7 @@ use crate::{
     identifier::{
         knowledge::EntityId,
         ontology::{OntologyTypeEditionId, OntologyTypeVersion},
-        TransactionTimestamp,
+        time::{ProjectedTime, TimeAxis, Timestamp},
     },
     store::Record,
     subgraph::edges::{KnowledgeGraphEdgeKind, OntologyOutwardEdges, OutwardEdge, SharedEdgeKind},
@@ -40,7 +40,7 @@ impl ToSchema for KnowledgeGraphOutwardEdges {
 #[derive(Default, Debug, Serialize, ToSchema)]
 #[serde(transparent)]
 pub struct KnowledgeGraphRootedEdges(
-    pub HashMap<EntityId, BTreeMap<TransactionTimestamp, Vec<KnowledgeGraphOutwardEdges>>>,
+    pub HashMap<EntityId, BTreeMap<Timestamp<ProjectedTime>, Vec<KnowledgeGraphOutwardEdges>>>,
 );
 
 #[derive(Default, Debug, Serialize, ToSchema)]
@@ -61,6 +61,7 @@ impl Edges {
     pub fn from_vertices_and_store_edges(
         edges: crate::subgraph::edges::Edges,
         vertices: &Vertices,
+        time_axis: TimeAxis,
     ) -> Self {
         Self {
             ontology: OntologyRootedEdges(edges.ontology.into_iter().fold(
@@ -115,10 +116,8 @@ impl Edges {
                                     vertices.earliest_entity_by_id(&id.base_id())
                                 }
                                     .expect("entity must exist in subgraph")
-                                    .edition_id()
-                                    .version()
-                                    .transaction_time()
-                                    .as_start_bound_timestamp();
+                                    .vertex_id(time_axis)
+                                    .version();
 
                                 KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
                                     kind: edge.kind,
@@ -134,13 +133,13 @@ impl Edges {
                     match map.entry(id.base_id()) {
                         Entry::Occupied(entry) => {
                             entry.into_mut().insert(
-                                id.version().transaction_time().as_start_bound_timestamp(),
+                                id.version(),
                                 edges
                             );
                         }
                         Entry::Vacant(entry) => {
                             entry.insert(BTreeMap::from([(
-                                id.version().transaction_time().as_start_bound_timestamp(),
+                                id.version(),
                                 edges
                             )]));
                         }

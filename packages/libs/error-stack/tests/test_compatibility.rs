@@ -13,6 +13,27 @@ use error_stack::IntoReportCompat;
 use error_stack::Report;
 
 #[test]
+#[cfg(any(nightly, feature = "std"))]
+fn error() {
+    let report = create_report().change_context(ContextA(10));
+    let error_ref = report.as_error();
+    assert_eq!(error_ref.to_string(), "context A");
+    #[cfg(nightly)]
+    assert_eq!(
+        *core::any::request_ref::<u32>(error_ref).expect("requested value not found"),
+        10
+    );
+
+    let error = report.into_error();
+    assert_eq!(error.to_string(), "context A");
+    #[cfg(nightly)]
+    assert_eq!(
+        *core::any::request_ref::<u32>(&error).expect("requested value not found"),
+        10
+    );
+}
+
+#[test]
 #[cfg(all(feature = "std", feature = "anyhow"))]
 fn anyhow() {
     let anyhow: Result<(), _> = Err(anyhow::anyhow!(RootError)

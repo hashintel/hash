@@ -3,10 +3,16 @@ use std::{iter::repeat, str::FromStr};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use graph::{
-    identifier::account::AccountId,
+    identifier::{
+        account::AccountId,
+        time::{
+            TimespanBound, UnresolvedImage, UnresolvedKernel, UnresolvedProjection,
+            UnresolvedTimeProjection,
+        },
+    },
     knowledge::{EntityMetadata, EntityProperties},
     provenance::{OwnedById, UpdatedById},
-    store::{query::Filter, AccountStore, AsClient, EntityStore, PostgresStore},
+    store::{query::Filter, AccountStore, EntityStore, Store as _, Transaction},
     subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
@@ -24,25 +30,22 @@ async fn seed_db(
     store_wrapper: &mut StoreWrapper,
     total: usize,
 ) -> Vec<EntityMetadata> {
-    let transaction = store_wrapper
+    let mut transaction = store_wrapper
         .store
-        .as_mut_client()
         .transaction()
         .await
         .expect("failed to start transaction");
 
-    let mut store = PostgresStore::new(transaction);
-
     let now = std::time::SystemTime::now();
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
-    store
+    transaction
         .insert_account_id(account_id)
         .await
         .expect("could not insert account id");
 
     seed(
-        &mut store,
+        &mut transaction,
         account_id,
         [data_type::TEXT_V1],
         [
@@ -69,7 +72,7 @@ async fn seed_db(
         .id()
         .clone();
 
-    let entity_metadata_list = store
+    let entity_metadata_list = transaction
         .insert_entities_batched_by_type(
             repeat((OwnedById::new(account_id), None, properties, None, None)).take(total),
             UpdatedById::new(account_id),
@@ -78,8 +81,7 @@ async fn seed_db(
         .await
         .expect("failed to create entities");
 
-    store
-        .into_client()
+    transaction
         .commit()
         .await
         .expect("failed to commit transaction");
@@ -88,7 +90,7 @@ async fn seed_db(
         "Finished seeding database {} with {} entities after {:#?}",
         store_wrapper.bench_db_name,
         total,
-        now.elapsed().unwrap()
+        now.elapsed().expect("could not get elapsed time")
     );
 
     entity_metadata_list
@@ -108,13 +110,20 @@ pub fn bench_get_entity_by_id(
                 .iter()
                 .map(EntityMetadata::edition_id)
                 .choose(&mut thread_rng())
-                .unwrap()
+                .expect("could not choose random entity")
         },
         |entity_edition_id| async move {
             store
                 .get_entity(&StructuralQuery {
                     filter: Filter::for_entity_by_entity_id(entity_edition_id.base_id()),
                     graph_resolve_depths: GraphResolveDepths::default(),
+                    time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                        kernel: UnresolvedKernel::new(None),
+                        image: UnresolvedImage::new(
+                            Some(TimespanBound::Unbounded),
+                            Some(TimespanBound::Unbounded),
+                        ),
+                    }),
                 })
                 .await
                 .expect("failed to read entity from store");
@@ -128,8 +137,9 @@ fn bench_scaling_read_entity(c: &mut Criterion) {
     let mut group = c.benchmark_group("scaling_read_entity_linkless");
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id =
-        AccountId::new(Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").unwrap());
+    let account_id = AccountId::new(
+        Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
+    );
 
     for size in [1, 10, 100, 1_000, 10_000] {
         let (runtime, mut store_wrapper) = setup(DB_NAME, true, true);
@@ -144,7 +154,7 @@ fn bench_scaling_read_entity(c: &mut Criterion) {
             ),
             &(account_id, entity_uuids),
             |b, (_account_id, entity_metadata_list)| {
-                bench_get_entity_by_id(b, &runtime, store, entity_metadata_list)
+                bench_get_entity_by_id(b, &runtime, store, entity_metadata_list);
             },
         );
     }

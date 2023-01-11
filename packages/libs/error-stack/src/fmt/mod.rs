@@ -144,6 +144,8 @@
 
 #[cfg(any(feature = "std", feature = "hooks"))]
 mod hook;
+#[cfg(feature = "pretty-print")]
+mod location;
 
 use alloc::{
     borrow::ToOwned,
@@ -162,7 +164,13 @@ use core::{
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub use hook::HookContext;
 #[cfg(any(feature = "std", feature = "hooks"))]
+<<<<<<< HEAD
 pub(crate) use hook::{install_builtin_debug_hooks, FmtHooks, Format};
+=======
+pub(crate) use hook::{install_builtin_hooks, Format, Hooks};
+#[cfg(all(not(any(feature = "std", feature = "hooks")), feature = "pretty-print"))]
+use location::LocationDisplay;
+>>>>>>> origin/main
 #[cfg(feature = "pretty-print")]
 use owo_colors::{OwoColorize, Stream, Style as OwOStyle};
 
@@ -703,13 +711,7 @@ pub(crate) fn debug_attachments_invoke<'a>(
             #[cfg(all(not(any(feature = "std", feature = "hooks")), feature = "pretty-print"))]
             FrameKind::Attachment(AttachmentKind::Opaque(_)) => frame
                 .downcast_ref::<core::panic::Location<'static>>()
-                .map(|location| {
-                    vec![
-                        location
-                            .if_supports_color(Stream::Stdout, OwoColorize::bright_black)
-                            .to_string(),
-                    ]
-                }),
+                .map(|location| vec![LocationDisplay::new(location).render()]),
             #[cfg(all(
                 not(any(feature = "std", feature = "hooks")),
                 not(feature = "pretty-print")

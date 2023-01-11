@@ -14,7 +14,10 @@ import { PropertyNameCell } from "./cells/property-name-cell";
 import { SummaryChipCell } from "./cells/summary-chip-cell";
 import { editorSpecs } from "./cells/value-cell/array-editor/sortable-row";
 import { ValueCell } from "./cells/value-cell/types";
-import { guessEditorTypeFromValue } from "./cells/value-cell/utils";
+import {
+  guessEditorTypeFromExpectedType,
+  guessEditorTypeFromValue,
+} from "./cells/value-cell/utils";
 import { propertyGridIndexes } from "./constants";
 import { getTooltipsOfPropertyRow } from "./get-tooltips-of-property-row";
 import { PropertyRow } from "./types";
@@ -134,7 +137,16 @@ export const useCreateGetCellContent = (
               copyData: String(row.expectedTypes),
               data: {
                 kind: "chip-cell",
-                chips: row.expectedTypes,
+                chips: row.expectedTypes.map((type) => {
+                  const editorSpec =
+                    editorSpecs[guessEditorTypeFromExpectedType(type)];
+
+                  return {
+                    text: type,
+                    icon: editorSpec.gridIcon,
+                    faIconDefinition: { icon: editorSpec.icon },
+                  };
+                }),
               },
             };
         }

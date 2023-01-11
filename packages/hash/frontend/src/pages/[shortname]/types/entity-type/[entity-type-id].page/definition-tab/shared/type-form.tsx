@@ -40,16 +40,14 @@ import {
 } from "react";
 import {
   DeepPartial,
-  FieldValues,
   FormProvider,
   useForm,
   useFormContext,
-  UseFormTrigger,
 } from "react-hook-form";
 
 import { Modal } from "../../../../../../../components/modals/modal";
-import { withHandler } from "../property-list-card/shared/with-handler";
 import { QuestionIcon } from "./question-icon";
+import { withHandler } from "./with-handler";
 
 type TypeFormSubmitProps = Omit<
   ButtonProps,
@@ -188,34 +186,6 @@ export const TypeFormDescriptionField = ({
   );
 };
 
-const keys = <T extends {}>(obj: T): (keyof T)[] => Object.keys(obj) as any;
-
-export const useTriggerValidation = <T extends FieldValues>(
-  defaultValues: DeepPartial<T>,
-  disabledFields: (keyof DeepPartial<T>)[],
-  trigger: UseFormTrigger<T>,
-) => {
-  const triggerKeys = keys(defaultValues).filter(
-    (key) =>
-      typeof defaultValues[key] !== "undefined" &&
-      !disabledFields.includes(key),
-  );
-  const stringifiedKeys = JSON.stringify(triggerKeys);
-  const memoKeys: typeof triggerKeys = useMemo(
-    () => JSON.parse(stringifiedKeys),
-    [stringifiedKeys],
-  );
-
-  useEffect(() => {
-    for (const key of memoKeys) {
-      void trigger(
-        // @ts-expect-error trigger expects Path<T>, but key is already equivalent
-        key,
-      );
-    }
-  }, [trigger, memoKeys]);
-};
-
 export const generateInitialTypeUri = (baseUri: string) =>
   versionedUriFromComponents(baseUri, 1);
 
@@ -307,23 +277,20 @@ export const TypeForm = <T extends TypeFormDefaults>({
   children?: ReactNode;
   nameExists: (name: string) => Promise<boolean>;
 } & TypeFormProps<T>) => {
-  const defaultValues = getDefaultValues();
+  const defaultValues = useMemo(() => getDefaultValues(), [getDefaultValues]);
 
   const formMethods = useForm<T>({
     defaultValues,
     shouldFocusError: true,
-    mode: "onBlur",
-    reValidateMode: "onChange",
+    mode: "onSubmit",
+    reValidateMode: "onSubmit",
   });
 
   const {
     handleSubmit: wrapHandleSubmit,
-    formState: { isSubmitting, isValid },
+    formState: { isSubmitting },
     setFocus,
-    trigger,
   } = formMethods;
-
-  useTriggerValidation(defaultValues, disabledFields, trigger);
 
   const defaultField = defaultValues.name ? "description" : "name";
 
@@ -406,7 +373,7 @@ export const TypeForm = <T extends TypeFormDefaults>({
           <Button
             {...submitButtonProps}
             loading={isSubmitting}
-            disabled={isSubmitting || !isValid}
+            disabled={isSubmitting}
             type="submit"
             size="small"
           >

@@ -3,7 +3,10 @@ use error_stack::Result;
 use type_system::uri::VersionedUri;
 
 use crate::{
-    identifier::{knowledge::EntityId, DecisionTimestamp},
+    identifier::{
+        knowledge::EntityId,
+        time::{DecisionTime, Timestamp},
+    },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     provenance::{OwnedById, UpdatedById},
     store::{crud, InsertionError, QueryError, UpdateError},
@@ -30,7 +33,7 @@ pub trait EntityStore: crud::Read<Entity> {
         &mut self,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
-        decision_time: Option<DecisionTimestamp>,
+        decision_time: Option<Timestamp<DecisionTime>>,
         updated_by_id: UpdatedById,
         archived: bool,
         entity_type_id: VersionedUri,
@@ -65,7 +68,7 @@ pub trait EntityStore: crud::Read<Entity> {
                 Option<EntityUuid>,
                 EntityProperties,
                 Option<LinkData>,
-                Option<DecisionTimestamp>,
+                Option<Timestamp<DecisionTime>>,
             ),
             IntoIter: Send,
         > + Send,
@@ -94,7 +97,7 @@ pub trait EntityStore: crud::Read<Entity> {
     async fn update_entity(
         &mut self,
         entity_id: EntityId,
-        decision_time: Option<DecisionTimestamp>,
+        decision_time: Option<Timestamp<DecisionTime>>,
         updated_by_id: UpdatedById,
         archived: bool,
         entity_type_id: VersionedUri,

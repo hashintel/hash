@@ -13,7 +13,7 @@ import {
 } from "./utils";
 
 export const SingleValueEditor: ValueCellEditorComponent = (props) => {
-  const { value: cell, onFinishedEditing, onChange } = props;
+  const { value: cell, onChange } = props;
   const { expectedTypes, value } = cell.data.propertyRow;
 
   const [editorType, setEditorType] = useState<EditorType | null>(() => {
@@ -53,16 +53,19 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
 
   if (editorType === "boolean") {
     return (
-      <BooleanInput
-        value={!!value}
-        onChange={(newValue) => {
-          const newCell = produce(cell, (draftCell) => {
-            draftCell.data.propertyRow.value = newValue;
-          });
+      <GridEditorWrapper sx={{ px: 2, alignItems: "flex-start" }}>
+        <BooleanInput
+          showChange
+          value={!!value}
+          onChange={(newValue) => {
+            const newCell = produce(cell, (draftCell) => {
+              draftCell.data.propertyRow.value = newValue;
+            });
 
-          onFinishedEditing(newCell);
-        }}
-      />
+            onChange(newCell);
+          }}
+        />
+      </GridEditorWrapper>
     );
   }
 
@@ -72,7 +75,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     <GridEditorWrapper sx={{ px: 2 }}>
       <NumberOrTextInput
         isNumber={isNumber}
-        value={value as string | number}
+        value={(value as number | string | undefined) ?? ""}
         onChange={(newValue) => {
           const newCell = produce(cell, (draftCell) => {
             draftCell.data.propertyRow.value = newValue;

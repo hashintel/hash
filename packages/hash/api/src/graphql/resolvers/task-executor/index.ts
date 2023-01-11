@@ -1,20 +1,24 @@
 import { JsonObject } from "@blockprotocol/core";
-import { EntityType } from "@blockprotocol/type-system";
-import { OwnedById } from "@hashintel/hash-shared/types";
-import { PropertyObject } from "@hashintel/hash-subgraph";
 import { ApolloError } from "apollo-server-express";
-import { camelCase, upperFirst } from "lodash";
-import { singular } from "pluralize";
 
-import { createEntity } from "../../../graph/knowledge/primitive/entity";
-import { CachedEntityTypes, Task } from "../../../task-execution";
+import { Task } from "../../../task-execution";
 import {
+  MutationExecuteAsanaCheckTaskArgs,
+  MutationExecuteAsanaDiscoverTaskArgs,
+  MutationExecuteAsanaReadTaskArgs,
   MutationExecuteGithubCheckTaskArgs,
   MutationExecuteGithubDiscoverTaskArgs,
   MutationExecuteGithubReadTaskArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
+import { readFromAirbyte } from "./airbyte-read";
+
+/** @todo - Make Airbyte types available in api package */
+type AirbyteCatalog = Array<{
+  name?: string;
+  json_schema?: JsonObject;
+}>;
 
 export const executeDemoTask: ResolverFn<
   Promise<string>,
@@ -76,49 +80,12 @@ export const executeGithubCheckTask: ResolverFn<
   }
 };
 
-/** @todo - Make Airbyte types available in api package */
-type AirbyteCatalog = Array<{
-  name?: string;
-  json_schema?: JsonObject;
-}>;
-
-type AirbyteRecords = Array<{
-  /**
-   * the name of this record's stream
-   */
-  stream: string;
-  /**
-   * the record data
-   */
-  data: {
-    [k: string]: unknown;
-  };
-  /**
-   * when the data was emitted from the source. epoch in millisecond.
-   */
-  emitted_at: number;
-  /**
-   * the namespace of this record's stream
-   */
-  namespace?: string;
-  [k: string]: unknown;
-}>;
-
-const streamNameToEntityTypeName = (name: string) => {
-  const sanitizedName = singular(upperFirst(camelCase(name)));
-  return `Github${sanitizedName}`;
-};
-
 export const executeGithubDiscoverTask: ResolverFn<
   Promise<string>,
   {},
   LoggedInGraphQLContext,
   MutationExecuteGithubDiscoverTaskArgs
-> = async (
-  _,
-  { config },
-  { dataSources: { graphApi, taskExecutor }, user, logger },
-) => {
+> = async (_, { config }, { dataSources: { taskExecutor } }) => {
   if (!taskExecutor) {
     throw new ApolloError(
       "A task-executor wasn't started, so external tasks can't be started",
@@ -129,27 +96,6 @@ export const executeGithubDiscoverTask: ResolverFn<
         Task.GithubDiscover,
         config,
       );
-
-      const existingEntityChecker = await CachedEntityTypes(graphApi, user);
-
-      for (const message of catalog) {
-        if (!message.name || !message.json_schema) {
-          continue;
-        }
-
-        const entityTypeName = streamNameToEntityTypeName(message.name);
-
-        if (existingEntityChecker.getExisting(entityTypeName) === undefined) {
-          await existingEntityChecker.createNew(
-            entityTypeName,
-            /** @todo - this cast is unsafe, we need to update the logic to convert the JSON schema to a valid
-             *    entity type
-             */
-            message.json_schema as unknown as EntityType,
-          );
-          logger.debug(`Created a new EntityType: ${entityTypeName}`);
-        }
-      }
 
       return JSON.stringify(catalog);
     } catch (err: any) {
@@ -172,45 +118,114 @@ export const executeGithubReadTask: ResolverFn<
     throw new ApolloError(
       "A task-executor wasn't started, so external tasks can't be started",
     );
+  }
+
+  try {
+    return await readFromAirbyte({
+      task: Task.GithubRead,
+      user,
+      taskExecutor,
+      logger,
+      graphApi,
+      config,
+      integrationName: "Github",
+    });
+  } catch (err: any) {
+    throw new ApolloError(`Task-execution failed: ${err}`);
+  }
+};
+
+export const executeAsanaSpecTask: ResolverFn<
+  Promise<string>,
+  {},
+  GraphQLContext,
+  {}
+> = async (_, __, { dataSources: { taskExecutor } }) => {
+  if (!taskExecutor) {
+    throw new ApolloError(
+      "A task-executor wasn't started, so external tasks can't be started",
+    );
   } else {
-    const createdEntities = [];
+    return await taskExecutor
+      .runTask(Task.AsanaSpec)
+      .then((res) => JSON.stringify(res))
+      .catch((err: any) => {
+        throw new ApolloError(`Task-execution failed: ${err}`);
+      });
+  }
+};
+
+export const executeAsanaCheckTask: ResolverFn<
+  Promise<string>,
+  {},
+  GraphQLContext,
+  MutationExecuteAsanaCheckTaskArgs
+> = async (_, { config }, { dataSources: { taskExecutor } }) => {
+  if (!taskExecutor) {
+    throw new ApolloError(
+      "A task-executor wasn't started, so external tasks can't be started",
+    );
+  } else {
+    return await taskExecutor
+      .runTask(Task.AsanaCheck, config)
+      .then((res) => JSON.stringify(res))
+      .catch((err) => {
+        throw new ApolloError(`Task-execution failed: ${err}`);
+      });
+  }
+};
+
+export const executeAsanaDiscoverTask: ResolverFn<
+  Promise<string>,
+  {},
+  LoggedInGraphQLContext,
+  MutationExecuteAsanaDiscoverTaskArgs
+> = async (_, { config }, { dataSources: { taskExecutor } }) => {
+  if (!taskExecutor) {
+    throw new ApolloError(
+      "A task-executor wasn't started, so external tasks can't be started",
+    );
+  } else {
     try {
-      const airbyteRecords: AirbyteRecords = await taskExecutor.runTask(
-        Task.GithubRead,
+      const catalog: AirbyteCatalog = await taskExecutor.runTask(
+        Task.AsanaDiscover,
         config,
       );
-      logger.debug(`Received ${airbyteRecords.length} records from Github`);
 
-      const existingEntityChecker = await CachedEntityTypes(graphApi, user);
-      for (const record of airbyteRecords) {
-        const entityTypeName = streamNameToEntityTypeName(record.stream);
-        /** @todo - Check if entity already exists */
-        const entityType = existingEntityChecker.getExisting(entityTypeName);
-        if (!entityType) {
-          throw new Error(
-            `Couldn't find EntityType for ingested data with name: ${entityTypeName}`,
-          );
-        }
-
-        /** @todo - check primary key to see if entity already exists */
-        // Insert the entity
-        const entity = await createEntity(
-          { graphApi },
-          {
-            ownedById: user.accountId as OwnedById,
-            actorId: user.accountId,
-            entityType,
-            properties: record.data as PropertyObject,
-          },
-        );
-
-        createdEntities.push(entity.metadata.editionId.baseId);
-      }
-
-      logger.debug(`Inserted ${createdEntities.length} entities from Github`);
-      return JSON.stringify({ createdEntities });
+      return JSON.stringify(catalog);
     } catch (err: any) {
       throw new ApolloError(`Task-execution failed: ${err}`);
     }
+  }
+};
+
+export const executeAsanaReadTask: ResolverFn<
+  Promise<string>,
+  {},
+  LoggedInGraphQLContext,
+  MutationExecuteAsanaReadTaskArgs
+> = async (
+  _,
+  { config },
+  { dataSources: { graphApi, taskExecutor }, user, logger },
+) => {
+  if (!taskExecutor) {
+    throw new ApolloError(
+      "A task-executor wasn't started, so external tasks can't be started",
+    );
+  }
+
+  try {
+    return await readFromAirbyte({
+      task: Task.AsanaRead,
+      user,
+      taskExecutor,
+      logger,
+      graphApi,
+      config,
+      integrationName: "Asana",
+    });
+  } catch (err: any) {
+    throw new ApolloError(`Task-execution failed: ${err}`);
   }
 };
