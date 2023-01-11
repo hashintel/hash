@@ -6,7 +6,7 @@ expression: report
   {
     "context": "context A",
     "attachments": [
-      "tests/common/snapshots.rs:212:10",
+      "at tests/common/snapshots.rs:212:10",
       "2",
       "1"
     ],
@@ -14,7 +14,7 @@ expression: report
       {
         "context": "context A",
         "attachments": [
-          "tests/common/snapshots.rs:206:10",
+          "at tests/common/snapshots.rs:206:10",
           "4",
           "3"
         ],
@@ -22,7 +22,7 @@ expression: report
           {
             "context": "root error",
             "attachments": [
-              "tests/common/mod.rs:4:5",
+              "at tests/common/mod.rs:4:5",
               "6"
             ],
             "sources": []
@@ -32,7 +32,7 @@ expression: report
       {
         "context": "context A",
         "attachments": [
-          "tests/common/snapshots.rs:201:10",
+          "at tests/common/snapshots.rs:201:10",
           "5",
           "3"
         ],
@@ -40,14 +40,14 @@ expression: report
           {
             "context": "context A",
             "attachments": [
-              "tests/common/snapshots.rs:199:10",
+              "at tests/common/snapshots.rs:199:10",
               "7"
             ],
             "sources": [
               {
                 "context": "context A",
                 "attachments": [
-                  "tests/common/snapshots.rs:190:34",
+                  "at tests/common/snapshots.rs:190:34",
                   "9",
                   "8"
                 ],
@@ -55,7 +55,7 @@ expression: report
                   {
                     "context": "root error",
                     "attachments": [
-                      "tests/common/mod.rs:4:5"
+                      "at tests/common/mod.rs:4:5"
                     ],
                     "sources": []
                   }
@@ -64,7 +64,7 @@ expression: report
               {
                 "context": "context A",
                 "attachments": [
-                  "tests/common/snapshots.rs:184:10",
+                  "at tests/common/snapshots.rs:184:10",
                   "13",
                   "10",
                   "16",
@@ -75,7 +75,7 @@ expression: report
                   {
                     "context": "root error",
                     "attachments": [
-                      "tests/common/mod.rs:4:5"
+                      "at tests/common/mod.rs:4:5"
                     ],
                     "sources": []
                   }
@@ -84,7 +84,7 @@ expression: report
               {
                 "context": "context A",
                 "attachments": [
-                  "tests/common/snapshots.rs:170:10",
+                  "at tests/common/snapshots.rs:170:10",
                   "15",
                   "14",
                   "10",
@@ -96,7 +96,7 @@ expression: report
                   {
                     "context": "root error",
                     "attachments": [
-                      "tests/common/mod.rs:4:5"
+                      "at tests/common/mod.rs:4:5"
                     ],
                     "sources": []
                   }
@@ -105,7 +105,7 @@ expression: report
               {
                 "context": "context A",
                 "attachments": [
-                  "tests/common/snapshots.rs:180:10",
+                  "at tests/common/snapshots.rs:180:10",
                   "11",
                   "9",
                   "8"
@@ -114,7 +114,7 @@ expression: report
                   {
                     "context": "root error",
                     "attachments": [
-                      "tests/common/mod.rs:4:5"
+                      "at tests/common/mod.rs:4:5"
                     ],
                     "sources": []
                   }
@@ -123,7 +123,7 @@ expression: report
               {
                 "context": "context A",
                 "attachments": [
-                  "tests/common/snapshots.rs:176:10",
+                  "at tests/common/snapshots.rs:176:10",
                   "12",
                   "9",
                   "8"
@@ -132,13 +132,13 @@ expression: report
                   {
                     "context": "context A",
                     "attachments": [
-                      "tests/common/snapshots.rs:175:10"
+                      "at tests/common/snapshots.rs:175:10"
                     ],
                     "sources": [
                       {
                         "context": "root error",
                         "attachments": [
-                          "tests/common/mod.rs:4:5"
+                          "at tests/common/mod.rs:4:5"
                         ],
                         "sources": []
                       }

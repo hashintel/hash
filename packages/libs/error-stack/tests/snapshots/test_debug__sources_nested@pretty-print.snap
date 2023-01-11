@@ -3,38 +3,38 @@ source: tests/test_debug.rs
 expression: "format!(\"{report:?}\")"
 ---
 context A
-├╴ at tests/test_debug.rs:214:10
+├╴ at tests/common/snapshots.rs:212:10
 ├╴ 2
 ├╴ 1
 │
 ╰┬▶ context A
- │  ├╴ at tests/test_debug.rs:208:10
+ │  ├╴ at tests/common/snapshots.rs:206:10
  │  ├╴ 4
  │  ├╴ 3
  │  │
  │  ╰─▶ root error
- │      ├╴ at tests/common.rs:4:5
+ │      ├╴ at tests/common/mod.rs:4:5
  │      ╰╴ 6
  │
  ╰▶ context A
-    ├╴ at tests/test_debug.rs:203:10
+    ├╴ at tests/common/snapshots.rs:201:10
     ├╴ 5
     ├╴ 3
     │
     ├─▶ context A
-    │   ├╴ at tests/test_debug.rs:201:10
+    │   ├╴ at tests/common/snapshots.rs:199:10
     │   ╰╴ 7
     │
     ╰┬▶ context A
-     │  ├╴ at tests/test_debug.rs:192:34
+     │  ├╴ at tests/common/snapshots.rs:190:34
      │  ├╴ 9
      │  ├╴ 8
      │  │
      │  ╰─▶ root error
-     │      ╰╴ at tests/common.rs:4:5
+     │      ╰╴ at tests/common/mod.rs:4:5
      │
      ├▶ context A
-     │  ├╴ at tests/test_debug.rs:186:10
+     │  ├╴ at tests/common/snapshots.rs:184:10
      │  ├╴ 13
      │  ├╴ 10
      │  ├╴ 16
@@ -42,10 +42,10 @@ context A
      │  ├╴ 8
      │  │
      │  ╰─▶ root error
-     │      ╰╴ at tests/common.rs:4:5
+     │      ╰╴ at tests/common/mod.rs:4:5
      │
      ├▶ context A
-     │  ├╴ at tests/test_debug.rs:172:10
+     │  ├╴ at tests/common/snapshots.rs:170:10
      │  ├╴ 15
      │  ├╴ 14
      │  ├╴ 10
@@ -54,25 +54,25 @@ context A
      │  ├╴ 8
      │  │
      │  ╰─▶ root error
-     │      ╰╴ at tests/common.rs:4:5
+     │      ╰╴ at tests/common/mod.rs:4:5
      │
      ├▶ context A
-     │  ├╴ at tests/test_debug.rs:182:10
+     │  ├╴ at tests/common/snapshots.rs:180:10
      │  ├╴ 11
      │  ├╴ 9
      │  ├╴ 8
      │  │
      │  ╰─▶ root error
-     │      ╰╴ at tests/common.rs:4:5
+     │      ╰╴ at tests/common/mod.rs:4:5
      │
      ╰▶ context A
-        ├╴ at tests/test_debug.rs:178:10
+        ├╴ at tests/common/snapshots.rs:176:10
         ├╴ 12
         ├╴ 9
         ├╴ 8
         │
         ├─▶ context A
-        │   ╰╴ at tests/test_debug.rs:177:10
+        │   ╰╴ at tests/common/snapshots.rs:175:10
         │
         ╰─▶ root error
-            ╰╴ at tests/common.rs:4:5
+            ╰╴ at tests/common/mod.rs:4:5
