@@ -101,7 +101,7 @@ impl<T: PartialOrd> Sub for IntervalBounds<T> {
         assert_eq!(
             difference.len(),
             1,
-            "interval union result in disjoint spans"
+            "interval difference resulted in disjoint spans"
         );
         difference.into_iter().next().unwrap()
     }
