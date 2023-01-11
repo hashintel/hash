@@ -6,7 +6,7 @@ import "./globals.scss";
 
 import { ApolloProvider } from "@apollo/client/react";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import wasm from "@blockprotocol/type-system/dist/wasm/type-system.wasm";
+import wasm from "@blockprotocol/type-system/type-system.wasm";
 import { CacheProvider, EmotionCache } from "@emotion/react";
 import { createEmotionCache, theme } from "@hashintel/hash-design-system";
 import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
