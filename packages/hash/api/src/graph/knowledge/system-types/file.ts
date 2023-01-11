@@ -1,3 +1,4 @@
+import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { Entity, PropertyObject } from "@hashintel/hash-subgraph";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
@@ -9,7 +10,6 @@ import { createEntity, CreateEntityParams } from "../primitive/entity";
 
 const MAX_FILE_SIZE_BYTES = 1000 * 1000 * 1000;
 
-// const DOWNLOAD_URL_EXPIRATION_SECONDS = 60 * 60 * 24 * 7;
 const UPLOAD_URL_EXPIRATION_SECONDS = 60 * 30;
 
 export type FileKey =
@@ -23,6 +23,7 @@ export type FileKey =
     };
 
 export type File = {
+  fileUrl: string;
   fileMediaType: string;
   fileKey: FileKey;
 };
@@ -39,6 +40,10 @@ export const getFileFromEntity: PureGraphFunction<{ entity: Entity }, File> = ({
       entity.metadata.entityTypeId,
     );
   }
+
+  const fileUrl = entity.properties[
+    SYSTEM_TYPES.propertyType.fileUrl.metadata.editionId.baseId
+  ] as string;
 
   const fileMediaType = entity.properties[
     SYSTEM_TYPES.propertyType.fileMediaType.metadata.editionId.baseId
@@ -65,9 +70,14 @@ export const getFileFromEntity: PureGraphFunction<{ entity: Entity }, File> = ({
         };
 
   return {
+    fileUrl,
     fileMediaType,
     fileKey,
   };
+};
+
+export const generateUrl = (key: string) => {
+  return `${apiOrigin}/file/${key}`;
 };
 
 export const createFileFromUploadRequest: ImpureGraphFunction<
@@ -100,6 +110,8 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
 
   try {
     const properties: PropertyObject = {
+      [SYSTEM_TYPES.propertyType.fileUrl.metadata.editionId.baseId]:
+        generateUrl(key),
       [SYSTEM_TYPES.propertyType.fileMediaType.metadata.editionId.baseId]:
         mediaType,
       [SYSTEM_TYPES.propertyType.fileKey.metadata.editionId.baseId]: {

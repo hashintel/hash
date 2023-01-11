@@ -1,5 +1,19 @@
+import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { AccountId } from "@hashintel/hash-shared/types";
 import { DataSource } from "apollo-datasource";
+import { Express } from "express";
+
+import { CacheAdapter } from "../cache";
+import { getAwsS3Config } from "../lib/aws-config";
+import { LOCAL_FILE_UPLOAD_PATH } from "../lib/config";
+import { AwsS3StorageProvider } from "./aws-s3-storage-provider";
+import { ExternalStorageProvider } from "./external-storage-provider";
+import { LocalFileSystemStorageProvider } from "./local-file-storage";
+
+// S3-like APIs have a 7 day upper bound.
+const DOWNLOAD_URL_EXPIRATION_SECONDS = 60 * 60 * 24 * 7;
+// An offset for the cached URL to prevent serving invalid URL
+const DOWNLOAD_URL_CACHE_OFFSET = 60 * 60 * 1;
 
 export enum StorageType {
   AwsS3 = "AWS_S3",
@@ -72,3 +86,106 @@ export interface PresignedPostUpload {
 export type StorageProviderLookup = Partial<
   Record<StorageType, StorageProvider | UploadableStorageProvider>
 >;
+
+type StorageProviderInitialiser = (
+  app: Express,
+) => StorageProvider | UploadableStorageProvider;
+
+const storageProviderInitialiserLookup: Record<
+  StorageType,
+  StorageProviderInitialiser
+> = {
+  [StorageType.AwsS3]: (_app: Express) =>
+    new AwsS3StorageProvider(getAwsS3Config()),
+  [StorageType.ExternalLink]: (_app: Express) => new ExternalStorageProvider(),
+  [StorageType.LocalFileSystem]: (app: Express) =>
+    new LocalFileSystemStorageProvider({
+      app,
+      fileUploadPath: LOCAL_FILE_UPLOAD_PATH,
+      apiOrigin,
+    }),
+};
+/** All storage providers usable by the API should be added here.
+ * Even if not currently used for upload, they need to be available for downloads.
+ */
+const storageProviderLookup: StorageProviderLookup = {};
+let uploadStorageProvider: StorageType = StorageType.LocalFileSystem;
+
+const initialiseStorageProvider = (app: Express, provider: StorageType) => {
+  const initialiser = storageProviderInitialiserLookup[provider];
+
+  const newProvider = initialiser(app);
+  storageProviderLookup[provider] = newProvider;
+  return newProvider;
+};
+
+export const getStorageProvider = (
+  app: Express,
+  provider: StorageType,
+): StorageProvider => {
+  if (storageProviderLookup[provider]) {
+    return storageProviderLookup[provider]!;
+  } else {
+    return initialiseStorageProvider(app, provider);
+  }
+};
+
+export const getUploadStorageProvider = (): UploadableStorageProvider => {
+  const uploadProvider = storageProviderLookup[uploadStorageProvider];
+  if (!uploadProvider) {
+    throw new Error(
+      `Upload storage provider ${uploadStorageProvider} is required by the app but doesn't exist`,
+    );
+  }
+  return uploadProvider as UploadableStorageProvider;
+};
+
+export const setupStorageProviders = (
+  app: Express,
+  fileUploadProvider: StorageType,
+): UploadableStorageProvider => {
+  initialiseStorageProvider(app, fileUploadProvider);
+  uploadStorageProvider = fileUploadProvider;
+  return getUploadStorageProvider();
+};
+
+export const setupFileProxyHanldere = (
+  app: Express,
+  uploadProvider: UploadableStorageProvider,
+  cache: CacheAdapter,
+) => {
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises -- should likely be using express-async-handler
+  app.get("/file/:key", async (req, res) => {
+    const key = req.params.key;
+
+    if (!key || key.length > 256) {
+      res.send(404);
+      return;
+    }
+
+    let presignUrl = await cache.get(key);
+
+    if (!presignUrl) {
+      presignUrl = await uploadProvider.presignDownload({
+        key,
+        expiresInSeconds: DOWNLOAD_URL_EXPIRATION_SECONDS,
+      });
+
+      if (!presignUrl) {
+        res.send(404);
+        return;
+      }
+
+      await cache.setex(
+        key,
+        presignUrl,
+        DOWNLOAD_URL_EXPIRATION_SECONDS - DOWNLOAD_URL_CACHE_OFFSET,
+      );
+
+      res.redirect(presignUrl);
+      return;
+    }
+
+    res.send(404);
+  });
+};

@@ -53,6 +53,7 @@ export let SYSTEM_TYPES: {
     orgSelfRegistrationIsEnabled: PropertyTypeWithMetadata;
 
     // File related
+    fileUrl: PropertyTypeWithMetadata;
     fileMediaType: PropertyTypeWithMetadata;
     externalFileLink: PropertyTypeWithMetadata;
     objectStoreKey: PropertyTypeWithMetadata;
@@ -577,9 +578,14 @@ const commentEntityTypeInitializer = async (context: ImpureGraphContext) => {
   })(context);
 };
 
+const fileUrlTypePropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.fileUrl,
+  possibleValues: [{ primitiveDataType: "text" }],
+});
+
 const fileMediaTypePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.fileMediaType,
-  possibleValues: [{ primitiveDataType: "number" }],
+  possibleValues: [{ primitiveDataType: "text" }],
 });
 
 const objectStoreKeyPropertyTypeInitializer = propertyTypeInitializer({
@@ -633,6 +639,9 @@ export const fileEntityTypeInitializer = async (
 ) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
 
+  const fileUrlPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.fileUrl(context);
+
   const fileMediaTypePropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.fileMediaType(context);
 
@@ -644,6 +653,10 @@ export const fileEntityTypeInitializer = async (
   return entityTypeInitializer({
     ...types.entityType.file,
     properties: [
+      {
+        propertyType: fileUrlPropertyType,
+        required: true,
+      },
       {
         propertyType: fileMediaTypePropertyType,
         required: true,
@@ -701,6 +714,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     userRegistrationByInviteIsEnabled:
       userRegistrationByInviteIsEnabledPropertyTypeInitializer,
 
+    fileUrl: fileUrlTypePropertyTypeInitializer,
     fileMediaType: fileMediaTypePropertyTypeInitializer,
     externalFileLink: externalFileLinkPropertyTypeInitializer,
     objectStoreKey: objectStoreKeyPropertyTypeInitializer,

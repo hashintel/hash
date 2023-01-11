@@ -234,6 +234,10 @@ const systemPropertyTypes = {
     title: "Deleted At",
     description: "Stringified timestamp of when something was deleted.",
   },
+  fileUrl: {
+    title: "File URL",
+    description: "URL to access a file.",
+  },
   fileMediaType: {
     title: "File Media Type",
     description: "Media type of a file.",

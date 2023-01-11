@@ -21,7 +21,6 @@ import { customAlphabet } from "nanoid";
 
 import setupAuth from "./auth";
 import { RedisCache } from "./cache";
-// import { createCollabApp } from "./collab/collab-app";
 import {
   AwsSesEmailTransporter,
   DummyEmailTransporter,
@@ -41,7 +40,10 @@ import {
 } from "./lib/env-config";
 import { logger } from "./logger";
 import { seedOrgsAndUsers } from "./seed-data";
-import { setupStorageProviders } from "./storage/storage-provider-lookup";
+import {
+  setupFileProxyHanldere as setupFileProxyHandler,
+  setupStorageProviders,
+} from "./storage";
 import { connectToTaskExecutor } from "./task-execution";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { getRequiredEnv } from "./util";
@@ -136,6 +138,8 @@ const main = async () => {
   const uploadProvider = setupStorageProviders(app, FILE_UPLOAD_PROVIDER);
 
   const context = { graphApi, uploadProvider };
+
+  setupFileProxyHandler(app, uploadProvider, redis);
 
   await ensureSystemGraphIsInitialized({ logger, context });
 
@@ -275,12 +279,6 @@ const main = async () => {
   shutdown.addCleanup("collabRedisQueue", async () =>
     collabRedisQueue.release(),
   );
-
-  // Collab is currently disabled.
-  // Register the collab backend
-  // const collabApp = await createCollabApp(collabRedisQueue);
-  // shutdown.addCleanup("collabApp", async () => collabApp.stop());
-  // app.use("/collab-backend", collabApp.router);
 };
 
 void main().catch(async (err) => {
