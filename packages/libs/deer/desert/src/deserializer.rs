@@ -75,6 +75,7 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
             Token::BytesBuf(value) => visitor.visit_bytes_buffer(value.to_vec()),
             Token::Array { length } => visitor.visit_array(ArrayAccess::new(self, length)),
             Token::Object { length } => visitor.visit_object(ObjectAccess::new(self, length)),
+            Token::Null => visitor.visit_null(),
             _ => {
                 panic!("Deserializer did not expect {token}");
             }

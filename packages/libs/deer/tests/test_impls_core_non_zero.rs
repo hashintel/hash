@@ -8,8 +8,7 @@ use core::num::{
 };
 
 use deer::{Deserialize, Number};
-use deer_desert::{assert_tokens, assert_tokens_error, Token};
-use num_traits::cast::FromPrimitive;
+use deer_desert::{assert_tokens_error, Token};
 use serde_json::json;
 
 macro_rules! test_zero {
@@ -32,7 +31,6 @@ macro_rules! test_zero {
                     &[Token::Number(zero)],
                 )
             }
-
         }
     };
 
@@ -44,3 +42,67 @@ macro_rules! test_zero {
 test_zero![
     NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroI8, NonZeroI16, NonZeroI32, NonZeroI64,
 ];
+
+#[test]
+fn i128_err_zero() {
+    assert_tokens_error::<_, NonZeroI128>(
+        &error! {
+            ns: "deer",
+            id: ["value"],
+            properties: {
+                "expected": NonZeroI128::reflection(),
+                "received": 0,
+                "location": []
+            }
+        },
+        &[Token::I128(0)],
+    )
+}
+
+#[test]
+fn isize_err_zero() {
+    assert_tokens_error::<_, NonZeroIsize>(
+        &error! {
+            ns: "deer",
+            id: ["value"],
+            properties: {
+                "expected": NonZeroIsize::reflection(),
+                "received": 0,
+                "location": []
+            }
+        },
+        &[Token::ISize(0)],
+    )
+}
+
+#[test]
+fn u128_err_zero() {
+    assert_tokens_error::<_, NonZeroU128>(
+        &error! {
+            ns: "deer",
+            id: ["value"],
+            properties: {
+                "expected": NonZeroU128::reflection(),
+                "received": 0,
+                "location": []
+            }
+        },
+        &[Token::U128(0)],
+    )
+}
+
+#[test]
+fn usize_err_zero() {
+    assert_tokens_error::<_, NonZeroUsize>(
+        &error! {
+            ns: "deer",
+            id: ["value"],
+            properties: {
+                "expected": NonZeroUsize::reflection(),
+                "received": 0,
+                "location": []
+            }
+        },
+        &[Token::USize(0)],
+    )
+}

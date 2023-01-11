@@ -71,6 +71,7 @@ pub enum Token {
         length: Option<usize>,
     },
     ObjectEnd,
+    Null,
 }
 
 impl Display for Token {
