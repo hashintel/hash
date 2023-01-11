@@ -50,10 +50,6 @@ export const fileTypedef = gql`
     # will just have a reference to the link (the file isn't fetched by our server in this current version)
     createFileFromLink(
       """
-      Account id under which to associate the file
-      """
-      accountId: ID!
-      """
       url of the external file
       """
       url: String!

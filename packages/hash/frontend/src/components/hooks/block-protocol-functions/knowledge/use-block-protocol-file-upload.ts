@@ -57,8 +57,8 @@ function computeChecksumMd5(file: File): Promise<string> {
   });
 }
 
-export const useFileUpload = (
-  accountId: string,
+export const useBlockProtocolFileUpload = (
+  _readonly?: boolean,
 ): { uploadFile: UploadFileRequestCallback } => {
   const [requestFileUploadFn] = useMutation<
     RequestFileUploadMutation,
@@ -97,7 +97,6 @@ export const useFileUpload = (
       if (url?.trim()) {
         const result = await createFileFromLinkFn({
           variables: {
-            accountId,
             name: url,
             url,
             mediaType,
@@ -159,7 +158,7 @@ export const useFileUpload = (
         },
       };
     },
-    [accountId, createFileFromLinkFn, requestFileUploadFn],
+    [createFileFromLinkFn, requestFileUploadFn],
   );
 
   return {

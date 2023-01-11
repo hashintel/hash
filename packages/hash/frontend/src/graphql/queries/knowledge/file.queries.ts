@@ -24,16 +24,10 @@ export const requestFileUpload = gql`
 
 export const createFileFromLink = gql`
   mutation createFileFromLink(
-    $accountId: ID!
     $name: String!
     $url: String!
     $mediaType: String!
   ) {
-    createFileFromLink(
-      accountId: $accountId
-      name: $name
-      url: $url
-      mediaType: $mediaType
-    )
+    createFileFromLink(name: $name, url: $url, mediaType: $mediaType)
   }
 `;
