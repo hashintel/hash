@@ -55,7 +55,7 @@ impl<A> VersionTimespan<A> {
     }
 
     #[must_use]
-    pub fn into_continuous_interval(self) -> IntervalBounds<Timestamp<A>> {
+    pub fn into_interval_bounds(self) -> IntervalBounds<Timestamp<A>> {
         IntervalBounds::from_range(self)
     }
 }
