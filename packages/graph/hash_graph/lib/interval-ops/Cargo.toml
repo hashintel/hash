@@ -1,0 +1,6 @@
+[package]
+name = "interval-ops"
+version = "0.0.0"
+edition = "2021"
+publish = false
+description = "Mathematical representation and operations for intervals"
