@@ -1,5 +1,5 @@
 {
-  "name": "@hashintel/hash-playwright",
+  "name": "@tests/hash-playwright",
   "version": "0.0.0-private",
   "private": true,
   "scripts": {

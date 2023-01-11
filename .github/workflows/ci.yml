@@ -249,7 +249,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: playwright-report
-          path: packages/hash/playwright/playwright-report
+          path: tests/hash-playwright/playwright-report
 
       - name: Upload artifact playwright-var
         uses: actions/upload-artifact@v3

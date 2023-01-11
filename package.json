@@ -14,13 +14,12 @@
       "packages/hash/backend-utils",
       "packages/hash/design-system",
       "packages/hash/frontend",
-      "packages/hash/integration",
-      "packages/hash/playwright",
       "packages/hash/realtime",
       "packages/hash/search-loader",
       "packages/hash/shared",
       "packages/hash/task-executor",
-      "packages/hash/subgraph"
+      "packages/hash/subgraph",
+      "tests/*"
     ]
   },
   "scripts": {
@@ -54,7 +53,7 @@
     "seed-data:opensearch": "yarn workspace @hashintel/hash-search-loader clear-opensearch",
     "seed-data:redis": "yarn workspace @hashintel/hash-realtime clear-redis",
     "seed-data": "concurrently \"yarn:seed-data:*\"",
-    "test:backend-integration": "yarn workspace @hashintel/hash-integration test",
+    "test:backend-integration": "yarn workspace @tests/hash-backend-integration test",
     "test:playwright": "yarn workspace @hashintel/hash-playwright playwright test",
     "test:unit": "yarn workspace @hashintel/hash-api test && yarn workspace @hashintel/hash-backend-utils test && yarn workspace @hashintel/hash-shared test"
   },
