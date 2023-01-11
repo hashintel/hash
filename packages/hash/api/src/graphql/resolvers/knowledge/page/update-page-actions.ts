@@ -1,10 +1,10 @@
 import { VersionedUri } from "@blockprotocol/type-system";
-import { GraphApi } from "@hashintel/hash-graph-client";
 import { AccountId, EntityId, OwnedById } from "@hashintel/hash-shared/types";
 import { Entity } from "@hashintel/hash-subgraph";
 import { UserInputError } from "apollo-server-errors";
 import produce from "immer";
 
+import { ImpureGraphContext } from "../../../../graph";
 import {
   createEntityWithLinks,
   getLatestEntityById,
@@ -29,7 +29,7 @@ import {
 } from "../../../api-types.gen";
 
 export const createEntityWithPlaceholdersFn =
-  (graphApi: GraphApi, placeholderResults: PlaceholderResultsMap) =>
+  (context: ImpureGraphContext, placeholderResults: PlaceholderResultsMap) =>
   async (originalDefinition: EntityDefinition, entityActorId: AccountId) => {
     const entityDefinition = produce(originalDefinition, (draft) => {
       if (draft.existingEntityId) {
@@ -45,26 +45,20 @@ export const createEntityWithPlaceholdersFn =
     });
 
     if (entityDefinition.existingEntityId) {
-      return await getOrCreateEntity(
-        { graphApi },
-        {
-          ownedById: entityActorId as OwnedById,
-          // We've looked up the placeholder ID, and have an actual entity ID at this point.
-          entityDefinition,
-          actorId: entityActorId,
-        },
-      );
+      return await getOrCreateEntity(context, {
+        ownedById: entityActorId as OwnedById,
+        // We've looked up the placeholder ID, and have an actual entity ID at this point.
+        entityDefinition,
+        actorId: entityActorId,
+      });
     } else {
-      return await createEntityWithLinks(
-        { graphApi },
-        {
-          ownedById: entityActorId as OwnedById,
-          entityTypeId: entityDefinition.entityTypeId!,
-          properties: entityDefinition.entityProperties ?? {},
-          linkedEntities: entityDefinition.linkedEntities ?? undefined,
-          actorId: entityActorId,
-        },
-      );
+      return await createEntityWithLinks(context, {
+        ownedById: entityActorId as OwnedById,
+        entityTypeId: entityDefinition.entityTypeId!,
+        properties: entityDefinition.entityProperties ?? {},
+        linkedEntities: entityDefinition.linkedEntities ?? undefined,
+        actorId: entityActorId,
+      });
     }
   };
 
@@ -174,7 +168,7 @@ export const handleCreateNewEntity = async (params: {
  * Acts on {@link InsertBlockAction}
  */
 export const handleInsertNewBlock = async (
-  graphApi: GraphApi,
+  context: ImpureGraphContext,
   params: {
     user: User;
     insertBlockAction: InsertBlockAction;
@@ -219,12 +213,9 @@ export const handleInsertNewBlock = async (
           "InsertNewBlock: cannot set component id when using existing block entity",
         );
       }
-      const existingBlock = await getBlockById(
-        { graphApi },
-        {
-          entityId: existingBlockEntityId,
-        },
-      );
+      const existingBlock = await getBlockById(context, {
+        entityId: existingBlockEntityId,
+      });
 
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
       if (!existingBlock) {
@@ -233,15 +224,12 @@ export const handleInsertNewBlock = async (
 
       block = existingBlock;
     } else if (blockComponentId) {
-      block = await createBlock(
-        { graphApi },
-        {
-          blockData,
-          ownedById: user.accountId as OwnedById,
-          componentId: blockComponentId,
-          actorId: user.accountId,
-        },
-      );
+      block = await createBlock(context, {
+        blockData,
+        ownedById: user.accountId as OwnedById,
+        componentId: blockComponentId,
+        actorId: user.accountId,
+      });
     } else {
       throw new Error(
         `InsertBlock: exactly one of existingBlockEntity or componentId must be provided`,
@@ -270,7 +258,7 @@ export const handleInsertNewBlock = async (
  * Acts on {@link SwapBlockDataAction}
  */
 export const handleSwapBlockData = async (
-  graphApi: GraphApi,
+  context: ImpureGraphContext,
   params: {
     user: User;
     swapBlockDataAction: SwapBlockDataAction;
@@ -281,12 +269,9 @@ export const handleSwapBlockData = async (
     user,
   } = params;
 
-  const block = await getBlockById(
-    { graphApi },
-    {
-      entityId,
-    },
-  );
+  const block = await getBlockById(context, {
+    entityId,
+  });
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
   if (!block) {
@@ -295,21 +280,15 @@ export const handleSwapBlockData = async (
 
   const { newEntityEntityId } = params.swapBlockDataAction;
 
-  const newBlockDataEntity = await getLatestEntityById(
-    { graphApi },
-    {
-      entityId: newEntityEntityId,
-    },
-  );
+  const newBlockDataEntity = await getLatestEntityById(context, {
+    entityId: newEntityEntityId,
+  });
 
-  await updateBlockDataEntity(
-    { graphApi },
-    {
-      block,
-      newBlockDataEntity,
-      actorId: user.accountId,
-    },
-  );
+  await updateBlockDataEntity(context, {
+    block,
+    newBlockDataEntity,
+    actorId: user.accountId,
+  });
 };
 
 /**
@@ -317,7 +296,7 @@ export const handleSwapBlockData = async (
  * Acts on {@link UpdateEntityAction}
  */
 export const handleUpdateEntity = async (
-  graphApi: GraphApi,
+  context: ImpureGraphContext,
   params: {
     user: User;
     action: UpdateEntityAction;
@@ -332,24 +311,18 @@ export const handleUpdateEntity = async (
     entityId = placeholderResults.get(entityId) as EntityId;
   }
 
-  const entity = await getLatestEntityById(
-    { graphApi },
-    {
-      entityId,
-    },
-  );
+  const entity = await getLatestEntityById(context, {
+    entityId,
+  });
 
-  await updateEntityProperties(
-    { graphApi },
-    {
-      entity,
-      updatedProperties: Object.entries(action.properties).map(
-        ([key, value]) => ({
-          propertyTypeBaseUri: key,
-          value: (value ?? undefined) as PropertyValue,
-        }),
-      ),
-      actorId: user.accountId,
-    },
-  );
+  await updateEntityProperties(context, {
+    entity,
+    updatedProperties: Object.entries(action.properties).map(
+      ([key, value]) => ({
+        propertyTypeBaseUri: key,
+        value: (value ?? undefined) as PropertyValue,
+      }),
+    ),
+    actorId: user.accountId,
+  });
 };

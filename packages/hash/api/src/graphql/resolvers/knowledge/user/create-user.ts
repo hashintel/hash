@@ -5,6 +5,7 @@ import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primi
 import { createUser } from "../../../../graph/knowledge/system-types/user";
 import { MutationCreateUserArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
+import { dataSourcesToImpureGraphContext } from "../../util";
 
 export const createUserResolver: ResolverFn<
   Promise<Subgraph>,
@@ -21,8 +22,10 @@ export const createUserResolver: ResolverFn<
     preferredName,
     hasLeftEntity,
   },
-  { dataSources: { graphApi }, user: actorUser },
+  { dataSources, user: actorUser },
 ) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
   const kratosIdentity = await createKratosIdentity({
     traits: {
       shortname: shortname ?? undefined,
@@ -39,20 +42,17 @@ export const createUserResolver: ResolverFn<
 
   const { id: kratosIdentityId } = kratosIdentity;
 
-  const user = await createUser(
-    { graphApi },
-    {
-      emails: [emailAddress],
-      shortname: shortname ?? undefined,
-      preferredName: preferredName ?? undefined,
-      kratosIdentityId,
-      isInstanceAdmin,
-      actorId: actorUser.accountId,
-    },
-  );
+  const user = await createUser(context, {
+    emails: [emailAddress],
+    shortname: shortname ?? undefined,
+    preferredName: preferredName ?? undefined,
+    kratosIdentityId,
+    isInstanceAdmin,
+    actorId: actorUser.accountId,
+  });
 
-  return await getLatestEntityRootedSubgraph(
-    { graphApi },
-    { entity: user.entity, graphResolveDepths: { hasLeftEntity } },
-  );
+  return await getLatestEntityRootedSubgraph(context, {
+    entity: user.entity,
+    graphResolveDepths: { hasLeftEntity },
+  });
 };

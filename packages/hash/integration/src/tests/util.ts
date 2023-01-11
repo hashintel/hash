@@ -1,7 +1,7 @@
 import { createKratosIdentity } from "@hashintel/hash-api/src/auth/ory-kratos";
 import {
+  createGraphClient,
   ensureSystemGraphIsInitialized,
-  GraphApi,
   ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
 import { createOrg } from "@hashintel/hash-api/src/graph/knowledge/system-types/org";
@@ -12,7 +12,7 @@ import {
 import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
 import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
 import { StorageType } from "@hashintel/hash-api/src/graphql/api-types.gen";
-import { PresignedPostUpload } from "@hashintel/hash-api/src/storage";
+import { getRequiredEnv } from "@hashintel/hash-api/src/util";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { OrgSize } from "../graphql/api-types.gen";
@@ -25,25 +25,46 @@ const randomStringSuffix = () => {
     .join("");
 };
 
+export const createTestImpureGraphContext = (): ImpureGraphContext => {
+  const logger = new Logger({
+    mode: "dev",
+    level: "debug",
+    serviceName: "integration-tests",
+  });
+
+  const graphApiHost = getRequiredEnv("HASH_GRAPH_API_HOST");
+  const graphApiPort = parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10);
+
+  const graphApi = createGraphClient(logger, {
+    host: graphApiHost,
+    port: graphApiPort,
+  });
+  return {
+    graphApi,
+    uploadProvider: {
+      getFileEntityStorageKey: (_params: any) => {
+        throw new Error("File fetching not implemented in tests");
+      },
+      presignDownload: (_params: any) => {
+        throw new Error("File presign download not implemented in tests");
+      },
+      presignUpload: (_params: any) => {
+        throw new Error("File presign upload not implemented in tests");
+      },
+      storageType: StorageType.LocalFileSystem,
+    },
+  };
+};
+
 export const generateRandomShortname = (prefix?: string) =>
   `${prefix ?? ""}${randomStringSuffix()}`;
 
 export const createTestUser = async (
-  graphApi: GraphApi,
+  context: ImpureGraphContext,
   shortNamePrefix: string,
   logger: Logger,
 ) => {
-  await ensureSystemGraphIsInitialized({ graphApi, logger });
-
-  const graphContext: ImpureGraphContext = {
-    graphApi,
-    storage: {
-      getFileEntityStorageKey: (_params) => "n/a",
-      presignDownload: (_params) => Promise.resolve("n/a"),
-      presignUpload: (_params) => Promise.resolve({} as PresignedPostUpload),
-      storageType: StorageType.LocalFileSystem,
-    },
-  };
+  await ensureSystemGraphIsInitialized({ logger, context });
 
   const shortname = generateRandomShortname(shortNamePrefix);
 
@@ -60,7 +81,7 @@ export const createTestUser = async (
 
   const kratosIdentityId = identity.id;
 
-  const createdUser = await createUser(graphContext, {
+  const createdUser = await createUser(context, {
     emails: [`${shortname}@example.com`],
     kratosIdentityId,
     actorId: systemUserAccountId,
@@ -69,7 +90,7 @@ export const createTestUser = async (
     throw err;
   });
 
-  return await updateUserShortname(graphContext, {
+  return await updateUserShortname(context, {
     user: createdUser,
     updatedShortname: shortname,
     actorId: createdUser.accountId,
@@ -80,23 +101,20 @@ export const createTestUser = async (
 };
 
 export const createTestOrg = async (
-  graphApi: GraphApi,
+  context: ImpureGraphContext,
   shortNamePrefix: string,
   logger: Logger,
 ) => {
-  await ensureSystemTypesExist({ graphApi, logger });
+  await ensureSystemTypesExist({ logger, context });
 
   const shortname = generateRandomShortname(shortNamePrefix);
 
-  return await createOrg(
-    { graphApi },
-    {
-      name: "Test org",
-      shortname,
-      providedInfo: {
-        orgSize: OrgSize.ElevenToFifty,
-      },
-      actorId: systemUserAccountId,
+  return await createOrg(context, {
+    name: "Test org",
+    shortname,
+    providedInfo: {
+      orgSize: OrgSize.ElevenToFifty,
     },
-  );
+    actorId: systemUserAccountId,
+  });
 };

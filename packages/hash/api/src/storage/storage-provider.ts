@@ -1,4 +1,5 @@
 import { AccountId } from "@hashintel/hash-shared/types";
+import { DataSource } from "apollo-datasource";
 
 export enum StorageType {
   AwsS3 = "AWS_S3",
@@ -25,7 +26,7 @@ export interface GetFileEntityStorageKeyParams {
   uniqueIdenitifier: string;
 }
 
-export interface UploadableStorageProvider extends StorageProvider {
+export interface UploadableStorageProvider extends StorageProvider, DataSource {
   /** Presigns a file upload request for a client to later upload a file
    * @return {Promise<PresignedPostUpload>} Object containing the data and url needed to POST the file
    */

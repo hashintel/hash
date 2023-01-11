@@ -48,18 +48,6 @@ function initialiseStorageProvider(provider: StorageType) {
   return newProvider;
 }
 
-export function setupStorageProviders(
-  app: Express,
-  fileUploadProvider: StorageType,
-) {
-  const localFileStorage = initialiseStorageProvider(
-    StorageType.LocalFileSystem,
-  ) as LocalFileSystemStorageProvider;
-  // Sets up routes needed to handle download/upload
-  localFileStorage.setupExpressRoutes(app);
-  initialiseStorageProvider(fileUploadProvider);
-  uploadStorageProvider = fileUploadProvider;
-}
 export function getStorageProvider(provider: StorageType): StorageProvider {
   if (storageProviderLookup[provider]) {
     return storageProviderLookup[provider]!;
@@ -76,4 +64,19 @@ export function getUploadStorageProvider(): UploadableStorageProvider {
     );
   }
   return uploadProvider as UploadableStorageProvider;
+}
+
+export function setupStorageProviders(
+  app: Express,
+  fileUploadProvider: StorageType,
+): UploadableStorageProvider {
+  const localFileStorage = initialiseStorageProvider(
+    StorageType.LocalFileSystem,
+  ) as LocalFileSystemStorageProvider;
+  // Sets up routes needed to handle download/upload
+  localFileStorage.setupExpressRoutes(app);
+  initialiseStorageProvider(fileUploadProvider);
+  uploadStorageProvider = fileUploadProvider;
+
+  return getUploadStorageProvider();
 }

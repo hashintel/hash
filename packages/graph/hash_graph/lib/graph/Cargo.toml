@@ -6,6 +6,8 @@ publish = false
 description = "HASH Graph API"
 
 [dependencies]
+interval-ops = { path = "../interval-ops" }
+
 async-trait = "0.1.60"
 axum = "0.6.1"
 bb8-postgres = "0.8.1"
@@ -28,7 +30,7 @@ tracing-appender = "0.2.2"
 tracing-error = "0.2.0"
 tracing-opentelemetry = "0.18.0"
 tonic = "0.8.3"
-opentelemetry = { version = "0.18.0", features = ["rt-tokio"]}
+opentelemetry = { version = "0.18.0", features = ["rt-tokio"] }
 opentelemetry-otlp = "0.11.0"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter", "json"] }
 type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "2ea406f" }

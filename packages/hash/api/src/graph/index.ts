@@ -18,12 +18,12 @@ import {
 
 export type ImpureGraphContext = {
   graphApi: GraphApi;
-  storage: UploadableStorageProvider;
+  uploadProvider: UploadableStorageProvider;
   /** @todo: add logger? */
 };
 
 export type ImpureGraphFunction<Parameters, ReturnType> = (
-  ctx: ImpureGraphContext,
+  context: ImpureGraphContext,
   params: Parameters,
 ) => ReturnType;
 
@@ -121,8 +121,8 @@ export const createGraphClient = (
 };
 
 export const ensureSystemGraphIsInitialized = async (params: {
-  graphApi: GraphApi;
   logger: Logger;
+  context: ImpureGraphContext;
 }) => {
   await ensureSystemUserAccountIdExists(params);
 
