@@ -1,7 +1,7 @@
 use core::{
     cmp::Ordering,
     fmt,
-    ops::{Add, Bound, Mul, RangeBounds, Sub},
+    ops::{Bound, RangeBounds},
 };
 
 use crate::{bounds::LowerBoundHelper, invalid_bounds, Interval};
@@ -80,37 +80,5 @@ impl<T> Interval<T> for IntervalBounds<T> {
 
     fn into_bound(self) -> (Self::LowerBound, Self::UpperBound) {
         (self.lower, self.upper)
-    }
-}
-
-impl<T: PartialOrd> Add for IntervalBounds<T> {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        let union = self.union(rhs);
-        assert_eq!(union.len(), 1, "interval union result in disjoint spans");
-        union.into_iter().next().unwrap()
-    }
-}
-
-impl<T: PartialOrd> Sub for IntervalBounds<T> {
-    type Output = Self;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        let difference = self.difference(rhs);
-        assert_eq!(
-            difference.len(),
-            1,
-            "interval difference resulted in disjoint spans"
-        );
-        difference.into_iter().next().unwrap()
-    }
-}
-
-impl<T: PartialOrd> Mul for IntervalBounds<T> {
-    type Output = Self;
-
-    fn mul(self, rhs: Self) -> Self::Output {
-        self.intersect(rhs).expect("intervals do not overlap")
     }
 }
