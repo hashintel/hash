@@ -13,7 +13,7 @@ import {
   UpdatePageContentsResult,
 } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { dataSourceToImpureGraphContext } from "../../util";
+import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapPageToGQL, UnresolvedPageGQL } from "../graphql-mapping";
 import {
   createEntityWithPlaceholdersFn,
@@ -42,7 +42,7 @@ export const updatePageContents: ResolverFn<
   LoggedInGraphQLContext,
   MutationUpdatePageContentsArgs
 > = async (_, { entityId: pageEntityId, actions }, { dataSources, user }) => {
-  const context = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
   for (const [i, action] of actions.entries()) {
     if (

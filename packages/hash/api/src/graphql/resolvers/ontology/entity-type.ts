@@ -13,7 +13,7 @@ import {
   ResolverFn,
 } from "../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../context";
-import { dataSourceToImpureGraphContext } from "../util";
+import { dataSourcesToImpureGraphContext } from "../util";
 
 export const createEntityTypeResolver: ResolverFn<
   Promise<EntityTypeWithMetadata>,
@@ -21,7 +21,7 @@ export const createEntityTypeResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationCreateEntityTypeArgs
 > = async (_, params, { dataSources, user }) => {
-  const context = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
   const { ownedById, entityType } = params;
 
@@ -116,7 +116,7 @@ export const updateEntityTypeResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationUpdateEntityTypeArgs
 > = async (_, params, { dataSources, user }) => {
-  const context = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
   const { entityTypeId, updatedEntityType: updatedEntityTypeSchema } = params;
 

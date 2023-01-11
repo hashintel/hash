@@ -6,7 +6,7 @@ import {
 } from "../../../../graph/knowledge/system-types/block";
 import { QueryBlocksArgs, ResolverFn } from "../../../api-types.gen";
 import { GraphQLContext } from "../../../context";
-import { dataSourceToImpureGraphContext } from "../../util";
+import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapEntityToGQL, UnresolvedBlockGQL } from "../graphql-mapping";
 
 export const blockChildEntityResolver: ResolverFn<
@@ -15,7 +15,7 @@ export const blockChildEntityResolver: ResolverFn<
   GraphQLContext,
   QueryBlocksArgs
 > = async ({ metadata }, _, { dataSources }) => {
-  const context = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
   const block = await getBlockById(context, {
     entityId: metadata.editionId.baseId,

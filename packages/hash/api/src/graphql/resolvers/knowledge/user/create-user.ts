@@ -5,7 +5,7 @@ import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primi
 import { createUser } from "../../../../graph/knowledge/system-types/user";
 import { MutationCreateUserArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { dataSourceToImpureGraphContext } from "../../util";
+import { dataSourcesToImpureGraphContext } from "../../util";
 
 export const createUserResolver: ResolverFn<
   Promise<Subgraph>,
@@ -24,7 +24,7 @@ export const createUserResolver: ResolverFn<
   },
   { dataSources, user: actorUser },
 ) => {
-  const context = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
   const kratosIdentity = await createKratosIdentity({
     traits: {

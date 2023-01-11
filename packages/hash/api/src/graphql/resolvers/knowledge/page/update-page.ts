@@ -6,7 +6,7 @@ import {
 import { SYSTEM_TYPES } from "../../../../graph/system-types";
 import { MutationUpdatePageArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { dataSourceToImpureGraphContext } from "../../util";
+import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapPageToGQL, UnresolvedPageGQL } from "../graphql-mapping";
 
 export const updatePageResolver: ResolverFn<
@@ -15,7 +15,7 @@ export const updatePageResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationUpdatePageArgs
 > = async (_, { entityId, updatedProperties }, { dataSources, user }) => {
-  const context = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
   const page = await getPageById(context, { entityId });
 

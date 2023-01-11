@@ -4,7 +4,7 @@ import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primi
 import { createOrg } from "../../../../graph/knowledge/system-types/org";
 import { MutationCreateOrgArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { dataSourceToImpureGraphContext } from "../../util";
+import { dataSourcesToImpureGraphContext } from "../../util";
 
 export const createOrgResolver: ResolverFn<
   Promise<Subgraph>,
@@ -16,7 +16,7 @@ export const createOrgResolver: ResolverFn<
   { name, shortname, orgSize, hasLeftEntity, hasRightEntity },
   { dataSources, user },
 ) => {
-  const context = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
   const org = await createOrg(context, {
     shortname,

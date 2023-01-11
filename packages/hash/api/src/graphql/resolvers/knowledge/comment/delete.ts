@@ -4,7 +4,7 @@ import {
 } from "../../../../graph/knowledge/system-types/comment";
 import { MutationDeleteCommentArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { dataSourceToImpureGraphContext } from "../../util";
+import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapCommentToGQL, UnresolvedCommentGQL } from "../graphql-mapping";
 
 export const deleteCommentResolver: ResolverFn<
@@ -13,7 +13,7 @@ export const deleteCommentResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationDeleteCommentArgs
 > = async (_, { entityId }, { dataSources, user }) => {
-  const context = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
   const comment = await getCommentById(context, {
     entityId,

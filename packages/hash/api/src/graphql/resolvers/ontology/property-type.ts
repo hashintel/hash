@@ -13,7 +13,7 @@ import {
   ResolverFn,
 } from "../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../context";
-import { dataSourceToImpureGraphContext } from "../util";
+import { dataSourcesToImpureGraphContext } from "../util";
 
 export const createPropertyTypeResolver: ResolverFn<
   Promise<PropertyTypeWithMetadata>,
@@ -21,7 +21,7 @@ export const createPropertyTypeResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationCreatePropertyTypeArgs
 > = async (_, params, { dataSources, user }) => {
-  const context = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
   const { ownedById, propertyType } = params;
 
@@ -114,7 +114,7 @@ export const updatePropertyTypeResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationUpdatePropertyTypeArgs
 > = async (_, params, { dataSources, user }) => {
-  const context = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
   const { propertyTypeId, updatedPropertyType: updatedPropertyTypeSchema } =
     params;

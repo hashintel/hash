@@ -4,7 +4,7 @@ import { getLatestEntityById } from "../../../../graph/knowledge/primitive/entit
 import { createComment } from "../../../../graph/knowledge/system-types/comment";
 import { MutationCreateCommentArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { dataSourceToImpureGraphContext } from "../../util";
+import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapCommentToGQL, UnresolvedCommentGQL } from "../graphql-mapping";
 
 export const createCommentResolver: ResolverFn<
@@ -13,7 +13,7 @@ export const createCommentResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationCreateCommentArgs
 > = async (_, { parentEntityId, tokens }, { dataSources, user }) => {
-  const context = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
   const parent = await getLatestEntityById(context, {
     entityId: parentEntityId,

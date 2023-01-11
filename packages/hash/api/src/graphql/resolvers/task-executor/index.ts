@@ -12,7 +12,7 @@ import {
   ResolverFn,
 } from "../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
-import { dataSourceToImpureGraphContext } from "../util";
+import { dataSourcesToImpureGraphContext } from "../util";
 import { readFromAirbyte } from "./airbyte-read";
 
 /** @todo - Make Airbyte types available in api package */
@@ -111,7 +111,7 @@ export const executeGithubReadTask: ResolverFn<
   LoggedInGraphQLContext,
   MutationExecuteGithubReadTaskArgs
 > = async (_, { config }, { dataSources, user, logger }) => {
-  const context = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
   const { taskExecutor } = dataSources;
 
@@ -206,7 +206,7 @@ export const executeAsanaReadTask: ResolverFn<
   LoggedInGraphQLContext,
   MutationExecuteAsanaReadTaskArgs
 > = async (_, { config }, { dataSources, user, logger }) => {
-  const context = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
   const { taskExecutor } = dataSources;
 

@@ -30,7 +30,7 @@ import {
   ResolverFn,
 } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { dataSourceToImpureGraphContext } from "../../util";
+import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapEntityToGQL } from "../graphql-mapping";
 import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
 
@@ -65,7 +65,7 @@ export const createEntityResolver: ResolverFn<
   { ownedById, properties, entityTypeId, linkedEntities, linkData },
   { dataSources, user },
 ) => {
-  const context = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
   /**
    * @todo: prevent callers of this mutation from being able to create restricted
@@ -250,7 +250,7 @@ export const updateEntityResolver: ResolverFn<
   },
   { dataSources, user },
 ) => {
-  const context = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
   // The user needs to be signed up if they aren't updating their own user entity
   if (

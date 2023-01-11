@@ -3,7 +3,7 @@ import { ForbiddenError } from "apollo-server-express";
 import { isUserMemberOfOrg } from "../../../graph/knowledge/system-types/user";
 import { Scalars } from "../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
-import { dataSourceToImpureGraphContext } from "../util";
+import { dataSourcesToImpureGraphContext } from "../util";
 import { loggedInAndSignedUpMiddleware } from "./logged-in-and-signed-up";
 import { ResolverMiddleware } from "./middleware-types";
 
@@ -20,7 +20,7 @@ export const canAccessAccountMiddleware: ResolverMiddleware<
 > = (next) =>
   loggedInAndSignedUpMiddleware(async (_, args, ctx, info) => {
     const { user, dataSources } = ctx;
-    const context = dataSourceToImpureGraphContext(dataSources);
+    const context = dataSourcesToImpureGraphContext(dataSources);
 
     let isAllowed = false;
     if (user.accountId === args.ownedById) {

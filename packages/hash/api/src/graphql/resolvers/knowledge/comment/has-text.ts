@@ -7,7 +7,7 @@ import {
 import { SYSTEM_TYPES } from "../../../../graph/system-types";
 import { ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { dataSourceToImpureGraphContext } from "../../util";
+import { dataSourcesToImpureGraphContext } from "../../util";
 import { UnresolvedCommentGQL } from "../graphql-mapping";
 
 export const commentHasTextResolver: ResolverFn<
@@ -16,7 +16,7 @@ export const commentHasTextResolver: ResolverFn<
   LoggedInGraphQLContext,
   {}
 > = async ({ metadata }, _, { dataSources }) => {
-  const context = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
   const comment = await getCommentById(context, {
     entityId: metadata.editionId.baseId,

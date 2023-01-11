@@ -24,7 +24,7 @@ import {
   ResolverFn,
 } from "../../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
-import { dataSourceToImpureGraphContext } from "../../util";
+import { dataSourcesToImpureGraphContext } from "../../util";
 import {
   mapCommentToGQL,
   mapPageToGQL,
@@ -38,7 +38,7 @@ export const pageResolver: ResolverFn<
   GraphQLContext,
   QueryPageArgs
 > = async (_, { entityId }, { dataSources }) => {
-  const context = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
   const page = await getPageById(context, {
     entityId,
@@ -57,7 +57,7 @@ export const createPageResolver: ResolverFn<
   { ownedById, properties: { title, prevIndex } },
   { dataSources, user },
 ) => {
-  const context = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
   const page = await createPage(context, {
     ownedById,
@@ -75,7 +75,7 @@ export const parentPageResolver: ResolverFn<
   GraphQLContext,
   QueryPagesArgs
 > = async (pageGql, _, { dataSources }) => {
-  const context = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
   const page = await getPageById(context, {
     entityId: pageGql.metadata.editionId.baseId,
@@ -91,7 +91,7 @@ export const pagesResolver: ResolverFn<
   LoggedInGraphQLContext,
   QueryPagesArgs
 > = async (_, { ownedById }, { dataSources, user }) => {
-  const context = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
   const accountEntityId = ownedById
     ? entityIdFromOwnedByIdAndEntityUuid(
@@ -124,7 +124,7 @@ export const pageCommentsResolver: ResolverFn<
   LoggedInGraphQLContext,
   QueryPageCommentsArgs
 > = async (_, { entityId }, { dataSources }) => {
-  const context = dataSourceToImpureGraphContext(dataSources);
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
   const page = await getPageById(context, {
     entityId,
