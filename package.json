@@ -5,7 +5,7 @@
     "packages": [
       "apps/*",
       "blocks/*",
-      "libs/javascript/@local/*",
+      "libs/@local/*",
       "packages/engine/apache-arrow-js-bundle",
       "packages/graph/clients",
       "packages/graph/clients/typescript",
