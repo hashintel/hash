@@ -16,7 +16,6 @@ export type FileKey =
   | {
       type: "ObjectStoreKey";
       objectStoreKey: string;
-      fileSize: number;
     }
   | {
       type: "ExternalFileLink";
@@ -24,7 +23,7 @@ export type FileKey =
     };
 
 export type File = {
-  fileName: string;
+  fileMediaType: string;
   fileKey: FileKey;
 };
 
@@ -41,8 +40,8 @@ export const getFileFromEntity: PureGraphFunction<{ entity: Entity }, File> = ({
     );
   }
 
-  const fileName = entity.properties[
-    SYSTEM_TYPES.propertyType.fileName.metadata.editionId.baseId
+  const fileMediaType = entity.properties[
+    SYSTEM_TYPES.propertyType.fileMediaType.metadata.editionId.baseId
   ] as string;
 
   const fileKeyObject = entity.properties[
@@ -63,20 +62,16 @@ export const getFileFromEntity: PureGraphFunction<{ entity: Entity }, File> = ({
           objectStoreKey: fileKeyObject[
             SYSTEM_TYPES.propertyType.objectStoreKey.metadata.editionId.baseId
           ] as string,
-          fileSize: fileKeyObject[
-            SYSTEM_TYPES.propertyType.fileSize.metadata.editionId.baseId
-          ] as number,
         };
 
   return {
-    fileName,
+    fileMediaType,
     fileKey,
   };
 };
 
 export const createFileFromUploadRequest: ImpureGraphFunction<
   Omit<CreateEntityParams, "properties" | "entityType"> & {
-    name: string;
     size: number;
     mediaType: string;
   },
@@ -86,8 +81,12 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   params,
 ): Promise<{ presignedPost: PresignedPostUpload; entity: Entity }> => {
   const { uploadProvider } = ctx;
-  const { ownedById, actorId, name, size } = params;
+  const { ownedById, actorId, mediaType, size } = params;
 
+  /**
+   * @todo we want the downstream upload services to enforce the given size
+   * limit, otherwise the size limits are meaningless
+   */
   if (size > MAX_FILE_SIZE_BYTES) {
     throw new Error("The file is heavier than the maximum allowed file size");
   }
@@ -96,15 +95,14 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
 
   const key = uploadProvider.getFileEntityStorageKey({
     accountId: ownedById,
-    fileName: name,
     uniqueIdenitifier: fileIdentifier,
   });
 
   try {
     const properties: PropertyObject = {
-      [SYSTEM_TYPES.propertyType.fileName.metadata.editionId.baseId]: name,
+      [SYSTEM_TYPES.propertyType.fileMediaType.metadata.editionId.baseId]:
+        mediaType,
       [SYSTEM_TYPES.propertyType.fileKey.metadata.editionId.baseId]: {
-        [SYSTEM_TYPES.propertyType.fileSize.metadata.editionId.baseId]: size,
         [SYSTEM_TYPES.propertyType.objectStoreKey.metadata.editionId.baseId]:
           key,
       },

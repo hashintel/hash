@@ -53,8 +53,7 @@ export let SYSTEM_TYPES: {
     orgSelfRegistrationIsEnabled: PropertyTypeWithMetadata;
 
     // File related
-    fileName: PropertyTypeWithMetadata;
-    fileSize: PropertyTypeWithMetadata;
+    fileMediaType: PropertyTypeWithMetadata;
     externalFileLink: PropertyTypeWithMetadata;
     objectStoreKey: PropertyTypeWithMetadata;
     fileKey: PropertyTypeWithMetadata;
@@ -578,13 +577,8 @@ const commentEntityTypeInitializer = async (context: ImpureGraphContext) => {
   })(context);
 };
 
-const fileNamePropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.fileName,
-  possibleValues: [{ primitiveDataType: "text" }],
-});
-
-const fileSizePropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.fileSize,
+const fileMediaTypePropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.fileMediaType,
   possibleValues: [{ primitiveDataType: "number" }],
 });
 
@@ -603,17 +597,12 @@ const fileKeyPropertyTypeInitializer = async (context: ImpureGraphContext) => {
   const objectStoreKeyPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.objectStoreKey(context);
 
-  const fileSizePropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.fileSize(context);
-
   const externalFileLinkPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.externalFileLink(context);
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   const objectStoreKeyBaseUri =
     objectStoreKeyPropertyType.metadata.editionId.baseId;
-
-  const fileSizeBaseUri = fileSizePropertyType.metadata.editionId.baseId;
 
   const externalFileLinkBaseUri =
     externalFileLinkPropertyType.metadata.editionId.baseId;
@@ -625,9 +614,6 @@ const fileKeyPropertyTypeInitializer = async (context: ImpureGraphContext) => {
         propertyTypeObjectProperties: {
           [objectStoreKeyBaseUri]: {
             $ref: objectStoreKeyPropertyType.schema.$id,
-          },
-          [fileSizeBaseUri]: {
-            $ref: fileSizePropertyType.schema.$id,
           },
         },
       },
@@ -647,8 +633,8 @@ export const fileEntityTypeInitializer = async (
 ) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
 
-  const fileNamePropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.fileName(context);
+  const fileMediaTypePropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.fileMediaType(context);
 
   const fileKeyPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.fileKey(context);
@@ -659,7 +645,7 @@ export const fileEntityTypeInitializer = async (
     ...types.entityType.file,
     properties: [
       {
-        propertyType: fileNamePropertyType,
+        propertyType: fileMediaTypePropertyType,
         required: true,
       },
       {
@@ -715,8 +701,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     userRegistrationByInviteIsEnabled:
       userRegistrationByInviteIsEnabledPropertyTypeInitializer,
 
-    fileName: fileNamePropertyTypeInitializer,
-    fileSize: fileSizePropertyTypeInitializer,
+    fileMediaType: fileMediaTypePropertyTypeInitializer,
     externalFileLink: externalFileLinkPropertyTypeInitializer,
     objectStoreKey: objectStoreKeyPropertyTypeInitializer,
     fileKey: fileKeyPropertyTypeInitializer,

@@ -22,7 +22,6 @@ export interface StorageProvider {
 
 export interface GetFileEntityStorageKeyParams {
   accountId: AccountId;
-  fileName: string;
   uniqueIdenitifier: string;
 }
 

@@ -30,17 +30,9 @@ export const fileTypedef = gql`
     # for a client to POST a file to afterwards
     requestFileUpload(
       """
-      The name of the file
-      """
-      name: String!
-      """
       Size of the file in bytes
       """
       size: Int!
-      """
-      md5 hash of the file
-      """
-      contentMd5: String!
       """
       mediaType of the file
       """
@@ -53,10 +45,6 @@ export const fileTypedef = gql`
       url of the external file
       """
       url: String!
-      """
-      The name of the file (optional, will guess from the URL if not provided)
-      """
-      name: String
       """
       mediaType of the file
       """

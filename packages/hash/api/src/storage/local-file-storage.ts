@@ -14,7 +14,6 @@ import {
   StorageProvider,
   StorageType,
 } from "./storage-provider";
-import { getFileExtension } from "./storage-utils";
 
 const UPLOAD_BASE_URL = "/local-file-storage-upload";
 const DOWNLOAD_BASE_URL = "/uploads";
@@ -78,16 +77,9 @@ export class LocalFileSystemStorageProvider implements StorageProvider {
 
   getFileEntityStorageKey({
     accountId,
-    fileName,
     uniqueIdenitifier,
   }: GetFileEntityStorageKeyParams) {
-    let fileKey = `${accountId}-${uniqueIdenitifier}`;
-    // Find and add the file extension to the path if it exists
-    const extension = getFileExtension(fileName);
-    if (extension) {
-      fileKey += extension[0];
-    }
-    return fileKey;
+    return `${accountId}-${uniqueIdenitifier}`;
   }
 
   /** Sets up express routes required for uploading and downloading files */

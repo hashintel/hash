@@ -10,7 +10,6 @@ import {
   StorageType,
   UploadableStorageProvider,
 } from "./storage-provider";
-import { getFileExtension } from "./storage-utils";
 
 export interface AwsS3StorageProviderConstructorArgs {
   /** Name of the S3 bucket */
@@ -55,15 +54,8 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
 
   getFileEntityStorageKey({
     accountId,
-    fileName,
     uniqueIdenitifier,
   }: GetFileEntityStorageKeyParams) {
-    let fileKey = `files/${accountId}/${uniqueIdenitifier}`;
-    // Find and add the file extension to the path if it exists
-    const extension = getFileExtension(fileName);
-    if (extension) {
-      fileKey += extension[0];
-    }
-    return fileKey;
+    return `files/${accountId}/${uniqueIdenitifier}`;
   }
 }

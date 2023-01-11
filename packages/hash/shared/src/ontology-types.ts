@@ -234,13 +234,9 @@ const systemPropertyTypes = {
     title: "Deleted At",
     description: "Stringified timestamp of when something was deleted.",
   },
-  fileName: {
-    title: "File Name",
-    description: undefined,
-  },
-  fileSize: {
-    title: "File Size",
-    description: "Size of a file in bytes.",
+  fileMediaType: {
+    title: "File Media Type",
+    description: "Media type of a file.",
   },
   objectStoreKey: {
     title: "Object Store Key",

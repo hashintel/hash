@@ -18,7 +18,7 @@ import { UploadFileRequestCallback } from "./knowledge-shim";
 
 // https://dev.to/qortex/compute-md5-checksum-for-a-file-in-typescript-59a4
 
-function computeChecksumMd5(file: File): Promise<string> {
+function _computeChecksumMd5(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const chunkSize = 2097152; // Read in chunks of 2MB
     const spark = new SparkMD5.ArrayBuffer();
@@ -97,7 +97,6 @@ export const useBlockProtocolFileUpload = (
       if (url?.trim()) {
         const result = await createFileFromLinkFn({
           variables: {
-            name: url,
             url,
             mediaType,
           },
@@ -126,13 +125,11 @@ export const useBlockProtocolFileUpload = (
         );
       }
 
-      const contentMd5 = await computeChecksumMd5(file);
+      // const contentMd5 = await computeChecksumMd5(file);
 
       const { data } = await requestFileUploadFn({
         variables: {
-          name: file.name,
           size: file.size,
-          contentMd5,
           mediaType,
         },
       });
