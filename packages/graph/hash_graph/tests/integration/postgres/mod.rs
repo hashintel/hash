@@ -310,7 +310,7 @@ impl DatabaseApi<'_> {
         entity_id: EntityId,
         timestamp: Timestamp<TransactionTime>,
     ) -> Result<Entity, QueryError> {
-        let entity_vertex_id = EntityVertexId::new(entity_id, timestamp);
+        let entity_vertex_id = EntityVertexId::new(entity_id, timestamp.cast());
         Ok(self
             .store
             .get_entity(&StructuralQuery {

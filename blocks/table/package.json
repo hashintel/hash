@@ -31,7 +31,7 @@
     "@local/tsconfig": "0.0.0-private",
     "@types/react-table": "7.7.1",
     "block-scripts": "0.0.14",
-    "eslint": "8.29.0",
+    "eslint": "8.31.0",
     "mock-block-dock": "0.0.38",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

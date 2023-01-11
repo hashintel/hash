@@ -55,12 +55,11 @@ impl Subgraph {
         vertex_id.subgraph_vertex_entry(self)
     }
 
-    pub fn insert<R: Record>(&mut self, record: R) -> Option<R> {
-        let vertex_id = record.vertex_id();
-        match self.entry(&vertex_id) {
+    pub fn insert<R: Record>(&mut self, vertex_id: &R::VertexId, record: R) -> Option<R> {
+        match self.entry(vertex_id) {
             RawEntryMut::Occupied(mut entry) => Some(entry.insert(record)),
             RawEntryMut::Vacant(entry) => {
-                entry.insert(vertex_id, record);
+                entry.insert(vertex_id.clone(), record);
                 None
             }
         }
@@ -78,6 +77,7 @@ impl Subgraph {
         &'r mut self,
         store: &impl Read<R>,
         vertex_id: &R::VertexId,
+        time_projection: &TimeProjection,
     ) -> Result<&'r R, QueryError> {
         Ok(match self.entry(vertex_id) {
             RawEntryMut::Occupied(entry) => entry.into_mut(),
@@ -86,7 +86,7 @@ impl Subgraph {
                     .insert(
                         vertex_id.clone(),
                         store
-                            .read_one(&R::create_filter_for_vertex_id(vertex_id))
+                            .read_one(&R::create_filter_for_vertex_id(vertex_id), time_projection)
                             .await?,
                     )
                     .1

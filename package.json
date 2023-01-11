@@ -5,7 +5,7 @@
     "packages": [
       "apps/*",
       "blocks/*",
-      "libs/javascript/@local/*",
+      "libs/@local/*",
       "packages/engine/apache-arrow-js-bundle",
       "packages/graph/clients",
       "packages/graph/clients/typescript",
@@ -74,7 +74,7 @@
     "concurrently": "7.6.0",
     "cross-env": "7.0.3",
     "dotenv-flow": "3.2.0",
-    "husky": "8.0.2",
+    "husky": "8.0.3",
     "lint-staged": "13.0.4",
     "lockfile-lint": "4.9.6",
     "markdownlint-cli": "0.32.2",
@@ -87,6 +87,6 @@
     "suppress-exit-code": "3.1.0",
     "turbo": "1.6.3",
     "wait-on": "6.0.1",
-    "yarn-deduplicate": "6.0.0"
+    "yarn-deduplicate": "6.0.1"
   }
 }

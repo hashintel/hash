@@ -9,6 +9,10 @@ export enum Task {
   GithubCheck = "github/check",
   GithubDiscover = "github/discover",
   GithubRead = "github/read",
+  AsanaSpec = "asana/spec",
+  AsanaCheck = "asana/check",
+  AsanaDiscover = "asana/discover",
+  AsanaRead = "asana/read",
 }
 
 export type Config = {

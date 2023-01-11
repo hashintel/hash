@@ -2,7 +2,8 @@ use serde::{Deserialize, Serialize};
 use utoipa::{openapi, ToSchema};
 
 use crate::identifier::time::{
-    DecisionTime, Timespan, TimespanBound, Timestamp, TransactionTime, UnresolvedTimespan,
+    DecisionTime, ProjectedTime, TimeAxis, Timespan, TimespanBound, Timestamp, TransactionTime,
+    UnresolvedTimespan,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -174,6 +175,50 @@ impl ToSchema for UnresolvedTransactionTimeProjection {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum UnresolvedTimeProjection {
+    DecisionTime(UnresolvedProjection<TransactionTime, DecisionTime>),
+    TransactionTime(UnresolvedProjection<DecisionTime, TransactionTime>),
+}
+
+impl Default for UnresolvedTimeProjection {
+    fn default() -> Self {
+        Self::DecisionTime(UnresolvedProjection {
+            kernel: UnresolvedKernel::new(None),
+            image: UnresolvedImage::new(
+                Some(TimespanBound::Unbounded),
+                Some(TimespanBound::Unbounded),
+            ),
+        })
+    }
+}
+
+impl UnresolvedTimeProjection {
+    #[must_use]
+    pub fn resolve(self) -> TimeProjection {
+        match self {
+            Self::DecisionTime(projection) => TimeProjection::DecisionTime(projection.resolve()),
+            Self::TransactionTime(projection) => {
+                TimeProjection::TransactionTime(projection.resolve())
+            }
+        }
+    }
+}
+
+impl ToSchema for UnresolvedTimeProjection {
+    fn schema() -> openapi::Schema {
+        openapi::OneOfBuilder::new()
+            .item(openapi::Ref::from_schema_name(
+                "UnresolvedDecisionTimeProjection",
+            ))
+            .item(openapi::Ref::from_schema_name(
+                "UnresolvedTransactionTimeProjection",
+            ))
+            .into()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Kernel<A> {
     pub axis: A,
@@ -286,6 +331,48 @@ impl ToSchema for TransactionTimeProjection {
                 openapi::Ref::from_schema_name("TransactionTimeImage"),
             )
             .required("image")
+            .into()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum TimeProjection {
+    DecisionTime(Projection<TransactionTime, DecisionTime>),
+    TransactionTime(Projection<DecisionTime, TransactionTime>),
+}
+
+impl TimeProjection {
+    #[must_use]
+    pub const fn time_axis(&self) -> TimeAxis {
+        match self {
+            Self::DecisionTime(_) => TimeAxis::DecisionTime,
+            Self::TransactionTime(_) => TimeAxis::TransactionTime,
+        }
+    }
+
+    #[must_use]
+    pub const fn kernel(&self) -> Timestamp<()> {
+        match self {
+            Self::DecisionTime(projection) => projection.kernel.timestamp.cast(),
+            Self::TransactionTime(projection) => projection.kernel.timestamp.cast(),
+        }
+    }
+
+    #[must_use]
+    pub const fn image(&self) -> Timespan<ProjectedTime> {
+        match self {
+            Self::DecisionTime(projection) => projection.image.span.cast(),
+            Self::TransactionTime(projection) => projection.image.span.cast(),
+        }
+    }
+}
+
+impl ToSchema for TimeProjection {
+    fn schema() -> openapi::Schema {
+        openapi::OneOfBuilder::new()
+            .item(openapi::Ref::from_schema_name("DecisionTimeProjection"))
+            .item(openapi::Ref::from_schema_name("TransactionTimeProjection"))
             .into()
     }
 }

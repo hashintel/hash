@@ -52,12 +52,12 @@ pub struct Args {
 
 impl Args {
     /// Parse the arguments passed to the program.
-    pub fn parse() -> Self {
-        let args = <Args as Parser>::parse();
+    pub fn parse_args() -> Self {
+        let args = Self::parse();
         if let Some(shell) = args.generate_completion {
             clap_complete::generate(
                 shell,
-                &mut Args::augment_args(Command::new(env!("CARGO_PKG_NAME"))),
+                &mut Self::augment_args(Command::new(env!("CARGO_PKG_NAME"))),
                 env!("CARGO_PKG_NAME"),
                 &mut std::io::stdout(),
             );

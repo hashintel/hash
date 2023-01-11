@@ -2,7 +2,7 @@
 ///
 /// These benchmarks are for a datastore where the knowledge-graph component is a complete graph,
 /// meaning that for every two non-link entities, there is a link entity connecting them. There is
-/// only one possible graph where every entity links to every other entity, which is K_3
+/// only one possible graph where every entity links to every other entity, which is `K_3`
 /// (3 link entities).
 ///
 /// As such, having every non-link entity connected via a link entity should be a very bad case

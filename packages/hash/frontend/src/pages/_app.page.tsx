@@ -6,6 +6,7 @@ import "./globals.scss";
 
 import { ApolloProvider } from "@apollo/client/react";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import wasm from "@blockprotocol/type-system/type-system.wasm";
 import { CacheProvider, EmotionCache } from "@emotion/react";
 import { createEmotionCache, theme } from "@hashintel/hash-design-system";
 import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
@@ -32,6 +33,7 @@ import {
   AuthenticatedUser,
   constructAuthenticatedUser,
 } from "../lib/user-and-org";
+import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import {
   RoutePageInfoProvider,
@@ -46,9 +48,29 @@ import { WorkspaceContextProvider } from "./shared/workspace-context";
 // eslint-disable-next-line react/jsx-no-useless-fragment
 const RenderChildren = ({ children }: PropsWithChildren) => <>{children}</>;
 
+export const initWasm = async () => {
+  let wasmModule;
+  if (typeof window === "undefined") {
+    // eslint-disable-next-line unicorn/prefer-node-protocol
+    const { default: fs } = await import("fs/promises");
+
+    // @ts-expect-error -- We need Node's native require here, and it's safe as this is a server-only block
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    const wasmPath = __non_webpack_require__.resolve(
+      "@blockprotocol/type-system/type-system.wasm",
+    );
+    const contents = await fs.readFile(wasmPath);
+
+    wasmModule = await WebAssembly.compile(contents);
+  } else {
+    wasmModule = wasm;
+  }
+  await TypeSystemInitializer.initialize(wasmModule);
+};
+
 const InitTypeSystem = dynamic(
   async () => {
-    await TypeSystemInitializer.initialize();
+    await initWasm();
 
     return { default: RenderChildren };
   },
@@ -117,7 +139,9 @@ const App: FunctionComponent<AppProps> = ({
                 <RoutePageInfoProvider>
                   <WorkspaceContextProvider>
                     <SnackbarProvider maxSnack={3}>
-                      {getLayout(<Component {...pageProps} />)}
+                      <EntityTypesContextProvider>
+                        {getLayout(<Component {...pageProps} />)}
+                      </EntityTypesContextProvider>
                     </SnackbarProvider>
                   </WorkspaceContextProvider>
                 </RoutePageInfoProvider>
