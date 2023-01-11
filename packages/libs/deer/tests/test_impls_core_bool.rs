@@ -9,5 +9,5 @@ fn bool_true_ok() {
 
 #[test]
 fn bool_false_ok() {
-    assert_tokens(&true, &[Token::Bool(false)]);
+    assert_tokens(&false, &[Token::Bool(false)]);
 }
