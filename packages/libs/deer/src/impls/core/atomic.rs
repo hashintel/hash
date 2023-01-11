@@ -1,9 +1,16 @@
 #[cfg(nightly)]
+#[cfg(target_has_atomic = "128")]
 use core::sync::atomic::{AtomicI128, AtomicU128};
-use core::sync::atomic::{
-    AtomicI16, AtomicI32, AtomicI64, AtomicI8, AtomicIsize, AtomicU16, AtomicU32, AtomicU64,
-    AtomicU8, AtomicUsize,
-};
+#[cfg(target_has_atomic = "16")]
+use core::sync::atomic::{AtomicI16, AtomicU16};
+#[cfg(target_has_atomic = "32")]
+use core::sync::atomic::{AtomicI32, AtomicU32};
+#[cfg(target_has_atomic = "64")]
+use core::sync::atomic::{AtomicI64, AtomicU64};
+#[cfg(target_has_atomic = "8")]
+use core::sync::atomic::{AtomicI8, AtomicU8};
+#[cfg(target_has_atomic = "ptr")]
+use core::sync::atomic::{AtomicIsize, AtomicUsize};
 
 use crate::{error::DeserializeError, Deserialize, Deserializer, Document, Reflection, Schema};
 
@@ -34,19 +41,33 @@ macro_rules! impl_atomic {
 }
 
 impl_atomic![
+    #[cfg(target_has_atomic = "8")]
     AtomicU8 <- u8,
+    #[cfg(target_has_atomic = "16")]
     AtomicU16 <- u16,
+    #[cfg(target_has_atomic = "32")]
     AtomicU32 <- u32,
+    #[cfg(target_has_atomic = "64")]
     AtomicU64 <- u64,
-    #[cfg(nightly)] AtomicU128 <- u128,
+    #[cfg(nightly)]
+    #[cfg(target_has_atomic = "128")]
+    AtomicU128 <- u128,
+    #[cfg(target_has_atomic = "ptr")]
     AtomicUsize <- usize,
 ];
 
 impl_atomic![
+    #[cfg(target_has_atomic = "8")]
     AtomicI8 <- i8,
+    #[cfg(target_has_atomic = "16")]
     AtomicI16 <- i16,
+    #[cfg(target_has_atomic = "32")]
     AtomicI32 <- i32,
+    #[cfg(target_has_atomic = "64")]
     AtomicI64 <- i64,
-    #[cfg(nightly)] AtomicI128 <- i128,
+    #[cfg(nightly)]
+    #[cfg(target_has_atomic = "128")]
+    AtomicI128 <- i128,
+    #[cfg(target_has_atomic = "ptr")]
     AtomicIsize <- isize,
 ];
