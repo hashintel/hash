@@ -7,7 +7,7 @@ use tokio_postgres::GenericClient;
 use type_system::uri::VersionedUri;
 
 use crate::{
-    identifier::ontology::OntologyTypeEditionId,
+    identifier::{ontology::OntologyTypeEditionId, time::TimeProjection},
     ontology::{OntologyElementMetadata, OntologyType, OntologyTypeWithMetadata},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
@@ -25,13 +25,17 @@ where
     for<'p> T::QueryPath<'p>: OntologyQueryPath,
 {
     #[tracing::instrument(level = "info", skip(self, filter))]
-    async fn read(&self, filter: &Filter<T>) -> Result<Vec<T>, QueryError> {
+    async fn read(
+        &self,
+        filter: &Filter<T>,
+        time_projection: &TimeProjection,
+    ) -> Result<Vec<T>, QueryError> {
         let versioned_uri_path = <T::QueryPath<'static> as OntologyQueryPath>::versioned_uri();
         let schema_path = <T::QueryPath<'static> as OntologyQueryPath>::schema();
         let owned_by_id_path = <T::QueryPath<'static> as OntologyQueryPath>::owned_by_id();
         let updated_by_id_path = <T::QueryPath<'static> as OntologyQueryPath>::updated_by_id();
 
-        let mut compiler = SelectCompiler::new();
+        let mut compiler = SelectCompiler::new(time_projection);
 
         let versioned_uri_index = compiler.add_distinct_selection_with_ordering(
             &versioned_uri_path,
