@@ -7,7 +7,7 @@ The license for a particular work is defined with following prioritized rules:
 1.  License information directly present in the file
 1.  `LICENSE`, `LICENSE.md` or `LICENSE.txt` file in the same directory as the work
 1.  First `LICENSE`, `LICENSE.md` or `LICENSE.txt` file found when exploring parent directories up to the project top level directory
-1.  Defaults to the MIT License
+1.  **On the `main` branch only:** defaults to dual-release under the MIT License, and Apache License, Version 2.0
 
 Source code in this repository is variously licensed under either the _MIT License_ and _Apache License 2.0_ dually,
 the _GNU Affero General Public License 3.0_, or the _Elastic License 2.0_.
