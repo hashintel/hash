@@ -7,7 +7,7 @@ import {
 } from "@hashintel/hash-subgraph";
 
 import { logger } from "../logger";
-import { ImpureGraphContext } from "./index";
+import { ImpureGraphContext } from ".";
 import { entityTypeInitializer, propertyTypeInitializer } from "./util";
 
 // eslint-disable-next-line import/no-mutable-exports

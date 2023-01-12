@@ -17,7 +17,7 @@ import {
   JSONPathComponent,
   Link,
   User,
-} from "./index";
+} from ".";
 
 export type GQLLinkedAggregationExternalResolvers = "__typename" | "results";
 

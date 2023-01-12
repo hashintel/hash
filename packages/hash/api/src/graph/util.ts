@@ -23,7 +23,7 @@ import {
 
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";
-import { ImpureGraphContext } from "./index";
+import { ImpureGraphContext } from ".";
 import {
   createEntityType,
   getEntityTypeById,

@@ -2,7 +2,7 @@ import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";
-import { ImpureGraphContext } from "./index";
+import { ImpureGraphContext } from ".";
 import {
   createHashInstance,
   getHashInstance,
