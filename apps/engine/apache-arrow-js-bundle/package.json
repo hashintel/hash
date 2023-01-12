@@ -1,13 +1,16 @@
 {
-  "name": "@hashengine/apache-arrow-js-bundle",
+  "name": "apache-arrow-js-bundle",
   "version": "0.0.0-private",
   "private": true,
+  "description": "Apache Arrow JS bundle for HASH Engine stdlib",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hashintel/hash.git",
+    "directory": "apps/engine/apache-arrow-js-bundle"
+  },
   "type": "module",
   "scripts": {
-    "bundle": "webpack",
-    "fix:eslint": "echo noop",
-    "lint:eslint": "echo noop",
-    "lint:tsc": "echo \"@hashengine/apache-arrow-js-bundle contains no ts files\""
+    "bundle": "webpack"
   },
   "dependencies": {
     "@zxing/text-encoding": "^0.9.0",
