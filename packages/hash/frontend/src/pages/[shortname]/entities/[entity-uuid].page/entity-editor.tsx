@@ -1,4 +1,5 @@
 import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
+import { Box } from "@mui/material";
 
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
 import { LinksSection } from "./entity-editor/links-section";
@@ -24,13 +25,15 @@ export const EntityEditor = ({
       setEntity={setEntity}
       refetch={refetch}
     >
-      <TypesSection />
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 6.5 }}>
+        <TypesSection />
 
-      <PropertiesSection />
+        <PropertiesSection />
 
-      {!hideLinksSection && <LinksSection />}
+        {!hideLinksSection && <LinksSection />}
 
-      <PeersSection />
+        <PeersSection />
+      </Box>
     </EntityEditorContextProvider>
   );
 };
