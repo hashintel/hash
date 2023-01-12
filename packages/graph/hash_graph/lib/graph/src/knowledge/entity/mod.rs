@@ -295,7 +295,7 @@ impl Record for Entity {
     }
 
     fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
-        Filter::for_entity_by_vertex_id(*vertex_id)
+        Filter::for_entity_by_id(vertex_id.base_id())
     }
 }
 

@@ -76,9 +76,6 @@ pub enum EntityQueryPath<'p> {
     /// [`EntityVersion`]: crate::identifier::knowledge::EntityVersion
     /// [`Entity`]: crate::knowledge::Entity
     TransactionTime,
-    // TODO: Remove when correctly resolving time intervals in subgraphs.
-    //   see https://app.asana.com/0/0/1203701389454316/f
-    ProjectedTime,
     /// Whether or not the [`Entity`] is archived.
     ///
     /// ```rust
@@ -263,7 +260,6 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::RecordId => fmt.write_str("recordId"),
             Self::DecisionTime => fmt.write_str("decisionTime"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
-            Self::ProjectedTime => fmt.write_str("projectedTime"),
             Self::Archived => fmt.write_str("archived"),
             Self::Type(path) => write!(fmt, "type.{path}"),
             Self::Properties(Some(property)) => write!(fmt, "properties.{property}"),
@@ -288,7 +284,6 @@ impl QueryPath for EntityQueryPath<'_> {
             | Self::IncomingLinks(path)
             | Self::OutgoingLinks(path) => path.expected_type(),
             Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
-            Self::ProjectedTime => ParameterType::Timestamp,
             Self::Type(path) => path.expected_type(),
             Self::Properties(_) => ParameterType::Any,
             Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::Number,
