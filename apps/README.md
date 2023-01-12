@@ -12,9 +12,8 @@ This `apps` directory contains the source-code and/or content for a number of HA
 
 - [hash.ai](https://hash.ai/): our main website
 - [hash.dev](https://hash.dev/): our developer-focused website
-
-In future it will also be extended to contain our product _applications_, as well (namely anything that can be _run_, with an
-entry point or interface you can launch). Apps may (but are not guaranteed to) be independently useful.
+- `engine`: houses the codebase of our next-generation version of [HASH Engine](https://hash.ai/platform/engine) - a versatile agent-based simulation engine written in Rust
+- `hash-*`: contains our product _applications_, as well (namely anything that can be _run_, with an entry point or interface you can launch). These apps may (but are not guaranteed to) be independently useful.
 
 The source code for the Block Protocol website can be found in the `site` subdirectory of the [blockprotocol/blockprotocol repo](https://github.com/blockprotocol/blockprotocol/tree/main/site) on GitHub.
 

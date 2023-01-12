@@ -3,7 +3,7 @@
   "version": "0.0.0-private",
   "private": true,
   "description": "HASH stdlib",
-  "homepage": "https://github.com/hashintel/hash/tree/master/packages/engine/stdlib",
+  "homepage": "https://github.com/hashintel/hash/tree/master/apps/engine/stdlib",
   "bugs": {
     "url": "https://github.com/hashintel/hash/issues"
   },

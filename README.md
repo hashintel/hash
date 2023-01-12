@@ -48,7 +48,7 @@ This repository's contents is divided across four primary sections:
 ### Libraries
 
 - [`/packages/hash`](packages/hash): codebase for [HASH] - a data-driven, entity-centric, all-in-one workspace based on the Block Protocol
-- [`/packages/engine`](packages/engine): codebase for our next-gen version of [HASH Engine] - a versatile agent-based simulation engine written in Rust
+- [`/apps/engine`](apps/engine): codebase for our next-gen version of [HASH Engine] - a versatile agent-based simulation engine written in Rust
 - [`/packages/libs`](packages/libs): source code for our open-source developer libraries
 
 ## Contributing

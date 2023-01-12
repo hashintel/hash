@@ -158,7 +158,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Python
-        if: matrix.directory == 'packages/engine'
+        if: matrix.directory == 'apps/engine'
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
@@ -176,7 +176,7 @@ jobs:
         run: git --no-pager diff --exit-code --color
 
       - name: Upload to DataDog
-        if: matrix.directory == 'packages/engine' && matrix.profile == 'production'
+        if: matrix.directory == 'apps/engine' && matrix.profile == 'production'
         run: |
           message=$(find ${{ matrix.directory }}/${{ env.OUTPUT_DIRECTORY }} -name timing.json -exec cat {} + \
                     | sed 's|::|-|g' \

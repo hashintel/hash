@@ -1,6 +1,6 @@
 # Docker containers for HASH Engine
 
-This directory contains the Docker images for HASH Engine (hEngine). To build the image, run from the `packages/engine` directory:
+This directory contains the Docker images for HASH Engine (hEngine). To build the image, run from the `apps/engine` directory:
 
 ```sh
 docker build -t h-engine -f docker/Dockerfile .
