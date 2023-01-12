@@ -1,6 +1,5 @@
 import { extractBaseUri } from "@blockprotocol/type-system";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { GraphApi } from "@hashintel/hash-graph-client";
 import { systemUserShortname } from "@hashintel/hash-shared/environment";
 import { types } from "@hashintel/hash-shared/ontology-types";
 import {
@@ -13,6 +12,7 @@ import { getEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity"
 
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { getRequiredEnv } from "../util";
+import { ImpureGraphContext } from "./index";
 import {
   createUser,
   getUserByShortname,
@@ -27,10 +27,13 @@ export let systemUserAccountId: AccountId;
  * method is designed to be run before the system types are initialized.
  */
 export const ensureSystemUserAccountIdExists = async (params: {
-  graphApi: GraphApi;
   logger: Logger;
+  context: ImpureGraphContext;
 }) => {
-  const { graphApi, logger } = params;
+  const {
+    logger,
+    context: { graphApi },
+  } = params;
   const { data: existingUserEntitiesSubgraph } =
     await graphApi.getEntitiesByQuery({
       filter: {
@@ -90,17 +93,14 @@ export let systemUser: User;
  * `systemUserAccountId` and the system types have been initialized.
  */
 export const ensureSystemUserExists = async (params: {
-  graphApi: GraphApi;
   logger: Logger;
+  context: ImpureGraphContext;
 }) => {
-  const { graphApi, logger } = params;
+  const { logger, context } = params;
 
-  const existingSystemUser = await getUserByShortname(
-    { graphApi },
-    {
-      shortname: systemUserShortname,
-    },
-  );
+  const existingSystemUser = await getUserByShortname(context, {
+    shortname: systemUserShortname,
+  });
 
   if (existingSystemUser) {
     systemUser = existingSystemUser;
@@ -118,17 +118,14 @@ export const ensureSystemUserExists = async (params: {
       credentials: { password: { config: { password } } },
     });
 
-    systemUser = await createUser(
-      { graphApi },
-      {
-        shortname,
-        actorId: systemUserAccountId,
-        preferredName,
-        emails: [emailAddress],
-        kratosIdentityId,
-        userAccountId: systemUserAccountId,
-      },
-    );
+    systemUser = await createUser(context, {
+      shortname,
+      actorId: systemUserAccountId,
+      preferredName,
+      emails: [emailAddress],
+      kratosIdentityId,
+      userAccountId: systemUserAccountId,
+    });
 
     logger.info(
       `System user available with shortname = "${systemUser.shortname}"`,

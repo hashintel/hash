@@ -1,6 +1,5 @@
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
-  createGraphClient,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
@@ -15,13 +14,12 @@ import {
 import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
 import { createEntityType } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
 import { generateSystemEntityTypeSchema } from "@hashintel/hash-api/src/graph/util";
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { OwnedById } from "@hashintel/hash-shared/types";
 import { Entity, EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
 
-import { createTestUser } from "../../../util";
+import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -31,15 +29,7 @@ const logger = new Logger({
   serviceName: "integration-tests",
 });
 
-const graphApiHost = getRequiredEnv("HASH_GRAPH_API_HOST");
-const graphApiPort = parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10);
-
-const graphApi = createGraphClient(logger, {
-  host: graphApiHost,
-  port: graphApiPort,
-});
-
-const graphContext: ImpureGraphContext = { graphApi };
+const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 
 describe("Block", () => {
   let testUser: User;
@@ -54,9 +44,9 @@ describe("Block", () => {
 
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
-    await ensureSystemGraphIsInitialized({ graphApi, logger });
+    await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
-    testUser = await createTestUser(graphApi, "blockTest", logger);
+    testUser = await createTestUser(graphContext, "blockTest", logger);
 
     /**
      * @todo: rename to something more representative of a real-world use-case,

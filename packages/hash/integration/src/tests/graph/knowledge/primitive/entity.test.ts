@@ -1,6 +1,5 @@
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
-  createGraphClient,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
   zeroedGraphResolveDepths,
@@ -18,7 +17,6 @@ import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive
 import { createEntityType } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
 import { generateSystemEntityTypeSchema } from "@hashintel/hash-api/src/graph/util";
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
 import { EntityId, OwnedById } from "@hashintel/hash-shared/types";
@@ -34,7 +32,7 @@ import {
 } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 
-import { createTestUser } from "../../../util";
+import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -44,15 +42,8 @@ const logger = new Logger({
   serviceName: "integration-tests",
 });
 
-const graphApiHost = getRequiredEnv("HASH_GRAPH_API_HOST");
-const graphApiPort = parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10);
-
-const graphApi = createGraphClient(logger, {
-  host: graphApiHost,
-  port: graphApiPort,
-});
-
-const graphContext: ImpureGraphContext = { graphApi };
+const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+const { graphApi } = graphContext;
 
 describe("Entity CRU", () => {
   let testUser: User;
@@ -65,10 +56,10 @@ describe("Entity CRU", () => {
 
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
-    await ensureSystemGraphIsInitialized({ graphApi, logger });
+    await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
-    testUser = await createTestUser(graphApi, "entitytest", logger);
-    testUser2 = await createTestUser(graphApi, "entitytest", logger);
+    testUser = await createTestUser(graphContext, "entitytest", logger);
+    testUser2 = await createTestUser(graphContext, "entitytest", logger);
 
     textDataType = await createDataType(graphContext, {
       ownedById: testUser.accountId as OwnedById,
