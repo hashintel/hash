@@ -10,7 +10,7 @@ use crate::{
     identifier::{
         knowledge::EntityId,
         ontology::OntologyTypeEditionId,
-        time::{Timestamp, TransactionTime},
+        time::{ProjectedTime, Timestamp},
         EntityVertexId,
     },
     knowledge::{Entity, EntityQueryPath},
@@ -350,7 +350,7 @@ pub enum Parameter<'p> {
     #[serde(skip)]
     SignedInteger(i64),
     #[serde(skip)]
-    Timestamp(Timestamp<TransactionTime>),
+    Timestamp(Timestamp<ProjectedTime>),
 }
 
 impl Parameter<'_> {

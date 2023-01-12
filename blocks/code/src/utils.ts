@@ -1063,7 +1063,7 @@ export const languageOptions = [
   "typescript",
 ] as const;
 
-export type LanguageType = typeof languageOptions[number];
+export type LanguageType = (typeof languageOptions)[number];
 
 export const getLanguages = (languages: readonly LanguageType[]) => {
   return languages.map((language) => PrismLanguages[language]);

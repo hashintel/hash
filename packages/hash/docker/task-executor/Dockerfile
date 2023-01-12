@@ -2,7 +2,7 @@ FROM node:16.18.1-alpine AS builder
 
 WORKDIR /app
 
-COPY libs/javascript/@local/tsconfig libs/javascript/@local/tsconfig
+COPY libs/@local/tsconfig libs/@local/tsconfig
 COPY packages/hash/task-executor packages/hash/task-executor
 COPY package.json .
 COPY yarn.lock .
