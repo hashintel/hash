@@ -85,7 +85,11 @@ const CollapsibleTableRow = forwardRef(
           sx={{ p: "0 !important", position: "relative" }}
         >
           <Table>
-            <Collapse in={expanded} sx={{ position: "relative", top: -12 }}>
+            <Collapse
+              in={expanded}
+              sx={{ position: "relative", top: -12 }}
+              appear
+            >
               <Box
                 ref={ref}
                 sx={{

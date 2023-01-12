@@ -1,7 +1,7 @@
 import { PropertyType } from "@blockprotocol/type-system";
 import { faChevronRight, faList } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
-import { Box, Fade } from "@mui/material";
+import { Box, Collapse, Fade } from "@mui/material";
 
 import { EntityTypeTableTitleCellText } from "../shared/entity-type-table";
 
@@ -38,13 +38,18 @@ export const PropertyTitle = ({
       <EntityTypeTableTitleCellText
         sx={{
           paddingLeft: (depth - 1) * 3,
+          transition: ({ transitions }) => transitions.create("transform"),
           transform:
             expanded !== undefined && depth === 0
               ? "translateX(-20px)"
               : "none",
         }}
       >
-        {expanded !== undefined ? (
+        <Collapse
+          orientation="horizontal"
+          in={expanded !== undefined}
+          sx={{ height: 1 }}
+        >
           <IconButton
             onClick={() => setExpanded?.(!expanded)}
             size="xs"
@@ -61,7 +66,7 @@ export const PropertyTitle = ({
           >
             <FontAwesomeIcon icon={faChevronRight} />
           </IconButton>
-        ) : null}
+        </Collapse>
 
         <Box>{property.title}</Box>
 
