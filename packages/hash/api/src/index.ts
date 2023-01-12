@@ -30,7 +30,7 @@ import { createGraphClient, ensureSystemGraphIsInitialized } from "./graph";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
 import { getAwsRegion } from "./lib/aws-config";
-import { CORS_CONFIG, FILE_UPLOAD_PROVIDER } from "./lib/config";
+import { CORS_CONFIG, getEnvStorageType } from "./lib/config";
 import {
   isDevEnv,
   isProdEnv,
@@ -134,6 +134,7 @@ const main = async () => {
     port: graphApiPort,
   });
 
+  const FILE_UPLOAD_PROVIDER = getEnvStorageType();
   // Setup upload storage provider and express routes for local file uploads
   const uploadProvider = setupStorageProviders(app, FILE_UPLOAD_PROVIDER);
 
