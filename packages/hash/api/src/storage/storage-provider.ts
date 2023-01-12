@@ -6,6 +6,7 @@ import { Express } from "express";
 import { CacheAdapter } from "../cache";
 import { getAwsS3Config } from "../lib/aws-config";
 import { LOCAL_FILE_UPLOAD_PATH } from "../lib/config";
+import { logger } from "../logger";
 import { AwsS3StorageProvider } from "./aws-s3-storage-provider";
 import { ExternalStorageProvider } from "./external-storage-provider";
 import { LocalFileSystemStorageProvider } from "./local-file-storage";
@@ -149,43 +150,57 @@ export const setupStorageProviders = (
   return getUploadStorageProvider();
 };
 
+/**
+ * Set up express route to proxy uploaded files so we can cache presigned URLs.
+ *
+ * @todo We should consider authorization for this route (it doesn't even authenticate for now.)
+ *   https://app.asana.com/0/1200211978612931/1202510174412958/f
+ *
+ * @param app - the express app
+ * @param storageProvider - the provider we're using for file storage
+ * @param cache - a cache to store presigned URLs so we don't needlessly create URLs for every download
+ */
 export const setupFileProxyHanldere = (
   app: Express,
-  uploadProvider: UploadableStorageProvider,
+  storageProvider: StorageProvider,
   cache: CacheAdapter,
 ) => {
   // eslint-disable-next-line @typescript-eslint/no-misused-promises -- should likely be using express-async-handler
-  app.get("/file/:key", async (req, res) => {
+  app.get("/file/:key(*)", async (req, res) => {
     const key = req.params.key;
 
+    // We purposefully return 404 for all error cases.
     if (!key || key.length > 256) {
-      res.send(404);
+      res.sendStatus(404);
       return;
     }
 
     let presignUrl = await cache.get(key);
 
     if (!presignUrl) {
-      presignUrl = await uploadProvider.presignDownload({
+      presignUrl = await storageProvider.presignDownload({
         key,
         expiresInSeconds: DOWNLOAD_URL_EXPIRATION_SECONDS,
       });
 
       if (!presignUrl) {
-        res.send(404);
+        res.sendStatus(404);
         return;
       }
 
-      await cache.setex(
-        key,
-        presignUrl,
-        DOWNLOAD_URL_EXPIRATION_SECONDS - DOWNLOAD_URL_CACHE_OFFSET,
-      );
-
-      res.redirect(presignUrl);
-      return;
+      try {
+        await cache.setex(
+          key,
+          presignUrl,
+          DOWNLOAD_URL_EXPIRATION_SECONDS - DOWNLOAD_URL_CACHE_OFFSET,
+        );
+      } catch (error) {
+        logger.warn(
+          `Could not set expiring cache entry for file download [key=${key}, presignUrl=${presignUrl}]. Error: ${error}`,
+        );
+      }
     }
 
-    res.send(404);
+    res.redirect(presignUrl);
   });
 };

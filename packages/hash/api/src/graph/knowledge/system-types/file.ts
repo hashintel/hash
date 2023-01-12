@@ -76,7 +76,7 @@ export const getFileFromEntity: PureGraphFunction<{ entity: Entity }, File> = ({
   };
 };
 
-export const generateUrl = (key: string) => {
+export const formatUrl = (key: string) => {
   return `${apiOrigin}/file/${key}`;
 };
 
@@ -111,7 +111,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   try {
     const properties: PropertyObject = {
       [SYSTEM_TYPES.propertyType.fileUrl.metadata.editionId.baseId]:
-        generateUrl(key),
+        formatUrl(key),
       [SYSTEM_TYPES.propertyType.fileMediaType.metadata.editionId.baseId]:
         mediaType,
       [SYSTEM_TYPES.propertyType.fileKey.metadata.editionId.baseId]: {
@@ -155,6 +155,8 @@ export const createFileFromExternalLink: ImpureGraphFunction<
 
   try {
     const properties: PropertyObject = {
+      // When a file is an external link, we simply use the key as the fileUrl.
+      [SYSTEM_TYPES.propertyType.fileUrl.metadata.editionId.baseId]: key,
       [SYSTEM_TYPES.propertyType.fileMediaType.metadata.editionId.baseId]:
         mediaType,
       [SYSTEM_TYPES.propertyType.fileKey.metadata.editionId.baseId]: {
