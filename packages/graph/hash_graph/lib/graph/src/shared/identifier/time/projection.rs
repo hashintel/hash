@@ -341,7 +341,7 @@ impl ToSchema for TransactionTimeProjection {
     }
 }
 
-/// Constrains the temporal data in the Graph to a specific time axis.
+/// Constrains the temporal data in the Graph to a specific [`TimeAxis`].
 ///
 /// When querying the Graph, temporal data is returned. The Graph is implemented as a bitemporal
 /// data store, which means the knowledge data contains information about the time of when the
