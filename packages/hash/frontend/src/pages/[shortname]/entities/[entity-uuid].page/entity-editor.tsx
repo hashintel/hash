@@ -3,7 +3,6 @@ import { Box } from "@mui/material";
 
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
 import { LinksSection } from "./entity-editor/links-section";
-import { PeersSection } from "./entity-editor/peers-section";
 import { PropertiesSection } from "./entity-editor/properties-section";
 import { TypesSection } from "./entity-editor/types-section";
 
@@ -32,7 +31,7 @@ export const EntityEditor = ({
 
         {!hideLinksSection && <LinksSection />}
 
-        <PeersSection />
+        {/* <PeersSection /> */}
       </Box>
     </EntityEditorContextProvider>
   );
