@@ -119,5 +119,5 @@ seed-users.json
 # SARIF files
 *.sarif
 
-# Status
-/libs/@local/status/crate/src/gen
+# HASH Graph
+/apps/hash-graph/lib/graph/src/api/gen

@@ -18,6 +18,10 @@
     },
     "lint:tsc": {
       "outputs": []
+    },
+    "@apps/hash-graph#codegen": {
+      "dependsOn": ["^build"],
+      "outputs": ["lib/graph/src/api/gen/**"]
     }
   }
 }

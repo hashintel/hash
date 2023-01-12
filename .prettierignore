@@ -141,8 +141,8 @@ seed-users.json
 # Storybook
 **/storybook-static
 
-# Status
-/libs/status/crate/src/gen
+# HASH Graph
+/apps/hash-graph/lib/graph/src/api/gen
 
 #########################
 ## Shared between linters

@@ -1,0 +1,24 @@
+{
+  "name": "@apps/hash-graph",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "The HASH Graph",
+  "type": "module",
+  "exports": {
+    "./type-defs/*": {
+      "types": "./type-defs/*.ts",
+      "default": "./type-defs/*.ts",
+      "node": "./type-defs/*.ts"
+    }
+  },
+  "scripts": {
+    "codegen": "yarn exe ../../libs/@local/status/scripts/codegen.ts ./type-defs ./lib/graph/src/api/gen",
+    "exe": "node --unhandled-rejections=strict --experimental-loader ts-node/esm/transpile-only --es-module-specifier-resolution=node"
+  },
+  "dependencies": {
+    "@local/status": "0.0.0-private"
+  },
+  "devDependencies": {
+    "quicktype": "^16.0.43"
+  }
+}
