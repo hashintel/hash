@@ -49,7 +49,7 @@ const getEmbedBlock = async (
 };
 
 // @todo replace typeof variants[number] with type BlockVariant when available
-const getVariantProperties = (variant: typeof variants[number]) => {
+const getVariantProperties = (variant: (typeof variants)[number]) => {
   return {
     ...variant.properties,
     embedType: variant.properties?.embedType as ProviderName | undefined,
