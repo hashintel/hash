@@ -5,7 +5,7 @@
 export type RequestInfo = {
   /**
    * An opaque string that should only be interpreted by the service generating it. For example, it
-   * can be used to identify requests in the service's logs.awdawd
+   * can be used to identify requests in the service's logs.
    */
   request_id: string;
 
