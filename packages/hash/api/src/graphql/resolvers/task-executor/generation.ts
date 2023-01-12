@@ -11,6 +11,7 @@ import {
   ValueOrArray,
   VersionedUri,
 } from "@blockprotocol/type-system";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
 import {
   GraphApi,
   OntologyElementMetadata,
@@ -34,8 +35,8 @@ const NULL_DATA_TYPE_ID =
   "https://blockprotocol.org/@blockprotocol/types/data-type/null/v/1";
 const EMPTY_LIST_DATA_TYPE_ID =
   "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/v/1";
-// const OBJECT_DATA_TYPE_ID =
-//   "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1";
+const OBJECT_DATA_TYPE_ID =
+  "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1";
 
 export type JsonValue =
   | null
@@ -63,10 +64,17 @@ export const addPropertyValuesToPropertyType = (
   const exists = propertyType.oneOf.find((oneOfValue) =>
     isEqual(oneOfValue, propertyValues),
   );
+  /** @todo - merging array oneOfs would be nice */
+  /** @todo - merging objects would be nice */
+  /** @todo - make properties required by default and set them to nullable if we encounter the same shape without it */
+  /** @todo - remove object data type if we've got a new propertyTypeObject, just assume properties are nullable */
   if (!exists) {
     propertyType.oneOf.push(propertyValues);
   }
 };
+
+const stripDomain = (x: string) =>
+  x.split("http://localhost:3000/@alice/types/")[1]!;
 
 export const addOrUpdatePropertyTypeToEntityType = (
   entityType: EntityType,
@@ -168,42 +176,72 @@ export const getReferencedIdsFromEntityType = (entityType: EntityType) => {
 
 export const createPropertyTypeTree = async (
   graphApi: GraphApi,
+  logger: Logger,
   propertyTypeId: VersionedUri,
   propertyTypeMap: Record<
     VersionedUri,
     { schema: PropertyType; created: boolean }
   >,
   user: User,
+  visited: VersionedUri[],
+  currentPath: string[],
 ) => {
+  const path = [...currentPath, stripDomain(propertyTypeId)];
+
+  logger.silly(`Traversing ${stripDomain(propertyTypeId)}`);
   const record = propertyTypeMap[propertyTypeId]!;
 
   const createdPropertyTypes: OntologyElementMetadata[] = [];
 
+  // Check for circular dependency
+  if (visited.findIndex((ele) => ele === propertyTypeId) !== -1) {
+    logger.silly(
+      `Circular dependency detected, short circuiting, path: ${JSON.stringify(
+        path,
+      )}`,
+    );
+    return { createdPropertyTypes };
+  }
+
   if (!record.created) {
+    visited.push(propertyTypeId);
+
     const { propertyTypeIds } = getReferencedIdsFromPropertyType(record.schema);
 
     for (const referencedPropertyTypeId of propertyTypeIds) {
       const { createdPropertyTypes: newCreatedPropertyTypes } =
         await createPropertyTypeTree(
           graphApi,
+          logger,
           referencedPropertyTypeId,
           propertyTypeMap,
           user,
+          visited,
+          path,
         );
 
       createdPropertyTypes.push(...newCreatedPropertyTypes);
     }
   }
   if (!record.created) {
-    createdPropertyTypes.push(
-      (
-        await graphApi.createPropertyType({
-          ownedById: user.accountId as OwnedById,
-          actorId: user.accountId,
-          schema: record.schema,
-        })
-      ).data,
-    );
+    try {
+      logger.debug(`Creating property type: ${stripDomain(propertyTypeId)}`);
+      createdPropertyTypes.push(
+        (
+          await graphApi.createPropertyType({
+            ownedById: user.accountId as OwnedById,
+            actorId: user.accountId,
+            schema: record.schema,
+          })
+        ).data,
+      );
+    } catch (err) {
+      throw new Error(
+        `failed to create property type:\n - err: ${JSON.stringify(
+          err,
+        )}\n - schema: ${JSON.stringify(record.schema)}`,
+      );
+    }
 
     record.created = true;
   }
@@ -213,6 +251,7 @@ export const createPropertyTypeTree = async (
 
 export const createEntityTypeTree = async (
   graphApi: GraphApi,
+  logger: Logger,
   entityTypeId: VersionedUri,
   entityTypeMap: Record<VersionedUri, { schema: EntityType; created: boolean }>,
   propertyTypeMap: Record<
@@ -220,13 +259,31 @@ export const createEntityTypeTree = async (
     { schema: PropertyType; created: boolean }
   >,
   user: User,
+  visited: VersionedUri[],
+  currentPath: string[],
 ) => {
+  const path = [...currentPath, stripDomain(entityTypeId)];
+
+  logger.silly(`Traversing ${stripDomain(entityTypeId)}`);
   const record = entityTypeMap[entityTypeId]!;
 
   const createdPropertyTypes: OntologyElementMetadata[] = [];
   const createdEntityTypes: OntologyElementMetadata[] = [];
 
+  // Check for circular dependency
+  if (visited.findIndex((ele) => ele === entityTypeId) !== -1) {
+    logger.silly(
+      `Circular dependency detected, short circuiting, path: ${JSON.stringify(
+        path,
+      )}`,
+    );
+    return { createdPropertyTypes, createdEntityTypes };
+  }
+
+  // TODO - github event breaking
   if (!record.created) {
+    visited.push(entityTypeId);
+
     const { propertyTypeIds, entityTypeIds } = getReferencedIdsFromEntityType(
       record.schema,
     );
@@ -235,9 +292,12 @@ export const createEntityTypeTree = async (
       const { createdPropertyTypes: newCreatedPropertyTypes } =
         await createPropertyTypeTree(
           graphApi,
+          logger,
           referencedPropertyTypeId,
           propertyTypeMap,
           user,
+          visited,
+          path,
         );
 
       createdPropertyTypes.push(...newCreatedPropertyTypes);
@@ -249,10 +309,13 @@ export const createEntityTypeTree = async (
         createdEntityTypes: newCreatedEntityTypes,
       } = await createEntityTypeTree(
         graphApi,
+        logger,
         referencedEntityTypeId,
         entityTypeMap,
         propertyTypeMap,
         user,
+        visited,
+        path,
       );
 
       createdPropertyTypes.push(...newCreatedPropertyTypes);
@@ -260,15 +323,24 @@ export const createEntityTypeTree = async (
     }
   }
   if (!record.created) {
-    createdEntityTypes.push(
-      (
-        await graphApi.createEntityType({
-          ownedById: user.accountId as OwnedById,
-          actorId: user.accountId,
-          schema: record.schema,
-        })
-      ).data,
-    );
+    try {
+      logger.debug(`Creating entity type: ${stripDomain(entityTypeId)}`);
+      createdEntityTypes.push(
+        (
+          await graphApi.createEntityType({
+            ownedById: user.accountId as OwnedById,
+            actorId: user.accountId,
+            schema: record.schema,
+          })
+        ).data,
+      );
+    } catch (err) {
+      throw new Error(
+        `failed to create entity type:\n - err: ${JSON.stringify(
+          err,
+        )}\n - schema: ${JSON.stringify(record.schema)}`,
+      );
+    }
 
     record.created = true;
   }
@@ -292,6 +364,7 @@ export const createEntityTypeTree = async (
  * @param streamName
  * @param integration
  * @param namespace
+ * @param path {string[]} - The JSON path (represented as a list) of keys that lead to this value
  */
 const traverseJsonValue = ({
   key,
@@ -300,6 +373,7 @@ const traverseJsonValue = ({
   streamName,
   integration,
   namespace,
+  path,
 }: {
   key: string | undefined;
   jsonValue: JsonValue;
@@ -307,7 +381,11 @@ const traverseJsonValue = ({
   streamName: string;
   integration: string;
   namespace: string;
+  path: string[];
 }) => {
+  const currentPath = key ? [...path, key] : [...path];
+  const compiledKey = currentPath.join("-");
+
   let propertyTypeValue: PropertyValues;
   if (typeof jsonValue === "boolean") {
     propertyTypeValue = {
@@ -339,6 +417,7 @@ const traverseJsonValue = ({
           streamName,
           integration,
           namespace,
+          path: currentPath,
         }),
       ) as [PropertyValues, ...PropertyValues[]];
       propertyTypeValue = {
@@ -351,39 +430,51 @@ const traverseJsonValue = ({
   } else if (typeof jsonValue === "object") {
     const properties: Record<BaseUri, ValueOrArray<PropertyTypeReference>> = {};
 
-    for (const [innerKey, innerVal] of typedEntries(jsonValue)) {
-      const innerPropertyValue = traverseJsonValue({
-        key: innerKey,
-        jsonValue: innerVal,
-        streamKeyMap,
-        streamName,
-        integration,
-        namespace,
-      });
-      const propertyTypeId = streamKeyMap[innerKey]?.$id;
-      if (!propertyTypeId) {
-        throw new Error(`Missing property type for key: ${innerKey}`);
+    if (Object.keys(jsonValue).length === 0) {
+      // PropertyTypeObjects can't have 0 properties, and we don't know anything about the potential values so we have
+      // to fall back to the Object Data Type
+      propertyTypeValue = {
+        $ref: OBJECT_DATA_TYPE_ID,
+      };
+    } else {
+      for (const [innerKey, innerVal] of typedEntries(jsonValue)) {
+        const innerPropertyValue = traverseJsonValue({
+          key: innerKey,
+          jsonValue: innerVal,
+          streamKeyMap,
+          streamName,
+          integration,
+          namespace,
+          path: currentPath,
+        });
+
+        const compiledInnerKey = [...currentPath, innerKey].join("-");
+
+        const propertyTypeId = streamKeyMap[compiledInnerKey]?.$id;
+        if (!propertyTypeId) {
+          throw new Error(`Missing property type for key: ${compiledInnerKey}`);
+        }
+
+        jsonValue[extractBaseUri(propertyTypeId)] = innerVal;
+        delete jsonValue[innerKey];
+
+        if (isPropertyValuesArray(innerPropertyValue)) {
+          properties[extractBaseUri(propertyTypeId)] = {
+            type: "array",
+            items: {
+              $ref: propertyTypeId,
+            },
+          };
+        } else {
+          properties[extractBaseUri(propertyTypeId)] = { $ref: propertyTypeId };
+        }
       }
 
-      jsonValue[extractBaseUri(propertyTypeId)] = innerVal;
-      delete jsonValue[innerKey];
-
-      if (isPropertyValuesArray(innerPropertyValue)) {
-        properties[extractBaseUri(propertyTypeId)] = {
-          type: "array",
-          items: {
-            $ref: propertyTypeId,
-          },
-        };
-      } else {
-        properties[extractBaseUri(propertyTypeId)] = { $ref: propertyTypeId };
-      }
+      propertyTypeValue = {
+        type: "object",
+        properties,
+      };
     }
-
-    propertyTypeValue = {
-      type: "object",
-      properties,
-    };
   } else {
     throw Error(
       `Unsupported JSON type encountered, key: ${
@@ -393,7 +484,7 @@ const traverseJsonValue = ({
   }
 
   if (key !== undefined) {
-    let propertyType = streamKeyMap[key];
+    let propertyType = streamKeyMap[compiledKey];
 
     if (!propertyType) {
       propertyType = {
@@ -403,17 +494,25 @@ const traverseJsonValue = ({
           kind: "property-type",
           title: key,
           slugOverride: `generated-${integration}-${streamName}-${encodeURIComponent(
-            key,
+            compiledKey,
           )}`,
         }),
         title: key,
         oneOf: [propertyTypeValue],
+        description:
+          `An autogenerated type from the ${streamName} stream from ${integration}.${
+            currentPath.length > 1
+          }`
+            ? ` This property was generated from the JSON path: ${currentPath.join(
+                ".",
+              )}`
+            : "",
       };
     } else {
       addPropertyValuesToPropertyType(propertyType, propertyTypeValue);
     }
 
-    streamKeyMap[key] = propertyType;
+    streamKeyMap[compiledKey] = propertyType;
   }
 
   return propertyTypeValue;
@@ -456,6 +555,7 @@ export const rewriteEntityPropertiesInTypeSystem = (
           streamName,
           integration,
           namespace,
+          path: [],
         });
 
         propertyType = streamKeyMap[key];
@@ -475,6 +575,7 @@ export const rewriteEntityPropertiesInTypeSystem = (
         streamName,
         integration,
         namespace,
+        path: [],
       });
 
       const propertyType = streamKeyMap[key];
