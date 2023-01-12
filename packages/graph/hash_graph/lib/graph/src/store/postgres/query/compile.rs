@@ -104,6 +104,8 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         });
 
         if !temporal_table_info.tables.contains(&table) {
+            // Adds the kernel timestamp condition, so for the projected decision time, we use the
+            // transaction time and vice versa.
             self.statement
                 .where_expression
                 .add_condition(Condition::TimerangeContainsTimestamp(
@@ -276,6 +278,8 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     ) -> Condition<'c> {
         let alias = self.add_join_statements(path);
         self.pin_entity_table(alias);
+        // Adds the image timestamp condition, so we use the same time axis as specified in the
+        // projection.
         let condition = Condition::TimerangeContainsTimestamp(
             Expression::Column(
                 Column::Entities(match self.time_projection.time_axis() {
