@@ -2,7 +2,6 @@ import { OwnedById } from "@hashintel/hash-shared/types";
 import { Entity } from "@hashintel/hash-subgraph";
 
 import { createFileFromExternalLink } from "../../../../graph/knowledge/system-types/file";
-import { SYSTEM_TYPES } from "../../../../graph/system-types";
 import {
   MutationCreateFileFromLinkArgs,
   ResolverFn,
@@ -31,7 +30,6 @@ export const createFileFromLink: ResolverFn<
   const entity = await createFileFromExternalLink(context, {
     actorId: user.accountId,
     ownedById: user.accountId as OwnedById,
-    entityTypeId: SYSTEM_TYPES.entityType.file.schema.$id,
     mediaType,
     url,
   });

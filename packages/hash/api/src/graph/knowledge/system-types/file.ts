@@ -81,7 +81,7 @@ export const formatUrl = (key: string) => {
 };
 
 export const createFileFromUploadRequest: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityType"> & {
+  Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
     size: number;
     mediaType: string;
   },
@@ -143,7 +143,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
 };
 
 export const createFileFromExternalLink: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityType"> & {
+  Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
     url: string;
     mediaType: string;
   },
