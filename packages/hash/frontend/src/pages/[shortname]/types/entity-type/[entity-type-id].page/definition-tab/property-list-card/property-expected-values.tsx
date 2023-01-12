@@ -11,10 +11,12 @@ export const PropertyExpectedValues = ({
   property,
   selectedExpectedValueIndex,
   setSelectedExpectedValueIndex,
+  setAnimatingOutExpectedValue,
 }: {
   property: PropertyType;
   selectedExpectedValueIndex: number;
   setSelectedExpectedValueIndex: (expectedValue: number) => void;
+  setAnimatingOutExpectedValue: (value: boolean) => void;
 }) => {
   const propertyTypes = usePropertyTypes();
 
@@ -54,7 +56,15 @@ export const PropertyExpectedValues = ({
             >
               <Chip
                 onClick={() => {
-                  setSelectedExpectedValueIndex(selected ? -1 : index);
+                  setAnimatingOutExpectedValue(true);
+
+                  setTimeout(
+                    () => {
+                      setSelectedExpectedValueIndex(selected ? -1 : index);
+                      setAnimatingOutExpectedValue(false);
+                    },
+                    selectedExpectedValueIndex >= 0 ? 300 : 0,
+                  );
                 }}
                 label={`${childrenTitles.length} nested properties`}
                 variant="outlined"

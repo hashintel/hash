@@ -141,8 +141,10 @@ const PropertyRow = forwardRef(
     const lastItemRef = useRef<HTMLDivElement | null>();
     const [lineHeight, setLineHeight] = useState(0);
 
+    const [animatingOutExpectedValue, setAnimatingOutExpectedValue] =
+      useState(false);
     const [selectedExpectedValueIndex, setSelectedExpectedValueIndex] =
-      useState<number>(-1);
+      useState(-1);
 
     const children = useMemo(() => {
       const selectedProperty = property.oneOf[selectedExpectedValueIndex]
@@ -200,6 +202,7 @@ const PropertyRow = forwardRef(
               property={property}
               selectedExpectedValueIndex={selectedExpectedValueIndex}
               setSelectedExpectedValueIndex={setSelectedExpectedValueIndex}
+              setAnimatingOutExpectedValue={setAnimatingOutExpectedValue}
             />
           </TableCell>
 
@@ -252,7 +255,7 @@ const PropertyRow = forwardRef(
 
         {children.length ? (
           <CollapsibleTableRow
-            expanded={expanded}
+            expanded={expanded && !animatingOutExpectedValue}
             depth={depth}
             lineHeight={lineHeight}
             ref={lineRef}
