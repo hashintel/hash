@@ -594,7 +594,6 @@ export interface EntityMetadata {
 
 export const EntityQueryToken = {
   Uuid: "uuid",
-  Version: "version",
   RecordId: "recordId",
   Archived: "archived",
   OwnedById: "ownedById",

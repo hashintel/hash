@@ -303,7 +303,6 @@ impl QueryPath for EntityQueryPath<'_> {
 pub enum EntityQueryToken {
     // TODO: we want to expose `EntityId` here instead
     Uuid,
-    Version,
     RecordId,
     Archived,
     OwnedById,
@@ -325,10 +324,10 @@ pub struct EntityQueryPathVisitor {
 }
 
 impl EntityQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `uuid`, `version`, `recordId`, `archived`, \
-                                         `ownedById`, `updatedById`, `type`, `properties`, \
-                                         `incomingLinks`, `outgoingLinks`, `leftEntity`, \
-                                         `rightEntity`, `leftToRightOrder`, `rightToLeftOrder`";
+    pub const EXPECTING: &'static str = "one of `uuid`, `recordId`, `archived`, `ownedById`, \
+                                         `updatedById`, `type`, `properties`, `incomingLinks`, \
+                                         `outgoingLinks`, `leftEntity`, `rightEntity`, \
+                                         `leftToRightOrder`, `rightToLeftOrder`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -357,7 +356,6 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::RecordId => EntityQueryPath::RecordId,
             EntityQueryToken::OwnedById => EntityQueryPath::OwnedById,
             EntityQueryToken::UpdatedById => EntityQueryPath::UpdatedById,
-            EntityQueryToken::Version => EntityQueryPath::ProjectedTime,
             EntityQueryToken::Archived => EntityQueryPath::Archived,
             EntityQueryToken::Type => EntityQueryPath::Type(
                 EntityTypeQueryPathVisitor::new(self.position).visit_seq(seq)?,
@@ -410,7 +408,6 @@ mod tests {
 
     #[test]
     fn deserialization() {
-        assert_eq!(deserialize(["version"]), EntityQueryPath::ProjectedTime);
         assert_eq!(deserialize(["ownedById"]), EntityQueryPath::OwnedById);
         assert_eq!(
             deserialize(["type", "version"]),
@@ -447,7 +444,7 @@ mod tests {
 
         assert_eq!(
             EntityQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
-                ["version", "test"].into_iter()
+                ["recordId", "test"].into_iter()
             ))
             .expect_err(
                 "managed to convert entity query path with multiple tokens when it should have \
