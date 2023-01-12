@@ -12,7 +12,7 @@ import { getEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity"
 
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { getRequiredEnv } from "../util";
-import { ImpureGraphContext } from ".";
+import { ImpureGraphContext } from "./index";
 import {
   createUser,
   getUserByShortname,
