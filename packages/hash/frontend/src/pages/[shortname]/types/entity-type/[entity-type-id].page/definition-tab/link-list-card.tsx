@@ -248,35 +248,56 @@ const LinkTypeRow = ({
               ]}
               {...bindTrigger(entityTypeSelectorPopupState)}
             >
-              {chosenEntityTypes.map((entityTypeId) => {
-                const type = entityTypes[entityTypeId];
+              {chosenEntityTypes.length ? (
+                chosenEntityTypes.map((entityTypeId) => {
+                  const type = entityTypes[entityTypeId];
 
-                if (!type) {
-                  throw new Error("Entity type missing in links table");
-                }
+                  if (!type) {
+                    throw new Error("Entity type missing in links table");
+                  }
 
-                return (
-                  <Chip
-                    sx={{ m: 0.25 }}
-                    color="blue"
-                    label={
-                      <Stack
-                        direction="row"
-                        spacing={0.75}
-                        fontSize={14}
-                        alignItems="center"
-                      >
-                        <FontAwesomeIcon
-                          icon={faAsterisk}
-                          sx={{ fontSize: "inherit" }}
-                        />
-                        <Box component="span">{type.schema.title}</Box>
-                      </Stack>
-                    }
-                    key={type.schema.$id}
-                  />
-                );
-              })}
+                  return (
+                    <Chip
+                      sx={{ m: 0.25 }}
+                      color="blue"
+                      label={
+                        <Stack
+                          direction="row"
+                          spacing={0.75}
+                          fontSize={14}
+                          alignItems="center"
+                        >
+                          <FontAwesomeIcon
+                            icon={faAsterisk}
+                            sx={{ fontSize: "inherit" }}
+                          />
+                          <Box component="span">{type.schema.title}</Box>
+                        </Stack>
+                      }
+                      key={type.schema.$id}
+                    />
+                  );
+                })
+              ) : (
+                <Chip
+                  color="blue"
+                  variant="outlined"
+                  label={
+                    <Stack
+                      direction="row"
+                      spacing={0.75}
+                      fontSize={14}
+                      alignItems="center"
+                    >
+                      <FontAwesomeIcon
+                        icon={faAsterisk}
+                        sx={{ fontSize: "inherit" }}
+                      />
+                      <Box component="span">Anything</Box>
+                    </Stack>
+                  }
+                />
+              )}
             </Stack>
             {entityTypeSelectorPopupState.isOpen ? (
               <ClickAwayListener
