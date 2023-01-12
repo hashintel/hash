@@ -13,6 +13,7 @@ import {
   ResolverFn,
 } from "../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../context";
+import { dataSourcesToImpureGraphContext } from "../util";
 
 export const createEntityTypeResolver: ResolverFn<
   Promise<EntityTypeWithMetadata>,
@@ -20,18 +21,16 @@ export const createEntityTypeResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationCreateEntityTypeArgs
 > = async (_, params, { dataSources, user }) => {
-  const { graphApi } = dataSources;
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
   const { ownedById, entityType } = params;
 
-  const createdEntityType = await createEntityType(
-    { graphApi },
-    {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-      ownedById: (ownedById as OwnedById) ?? user.accountId,
-      schema: entityType,
-      actorId: user.accountId,
-    },
-  );
+  const createdEntityType = await createEntityType(context, {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
+    ownedById: (ownedById as OwnedById) ?? user.accountId,
+    schema: entityType,
+    actorId: user.accountId,
+  });
 
   return createdEntityType;
 };
@@ -117,17 +116,15 @@ export const updateEntityTypeResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationUpdateEntityTypeArgs
 > = async (_, params, { dataSources, user }) => {
-  const { graphApi } = dataSources;
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
   const { entityTypeId, updatedEntityType: updatedEntityTypeSchema } = params;
 
-  const updatedEntityType = await updateEntityType(
-    { graphApi },
-    {
-      entityTypeId,
-      schema: updatedEntityTypeSchema,
-      actorId: user.accountId,
-    },
-  );
+  const updatedEntityType = await updateEntityType(context, {
+    entityTypeId,
+    schema: updatedEntityTypeSchema,
+    actorId: user.accountId,
+  });
 
   return updatedEntityType;
 };

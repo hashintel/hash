@@ -6,7 +6,7 @@ import { Entity, Link } from "@hashintel/hash-backend-utils/pg-tables";
  */
 export const supportedRealtimeTables = ["entities", "links"] as const;
 
-export type SupportedRealtimeTable = typeof supportedRealtimeTables[number];
+export type SupportedRealtimeTable = (typeof supportedRealtimeTables)[number];
 
 export const isSupportedRealtimeTable = (
   table: string,

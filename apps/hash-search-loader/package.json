@@ -1,5 +1,5 @@
 {
-  "name": "@hashintel/hash-search-loader",
+  "name": "@apps/hash-search-loader",
   "version": "0.0.0-private",
   "private": true,
   "description": "Loads changes from the hash/realtime package stream into the search service",
