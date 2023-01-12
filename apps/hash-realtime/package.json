@@ -1,5 +1,5 @@
 {
-  "name": "@hashintel/hash-realtime",
+  "name": "@apps/hash-realtime",
   "version": "0.0.0-private",
   "private": true,
   "description": "Realtime streaming update server from the HASH datstore",
