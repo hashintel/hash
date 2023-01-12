@@ -4,8 +4,9 @@ mod entity_type;
 mod links;
 mod property_type;
 
-use std::borrow::Cow;
+use std::{borrow::Cow, str::FromStr, time::SystemTime};
 
+use chrono::{DateTime, Days, Utc};
 use error_stack::Result;
 use graph::{
     identifier::{
@@ -13,10 +14,10 @@ use graph::{
         knowledge::EntityId,
         ontology::OntologyTypeEditionId,
         time::{
-            TimeIntervalBound, Timestamp, TransactionTime, UnresolvedImage, UnresolvedKernel,
+            DecisionTime, TimeIntervalBound, Timestamp, UnresolvedImage, UnresolvedKernel,
             UnresolvedProjection, UnresolvedTimeProjection,
         },
-        EntityVertexId, GraphElementVertexId,
+        GraphElementVertexId,
     },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
@@ -31,7 +32,7 @@ use graph::{
         query::{Filter, FilterExpression, Parameter},
         AccountStore, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityStore,
         EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool, PropertyTypeStore,
-        QueryError, Record, Store, StorePool, UpdateError,
+        QueryError, Store, StorePool, UpdateError,
     },
     subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
 };
@@ -143,6 +144,18 @@ impl DatabaseTestWrapper {
 
         Ok(DatabaseApi { store, account_id })
     }
+}
+
+fn generate_decision_time() -> Timestamp<DecisionTime> {
+    // We cannot use `Timestamp::now` as the decision time must be before the transaction time. As
+    // the transaction is started before the time was recorded, this will always fail.
+    Timestamp::from_str(
+        &DateTime::<Utc>::from(SystemTime::now())
+            .checked_sub_days(Days::new(1))
+            .expect("could not subtract a day from the current time")
+            .to_string(),
+    )
+    .expect("could not parse timestamp")
 }
 
 // TODO: Add get_all_* methods
@@ -295,7 +308,7 @@ impl DatabaseApi<'_> {
             .create_entity(
                 OwnedById::new(self.account_id),
                 entity_uuid,
-                None,
+                Some(generate_decision_time()),
                 UpdatedById::new(self.account_id),
                 false,
                 entity_type_id,
@@ -305,16 +318,11 @@ impl DatabaseApi<'_> {
             .await
     }
 
-    pub async fn get_entity(
-        &self,
-        entity_id: EntityId,
-        timestamp: Timestamp<TransactionTime>,
-    ) -> Result<Entity, QueryError> {
-        let entity_vertex_id = EntityVertexId::new(entity_id, timestamp.cast());
+    pub async fn get_entities(&self, entity_id: EntityId) -> Result<Vec<Entity>, QueryError> {
         Ok(self
             .store
             .get_entity(&StructuralQuery {
-                filter: Entity::create_filter_for_vertex_id(&entity_vertex_id),
+                filter: Filter::for_entity_by_id(entity_id),
                 graph_resolve_depths: GraphResolveDepths::default(),
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                     kernel: UnresolvedKernel::new(None),
@@ -327,8 +335,28 @@ impl DatabaseApi<'_> {
             .await?
             .vertices
             .entities
-            .remove(&entity_vertex_id)
-            .expect("no entity found"))
+            .into_values()
+            .collect())
+    }
+
+    pub async fn get_latest_entity(&self, entity_id: EntityId) -> Result<Entity, QueryError> {
+        let entities = self
+            .store
+            .get_entity(&StructuralQuery {
+                filter: Filter::for_entity_by_id(entity_id),
+                graph_resolve_depths: GraphResolveDepths::default(),
+                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                    kernel: UnresolvedKernel::new(None),
+                    image: UnresolvedImage::new(None, None),
+                }),
+            })
+            .await?
+            .vertices
+            .entities
+            .into_values()
+            .collect::<Vec<_>>();
+        assert_eq!(entities.len(), 1);
+        Ok(entities.into_iter().next().unwrap())
     }
 
     pub async fn update_entity(
@@ -341,7 +369,7 @@ impl DatabaseApi<'_> {
         self.store
             .update_entity(
                 entity_id,
-                None,
+                Some(generate_decision_time()),
                 UpdatedById::new(self.account_id),
                 false,
                 entity_type_id,
@@ -467,12 +495,6 @@ impl DatabaseApi<'_> {
                 ))),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::ProjectedTime)),
-                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                    "latest",
-                )))),
-            ),
-            Filter::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::Archived)),
                 Some(FilterExpression::Parameter(Parameter::Boolean(false))),
             ),
@@ -485,10 +507,7 @@ impl DatabaseApi<'_> {
                 graph_resolve_depths: GraphResolveDepths::default(),
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                     kernel: UnresolvedKernel::new(None),
-                    image: UnresolvedImage::new(
-                        Some(TimeIntervalBound::Unbounded),
-                        Some(TimeIntervalBound::Unbounded),
-                    ),
+                    image: UnresolvedImage::new(None, None),
                 }),
             })
             .await?;
