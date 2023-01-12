@@ -1,3 +1,5 @@
+import { DataSource } from "apollo-datasource";
+
 import { StorageType } from "../graphql/api-types.gen";
 
 /** Interface describing a generic storage provider
@@ -19,7 +21,7 @@ export interface GetFileEntityStorageKeyParams {
   entityVersionId: string;
 }
 
-export interface UploadableStorageProvider extends StorageProvider {
+export interface UploadableStorageProvider extends StorageProvider, DataSource {
   /** Presigns a file upload request for a client to later upload a file
    * @return {Promise<PresignedPostUpload>} Object containing the data and url needed to POST the file
    */

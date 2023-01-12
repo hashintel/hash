@@ -1,6 +1,5 @@
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
-  createGraphClient,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
@@ -23,11 +22,10 @@ import {
 } from "@hashintel/hash-api/src/graph/knowledge/system-types/page";
 import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
 import { SYSTEM_TYPES } from "@hashintel/hash-api/src/graph/system-types";
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { OwnedById } from "@hashintel/hash-shared/types";
 
-import { createTestUser } from "../../../util";
+import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -37,24 +35,16 @@ const logger = new Logger({
   serviceName: "integration-tests",
 });
 
-const graphApiHost = getRequiredEnv("HASH_GRAPH_API_HOST");
-const graphApiPort = parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10);
-
-const graphApi = createGraphClient(logger, {
-  host: graphApiHost,
-  port: graphApiPort,
-});
-
-const graphContext: ImpureGraphContext = { graphApi };
+const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 
 describe("Page", () => {
   let testUser: User;
 
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
-    await ensureSystemGraphIsInitialized({ graphApi, logger });
+    await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
-    testUser = await createTestUser(graphApi, "pageTest", logger);
+    testUser = await createTestUser(graphContext, "pageTest", logger);
   });
 
   const createTestBlock = async () =>

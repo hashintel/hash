@@ -3,19 +3,16 @@ import { Subgraph } from "@hashintel/hash-subgraph";
 import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity";
 import { QueryMeArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
+import { dataSourcesToImpureGraphContext } from "../../util";
 
 export const meResolver: ResolverFn<
   Subgraph,
   {},
   LoggedInGraphQLContext,
   QueryMeArgs
-> = async (
-  _,
-  { hasLeftEntity, hasRightEntity },
-  { user, dataSources: { graphApi } },
-) => {
+> = async (_, { hasLeftEntity, hasRightEntity }, { user, dataSources }) => {
   return await getLatestEntityRootedSubgraph(
-    { graphApi },
+    dataSourcesToImpureGraphContext(dataSources),
     {
       entity: user.entity,
       graphResolveDepths: {
