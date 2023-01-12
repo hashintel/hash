@@ -65,7 +65,7 @@ export const TypeMenuCell = ({
       sx={{
         [`.${iconButtonClasses.root}`]: {
           opacity: 0,
-          [` .${tableRowClasses.root}:hover > &`]: {
+          [`.${tableRowClasses.root}:hover > &`]: {
             opacity: 1,
           },
         },

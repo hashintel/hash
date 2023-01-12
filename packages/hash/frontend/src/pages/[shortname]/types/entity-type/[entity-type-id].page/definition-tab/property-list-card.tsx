@@ -5,7 +5,9 @@ import { OwnedById } from "@hashintel/hash-shared/types";
 import {
   Box,
   Checkbox,
+  checkboxClasses,
   Collapse,
+  svgIconClasses,
   Table,
   TableBody,
   TableCell,
@@ -199,13 +201,38 @@ const PropertyRow = forwardRef(
 
           {allowArraysTableCell ?? (
             <EntityTypeTableCenteredCell width={170}>
-              <Checkbox disabled checked={isArray} sx={{ pr: 1 }} />
+              <Checkbox
+                disabled
+                checked={isArray}
+                sx={{
+                  pr: 1,
+                  [`.${svgIconClasses.root}`]: {
+                    color: "inherit",
+                  },
+                  [`&.${checkboxClasses.checked}.${checkboxClasses.disabled}`]:
+                    {
+                      color: ({ palette }) => `${palette.blue[30]} !important`,
+                    },
+                }}
+              />
             </EntityTypeTableCenteredCell>
           )}
 
           {requiredTableCell ?? (
             <EntityTypeTableCenteredCell width={100}>
-              <Checkbox disabled checked={isRequired} />
+              <Checkbox
+                disabled
+                checked={isRequired}
+                sx={{
+                  [`.${svgIconClasses.root}`]: {
+                    color: "inherit",
+                  },
+                  [`&.${checkboxClasses.checked}.${checkboxClasses.disabled}`]:
+                    {
+                      color: ({ palette }) => `${palette.blue[30]} !important`,
+                    },
+                }}
+              />
             </EntityTypeTableCenteredCell>
           )}
 
