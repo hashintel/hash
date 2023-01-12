@@ -175,7 +175,7 @@ jobs:
       - name: Ensure empty git diff
         run: git --no-pager diff --exit-code --color
 
-      - name: Upload to DataDog
+      - name: Upload to Datadog
         if: matrix.directory == 'apps/engine' && matrix.profile == 'production'
         run: |
           message=$(find ${{ matrix.directory }}/${{ env.OUTPUT_DIRECTORY }} -name timing.json -exec cat {} + \
