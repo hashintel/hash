@@ -6,7 +6,6 @@ on:
     paths:
       - "packages/hash/**"
       - "!packages/hash/frontend/**"
-      - "!tests/hash-playwright/**"
 
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
