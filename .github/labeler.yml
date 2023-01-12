@@ -86,13 +86,13 @@ playwright:
   - tests/hash-playwright/**/.*
 
 realtime:
-  - packages/hash/realtime/*
-  - packages/hash/realtime/.*
-  - packages/hash/realtime/**/*
-  - packages/hash/realtime/**/.*
+  - apps/hash-realtime/*
+  - apps/hash-realtime/.*
+  - apps/hash-realtime/**/*
+  - apps/hash-realtime/**/.*
 
 search-loader:
-  - packages/hash/search-loader/*
-  - packages/hash/search-loader/.*
-  - packages/hash/search-loader/**/*
-  - packages/hash/search-loader/**/.*
+  - apps/hash-search-realtime/*
+  - apps/hash-search-realtime/.*
+  - apps/hash-search-realtime/**/*
+  - apps/hash-search-realtime/**/.*
