@@ -19487,6 +19487,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
       constructor(source) {
         this.source =
           source instanceof ByteStream ? source : new ByteStream(source);
+        this.VectorLoader = VectorLoader;
       }
       [Symbol.iterator]() {
         return this;
