@@ -44,7 +44,7 @@ export const PropertyTitle = ({
           transform: object && depth === 0 ? "translateX(-20px)" : "none",
         }}
       >
-        {object ? (
+        {expanded !== undefined ? (
           <IconButton
             onClick={() => setExpanded?.(!expanded)}
             size="xs"

@@ -186,7 +186,7 @@ const PropertyRow = forwardRef(
             <PropertyTitle
               property={property}
               array={isArray}
-              expanded={expanded}
+              expanded={children.length ? expanded : undefined}
               setExpanded={setExpanded}
               depth={depth}
             />
