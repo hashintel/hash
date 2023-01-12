@@ -87,11 +87,11 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
             match self.time_projection {
                 TimeProjection::DecisionTime(projection) => {
                     self.artifacts.parameters.push(&projection.kernel.timestamp);
-                    self.artifacts.parameters.push(&projection.image.span);
+                    self.artifacts.parameters.push(&projection.image.interval);
                 }
                 TimeProjection::TransactionTime(projection) => {
                     self.artifacts.parameters.push(&projection.kernel.timestamp);
-                    self.artifacts.parameters.push(&projection.image.span);
+                    self.artifacts.parameters.push(&projection.image.interval);
                 }
             };
 
