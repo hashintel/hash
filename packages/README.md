@@ -5,7 +5,7 @@
 
 # Packages
 
-This directory's contents are in the process of being integrated into the `apps`, `libs` and `tests folders in the project root. The `packages` folder will shortly cease to exist.
+This directory's contents are in the process of being integrated into the `apps`, `libs` and `tests` folders in the project root. The `packages` folder will shortly cease to exist.
 
 ## `hash`
 
