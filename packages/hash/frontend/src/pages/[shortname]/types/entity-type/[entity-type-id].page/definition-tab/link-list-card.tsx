@@ -29,11 +29,13 @@ import {
   useLinkEntityTypesOptional,
 } from "../../../../../../shared/entity-types-context/hooks";
 import { LinkIcon } from "../../../../../../shared/icons/link";
+import { autocompleteDropdownClasses } from "../../../../shared/autocomplete-dropdown";
 import { HashSelectorAutocomplete } from "../../../../shared/hash-selector-autocomplete";
 import {
   addPopperPositionClassPopperModifier,
   popperPlacementInputNoRadius,
   popperPlacementPopperNoRadius,
+  popperPlacementSelectors,
 } from "../../../../shared/popper-placement-modifier";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
 import { useRouteNamespace } from "../../../../shared/use-route-namespace";
@@ -206,10 +208,20 @@ const LinkTypeRow = ({
           <Box
             sx={(theme) => ({
               position: "relative",
+              ...(entityTypeSelectorPopupState.isOpen
+                ? { zIndex: theme.zIndex.modal + 1 }
+                : {}),
+
               [entityTypeSelectorPopupState.isOpen ? "& > *" : "&:hover > *"]: {
                 boxShadow: theme.boxShadows.xs,
                 borderColor: `${theme.palette.gray[30]} !important`,
                 backgroundColor: "white",
+                ...(popperPlacement === "bottom"
+                  ? { borderTopLeftRadius: 0, borderTopRightRadius: 0 }
+                  : {
+                      borderBottomLeftRadius: 0,
+                      borderBottomRightRadius: 0,
+                    }),
               },
             })}
           >
@@ -289,77 +301,79 @@ const LinkTypeRow = ({
               )}
             </Stack>
             {entityTypeSelectorPopupState.isOpen ? (
-              <ClickAwayListener
-                onClickAway={entityTypeSelectorPopupState.close}
+              <Box
+                onClick={(evt) => {
+                  evt.stopPropagation();
+                  evt.preventDefault();
+                }}
+                sx={(theme) => ({
+                  position: "absolute",
+                  left: -19,
+                  right: -19,
+                  top: -12,
+                  bottom: -12,
+                  background: "white",
+                  borderRadius: 1.5,
+                  border: 1,
+                  borderColor: theme.palette.gray[30],
+                  boxShadow: theme.boxShadows.md,
+                  zIndex: theme.zIndex.drawer - 1,
+                })}
               >
-                <Box
-                  onClick={(evt) => {
-                    evt.stopPropagation();
-                    evt.preventDefault();
+                <HashSelectorAutocomplete
+                  multiple
+                  sx={[
+                    popperPlacementPopperNoRadius,
+                    {
+                      width: "100%",
+                      minWidth: 440,
+                      position: "absolute",
+                      ...(popperPlacement === "top"
+                        ? { top: "100%" }
+                        : { bottom: "100%" }),
+                    },
+                  ]}
+                  open
+                  onChange={(_, chosenTypes) => {
+                    setValue(
+                      `links.${linkIndex}.entityTypes`,
+                      chosenTypes.map((type) => type.$id),
+                    );
                   }}
-                  sx={(theme) => ({
-                    position: "absolute",
-                    top: 0,
-                    left: -19,
-                    right: -19,
-                    top: -12,
-                    bottom: -12,
-                    background: "white",
-                    borderRadius: 1.5,
-                    border: 1,
-                    borderColor: theme.palette.gray[30],
-                    boxShadow: theme.boxShadows.md,
-                    zIndex: theme.zIndex.drawer - 1,
+                  options={entityTypeSchemas}
+                  optionToRenderData={({ $id, title, description }) => ({
+                    $id,
+                    title,
+                    description,
                   })}
-                >
-                  {false ? null : (
-                    <HashSelectorAutocomplete
-                      multiple
-                      sx={[
-                        popperPlacementPopperNoRadius,
-                        {
-                          width: "100%",
-                          minWidth: 440,
-                          position: "absolute",
-                          ...(popperPlacement === "top"
-                            ? { top: "100%" }
-                            : { bottom: "100%" }),
+                  dropdownProps={{
+                    query: "",
+                    createButtonProps: null,
+                    variant: "entityType",
+                  }}
+                  renderTags={() => <Box />}
+                  value={chosenEntityTypeSchemas}
+                  modifiers={[
+                    {
+                      name: "addPositionClass",
+                      options: {
+                        update(placement: PopperPlacementType) {
+                          console.log("foo", placement);
                         },
-                      ]}
-                      open
-                      onChange={(_, chosenTypes) => {
-                        setValue(
-                          `links.${linkIndex}.entityTypes`,
-                          chosenTypes.map((type) => type.$id),
-                        );
-                      }}
-                      options={entityTypeSchemas}
-                      optionToRenderData={({ $id, title, description }) => ({
-                        $id,
-                        title,
-                        description,
-                      })}
-                      dropdownProps={{
-                        query: "",
-                        createButtonProps: null,
-                        variant: "entityType",
-                      }}
-                      renderTags={() => <Box />}
-                      value={chosenEntityTypeSchemas}
-                      modifiers={[
-                        {
-                          name: "addPositionClass",
-                          options: {
-                            update(placement: PopperPlacementType) {
-                              console.log("foo", placement);
-                            },
-                          },
-                        },
-                      ]}
-                    />
-                  )}
-                </Box>
-              </ClickAwayListener>
+                      },
+                    },
+                  ]}
+                  onKeyDown={(evt) => {
+                    if (evt.key === "Escape") {
+                      entityTypeSelectorPopupState.close();
+                    }
+                  }}
+                  referenceConnection="flat"
+                  // onBlur={() => {
+                  //   entityTypeSelectorPopupState.close();
+                  // }}
+                />
+              </Box>
             ) : null}
           </Box>
         </TableCell>

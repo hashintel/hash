@@ -33,6 +33,7 @@ export type TypeListSelectorDropdownProps = {
   query: string;
   createButtonProps: Omit<ButtonProps, "children" | "variant" | "size"> | null;
   variant: "entityType" | "propertyType" | "entity" | "linkType";
+  joined?: boolean;
 };
 
 const TypeListSelectorDropdown = ({
@@ -40,10 +41,14 @@ const TypeListSelectorDropdown = ({
   dropdownProps,
   ...props
 }: PaperProps & { dropdownProps: TypeListSelectorDropdownProps }) => {
-  const { query, createButtonProps, variant } = dropdownProps;
+  const { query, createButtonProps, variant, joined } = dropdownProps;
 
   return (
-    <AutocompleteDropdown buttonHeight={TYPE_SELECTOR_HEIGHT} {...props}>
+    <AutocompleteDropdown
+      buttonHeight={TYPE_SELECTOR_HEIGHT}
+      joined={joined}
+      {...props}
+    >
       {children}
       {createButtonProps ? (
         <Button
@@ -118,6 +123,7 @@ type HashSelectorAutocompleteProps<
   dropdownProps: TypeListSelectorDropdownProps;
   autoFocus?: boolean;
   modifiers?: PopperProps["modifiers"];
+  joined?: boolean;
 };
 
 export const HashSelectorAutocomplete = <

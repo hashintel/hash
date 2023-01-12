@@ -5,9 +5,10 @@ import { popperPlacementSelectors } from "./popper-placement-modifier";
 
 export const AutocompleteDropdown = ({
   buttonHeight = 0,
+  joined = false,
   children,
   ...props
-}: PaperProps & { buttonHeight?: number }) => {
+}: PaperProps & { buttonHeight?: number; joined?: boolean }) => {
   return (
     <>
       <Box
