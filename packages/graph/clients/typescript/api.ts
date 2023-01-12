@@ -304,7 +304,7 @@ export interface DataTypeStructuralQuery {
    * @type {UnresolvedTimeProjection}
    * @memberof DataTypeStructuralQuery
    */
-  timeProjection?: UnresolvedTimeProjection;
+  timeProjection: UnresolvedTimeProjection;
 }
 /**
  *
@@ -635,7 +635,7 @@ export interface EntityStructuralQuery {
    * @type {UnresolvedTimeProjection}
    * @memberof EntityStructuralQuery
    */
-  timeProjection?: UnresolvedTimeProjection;
+  timeProjection: UnresolvedTimeProjection;
 }
 /**
  * Specifies the structure of an Entity Type
@@ -773,7 +773,7 @@ export interface EntityTypeStructuralQuery {
    * @type {UnresolvedTimeProjection}
    * @memberof EntityTypeStructuralQuery
    */
-  timeProjection?: UnresolvedTimeProjection;
+  timeProjection: UnresolvedTimeProjection;
 }
 /**
  *
@@ -1793,7 +1793,7 @@ export interface PropertyTypeStructuralQuery {
    * @type {UnresolvedTimeProjection}
    * @memberof PropertyTypeStructuralQuery
    */
-  timeProjection?: UnresolvedTimeProjection;
+  timeProjection: UnresolvedTimeProjection;
 }
 /**
  *
