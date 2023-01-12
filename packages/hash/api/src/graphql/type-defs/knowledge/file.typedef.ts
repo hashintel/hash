@@ -12,8 +12,10 @@ export const fileTypedef = gql`
     entity: Entity!
   }
 
-  # Presigned data to send a POST request to upload a file
-  # The fields object contains form parameters that need to be sent with the POST request to upload a file
+  """
+  Presigned data to send a POST request to upload a file
+  The fields object contains form parameters that need to be sent with the POST request to upload a file
+  """
   type PresignedFormPost {
     """
     url to POST the file to
@@ -26,8 +28,10 @@ export const fileTypedef = gql`
   }
 
   extend type Mutation {
-    # Requests to upload a file, returning the url and data needed
-    # for a client to POST a file to afterwards
+    """
+    Requests to upload a file, returning the url and data needed
+    for a client to POST a file to afterwards
+    """
     requestFileUpload(
       """
       Size of the file in bytes
@@ -38,8 +42,10 @@ export const fileTypedef = gql`
       """
       mediaType: String!
     ): RequestFileUploadResponse!
-    # Creates a file entity from an external link. The file entity
-    # will just have a reference to the link (the file isn't fetched by our server in this current version)
+    """
+    Creates a file entity from an external link. The file entity will just have
+    a reference to the link (the file isn't fetched by our server in this current version)
+    """
     createFileFromLink(
       """
       url of the external file
