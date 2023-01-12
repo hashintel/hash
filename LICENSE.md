@@ -9,7 +9,7 @@ The license for a particular work is defined with following prioritized rules:
 1.  First `LICENSE`, `LICENSE.md` or `LICENSE.txt` file found when exploring parent directories up to the project top level directory
 1.  Defaults to the MIT License
 
-Source code in this repository is variously licensed under the _MIT License_,
+Source code in this repository is variously licensed under either the _MIT License_ and _Apache License 2.0_ dually,
 the _GNU Affero General Public License 3.0_, or the _Elastic License 2.0_.
 
 Written content, illustrations and graphics published under the `apps/hashdotai/resources`
@@ -19,14 +19,12 @@ Attribution-ShareAlike 4.0 International](apps/hashdotai/resources/LICENSE.md) l
 # Quick Reference
 
 - Within the `/blocks` folder, all source code is made
-  available under the MIT License.
+  available under the MIT License and Apache License 2.0.
 
 - Within the `/apps/engine` folder, source code is licensed under the
   Elastic License 2.0, unless otherwise noted.
 
-- Within the `/packages/hash` folder, source code in a given file is
-  licensed under version 3 of the GNU Affero General Public License, unless
-  otherwise noted.
+- Within `/apps`, `/libs` and `/tests`, source code in sub-directories (and nested sub-directories) prefixed `hash-` is typically licensed under version 3 of the GNU Affero General Public License.
 
 # Questions
 
