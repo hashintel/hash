@@ -1,9 +1,9 @@
-export var arrow;
+var arrow;
 /******/ (() => {
   // webpackBootstrap
   /******/ "use strict";
   /******/ var __webpack_modules__ = {
-    /***/ 717: /***/ (
+    /***/ 35: /***/ (
       __unused_webpack_module,
       __webpack_exports__,
       __webpack_require__,
@@ -15,9 +15,9 @@ export var arrow;
       __webpack_require__.d(__webpack_exports__, {
         TextDecoder: () => /* reexport */ TextDecoder,
         TextEncoder: () => /* reexport */ TextEncoder,
-      }); // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/encoding/defaultEncoding.js
+      }); // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/encoding/defaultEncoding.js
 
-      /** @const */ const DEFAULT_ENCODING = "utf-8"; // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/encoding/encodings.js
+      /** @const */ const DEFAULT_ENCODING = "utf-8"; // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/encoding/encodings.js
       //# sourceMappingURL=defaultEncoding.js.map
       /**
        * @param {boolean} fatal If true, decoding errors raise an exception.
@@ -442,16 +442,16 @@ export var arrow;
             label_to_encoding[label] = encoding;
           });
         });
-      }); // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/encoding/finished.js
+      }); // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/encoding/finished.js
 
       //# sourceMappingURL=encodings.js.map
       // 5.1 Encoders and decoders
       /** @const */
-      const finished = -1; // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/helper/getArrayVal.js
+      const finished = -1; // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/helper/getArrayVal.js
       //# sourceMappingURL=finished.js.map
       function getArrayVal(idxVal) {
         return Array.isArray(idxVal) ? idxVal : [idxVal];
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/encoding/utilities.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/encoding/utilities.js
       //# sourceMappingURL=getArrayVal.js.map
       /**
        * @param {number} a The number to test.
@@ -563,7 +563,7 @@ export var arrow;
           }
         }
         return s;
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/helper/getGlobalScope.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/helper/getGlobalScope.js
       //# sourceMappingURL=utilities.js.map
       function getGlobalScope() {
         if (typeof __webpack_require__.g !== "undefined")
@@ -571,7 +571,7 @@ export var arrow;
         if (typeof window !== "undefined") return window;
         if (typeof self !== "undefined") return self;
         return;
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/encoding/encoding-indexes-provider.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/encoding/encoding-indexes-provider.js
       //# sourceMappingURL=getGlobalScope.js.map
       let _encodingIndexes;
       function checkForEncodingIndexes() {
@@ -597,7 +597,7 @@ export var arrow;
         }
         _encodingIndexes = indexes;
         return indexes;
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/encoding/indexes.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/encoding/indexes.js
       //# sourceMappingURL=encoding-indexes-provider.js.map
       /**
        * @param {number} pointer The |pointer| to search for.
@@ -743,7 +743,7 @@ export var arrow;
         // 3. Return the index pointer for code point in index.
         return indexPointerFor(code_point, index_);
       }
-      let big5_index_no_hkscs; // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/encoding/terminology.js
+      let big5_index_no_hkscs; // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/encoding/terminology.js
       //# sourceMappingURL=indexes.js.map
       //
       // Implementation of Encoding specification
@@ -769,7 +769,7 @@ export var arrow;
        * End-of-stream is a special token that signifies no more tokens
        * are in the stream.
        * @const
-       */ const end_of_stream = -1; // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/big5/Big5Decoder.js
+       */ const end_of_stream = -1; // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/big5/Big5Decoder.js
       //# sourceMappingURL=terminology.js.map
       /**
        * @constructor
@@ -860,7 +860,7 @@ export var arrow;
           // 6. Return error.
           return decoderError(this.fatal);
         }
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/big5/Big5Encoder.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/big5/Big5Encoder.js
       //# sourceMappingURL=Big5Decoder.js.map
       /**
        * @constructor
@@ -898,7 +898,7 @@ export var arrow;
           // Return two bytes whose values are lead and trail + offset.
           return [lead, trail + offset];
         }
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/big5/index.js // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/euc-jp/EUCJPDecoder.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/big5/index.js // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/euc-jp/EUCJPDecoder.js
       //# sourceMappingURL=Big5Encoder.js.map
       //# sourceMappingURL=index.js.map
       /**
@@ -986,7 +986,7 @@ export var arrow;
           // 8. Return error.
           return decoderError(this.fatal);
         }
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/euc-jp/EUCJPEncoder.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/euc-jp/EUCJPEncoder.js
       //# sourceMappingURL=EUCJPDecoder.js.map
       /**
        * @constructor
@@ -1031,7 +1031,7 @@ export var arrow;
           // 11. Return two bytes whose values are lead and trail.
           return [lead, trail];
         }
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/euc-jp/index.js // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/euc-kr/EUCKRDecoder.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/euc-jp/index.js // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/euc-kr/EUCKRDecoder.js
       //# sourceMappingURL=EUCJPEncoder.js.map
       //# sourceMappingURL=index.js.map
       /**
@@ -1099,7 +1099,7 @@ export var arrow;
           // 6. Return error.
           return decoderError(this.fatal);
         }
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/euc-kr/EUCKREncoder.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/euc-kr/EUCKREncoder.js
       //# sourceMappingURL=EUCKRDecoder.js.map
       /**
        * @constructor
@@ -1133,7 +1133,7 @@ export var arrow;
           // 7. Return two bytes whose values are lead and trail.
           return [lead, trail];
         }
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/euc-kr/index.js // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/gb18030/GB18030Decoder.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/euc-kr/index.js // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/gb18030/GB18030Decoder.js
       //# sourceMappingURL=EUCKREncoder.js.map
       //# sourceMappingURL=index.js.map
       /**
@@ -1285,7 +1285,7 @@ export var arrow;
           // 9. Return error.
           return decoderError(this.fatal);
         }
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/gb18030/GB18030Encoder.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/gb18030/GB18030Encoder.js
       //# sourceMappingURL=GB18030Decoder.js.map
       /**
        * @constructor
@@ -1350,7 +1350,7 @@ export var arrow;
           // 0x30, byte3 + 0x81, byte4 + 0x30.
           return [byte1 + 0x81, byte2 + 0x30, byte3 + 0x81, byte4 + 0x30];
         }
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/gb18030/index.js // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/iso-2022-jp/ISO2022JPDecoder.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/gb18030/index.js // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/iso-2022-jp/ISO2022JPDecoder.js
       //# sourceMappingURL=GB18030Encoder.js.map
       //# sourceMappingURL=index.js.map
       var states;
@@ -1625,7 +1625,7 @@ export var arrow;
               return decoderError(this.fatal);
           }
         }
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/iso-2022-jp/ISO2022JPEncoder.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/iso-2022-jp/ISO2022JPEncoder.js
       //# sourceMappingURL=ISO2022JPDecoder.js.map
       var ISO2022JPEncoder_states;
       (function (states) {
@@ -1755,7 +1755,7 @@ export var arrow;
           // 14. Return two bytes whose values are lead and trail.
           return [lead, trail];
         }
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/iso-2022-jp/index.js // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/shift-jis/ShiftJISDecoder.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/iso-2022-jp/index.js // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/shift-jis/ShiftJISDecoder.js
       //# sourceMappingURL=ISO2022JPEncoder.js.map
       //# sourceMappingURL=index.js.map
       /**
@@ -1839,7 +1839,7 @@ export var arrow;
           // 7. Return error.
           return decoderError(this.fatal);
         }
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/shift-jis/ShiftJISEncoder.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/shift-jis/ShiftJISEncoder.js
       //# sourceMappingURL=ShiftJISDecoder.js.map
       /**
        * @constructor
@@ -1890,7 +1890,7 @@ export var arrow;
           // trail + offset.
           return [lead + lead_offset, trail + offset];
         }
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/shift-jis/index.js // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/single-byte/SingleByteDecoder.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/shift-jis/index.js // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/single-byte/SingleByteDecoder.js
       //# sourceMappingURL=ShiftJISEncoder.js.map
       //# sourceMappingURL=index.js.map
       /**
@@ -1925,7 +1925,7 @@ export var arrow;
           // 5. Return a code point whose value is code point.
           return code_point;
         }
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/single-byte/SingleByteEncoder.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/single-byte/SingleByteEncoder.js
       //# sourceMappingURL=SingleByteDecoder.js.map
       /**
        * @constructor
@@ -1957,7 +1957,7 @@ export var arrow;
           // 5. Return a byte whose value is pointer + 0x80.
           return pointer + 0x80;
         }
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/single-byte/index.js // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/utf-16/converCodeUnitToBytes.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/single-byte/index.js // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/utf-16/converCodeUnitToBytes.js
       //# sourceMappingURL=SingleByteEncoder.js.map
       //# sourceMappingURL=index.js.map
       /**
@@ -1975,7 +1975,7 @@ export var arrow;
         if (utf16be) return [byte1, byte2];
         // utf-16be flag is unset: byte2, then byte1.
         return [byte2, byte1];
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/utf-16/UTF16Decoder.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/utf-16/UTF16Decoder.js
       //# sourceMappingURL=converCodeUnitToBytes.js.map
       /**
        * @constructor
@@ -2071,7 +2071,7 @@ export var arrow;
           // 8. Return code point code unit.
           return code_unit;
         }
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/utf-16/UTF16Encoder.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/utf-16/UTF16Encoder.js
       //# sourceMappingURL=UTF16Decoder.js.map
       /**
        * @constructor
@@ -2112,7 +2112,7 @@ export var arrow;
           // 5. Return a byte sequence of lead followed by trail.
           return lead.concat(trail);
         }
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/utf-16/index.js // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/utf-8/UTF8Decoder.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/utf-16/index.js // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/utf-8/UTF8Decoder.js
       //# sourceMappingURL=UTF16Encoder.js.map
       //# sourceMappingURL=index.js.map
       /**
@@ -2235,7 +2235,7 @@ export var arrow;
           // 11. Return a code point whose value is code point.
           return code_point;
         }
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/utf-8/UTF8Encoder.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/utf-8/UTF8Encoder.js
       //# sourceMappingURL=UTF8Decoder.js.map
       /**
        * @constructor
@@ -2292,7 +2292,7 @@ export var arrow;
           // 6. Return bytes bytes, in order.
           return bytes;
         }
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/utf-8/index.js // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/x-user-defined/XUserDefinedDecoder.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/utf-8/index.js // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/x-user-defined/XUserDefinedDecoder.js
       //# sourceMappingURL=UTF8Encoder.js.map
       //# sourceMappingURL=index.js.map
       /**
@@ -2320,7 +2320,7 @@ export var arrow;
           // 3. Return a code point whose value is 0xF780 + byte − 0x80.
           return 0xf780 + bite - 0x80;
         }
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/x-user-defined/XUserDefinedEncoder.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/x-user-defined/XUserDefinedEncoder.js
       //# sourceMappingURL=XUserDefinedDecoder.js.map
       /**
        * @constructor
@@ -2349,7 +2349,7 @@ export var arrow;
           // 4. Return error with code point.
           return encoderError(code_point);
         }
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/coders/x-user-defined/index.js // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/encoding/encoding-factory.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/coders/x-user-defined/index.js // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/encoding/encoding-factory.js
       //# sourceMappingURL=XUserDefinedEncoder.js.map
       //# sourceMappingURL=index.js.map
       // This is free and unencumbered software released into the public domain.
@@ -2505,7 +2505,7 @@ export var arrow;
             };
           });
         });
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/common/Stream.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/common/Stream.js
       //# sourceMappingURL=encoding-factory.js.map
       /**
        * A stream represents an ordered sequence of tokens.
@@ -2573,7 +2573,7 @@ export var arrow;
             this.tokens.unshift(token);
           }
         }
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/common/TextDecoder.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/common/TextDecoder.js
       //# sourceMappingURL=Stream.js.map
       /**
        * @constructor
@@ -2788,7 +2788,7 @@ export var arrow;
           );
         }
         return new Uint8Array(0);
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/common/TextEncoder.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/common/TextEncoder.js
       //# sourceMappingURL=TextDecoder.js.map
       /**
        * @constructor
@@ -2910,7 +2910,7 @@ export var arrow;
           // containing output.
           return new Uint8Array(output);
         }
-      } // CONCATENATED MODULE: ../../../node_modules/@zxing/text-encoding/es2015/encoding.js
+      } // CONCATENATED MODULE: ./node_modules/@zxing/text-encoding/es2015/encoding.js
       //# sourceMappingURL=TextEncoder.js.map
       // Polyfills browser
       if (typeof window !== "undefined") {
@@ -3174,7 +3174,7 @@ export var arrow;
       vectorFromArray: () => /* reexport */ vectorFromArray,
     });
 
-    // NAMESPACE OBJECT: ../../../node_modules/apache-arrow/util/buffer.mjs
+    // NAMESPACE OBJECT: ./node_modules/apache-arrow/util/buffer.mjs
     var buffer_namespaceObject = {};
     __webpack_require__.r(buffer_namespaceObject);
     __webpack_require__.d(buffer_namespaceObject, {
@@ -3216,7 +3216,7 @@ export var arrow;
       toUint8ClampedArrayIterator: () => toUint8ClampedArrayIterator,
     });
 
-    // NAMESPACE OBJECT: ../../../node_modules/apache-arrow/util/bn.mjs
+    // NAMESPACE OBJECT: ./node_modules/apache-arrow/util/bn.mjs
     var bn_namespaceObject = {};
     __webpack_require__.r(bn_namespaceObject);
     __webpack_require__.d(bn_namespaceObject, {
@@ -3226,7 +3226,7 @@ export var arrow;
       isArrowBigNumSymbol: () => isArrowBigNumSymbol,
     });
 
-    // NAMESPACE OBJECT: ../../../node_modules/apache-arrow/util/math.mjs
+    // NAMESPACE OBJECT: ./node_modules/apache-arrow/util/math.mjs
     var math_namespaceObject = {};
     __webpack_require__.r(math_namespaceObject);
     __webpack_require__.d(math_namespaceObject, {
@@ -3234,7 +3234,7 @@ export var arrow;
       uint16ToFloat64: () => uint16ToFloat64,
     });
 
-    // NAMESPACE OBJECT: ../../../node_modules/apache-arrow/util/vector.mjs
+    // NAMESPACE OBJECT: ./node_modules/apache-arrow/util/vector.mjs
     var vector_namespaceObject = {};
     __webpack_require__.r(vector_namespaceObject);
     __webpack_require__.d(vector_namespaceObject, {
@@ -3243,7 +3243,7 @@ export var arrow;
       createElementComparator: () => createElementComparator,
     });
 
-    // NAMESPACE OBJECT: ../../../node_modules/apache-arrow/util/bit.mjs
+    // NAMESPACE OBJECT: ./node_modules/apache-arrow/util/bit.mjs
     var bit_namespaceObject = {};
     __webpack_require__.r(bit_namespaceObject);
     __webpack_require__.d(bit_namespaceObject, {
@@ -3258,7 +3258,7 @@ export var arrow;
       truncateBitmap: () => truncateBitmap,
     });
 
-    // NAMESPACE OBJECT: ../../../node_modules/apache-arrow/util/int.mjs
+    // NAMESPACE OBJECT: ./node_modules/apache-arrow/util/int.mjs
     var util_int_namespaceObject = {};
     __webpack_require__.r(util_int_namespaceObject);
     __webpack_require__.d(util_int_namespaceObject, {
@@ -3266,9 +3266,9 @@ export var arrow;
       Int128: () => Int128,
       Int64: () => int_Int64,
       Uint64: () => int_Uint64,
-    }); // CONCATENATED MODULE: ../../../node_modules/tslib/tslib.es6.js
+    }); // CONCATENATED MODULE: ./node_modules/tslib/tslib.es6.js
 
-    /*! *****************************************************************************
+    /******************************************************************************
 Copyright (c) Microsoft Corporation.
 
 Permission to use, copy, modify, and/or distribute this software for any
@@ -3438,7 +3438,7 @@ PERFORMANCE OF THIS SOFTWARE.
       }
       function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
-        while (_)
+        while ((g && ((g = 0), op[0] && (_ = 0)), _))
           try {
             if (
               ((f = 1),
@@ -3511,12 +3511,19 @@ PERFORMANCE OF THIS SOFTWARE.
     var __createBinding = Object.create
       ? function (o, m, k, k2) {
           if (k2 === undefined) k2 = k;
-          Object.defineProperty(o, k2, {
-            enumerable: true,
-            get: function () {
-              return m[k];
-            },
-          });
+          var desc = Object.getOwnPropertyDescriptor(m, k);
+          if (
+            !desc ||
+            ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)
+          ) {
+            desc = {
+              enumerable: true,
+              get: function () {
+                return m[k];
+              },
+            };
+          }
+          Object.defineProperty(o, k2, desc);
         }
       : function (o, m, k, k2) {
           if (k2 === undefined) k2 = k;
@@ -3781,12 +3788,23 @@ PERFORMANCE OF THIS SOFTWARE.
           : state.set(receiver, value),
         value
       );
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/util/utf8.mjs
+    }
+
+    function __classPrivateFieldIn(state, receiver) {
+      if (
+        receiver === null ||
+        (typeof receiver !== "object" && typeof receiver !== "function")
+      )
+        throw new TypeError("Cannot use 'in' operator on non-object");
+      return typeof state === "function"
+        ? receiver === state
+        : state.has(receiver);
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/util/utf8.mjs
 
     /* provided dependency */ var TextDecoder =
-      __webpack_require__(717)["TextDecoder"];
+      __webpack_require__(35)["TextDecoder"];
     /* provided dependency */ var TextEncoder =
-      __webpack_require__(717)["TextEncoder"];
+      __webpack_require__(35)["TextEncoder"];
     // Licensed to the Apache Software Foundation (ASF) under one
     // or more contributor license agreements.  See the NOTICE file
     // distributed with this work for additional information
@@ -3808,7 +3826,7 @@ PERFORMANCE OF THIS SOFTWARE.
     const decodeUtf8 = (buffer) => decoder.decode(buffer);
     const encoder = new TextEncoder();
     /** @ignore */
-    const encodeUtf8 = (value) => encoder.encode(value); // CONCATENATED MODULE: ../../../node_modules/apache-arrow/util/compat.mjs
+    const encodeUtf8 = (value) => encoder.encode(value); // CONCATENATED MODULE: ./node_modules/apache-arrow/util/compat.mjs
 
     //# sourceMappingURL=utf8.mjs.map
 
@@ -4001,7 +4019,7 @@ PERFORMANCE OF THIS SOFTWARE.
         isFunction(x["getBufferIdentifier"]) &&
         isFunction(x["createLong"])
       );
-    }; // CONCATENATED MODULE: ../../../node_modules/apache-arrow/util/buffer.mjs
+    }; // CONCATENATED MODULE: ./node_modules/apache-arrow/util/buffer.mjs
 
     //# sourceMappingURL=compat.mjs.map
 
@@ -4347,7 +4365,7 @@ PERFORMANCE OF THIS SOFTWARE.
         } while (++i < n);
       }
       return true;
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/io/adapters.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/io/adapters.mjs
 
     //# sourceMappingURL=buffer.mjs.map
 
@@ -4687,7 +4705,7 @@ PERFORMANCE OF THIS SOFTWARE.
           });
         }
       });
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/enum.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/enum.mjs
 
     //# sourceMappingURL=adapters.mjs.map
 
@@ -4907,7 +4925,7 @@ PERFORMANCE OF THIS SOFTWARE.
        * Type vector used in Union type
        */
       BufferType[(BufferType["TYPE"] = 3)] = "TYPE";
-    })(BufferType || (BufferType = {})); // CONCATENATED MODULE: ../../../node_modules/apache-arrow/util/pretty.mjs
+    })(BufferType || (BufferType = {})); // CONCATENATED MODULE: ./node_modules/apache-arrow/util/pretty.mjs
 
     //# sourceMappingURL=enum.mjs.map
 
@@ -4960,7 +4978,7 @@ PERFORMANCE OF THIS SOFTWARE.
       return ArrayBuffer.isView(x)
         ? `[${x}]`
         : JSON.stringify(x, (_, y) => (typeof y === "bigint" ? `${y}` : y));
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/util/bn.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/util/bn.mjs
 
     //# sourceMappingURL=pretty.mjs.map
 
@@ -5155,7 +5173,7 @@ PERFORMANCE OF THIS SOFTWARE.
       constructor(num, isSigned) {
         return BN.new(num, isSigned);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/type.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/type.mjs
 
     //# sourceMappingURL=bn.mjs.map
 
@@ -5947,7 +5965,7 @@ PERFORMANCE OF THIS SOFTWARE.
         default:
           return 1;
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/visitor.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/visitor.mjs
 
     //# sourceMappingURL=type.mjs.map
 
@@ -6332,7 +6350,7 @@ PERFORMANCE OF THIS SOFTWARE.
     Visitor.prototype.visitDenseUnion = null;
     Visitor.prototype.visitSparseUnion = null;
     Visitor.prototype.visitIntervalDayTime = null;
-    Visitor.prototype.visitIntervalYearMonth = null; // CONCATENATED MODULE: ../../../node_modules/apache-arrow/util/math.mjs
+    Visitor.prototype.visitIntervalYearMonth = null; // CONCATENATED MODULE: ./node_modules/apache-arrow/util/math.mjs
 
     //# sourceMappingURL=visitor.mjs.map
 
@@ -6435,7 +6453,7 @@ PERFORMANCE OF THIS SOFTWARE.
         sigf = ((u32[1] & 0x000fffff) + 0x200) >> 10;
       }
       return sign | expo | (sigf & 0xffff);
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/visitor/set.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/visitor/set.mjs
 
     //# sourceMappingURL=math.mjs.map
 
@@ -6778,7 +6796,7 @@ PERFORMANCE OF THIS SOFTWARE.
     SetVisitor.prototype.visitFixedSizeList = wrapSet(setFixedSizeList);
     SetVisitor.prototype.visitMap = wrapSet(setMap);
     /** @ignore */
-    const instance = new SetVisitor(); // CONCATENATED MODULE: ../../../node_modules/apache-arrow/row/struct.mjs
+    const instance = new SetVisitor(); // CONCATENATED MODULE: ./node_modules/apache-arrow/row/struct.mjs
 
     //# sourceMappingURL=set.mjs.map
 
@@ -6930,7 +6948,7 @@ PERFORMANCE OF THIS SOFTWARE.
         }
         return false;
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/visitor/get.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/visitor/get.mjs
 
     //# sourceMappingURL=struct.mjs.map
 
@@ -7197,7 +7215,7 @@ PERFORMANCE OF THIS SOFTWARE.
     GetVisitor.prototype.visitFixedSizeList = wrapGet(getFixedSizeList);
     GetVisitor.prototype.visitMap = wrapGet(getMap);
     /** @ignore */
-    const get_instance = new GetVisitor(); // CONCATENATED MODULE: ../../../node_modules/apache-arrow/row/map.mjs
+    const get_instance = new GetVisitor(); // CONCATENATED MODULE: ./node_modules/apache-arrow/row/map.mjs
 
     //# sourceMappingURL=get.mjs.map
 
@@ -7342,7 +7360,7 @@ PERFORMANCE OF THIS SOFTWARE.
         configurable: false,
         value: null,
       },
-    }); // CONCATENATED MODULE: ../../../node_modules/apache-arrow/util/vector.mjs
+    }); // CONCATENATED MODULE: ./node_modules/apache-arrow/util/vector.mjs
 
     //# sourceMappingURL=map.mjs.map
 
@@ -7535,7 +7553,7 @@ PERFORMANCE OF THIS SOFTWARE.
       rKeyItr.return && rKeyItr.return();
       rValItr.return && rValItr.return();
       return false;
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/util/bit.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/util/bit.mjs
 
     //# sourceMappingURL=vector.mjs.map
 
@@ -7693,7 +7711,7 @@ PERFORMANCE OF THIS SOFTWARE.
       i = i - ((i >>> 1) & 0x55555555);
       i = (i & 0x33333333) + ((i >>> 2) & 0x33333333);
       return (((i + (i >>> 4)) & 0x0f0f0f0f) * 0x01010101) >>> 24;
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/data.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/data.mjs
 
     //# sourceMappingURL=bit.mjs.map
 
@@ -8235,7 +8253,7 @@ PERFORMANCE OF THIS SOFTWARE.
     }
     function makeData(props) {
       return new MakeDataVisitor().visit(props);
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/util/chunk.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/util/chunk.mjs
 
     //# sourceMappingURL=data.mjs.map
 
@@ -8393,7 +8411,7 @@ PERFORMANCE OF THIS SOFTWARE.
         _1 = undefined;
         return result;
       };
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/visitor/indexof.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/visitor/indexof.mjs
 
     //# sourceMappingURL=chunk.mjs.map
 
@@ -8518,7 +8536,7 @@ PERFORMANCE OF THIS SOFTWARE.
     IndexOfVisitor.prototype.visitFixedSizeList = indexOfValue;
     IndexOfVisitor.prototype.visitMap = indexOfValue;
     /** @ignore */
-    const indexof_instance = new IndexOfVisitor(); // CONCATENATED MODULE: ../../../node_modules/apache-arrow/visitor/iterator.mjs
+    const indexof_instance = new IndexOfVisitor(); // CONCATENATED MODULE: ./node_modules/apache-arrow/visitor/iterator.mjs
 
     //# sourceMappingURL=indexof.mjs.map
 
@@ -8630,7 +8648,7 @@ PERFORMANCE OF THIS SOFTWARE.
     IteratorVisitor.prototype.visitFixedSizeList = vectorIterator;
     IteratorVisitor.prototype.visitMap = vectorIterator;
     /** @ignore */
-    const iterator_instance = new IteratorVisitor(); // CONCATENATED MODULE: ../../../node_modules/apache-arrow/visitor/bytelength.mjs
+    const iterator_instance = new IteratorVisitor(); // CONCATENATED MODULE: ./node_modules/apache-arrow/visitor/bytelength.mjs
 
     //# sourceMappingURL=iterator.mjs.map
 
@@ -8769,7 +8787,7 @@ PERFORMANCE OF THIS SOFTWARE.
     GetByteLengthVisitor.prototype.visitDenseUnion = getDenseUnionByteLength;
     GetByteLengthVisitor.prototype.visitSparseUnion = getSparseUnionByteLength;
     /** @ignore */
-    const bytelength_instance = new GetByteLengthVisitor(); // CONCATENATED MODULE: ../../../node_modules/apache-arrow/vector.mjs
+    const bytelength_instance = new GetByteLengthVisitor(); // CONCATENATED MODULE: ./node_modules/apache-arrow/vector.mjs
 
     //# sourceMappingURL=bytelength.mjs.map
 
@@ -9267,7 +9285,7 @@ PERFORMANCE OF THIS SOFTWARE.
         : x instanceof Vector
         ? x.data
         : makeVector(x).data;
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/builder/valid.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/builder/valid.mjs
 
     //# sourceMappingURL=vector.mjs.map
 
@@ -9343,7 +9361,7 @@ PERFORMANCE OF THIS SOFTWARE.
         return `${valueToString(x)}n`;
       }
       return `"${valueToString(x)}"`;
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/builder/buffer.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/builder/buffer.mjs
 
     //# sourceMappingURL=valid.mjs.map
 
@@ -9507,7 +9525,7 @@ PERFORMANCE OF THIS SOFTWARE.
         }
         return super.flush(length + 1);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/builder.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/builder.mjs
     // /** @ignore */
     // export class WideBufferBuilder<T extends TypedArray, R extends BigIntArray> extends BufferBuilder<T, DataValue<T>> {
     //     public buffer64!: R;
@@ -9919,7 +9937,7 @@ PERFORMANCE OF THIS SOFTWARE.
         }
         return this;
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/block.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/block.mjs
 
     //# sourceMappingURL=builder.mjs.map
 
@@ -9964,20 +9982,20 @@ PERFORMANCE OF THIS SOFTWARE.
         builder.writeInt64(offset);
         return builder.offset();
       }
-    } // CONCATENATED MODULE: ../../../node_modules/flatbuffers/mjs/constants.js
+    } // CONCATENATED MODULE: ./node_modules/flatbuffers/mjs/constants.js
 
     //# sourceMappingURL=block.mjs.map
 
     const SIZEOF_SHORT = 2;
     const SIZEOF_INT = 4;
     const FILE_IDENTIFIER_LENGTH = 4;
-    const SIZE_PREFIX_LENGTH = 4; // CONCATENATED MODULE: ../../../node_modules/flatbuffers/mjs/utils.js
+    const SIZE_PREFIX_LENGTH = 4; // CONCATENATED MODULE: ./node_modules/flatbuffers/mjs/utils.js
 
     const int32 = new Int32Array(2);
     const float32 = new Float32Array(int32.buffer);
     const float64 = new Float64Array(int32.buffer);
     const isLittleEndian =
-      new Uint16Array(new Uint8Array([1, 0]).buffer)[0] === 1; // CONCATENATED MODULE: ../../../node_modules/flatbuffers/mjs/long.js
+      new Uint16Array(new Uint8Array([1, 0]).buffer)[0] === 1; // CONCATENATED MODULE: ./node_modules/flatbuffers/mjs/long.js
 
     function createLong(low, high) {
       return Long.create(low, high);
@@ -9998,13 +10016,13 @@ PERFORMANCE OF THIS SOFTWARE.
         return this.low == other.low && this.high == other.high;
       }
     }
-    Long.ZERO = new Long(0, 0); // CONCATENATED MODULE: ../../../node_modules/flatbuffers/mjs/encoding.js
+    Long.ZERO = new Long(0, 0); // CONCATENATED MODULE: ./node_modules/flatbuffers/mjs/encoding.js
 
     var Encoding;
     (function (Encoding) {
       Encoding[(Encoding["UTF8_BYTES"] = 1)] = "UTF8_BYTES";
       Encoding[(Encoding["UTF16_STRING"] = 2)] = "UTF16_STRING";
-    })(Encoding || (Encoding = {})); // CONCATENATED MODULE: ../../../node_modules/flatbuffers/mjs/byte-buffer.js
+    })(Encoding || (Encoding = {})); // CONCATENATED MODULE: ./node_modules/flatbuffers/mjs/byte-buffer.js
 
     class ByteBuffer {
       /**
@@ -10308,7 +10326,7 @@ PERFORMANCE OF THIS SOFTWARE.
         }
         return ret;
       }
-    } // CONCATENATED MODULE: ../../../node_modules/flatbuffers/mjs/builder.js
+    } // CONCATENATED MODULE: ./node_modules/flatbuffers/mjs/builder.js
 
     class builder_Builder {
       /**
@@ -10877,7 +10895,7 @@ PERFORMANCE OF THIS SOFTWARE.
         this.createObjectOffsetList(list);
         return this.endVector();
       }
-    } // CONCATENATED MODULE: ../../../node_modules/flatbuffers/mjs/flatbuffers.js // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/key-value.mjs
+    } // CONCATENATED MODULE: ./node_modules/flatbuffers/mjs/flatbuffers.js // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/key-value.mjs
 
     // automatically generated by the FlatBuffers compiler, do not modify
 
@@ -10940,7 +10958,7 @@ PERFORMANCE OF THIS SOFTWARE.
         KeyValue.addValue(builder, valueOffset);
         return KeyValue.endKeyValue(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/metadata-version.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/metadata-version.mjs
 
     //# sourceMappingURL=key-value.mjs.map
 
@@ -10983,7 +11001,7 @@ PERFORMANCE OF THIS SOFTWARE.
     })(
       metadata_version_MetadataVersion ||
         (metadata_version_MetadataVersion = {}),
-    ); // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/endianness.mjs
+    ); // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/endianness.mjs
 
     //# sourceMappingURL=metadata-version.mjs.map
 
@@ -10996,7 +11014,7 @@ PERFORMANCE OF THIS SOFTWARE.
     (function (Endianness) {
       Endianness[(Endianness["Little"] = 0)] = "Little";
       Endianness[(Endianness["Big"] = 1)] = "Big";
-    })(Endianness || (Endianness = {})); // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/dictionary-kind.mjs
+    })(Endianness || (Endianness = {})); // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/dictionary-kind.mjs
 
     //# sourceMappingURL=endianness.mjs.map
 
@@ -11011,7 +11029,7 @@ PERFORMANCE OF THIS SOFTWARE.
     var DictionaryKind;
     (function (DictionaryKind) {
       DictionaryKind[(DictionaryKind["DenseArray"] = 0)] = "DenseArray";
-    })(DictionaryKind || (DictionaryKind = {})); // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/int.mjs
+    })(DictionaryKind || (DictionaryKind = {})); // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/int.mjs
 
     //# sourceMappingURL=dictionary-kind.mjs.map
 
@@ -11067,7 +11085,7 @@ PERFORMANCE OF THIS SOFTWARE.
         Int.addIsSigned(builder, isSigned);
         return Int.endInt(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/dictionary-encoding.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/dictionary-encoding.mjs
 
     //# sourceMappingURL=int.mjs.map
 
@@ -11158,7 +11176,7 @@ PERFORMANCE OF THIS SOFTWARE.
         const offset = builder.endObject();
         return offset;
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/binary.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/binary.mjs
 
     //# sourceMappingURL=dictionary-encoding.mjs.map
 
@@ -11201,7 +11219,7 @@ PERFORMANCE OF THIS SOFTWARE.
         binary_Binary.startBinary(builder);
         return binary_Binary.endBinary(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/bool.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/bool.mjs
 
     //# sourceMappingURL=binary.mjs.map
 
@@ -11241,7 +11259,7 @@ PERFORMANCE OF THIS SOFTWARE.
         bool_Bool.startBool(builder);
         return bool_Bool.endBool(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/date-unit.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/date-unit.mjs
 
     //# sourceMappingURL=bool.mjs.map
 
@@ -11250,7 +11268,7 @@ PERFORMANCE OF THIS SOFTWARE.
     (function (DateUnit) {
       DateUnit[(DateUnit["DAY"] = 0)] = "DAY";
       DateUnit[(DateUnit["MILLISECOND"] = 1)] = "MILLISECOND";
-    })(date_unit_DateUnit || (date_unit_DateUnit = {})); // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/date.mjs
+    })(date_unit_DateUnit || (date_unit_DateUnit = {})); // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/date.mjs
 
     //# sourceMappingURL=date-unit.mjs.map
 
@@ -11308,7 +11326,7 @@ PERFORMANCE OF THIS SOFTWARE.
         date_Date.addUnit(builder, unit);
         return date_Date.endDate(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/decimal.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/decimal.mjs
 
     //# sourceMappingURL=date.mjs.map
 
@@ -11388,7 +11406,7 @@ PERFORMANCE OF THIS SOFTWARE.
         decimal_Decimal.addBitWidth(builder, bitWidth);
         return decimal_Decimal.endDecimal(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/time-unit.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/time-unit.mjs
 
     //# sourceMappingURL=decimal.mjs.map
 
@@ -11399,7 +11417,7 @@ PERFORMANCE OF THIS SOFTWARE.
       TimeUnit[(TimeUnit["MILLISECOND"] = 1)] = "MILLISECOND";
       TimeUnit[(TimeUnit["MICROSECOND"] = 2)] = "MICROSECOND";
       TimeUnit[(TimeUnit["NANOSECOND"] = 3)] = "NANOSECOND";
-    })(time_unit_TimeUnit || (time_unit_TimeUnit = {})); // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/duration.mjs
+    })(time_unit_TimeUnit || (time_unit_TimeUnit = {})); // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/duration.mjs
 
     //# sourceMappingURL=time-unit.mjs.map
 
@@ -11449,7 +11467,7 @@ PERFORMANCE OF THIS SOFTWARE.
         Duration.addUnit(builder, unit);
         return Duration.endDuration(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/fixed-size-binary.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/fixed-size-binary.mjs
 
     //# sourceMappingURL=duration.mjs.map
 
@@ -11500,7 +11518,7 @@ PERFORMANCE OF THIS SOFTWARE.
         fixed_size_binary_FixedSizeBinary.addByteWidth(builder, byteWidth);
         return fixed_size_binary_FixedSizeBinary.endFixedSizeBinary(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/fixed-size-list.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/fixed-size-list.mjs
 
     //# sourceMappingURL=fixed-size-binary.mjs.map
 
@@ -11551,7 +11569,7 @@ PERFORMANCE OF THIS SOFTWARE.
         fixed_size_list_FixedSizeList.addListSize(builder, listSize);
         return fixed_size_list_FixedSizeList.endFixedSizeList(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/precision.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/precision.mjs
 
     //# sourceMappingURL=fixed-size-list.mjs.map
 
@@ -11561,7 +11579,7 @@ PERFORMANCE OF THIS SOFTWARE.
       Precision[(Precision["HALF"] = 0)] = "HALF";
       Precision[(Precision["SINGLE"] = 1)] = "SINGLE";
       Precision[(Precision["DOUBLE"] = 2)] = "DOUBLE";
-    })(precision_Precision || (precision_Precision = {})); // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/floating-point.mjs
+    })(precision_Precision || (precision_Precision = {})); // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/floating-point.mjs
 
     //# sourceMappingURL=precision.mjs.map
 
@@ -11611,7 +11629,7 @@ PERFORMANCE OF THIS SOFTWARE.
         FloatingPoint.addPrecision(builder, precision);
         return FloatingPoint.endFloatingPoint(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/interval-unit.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/interval-unit.mjs
 
     //# sourceMappingURL=floating-point.mjs.map
 
@@ -11621,7 +11639,7 @@ PERFORMANCE OF THIS SOFTWARE.
       IntervalUnit[(IntervalUnit["YEAR_MONTH"] = 0)] = "YEAR_MONTH";
       IntervalUnit[(IntervalUnit["DAY_TIME"] = 1)] = "DAY_TIME";
       IntervalUnit[(IntervalUnit["MONTH_DAY_NANO"] = 2)] = "MONTH_DAY_NANO";
-    })(interval_unit_IntervalUnit || (interval_unit_IntervalUnit = {})); // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/interval.mjs
+    })(interval_unit_IntervalUnit || (interval_unit_IntervalUnit = {})); // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/interval.mjs
 
     //# sourceMappingURL=interval-unit.mjs.map
 
@@ -11671,7 +11689,7 @@ PERFORMANCE OF THIS SOFTWARE.
         Interval.addUnit(builder, unit);
         return Interval.endInterval(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/large-binary.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/large-binary.mjs
 
     //# sourceMappingURL=interval.mjs.map
 
@@ -11715,7 +11733,7 @@ PERFORMANCE OF THIS SOFTWARE.
         LargeBinary.startLargeBinary(builder);
         return LargeBinary.endLargeBinary(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/large-list.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/large-list.mjs
 
     //# sourceMappingURL=large-binary.mjs.map
 
@@ -11759,7 +11777,7 @@ PERFORMANCE OF THIS SOFTWARE.
         LargeList.startLargeList(builder);
         return LargeList.endLargeList(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/large-utf8.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/large-utf8.mjs
 
     //# sourceMappingURL=large-list.mjs.map
 
@@ -11803,7 +11821,7 @@ PERFORMANCE OF THIS SOFTWARE.
         LargeUtf8.startLargeUtf8(builder);
         return LargeUtf8.endLargeUtf8(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/list.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/list.mjs
 
     //# sourceMappingURL=large-utf8.mjs.map
 
@@ -11843,7 +11861,7 @@ PERFORMANCE OF THIS SOFTWARE.
         list_List.startList(builder);
         return list_List.endList(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/map.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/map.mjs
 
     //# sourceMappingURL=list.mjs.map
 
@@ -11921,7 +11939,7 @@ PERFORMANCE OF THIS SOFTWARE.
         map_Map.addKeysSorted(builder, keysSorted);
         return map_Map.endMap(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/null.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/null.mjs
 
     //# sourceMappingURL=map.mjs.map
 
@@ -11964,7 +11982,7 @@ PERFORMANCE OF THIS SOFTWARE.
         null_Null.startNull(builder);
         return null_Null.endNull(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/struct_.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/struct_.mjs
 
     //# sourceMappingURL=null.mjs.map
 
@@ -12009,7 +12027,7 @@ PERFORMANCE OF THIS SOFTWARE.
         Struct_.startStruct_(builder);
         return Struct_.endStruct_(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/time.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/time.mjs
 
     //# sourceMappingURL=struct_.mjs.map
 
@@ -12083,7 +12101,7 @@ PERFORMANCE OF THIS SOFTWARE.
         Time.addBitWidth(builder, bitWidth);
         return Time.endTime(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/timestamp.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/timestamp.mjs
 
     //# sourceMappingURL=time.mjs.map
 
@@ -12250,7 +12268,7 @@ PERFORMANCE OF THIS SOFTWARE.
         Timestamp.addTimezone(builder, timezoneOffset);
         return Timestamp.endTimestamp(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/union-mode.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/union-mode.mjs
 
     //# sourceMappingURL=timestamp.mjs.map
 
@@ -12259,7 +12277,7 @@ PERFORMANCE OF THIS SOFTWARE.
     (function (UnionMode) {
       UnionMode[(UnionMode["Sparse"] = 0)] = "Sparse";
       UnionMode[(UnionMode["Dense"] = 1)] = "Dense";
-    })(union_mode_UnionMode || (union_mode_UnionMode = {})); // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/union.mjs
+    })(union_mode_UnionMode || (union_mode_UnionMode = {})); // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/union.mjs
 
     //# sourceMappingURL=union-mode.mjs.map
 
@@ -12352,7 +12370,7 @@ PERFORMANCE OF THIS SOFTWARE.
         Union.addTypeIds(builder, typeIdsOffset);
         return Union.endUnion(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/utf8.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/utf8.mjs
 
     //# sourceMappingURL=union.mjs.map
 
@@ -12395,7 +12413,7 @@ PERFORMANCE OF THIS SOFTWARE.
         utf8_Utf8.startUtf8(builder);
         return utf8_Utf8.endUtf8(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/type.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/type.mjs
 
     //# sourceMappingURL=utf8.mjs.map
 
@@ -12530,7 +12548,7 @@ PERFORMANCE OF THIS SOFTWARE.
         default:
           return null;
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/field.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/field.mjs
 
     //# sourceMappingURL=type.mjs.map
 
@@ -12688,7 +12706,7 @@ PERFORMANCE OF THIS SOFTWARE.
         const offset = builder.endObject();
         return offset;
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/schema.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/schema.mjs
 
     //# sourceMappingURL=field.mjs.map
 
@@ -12846,7 +12864,7 @@ PERFORMANCE OF THIS SOFTWARE.
         Schema.addFeatures(builder, featuresOffset);
         return Schema.endSchema(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/footer.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/footer.mjs
 
     //# sourceMappingURL=schema.mjs.map
 
@@ -12983,7 +13001,7 @@ PERFORMANCE OF THIS SOFTWARE.
       static finishSizePrefixedFooterBuffer(builder, offset) {
         builder.finish(offset, undefined, true);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/schema.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/schema.mjs
 
     //# sourceMappingURL=footer.mjs.map
 
@@ -13155,7 +13173,7 @@ PERFORMANCE OF THIS SOFTWARE.
         }
       }
       return dictionaries;
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/ipc/metadata/file.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/ipc/metadata/file.mjs
 
     //# sourceMappingURL=schema.mjs.map
 
@@ -13315,7 +13333,7 @@ PERFORMANCE OF THIS SOFTWARE.
         const bodyLength = new file_Long(fileBlock.bodyLength, 0);
         return Block.createBlock(b, offset, metaDataLength, bodyLength);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/io/interfaces.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/io/interfaces.mjs
 
     //# sourceMappingURL=file.mjs.map
 
@@ -13472,7 +13490,7 @@ PERFORMANCE OF THIS SOFTWARE.
         }
         throw new Error(`AsyncQueue is closed`);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/io/stream.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/io/stream.mjs
 
     //# sourceMappingURL=interfaces.mjs.map
 
@@ -13701,7 +13719,7 @@ PERFORMANCE OF THIS SOFTWARE.
           return Object.create(result);
         });
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/io/file.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/io/file.mjs
 
     //# sourceMappingURL=stream.mjs.map
 
@@ -13863,7 +13881,7 @@ PERFORMANCE OF THIS SOFTWARE.
           return { done: true, value };
         });
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/util/int.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/util/int.mjs
 
     //# sourceMappingURL=file.mjs.map
 
@@ -14298,7 +14316,7 @@ PERFORMANCE OF THIS SOFTWARE.
         }
         return data;
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/visitor/vectorloader.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/visitor/vectorloader.mjs
 
     //# sourceMappingURL=int.mjs.map
 
@@ -14616,7 +14634,7 @@ PERFORMANCE OF THIS SOFTWARE.
         data[i >> 1] = Number.parseInt(joined.slice(i, i + 2), 16);
       }
       return data;
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/builder/binary.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/builder/binary.mjs
 
     //# sourceMappingURL=vectorloader.mjs.map
 
@@ -14668,7 +14686,7 @@ PERFORMANCE OF THIS SOFTWARE.
           }
         }
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/builder/bool.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/builder/bool.mjs
 
     //# sourceMappingURL=binary.mjs.map
 
@@ -14698,7 +14716,7 @@ PERFORMANCE OF THIS SOFTWARE.
       setValue(index, value) {
         this._values.set(index, +value);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/builder/date.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/builder/date.mjs
 
     //# sourceMappingURL=bool.mjs.map
 
@@ -14727,7 +14745,7 @@ PERFORMANCE OF THIS SOFTWARE.
     DateDayBuilder.prototype._setValue = setDateDay;
     /** @ignore */
     class DateMillisecondBuilder extends DateBuilder {}
-    DateMillisecondBuilder.prototype._setValue = setDateMillisecond; // CONCATENATED MODULE: ../../../node_modules/apache-arrow/builder/decimal.mjs
+    DateMillisecondBuilder.prototype._setValue = setDateMillisecond; // CONCATENATED MODULE: ./node_modules/apache-arrow/builder/decimal.mjs
 
     //# sourceMappingURL=date.mjs.map
 
@@ -14750,7 +14768,7 @@ PERFORMANCE OF THIS SOFTWARE.
 
     /** @ignore */
     class DecimalBuilder extends FixedWidthBuilder {}
-    DecimalBuilder.prototype._setValue = setDecimal; // CONCATENATED MODULE: ../../../node_modules/apache-arrow/builder/dictionary.mjs
+    DecimalBuilder.prototype._setValue = setDecimal; // CONCATENATED MODULE: ./node_modules/apache-arrow/builder/dictionary.mjs
 
     //# sourceMappingURL=decimal.mjs.map
 
@@ -14866,7 +14884,7 @@ PERFORMANCE OF THIS SOFTWARE.
       valueToKey(val) {
         return typeof val === "string" ? val : `${val}`;
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/builder/fixedsizebinary.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/builder/fixedsizebinary.mjs
 
     //# sourceMappingURL=dictionary.mjs.map
 
@@ -14889,7 +14907,7 @@ PERFORMANCE OF THIS SOFTWARE.
 
     /** @ignore */
     class FixedSizeBinaryBuilder extends FixedWidthBuilder {}
-    FixedSizeBinaryBuilder.prototype._setValue = setFixedSizeBinary; // CONCATENATED MODULE: ../../../node_modules/apache-arrow/builder/fixedsizelist.mjs
+    FixedSizeBinaryBuilder.prototype._setValue = setFixedSizeBinary; // CONCATENATED MODULE: ./node_modules/apache-arrow/builder/fixedsizelist.mjs
 
     //# sourceMappingURL=fixedsizebinary.mjs.map
 
@@ -14930,7 +14948,7 @@ PERFORMANCE OF THIS SOFTWARE.
         );
         return childIndex;
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/builder/float.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/builder/float.mjs
 
     //# sourceMappingURL=fixedsizelist.mjs.map
 
@@ -14967,7 +14985,7 @@ PERFORMANCE OF THIS SOFTWARE.
     /** @ignore */
     class Float32Builder extends FloatBuilder {}
     /** @ignore */
-    class Float64Builder extends FloatBuilder {} // CONCATENATED MODULE: ../../../node_modules/apache-arrow/builder/interval.mjs
+    class Float64Builder extends FloatBuilder {} // CONCATENATED MODULE: ./node_modules/apache-arrow/builder/interval.mjs
 
     //# sourceMappingURL=float.mjs.map
 
@@ -14996,7 +15014,7 @@ PERFORMANCE OF THIS SOFTWARE.
     IntervalDayTimeBuilder.prototype._setValue = setIntervalDayTime;
     /** @ignore */
     class IntervalYearMonthBuilder extends IntervalBuilder {}
-    IntervalYearMonthBuilder.prototype._setValue = setIntervalYearMonth; // CONCATENATED MODULE: ../../../node_modules/apache-arrow/builder/int.mjs
+    IntervalYearMonthBuilder.prototype._setValue = setIntervalYearMonth; // CONCATENATED MODULE: ./node_modules/apache-arrow/builder/int.mjs
 
     //# sourceMappingURL=interval.mjs.map
 
@@ -15038,7 +15056,7 @@ PERFORMANCE OF THIS SOFTWARE.
     /** @ignore */
     class Uint32Builder extends IntBuilder {}
     /** @ignore */
-    class Uint64Builder extends IntBuilder {} // CONCATENATED MODULE: ../../../node_modules/apache-arrow/builder/list.mjs
+    class Uint64Builder extends IntBuilder {} // CONCATENATED MODULE: ./node_modules/apache-arrow/builder/list.mjs
 
     //# sourceMappingURL=int.mjs.map
 
@@ -15088,7 +15106,7 @@ PERFORMANCE OF THIS SOFTWARE.
           }
         }
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/builder/map.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/builder/map.mjs
 
     //# sourceMappingURL=list.mjs.map
 
@@ -15152,7 +15170,7 @@ PERFORMANCE OF THIS SOFTWARE.
           }
         }
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/builder/null.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/builder/null.mjs
 
     //# sourceMappingURL=map.mjs.map
 
@@ -15181,7 +15199,7 @@ PERFORMANCE OF THIS SOFTWARE.
         this.length = Math.max(index + 1, this.length);
         return valid;
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/builder/struct.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/builder/struct.mjs
 
     //# sourceMappingURL=null.mjs.map
 
@@ -15237,7 +15255,7 @@ PERFORMANCE OF THIS SOFTWARE.
         ]);
         return childIndex;
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/builder/timestamp.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/builder/timestamp.mjs
 
     //# sourceMappingURL=struct.mjs.map
 
@@ -15272,7 +15290,7 @@ PERFORMANCE OF THIS SOFTWARE.
     TimestampMicrosecondBuilder.prototype._setValue = setTimestampMicrosecond;
     /** @ignore */
     class TimestampNanosecondBuilder extends TimestampBuilder {}
-    TimestampNanosecondBuilder.prototype._setValue = setTimestampNanosecond; // CONCATENATED MODULE: ../../../node_modules/apache-arrow/builder/time.mjs
+    TimestampNanosecondBuilder.prototype._setValue = setTimestampNanosecond; // CONCATENATED MODULE: ./node_modules/apache-arrow/builder/time.mjs
 
     //# sourceMappingURL=timestamp.mjs.map
 
@@ -15307,7 +15325,7 @@ PERFORMANCE OF THIS SOFTWARE.
     TimeMicrosecondBuilder.prototype._setValue = setTimeMicrosecond;
     /** @ignore */
     class TimeNanosecondBuilder extends TimeBuilder {}
-    TimeNanosecondBuilder.prototype._setValue = setTimeNanosecond; // CONCATENATED MODULE: ../../../node_modules/apache-arrow/builder/union.mjs
+    TimeNanosecondBuilder.prototype._setValue = setTimeNanosecond; // CONCATENATED MODULE: ./node_modules/apache-arrow/builder/union.mjs
 
     //# sourceMappingURL=time.mjs.map
 
@@ -15392,7 +15410,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
           ? void 0
           : child.set(denseIndex, value);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/builder/utf8.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/builder/utf8.mjs
 
     //# sourceMappingURL=union.mjs.map
 
@@ -15432,7 +15450,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
       // @ts-ignore
       _flushPending(pending, pendingLength) {}
     }
-    Utf8Builder.prototype._flushPending = BinaryBuilder.prototype._flushPending; // CONCATENATED MODULE: ../../../node_modules/apache-arrow/visitor/builderctor.mjs
+    Utf8Builder.prototype._flushPending = BinaryBuilder.prototype._flushPending; // CONCATENATED MODULE: ./node_modules/apache-arrow/visitor/builderctor.mjs
 
     //# sourceMappingURL=utf8.mjs.map
 
@@ -15586,7 +15604,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
       }
     }
     /** @ignore */
-    const builderctor_instance = new GetBuilderCtor(); // CONCATENATED MODULE: ../../../node_modules/apache-arrow/visitor/typecomparator.mjs
+    const builderctor_instance = new GetBuilderCtor(); // CONCATENATED MODULE: ./node_modules/apache-arrow/visitor/typecomparator.mjs
 
     //# sourceMappingURL=builderctor.mjs.map
 
@@ -15810,7 +15828,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     }
     function compareTypes(type, other) {
       return typecomparator_instance.visit(type, other);
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/factories.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/factories.mjs
 
     //# sourceMappingURL=typecomparator.mjs.map
 
@@ -16082,7 +16100,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
           }
         });
       };
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/util/recordbatch.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/util/recordbatch.mjs
 
     //# sourceMappingURL=factories.mjs.map
 
@@ -16197,7 +16215,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
         }
       }
       return children;
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/table.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/table.mjs
 
     //# sourceMappingURL=recordbatch.mjs.map
 
@@ -16604,7 +16622,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
         vecs[key] = vectorFromArray(col);
       }
       return new Table(vecs);
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/recordbatch.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/recordbatch.mjs
 
     //# sourceMappingURL=table.mjs.map
 
@@ -16967,7 +16985,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
         });
         super(schema, data);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/body-compression-method.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/body-compression-method.mjs
 
     //# sourceMappingURL=recordbatch.mjs.map
 
@@ -16989,7 +17007,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
        * compression does not yield appreciable savings.
        */
       BodyCompressionMethod[(BodyCompressionMethod["BUFFER"] = 0)] = "BUFFER";
-    })(BodyCompressionMethod || (BodyCompressionMethod = {})); // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/compression-type.mjs
+    })(BodyCompressionMethod || (BodyCompressionMethod = {})); // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/compression-type.mjs
 
     //# sourceMappingURL=body-compression-method.mjs.map
 
@@ -16998,7 +17016,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     (function (CompressionType) {
       CompressionType[(CompressionType["LZ4_FRAME"] = 0)] = "LZ4_FRAME";
       CompressionType[(CompressionType["ZSTD"] = 1)] = "ZSTD";
-    })(CompressionType || (CompressionType = {})); // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/body-compression.mjs
+    })(CompressionType || (CompressionType = {})); // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/body-compression.mjs
 
     //# sourceMappingURL=compression-type.mjs.map
 
@@ -17070,7 +17088,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
         BodyCompression.addMethod(builder, method);
         return BodyCompression.endBodyCompression(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/buffer.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/buffer.mjs
 
     //# sourceMappingURL=body-compression.mjs.map
 
@@ -17115,7 +17133,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
         builder.writeInt64(offset);
         return builder.offset();
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/field-node.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/field-node.mjs
 
     //# sourceMappingURL=buffer.mjs.map
 
@@ -17165,7 +17183,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
         builder.writeInt64(length);
         return builder.offset();
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/record-batch.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/record-batch.mjs
 
     //# sourceMappingURL=field-node.mjs.map
 
@@ -17283,7 +17301,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
         const offset = builder.endObject();
         return offset;
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/dictionary-batch.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/dictionary-batch.mjs
 
     //# sourceMappingURL=record-batch.mjs.map
 
@@ -17360,7 +17378,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
         const offset = builder.endObject();
         return offset;
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/sparse-matrix-compressed-axis.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/sparse-matrix-compressed-axis.mjs
 
     //# sourceMappingURL=dictionary-batch.mjs.map
 
@@ -17371,7 +17389,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
         "Row";
       SparseMatrixCompressedAxis[(SparseMatrixCompressedAxis["Column"] = 1)] =
         "Column";
-    })(SparseMatrixCompressedAxis || (SparseMatrixCompressedAxis = {})); // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/sparse-matrix-index-c-s-x.mjs
+    })(SparseMatrixCompressedAxis || (SparseMatrixCompressedAxis = {})); // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/sparse-matrix-index-c-s-x.mjs
 
     //# sourceMappingURL=sparse-matrix-compressed-axis.mjs.map
 
@@ -17514,7 +17532,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
         builder.requiredField(offset, 12); // indicesBuffer
         return offset;
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/sparse-tensor-index-c-o-o.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/sparse-tensor-index-c-o-o.mjs
 
     //# sourceMappingURL=sparse-matrix-index-c-s-x.mjs.map
 
@@ -17656,7 +17674,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
         builder.requiredField(offset, 8); // indicesBuffer
         return offset;
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/sparse-tensor-index-c-s-f.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/sparse-tensor-index-c-s-f.mjs
 
     //# sourceMappingURL=sparse-tensor-index-c-o-o.mjs.map
 
@@ -17871,7 +17889,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
         builder.requiredField(offset, 12); // axisOrder
         return offset;
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/sparse-tensor-index.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/sparse-tensor-index.mjs
 
     //# sourceMappingURL=sparse-tensor-index-c-s-f.mjs.map
 
@@ -17914,7 +17932,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
         default:
           return null;
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/tensor-dim.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/tensor-dim.mjs
 
     //# sourceMappingURL=sparse-tensor-index.mjs.map
 
@@ -17982,7 +18000,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
         TensorDim.addName(builder, nameOffset);
         return TensorDim.endTensorDim(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/sparse-tensor.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/sparse-tensor.mjs
 
     //# sourceMappingURL=tensor-dim.mjs.map
 
@@ -18125,7 +18143,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
       static finishSizePrefixedSparseTensorBuffer(builder, offset) {
         builder.finish(offset, undefined, true);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/tensor.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/tensor.mjs
 
     //# sourceMappingURL=sparse-tensor.mjs.map
 
@@ -18263,7 +18281,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
       static finishSizePrefixedTensorBuffer(builder, offset) {
         builder.finish(offset, undefined, true);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/message-header.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/message-header.mjs
 
     //# sourceMappingURL=tensor.mjs.map
 
@@ -18323,7 +18341,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
         default:
           return null;
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/fb/message.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/fb/message.mjs
 
     //# sourceMappingURL=message-header.mjs.map
 
@@ -18444,7 +18462,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
         message_Message.addCustomMetadata(builder, customMetadataOffset);
         return message_Message.endMessage(builder);
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/visitor/typeassembler.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/visitor/typeassembler.mjs
 
     //# sourceMappingURL=message.mjs.map
 
@@ -18577,7 +18595,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
       }
     }
     /** @ignore */
-    const typeassembler_instance = new TypeAssembler(); // CONCATENATED MODULE: ../../../node_modules/apache-arrow/ipc/metadata/json.mjs
+    const typeassembler_instance = new TypeAssembler(); // CONCATENATED MODULE: ./node_modules/apache-arrow/ipc/metadata/json.mjs
 
     //# sourceMappingURL=typeassembler.mjs.map
 
@@ -18819,7 +18837,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
         }
       }
       throw new Error(`Unrecognized type: "${typeId}"`);
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/ipc/metadata/message.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/ipc/metadata/message.mjs
 
     //# sourceMappingURL=json.mjs.map
 
@@ -19435,7 +19453,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
       new DataView(buffer).setInt16(0, 256, true /* littleEndian */);
       // Int16Array uses the platform's endianness.
       return new Int16Array(buffer)[0] === 256;
-    })(); // CONCATENATED MODULE: ../../../node_modules/apache-arrow/ipc/message.mjs
+    })(); // CONCATENATED MODULE: ./node_modules/apache-arrow/ipc/message.mjs
 
     //# sourceMappingURL=message.mjs.map
 
@@ -19469,7 +19487,6 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
       constructor(source) {
         this.source =
           source instanceof ByteStream ? source : new ByteStream(source);
-        this.VectorLoader = VectorLoader;
       }
       [Symbol.iterator]() {
         return this;
@@ -19755,7 +19772,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     /** @ignore */
     const magicAndPadding = magicLength + PADDING;
     /** @ignore */
-    const magicX2AndPadding = magicLength * 2 + PADDING; // CONCATENATED MODULE: ../../../node_modules/apache-arrow/ipc/reader.mjs
+    const magicX2AndPadding = magicLength * 2 + PADDING; // CONCATENATED MODULE: ./node_modules/apache-arrow/ipc/reader.mjs
 
     //# sourceMappingURL=message.mjs.map
 
@@ -20586,7 +20603,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
           new AsyncRecordBatchStreamReaderImpl(file),
         );
       });
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/visitor/vectorassembler.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/visitor/vectorassembler.mjs
 
     //# sourceMappingURL=reader.mjs.map
 
@@ -20825,7 +20842,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
     VectorAssembler.prototype.visitUnion = assembleUnion;
     VectorAssembler.prototype.visitInterval = assembleFlatVector;
     VectorAssembler.prototype.visitFixedSizeList = assembleListVector;
-    VectorAssembler.prototype.visitMap = assembleListVector; // CONCATENATED MODULE: ../../../node_modules/apache-arrow/visitor/jsontypeassembler.mjs
+    VectorAssembler.prototype.visitMap = assembleListVector; // CONCATENATED MODULE: ./node_modules/apache-arrow/visitor/jsontypeassembler.mjs
 
     //# sourceMappingURL=vectorassembler.mjs.map
 
@@ -20935,7 +20952,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
           keysSorted: keysSorted,
         };
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/visitor/jsonvectorassembler.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/visitor/jsonvectorassembler.mjs
 
     //# sourceMappingURL=jsontypeassembler.mjs.map
 
@@ -21098,7 +21115,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
           false,
         )}`;
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/ipc/writer.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/ipc/writer.mjs
 
     //# sourceMappingURL=jsonvectorassembler.mjs.map
 
@@ -21576,7 +21593,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
         null,
         2,
       );
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/io/whatwg/iterable.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/io/whatwg/iterable.mjs
 
     //# sourceMappingURL=writer.mjs.map
 
@@ -21708,7 +21725,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
           controller.close();
         });
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/io/whatwg/builder.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/io/whatwg/builder.mjs
 
     //# sourceMappingURL=iterable.mjs.map
 
@@ -21843,7 +21860,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
         null && _a !== void 0
         ? _a
         : 0;
-    }; // CONCATENATED MODULE: ../../../node_modules/apache-arrow/io/whatwg/reader.mjs
+    }; // CONCATENATED MODULE: ./node_modules/apache-arrow/io/whatwg/reader.mjs
 
     //# sourceMappingURL=builder.mjs.map
 
@@ -21915,7 +21932,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
           controller.close();
         });
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/io/whatwg/writer.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/io/whatwg/writer.mjs
 
     //# sourceMappingURL=reader.mjs.map
 
@@ -21981,7 +21998,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
           controller.close();
         });
       }
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/ipc/serialization.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/ipc/serialization.mjs
 
     //# sourceMappingURL=writer.mjs.map
 
@@ -22026,7 +22043,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
       )
         .writeAll(table)
         .toUint8Array(true);
-    } // CONCATENATED MODULE: ../../../node_modules/apache-arrow/Arrow.mjs
+    } // CONCATENATED MODULE: ./node_modules/apache-arrow/Arrow.mjs
 
     //# sourceMappingURL=serialization.mjs.map
 
@@ -22070,7 +22087,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
         compareFields: compareFields,
         compareTypes: compareTypes,
       },
-    ); // CONCATENATED MODULE: ../../../node_modules/apache-arrow/Arrow.dom.mjs
+    ); // CONCATENATED MODULE: ./node_modules/apache-arrow/Arrow.dom.mjs
 
     //# sourceMappingURL=Arrow.mjs.map
 

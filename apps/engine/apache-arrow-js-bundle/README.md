@@ -4,10 +4,12 @@
 
 ### Building
 
-Run
+Move to the package folder and run:
 
-- `yarn install`
-- `yarn workspace @hashengine/apache-arrow-js-bundle bundle`
+```sh
+npm install
+npm run bundle
+```
 
 The bundle should appear as `./dist/apache-arrow-bundle.js`
 
