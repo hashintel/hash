@@ -132,11 +132,16 @@ const main = async () => {
     port: graphApiPort,
   });
 
-  await ensureSystemGraphIsInitialized({ graphApi, logger });
+  // Setup upload storage provider and express routes for local file uploads
+  const uploadProvider = setupStorageProviders(app, FILE_UPLOAD_PROVIDER);
+
+  const context = { graphApi, uploadProvider };
+
+  await ensureSystemGraphIsInitialized({ logger, context });
 
   // This will seed users, an org and pages.
   // Configurable through environment variables.
-  await seedOrgsAndUsers({ graphApi, logger });
+  await seedOrgsAndUsers({ logger, context });
 
   // Set sensible default security headers: https://www.npmjs.com/package/helmet
   // Temporarily disable contentSecurityPolicy for the GraphQL playground
@@ -148,7 +153,7 @@ const main = async () => {
   app.use(json({ limit: "16mb" }));
 
   // Set up authentication related middleware and routes
-  setupAuth({ app, graphApi, logger });
+  setupAuth({ app, logger, context });
 
   // Create an email transporter
   const emailTransporter =
@@ -199,21 +204,18 @@ const main = async () => {
   const apolloServer = createApolloServer({
     graphApi,
     search,
+    uploadProvider,
     cache: redis,
     taskExecutor,
     emailTransporter,
     logger,
     statsd,
-    uploadProvider: FILE_UPLOAD_PROVIDER,
   });
 
   app.get("/", (_, res) => res.send("Hello World"));
 
   // Used by AWS Application Load Balancer (ALB) for health checks
   app.get("/health-check", (_, res) => res.status(200).send("Hello World!"));
-
-  // Setup upload storage provider and express routes for local file uploads
-  setupStorageProviders(app, FILE_UPLOAD_PROVIDER);
 
   app.use((req, res, next) => {
     const requestId = nanoid();

@@ -3,7 +3,6 @@ import {
   TypeSystemInitializer,
 } from "@blockprotocol/type-system";
 import {
-  createGraphClient,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
@@ -14,7 +13,6 @@ import {
   getPropertyTypeById,
   updatePropertyType,
 } from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { OwnedById } from "@hashintel/hash-shared/types";
 import {
@@ -22,7 +20,7 @@ import {
   PropertyTypeWithMetadata,
 } from "@hashintel/hash-subgraph";
 
-import { createTestUser } from "../../../util";
+import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -32,27 +30,19 @@ const logger = new Logger({
   serviceName: "integration-tests",
 });
 
-const graphApiHost = getRequiredEnv("HASH_GRAPH_API_HOST");
-const graphApiPort = parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10);
-
-const graphApi = createGraphClient(logger, {
-  host: graphApiHost,
-  port: graphApiPort,
-});
+const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 
 let testUser: User;
 let testUser2: User;
 let textDataType: DataTypeWithMetadata;
 let propertyTypeSchema: Omit<PropertyType, "$id">;
 
-const graphContext: ImpureGraphContext = { graphApi };
-
 beforeAll(async () => {
   await TypeSystemInitializer.initialize();
-  await ensureSystemGraphIsInitialized({ graphApi, logger });
+  await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
-  testUser = await createTestUser(graphApi, "pt-test-1", logger);
-  testUser2 = await createTestUser(graphApi, "pt-test-2", logger);
+  testUser = await createTestUser(graphContext, "pt-test-1", logger);
+  testUser2 = await createTestUser(graphContext, "pt-test-2", logger);
 
   textDataType = await createDataType(graphContext, {
     ownedById: testUser.accountId as OwnedById,

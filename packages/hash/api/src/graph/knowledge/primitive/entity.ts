@@ -151,19 +151,16 @@ export const getOrCreateEntity: ImpureGraphFunction<
     actorId: AccountId;
   },
   Promise<Entity>
-> = async ({ graphApi }, params) => {
+> = async (context, params) => {
   const { entityDefinition, ownedById, actorId } = params;
   const { entityProperties, existingEntityId } = entityDefinition;
 
   let entity;
 
   if (existingEntityId) {
-    entity = await getLatestEntityById(
-      { graphApi },
-      {
-        entityId: existingEntityId,
-      },
-    );
+    entity = await getLatestEntityById(context, {
+      entityId: existingEntityId,
+    });
 
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- account for old browsers
     if (!entity) {
@@ -182,22 +179,16 @@ export const getOrCreateEntity: ImpureGraphFunction<
       );
     }
 
-    const entityType = await getEntityTypeById(
-      { graphApi },
-      {
-        entityTypeId,
-      },
-    );
+    const entityType = await getEntityTypeById(context, {
+      entityTypeId,
+    });
 
-    entity = await createEntity(
-      { graphApi },
-      {
-        ownedById,
-        entityTypeId: entityType.schema.$id,
-        properties: entityProperties,
-        actorId,
-      },
-    );
+    entity = await createEntity(context, {
+      ownedById,
+      entityTypeId: entityType.schema.$id,
+      properties: entityProperties,
+      actorId,
+    });
   } else {
     throw new Error(
       `entityType and one of entityId OR entityProperties must be provided`,
@@ -225,7 +216,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
     actorId: AccountId;
   },
   Promise<Entity>
-> = async ({ graphApi }, params) => {
+> = async (context, params) => {
   const { ownedById, entityTypeId, properties, linkedEntities, actorId } =
     params;
 
@@ -258,14 +249,11 @@ export const createEntityWithLinks: ImpureGraphFunction<
             meta: definition.meta,
           }
         : undefined,
-      entity: await getOrCreateEntity(
-        { graphApi },
-        {
-          ownedById,
-          entityDefinition: definition,
-          actorId,
-        },
-      ),
+      entity: await getOrCreateEntity(context, {
+        ownedById,
+        entityDefinition: definition,
+        actorId,
+      }),
     })),
   );
 
@@ -287,25 +275,19 @@ export const createEntityWithLinks: ImpureGraphFunction<
         if (!parentEntity) {
           throw new ApolloError("Could not find parent entity");
         }
-        const linkEntityType = await getEntityTypeById(
-          { graphApi },
-          {
-            entityTypeId: link.meta.linkEntityTypeId,
-          },
-        );
+        const linkEntityType = await getEntityTypeById(context, {
+          entityTypeId: link.meta.linkEntityTypeId,
+        });
 
         // links are created as an outgoing link from the parent entity to the children.
-        await createLinkEntity(
-          { graphApi },
-          {
-            linkEntityType,
-            leftEntityId: parentEntity.entity.metadata.editionId.baseId,
-            rightEntityId: entity.metadata.editionId.baseId,
-            leftToRightOrder: link.meta.index ?? undefined,
-            ownedById,
-            actorId,
-          },
-        );
+        await createLinkEntity(context, {
+          linkEntityType,
+          leftEntityId: parentEntity.entity.metadata.editionId.baseId,
+          rightEntityId: entity.metadata.editionId.baseId,
+          leftToRightOrder: link.meta.index ?? undefined,
+          ownedById,
+          actorId,
+        });
       }
     }),
   );

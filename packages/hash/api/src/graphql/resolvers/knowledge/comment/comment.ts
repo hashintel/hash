@@ -4,6 +4,7 @@ import { getLatestEntityById } from "../../../../graph/knowledge/primitive/entit
 import { createComment } from "../../../../graph/knowledge/system-types/comment";
 import { MutationCreateCommentArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
+import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapCommentToGQL, UnresolvedCommentGQL } from "../graphql-mapping";
 
 export const createCommentResolver: ResolverFn<
@@ -11,28 +12,20 @@ export const createCommentResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationCreateCommentArgs
-> = async (
-  _,
-  { parentEntityId, tokens },
-  { dataSources: { graphApi }, user },
-) => {
-  const parent = await getLatestEntityById(
-    { graphApi },
-    {
-      entityId: parentEntityId,
-    },
-  );
+> = async (_, { parentEntityId, tokens }, { dataSources, user }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const comment = await createComment(
-    { graphApi },
-    {
-      tokens,
-      ownedById: extractOwnedByIdFromEntityId(parent.metadata.editionId.baseId),
-      parent,
-      author: user,
-      actorId: user.accountId,
-    },
-  );
+  const parent = await getLatestEntityById(context, {
+    entityId: parentEntityId,
+  });
+
+  const comment = await createComment(context, {
+    tokens,
+    ownedById: extractOwnedByIdFromEntityId(parent.metadata.editionId.baseId),
+    parent,
+    author: user,
+    actorId: user.accountId,
+  });
 
   return mapCommentToGQL(comment);
 };
