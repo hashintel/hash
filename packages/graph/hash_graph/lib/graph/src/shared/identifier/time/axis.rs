@@ -27,8 +27,12 @@ pub enum TimeAxis {
     TransactionTime,
 }
 
-/// Time axis for the projected image time.
+/// Time axis for the [`Image`] time axis used in [`TimeProjection`]s.
 ///
-/// This is used as the generic argument to time-related structs.
+/// This is used as the generic argument to time-related structs. Please refer to the documentation
+/// of [`TimeProjection`] for more information.
+/// 
+/// [`Image`]: crate::identifier::time::Image
+/// [`TimeProjection`]: crate::identifier::time::TimeProjection
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ProjectedTime;

@@ -218,6 +218,9 @@ impl ToSchema for UnresolvedTimeProjection {
     }
 }
 
+/// The pinned axis of a [`TimeProjection`].
+///
+/// Please refer to the documentation of [`TimeProjection`] for more information.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Kernel<A> {
@@ -253,6 +256,9 @@ impl ToSchema for TransactionTimeKernel {
     }
 }
 
+/// The variable time of a [`TimeProjection`].
+///
+/// Please refer to the documentation of [`TimeProjection`] for more information.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Image<A> {
@@ -335,6 +341,19 @@ impl ToSchema for TransactionTimeProjection {
     }
 }
 
+/// Constrains the temporal data in the Graph to a specific time axis.
+///
+/// When querying the Graph, temporal data is returned. The Graph is implemented as a bitemporal
+/// data store, which means the knowledge data contains information about the time of when the
+/// knowledge was inserted into the Graph, the [`TransactionTime`], and when the knowledge was
+/// decided to be inserted, the [`DecisionTime`].
+///
+/// In order to query data from the Graph, only one of the two time axes can be used. This is
+/// achieved by using a `TimeProjection`. The `TimeProjection` pins one axis to a specified
+/// [`Timestamp`], while the other axis can be a [`Timespan`]. The pinned axis is called the
+/// [`Kernel`] and the other axis is called the [`Image`] of a projection. The returned data will
+/// then only contain temporal data that is contained in the [`Timespan`] of the [`Image`], the
+/// [`ProjectedTime`], for the given [`Timestamp`] of the [`Kernel`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum TimeProjection {
