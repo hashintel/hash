@@ -6,19 +6,15 @@ import { linkEntityTypeUri } from "@hashintel/hash-subgraph";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import {
   ClickAwayListener,
-  Popper,
   Stack,
   TableBody,
   TableCell,
   TableFooter,
   TableHead,
+  tableRowClasses,
 } from "@mui/material";
 import { Box } from "@mui/system";
-import {
-  bindPopper,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
+import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 
@@ -49,6 +45,7 @@ import {
   EntityTypeTableHeaderRow,
   EntityTypeTableRow,
   EntityTypeTableTitleCellText,
+  rowBackground,
 } from "./shared/entity-type-table";
 import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
 import { MultipleValuesCell } from "./shared/multiple-values-cell";
@@ -117,6 +114,7 @@ const LinkTypeRow = ({
   const { control, setValue } = useFormContext<EntityTypeEditorForm>();
 
   const entityTypeSelectorPopupId = useId();
+  // @todo replace with state
   const entityTypeSelectorPopupState = usePopupState({
     variant: "popper",
     popupId: entityTypeSelectorPopupId,
@@ -178,6 +176,14 @@ const LinkTypeRow = ({
     throw new Error("Missing link");
   }
 
+  const entityTypeSchemas = Object.values(entityTypes).map(
+    (type) => type.schema,
+  );
+
+  const chosenEntityTypeSchemas = entityTypeSchemas.filter((schema) =>
+    chosenEntityTypes.includes(schema.$id),
+  );
+
   return (
     <>
       <EntityTypeTableRow>
@@ -192,6 +198,10 @@ const LinkTypeRow = ({
               boxShadow: theme.boxShadows.xs,
               borderColor: `${theme.palette.gray[30]} !important`,
               backgroundColor: "white",
+
+              "&:after": {
+                display: "none",
+              },
             },
 
             "&, *": {
@@ -199,89 +209,76 @@ const LinkTypeRow = ({
             },
           })}
         >
-          <Stack
-            direction="row"
-            spacing={1}
-            sx={[
-              {
-                border: 1,
-                borderColor: "transparent",
-                borderRadius: 1.5,
-                p: 0.75,
-                width: 1,
-                position: "relative",
-                userSelect: "none",
-                maxWidth: 200,
-                minHeight: 42,
-                left: -7,
-                overflow: "hidden",
-                "&:after": {
-                  position: "absolute",
-                  top: 0,
-                  right: 0,
-                  width: "20px",
-                  height: "100%",
-                  zIndex: 1,
-                  display: "block",
-                  content: `""`,
-                  background: "linear-gradient(to right, transparent, white)",
-                },
-              },
-              ...(entityTypeSelectorPopupState.isOpen
-                ? [popperPlacementInputNoRadius]
-                : []),
-            ]}
-            {...bindTrigger(entityTypeSelectorPopupState)}
-          >
-            {chosenEntityTypes.map((entityTypeId) => {
-              const type = entityTypes[entityTypeId];
-
-              if (!type) {
-                throw new Error("Entity type missing in links table");
-              }
-
-              return (
-                <Chip
-                  color="blue"
-                  label={
-                    <Stack
-                      direction="row"
-                      spacing={0.75}
-                      fontSize={14}
-                      alignItems="center"
-                    >
-                      <FontAwesomeIcon
-                        icon={faAsterisk}
-                        sx={{ fontSize: "inherit" }}
-                      />
-                      <Box component="span">{type.schema.title}</Box>
-                    </Stack>
-                  }
-                  key={type.schema.$id}
-                />
-              );
-            })}
-            <Popper
-              {...bindPopper(entityTypeSelectorPopupState)}
-              placement="bottom-start"
-              modifiers={[
-                addPopperPositionClassPopperModifier,
-                { name: "flip", enabled: false },
-                { name: "preventOverflow", enabled: false },
+          <Box sx={{ position: "relative" }}>
+            <Stack
+              direction="row"
+              flexWrap="wrap"
+              sx={[
                 {
-                  name: "offset",
-                  enabled: true,
-                  options: {
-                    // @todo check this is right
-                    offset: () => [0, -1],
+                  border: 1,
+                  borderColor: "transparent",
+                  borderRadius: 1.5,
+                  p: 0.5,
+                  width: 1,
+                  userSelect: "none",
+                  minWidth: 200,
+                  minHeight: 42,
+                  left: -7,
+                  overflow: "hidden",
+                  "&:after": {
+                    position: "absolute",
+                    top: 0,
+                    right: 0,
+                    width: "20px",
+                    height: "100%",
+                    zIndex: 1,
+                    display: "block",
+                    content: `""`,
+                    background: "linear-gradient(to right, transparent, white)",
                   },
+                  [`.${tableRowClasses.root}:hover &:after`]: (theme) => ({
+                    background: `linear-gradient(to right, transparent, ${rowBackground(
+                      theme,
+                    )})`,
+                  }),
                 },
+                ...(entityTypeSelectorPopupState.isOpen
+                  ? [popperPlacementInputNoRadius]
+                  : []),
               ]}
-              sx={{
-                zIndex: 1,
-                width: "min(100%, 430px)",
-              }}
+              {...bindTrigger(entityTypeSelectorPopupState)}
             >
+              {chosenEntityTypes.map((entityTypeId) => {
+                const type = entityTypes[entityTypeId];
+
+                if (!type) {
+                  throw new Error("Entity type missing in links table");
+                }
+
+                return (
+                  <Chip
+                    sx={{ m: 0.25 }}
+                    color="blue"
+                    label={
+                      <Stack
+                        direction="row"
+                        spacing={0.75}
+                        fontSize={14}
+                        alignItems="center"
+                      >
+                        <FontAwesomeIcon
+                          icon={faAsterisk}
+                          sx={{ fontSize: "inherit" }}
+                        />
+                        <Box component="span">{type.schema.title}</Box>
+                      </Stack>
+                    }
+                    key={type.schema.$id}
+                  />
+                );
+              })}
+            </Stack>
+            {entityTypeSelectorPopupState.isOpen ? (
               <ClickAwayListener
                 onClickAway={entityTypeSelectorPopupState.close}
               >
@@ -290,27 +287,26 @@ const LinkTypeRow = ({
                     evt.stopPropagation();
                     evt.preventDefault();
                   }}
+                  sx={{
+                    position: "absolute",
+                    width: "100%",
+                    minHeight: "100%",
+                    top: 0,
+                    left: 0,
+                    zIndex: -1,
+                  }}
                 >
                   <HashSelectorAutocomplete
-                    sx={popperPlacementPopperNoRadius}
-                    open={entityTypeSelectorPopupState.isOpen}
-                    onChange={(_, chosenType) => {
-                      if (chosenType) {
-                        const filtered = chosenEntityTypes.filter(
-                          (id) => id !== chosenType.$id,
-                        );
-                        setValue(
-                          `links.${linkIndex}.entityTypes`,
-                          filtered.length === chosenEntityTypes.length
-                            ? [...chosenEntityTypes, chosenType.$id]
-                            : filtered,
-                        );
-                      }
-                      entityTypeSelectorPopupState.close();
+                    multiple
+                    sx={[popperPlacementPopperNoRadius, { width: "100%" }]}
+                    open
+                    onChange={(_, chosenTypes) => {
+                      setValue(
+                        `links.${linkIndex}.entityTypes`,
+                        chosenTypes.map((type) => type.$id),
+                      );
                     }}
-                    options={Object.values(entityTypes).map(
-                      (type) => type.schema,
-                    )}
+                    options={entityTypeSchemas}
                     optionToRenderData={({ $id, title, description }) => ({
                       $id,
                       title,
@@ -321,11 +317,13 @@ const LinkTypeRow = ({
                       createButtonProps: null,
                       variant: "entityType",
                     }}
+                    renderTags={() => <Box />}
+                    value={chosenEntityTypeSchemas}
                   />
                 </Box>
               </ClickAwayListener>
-            </Popper>
-          </Stack>
+            ) : null}
+          </Box>
         </TableCell>
         <MultipleValuesCell index={linkIndex} variant="link" />
         <TypeMenuCell
@@ -467,8 +465,8 @@ export const LinkListCard = () => {
     <EntityTypeTable>
       <TableHead>
         <EntityTypeTableHeaderRow>
-          <TableCell>Link name</TableCell>
-          <TableCell width={262}>
+          <TableCell width={260}>Link name</TableCell>
+          <TableCell sx={{ minWidth: 262 }}>
             Expected entity types{" "}
             <QuestionIcon tooltip="When specified, only entities whose types are listed in this column will be able to be associated with a link" />
           </TableCell>

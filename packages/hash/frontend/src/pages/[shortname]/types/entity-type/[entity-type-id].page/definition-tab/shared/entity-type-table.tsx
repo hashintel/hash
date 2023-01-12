@@ -9,7 +9,7 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import { Box, experimental_sx, styled } from "@mui/system";
+import { Box, experimental_sx, styled, Theme } from "@mui/system";
 import { ReactNode } from "react";
 
 import { WhiteCard } from "../../../../../shared/white-card";
@@ -20,6 +20,8 @@ export const EntityTypeTableCenteredCell = styled(TableCell)(
     textAlign: "center",
   }),
 );
+
+export const rowBackground = (theme: Theme) => theme.palette.gray[10];
 
 export const EntityTypeTableRow = ({ children }: { children: ReactNode }) => (
   <TableRow
@@ -38,7 +40,7 @@ export const EntityTypeTableRow = ({ children }: { children: ReactNode }) => (
       }),
       (theme) => ({
         [`&:hover .${tableCellClasses.root}`]: {
-          background: theme.palette.gray[10],
+          background: rowBackground(theme),
         },
       }),
     ]}

@@ -136,15 +136,7 @@ export const HashSelectorAutocomplete = <
   Multiple
 >) => {
   const modifiers = useMemo(
-    (): PopperProps["modifiers"] => [
-      addPopperPositionClassPopperModifier,
-      {
-        name: "preventOverflow",
-        enabled: false,
-      },
-      { name: "flip", enabled: false },
-      { name: "preventOverflow", enabled: false },
-    ],
+    (): PopperProps["modifiers"] => [addPopperPositionClassPopperModifier],
     [],
   );
 
