@@ -20,9 +20,6 @@ export const PropertyTitle = ({
   expanded,
   setExpanded,
 }: PropertyTitleProps) => {
-  const object =
-    "type" in property.oneOf[0] && property.oneOf[0].type === "object";
-
   return (
     <>
       {depth !== 0 ? (
@@ -41,7 +38,10 @@ export const PropertyTitle = ({
       <EntityTypeTableTitleCellText
         sx={{
           paddingLeft: (depth - 1) * 3,
-          transform: object && depth === 0 ? "translateX(-20px)" : "none",
+          transform:
+            expanded !== undefined && depth === 0
+              ? "translateX(-20px)"
+              : "none",
         }}
       >
         {expanded !== undefined ? (
