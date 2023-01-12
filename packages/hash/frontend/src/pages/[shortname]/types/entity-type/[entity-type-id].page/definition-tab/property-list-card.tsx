@@ -3,15 +3,27 @@ import { faList } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { OwnedById } from "@hashintel/hash-shared/types";
 import {
+  Box,
   Checkbox,
-  Fade,
+  Collapse,
+  Table,
   TableBody,
   TableCell,
   TableFooter,
   TableHead,
+  TableRow,
 } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import { useCallback, useId, useLayoutEffect, useRef, useState } from "react";
+import {
+  forwardRef,
+  ReactNode,
+  useCallback,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Controller,
   useFieldArray,
@@ -30,6 +42,7 @@ import {
 } from "../shared/property-types-context";
 import { getPropertyTypeSchema } from "./property-list-card/get-property-type-schema";
 import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
+import { PropertyTitle } from "./property-list-card/property-title";
 import { PropertyTypeForm } from "./property-list-card/property-type-form";
 import { propertyTypeToFormDataExpectedValues } from "./property-list-card/property-type-to-form-data-expected-values";
 import { PropertyTypeFormValues } from "./property-list-card/shared/property-type-form-values";
@@ -40,7 +53,6 @@ import {
   EntityTypeTableCenteredCell,
   EntityTypeTableHeaderRow,
   EntityTypeTableRow,
-  EntityTypeTableTitleCellText,
 } from "./shared/entity-type-table";
 import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
 import { MultipleValuesCell } from "./shared/multiple-values-cell";
@@ -49,12 +61,206 @@ import { TypeFormModal } from "./shared/type-form";
 import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { useStateCallback } from "./shared/use-state-callback";
 
+const CollapsibleTableRow = forwardRef(
+  (
+    {
+      expanded,
+      depth,
+      lineHeight,
+      children,
+    }: {
+      expanded: boolean;
+      depth: number;
+      lineHeight: number;
+      children: ReactNode;
+    },
+    ref,
+  ) => {
+    return (
+      <TableRow>
+        <TableCell
+          colSpan={12}
+          sx={{ p: "0 !important", position: "relative" }}
+        >
+          <Table>
+            <Collapse in={expanded} sx={{ position: "relative", top: -12 }}>
+              <Box
+                ref={ref}
+                sx={{
+                  position: "absolute",
+                  height: lineHeight,
+                  width: "1px",
+                  left: `${13.4 + 20 * depth}px`,
+                  background: ({ palette }) => palette.gray[30],
+                  zIndex: 1,
+                }}
+              />
+              <Box mt={1.5}>{children}</Box>
+            </Collapse>
+          </Table>
+        </TableCell>
+      </TableRow>
+    );
+  },
+);
+
+const PropertyRow = forwardRef(
+  (
+    {
+      property,
+      isArray,
+      isRequired,
+      expectedValuesColumnWidth,
+      depth = 0,
+      allowArraysTableCell,
+      requiredTableCell,
+      menuTableCell,
+    }: {
+      property: PropertyType;
+      expectedValuesColumnWidth: number;
+      isArray: boolean;
+      isRequired?: boolean;
+      depth?: number;
+      allowArraysTableCell?: ReactNode;
+      requiredTableCell?: ReactNode;
+      menuTableCell?: ReactNode;
+    },
+    forwardedRef,
+  ) => {
+    const propertyTypes = usePropertyTypes();
+
+    const [expanded, setExpanded] = useState(true);
+
+    const lineRef = useRef<HTMLDivElement | null>();
+    const lastItemRef = useRef<HTMLDivElement | null>();
+    const [lineHeight, setLineHeight] = useState(0);
+
+    const [selectedExpectedValueIndex, setSelectedExpectedValueIndex] =
+      useState<number>(-1);
+
+    const children = useMemo(() => {
+      const selectedProperty = property.oneOf[selectedExpectedValueIndex]
+        ? property.oneOf[selectedExpectedValueIndex]
+        : null;
+
+      const selectedObjectProperties =
+        selectedProperty && "properties" in selectedProperty
+          ? selectedProperty.properties
+          : undefined;
+
+      return selectedObjectProperties
+        ? Object.entries(selectedObjectProperties).reduce(
+            (
+              childrenArray: ({
+                array: boolean;
+                required: boolean;
+              } & PropertyType)[],
+              [propertyId, ref],
+            ) => {
+              const $ref = "items" in ref ? ref.items.$ref : ref.$ref;
+              const propertyType = propertyTypes?.[$ref];
+
+              if (propertyType) {
+                const array = "type" in ref;
+                const required = Boolean(
+                  selectedProperty &&
+                    "required" in selectedProperty &&
+                    selectedProperty.required?.includes(propertyId),
+                );
+                return [...childrenArray, { ...propertyType, array, required }];
+              }
+
+              return childrenArray;
+            },
+            [],
+          )
+        : [];
+    }, [selectedExpectedValueIndex, property.oneOf, propertyTypes]);
+
+    return (
+      <>
+        <EntityTypeTableRow ref={forwardedRef}>
+          <TableCell width={260} sx={{ position: "relative" }}>
+            <PropertyTitle
+              property={property}
+              array={isArray}
+              expanded={expanded}
+              setExpanded={setExpanded}
+              depth={depth}
+            />
+          </TableCell>
+          <TableCell width={expectedValuesColumnWidth}>
+            <PropertyExpectedValues
+              property={property}
+              selectedExpectedValueIndex={selectedExpectedValueIndex}
+              setSelectedExpectedValueIndex={setSelectedExpectedValueIndex}
+            />
+          </TableCell>
+
+          {allowArraysTableCell ?? (
+            <EntityTypeTableCenteredCell width={170}>
+              <Checkbox disabled checked={isArray} sx={{ pr: 1 }} />
+            </EntityTypeTableCenteredCell>
+          )}
+
+          {requiredTableCell ?? (
+            <EntityTypeTableCenteredCell width={100}>
+              <Checkbox disabled checked={isRequired} />
+            </EntityTypeTableCenteredCell>
+          )}
+
+          {menuTableCell ?? (
+            <TypeMenuCell
+              typeId={property.$id}
+              variant="property"
+              canEdit={false}
+              canRemove={false}
+            />
+          )}
+        </EntityTypeTableRow>
+
+        {children.length ? (
+          <CollapsibleTableRow
+            expanded={expanded}
+            depth={depth}
+            lineHeight={lineHeight}
+            ref={lineRef}
+          >
+            {children.map((prop, pos) => (
+              <PropertyRow
+                key={prop.$id}
+                property={prop}
+                expectedValuesColumnWidth={expectedValuesColumnWidth}
+                depth={depth + 1}
+                isArray={prop.array}
+                isRequired={prop.required}
+                ref={(row: HTMLDivElement | undefined) => {
+                  if (row && pos === children.length - 1) {
+                    lastItemRef.current = row;
+                    setLineHeight(
+                      row.getBoundingClientRect().top -
+                        (lineRef.current?.getBoundingClientRect().top ?? 0) +
+                        21,
+                    );
+                  }
+                }}
+              />
+            ))}
+          </CollapsibleTableRow>
+        ) : null}
+      </>
+    );
+  },
+);
+
 export const PropertyTypeRow = ({
   propertyIndex,
+  expectedValuesColumnWidth,
   onRemove,
   onUpdateVersion,
 }: {
   propertyIndex: number;
+  expectedValuesColumnWidth: number;
   onRemove: () => void;
   onUpdateVersion: (nextId: VersionedUri) => void;
 }) => {
@@ -66,12 +272,6 @@ export const PropertyTypeRow = ({
       `properties.${propertyIndex}.$id`,
       `properties.${propertyIndex}.array`,
     ],
-  });
-
-  const popupId = useId();
-  const menuPopupState = usePopupState({
-    variant: "popover",
-    popupId: `property-menu-${popupId}`,
   });
 
   const editModalId = useId();
@@ -116,46 +316,34 @@ export const PropertyTypeRow = ({
 
   return (
     <>
-      <EntityTypeTableRow>
-        <TableCell>
-          <EntityTypeTableTitleCellText>
-            {property.title}
-            <Fade in={array} appear={false}>
-              <FontAwesomeIcon
-                sx={{
-                  color: ({ palette }) => palette.gray[70],
-                  fontSize: 14,
-                  ml: 1,
-                }}
-                icon={faList}
-              />
-            </Fade>
-          </EntityTypeTableTitleCellText>
-        </TableCell>
-        <TableCell>
-          <PropertyExpectedValues property={property} />
-        </TableCell>
-
-        <MultipleValuesCell index={propertyIndex} variant="property" />
-
-        <EntityTypeTableCenteredCell>
-          <Controller
-            render={({ field: { value, ...field } }) => (
-              <Checkbox {...field} checked={value} />
-            )}
-            control={control}
-            name={`properties.${propertyIndex}.required`}
+      <PropertyRow
+        property={property}
+        isArray={array}
+        expectedValuesColumnWidth={expectedValuesColumnWidth}
+        allowArraysTableCell={
+          <MultipleValuesCell index={propertyIndex} variant="property" />
+        }
+        requiredTableCell={
+          <EntityTypeTableCenteredCell width={100}>
+            <Controller
+              render={({ field: { value, ...field } }) => (
+                <Checkbox {...field} checked={value} />
+              )}
+              control={control}
+              name={`properties.${propertyIndex}.required`}
+            />
+          </EntityTypeTableCenteredCell>
+        }
+        menuTableCell={
+          <TypeMenuCell
+            editButtonProps={bindTrigger(editModalPopupState)}
+            onRemove={onRemove}
+            typeId={property.$id}
+            variant="property"
           />
-        </EntityTypeTableCenteredCell>
+        }
+      />
 
-        <TypeMenuCell
-          editButtonProps={bindTrigger(editModalPopupState)}
-          onRemove={onRemove}
-          typeId={property.$id}
-          popupState={menuPopupState}
-          variant="property"
-        />
-      </EntityTypeTableRow>
       <TypeFormModal
         as={PropertyTypeForm}
         popupState={editModalPopupState}
@@ -240,6 +428,8 @@ export const PropertyListCard = () => {
     popupId: `createProperty-${modalTooltipId}`,
   });
 
+  const [expectedValueColumnWidth, setExpectedValueColumnWidth] = useState(0);
+
   const handleAddPropertyType = (propertyType: PropertyType) => {
     cancelAddingNewProperty();
     if (!getValues("properties").some(({ $id }) => $id === propertyType.$id)) {
@@ -303,7 +493,15 @@ export const PropertyListCard = () => {
       <TableHead>
         <EntityTypeTableHeaderRow>
           <TableCell width={260}>Property name</TableCell>
-          <TableCell>Expected values</TableCell>
+          <TableCell
+            ref={(ref: HTMLTableCellElement | undefined) => {
+              if (ref?.offsetWidth) {
+                setExpectedValueColumnWidth(ref.offsetWidth);
+              }
+            }}
+          >
+            Expected values
+          </TableCell>
           <EntityTypeTableCenteredCell width={170}>
             Allow arrays{" "}
             <QuestionIcon
@@ -326,6 +524,7 @@ export const PropertyListCard = () => {
           <PropertyTypeRow
             key={type.id}
             propertyIndex={index}
+            expectedValuesColumnWidth={expectedValueColumnWidth}
             onRemove={() => {
               remove(index);
             }}

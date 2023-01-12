@@ -8,9 +8,10 @@ import {
   tableCellClasses,
   TableRow,
   Typography,
+  TypographyProps,
 } from "@mui/material";
 import { Box, experimental_sx, styled } from "@mui/system";
-import { ReactNode } from "react";
+import { forwardRef, ReactNode } from "react";
 
 import { WhiteCard } from "../../../../../shared/white-card";
 
@@ -21,8 +22,12 @@ export const EntityTypeTableCenteredCell = styled(TableCell)(
   }),
 );
 
-export const EntityTypeTableRow = ({ children }: { children: ReactNode }) => (
+export const EntityTypeTableRow = forwardRef<
+  HTMLTableRowElement,
+  { children: ReactNode }
+>(({ children }, ref) => (
   <TableRow
+    ref={ref}
     sx={[
       (theme) => ({
         [`.${tableCellClasses.root}`]: {
@@ -45,20 +50,26 @@ export const EntityTypeTableRow = ({ children }: { children: ReactNode }) => (
   >
     {children}
   </TableRow>
-);
+));
 
 export const EntityTypeTableTitleCellText = ({
   children,
+  sx = [],
+  ...props
 }: {
   children: ReactNode;
-}) => (
+} & TypographyProps) => (
   <Typography
+    {...props}
     variant="smallTextLabels"
     fontWeight={500}
-    sx={{
-      display: "flex",
-      alignItems: "center",
-    }}
+    sx={[
+      {
+        display: "flex",
+        alignItems: "center",
+      },
+      ...(Array.isArray(sx) ? sx : [sx]),
+    ]}
   >
     {children}
   </Typography>
