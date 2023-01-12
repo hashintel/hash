@@ -280,7 +280,7 @@ export const createEntityTypeTree = async (
     return { createdPropertyTypes, createdEntityTypes };
   }
 
-  // TODO - github event breaking
+  // TODO - GitHub event breaking
   if (!record.created) {
     visited.push(entityTypeId);
 
