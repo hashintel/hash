@@ -19,12 +19,16 @@ export const addPopperPositionClassPopperModifier: NonNullable<
   name: "addPositionClass",
   enabled: true,
   phase: "write",
-  fn({ state }) {
+  fn({ state, options }) {
     if (state.elements.reference instanceof HTMLElement) {
       state.elements.reference.setAttribute(
         popperPositionDataAttribute,
         state.placement,
       );
+    }
+    const { update } = options;
+    if (typeof update === "function") {
+      update(state.placement);
     }
   },
 };

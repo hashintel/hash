@@ -12,6 +12,7 @@ import {
   TableFooter,
   TableHead,
   tableRowClasses,
+  PopperPlacementType,
 } from "@mui/material";
 import { Box } from "@mui/system";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
@@ -184,6 +185,9 @@ const LinkTypeRow = ({
     chosenEntityTypes.includes(schema.$id),
   );
 
+  const [popperPlacement, setPopperPlacement] =
+    useState<PopperPlacementType>("bottom");
+
   return (
     <>
       <EntityTypeTableRow>
@@ -194,54 +198,39 @@ const LinkTypeRow = ({
         </TableCell>
         <TableCell
           sx={(theme) => ({
-            [entityTypeSelectorPopupState.isOpen ? "& > *" : "&:hover > *"]: {
-              boxShadow: theme.boxShadows.xs,
-              borderColor: `${theme.palette.gray[30]} !important`,
-              backgroundColor: "white",
-
-              "&:after": {
-                display: "none",
-              },
-            },
-
             "&, *": {
               cursor: "pointer",
             },
           })}
         >
-          <Box sx={{ position: "relative" }}>
+          <Box
+            sx={(theme) => ({
+              position: "relative",
+              [entityTypeSelectorPopupState.isOpen ? "& > *" : "&:hover > *"]: {
+                boxShadow: theme.boxShadows.xs,
+                borderColor: `${theme.palette.gray[30]} !important`,
+                backgroundColor: "white",
+              },
+            })}
+          >
             <Stack
               direction="row"
               flexWrap="wrap"
               sx={[
-                {
+                (theme) => ({
                   border: 1,
                   borderColor: "transparent",
                   borderRadius: 1.5,
                   p: 0.5,
-                  width: 1,
                   userSelect: "none",
                   minWidth: 200,
                   minHeight: 42,
                   left: -7,
+                  width: "calc(100% + 14px)",
                   overflow: "hidden",
-                  "&:after": {
-                    position: "absolute",
-                    top: 0,
-                    right: 0,
-                    width: "20px",
-                    height: "100%",
-                    zIndex: 1,
-                    display: "block",
-                    content: `""`,
-                    background: "linear-gradient(to right, transparent, white)",
-                  },
-                  [`.${tableRowClasses.root}:hover &:after`]: (theme) => ({
-                    background: `linear-gradient(to right, transparent, ${rowBackground(
-                      theme,
-                    )})`,
-                  }),
-                },
+                  position: "relative",
+                  zIndex: theme.zIndex.drawer,
+                }),
                 ...(entityTypeSelectorPopupState.isOpen
                   ? [popperPlacementInputNoRadius]
                   : []),
@@ -308,39 +297,67 @@ const LinkTypeRow = ({
                     evt.stopPropagation();
                     evt.preventDefault();
                   }}
-                  sx={{
+                  sx={(theme) => ({
                     position: "absolute",
-                    width: "100%",
-                    minHeight: "100%",
                     top: 0,
-                    left: 0,
-                    zIndex: -1,
-                  }}
+                    left: -19,
+                    right: -19,
+                    top: -12,
+                    bottom: -12,
+                    background: "white",
+                    borderRadius: 1.5,
+                    border: 1,
+                    borderColor: theme.palette.gray[30],
+                    boxShadow: theme.boxShadows.md,
+                    zIndex: theme.zIndex.drawer - 1,
+                  })}
                 >
-                  <HashSelectorAutocomplete
-                    multiple
-                    sx={[popperPlacementPopperNoRadius, { width: "100%" }]}
-                    open
-                    onChange={(_, chosenTypes) => {
-                      setValue(
-                        `links.${linkIndex}.entityTypes`,
-                        chosenTypes.map((type) => type.$id),
-                      );
-                    }}
-                    options={entityTypeSchemas}
-                    optionToRenderData={({ $id, title, description }) => ({
-                      $id,
-                      title,
-                      description,
-                    })}
-                    dropdownProps={{
-                      query: "",
-                      createButtonProps: null,
-                      variant: "entityType",
-                    }}
-                    renderTags={() => <Box />}
-                    value={chosenEntityTypeSchemas}
-                  />
+                  {false ? null : (
+                    <HashSelectorAutocomplete
+                      multiple
+                      sx={[
+                        popperPlacementPopperNoRadius,
+                        {
+                          width: "100%",
+                          minWidth: 440,
+                          position: "absolute",
+                          ...(popperPlacement === "top"
+                            ? { top: "100%" }
+                            : { bottom: "100%" }),
+                        },
+                      ]}
+                      open
+                      onChange={(_, chosenTypes) => {
+                        setValue(
+                          `links.${linkIndex}.entityTypes`,
+                          chosenTypes.map((type) => type.$id),
+                        );
+                      }}
+                      options={entityTypeSchemas}
+                      optionToRenderData={({ $id, title, description }) => ({
+                        $id,
+                        title,
+                        description,
+                      })}
+                      dropdownProps={{
+                        query: "",
+                        createButtonProps: null,
+                        variant: "entityType",
+                      }}
+                      renderTags={() => <Box />}
+                      value={chosenEntityTypeSchemas}
+                      modifiers={[
+                        {
+                          name: "addPositionClass",
+                          options: {
+                            update(placement: PopperPlacementType) {
+                              console.log("foo", placement);
+                            },
+                          },
+                        },
+                      ]}
+                    />
+                  )}
                 </Box>
               </ClickAwayListener>
             ) : null}
