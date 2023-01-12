@@ -19,7 +19,7 @@ export const PropertyExpectedValues = ({
   const propertyTypes = usePropertyTypes();
 
   return (
-    <Stack direction="row" flexWrap="wrap" gap={1}>
+    <Stack direction="row" flexWrap="wrap" gap="2px 8px">
       {property.oneOf.map((dataType, index) => {
         let expectedValueOption;
 
