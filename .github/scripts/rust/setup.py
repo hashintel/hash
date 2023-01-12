@@ -218,7 +218,7 @@ def output_matrix(name, github_output_file, crates, **kwargs):
             itertools.product([crate_names[crate]], toolchains, repeat=1)
         )
 
-    available_toolchain_combinations = itertools.product(crates, available_toolchains)
+    available_toolchain_combinations = itertools.product(crate_names.values(), available_toolchains)
     excluded_toolchain_combinations = set(available_toolchain_combinations).difference(
         *used_toolchain_combinations
     )
@@ -228,7 +228,7 @@ def output_matrix(name, github_output_file, crates, **kwargs):
         toolchain=list(available_toolchains),
         **kwargs,
         exclude=[
-            dict(name=crate_names[elem[0]], toolchain=elem[1])
+            dict(name=elem[0], toolchain=elem[1])
             for elem in excluded_toolchain_combinations
         ],
         include=[
