@@ -152,7 +152,7 @@ localStorage["hash.internal.debugging"] = "true";
 
 ### Backend integration tests
 
-Backend integration tests are located in the [/packages/hash/integration](/packages/hash/integration) folder.
+Backend integration tests are located in the [/tests/hash-backend-integration](/tests/hash-backend-integration) folder.
 
 _The tests require a running instance of `external-services`. see [here](#external-services-test-mode) for information on doing this without polluting the development database._
 
