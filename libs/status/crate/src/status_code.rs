@@ -1,7 +1,7 @@
 // Attribution: *Heavily* inspired by the Google Cloud API Error Model
 //  https://cloud.google.com/apis/design/errors
 
-use std::fmt::{Display, Formatter};
+use std::fmt::{Display, Formatter, Result};
 
 use serde::{Deserialize, Serialize};
 
@@ -158,11 +158,7 @@ pub enum StatusCode {
 }
 
 impl Display for StatusCode {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            serde_json::to_string(self).map_err(|_| std::fmt::Error::default())?
-        )
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> Result {
+        self.serialize(fmt)
     }
 }
