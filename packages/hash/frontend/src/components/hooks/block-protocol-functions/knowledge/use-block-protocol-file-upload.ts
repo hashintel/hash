@@ -1,4 +1,6 @@
 import { useMutation } from "@apollo/client";
+import { extractBaseUri } from "@blockprotocol/type-system";
+import { types } from "@hashintel/hash-shared/ontology-types";
 import { EntityId } from "@hashintel/hash-shared/types";
 import { useCallback } from "react";
 import * as SparkMD5 from "spark-md5";
@@ -103,7 +105,9 @@ export const useBlockProtocolFileUpload = (
         });
 
         if (!result.data) {
-          throw new Error("An error occured while uploading the file ");
+          throw new Error(
+            "An error occured while creating a file from an external link",
+          );
         }
 
         const {
@@ -120,9 +124,7 @@ export const useBlockProtocolFileUpload = (
       }
 
       if (!file) {
-        throw new Error(
-          `Please enter a valid ${mediaType} URL or select a file below`,
-        );
+        throw new Error(`Please provide a valid file to be uploaded`);
       }
 
       // const contentMd5 = await computeChecksumMd5(file);
@@ -147,10 +149,14 @@ export const useBlockProtocolFileUpload = (
 
       await uploadFileToStorageProvider(presignedPost, file);
 
+      const uploadedFileUrl = uploadedFileEntity.properties[
+        extractBaseUri(types.propertyType.fileUrl.propertyTypeId)
+      ] as string;
+
       return {
         data: {
           entityId: uploadedFileEntity.metadata.editionId.baseId as EntityId,
-          url: "N/a",
+          url: uploadedFileUrl,
           mediaType,
         },
       };
