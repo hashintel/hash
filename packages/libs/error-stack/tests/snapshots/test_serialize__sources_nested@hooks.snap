@@ -8,7 +8,7 @@ expression: report
     "attachments": [
       {
         "file": "tests/common/snapshots.rs",
-        "line": 212,
+        "line": 220,
         "column": 10
       },
       "2",
@@ -20,7 +20,7 @@ expression: report
         "attachments": [
           {
             "file": "tests/common/snapshots.rs",
-            "line": 206,
+            "line": 214,
             "column": 10
           },
           "4",
@@ -46,7 +46,7 @@ expression: report
         "attachments": [
           {
             "file": "tests/common/snapshots.rs",
-            "line": 201,
+            "line": 209,
             "column": 10
           },
           "5",
@@ -58,7 +58,7 @@ expression: report
             "attachments": [
               {
                 "file": "tests/common/snapshots.rs",
-                "line": 199,
+                "line": 207,
                 "column": 10
               },
               "7"
@@ -69,7 +69,7 @@ expression: report
                 "attachments": [
                   {
                     "file": "tests/common/snapshots.rs",
-                    "line": 190,
+                    "line": 198,
                     "column": 34
                   },
                   "9",
@@ -94,7 +94,7 @@ expression: report
                 "attachments": [
                   {
                     "file": "tests/common/snapshots.rs",
-                    "line": 184,
+                    "line": 192,
                     "column": 10
                   },
                   "13",
@@ -122,7 +122,7 @@ expression: report
                 "attachments": [
                   {
                     "file": "tests/common/snapshots.rs",
-                    "line": 170,
+                    "line": 178,
                     "column": 10
                   },
                   "15",
@@ -151,7 +151,7 @@ expression: report
                 "attachments": [
                   {
                     "file": "tests/common/snapshots.rs",
-                    "line": 180,
+                    "line": 188,
                     "column": 10
                   },
                   "11",
@@ -177,7 +177,7 @@ expression: report
                 "attachments": [
                   {
                     "file": "tests/common/snapshots.rs",
-                    "line": 176,
+                    "line": 184,
                     "column": 10
                   },
                   "12",
@@ -190,7 +190,7 @@ expression: report
                     "attachments": [
                       {
                         "file": "tests/common/snapshots.rs",
-                        "line": 175,
+                        "line": 183,
                         "column": 10
                       }
                     ],

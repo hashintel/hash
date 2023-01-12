@@ -8,7 +8,7 @@ expression: report
     "attachments": [
       {
         "file": "tests/common/snapshots.rs",
-        "line": 212,
+        "line": 219,
         "column": 10
       },
       "2",
@@ -20,7 +20,7 @@ expression: report
         "attachments": [
           {
             "file": "tests/common/snapshots.rs",
-            "line": 206,
+            "line": 213,
             "column": 10
           },
           "4",
@@ -53,11 +53,11 @@ expression: report
                 "   7: test_serialize::common::create_report",
                 "             at ./tests/common/mod.rs:4:5",
                 "   8: test_serialize::common::snapshots::create_sources_nested",
-                "             at ./tests/common/snapshots.rs:204:18",
+                "             at ./tests/common/snapshots.rs:211:18",
                 "   9: test_serialize::sources_nested",
-                "             at ./tests/test_serialize.rs:30:18",
+                "             at ./tests/test_serialize.rs:26:18",
                 "  10: test_serialize::sources_nested::{{closure}}",
-                "             at ./tests/test_serialize.rs:27:21",
+                "             at ./tests/test_serialize.rs:23:21",
                 "  11: core::ops::function::FnOnce::call_once",
                 "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
                 "  12: core::ops::function::FnOnce::call_once",
@@ -115,7 +115,7 @@ expression: report
         "attachments": [
           {
             "file": "tests/common/snapshots.rs",
-            "line": 201,
+            "line": 208,
             "column": 10
           },
           "5",
@@ -127,7 +127,7 @@ expression: report
             "attachments": [
               {
                 "file": "tests/common/snapshots.rs",
-                "line": 199,
+                "line": 206,
                 "column": 10
               },
               "7"
@@ -138,7 +138,7 @@ expression: report
                 "attachments": [
                   {
                     "file": "tests/common/snapshots.rs",
-                    "line": 190,
+                    "line": 197,
                     "column": 34
                   },
                   "9",
@@ -171,11 +171,11 @@ expression: report
                         "   7: test_serialize::common::create_report",
                         "             at ./tests/common/mod.rs:4:5",
                         "   8: test_serialize::common::snapshots::create_sources_nested",
-                        "             at ./tests/common/snapshots.rs:190:18",
+                        "             at ./tests/common/snapshots.rs:197:18",
                         "   9: test_serialize::sources_nested",
-                        "             at ./tests/test_serialize.rs:30:18",
+                        "             at ./tests/test_serialize.rs:26:18",
                         "  10: test_serialize::sources_nested::{{closure}}",
-                        "             at ./tests/test_serialize.rs:27:21",
+                        "             at ./tests/test_serialize.rs:23:21",
                         "  11: core::ops::function::FnOnce::call_once",
                         "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
                         "  12: core::ops::function::FnOnce::call_once",
@@ -232,7 +232,7 @@ expression: report
                 "attachments": [
                   {
                     "file": "tests/common/snapshots.rs",
-                    "line": 184,
+                    "line": 191,
                     "column": 10
                   },
                   "13",
@@ -268,11 +268,11 @@ expression: report
                         "   7: test_serialize::common::create_report",
                         "             at ./tests/common/mod.rs:4:5",
                         "   8: test_serialize::common::snapshots::create_sources_nested",
-                        "             at ./tests/common/snapshots.rs:183:18",
+                        "             at ./tests/common/snapshots.rs:190:18",
                         "   9: test_serialize::sources_nested",
-                        "             at ./tests/test_serialize.rs:30:18",
+                        "             at ./tests/test_serialize.rs:26:18",
                         "  10: test_serialize::sources_nested::{{closure}}",
-                        "             at ./tests/test_serialize.rs:27:21",
+                        "             at ./tests/test_serialize.rs:23:21",
                         "  11: core::ops::function::FnOnce::call_once",
                         "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
                         "  12: core::ops::function::FnOnce::call_once",
@@ -329,7 +329,7 @@ expression: report
                 "attachments": [
                   {
                     "file": "tests/common/snapshots.rs",
-                    "line": 170,
+                    "line": 177,
                     "column": 10
                   },
                   "15",
@@ -366,11 +366,11 @@ expression: report
                         "   7: test_serialize::common::create_report",
                         "             at ./tests/common/mod.rs:4:5",
                         "   8: test_serialize::common::snapshots::create_sources_nested",
-                        "             at ./tests/common/snapshots.rs:169:14",
+                        "             at ./tests/common/snapshots.rs:176:14",
                         "   9: test_serialize::sources_nested",
-                        "             at ./tests/test_serialize.rs:30:18",
+                        "             at ./tests/test_serialize.rs:26:18",
                         "  10: test_serialize::sources_nested::{{closure}}",
-                        "             at ./tests/test_serialize.rs:27:21",
+                        "             at ./tests/test_serialize.rs:23:21",
                         "  11: core::ops::function::FnOnce::call_once",
                         "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
                         "  12: core::ops::function::FnOnce::call_once",
@@ -427,7 +427,7 @@ expression: report
                 "attachments": [
                   {
                     "file": "tests/common/snapshots.rs",
-                    "line": 180,
+                    "line": 187,
                     "column": 10
                   },
                   "11",
@@ -461,11 +461,11 @@ expression: report
                         "   7: test_serialize::common::create_report",
                         "             at ./tests/common/mod.rs:4:5",
                         "   8: test_serialize::common::snapshots::create_sources_nested",
-                        "             at ./tests/common/snapshots.rs:179:14",
+                        "             at ./tests/common/snapshots.rs:186:14",
                         "   9: test_serialize::sources_nested",
-                        "             at ./tests/test_serialize.rs:30:18",
+                        "             at ./tests/test_serialize.rs:26:18",
                         "  10: test_serialize::sources_nested::{{closure}}",
-                        "             at ./tests/test_serialize.rs:27:21",
+                        "             at ./tests/test_serialize.rs:23:21",
                         "  11: core::ops::function::FnOnce::call_once",
                         "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
                         "  12: core::ops::function::FnOnce::call_once",
@@ -522,7 +522,7 @@ expression: report
                 "attachments": [
                   {
                     "file": "tests/common/snapshots.rs",
-                    "line": 176,
+                    "line": 183,
                     "column": 10
                   },
                   "12",
@@ -535,7 +535,7 @@ expression: report
                     "attachments": [
                       {
                         "file": "tests/common/snapshots.rs",
-                        "line": 175,
+                        "line": 182,
                         "column": 10
                       }
                     ],
@@ -566,11 +566,11 @@ expression: report
                             "   7: test_serialize::common::create_report",
                             "             at ./tests/common/mod.rs:4:5",
                             "   8: test_serialize::common::snapshots::create_sources_nested",
-                            "             at ./tests/common/snapshots.rs:174:14",
+                            "             at ./tests/common/snapshots.rs:181:14",
                             "   9: test_serialize::sources_nested",
-                            "             at ./tests/test_serialize.rs:30:18",
+                            "             at ./tests/test_serialize.rs:26:18",
                             "  10: test_serialize::sources_nested::{{closure}}",
-                            "             at ./tests/test_serialize.rs:27:21",
+                            "             at ./tests/test_serialize.rs:23:21",
                             "  11: core::ops::function::FnOnce::call_once",
                             "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
                             "  12: core::ops::function::FnOnce::call_once",

@@ -8,7 +8,7 @@ expression: report
     "attachments": [
       {
         "file": "tests/test_serialize.rs",
-        "line": 62,
+        "line": 58,
         "column": 14
       }
     ],
@@ -30,7 +30,7 @@ expression: report
                 "target": "test_serialize::common::snapshots",
                 "module_path": "test_serialize::common::snapshots",
                 "file": "tests/common/snapshots.rs",
-                "line": 78,
+                "line": 81,
                 "type": "span"
               },
               {
@@ -40,7 +40,7 @@ expression: report
                 "target": "test_serialize::common::snapshots",
                 "module_path": "test_serialize::common::snapshots",
                 "file": "tests/common/snapshots.rs",
-                "line": 83,
+                "line": 86,
                 "type": "span"
               }
             ]

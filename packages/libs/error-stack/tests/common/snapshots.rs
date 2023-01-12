@@ -21,13 +21,16 @@ fn setup_tracing() {
 fn setup_tracing() {}
 
 #[cfg(not(all(rust_1_65, feature = "std")))]
-fn setup_backtrace() {
+fn setup_backtrace(_: bool) {
     std::env::set_var("RUST_LIB_BACKTRACE", "0");
 }
 
 #[cfg(all(rust_1_65, feature = "std"))]
-fn setup_backtrace() {
-    std::env::set_var("RUST_LIB_BACKTRACE", "1");
+fn setup_backtrace(enable_backtrace: bool) {
+    std::env::set_var(
+        "RUST_LIB_BACKTRACE",
+        if enable_backtrace { "1" } else { "0" },
+    );
 }
 
 #[cfg(feature = "pretty-print")]
@@ -38,9 +41,9 @@ fn setup_color() {
 #[cfg(not(feature = "pretty-print"))]
 fn setup_color() {}
 
-fn setup() {
+fn setup(enable_backtrace: bool) {
     setup_tracing();
-    setup_backtrace();
+    setup_backtrace(enable_backtrace);
     setup_color();
 }
 
@@ -88,8 +91,13 @@ pub fn create_report() -> Report<RootError> {
     capture_error(func_a)
 }
 
-pub fn prepare(suffix: bool, pretty_print: bool, hooks_suffix: bool) -> impl Drop {
-    setup();
+pub fn prepare(
+    suffix: bool,
+    pretty_print: bool,
+    hooks_suffix: bool,
+    enable_backtrace: bool,
+) -> impl Drop {
+    setup(enable_backtrace);
 
     let mut settings = insta::Settings::clone_current();
     if suffix {

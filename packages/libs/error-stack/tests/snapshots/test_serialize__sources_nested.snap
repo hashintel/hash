@@ -6,7 +6,7 @@ expression: report
   {
     "context": "context A",
     "attachments": [
-      "at tests/common/snapshots.rs:212:10",
+      "at tests/common/snapshots.rs:220:10",
       "2",
       "1"
     ],
@@ -14,7 +14,7 @@ expression: report
       {
         "context": "context A",
         "attachments": [
-          "at tests/common/snapshots.rs:206:10",
+          "at tests/common/snapshots.rs:214:10",
           "4",
           "3"
         ],
@@ -32,7 +32,7 @@ expression: report
       {
         "context": "context A",
         "attachments": [
-          "at tests/common/snapshots.rs:201:10",
+          "at tests/common/snapshots.rs:209:10",
           "5",
           "3"
         ],
@@ -40,14 +40,14 @@ expression: report
           {
             "context": "context A",
             "attachments": [
-              "at tests/common/snapshots.rs:199:10",
+              "at tests/common/snapshots.rs:207:10",
               "7"
             ],
             "sources": [
               {
                 "context": "context A",
                 "attachments": [
-                  "at tests/common/snapshots.rs:190:34",
+                  "at tests/common/snapshots.rs:198:34",
                   "9",
                   "8"
                 ],
@@ -64,7 +64,7 @@ expression: report
               {
                 "context": "context A",
                 "attachments": [
-                  "at tests/common/snapshots.rs:184:10",
+                  "at tests/common/snapshots.rs:192:10",
                   "13",
                   "10",
                   "16",
@@ -84,7 +84,7 @@ expression: report
               {
                 "context": "context A",
                 "attachments": [
-                  "at tests/common/snapshots.rs:170:10",
+                  "at tests/common/snapshots.rs:178:10",
                   "15",
                   "14",
                   "10",
@@ -105,7 +105,7 @@ expression: report
               {
                 "context": "context A",
                 "attachments": [
-                  "at tests/common/snapshots.rs:180:10",
+                  "at tests/common/snapshots.rs:188:10",
                   "11",
                   "9",
                   "8"
@@ -123,7 +123,7 @@ expression: report
               {
                 "context": "context A",
                 "attachments": [
-                  "at tests/common/snapshots.rs:176:10",
+                  "at tests/common/snapshots.rs:184:10",
                   "12",
                   "9",
                   "8"
@@ -132,7 +132,7 @@ expression: report
                   {
                     "context": "context A",
                     "attachments": [
-                      "at tests/common/snapshots.rs:175:10"
+                      "at tests/common/snapshots.rs:183:10"
                     ],
                     "sources": [
                       {

@@ -8,7 +8,7 @@ expression: a
     "attachments": [
       {
         "file": "tests/test_serialize.rs",
-        "line": 78,
+        "line": 74,
         "column": 14
       },
       "printable C: 4"
@@ -31,7 +31,7 @@ expression: a
                 "target": "test_serialize::common::snapshots",
                 "module_path": "test_serialize::common::snapshots",
                 "file": "tests/common/snapshots.rs",
-                "line": 78,
+                "line": 81,
                 "type": "span"
               },
               {
@@ -41,7 +41,7 @@ expression: a
                 "target": "test_serialize::common::snapshots",
                 "module_path": "test_serialize::common::snapshots",
                 "file": "tests/common/snapshots.rs",
-                "line": 83,
+                "line": 86,
                 "type": "span"
               }
             ]
@@ -68,7 +68,7 @@ expression: a
                 "target": "test_serialize::common::snapshots",
                 "module_path": "test_serialize::common::snapshots",
                 "file": "tests/common/snapshots.rs",
-                "line": 78,
+                "line": 81,
                 "type": "span"
               },
               {
@@ -78,7 +78,7 @@ expression: a
                 "target": "test_serialize::common::snapshots",
                 "module_path": "test_serialize::common::snapshots",
                 "file": "tests/common/snapshots.rs",
-                "line": 83,
+                "line": 86,
                 "type": "span"
               }
             ]

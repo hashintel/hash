@@ -12,13 +12,9 @@ use common::snapshots::*;
 use insta::assert_json_snapshot;
 
 fn prepare(suffix: bool) -> impl Drop {
-    let guard = snapshots::prepare(suffix, false, true);
-
     // backtraces are not consistent across platforms, and therefore super hard to test
     // for now we disable them
-    std::env::set_var("RUST_LIB_BACKTRACE", "0");
-
-    guard
+    snapshots::prepare(suffix, false, true, false)
 }
 
 /// This is the main test, to test all different parts at once,
