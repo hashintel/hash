@@ -1,8 +1,8 @@
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { GraphApi } from "@hashintel/hash-graph-client";
 
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";
+import { ImpureGraphContext } from "./index";
 import {
   createHashInstance,
   getHashInstance,
@@ -13,23 +13,20 @@ import { systemUserAccountId } from "./system-user";
  * Ensures the required system entities has been created in the graph.
  */
 export const ensureSystemEntitiesExists = async (params: {
-  graphApi: GraphApi;
   logger: Logger;
+  context: ImpureGraphContext;
 }) => {
-  const { graphApi } = params;
+  const { context } = params;
   logger.debug("Ensuring required system entities exists");
 
   // Create system entities if they don't already exist
 
-  await getHashInstance({ graphApi }, {}).catch(async (error: Error) => {
+  await getHashInstance(context, {}).catch(async (error: Error) => {
     // Create the system instance entity, if it doesn't already exist.
     if (error instanceof NotFoundError) {
-      return await createHashInstance(
-        { graphApi },
-        {
-          actorId: systemUserAccountId,
-        },
-      );
+      return await createHashInstance(context, {
+        actorId: systemUserAccountId,
+      });
     }
     throw error;
   });

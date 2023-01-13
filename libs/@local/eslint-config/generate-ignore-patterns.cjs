@@ -1,7 +1,7 @@
 const path = require("node:path");
 const fs = require("node:fs");
 
-const monorepoRoot = path.resolve(__dirname, "../../../..");
+const monorepoRoot = path.resolve(__dirname, "../../..");
 
 /**
  * ESlint requires .eslintignore file to be placed next to .eslintrc.cjs file.

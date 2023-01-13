@@ -111,7 +111,7 @@ export const ResizeBlock: FunctionComponent<ResizeBlockProps> = ({
 
   const handleResize = (
     _evt: MouseEvent,
-    direction: typeof BLOCK_RESIZER_POSITIONS[number]["position"],
+    direction: (typeof BLOCK_RESIZER_POSITIONS)[number]["position"],
   ) => {
     if (!childrenWrapperRef.current) return;
     let isResizing = false;

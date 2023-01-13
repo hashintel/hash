@@ -1,5 +1,5 @@
 {
-  "name": "@hashintel/hash-search-loader",
+  "name": "@apps/hash-search-loader",
   "version": "0.0.0-private",
   "private": true,
   "description": "Loads changes from the hash/realtime package stream into the search service",
@@ -24,6 +24,6 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/node": "18.11.9",
-    "eslint": "8.29.0"
+    "eslint": "8.31.0"
   }
 }

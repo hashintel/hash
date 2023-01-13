@@ -12,6 +12,7 @@ import {
   ResolverFn,
 } from "../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
+import { dataSourcesToImpureGraphContext } from "../util";
 import { readFromAirbyte } from "./airbyte-read";
 
 /** @todo - Make Airbyte types available in api package */
@@ -109,11 +110,11 @@ export const executeGithubReadTask: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationExecuteGithubReadTaskArgs
-> = async (
-  _,
-  { config },
-  { dataSources: { graphApi, taskExecutor }, user, logger },
-) => {
+> = async (_, { config }, { dataSources, user, logger }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
+  const { taskExecutor } = dataSources;
+
   if (!taskExecutor) {
     throw new ApolloError(
       "A task-executor wasn't started, so external tasks can't be started",
@@ -126,7 +127,7 @@ export const executeGithubReadTask: ResolverFn<
       user,
       taskExecutor,
       logger,
-      graphApi,
+      context,
       config,
       integrationName: "Github",
     });
@@ -204,11 +205,11 @@ export const executeAsanaReadTask: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationExecuteAsanaReadTaskArgs
-> = async (
-  _,
-  { config },
-  { dataSources: { graphApi, taskExecutor }, user, logger },
-) => {
+> = async (_, { config }, { dataSources, user, logger }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
+  const { taskExecutor } = dataSources;
+
   if (!taskExecutor) {
     throw new ApolloError(
       "A task-executor wasn't started, so external tasks can't be started",
@@ -221,7 +222,7 @@ export const executeAsanaReadTask: ResolverFn<
       user,
       taskExecutor,
       logger,
-      graphApi,
+      context,
       config,
       integrationName: "Asana",
     });

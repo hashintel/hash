@@ -8,8 +8,8 @@ COPY yarn.lock .
 RUN yarn install --frozen-lockfile --production --ignore-scripts --prefer-offline
 
 # Also ensure that api node modules can be cached
-COPY libs/javascript/@local/tsconfig/package.json libs/javascript/@local/tsconfig/
-COPY libs/javascript/@local/eslint-config/package.json libs/javascript/@local/eslint-config/
+COPY libs/@local/tsconfig/package.json libs/@local/tsconfig/
+COPY libs/@local/eslint-config/package.json libs/@local/eslint-config/
 COPY packages/hash/api/package.json packages/hash/api/
 COPY packages/hash/shared/package.json packages/hash/shared/
 COPY packages/hash/subgraph/package.json packages/hash/subgraph/
@@ -28,8 +28,8 @@ COPY packages/hash/shared/codegen.config.ts packages/hash/shared/codegen.config.
 
 RUN yarn workspace @hashintel/hash-shared codegen
 
-COPY libs/javascript/@local/tsconfig libs/javascript/@local/tsconfig
-COPY libs/javascript/@local/eslint-config libs/javascript/@local/eslint-config
+COPY libs/@local/tsconfig libs/@local/tsconfig
+COPY libs/@local/eslint-config libs/@local/eslint-config
 COPY packages/graph/clients/typescript packages/graph/clients/typescript
 COPY packages/hash/backend-utils packages/hash/backend-utils
 COPY packages/hash/api packages/hash/api

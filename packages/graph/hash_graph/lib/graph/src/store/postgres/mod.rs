@@ -24,7 +24,10 @@ use uuid::Uuid;
 
 pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
-    identifier::{account::AccountId, ontology::OntologyTypeEditionId, EntityVertexId},
+    identifier::{
+        account::AccountId, ontology::OntologyTypeEditionId, time::UnresolvedTimeProjection,
+        EntityVertexId,
+    },
     ontology::{OntologyElementMetadata, OntologyTypeWithMetadata},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
@@ -394,6 +397,7 @@ where
         let previous_ontology_type = <Self as Read<T::WithMetadata>>::read_one(
             self,
             &Filter::for_latest_base_uri(uri.base_uri()),
+            &UnresolvedTimeProjection::default().resolve(),
         )
         .await
         .change_context(UpdateError)?;

@@ -13,8 +13,8 @@ RUN yarn install --frozen-lockfile --prefer-offline --force --build-from-source
 
 
 # Also ensure that frontend node modules can be cached
-COPY libs/javascript/@local/tsconfig/package.json libs/javascript/@local/tsconfig/
-COPY libs/javascript/@local/eslint-config/package.json libs/javascript/@local/eslint-config/
+COPY libs/@local/tsconfig/package.json libs/@local/tsconfig/
+COPY libs/@local/eslint-config/package.json libs/@local/eslint-config/
 COPY packages/hash/frontend/package.json packages/hash/frontend/
 COPY packages/hash/design-system/package.json packages/hash/design-system/
 COPY packages/hash/shared/package.json packages/hash/shared/
@@ -35,8 +35,8 @@ COPY packages/hash/shared/codegen.config.ts packages/hash/shared/codegen.config.
 
 RUN yarn workspace @hashintel/hash-shared codegen
 
-COPY libs/javascript/@local/tsconfig libs/javascript/@local/tsconfig
-COPY libs/javascript/@local/eslint-config libs/javascript/@local/eslint-config
+COPY libs/@local/tsconfig libs/@local/tsconfig
+COPY libs/@local/eslint-config libs/@local/eslint-config
 COPY packages/graph/clients/typescript packages/graph/clients/typescript
 COPY packages/hash/frontend packages/hash/frontend
 COPY packages/hash/design-system packages/hash/design-system
