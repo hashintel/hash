@@ -11,9 +11,11 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableCellProps,
   TableFooter,
   TableHead,
   TableRow,
+  Tooltip,
 } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import {
@@ -114,6 +116,53 @@ const CollapsibleTableRow = ({
         </Collapse>
       </TableCell>
     </TableRow>
+  );
+};
+
+const DisabledCheckboxCell = ({
+  checked,
+  width,
+  sx,
+}: {
+  checked?: boolean;
+  width: number;
+} & TableCellProps) => {
+  return (
+    <EntityTypeTableCenteredCell width={width}>
+      <Tooltip
+        title="Can't edit this on the entity type level"
+        placement="top"
+        disableInteractive
+      >
+        <Box
+          sx={[
+            {
+              boxSizing: "content-box",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            },
+            ...(Array.isArray(sx) ? sx : [sx]),
+          ]}
+        >
+          <Checkbox
+            disabled
+            checked={checked}
+            sx={[
+              {
+                color: ({ palette }) => `${palette.gray[40]} !important`,
+                [`.${svgIconClasses.root}`]: {
+                  color: "inherit",
+                },
+                [`&.${checkboxClasses.checked}.${checkboxClasses.disabled}`]: {
+                  color: ({ palette }) => `${palette.blue[30]} !important`,
+                },
+              },
+            ]}
+          />
+        </Box>
+      </Tooltip>
+    </EntityTypeTableCenteredCell>
   );
 };
 
@@ -232,38 +281,18 @@ const PropertyRow = ({
         </TableCell>
 
         {allowArraysTableCell ?? (
-          <EntityTypeTableCenteredCell width={MULTIPLE_VALUES_CELL_WIDTH}>
-            <Checkbox
-              disabled
-              checked={isArray}
-              sx={{
-                pr: 1,
-                [`.${svgIconClasses.root}`]: {
-                  color: "inherit",
-                },
-                [`&.${checkboxClasses.checked}.${checkboxClasses.disabled}`]: {
-                  color: ({ palette }) => `${palette.blue[30]} !important`,
-                },
-              }}
-            />
-          </EntityTypeTableCenteredCell>
+          <DisabledCheckboxCell
+            checked={isArray}
+            width={MULTIPLE_VALUES_CELL_WIDTH}
+            sx={{ pr: 1 }}
+          />
         )}
 
         {requiredTableCell ?? (
-          <EntityTypeTableCenteredCell width={REQUIRED_CELL_WIDTH}>
-            <Checkbox
-              disabled
-              checked={isRequired}
-              sx={{
-                [`.${svgIconClasses.root}`]: {
-                  color: "inherit",
-                },
-                [`&.${checkboxClasses.checked}.${checkboxClasses.disabled}`]: {
-                  color: ({ palette }) => `${palette.blue[30]} !important`,
-                },
-              }}
-            />
-          </EntityTypeTableCenteredCell>
+          <DisabledCheckboxCell
+            checked={isRequired}
+            width={REQUIRED_CELL_WIDTH}
+          />
         )}
 
         {menuTableCell ?? (
