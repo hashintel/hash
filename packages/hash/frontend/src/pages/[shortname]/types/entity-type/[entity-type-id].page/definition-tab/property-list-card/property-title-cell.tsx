@@ -1,11 +1,11 @@
 import { PropertyType } from "@blockprotocol/type-system";
 import { faChevronRight, faList } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
-import { Box, Collapse, Fade } from "@mui/material";
+import { Box, Collapse, Fade, TableCell } from "@mui/material";
 
 import { EntityTypeTableTitleCellText } from "../shared/entity-type-table";
 
-interface PropertyTitleProps {
+interface PropertyTitleCellProps {
   property: PropertyType;
   array: boolean;
   depth: number;
@@ -14,16 +14,18 @@ interface PropertyTitleProps {
   setExpanded?: (expanded: boolean) => void;
 }
 
-export const PropertyTitle = ({
+const PROPERTY_TITLE_CELL_WIDTH = 260;
+
+export const PropertyTitleCell = ({
   property,
   array,
   depth = 0,
   lines,
   expanded,
   setExpanded,
-}: PropertyTitleProps) => {
+}: PropertyTitleCellProps) => {
   return (
-    <>
+    <TableCell width={PROPERTY_TITLE_CELL_WIDTH} sx={{ position: "relative" }}>
       {depth !== 0 ? (
         <>
           {lines.map((display, lineDepth) =>
@@ -102,6 +104,6 @@ export const PropertyTitle = ({
           />
         </Fade>
       </EntityTypeTableTitleCellText>
-    </>
+    </TableCell>
   );
 };

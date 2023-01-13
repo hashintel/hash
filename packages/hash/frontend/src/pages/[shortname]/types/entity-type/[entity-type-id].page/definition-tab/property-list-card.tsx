@@ -44,7 +44,7 @@ import {
 } from "../shared/property-types-context";
 import { getPropertyTypeSchema } from "./property-list-card/get-property-type-schema";
 import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
-import { PropertyTitle } from "./property-list-card/property-title";
+import { PropertyTitleCell } from "./property-list-card/property-title-cell";
 import { PropertyTypeForm } from "./property-list-card/property-type-form";
 import { propertyTypeToFormDataExpectedValues } from "./property-list-card/property-type-to-form-data-expected-values";
 import { PropertyTypeFormValues } from "./property-list-card/shared/property-type-form-values";
@@ -57,10 +57,13 @@ import {
   EntityTypeTableRow,
 } from "./shared/entity-type-table";
 import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
-import { MultipleValuesCell } from "./shared/multiple-values-cell";
+import {
+  MULTIPLE_VALUES_CELL_WIDTH,
+  MultipleValuesCell,
+} from "./shared/multiple-values-cell";
 import { QuestionIcon } from "./shared/question-icon";
 import { TypeFormModal } from "./shared/type-form";
-import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
+import { TypeMenuCell } from "./shared/type-menu-cell";
 import { useStateCallback } from "./shared/use-state-callback";
 
 const CollapsibleTableRow = ({
@@ -114,11 +117,12 @@ const CollapsibleTableRow = ({
   );
 };
 
+const REQUIRED_CELL_WIDTH = 100;
+
 const PropertyRow = ({
   property,
   isArray,
   isRequired,
-  expectedValuesColumnWidth,
   depth = 0,
   lines = [],
   allowArraysTableCell,
@@ -126,7 +130,6 @@ const PropertyRow = ({
   menuTableCell,
 }: {
   property: PropertyType;
-  expectedValuesColumnWidth: number;
   isArray: boolean;
   isRequired?: boolean;
   depth?: number;
@@ -210,17 +213,16 @@ const PropertyRow = ({
           }
         }}
       >
-        <TableCell width={260} sx={{ position: "relative" }}>
-          <PropertyTitle
-            property={property}
-            array={isArray}
-            depth={depth}
-            lines={lines}
-            expanded={children.length ? expanded : undefined}
-            setExpanded={setExpanded}
-          />
-        </TableCell>
-        <TableCell width={expectedValuesColumnWidth}>
+        <PropertyTitleCell
+          property={property}
+          array={isArray}
+          depth={depth}
+          lines={lines}
+          expanded={children.length ? expanded : undefined}
+          setExpanded={setExpanded}
+        />
+
+        <TableCell>
           <PropertyExpectedValues
             property={property}
             selectedExpectedValueIndex={selectedExpectedValueIndex}
@@ -230,7 +232,7 @@ const PropertyRow = ({
         </TableCell>
 
         {allowArraysTableCell ?? (
-          <EntityTypeTableCenteredCell width={170}>
+          <EntityTypeTableCenteredCell width={MULTIPLE_VALUES_CELL_WIDTH}>
             <Checkbox
               disabled
               checked={isArray}
@@ -248,7 +250,7 @@ const PropertyRow = ({
         )}
 
         {requiredTableCell ?? (
-          <EntityTypeTableCenteredCell width={100}>
+          <EntityTypeTableCenteredCell width={REQUIRED_CELL_WIDTH}>
             <Checkbox
               disabled
               checked={isRequired}
@@ -284,7 +286,6 @@ const PropertyRow = ({
             <PropertyRow
               key={prop.$id}
               property={prop}
-              expectedValuesColumnWidth={expectedValuesColumnWidth}
               depth={depth + 1}
               lines={[...lines, pos !== children.length - 1]}
               isArray={prop.array}
@@ -299,12 +300,10 @@ const PropertyRow = ({
 
 export const PropertyTypeRow = ({
   propertyIndex,
-  expectedValuesColumnWidth,
   onRemove,
   onUpdateVersion,
 }: {
   propertyIndex: number;
-  expectedValuesColumnWidth: number;
   onRemove: () => void;
   onUpdateVersion: (nextId: VersionedUri) => void;
 }) => {
@@ -363,12 +362,11 @@ export const PropertyTypeRow = ({
       <PropertyRow
         property={property}
         isArray={array}
-        expectedValuesColumnWidth={expectedValuesColumnWidth}
         allowArraysTableCell={
           <MultipleValuesCell index={propertyIndex} variant="property" />
         }
         requiredTableCell={
-          <EntityTypeTableCenteredCell width={100}>
+          <EntityTypeTableCenteredCell width={REQUIRED_CELL_WIDTH}>
             <Controller
               render={({ field: { value, ...field } }) => (
                 <Checkbox {...field} checked={value} />
@@ -472,8 +470,6 @@ export const PropertyListCard = () => {
     popupId: `createProperty-${modalTooltipId}`,
   });
 
-  const [expectedValueColumnWidth, setExpectedValueColumnWidth] = useState(0);
-
   const handleAddPropertyType = (propertyType: PropertyType) => {
     cancelAddingNewProperty();
     if (!getValues("properties").some(({ $id }) => $id === propertyType.$id)) {
@@ -536,17 +532,9 @@ export const PropertyListCard = () => {
     <EntityTypeTable>
       <TableHead>
         <EntityTypeTableHeaderRow>
-          <TableCell width={260}>Property name</TableCell>
-          <TableCell
-            ref={(ref: HTMLTableCellElement | undefined) => {
-              if (ref?.offsetWidth) {
-                setExpectedValueColumnWidth(ref.offsetWidth);
-              }
-            }}
-          >
-            Expected values
-          </TableCell>
-          <EntityTypeTableCenteredCell width={170}>
+          <TableCell>Property name</TableCell>
+          <TableCell>Expected values</TableCell>
+          <EntityTypeTableCenteredCell>
             Allow arrays{" "}
             <QuestionIcon
               tooltip={
@@ -557,10 +545,8 @@ export const PropertyListCard = () => {
               }
             />
           </EntityTypeTableCenteredCell>
-          <EntityTypeTableCenteredCell width={100}>
-            Required
-          </EntityTypeTableCenteredCell>
-          <TableCell width={TYPE_MENU_CELL_WIDTH} />
+          <EntityTypeTableCenteredCell>Required</EntityTypeTableCenteredCell>
+          <TableCell />
         </EntityTypeTableHeaderRow>
       </TableHead>
       <TableBody>
@@ -568,7 +554,6 @@ export const PropertyListCard = () => {
           <PropertyTypeRow
             key={type.id}
             propertyIndex={index}
-            expectedValuesColumnWidth={expectedValueColumnWidth}
             onRemove={() => {
               remove(index);
             }}

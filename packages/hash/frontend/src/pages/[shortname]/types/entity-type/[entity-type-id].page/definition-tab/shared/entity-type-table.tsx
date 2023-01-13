@@ -142,10 +142,10 @@ export const EntityTypeTable = ({ children }: { children: ReactNode }) => {
   return (
     <WhiteCard sx={{ overflow: "visible" }}>
       <Box sx={{ p: 0.5 }}>
-        {" "}
         <Table
           sx={(theme) => ({
             height: "100%",
+            minWidth: 800,
             [`.${tableCellClasses.root}`]: {
               pl: 3.5,
               pr: 1,
