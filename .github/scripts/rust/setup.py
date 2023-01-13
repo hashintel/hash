@@ -37,7 +37,7 @@ PUBLISH_PATTERNS = ["packages/libs/error-stack**"]
 DOCKER_PATTERNS = ["packages/graph/hash_graph"]
 
 # Build a coverage report for these crates
-COVERAGE_EXCLUDE_PATTERNS = ["packages/engine**"]
+COVERAGE_EXCLUDE_PATTERNS = ["apps/engine**"]
 
 
 def generate_diffs():

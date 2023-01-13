@@ -10,7 +10,7 @@ objectId: b5d41ca2-e55b-4040-98dd-4d7035d6b7c9
 
 HASH provides a set of useful functions to help simplify simulation construction through a standard library, `hstd`. The Python language environment [also provides access to a wide array of scientific Python packages](/docs/simulation/creating-simulations/libraries/python-packages)_._
 
-You can contribute to the HASH standard library by submitting pull requests to our [open source repo](https://github.com/hashintel/hash/tree/master/packages/engine/stdlib).
+You can contribute to the HASH standard library by submitting pull requests to our [open source repo](https://github.com/hashintel/hash/tree/main/apps/engine/stdlib).
 
 <Embed type="youtube" url="https://youtu.be/0pABnjlWjPY" caption="Using HASH Standard Library Functions" />
 

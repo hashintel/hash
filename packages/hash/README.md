@@ -152,7 +152,7 @@ localStorage["hash.internal.debugging"] = "true";
 
 ### Backend integration tests
 
-Backend integration tests are located in the [/packages/hash/integration](/packages/hash/integration) folder.
+Backend integration tests are located in the [/tests/hash-backend-integration](/tests/hash-backend-integration) folder.
 
 _The tests require a running instance of `external-services`. see [here](#external-services-test-mode) for information on doing this without polluting the development database._
 
@@ -166,7 +166,7 @@ Thus, `yarn test:backend-integration` and `yarn test:playwright` will probably c
 ### Playwright tests
 
 [Playwright](https://playwright.dev) tests are browser-based integration and end-to-end tests.
-The playwright tests are located within the [/packages/hash/playwright/tests](/packages/hash/playwright/tests) folder.
+The playwright tests are located within the [/tests/hash-playwright/tests](/tests/hash-playwright/tests) folder.
 To run these tests locally, you will need to have both backend and frontend running.
 
 - _The tests require a running instance of `external-services`. see [here](#external-services-test-mode) for information on doing this without polluting the development database._

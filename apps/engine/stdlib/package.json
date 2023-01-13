@@ -2,14 +2,11 @@
   "name": "hash_stdlib",
   "version": "0.0.0-private",
   "private": true,
-  "description": "HASH stdlib",
-  "homepage": "https://github.com/hashintel/hash/tree/master/packages/engine/stdlib",
-  "bugs": {
-    "url": "https://github.com/hashintel/hash/issues"
-  },
+  "description": "HASH Engine stdlib",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hashintel/hash.git"
+    "url": "git+https://github.com/hashintel/hash.git",
+    "directory": "apps/engine/stdlib"
   },
   "license": "Apache 2.0",
   "author": "HASH",

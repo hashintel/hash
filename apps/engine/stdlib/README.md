@@ -8,7 +8,7 @@ You can call HASH stdlib functions from within [behaviors](https://docs.hash.ai/
 
 ## Developing
 
-The repo is split between [JavaScript functions](https://github.com/hashintel/hash/tree/master/packages/engine/stdlib/src/ts) — written in TypeScript — and [Python functions](https://github.com/hashintel/hash/tree/master/packages/engine/stdlib/src/py).
+The repo is split between [JavaScript functions](https://github.com/hashintel/hash/tree/main/apps/engine/stdlib/src/ts) — written in TypeScript — and [Python functions](https://github.com/hashintel/hash/tree/main/apps/engine/stdlib/src/py).
 
 ### JavaScript
 
