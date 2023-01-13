@@ -74,19 +74,25 @@ export const getHashInstance: ImpureGraphFunction<
   const entities = await graphApi
     .getEntitiesByQuery({
       filter: {
-        all: [
-          { equal: [{ path: ["version"] }, { parameter: "latest" }] },
+        equal: [
+          { path: ["type", "versionedUri"] },
           {
-            equal: [
-              { path: ["type", "versionedUri"] },
-              {
-                parameter: SYSTEM_TYPES.entityType.hashInstance.schema.$id,
-              },
-            ],
+            parameter: SYSTEM_TYPES.entityType.hashInstance.schema.$id,
           },
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
+      timeProjection: {
+        kernel: {
+          axis: "transaction",
+          timestamp: undefined,
+        },
+        image: {
+          axis: "decision",
+          start: undefined,
+          end: undefined,
+        },
+      },
     })
     .then(({ data: subgraph }) =>
       getRootsAsEntities(subgraph as Subgraph<SubgraphRootTypes["entity"]>),
