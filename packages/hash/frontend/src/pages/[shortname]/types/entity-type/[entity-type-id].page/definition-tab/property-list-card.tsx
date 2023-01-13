@@ -275,7 +275,10 @@ const PropertyRow = ({
           <PropertyExpectedValues
             property={property}
             selectedExpectedValueIndex={selectedExpectedValueIndex}
-            setSelectedExpectedValueIndex={setSelectedExpectedValueIndex}
+            setSelectedExpectedValueIndex={(value) => {
+              setSelectedExpectedValueIndex(value);
+              setExpanded(true);
+            }}
             setAnimatingOutExpectedValue={setAnimatingOutExpectedValue}
           />
         </TableCell>
