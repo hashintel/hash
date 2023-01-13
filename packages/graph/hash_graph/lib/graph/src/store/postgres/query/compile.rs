@@ -109,10 +109,9 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                 .where_expression
                 .add_condition(Condition::TimerangeContainsTimestamp(
                     Expression::Column(
-                        Column::Entities(match self.time_projection.time_axis() {
-                            TimeAxis::DecisionTime => Entities::TransactionTime,
-                            TimeAxis::TransactionTime => Entities::DecisionTime,
-                        })
+                        Column::Entities(Entities::from_time_axis(
+                            self.time_projection.kernel_time_axis(),
+                        ))
                         .aliased(alias),
                     ),
                     Expression::Parameter(temporal_table_info.kernel_index),
@@ -122,10 +121,9 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                 .where_expression
                 .add_condition(Condition::Overlaps(
                     Expression::Column(
-                        Column::Entities(match self.time_projection.time_axis() {
-                            TimeAxis::DecisionTime => Entities::DecisionTime,
-                            TimeAxis::TransactionTime => Entities::TransactionTime,
-                        })
+                        Column::Entities(Entities::from_time_axis(
+                            self.time_projection.image_time_axis(),
+                        ))
                         .aliased(alias),
                     ),
                     Expression::Parameter(temporal_table_info.image_index),
@@ -294,10 +292,9 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         // projection.
         let condition = Condition::TimerangeContainsTimestamp(
             Expression::Column(
-                Column::Entities(match self.time_projection.time_axis() {
-                    TimeAxis::DecisionTime => Entities::DecisionTime,
-                    TimeAxis::TransactionTime => Entities::TransactionTime,
-                })
+                Column::Entities(Entities::from_time_axis(
+                    self.time_projection.image_time_axis(),
+                ))
                 .aliased(alias),
             ),
             Expression::Function(Function::Now),
@@ -388,13 +385,11 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                 // TODO: Remove special casing when correctly resolving time intervals in subgraphs.
                 //   see https://app.asana.com/0/0/1203701389454316/f
                 if column.column == Column::Entities(Entities::ProjectedTime) {
-                    let alias = column.alias;
-                    let column = match self.time_projection.time_axis() {
-                        TimeAxis::DecisionTime => Column::Entities(Entities::DecisionTime),
-                        TimeAxis::TransactionTime => Column::Entities(Entities::TransactionTime),
-                    };
                     Expression::Function(Function::Lower(Box::new(Expression::Column(
-                        column.aliased(alias),
+                        Column::Entities(Entities::from_time_axis(
+                            self.time_projection.image_time_axis(),
+                        ))
+                        .aliased(column.alias),
                     ))))
                 } else {
                     Expression::Column(column)
