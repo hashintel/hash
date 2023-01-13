@@ -112,42 +112,45 @@ export const TypeMenuCell = ({
           },
         })}
       >
-        {canEdit || canRemove ? (
-          <>
-            <Typography component={ListItem} variant="smallCaps">
-              Actions
-            </Typography>
-
-            {canEdit ? (
-              <MenuItem
-                {...editButtonProps}
-                onClick={(evt) => {
-                  popupState.close();
-                  editButtonProps?.onClick?.(evt);
-                }}
-                onTouchStart={(evt) => {
-                  popupState.close();
-                  editButtonProps?.onTouchStart?.(evt);
-                }}
+        {canEdit || canRemove
+          ? [
+              <Typography
+                key="actions"
+                component={ListItem}
+                variant="smallCaps"
               >
-                <ListItemText primary={<>Edit {variant}</>} />
-              </MenuItem>
-            ) : null}
-
-            {canRemove ? (
-              <MenuItem
-                onClick={() => {
-                  popupState.close();
-                  onRemove?.();
-                }}
-              >
-                <ListItemText primary={<>Remove {variant}</>} />
-              </MenuItem>
-            ) : null}
-
-            <Divider />
-          </>
-        ) : null}
+                Actions
+              </Typography>,
+              canEdit ? (
+                <MenuItem
+                  key="edit"
+                  {...editButtonProps}
+                  onClick={(evt) => {
+                    popupState.close();
+                    editButtonProps?.onClick?.(evt);
+                  }}
+                  onTouchStart={(evt) => {
+                    popupState.close();
+                    editButtonProps?.onTouchStart?.(evt);
+                  }}
+                >
+                  <ListItemText primary={<>Edit {variant}</>} />
+                </MenuItem>
+              ) : null,
+              canRemove ? (
+                <MenuItem
+                  key="remove"
+                  onClick={() => {
+                    popupState.close();
+                    onRemove?.();
+                  }}
+                >
+                  <ListItemText primary={<>Remove {variant}</>} />
+                </MenuItem>
+              ) : null,
+              <Divider key="divider" />,
+            ]
+          : null}
 
         <Typography component={ListItem} variant="smallCaps">
           Source
