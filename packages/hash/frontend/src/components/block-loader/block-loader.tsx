@@ -211,8 +211,6 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   }, [graphProperties]);
 
   if (!temporaryBackwardsCompatibleProperties) {
-    // eslint-disable-next-line no-console -- temporary debugging line. @todo-0.3 remove this
-    console.warn("No graph properties...");
     return null;
   }
 
