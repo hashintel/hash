@@ -2,7 +2,7 @@
   <img src="https://cdn-us1.hash.ai/assets/hengine-github-readme-header%402x.png">
 </p>
 <div align="center">
- <a href="https://github.com/hashintel/hash/blob/main/packages/engine/LICENSE.md"><img src="https://cdn-us1.hash.ai/assets/license-badge-elastic.svg" alt="Elastic License v2" /></a>
+ <a href="https://github.com/hashintel/hash/blob/main/apps/engine/LICENSE.md"><img src="https://cdn-us1.hash.ai/assets/license-badge-elastic.svg" alt="Elastic License v2" /></a>
  <a href="https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_engine"><img src="https://img.shields.io/discord/840573247803097118" alt="Join HASH on Discord" /></a>
 </div>
 
@@ -64,7 +64,7 @@ There are a number of other functionalities in the HASH platform that are possib
 
 ## Building and Testing
 
-> The following section assumes execution of commands are from within this directory (i.e. [/packages/engine](/packages/engine) relative to the repository root). As such, paths are relative to the folder this README is in.
+> The following section assumes execution of commands are from within this directory (i.e. [/apps/engine](/apps/engine) relative to the repository root). As such, paths are relative to the folder this README is in.
 
 Depending on your needs, different dependencies are required. Building this project requires the following.
 
@@ -157,7 +157,7 @@ In order to run the demo:
 2.  Press `Open` at the upper right to view the simulation in [hCore].
 3.  Download it by pressing `File -> Export Project`
 4.  Unzip it either with your file browser or by e.g. `unzip ageing-agents.zip -d path/to/ageing-agents`
-5.  Run the simulation from the _packages/engine_ directory and pass the path to the downloaded project as a parameter:
+5.  Run the simulation from the _apps/engine_ directory and pass the path to the downloaded project as a parameter:
 
     ```shell
     cargo run --bin cli -- --project 'path/to/ageing-agents' single-run --num-steps 5

@@ -5,7 +5,7 @@
   "automerge": true,
   "dependencyDashboard": true,
   "dependencyDashboardApproval": true,
-  "ignorePaths": ["packages/engine/**"],
+  "ignorePaths": ["apps/engine/**"],
   "postUpdateOptions": ["yarnDedupeFewer"],
   "rangeStrategy": "bump",
   "rebaseWhen": "conflicted",
