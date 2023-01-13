@@ -11,7 +11,7 @@
 This `apps` directory contains the source-code and/or content for a number of HASH's public-facing websites, including:
 
 - `engine`: houses the codebase of our next-generation version of [HASH Engine](https://hash.ai/platform/engine) - a versatile agent-based simulation engine written in Rust
-- `hash-*`: contains our product _applications_, as well (namely anything that can be _run_, with an entry point or interface you can launch). These apps may (but are not guaranteed to) be independently useful.
+- `hash-*` directories: these house the applications that together form [HASH](https://hash.ai/platform/hash). These apps may (but are not guaranteed to) be independently useful.
 - [hash.ai](https://hash.ai/): our main website
 - [hash.dev](https://hash.dev/): our developer-focused website
 
