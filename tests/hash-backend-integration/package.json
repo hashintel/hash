@@ -1,5 +1,5 @@
 {
-  "name": "@hashintel/hash-integration",
+  "name": "@tests/hash-backend-integration",
   "version": "0.0.0-private",
   "private": true,
   "description": "Integration tests for HASH",
