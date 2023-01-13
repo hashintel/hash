@@ -61,12 +61,6 @@ cargo make doc --open
 
 ---
 
-It's possible to recreate the database by using
-
-```shell
-cargo make recreate-db
-```
-
 ## Test the code
 
 The code base has two test suites: The unit test suite and the integration tests. To run the unit-test suite, simply run the `test` command:
@@ -86,6 +80,8 @@ The REST API can be tested as well. Note, that this requires the Graph to run an
 ```shell
 cargo make test-rest-api
 ```
+
+## Migrations
 
 ## Generate OpenAPI client
 
