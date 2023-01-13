@@ -37,6 +37,7 @@ type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "2
 uuid = { version = "1.2.2", features = ["v4", "serde"] }
 utoipa = { version = "2.4.2", features = ["uuid"] }
 include_dir = "0.7.3"
+refinery = { version = "0.8", features = ["postgres", "tokio-postgres"]}
 
 [dev-dependencies]
 tokio = { version = "1.23.1", features = ["rt-multi-thread", "macros", "tracing"] }
