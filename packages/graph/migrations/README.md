@@ -17,7 +17,7 @@ The `graph:recreate-db` command will make sure to create the DB in Postgres if i
 
 ### Migrations
 
-We make use of the [node-pg-migrate](https://github.com/salsita/node-pg-migrate) NPM package to generate and run migrations on the postgres datastore.
+We make use of the [node-pg-migrate](https://github.com/salsita/node-pg-migrate) npm package to generate and run migrations on the postgres datastore.
 
 The `node-pg-migrate` command line interface can be accessed using `yarn graph:migrate {commands...}`. Command commands:
 
