@@ -1,5 +1,3 @@
-All blocks within this folder are available under the MIT License.
-
 The MIT License (MIT)
 =====================
 
