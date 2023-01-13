@@ -30,7 +30,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 
 Apache License
-==============
+=====================
 
 Copyright © 2022 HASH
 
