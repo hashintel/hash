@@ -5,7 +5,7 @@ under the excellent MIT License.
 The MIT License (MIT)
 =====================
 
-Copyright © 2023 HASH
+Copyright © HASH
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
