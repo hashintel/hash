@@ -4,7 +4,7 @@ ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
     PATH=:$PATH:/usr/local/cargo/bin
 
-COPY hash_graph/rust-toolchain.toml .
+COPY rust-toolchain.toml .
 RUN apk add --no-cache gcc musl-dev && \
     wget -q -O- https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal && \
     rustup show
@@ -29,4 +29,5 @@ COPY --from=builder /usr/local/cargo/bin/hash-graph /
 HEALTHCHECK --interval=2s --timeout=1s --retries=5 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:4000/api-doc/openapi.json || exit 1
 
-ENTRYPOINT ["/hash-graph", "--api-host", "0.0.0.0"]
+ENTRYPOINT ["/hash-graph"]
+CMD ["server", "--api-host", "0.0.0.0"]
