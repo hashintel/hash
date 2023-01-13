@@ -32,7 +32,7 @@ export const PropertyTitleCell = ({
             display || lineDepth === lines.length - 1 ? (
               <Box
                 // eslint-disable-next-line react/no-array-index-key
-                key={depth}
+                key={lineDepth}
                 sx={{
                   position: "absolute",
                   height: `${display ? 100 : 50}%`,

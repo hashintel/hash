@@ -134,12 +134,6 @@ const LinkTypeRow = ({
     name: `links.${linkIndex}.entityTypes`,
   });
 
-  const popupId = useId();
-  const menuPopupState = usePopupState({
-    variant: "popover",
-    popupId: `property-menu-${popupId}`,
-  });
-
   const editModalPopupId = useId();
   const editModalPopupState = usePopupState({
     variant: "popover",
