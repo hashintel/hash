@@ -4,7 +4,7 @@ mod entity_type;
 mod links;
 mod property_type;
 
-use std::{borrow::Cow, str::FromStr, time::SystemTime};
+use std::{borrow::Cow, ops::Bound, str::FromStr, time::SystemTime};
 
 use chrono::{DateTime, Days, Utc};
 use error_stack::Result;
@@ -337,6 +337,33 @@ impl DatabaseApi<'_> {
             .entities
             .into_values()
             .collect())
+    }
+
+    pub async fn get_entity_by_timestamp(
+        &self,
+        entity_id: EntityId,
+        timestamp: Timestamp<DecisionTime>,
+    ) -> Result<Entity, QueryError> {
+        let entities = self
+            .store
+            .get_entity(&StructuralQuery {
+                filter: Filter::for_entity_by_id(entity_id),
+                graph_resolve_depths: GraphResolveDepths::default(),
+                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                    kernel: UnresolvedKernel::new(None),
+                    image: UnresolvedImage::new(
+                        Some(TimeIntervalBound::Included(timestamp)),
+                        Some(TimeIntervalBound::Included(timestamp)),
+                    ),
+                }),
+            })
+            .await?
+            .vertices
+            .entities
+            .into_values()
+            .collect::<Vec<_>>();
+        assert_eq!(entities.len(), 1);
+        Ok(entities.into_iter().next().unwrap())
     }
 
     pub async fn get_latest_entity(&self, entity_id: EntityId) -> Result<Entity, QueryError> {
