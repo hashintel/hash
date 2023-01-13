@@ -3,7 +3,7 @@ import { scalars } from "@hashintel/hash-shared/graphql/scalar-mapping";
 
 const config: CodegenConfig = {
   overwrite: true,
-  schema: "../api/src/graphql/type-defs/**/*.ts",
+  schema: "../../packages/hash/api/src/graphql/type-defs/**/*.ts",
   generates: {
     "./src/graphql/fragment-types.gen.json": {
       plugins: ["fragment-matcher"],
