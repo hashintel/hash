@@ -9,7 +9,7 @@ pub enum Subcommand {
     /// Run the Graph webserver.
     #[default]
     Server,
-    /// Run database migrations required by the Graph
+    /// Run database migrations required by the Graph.
     Migrate,
 }
 
@@ -17,12 +17,6 @@ pub enum Subcommand {
 #[derive(Debug, Parser)]
 #[clap(version, author, about, long_about = None)]
 pub struct Args {
-    // The subcommand is optional to get around the need to specify a subcommand to start the
-    // server. Ideally it would use enum's default impl, but it does not.
-    /// Specify whether we should run the Graph webserver or database migrations.
-    #[command(subcommand)]
-    pub subcommand: Option<Subcommand>,
-
     #[clap(flatten)]
     pub db_info: DatabaseConnectionInfo,
 
@@ -30,11 +24,21 @@ pub struct Args {
     pub log_config: LoggingArgs,
 
     /// The host the REST client is listening at.
-    #[clap(long, default_value = "127.0.0.1", env = "HASH_GRAPH_API_HOST")]
+    #[clap(
+        long,
+        default_value = "127.0.0.1",
+        env = "HASH_GRAPH_API_HOST",
+        global = true
+    )]
     pub api_host: String,
 
     /// The port the REST client is listening at.
-    #[clap(long, default_value_t = 4000, env = "HASH_GRAPH_API_PORT")]
+    #[clap(
+        long,
+        default_value_t = 4000,
+        env = "HASH_GRAPH_API_PORT",
+        global = true
+    )]
     pub api_port: u16,
 
     /// A regex which *new* Type System URLs are checked against. Trying to create new Types with
@@ -53,17 +57,24 @@ pub struct Args {
     #[clap(
         long,
         default_value_t = Regex::new(r"http://localhost:3000/@(?P<shortname>[\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))/[\w\-_%]+/").unwrap(),
-        env = "HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN"
+        env = "HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN",
+        global = true
     )]
     pub allowed_url_domain: Regex,
 
     /// The OpenTelemetry protocol endpoint for sending traces.
-    #[clap(long, default_value = None, env = "HASH_GRAPH_OTLP_ENDPOINT")]
+    #[clap(long, default_value = None, env = "HASH_GRAPH_OTLP_ENDPOINT", global = true)]
     pub otlp_endpoint: Option<String>,
 
     /// Generate a completion script for the given shell and outputs it to stdout.
     #[clap(long, value_enum, exclusive = true)]
     generate_completion: Option<Shell>,
+
+    // The subcommand is optional to get around the need to specify a subcommand to start the
+    // server. Ideally it would use enum's default impl, but it does not.
+    /// Specify whether we should run the Graph webserver or database migrations.
+    #[command(subcommand)]
+    pub subcommand: Option<Subcommand>,
 }
 
 impl Args {

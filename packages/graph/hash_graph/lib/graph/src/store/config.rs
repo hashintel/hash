@@ -10,42 +10,70 @@ pub enum DatabaseType {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "clap", derive(clap::Args))]
 pub struct DatabaseConnectionInfo {
-    /// The database type to connect to
-    #[cfg_attr(feature = "clap", clap(long, default_value = "postgres", value_enum))]
-    database_type: DatabaseType,
-
-    /// Database username
+    /// The database type to connect to.
     #[cfg_attr(
         feature = "clap",
-        clap(long, default_value = "postgres", env = "HASH_GRAPH_PG_USER")
+        clap(long, default_value = "postgres", value_enum, global = true)
+    )]
+    database_type: DatabaseType,
+
+    /// Database username.
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            long,
+            default_value = "postgres",
+            env = "HASH_GRAPH_PG_USER",
+            global = true
+        )
     )]
     user: String,
 
-    /// Database password for authentication
+    /// Database password for authentication.
     #[cfg_attr(
         feature = "clap",
-        clap(long, default_value = "postgres", env = "HASH_GRAPH_PG_PASSWORD")
+        clap(
+            long,
+            default_value = "postgres",
+            env = "HASH_GRAPH_PG_PASSWORD",
+            global = true
+        )
     )]
     password: String,
 
-    /// The host to connect to
+    /// The host to connect to.
     #[cfg_attr(
         feature = "clap",
-        clap(long, default_value = "localhost", env = "HASH_GRAPH_PG_HOST")
+        clap(
+            long,
+            default_value = "localhost",
+            env = "HASH_GRAPH_PG_HOST",
+            global = true
+        )
     )]
     host: String,
 
-    /// The port to connect to
+    /// The port to connect to.
     #[cfg_attr(
         feature = "clap",
-        clap(long, default_value = "5432", env = "HASH_GRAPH_PG_PORT")
+        clap(
+            long,
+            default_value = "5432",
+            env = "HASH_GRAPH_PG_PORT",
+            global = true
+        )
     )]
     port: u16,
 
-    /// The database name to use
+    /// The database name to use.
     #[cfg_attr(
         feature = "clap",
-        clap(long, default_value = "graph", env = "HASH_GRAPH_PG_DATABASE")
+        clap(
+            long,
+            default_value = "graph",
+            env = "HASH_GRAPH_PG_DATABASE",
+            global = true
+        )
     )]
     database: String,
 }

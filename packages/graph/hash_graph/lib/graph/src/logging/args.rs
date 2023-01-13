@@ -85,23 +85,32 @@ pub struct LoggingArgs {
             long,
             default_value = "pretty",
             value_enum,
-            env = "HASH_GRAPH_LOG_FORMAT"
+            env = "HASH_GRAPH_LOG_FORMAT",
+            global = true
         )
     )]
     pub log_format: LogFormat,
 
-    /// Logging verbosity to use. If not set `RUST_LOG` will be used
-    #[cfg_attr(feature = "clap", clap(long, value_enum))]
+    /// Logging verbosity to use. If not set `RUST_LOG` will be used.
+    #[cfg_attr(feature = "clap", clap(long, value_enum, global = true))]
     pub log_level: Option<LogLevel>,
 
     /// Logging output folder. The folder is created if it doesn't exist.
     #[cfg_attr(
         feature = "clap",
-        clap(long, default_value = "./log", env = "HASH_GRAPH_LOG_FOLDER")
+        clap(
+            long,
+            default_value = "./log",
+            env = "HASH_GRAPH_LOG_FOLDER",
+            global = true
+        )
     )]
     pub log_folder: PathBuf,
 
     /// Logging output file prefix.
-    #[cfg_attr(feature = "clap", clap(short, long, default_value = "out"))]
+    #[cfg_attr(
+        feature = "clap",
+        clap(short, long, default_value = "out", global = true)
+    )]
     pub log_file_prefix: String,
 }
