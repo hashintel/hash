@@ -1,7 +1,6 @@
 import "@google/model-viewer";
 
 import { BlockElementBase } from "@blockprotocol/graph/custom-element";
-import { addSimpleAccessors } from "@blockprotocol/graph/stdlib";
 import { css, html } from "lit";
 
 import { RootEntity } from "./types.gen";
@@ -14,7 +13,6 @@ export class BlockElement extends BlockElementBase<RootEntity> {
 
   /** @see https://lit.dev/docs/components/rendering */
   render() {
-    console.log({ this: this });
     if (!this.blockEntity) {
       return null;
     }
