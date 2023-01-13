@@ -5,6 +5,7 @@ pub mod query;
 mod account;
 mod config;
 mod knowledge;
+mod migration;
 mod ontology;
 mod pool;
 mod postgres;
