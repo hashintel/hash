@@ -8,7 +8,7 @@ services:
 
   graph-migrate:
     environment:
-      HASH_GRAPH_PG_MIGRATION_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${HASH_GRAPH_PG_TEST_DATABASE}"
+      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_TEST_DATABASE}"
 
   graph:
     environment:
