@@ -10,7 +10,7 @@ use crate::store::{
 
 mod embedded {
     use refinery::embed_migrations;
-    embed_migrations!("postgres_migrations");
+    embed_migrations!("../../postgres_migrations");
 }
 
 #[async_trait]

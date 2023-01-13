@@ -238,7 +238,7 @@ async fn start_server(args: Args, pool: PostgresStorePool<NoTls>) -> Result<(), 
     Ok(())
 }
 
-async fn migrate_database(args: Args, pool: PostgresStorePool<NoTls>) -> Result<(), GraphError> {
+async fn migrate_database(_args: Args, pool: PostgresStorePool<NoTls>) -> Result<(), GraphError> {
     let mut connection = pool
         .acquire()
         .await
