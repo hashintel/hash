@@ -346,9 +346,9 @@ impl ToSchema for TransactionTimeProjection {
 ///
 /// In order to query data from the Graph, only one of the two time axes can be used. This is
 /// achieved by using a `TimeProjection`. The `TimeProjection` pins one axis to a specified
-/// [`Timestamp`], while the other axis can be a [`Timespan`]. The pinned axis is called the
+/// [`Timestamp`], while the other axis can be a [`TimeInterval`]. The pinned axis is called the
 /// [`Kernel`] and the other axis is called the [`Image`] of a projection. The returned data will
-/// then only contain temporal data that is contained in the [`Timespan`] of the [`Image`], the
+/// then only contain temporal data that is contained in the [`TimeInterval`] of the [`Image`], the
 /// [`ProjectedTime`], for the given [`Timestamp`] of the [`Kernel`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
