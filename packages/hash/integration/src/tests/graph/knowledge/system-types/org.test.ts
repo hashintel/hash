@@ -1,6 +1,5 @@
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
-  createGraphClient,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
@@ -11,10 +10,13 @@ import {
   updateOrgShortname,
 } from "@hashintel/hash-api/src/graph/knowledge/system-types/org";
 import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
-import { createTestOrg, generateRandomShortname } from "../../../util";
+import {
+  createTestImpureGraphContext,
+  createTestOrg,
+  generateRandomShortname,
+} from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -24,26 +26,18 @@ const logger = new Logger({
   serviceName: "integration-tests",
 });
 
-const graphApiHost = getRequiredEnv("HASH_GRAPH_API_HOST");
-const graphApiPort = parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10);
-
-const graphApi = createGraphClient(logger, {
-  host: graphApiHost,
-  port: graphApiPort,
-});
-
-const graphContext: ImpureGraphContext = { graphApi };
+const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 
 describe("Org", () => {
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
-    await ensureSystemGraphIsInitialized({ graphApi, logger });
+    await ensureSystemGraphIsInitialized({ logger, context: graphContext });
   });
 
   let createdOrg: Org;
   let shortname: string;
   it("can create an org", async () => {
-    createdOrg = await createTestOrg(graphApi, "orgTest", logger);
+    createdOrg = await createTestOrg(graphContext, "orgTest", logger);
 
     shortname = createdOrg.shortname;
   });

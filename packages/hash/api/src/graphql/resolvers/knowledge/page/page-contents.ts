@@ -7,6 +7,7 @@ import {
 } from "../../../../graph/knowledge/system-types/page";
 import { ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
+import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapBlockToGQL, UnresolvedPageGQL } from "../graphql-mapping";
 
 export const pageContents: ResolverFn<
@@ -15,9 +16,10 @@ export const pageContents: ResolverFn<
   LoggedInGraphQLContext,
   {}
 > = async ({ metadata }, _, { dataSources }) => {
-  const { graphApi } = dataSources;
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
   const entityId = metadata.editionId.baseId;
-  const page = await getPageById({ graphApi }, { entityId });
+  const page = await getPageById(context, { entityId });
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
   if (!page) {
@@ -27,7 +29,7 @@ export const pageContents: ResolverFn<
     );
   }
 
-  const blocks = await getPageBlocks({ graphApi }, { page });
+  const blocks = await getPageBlocks(context, { page });
 
   return blocks.map((block) => mapBlockToGQL(block));
 };
