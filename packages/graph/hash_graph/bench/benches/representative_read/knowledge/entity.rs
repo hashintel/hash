@@ -43,9 +43,7 @@ pub fn bench_get_entity_by_id(
                             ))),
                         ),
                         Filter::Equal(
-                            Some(FilterExpression::Path(
-                                EntityQueryPath::LowerTransactionTime,
-                            )),
+                            Some(FilterExpression::Path(EntityQueryPath::ProjectedTime)),
                             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                                 "latest",
                             )))),
