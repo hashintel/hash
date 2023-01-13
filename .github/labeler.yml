@@ -68,10 +68,10 @@ api:
   - packages/hash/api/**/.*
 
 integration:
-  - packages/hash/integration/*
-  - packages/hash/integration/.*
-  - packages/hash/integration/**/*
-  - packages/hash/integration/**/.*
+  - tests/hash-backend-integration/*
+  - tests/hash-backend-integration/.*
+  - tests/hash-backend-integration/**/*
+  - tests/hash-backend-integration/**/.*
 
 docker:
   - packages/hash/docker/*
@@ -80,10 +80,10 @@ docker:
   - packages/hash/docker/**/.*
 
 playwright:
-  - packages/hash/playwright/*
-  - packages/hash/playwright/.*
-  - packages/hash/playwright/**/*
-  - packages/hash/playwright/**/.*
+  - tests/hash-playwright/*
+  - tests/hash-playwright/.*
+  - tests/hash-playwright/**/*
+  - tests/hash-playwright/**/.*
 
 realtime:
   - apps/hash-realtime/*

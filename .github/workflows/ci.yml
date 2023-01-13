@@ -159,7 +159,7 @@ jobs:
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           fail_ci_if_error: true
-          files: packages/hash/integration/coverage/lcov.info
+          files: tests/hash-backend-integration/coverage/lcov.info
           flags: backend-integration-tests
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
 
@@ -249,7 +249,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: playwright-report
-          path: packages/hash/playwright/playwright-report
+          path: tests/hash-playwright/playwright-report
 
       - name: Upload artifact playwright-var
         uses: actions/upload-artifact@v3
@@ -280,6 +280,6 @@ jobs:
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           fail_ci_if_error: true
-          files: packages/hash/api/coverage/lcov.info,packages/hash/backend-utils/coverage/lcov.info,packages/hash/frontend/coverage/lcov.infopackages/hash/shared/coverage/lcov.info,
+          files: packages/hash/api/coverage/lcov.info,packages/hash/backend-utils/coverage/lcov.info,packages/hash/frontend/coverage/lcov.info,packages/hash/shared/coverage/lcov.info,
           flags: unit-tests
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
