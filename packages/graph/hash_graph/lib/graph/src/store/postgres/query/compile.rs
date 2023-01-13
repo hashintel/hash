@@ -119,7 +119,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
 
             self.statement
                 .where_expression
-                .add_condition(Condition::Overlaps(
+                .add_condition(Condition::Overlap(
                     Expression::Column(
                         Column::Entities(Entities::from_time_axis(
                             self.time_projection.image_time_axis(),
