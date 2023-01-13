@@ -6,7 +6,6 @@
       "apps/*",
       "blocks/*",
       "libs/@local/*",
-      "packages/engine/apache-arrow-js-bundle",
       "packages/graph/clients",
       "packages/graph/clients/typescript",
       "packages/graph/migrations",

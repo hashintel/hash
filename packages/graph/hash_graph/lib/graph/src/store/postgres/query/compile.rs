@@ -23,34 +23,35 @@ use crate::{
 // - 'p relates to the lifetime of the parameters, should be the longest living as they have to
 //   outlive the transpiling process
 
+pub struct TemporalTableInfo {
+    tables: HashSet<AliasedTable>,
+    parameter_index: usize,
+}
+
 pub struct CompilerArtifacts<'p> {
     parameters: Vec<&'p (dyn ToSql + Sync)>,
     condition_index: usize,
     required_tables: HashSet<AliasedTable>,
+    temporal_tables: Option<TemporalTableInfo>,
 }
 
 pub struct SelectCompiler<'c, 'p, T> {
     statement: SelectStatement<'c>,
     artifacts: CompilerArtifacts<'p>,
-    time_projection: &'c TimeProjection,
+    time_projection: &'p TimeProjection,
     _marker: PhantomData<fn(*const T)>,
 }
 
 impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     /// Creates a new, empty compiler.
-    pub fn new(time_projection: &'c TimeProjection) -> Self {
-        assert_eq!(
-            time_projection.time_axis(),
-            TimeAxis::DecisionTime,
-            "custom time projections are not supported yet"
-        );
+    pub fn new(time_projection: &'p TimeProjection) -> Self {
         assert_eq!(
             time_projection.image(),
             Timespan {
                 start: TimespanBound::Unbounded,
                 end: TimespanBound::Unbounded
             },
-            "custom time projections are not supported yet"
+            "custom time projection images are not supported yet"
         );
 
         Self {
@@ -71,6 +72,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                 parameters: Vec::new(),
                 condition_index: 0,
                 required_tables: HashSet::new(),
+                temporal_tables: None,
             },
             time_projection,
             _marker: PhantomData,
@@ -78,13 +80,46 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     }
 
     /// Creates a new compiler, which will select everything using the asterisk (`*`).
-    pub fn with_asterisk(time_projection: &'c TimeProjection) -> Self {
+    pub fn with_asterisk(time_projection: &'p TimeProjection) -> Self {
         let mut default = Self::new(time_projection);
         default
             .statement
             .selects
             .push(SelectExpression::new(Expression::Asterisk, None));
         default
+    }
+
+    fn pin_entity_table(&mut self, alias: Alias) {
+        let table = Table::Entities.aliased(alias);
+        let temporal_table_info = self.artifacts.temporal_tables.get_or_insert_with(|| {
+            self.artifacts.parameters.push(match self.time_projection {
+                TimeProjection::DecisionTime(projection) => &projection.kernel.timestamp,
+                TimeProjection::TransactionTime(projection) => &projection.kernel.timestamp,
+            });
+
+            TemporalTableInfo {
+                tables: HashSet::new(),
+                parameter_index: self.artifacts.parameters.len(),
+            }
+        });
+
+        if !temporal_table_info.tables.contains(&table) {
+            // Adds the kernel timestamp condition, so for the projected decision time, we use the
+            // transaction time and vice versa.
+            self.statement
+                .where_expression
+                .add_condition(Condition::TimerangeContainsTimestamp(
+                    Expression::Column(
+                        Column::Entities(match self.time_projection.time_axis() {
+                            TimeAxis::DecisionTime => Entities::TransactionTime,
+                            TimeAxis::TransactionTime => Entities::DecisionTime,
+                        })
+                        .aliased(alias),
+                    ),
+                    Expression::Parameter(temporal_table_info.parameter_index),
+                ));
+            temporal_table_info.tables.insert(table);
+        }
     }
 
     /// Adds a new path to the selection.
@@ -242,20 +277,23 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         operator: EqualityOperator,
     ) -> Condition<'c> {
         let alias = self.add_join_statements(path);
-        self.statement
-            .where_expression
-            .add_condition(Condition::RangeContains(
-                Expression::Column(Column::Entities(Entities::DecisionTime).aliased(alias)),
-                Expression::Function(Function::Now),
-            ));
-        let transaction_time_condition = Condition::RangeContains(
-            Expression::Column(Column::Entities(Entities::TransactionTime).aliased(alias)),
+        self.pin_entity_table(alias);
+        // Adds the image timestamp condition, so we use the same time axis as specified in the
+        // projection.
+        let condition = Condition::TimerangeContainsTimestamp(
+            Expression::Column(
+                Column::Entities(match self.time_projection.time_axis() {
+                    TimeAxis::DecisionTime => Entities::DecisionTime,
+                    TimeAxis::TransactionTime => Entities::TransactionTime,
+                })
+                .aliased(alias),
+            ),
             Expression::Function(Function::Now),
         );
 
         match operator {
-            EqualityOperator::Equal => transaction_time_condition,
-            EqualityOperator::NotEqual => Condition::Not(Box::new(transaction_time_condition)),
+            EqualityOperator::Equal => condition,
+            EqualityOperator::NotEqual => Condition::Not(Box::new(condition)),
         }
     }
 
@@ -284,20 +322,22 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                             EqualityOperator::NotEqual,
                         ))
                     }
-                    (
-                        Column::Entities(Entities::LowerTransactionTime),
-                        Filter::Equal(..),
-                        "latest",
-                    ) => Some(
-                        self.compile_latest_entity_version_filter(path, EqualityOperator::Equal),
-                    ),
-                    (
-                        Column::Entities(Entities::LowerTransactionTime),
-                        Filter::NotEqual(..),
-                        "latest",
-                    ) => Some(
-                        self.compile_latest_entity_version_filter(path, EqualityOperator::NotEqual),
-                    ),
+                    (Column::Entities(Entities::ProjectedTime), Filter::Equal(..), "latest") => {
+                        Some(
+                            self.compile_latest_entity_version_filter(
+                                path,
+                                EqualityOperator::Equal,
+                            ),
+                        )
+                    }
+                    (Column::Entities(Entities::ProjectedTime), Filter::NotEqual(..), "latest") => {
+                        Some(
+                            self.compile_latest_entity_version_filter(
+                                path,
+                                EqualityOperator::NotEqual,
+                            ),
+                        )
+                    }
                     _ => None,
                 },
                 _ => None,
@@ -320,17 +360,9 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
 
         let alias = self.add_join_statements(path);
 
-        // TODO: Remove special casing when adjusting structural queries
-        //   see https://app.asana.com/0/0/1203491211535116/f
         if matches!(column, Column::Entities(_)) {
-            self.statement
-                .where_expression
-                .add_condition(Condition::RangeContains(
-                    Expression::Column(Column::Entities(Entities::DecisionTime).aliased(alias)),
-                    Expression::Function(Function::Now),
-                ));
+            self.pin_entity_table(alias);
         }
-
         column.aliased(alias)
     }
 
@@ -340,11 +372,18 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     ) -> Expression<'c> {
         match expression {
             FilterExpression::Path(path) => {
-                // TODO: Remove special casing when adjusting structural queries
-                //   see https://app.asana.com/0/0/1203491211535116/f
                 let column = self.compile_path_column(path);
-                if column.column == Column::Entities(Entities::LowerTransactionTime) {
-                    Expression::Function(Function::Lower(Box::new(Expression::Column(column))))
+                // TODO: Remove special casing when correctly resolving time intervals in subgraphs.
+                //   see https://app.asana.com/0/0/1203701389454316/f
+                if column.column == Column::Entities(Entities::ProjectedTime) {
+                    let alias = column.alias;
+                    let column = match self.time_projection.time_axis() {
+                        TimeAxis::DecisionTime => Column::Entities(Entities::DecisionTime),
+                        TimeAxis::TransactionTime => Column::Entities(Entities::TransactionTime),
+                    };
+                    Expression::Function(Function::Lower(Box::new(Expression::Column(
+                        column.aliased(alias),
+                    ))))
                 } else {
                     Expression::Column(column)
                 }
@@ -493,17 +532,8 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                     current_table = join_expression.join.table();
                     self.statement.joins.push(join_expression);
 
-                    // TODO: Remove special casing when adjusting structural queries
-                    //   see https://app.asana.com/0/0/1203491211535116/f
                     if matches!(current_column.column, Column::Entities(_)) {
-                        self.statement
-                            .where_expression
-                            .add_condition(Condition::RangeContains(
-                                Expression::Column(
-                                    Column::Entities(Entities::DecisionTime).aliased(current_alias),
-                                ),
-                                Expression::Function(Function::Now),
-                            ));
+                        self.pin_entity_table(current_alias);
                     }
                 }
             }
