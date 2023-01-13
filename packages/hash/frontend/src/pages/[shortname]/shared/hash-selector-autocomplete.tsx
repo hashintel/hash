@@ -194,6 +194,9 @@ export const HashSelectorAutocomplete = <
               ...(open
                 ? [popperPlacementInputNoRadius, popperPlacementInputNoBorder]
                 : []),
+              ...(dropdownProps.joined
+                ? [{ borderRadius: "0 !important" }]
+                : []),
             ],
           }}
         />
