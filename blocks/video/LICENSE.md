@@ -1,7 +1,7 @@
 The MIT License (MIT)
 =====================
 
-Copyright © HASH
+Copyright © 2022- HASH
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
@@ -27,7 +27,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 Apache License
 ==============
 
-Copyright © HASH
+Copyright © 2022- HASH
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
