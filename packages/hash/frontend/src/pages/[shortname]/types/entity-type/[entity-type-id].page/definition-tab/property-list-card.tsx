@@ -8,6 +8,7 @@ import {
   checkboxClasses,
   Collapse,
   svgIconClasses,
+  Table,
   TableBody,
   TableCell,
   TableFooter,
@@ -16,7 +17,6 @@ import {
 } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import {
-  forwardRef,
   ReactNode,
   useCallback,
   useEffect,
@@ -96,7 +96,18 @@ const CollapsibleTableRow = ({
               zIndex: 1,
             }}
           />
-          <Box mt={`${lineHeight}px`}>{children}</Box>
+
+          <Table sx={{ mt: `${lineHeight}px` }}>
+            <TableBody
+              sx={{
+                "::before": {
+                  height: 0,
+                },
+              }}
+            >
+              {children}
+            </TableBody>
+          </Table>
         </Collapse>
       </TableCell>
     </TableRow>
