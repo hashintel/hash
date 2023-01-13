@@ -31,7 +31,7 @@ pub enum TimeAxis {
 ///
 /// This is used as the generic argument to time-related structs. Please refer to the documentation
 /// of [`TimeProjection`] for more information.
-/// 
+///
 /// [`Image`]: crate::identifier::time::Image
 /// [`TimeProjection`]: crate::identifier::time::TimeProjection
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
