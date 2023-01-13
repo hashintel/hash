@@ -88,7 +88,7 @@ export const App: BlockComponent<RootEntity> = ({
   const handleLanguageChange = (newLanguage: LanguageType) => {
     const newData = {
       ...localData,
-      language: newLanguage,
+      [languageKey]: newLanguage,
     };
     updateLocalData(newData);
     updateRemoteData(newData);
