@@ -2,7 +2,7 @@
   "name": "apache-arrow-js-bundle",
   "version": "0.0.0-private",
   "private": true,
-  "description": "Apache Arrow JS bundle for HASH Engine stdlib",
+  "description": "Apache Arrow JS bundle for HASH Engine",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hashintel/hash.git",
