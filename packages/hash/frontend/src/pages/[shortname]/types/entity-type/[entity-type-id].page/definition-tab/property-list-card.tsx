@@ -8,7 +8,6 @@ import {
   checkboxClasses,
   Collapse,
   svgIconClasses,
-  Table,
   TableBody,
   TableCell,
   TableFooter,
@@ -20,6 +19,7 @@ import {
   forwardRef,
   ReactNode,
   useCallback,
+  useEffect,
   useId,
   useLayoutEffect,
   useMemo,
@@ -63,229 +63,228 @@ import { TypeFormModal } from "./shared/type-form";
 import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { useStateCallback } from "./shared/use-state-callback";
 
-const CollapsibleTableRow = forwardRef(
-  (
-    {
-      expanded,
-      depth,
-      lineHeight,
-      children,
-    }: {
-      expanded: boolean;
-      depth: number;
-      lineHeight: number;
-      children: ReactNode;
-    },
-    ref,
-  ) => {
-    return (
-      <TableRow>
-        <TableCell
-          colSpan={12}
-          sx={{ p: "0 !important", position: "relative" }}
+const CollapsibleTableRow = ({
+  expanded,
+  depth,
+  lineHeight,
+  children,
+}: {
+  expanded: boolean;
+  depth: number;
+  lineHeight: number;
+  children: ReactNode;
+}) => {
+  return (
+    <TableRow>
+      <TableCell colSpan={12} sx={{ p: "0 !important", position: "relative" }}>
+        <Collapse
+          in={expanded}
+          sx={{
+            position: "relative",
+            top: `-${lineHeight}px`,
+            mb: `-${lineHeight}px`,
+          }}
+          appear
         >
-          <Table>
-            <Collapse
-              in={expanded}
-              sx={{ position: "relative", top: -12 }}
-              appear
-            >
-              <Box
-                ref={ref}
-                sx={{
-                  position: "absolute",
-                  height: lineHeight,
-                  width: "1px",
-                  left: `${13.4 + 20 * depth}px`,
-                  background: ({ palette }) => palette.gray[30],
-                  zIndex: 1,
-                }}
-              />
-              <Box mt={1.5}>{children}</Box>
-            </Collapse>
-          </Table>
-        </TableCell>
-      </TableRow>
-    );
-  },
-);
+          <Box
+            sx={{
+              position: "absolute",
+              height: lineHeight,
+              width: "1px",
+              left: `${13.4 + 20 * depth}px`,
+              background: ({ palette }) => palette.gray[30],
+              zIndex: 1,
+            }}
+          />
+          <Box mt={`${lineHeight}px`}>{children}</Box>
+        </Collapse>
+      </TableCell>
+    </TableRow>
+  );
+};
 
-const PropertyRow = forwardRef(
-  (
-    {
-      property,
-      isArray,
-      isRequired,
-      expectedValuesColumnWidth,
-      depth = 0,
-      allowArraysTableCell,
-      requiredTableCell,
-      menuTableCell,
-    }: {
-      property: PropertyType;
-      expectedValuesColumnWidth: number;
-      isArray: boolean;
-      isRequired?: boolean;
-      depth?: number;
-      allowArraysTableCell?: ReactNode;
-      requiredTableCell?: ReactNode;
-      menuTableCell?: ReactNode;
-    },
-    forwardedRef,
-  ) => {
-    const propertyTypes = usePropertyTypes();
+const PropertyRow = ({
+  property,
+  isArray,
+  isRequired,
+  expectedValuesColumnWidth,
+  depth = 0,
+  lines = [],
+  allowArraysTableCell,
+  requiredTableCell,
+  menuTableCell,
+}: {
+  property: PropertyType;
+  expectedValuesColumnWidth: number;
+  isArray: boolean;
+  isRequired?: boolean;
+  depth?: number;
+  lines?: boolean[];
+  allowArraysTableCell?: ReactNode;
+  requiredTableCell?: ReactNode;
+  menuTableCell?: ReactNode;
+}) => {
+  const propertyTypes = usePropertyTypes();
 
-    const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(true);
 
-    const lineRef = useRef<HTMLDivElement | null>();
-    const lastItemRef = useRef<HTMLDivElement | null>();
-    const [lineHeight, setLineHeight] = useState(0);
+  const mainRef = useRef<HTMLTableRowElement | null>(null);
+  const [lineHeight, setLineHeight] = useState(0);
 
-    const [animatingOutExpectedValue, setAnimatingOutExpectedValue] =
-      useState(false);
-    const [selectedExpectedValueIndex, setSelectedExpectedValueIndex] =
-      useState(-1);
+  const [animatingOutExpectedValue, setAnimatingOutExpectedValue] =
+    useState(false);
+  const [selectedExpectedValueIndex, setSelectedExpectedValueIndex] =
+    useState(-1);
 
-    const children = useMemo(() => {
-      const selectedProperty = property.oneOf[selectedExpectedValueIndex]
-        ? property.oneOf[selectedExpectedValueIndex]
-        : null;
+  const children = useMemo(() => {
+    const selectedProperty = property.oneOf[selectedExpectedValueIndex]
+      ? property.oneOf[selectedExpectedValueIndex]
+      : null;
 
-      const selectedObjectProperties =
-        selectedProperty && "properties" in selectedProperty
-          ? selectedProperty.properties
-          : undefined;
+    const selectedObjectProperties =
+      selectedProperty && "properties" in selectedProperty
+        ? selectedProperty.properties
+        : undefined;
 
-      return selectedObjectProperties
-        ? Object.entries(selectedObjectProperties).reduce(
-            (
-              childrenArray: ({
-                array: boolean;
-                required: boolean;
-              } & PropertyType)[],
-              [propertyId, ref],
-            ) => {
-              const $ref = "items" in ref ? ref.items.$ref : ref.$ref;
-              const propertyType = propertyTypes?.[$ref];
+    return selectedObjectProperties
+      ? Object.entries(selectedObjectProperties).reduce(
+          (
+            childrenArray: ({
+              array: boolean;
+              required: boolean;
+            } & PropertyType)[],
+            [propertyId, ref],
+          ) => {
+            const $ref = "items" in ref ? ref.items.$ref : ref.$ref;
+            const propertyType = propertyTypes?.[$ref];
 
-              if (propertyType) {
-                const array = "type" in ref;
-                const required = Boolean(
-                  selectedProperty &&
-                    "required" in selectedProperty &&
-                    selectedProperty.required?.includes(propertyId),
-                );
-                return [...childrenArray, { ...propertyType, array, required }];
-              }
+            if (propertyType) {
+              const array = "type" in ref;
+              const required = Boolean(
+                selectedProperty &&
+                  "required" in selectedProperty &&
+                  selectedProperty.required?.includes(propertyId),
+              );
+              return [...childrenArray, { ...propertyType, array, required }];
+            }
 
-              return childrenArray;
-            },
-            [],
-          )
-        : [];
-    }, [selectedExpectedValueIndex, property.oneOf, propertyTypes]);
+            return childrenArray;
+          },
+          [],
+        )
+      : [];
+  }, [selectedExpectedValueIndex, property.oneOf, propertyTypes]);
 
-    return (
-      <>
-        <EntityTypeTableRow ref={forwardedRef}>
-          <TableCell width={260} sx={{ position: "relative" }}>
-            <PropertyTitle
-              property={property}
-              array={isArray}
-              expanded={children.length ? expanded : undefined}
-              setExpanded={setExpanded}
-              depth={depth}
-            />
-          </TableCell>
-          <TableCell width={expectedValuesColumnWidth}>
-            <PropertyExpectedValues
-              property={property}
-              selectedExpectedValueIndex={selectedExpectedValueIndex}
-              setSelectedExpectedValueIndex={setSelectedExpectedValueIndex}
-              setAnimatingOutExpectedValue={setAnimatingOutExpectedValue}
-            />
-          </TableCell>
+  const handleResize = () => {
+    if (mainRef.current) {
+      setLineHeight(mainRef.current.offsetHeight * 0.5 - 8);
+    }
+  };
 
-          {allowArraysTableCell ?? (
-            <EntityTypeTableCenteredCell width={170}>
-              <Checkbox
-                disabled
-                checked={isArray}
-                sx={{
-                  pr: 1,
-                  [`.${svgIconClasses.root}`]: {
-                    color: "inherit",
-                  },
-                  [`&.${checkboxClasses.checked}.${checkboxClasses.disabled}`]:
-                    {
-                      color: ({ palette }) => `${palette.blue[30]} !important`,
-                    },
-                }}
-              />
-            </EntityTypeTableCenteredCell>
-          )}
+  useEffect(() => {
+    window.addEventListener("resize", handleResize);
 
-          {requiredTableCell ?? (
-            <EntityTypeTableCenteredCell width={100}>
-              <Checkbox
-                disabled
-                checked={isRequired}
-                sx={{
-                  [`.${svgIconClasses.root}`]: {
-                    color: "inherit",
-                  },
-                  [`&.${checkboxClasses.checked}.${checkboxClasses.disabled}`]:
-                    {
-                      color: ({ palette }) => `${palette.blue[30]} !important`,
-                    },
-                }}
-              />
-            </EntityTypeTableCenteredCell>
-          )}
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
 
-          {menuTableCell ?? (
-            <TypeMenuCell
-              typeId={property.$id}
-              variant="property"
-              canEdit={false}
-              canRemove={false}
-            />
-          )}
-        </EntityTypeTableRow>
-
-        {children.length ? (
-          <CollapsibleTableRow
-            expanded={expanded && !animatingOutExpectedValue}
+  return (
+    <>
+      <EntityTypeTableRow
+        ref={(row: HTMLTableRowElement | null) => {
+          if (row) {
+            mainRef.current = row;
+            handleResize();
+          }
+        }}
+      >
+        <TableCell width={260} sx={{ position: "relative" }}>
+          <PropertyTitle
+            property={property}
+            array={isArray}
             depth={depth}
-            lineHeight={lineHeight}
-            ref={lineRef}
-          >
-            {children.map((prop, pos) => (
-              <PropertyRow
-                key={prop.$id}
-                property={prop}
-                expectedValuesColumnWidth={expectedValuesColumnWidth}
-                depth={depth + 1}
-                isArray={prop.array}
-                isRequired={prop.required}
-                ref={(row: HTMLDivElement | undefined) => {
-                  if (row && pos === children.length - 1) {
-                    lastItemRef.current = row;
-                    setLineHeight(
-                      row.getBoundingClientRect().top -
-                        (lineRef.current?.getBoundingClientRect().top ?? 0) +
-                        21,
-                    );
-                  }
-                }}
-              />
-            ))}
-          </CollapsibleTableRow>
-        ) : null}
-      </>
-    );
-  },
-);
+            lines={lines}
+            expanded={children.length ? expanded : undefined}
+            setExpanded={setExpanded}
+          />
+        </TableCell>
+        <TableCell width={expectedValuesColumnWidth}>
+          <PropertyExpectedValues
+            property={property}
+            selectedExpectedValueIndex={selectedExpectedValueIndex}
+            setSelectedExpectedValueIndex={setSelectedExpectedValueIndex}
+            setAnimatingOutExpectedValue={setAnimatingOutExpectedValue}
+          />
+        </TableCell>
+
+        {allowArraysTableCell ?? (
+          <EntityTypeTableCenteredCell width={170}>
+            <Checkbox
+              disabled
+              checked={isArray}
+              sx={{
+                pr: 1,
+                [`.${svgIconClasses.root}`]: {
+                  color: "inherit",
+                },
+                [`&.${checkboxClasses.checked}.${checkboxClasses.disabled}`]: {
+                  color: ({ palette }) => `${palette.blue[30]} !important`,
+                },
+              }}
+            />
+          </EntityTypeTableCenteredCell>
+        )}
+
+        {requiredTableCell ?? (
+          <EntityTypeTableCenteredCell width={100}>
+            <Checkbox
+              disabled
+              checked={isRequired}
+              sx={{
+                [`.${svgIconClasses.root}`]: {
+                  color: "inherit",
+                },
+                [`&.${checkboxClasses.checked}.${checkboxClasses.disabled}`]: {
+                  color: ({ palette }) => `${palette.blue[30]} !important`,
+                },
+              }}
+            />
+          </EntityTypeTableCenteredCell>
+        )}
+
+        {menuTableCell ?? (
+          <TypeMenuCell
+            typeId={property.$id}
+            variant="property"
+            canEdit={false}
+            canRemove={false}
+          />
+        )}
+      </EntityTypeTableRow>
+
+      {children.length ? (
+        <CollapsibleTableRow
+          expanded={expanded && !animatingOutExpectedValue}
+          depth={depth}
+          lineHeight={lineHeight}
+        >
+          {children.map((prop, pos) => (
+            <PropertyRow
+              key={prop.$id}
+              property={prop}
+              expectedValuesColumnWidth={expectedValuesColumnWidth}
+              depth={depth + 1}
+              lines={[...lines, pos !== children.length - 1]}
+              isArray={prop.array}
+              isRequired={prop.required}
+            />
+          ))}
+        </CollapsibleTableRow>
+      ) : null}
+    </>
+  );
+};
 
 export const PropertyTypeRow = ({
   propertyIndex,

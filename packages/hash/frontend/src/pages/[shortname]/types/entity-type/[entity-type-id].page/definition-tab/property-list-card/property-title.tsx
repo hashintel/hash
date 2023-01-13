@@ -9,6 +9,7 @@ interface PropertyTitleProps {
   property: PropertyType;
   array: boolean;
   depth: number;
+  lines: boolean[];
   expanded?: boolean;
   setExpanded?: (expanded: boolean) => void;
 }
@@ -17,23 +18,43 @@ export const PropertyTitle = ({
   property,
   array,
   depth = 0,
+  lines,
   expanded,
   setExpanded,
 }: PropertyTitleProps) => {
   return (
     <>
       {depth !== 0 ? (
-        <Box
-          sx={{
-            width: 10.5,
-            height: "1px",
-            position: "absolute",
-            top: "50%",
-            transform: "translateY(-50%)",
-            left: Math.max(0, depth - 1) * 20 + 13.5,
-            background: ({ palette }) => palette.gray[30],
-          }}
-        />
+        <>
+          {lines.map((display, lineDepth) =>
+            display || lineDepth === lines.length - 1 ? (
+              <Box
+                // eslint-disable-next-line react/no-array-index-key
+                key={depth}
+                sx={{
+                  position: "absolute",
+                  height: `${display ? 100 : 50}%`,
+                  width: "1px",
+                  left: `${13.4 + 20 * lineDepth}px`,
+                  top: 0,
+                  background: ({ palette }) => palette.gray[30],
+                  zIndex: 1,
+                }}
+              />
+            ) : null,
+          )}
+          <Box
+            sx={{
+              width: 10.5,
+              height: "1px",
+              position: "absolute",
+              top: "50%",
+              transform: "translateY(-50%)",
+              left: Math.max(0, depth - 1) * 20 + 13.5,
+              background: ({ palette }) => palette.gray[30],
+            }}
+          />
+        </>
       ) : null}
       <EntityTypeTableTitleCellText
         sx={{
