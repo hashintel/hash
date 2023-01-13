@@ -83,6 +83,14 @@ cargo make test-rest-api
 
 ## Migrations
 
+Migrations in the Graph are handled through [`refinery`](https://github.com/rust-db/refinery). The migrations are located at [./](./hash_graph/postgres_migrations/) and can be manually added to.
+
+The `V` prefix **is significant** and must be set followed by an incrementing number. This number specifies the sequence migrations are applied in. the `V` refers to a versioned migration. The migration file format is `[V]{1}__{2}.sql` in our case, where `{1}` is the incrementing sequence number and `{2}` is a display name for the migration.
+
+For undoing a migration we should create new migrations that undo changes. In general, migrations are easiest to manage from an Operations perspective if they are non-destructive wherever possible, doing as little data wrangling.
+
+The tool we are using, `refinery`, also supports Rust based (`.rs`) migration files with the same naming scheme.
+
 ## Generate OpenAPI client
 
 The HASH Graph produces an OpenAPI Spec while running, which can be used to generate the `@hashintel/hash-graph-client` typescript client. In the `hash_graph` directory run:
