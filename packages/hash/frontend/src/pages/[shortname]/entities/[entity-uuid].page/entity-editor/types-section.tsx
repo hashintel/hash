@@ -80,7 +80,7 @@ export const TypesSection = () => {
             newVersion,
           ),
           entityId: editionId.baseId as EntityId,
-          updatedProperties: properties,
+          properties,
         },
       });
 

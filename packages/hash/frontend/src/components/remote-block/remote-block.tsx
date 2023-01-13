@@ -1,4 +1,4 @@
-import { BlockMetadata, UnknownRecord } from "@blockprotocol/core";
+import { BlockMetadata } from "@blockprotocol/core";
 import {
   BlockGraphProperties,
   EmbedderGraphMessageCallbacks,
@@ -17,7 +17,6 @@ type RemoteBlockProps = {
     EmbedderGraphMessageCallbacks,
     | "createEntity"
     | "getEntity"
-    | "updateEntity"
     | "aggregateEntities"
     | "deleteEntity"
     | "createLink"
@@ -34,7 +33,7 @@ type RemoteBlockProps = {
     | "updateLinkedAggregation"
     | "deleteLinkedAggregation"
   >;
-  graphProperties: Required<BlockGraphProperties<UnknownRecord>["graph"]>;
+  graphProperties: Required<BlockGraphProperties["graph"]>;
   blockMetadata: BlockMetadata;
   crossFrame?: boolean;
   editableRef?: (node: HTMLElement | null) => void;
@@ -101,29 +100,11 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
 
   useEffect(() => {
     if (graphService) {
-      graphService.blockEntity({ data: graphProperties.blockEntity });
-    }
-  }, [graphProperties.blockEntity, graphService]);
-
-  useEffect(() => {
-    if (graphService) {
-      graphService.blockGraph({ data: graphProperties.blockGraph });
-    }
-  }, [graphProperties.blockGraph, graphService]);
-
-  useEffect(() => {
-    if (graphService) {
-      graphService.entityTypes({ data: graphProperties.entityTypes });
-    }
-  }, [graphProperties.entityTypes, graphService]);
-
-  useEffect(() => {
-    if (graphService) {
-      graphService.linkedAggregations({
-        data: graphProperties.linkedAggregations,
+      graphService.blockEntitySubgraph({
+        data: graphProperties.blockEntitySubgraph,
       });
     }
-  }, [graphProperties.linkedAggregations, graphService]);
+  }, [graphProperties.blockEntitySubgraph, graphService]);
 
   useEffect(() => {
     if (graphService) {
@@ -145,7 +126,7 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
     throw err;
   }
 
-  const propsToInject: BlockGraphProperties<Record<string, any>> = {
+  const propsToInject: BlockGraphProperties = {
     graph: graphProperties,
   };
 
