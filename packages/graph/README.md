@@ -91,6 +91,12 @@ For undoing a migration we should create new migrations that undo changes. In ge
 
 The tool we are using, `refinery`, also supports Rust based (`.rs`) migration files with the same naming scheme.
 
+Migrations are run through the same binary as the server using the following command:
+
+```shell
+cargo run -- migrate
+```
+
 ## Generate OpenAPI client
 
 The HASH Graph produces an OpenAPI Spec while running, which can be used to generate the `@hashintel/hash-graph-client` typescript client. In the `hash_graph` directory run:
@@ -103,7 +109,7 @@ Make sure to run this command whenever changes are made to the specification. CI
 
 ## Benchmark the code
 
-The benchmark suite can be ran with:
+The benchmark suite can be run with:
 
 ```shell
 cargo make bench
