@@ -1,0 +1,69 @@
+{
+  "name": "3d-model-viewer",
+  "version": "0.0.1",
+  "description": "Block Protocol wrapper around Google's 3D model viewer",
+  "keywords": [
+    "blockprotocol",
+    "blocks"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git#main",
+    "directory": "blocks/3d-model-viewer"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "HASH",
+    "url": "https://hash.ai"
+  },
+  "scripts": {
+    "build": "block-scripts build",
+    "codegen": "block-scripts codegen",
+    "dev": "block-scripts dev",
+    "fix:eslint": "eslint --fix .",
+    "format": "prettier --write --ignore-unknown .",
+    "postinstall": "yarn codegen",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit",
+    "serve": "block-scripts serve"
+  },
+  "prettier": {
+    "printWidth": 80,
+    "trailingComma": "all"
+  },
+  "dependencies": {
+    "@blockprotocol/graph": "0.1.0-canary-20230111084611",
+    "@blockprotocol/type-system": "0.0.3-canary-20230111084611",
+    "@google/model-viewer": "^2.1.1",
+    "lit": "^2.4.1"
+  },
+  "devDependencies": {
+    "@types/react-dom": "^18.0.9",
+    "block-scripts": "0.1.0-canary-20230111084611",
+    "eslint": "8.28.0",
+    "mock-block-dock": "0.1.0-canary-20230111084611",
+    "prettier": "2.8.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "block-scripts": {
+    "port": 63212
+  },
+  "blockprotocol": {
+    "blockType": {
+      "entryPoint": "custom-element",
+      "tagName": "model-viewer-wrapper"
+    },
+    "displayName": "Template",
+    "examples": [
+      {
+        "name": "World"
+      }
+    ],
+    "icon": "public/omega.svg",
+    "image": "public/block-preview.png",
+    "name": "3d-model-viewer",
+    "protocol": "0.3",
+    "schema": "https://alpha.hash.ai/@ciaran/types/entity-type/model-viewer/v/5"
+  }
+}
