@@ -27,7 +27,7 @@ pub enum TimeAxis {
     TransactionTime,
 }
 
-/// Time axis for the [`Image`] time axis used in [`TimeProjection`]s.
+/// Time axis for the [`Image`] used in [`TimeProjection`]s.
 ///
 /// This is used as the generic argument to time-related structs. Please refer to the documentation
 /// of [`TimeProjection`] for more information.
