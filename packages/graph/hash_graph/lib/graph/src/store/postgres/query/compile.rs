@@ -4,7 +4,7 @@ use postgres_types::ToSql;
 use tokio_postgres::row::RowIndex;
 
 use crate::{
-    identifier::time::{TimeAxis, TimeProjection},
+    identifier::time::TimeProjection,
     store::{
         postgres::query::{
             expression::Constant,
