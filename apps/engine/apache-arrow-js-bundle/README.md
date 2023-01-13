@@ -4,10 +4,12 @@
 
 ### Building
 
-Run
+Move to the package folder and run:
 
-- `yarn install`
-- `yarn workspace @hashengine/apache-arrow-js-bundle bundle`
+```sh
+npm install
+npm run bundle
+```
 
 The bundle should appear as `./dist/apache-arrow-bundle.js`
 
@@ -26,7 +28,7 @@ The bundle should appear as `./dist/apache-arrow-bundle.js`
       ...
   ```
 
-- From the `./packages/engine` folder run:
+- From the `./apps/engine` folder run:
   `cp apache-arrow-js-bundle/dist/apache-arrow-bundle.js lib/execution/src/runner/javascript/apache-arrow-bundle.js`
 
 > [1] Unfortunately at this time we haven't figured out how to generate the exact format we need for the way we load modules into V8.

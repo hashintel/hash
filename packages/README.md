@@ -11,10 +11,6 @@ This directory's contents are in the process of being integrated into the `apps`
 
 Our [HASH](https://hash.ai/platform/hash) codebase can be found in `hash`. HASH is a data-driven, schema-centric, all-in-one workspace built atop the [Block Protocol](https://blockprotocol.org/).
 
-## `engine`
-
-`engine` houses the codebase of our next-generation version of [HASH Engine](https://hash.ai/platform/engine) - a versatile agent-based simulation engine written in Rust.
-
 ## `libs`
 
 `libs` contains the source code for the `deer` and `error-stack` Rust crates which will be moved to the root `libs` directory shortly.

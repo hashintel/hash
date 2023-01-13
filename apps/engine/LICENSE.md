@@ -1,7 +1,3 @@
-Source code in this folder is licensed under the Elastic License 2.0.
-                        
----
-
 # Elastic License 2.0
 
 URL: https://www.elastic.co/licensing/elastic-license
