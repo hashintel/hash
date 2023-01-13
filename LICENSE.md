@@ -19,7 +19,7 @@ Attribution-ShareAlike 4.0 International](apps/hashdotai/resources/LICENSE.md) l
 # Quick Reference
 
 - Within the `/blocks` folder, all source code is made
-  available under the MIT License.
+  available under the MIT License and Apache License 2.0.
 
 - Within the `/apps/engine` folder, source code is licensed under the
   Elastic License 2.0, unless otherwise noted.
