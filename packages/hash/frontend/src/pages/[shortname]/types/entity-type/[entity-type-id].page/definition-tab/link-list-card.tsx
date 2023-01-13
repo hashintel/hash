@@ -331,7 +331,6 @@ const LinkTypeRow = ({
         <TypeMenuCell
           typeId={linkId}
           editButtonProps={bindTrigger(editModalPopupState)}
-          popupState={menuPopupState}
           variant="link"
           onRemove={onRemove}
         />
