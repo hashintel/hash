@@ -3,10 +3,26 @@ use clap_complete::Shell;
 use graph::{logging::LoggingArgs, store::DatabaseConnectionInfo};
 use regex::Regex;
 
+/// Subcommand for the program.
+#[derive(Debug, Clone, Default, clap::Subcommand)]
+pub enum Subcommand {
+    /// Run the Graph webserver.
+    #[default]
+    Server,
+    /// Run database migrations required by the Graph
+    Migrate,
+}
+
 /// Arguments passed to the program.
 #[derive(Debug, Parser)]
 #[clap(version, author, about, long_about = None)]
 pub struct Args {
+    // The subcommand is optional to get around the need to specify a subcommand to start the
+    // server. Ideally it would use enum's default impl, but it does not.
+    /// Specify whether we should run the Graph webserver or database migrations.
+    #[command(subcommand)]
+    pub subcommand: Option<Subcommand>,
+
     #[clap(flatten)]
     pub db_info: DatabaseConnectionInfo,
 
@@ -65,5 +81,9 @@ impl Args {
         }
 
         args
+    }
+
+    pub fn subcommand(&self) -> Subcommand {
+        self.subcommand.clone().unwrap_or_default()
     }
 }

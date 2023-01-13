@@ -75,7 +75,7 @@ impl From<LogLevel> for Directive {
 }
 
 /// Arguments for configuring the logging setup
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "clap", derive(Parser))]
 pub struct LoggingArgs {
     /// Log format used for output to stderr.

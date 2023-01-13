@@ -14,7 +14,7 @@ use graph::{
     provenance::{OwnedById, UpdatedById},
     store::{
         AccountStore, BaseUriAlreadyExists, DataTypeStore, EntityTypeStore, PostgresStorePool,
-        StorePool,
+        StoreMigration, StorePool,
     },
 };
 use serde_json::json;
@@ -37,6 +37,7 @@ impl fmt::Display for GraphError {
     }
 }
 
+// TODO: Consider making this a refinery migration
 /// A place to collect temporary implementations that are useful before stabilization of the Graph.
 ///
 /// This will include things that are mocks or stubs to make up for missing pieces of infrastructure
@@ -214,25 +215,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     Ok(())
 }
 
-#[tokio::main]
-async fn main() -> Result<(), GraphError> {
-    let args = Args::parse_args();
-    let _log_guard = init_logger(
-        args.log_config.log_format,
-        args.log_config.log_folder,
-        args.log_config.log_level,
-        &args.log_config.log_file_prefix,
-        args.otlp_endpoint.as_deref(),
-    );
-
-    let pool = PostgresStorePool::new(&args.db_info, NoTls)
-        .await
-        .change_context(GraphError)
-        .map_err(|err| {
-            tracing::error!("{err:?}");
-            err
-        })?;
-
+async fn start_server(args: Args, pool: PostgresStorePool<NoTls>) -> Result<(), GraphError> {
     stop_gap_setup(&pool).await?;
 
     let rest_router = rest_api_router(
@@ -253,4 +236,53 @@ async fn main() -> Result<(), GraphError> {
         .expect("failed to start server");
 
     Ok(())
+}
+
+async fn migrate_database(args: Args, pool: PostgresStorePool<NoTls>) -> Result<(), GraphError> {
+    let mut connection = pool
+        .acquire()
+        .await
+        .change_context(GraphError)
+        .map_err(|err| {
+            tracing::error!("{err:?}");
+            err
+        })?;
+
+    connection
+        .run_migrations()
+        .await
+        .change_context(GraphError)
+        .map_err(|err| {
+            tracing::error!("{err:?}");
+            err
+        })?;
+
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<(), GraphError> {
+    let args = Args::parse_args();
+
+    let log_args = args.log_config.clone();
+    let _log_guard = init_logger(
+        log_args.log_format,
+        log_args.log_folder,
+        log_args.log_level,
+        &log_args.log_file_prefix,
+        args.otlp_endpoint.as_deref(),
+    );
+
+    let pool = PostgresStorePool::new(&args.db_info, NoTls)
+        .await
+        .change_context(GraphError)
+        .map_err(|err| {
+            tracing::error!("{err:?}");
+            err
+        })?;
+
+    match args.subcommand() {
+        args::Subcommand::Server => start_server(args, pool).await,
+        args::Subcommand::Migrate => migrate_database(args, pool).await,
+    }
 }

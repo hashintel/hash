@@ -22,6 +22,7 @@ pub use self::{
         UpdateError,
     },
     knowledge::EntityStore,
+    migration::{Migration, MigrationState, StoreMigration},
     ontology::{DataTypeStore, EntityTypeStore, PropertyTypeStore},
     pool::StorePool,
     postgres::{AsClient, PostgresStore, PostgresStorePool},
