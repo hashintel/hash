@@ -214,7 +214,7 @@ impl<A> ToSql for Timespan<A> {
                 }
                 TimespanBound::Excluded(timestamp) => {
                     timestamp.to_sql(&postgres_types::Type::TIMESTAMPTZ, buf)?;
-                    RangeBound::Inclusive(postgres_protocol::IsNull::No)
+                    RangeBound::Exclusive(postgres_protocol::IsNull::No)
                 }
             })
         }
