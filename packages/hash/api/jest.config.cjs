@@ -9,7 +9,8 @@ module.exports = {
   ],
   coverageReporters: ["lcov", "text"],
   moduleNameMapper: {
-    "@local/hash-shared(.*)": "<rootDir>/../shared/src$1",
+    "@local/hash-shared(.*)":
+      "<rootDir>/../../../libs/@local/hash-shared/src$1",
   },
   preset: "ts-jest",
   testEnvironment: "node",
