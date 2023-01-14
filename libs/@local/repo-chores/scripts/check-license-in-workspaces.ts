@@ -1,8 +1,8 @@
-import globby from "globby";
-import execa from "execa";
-import fs from "fs-extra";
-import path from "path";
+import path from "node:path";
+
 import chalk from "chalk";
+import execa from "execa";
+import globby from "globby";
 
 type WorkspaceInfo = {
   location: string;
@@ -16,7 +16,11 @@ const script = async () => {
   console.log("Checking license files in Yarn workspaces...");
 
   const { stdout } = await execa("yarn", ["--silent", "workspaces", "info"]);
-  const workspaceInfoLookup: Record<string, WorkspaceInfo> = JSON.parse(stdout);
+  const workspaceInfoLookup = JSON.parse(stdout) as Record<
+    string,
+    WorkspaceInfo
+  >;
+
   const workspaceDirPaths = [
     monorepoRootDirPath,
     ...Object.entries(workspaceInfoLookup).map(([, workspaceInfo]) =>
