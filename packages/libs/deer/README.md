@@ -90,7 +90,7 @@ Instead of strictly deserializing types, one might prefer to deserialize while c
 
 ### Deserializer with Parser
 
-`deer` currently relies on external tools (notably `serde`) to implement parsing of different formats, which means that we still fail-fast during the parsing of malformed input. In the future, `deer` might provide its own parser, which tries to recover from parsing errors and still provide parsing diagnostics.
+`deer` currently relies on external tools (notably `serde`) to implement parsing of different formats, which means that we still fail fast during the parsing of malformed input. In the future, `deer` might provide a parser that tries to recover from parse errors and provide meaningful diagnostics.
 
 <details>
 <summary>What it may look like</summary>
@@ -99,8 +99,6 @@ Instead of strictly deserializing types, one might prefer to deserialize while c
 {
   "i8": "string"
 ```
-
-`deer` currently relies on external tools (notably `serde`) to implement parsing of different formats, which means that we still fail fast during the parsing of malformed input. In the future, `deer` might provide a parser that tries to recover from parse errors and provide meaningful diagnostics.
 
 </details>
 
