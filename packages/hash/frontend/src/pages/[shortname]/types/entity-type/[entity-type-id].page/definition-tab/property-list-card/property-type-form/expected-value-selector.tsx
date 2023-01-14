@@ -3,7 +3,7 @@ import {
   Chip,
   FontAwesomeIcon,
   TextField,
-} from "@hashintel/hash-design-system";
+} from "@local/hash-design-system";
 import { Autocomplete, Box, PaperProps, Typography } from "@mui/material";
 import {
   forwardRef,

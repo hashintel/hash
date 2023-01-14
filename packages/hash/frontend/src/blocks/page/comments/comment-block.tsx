@@ -15,10 +15,10 @@ import {
   FontAwesomeIcon,
   IconButton,
   LoadingSpinner,
-} from "@hashintel/hash-design-system";
-import { TextToken } from "@hashintel/hash-shared/graphql/types";
-import { types } from "@hashintel/hash-shared/ontology-types";
-import { EntityId } from "@hashintel/hash-shared/types";
+} from "@local/hash-design-system";
+import { TextToken } from "@local/hash-shared/graphql/types";
+import { types } from "@local/hash-shared/ontology-types";
+import { EntityId } from "@local/hash-shared/types";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
 import { isEqual } from "lodash";

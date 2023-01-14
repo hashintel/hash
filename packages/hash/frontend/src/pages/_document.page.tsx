@@ -1,5 +1,5 @@
 import createEmotionServer from "@emotion/server/create-instance";
-import { createEmotionCache } from "@hashintel/hash-design-system";
+import { createEmotionCache } from "@local/hash-design-system";
 import NextDocument, { Head, Html, Main, NextScript } from "next/document";
 import { Children } from "react";
 

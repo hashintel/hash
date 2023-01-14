@@ -1,12 +1,8 @@
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
-import {
-  Chip,
-  FontAwesomeIcon,
-  IconButton,
-} from "@hashintel/hash-design-system";
 import { getOutgoingLinksForEntityAtMoment } from "@hashintel/hash-subgraph/src/stdlib/edge/link";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { Chip, FontAwesomeIcon, IconButton } from "@local/hash-design-system";
 import { Paper, Stack } from "@mui/material";
 import { useState } from "react";
 

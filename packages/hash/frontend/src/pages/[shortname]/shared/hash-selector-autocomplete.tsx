@@ -5,7 +5,7 @@ import {
   Chip,
   FontAwesomeIcon,
   TextField,
-} from "@hashintel/hash-design-system";
+} from "@local/hash-design-system";
 import {
   Autocomplete,
   AutocompleteProps,

@@ -1,5 +1,5 @@
 import { faHome } from "@fortawesome/free-solid-svg-icons";
-import { IconButton } from "@hashintel/hash-design-system";
+import { IconButton } from "@local/hash-design-system";
 import { Box, Drawer, Tooltip } from "@mui/material";
 import { useRouter } from "next/router";
 import { FunctionComponent, useContext } from "react";

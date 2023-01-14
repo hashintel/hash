@@ -1,6 +1,6 @@
 import { EntityType, extractBaseUri } from "@blockprotocol/type-system";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import { getEntityTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
+import { AccountId, OwnedById } from "@local/hash-shared/types";
 import { useRouter } from "next/router";
 import {
   useCallback,

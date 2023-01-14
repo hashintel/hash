@@ -1,9 +1,9 @@
 import { useMutation } from "@apollo/client";
-import { EntityUuid, OwnedById, Uuid } from "@hashintel/hash-shared/types";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@hashintel/hash-subgraph";
+import { EntityUuid, OwnedById, Uuid } from "@local/hash-shared/types";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
 

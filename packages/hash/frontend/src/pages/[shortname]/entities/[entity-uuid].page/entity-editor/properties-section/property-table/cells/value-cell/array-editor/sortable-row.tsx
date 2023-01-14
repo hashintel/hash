@@ -8,7 +8,7 @@ import {
   IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
 import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
-import { types } from "@hashintel/hash-shared/ontology-types";
+import { types } from "@local/hash-shared/ontology-types";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Box, Divider, Typography } from "@mui/material";
 import { useState } from "react";

@@ -1,6 +1,6 @@
 import { VersionedUri } from "@blockprotocol/type-system";
-import { AccountId, EntityId, OwnedById } from "@hashintel/hash-shared/types";
 import { Entity } from "@hashintel/hash-subgraph";
+import { AccountId, EntityId, OwnedById } from "@local/hash-shared/types";
 import { UserInputError } from "apollo-server-errors";
 import produce from "immer";
 

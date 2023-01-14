@@ -5,7 +5,7 @@ import {
   extractEntityUuidFromEntityId,
   OwnedById,
   Uuid,
-} from "@hashintel/hash-shared/types";
+} from "@local/hash-shared/types";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
 

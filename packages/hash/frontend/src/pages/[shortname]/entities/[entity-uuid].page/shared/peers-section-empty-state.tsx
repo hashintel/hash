@@ -1,4 +1,4 @@
-import { Chip } from "@hashintel/hash-design-system";
+import { Chip } from "@local/hash-design-system";
 
 import { ShapesIcon } from "../../../../../shared/icons";
 import { SectionEmptyState } from "../../../shared/section-empty-state";

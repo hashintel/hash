@@ -6,7 +6,7 @@ import {
   FontAwesomeIcon,
   FormInline,
   TextField,
-} from "@hashintel/hash-design-system";
+} from "@local/hash-design-system";
 import {
   Box,
   Checkbox,

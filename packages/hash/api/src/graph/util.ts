@@ -11,15 +11,12 @@ import {
   VersionedUri,
 } from "@blockprotocol/type-system";
 import {
-  PrimitiveDataTypeKey,
-  types,
-} from "@hashintel/hash-shared/ontology-types";
-import { OwnedById } from "@hashintel/hash-shared/types";
-import {
   EntityTypeWithMetadata,
   linkEntityTypeUri,
   PropertyTypeWithMetadata,
 } from "@hashintel/hash-subgraph";
+import { PrimitiveDataTypeKey, types } from "@local/hash-shared/ontology-types";
+import { OwnedById } from "@local/hash-shared/types";
 
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";

@@ -6,7 +6,7 @@ import {
   ChipProps,
   FontAwesomeIcon,
   IconButton,
-} from "@hashintel/hash-design-system";
+} from "@local/hash-design-system";
 import { Box, chipClasses, Collapse, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 

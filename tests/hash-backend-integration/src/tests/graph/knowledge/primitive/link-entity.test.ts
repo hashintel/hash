@@ -20,14 +20,14 @@ import {
   EntityTypeCreatorParams,
   generateSystemEntityTypeSchema,
 } from "@hashintel/hash-api/src/graph/util";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
-import { OwnedById } from "@hashintel/hash-shared/types";
 import {
   Entity,
   EntityTypeWithMetadata,
   linkEntityTypeUri,
 } from "@hashintel/hash-subgraph";
+import { Logger } from "@local/hash-backend-utils/logger";
+import { generateTypeId } from "@local/hash-shared/ontology-types";
+import { OwnedById } from "@local/hash-shared/types";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

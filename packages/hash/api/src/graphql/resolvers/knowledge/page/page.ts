@@ -3,7 +3,7 @@ import {
   EntityUuid,
   OwnedById,
   Uuid,
-} from "@hashintel/hash-shared/types";
+} from "@local/hash-shared/types";
 
 import { getOrgById } from "../../../../graph/knowledge/system-types/org";
 import {

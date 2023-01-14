@@ -12,13 +12,13 @@ import {
   faMap,
   faRefresh,
 } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { PropertyObject } from "@hashintel/hash-subgraph";
+import { FontAwesomeIcon } from "@local/hash-design-system";
 import {
   areComponentsCompatible,
   isHashTextBlock,
-} from "@hashintel/hash-shared/blocks";
-import { BlockEntity } from "@hashintel/hash-shared/entity";
-import { PropertyObject } from "@hashintel/hash-subgraph";
+} from "@local/hash-shared/blocks";
+import { BlockEntity } from "@local/hash-shared/entity";
 import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import { PopupState } from "material-ui-popup-state/hooks";

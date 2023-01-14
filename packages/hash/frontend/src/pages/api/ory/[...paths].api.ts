@@ -2,7 +2,7 @@
 import {
   frontendDomain,
   oryKratosPublicUrl,
-} from "@hashintel/hash-shared/environment";
+} from "@local/hash-shared/environment";
 import { config, createApiHandler } from "@ory/integrations/next-edge";
 
 // We need to export the config.

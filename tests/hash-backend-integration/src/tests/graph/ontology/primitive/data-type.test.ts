@@ -9,9 +9,9 @@ import {
   getDataTypeById,
   updateDataType,
 } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { OwnedById } from "@hashintel/hash-shared/types";
 import { DataTypeWithMetadata } from "@hashintel/hash-subgraph";
+import { Logger } from "@local/hash-backend-utils/logger";
+import { OwnedById } from "@local/hash-shared/types";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

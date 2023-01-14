@@ -1,5 +1,5 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
-import { Button, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { Button, FontAwesomeIcon } from "@local/hash-design-system";
 
 export const AddAnotherButton = ({
   onClick,

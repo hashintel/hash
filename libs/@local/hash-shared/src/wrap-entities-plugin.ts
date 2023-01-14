@@ -1,4 +1,4 @@
-import { entityStorePluginState } from "@hashintel/hash-shared/entity-store-plugin";
+import { entityStorePluginState } from "@local/hash-shared/entity-store-plugin";
 import { mapValues } from "lodash";
 import { keymap } from "prosemirror-keymap";
 import { Node } from "prosemirror-model";

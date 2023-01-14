@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import { EntityId, OwnedById } from "@hashintel/hash-shared/types";
+import { EntityId, OwnedById } from "@local/hash-shared/types";
 import { useMemo } from "react";
 
 import {

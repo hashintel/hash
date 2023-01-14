@@ -1,4 +1,4 @@
-import { IconButton } from "@hashintel/hash-design-system";
+import { IconButton } from "@local/hash-design-system";
 import { Box, Fade, styled, Tooltip } from "@mui/material";
 import { FunctionComponent, ReactNode, useState } from "react";
 

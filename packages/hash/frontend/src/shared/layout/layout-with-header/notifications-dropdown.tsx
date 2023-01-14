@@ -1,5 +1,5 @@
 import { faBell } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { FontAwesomeIcon } from "@local/hash-design-system";
 import { Box, ListItemText, Menu, Typography, useTheme } from "@mui/material";
 import {
   bindMenu,

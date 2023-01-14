@@ -3,13 +3,13 @@ import {
   extractBaseUri,
   ValueOrArray,
 } from "@blockprotocol/type-system";
-import { Button } from "@hashintel/hash-design-system";
-import { types } from "@hashintel/hash-shared/ontology-types";
-import { EntityId, OwnedById } from "@hashintel/hash-shared/types";
 import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { Button } from "@local/hash-design-system";
+import { types } from "@local/hash-shared/ontology-types";
+import { EntityId, OwnedById } from "@local/hash-shared/types";
 import { Container, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 

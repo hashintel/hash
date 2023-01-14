@@ -1,5 +1,4 @@
 import { VersionedUri } from "@blockprotocol/type-system";
-import { OwnedById } from "@hashintel/hash-shared/types";
 import {
   EntityVertexId,
   extractEntityUuidFromEntityId,
@@ -7,6 +6,7 @@ import {
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { OwnedById } from "@local/hash-shared/types";
 import { useRouter } from "next/router";
 import { useContext, useEffect, useState } from "react";
 

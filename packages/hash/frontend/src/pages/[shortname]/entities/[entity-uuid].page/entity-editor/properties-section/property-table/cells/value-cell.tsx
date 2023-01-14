@@ -3,8 +3,8 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
-import { customColors } from "@hashintel/hash-design-system/src/theme/palette";
-import { types } from "@hashintel/hash-shared/ontology-types";
+import { customColors } from "@local/hash-design-system/src/theme/palette";
+import { types } from "@local/hash-shared/ontology-types";
 
 import {
   getCellHorizontalPadding,

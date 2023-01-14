@@ -1,8 +1,8 @@
 import type { BlockVariant } from "@blockprotocol/core";
-import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
-import { ProsemirrorManager } from "@hashintel/hash-shared/prosemirror-manager";
-import { AccountId } from "@hashintel/hash-shared/types";
 import { EntityId } from "@hashintel/hash-subgraph";
+import { HashBlockMeta } from "@local/hash-shared/blocks";
+import { ProsemirrorManager } from "@local/hash-shared/prosemirror-manager";
+import { AccountId } from "@local/hash-shared/types";
 import { Popper } from "@mui/material";
 import {
   EditorState,

@@ -1,9 +1,9 @@
-import { TextToken } from "@hashintel/hash-shared/graphql/types";
+import { Entity, EntityId } from "@hashintel/hash-subgraph";
+import { TextToken } from "@local/hash-shared/graphql/types";
 import {
   AccountId,
   extractOwnedByIdFromEntityId,
-} from "@hashintel/hash-shared/types";
-import { Entity, EntityId } from "@hashintel/hash-subgraph";
+} from "@local/hash-shared/types";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";

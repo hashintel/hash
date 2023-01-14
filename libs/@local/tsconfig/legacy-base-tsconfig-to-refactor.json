@@ -14,9 +14,9 @@
     "target": "es2020",
     "baseUrl": ".",
     "paths": {
-      "@hashintel/hash-shared/*": ["../../../../packages/hash/shared/src/*"],
-      "@hashintel/hash-backend-utils/*": [
-        "../../../../packages/hash/backend-utils/src/*"
+      "@local/hash-shared/*": ["../../../libs/@local/hash-shared/src/*"],
+      "@local/hash-backend-utils/*": [
+        "../../../libs/@local/hash-backend-utils/src/*"
       ]
     }
   },

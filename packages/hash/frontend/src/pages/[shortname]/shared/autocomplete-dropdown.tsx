@@ -1,4 +1,4 @@
-import { textFieldBorderRadius } from "@hashintel/hash-design-system";
+import { textFieldBorderRadius } from "@local/hash-design-system";
 import { autocompleteClasses, Box, Paper, PaperProps } from "@mui/material";
 
 import { popperPlacementSelectors } from "./popper-placement-modifier";

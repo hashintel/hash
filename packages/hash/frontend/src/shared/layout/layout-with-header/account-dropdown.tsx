@@ -1,4 +1,4 @@
-import { Avatar } from "@hashintel/hash-design-system";
+import { Avatar } from "@local/hash-design-system";
 import {
   Box,
   Divider,

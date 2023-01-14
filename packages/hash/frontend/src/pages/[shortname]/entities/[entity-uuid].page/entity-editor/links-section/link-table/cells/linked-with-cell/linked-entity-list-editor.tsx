@@ -1,7 +1,7 @@
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import { EntityId, OwnedById } from "@hashintel/hash-shared/types";
 import { Entity } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { EntityId, OwnedById } from "@local/hash-shared/types";
 import { Box } from "@mui/material";
 import produce from "immer";
 import { useContext, useMemo, useState } from "react";

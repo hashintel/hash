@@ -1,4 +1,4 @@
-import { AccountId } from "@hashintel/hash-shared/types";
+import { AccountId } from "@local/hash-shared/types";
 import { Node } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
 

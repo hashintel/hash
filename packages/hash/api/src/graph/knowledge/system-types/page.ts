@@ -1,9 +1,4 @@
 import {
-  AccountId,
-  extractOwnedByIdFromEntityId,
-  OwnedById,
-} from "@hashintel/hash-shared/types";
-import {
   Entity,
   EntityId,
   PropertyObject,
@@ -11,6 +6,11 @@ import {
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
 import { getEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+import {
+  AccountId,
+  extractOwnedByIdFromEntityId,
+  OwnedById,
+} from "@local/hash-shared/types";
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 

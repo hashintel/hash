@@ -1,9 +1,9 @@
 import { useMutation } from "@apollo/client";
-import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
+import { getPageInfoQuery } from "@local/hash-shared/queries/page.queries";
 import {
   EntityId,
   extractOwnedByIdFromEntityId,
-} from "@hashintel/hash-shared/types";
+} from "@local/hash-shared/types";
 import { useCallback } from "react";
 
 import {

@@ -1,4 +1,4 @@
-import { oryKratosPublicUrl } from "@hashintel/hash-shared/environment";
+import { oryKratosPublicUrl } from "@local/hash-shared/environment";
 import {
   Configuration,
   ErrorAuthenticatorAssuranceLevelNotSatisfied,

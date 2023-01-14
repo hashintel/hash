@@ -1,8 +1,8 @@
 import { extractBaseUri, extractVersion } from "@blockprotocol/type-system";
-import { EntityId } from "@hashintel/hash-shared/types";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { EntityId } from "@local/hash-shared/types";
 import { Box } from "@mui/material";
 import { useEffect, useState } from "react";
 

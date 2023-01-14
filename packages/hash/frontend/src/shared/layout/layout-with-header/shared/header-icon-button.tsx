@@ -1,4 +1,4 @@
-import { IconButton } from "@hashintel/hash-design-system";
+import { IconButton } from "@local/hash-design-system";
 import { styled } from "@mui/material";
 
 export const HeaderIconButton = styled(IconButton)(({ theme }) => ({

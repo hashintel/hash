@@ -1,7 +1,7 @@
 import { faFileAlt } from "@fortawesome/free-regular-svg-icons";
 import { faArchive, faLink } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { EntityId } from "@hashintel/hash-shared/types";
+import { FontAwesomeIcon } from "@local/hash-design-system";
+import { EntityId } from "@local/hash-shared/types";
 import {
   ListItemIcon,
   ListItemText,

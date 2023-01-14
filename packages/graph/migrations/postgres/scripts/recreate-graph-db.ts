@@ -1,4 +1,4 @@
-import { waitOnResource } from "@hashintel/hash-backend-utils/environment";
+import { waitOnResource } from "@local/hash-backend-utils/environment";
 import pg from "pg";
 
 import { getRequiredEnv } from "./environment";

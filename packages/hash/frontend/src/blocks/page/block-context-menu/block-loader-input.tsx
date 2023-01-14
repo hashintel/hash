@@ -1,4 +1,4 @@
-import { TextField } from "@hashintel/hash-design-system";
+import { TextField } from "@local/hash-design-system";
 import { Box, Collapse } from "@mui/material";
 import { FormEvent, FunctionComponent, useRef, useState } from "react";
 import { unstable_batchedUpdates } from "react-dom";

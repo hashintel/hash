@@ -13,34 +13,34 @@ RUN yarn install --frozen-lockfile --prefer-offline --force --build-from-source
 
 
 # Also ensure that frontend node modules can be cached
-COPY libs/@local/tsconfig/package.json libs/@local/tsconfig/
 COPY libs/@local/eslint-config/package.json libs/@local/eslint-config/
-COPY packages/hash/frontend/package.json packages/hash/frontend/
-COPY packages/hash/design-system/package.json packages/hash/design-system/
-COPY packages/hash/shared/package.json packages/hash/shared/
-COPY packages/hash/subgraph/package.json packages/hash/subgraph/
+COPY libs/@local/hash-shared/package.json libs/@local/hash-shared/
+COPY libs/@local/tsconfig/package.json libs/@local/tsconfig/
 COPY packages/graph/clients/typescript/package.json packages/graph/clients/typescript/
+COPY packages/hash/design-system/package.json packages/hash/design-system/
+COPY packages/hash/frontend/package.json packages/hash/frontend/
+COPY packages/hash/subgraph/package.json packages/hash/subgraph/
 RUN yarn workspace @hashintel/hash-frontend install --frozen-lockfile --prefer-offline
 
+COPY libs/@local/hash-shared/src/graphql libs/@local/hash-shared/src/graphql
+COPY libs/@local/hash-shared/src/queries libs/@local/hash-shared/src/queries
 COPY packages/hash/api/codegen.config.ts packages/hash/api/codegen.config.ts
 COPY packages/hash/api/src/graphql/type-defs packages/hash/api/src/graphql/type-defs
 COPY packages/hash/frontend/codegen.config.ts packages/hash/frontend/codegen.config.ts
 COPY packages/hash/frontend/src/graphql/queries packages/hash/frontend/src/graphql/queries
-COPY packages/hash/shared/src/queries packages/hash/shared/src/queries
-COPY packages/hash/shared/src/graphql packages/hash/shared/src/graphql
 
 RUN yarn workspace @hashintel/hash-frontend codegen
 
-COPY packages/hash/shared/codegen.config.ts packages/hash/shared/codegen.config.ts
+COPY libs/@local/hash-shared/codegen.config.ts libs/@local/hash-shared/codegen.config.ts
 
-RUN yarn workspace @hashintel/hash-shared codegen
+RUN yarn workspace @local/hash-shared codegen
 
-COPY libs/@local/tsconfig libs/@local/tsconfig
 COPY libs/@local/eslint-config libs/@local/eslint-config
+COPY libs/@local/hash-shared libs/@local/hash-shared
+COPY libs/@local/tsconfig libs/@local/tsconfig
 COPY packages/graph/clients/typescript packages/graph/clients/typescript
-COPY packages/hash/frontend packages/hash/frontend
 COPY packages/hash/design-system packages/hash/design-system
-COPY packages/hash/shared packages/hash/shared
+COPY packages/hash/frontend packages/hash/frontend
 COPY packages/hash/subgraph packages/hash/subgraph
 
 WORKDIR /app/packages/hash/frontend

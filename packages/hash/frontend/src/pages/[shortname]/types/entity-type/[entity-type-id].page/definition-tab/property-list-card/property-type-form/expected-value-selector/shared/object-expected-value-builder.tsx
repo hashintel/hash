@@ -1,7 +1,7 @@
 import { VersionedUri } from "@blockprotocol/type-system";
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { Chip, FontAwesomeIcon } from "@local/hash-design-system";
 import {
   Box,
   Checkbox,

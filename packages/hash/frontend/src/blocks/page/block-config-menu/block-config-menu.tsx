@@ -1,7 +1,7 @@
 import { JsonObject, JsonValue } from "@blockprotocol/core";
-import { TextField } from "@hashintel/hash-design-system";
-import { BlockEntity } from "@hashintel/hash-shared/entity";
-import { JsonSchema } from "@hashintel/hash-shared/json-utils";
+import { TextField } from "@local/hash-design-system";
+import { BlockEntity } from "@local/hash-shared/entity";
+import { JsonSchema } from "@local/hash-shared/json-utils";
 import {
   Box,
   Checkbox,

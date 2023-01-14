@@ -1,10 +1,4 @@
 import { extractBaseUri } from "@blockprotocol/type-system";
-import { types } from "@hashintel/hash-shared/ontology-types";
-import {
-  AccountEntityId,
-  AccountId,
-  extractAccountId,
-} from "@hashintel/hash-shared/types";
 import {
   Entity,
   EntityEditionId,
@@ -18,6 +12,12 @@ import {
   getOutgoingLinksForEntityAtMoment,
   getRightEntityForLinkEntityAtMoment,
 } from "@hashintel/hash-subgraph/src/stdlib/edge/link";
+import { types } from "@local/hash-shared/ontology-types";
+import {
+  AccountEntityId,
+  AccountId,
+  extractAccountId,
+} from "@local/hash-shared/types";
 import { Session } from "@ory/client";
 
 export type MinimalUser = {

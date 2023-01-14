@@ -1,4 +1,4 @@
-import { fetchBlock } from "@hashintel/hash-shared/blocks";
+import { fetchBlock } from "@local/hash-shared/blocks";
 import {
   createContext,
   Dispatch,

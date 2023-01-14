@@ -3,19 +3,16 @@
 /**
  * Collab is currently disabled, which means this file does not represent the current way to edit pages.
  */
-import { createProseMirrorState } from "@hashintel/hash-shared/create-prose-mirror-state";
-import {
-  EntityStore,
-  isBlockEntity,
-} from "@hashintel/hash-shared/entity-store";
+import { createProseMirrorState } from "@local/hash-shared/create-prose-mirror-state";
+import { EntityStore, isBlockEntity } from "@local/hash-shared/entity-store";
 import {
   addEntityStoreAction,
   disableEntityStoreTransactionInterpretation,
   entityStorePluginState,
   TrackedAction,
   EntityStorePluginAction,
-} from "@hashintel/hash-shared/entity-store-plugin";
-import { ProsemirrorManager } from "@hashintel/hash-shared/prosemirror-manager";
+} from "@local/hash-shared/entity-store-plugin";
+import { ProsemirrorManager } from "@local/hash-shared/prosemirror-manager";
 import { isString } from "lodash";
 import { collab, receiveTransaction, sendableSteps } from "prosemirror-collab";
 import { Node, Schema } from "prosemirror-model";

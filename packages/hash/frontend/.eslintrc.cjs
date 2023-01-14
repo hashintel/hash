@@ -39,7 +39,7 @@ module.exports = {
               "MenuItem",
             ],
             message:
-              "Please use the custom wrapper component from src/shared/ui for Link, Button and MenuItem and from '@hashintel/hash-design-system' for every other component.",
+              "Please use the custom wrapper component from src/shared/ui for Link, Button and MenuItem and from '@local/hash-design-system' for every other component.",
           },
           {
             name: "notistack",

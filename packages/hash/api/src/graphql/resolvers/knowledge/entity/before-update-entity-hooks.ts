@@ -1,6 +1,6 @@
 import { VersionedUri } from "@blockprotocol/type-system";
-import { types } from "@hashintel/hash-shared/ontology-types";
 import { Entity, PropertyObject } from "@hashintel/hash-subgraph";
+import { types } from "@local/hash-shared/ontology-types";
 import { ApolloError, UserInputError } from "apollo-server-express";
 
 import { ImpureGraphContext } from "../../../../graph";

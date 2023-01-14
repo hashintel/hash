@@ -1,9 +1,5 @@
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
-import {
-  Chip,
-  FontAwesomeIcon,
-  IconButton,
-} from "@hashintel/hash-design-system";
+import { Chip, FontAwesomeIcon, IconButton } from "@local/hash-design-system";
 import { Paper, Stack } from "@mui/material";
 import { useState } from "react";
 

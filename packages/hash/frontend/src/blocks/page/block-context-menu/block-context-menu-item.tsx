@@ -1,5 +1,5 @@
 import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { FontAwesomeIcon } from "@local/hash-design-system";
 import { ListItemIcon, ListItemText } from "@mui/material";
 import {
   bindFocus,

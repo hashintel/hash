@@ -2,7 +2,7 @@ import { UnknownRecord } from "@blockprotocol/core";
 import {
   JsonSchema,
   validateDataAgainstSchema,
-} from "@hashintel/hash-shared/json-utils";
+} from "@local/hash-shared/json-utils";
 import { Box, Typography } from "@mui/material";
 import { ReactElement } from "react";
 

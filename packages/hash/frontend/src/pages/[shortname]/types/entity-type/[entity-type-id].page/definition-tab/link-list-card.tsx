@@ -1,9 +1,9 @@
 import { EntityType, VersionedUri } from "@blockprotocol/type-system";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { OwnedById } from "@hashintel/hash-shared/types";
 import { linkEntityTypeUri } from "@hashintel/hash-subgraph";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
+import { Chip, FontAwesomeIcon } from "@local/hash-design-system";
+import { OwnedById } from "@local/hash-shared/types";
 import {
   ClickAwayListener,
   Popper,

@@ -1,4 +1,4 @@
-import { apiOrigin } from "@hashintel/hash-shared/environment";
+import { apiOrigin } from "@local/hash-shared/environment";
 import { Express } from "express";
 
 import { StorageType } from "../graphql/api-types.gen";

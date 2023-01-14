@@ -1,11 +1,11 @@
+import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
   OwnedById,
-} from "@hashintel/hash-shared/types";
-import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+} from "@local/hash-shared/types";
 import produce from "immer";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";

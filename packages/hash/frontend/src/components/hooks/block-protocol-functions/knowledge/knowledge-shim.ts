@@ -11,7 +11,6 @@ import {
   CreateResourceError,
   ReadOrModifyResourceError,
 } from "@blockprotocol/graph";
-import { EntityId } from "@hashintel/hash-shared/types";
 import {
   Entity,
   LinkData,
@@ -20,6 +19,7 @@ import {
   SubgraphRootTypes,
   VersionedUri,
 } from "@hashintel/hash-subgraph";
+import { EntityId } from "@local/hash-shared/types";
 
 export type KnowledgeCallbacks = {
   getEntity: GetEntityMessageCallback;

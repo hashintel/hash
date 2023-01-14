@@ -7,8 +7,8 @@ import {
   MenuItem,
   Select,
   TextField,
-} from "@hashintel/hash-design-system";
-import { JsonSchema } from "@hashintel/hash-shared/json-utils";
+} from "@local/hash-design-system";
+import { JsonSchema } from "@local/hash-shared/json-utils";
 import { Box, Typography } from "@mui/material";
 import produce from "immer";
 import jsonpath from "jsonpath";

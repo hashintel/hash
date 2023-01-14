@@ -1,4 +1,4 @@
-import { extractOwnedByIdFromEntityId } from "@hashintel/hash-shared/types";
+import { extractOwnedByIdFromEntityId } from "@local/hash-shared/types";
 
 import { getLatestEntityById } from "../../../../graph/knowledge/primitive/entity";
 import { createComment } from "../../../../graph/knowledge/system-types/comment";

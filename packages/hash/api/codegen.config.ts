@@ -1,5 +1,5 @@
 import { CodegenConfig } from "@graphql-codegen/cli";
-import { scalars } from "@hashintel/hash-shared/graphql/scalar-mapping";
+import { scalars } from "@local/hash-shared/graphql/scalar-mapping";
 
 const config: CodegenConfig = {
   overwrite: true,
@@ -14,7 +14,7 @@ const config: CodegenConfig = {
     },
     "./src/graphql/api-types.gen.ts": {
       plugins: ["typescript", "typescript-resolvers", "typescript-operations"],
-      documents: ["../shared/src/queries/**/*.ts"],
+      documents: ["../../../libs/@local/hash-shared/src/queries/**/*.ts"],
       hooks: {
         afterOneFileWrite: ["prettier --write"],
       },

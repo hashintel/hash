@@ -1,13 +1,13 @@
 import { extractBaseUri } from "@blockprotocol/type-system";
-import { Button } from "@hashintel/hash-design-system";
-import { TextToken } from "@hashintel/hash-shared/graphql/types";
-import { types } from "@hashintel/hash-shared/ontology-types";
+import { Button } from "@local/hash-design-system";
+import { TextToken } from "@local/hash-shared/graphql/types";
+import { types } from "@local/hash-shared/ontology-types";
 import {
   AccountId,
   EntityId,
   extractEntityUuidFromEntityId,
   Uuid,
-} from "@hashintel/hash-shared/types";
+} from "@local/hash-shared/types";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Box, buttonClasses, Collapse } from "@mui/material";

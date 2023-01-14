@@ -5,7 +5,7 @@ import {
   Chip,
   ChipProps,
   FontAwesomeIcon,
-} from "@hashintel/hash-design-system";
+} from "@local/hash-design-system";
 import {
   Box,
   buttonClasses,

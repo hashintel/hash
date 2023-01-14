@@ -9,7 +9,7 @@ module.exports = {
   ],
   coverageReporters: ["lcov", "text"],
   moduleNameMapper: {
-    "@hashintel/hash-shared(.*)": "<rootDir>/../shared/src$1",
+    "@local/hash-shared(.*)": "<rootDir>/../shared/src$1",
   },
   preset: "ts-jest",
   testEnvironment: "node",

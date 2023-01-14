@@ -1,11 +1,11 @@
 import { extractVersion } from "@blockprotocol/type-system";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
+import { VersionedUri } from "@hashintel/hash-subgraph";
 import {
   FontAwesomeIcon,
   IconButton,
   MenuItem,
-} from "@hashintel/hash-design-system";
-import { VersionedUri } from "@hashintel/hash-subgraph";
+} from "@local/hash-design-system";
 import {
   Divider,
   iconButtonClasses,

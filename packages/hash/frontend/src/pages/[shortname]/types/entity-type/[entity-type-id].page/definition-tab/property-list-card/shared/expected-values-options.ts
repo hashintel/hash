@@ -4,8 +4,8 @@ import {
   faListOl,
   faListUl,
 } from "@fortawesome/free-solid-svg-icons";
-import { theme } from "@hashintel/hash-design-system";
-import { types } from "@hashintel/hash-shared/ontology-types";
+import { theme } from "@local/hash-design-system";
+import { types } from "@local/hash-shared/ontology-types";
 
 import { fa100 } from "../../../../../../../../shared/icons/pro/fa-100";
 import { faCube } from "../../../../../../../../shared/icons/pro/fa-cube";

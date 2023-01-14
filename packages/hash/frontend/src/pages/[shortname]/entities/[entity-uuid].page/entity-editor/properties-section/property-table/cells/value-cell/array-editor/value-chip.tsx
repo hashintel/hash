@@ -1,5 +1,5 @@
 import { faAsterisk, IconDefinition } from "@fortawesome/free-solid-svg-icons";
-import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { Chip, FontAwesomeIcon } from "@local/hash-design-system";
 import { Tooltip } from "@mui/material";
 
 export const ValueChip = ({

@@ -1,18 +1,19 @@
 import { useQuery } from "@apollo/client";
+import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import {
   defaultBlockComponentIds,
   fetchBlock,
   HashBlock,
-} from "@hashintel/hash-shared/blocks";
+} from "@local/hash-shared/blocks";
 import {
   GetPageQuery,
   GetPageQueryVariables,
-} from "@hashintel/hash-shared/graphql/api-types.gen";
-import { types } from "@hashintel/hash-shared/ontology-types";
+} from "@local/hash-shared/graphql/api-types.gen";
+import { types } from "@local/hash-shared/ontology-types";
 import {
   getPageInfoQuery,
   getPageQuery,
-} from "@hashintel/hash-shared/queries/page.queries";
+} from "@local/hash-shared/queries/page.queries";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
@@ -20,9 +21,8 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   OwnedById,
-} from "@hashintel/hash-shared/types";
-import { isSafariBrowser } from "@hashintel/hash-shared/util";
-import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+} from "@local/hash-shared/types";
+import { isSafariBrowser } from "@local/hash-shared/util";
 import { alpha, Box, Collapse } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetServerSideProps } from "next";

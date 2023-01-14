@@ -3,7 +3,7 @@ import {
   FontAwesomeIcon,
   IconButton,
   SubmitButtonWrapper,
-} from "@hashintel/hash-design-system";
+} from "@local/hash-design-system";
 import { Box, Typography } from "@mui/material";
 
 import { Button } from "../../shared/ui";

@@ -1,6 +1,6 @@
-import { CollabPosition } from "@hashintel/hash-shared/collab";
-import { apiOrigin } from "@hashintel/hash-shared/environment";
-import { sleep } from "@hashintel/hash-shared/sleep";
+import { CollabPosition } from "@local/hash-shared/collab";
+import { apiOrigin } from "@local/hash-shared/environment";
+import { sleep } from "@local/hash-shared/sleep";
 import { useEffect, useState } from "react";
 
 import { AbortingPromise, GET } from "./http";

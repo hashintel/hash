@@ -10,10 +10,7 @@
       "packages/graph/clients/typescript",
       "packages/graph/migrations",
       "packages/hash/api",
-      "packages/hash/backend-utils",
-      "packages/hash/design-system",
       "packages/hash/frontend",
-      "packages/hash/shared",
       "packages/hash/task-executor",
       "packages/hash/subgraph",
       "tests/*"
@@ -52,7 +49,7 @@
     "seed-data": "concurrently \"yarn:seed-data:*\"",
     "test:backend-integration": "yarn workspace @tests/hash-backend-integration test",
     "test:playwright": "yarn workspace @tests/hash-playwright playwright test",
-    "test:unit": "yarn workspace @hashintel/hash-api test && yarn workspace @hashintel/hash-backend-utils test && yarn workspace @hashintel/hash-shared test"
+    "test:unit": "yarn workspace @hashintel/hash-api test && yarn workspace @local/hash-backend-utils test && yarn workspace @local/hash-shared test"
   },
   "lint-staged": {
     "**": [

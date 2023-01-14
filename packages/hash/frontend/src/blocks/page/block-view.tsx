@@ -1,16 +1,16 @@
 import { BlockVariant } from "@blockprotocol/core";
-import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
-import { EntityStore } from "@hashintel/hash-shared/entity-store";
+import { HashBlockMeta } from "@local/hash-shared/blocks";
+import { EntityStore } from "@local/hash-shared/entity-store";
 import {
   entityStorePluginState,
   subscribeToEntityStore,
-} from "@hashintel/hash-shared/entity-store-plugin";
+} from "@local/hash-shared/entity-store-plugin";
 import {
   findComponentNode,
   isEntityNode,
-} from "@hashintel/hash-shared/prosemirror";
-import { ProsemirrorManager } from "@hashintel/hash-shared/prosemirror-manager";
-import { EntityId } from "@hashintel/hash-shared/types";
+} from "@local/hash-shared/prosemirror";
+import { ProsemirrorManager } from "@local/hash-shared/prosemirror-manager";
+import { EntityId } from "@local/hash-shared/types";
 import { Node } from "prosemirror-model";
 import { NodeSelection, TextSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";

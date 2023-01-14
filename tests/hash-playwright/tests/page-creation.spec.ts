@@ -1,4 +1,4 @@
-import { sleep } from "@hashintel/hash-shared/sleep";
+import { sleep } from "@local/hash-shared/sleep";
 
 import { loginUsingTempForm } from "./shared/login-using-temp-form";
 import { resetDb } from "./shared/reset-db";

@@ -2,7 +2,7 @@ import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
   fontAwesomeIconClasses,
-} from "@hashintel/hash-design-system";
+} from "@local/hash-design-system";
 import {
   Box,
   CardActionAreaProps,

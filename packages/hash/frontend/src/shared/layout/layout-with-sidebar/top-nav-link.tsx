@@ -1,5 +1,5 @@
 import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { FontAwesomeIcon } from "@local/hash-design-system";
 import { Tooltip, Typography, typographyClasses } from "@mui/material";
 import { FunctionComponent } from "react";
 

@@ -4,10 +4,10 @@ import {
   PropertyType,
   VersionedUri,
 } from "@blockprotocol/type-system";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { OwnedById } from "@hashintel/hash-shared/types";
-import { typedEntries, typedKeys } from "@hashintel/hash-shared/util";
 import { PropertyObject } from "@hashintel/hash-subgraph";
+import { Logger } from "@local/hash-backend-utils/logger";
+import { OwnedById } from "@local/hash-shared/types";
+import { typedEntries, typedKeys } from "@local/hash-shared/util";
 import { ApolloError } from "apollo-server-express";
 
 import { ImpureGraphContext } from "../../../graph";

@@ -1,6 +1,6 @@
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, TextField } from "@hashintel/hash-design-system";
-import { HashBlock } from "@hashintel/hash-shared/blocks";
+import { FontAwesomeIcon, TextField } from "@local/hash-design-system";
+import { HashBlock } from "@local/hash-shared/blocks";
 import {
   Box,
   InputAdornment,

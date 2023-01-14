@@ -1,4 +1,4 @@
-import { MenuCheckboxItem } from "@hashintel/hash-design-system";
+import { MenuCheckboxItem } from "@local/hash-design-system";
 import {
   Box,
   BoxProps,

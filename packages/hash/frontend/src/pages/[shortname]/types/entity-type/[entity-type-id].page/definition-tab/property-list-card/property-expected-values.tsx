@@ -1,5 +1,5 @@
 import { PropertyType } from "@blockprotocol/type-system";
-import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { Chip, FontAwesomeIcon } from "@local/hash-design-system";
 import { chipClasses } from "@mui/material";
 import { Stack } from "@mui/system";
 
