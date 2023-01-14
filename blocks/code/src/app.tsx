@@ -1,5 +1,6 @@
 import {
   BlockComponent,
+  useEntitySubgraph,
   useGraphBlockService,
 } from "@blockprotocol/graph/react";
 import { useEffect, useRef, useState } from "react";
@@ -7,29 +8,44 @@ import { useEffect, useRef, useState } from "react";
 import styles from "./app.module.css";
 import { Editor } from "./editor";
 import { CopyIcon } from "./icons";
+import { RootEntity } from "./types.gen";
 import { languages, LanguageType } from "./utils";
 
-type BlockEntityProperties = {
-  caption?: string;
-  language: LanguageType;
-  content: string;
-};
-
-export const App: BlockComponent<BlockEntityProperties> = ({
-  graph: { blockEntity, readonly },
+export const App: BlockComponent<RootEntity> = ({
+  graph: { blockEntitySubgraph, readonly },
 }) => {
+  if (!blockEntitySubgraph) {
+    throw new Error("No blockEntitySubgraph provided");
+  }
+
+  const { rootEntity: blockEntity } = useEntitySubgraph(blockEntitySubgraph);
+
+  const captionKey =
+    "https://alpha.hash.ai/@ciaran/types/property-type/caption/";
+  const contentKey =
+    "https://alpha.hash.ai/@ciaran/types/property-type/content/";
+  const languageKey =
+    "https://alpha.hash.ai/@ciaran/types/property-type/language/";
+
   const {
-    entityId,
-    properties: { caption, content, language },
+    metadata: {
+      editionId: { baseId: entityId },
+      entityTypeId,
+    },
+    properties: {
+      [captionKey]: caption,
+      [contentKey]: content,
+      [languageKey]: language,
+    },
   } = blockEntity;
 
   const blockRef = useRef<HTMLDivElement>(null);
   const { graphService } = useGraphBlockService(blockRef);
 
   const [localData, setLocalData] = useState(() => ({
-    caption,
-    content,
-    language,
+    [captionKey]: caption,
+    [contentKey]: content,
+    [languageKey]: language,
   }));
   const [copied, setCopied] = useState(false);
   const [captionIsVisible, setCaptionVisibility] = useState(
@@ -40,17 +56,13 @@ export const App: BlockComponent<BlockEntityProperties> = ({
 
   useEffect(() => {
     setLocalData({
-      caption,
-      content,
-      language,
+      [captionKey]: caption,
+      [contentKey]: content,
+      [languageKey]: language,
     });
   }, [caption, content, language]);
 
-  const updateLocalData = (
-    newData: Partial<
-      Pick<BlockEntityProperties, "caption" | "language" | "content">
-    >,
-  ) => {
+  const updateLocalData = (newData: Partial<RootEntity["properties"]>) => {
     if (readonly) {
       return;
     }
@@ -60,13 +72,14 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     });
   };
 
-  const updateRemoteData = (properties: BlockEntityProperties) => {
+  const updateRemoteData = (properties: RootEntity["properties"]) => {
     if (readonly) {
       return;
     }
     void graphService?.updateEntity({
       data: {
         entityId,
+        entityTypeId,
         properties,
       },
     });
@@ -75,7 +88,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   const handleLanguageChange = (newLanguage: LanguageType) => {
     const newData = {
       ...localData,
-      language: newLanguage,
+      [languageKey]: newLanguage,
     };
     updateLocalData(newData);
     updateRemoteData(newData);
@@ -85,7 +98,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     try {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- account for old browsers
       if (navigator.clipboard) {
-        await navigator.clipboard.writeText(localData.content);
+        await navigator.clipboard.writeText(localData[contentKey]);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
         return;
@@ -117,9 +130,11 @@ export const App: BlockComponent<BlockEntityProperties> = ({
 
   useEffect(() => {
     if (captionRef.current !== document.activeElement) {
-      setCaptionVisibility(localData.caption && localData.caption.length > 0);
+      setCaptionVisibility(
+        localData[captionKey] && localData[captionKey].length > 0,
+      );
     }
-  }, [localData.caption]);
+  }, [localData]);
 
   const handleCaptionInputBlur = () => {
     setCaptionVisibility(!!captionRef.current?.value.length);
@@ -132,9 +147,10 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         <div className={styles.topPanel}>
           <select
             className={styles.languageSelect}
-            value={localData.language}
-            onChange={(evt) =>
-              handleLanguageChange(evt.target.value as LanguageType)
+            value={localData[languageKey]}
+            onChange={
+              // @todo remove assertion when the type system supports enums and CodeSnippet type is update
+              (evt) => handleLanguageChange(evt.target.value as LanguageType)
             }
           >
             {languages.map(({ code, title }) => (
@@ -164,9 +180,10 @@ export const App: BlockComponent<BlockEntityProperties> = ({
           </div>
         </div>
         <Editor
-          content={localData.content}
-          setContent={(text) => updateLocalData({ content: text })}
-          language={localData.language}
+          content={localData[contentKey]}
+          setContent={(text) => updateLocalData({ [contentKey]: text })}
+          // @todo remove assertion when the type system supports enums and CodeSnippet type is update
+          language={localData[languageKey] as LanguageType}
           editorRef={editorRef}
           onBlur={() => updateRemoteData(localData)}
           readonly={!!readonly}
@@ -177,8 +194,8 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         className={styles.caption}
         style={captionIsVisible ? {} : { visibility: "hidden" }}
         placeholder="Write a caption..."
-        value={localData.caption ?? ""}
-        onChange={(evt) => updateLocalData({ caption: evt.target.value })}
+        value={localData[captionKey] ?? ""}
+        onChange={(evt) => updateLocalData({ [captionKey]: evt.target.value })}
         onBlur={handleCaptionInputBlur}
       />
     </div>
