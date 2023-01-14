@@ -1,4 +1,4 @@
-import "./theme-override";
+import "./theme-override.d";
 
 export * from "./avatar";
 export * from "./button";

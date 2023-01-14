@@ -14,10 +14,8 @@
     "target": "es2020",
     "baseUrl": ".",
     "paths": {
-      "@local/hash-shared/*": ["../../../libs/@local/hash-shared/src/*"],
-      "@local/hash-backend-utils/*": [
-        "../../../libs/@local/hash-backend-utils/src/*"
-      ]
+      "@local/hash-shared/*": ["../hash-shared/src/*"],
+      "@local/hash-backend-utils/*": ["../hash-backend-utils/src/*"]
     }
   },
   "ts-node": {

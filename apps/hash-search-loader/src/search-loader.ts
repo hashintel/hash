@@ -7,7 +7,7 @@
 import { DbAdapter } from "@hashintel/hash-api/src/db";
 import { EntityType as DbEntityType } from "@hashintel/hash-api/src/db/adapter";
 import { Entity, EntityType, Page } from "@hashintel/hash-api/src/model";
-import { EntityVersion } from "@local/hash-backend-utils/pgTables";
+import { EntityVersion } from "@local/hash-backend-utils/pg-tables";
 import { QueueExclusiveConsumer } from "@local/hash-backend-utils/queue/adapter";
 import { SearchAdapter } from "@local/hash-backend-utils/search/adapter";
 import {
@@ -136,10 +136,10 @@ export class SearchLoader {
   private async loadMsgIntoSearchIndex(wal2jsonMsg: Wal2JsonMsg) {
     const table = wal2jsonMsg.table;
     if (table === "entity_versions") {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- this code is broken, EntityVersion is not exported from @local/hash-backend-utils/pgTables
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- this code is broken, EntityVersion is not exported from @local/hash-backend-utils/pg-tables
       const entity = EntityVersion.parseWal2JsonMsg(wal2jsonMsg);
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- this code is broken, EntityType is not exported from @local/hash-backend-utils/pgTables
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- this code is broken, EntityType is not exported from @local/hash-backend-utils/pg-tables
       const entityType = await EntityType.getEntityType(this.db, {
         entityTypeVersionId: entity.entityTypeVersionId,
       });
@@ -181,7 +181,7 @@ export class SearchLoader {
         });
         // @todo: Do we handle text blocks that have multiple grandparent pages?
         if (grandparents.length === 1) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- this code is broken, Entity is not exported from @local/hash-backend-utils/pgTables
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- this code is broken, Entity is not exported from @local/hash-backend-utils/pg-tables
           const grandparentLatestEntity = await Entity.getEntityLatestVersion(
             this.db,
             {
