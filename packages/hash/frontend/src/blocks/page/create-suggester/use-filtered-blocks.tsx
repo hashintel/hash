@@ -1,5 +1,5 @@
 import { BlockVariant } from "@blockprotocol/core";
-import { HashBlock, HashBlockMeta } from "@local/hash-shared/blocks";
+import { HashBlock, HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { useMemo } from "react";
 
 import { fuzzySearchBy } from "./fuzzy-search-by";

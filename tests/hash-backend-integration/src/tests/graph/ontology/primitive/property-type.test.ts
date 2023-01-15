@@ -18,7 +18,7 @@ import {
   PropertyTypeWithMetadata,
 } from "@hashintel/hash-subgraph";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { OwnedById } from "@local/hash-shared/types";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

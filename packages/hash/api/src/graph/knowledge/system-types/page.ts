@@ -10,7 +10,7 @@ import {
   AccountId,
   extractOwnedByIdFromEntityId,
   OwnedById,
-} from "@local/hash-shared/types";
+} from "@local/hash-isomorphic-utils/types";
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 

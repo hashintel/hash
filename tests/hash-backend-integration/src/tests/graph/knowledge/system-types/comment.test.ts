@@ -17,7 +17,7 @@ import {
 import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
 import { SYSTEM_TYPES } from "@hashintel/hash-api/src/graph/system-types";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { OwnedById } from "@local/hash-shared/types";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

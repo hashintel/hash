@@ -1,4 +1,4 @@
-import { EntityUuid } from "@local/hash-shared/types";
+import { EntityUuid } from "@local/hash-isomorphic-utils/types";
 import { useRouter } from "next/router";
 import {
   createContext,

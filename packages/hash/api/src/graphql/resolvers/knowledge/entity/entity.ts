@@ -5,7 +5,7 @@ import {
   splitEntityId,
   Subgraph,
 } from "@hashintel/hash-subgraph";
-import { OwnedById } from "@local/hash-shared/types";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import { ForbiddenError, UserInputError } from "apollo-server-express";
 
 import {

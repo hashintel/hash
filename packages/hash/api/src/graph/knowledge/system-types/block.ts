@@ -2,7 +2,7 @@ import { Entity, EntityId, PropertyObject } from "@hashintel/hash-subgraph";
 import {
   AccountId,
   extractOwnedByIdFromEntityId,
-} from "@local/hash-shared/types";
+} from "@local/hash-isomorphic-utils/types";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";

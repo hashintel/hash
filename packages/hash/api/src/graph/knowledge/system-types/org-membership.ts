@@ -3,7 +3,7 @@ import {
   extractEntityUuidFromEntityId,
   OwnedById,
   Uuid,
-} from "@local/hash-shared/types";
+} from "@local/hash-isomorphic-utils/types";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";

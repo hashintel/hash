@@ -4,7 +4,7 @@ import {
   Button as BaseButton,
   ButtonProps as BaseButtonProps,
 } from "@local/hash-design-system";
-import { frontendUrl } from "@local/hash-shared/environment";
+import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 // eslint-disable-next-line no-restricted-imports
 import Link from "next/link";
 import { forwardRef, FunctionComponent, ReactNode, useMemo } from "react";

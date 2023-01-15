@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { monorepoRootDir } from "@local/hash-backend-utils/environment";
-import { sleep } from "@local/hash-shared/sleep";
+import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import { loadAll } from "js-yaml";
 
 const emailDumpsFilePath = path.resolve(

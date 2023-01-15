@@ -22,7 +22,7 @@ import {
   Subgraph,
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
-import { EmptyObject } from "@local/hash-shared/util";
+import { EmptyObject } from "@local/hash-isomorphic-utils/util";
 
 export type OntologyCallbacks = {
   aggregateDataTypes: AggregateDataTypesMessageCallback;

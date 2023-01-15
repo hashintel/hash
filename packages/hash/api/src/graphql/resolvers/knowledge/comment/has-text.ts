@@ -1,4 +1,4 @@
-import { TextToken } from "@local/hash-shared/graphql/types";
+import { TextToken } from "@local/hash-isomorphic-utils/graphql/types";
 
 import {
   getCommentById,

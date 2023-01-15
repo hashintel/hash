@@ -8,8 +8,8 @@ import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/e
 import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { Button } from "@local/hash-design-system";
-import { types } from "@local/hash-shared/ontology-types";
-import { EntityId, OwnedById } from "@local/hash-shared/types";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { EntityId, OwnedById } from "@local/hash-isomorphic-utils/types";
 import { Container, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 

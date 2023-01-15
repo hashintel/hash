@@ -5,7 +5,7 @@ import {
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
   OwnedById,
-} from "@local/hash-shared/types";
+} from "@local/hash-isomorphic-utils/types";
 import produce from "immer";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";

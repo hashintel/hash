@@ -1,4 +1,4 @@
-import { isComponentNode } from "@local/hash-shared/prosemirror";
+import { isComponentNode } from "@local/hash-isomorphic-utils/prosemirror";
 import { InputRule } from "prosemirror-inputrules";
 import { Mark, Node } from "prosemirror-model";
 import { EditorState, TextSelection } from "prosemirror-state";

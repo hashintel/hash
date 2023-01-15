@@ -17,9 +17,9 @@ import {
 } from "@hashintel/hash-graph-client";
 import { PropertyObject } from "@hashintel/hash-subgraph";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { generateTypeId } from "@local/hash-shared/ontology-types";
-import { OwnedById } from "@local/hash-shared/types";
-import { typedEntries } from "@local/hash-shared/util";
+import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
+import { typedEntries } from "@local/hash-isomorphic-utils/util";
 import { camelCase, isEqual, upperFirst } from "lodash";
 import { singular } from "pluralize";
 

@@ -16,8 +16,8 @@ import { createEntityType } from "@hashintel/hash-api/src/graph/ontology/primiti
 import { generateSystemEntityTypeSchema } from "@hashintel/hash-api/src/graph/util";
 import { Entity, EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { generateTypeId } from "@local/hash-shared/ontology-types";
-import { OwnedById } from "@local/hash-shared/types";
+import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

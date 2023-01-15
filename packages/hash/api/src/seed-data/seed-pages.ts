@@ -1,5 +1,5 @@
 import { Logger } from "@local/hash-backend-utils/logger";
-import { AccountId, OwnedById } from "@local/hash-shared/types";
+import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
 
 import { ImpureGraphContext } from "../graph";
 import {

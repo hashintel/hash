@@ -3,7 +3,7 @@ const withTM = require("next-transpile-modules")([
   "@hashintel/hash-graph-client",
   "@hashintel/hash-subgraph",
   "@local/hash-design-system",
-  "@local/hash-shared",
+  "@local/hash-isomorphic-utils",
 ]); // pass the modules you would like to see transpiled
 const withBundleAnalyzer = require("@next/bundle-analyzer")({
   enabled: process.env.ANALYZE === "true",

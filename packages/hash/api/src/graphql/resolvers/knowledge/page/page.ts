@@ -3,7 +3,7 @@ import {
   EntityUuid,
   OwnedById,
   Uuid,
-} from "@local/hash-shared/types";
+} from "@local/hash-isomorphic-utils/types";
 
 import { getOrgById } from "../../../../graph/knowledge/system-types/org";
 import {

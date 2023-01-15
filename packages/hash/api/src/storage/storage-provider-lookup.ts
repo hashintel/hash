@@ -1,4 +1,4 @@
-import { apiOrigin } from "@local/hash-shared/environment";
+import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { Express } from "express";
 
 import { StorageType } from "../graphql/api-types.gen";

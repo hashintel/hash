@@ -14,7 +14,7 @@
     "target": "es2020",
     "baseUrl": ".",
     "paths": {
-      "@local/hash-shared/*": ["../hash-shared/src/*"],
+      "@local/hash-isomorphic-utils/*": ["../hash-isomorphic-utils/src/*"],
       "@local/hash-backend-utils/*": ["../hash-backend-utils/src/*"]
     }
   },

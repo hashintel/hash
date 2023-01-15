@@ -17,7 +17,7 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   OwnedById,
-} from "@local/hash-shared/types";
+} from "@local/hash-isomorphic-utils/types";
 import { ApolloError } from "apollo-server-errors";
 
 import {

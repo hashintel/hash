@@ -1,5 +1,5 @@
-import { apiOrigin } from "@local/hash-shared/environment";
-import { sleep } from "@local/hash-shared/sleep";
+import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
+import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import { useCallback, useEffect, useRef } from "react";
 
 import { POST } from "./http";

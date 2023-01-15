@@ -2,9 +2,9 @@ import "prosemirror-view/style/prosemirror.css";
 
 import { useApolloClient } from "@apollo/client";
 import { Button } from "@local/hash-design-system";
-import { BlockEntity } from "@local/hash-shared/entity";
-import { ProsemirrorManager } from "@local/hash-shared/prosemirror-manager";
-import { AccountId, EntityId } from "@local/hash-shared/types";
+import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
+import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
+import { AccountId, EntityId } from "@local/hash-isomorphic-utils/types";
 import { Box } from "@mui/material";
 import { SxProps } from "@mui/system";
 import { useRouter } from "next/router";

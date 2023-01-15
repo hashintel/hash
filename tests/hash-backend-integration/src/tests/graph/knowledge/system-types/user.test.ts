@@ -20,7 +20,7 @@ import {
 import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
 import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { EntityUuid } from "@local/hash-shared/types";
+import { EntityUuid } from "@local/hash-isomorphic-utils/types";
 
 import {
   createTestImpureGraphContext,

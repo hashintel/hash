@@ -5,8 +5,8 @@ import {
   EntityType as BpEntityType,
 } from "@blockprotocol/graph";
 import { EntityId } from "@hashintel/hash-subgraph";
-import { HashBlockMeta } from "@local/hash-shared/blocks";
-import { JsonSchema } from "@local/hash-shared/json-utils";
+import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
+import { JsonSchema } from "@local/hash-isomorphic-utils/json-utils";
 import { uniqBy } from "lodash";
 import {
   FunctionComponent,

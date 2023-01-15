@@ -3,7 +3,7 @@ import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { linkEntityTypeUri } from "@hashintel/hash-subgraph";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { Chip, FontAwesomeIcon } from "@local/hash-design-system";
-import { OwnedById } from "@local/hash-shared/types";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
   ClickAwayListener,
   Popper,

@@ -12,12 +12,12 @@ import {
   getOutgoingLinksForEntityAtMoment,
   getRightEntityForLinkEntityAtMoment,
 } from "@hashintel/hash-subgraph/src/stdlib/edge/link";
-import { types } from "@local/hash-shared/ontology-types";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountEntityId,
   AccountId,
   extractAccountId,
-} from "@local/hash-shared/types";
+} from "@local/hash-isomorphic-utils/types";
 import { Session } from "@ory/client";
 
 export type MinimalUser = {

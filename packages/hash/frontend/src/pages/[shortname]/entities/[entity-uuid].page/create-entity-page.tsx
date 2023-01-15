@@ -6,7 +6,7 @@ import {
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
-import { OwnedById } from "@local/hash-shared/types";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import { useRouter } from "next/router";
 import { useContext, useEffect, useState } from "react";
 

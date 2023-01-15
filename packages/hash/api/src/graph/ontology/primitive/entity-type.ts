@@ -8,9 +8,9 @@ import {
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
-import { EntityTypeWithoutId } from "@local/hash-shared/graphql/types";
-import { generateTypeId } from "@local/hash-shared/ontology-types";
-import { AccountId, OwnedById } from "@local/hash-shared/types";
+import { EntityTypeWithoutId } from "@local/hash-isomorphic-utils/graphql/types";
+import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
 
 import { NotFoundError } from "../../../lib/error";
 import {

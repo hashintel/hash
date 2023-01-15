@@ -4,16 +4,16 @@ import {
   defaultBlockComponentIds,
   fetchBlock,
   HashBlock,
-} from "@local/hash-shared/blocks";
+} from "@local/hash-isomorphic-utils/blocks";
 import {
   GetPageQuery,
   GetPageQueryVariables,
-} from "@local/hash-shared/graphql/api-types.gen";
-import { types } from "@local/hash-shared/ontology-types";
+} from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   getPageInfoQuery,
   getPageQuery,
-} from "@local/hash-shared/queries/page.queries";
+} from "@local/hash-isomorphic-utils/queries/page.queries";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
@@ -21,8 +21,8 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   OwnedById,
-} from "@local/hash-shared/types";
-import { isSafariBrowser } from "@local/hash-shared/util";
+} from "@local/hash-isomorphic-utils/types";
+import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
 import { alpha, Box, Collapse } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetServerSideProps } from "next";

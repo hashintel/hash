@@ -1,5 +1,5 @@
 import type { BlockVariant } from "@blockprotocol/core";
-import { HashBlockMeta } from "@local/hash-shared/blocks";
+import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { Box, Popover, popoverClasses } from "@mui/material";
 import { FunctionComponent, useState } from "react";
 

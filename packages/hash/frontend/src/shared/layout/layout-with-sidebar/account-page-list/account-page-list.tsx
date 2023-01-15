@@ -24,7 +24,7 @@ import {
   EntityUuid,
   extractEntityUuidFromEntityId,
   OwnedById,
-} from "@local/hash-shared/types";
+} from "@local/hash-isomorphic-utils/types";
 import { Box, Collapse } from "@mui/material";
 import {
   FunctionComponent,

@@ -16,9 +16,9 @@ import {
   IconButton,
   LoadingSpinner,
 } from "@local/hash-design-system";
-import { TextToken } from "@local/hash-shared/graphql/types";
-import { types } from "@local/hash-shared/ontology-types";
-import { EntityId } from "@local/hash-shared/types";
+import { TextToken } from "@local/hash-isomorphic-utils/graphql/types";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { EntityId } from "@local/hash-isomorphic-utils/types";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
 import { isEqual } from "lodash";

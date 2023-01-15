@@ -1,4 +1,4 @@
-import { oryKratosPublicUrl } from "@local/hash-shared/environment";
+import { oryKratosPublicUrl } from "@local/hash-isomorphic-utils/environment";
 import {
   Configuration,
   ErrorAuthenticatorAssuranceLevelNotSatisfied,

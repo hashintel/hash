@@ -1,4 +1,4 @@
-import { frontendUrl } from "@local/hash-shared/environment";
+import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import corsMiddleware from "cors";
 
 import { StorageType } from "../graphql/api-types.gen";

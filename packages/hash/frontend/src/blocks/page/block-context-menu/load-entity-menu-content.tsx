@@ -5,8 +5,8 @@ import {
   LoadingSpinner,
   TextField,
 } from "@local/hash-design-system";
-import { BlockEntity } from "@local/hash-shared/entity";
-import { EntityStoreType } from "@local/hash-shared/entity-store";
+import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
+import { EntityStoreType } from "@local/hash-isomorphic-utils/entity-store";
 import {
   Box,
   InputAdornment,

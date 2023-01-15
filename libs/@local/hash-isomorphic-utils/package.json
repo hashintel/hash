@@ -1,5 +1,5 @@
 {
-  "name": "@local/hash-shared",
+  "name": "@local/hash-isomorphic-utils",
   "version": "0.0.0-private",
   "private": true,
   "description": "Temporary catchall place for shared code",

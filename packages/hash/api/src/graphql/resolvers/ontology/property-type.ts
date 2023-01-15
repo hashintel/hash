@@ -1,5 +1,5 @@
 import { PropertyTypeWithMetadata, Subgraph } from "@hashintel/hash-subgraph";
-import { OwnedById } from "@local/hash-shared/types";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 
 import {
   createPropertyType,

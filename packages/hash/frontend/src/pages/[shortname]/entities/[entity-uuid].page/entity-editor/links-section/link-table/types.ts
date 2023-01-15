@@ -6,7 +6,7 @@ import {
   Subgraph,
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
-import { EntityId } from "@local/hash-shared/types";
+import { EntityId } from "@local/hash-isomorphic-utils/types";
 
 export type LinkRow = {
   rowId: string;

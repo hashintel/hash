@@ -2,20 +2,22 @@ export const scalars = {
   Date: "string",
   JSONObject: "@blockprotocol/core#JsonObject",
   UnknownEntityProperties:
-    "@local/hash-shared/graphql/types#UnknownEntityProperties",
-  TextToken: "@local/hash-shared/graphql/types#TextToken",
+    "@local/hash-isomorphic-utils/graphql/types#UnknownEntityProperties",
+  TextToken: "@local/hash-isomorphic-utils/graphql/types#TextToken",
 
   VersionedUri: "@hashintel/hash-subgraph#VersionedUri",
 
   DataTypeWithMetadata: "@hashintel/hash-subgraph#DataTypeWithMetadata",
-  DataTypeWithoutId: "@local/hash-shared/graphql/types#DataTypeWithoutId",
+  DataTypeWithoutId:
+    "@local/hash-isomorphic-utils/graphql/types#DataTypeWithoutId",
 
   EntityTypeWithMetadata: "@hashintel/hash-subgraph#EntityTypeWithMetadata",
-  EntityTypeWithoutId: "@local/hash-shared/graphql/types#EntityTypeWithoutId",
+  EntityTypeWithoutId:
+    "@local/hash-isomorphic-utils/graphql/types#EntityTypeWithoutId",
 
   PropertyTypeWithMetadata: "@hashintel/hash-subgraph#PropertyTypeWithMetadata",
   PropertyTypeWithoutId:
-    "@local/hash-shared/graphql/types#PropertyTypeWithoutId",
+    "@local/hash-isomorphic-utils/graphql/types#PropertyTypeWithoutId",
 
   Entity: "@hashintel/hash-subgraph#Entity",
   EntityEditionId: "@hashintel/hash-subgraph#EntityEditionId",
@@ -29,11 +31,11 @@ export const scalars = {
   TimeProjection: "@hashintel/hash-subgraph#TimeProjection",
   ResolvedTimeProjection: "@hashintel/hash-subgraph#ResolvedTimeProjection",
 
-  OwnedById: "@local/hash-shared/types#OwnedById",
-  UpdatedById: "@local/hash-shared/types#UpdatedById",
-  AccountId: "@local/hash-shared/types#AccountId",
-  EntityId: "@local/hash-shared/types#EntityId",
+  OwnedById: "@local/hash-isomorphic-utils/types#OwnedById",
+  UpdatedById: "@local/hash-isomorphic-utils/types#UpdatedById",
+  AccountId: "@local/hash-isomorphic-utils/types#AccountId",
+  EntityId: "@local/hash-isomorphic-utils/types#EntityId",
 
-  EntityUuid: "@local/hash-shared/types#EntityUuid",
-  Uuid: "@local/hash-shared/types#Uuid",
+  EntityUuid: "@local/hash-isomorphic-utils/types#EntityUuid",
+  Uuid: "@local/hash-isomorphic-utils/types#Uuid",
 };

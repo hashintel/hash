@@ -6,8 +6,8 @@ import {
 } from "@blockprotocol/type-system";
 import { PropertyObject } from "@hashintel/hash-subgraph";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { OwnedById } from "@local/hash-shared/types";
-import { typedEntries, typedKeys } from "@local/hash-shared/util";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
+import { typedEntries, typedKeys } from "@local/hash-isomorphic-utils/util";
 import { ApolloError } from "apollo-server-express";
 
 import { ImpureGraphContext } from "../../../graph";

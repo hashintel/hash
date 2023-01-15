@@ -17,8 +17,8 @@ import { FontAwesomeIcon } from "@local/hash-design-system";
 import {
   areComponentsCompatible,
   isHashTextBlock,
-} from "@local/hash-shared/blocks";
-import { BlockEntity } from "@local/hash-shared/entity";
+} from "@local/hash-isomorphic-utils/blocks";
+import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import { PopupState } from "material-ui-popup-state/hooks";

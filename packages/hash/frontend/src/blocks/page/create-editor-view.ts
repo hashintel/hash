@@ -1,15 +1,19 @@
 import { ApolloClient } from "@apollo/client";
-import { HashBlock } from "@local/hash-shared/blocks";
-import { createProseMirrorState } from "@local/hash-shared/create-prose-mirror-state";
-import { BlockEntity } from "@local/hash-shared/entity";
+import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
+import { createProseMirrorState } from "@local/hash-isomorphic-utils/create-prose-mirror-state";
+import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import {
   addEntityStoreAction,
   entityStorePluginState,
-} from "@local/hash-shared/entity-store-plugin";
-// import { apiOrigin } from "@local/hash-shared/environment";
-import { ProsemirrorManager } from "@local/hash-shared/prosemirror-manager";
-import { save } from "@local/hash-shared/save";
-import { AccountId, EntityId, OwnedById } from "@local/hash-shared/types";
+} from "@local/hash-isomorphic-utils/entity-store-plugin";
+// import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
+import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
+import { save } from "@local/hash-isomorphic-utils/save";
+import {
+  AccountId,
+  EntityId,
+  OwnedById,
+} from "@local/hash-isomorphic-utils/types";
 import { debounce } from "lodash";
 // import applyDevTools from "prosemirror-dev-tools";
 import { Plugin } from "prosemirror-state";

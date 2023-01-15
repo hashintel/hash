@@ -1,4 +1,4 @@
-import { EntityId } from "@local/hash-shared/types";
+import { EntityId } from "@local/hash-isomorphic-utils/types";
 import { experimental_sx as sx, styled, TextareaAutosize } from "@mui/material";
 import {
   ChangeEventHandler,

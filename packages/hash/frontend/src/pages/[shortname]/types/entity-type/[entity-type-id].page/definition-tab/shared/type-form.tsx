@@ -7,11 +7,11 @@ import {
   IconButton,
   TextField,
 } from "@local/hash-design-system";
-import { frontendUrl } from "@local/hash-shared/environment";
+import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import {
   generateBaseTypeId,
   SchemaKind,
-} from "@local/hash-shared/ontology-types";
+} from "@local/hash-isomorphic-utils/ontology-types";
 import {
   Box,
   Divider,

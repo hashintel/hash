@@ -1,4 +1,4 @@
-import { fetchBlock } from "@local/hash-shared/blocks";
+import { fetchBlock } from "@local/hash-isomorphic-utils/blocks";
 import {
   createContext,
   Dispatch,

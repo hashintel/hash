@@ -2,7 +2,7 @@ import {
   AccountEntityId,
   AccountId,
   extractAccountId,
-} from "@local/hash-shared/types";
+} from "@local/hash-isomorphic-utils/types";
 import { useMemo } from "react";
 
 import { useOrgs } from "./use-orgs";

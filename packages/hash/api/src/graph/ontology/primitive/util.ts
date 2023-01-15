@@ -1,6 +1,6 @@
 import { entityIdFromOwnedByIdAndEntityUuid } from "@hashintel/hash-subgraph";
-import { systemUserShortname } from "@local/hash-shared/environment";
-import { OwnedById } from "@local/hash-shared/types";
+import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 
 import { ImpureGraphFunction } from "../..";
 import { getOrgById } from "../../knowledge/system-types/org";

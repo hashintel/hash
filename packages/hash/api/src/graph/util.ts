@@ -15,8 +15,11 @@ import {
   linkEntityTypeUri,
   PropertyTypeWithMetadata,
 } from "@hashintel/hash-subgraph";
-import { PrimitiveDataTypeKey, types } from "@local/hash-shared/ontology-types";
-import { OwnedById } from "@local/hash-shared/types";
+import {
+  PrimitiveDataTypeKey,
+  types,
+} from "@local/hash-isomorphic-utils/ontology-types";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";

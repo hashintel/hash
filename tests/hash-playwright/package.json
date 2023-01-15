@@ -11,7 +11,7 @@
   "dependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/hash-backend-utils": "0.0.0-private",
-    "@local/hash-shared": "0.0.0-private",
+    "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@playwright/test": "1.28.0",
     "eslint": "8.31.0",

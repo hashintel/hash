@@ -15,8 +15,8 @@ import {
   EntitiesDocument,
 } from "@local/hash-backend-utils/search/doc-types";
 import { Wal2JsonMsg } from "@local/hash-backend-utils/wal2json";
-import { TextToken } from "@local/hash-shared/graphql/types";
-import { sleep } from "@local/hash-shared/sleep";
+import { TextToken } from "@local/hash-isomorphic-utils/graphql/types";
+import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import { StatsD } from "hot-shots";
 
 import { logger } from "./config";

@@ -2,13 +2,13 @@ import { extractBaseUri } from "@blockprotocol/type-system";
 import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { getEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { systemUserShortname } from "@local/hash-shared/environment";
-import { types } from "@local/hash-shared/ontology-types";
+import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountEntityId,
   AccountId,
   extractAccountId,
-} from "@local/hash-shared/types";
+} from "@local/hash-isomorphic-utils/types";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { getRequiredEnv } from "../util";

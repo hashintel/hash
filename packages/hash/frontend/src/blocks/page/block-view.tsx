@@ -1,16 +1,16 @@
 import { BlockVariant } from "@blockprotocol/core";
-import { HashBlockMeta } from "@local/hash-shared/blocks";
-import { EntityStore } from "@local/hash-shared/entity-store";
+import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
+import { EntityStore } from "@local/hash-isomorphic-utils/entity-store";
 import {
   entityStorePluginState,
   subscribeToEntityStore,
-} from "@local/hash-shared/entity-store-plugin";
+} from "@local/hash-isomorphic-utils/entity-store-plugin";
 import {
   findComponentNode,
   isEntityNode,
-} from "@local/hash-shared/prosemirror";
-import { ProsemirrorManager } from "@local/hash-shared/prosemirror-manager";
-import { EntityId } from "@local/hash-shared/types";
+} from "@local/hash-isomorphic-utils/prosemirror";
+import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
+import { EntityId } from "@local/hash-isomorphic-utils/types";
 import { Node } from "prosemirror-model";
 import { NodeSelection, TextSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
