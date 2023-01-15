@@ -1,9 +1,8 @@
-All blocks within this folder are available under the MIT License.
+<!-- markdownlint-disable -->
 
-The MIT License (MIT)
-=====================
+# The MIT License (MIT)
 
-Copyright © 2022 HASH
+Copyright © 2021–, HASH
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
