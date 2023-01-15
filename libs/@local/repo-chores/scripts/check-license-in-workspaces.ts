@@ -15,7 +15,11 @@ const monorepoRootDirPath = path.resolve(__filename, "../../../../..");
 const script = async () => {
   console.log("Checking license files in Yarn workspaces...");
 
-  const { stdout } = await execa("yarn", ["--silent", "workspaces", "info"]);
+  const { stdout } = await execa("yarn", ["--silent", "workspaces", "info"], {
+    env: { PATH: process.env.PATH },
+    extendEnv: false, // Avoid passing FORCE_COLOR to a sub-process
+  });
+
   const workspaceInfoLookup = JSON.parse(stdout) as Record<
     string,
     WorkspaceInfo
