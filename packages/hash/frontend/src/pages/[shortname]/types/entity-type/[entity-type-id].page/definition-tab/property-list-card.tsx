@@ -1,5 +1,6 @@
 import {
   extractBaseUri,
+  extractVersion,
   PropertyType,
   VersionedUri,
 } from "@blockprotocol/type-system";
@@ -179,15 +180,18 @@ const usePropertyTypeVersions = (
   return useMemo(() => {
     const baseUri = extractBaseUri(propertyTypeId);
 
-    const newerVersion = propertyTypes
-      ? Object.keys(propertyTypes).find((versionedUri) => {
-          return versionedUri.startsWith(`${baseUri}v/`);
-        })
-      : undefined;
+    const propertyTypeIds = propertyTypes
+      ? Object.values(propertyTypes).map(({ $id }) => $id)
+      : [];
+
+    const latestVersion = propertyTypeIds.find((versionedUri) => {
+      return versionedUri.startsWith(`${baseUri}v/`);
+    });
 
     return [
-      propertyTypeId.split(`${baseUri}v/`)[1],
-      newerVersion?.split(`${baseUri}v/`)[1],
+      extractVersion(propertyTypeId),
+      latestVersion ? extractVersion(latestVersion) : undefined,
+      baseUri.slice(0, -1),
     ] as const;
   }, [propertyTypeId, propertyTypes]);
 };
@@ -203,6 +207,7 @@ const PropertyRow = ({
   allowArraysTableCell,
   requiredTableCell,
   menuTableCell,
+  onUpdateVersion,
 }: {
   property: PropertyType;
   isArray: boolean;
@@ -212,11 +217,12 @@ const PropertyRow = ({
   allowArraysTableCell?: ReactNode;
   requiredTableCell?: ReactNode;
   menuTableCell?: ReactNode;
+  onUpdateVersion?: (nextId: VersionedUri) => void;
 }) => {
   const propertyTypes = usePropertyTypes();
   const { propertyTypes: entityTypePropertyTypes } = useEntityType();
 
-  const [currentVersion, latestVersion] = usePropertyTypeVersions(
+  const [currentVersion, latestVersion, baseUri] = usePropertyTypeVersions(
     property.$id,
     propertyTypes,
   );
@@ -309,6 +315,11 @@ const PropertyRow = ({
           setExpanded={setExpanded}
           currentVersion={currentVersion}
           latestVersion={latestVersion}
+          onVersionUpdate={() => {
+            if (latestVersion) {
+              onUpdateVersion?.(`${baseUri}/v/${latestVersion}`);
+            }
+          }}
         />
 
         <TableCell>
@@ -468,6 +479,7 @@ export const PropertyTypeRow = ({
               : {})}
           />
         }
+        onUpdateVersion={onUpdateVersion}
       />
 
       <TypeFormModal
