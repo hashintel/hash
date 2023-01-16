@@ -157,7 +157,7 @@ pub trait Interval<T>: Sized {
     ///
     /// Returns `true` if this interval's lower bound is less than or equal to the other interval's
     /// lower bound and this interval's upper bound is greater than or equal to the other
-    /// interval's.
+    /// interval's upper bound.
     #[must_use]
     fn contains_interval(&self, other: &impl Interval<T>) -> bool
     where
