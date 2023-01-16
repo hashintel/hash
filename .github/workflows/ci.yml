@@ -59,6 +59,21 @@ jobs:
             exit 1
           fi
 
+      - name: Run yarn lint:license-in-workspaces
+        if: ${{ success() || failure() }}
+        env:
+          FORCE_COLOR: "1" ## https://www.npmjs.com/package/chalk#supportsColor
+        run: |
+          if ! yarn lint:license-in-workspaces; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Please fix the above errors locally for the check to pass.'
+            echo 'If you don’t see them, try merging target branch into yours.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
       - name: Run yarn lint:markdownlint
         if: ${{ success() || failure() }}
         run: |
