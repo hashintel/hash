@@ -15,7 +15,11 @@ export interface CacheAdapter extends DataSource {
   /**
    * Set a value in the cache that expires after an amount of seconds.
    */
-  setex(key: string, value: string, expiresInSeconds?: number): Promise<void>;
+  setExpiring(
+    key: string,
+    value: string,
+    expiresInSeconds?: number,
+  ): Promise<void>;
 
   /**
    * Push one or more values onto the end of a list.

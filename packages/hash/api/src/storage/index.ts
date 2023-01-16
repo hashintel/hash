@@ -129,7 +129,7 @@ export const setupFileProxyHanldere = (
       }
 
       try {
-        await cache.setex(
+        await cache.setExpiring(
           key,
           presignUrl,
           DOWNLOAD_URL_EXPIRATION_SECONDS - DOWNLOAD_URL_CACHE_OFFSET,
