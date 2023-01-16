@@ -2078,36 +2078,23 @@ export interface UnresolvedDecisionTimeImage {
   axis: DecisionTime;
   /**
    *
-   * @type {TimeIntervalBound}
+   * @type {UnresolvedDecisionTimeImageEnd}
    * @memberof UnresolvedDecisionTimeImage
    */
-  end?: TimeIntervalBound;
+  end: UnresolvedDecisionTimeImageEnd | null;
   /**
    *
-   * @type {TimeIntervalBound}
+   * @type {UnresolvedDecisionTimeImageEnd}
    * @memberof UnresolvedDecisionTimeImage
    */
-  start?: TimeIntervalBound;
+  start: UnresolvedDecisionTimeImageEnd | null;
 }
 /**
- *
+ * @type UnresolvedDecisionTimeImageEnd
  * @export
- * @interface UnresolvedDecisionTimeImageAllOf
  */
-export interface UnresolvedDecisionTimeImageAllOf {
-  /**
-   *
-   * @type {TimeIntervalBound}
-   * @memberof UnresolvedDecisionTimeImageAllOf
-   */
-  end?: TimeIntervalBound;
-  /**
-   *
-   * @type {TimeIntervalBound}
-   * @memberof UnresolvedDecisionTimeImageAllOf
-   */
-  start?: TimeIntervalBound;
-}
+export type UnresolvedDecisionTimeImageEnd = TimeIntervalBound;
+
 /**
  *
  * @export
@@ -2122,11 +2109,17 @@ export interface UnresolvedDecisionTimeKernel {
   axis: DecisionTime;
   /**
    *
-   * @type {string}
+   * @type {UnresolvedDecisionTimeKernelTimestamp}
    * @memberof UnresolvedDecisionTimeKernel
    */
-  timestamp?: string;
+  timestamp: UnresolvedDecisionTimeKernelTimestamp | null;
 }
+/**
+ * @type UnresolvedDecisionTimeKernelTimestamp
+ * @export
+ */
+export type UnresolvedDecisionTimeKernelTimestamp = string;
+
 /**
  *
  * @export
@@ -2168,16 +2161,16 @@ export interface UnresolvedTransactionTimeImage {
   axis: TransactionTime;
   /**
    *
-   * @type {TimeIntervalBound}
+   * @type {UnresolvedDecisionTimeImageEnd}
    * @memberof UnresolvedTransactionTimeImage
    */
-  end?: TimeIntervalBound;
+  end: UnresolvedDecisionTimeImageEnd | null;
   /**
    *
-   * @type {TimeIntervalBound}
+   * @type {UnresolvedDecisionTimeImageEnd}
    * @memberof UnresolvedTransactionTimeImage
    */
-  start?: TimeIntervalBound;
+  start: UnresolvedDecisionTimeImageEnd | null;
 }
 /**
  *
@@ -2193,10 +2186,10 @@ export interface UnresolvedTransactionTimeKernel {
   axis: TransactionTime;
   /**
    *
-   * @type {string}
+   * @type {UnresolvedDecisionTimeKernelTimestamp}
    * @memberof UnresolvedTransactionTimeKernel
    */
-  timestamp?: string;
+  timestamp: UnresolvedDecisionTimeKernelTimestamp | null;
 }
 /**
  *
@@ -2547,10 +2540,10 @@ export interface UpdatePropertyTypeRequest {
 export interface VersionInterval {
   /**
    *
-   * @type {string}
+   * @type {VersionIntervalEnd}
    * @memberof VersionInterval
    */
-  end?: string;
+  end: VersionIntervalEnd | null;
   /**
    *
    * @type {string}
@@ -2558,6 +2551,12 @@ export interface VersionInterval {
    */
   start: string;
 }
+/**
+ * @type VersionIntervalEnd
+ * @export
+ */
+export type VersionIntervalEnd = string;
+
 /**
  * @type Vertex
  * @export

@@ -30,7 +30,16 @@ impl ToSchema for UnresolvedDecisionTimeKernel {
         openapi::ObjectBuilder::new()
             .property("axis", openapi::Ref::from_schema_name("DecisionTime"))
             .required("axis")
-            .property("timestamp", openapi::Ref::from_schema_name("Timestamp"))
+            .property(
+                "timestamp",
+                openapi::Schema::OneOf(
+                    openapi::OneOfBuilder::new()
+                        .item(openapi::Ref::from_schema_name("Timestamp"))
+                        .nullable(true)
+                        .build(),
+                ),
+            )
+            .required("timestamp")
             .build()
             .into()
     }
@@ -43,7 +52,16 @@ impl ToSchema for UnresolvedTransactionTimeKernel {
         openapi::ObjectBuilder::new()
             .property("axis", openapi::Ref::from_schema_name("TransactionTime"))
             .required("axis")
-            .property("timestamp", openapi::Ref::from_schema_name("Timestamp"))
+            .property(
+                "timestamp",
+                openapi::Schema::OneOf(
+                    openapi::OneOfBuilder::new()
+                        .item(openapi::Ref::from_schema_name("Timestamp"))
+                        .nullable(true)
+                        .build(),
+                ),
+            )
+            .required("timestamp")
             .build()
             .into()
     }
@@ -71,17 +89,31 @@ pub type UnresolvedDecisionTimeImage = UnresolvedImage<DecisionTime>;
 
 impl ToSchema for UnresolvedDecisionTimeImage {
     fn schema() -> openapi::RefOr<openapi::Schema> {
-        openapi::Schema::AllOf(
-            openapi::AllOfBuilder::new()
-                .item(
-                    openapi::ObjectBuilder::new()
-                        .property("axis", openapi::Ref::from_schema_name("DecisionTime"))
-                        .required("axis"),
-                )
-                .item(UnresolvedTimeInterval::<DecisionTime>::schema())
-                .build(),
-        )
-        .into()
+        openapi::ObjectBuilder::new()
+            .property("axis", openapi::Ref::from_schema_name("DecisionTime"))
+            .required("axis")
+            .property(
+                "start",
+                openapi::Schema::OneOf(
+                    openapi::OneOfBuilder::new()
+                        .item(openapi::Ref::from_schema_name("TimeIntervalBound"))
+                        .nullable(true)
+                        .build(),
+                ),
+            )
+            .required("start")
+            .property(
+                "end",
+                openapi::Schema::OneOf(
+                    openapi::OneOfBuilder::new()
+                        .item(openapi::Ref::from_schema_name("TimeIntervalBound"))
+                        .nullable(true)
+                        .build(),
+                ),
+            )
+            .required("end")
+            .build()
+            .into()
     }
 }
 
@@ -89,17 +121,31 @@ pub type UnresolvedTransactionTimeImage = UnresolvedImage<TransactionTime>;
 
 impl ToSchema for UnresolvedTransactionTimeImage {
     fn schema() -> openapi::RefOr<openapi::Schema> {
-        openapi::Schema::AllOf(
-            openapi::AllOfBuilder::new()
-                .item(
-                    openapi::ObjectBuilder::new()
-                        .property("axis", openapi::Ref::from_schema_name("TransactionTime"))
-                        .required("axis"),
-                )
-                .item(UnresolvedTimeInterval::<DecisionTime>::schema())
-                .build(),
-        )
-        .into()
+        openapi::ObjectBuilder::new()
+            .property("axis", openapi::Ref::from_schema_name("TransactionTime"))
+            .required("axis")
+            .property(
+                "start",
+                openapi::Schema::OneOf(
+                    openapi::OneOfBuilder::new()
+                        .item(openapi::Ref::from_schema_name("TimeIntervalBound"))
+                        .nullable(true)
+                        .build(),
+                ),
+            )
+            .required("start")
+            .property(
+                "end",
+                openapi::Schema::OneOf(
+                    openapi::OneOfBuilder::new()
+                        .item(openapi::Ref::from_schema_name("TimeIntervalBound"))
+                        .nullable(true)
+                        .build(),
+                ),
+            )
+            .required("end")
+            .build()
+            .into()
     }
 }
 
