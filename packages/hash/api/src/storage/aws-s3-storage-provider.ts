@@ -2,15 +2,14 @@ import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-import { StorageType } from "../graphql/api-types.gen";
 import {
   GetFileEntityStorageKeyParams,
   PresignedDownloadRequest,
   PresignedPostUpload,
   PresignedStorageRequest,
+  StorageType,
   UploadableStorageProvider,
 } from "./storage-provider";
-import { getFileExtension } from "./storage-utils";
 
 export interface AwsS3StorageProviderConstructorArgs {
   /** Name of the S3 bucket */
@@ -55,15 +54,8 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
 
   getFileEntityStorageKey({
     accountId,
-    fileName,
-    entityVersionId,
+    uniqueIdenitifier,
   }: GetFileEntityStorageKeyParams) {
-    let fileKey = `files/${accountId}/${entityVersionId}`;
-    // Find and add the file extension to the path if it exists
-    const extension = getFileExtension(fileName);
-    if (extension) {
-      fileKey += extension[0];
-    }
-    return fileKey;
+    return `files/${accountId}/${uniqueIdenitifier}`;
   }
 }

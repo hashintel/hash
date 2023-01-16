@@ -6,6 +6,7 @@ import { embedTypeDef } from "./embed.typedef";
 import { blockTypedef } from "./knowledge/block.typedef";
 import { commentTypedef } from "./knowledge/comment.typedef";
 import { entityTypedef } from "./knowledge/entity.typedef";
+import { fileTypedef } from "./knowledge/file.typedef";
 import { hashInstanceTypedef } from "./knowledge/hash-instance.typedef";
 import { orgTypedef } from "./knowledge/org.typedef";
 import { pageTypedef } from "./knowledge/page.typedef";
@@ -49,6 +50,7 @@ const knowledge = [
   userTypedef,
   orgTypedef,
   hashInstanceTypedef,
+  fileTypedef,
 ];
 
 // This needs to be called 'schema' to be picked up by codegen -

@@ -285,7 +285,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             time_projection.clone().resolve(),
         );
         let mut dependency_context = DependencyContext::default();
-        let time_axis = subgraph.resolved_time_projection.time_axis();
+        let time_axis = subgraph.resolved_time_projection.image_time_axis();
 
         for entity_type in
             Read::<EntityTypeWithMetadata>::read(self, filter, &subgraph.resolved_time_projection)
