@@ -28,10 +28,14 @@ A-engine:
   - "apps/engine/**/.*"
 
 A-learn:
-  - "apps/hashdotai/resources/*"
-  - "apps/hashdotai/resources/.*"
-  - "apps/hashdotai/resources/**/*"
-  - "apps/hashdotai/resources/**/.*"
+  - "apps/hashdotai/docs/*"
+  - "apps/hashdotai/docs/.*"
+  - "apps/hashdotai/docs/**/*"
+  - "apps/hashdotai/docs/**/.*"
+  - "apps/hashdotai/glossary/*"
+  - "apps/hashdotai/glossary/.*"
+  - "apps/hashdotai/glossary/**/*"
+  - "apps/hashdotai/glossary/**/.*"
 
 A-error-stack:
   - "packages/libs/error-stack/*"

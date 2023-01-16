@@ -4,8 +4,8 @@
 
 The [hash.ai](https://hash.ai) website code currently resides in our private [`internal` monorepo](https://github.com/hashintel/internal). However, certain site content is made publicly editable and available under Creative Commons/open-source licenses.
 
-- **User Guide** ([hash.ai/docs](https://hash.ai/docs)): found in this repository under the [`resources/docs`](https://github.com/hashintel/hash/tree/main/apps/hashdotai/docs) directory
-- **Glossary Definitions** ([hash.ai/glossary](https://hash.ai/glossary)): found in this repository under the [`resources/glossary`](https://github.com/hashintel/hash/tree/main/apps/hashdotai/glossary) directory
+- **User Guide** ([hash.ai/docs](https://hash.ai/docs)): found in this repository under the [`docs`](https://github.com/hashintel/hash/tree/main/apps/hashdotai/docs) directory
+- **Glossary Definitions** ([hash.ai/glossary](https://hash.ai/glossary)): found in this repository under the [`glossary`](https://github.com/hashintel/hash/tree/main/apps/hashdotai/glossary) directory
 
 Other hash.ai website content will be migrated here in due course.
 
