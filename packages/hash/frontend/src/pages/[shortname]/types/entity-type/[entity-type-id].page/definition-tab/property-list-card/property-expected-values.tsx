@@ -18,7 +18,7 @@ export const PropertyExpectedValues = ({
   setSelectedExpectedValueIndex: (expectedValue: number) => void;
   setAnimatingOutExpectedValue: (value: boolean) => void;
 }) => {
-  const propertyTypes = usePropertyTypes();
+  const [propertyTypes] = usePropertyTypes();
 
   return (
     <Stack direction="row" flexWrap="wrap" gap="2px 8px">

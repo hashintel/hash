@@ -7,6 +7,8 @@ import {
 import { faList } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { OwnedById } from "@hashintel/hash-shared/types";
+import { Subgraph } from "@hashintel/hash-subgraph";
+import { getPropertyTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 import {
   Box,
   Checkbox,
@@ -32,7 +34,6 @@ import {
   useMemo,
   useRef,
   useState,
-  version,
 } from "react";
 import {
   Controller,
@@ -173,29 +174,31 @@ const DisabledCheckboxCell = ({
 
 const usePropertyTypeVersions = (
   propertyTypeId: VersionedUri,
-  propertyTypes?: Record<VersionedUri, PropertyType> | null,
+  propertyTypesSubgraph?: Subgraph | null,
 ) => {
   return useMemo(() => {
     const baseUri = extractBaseUri(propertyTypeId);
 
-    const propertyTypeIds = propertyTypes
-      ? Object.values(propertyTypes).map(({ $id }) => $id)
+    const versions = propertyTypesSubgraph
+      ? getPropertyTypesByBaseUri(propertyTypesSubgraph, baseUri)
       : [];
 
-    const versions = propertyTypeIds
-      .filter((versionedUri) => {
-        return versionedUri.startsWith(`${baseUri}v/`);
-      })
-      .map((versionedUri) => extractVersion(versionedUri));
-
-    const latestVersion = Math.max(...versions);
+    const latestVersion = Math.max(
+      ...versions.map(
+        ({
+          metadata: {
+            editionId: { version },
+          },
+        }) => version,
+      ),
+    );
 
     return [
       extractVersion(propertyTypeId),
       latestVersion,
       baseUri.slice(0, -1),
     ] as const;
-  }, [propertyTypeId, propertyTypes]);
+  }, [propertyTypeId, propertyTypesSubgraph]);
 };
 
 const REQUIRED_CELL_WIDTH = 100;
@@ -223,12 +226,12 @@ const PropertyRow = ({
   menuTableCell?: ReactNode;
   onUpdateVersion?: (nextId: VersionedUri) => void;
 }) => {
-  const propertyTypes = usePropertyTypes();
+  const [propertyTypes, propertyTypesSubgraph] = usePropertyTypes();
   const { propertyTypes: entityTypePropertyTypes } = useEntityType();
 
   const [currentVersion, latestVersion, baseUri] = usePropertyTypeVersions(
     property.$id,
-    propertyTypes,
+    propertyTypesSubgraph,
   );
 
   const [expanded, setExpanded] = useState(true);
@@ -420,13 +423,13 @@ export const PropertyTypeRow = ({
     onUpdateVersionRef.current = onUpdateVersion;
   });
 
-  const propertyTypes = usePropertyTypes();
+  const [propertyTypes, propertyTypesSubgraph] = usePropertyTypes();
   const { propertyTypes: entityTypePropertyTypes } = useEntityType();
   const property = entityTypePropertyTypes[$id] ?? propertyTypes?.[$id];
 
   const [currentVersion, latestVersion] = usePropertyTypeVersions(
     $id,
-    propertyTypes,
+    propertyTypesSubgraph,
   );
 
   const getDefaultValues = useCallback(() => {
@@ -525,7 +528,7 @@ const InsertPropertyRow = (
   const { control } = useFormContext<EntityTypeEditorForm>();
   const properties = useWatch({ control, name: "properties" });
 
-  const propertyTypesObj = usePropertyTypes();
+  const [propertyTypesObj] = usePropertyTypes();
   const propertyTypes = Object.values(propertyTypesObj ?? {});
 
   // @todo make more efficient

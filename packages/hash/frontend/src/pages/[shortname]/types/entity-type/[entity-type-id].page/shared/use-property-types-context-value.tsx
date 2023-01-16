@@ -1,3 +1,4 @@
+import { Subgraph } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -5,24 +6,28 @@ import { useBlockProtocolAggregatePropertyTypes } from "../../../../../../compon
 import { PropertyTypesContextValues } from "./property-types-context";
 
 export const usePropertyTypesContextValue = () => {
+  const [subgraph, setSubgraph] = useState<Subgraph | null>(null);
   const [propertyTypes, setPropertyTypes] = useState<
     PropertyTypesContextValues["types"] | null
   >(null);
   const { aggregatePropertyTypes } = useBlockProtocolAggregatePropertyTypes();
 
   const fetch = useCallback(async () => {
-    await aggregatePropertyTypes({ data: {} }).then(({ data: subgraph }) => {
-      if (subgraph) {
-        setPropertyTypes((existingPropertyTypes) => ({
-          ...existingPropertyTypes,
-          ...Object.fromEntries(
-            getRoots(subgraph).map((propertyType) => {
-              return [propertyType.schema.$id, propertyType.schema];
-            }),
-          ),
-        }));
-      }
-    });
+    await aggregatePropertyTypes({ data: {} }).then(
+      ({ data: propertyTypesSubgraph }) => {
+        if (propertyTypesSubgraph) {
+          setSubgraph(propertyTypesSubgraph);
+          setPropertyTypes((existingPropertyTypes) => ({
+            ...existingPropertyTypes,
+            ...Object.fromEntries(
+              getRoots(propertyTypesSubgraph).map((propertyType) => {
+                return [propertyType.schema.$id, propertyType.schema];
+              }),
+            ),
+          }));
+        }
+      },
+    );
   }, [aggregatePropertyTypes]);
 
   useEffect(() => {
@@ -30,8 +35,8 @@ export const usePropertyTypesContextValue = () => {
   }, [fetch]);
 
   const result = useMemo(
-    () => ({ refetch: fetch, types: propertyTypes }),
-    [fetch, propertyTypes],
+    () => ({ refetch: fetch, types: propertyTypes, subgraph }),
+    [fetch, propertyTypes, subgraph],
   );
 
   return result;
