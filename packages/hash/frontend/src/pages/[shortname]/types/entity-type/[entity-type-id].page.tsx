@@ -143,14 +143,14 @@ const Page: NextPageWithLayout = () => {
   const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
 
   const [
-    remoteEntityType,
+    remoteEntityTypeAndPropertyTypes,
     updateEntityType,
     publishDraft,
     { loading: loadingRemoteEntityType },
   ] = useEntityTypeValue(
     baseEntityTypeUri,
     routeNamespace?.accountId ?? null,
-    (fetchedEntityType) => {
+    ({ entityType: fetchedEntityType }) => {
       reset({
         properties: Object.entries(fetchedEntityType.properties).map(
           ([propertyId, ref]) => {
@@ -187,7 +187,20 @@ const Page: NextPageWithLayout = () => {
     },
   );
 
-  const entityType = remoteEntityType ?? draftEntityType;
+  const entityType =
+    remoteEntityTypeAndPropertyTypes?.entityType ?? draftEntityType;
+
+  const entityTypeAndPropertyTypes = useMemo(
+    () =>
+      entityType
+        ? {
+            entityType,
+            propertyTypes:
+              remoteEntityTypeAndPropertyTypes?.propertyTypes ?? [],
+          }
+        : null,
+    [entityType, remoteEntityTypeAndPropertyTypes],
+  );
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
     const entityTypeSchema = getSchemaFromEditorForm(data);
@@ -242,7 +255,7 @@ const Page: NextPageWithLayout = () => {
       </Head>
       <FormProvider {...formMethods}>
         <PropertyTypesContext.Provider value={propertyTypes}>
-          <EntityTypeContext.Provider value={entityType}>
+          <EntityTypeContext.Provider value={entityTypeAndPropertyTypes}>
             <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
               <Box
                 sx={{

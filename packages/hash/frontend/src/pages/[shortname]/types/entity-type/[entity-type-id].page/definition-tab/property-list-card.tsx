@@ -1,4 +1,8 @@
-import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
+import {
+  extractBaseUri,
+  PropertyType,
+  VersionedUri,
+} from "@blockprotocol/type-system";
 import { faList } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { OwnedById } from "@hashintel/hash-shared/types";
@@ -27,6 +31,7 @@ import {
   useMemo,
   useRef,
   useState,
+  version,
 } from "react";
 import {
   Controller,
@@ -39,6 +44,7 @@ import { useBlockProtocolCreatePropertyType } from "../../../../../../components
 import { useBlockProtocolUpdatePropertyType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-property-type";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
 import { useRouteNamespace } from "../../../../shared/use-route-namespace";
+import { useEntityType } from "../shared/entity-type-context";
 import { EntityTypeEditorForm } from "../shared/form-types";
 import {
   usePropertyTypes,
@@ -188,6 +194,7 @@ const PropertyRow = ({
   menuTableCell?: ReactNode;
 }) => {
   const propertyTypes = usePropertyTypes();
+  const { propertyTypes: entityTypePropertyTypes } = useEntityType();
 
   const [expanded, setExpanded] = useState(true);
 
@@ -219,7 +226,8 @@ const PropertyRow = ({
             [propertyId, ref],
           ) => {
             const $ref = "items" in ref ? ref.items.$ref : ref.$ref;
-            const propertyType = propertyTypes?.[$ref];
+            const propertyType =
+              entityTypePropertyTypes[$ref] ?? propertyTypes?.[$ref];
 
             if (propertyType) {
               const array = "type" in ref;
@@ -236,7 +244,12 @@ const PropertyRow = ({
           [],
         )
       : [];
-  }, [selectedExpectedValueIndex, property.oneOf, propertyTypes]);
+  }, [
+    selectedExpectedValueIndex,
+    property.oneOf,
+    propertyTypes,
+    entityTypePropertyTypes,
+  ]);
 
   const handleResize = () => {
     if (mainRef.current) {
@@ -251,6 +264,13 @@ const PropertyRow = ({
       window.removeEventListener("resize", handleResize);
     };
   }, []);
+
+  const baseUri = extractBaseUri(property.$id);
+  const newerVersion = Object.keys(propertyTypes).find((versionedUri) => {
+    return versionedUri.startsWith(`${baseUri}v/`);
+  });
+
+  console.log(newerVersion);
 
   return (
     <>
@@ -363,7 +383,8 @@ export const PropertyTypeRow = ({
   });
 
   const propertyTypes = usePropertyTypes();
-  const property = propertyTypes?.[$id];
+  const { propertyTypes: entityTypePropertyTypes } = useEntityType();
+  const property = entityTypePropertyTypes[$id] ?? propertyTypes?.[$id];
 
   const getDefaultValues = useCallback(() => {
     if (!property) {
