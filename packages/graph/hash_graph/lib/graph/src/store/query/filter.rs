@@ -128,8 +128,8 @@ impl<'p> Filter<'p, Entity> {
         ])
     }
 
-    /// Creates a `Filter` to search for linked entities where the specified [`EntityId`] identifies
-    /// the source [`Entity`].
+    /// Creates a `Filter` to search for outgoing linked entities where the specified [`EntityId`]
+    /// identifies the source [`Entity`].
     #[must_use]
     pub fn for_outgoing_link_by_source_entity_id(entity_id: EntityId) -> Self {
         Self::All(vec![
@@ -152,8 +152,8 @@ impl<'p> Filter<'p, Entity> {
         ])
     }
 
-    /// Creates a `Filter` to search for linked entities where the specified [`EntityId`] identifies
-    /// the target [`Entity`].
+    /// Creates a `Filter` to search for incoming linked entities where the specified [`EntityId`]
+    /// identifies the target [`Entity`].
     #[must_use]
     pub fn for_incoming_link_by_source_entity_id(entity_id: EntityId) -> Self {
         Self::All(vec![
