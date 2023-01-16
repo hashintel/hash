@@ -165,6 +165,5 @@ pub struct StructuralQuery<'p, R: Record> {
     #[serde(bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>")]
     pub filter: Filter<'p, R>,
     pub graph_resolve_depths: GraphResolveDepths,
-    #[serde(default)]
     pub time_projection: UnresolvedTimeProjection,
 }
