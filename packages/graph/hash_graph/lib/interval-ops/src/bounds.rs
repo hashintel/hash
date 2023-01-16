@@ -185,14 +185,15 @@ fn compare_bounds<T: PartialOrd>(
     rhs_type: BoundType,
 ) -> Ordering {
     match (lhs, rhs, lhs_type, rhs_type) {
-        // If the bounds are not equal, then the bound with the lower value is less than the bound
-        // with the higher value.
+        // If the bound values are not equal, then the bound with the lower value is less than the
+        // bound with the higher value.
         (
             Bound::Included(lhs) | Bound::Excluded(lhs),
             Bound::Included(rhs) | Bound::Excluded(rhs),
             ..,
         ) if lhs != rhs => lhs.partial_cmp(rhs).unwrap_or_else(|| invalid_bounds()),
 
+        // From here onwards, the bound values are equal
         (Bound::Unbounded, Bound::Unbounded, BoundType::Lower, BoundType::Lower)
         | (Bound::Unbounded, Bound::Unbounded, BoundType::Upper, BoundType::Upper)
         | (Bound::Excluded(_), Bound::Excluded(_), BoundType::Lower, BoundType::Lower)
