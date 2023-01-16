@@ -16,7 +16,7 @@ mod embedded {
 #[async_trait]
 impl<C: AsClient<Client = Client>> StoreMigration for PostgresStore<C> {
     async fn run_migrations(&mut self) -> Result<Vec<Migration>, MigrationError> {
-        let run_migrations = embedded::migrations::runner()
+        Ok(embedded::migrations::runner()
             .run_async(self.as_mut_client())
             .await
             .into_report()
@@ -24,32 +24,26 @@ impl<C: AsClient<Client = Client>> StoreMigration for PostgresStore<C> {
             .applied_migrations()
             .iter()
             .map(Migration::from)
-            .collect();
-
-        Ok(run_migrations)
+            .collect())
     }
 
     async fn all_migrations(&mut self) -> Result<Vec<Migration>, MigrationError> {
-        let all_migrations = embedded::migrations::runner()
+        Ok(embedded::migrations::runner()
             .get_migrations()
             .iter()
             .map(Migration::from)
-            .collect();
-
-        Ok(all_migrations)
+            .collect())
     }
 
     async fn applied_migrations(&mut self) -> Result<Vec<Migration>, MigrationError> {
-        let applied_migrations = embedded::migrations::runner()
+        Ok(embedded::migrations::runner()
             .get_applied_migrations_async(self.as_mut_client())
             .await
             .into_report()
             .change_context(MigrationError)?
             .iter()
             .map(Migration::from)
-            .collect();
-
-        Ok(applied_migrations)
+            .collect())
     }
 
     async fn missing_migrations(&mut self) -> Result<Vec<Migration>, MigrationError> {
@@ -58,12 +52,10 @@ impl<C: AsClient<Client = Client>> StoreMigration for PostgresStore<C> {
 
         // Migrations are expected to be a very small list, even with thousands of migrations, the
         // performance implications of this are negligible.
-        let difference: Vec<_> = all_migrations
+        Ok(all_migrations
             .into_iter()
             .filter(|item| !applied_migrations.contains(item))
-            .collect();
-
-        Ok(difference)
+            .collect())
     }
 }
 
@@ -80,6 +72,7 @@ impl From<&refinery::Migration> for Migration {
         // just for display purposes as we rely on the checksum/hash to provide proper comparison
         // for the different migrations
         let name = format!("{}_{}", value.version(), value.name());
+
         Self::new(name, state, value.checksum())
     }
 }
