@@ -1,7 +1,7 @@
 mod common;
 
 use deer::{Deserialize, Number};
-use deer_desert::{assert_tokens, assert_tokens_error, Token};
+use deer_desert::{assert_tokens, assert_tokens_error, error, Token};
 use num_traits::cast::FromPrimitive;
 use proptest::prelude::*;
 use serde_json::json;
@@ -71,9 +71,6 @@ proptest! {
     }
 }
 
-// TODO: we're not coercing down into number if possible :/ We might just end up with arbitrary
-//  precision enabled?
-//
 // we're not testing the individual error messages, as those are tested at the
 // respective error variants and are separate from the returned errors
 macro_rules! test_overflow {
@@ -84,7 +81,7 @@ macro_rules! test_overflow {
                 let overflow = $ty::MAX as i128 + 1;
                 let overflow = Number::from_i128(overflow).expect("fits into number");
 
-                assert_tokens_error::<_, $ty>(
+                assert_tokens_error::<$ty>(
                     &error! {
                         ns: "deer",
                         id: ["value"],
@@ -103,7 +100,7 @@ macro_rules! test_overflow {
                 let underflow = $ty::MIN as i128 - 1;
                 let underflow = Number::from_i128(underflow).expect("fits into number");
 
-                assert_tokens_error::<_, $ty>(
+                assert_tokens_error::<$ty>(
                     &error! {
                         ns: "deer",
                         id: ["value"],
@@ -128,13 +125,14 @@ macro_rules! test_overflow {
 test_overflow![u8, i8, u16, i16, u32, i32, i64];
 
 mod u64 {
+
     use super::*;
 
     #[test]
     fn overflow() {
         let overflow = u64::MAX as i128 + 1;
 
-        assert_tokens_error::<_, u64>(
+        assert_tokens_error::<u64>(
             &error! {
                 ns: "deer",
                 id: ["value"],
@@ -153,7 +151,7 @@ mod u64 {
         let underflow = u64::MIN as i128 - 1;
         let underflow = Number::from_i128(underflow).expect("fits into number");
 
-        assert_tokens_error::<_, u64>(
+        assert_tokens_error::<u64>(
             &error! {
                 ns: "deer",
                 id: ["value"],

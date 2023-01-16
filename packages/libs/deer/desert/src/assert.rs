@@ -1,12 +1,11 @@
 use core::fmt::Debug;
 
 use deer::{error::ReportExt, Context, Deserialize};
-use serde::Serialize;
-use serde_json::{to_value, Value};
+use serde_json::to_value;
 #[cfg(feature = "pretty")]
 use similar_asserts::{assert_eq, assert_serde_eq};
 
-use crate::{deserializer::Deserializer, token::Token};
+use crate::{deserializer::Deserializer, error::ErrorVec, token::Token};
 
 pub fn assert_tokens_with_context<'de, T>(expected: &T, tokens: &'de [Token], context: &Context)
 where
@@ -29,33 +28,30 @@ where
     assert_tokens_with_context(value, tokens, &Context::new());
 }
 
-pub fn assert_tokens_with_context_error<'de, E, T>(
-    error: &E,
+pub fn assert_tokens_with_context_error<'de, T>(
+    error: &ErrorVec,
     tokens: &'de [Token],
     context: &Context,
 ) where
-    E: Serialize + Debug,
     T: Deserialize<'de> + Debug,
-    Value: PartialEq<E>,
 {
     let mut de = Deserializer::new(tokens, context);
     let received = T::deserialize(&mut de).expect_err("value of type T should fail serialization");
 
     let received = received.export();
     let received = to_value(received).expect("error should serialize");
+    let errors = ErrorVec::from_value(&received).expect("well-formed error object");
 
     #[cfg(not(feature = "pretty"))]
-    assert_eq!(received, *error);
+    assert_eq!(errors, *error);
 
     #[cfg(feature = "pretty")]
-    assert_serde_eq!(received, *error);
+    assert_serde_eq!(errors, *error);
 }
 
-pub fn assert_tokens_error<'de, E, T>(error: &E, tokens: &'de [Token])
+pub fn assert_tokens_error<'de, T>(error: &ErrorVec, tokens: &'de [Token])
 where
-    E: Serialize + Debug,
     T: Deserialize<'de> + Debug,
-    Value: PartialEq<E>,
 {
-    assert_tokens_with_context_error::<E, T>(error, tokens, &Context::new());
+    assert_tokens_with_context_error::<T>(error, tokens, &Context::new());
 }

@@ -8,7 +8,7 @@ use core::num::{
 };
 
 use deer::{Deserialize, Number};
-use deer_desert::{assert_tokens_error, Token};
+use deer_desert::{assert_tokens_error, error, Token};
 use serde_json::json;
 
 macro_rules! test_zero {
@@ -18,7 +18,7 @@ macro_rules! test_zero {
             fn [<$ty:lower _err_zero >]() {
                 let zero = Number::from(0u8);
 
-                assert_tokens_error::<_, $ty>(
+                assert_tokens_error::<$ty>(
                     &error! {
                         ns: "deer",
                         id: ["value"],
@@ -45,7 +45,7 @@ test_zero![
 
 #[test]
 fn i128_err_zero() {
-    assert_tokens_error::<_, NonZeroI128>(
+    assert_tokens_error::<NonZeroI128>(
         &error! {
             ns: "deer",
             id: ["value"],
@@ -61,7 +61,7 @@ fn i128_err_zero() {
 
 #[test]
 fn isize_err_zero() {
-    assert_tokens_error::<_, NonZeroIsize>(
+    assert_tokens_error::<NonZeroIsize>(
         &error! {
             ns: "deer",
             id: ["value"],
@@ -77,7 +77,7 @@ fn isize_err_zero() {
 
 #[test]
 fn u128_err_zero() {
-    assert_tokens_error::<_, NonZeroU128>(
+    assert_tokens_error::<NonZeroU128>(
         &error! {
             ns: "deer",
             id: ["value"],
@@ -93,7 +93,7 @@ fn u128_err_zero() {
 
 #[test]
 fn usize_err_zero() {
-    assert_tokens_error::<_, NonZeroUsize>(
+    assert_tokens_error::<NonZeroUsize>(
         &error! {
             ns: "deer",
             id: ["value"],

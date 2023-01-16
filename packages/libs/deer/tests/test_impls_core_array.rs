@@ -1,7 +1,7 @@
 mod common;
 
 use deer::{Deserialize, Number};
-use deer_desert::{assert_tokens, assert_tokens_error, Token};
+use deer_desert::{assert_tokens, assert_tokens_error, error, Token};
 use serde_json::json;
 
 #[test]
@@ -24,7 +24,7 @@ fn array_u8_ok() {
 
 #[test]
 fn array_u8_err_inner() {
-    assert_tokens_error::<_, [u8; 8]>(
+    assert_tokens_error::<[u8; 8]>(
         &error! {
             ns: "deer",
             id: ["value"],
@@ -54,7 +54,7 @@ fn array_u8_err_inner() {
 
 #[test]
 fn array_u8_err_too_many() {
-    assert_tokens_error::<_, [u8; 1]>(
+    assert_tokens_error::<[u8; 1]>(
         &error! {
             ns: "deer",
             id: ["array", "length"],
@@ -75,7 +75,7 @@ fn array_u8_err_too_many() {
 
 #[test]
 fn array_u8_err_not_enough() {
-    assert_tokens_error::<_, [u8; 3]>(
+    assert_tokens_error::<[u8; 3]>(
         &error!([
             {
                 ns: "deer",
