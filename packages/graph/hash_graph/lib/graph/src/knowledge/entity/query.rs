@@ -287,7 +287,7 @@ impl QueryPath for EntityQueryPath<'_> {
             | Self::RightEntity(path)
             | Self::IncomingLinks(path)
             | Self::OutgoingLinks(path) => path.expected_type(),
-            Self::DecisionTime | Self::TransactionTime => ParameterType::Timespan,
+            Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
             Self::ProjectedTime => ParameterType::Timestamp,
             Self::Type(path) => path.expected_type(),
             Self::Properties(_) => ParameterType::Any,

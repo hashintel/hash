@@ -351,16 +351,16 @@ export interface DecisionTimeImage {
   axis: DecisionTime;
   /**
    *
-   * @type {TimespanBound}
+   * @type {TimeIntervalBound}
    * @memberof DecisionTimeImage
    */
-  end: TimespanBound;
+  end: TimeIntervalBound;
   /**
    *
-   * @type {TimespanBound}
+   * @type {TimeIntervalBound}
    * @memberof DecisionTimeImage
    */
-  start: TimespanBound;
+  start: TimeIntervalBound;
 }
 /**
  *
@@ -383,16 +383,16 @@ export interface DecisionTimeImageAllOf {
 export interface DecisionTimeImageAllOf1 {
   /**
    *
-   * @type {TimespanBound}
+   * @type {TimeIntervalBound}
    * @memberof DecisionTimeImageAllOf1
    */
-  end: TimespanBound;
+  end: TimeIntervalBound;
   /**
    *
-   * @type {TimespanBound}
+   * @type {TimeIntervalBound}
    * @memberof DecisionTimeImageAllOf1
    */
-  start: TimespanBound;
+  start: TimeIntervalBound;
 }
 /**
  *
@@ -802,16 +802,16 @@ export interface EntityTypeWithMetadata {
 export interface EntityVersion {
   /**
    *
-   * @type {VersionTimespan}
+   * @type {VersionInterval}
    * @memberof EntityVersion
    */
-  decisionTime: VersionTimespan;
+  decisionTime: VersionInterval;
   /**
    *
-   * @type {VersionTimespan}
+   * @type {VersionInterval}
    * @memberof EntityVersion
    */
-  transactionTime: VersionTimespan;
+  transactionTime: VersionInterval;
 }
 /**
  *
@@ -1914,65 +1914,67 @@ export interface Subgraph {
   vertices: Vertices;
 }
 /**
- * @type TimeProjection
+ * @type TimeIntervalBound
  * @export
  */
-export type TimeProjection = DecisionTimeProjection | TransactionTimeProjection;
-
-/**
- * @type TimespanBound
- * @export
- */
-export type TimespanBound = TimespanBoundOneOf | TimespanBoundOneOf1;
+export type TimeIntervalBound =
+  | TimeIntervalBoundOneOf
+  | TimeIntervalBoundOneOf1;
 
 /**
  *
  * @export
- * @interface TimespanBoundOneOf
+ * @interface TimeIntervalBoundOneOf
  */
-export interface TimespanBoundOneOf {
+export interface TimeIntervalBoundOneOf {
   /**
    *
    * @type {object}
-   * @memberof TimespanBoundOneOf
+   * @memberof TimeIntervalBoundOneOf
    */
-  bound: TimespanBoundOneOfBoundEnum;
+  bound: TimeIntervalBoundOneOfBoundEnum;
 }
 
-export const TimespanBoundOneOfBoundEnum = {
+export const TimeIntervalBoundOneOfBoundEnum = {
   Unbounded: "unbounded",
 } as const;
 
-export type TimespanBoundOneOfBoundEnum =
-  (typeof TimespanBoundOneOfBoundEnum)[keyof typeof TimespanBoundOneOfBoundEnum];
+export type TimeIntervalBoundOneOfBoundEnum =
+  (typeof TimeIntervalBoundOneOfBoundEnum)[keyof typeof TimeIntervalBoundOneOfBoundEnum];
 
 /**
  *
  * @export
- * @interface TimespanBoundOneOf1
+ * @interface TimeIntervalBoundOneOf1
  */
-export interface TimespanBoundOneOf1 {
+export interface TimeIntervalBoundOneOf1 {
   /**
    *
    * @type {object}
-   * @memberof TimespanBoundOneOf1
+   * @memberof TimeIntervalBoundOneOf1
    */
-  bound: TimespanBoundOneOf1BoundEnum;
+  bound: TimeIntervalBoundOneOf1BoundEnum;
   /**
    *
    * @type {string}
-   * @memberof TimespanBoundOneOf1
+   * @memberof TimeIntervalBoundOneOf1
    */
   timestamp: string;
 }
 
-export const TimespanBoundOneOf1BoundEnum = {
+export const TimeIntervalBoundOneOf1BoundEnum = {
   Included: "included",
   Excluded: "excluded",
 } as const;
 
-export type TimespanBoundOneOf1BoundEnum =
-  (typeof TimespanBoundOneOf1BoundEnum)[keyof typeof TimespanBoundOneOf1BoundEnum];
+export type TimeIntervalBoundOneOf1BoundEnum =
+  (typeof TimeIntervalBoundOneOf1BoundEnum)[keyof typeof TimeIntervalBoundOneOf1BoundEnum];
+
+/**
+ * @type TimeProjection
+ * @export
+ */
+export type TimeProjection = DecisionTimeProjection | TransactionTimeProjection;
 
 /**
  * Time axis for the transaction time.  This is used as the generic argument to time-related structs and can be used as tag value.
@@ -2001,16 +2003,16 @@ export interface TransactionTimeImage {
   axis: TransactionTime;
   /**
    *
-   * @type {TimespanBound}
+   * @type {TimeIntervalBound}
    * @memberof TransactionTimeImage
    */
-  end: TimespanBound;
+  end: TimeIntervalBound;
   /**
    *
-   * @type {TimespanBound}
+   * @type {TimeIntervalBound}
    * @memberof TransactionTimeImage
    */
-  start: TimespanBound;
+  start: TimeIntervalBound;
 }
 /**
  *
@@ -2077,16 +2079,16 @@ export interface UnresolvedDecisionTimeImage {
   axis: DecisionTime;
   /**
    *
-   * @type {TimespanBound}
+   * @type {TimeIntervalBound}
    * @memberof UnresolvedDecisionTimeImage
    */
-  end?: TimespanBound;
+  end?: TimeIntervalBound;
   /**
    *
-   * @type {TimespanBound}
+   * @type {TimeIntervalBound}
    * @memberof UnresolvedDecisionTimeImage
    */
-  start?: TimespanBound;
+  start?: TimeIntervalBound;
 }
 /**
  *
@@ -2096,16 +2098,16 @@ export interface UnresolvedDecisionTimeImage {
 export interface UnresolvedDecisionTimeImageAllOf {
   /**
    *
-   * @type {TimespanBound}
+   * @type {TimeIntervalBound}
    * @memberof UnresolvedDecisionTimeImageAllOf
    */
-  end?: TimespanBound;
+  end?: TimeIntervalBound;
   /**
    *
-   * @type {TimespanBound}
+   * @type {TimeIntervalBound}
    * @memberof UnresolvedDecisionTimeImageAllOf
    */
-  start?: TimespanBound;
+  start?: TimeIntervalBound;
 }
 /**
  *
@@ -2167,16 +2169,16 @@ export interface UnresolvedTransactionTimeImage {
   axis: TransactionTime;
   /**
    *
-   * @type {TimespanBound}
+   * @type {TimeIntervalBound}
    * @memberof UnresolvedTransactionTimeImage
    */
-  end?: TimespanBound;
+  end?: TimeIntervalBound;
   /**
    *
-   * @type {TimespanBound}
+   * @type {TimeIntervalBound}
    * @memberof UnresolvedTransactionTimeImage
    */
-  start?: TimespanBound;
+  start?: TimeIntervalBound;
 }
 /**
  *
@@ -2541,19 +2543,19 @@ export interface UpdatePropertyTypeRequest {
 /**
  *
  * @export
- * @interface VersionTimespan
+ * @interface VersionInterval
  */
-export interface VersionTimespan {
+export interface VersionInterval {
   /**
    *
    * @type {string}
-   * @memberof VersionTimespan
+   * @memberof VersionInterval
    */
   end?: string;
   /**
    *
    * @type {string}
-   * @memberof VersionTimespan
+   * @memberof VersionInterval
    */
   start: string;
 }
