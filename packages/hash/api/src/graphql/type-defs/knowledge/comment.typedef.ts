@@ -1,6 +1,8 @@
 import { gql } from "apollo-server-express";
 
 export const commentTypedef = gql`
+  scalar EntityVersion
+
   type Comment {
     """
     Stringified timestamp of when the entity was resolved.
@@ -13,9 +15,9 @@ export const commentTypedef = gql`
     deletedAt: String
 
     """
-    Timestamp of when the comment was last edited
+    Version information of when the comment was last edited
     """
-    textUpdatedAt: Date!
+    textUpdatedAt: EntityVersion!
 
     """
     Text contents of the comment
