@@ -1,7 +1,7 @@
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
     identifier::time::{
-        TimespanBound, UnresolvedImage, UnresolvedKernel, UnresolvedProjection,
+        TimeIntervalBound, UnresolvedImage, UnresolvedKernel, UnresolvedProjection,
         UnresolvedTimeProjection,
     },
     store::{query::Filter, EntityTypeStore},
@@ -35,8 +35,8 @@ pub fn bench_get_entity_type_by_id(
                     time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                         kernel: UnresolvedKernel::new(None),
                         image: UnresolvedImage::new(
-                            Some(TimespanBound::Unbounded),
-                            Some(TimespanBound::Unbounded),
+                            Some(TimeIntervalBound::Unbounded),
+                            Some(TimeIntervalBound::Unbounded),
                         ),
                     }),
                 })
