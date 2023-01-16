@@ -13,7 +13,7 @@ use graph::{
         knowledge::EntityId,
         ontology::OntologyTypeEditionId,
         time::{
-            TimespanBound, Timestamp, TransactionTime, UnresolvedImage, UnresolvedKernel,
+            TimeIntervalBound, Timestamp, TransactionTime, UnresolvedImage, UnresolvedKernel,
             UnresolvedProjection, UnresolvedTimeProjection,
         },
         EntityVertexId, GraphElementVertexId,
@@ -172,8 +172,8 @@ impl DatabaseApi<'_> {
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                     kernel: UnresolvedKernel::new(None),
                     image: UnresolvedImage::new(
-                        Some(TimespanBound::Unbounded),
-                        Some(TimespanBound::Unbounded),
+                        Some(TimeIntervalBound::Unbounded),
+                        Some(TimeIntervalBound::Unbounded),
                     ),
                 }),
             })
@@ -218,8 +218,8 @@ impl DatabaseApi<'_> {
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                     kernel: UnresolvedKernel::new(None),
                     image: UnresolvedImage::new(
-                        Some(TimespanBound::Unbounded),
-                        Some(TimespanBound::Unbounded),
+                        Some(TimeIntervalBound::Unbounded),
+                        Some(TimeIntervalBound::Unbounded),
                     ),
                 }),
             })
@@ -264,8 +264,8 @@ impl DatabaseApi<'_> {
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                     kernel: UnresolvedKernel::new(None),
                     image: UnresolvedImage::new(
-                        Some(TimespanBound::Unbounded),
-                        Some(TimespanBound::Unbounded),
+                        Some(TimeIntervalBound::Unbounded),
+                        Some(TimeIntervalBound::Unbounded),
                     ),
                 }),
             })
@@ -319,8 +319,8 @@ impl DatabaseApi<'_> {
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                     kernel: UnresolvedKernel::new(None),
                     image: UnresolvedImage::new(
-                        Some(TimespanBound::Unbounded),
-                        Some(TimespanBound::Unbounded),
+                        Some(TimeIntervalBound::Unbounded),
+                        Some(TimeIntervalBound::Unbounded),
                     ),
                 }),
             })
@@ -421,8 +421,8 @@ impl DatabaseApi<'_> {
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                     kernel: UnresolvedKernel::new(None),
                     image: UnresolvedImage::new(
-                        Some(TimespanBound::Unbounded),
-                        Some(TimespanBound::Unbounded),
+                        Some(TimeIntervalBound::Unbounded),
+                        Some(TimeIntervalBound::Unbounded),
                     ),
                 }),
             })
@@ -467,9 +467,7 @@ impl DatabaseApi<'_> {
                 ))),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(
-                    EntityQueryPath::LowerTransactionTime,
-                )),
+                Some(FilterExpression::Path(EntityQueryPath::ProjectedTime)),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     "latest",
                 )))),
@@ -488,8 +486,8 @@ impl DatabaseApi<'_> {
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                     kernel: UnresolvedKernel::new(None),
                     image: UnresolvedImage::new(
-                        Some(TimespanBound::Unbounded),
-                        Some(TimespanBound::Unbounded),
+                        Some(TimeIntervalBound::Unbounded),
+                        Some(TimeIntervalBound::Unbounded),
                     ),
                 }),
             })

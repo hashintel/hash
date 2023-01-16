@@ -149,9 +149,7 @@ impl<'p> Filter<'p, Entity> {
                 ))),
             ),
             Self::Equal(
-                Some(FilterExpression::Path(
-                    EntityQueryPath::LowerTransactionTime,
-                )),
+                Some(FilterExpression::Path(EntityQueryPath::ProjectedTime)),
                 Some(FilterExpression::Parameter(Parameter::Timestamp(
                     vertex_id.version(),
                 ))),
@@ -183,7 +181,7 @@ impl<'p> Filter<'p, Entity> {
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
-                    Box::new(EntityQueryPath::LowerTransactionTime),
+                    Box::new(EntityQueryPath::ProjectedTime),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Timestamp(
                     vertex_id.version(),
@@ -216,7 +214,7 @@ impl<'p> Filter<'p, Entity> {
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::RightEntity(
-                    Box::new(EntityQueryPath::LowerTransactionTime),
+                    Box::new(EntityQueryPath::ProjectedTime),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Timestamp(
                     vertex_id.version(),
@@ -249,7 +247,7 @@ impl<'p> Filter<'p, Entity> {
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
-                    Box::new(EntityQueryPath::LowerTransactionTime),
+                    Box::new(EntityQueryPath::ProjectedTime),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Timestamp(
                     vertex_id.version(),
@@ -282,7 +280,7 @@ impl<'p> Filter<'p, Entity> {
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
-                    Box::new(EntityQueryPath::LowerTransactionTime),
+                    Box::new(EntityQueryPath::ProjectedTime),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Timestamp(
                     vertex_id.version(),

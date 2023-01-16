@@ -12,7 +12,8 @@ pub enum Condition<'p> {
     Not(Box<Self>),
     Equal(Option<Expression<'p>>, Option<Expression<'p>>),
     NotEqual(Option<Expression<'p>>, Option<Expression<'p>>),
-    RangeContains(Expression<'p>, Expression<'p>),
+    TimeIntervalContainsTimestamp(Expression<'p>, Expression<'p>),
+    Overlap(Expression<'p>, Expression<'p>),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -77,9 +78,15 @@ impl Transpile for Condition<'_> {
                 fmt.write_str(" != ")?;
                 rhs.transpile(fmt)
             }
-            Condition::RangeContains(lhs, rhs) => {
+            Condition::TimeIntervalContainsTimestamp(lhs, rhs) => {
                 lhs.transpile(fmt)?;
                 fmt.write_str(" @> ")?;
+                rhs.transpile(fmt)?;
+                fmt.write_str("::TIMESTAMPTZ")
+            }
+            Condition::Overlap(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" && ")?;
                 rhs.transpile(fmt)
             }
         }

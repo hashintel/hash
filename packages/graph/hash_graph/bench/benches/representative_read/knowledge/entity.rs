@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
     identifier::time::{
-        TimespanBound, UnresolvedImage, UnresolvedKernel, UnresolvedProjection,
+        TimeIntervalBound, UnresolvedImage, UnresolvedKernel, UnresolvedProjection,
         UnresolvedTimeProjection,
     },
     knowledge::{EntityQueryPath, EntityUuid},
@@ -43,9 +43,7 @@ pub fn bench_get_entity_by_id(
                             ))),
                         ),
                         Filter::Equal(
-                            Some(FilterExpression::Path(
-                                EntityQueryPath::LowerTransactionTime,
-                            )),
+                            Some(FilterExpression::Path(EntityQueryPath::ProjectedTime)),
                             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                                 "latest",
                             )))),
@@ -55,8 +53,8 @@ pub fn bench_get_entity_by_id(
                     time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                         kernel: UnresolvedKernel::new(None),
                         image: UnresolvedImage::new(
-                            Some(TimespanBound::Unbounded),
-                            Some(TimespanBound::Unbounded),
+                            Some(TimeIntervalBound::Unbounded),
+                            Some(TimeIntervalBound::Unbounded),
                         ),
                     }),
                 })
@@ -89,8 +87,8 @@ pub fn bench_get_entities_by_property(
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                     kernel: UnresolvedKernel::new(None),
                     image: UnresolvedImage::new(
-                        Some(TimespanBound::Unbounded),
-                        Some(TimespanBound::Unbounded),
+                        Some(TimeIntervalBound::Unbounded),
+                        Some(TimeIntervalBound::Unbounded),
                     ),
                 }),
             })
@@ -123,8 +121,8 @@ pub fn bench_get_link_by_target_by_property(
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                     kernel: UnresolvedKernel::new(None),
                     image: UnresolvedImage::new(
-                        Some(TimespanBound::Unbounded),
-                        Some(TimespanBound::Unbounded),
+                        Some(TimeIntervalBound::Unbounded),
+                        Some(TimeIntervalBound::Unbounded),
                     ),
                 }),
             })

@@ -1,6 +1,7 @@
 {
   "recommendations": [
     "davidanson.vscode-markdownlint",
-    "esbenp.prettier-vscode"
+    "esbenp.prettier-vscode",
+    "ms-playwright.playwright"
   ]
 }

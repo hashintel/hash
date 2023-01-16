@@ -76,9 +76,9 @@ pub enum EntityQueryPath<'p> {
     /// [`EntityVersion`]: crate::identifier::knowledge::EntityVersion
     /// [`Entity`]: crate::knowledge::Entity
     TransactionTime,
-    // TODO: Remove when adjusting structural queries
-    //   see https://app.asana.com/0/0/1203491211535116/f
-    LowerTransactionTime,
+    // TODO: Remove when correctly resolving time intervals in subgraphs.
+    //   see https://app.asana.com/0/0/1203701389454316/f
+    ProjectedTime,
     /// Whether or not the [`Entity`] is archived.
     ///
     /// ```rust
@@ -263,7 +263,7 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::RecordId => fmt.write_str("recordId"),
             Self::DecisionTime => fmt.write_str("decisionTime"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
-            Self::LowerTransactionTime => fmt.write_str("transactionTimeFrom"),
+            Self::ProjectedTime => fmt.write_str("projectedTime"),
             Self::Archived => fmt.write_str("archived"),
             Self::Type(path) => write!(fmt, "type.{path}"),
             Self::Properties(Some(property)) => write!(fmt, "properties.{property}"),
@@ -287,8 +287,8 @@ impl QueryPath for EntityQueryPath<'_> {
             | Self::RightEntity(path)
             | Self::IncomingLinks(path)
             | Self::OutgoingLinks(path) => path.expected_type(),
-            Self::DecisionTime | Self::TransactionTime => ParameterType::Timespan,
-            Self::LowerTransactionTime => ParameterType::Timestamp,
+            Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
+            Self::ProjectedTime => ParameterType::Timestamp,
             Self::Type(path) => path.expected_type(),
             Self::Properties(_) => ParameterType::Any,
             Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::Number,
@@ -357,7 +357,7 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::RecordId => EntityQueryPath::RecordId,
             EntityQueryToken::OwnedById => EntityQueryPath::OwnedById,
             EntityQueryToken::UpdatedById => EntityQueryPath::UpdatedById,
-            EntityQueryToken::Version => EntityQueryPath::LowerTransactionTime,
+            EntityQueryToken::Version => EntityQueryPath::ProjectedTime,
             EntityQueryToken::Archived => EntityQueryPath::Archived,
             EntityQueryToken::Type => EntityQueryPath::Type(
                 EntityTypeQueryPathVisitor::new(self.position).visit_seq(seq)?,
@@ -410,10 +410,7 @@ mod tests {
 
     #[test]
     fn deserialization() {
-        assert_eq!(
-            deserialize(["version"]),
-            EntityQueryPath::LowerTransactionTime
-        );
+        assert_eq!(deserialize(["version"]), EntityQueryPath::ProjectedTime);
         assert_eq!(deserialize(["ownedById"]), EntityQueryPath::OwnedById);
         assert_eq!(
             deserialize(["type", "version"]),
