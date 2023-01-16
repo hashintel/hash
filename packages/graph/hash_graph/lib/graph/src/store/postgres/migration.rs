@@ -15,14 +15,18 @@ mod embedded {
 
 #[async_trait]
 impl<C: AsClient<Client = Client>> StoreMigration for PostgresStore<C> {
-    async fn run_migrations(&mut self) -> Result<(), MigrationError> {
-        embedded::migrations::runner()
+    async fn run_migrations(&mut self) -> Result<Vec<Migration>, MigrationError> {
+        let run_migrations = embedded::migrations::runner()
             .run_async(self.as_mut_client())
             .await
             .into_report()
-            .change_context(MigrationError)?;
+            .change_context(MigrationError)?
+            .applied_migrations()
+            .iter()
+            .map(|migration| migration.into())
+            .collect();
 
-        Ok(())
+        Ok(run_migrations)
     }
 
     async fn all_migrations(&mut self) -> Result<Vec<Migration>, MigrationError> {

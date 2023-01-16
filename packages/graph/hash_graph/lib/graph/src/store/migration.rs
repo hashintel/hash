@@ -56,7 +56,7 @@ impl Migration {
 /// raised depending on the implementation, e.g. connection issues.
 #[async_trait]
 pub trait StoreMigration: Sync {
-    async fn run_migrations(&mut self) -> Result<(), MigrationError>;
+    async fn run_migrations(&mut self) -> Result<Vec<Migration>, MigrationError>;
 
     async fn all_migrations(&mut self) -> Result<Vec<Migration>, MigrationError>;
 
