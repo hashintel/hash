@@ -413,24 +413,24 @@ mod tests {
         if lhs.union(rhs).len() == 1 && lhs.intersect(rhs).is_some() {
             assert!(
                 lhs.overlaps(&rhs),
-                "{lhs:?} overlaps with {rhs:?}, but does not report so"
+                "{lhs:?} overlaps with {rhs:?}, but `overlaps` does not report so"
             );
         } else {
             assert!(
                 !lhs.overlaps(&rhs),
-                "{lhs:?} doesn't overlap with {rhs:?}, but does report so"
+                "{lhs:?} doesn't overlap with {rhs:?}, but `overlaps` does report so"
             );
         }
 
         if lhs.union(rhs).len() == 1 && !lhs.overlaps(&rhs) {
             assert!(
                 lhs.is_adjacent_to(&rhs),
-                "{lhs:?} is adjacent to {rhs:?}, but does not report so"
+                "{lhs:?} is adjacent to {rhs:?}, but `is_adjacent_to` does not report so"
             );
         } else {
             assert!(
                 !lhs.is_adjacent_to(&rhs),
-                "{lhs:?} is not adjacent to {rhs:?}, but does report so"
+                "{lhs:?} is not adjacent to {rhs:?}, but `is_adjacent_to` does report so"
             );
         }
         // TODO: Not implemented yet
