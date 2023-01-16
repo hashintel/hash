@@ -184,13 +184,17 @@ const usePropertyTypeVersions = (
       ? Object.values(propertyTypes).map(({ $id }) => $id)
       : [];
 
-    const latestVersion = propertyTypeIds.find((versionedUri) => {
-      return versionedUri.startsWith(`${baseUri}v/`);
-    });
+    const versions = propertyTypeIds
+      .filter((versionedUri) => {
+        return versionedUri.startsWith(`${baseUri}v/`);
+      })
+      .map((versionedUri) => extractVersion(versionedUri));
+
+    const latestVersion = Math.max(...versions);
 
     return [
       extractVersion(propertyTypeId),
-      latestVersion ? extractVersion(latestVersion) : undefined,
+      latestVersion,
       baseUri.slice(0, -1),
     ] as const;
   }, [propertyTypeId, propertyTypes]);
