@@ -137,4 +137,4 @@ seed-users.json
 *.pem
 
 # Workspace-specific
-/packages/hash/design-system/storybook-static
+**/storybook-static
