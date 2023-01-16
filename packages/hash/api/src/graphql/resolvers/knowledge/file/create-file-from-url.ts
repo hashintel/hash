@@ -9,17 +9,7 @@ import {
 import { LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
 
-// function guessFileNameFromURL(url: string): string {
-//   const fileNameRegex = /[^/\\&?]+\w+(?=([?&].*$|$))/;
-//   const fileName = url.match(fileNameRegex);
-//   if (fileName && fileName.length > 0) {
-//     return fileName[0]!;
-//   } else {
-//     return genId();
-//   }
-// }
-
-export const createFileFromLink: ResolverFn<
+export const createFileFromUrl: ResolverFn<
   Promise<Entity>,
   {},
   LoggedInGraphQLContext,

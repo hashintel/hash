@@ -20,7 +20,7 @@ import {
   getEntityResolver,
   updateEntityResolver,
 } from "./knowledge/entity/entity";
-import { createFileFromLink } from "./knowledge/file/create-file-from-link";
+import { createFileFromUrl } from "./knowledge/file/create-file-from-url";
 import { requestFileUpload } from "./knowledge/file/request-file-upload";
 import { hashInstanceEntityResolver } from "./knowledge/hash-instance/hash-instance";
 import { createOrgResolver } from "./knowledge/org/create-org";
@@ -115,7 +115,7 @@ export const resolvers = {
     ),
     updatePageContents: loggedInAndSignedUpMiddleware(updatePageContents),
     requestFileUpload: loggedInAndSignedUpMiddleware(requestFileUpload),
-    createFileFromLink: loggedInAndSignedUpMiddleware(createFileFromLink),
+    createFileFromLink: loggedInAndSignedUpMiddleware(createFileFromUrl),
     // Task execution
     executeDemoTask,
     executeGithubSpecTask,
