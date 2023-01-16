@@ -22,10 +22,10 @@ A-hash:
   - "packages/hash/**/.*"
 
 A-engine:
-  - "packages/engine/*"
-  - "packages/engine/.*"
-  - "packages/engine/**/*"
-  - "packages/engine/**/.*"
+  - "apps/engine/*"
+  - "apps/engine/.*"
+  - "apps/engine/**/*"
+  - "apps/engine/**/.*"
 
 A-learn:
   - "apps/hashdotai/resources/*"
