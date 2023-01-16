@@ -9,6 +9,7 @@ import {
   splitEntityId,
   Subgraph,
   SubgraphRootTypes,
+  TimeProjection,
 } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import {
@@ -98,7 +99,6 @@ export const getLatestEntityById: ImpureGraphFunction<
     .getEntitiesByQuery({
       filter: {
         all: [
-          { equal: [{ path: ["version"] }, { parameter: "latest" }] },
           {
             equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
           },
@@ -117,6 +117,17 @@ export const getLatestEntityById: ImpureGraphFunction<
         isOfType: { outgoing: 0 },
         hasLeftEntity: { incoming: 0, outgoing: 0 },
         hasRightEntity: { incoming: 0, outgoing: 0 },
+      },
+      timeProjection: {
+        kernel: {
+          axis: "transaction",
+          timestamp: undefined,
+        },
+        image: {
+          axis: "decision",
+          start: undefined,
+          end: undefined,
+        },
       },
     })
     .then(({ data: subgraph }) => getRootsAsEntities(subgraph as Subgraph));
@@ -450,12 +461,21 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
         ],
       },
       {
-        equal: [{ path: ["version"] }, { parameter: "latest" }],
-      },
-      {
         equal: [{ path: ["archived"] }, { parameter: false }],
       },
     ],
+  };
+
+  const timeProjection: TimeProjection = {
+    kernel: {
+      axis: "transaction",
+      timestamp: undefined,
+    },
+    image: {
+      axis: "decision",
+      start: undefined,
+      end: undefined,
+    },
   };
 
   if (params.linkEntityType) {
@@ -473,6 +493,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     .getEntitiesByQuery({
       filter,
       graphResolveDepths: zeroedGraphResolveDepths,
+      timeProjection,
     })
     .then(({ data }) => data as Subgraph<SubgraphRootTypes["entity"]>);
 
@@ -528,9 +549,6 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
         ],
       },
       {
-        equal: [{ path: ["version"] }, { parameter: "latest" }],
-      },
-      {
         equal: [{ path: ["archived"] }, { parameter: false }],
       },
     ],
@@ -572,10 +590,23 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     );
   }
 
+  const timeProjection: TimeProjection = {
+    kernel: {
+      axis: "transaction",
+      timestamp: undefined,
+    },
+    image: {
+      axis: "decision",
+      start: undefined,
+      end: undefined,
+    },
+  };
+
   const outgoingLinkEntitiesSubgraph = await graphApi
     .getEntitiesByQuery({
       filter,
       graphResolveDepths: zeroedGraphResolveDepths,
+      timeProjection,
     })
     .then(({ data }) => data as Subgraph<SubgraphRootTypes["entity"]>);
 
@@ -608,7 +639,6 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
   const { data: entitySubgraph } = await graphApi.getEntitiesByQuery({
     filter: {
       all: [
-        { equal: [{ path: ["version"] }, { parameter: "latest" }] },
         {
           equal: [
             { path: ["uuid"] },
@@ -642,6 +672,17 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
       hasLeftEntity: { incoming: 0, outgoing: 0 },
       hasRightEntity: { incoming: 0, outgoing: 0 },
       ...graphResolveDepths,
+    },
+    timeProjection: {
+      kernel: {
+        axis: "transaction",
+        timestamp: undefined,
+      },
+      image: {
+        axis: "decision",
+        start: undefined,
+        end: undefined,
+      },
     },
   });
 

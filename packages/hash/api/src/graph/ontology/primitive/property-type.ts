@@ -73,6 +73,17 @@ export const getPropertyTypeById: ImpureGraphFunction<
         equal: [{ path: ["versionedUri"] }, { parameter: propertyTypeId }],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
+      timeProjection: {
+        kernel: {
+          axis: "transaction",
+          timestamp: undefined,
+        },
+        image: {
+          axis: "decision",
+          start: undefined,
+          end: undefined,
+        },
+      },
     })
     .then(({ data }) => data as Subgraph<SubgraphRootTypes["propertyType"]>);
 

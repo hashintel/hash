@@ -37,6 +37,7 @@
     "lint:dependency-version-consistency": "check-dependency-version-consistency . --ignore-dep=mock-block-dock --ignore-dep=@blockprotocol/graph --ignore-dep=block-scripts",
     "lint:eslint": "turbo run --continue lint:eslint",
     "//lint:lockfile-lint": "echo '@TODO remove gitpkg.vercel.app from the list of allowed hosts on the lockfile lint.'",
+    "lint:license-in-workspaces": "yarn workspace @local/repo-chores exe scripts/check-license-in-workspaces.ts",
     "lint:lockfile-lint": "lockfile-lint --path yarn.lock --allowed-hosts registry.yarnpkg.com gitpkg.vercel.app --allowed-schemes \"https:\"",
     "lint:markdownlint": "markdownlint --dot .",
     "lint:prettier": "prettier --check --ignore-unknown .",

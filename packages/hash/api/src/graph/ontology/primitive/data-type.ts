@@ -81,6 +81,17 @@ export const getDataTypeById: ImpureGraphFunction<
         equal: [{ path: ["versionedUri"] }, { parameter: dataTypeId }],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
+      timeProjection: {
+        kernel: {
+          axis: "transaction",
+          timestamp: undefined,
+        },
+        image: {
+          axis: "decision",
+          start: undefined,
+          end: undefined,
+        },
+      },
     })
     .then(({ data }) => data as Subgraph<SubgraphRootTypes["dataType"]>);
 

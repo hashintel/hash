@@ -177,7 +177,6 @@ export const getOrgByShortname: ImpureGraphFunction<
     .getEntitiesByQuery({
       filter: {
         all: [
-          { equal: [{ path: ["version"] }, { parameter: "latest" }] },
           {
             equal: [
               { path: ["type", "versionedUri"] },
@@ -198,6 +197,17 @@ export const getOrgByShortname: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
+      timeProjection: {
+        kernel: {
+          axis: "transaction",
+          timestamp: undefined,
+        },
+        image: {
+          axis: "decision",
+          start: undefined,
+          end: undefined,
+        },
+      },
     })
     .then(({ data: userEntitiesSubgraph }) =>
       getRootsAsEntities(
