@@ -450,7 +450,7 @@ mod tests {
     }
 
     #[test]
-    fn test_partially_overlapping() {
+    fn partially_overlapping() {
         // Range A:      [-----]   |   [-----]
         // Range B:        [-----] | [-----]
         // intersection:   [---]   |   [---]
@@ -867,7 +867,7 @@ mod tests {
     }
 
     #[test]
-    fn test_disjoint() {
+    fn disjoint() {
         // Range A:      [---]       |       [---]
         // Range B:            [---] | [---]
         // intersection:    empty    |    empty
@@ -1238,7 +1238,7 @@ mod tests {
     }
 
     #[test]
-    fn test_adjacent() {
+    fn adjacent() {
         // Range A:      [---]     |     [---]
         // Range B:          [---] | [---]
         // intersection:     |     |     |
@@ -1333,7 +1333,7 @@ mod tests {
     }
 
     #[test]
-    fn test_contained() {
+    fn contained() {
         // Range A:      [-------] |   [---]
         // Range B:        [---]   | [-------]
         // intersection:   [---]   |   [---]
@@ -1428,7 +1428,7 @@ mod tests {
     }
 
     #[test]
-    fn test_equal() {
+    fn equal() {
         for interval in [
             included_included(0, 5),
             excluded_included(0, 5),
