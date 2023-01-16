@@ -65,7 +65,6 @@ export const TypeMenuCell = ({
   const EditButton = useCallback(
     () => (
       <MenuItem
-        key="edit"
         {...editButtonProps}
         disabled={!!editButtonDisabled}
         onClick={(evt) => {
@@ -147,13 +146,13 @@ export const TypeMenuCell = ({
               </Typography>,
               canEdit ? (
                 editButtonDisabled ? (
-                  <Tooltip title={editButtonDisabled}>
+                  <Tooltip key="edit" title={editButtonDisabled}>
                     <Box>
                       <EditButton />
                     </Box>
                   </Tooltip>
                 ) : (
-                  <EditButton />
+                  <EditButton key="edit" />
                 )
               ) : null,
               canRemove ? (
