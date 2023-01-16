@@ -66,6 +66,29 @@ def find_local_crates():
     return checked_crates
 
 
+def find_toolchain(crate):
+    """
+    Returns the toolchain for the specified crate.
+
+    The toolchain is determined by the `rust-toolchain.toml` file in the crate's directory or any parent directory
+    :param crate: the path to the crate
+    :return: the toolchain for the crate
+    """
+    directory = crate
+    root = Path(directory.root)
+    
+    while directory != root:
+        toolchain_file = directory / "rust-toolchain.toml"
+        if toolchain_file.exists():
+            toolchain = toml.load(toolchain_file).get("toolchain", {}).get("channel")
+            if toolchain:
+                return toolchain
+        directory = directory.parent
+        
+    raise Exception("No rust-toolchain.toml with a `toolchain.channel` attribute found")
+    
+
+
 def filter_parent_crates(crates):
     checked_crates = []
     for crate in crates:
@@ -191,23 +214,14 @@ def output_matrix(name, github_output_file, crates, **kwargs):
 
     available_toolchains = set()
     for crate in crates:
-        with open(
-            crate / "rust-toolchain.toml", "r", encoding="UTF-8"
-        ) as toolchain_toml:
-            available_toolchains.add(
-                toml.loads(toolchain_toml.read())["toolchain"]["channel"]
-            )
+        available_toolchains.add(find_toolchain(crate))
         for pattern, additional_toolchains in TOOLCHAINS.items():
             for additional_toolchain in additional_toolchains:
                 available_toolchains.add(additional_toolchain)
 
     used_toolchain_combinations = []
     for crate in crates:
-        toolchains = []
-        with open(
-            crate / "rust-toolchain.toml", "r", encoding="UTF-8"
-        ) as toolchain_toml:
-            toolchains.append(toml.loads(toolchain_toml.read())["toolchain"]["channel"])
+        toolchains = [find_toolchain(crate)]
 
         # We only run the default toolchain on coverage/lint/publish (rust-toolchain.toml)
         if name not in ("coverage", "lint", "publish"):
