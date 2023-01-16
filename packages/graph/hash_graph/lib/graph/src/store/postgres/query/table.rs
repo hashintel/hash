@@ -131,9 +131,9 @@ pub enum Entities<'p> {
     RecordId,
     DecisionTime,
     TransactionTime,
-    // TODO: Remove when adjusting structural queries
-    //   see https://app.asana.com/0/0/1203491211535116/f
-    LowerTransactionTime,
+    // TODO: Remove when correctly resolving time intervals in subgraphs.
+    //   see https://app.asana.com/0/0/1203701389454316/f
+    ProjectedTime,
     Archived,
     OwnedById,
     UpdatedById,
@@ -154,7 +154,7 @@ impl Entities<'_> {
             | Self::RecordId
             | Self::DecisionTime
             | Self::TransactionTime
-            | Self::LowerTransactionTime
+            | Self::ProjectedTime
             | Self::Archived
             | Self::OwnedById
             | Self::UpdatedById
@@ -176,7 +176,8 @@ impl Transpile for Entities<'_> {
             Self::EntityUuid => "entity_uuid",
             Self::RecordId => "entity_record_id",
             Self::DecisionTime => "decision_time",
-            Self::TransactionTime | Self::LowerTransactionTime => "transaction_time",
+            Self::TransactionTime => "transaction_time",
+            Self::ProjectedTime => unreachable!("projected time is not a column"),
             Self::Archived => "archived",
             Self::OwnedById => "owned_by_id",
             Self::UpdatedById => "updated_by_id",

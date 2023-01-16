@@ -6,18 +6,16 @@
       "apps/*",
       "blocks/*",
       "libs/@local/*",
-      "packages/engine/apache-arrow-js-bundle",
       "packages/graph/clients",
       "packages/graph/clients/typescript",
       "packages/hash/api",
       "packages/hash/backend-utils",
       "packages/hash/design-system",
       "packages/hash/frontend",
-      "packages/hash/integration",
-      "packages/hash/playwright",
       "packages/hash/shared",
       "packages/hash/task-executor",
-      "packages/hash/subgraph"
+      "packages/hash/subgraph",
+      "tests/*"
     ]
   },
   "scripts": {
@@ -32,14 +30,14 @@
     "external-services": "docker compose --file packages/hash/external-services/docker-compose.yml --env-file .env",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "@todo.1": "Remove the ignore argument below for mock-block-dock once repo is upgraded fully to 0.2 spec",
-    "fix:dependency-version-consistency": "check-dependency-version-consistency --fix . --ignore-package=@hashengine/apache-arrow-js-bundle --ignore-dep=mock-block-dock",
+    "fix:dependency-version-consistency": "check-dependency-version-consistency --fix . --ignore-dep=mock-block-dock --ignore-dep=@blockprotocol/graph --ignore-dep=block-scripts",
     "fix:eslint": "turbo run --continue fix:eslint",
     "fix:markdownlint": "markdownlint --dot --fix .",
     "fix:prettier": "prettier --write  --ignore-unknown .",
     "fix:yarn-deduplicate": "yarn install && yarn-deduplicate --strategy=fewer && yarn install",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "@todo.2": "Remove the ignore argument below for mock-block-dock once repo is upgraded fully to 0.2 spec",
-    "lint:dependency-version-consistency": "check-dependency-version-consistency . --ignore-package=@hashengine/apache-arrow-js-bundle --ignore-dep=mock-block-dock",
+    "lint:dependency-version-consistency": "check-dependency-version-consistency . --ignore-dep=mock-block-dock --ignore-dep=@blockprotocol/graph --ignore-dep=block-scripts",
     "lint:eslint": "turbo run --continue lint:eslint",
     "//lint:lockfile-lint": "echo '@TODO remove gitpkg.vercel.app from the list of allowed hosts on the lockfile lint.'",
     "lint:lockfile-lint": "lockfile-lint --path yarn.lock --allowed-hosts registry.yarnpkg.com gitpkg.vercel.app --allowed-schemes \"https:\"",
@@ -51,8 +49,8 @@
     "seed-data:opensearch": "yarn workspace @apps/hash-search-loader clear-opensearch",
     "seed-data:redis": "yarn workspace @apps/hash-realtime clear-redis",
     "seed-data": "concurrently \"yarn:seed-data:*\"",
-    "test:backend-integration": "yarn workspace @hashintel/hash-integration test",
-    "test:playwright": "yarn workspace @hashintel/hash-playwright playwright test",
+    "test:backend-integration": "yarn workspace @tests/hash-backend-integration test",
+    "test:playwright": "yarn workspace @tests/hash-playwright playwright test",
     "test:unit": "yarn workspace @hashintel/hash-api test && yarn workspace @hashintel/hash-backend-utils test && yarn workspace @hashintel/hash-shared test"
   },
   "lint-staged": {
