@@ -41,24 +41,22 @@ const ExampleUsage = ({ accountId }: { accountId: AccountId }) => {
   );
 
   const createPropertyType = useCallback(() => {
-    void (async () => {
-      await functions
-        .createPropertyType({
-          data: {
-            propertyType: {
-              kind: "propertyType",
-              title: "Name",
-              oneOf: [{ $ref: types.dataType.text.dataTypeId }],
-            },
+    void functions
+      .createPropertyType({
+        data: {
+          propertyType: {
+            kind: "propertyType",
+            title: "Name",
+            oneOf: [{ $ref: types.dataType.text.dataTypeId }],
           },
-        })
-        .then((result) => {
-          setContent(JSON.stringify(result.data ?? {}, null, 2));
-        })
-        .catch((error) => {
-          setContent(JSON.stringify(error ?? {}, null, 2));
-        });
-    })();
+        },
+      })
+      .then((result) => {
+        setContent(JSON.stringify(result.data ?? {}, null, 2));
+      })
+      .catch((error) => {
+        setContent(JSON.stringify(error ?? {}, null, 2));
+      });
   }, [functions, setContent]);
 
   const [file, setFile] = useState<File>();
