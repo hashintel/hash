@@ -41,7 +41,7 @@ import {
 import { logger } from "./logger";
 import { seedOrgsAndUsers } from "./seed-data";
 import {
-  setupFileProxyHanldere as setupFileProxyHandler,
+  setupFileProxyHanlder as setupFileProxyHandler,
   setupStorageProviders,
 } from "./storage";
 import { connectToTaskExecutor } from "./task-execution";
