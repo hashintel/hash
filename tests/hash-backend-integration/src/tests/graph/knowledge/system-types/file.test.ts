@@ -4,7 +4,7 @@ import {
   ImpureGraphContext,
 } from "@hashintel/hash-api/src/graph";
 import {
-  createFileFromExternalLink,
+  createFileFromExternalUrl,
   createFileFromUploadRequest,
 } from "@hashintel/hash-api/src/graph/knowledge/system-types/file";
 import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
@@ -83,10 +83,10 @@ describe("File", () => {
 
   const externalUrl = "https://placekitten.com/200/300";
 
-  it("createFileFromExternalLink can create a file entity from an external link", async () => {
+  it("createFileFromExternalUrl can create a file entity from an external link", async () => {
     const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 
-    const file = await createFileFromExternalLink(graphContext, {
+    const file = await createFileFromExternalUrl(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       actorId: testUser.accountId,
       mediaType,
@@ -110,7 +110,7 @@ describe("File", () => {
         SYSTEM_TYPES.propertyType.fileKey.metadata.editionId.baseId
       ],
     ).toEqual({
-      [SYSTEM_TYPES.propertyType.externalFileLink.metadata.editionId.baseId]:
+      [SYSTEM_TYPES.propertyType.externalFileUrl.metadata.editionId.baseId]:
         externalUrl,
     });
   });

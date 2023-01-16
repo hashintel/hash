@@ -55,7 +55,7 @@ export let SYSTEM_TYPES: {
     // File related
     fileUrl: PropertyTypeWithMetadata;
     fileMediaType: PropertyTypeWithMetadata;
-    externalFileLink: PropertyTypeWithMetadata;
+    externalFileUrl: PropertyTypeWithMetadata;
     objectStoreKey: PropertyTypeWithMetadata;
     fileKey: PropertyTypeWithMetadata;
   };
@@ -593,8 +593,8 @@ const objectStoreKeyPropertyTypeInitializer = propertyTypeInitializer({
   possibleValues: [{ primitiveDataType: "text" }],
 });
 
-const externalFileLinkPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.externalFileLink,
+const externalFileUrlPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.externalFileUrl,
   possibleValues: [{ primitiveDataType: "text" }],
 });
 
@@ -603,15 +603,15 @@ const fileKeyPropertyTypeInitializer = async (context: ImpureGraphContext) => {
   const objectStoreKeyPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.objectStoreKey(context);
 
-  const externalFileLinkPropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.externalFileLink(context);
+  const externalFileUrlPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.externalFileUrl(context);
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   const objectStoreKeyBaseUri =
     objectStoreKeyPropertyType.metadata.editionId.baseId;
 
-  const externalFileLinkBaseUri =
-    externalFileLinkPropertyType.metadata.editionId.baseId;
+  const externalFileUrlBaseUri =
+    externalFileUrlPropertyType.metadata.editionId.baseId;
 
   return propertyTypeInitializer({
     ...types.propertyType.fileKey,
@@ -625,8 +625,8 @@ const fileKeyPropertyTypeInitializer = async (context: ImpureGraphContext) => {
       },
       {
         propertyTypeObjectProperties: {
-          [externalFileLinkBaseUri]: {
-            $ref: externalFileLinkPropertyType.schema.$id,
+          [externalFileUrlBaseUri]: {
+            $ref: externalFileUrlPropertyType.schema.$id,
           },
         },
       },
@@ -716,7 +716,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
 
     fileUrl: fileUrlTypePropertyTypeInitializer,
     fileMediaType: fileMediaTypePropertyTypeInitializer,
-    externalFileLink: externalFileLinkPropertyTypeInitializer,
+    externalFileUrl: externalFileUrlPropertyTypeInitializer,
     objectStoreKey: objectStoreKeyPropertyTypeInitializer,
     fileKey: fileKeyPropertyTypeInitializer,
   },

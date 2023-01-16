@@ -53,12 +53,12 @@ export const getFileFromEntity: PureGraphFunction<{ entity: Entity }, File> = ({
   ] as Record<string, any>;
 
   const fileKey: FileKey =
-    SYSTEM_TYPES.propertyType.externalFileLink.metadata.editionId.baseId in
+    SYSTEM_TYPES.propertyType.externalFileUrl.metadata.editionId.baseId in
     fileKeyObject
       ? {
           type: "ExternalFileLink",
           externalFileLink: fileKeyObject[
-            SYSTEM_TYPES.propertyType.externalFileLink.metadata.editionId.baseId
+            SYSTEM_TYPES.propertyType.externalFileUrl.metadata.editionId.baseId
           ] as string,
         }
       : {
@@ -133,7 +133,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   }
 };
 
-export const createFileFromExternalLink: ImpureGraphFunction<
+export const createFileFromExternalUrl: ImpureGraphFunction<
   Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
     url: string;
     mediaType: string;
@@ -151,7 +151,7 @@ export const createFileFromExternalLink: ImpureGraphFunction<
       [SYSTEM_TYPES.propertyType.fileMediaType.metadata.editionId.baseId]:
         mediaType,
       [SYSTEM_TYPES.propertyType.fileKey.metadata.editionId.baseId]: {
-        [SYSTEM_TYPES.propertyType.externalFileLink.metadata.editionId.baseId]:
+        [SYSTEM_TYPES.propertyType.externalFileUrl.metadata.editionId.baseId]:
           key,
       },
     };

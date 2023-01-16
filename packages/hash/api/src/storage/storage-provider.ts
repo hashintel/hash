@@ -3,7 +3,7 @@ import { DataSource } from "apollo-datasource";
 
 export enum StorageType {
   AwsS3 = "AWS_S3",
-  ExternalLink = "EXTERNAL_LINK",
+  ExternalUrl = "EXTERNAL_URL",
   LocalFileSystem = "LOCAL_FILE_SYSTEM",
 }
 

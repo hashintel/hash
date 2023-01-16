@@ -142,7 +142,7 @@ const systemEntityTypes = {
 type SystemEntityTypeKey = keyof typeof systemEntityTypes;
 
 export type SystemEntityTypeTitle =
-  (typeof systemEntityTypes)[SystemEntityTypeKey]["title"];
+  typeof systemEntityTypes[SystemEntityTypeKey]["title"];
 
 /**
  * The system property types.
@@ -246,9 +246,9 @@ const systemPropertyTypes = {
     title: "Object Store Key",
     description: "Unique identifier for an object in an object store.",
   },
-  externalFileLink: {
-    title: "External File Link",
-    description: "Link to an external file.",
+  externalFileUrl: {
+    title: "External File URL",
+    description: "URL to an external file.",
   },
   fileKey: {
     title: "File Key",
@@ -260,7 +260,7 @@ const systemPropertyTypes = {
 type SystemPropertyTypeKey = keyof typeof systemPropertyTypes;
 
 export type SystemPropertyTypeTitle =
-  (typeof systemPropertyTypes)[SystemPropertyTypeKey]["title"];
+  typeof systemPropertyTypes[SystemPropertyTypeKey]["title"];
 
 /**
  * The system link entity type titles.
@@ -299,7 +299,7 @@ const systemLinkEntityTypes = {
 type SystemLinkEntityTypeKey = keyof typeof systemLinkEntityTypes;
 
 export type SystemLinkEntityTypeTitle =
-  (typeof systemLinkEntityTypes)[SystemLinkEntityTypeKey];
+  typeof systemLinkEntityTypes[SystemLinkEntityTypeKey];
 
 /**
  * The primitive data types ("Text", "Number", etc.)
@@ -334,7 +334,7 @@ const primitiveDataTypes = {
 export type PrimitiveDataTypeKey = keyof typeof primitiveDataTypes;
 
 export type PrimitiveDataTypeTitle =
-  (typeof primitiveDataTypes)[PrimitiveDataTypeKey]["title"];
+  typeof primitiveDataTypes[PrimitiveDataTypeKey]["title"];
 
 type TypeDefinition = {
   title: string;

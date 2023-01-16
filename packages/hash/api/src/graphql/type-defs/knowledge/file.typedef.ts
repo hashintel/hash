@@ -46,7 +46,7 @@ export const fileTypedef = gql`
     Creates a file entity from an external link. The file entity will just have
     a reference to the link (the file isn't fetched by our server in this current version)
     """
-    createFileFromLink(
+    createFileFromUrl(
       """
       url of the external file
       """

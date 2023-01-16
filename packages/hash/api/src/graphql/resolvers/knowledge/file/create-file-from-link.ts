@@ -1,9 +1,9 @@
 import { OwnedById } from "@hashintel/hash-shared/types";
 import { Entity } from "@hashintel/hash-subgraph";
 
-import { createFileFromExternalLink } from "../../../../graph/knowledge/system-types/file";
+import { createFileFromExternalUrl } from "../../../../graph/knowledge/system-types/file";
 import {
-  MutationCreateFileFromLinkArgs,
+  MutationCreateFileFromUrlArgs,
   ResolverFn,
 } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
@@ -23,11 +23,11 @@ export const createFileFromLink: ResolverFn<
   Promise<Entity>,
   {},
   LoggedInGraphQLContext,
-  MutationCreateFileFromLinkArgs
+  MutationCreateFileFromUrlArgs
 > = async (_, { mediaType, url }, { dataSources, user }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const entity = await createFileFromExternalLink(context, {
+  const entity = await createFileFromExternalUrl(context, {
     actorId: user.accountId,
     ownedById: user.accountId as OwnedById,
     mediaType,

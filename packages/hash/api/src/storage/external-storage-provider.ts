@@ -9,7 +9,7 @@ import {
  */
 export class ExternalStorageProvider implements StorageProvider {
   /** The S3 client is created in the constructor and kept as long as the instance lives */
-  public storageType = StorageType.ExternalLink;
+  public storageType = StorageType.ExternalUrl;
 
   async presignDownload(params: PresignedDownloadRequest): Promise<string> {
     return params.key;

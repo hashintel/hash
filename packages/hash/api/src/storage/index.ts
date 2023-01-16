@@ -40,7 +40,7 @@ const storageProviderInitialiserLookup: Record<
 > = {
   [StorageType.AwsS3]: (_app: Express) =>
     new AwsS3StorageProvider(getAwsS3Config()),
-  [StorageType.ExternalLink]: (_app: Express) => new ExternalStorageProvider(),
+  [StorageType.ExternalUrl]: (_app: Express) => new ExternalStorageProvider(),
   [StorageType.LocalFileSystem]: (app: Express) =>
     new LocalFileSystemStorageProvider({
       app,
