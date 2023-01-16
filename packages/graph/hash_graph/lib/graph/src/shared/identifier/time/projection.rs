@@ -26,7 +26,7 @@ impl<A: Default> UnresolvedKernel<A> {
 pub type UnresolvedDecisionTimeKernel = UnresolvedKernel<DecisionTime>;
 
 impl ToSchema for UnresolvedDecisionTimeKernel {
-    fn schema() -> openapi::Schema {
+    fn schema() -> openapi::RefOr<openapi::Schema> {
         openapi::ObjectBuilder::new()
             .property("axis", openapi::Ref::from_schema_name("DecisionTime"))
             .required("axis")
@@ -39,7 +39,7 @@ impl ToSchema for UnresolvedDecisionTimeKernel {
 pub type UnresolvedTransactionTimeKernel = UnresolvedKernel<TransactionTime>;
 
 impl ToSchema for UnresolvedTransactionTimeKernel {
-    fn schema() -> openapi::Schema {
+    fn schema() -> openapi::RefOr<openapi::Schema> {
         openapi::ObjectBuilder::new()
             .property("axis", openapi::Ref::from_schema_name("TransactionTime"))
             .required("axis")
@@ -70,32 +70,36 @@ impl<A: Default> UnresolvedImage<A> {
 pub type UnresolvedDecisionTimeImage = UnresolvedImage<DecisionTime>;
 
 impl ToSchema for UnresolvedDecisionTimeImage {
-    fn schema() -> openapi::Schema {
-        openapi::AllOfBuilder::new()
-            .item(
-                openapi::ObjectBuilder::new()
-                    .property("axis", openapi::Ref::from_schema_name("DecisionTime"))
-                    .required("axis"),
-            )
-            .item(UnresolvedTimeInterval::<DecisionTime>::schema())
-            .build()
-            .into()
+    fn schema() -> openapi::RefOr<openapi::Schema> {
+        openapi::Schema::AllOf(
+            openapi::AllOfBuilder::new()
+                .item(
+                    openapi::ObjectBuilder::new()
+                        .property("axis", openapi::Ref::from_schema_name("DecisionTime"))
+                        .required("axis"),
+                )
+                .item(UnresolvedTimeInterval::<DecisionTime>::schema())
+                .build(),
+        )
+        .into()
     }
 }
 
 pub type UnresolvedTransactionTimeImage = UnresolvedImage<TransactionTime>;
 
 impl ToSchema for UnresolvedTransactionTimeImage {
-    fn schema() -> openapi::Schema {
-        openapi::AllOfBuilder::new()
-            .item(
-                openapi::ObjectBuilder::new()
-                    .property("axis", openapi::Ref::from_schema_name("TransactionTime"))
-                    .required("axis"),
-            )
-            .item(UnresolvedTimeInterval::<DecisionTime>::schema())
-            .build()
-            .into()
+    fn schema() -> openapi::RefOr<openapi::Schema> {
+        openapi::Schema::AllOf(
+            openapi::AllOfBuilder::new()
+                .item(
+                    openapi::ObjectBuilder::new()
+                        .property("axis", openapi::Ref::from_schema_name("TransactionTime"))
+                        .required("axis"),
+                )
+                .item(UnresolvedTimeInterval::<DecisionTime>::schema())
+                .build(),
+        )
+        .into()
     }
 }
 
@@ -135,7 +139,7 @@ impl<K, I> UnresolvedProjection<K, I> {
 pub type UnresolvedDecisionTimeProjection = UnresolvedProjection<TransactionTime, DecisionTime>;
 
 impl ToSchema for UnresolvedDecisionTimeProjection {
-    fn schema() -> openapi::Schema {
+    fn schema() -> openapi::RefOr<openapi::Schema> {
         openapi::ObjectBuilder::new()
             .property(
                 "kernel",
@@ -154,7 +158,7 @@ impl ToSchema for UnresolvedDecisionTimeProjection {
 pub type UnresolvedTransactionTimeProjection = UnresolvedProjection<DecisionTime, TransactionTime>;
 
 impl ToSchema for UnresolvedTransactionTimeProjection {
-    fn schema() -> openapi::Schema {
+    fn schema() -> openapi::RefOr<openapi::Schema> {
         openapi::ObjectBuilder::new()
             .property(
                 "kernel",
@@ -202,7 +206,7 @@ impl UnresolvedTimeProjection {
 }
 
 impl ToSchema for UnresolvedTimeProjection {
-    fn schema() -> openapi::Schema {
+    fn schema() -> openapi::RefOr<openapi::Schema> {
         openapi::OneOfBuilder::new()
             .item(openapi::Ref::from_schema_name(
                 "UnresolvedDecisionTimeProjection",
@@ -227,7 +231,7 @@ pub struct Kernel<A> {
 pub type DecisionTimeKernel = Kernel<DecisionTime>;
 
 impl ToSchema for DecisionTimeKernel {
-    fn schema() -> openapi::Schema {
+    fn schema() -> openapi::RefOr<openapi::Schema> {
         openapi::ObjectBuilder::new()
             .property("axis", openapi::Ref::from_schema_name("DecisionTime"))
             .required("axis")
@@ -241,7 +245,7 @@ impl ToSchema for DecisionTimeKernel {
 pub type TransactionTimeKernel = Kernel<TransactionTime>;
 
 impl ToSchema for TransactionTimeKernel {
-    fn schema() -> openapi::Schema {
+    fn schema() -> openapi::RefOr<openapi::Schema> {
         openapi::ObjectBuilder::new()
             .property("axis", openapi::Ref::from_schema_name("TransactionTime"))
             .required("axis")
@@ -266,32 +270,36 @@ pub struct Image<A> {
 pub type DecisionTimeImage = Image<DecisionTime>;
 
 impl ToSchema for DecisionTimeImage {
-    fn schema() -> openapi::Schema {
-        openapi::AllOfBuilder::new()
-            .item(
-                openapi::ObjectBuilder::new()
-                    .property("axis", openapi::Ref::from_schema_name("DecisionTime"))
-                    .required("axis"),
-            )
-            .item(TimeInterval::<DecisionTime>::schema())
-            .build()
-            .into()
+    fn schema() -> openapi::RefOr<openapi::Schema> {
+        openapi::Schema::from(
+            openapi::AllOfBuilder::new()
+                .item(
+                    openapi::ObjectBuilder::new()
+                        .property("axis", openapi::Ref::from_schema_name("DecisionTime"))
+                        .required("axis"),
+                )
+                .item(TimeInterval::<DecisionTime>::schema())
+                .build(),
+        )
+        .into()
     }
 }
 
 pub type TransactionTimeImage = Image<TransactionTime>;
 
 impl ToSchema for TransactionTimeImage {
-    fn schema() -> openapi::Schema {
-        openapi::AllOfBuilder::new()
-            .item(
-                openapi::ObjectBuilder::new()
-                    .property("axis", openapi::Ref::from_schema_name("TransactionTime"))
-                    .required("axis"),
-            )
-            .item(TimeInterval::<DecisionTime>::schema())
-            .build()
-            .into()
+    fn schema() -> openapi::RefOr<openapi::Schema> {
+        openapi::Schema::from(
+            openapi::AllOfBuilder::new()
+                .item(
+                    openapi::ObjectBuilder::new()
+                        .property("axis", openapi::Ref::from_schema_name("TransactionTime"))
+                        .required("axis"),
+                )
+                .item(TimeInterval::<DecisionTime>::schema())
+                .build(),
+        )
+        .into()
     }
 }
 
@@ -305,7 +313,7 @@ pub struct Projection<K, I> {
 pub type DecisionTimeProjection = Projection<TransactionTime, DecisionTime>;
 
 impl ToSchema for DecisionTimeProjection {
-    fn schema() -> openapi::Schema {
+    fn schema() -> openapi::RefOr<openapi::Schema> {
         openapi::ObjectBuilder::new()
             .property(
                 "kernel",
@@ -321,7 +329,7 @@ impl ToSchema for DecisionTimeProjection {
 pub type TransactionTimeProjection = Projection<DecisionTime, TransactionTime>;
 
 impl ToSchema for TransactionTimeProjection {
-    fn schema() -> openapi::Schema {
+    fn schema() -> openapi::RefOr<openapi::Schema> {
         openapi::ObjectBuilder::new()
             .property(
                 "kernel",
@@ -392,7 +400,7 @@ impl TimeProjection {
 }
 
 impl ToSchema for TimeProjection {
-    fn schema() -> openapi::Schema {
+    fn schema() -> openapi::RefOr<openapi::Schema> {
         openapi::OneOfBuilder::new()
             .item(openapi::Ref::from_schema_name("DecisionTimeProjection"))
             .item(openapi::Ref::from_schema_name("TransactionTimeProjection"))

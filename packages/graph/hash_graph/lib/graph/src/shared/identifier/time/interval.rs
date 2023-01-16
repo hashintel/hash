@@ -97,28 +97,31 @@ impl<A> UpperBound<Timestamp<A>> for TimeIntervalBound<A> {
 }
 
 impl<A> ToSchema for TimeIntervalBound<A> {
-    fn schema() -> openapi::Schema {
-        openapi::OneOfBuilder::new()
-            .item(
-                openapi::ObjectBuilder::new()
-                    .property(
-                        "bound",
-                        openapi::ObjectBuilder::new().enum_values(Some(["unbounded"])),
-                    )
-                    .required("bound"),
-            )
-            .item(
-                openapi::ObjectBuilder::new()
-                    .property(
-                        "bound",
-                        openapi::ObjectBuilder::new().enum_values(Some(["included", "excluded"])),
-                    )
-                    .required("bound")
-                    .property("timestamp", Timestamp::<A>::schema())
-                    .required("timestamp"),
-            )
-            .build()
-            .into()
+    fn schema() -> openapi::RefOr<openapi::Schema> {
+        openapi::Schema::OneOf(
+            openapi::OneOfBuilder::new()
+                .item(
+                    openapi::ObjectBuilder::new()
+                        .property(
+                            "bound",
+                            openapi::ObjectBuilder::new().enum_values(Some(["unbounded"])),
+                        )
+                        .required("bound"),
+                )
+                .item(
+                    openapi::ObjectBuilder::new()
+                        .property(
+                            "bound",
+                            openapi::ObjectBuilder::new()
+                                .enum_values(Some(["included", "excluded"])),
+                        )
+                        .required("bound")
+                        .property("timestamp", Timestamp::<A>::schema())
+                        .required("timestamp"),
+                )
+                .build(),
+        )
+        .into()
     }
 }
 

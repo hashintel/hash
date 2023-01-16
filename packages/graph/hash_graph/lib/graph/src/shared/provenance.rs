@@ -2,7 +2,7 @@ use core::fmt;
 
 use serde::{Deserialize, Serialize};
 use tokio_postgres::types::ToSql;
-use utoipa::{openapi::Schema, ToSchema};
+use utoipa::{openapi, ToSchema};
 use uuid::Uuid;
 
 use crate::identifier::account::AccountId;
@@ -40,7 +40,7 @@ macro_rules! define_provenance_id {
         }
 
         impl ToSchema for $name {
-            fn schema() -> Schema {
+            fn schema() -> openapi::RefOr<openapi::Schema> {
                 AccountId::schema()
             }
         }
