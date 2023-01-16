@@ -77,7 +77,8 @@ ALTER TABLE "entity_ids"
   ADD CONSTRAINT "entity_ids_primary_key" PRIMARY KEY ("owned_by_id", "entity_uuid"),
   ADD CONSTRAINT "entity_ids_left_reference" FOREIGN KEY ("left_owned_by_id", "left_entity_uuid") REFERENCES "entity_ids",
   ADD CONSTRAINT "entity_ids_right_reference" FOREIGN KEY ("right_owned_by_id", "right_entity_uuid") REFERENCES "entity_ids",
-  ADD CONSTRAINT "entity_ids_relation_constraint" CHECK (left_entity_uuid IS NULL AND right_entity_uuid IS NULL AND left_owned_by_id IS NULL AND right_owned_by_id IS NULL     OR        left_entity_uuid IS NOT NULL AND right_entity_uuid IS NOT NULL AND left_owned_by_id IS NOT NULL AND right_owned_by_id IS NOT NULL);
+  ADD CONSTRAINT "entity_ids_relation_constraint" CHECK (left_entity_uuid IS NULL AND right_entity_uuid IS NULL AND left_owned_by_id IS NULL AND right_owned_by_id IS NULL OR
+                                                         left_entity_uuid IS NOT NULL AND right_entity_uuid IS NOT NULL AND left_owned_by_id IS NOT NULL AND right_owned_by_id IS NOT NULL);
 
 CREATE TABLE IF NOT EXISTS "entity_editions" (
   "entity_record_id" BIGINT PRIMARY KEY NOT NULL GENERATED ALWAYS AS IDENTITY,
@@ -102,7 +103,7 @@ ALTER TABLE "entity_versions"
   ADD CONSTRAINT "entity_versions_overlapping" EXCLUDE USING gist (owned_by_id WITH =, entity_uuid WITH =, decision_time WITH &&, transaction_time WITH &&) DEFERRABLE INITIALLY IMMEDIATE,
   ADD CONSTRAINT "entity_versions_decision_time_validation" CHECK (lower(decision_time) <= lower(transaction_time));
 
-CREATE VIEW "entities" AS 
+CREATE VIEW "entities" AS
     SELECT
       entity_versions.entity_record_id,
       entity_versions.owned_by_id,
@@ -123,14 +124,27 @@ CREATE VIEW "entities" AS
     JOIN entity_editions ON entity_versions.entity_record_id = entity_editions.entity_record_id
     JOIN entity_ids ON entity_versions.owned_by_id = entity_ids.owned_by_id AND entity_versions.entity_uuid = entity_ids.entity_uuid;
 
-CREATE OR REPLACE FUNCTION "create_entity"("_owned_by_id" UUID, "_entity_uuid" UUID, "_decision_time" TIMESTAMP WITH TIME ZONE, "_updated_by_id" UUID, "_archived" BOOLEAN, "_entity_type_version_id" UUID, "_properties" JSONB, "_left_owned_by_id" UUID, "_left_entity_uuid" UUID, "_right_owned_by_id" UUID, "_right_entity_uuid" UUID, "_left_to_right_order" INTEGER, "_right_to_left_order" INTEGER)
+CREATE OR REPLACE FUNCTION "create_entity" (
+  "_owned_by_id" UUID,
+  "_entity_uuid" UUID,
+  "_decision_time" TIMESTAMP WITH TIME ZONE,
+  "_updated_by_id" UUID,
+  "_archived" BOOLEAN,
+  "_entity_type_version_id" UUID,
+  "_properties" JSONB,
+  "_left_owned_by_id" UUID,
+  "_left_entity_uuid" UUID,
+  "_right_owned_by_id" UUID,
+  "_right_entity_uuid" UUID,
+  "_left_to_right_order" INTEGER,
+  "_right_to_left_order" INTEGER)
   RETURNS TABLE (entity_record_id BIGINT, decision_time tstzrange, transaction_time tstzrange)
   AS $pga$
     DECLARE
       _entity_record_id BIGINT;
     BEGIN
       IF _decision_time IS NULL THEN _decision_time := now(); END IF;
-  
+
       INSERT INTO entity_ids (
         owned_by_id,
         entity_uuid,
@@ -183,7 +197,16 @@ CREATE OR REPLACE FUNCTION "create_entity"("_owned_by_id" UUID, "_entity_uuid" U
   VOLATILE
   LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION "update_entity"("_owned_by_id" UUID, "_entity_uuid" UUID, "_decision_time" TIMESTAMP WITH TIME ZONE, "_updated_by_id" UUID, "_archived" BOOLEAN, "_entity_type_version_id" UUID, "_properties" JSONB, "_left_to_right_order" INTEGER, "_right_to_left_order" INTEGER)
+CREATE OR REPLACE FUNCTION "update_entity" (
+  "_owned_by_id" UUID, 
+  "_entity_uuid" UUID, 
+  "_decision_time" TIMESTAMP WITH TIME ZONE, 
+  "_updated_by_id" UUID, 
+  "_archived" BOOLEAN, 
+  "_entity_type_version_id" UUID, 
+  "_properties" JSONB, 
+  "_left_to_right_order" INTEGER, 
+  "_right_to_left_order" INTEGER)
   RETURNS TABLE (entity_record_id BIGINT, decision_time tstzrange, transaction_time tstzrange)
   AS $pga$
     DECLARE
@@ -207,7 +230,7 @@ CREATE OR REPLACE FUNCTION "update_entity"("_owned_by_id" UUID, "_entity_uuid" U
         _right_to_left_order
       )
       RETURNING entity_editions.entity_record_id INTO _new_entity_record_id;
-  
+
       RETURN QUERY
       UPDATE entity_versions
       SET decision_time = tstzrange(_decision_time, upper(entity_versions.decision_time), '[)'),
@@ -223,7 +246,7 @@ CREATE OR REPLACE FUNCTION "update_entity"("_owned_by_id" UUID, "_entity_uuid" U
   VOLATILE
   LANGUAGE plpgsql;
 
-CREATE FUNCTION "update_entity_version_trigger"()
+CREATE FUNCTION "update_entity_version_trigger" ()
   RETURNS TRIGGER
   AS $pga$
     BEGIN
