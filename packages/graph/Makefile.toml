@@ -1,5 +1,10 @@
 extend = { path = "../../.github/scripts/rust/Makefile.toml" }
 
+[tasks.yarn-install-openapi]
+description = "Installs the required yarn dependencies for generating API client"
+extend = "yarn"
+cwd = "${REPO_ROOT}/packages/graph/clients"
+
 [tasks.migrate-up]
 category = "Deploy"
 description = "Runs all migrations"
@@ -57,7 +62,7 @@ args = ["external-services", "down", "${@}"]
 cwd = "${REPO_ROOT}"
 
 [tasks.test-docker]
-run_task = { name = ["graph-up", "test-rest-api", "graph-down"] }
+run_task = { name = ["yarn-install-openapi", "graph-up", "test-rest-api", "graph-down"] }
 
 [tasks.test-rest-api]
 # This is a temporary solution until we have e2e tests in place
