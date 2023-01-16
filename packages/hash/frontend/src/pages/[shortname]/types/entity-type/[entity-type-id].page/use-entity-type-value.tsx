@@ -30,7 +30,7 @@ interface EntityTypeAndPropertyTypes {
   propertyTypes: Record<string, PropertyType>;
 }
 
-const getPropertTypes = (
+const getPropertyTypes = (
   properties: any,
   subgraph: Subgraph,
   propertyTypes?: Map<string, PropertyType>,
@@ -44,7 +44,7 @@ const getPropertTypes = (
       if (propertyType) {
         for (const childProp of propertyType.oneOf) {
           if ("type" in childProp && childProp.type === "object") {
-            propertyTypesMap = getPropertTypes(
+            propertyTypesMap = getPropertyTypes(
               Object.values(childProp.properties),
               subgraph,
               propertyTypesMap,
@@ -98,7 +98,7 @@ export const useEntityTypeValue = (
       return null;
     }
 
-    const relevantPropertiesMap = getPropertTypes(
+    const relevantPropertiesMap = getPropertyTypes(
       Object.values(relevantEntityType.properties),
       entityTypesSubgraph,
     );
