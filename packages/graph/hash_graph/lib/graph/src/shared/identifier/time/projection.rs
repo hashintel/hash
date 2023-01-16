@@ -1,3 +1,4 @@
+use interval_ops::Interval;
 use serde::{Deserialize, Serialize};
 use utoipa::{openapi, ToSchema};
 
@@ -302,6 +303,24 @@ pub struct Projection<K, I> {
     pub image: Image<I>,
 }
 
+impl<K, I> Projection<K, I> {
+    /// Intersects the image of the projection with the provided [`TimeInterval`].
+    ///
+    /// If the two intervals do not overlap, [`None`] is returned.
+    pub fn intersect_image(self, interval: TimeInterval<I>) -> Option<Self> {
+        self.image
+            .interval
+            .intersect(interval)
+            .map(|interval| Self {
+                kernel: self.kernel,
+                image: Image {
+                    axis: self.image.axis,
+                    interval,
+                },
+            })
+    }
+}
+
 pub type DecisionTimeProjection = Projection<TransactionTime, DecisionTime>;
 
 impl ToSchema for DecisionTimeProjection {
@@ -387,6 +406,27 @@ impl TimeProjection {
         match self {
             Self::DecisionTime(projection) => projection.image.interval.cast(),
             Self::TransactionTime(projection) => projection.image.interval.cast(),
+        }
+    }
+
+    /// Intersects the image of the projection with the provided [`TimeInterval`].
+    ///
+    /// If the two intervals do not overlap, [`None`] is returned.
+    pub fn intersect_image(self, version_interval: TimeInterval<ProjectedTime>) -> Option<Self> {
+        match self {
+            Self::DecisionTime(projection) => projection
+                .intersect_image(version_interval.cast())
+                .map(Self::DecisionTime),
+            Self::TransactionTime(projection) => projection
+                .intersect_image(version_interval.cast())
+                .map(Self::TransactionTime),
+        }
+    }
+
+    pub fn set_image(&mut self, interval: TimeInterval<ProjectedTime>) {
+        match self {
+            Self::DecisionTime(projection) => projection.image.interval = interval.cast(),
+            Self::TransactionTime(projection) => projection.image.interval = interval.cast(),
         }
     }
 }
