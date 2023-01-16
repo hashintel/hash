@@ -1,4 +1,4 @@
-import { Button } from "@local/hash-design-system";
+import { Button } from "@local/design-system";
 
 export const MaxItemsReached = ({ limit }: { limit: number }) => {
   return (

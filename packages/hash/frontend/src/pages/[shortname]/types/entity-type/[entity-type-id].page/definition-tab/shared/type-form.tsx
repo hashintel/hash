@@ -6,7 +6,7 @@ import {
   FontAwesomeIcon,
   IconButton,
   TextField,
-} from "@local/hash-design-system";
+} from "@local/design-system";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import {
   generateBaseTypeId,

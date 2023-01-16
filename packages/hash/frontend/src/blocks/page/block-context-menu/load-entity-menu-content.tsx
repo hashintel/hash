@@ -4,7 +4,7 @@ import {
   FontAwesomeIcon,
   LoadingSpinner,
   TextField,
-} from "@local/hash-design-system";
+} from "@local/design-system";
 import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import { EntityStoreType } from "@local/hash-isomorphic-utils/entity-store";
 import {

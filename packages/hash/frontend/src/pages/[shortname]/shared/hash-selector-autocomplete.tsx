@@ -5,7 +5,7 @@ import {
   Chip,
   FontAwesomeIcon,
   TextField,
-} from "@local/hash-design-system";
+} from "@local/design-system";
 import {
   Autocomplete,
   AutocompleteProps,

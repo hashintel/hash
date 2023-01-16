@@ -13,7 +13,7 @@ import {
   faRefresh,
 } from "@fortawesome/free-solid-svg-icons";
 import { PropertyObject } from "@hashintel/hash-subgraph";
-import { FontAwesomeIcon } from "@local/hash-design-system";
+import { FontAwesomeIcon } from "@local/design-system";
 import {
   areComponentsCompatible,
   isHashTextBlock,

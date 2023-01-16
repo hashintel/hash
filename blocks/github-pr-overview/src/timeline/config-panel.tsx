@@ -1,4 +1,4 @@
-import { MenuCheckboxItem } from "@local/hash-design-system";
+import { MenuCheckboxItem } from "@local/design-system";
 import {
   Box,
   BoxProps,

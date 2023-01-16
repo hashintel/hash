@@ -7,7 +7,7 @@ import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
-import { Button } from "@local/hash-design-system";
+import { Button } from "@local/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { EntityId, OwnedById } from "@local/hash-isomorphic-utils/types";
 import { Container, Typography } from "@mui/material";

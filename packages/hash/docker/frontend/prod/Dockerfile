@@ -13,8 +13,8 @@ RUN yarn install --frozen-lockfile --prefer-offline --force --build-from-source
 
 
 # Also ensure that frontend node modules can be cached
+COPY libs/@local/design-system/package.json libs/@local/design-system/
 COPY libs/@local/eslint-config/package.json libs/@local/eslint-config/
-COPY libs/@local/hash-design-system/package.json libs/@local/hash-design-system/
 COPY libs/@local/hash-isomorphic-utils/package.json libs/@local/hash-isomorphic-utils/
 COPY libs/@local/tsconfig/package.json libs/@local/tsconfig/
 COPY packages/graph/clients/typescript/package.json packages/graph/clients/typescript/
@@ -35,8 +35,8 @@ COPY libs/@local/hash-isomorphic-utils/codegen.config.ts libs/@local/hash-isomor
 
 RUN yarn workspace @local/hash-isomorphic-utils codegen
 
+COPY libs/@local/design-system libs/@local/design-system
 COPY libs/@local/eslint-config libs/@local/eslint-config
-COPY libs/@local/hash-design-system libs/@local/hash-design-system
 COPY libs/@local/hash-isomorphic-utils libs/@local/hash-isomorphic-utils
 COPY libs/@local/tsconfig libs/@local/tsconfig
 COPY packages/graph/clients/typescript packages/graph/clients/typescript

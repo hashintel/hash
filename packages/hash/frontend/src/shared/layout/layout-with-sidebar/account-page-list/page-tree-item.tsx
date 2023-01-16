@@ -1,6 +1,6 @@
 import { DraggableAttributes } from "@dnd-kit/core";
 import { faChevronRight, faEllipsis } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@local/hash-design-system";
+import { FontAwesomeIcon, IconButton } from "@local/design-system";
 import { EntityId } from "@local/hash-isomorphic-utils/types";
 import { Box, PopoverPosition, Tooltip, Typography } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";

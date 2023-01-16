@@ -4,7 +4,7 @@ import {
   faLink,
   IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@local/hash-design-system";
+import { FontAwesomeIcon } from "@local/design-system";
 import { ListItemIcon, ListItemText, Menu } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/core";
 import pluralize from "pluralize";

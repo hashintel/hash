@@ -1,5 +1,5 @@
 import { faSmile } from "@fortawesome/free-regular-svg-icons";
-import { FontAwesomeIcon } from "@local/hash-design-system";
+import { FontAwesomeIcon } from "@local/design-system";
 import { Collapse } from "@mui/material";
 import { useState } from "react";
 import { useFormState } from "react-hook-form";

@@ -1,5 +1,5 @@
 import { faClose } from "@fortawesome/free-solid-svg-icons";
-import { Button, FontAwesomeIcon, IconButton } from "@local/hash-design-system";
+import { Button, FontAwesomeIcon, IconButton } from "@local/design-system";
 import { Box, Stack, Typography } from "@mui/material";
 import { bindDialog, PopupState } from "material-ui-popup-state/hooks";
 import { Fragment } from "react";

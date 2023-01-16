@@ -1,6 +1,6 @@
 import { JsonObject } from "@blockprotocol/core";
 import { faEllipsisVertical } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@local/hash-design-system";
+import { FontAwesomeIcon, IconButton } from "@local/design-system";
 import {
   EntityStore,
   isBlockEntity,

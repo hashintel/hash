@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "0.0.18",
-    "@local/hash-design-system": "0.0.0-private",
+    "@local/design-system": "0.0.0-private",
     "@mui/icons-material": "5.10.6",
     "@mui/lab": "5.0.0-alpha.100",
     "@mui/material": "5.10.6",

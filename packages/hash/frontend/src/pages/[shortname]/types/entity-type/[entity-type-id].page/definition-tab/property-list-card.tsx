@@ -1,6 +1,6 @@
 import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
 import { faList } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@local/hash-design-system";
+import { FontAwesomeIcon } from "@local/design-system";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
   Checkbox,

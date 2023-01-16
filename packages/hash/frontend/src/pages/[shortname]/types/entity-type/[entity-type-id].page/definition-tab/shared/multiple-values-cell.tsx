@@ -4,7 +4,7 @@ import {
   getInputProps,
   inputLabelProps,
   TextField,
-} from "@local/hash-design-system";
+} from "@local/design-system";
 import {
   Box,
   Checkbox,

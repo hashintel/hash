@@ -1,9 +1,4 @@
-import {
-  Button,
-  Chip,
-  FontAwesomeIcon,
-  TextField,
-} from "@local/hash-design-system";
+import { Button, Chip, FontAwesomeIcon, TextField } from "@local/design-system";
 import { Autocomplete, Box, PaperProps, Typography } from "@mui/material";
 import {
   forwardRef,

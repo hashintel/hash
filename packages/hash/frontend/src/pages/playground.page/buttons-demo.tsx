@@ -3,7 +3,7 @@ import {
   FontAwesomeIcon,
   IconButton,
   SubmitButtonWrapper,
-} from "@local/hash-design-system";
+} from "@local/design-system";
 import { Box, Typography } from "@mui/material";
 
 import { Button } from "../../shared/ui";

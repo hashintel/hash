@@ -5,7 +5,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { GridCellKind, Item, TextCell } from "@glideapps/glide-data-grid";
 import { extractOwnedByIdFromEntityId } from "@hashintel/hash-subgraph";
-import { Chip, FontAwesomeIcon, IconButton } from "@local/hash-design-system";
+import { Chip, FontAwesomeIcon, IconButton } from "@local/design-system";
 import { Box, Paper, Stack } from "@mui/material";
 import { useRouter } from "next/router";
 import {

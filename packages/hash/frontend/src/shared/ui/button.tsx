@@ -3,7 +3,7 @@ import { UrlObject } from "node:url";
 import {
   Button as BaseButton,
   ButtonProps as BaseButtonProps,
-} from "@local/hash-design-system";
+} from "@local/design-system";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 // eslint-disable-next-line no-restricted-imports
 import Link from "next/link";

@@ -1,4 +1,4 @@
-import { FontAwesomeIcon } from "@local/hash-design-system";
+import { FontAwesomeIcon } from "@local/design-system";
 import { Box, ButtonBase, Typography } from "@mui/material";
 
 import { editorSpecs } from "./array-editor/sortable-row";

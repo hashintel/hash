@@ -1,4 +1,4 @@
-import { Button, ButtonProps } from "@local/hash-design-system";
+import { Button, ButtonProps } from "@local/design-system";
 import { Tooltip } from "@mui/material";
 
 interface TooltipButtonProps extends ButtonProps {

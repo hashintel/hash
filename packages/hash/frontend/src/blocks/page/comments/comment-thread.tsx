@@ -1,5 +1,5 @@
 import { extractBaseUri } from "@blockprotocol/type-system";
-import { Button } from "@local/hash-design-system";
+import { Button } from "@local/design-system";
 import { TextToken } from "@local/hash-isomorphic-utils/graphql/types";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {

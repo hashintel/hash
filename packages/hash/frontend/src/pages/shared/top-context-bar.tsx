@@ -1,5 +1,5 @@
 import { faFile } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@local/hash-design-system";
+import { FontAwesomeIcon } from "@local/design-system";
 import { Box } from "@mui/material";
 import { ReactNode } from "react";
 

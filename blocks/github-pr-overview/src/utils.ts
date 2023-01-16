@@ -1,4 +1,4 @@
-import { theme } from "@local/hash-design-system";
+import { theme } from "@local/design-system";
 import { startCase } from "lodash";
 
 const NODE_COLORS = {

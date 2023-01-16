@@ -1,5 +1,5 @@
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@local/hash-design-system";
+import { FontAwesomeIcon } from "@local/design-system";
 import { Container, Typography } from "@mui/material";
 
 import { Link } from "../shared/ui";

@@ -3,7 +3,7 @@ import {
   FontAwesomeIcon,
   IconButton,
   LoadingSpinner,
-} from "@local/hash-design-system";
+} from "@local/design-system";
 import { TextToken } from "@local/hash-isomorphic-utils/graphql/types";
 import {
   createSchema,

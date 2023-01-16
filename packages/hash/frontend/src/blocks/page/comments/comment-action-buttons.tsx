@@ -1,4 +1,4 @@
-import { Button } from "@local/hash-design-system";
+import { Button } from "@local/design-system";
 import { Box, SxProps, Theme } from "@mui/material";
 import { FunctionComponent } from "react";
 

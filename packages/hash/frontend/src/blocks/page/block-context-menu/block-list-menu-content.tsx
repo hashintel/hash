@@ -1,5 +1,5 @@
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, TextField } from "@local/hash-design-system";
+import { FontAwesomeIcon, TextField } from "@local/design-system";
 import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import {
   Box,

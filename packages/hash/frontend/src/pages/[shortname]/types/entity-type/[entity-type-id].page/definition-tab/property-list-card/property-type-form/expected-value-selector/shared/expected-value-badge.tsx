@@ -1,5 +1,5 @@
 import { faClose } from "@fortawesome/free-solid-svg-icons";
-import { Chip, FontAwesomeIcon } from "@local/hash-design-system";
+import { Chip, FontAwesomeIcon } from "@local/design-system";
 import {
   Box,
   chipClasses,
