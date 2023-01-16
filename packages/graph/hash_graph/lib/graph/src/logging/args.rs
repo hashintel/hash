@@ -113,4 +113,8 @@ pub struct LoggingArgs {
         clap(short, long, default_value = "out", global = true)
     )]
     pub log_file_prefix: String,
+
+    /// The OpenTelemetry protocol endpoint for sending traces.
+    #[clap(long, default_value = None, env = "HASH_GRAPH_OTLP_ENDPOINT", global = true)]
+    pub otlp_endpoint: Option<String>,
 }

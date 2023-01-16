@@ -5,16 +5,16 @@ use graph::{
 };
 use tokio_postgres::NoTls;
 
-use crate::{args::Args, error::GraphError};
+use crate::{args::MirgrateArgs, error::GraphError};
 
-pub async fn migrate_database(args: Args) -> Result<(), GraphError> {
+pub async fn migrate_database(args: MirgrateArgs) -> Result<(), GraphError> {
     let log_args = args.log_config.clone();
     let _log_guard = init_logger(
         log_args.log_format,
         log_args.log_folder,
         log_args.log_level,
         &log_args.log_file_prefix,
-        args.otlp_endpoint.as_deref(),
+        args.log_config.otlp_endpoint.as_deref(),
     );
 
     let pool = PostgresStorePool::new(&args.db_info, NoTls)

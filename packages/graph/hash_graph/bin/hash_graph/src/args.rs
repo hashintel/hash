@@ -4,29 +4,24 @@ use graph::{logging::LoggingArgs, store::DatabaseConnectionInfo};
 use regex::Regex;
 
 /// Subcommand for the program.
-#[derive(Debug, Clone, Default, clap::Subcommand)]
+#[derive(Debug, clap::Subcommand)]
 pub enum Subcommand {
     /// Run the Graph webserver.
-    #[default]
-    Server,
+    Server(ServerArgs),
     /// Run database migrations required by the Graph.
-    Migrate,
+    Migrate(MirgrateArgs),
     /// Generate a completion script for the given shell and outputs it to stdout.
-    Completions {
-        #[clap(long, value_enum, exclusive = true)]
-        shell: Shell,
-    },
+    Completions(CompletionsArgs),
 }
 
-/// Arguments passed to the program.
 #[derive(Debug, Parser)]
 #[clap(version, author, about, long_about = None)]
-pub struct Args {
-    #[clap(flatten)]
-    pub db_info: DatabaseConnectionInfo,
-
+pub struct ServerArgs {
     #[clap(flatten)]
     pub log_config: LoggingArgs,
+
+    #[clap(flatten)]
+    pub db_info: DatabaseConnectionInfo,
 
     /// The host the REST client is listening at.
     #[clap(
@@ -66,26 +61,38 @@ pub struct Args {
         global = true
     )]
     pub allowed_url_domain: Regex,
+}
 
-    /// The OpenTelemetry protocol endpoint for sending traces.
-    #[clap(long, default_value = None, env = "HASH_GRAPH_OTLP_ENDPOINT", global = true)]
-    pub otlp_endpoint: Option<String>,
+#[derive(Debug, Parser)]
+#[clap(version, author, about, long_about = None)]
+pub struct MirgrateArgs {
+    #[clap(flatten)]
+    pub log_config: LoggingArgs,
 
-    // The subcommand is optional to get around the need to specify a subcommand to start the
-    // server. Ideally it would use enum's default impl, but it does not.
-    /// Specify whether we should run the Graph webserver or database migrations.
+    #[clap(flatten)]
+    pub db_info: DatabaseConnectionInfo,
+}
+
+#[derive(Debug, Parser)]
+#[clap(version, author, about, long_about = None)]
+pub struct CompletionsArgs {
+    /// The target shell syntax.
+    #[clap(long, value_enum, exclusive = true)]
+    pub shell: Shell,
+}
+
+/// Arguments passed to the program.
+#[derive(Debug, Parser)]
+#[clap(version, author, about, long_about = None)]
+pub struct Args {
+    /// Specify a subcommand to run.
     #[command(subcommand)]
-    pub subcommand: Option<Subcommand>,
+    pub subcommand: Subcommand,
 }
 
 impl Args {
     /// Parse the arguments passed to the program.
     pub fn parse_args() -> Self {
         Self::parse()
-    }
-
-    /// Retrieve the current subcommand without moving the value out of [`Args`]
-    pub fn subcommand(&self) -> Subcommand {
-        self.subcommand.clone().unwrap_or_default()
     }
 }

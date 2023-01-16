@@ -20,7 +20,7 @@ use type_system::{
 };
 use uuid::Uuid;
 
-use crate::{args::Args, error::GraphError};
+use crate::{args::ServerArgs, error::GraphError};
 
 // TODO: Consider making this a refinery migration
 /// A place to collect temporary implementations that are useful before stabilization of the Graph.
@@ -200,14 +200,14 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     Ok(())
 }
 
-pub async fn start_server(args: Args) -> Result<(), GraphError> {
+pub async fn start_server(args: ServerArgs) -> Result<(), GraphError> {
     let log_args = args.log_config.clone();
     let _log_guard = init_logger(
         log_args.log_format,
         log_args.log_folder,
         log_args.log_level,
         &log_args.log_file_prefix,
-        args.otlp_endpoint.as_deref(),
+        args.log_config.otlp_endpoint.as_deref(),
     );
 
     let pool = PostgresStorePool::new(&args.db_info, NoTls)
