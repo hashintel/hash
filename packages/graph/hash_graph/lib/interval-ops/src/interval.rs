@@ -153,6 +153,25 @@ pub trait Interval<T>: Sized {
         )
     }
 
+    /// Checks if this interval completely contains the other interval.
+    ///
+    /// Returns `true` if this interval's lower bound is less than or equal to the other interval's
+    /// lower bound and this interval's upper bound is greater than or equal to the other
+    /// interval's upper bound.
+    #[must_use]
+    fn contains_interval(&self, other: &impl Interval<T>) -> bool
+    where
+        T: PartialOrd,
+    {
+        matches!(
+            self.lower_bound().cmp_lower(other.lower_bound()),
+            Ordering::Less | Ordering::Equal
+        ) && matches!(
+            self.upper_bound().cmp_upper(other.upper_bound()),
+            Ordering::Greater | Ordering::Equal
+        )
+    }
+
     /// Returns the complement of this interval.
     ///
     /// A complement is the interval of all points that are not in the this interval. The resulting
@@ -383,6 +402,18 @@ mod tests {
             lhs.difference(rhs),
             "difference calculated by complement",
         );
+
+        if lhs.merge(rhs) == lhs {
+            assert!(
+                lhs.contains_interval(&rhs),
+                "{lhs:?} contains {rhs:?}, but `contains_interval` reported otherwise"
+            );
+        } else {
+            assert!(
+                !lhs.contains_interval(&rhs),
+                "{lhs:?} does not contain {rhs:?}, but `contains_interval` reports so"
+            );
+        }
 
         if lhs.union(rhs).len() == 1 && lhs.intersect(rhs).is_some() {
             assert!(
