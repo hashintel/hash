@@ -28,7 +28,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
   const { activeWorkspace, activeWorkspaceAccountId } =
     useContext(WorkspaceContext);
   const { createEntity } = useBlockProtocolCreateEntity(
-    (activeWorkspaceAccountId as OwnedById) ?? null,
+    (activeWorkspaceAccountId as OwnedById | undefined) ?? null,
   );
 
   const [creating, setCreating] = useState(false);
