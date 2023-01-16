@@ -98,8 +98,10 @@ pub trait Interval<T>: Sized {
         let rhs_lower = other.lower_bound();
         let rhs_upper = other.upper_bound();
 
-        // Range A:    [-----] | [-----]
-        // Range B: [-----]    |    [-----]
+        // Example |      A     |     B
+        // ========|============|============
+        // Range A |    [-----] | [-----]
+        // Range B | [-----]    |    [-----]
         matches!(
             lhs_lower.cmp_lower(rhs_lower),
             Ordering::Greater | Ordering::Equal
@@ -162,8 +164,11 @@ pub trait Interval<T>: Sized {
     where
         T: PartialOrd,
     {
-        // Range:        [-----]   | ---)    | ---]    |    (--- |    [---
-        // Complement: --)     (-- |    [--- |    (--- | ---]    | ---)
+        // Examples   |       1     |    2    |    3    |    4    |    5
+        // =========================|=========|=========|=========|=========
+        // Range      |   [-----]   | ---)    | ---]    |    (--- |    [---
+        // -------------------------|---------|---------|---------|---------
+        // Complement | --)     (-- |    [--- |    (--- | ---]    | ---)
         let lower = <Self::LowerBound as LowerBound<T>>::from_bound(Bound::Unbounded);
         let upper = <Self::UpperBound as UpperBound<T>>::from_bound(Bound::Unbounded);
         Self::from_bounds(lower, upper).difference(self)
@@ -180,9 +185,12 @@ pub trait Interval<T>: Sized {
         let (lhs_lower, lhs_upper) = self.into_bound();
         let (rhs_lower, rhs_upper) = other.into_bound();
 
-        // Range A:   [-----] | [-----]   | [-----]         |         [-----] | [---------]
-        // Range B: [-----]   |   [-----] |         [-----] | [-----]         |   [-----]
-        // Result:  [-------] | [-------] | [-------------] | [-------------] | [---------]
+        // Examples |     1     |      2    |        3        |        4        |      5
+        // =========|===========|===========|=================|=================|=============
+        // Range A  |   [-----] | [-----]   | [-----]         |         [-----] | [---------]
+        // Range B  | [-----]   |   [-----] |         [-----] | [-----]         |   [-----]
+        // ---------|-----------|-----------|-----------------|-----------------|-------------
+        // Merge    | [-------] | [-------] | [-------------] | [-------------] | [---------]
         Return::one(Self::from_bounds(
             match lhs_lower.cmp_lower(&rhs_lower) {
                 Ordering::Less | Ordering::Equal => lhs_lower,
@@ -231,10 +239,12 @@ pub trait Interval<T>: Sized {
             let (lhs_lower, lhs_upper) = self.into_bound();
             let (rhs_lower, rhs_upper) = other.into_bound();
 
-            // The ranges overlaps
-            // Range A:   [-----] | [-----]
-            // Range B: [-----]   |   [-----]
-            // Result:    [---]   |   [---]
+            // Examples  |      1    |     2
+            // ==========|===========|===========
+            // Range A   |   [-----] | [-----]
+            // Range B   | [-----]   |   [-----]
+            // ----------|-----------|-----------
+            // Intersect |   [---]   |   [---]
             Self::from_bounds(
                 match lhs_lower.cmp_lower(&rhs_lower) {
                     Ordering::Less | Ordering::Equal => rhs_lower,
@@ -269,35 +279,47 @@ pub trait Interval<T>: Sized {
             lhs_upper.cmp_lower(&rhs_lower),
             lhs_upper.cmp_upper(&rhs_upper),
         ) {
-            // Range b is completely contained in range a
-            // Range A: [---------------]
-            // Range B:     [-------]
-            // Result:  [---]       [---]
+            // Range B is completely contained in range A:
+            // Example    |         1
+            // ===========|===================
+            // Range A    | [---------------]
+            // Range B    |     [-------]
+            // -----------|-------------------
+            // Difference | [---]       [---]
             (Ordering::Less, _, _, Ordering::Greater) => Return::two(
                 Self::from_bounds(lhs_lower, rhs_lower.into_upper()),
                 Self::from_bounds(rhs_upper.into_lower(), lhs_upper),
             ),
 
-            // Ranges do not overlap
-            // Range A:             [--------]
-            // Range B: [-------]
-            // Result:              [--------]
+            // Ranges do not overlap:
+            // Example    |      1
+            // ===========|==============
+            // Range A    |        [---]
+            // Range B    | [---]
+            // -----------|--------------
+            // Difference |        [---]
             (_, Ordering::Greater, ..) | (_, _, Ordering::Less, _) => {
                 Return::one(Self::from_bounds(lhs_lower, lhs_upper))
             }
 
-            // Range A is completely contained in range B
-            // Range A:   [---]   | [---]   |   [---] | [---]
-            // Range B: [-------] | [-----] | [-----] | [---]
-            // Result: empty
+            // Range A is completely contained in range B:
+            // Example    |     1     |    2    |    3    |   4
+            // ===========|===========|=========|=========|=======
+            // Range A    |   [---]   | [---]   |   [---] | [---]
+            // Range B    | [-------] | [-----] | [-----] | [---]
+            // -----------|-----------|---------|---------|-------
+            // Difference |   empty   |  empty  |  empty  | empty
             (Ordering::Greater | Ordering::Equal, .., Ordering::Less | Ordering::Equal) => {
                 Return::none()
             }
 
-            // Range A starts before range b
-            // Range A: [-----]   | [-------]
-            // Range B:     [---] |     [---]
-            // Result:  [---]     | [---]
+            // Range A starts before range B:
+            // Example    |     1     |     2
+            // ===========|===========|===========
+            // Range A    | [-----]   | [-------]
+            // Range B    |     [---] |     [---]
+            // -----------|-----------|-----------
+            // Difference | [---]     | [---]
             (
                 Ordering::Less,
                 _,
@@ -305,10 +327,13 @@ pub trait Interval<T>: Sized {
                 Ordering::Less | Ordering::Equal,
             ) => Return::one(Self::from_bounds(lhs_lower, rhs_lower.into_upper())),
 
-            // Range A ends after range b
-            // Range A:   [-----] | [-------]
-            // Range B: [---]     | [---]
-            // Result:      [---] |     [---]
+            // Range A ends after range B:
+            // Example    |     1     |     2
+            // ===========|===========|===========
+            // Range A    |   [-----] | [-------]
+            // Range B    | [---]     | [---]
+            // -----------|-----------|-----------
+            // Difference |     [---] |     [---]
             (
                 Ordering::Greater | Ordering::Equal,
                 Ordering::Less | Ordering::Equal,
