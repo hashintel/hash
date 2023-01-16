@@ -1,4 +1,4 @@
-use clap::{Args as _, Command, Parser};
+use clap::Parser;
 use clap_complete::Shell;
 use graph::{logging::LoggingArgs, store::DatabaseConnectionInfo};
 use regex::Regex;
@@ -11,6 +11,11 @@ pub enum Subcommand {
     Server,
     /// Run database migrations required by the Graph.
     Migrate,
+    /// Generate a completion script for the given shell and outputs it to stdout.
+    Completions {
+        #[clap(long, value_enum, exclusive = true)]
+        shell: Shell,
+    },
 }
 
 /// Arguments passed to the program.
@@ -66,10 +71,6 @@ pub struct Args {
     #[clap(long, default_value = None, env = "HASH_GRAPH_OTLP_ENDPOINT", global = true)]
     pub otlp_endpoint: Option<String>,
 
-    /// Generate a completion script for the given shell and outputs it to stdout.
-    #[clap(long, value_enum, exclusive = true)]
-    generate_completion: Option<Shell>,
-
     // The subcommand is optional to get around the need to specify a subcommand to start the
     // server. Ideally it would use enum's default impl, but it does not.
     /// Specify whether we should run the Graph webserver or database migrations.
@@ -80,20 +81,10 @@ pub struct Args {
 impl Args {
     /// Parse the arguments passed to the program.
     pub fn parse_args() -> Self {
-        let args = Self::parse();
-        if let Some(shell) = args.generate_completion {
-            clap_complete::generate(
-                shell,
-                &mut Self::augment_args(Command::new(env!("CARGO_PKG_NAME"))),
-                env!("CARGO_PKG_NAME"),
-                &mut std::io::stdout(),
-            );
-            std::process::exit(0);
-        }
-
-        args
+        Self::parse()
     }
 
+    /// Retrieve the current subcommand without moving the value out of [`Args`]
     pub fn subcommand(&self) -> Subcommand {
         self.subcommand.clone().unwrap_or_default()
     }
