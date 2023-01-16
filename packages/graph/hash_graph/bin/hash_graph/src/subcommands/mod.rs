@@ -2,7 +2,9 @@ pub mod completions;
 pub mod migrate;
 pub mod server;
 
-use crate::subcommands::{completions::CompletionsArgs, migrate::MigrateArgs, server::ServerArgs};
+pub use completions::CompletionsArgs;
+pub use migrate::MigrateArgs;
+pub use server::ServerArgs;
 
 /// Subcommand for the program.
 #[derive(Debug, clap::Subcommand)]
