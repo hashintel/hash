@@ -172,6 +172,26 @@ const DisabledCheckboxCell = ({
   );
 };
 
+const usePropertyTypeVersions = (
+  propertyTypeId: VersionedUri,
+  propertyTypes?: Record<VersionedUri, PropertyType> | null,
+) => {
+  return useMemo(() => {
+    const baseUri = extractBaseUri(propertyTypeId);
+
+    const newerVersion = propertyTypes
+      ? Object.keys(propertyTypes).find((versionedUri) => {
+          return versionedUri.startsWith(`${baseUri}v/`);
+        })
+      : undefined;
+
+    return [
+      propertyTypeId.split(`${baseUri}v/`)[1],
+      newerVersion?.split(`${baseUri}v/`)[1],
+    ] as const;
+  }, [propertyTypeId, propertyTypes]);
+};
+
 const REQUIRED_CELL_WIDTH = 100;
 
 const PropertyRow = ({
@@ -195,6 +215,11 @@ const PropertyRow = ({
 }) => {
   const propertyTypes = usePropertyTypes();
   const { propertyTypes: entityTypePropertyTypes } = useEntityType();
+
+  const [currentVersion, latestVersion] = usePropertyTypeVersions(
+    property.$id,
+    propertyTypes,
+  );
 
   const [expanded, setExpanded] = useState(true);
 
@@ -265,21 +290,6 @@ const PropertyRow = ({
     };
   }, []);
 
-  const [currentVersion, newestVersion] = useMemo(() => {
-    const baseUri = extractBaseUri(property.$id);
-
-    const newerVersion = propertyTypes
-      ? Object.keys(propertyTypes).find((versionedUri) => {
-          return versionedUri.startsWith(`${baseUri}v/`);
-        })
-      : undefined;
-
-    return [
-      property.$id.split(`${baseUri}v/`)[1],
-      newerVersion?.split(`${baseUri}v/`)[1],
-    ];
-  }, [propertyTypes, property.$id]);
-
   return (
     <>
       <EntityTypeTableRow
@@ -298,7 +308,7 @@ const PropertyRow = ({
           expanded={children.length ? expanded : undefined}
           setExpanded={setExpanded}
           currentVersion={currentVersion}
-          newestVersion={newestVersion}
+          latestVersion={latestVersion}
         />
 
         <TableCell>
@@ -396,6 +406,11 @@ export const PropertyTypeRow = ({
   const { propertyTypes: entityTypePropertyTypes } = useEntityType();
   const property = entityTypePropertyTypes[$id] ?? propertyTypes?.[$id];
 
+  const [currentVersion, latestVersion] = usePropertyTypeVersions(
+    $id,
+    propertyTypes,
+  );
+
   const getDefaultValues = useCallback(() => {
     if (!property) {
       throw new Error("Missing property type");
@@ -445,6 +460,12 @@ export const PropertyTypeRow = ({
             onRemove={onRemove}
             typeId={property.$id}
             variant="property"
+            {...(currentVersion !== latestVersion
+              ? {
+                  editButtonDisabled:
+                    "Update the property type to the latest version to edit",
+                }
+              : {})}
           />
         }
       />

@@ -25,7 +25,7 @@ interface PropertyTitleCellProps {
   lines: boolean[];
   expanded?: boolean;
   currentVersion?: string;
-  newestVersion?: string;
+  latestVersion?: string;
   setExpanded?: (expanded: boolean) => void;
 }
 
@@ -39,7 +39,7 @@ export const PropertyTitleCell = ({
   expanded,
   setExpanded,
   currentVersion,
-  newestVersion,
+  latestVersion,
 }: PropertyTitleCellProps) => {
   return (
     <TableCell width={PROPERTY_TITLE_CELL_WIDTH} sx={{ position: "relative" }}>
@@ -121,7 +121,7 @@ export const PropertyTitleCell = ({
           />
         </Fade>
 
-        {depth === 0 && currentVersion !== newestVersion ? (
+        {depth === 0 && currentVersion !== latestVersion ? (
           <Stack direction="row" gap={1} alignItems="center">
             <Typography
               variant="smallTextLabels"
@@ -138,7 +138,7 @@ export const PropertyTitleCell = ({
               color="blue.70"
               fontWeight={500}
             >
-              v{newestVersion}
+              v{latestVersion}
             </Typography>
             <IconButton
               sx={{

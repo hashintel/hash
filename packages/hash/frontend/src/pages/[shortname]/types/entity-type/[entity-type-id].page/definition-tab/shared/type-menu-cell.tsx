@@ -7,6 +7,7 @@ import {
 } from "@hashintel/hash-design-system";
 import { VersionedUri } from "@hashintel/hash-subgraph";
 import {
+  Box,
   Divider,
   iconButtonClasses,
   ListItem,
@@ -42,11 +43,13 @@ export const TypeMenuCell = ({
   canRemove = true,
   editButtonProps,
   onRemove,
+  editButtonDisabled,
 }: {
   typeId: VersionedUri;
   variant: "property" | "link";
   canRemove?: boolean;
   canEdit?: boolean;
+  editButtonDisabled?: string;
   editButtonProps?: MenuItemProps;
   onRemove?: () => void;
 }) => {
@@ -122,20 +125,25 @@ export const TypeMenuCell = ({
                 Actions
               </Typography>,
               canEdit ? (
-                <MenuItem
-                  key="edit"
-                  {...editButtonProps}
-                  onClick={(evt) => {
-                    popupState.close();
-                    editButtonProps?.onClick?.(evt);
-                  }}
-                  onTouchStart={(evt) => {
-                    popupState.close();
-                    editButtonProps?.onTouchStart?.(evt);
-                  }}
-                >
-                  <ListItemText primary={<>Edit {variant}</>} />
-                </MenuItem>
+                <Tooltip title={editButtonDisabled!}>
+                  <Box>
+                    <MenuItem
+                      key="edit"
+                      {...editButtonProps}
+                      disabled={!!editButtonDisabled}
+                      onClick={(evt) => {
+                        popupState.close();
+                        editButtonProps?.onClick?.(evt);
+                      }}
+                      onTouchStart={(evt) => {
+                        popupState.close();
+                        editButtonProps?.onTouchStart?.(evt);
+                      }}
+                    >
+                      <ListItemText primary={<>Edit {variant}</>} />
+                    </MenuItem>
+                  </Box>
+                </Tooltip>
               ) : null,
               canRemove ? (
                 <MenuItem
