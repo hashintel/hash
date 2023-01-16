@@ -9,7 +9,7 @@ error-stack = { version = "0.2.4", default_features = false }
 
 num-traits = { version = "0.2.15", default_features = false }
 
-serde = { version = "1.0.151", default_features = false, features = ['alloc', 'derive'] }
+serde = { version = "1.0.152", default_features = false, features = ['alloc', 'derive'] }
 erased-serde = { version = "0.3.24", default_features = false, features = ['alloc'] }
 
 [dev-dependencies]
