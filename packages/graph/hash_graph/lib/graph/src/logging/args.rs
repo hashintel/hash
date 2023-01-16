@@ -75,7 +75,7 @@ impl From<LogLevel> for Directive {
 }
 
 /// Arguments for configuring the logging setup
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "clap", derive(Parser))]
 pub struct LoggingArgs {
     /// Log format used for output to stderr.
@@ -85,12 +85,12 @@ pub struct LoggingArgs {
             long,
             default_value = "pretty",
             value_enum,
-            env = "HASH_GRAPH_LOG_FORMAT"
+            env = "HASH_GRAPH_LOG_FORMAT",
         )
     )]
     pub log_format: LogFormat,
 
-    /// Logging verbosity to use. If not set `RUST_LOG` will be used
+    /// Logging verbosity to use. If not set `RUST_LOG` will be used.
     #[cfg_attr(feature = "clap", clap(long, value_enum))]
     pub log_level: Option<LogLevel>,
 
@@ -104,4 +104,11 @@ pub struct LoggingArgs {
     /// Logging output file prefix.
     #[cfg_attr(feature = "clap", clap(short, long, default_value = "out"))]
     pub log_file_prefix: String,
+
+    /// The OpenTelemetry protocol endpoint for sending traces.
+    #[cfg_attr(
+        feature = "clap",
+        clap(long, default_value = None, env = "HASH_GRAPH_OTLP_ENDPOINT")
+    )]
+    pub otlp_endpoint: Option<String>,
 }

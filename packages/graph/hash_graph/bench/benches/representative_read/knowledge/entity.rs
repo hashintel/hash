@@ -35,27 +35,16 @@ pub fn bench_get_entity_by_id(
         |entity_uuid| async move {
             let subgraph = store
                 .get_entity(&StructuralQuery {
-                    filter: Filter::All(vec![
-                        Filter::Equal(
-                            Some(FilterExpression::Path(EntityQueryPath::Uuid)),
-                            Some(FilterExpression::Parameter(Parameter::Uuid(
-                                entity_uuid.as_uuid(),
-                            ))),
-                        ),
-                        Filter::Equal(
-                            Some(FilterExpression::Path(EntityQueryPath::ProjectedTime)),
-                            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                                "latest",
-                            )))),
-                        ),
-                    ]),
+                    filter: Filter::Equal(
+                        Some(FilterExpression::Path(EntityQueryPath::Uuid)),
+                        Some(FilterExpression::Parameter(Parameter::Uuid(
+                            entity_uuid.as_uuid(),
+                        ))),
+                    ),
                     graph_resolve_depths: GraphResolveDepths::default(),
                     time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                         kernel: UnresolvedKernel::new(None),
-                        image: UnresolvedImage::new(
-                            Some(TimeIntervalBound::Unbounded),
-                            Some(TimeIntervalBound::Unbounded),
-                        ),
+                        image: UnresolvedImage::new(None, None),
                     }),
                 })
                 .await

@@ -108,3 +108,14 @@ impl fmt::Display for VersionedUriAlreadyExists {
 }
 
 impl Context for VersionedUriAlreadyExists {}
+
+#[derive(Debug)]
+pub struct MigrationError;
+
+impl Context for MigrationError {}
+
+impl fmt::Display for MigrationError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("The store encountered a migration error")
+    }
+}

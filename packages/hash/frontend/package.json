@@ -78,7 +78,6 @@
     "react-transition-group": "4.4.2",
     "rooks": "5.7.1",
     "setimmediate": "1.0.5",
-    "spark-md5": "3.0.2",
     "url-regex-safe": "2.0.2",
     "use-font-face-observer": "1.2.1",
     "uuid": "8.3.2"
@@ -99,7 +98,6 @@
     "@types/pluralize": "0.0.29",
     "@types/react": "18.0.25",
     "@types/react-dom": "18.0.8",
-    "@types/spark-md5": "3.0.2",
     "@types/url-regex-safe": "1.0.0",
     "@types/uuid": "8.3.0",
     "eslint": "8.31.0",
