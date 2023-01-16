@@ -4,7 +4,9 @@ use core::{
     ops::Bound,
 };
 
-use crate::bounds::{LowerBound, LowerBoundHelper, UpperBound, UpperBoundHelper};
+use crate::bounds::{
+    compare_bounds, BoundType, LowerBound, LowerBoundHelper, UpperBound, UpperBoundHelper,
+};
 
 pub trait IntervalBounds<T> {
     fn lower_bound(&self) -> Bound<&T>;
@@ -123,6 +125,34 @@ pub trait Interval<T>: Sized {
             || other.upper_bound().is_adjacent_to(self.lower_bound())
     }
 
+    /// Checks if this interval contains the other value.
+    ///
+    /// Returns `true` if this interval's lower bound is less than or equal to `other` and this
+    /// interval's upper bound is greater than or equal to `other`.
+    #[must_use]
+    fn contains_point(&self, other: &T) -> bool
+    where
+        T: PartialOrd,
+    {
+        matches!(
+            compare_bounds(
+                self.lower_bound().as_bound(),
+                Bound::Included(other),
+                BoundType::Lower,
+                BoundType::Lower,
+            ),
+            Ordering::Less | Ordering::Equal
+        ) && matches!(
+            compare_bounds(
+                self.upper_bound().as_bound(),
+                Bound::Included(other),
+                BoundType::Upper,
+                BoundType::Upper,
+            ),
+            Ordering::Greater | Ordering::Equal
+        )
+    }
+
     /// Returns the complement of this interval.
     ///
     /// A complement is the interval of all points that are not in the this interval. The resulting
@@ -143,7 +173,7 @@ pub trait Interval<T>: Sized {
     ///
     /// In comparison to [`Self::union`], this method does also return the points between the
     /// intervals if they do not overlap.
-    fn merge(self, other: Self) -> IntervalIter<Self>
+    fn merge(self, other: Self) -> Self
     where
         T: PartialOrd,
     {
@@ -153,7 +183,7 @@ pub trait Interval<T>: Sized {
         // Range A:   [-----] | [-----]   | [-----]         |         [-----] | [---------]
         // Range B: [-----]   |   [-----] |         [-----] | [-----]         |   [-----]
         // Result:  [-------] | [-------] | [-------------] | [-------------] | [---------]
-        Return::one(Self::from_bounds(
+        Self::from_bounds(
             match lhs_lower.cmp_lower(&rhs_lower) {
                 Ordering::Less | Ordering::Equal => lhs_lower,
                 Ordering::Greater => {
@@ -166,7 +196,7 @@ pub trait Interval<T>: Sized {
                     <Self::UpperBound as UpperBound<T>>::from_bound(rhs_upper.into_bound())
                 }
             },
-        ))
+        )
     }
 
     /// Returns a new interval that contains all points in both intervals.
@@ -181,7 +211,7 @@ pub trait Interval<T>: Sized {
         T: PartialOrd,
     {
         if self.overlaps(&other) || self.is_adjacent_to(&other) {
-            self.merge(other)
+            Return::one(self.merge(other))
         } else if self.lower_bound().cmp_lower(other.lower_bound()) == Ordering::Less {
             Return::two(self, other)
         } else {
@@ -332,17 +362,16 @@ mod tests {
         rhs: IntervalBounds<u32>,
         intersection: impl IntoIterator<Item = IntervalBounds<u32>>,
         union: impl IntoIterator<Item = IntervalBounds<u32>>,
-        merge: impl IntoIterator<Item = IntervalBounds<u32>>,
+        merge: IntervalBounds<u32>,
         difference: impl IntoIterator<Item = IntervalBounds<u32>>,
     ) {
         let intersection = intersection.into_iter().collect::<Vec<_>>();
         let union = union.into_iter().collect::<Vec<_>>();
-        let merge = merge.into_iter().collect::<Vec<_>>();
         let difference = difference.into_iter().collect::<Vec<_>>();
 
         assert_equality(lhs.intersect(rhs), intersection, "intersection");
         assert_equality(lhs.union(rhs), union, "union");
-        assert_equality(lhs.merge(rhs), merge, "merge");
+        assert_equality([lhs.merge(rhs)], [merge], "merge");
         assert_equality(lhs.difference(rhs), difference, "difference");
 
         let calculated_difference = rhs
@@ -420,7 +449,7 @@ mod tests {
     }
 
     #[test]
-    fn test_partially_overlapping() {
+    fn partially_overlapping() {
         // Range A:      [-----]   |   [-----]
         // Range B:        [-----] | [-----]
         // intersection:   [---]   |   [---]
@@ -432,7 +461,7 @@ mod tests {
             included_included(5, 15),
             [included_included(5, 10)],
             [included_included(0, 15)],
-            [included_included(0, 15)],
+            included_included(0, 15),
             [included_excluded(0, 5)],
         );
         test(
@@ -440,7 +469,7 @@ mod tests {
             included_included(0, 10),
             [included_included(5, 10)],
             [included_included(0, 15)],
-            [included_included(0, 15)],
+            included_included(0, 15),
             [excluded_included(10, 15)],
         );
 
@@ -455,7 +484,7 @@ mod tests {
             included_included(5, 15),
             [included_excluded(5, 10)],
             [included_included(0, 15)],
-            [included_included(0, 15)],
+            included_included(0, 15),
             [included_excluded(0, 5)],
         );
         test(
@@ -463,7 +492,7 @@ mod tests {
             included_excluded(0, 10),
             [included_excluded(5, 10)],
             [included_included(0, 15)],
-            [included_included(0, 15)],
+            included_included(0, 15),
             [included_included(10, 15)],
         );
 
@@ -478,7 +507,7 @@ mod tests {
             included_excluded(5, 15),
             [included_included(5, 10)],
             [included_excluded(0, 15)],
-            [included_excluded(0, 15)],
+            included_excluded(0, 15),
             [included_excluded(0, 5)],
         );
         test(
@@ -486,7 +515,7 @@ mod tests {
             included_included(0, 10),
             [included_included(5, 10)],
             [included_excluded(0, 15)],
-            [included_excluded(0, 15)],
+            included_excluded(0, 15),
             [excluded_excluded(10, 15)],
         );
 
@@ -501,7 +530,7 @@ mod tests {
             included_excluded(5, 15),
             [included_excluded(5, 10)],
             [included_excluded(0, 15)],
-            [included_excluded(0, 15)],
+            included_excluded(0, 15),
             [included_excluded(0, 5)],
         );
         test(
@@ -509,7 +538,7 @@ mod tests {
             included_excluded(0, 10),
             [included_excluded(5, 10)],
             [included_excluded(0, 15)],
-            [included_excluded(0, 15)],
+            included_excluded(0, 15),
             [included_excluded(10, 15)],
         );
 
@@ -524,7 +553,7 @@ mod tests {
             included_included(5, 15),
             [included_included(5, 10)],
             [excluded_included(0, 15)],
-            [excluded_included(0, 15)],
+            excluded_included(0, 15),
             [excluded_excluded(0, 5)],
         );
         test(
@@ -532,7 +561,7 @@ mod tests {
             excluded_included(0, 10),
             [included_included(5, 10)],
             [excluded_included(0, 15)],
-            [excluded_included(0, 15)],
+            excluded_included(0, 15),
             [excluded_included(10, 15)],
         );
 
@@ -547,7 +576,7 @@ mod tests {
             included_included(5, 15),
             [included_excluded(5, 10)],
             [excluded_included(0, 15)],
-            [excluded_included(0, 15)],
+            excluded_included(0, 15),
             [excluded_excluded(0, 5)],
         );
         test(
@@ -555,7 +584,7 @@ mod tests {
             excluded_excluded(0, 10),
             [included_excluded(5, 10)],
             [excluded_included(0, 15)],
-            [excluded_included(0, 15)],
+            excluded_included(0, 15),
             [included_included(10, 15)],
         );
 
@@ -570,7 +599,7 @@ mod tests {
             included_excluded(5, 15),
             [included_included(5, 10)],
             [excluded_excluded(0, 15)],
-            [excluded_excluded(0, 15)],
+            excluded_excluded(0, 15),
             [excluded_excluded(0, 5)],
         );
         test(
@@ -578,7 +607,7 @@ mod tests {
             excluded_included(0, 10),
             [included_included(5, 10)],
             [excluded_excluded(0, 15)],
-            [excluded_excluded(0, 15)],
+            excluded_excluded(0, 15),
             [excluded_excluded(10, 15)],
         );
 
@@ -593,7 +622,7 @@ mod tests {
             included_excluded(5, 15),
             [included_excluded(5, 10)],
             [excluded_excluded(0, 15)],
-            [excluded_excluded(0, 15)],
+            excluded_excluded(0, 15),
             [excluded_excluded(0, 5)],
         );
         test(
@@ -601,7 +630,7 @@ mod tests {
             excluded_excluded(0, 10),
             [included_excluded(5, 10)],
             [excluded_excluded(0, 15)],
-            [excluded_excluded(0, 15)],
+            excluded_excluded(0, 15),
             [included_excluded(10, 15)],
         );
 
@@ -616,7 +645,7 @@ mod tests {
             excluded_included(5, 15),
             [excluded_included(5, 10)],
             [included_included(0, 15)],
-            [included_included(0, 15)],
+            included_included(0, 15),
             [included_included(0, 5)],
         );
         test(
@@ -624,7 +653,7 @@ mod tests {
             included_included(0, 10),
             [excluded_included(5, 10)],
             [included_included(0, 15)],
-            [included_included(0, 15)],
+            included_included(0, 15),
             [excluded_included(10, 15)],
         );
 
@@ -639,7 +668,7 @@ mod tests {
             excluded_included(5, 15),
             [excluded_excluded(5, 10)],
             [included_included(0, 15)],
-            [included_included(0, 15)],
+            included_included(0, 15),
             [included_included(0, 5)],
         );
         test(
@@ -647,7 +676,7 @@ mod tests {
             included_excluded(0, 10),
             [excluded_excluded(5, 10)],
             [included_included(0, 15)],
-            [included_included(0, 15)],
+            included_included(0, 15),
             [included_included(10, 15)],
         );
 
@@ -662,7 +691,7 @@ mod tests {
             excluded_excluded(5, 15),
             [excluded_included(5, 10)],
             [included_excluded(0, 15)],
-            [included_excluded(0, 15)],
+            included_excluded(0, 15),
             [included_included(0, 5)],
         );
         test(
@@ -670,7 +699,7 @@ mod tests {
             included_included(0, 10),
             [excluded_included(5, 10)],
             [included_excluded(0, 15)],
-            [included_excluded(0, 15)],
+            included_excluded(0, 15),
             [excluded_excluded(10, 15)],
         );
 
@@ -685,7 +714,7 @@ mod tests {
             excluded_excluded(5, 15),
             [excluded_excluded(5, 10)],
             [included_excluded(0, 15)],
-            [included_excluded(0, 15)],
+            included_excluded(0, 15),
             [included_included(0, 5)],
         );
         test(
@@ -693,7 +722,7 @@ mod tests {
             included_excluded(0, 10),
             [excluded_excluded(5, 10)],
             [included_excluded(0, 15)],
-            [included_excluded(0, 15)],
+            included_excluded(0, 15),
             [included_excluded(10, 15)],
         );
 
@@ -708,7 +737,7 @@ mod tests {
             excluded_included(5, 15),
             [excluded_included(5, 10)],
             [excluded_included(0, 15)],
-            [excluded_included(0, 15)],
+            excluded_included(0, 15),
             [excluded_included(0, 5)],
         );
         test(
@@ -716,7 +745,7 @@ mod tests {
             excluded_included(0, 10),
             [excluded_included(5, 10)],
             [excluded_included(0, 15)],
-            [excluded_included(0, 15)],
+            excluded_included(0, 15),
             [excluded_included(10, 15)],
         );
 
@@ -731,7 +760,7 @@ mod tests {
             excluded_included(5, 15),
             [excluded_excluded(5, 10)],
             [excluded_included(0, 15)],
-            [excluded_included(0, 15)],
+            excluded_included(0, 15),
             [excluded_included(0, 5)],
         );
         test(
@@ -739,7 +768,7 @@ mod tests {
             excluded_excluded(0, 10),
             [excluded_excluded(5, 10)],
             [excluded_included(0, 15)],
-            [excluded_included(0, 15)],
+            excluded_included(0, 15),
             [included_included(10, 15)],
         );
 
@@ -754,7 +783,7 @@ mod tests {
             excluded_excluded(5, 15),
             [excluded_included(5, 10)],
             [excluded_excluded(0, 15)],
-            [excluded_excluded(0, 15)],
+            excluded_excluded(0, 15),
             [excluded_included(0, 5)],
         );
         test(
@@ -762,7 +791,7 @@ mod tests {
             excluded_included(0, 10),
             [excluded_included(5, 10)],
             [excluded_excluded(0, 15)],
-            [excluded_excluded(0, 15)],
+            excluded_excluded(0, 15),
             [excluded_excluded(10, 15)],
         );
 
@@ -777,7 +806,7 @@ mod tests {
             excluded_excluded(5, 15),
             [excluded_excluded(5, 10)],
             [excluded_excluded(0, 15)],
-            [excluded_excluded(0, 15)],
+            excluded_excluded(0, 15),
             [excluded_included(0, 5)],
         );
         test(
@@ -785,7 +814,7 @@ mod tests {
             excluded_excluded(0, 10),
             [excluded_excluded(5, 10)],
             [excluded_excluded(0, 15)],
-            [excluded_excluded(0, 15)],
+            excluded_excluded(0, 15),
             [included_excluded(10, 15)],
         );
 
@@ -800,7 +829,7 @@ mod tests {
             included_unbounded(5),
             [included_included(5, 10)],
             [unbounded_unbounded()],
-            [unbounded_unbounded()],
+            unbounded_unbounded(),
             [unbounded_excluded(5)],
         );
         test(
@@ -808,7 +837,7 @@ mod tests {
             unbounded_included(10),
             [included_included(5, 10)],
             [unbounded_unbounded()],
-            [unbounded_unbounded()],
+            unbounded_unbounded(),
             [excluded_unbounded(10)],
         );
 
@@ -823,7 +852,7 @@ mod tests {
             excluded_unbounded(5),
             [excluded_excluded(5, 10)],
             [unbounded_unbounded()],
-            [unbounded_unbounded()],
+            unbounded_unbounded(),
             [unbounded_included(5)],
         );
         test(
@@ -831,13 +860,13 @@ mod tests {
             unbounded_excluded(10),
             [excluded_excluded(5, 10)],
             [unbounded_unbounded()],
-            [unbounded_unbounded()],
+            unbounded_unbounded(),
             [included_unbounded(10)],
         );
     }
 
     #[test]
-    fn test_disjoint() {
+    fn disjoint() {
         // Range A:      [---]       |       [---]
         // Range B:            [---] | [---]
         // intersection:    empty    |    empty
@@ -849,7 +878,7 @@ mod tests {
             included_included(10, 15),
             [],
             [included_included(0, 5), included_included(10, 15)],
-            [included_included(0, 15)],
+            included_included(0, 15),
             [included_included(0, 5)],
         );
         test(
@@ -857,7 +886,7 @@ mod tests {
             included_included(0, 5),
             [],
             [included_included(0, 5), included_included(10, 15)],
-            [included_included(0, 15)],
+            included_included(0, 15),
             [included_included(10, 15)],
         );
 
@@ -872,7 +901,7 @@ mod tests {
             included_included(10, 15),
             [],
             [included_excluded(0, 5), included_included(10, 15)],
-            [included_included(0, 15)],
+            included_included(0, 15),
             [included_excluded(0, 5)],
         );
         test(
@@ -880,7 +909,7 @@ mod tests {
             included_excluded(0, 5),
             [],
             [included_excluded(0, 5), included_included(10, 15)],
-            [included_included(0, 15)],
+            included_included(0, 15),
             [included_included(10, 15)],
         );
 
@@ -895,7 +924,7 @@ mod tests {
             included_excluded(10, 15),
             [],
             [included_included(0, 5), included_excluded(10, 15)],
-            [included_excluded(0, 15)],
+            included_excluded(0, 15),
             [included_included(0, 5)],
         );
         test(
@@ -903,7 +932,7 @@ mod tests {
             included_included(0, 5),
             [],
             [included_included(0, 5), included_excluded(10, 15)],
-            [included_excluded(0, 15)],
+            included_excluded(0, 15),
             [included_excluded(10, 15)],
         );
 
@@ -918,7 +947,7 @@ mod tests {
             included_excluded(10, 15),
             [],
             [included_excluded(0, 5), included_excluded(10, 15)],
-            [included_excluded(0, 15)],
+            included_excluded(0, 15),
             [included_excluded(0, 5)],
         );
         test(
@@ -926,7 +955,7 @@ mod tests {
             included_excluded(0, 5),
             [],
             [included_excluded(0, 5), included_excluded(10, 15)],
-            [included_excluded(0, 15)],
+            included_excluded(0, 15),
             [included_excluded(10, 15)],
         );
 
@@ -941,7 +970,7 @@ mod tests {
             included_included(10, 15),
             [],
             [excluded_included(0, 5), included_included(10, 15)],
-            [excluded_included(0, 15)],
+            excluded_included(0, 15),
             [excluded_included(0, 5)],
         );
         test(
@@ -949,7 +978,7 @@ mod tests {
             excluded_included(0, 5),
             [],
             [excluded_included(0, 5), included_included(10, 15)],
-            [excluded_included(0, 15)],
+            excluded_included(0, 15),
             [included_included(10, 15)],
         );
 
@@ -964,7 +993,7 @@ mod tests {
             included_included(10, 15),
             [],
             [excluded_excluded(0, 5), included_included(10, 15)],
-            [excluded_included(0, 15)],
+            excluded_included(0, 15),
             [excluded_excluded(0, 5)],
         );
         test(
@@ -972,7 +1001,7 @@ mod tests {
             excluded_excluded(0, 5),
             [],
             [excluded_excluded(0, 5), included_included(10, 15)],
-            [excluded_included(0, 15)],
+            excluded_included(0, 15),
             [included_included(10, 15)],
         );
 
@@ -987,7 +1016,7 @@ mod tests {
             included_excluded(10, 15),
             [],
             [excluded_included(0, 5), included_excluded(10, 15)],
-            [excluded_excluded(0, 15)],
+            excluded_excluded(0, 15),
             [excluded_included(0, 5)],
         );
         test(
@@ -995,7 +1024,7 @@ mod tests {
             excluded_included(0, 5),
             [],
             [excluded_included(0, 5), included_excluded(10, 15)],
-            [excluded_excluded(0, 15)],
+            excluded_excluded(0, 15),
             [included_excluded(10, 15)],
         );
 
@@ -1010,7 +1039,7 @@ mod tests {
             included_excluded(10, 15),
             [],
             [excluded_excluded(0, 5), included_excluded(10, 15)],
-            [excluded_excluded(0, 15)],
+            excluded_excluded(0, 15),
             [excluded_excluded(0, 5)],
         );
         test(
@@ -1018,7 +1047,7 @@ mod tests {
             excluded_excluded(0, 5),
             [],
             [excluded_excluded(0, 5), included_excluded(10, 15)],
-            [excluded_excluded(0, 15)],
+            excluded_excluded(0, 15),
             [included_excluded(10, 15)],
         );
 
@@ -1033,7 +1062,7 @@ mod tests {
             excluded_included(10, 15),
             [],
             [included_included(0, 5), excluded_included(10, 15)],
-            [included_included(0, 15)],
+            included_included(0, 15),
             [included_included(0, 5)],
         );
         test(
@@ -1041,7 +1070,7 @@ mod tests {
             included_included(0, 5),
             [],
             [included_included(0, 5), excluded_included(10, 15)],
-            [included_included(0, 15)],
+            included_included(0, 15),
             [excluded_included(10, 15)],
         );
 
@@ -1056,7 +1085,7 @@ mod tests {
             excluded_included(10, 15),
             [],
             [included_excluded(0, 5), excluded_included(10, 15)],
-            [included_included(0, 15)],
+            included_included(0, 15),
             [included_excluded(0, 5)],
         );
         test(
@@ -1064,7 +1093,7 @@ mod tests {
             included_excluded(0, 5),
             [],
             [included_excluded(0, 5), excluded_included(10, 15)],
-            [included_included(0, 15)],
+            included_included(0, 15),
             [excluded_included(10, 15)],
         );
 
@@ -1079,7 +1108,7 @@ mod tests {
             excluded_excluded(10, 15),
             [],
             [included_included(0, 5), excluded_excluded(10, 15)],
-            [included_excluded(0, 15)],
+            included_excluded(0, 15),
             [included_included(0, 5)],
         );
         test(
@@ -1087,7 +1116,7 @@ mod tests {
             included_included(0, 5),
             [],
             [included_included(0, 5), excluded_excluded(10, 15)],
-            [included_excluded(0, 15)],
+            included_excluded(0, 15),
             [excluded_excluded(10, 15)],
         );
 
@@ -1102,7 +1131,7 @@ mod tests {
             excluded_excluded(10, 15),
             [],
             [included_excluded(0, 5), excluded_excluded(10, 15)],
-            [included_excluded(0, 15)],
+            included_excluded(0, 15),
             [included_excluded(0, 5)],
         );
         test(
@@ -1110,7 +1139,7 @@ mod tests {
             included_excluded(0, 5),
             [],
             [included_excluded(0, 5), excluded_excluded(10, 15)],
-            [included_excluded(0, 15)],
+            included_excluded(0, 15),
             [excluded_excluded(10, 15)],
         );
 
@@ -1125,7 +1154,7 @@ mod tests {
             excluded_included(10, 15),
             [],
             [excluded_included(0, 5), excluded_included(10, 15)],
-            [excluded_included(0, 15)],
+            excluded_included(0, 15),
             [excluded_included(0, 5)],
         );
         test(
@@ -1133,7 +1162,7 @@ mod tests {
             excluded_included(0, 5),
             [],
             [excluded_included(0, 5), excluded_included(10, 15)],
-            [excluded_included(0, 15)],
+            excluded_included(0, 15),
             [excluded_included(10, 15)],
         );
 
@@ -1148,7 +1177,7 @@ mod tests {
             excluded_included(10, 15),
             [],
             [excluded_excluded(0, 5), excluded_included(10, 15)],
-            [excluded_included(0, 15)],
+            excluded_included(0, 15),
             [excluded_excluded(0, 5)],
         );
         test(
@@ -1156,7 +1185,7 @@ mod tests {
             excluded_excluded(0, 5),
             [],
             [excluded_excluded(0, 5), excluded_included(10, 15)],
-            [excluded_included(0, 15)],
+            excluded_included(0, 15),
             [excluded_included(10, 15)],
         );
 
@@ -1171,7 +1200,7 @@ mod tests {
             excluded_excluded(10, 15),
             [],
             [excluded_included(0, 5), excluded_excluded(10, 15)],
-            [excluded_excluded(0, 15)],
+            excluded_excluded(0, 15),
             [excluded_included(0, 5)],
         );
         test(
@@ -1179,7 +1208,7 @@ mod tests {
             excluded_included(0, 5),
             [],
             [excluded_included(0, 5), excluded_excluded(10, 15)],
-            [excluded_excluded(0, 15)],
+            excluded_excluded(0, 15),
             [excluded_excluded(10, 15)],
         );
 
@@ -1194,7 +1223,7 @@ mod tests {
             excluded_excluded(5, 15),
             [],
             [excluded_excluded(0, 5), excluded_excluded(5, 15)],
-            [excluded_excluded(0, 15)],
+            excluded_excluded(0, 15),
             [excluded_excluded(0, 5)],
         );
         test(
@@ -1202,13 +1231,13 @@ mod tests {
             excluded_excluded(0, 5),
             [],
             [excluded_excluded(0, 5), excluded_excluded(5, 15)],
-            [excluded_excluded(0, 15)],
+            excluded_excluded(0, 15),
             [excluded_excluded(5, 15)],
         );
     }
 
     #[test]
-    fn test_adjacent() {
+    fn adjacent() {
         // Range A:      [---]     |     [---]
         // Range B:          [---] | [---]
         // intersection:     |     |     |
@@ -1220,7 +1249,7 @@ mod tests {
             included_included(5, 10),
             [included_included(5, 5)],
             [included_included(0, 10)],
-            [included_included(0, 10)],
+            included_included(0, 10),
             [included_excluded(0, 5)],
         );
         test(
@@ -1228,7 +1257,7 @@ mod tests {
             included_included(0, 5),
             [included_included(5, 5)],
             [included_included(0, 10)],
-            [included_included(0, 10)],
+            included_included(0, 10),
             [excluded_included(5, 10)],
         );
 
@@ -1243,7 +1272,7 @@ mod tests {
             excluded_included(5, 10),
             [],
             [included_included(0, 10)],
-            [included_included(0, 10)],
+            included_included(0, 10),
             [included_included(0, 5)],
         );
         test(
@@ -1251,7 +1280,7 @@ mod tests {
             included_included(0, 5),
             [],
             [included_included(0, 10)],
-            [included_included(0, 10)],
+            included_included(0, 10),
             [excluded_included(5, 10)],
         );
 
@@ -1266,7 +1295,7 @@ mod tests {
             included_included(5, 10),
             [],
             [included_included(0, 10)],
-            [included_included(0, 10)],
+            included_included(0, 10),
             [included_excluded(0, 5)],
         );
         test(
@@ -1274,7 +1303,7 @@ mod tests {
             included_excluded(0, 5),
             [],
             [included_included(0, 10)],
-            [included_included(0, 10)],
+            included_included(0, 10),
             [included_included(5, 10)],
         );
 
@@ -1289,7 +1318,7 @@ mod tests {
             excluded_included(5, 10),
             [],
             [included_excluded(0, 5), excluded_included(5, 10)],
-            [included_included(0, 10)],
+            included_included(0, 10),
             [included_excluded(0, 5)],
         );
         test(
@@ -1297,13 +1326,13 @@ mod tests {
             included_excluded(0, 5),
             [],
             [included_excluded(0, 5), excluded_included(5, 10)],
-            [included_included(0, 10)],
+            included_included(0, 10),
             [excluded_included(5, 10)],
         );
     }
 
     #[test]
-    fn test_contained() {
+    fn contained() {
         // Range A:      [-------] |   [---]
         // Range B:        [---]   | [-------]
         // intersection:   [---]   |   [---]
@@ -1315,7 +1344,7 @@ mod tests {
             included_included(5, 10),
             [included_included(5, 10)],
             [included_included(0, 15)],
-            [included_included(0, 15)],
+            included_included(0, 15),
             [included_excluded(0, 5), excluded_included(10, 15)],
         );
         test(
@@ -1323,7 +1352,7 @@ mod tests {
             included_included(0, 15),
             [included_included(5, 10)],
             [included_included(0, 15)],
-            [included_included(0, 15)],
+            included_included(0, 15),
             [],
         );
 
@@ -1338,7 +1367,7 @@ mod tests {
             excluded_excluded(5, 10),
             [excluded_excluded(5, 10)],
             [included_included(0, 15)],
-            [included_included(0, 15)],
+            included_included(0, 15),
             [included_included(0, 5), included_included(10, 15)],
         );
         test(
@@ -1346,7 +1375,7 @@ mod tests {
             included_included(0, 15),
             [excluded_excluded(5, 10)],
             [included_included(0, 15)],
-            [included_included(0, 15)],
+            included_included(0, 15),
             [],
         );
 
@@ -1361,7 +1390,7 @@ mod tests {
             excluded_excluded(5, 10),
             [excluded_excluded(5, 10)],
             [unbounded_unbounded()],
-            [unbounded_unbounded()],
+            unbounded_unbounded(),
             [unbounded_included(5), included_unbounded(10)],
         );
         test(
@@ -1369,7 +1398,7 @@ mod tests {
             unbounded_unbounded(),
             [excluded_excluded(5, 10)],
             [unbounded_unbounded()],
-            [unbounded_unbounded()],
+            unbounded_unbounded(),
             [],
         );
 
@@ -1384,7 +1413,7 @@ mod tests {
             included_included(5, 10),
             [included_included(5, 10)],
             [unbounded_unbounded()],
-            [unbounded_unbounded()],
+            unbounded_unbounded(),
             [unbounded_excluded(5), excluded_unbounded(10)],
         );
         test(
@@ -1392,13 +1421,13 @@ mod tests {
             unbounded_unbounded(),
             [included_included(5, 10)],
             [unbounded_unbounded()],
-            [unbounded_unbounded()],
+            unbounded_unbounded(),
             [],
         );
     }
 
     #[test]
-    fn test_equal() {
+    fn equal() {
         for interval in [
             included_included(0, 5),
             excluded_included(0, 5),
@@ -1410,7 +1439,48 @@ mod tests {
             unbounded_excluded(5),
             unbounded_unbounded(),
         ] {
-            test(interval, interval, [interval], [interval], [interval], []);
+            test(interval, interval, [interval], [interval], interval, []);
         }
+    }
+
+    #[test]
+    fn contains_point() {
+        assert!(included_included(5, 10).contains_point(&5));
+        assert!(included_included(5, 10).contains_point(&10));
+        assert!(!included_included(5, 10).contains_point(&4));
+        assert!(!included_included(5, 10).contains_point(&11));
+
+        assert!(excluded_included(5, 10).contains_point(&6));
+        assert!(excluded_included(5, 10).contains_point(&10));
+        assert!(!excluded_included(5, 10).contains_point(&5));
+        assert!(!excluded_included(5, 10).contains_point(&11));
+
+        assert!(included_excluded(5, 10).contains_point(&5));
+        assert!(included_excluded(5, 10).contains_point(&9));
+        assert!(!included_excluded(5, 10).contains_point(&4));
+        assert!(!included_excluded(5, 10).contains_point(&10));
+
+        assert!(excluded_excluded(5, 10).contains_point(&6));
+        assert!(excluded_excluded(5, 10).contains_point(&9));
+        assert!(!excluded_excluded(5, 10).contains_point(&5));
+        assert!(!excluded_excluded(5, 10).contains_point(&10));
+
+        assert!(included_unbounded(5).contains_point(&5));
+        assert!(included_unbounded(5).contains_point(&10));
+        assert!(!included_unbounded(5).contains_point(&4));
+
+        assert!(unbounded_included(10).contains_point(&5));
+        assert!(unbounded_included(10).contains_point(&10));
+        assert!(!unbounded_included(10).contains_point(&11));
+
+        assert!(excluded_unbounded(5).contains_point(&6));
+        assert!(excluded_unbounded(5).contains_point(&10));
+        assert!(!excluded_unbounded(5).contains_point(&5));
+
+        assert!(unbounded_excluded(10).contains_point(&5));
+        assert!(unbounded_excluded(10).contains_point(&4));
+        assert!(!unbounded_excluded(10).contains_point(&10));
+
+        assert!(unbounded_unbounded().contains_point(&5));
     }
 }
