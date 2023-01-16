@@ -210,10 +210,6 @@ pub trait Interval<T>: Sized {
     /// Returns a new interval that contains all points in both intervals.
     ///
     /// In comparison to [`Self::merge`], this method returns two intervals if they don't overlap.
-    ///
-    /// The `union` method is the same as the `+` operator, however, instead of returning an
-    /// `Option`, it returns `Self` and panics if the resulting interval would be two disjoint
-    /// intervals.
     fn union(self, other: Self) -> IntervalIter<Self>
     where
         T: PartialOrd,
@@ -228,8 +224,6 @@ pub trait Interval<T>: Sized {
     }
 
     /// Returns a new interval that contains all points in both intervals.
-    ///
-    /// The `intersection` method is the same as the `*` operator.
     #[must_use]
     fn intersect(self, other: Self) -> Option<Self>
     where
@@ -262,10 +256,6 @@ pub trait Interval<T>: Sized {
     ///
     /// If the intervals do not overlap, the first interval is returned. If the result would be two
     /// disjoint intervals, `None` is returned.
-    ///
-    /// The `difference` method is the same as the `-` operator, however, instead of returning an
-    /// `Option`, it returns `Self` and panics if the resulting interval would be two disjoint
-    /// intervals.
     fn difference(self, other: Self) -> IntervalIter<Self>
     where
         T: PartialOrd,
