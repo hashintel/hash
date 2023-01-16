@@ -6,20 +6,20 @@ import appRoot from "app-root-path";
 import express, { Express } from "express";
 import multer, { Multer, StorageEngine } from "multer";
 
-import { StorageType } from "../graphql/api-types.gen";
 import {
   GetFileEntityStorageKeyParams,
   PresignedDownloadRequest,
   PresignedPostUpload,
   PresignedStorageRequest,
   StorageProvider,
+  StorageType,
 } from "./storage-provider";
-import { getFileExtension } from "./storage-utils";
 
 const UPLOAD_BASE_URL = "/local-file-storage-upload";
 const DOWNLOAD_BASE_URL = "/uploads";
 
 export interface LocalFileSystemStorageProviderConstructorArgs {
+  app: Express;
   /** relative path or folder name where to store uploaded files */
   fileUploadPath: string;
   /** Base URL of the API for generating upload/download URLs */
@@ -38,6 +38,7 @@ export class LocalFileSystemStorageProvider implements StorageProvider {
   private apiOrigin: string;
 
   constructor({
+    app,
     fileUploadPath,
     apiOrigin,
   }: LocalFileSystemStorageProviderConstructorArgs) {
@@ -53,6 +54,8 @@ export class LocalFileSystemStorageProvider implements StorageProvider {
       filename: (req, file, cb) => this.getFilenameForUpload(req, file, cb),
     });
     this.upload = multer({ storage: this.storage });
+
+    this.setupExpressRoutes(app);
   }
 
   async presignUpload(
@@ -74,16 +77,9 @@ export class LocalFileSystemStorageProvider implements StorageProvider {
 
   getFileEntityStorageKey({
     accountId,
-    fileName,
-    entityVersionId,
+    uniqueIdenitifier,
   }: GetFileEntityStorageKeyParams) {
-    let fileKey = `${accountId}-${entityVersionId}`;
-    // Find and add the file extension to the path if it exists
-    const extension = getFileExtension(fileName);
-    if (extension) {
-      fileKey += extension[0];
-    }
-    return fileKey;
+    return `${accountId}-${uniqueIdenitifier}`;
   }
 
   /** Sets up express routes required for uploading and downloading files */
