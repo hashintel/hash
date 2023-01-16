@@ -29,6 +29,17 @@ export const getAllLatestDataTypes: ResolverFn<
       hasLeftEntity: { incoming: 0, outgoing: 0 },
       hasRightEntity: { incoming: 0, outgoing: 0 },
     },
+    timeProjection: {
+      kernel: {
+        axis: "transaction",
+        timestamp: undefined,
+      },
+      image: {
+        axis: "decision",
+        start: undefined,
+        end: undefined,
+      },
+    },
   });
 
   return dataTypeSubgraph as Subgraph;
@@ -56,6 +67,17 @@ export const getDataType: ResolverFn<
       isOfType: { outgoing: 0 },
       hasLeftEntity: { incoming: 0, outgoing: 0 },
       hasRightEntity: { incoming: 0, outgoing: 0 },
+    },
+    timeProjection: {
+      kernel: {
+        axis: "transaction",
+        timestamp: undefined,
+      },
+      image: {
+        axis: "decision",
+        start: undefined,
+        end: undefined,
+      },
     },
   });
 
