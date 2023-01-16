@@ -36,11 +36,7 @@ const script = async () => {
     absolute: true,
     caseSensitiveMatch: false,
     cwd: monorepoRootDirPath,
-    ignore: [
-      "**/node_modules/**",
-      // License files within engine subfolders are ignored until we return to active development of this project
-      "**/apps/engine/*/**/*",
-    ],
+    ignore: ["**/node_modules/**"],
   });
 
   const usedLicenseFileSet = new Set<string>();
