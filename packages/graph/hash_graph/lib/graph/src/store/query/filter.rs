@@ -11,7 +11,6 @@ use crate::{
         knowledge::EntityId,
         ontology::OntologyTypeEditionId,
         time::{ProjectedTime, Timestamp},
-        EntityVertexId,
     },
     knowledge::{Entity, EntityQueryPath},
     store::{
@@ -110,9 +109,9 @@ where
 }
 
 impl<'p> Filter<'p, Entity> {
-    /// Creates a `Filter` to search for all versions of an entities its [`EntityId`].
+    /// Creates a `Filter` to search for a specific entities, identified by its [`EntityId`].
     #[must_use]
-    pub fn for_entity_by_entity_id(entity_id: EntityId) -> Self {
+    pub fn for_entity_by_id(entity_id: EntityId) -> Self {
         Self::All(vec![
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
@@ -129,46 +128,17 @@ impl<'p> Filter<'p, Entity> {
         ])
     }
 
-    /// Creates a `Filter` to search for a specific entity edition, identified by its
-    /// [`EntityVertexId`].
+    /// Creates a `Filter` to search for outgoing linked entities where the specified [`EntityId`]
+    /// identifies the source [`Entity`].
     #[must_use]
-    pub fn for_entity_by_vertex_id(vertex_id: EntityVertexId) -> Self {
-        // TODO: Adjust structural queries for temporal versioning
-        //   see https://app.asana.com/0/0/1203491211535116/f
-        Self::All(vec![
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    vertex_id.base_id().owned_by_id().as_uuid(),
-                ))),
-            ),
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::Uuid)),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    vertex_id.base_id().entity_uuid().as_uuid(),
-                ))),
-            ),
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::ProjectedTime)),
-                Some(FilterExpression::Parameter(Parameter::Timestamp(
-                    vertex_id.version(),
-                ))),
-            ),
-        ])
-    }
-
-    /// TODO
-    #[must_use]
-    pub fn for_outgoing_link_by_source_entity_vertex_id(vertex_id: EntityVertexId) -> Self {
-        // TODO: Adjust structural queries for temporal versioning
-        //   see https://app.asana.com/0/0/1203491211535116/f
+    pub fn for_outgoing_link_by_source_entity_id(entity_id: EntityId) -> Self {
         Self::All(vec![
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
                     Box::new(EntityQueryPath::OwnedById),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    vertex_id.base_id().owned_by_id().as_uuid(),
+                    entity_id.owned_by_id().as_uuid(),
                 ))),
             ),
             Self::Equal(
@@ -176,32 +146,23 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::Uuid),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    vertex_id.base_id().entity_uuid().as_uuid(),
-                ))),
-            ),
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
-                    Box::new(EntityQueryPath::ProjectedTime),
-                ))),
-                Some(FilterExpression::Parameter(Parameter::Timestamp(
-                    vertex_id.version(),
+                    entity_id.entity_uuid().as_uuid(),
                 ))),
             ),
         ])
     }
 
-    /// TODO
+    /// Creates a `Filter` to search for incoming linked entities where the specified [`EntityId`]
+    /// identifies the target [`Entity`].
     #[must_use]
-    pub fn for_incoming_link_by_source_entity_vertex_id(vertex_id: EntityVertexId) -> Self {
-        // TODO: Adjust structural queries for temporal versioning
-        //   see https://app.asana.com/0/0/1203491211535116/f
+    pub fn for_incoming_link_by_source_entity_id(entity_id: EntityId) -> Self {
         Self::All(vec![
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::RightEntity(
                     Box::new(EntityQueryPath::OwnedById),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    vertex_id.base_id().owned_by_id().as_uuid(),
+                    entity_id.owned_by_id().as_uuid(),
                 ))),
             ),
             Self::Equal(
@@ -209,32 +170,23 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::Uuid),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    vertex_id.base_id().entity_uuid().as_uuid(),
-                ))),
-            ),
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::RightEntity(
-                    Box::new(EntityQueryPath::ProjectedTime),
-                ))),
-                Some(FilterExpression::Parameter(Parameter::Timestamp(
-                    vertex_id.version(),
+                    entity_id.entity_uuid().as_uuid(),
                 ))),
             ),
         ])
     }
 
-    /// TODO
+    /// Creates a `Filter` to search for linked entities where the specified [`EntityId`] identifies
+    /// the left [`Entity`].
     #[must_use]
-    pub fn for_left_entity_by_entity_vertex_id(vertex_id: EntityVertexId) -> Self {
-        // TODO: Adjust structural queries for temporal versioning
-        //   see https://app.asana.com/0/0/1203491211535116/f
+    pub fn for_left_entity_by_entity_id(entity_id: EntityId) -> Self {
         Self::All(vec![
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
                     Box::new(EntityQueryPath::OwnedById),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    vertex_id.base_id().owned_by_id().as_uuid(),
+                    entity_id.owned_by_id().as_uuid(),
                 ))),
             ),
             Self::Equal(
@@ -242,32 +194,23 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::Uuid),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    vertex_id.base_id().entity_uuid().as_uuid(),
-                ))),
-            ),
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
-                    Box::new(EntityQueryPath::ProjectedTime),
-                ))),
-                Some(FilterExpression::Parameter(Parameter::Timestamp(
-                    vertex_id.version(),
+                    entity_id.entity_uuid().as_uuid(),
                 ))),
             ),
         ])
     }
 
-    /// TODO
+    /// Creates a `Filter` to search for linked entities where the specified [`EntityId`] identifies
+    /// the right [`Entity`].
     #[must_use]
-    pub fn for_right_entity_by_entity_vertex_id(vertex_id: EntityVertexId) -> Self {
-        // TODO: Adjust structural queries for temporal versioning
-        //   see https://app.asana.com/0/0/1203491211535116/f
+    pub fn for_right_entity_by_entity_id(entity_id: EntityId) -> Self {
         Self::All(vec![
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
                     Box::new(EntityQueryPath::OwnedById),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    vertex_id.base_id().owned_by_id().as_uuid(),
+                    entity_id.owned_by_id().as_uuid(),
                 ))),
             ),
             Self::Equal(
@@ -275,15 +218,7 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::Uuid),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    vertex_id.base_id().entity_uuid().as_uuid(),
-                ))),
-            ),
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
-                    Box::new(EntityQueryPath::ProjectedTime),
-                ))),
-                Some(FilterExpression::Parameter(Parameter::Timestamp(
-                    vertex_id.version(),
+                    entity_id.entity_uuid().as_uuid(),
                 ))),
             ),
         ])
@@ -407,21 +342,6 @@ impl Parameter<'_> {
             (Parameter::Text(_versioned_uri), ParameterType::VersionedUri) => {
                 // TODO: validate versioned uri
                 //   see https://app.asana.com/0/1202805690238892/1203225514907875/f
-            }
-            // TODO: Reevaluate if we need this after https://app.asana.com/0/0/1203491211535116/f
-            //       Most probably, we won't need this anymore
-            (Parameter::Text(text), ParameterType::Timestamp) => {
-                if text != "latest" {
-                    *self = Parameter::Timestamp(
-                        Timestamp::from_str(&*text)
-                            .into_report()
-                            .change_context_lazy(|| ParameterConversionError {
-                                actual: self.to_owned(),
-                                expected: ParameterType::Timestamp,
-                            })?,
-                    );
-                    // Do nothing if "latest"
-                }
             }
             (Parameter::Text(text), ParameterType::Uuid) => {
                 *self = Parameter::Uuid(Uuid::from_str(&*text).into_report().change_context_lazy(
@@ -556,143 +476,102 @@ mod tests {
           ]
         }};
 
-        test_filter_representation(&Filter::for_entity_by_entity_id(entity_id), &expected);
+        test_filter_representation(&Filter::for_entity_by_id(entity_id), &expected);
     }
 
     #[test]
-    #[ignore = "TODO: Reevaluate if we need this after https://app.asana.com/0/0/1203491211535116/f"]
-    fn for_entity_by_vertex_id() {
-        let entity_vertex_id = EntityVertexId::new(
-            EntityId::new(
-                OwnedById::new(AccountId::new(Uuid::new_v4())),
-                EntityUuid::new(Uuid::new_v4()),
-            ),
-            Timestamp::now(),
+    fn for_entity_by_id() {
+        let entity_id = EntityId::new(
+            OwnedById::new(AccountId::new(Uuid::new_v4())),
+            EntityUuid::new(Uuid::new_v4()),
         );
 
         let expected = json! {{
           "all": [
             { "equal": [
               { "path": ["ownedById"] },
-              { "parameter": entity_vertex_id.base_id().owned_by_id() }
+              { "parameter": entity_id.owned_by_id() }
             ]},
             { "equal": [
               { "path": ["uuid"] },
-              { "parameter": entity_vertex_id.base_id().entity_uuid() }
-            ]},
-            { "equal": [
-              { "path": ["lowerTransactionTime"] },
-              { "parameter": entity_vertex_id.version() }
+              { "parameter": entity_id.entity_uuid() }
             ]}
           ]
         }};
 
-        test_filter_representation(
-            &Filter::for_entity_by_vertex_id(entity_vertex_id),
-            &expected,
-        );
+        test_filter_representation(&Filter::for_entity_by_id(entity_id), &expected);
     }
 
     #[test]
-    #[ignore = "TODO: Reevaluate if we need this after https://app.asana.com/0/0/1203491211535116/f"]
-    fn for_outgoing_link_by_source_entity_vertex_id() {
-        let entity_vertex_id = EntityVertexId::new(
-            EntityId::new(
-                OwnedById::new(AccountId::new(Uuid::new_v4())),
-                EntityUuid::new(Uuid::new_v4()),
-            ),
-            Timestamp::now(),
+    fn for_outgoing_link_by_source_entity_id() {
+        let entity_id = EntityId::new(
+            OwnedById::new(AccountId::new(Uuid::new_v4())),
+            EntityUuid::new(Uuid::new_v4()),
         );
 
         let expected = json! {{
           "all": [
             { "equal": [
               { "path": ["leftEntity", "ownedById"] },
-              { "parameter": entity_vertex_id.base_id().owned_by_id() }
+              { "parameter": entity_id.owned_by_id() }
             ]},
             { "equal": [
               { "path": ["leftEntity", "uuid"] },
-              { "parameter": entity_vertex_id.base_id().entity_uuid() }
-            ]},
-            { "equal": [
-              { "path": ["leftEntity", "lowerTransactionTime"] },
-              { "parameter": entity_vertex_id.version() }
+              { "parameter": entity_id.entity_uuid() }
             ]}
           ]
         }};
 
         test_filter_representation(
-            &Filter::for_outgoing_link_by_source_entity_vertex_id(entity_vertex_id),
+            &Filter::for_outgoing_link_by_source_entity_id(entity_id),
             &expected,
         );
     }
 
     #[test]
-    #[ignore = "TODO: Reevaluate if we need this after https://app.asana.com/0/0/1203491211535116/f"]
-    fn for_left_entity_by_entity_vertex_id() {
-        let entity_vertex_id = EntityVertexId::new(
-            EntityId::new(
-                OwnedById::new(AccountId::new(Uuid::new_v4())),
-                EntityUuid::new(Uuid::new_v4()),
-            ),
-            Timestamp::now(),
+    fn for_left_entity_by_entity_id() {
+        let entity_id = EntityId::new(
+            OwnedById::new(AccountId::new(Uuid::new_v4())),
+            EntityUuid::new(Uuid::new_v4()),
         );
 
         let expected = json! {{
           "all": [
             { "equal": [
               { "path": ["outgoingLinks", "ownedById"] },
-              { "parameter": entity_vertex_id.base_id().owned_by_id() }
+              { "parameter": entity_id.owned_by_id() }
             ]},
             { "equal": [
               { "path": ["outgoingLinks", "uuid"] },
-              { "parameter": entity_vertex_id.base_id().entity_uuid() }
-            ]},
-            { "equal": [
-              { "path": ["outgoingLinks", "lowerTransactionTime"] },
-              { "parameter": entity_vertex_id.version() }
+              { "parameter": entity_id.entity_uuid() }
             ]}
           ]
         }};
 
-        test_filter_representation(
-            &Filter::for_left_entity_by_entity_vertex_id(entity_vertex_id),
-            &expected,
-        );
+        test_filter_representation(&Filter::for_left_entity_by_entity_id(entity_id), &expected);
     }
 
     #[test]
-    #[ignore = "TODO: Reevaluate if we need this after https://app.asana.com/0/0/1203491211535116/f"]
-    fn for_right_entity_by_entity_vertex_id() {
-        let entity_vertex_id = EntityVertexId::new(
-            EntityId::new(
-                OwnedById::new(AccountId::new(Uuid::new_v4())),
-                EntityUuid::new(Uuid::new_v4()),
-            ),
-            Timestamp::now(),
+    fn for_right_entity_by_entity_id() {
+        let entity_id = EntityId::new(
+            OwnedById::new(AccountId::new(Uuid::new_v4())),
+            EntityUuid::new(Uuid::new_v4()),
         );
 
         let expected = json! {{
           "all": [
             { "equal": [
               { "path": ["incomingLinks", "ownedById"] },
-              { "parameter": entity_vertex_id.base_id().owned_by_id() }
+              { "parameter": entity_id.owned_by_id() }
             ]},
             { "equal": [
               { "path": ["incomingLinks", "uuid"] },
-              { "parameter": entity_vertex_id.base_id().entity_uuid() }
-            ]},
-            { "equal": [
-              { "path": ["incomingLinks", "lowerTransactionTime"] },
-              { "parameter": entity_vertex_id.version() }
+              { "parameter": entity_id.entity_uuid() }
             ]}
           ]
         }};
 
-        test_filter_representation(
-            &Filter::for_right_entity_by_entity_vertex_id(entity_vertex_id),
-            &expected,
-        );
+        test_filter_representation(&Filter::for_right_entity_by_entity_id(entity_id), &expected);
     }
 
     #[test]

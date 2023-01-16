@@ -251,17 +251,23 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
   const pageEntities = await graphApi
     .getEntitiesByQuery({
       filter: {
-        all: [
-          { equal: [{ path: ["version"] }, { parameter: "latest" }] },
-          {
-            equal: [
-              { path: ["type", "versionedUri"] },
-              { parameter: SYSTEM_TYPES.entityType.page.schema.$id },
-            ],
-          },
+        equal: [
+          { path: ["type", "versionedUri"] },
+          { parameter: SYSTEM_TYPES.entityType.page.schema.$id },
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
+      timeProjection: {
+        kernel: {
+          axis: "transaction",
+          timestamp: undefined,
+        },
+        image: {
+          axis: "decision",
+          start: undefined,
+          end: undefined,
+        },
+      },
     })
     .then(({ data: subgraph }) =>
       getEntities(subgraph as Subgraph<SubgraphRootTypes["entity"]>),
