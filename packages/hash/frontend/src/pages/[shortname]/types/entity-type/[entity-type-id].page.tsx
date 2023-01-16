@@ -196,7 +196,7 @@ const Page: NextPageWithLayout = () => {
         ? {
             entityType,
             propertyTypes:
-              remoteEntityTypeAndPropertyTypes?.propertyTypes ?? [],
+              remoteEntityTypeAndPropertyTypes?.propertyTypes ?? {},
           }
         : null,
     [entityType, remoteEntityTypeAndPropertyTypes],

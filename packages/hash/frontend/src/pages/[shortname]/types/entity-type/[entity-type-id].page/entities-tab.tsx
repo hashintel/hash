@@ -41,7 +41,7 @@ import { useEntityTypeEntities } from "./shared/entity-type-entities-context";
 
 export const EntitiesTab: FunctionComponent = () => {
   const router = useRouter();
-  const entityType = useEntityType();
+  const { entityType } = useEntityType();
   const { entities, entityTypes, propertyTypes, subgraph } =
     useEntityTypeEntities();
 
