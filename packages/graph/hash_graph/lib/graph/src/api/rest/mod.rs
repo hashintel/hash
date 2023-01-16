@@ -45,11 +45,11 @@ use crate::{
         ontology::OntologyTypeEditionId,
         time::{
             DecisionTime, DecisionTimeImage, DecisionTimeKernel, DecisionTimeProjection,
-            TimeProjection, TimespanBound, Timestamp, TransactionTime, TransactionTimeImage,
+            TimeIntervalBound, TimeProjection, Timestamp, TransactionTime, TransactionTimeImage,
             TransactionTimeKernel, TransactionTimeProjection, UnresolvedDecisionTimeImage,
             UnresolvedDecisionTimeKernel, UnresolvedDecisionTimeProjection,
             UnresolvedTimeProjection, UnresolvedTransactionTimeImage,
-            UnresolvedTransactionTimeKernel, UnresolvedTransactionTimeProjection, VersionTimespan,
+            UnresolvedTransactionTimeKernel, UnresolvedTransactionTimeProjection, VersionInterval,
         },
         EntityVertexId, GraphElementId, GraphElementVertexId,
     },
@@ -463,12 +463,12 @@ impl Modify for TimeSchemaAddon {
                 .schemas
                 .insert("Timestamp".to_owned(), Timestamp::<()>::schema().into());
             components.schemas.insert(
-                "VersionTimespan".to_owned(),
-                VersionTimespan::<()>::schema().into(),
+                "VersionInterval".to_owned(),
+                VersionInterval::<()>::schema().into(),
             );
             components.schemas.insert(
-                "TimespanBound".to_owned(),
-                TimespanBound::<()>::schema().into(),
+                "TimeIntervalBound".to_owned(),
+                TimeIntervalBound::<()>::schema().into(),
             );
         }
     }
