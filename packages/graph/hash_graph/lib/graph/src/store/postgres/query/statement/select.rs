@@ -464,9 +464,14 @@ mod tests {
             SELECT *
             FROM "entities" AS "entities_0_0_0"
             WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_0_0"."entity_uuid" = $2
+              AND "entities_0_0_0"."decision_time" && $2
+              AND "entities_0_0_0"."entity_uuid" = $3
             "#,
-            &[&kernel, &"12345678-ABCD-4321-5678-ABCD5555DCBA"],
+            &[
+                &kernel,
+                &time_projection.image(),
+                &"12345678-ABCD-4321-5678-ABCD5555DCBA",
+            ],
         );
     }
 
@@ -490,9 +495,10 @@ mod tests {
             SELECT *
             FROM "entities" AS "entities_0_0_0"
             WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entities_0_0_0"."decision_time" && $2
               AND "entities_0_0_0"."decision_time" @> now()::TIMESTAMPTZ
             "#,
-            &[&kernel],
+            &[&kernel, &time_projection.image()],
         );
     }
 
@@ -529,11 +535,12 @@ mod tests {
                 "entities_0_0_0"."properties"
             FROM "entities" AS "entities_0_0_0"
             WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_0_0"."updated_by_id" = $2
+              AND "entities_0_0_0"."decision_time" && $2
+              AND "entities_0_0_0"."updated_by_id" = $3
             ORDER BY "entities_0_0_0"."entity_uuid" ASC,
                      "entities_0_0_0"."decision_time" DESC
             "#,
-            &[&kernel, &Uuid::nil()],
+            &[&kernel, &time_projection.image(), &Uuid::nil()],
         );
     }
 
@@ -559,11 +566,13 @@ mod tests {
             SELECT *
             FROM "entities" AS "entities_0_0_0"
             WHERE "entities_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
-              AND "entities_0_0_0"."properties"->>$1 = $3
+              AND "entities_0_0_0"."decision_time" && $3
+              AND "entities_0_0_0"."properties"->>$1 = $4
             "#,
             &[
                 &"https://blockprotocol.org/@alice/types/property-type/name/",
                 &kernel,
+                &time_projection.image(),
                 &"Bob",
             ],
         );
@@ -589,11 +598,13 @@ mod tests {
             SELECT *
             FROM "entities" AS "entities_0_0_0"
             WHERE "entities_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
+              AND "entities_0_0_0"."decision_time" && $3
               AND "entities_0_0_0"."properties"->>$1 IS NULL
             "#,
             &[
                 &"https://blockprotocol.org/@alice/types/property-type/name/",
                 &kernel,
+                &time_projection.image(),
             ],
         );
     }
@@ -626,11 +637,14 @@ mod tests {
             RIGHT OUTER JOIN "entities" AS "entities_0_2_0"
               ON "entities_0_2_0"."entity_uuid" = "entities_0_1_0"."right_entity_uuid"
             WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entities_0_0_0"."decision_time" && $2
               AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entities_0_1_0"."decision_time" && $2
               AND "entities_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entities_0_2_0"."decision_time" && $2
               AND "entities_0_2_0"."decision_time" @> now()::TIMESTAMPTZ
             "#,
-            &[&kernel],
+            &[&kernel, &time_projection.image()],
         );
     }
 
@@ -662,11 +676,14 @@ mod tests {
             RIGHT OUTER JOIN "entities" AS "entities_0_2_0"
               ON "entities_0_2_0"."entity_uuid" = "entities_0_1_0"."left_entity_uuid"
             WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entities_0_0_0"."decision_time" && $2
               AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entities_0_1_0"."decision_time" && $2
               AND "entities_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entities_0_2_0"."decision_time" && $2
               AND "entities_0_2_0"."decision_time" @> now()::TIMESTAMPTZ
             "#,
-            &[&kernel],
+            &[&kernel, &time_projection.image()],
         );
     }
 
@@ -710,13 +727,15 @@ mod tests {
             SELECT *
             FROM "entities" AS "entities_0_0_0"
             WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND ("entities_0_0_0"."left_entity_uuid" = $2)
-              AND ("entities_0_0_0"."left_owned_by_id" = $3)
-              AND ("entities_0_0_0"."right_entity_uuid" = $4)
-              AND ("entities_0_0_0"."right_owned_by_id" = $5)
+              AND "entities_0_0_0"."decision_time" && $2
+              AND ("entities_0_0_0"."left_entity_uuid" = $3)
+              AND ("entities_0_0_0"."left_owned_by_id" = $4)
+              AND ("entities_0_0_0"."right_entity_uuid" = $5)
+              AND ("entities_0_0_0"."right_owned_by_id" = $6)
             "#,
             &[
                 &kernel,
+                &time_projection.image(),
                 &Uuid::nil(),
                 &Uuid::nil(),
                 &Uuid::nil(),
@@ -821,11 +840,13 @@ mod tests {
                 SELECT *
                 FROM "entities" AS "entities_0_0_0"
                 WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND ("entities_0_0_0"."owned_by_id" = $2)
-                  AND ("entities_0_0_0"."entity_uuid" = $3)
+                  AND "entities_0_0_0"."decision_time" && $2
+                  AND ("entities_0_0_0"."owned_by_id" = $3)
+                  AND ("entities_0_0_0"."entity_uuid" = $4)
                 "#,
                 &[
                     &kernel,
+                    &time_projection.image(),
                     &entity_id.owned_by_id().as_uuid(),
                     &entity_id.entity_uuid().as_uuid(),
                 ],
@@ -855,12 +876,14 @@ mod tests {
                 SELECT *
                 FROM "entities" AS "entities_0_0_0"
                 WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND ("entities_0_0_0"."owned_by_id" = $2)
-                  AND ("entities_0_0_0"."entity_uuid" = $3)
-                  AND (lower("entities_0_0_0"."decision_time") = $4)
+                  AND "entities_0_0_0"."decision_time" && $2
+                  AND ("entities_0_0_0"."owned_by_id" = $3)
+                  AND ("entities_0_0_0"."entity_uuid" = $4)
+                  AND (lower("entities_0_0_0"."decision_time") = $5)
                 "#,
                 &[
                     &kernel,
+                    &time_projection.image(),
                     &entity_vertex_id.base_id().owned_by_id().as_uuid(),
                     &entity_vertex_id.base_id().entity_uuid().as_uuid(),
                     &entity_vertex_id.version(),
@@ -893,13 +916,16 @@ mod tests {
                 RIGHT OUTER JOIN "entities" AS "entities_0_1_0"
                   ON "entities_0_1_0"."entity_uuid" = "entities_0_0_0"."left_entity_uuid"
                 WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entities_0_0_0"."decision_time" && $2
                   AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND ("entities_0_0_0"."left_owned_by_id" = $2)
-                  AND ("entities_0_0_0"."left_entity_uuid" = $3)
-                  AND (lower("entities_0_1_0"."decision_time") = $4)
+                  AND "entities_0_1_0"."decision_time" && $2
+                  AND ("entities_0_0_0"."left_owned_by_id" = $3)
+                  AND ("entities_0_0_0"."left_entity_uuid" = $4)
+                  AND (lower("entities_0_1_0"."decision_time") = $5)
                 "#,
                 &[
                     &kernel,
+                    &time_projection.image(),
                     &entity_vertex_id.base_id().owned_by_id().as_uuid(),
                     &entity_vertex_id.base_id().entity_uuid().as_uuid(),
                     &entity_vertex_id.version(),
@@ -932,13 +958,16 @@ mod tests {
                 LEFT OUTER JOIN "entities" AS "entities_0_1_0"
                   ON "entities_0_1_0"."left_entity_uuid" = "entities_0_0_0"."entity_uuid"
                 WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entities_0_0_0"."decision_time" && $2
                   AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND ("entities_0_1_0"."owned_by_id" = $2)
-                  AND ("entities_0_1_0"."entity_uuid" = $3)
-                  AND (lower("entities_0_1_0"."decision_time") = $4)
+                  AND "entities_0_1_0"."decision_time" && $2
+                  AND ("entities_0_1_0"."owned_by_id" = $3)
+                  AND ("entities_0_1_0"."entity_uuid" = $4)
+                  AND (lower("entities_0_1_0"."decision_time") = $5)
                 "#,
                 &[
                     &kernel,
+                    &time_projection.image(),
                     &entity_vertex_id.base_id().owned_by_id().as_uuid(),
                     &entity_vertex_id.base_id().entity_uuid().as_uuid(),
                     &entity_vertex_id.version(),
@@ -971,13 +1000,16 @@ mod tests {
                 LEFT OUTER JOIN "entities" AS "entities_0_1_0"
                   ON "entities_0_1_0"."right_entity_uuid" = "entities_0_0_0"."entity_uuid"
                 WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entities_0_0_0"."decision_time" && $2
                   AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND ("entities_0_1_0"."owned_by_id" = $2)
-                  AND ("entities_0_1_0"."entity_uuid" = $3)
-                  AND (lower("entities_0_1_0"."decision_time") = $4)
+                  AND "entities_0_1_0"."decision_time" && $2
+                  AND ("entities_0_1_0"."owned_by_id" = $3)
+                  AND ("entities_0_1_0"."entity_uuid" = $4)
+                  AND (lower("entities_0_1_0"."decision_time") = $5)
                 "#,
                 &[
                     &kernel,
+                    &time_projection.image(),
                     &entity_vertex_id.base_id().owned_by_id().as_uuid(),
                     &entity_vertex_id.base_id().entity_uuid().as_uuid(),
                     &entity_vertex_id.version(),
