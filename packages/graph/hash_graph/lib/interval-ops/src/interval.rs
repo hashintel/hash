@@ -4,7 +4,9 @@ use core::{
     ops::Bound,
 };
 
-use crate::bounds::{LowerBound, LowerBoundHelper, UpperBound, UpperBoundHelper};
+use crate::bounds::{
+    compare_bounds, BoundType, LowerBound, LowerBoundHelper, UpperBound, UpperBoundHelper,
+};
 
 pub trait IntervalBounds<T> {
     fn lower_bound(&self) -> Bound<&T>;
@@ -121,6 +123,34 @@ pub trait Interval<T>: Sized {
     {
         self.upper_bound().is_adjacent_to(other.lower_bound())
             || other.upper_bound().is_adjacent_to(self.lower_bound())
+    }
+
+    /// Checks if this interval contains the other value.
+    ///
+    /// Returns `true` if this interval's lower bound is less than or equal to `other` and this
+    /// interval's upper bound is greater than or equal to `other`.
+    #[must_use]
+    fn contains_point(&self, other: &T) -> bool
+    where
+        T: PartialOrd,
+    {
+        matches!(
+            compare_bounds(
+                self.lower_bound().as_bound(),
+                Bound::Included(other),
+                BoundType::Lower,
+                BoundType::Lower,
+            ),
+            Ordering::Less | Ordering::Equal
+        ) && matches!(
+            compare_bounds(
+                self.upper_bound().as_bound(),
+                Bound::Included(other),
+                BoundType::Upper,
+                BoundType::Upper,
+            ),
+            Ordering::Greater | Ordering::Equal
+        )
     }
 
     /// Returns the complement of this interval.
@@ -1412,5 +1442,46 @@ mod tests {
         ] {
             test(interval, interval, [interval], [interval], [interval], []);
         }
+    }
+
+    #[test]
+    fn contains_point() {
+        assert!(included_included(5, 10).contains_point(&5));
+        assert!(included_included(5, 10).contains_point(&10));
+        assert!(!included_included(5, 10).contains_point(&4));
+        assert!(!included_included(5, 10).contains_point(&11));
+
+        assert!(excluded_included(5, 10).contains_point(&6));
+        assert!(excluded_included(5, 10).contains_point(&10));
+        assert!(!excluded_included(5, 10).contains_point(&5));
+        assert!(!excluded_included(5, 10).contains_point(&11));
+
+        assert!(included_excluded(5, 10).contains_point(&5));
+        assert!(included_excluded(5, 10).contains_point(&9));
+        assert!(!included_excluded(5, 10).contains_point(&4));
+        assert!(!included_excluded(5, 10).contains_point(&10));
+
+        assert!(excluded_excluded(5, 10).contains_point(&6));
+        assert!(excluded_excluded(5, 10).contains_point(&9));
+        assert!(!excluded_excluded(5, 10).contains_point(&5));
+        assert!(!excluded_excluded(5, 10).contains_point(&10));
+
+        assert!(included_unbounded(5).contains_point(&5));
+        assert!(included_unbounded(5).contains_point(&10));
+        assert!(!included_unbounded(5).contains_point(&4));
+
+        assert!(unbounded_included(10).contains_point(&5));
+        assert!(unbounded_included(10).contains_point(&10));
+        assert!(!unbounded_included(10).contains_point(&11));
+
+        assert!(excluded_unbounded(5).contains_point(&6));
+        assert!(excluded_unbounded(5).contains_point(&10));
+        assert!(!excluded_unbounded(5).contains_point(&5));
+
+        assert!(unbounded_excluded(10).contains_point(&5));
+        assert!(unbounded_excluded(10).contains_point(&4));
+        assert!(!unbounded_excluded(10).contains_point(&10));
+
+        assert!(unbounded_unbounded().contains_point(&5));
     }
 }
