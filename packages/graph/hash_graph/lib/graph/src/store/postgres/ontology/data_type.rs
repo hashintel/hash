@@ -3,7 +3,7 @@ use error_stack::{Result, ResultExt};
 use type_system::DataType;
 
 use crate::{
-    identifier::ontology::OntologyTypeEditionId,
+    identifier::{ontology::OntologyTypeEditionId, time::TimeProjection},
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
     provenance::{OwnedById, UpdatedById},
     store::{
@@ -25,15 +25,22 @@ impl<C: AsClient> PostgresStore<C> {
         data_type_id: &OntologyTypeEditionId,
         dependency_context: &mut DependencyContext,
         subgraph: &mut Subgraph,
-        current_resolve_depth: GraphResolveDepths,
+        mut resolve_depths: GraphResolveDepths,
+        mut time_projection: TimeProjection,
     ) -> Result<(), QueryError> {
-        let dependency_status = dependency_context
-            .ontology_dependency_map
-            .insert(data_type_id, current_resolve_depth);
+        let dependency_status = dependency_context.ontology_dependency_map.update(
+            data_type_id,
+            resolve_depths,
+            time_projection.image(),
+        );
 
-        let _data_type = match dependency_status {
-            DependencyStatus::Unresolved => {
-                let time_projection = subgraph.resolved_time_projection.clone();
+        #[expect(unused_assignments, unused_variables)]
+        let data_type = match dependency_status {
+            DependencyStatus::Unresolved(depths, interval) => {
+                // The dependency may have to be resolved more than anticipated, so we update
+                // the resolve depth and time projection.
+                resolve_depths = depths;
+                time_projection.set_image(interval);
                 subgraph
                     .get_or_read::<DataTypeWithMetadata>(self, data_type_id, &time_projection)
                     .await?
@@ -77,21 +84,20 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         let StructuralQuery {
             ref filter,
             graph_resolve_depths,
-            ref time_projection,
+            time_projection: ref unresolved_time_projection,
         } = *query;
+
+        let time_projection = unresolved_time_projection.clone().resolve();
+        let time_axis = time_projection.image_time_axis();
 
         let mut subgraph = Subgraph::new(
             graph_resolve_depths,
+            unresolved_time_projection.clone(),
             time_projection.clone(),
-            time_projection.clone().resolve(),
         );
         let mut dependency_context = DependencyContext::default();
-        let time_axis = subgraph.resolved_time_projection.image_time_axis();
 
-        for data_type in
-            Read::<DataTypeWithMetadata>::read(self, filter, &subgraph.resolved_time_projection)
-                .await?
-        {
+        for data_type in Read::<DataTypeWithMetadata>::read(self, filter, &time_projection).await? {
             let vertex_id = data_type.vertex_id(time_axis);
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
             subgraph.insert(&vertex_id, data_type);
@@ -101,6 +107,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                 &mut dependency_context,
                 &mut subgraph,
                 graph_resolve_depths,
+                time_projection.clone(),
             )
             .await?;
 
