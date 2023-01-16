@@ -25,6 +25,11 @@ import {
 import { getUserFromEntity, User } from "./user";
 
 export type Comment = {
+  /**
+   * @todo - these should probably be changed to encapsulate multi-axis versioning information, or should be explicitly
+   *   documented as pertaining to either transaction or decision time
+   *   - https://app.asana.com/0/1202805690238892/1203763454493756/f
+   */
   resolvedAt?: string;
   deletedAt?: string;
   entity: Entity;
