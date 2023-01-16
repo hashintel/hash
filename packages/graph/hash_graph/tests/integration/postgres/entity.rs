@@ -34,15 +34,13 @@ async fn insert() {
         .await
         .expect("could not create entity");
 
-    let entity = api
-        .get_entity(
-            metadata.edition_id().base_id(),
-            metadata.version().transaction_time().start,
-        )
+    let entities = api
+        .get_entities(metadata.edition_id().base_id())
         .await
         .expect("could not get entity");
+    assert_eq!(entities.len(), 1);
 
-    assert_eq!(entity.properties(), &person);
+    assert_eq!(entities[0].properties(), &person);
 }
 
 #[tokio::test]
@@ -73,15 +71,13 @@ async fn query() {
         .await
         .expect("could not create entity");
 
-    let queried_organization = api
-        .get_entity(
-            metadata.edition_id().base_id(),
-            metadata.version().transaction_time().start,
-        )
+    let queried_organizations = api
+        .get_entities(metadata.edition_id().base_id())
         .await
         .expect("could not get entity");
+    assert_eq!(queried_organizations.len(), 1);
 
-    assert_eq!(&organization, queried_organization.properties());
+    assert_eq!(queried_organizations[0].properties(), &organization);
 }
 
 #[tokio::test]
@@ -99,7 +95,7 @@ async fn update() {
         .await
         .expect("could not seed database:");
 
-    let metadata = api
+    let v1_metadata = api
         .create_entity(
             page_v1.clone(),
             VersionedUri::new(
@@ -114,7 +110,7 @@ async fn update() {
 
     let v2_metadata = api
         .update_entity(
-            metadata.edition_id().base_id(),
+            v1_metadata.edition_id().base_id(),
             page_v2.clone(),
             VersionedUri::new(
                 BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/page/".to_owned())
@@ -126,10 +122,33 @@ async fn update() {
         .await
         .expect("could not update entity");
 
+    let entities = api
+        .get_entities(v2_metadata.edition_id().base_id())
+        .await
+        .expect("could not get entity");
+
+    assert_eq!(entities.len(), 2);
+
     let entity_v2 = api
-        .get_entity(
+        .get_latest_entity(v2_metadata.edition_id().base_id())
+        .await
+        .expect("could not get entity");
+
+    assert_eq!(entity_v2.properties(), &page_v2);
+
+    let entity_v1 = api
+        .get_entity_by_timestamp(
+            v1_metadata.edition_id().base_id(),
+            v1_metadata.version().decision_time().start,
+        )
+        .await
+        .expect("could not get entity");
+    assert_eq!(entity_v1.properties(), &page_v1);
+
+    let entity_v2 = api
+        .get_entity_by_timestamp(
             v2_metadata.edition_id().base_id(),
-            v2_metadata.version().transaction_time().start,
+            v2_metadata.version().decision_time().start,
         )
         .await
         .expect("could not get entity");

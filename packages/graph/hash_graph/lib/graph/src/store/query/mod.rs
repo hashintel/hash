@@ -18,9 +18,6 @@ pub enum ParameterType {
     Uuid,
     BaseUri,
     VersionedUri,
-    // TODO: Reevaluate if we need this after https://app.asana.com/0/0/1203491211535116/f
-    Timestamp,
-    // TODO: Reevaluate if we need this after https://app.asana.com/0/0/1203491211535116/f
     TimeInterval,
     Any,
 }
@@ -35,7 +32,6 @@ impl fmt::Display for ParameterType {
             Self::Uuid => fmt.write_str("UUID"),
             Self::BaseUri => fmt.write_str("base URI"),
             Self::VersionedUri => fmt.write_str("versioned URI"),
-            Self::Timestamp => fmt.write_str("timestamp"),
             Self::TimeInterval => fmt.write_str("time interval"),
             Self::Any => fmt.write_str("any"),
         }
