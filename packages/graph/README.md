@@ -83,7 +83,7 @@ cargo make test-rest-api
 
 ## Migrations
 
-Migrations in the Graph are handled through [`refinery`](https://github.com/rust-db/refinery). The migrations are located at [./](./hash_graph/postgres_migrations/) and can be manually added to.
+Migrations in the Graph are handled through [`refinery`](https://github.com/rust-db/refinery). The migrations are located at [./hash_graph/postgres_migrations](./hash_graph/postgres_migrations/) and can be manually added to.
 
 The `V` prefix **is significant** and must be set followed by an incrementing number. This number specifies the sequence migrations are applied in. the `V` refers to a versioned migration. The migration file format is `[V]{1}__{2}.sql` in our case, where `{1}` is the incrementing sequence number and `{2}` is a display name for the migration.
 
