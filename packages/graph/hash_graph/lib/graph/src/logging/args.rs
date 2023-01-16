@@ -86,35 +86,29 @@ pub struct LoggingArgs {
             default_value = "pretty",
             value_enum,
             env = "HASH_GRAPH_LOG_FORMAT",
-            global = true
         )
     )]
     pub log_format: LogFormat,
 
     /// Logging verbosity to use. If not set `RUST_LOG` will be used.
-    #[cfg_attr(feature = "clap", clap(long, value_enum, global = true))]
+    #[cfg_attr(feature = "clap", clap(long, value_enum))]
     pub log_level: Option<LogLevel>,
 
     /// Logging output folder. The folder is created if it doesn't exist.
     #[cfg_attr(
         feature = "clap",
-        clap(
-            long,
-            default_value = "./log",
-            env = "HASH_GRAPH_LOG_FOLDER",
-            global = true
-        )
+        clap(long, default_value = "./log", env = "HASH_GRAPH_LOG_FOLDER")
     )]
     pub log_folder: PathBuf,
 
     /// Logging output file prefix.
-    #[cfg_attr(
-        feature = "clap",
-        clap(short, long, default_value = "out", global = true)
-    )]
+    #[cfg_attr(feature = "clap", clap(short, long, default_value = "out"))]
     pub log_file_prefix: String,
 
     /// The OpenTelemetry protocol endpoint for sending traces.
-    #[clap(long, default_value = None, env = "HASH_GRAPH_OTLP_ENDPOINT", global = true)]
+    #[cfg_attr(
+        feature = "clap",
+        clap(long, default_value = None, env = "HASH_GRAPH_OTLP_ENDPOINT")
+    )]
     pub otlp_endpoint: Option<String>,
 }

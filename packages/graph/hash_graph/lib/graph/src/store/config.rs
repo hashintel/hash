@@ -11,69 +11,41 @@ pub enum DatabaseType {
 #[cfg_attr(feature = "clap", derive(clap::Args))]
 pub struct DatabaseConnectionInfo {
     /// The database type to connect to.
-    #[cfg_attr(
-        feature = "clap",
-        clap(long, default_value = "postgres", value_enum, global = true)
-    )]
+    #[cfg_attr(feature = "clap", clap(long, default_value = "postgres", value_enum))]
     database_type: DatabaseType,
 
     /// Database username.
     #[cfg_attr(
         feature = "clap",
-        clap(
-            long,
-            default_value = "postgres",
-            env = "HASH_GRAPH_PG_USER",
-            global = true
-        )
+        clap(long, default_value = "postgres", env = "HASH_GRAPH_PG_USER")
     )]
     user: String,
 
     /// Database password for authentication.
     #[cfg_attr(
         feature = "clap",
-        clap(
-            long,
-            default_value = "postgres",
-            env = "HASH_GRAPH_PG_PASSWORD",
-            global = true
-        )
+        clap(long, default_value = "postgres", env = "HASH_GRAPH_PG_PASSWORD")
     )]
     password: String,
 
     /// The host to connect to.
     #[cfg_attr(
         feature = "clap",
-        clap(
-            long,
-            default_value = "localhost",
-            env = "HASH_GRAPH_PG_HOST",
-            global = true
-        )
+        clap(long, default_value = "localhost", env = "HASH_GRAPH_PG_HOST")
     )]
     host: String,
 
     /// The port to connect to.
     #[cfg_attr(
         feature = "clap",
-        clap(
-            long,
-            default_value = "5432",
-            env = "HASH_GRAPH_PG_PORT",
-            global = true
-        )
+        clap(long, default_value = "5432", env = "HASH_GRAPH_PG_PORT")
     )]
     port: u16,
 
     /// The database name to use.
     #[cfg_attr(
         feature = "clap",
-        clap(
-            long,
-            default_value = "graph",
-            env = "HASH_GRAPH_PG_DATABASE",
-            global = true
-        )
+        clap(long, default_value = "graph", env = "HASH_GRAPH_PG_DATABASE")
     )]
     database: String,
 }

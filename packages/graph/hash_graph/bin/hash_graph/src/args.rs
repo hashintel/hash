@@ -24,21 +24,11 @@ pub struct ServerArgs {
     pub db_info: DatabaseConnectionInfo,
 
     /// The host the REST client is listening at.
-    #[clap(
-        long,
-        default_value = "127.0.0.1",
-        env = "HASH_GRAPH_API_HOST",
-        global = true
-    )]
+    #[clap(long, default_value = "127.0.0.1", env = "HASH_GRAPH_API_HOST")]
     pub api_host: String,
 
     /// The port the REST client is listening at.
-    #[clap(
-        long,
-        default_value_t = 4000,
-        env = "HASH_GRAPH_API_PORT",
-        global = true
-    )]
+    #[clap(long, default_value_t = 4000, env = "HASH_GRAPH_API_PORT")]
     pub api_port: u16,
 
     /// A regex which *new* Type System URLs are checked against. Trying to create new Types with
@@ -58,7 +48,6 @@ pub struct ServerArgs {
         long,
         default_value_t = Regex::new(r"http://localhost:3000/@(?P<shortname>[\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))/[\w\-_%]+/").unwrap(),
         env = "HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN",
-        global = true
     )]
     pub allowed_url_domain: Regex,
 }
