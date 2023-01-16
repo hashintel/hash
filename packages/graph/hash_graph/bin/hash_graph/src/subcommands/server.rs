@@ -1,17 +1,19 @@
 use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 
+use clap::Parser;
 use error_stack::{IntoReport, Result, ResultExt};
 use graph::{
     api::rest::rest_api_router,
     identifier::account::AccountId,
-    logging::init_logger,
+    logging::{init_logger, LoggingArgs},
     ontology::domain_validator::DomainValidator,
     provenance::{OwnedById, UpdatedById},
     store::{
-        AccountStore, BaseUriAlreadyExists, DataTypeStore, EntityTypeStore, PostgresStorePool,
-        StorePool,
+        AccountStore, BaseUriAlreadyExists, DataTypeStore, DatabaseConnectionInfo, EntityTypeStore,
+        PostgresStorePool, StorePool,
     },
 };
+use regex::Regex;
 use serde_json::json;
 use tokio_postgres::NoTls;
 use type_system::{
@@ -20,7 +22,45 @@ use type_system::{
 };
 use uuid::Uuid;
 
-use crate::{args::ServerArgs, error::GraphError};
+use crate::error::GraphError;
+
+#[derive(Debug, Parser)]
+#[clap(version, author, about, long_about = None)]
+pub struct ServerArgs {
+    #[clap(flatten)]
+    pub log_config: LoggingArgs,
+
+    #[clap(flatten)]
+    pub db_info: DatabaseConnectionInfo,
+
+    /// The host the REST client is listening at.
+    #[clap(long, default_value = "127.0.0.1", env = "HASH_GRAPH_API_HOST")]
+    pub api_host: String,
+
+    /// The port the REST client is listening at.
+    #[clap(long, default_value_t = 4000, env = "HASH_GRAPH_API_PORT")]
+    pub api_port: u16,
+
+    /// A regex which *new* Type System URLs are checked against. Trying to create new Types with
+    /// a domain that doesn't satisfy the pattern will error.
+    ///
+    /// The regex must:
+    ///
+    /// - be in the standard format accepted by Rust's `regex` crate.
+    ///
+    /// - contain a capture group named "shortname" to identify a user's shortname, e.g.
+    ///   `(?P<shortname>[\w|-]+)`
+    ///
+    /// - contain a capture group named "kind" to identify the slug of the kind of ontology type
+    ///   being hosted (data-type, property-type, entity-type, link-type), e.g.
+    ///   `(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))`
+    #[clap(
+        long,
+        default_value_t = Regex::new(r"http://localhost:3000/@(?P<shortname>[\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))/[\w\-_%]+/").unwrap(),
+        env = "HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN",
+    )]
+    pub allowed_url_domain: Regex,
+}
 
 // TODO: Consider making this a refinery migration
 /// A place to collect temporary implementations that are useful before stabilization of the Graph.
@@ -200,7 +240,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     Ok(())
 }
 
-pub async fn start_server(args: ServerArgs) -> Result<(), GraphError> {
+pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
     let log_args = args.log_config.clone();
     let _log_guard = init_logger(
         log_args.log_format,

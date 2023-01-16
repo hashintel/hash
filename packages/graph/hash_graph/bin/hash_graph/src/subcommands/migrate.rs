@@ -1,13 +1,24 @@
+use clap::Parser;
 use error_stack::{Result, ResultExt};
 use graph::{
-    logging::init_logger,
-    store::{PostgresStorePool, StoreMigration, StorePool},
+    logging::{init_logger, LoggingArgs},
+    store::{DatabaseConnectionInfo, PostgresStorePool, StoreMigration, StorePool},
 };
 use tokio_postgres::NoTls;
 
-use crate::{args::MirgrateArgs, error::GraphError};
+use crate::error::GraphError;
 
-pub async fn migrate_database(args: MirgrateArgs) -> Result<(), GraphError> {
+#[derive(Debug, Parser)]
+#[clap(version, author, about, long_about = None)]
+pub struct MigrateArgs {
+    #[clap(flatten)]
+    pub log_config: LoggingArgs,
+
+    #[clap(flatten)]
+    pub db_info: DatabaseConnectionInfo,
+}
+
+pub async fn mirate(args: MigrateArgs) -> Result<(), GraphError> {
     let log_args = args.log_config.clone();
     let _log_guard = init_logger(
         log_args.log_format,
