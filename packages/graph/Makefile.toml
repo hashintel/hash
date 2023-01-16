@@ -1,7 +1,7 @@
 extend = { path = "../../.github/scripts/rust/Makefile.toml" }
 
 [tasks.yarn-install-openapi]
-description = "Installs the required yarn dependencies for generating API client"
+description = "Installs the required yarn dependencies for generating the API client"
 extend = "yarn"
 cwd = "${REPO_ROOT}/packages/graph/clients"
 
