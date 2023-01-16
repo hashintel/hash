@@ -23,7 +23,9 @@ private = false
 category = "Deploy"
 extend = "run-task"
 description = "Run DB migrations using the Graph binary"
-args = ["run", "--manifest-path", "./hash_graph/Cargo.toml", "--", "migrate"]
+# This isn't perfect, but it gives us the possbility to run the `migrate-db` task from either this
+# `Makefile.toml` or the one in the `./hash_graph` directory.
+args = ["run", "--manifest-path", "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/../../../packages/graph/hash_graph/Cargo.toml", "--", "migrate"]
 
 [tasks.deployment-down]
 private = false
