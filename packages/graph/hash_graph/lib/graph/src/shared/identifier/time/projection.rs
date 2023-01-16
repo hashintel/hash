@@ -363,7 +363,15 @@ pub enum TimeProjection {
 
 impl TimeProjection {
     #[must_use]
-    pub const fn time_axis(&self) -> TimeAxis {
+    pub const fn kernel_time_axis(&self) -> TimeAxis {
+        match self {
+            Self::DecisionTime(_) => TimeAxis::TransactionTime,
+            Self::TransactionTime(_) => TimeAxis::DecisionTime,
+        }
+    }
+
+    #[must_use]
+    pub const fn image_time_axis(&self) -> TimeAxis {
         match self {
             Self::DecisionTime(_) => TimeAxis::DecisionTime,
             Self::TransactionTime(_) => TimeAxis::TransactionTime,

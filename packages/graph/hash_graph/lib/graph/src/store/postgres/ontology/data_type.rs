@@ -86,7 +86,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             time_projection.clone().resolve(),
         );
         let mut dependency_context = DependencyContext::default();
-        let time_axis = subgraph.resolved_time_projection.time_axis();
+        let time_axis = subgraph.resolved_time_projection.image_time_axis();
 
         for data_type in
             Read::<DataTypeWithMetadata>::read(self, filter, &subgraph.resolved_time_projection)
