@@ -23,7 +23,7 @@ export * from "./storage-provider";
 const DOWNLOAD_URL_EXPIRATION_SECONDS = 60 * 60 * 24 * 7;
 // An offset for the cached URL to prevent serving invalid URL
 // 1 hour.
-const DOWNLOAD_URL_CACHE_OFFSET_SECONDS = 60 * 60 * 1;
+const DOWNLOAD_URL_CACHE_OFFSET_SECONDS = 60 * 60;
 
 /** Helper type to create a typed "dictionary" of storage types to their storage provider instance */
 export type StorageProviderLookup = Partial<
