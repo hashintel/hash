@@ -1,12 +1,12 @@
 import { faSmile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { Collapse } from "@mui/material";
 import { useState } from "react";
 import { useFormState } from "react-hook-form";
 
 import { PencilSimpleLine } from "../../../../../shared/icons/svg";
 import { ButtonProps } from "../../../../../shared/ui/button";
 import {
+  EditBarCollapse,
   EditBarContainer,
   EditBarContents,
   useFreezeScrollWhileTransitioning,
@@ -25,7 +25,7 @@ const useFrozenValue = <T extends any>(value: T): T => {
   return frozen;
 };
 
-export const EditBar = ({
+export const EditBarTypeEditor = ({
   currentVersion,
   discardButtonProps,
 }: {
@@ -45,7 +45,7 @@ export const EditBar = ({
   const frozenSubmitting = useFrozenValue(isSubmitting);
 
   return (
-    <Collapse in={collapseIn} ref={ref}>
+    <EditBarCollapse in={collapseIn} ref={ref}>
       <EditBarContainer>
         {frozenVersion === 0 ? (
           <EditBarContents
@@ -81,6 +81,6 @@ export const EditBar = ({
           />
         )}
       </EditBarContainer>
-    </Collapse>
+    </EditBarCollapse>
   );
 };
