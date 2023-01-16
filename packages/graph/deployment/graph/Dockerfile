@@ -24,7 +24,10 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 
 # Replace with `FROM scratch` when a health check command was added to hash-graph
 FROM alpine:3.17 AS runtime
-COPY --from=builder /usr/local/cargo/bin/hash-graph /
+
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+COPY --from=builder --chown=appgroup:appuser /usr/local/cargo/bin/hash-graph /
 
 HEALTHCHECK --interval=2s --timeout=1s --retries=5 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:4000/api-doc/openapi.json || exit 1
