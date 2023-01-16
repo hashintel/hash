@@ -29,6 +29,8 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 COPY --from=builder --chown=appgroup:appuser /usr/local/cargo/bin/hash-graph /
 
+RUN install -d -m 0755 -o appuser -g appgroup /log
+
 USER appuser
 
 HEALTHCHECK --interval=2s --timeout=1s --retries=5 \
