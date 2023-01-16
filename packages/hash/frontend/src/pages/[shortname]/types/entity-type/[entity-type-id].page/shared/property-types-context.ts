@@ -4,7 +4,7 @@ import { createContext, useContext } from "react";
 
 export type PropertyTypesContextValues = {
   types: Record<VersionedUri, PropertyType> | null;
-  subgraph: Subgraph;
+  subgraph: Subgraph | null;
   refetch: () => Promise<void>;
 };
 
