@@ -10,7 +10,7 @@ use utoipa::{openapi, ToSchema};
 use crate::{
     identifier::{
         account::AccountId,
-        time::{DecisionTime, TransactionTime, VersionTimespan},
+        time::{DecisionTime, TransactionTime, VersionInterval},
         EntityVertexId,
     },
     knowledge::{Entity, EntityUuid},
@@ -90,8 +90,8 @@ impl ToSchema for EntityId {
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityVersion {
-    decision_time: VersionTimespan<DecisionTime>,
-    transaction_time: VersionTimespan<TransactionTime>,
+    decision_time: VersionInterval<DecisionTime>,
+    transaction_time: VersionInterval<TransactionTime>,
 }
 
 impl ToSchema for EntityVersion {
@@ -99,12 +99,12 @@ impl ToSchema for EntityVersion {
         openapi::ObjectBuilder::new()
             .property(
                 "decisionTime",
-                openapi::Ref::from_schema_name("VersionTimespan"),
+                openapi::Ref::from_schema_name("VersionInterval"),
             )
             .required("decisionTime")
             .property(
                 "transactionTime",
-                openapi::Ref::from_schema_name("VersionTimespan"),
+                openapi::Ref::from_schema_name("VersionInterval"),
             )
             .required("transactionTime")
             .build()
@@ -115,8 +115,8 @@ impl ToSchema for EntityVersion {
 impl EntityVersion {
     #[must_use]
     pub const fn new(
-        decision_time: VersionTimespan<DecisionTime>,
-        transaction_time: VersionTimespan<TransactionTime>,
+        decision_time: VersionInterval<DecisionTime>,
+        transaction_time: VersionInterval<TransactionTime>,
     ) -> Self {
         Self {
             decision_time,
@@ -125,12 +125,12 @@ impl EntityVersion {
     }
 
     #[must_use]
-    pub const fn decision_time(&self) -> VersionTimespan<DecisionTime> {
+    pub const fn decision_time(&self) -> VersionInterval<DecisionTime> {
         self.decision_time
     }
 
     #[must_use]
-    pub const fn transaction_time(&self) -> VersionTimespan<TransactionTime> {
+    pub const fn transaction_time(&self) -> VersionInterval<TransactionTime> {
         self.transaction_time
     }
 }
