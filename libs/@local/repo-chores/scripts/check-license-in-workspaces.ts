@@ -32,12 +32,21 @@ const script = async () => {
     ),
   ];
 
-  const licenseFilePaths = await globby("**/license*", {
+  const licenseFilePaths = await globby("**/licen{c,s}e*", {
     absolute: true,
     caseSensitiveMatch: false,
     cwd: monorepoRootDirPath,
     ignore: ["**/node_modules/**"],
   });
+
+  const misspelledLicenseFileSet = new Set<string>();
+
+  for (const licenseFilePath of licenseFilePaths) {
+    const licenseFileName = path.basename(licenseFilePath);
+    if (!licenseFileName.match(/^LICENSE(-\w+)?.md$/)) {
+      misspelledLicenseFileSet.add(licenseFilePath);
+    }
+  }
 
   const usedLicenseFileSet = new Set<string>();
 
@@ -49,65 +58,73 @@ const script = async () => {
       "LICENSE.md",
     );
 
-    const currentLicenseFilePaths = licenseFilePaths
-      .filter(
-        (licenseFilePath) =>
-          licenseFilePath.startsWith(workspaceDirPath) &&
-          !licenseFilePath
-            .slice(workspaceDirPath.length + 1)
-            .includes(path.sep),
-      )
-      .sort((pathA, pathB) =>
-        // Placing canonical license path before others
-        pathA === canonicalLicenseFilePath
-          ? -1
-          : pathB === canonicalLicenseFilePath
-          ? 1
-          : pathA.localeCompare(pathB),
-      );
+    const currentLicenseFilePaths = licenseFilePaths.filter(
+      (licenseFilePath) =>
+        licenseFilePath.startsWith(workspaceDirPath) &&
+        !licenseFilePath.slice(workspaceDirPath.length + 1).includes(path.sep),
+    );
 
-    let licenseMdIsPresent = false;
+    let canonicalLicenseFilePathIsPresent = false;
     for (const licenseFilePath of currentLicenseFilePaths) {
       usedLicenseFileSet.add(licenseFilePath);
-      if (licenseFilePath.endsWith("LICENSE.md")) {
-        licenseMdIsPresent = true;
+      if (licenseFilePath === canonicalLicenseFilePath) {
+        canonicalLicenseFilePathIsPresent = true;
       }
     }
 
-    let status: string;
-    if (!currentLicenseFilePaths.length) {
+    if (!canonicalLicenseFilePathIsPresent) {
       checkFailed = true;
-      status = chalk.red("[MISSING] ");
-    } else if (!licenseMdIsPresent) {
-      checkFailed = true;
-      status = chalk.red("[MISNAMED]");
+      console.log(
+        chalk.red("[MISSING]"),
+        path.relative(monorepoRootDirPath, canonicalLicenseFilePath),
+      );
     } else {
-      status = chalk.green("[FOUND]   ");
+      console.log(
+        chalk.green("[FOUND]  "),
+        path.relative(monorepoRootDirPath, canonicalLicenseFilePath),
+      );
     }
 
-    console.log(
-      status,
-      (currentLicenseFilePaths.length
-        ? currentLicenseFilePaths
-        : [canonicalLicenseFilePath]
-      )
-        .map((licenseFilePath) =>
+    for (const licenseFilePath of currentLicenseFilePaths) {
+      if (licenseFilePath === canonicalLicenseFilePath) {
+        continue;
+      }
+
+      if (misspelledLicenseFileSet.has(licenseFilePath)) {
+        checkFailed = true;
+        console.log(
+          chalk.red("[NAMING] "),
           path.relative(monorepoRootDirPath, licenseFilePath),
-        )
-        .join("\n           "),
-    );
+        );
+      } else {
+        console.log(
+          chalk.yellow("         "),
+          path.relative(monorepoRootDirPath, licenseFilePath),
+        );
+      }
+    }
   }
 
   const unusedLicenseFilePaths = licenseFilePaths.filter(
     (licenseFilePath) => !usedLicenseFileSet.has(licenseFilePath),
   );
 
+  let extraLicenseFilesArePresent = false;
   if (unusedLicenseFilePaths.length) {
     for (const licenseFilePath of unusedLicenseFilePaths) {
-      console.log(
-        chalk.yellow("[EXTRA]   "),
-        path.relative(monorepoRootDirPath, licenseFilePath),
-      );
+      if (misspelledLicenseFileSet.has(licenseFilePath)) {
+        checkFailed = true;
+        console.log(
+          chalk.red("[NAMING] "),
+          path.relative(monorepoRootDirPath, licenseFilePath),
+        );
+      } else {
+        extraLicenseFilesArePresent = true;
+        console.log(
+          chalk.yellow("[EXTRA]  "),
+          path.relative(monorepoRootDirPath, licenseFilePath),
+        );
+      }
     }
   }
 
@@ -115,12 +132,12 @@ const script = async () => {
     console.log();
     console.log(
       chalk.red(
-        "Please make sure that each Yarn workspace has a LICENSE.md file",
+        "Please make sure that each Yarn workspace has a LICENSE.md file. Additional license files need to be named as LICENSE-*.md (all caps)",
       ),
     );
   }
 
-  if (unusedLicenseFilePaths.length) {
+  if (extraLicenseFilesArePresent) {
     console.log(
       chalk.yellow(
         "You may want to delete or relocate extra license files which are not located in Yarn workspaces",
