@@ -40,10 +40,7 @@ import {
 } from "./lib/env-config";
 import { logger } from "./logger";
 import { seedOrgsAndUsers } from "./seed-data";
-import {
-  setupFileProxyHanlder as setupFileProxyHandler,
-  setupStorageProviders,
-} from "./storage";
+import { setupFileProxyHandler, setupStorageProviders } from "./storage";
 import { connectToTaskExecutor } from "./task-execution";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { getRequiredEnv } from "./util";
