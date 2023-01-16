@@ -128,10 +128,9 @@ const script = async () => {
     );
   }
 
-  // @todo Uncomment when all workspaces have a license file
-  // if (checkFailed) {
-  //   process.exit(1);
-  // }
+  if (checkFailed) {
+    process.exit(1);
+  }
 };
 
 void (async () => {
