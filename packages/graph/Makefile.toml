@@ -1,19 +1,9 @@
 extend = { path = "../../.github/scripts/rust/Makefile.toml" }
 
-[tasks.yarn-install-migrations]
-description = "Installs the required yarn dependencies for the migrations"
+[tasks.yarn-install-openapi]
+description = "Installs the required yarn dependencies for generating the API client"
 extend = "yarn"
-cwd = "${REPO_ROOT}/packages/graph/migrations"
-
-[tasks.recreate-db]
-run_task = { name = ["recreate-db-task", "migrate-up"] }
-
-[tasks.recreate-db-task]
-private = true
-description = "Recreates the database"
-extend = "yarn"
-args = ["graph:recreate-db"]
-cwd = "${REPO_ROOT}/packages/graph/migrations"
+cwd = "${REPO_ROOT}/packages/graph/clients"
 
 [tasks.migrate-up]
 category = "Deploy"
@@ -23,12 +13,23 @@ args = ["compose", "--env-file", "${REPO_ROOT}/packages/graph/.env", "up", "migr
 cwd = "${REPO_ROOT}/packages/graph/deployment"
 
 [tasks.deployment-up]
+run_task = { name = ["docker-compose-deployment-up", "migrate-db"] }
+
+[tasks.docker-compose-deployment-up]
 private = false
 category = "Deploy"
 description = "Spins up the deployment environment"
 extend = "docker"
 args = ["compose", "--env-file", "../.env", "up", "--wait", "--build"]
 cwd = "${REPO_ROOT}/packages/graph/deployment"
+
+[tasks.migrate-db]
+private = false
+category = "Deploy"
+extend = "run-task"
+description = "Run DB migrations using the Graph binary"
+cwd = "${REPO_ROOT}/packages/graph"
+args = ["run", "--manifest-path", "./hash_graph/Cargo.toml", "--", "migrate"]
 
 [tasks.deployment-down]
 private = false
@@ -61,7 +62,7 @@ args = ["external-services", "down", "${@}"]
 cwd = "${REPO_ROOT}"
 
 [tasks.test-docker]
-run_task = { name = ["yarn-install-migrations", "graph-up", "test-rest-api", "graph-down"] }
+run_task = { name = ["yarn-install-openapi", "graph-up", "test-rest-api", "graph-down"] }
 
 [tasks.test-rest-api]
 # This is a temporary solution until we have e2e tests in place
