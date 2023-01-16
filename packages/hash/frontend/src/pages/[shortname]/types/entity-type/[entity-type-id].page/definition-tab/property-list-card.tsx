@@ -265,12 +265,20 @@ const PropertyRow = ({
     };
   }, []);
 
-  const baseUri = extractBaseUri(property.$id);
-  const newerVersion = Object.keys(propertyTypes).find((versionedUri) => {
-    return versionedUri.startsWith(`${baseUri}v/`);
-  });
+  const [currentVersion, newestVersion] = useMemo(() => {
+    const baseUri = extractBaseUri(property.$id);
 
-  console.log(newerVersion);
+    const newerVersion = propertyTypes
+      ? Object.keys(propertyTypes).find((versionedUri) => {
+          return versionedUri.startsWith(`${baseUri}v/`);
+        })
+      : undefined;
+
+    return [
+      property.$id.split(`${baseUri}v/`)[1],
+      newerVersion?.split(`${baseUri}v/`)[1],
+    ];
+  }, [propertyTypes, property.$id]);
 
   return (
     <>
@@ -289,6 +297,8 @@ const PropertyRow = ({
           lines={lines}
           expanded={children.length ? expanded : undefined}
           setExpanded={setExpanded}
+          currentVersion={currentVersion}
+          newestVersion={newestVersion}
         />
 
         <TableCell>
