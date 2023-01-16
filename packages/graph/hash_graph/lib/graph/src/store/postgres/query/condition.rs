@@ -12,7 +12,8 @@ pub enum Condition<'p> {
     Not(Box<Self>),
     Equal(Option<Expression<'p>>, Option<Expression<'p>>),
     NotEqual(Option<Expression<'p>>, Option<Expression<'p>>),
-    RangeContains(Expression<'p>, Expression<'p>),
+    TimeIntervalContainsTimestamp(Expression<'p>, Expression<'p>),
+    Overlap(Expression<'p>, Expression<'p>),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -77,9 +78,15 @@ impl Transpile for Condition<'_> {
                 fmt.write_str(" != ")?;
                 rhs.transpile(fmt)
             }
-            Condition::RangeContains(lhs, rhs) => {
+            Condition::TimeIntervalContainsTimestamp(lhs, rhs) => {
                 lhs.transpile(fmt)?;
                 fmt.write_str(" @> ")?;
+                rhs.transpile(fmt)?;
+                fmt.write_str("::TIMESTAMPTZ")
+            }
+            Condition::Overlap(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" && ")?;
                 rhs.transpile(fmt)
             }
         }
@@ -93,6 +100,7 @@ mod tests {
     use postgres_types::ToSql;
 
     use crate::{
+        identifier::time::UnresolvedTimeProjection,
         ontology::{DataTypeQueryPath, DataTypeWithMetadata},
         store::{
             postgres::query::{SelectCompiler, Transpile},
@@ -105,7 +113,8 @@ mod tests {
         rendered: &'static str,
         parameters: &[&'p dyn ToSql],
     ) {
-        let mut compiler = SelectCompiler::new();
+        let time_projection = UnresolvedTimeProjection::default().resolve();
+        let mut compiler = SelectCompiler::new(&time_projection);
         let condition = compiler.compile_filter(filter);
 
         assert_eq!(condition.transpile_to_string(), rendered);

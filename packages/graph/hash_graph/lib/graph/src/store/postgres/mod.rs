@@ -1,6 +1,7 @@
 mod knowledge;
 mod ontology;
 
+mod migration;
 mod pool;
 mod query;
 mod version_id;
@@ -24,7 +25,10 @@ use uuid::Uuid;
 
 pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
-    identifier::{account::AccountId, ontology::OntologyTypeEditionId, EntityVertexId},
+    identifier::{
+        account::AccountId, ontology::OntologyTypeEditionId, time::UnresolvedTimeProjection,
+        EntityVertexId,
+    },
     ontology::{OntologyElementMetadata, OntologyTypeWithMetadata},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
@@ -41,7 +45,7 @@ use crate::{
 use crate::{
     identifier::{
         knowledge::{EntityId, EntityRecordId, EntityVersion},
-        time::{DecisionTime, Timestamp, VersionTimespan},
+        time::{DecisionTime, Timestamp, VersionInterval},
     },
     knowledge::{EntityProperties, LinkOrder},
 };
@@ -394,6 +398,7 @@ where
         let previous_ontology_type = <Self as Read<T::WithMetadata>>::read_one(
             self,
             &Filter::for_latest_base_uri(uri.base_uri()),
+            &UnresolvedTimeProjection::default().resolve(),
         )
         .await
         .change_context(UpdateError)?;
@@ -931,8 +936,8 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .into_iter()
             .map(|row| {
                 EntityVersion::new(
-                    VersionTimespan::from_anonymous(row.get(0)),
-                    VersionTimespan::from_anonymous(row.get(1)),
+                    VersionInterval::from_anonymous(row.get(0)),
+                    VersionInterval::from_anonymous(row.get(1)),
                 )
             })
             .collect();

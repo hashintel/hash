@@ -76,9 +76,6 @@ pub enum EntityQueryPath<'p> {
     /// [`EntityVersion`]: crate::identifier::knowledge::EntityVersion
     /// [`Entity`]: crate::knowledge::Entity
     TransactionTime,
-    // TODO: Remove when adjusting structural queries
-    //   see https://app.asana.com/0/0/1203491211535116/f
-    LowerTransactionTime,
     /// Whether or not the [`Entity`] is archived.
     ///
     /// ```rust
@@ -263,7 +260,6 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::RecordId => fmt.write_str("recordId"),
             Self::DecisionTime => fmt.write_str("decisionTime"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
-            Self::LowerTransactionTime => fmt.write_str("transactionTimeFrom"),
             Self::Archived => fmt.write_str("archived"),
             Self::Type(path) => write!(fmt, "type.{path}"),
             Self::Properties(Some(property)) => write!(fmt, "properties.{property}"),
@@ -287,8 +283,7 @@ impl QueryPath for EntityQueryPath<'_> {
             | Self::RightEntity(path)
             | Self::IncomingLinks(path)
             | Self::OutgoingLinks(path) => path.expected_type(),
-            Self::DecisionTime | Self::TransactionTime => ParameterType::Timespan,
-            Self::LowerTransactionTime => ParameterType::Timestamp,
+            Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
             Self::Type(path) => path.expected_type(),
             Self::Properties(_) => ParameterType::Any,
             Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::Number,
@@ -303,7 +298,6 @@ impl QueryPath for EntityQueryPath<'_> {
 pub enum EntityQueryToken {
     // TODO: we want to expose `EntityId` here instead
     Uuid,
-    Version,
     RecordId,
     Archived,
     OwnedById,
@@ -325,10 +319,10 @@ pub struct EntityQueryPathVisitor {
 }
 
 impl EntityQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `uuid`, `version`, `recordId`, `archived`, \
-                                         `ownedById`, `updatedById`, `type`, `properties`, \
-                                         `incomingLinks`, `outgoingLinks`, `leftEntity`, \
-                                         `rightEntity`, `leftToRightOrder`, `rightToLeftOrder`";
+    pub const EXPECTING: &'static str = "one of `uuid`, `recordId`, `archived`, `ownedById`, \
+                                         `updatedById`, `type`, `properties`, `incomingLinks`, \
+                                         `outgoingLinks`, `leftEntity`, `rightEntity`, \
+                                         `leftToRightOrder`, `rightToLeftOrder`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -357,7 +351,6 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::RecordId => EntityQueryPath::RecordId,
             EntityQueryToken::OwnedById => EntityQueryPath::OwnedById,
             EntityQueryToken::UpdatedById => EntityQueryPath::UpdatedById,
-            EntityQueryToken::Version => EntityQueryPath::LowerTransactionTime,
             EntityQueryToken::Archived => EntityQueryPath::Archived,
             EntityQueryToken::Type => EntityQueryPath::Type(
                 EntityTypeQueryPathVisitor::new(self.position).visit_seq(seq)?,
@@ -410,10 +403,6 @@ mod tests {
 
     #[test]
     fn deserialization() {
-        assert_eq!(
-            deserialize(["version"]),
-            EntityQueryPath::LowerTransactionTime
-        );
         assert_eq!(deserialize(["ownedById"]), EntityQueryPath::OwnedById);
         assert_eq!(
             deserialize(["type", "version"]),
@@ -450,7 +439,7 @@ mod tests {
 
         assert_eq!(
             EntityQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
-                ["version", "test"].into_iter()
+                ["recordId", "test"].into_iter()
             ))
             .expect_err(
                 "managed to convert entity query path with multiple tokens when it should have \

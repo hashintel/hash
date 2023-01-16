@@ -14,16 +14,7 @@ export const EntityPageWrapper = ({
     <Stack minHeight="100vh">
       {header}
       <Box flex={1} bgcolor="gray.10" borderTop={1} borderColor="gray.20">
-        <Container
-          sx={{
-            py: 5,
-            display: "flex",
-            flexDirection: "column",
-            gap: 6.5,
-          }}
-        >
-          {children}
-        </Container>
+        <Container sx={{ py: 5 }}>{children}</Container>
       </Box>
     </Stack>
   );

@@ -133,12 +133,16 @@ const systemEntityTypes = {
     title: "HASH Instance",
     description: "An instance of HASH.",
   },
+  file: {
+    title: "File",
+    description: "A file.",
+  },
 } as const;
 
 type SystemEntityTypeKey = keyof typeof systemEntityTypes;
 
 export type SystemEntityTypeTitle =
-  typeof systemEntityTypes[SystemEntityTypeKey]["title"];
+  (typeof systemEntityTypes)[SystemEntityTypeKey]["title"];
 
 /**
  * The system property types.
@@ -230,12 +234,33 @@ const systemPropertyTypes = {
     title: "Deleted At",
     description: "Stringified timestamp of when something was deleted.",
   },
+  fileUrl: {
+    title: "File URL",
+    description: "URL to access a file.",
+  },
+  fileMediaType: {
+    title: "File Media Type",
+    description: "Media type of a file.",
+  },
+  objectStoreKey: {
+    title: "Object Store Key",
+    description: "Unique identifier for an object in an object store.",
+  },
+  externalFileUrl: {
+    title: "External File URL",
+    description: "URL to an external file.",
+  },
+  fileKey: {
+    title: "File Key",
+    description:
+      "Key used to uniquely identify a file in a third-party system.",
+  },
 } as const;
 
 type SystemPropertyTypeKey = keyof typeof systemPropertyTypes;
 
 export type SystemPropertyTypeTitle =
-  typeof systemPropertyTypes[SystemPropertyTypeKey]["title"];
+  (typeof systemPropertyTypes)[SystemPropertyTypeKey]["title"];
 
 /**
  * The system link entity type titles.
@@ -274,7 +299,7 @@ const systemLinkEntityTypes = {
 type SystemLinkEntityTypeKey = keyof typeof systemLinkEntityTypes;
 
 export type SystemLinkEntityTypeTitle =
-  typeof systemLinkEntityTypes[SystemLinkEntityTypeKey];
+  (typeof systemLinkEntityTypes)[SystemLinkEntityTypeKey];
 
 /**
  * The primitive data types ("Text", "Number", etc.)
@@ -309,7 +334,7 @@ const primitiveDataTypes = {
 export type PrimitiveDataTypeKey = keyof typeof primitiveDataTypes;
 
 export type PrimitiveDataTypeTitle =
-  typeof primitiveDataTypes[PrimitiveDataTypeKey]["title"];
+  (typeof primitiveDataTypes)[PrimitiveDataTypeKey]["title"];
 
 type TypeDefinition = {
   title: string;

@@ -33,7 +33,11 @@ pub struct Subgraph {
 impl From<crate::subgraph::Subgraph> for Subgraph {
     fn from(subgraph: crate::subgraph::Subgraph) -> Self {
         let vertices = subgraph.vertices.into();
-        let edges = Edges::from_vertices_and_store_edges(subgraph.edges, &vertices);
+        let edges = Edges::from_vertices_and_store_edges(
+            subgraph.edges,
+            &vertices,
+            subgraph.resolved_time_projection.image_time_axis(),
+        );
         Self {
             roots: subgraph.roots.into_iter().collect(),
             vertices,

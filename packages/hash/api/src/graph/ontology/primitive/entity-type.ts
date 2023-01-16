@@ -78,6 +78,17 @@ export const getEntityTypeById: ImpureGraphFunction<
         equal: [{ path: ["versionedUri"] }, { parameter: entityTypeId }],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
+      timeProjection: {
+        kernel: {
+          axis: "transaction",
+          timestamp: undefined,
+        },
+        image: {
+          axis: "decision",
+          start: undefined,
+          end: undefined,
+        },
+      },
     })
     .then(({ data }) => data as Subgraph<SubgraphRootTypes["entityType"]>);
 

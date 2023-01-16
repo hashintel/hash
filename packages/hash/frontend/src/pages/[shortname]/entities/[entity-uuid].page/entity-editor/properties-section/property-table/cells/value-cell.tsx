@@ -4,7 +4,6 @@ import {
   GridCellKind,
 } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/hash-design-system/src/theme/palette";
-import { types } from "@hashintel/hash-shared/ontology-types";
 
 import {
   getCellHorizontalPadding,
@@ -17,6 +16,7 @@ import { isValueEmpty } from "../../is-value-empty";
 import { ArrayEditor } from "./value-cell/array-editor";
 import { SingleValueEditor } from "./value-cell/single-value-editor";
 import { ValueCell } from "./value-cell/types";
+import { guessEditorTypeFromValue } from "./value-cell/utils";
 
 export const renderValueCell: CustomRenderer<ValueCell> = {
   kind: GridCellKind.Custom,
@@ -32,8 +32,8 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     const yCenter = getYCenter(args);
     const left = rect.x + getCellHorizontalPadding();
 
-    /** @todo remove expectedTypes[0] when multiple data types are supported */
-    const isBoolean = expectedTypes[0] === types.dataType.boolean.title;
+    const isBoolean =
+      guessEditorTypeFromValue(value, expectedTypes) === "boolean";
 
     if (isValueEmpty(value)) {
       // draw empty value
@@ -43,7 +43,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
       ctx.fillText(emptyText, left, yCenter);
     } else if (isBoolean) {
       // draw boolean
-      return drawTextWithIcon({
+      drawTextWithIcon({
         args,
         text: value ? "True" : "False",
         icon: value ? "bpCheck" : "bpCross",

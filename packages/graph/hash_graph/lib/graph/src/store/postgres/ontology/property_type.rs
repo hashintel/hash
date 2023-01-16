@@ -44,8 +44,13 @@ impl<C: AsClient> PostgresStore<C> {
 
             let property_type = match dependency_status {
                 DependencyStatus::Unresolved => {
+                    let time_projection = subgraph.resolved_time_projection.clone();
                     subgraph
-                        .get_or_read::<PropertyTypeWithMetadata>(self, property_type_id)
+                        .get_or_read::<PropertyTypeWithMetadata>(
+                            self,
+                            property_type_id,
+                            &time_projection,
+                        )
                         .await?
                 }
                 DependencyStatus::Resolved => return Ok(()),
@@ -188,12 +193,15 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             time_projection.clone().resolve(),
         );
         let mut dependency_context = DependencyContext::default();
+        let time_axis = subgraph.resolved_time_projection.image_time_axis();
 
-        for property_type in Read::<PropertyTypeWithMetadata>::read(self, filter).await? {
-            let vertex_id = property_type.vertex_id();
-
+        for property_type in
+            Read::<PropertyTypeWithMetadata>::read(self, filter, &subgraph.resolved_time_projection)
+                .await?
+        {
+            let vertex_id = property_type.vertex_id(time_axis);
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
-            subgraph.insert(property_type);
+            subgraph.insert(&vertex_id, property_type);
 
             self.traverse_property_type(
                 &vertex_id,

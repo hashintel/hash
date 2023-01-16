@@ -9,12 +9,12 @@ use utoipa::ToSchema;
 use crate::identifier::time::timestamp::Timestamp;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
-pub struct VersionTimespan<A> {
+pub struct VersionInterval<A> {
     pub start: Timestamp<A>,
     pub end: Option<Timestamp<A>>,
 }
 
-impl<A> Interval<Timestamp<A>> for VersionTimespan<A> {
+impl<A> Interval<Timestamp<A>> for VersionInterval<A> {
     type LowerBound = Timestamp<A>;
     type UpperBound = Option<Timestamp<A>>;
 
@@ -45,9 +45,9 @@ impl<A> Interval<Timestamp<A>> for VersionTimespan<A> {
     }
 }
 
-impl<A> VersionTimespan<A> {
+impl<A> VersionInterval<A> {
     #[must_use]
-    pub fn from_anonymous(interval: VersionTimespan<()>) -> Self {
+    pub fn from_anonymous(interval: VersionInterval<()>) -> Self {
         Self {
             start: Timestamp::from_anonymous(interval.start),
             end: interval.end.map(Timestamp::from_anonymous),
@@ -60,7 +60,7 @@ impl<A> VersionTimespan<A> {
     }
 }
 
-impl<A> RangeBounds<Timestamp<A>> for VersionTimespan<A> {
+impl<A> RangeBounds<Timestamp<A>> for VersionInterval<A> {
     fn start_bound(&self) -> Bound<&Timestamp<A>> {
         LowerBound::as_bound(&self.start)
     }
@@ -103,7 +103,7 @@ fn parse_bound(
     }
 }
 
-impl FromSql<'_> for VersionTimespan<()> {
+impl FromSql<'_> for VersionInterval<()> {
     fn from_sql(_: &Type, buf: &[u8]) -> Result<Self, Box<dyn Error + Send + Sync>> {
         match postgres_protocol::types::range_from_sql(buf)? {
             postgres_protocol::types::Range::Empty => {

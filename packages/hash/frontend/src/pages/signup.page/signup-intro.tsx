@@ -68,7 +68,7 @@ export const SignupIntro: FunctionComponent<SignupIntroProps> = ({
           Sign up
         </h1>
       </div>
-      {/* Don't display until sign-up with Google and Github are supported
+      {/* Don't display until sign-up with Google and GitHub are supported
       <button
         style={{"display":"flex","marginBottom":"0.5rem","backgroundColor":"#ffffff","fontSize":"0.875rem","lineHeight":"1.25rem","fontWeight":"700","justifyContent":"center","alignItems":"center","width":"16rem","height":"2.75rem","borderRadius":"0.5rem","borderColor":"#D1D5DB"}}
       >

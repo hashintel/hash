@@ -11,7 +11,7 @@ use utoipa::{openapi, ToSchema};
 use crate::identifier::{
     knowledge::EntityId,
     ontology::OntologyTypeEditionId,
-    time::{Timestamp, TransactionTime},
+    time::{ProjectedTime, Timestamp},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -39,12 +39,12 @@ impl ToSchema for GraphElementId {
 #[serde(rename_all = "camelCase")]
 pub struct EntityVertexId {
     base_id: EntityId,
-    version: Timestamp<TransactionTime>,
+    version: Timestamp<ProjectedTime>,
 }
 
 impl EntityVertexId {
     #[must_use]
-    pub const fn new(base_id: EntityId, version: Timestamp<TransactionTime>) -> Self {
+    pub const fn new(base_id: EntityId, version: Timestamp<ProjectedTime>) -> Self {
         Self { base_id, version }
     }
 
@@ -54,7 +54,7 @@ impl EntityVertexId {
     }
 
     #[must_use]
-    pub const fn version(&self) -> Timestamp<TransactionTime> {
+    pub const fn version(&self) -> Timestamp<ProjectedTime> {
         self.version
     }
 }

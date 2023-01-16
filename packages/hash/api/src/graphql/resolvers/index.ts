@@ -2,8 +2,6 @@ import { JSONObjectResolver } from "graphql-scalars";
 
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
-import { fileFields } from "./file";
-import { requestFileUpload } from "./file/request-file-upload";
 import { blocksResolver } from "./knowledge/block/block";
 import { blockChildEntityResolver } from "./knowledge/block/data-entity";
 import { commentAuthorResolver } from "./knowledge/comment/author";
@@ -22,6 +20,8 @@ import {
   getEntityResolver,
   updateEntityResolver,
 } from "./knowledge/entity/entity";
+import { createFileFromUrl } from "./knowledge/file/create-file-from-url";
+import { requestFileUpload } from "./knowledge/file/request-file-upload";
 import { hashInstanceEntityResolver } from "./knowledge/hash-instance/hash-instance";
 import { createOrgResolver } from "./knowledge/org/create-org";
 import { pageContents, updatePageContents } from "./knowledge/page";
@@ -115,6 +115,7 @@ export const resolvers = {
     ),
     updatePageContents: loggedInAndSignedUpMiddleware(updatePageContents),
     requestFileUpload: loggedInAndSignedUpMiddleware(requestFileUpload),
+    createFileFromUrl: loggedInAndSignedUpMiddleware(createFileFromUrl),
     // Task execution
     executeDemoTask,
     executeGithubSpecTask,
@@ -157,10 +158,6 @@ export const resolvers = {
   },
 
   JSONObject: JSONObjectResolver,
-
-  FileProperties: {
-    url: fileFields.url,
-  },
 
   LinkedAggregation: {
     results: linkedAggregationResults,

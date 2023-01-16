@@ -45,7 +45,6 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             Self::RecordId => Column::Entities(Entities::RecordId),
             Self::DecisionTime => Column::Entities(Entities::DecisionTime),
             Self::TransactionTime => Column::Entities(Entities::TransactionTime),
-            Self::LowerTransactionTime => Column::Entities(Entities::LowerTransactionTime),
             Self::Archived => Column::Entities(Entities::Archived),
             Self::Type(path) => path.terminating_column(),
             Self::OwnedById => Column::Entities(Entities::OwnedById),

@@ -37,7 +37,7 @@ PUBLISH_PATTERNS = ["packages/libs/error-stack**"]
 DOCKER_PATTERNS = ["packages/graph/hash_graph"]
 
 # Build a coverage report for these crates
-COVERAGE_PATTERNS = ["packages/graph/**", "packages/libs/**"]
+COVERAGE_EXCLUDE_PATTERNS = ["apps/engine**"]
 
 
 def generate_diffs():
@@ -64,6 +64,29 @@ def find_local_crates():
         if not any(path in crate.parents for path in all_crates):
             checked_crates.append(crate)
     return checked_crates
+
+
+def find_toolchain(crate):
+    """
+    Returns the toolchain for the specified crate.
+
+    The toolchain is determined by the `rust-toolchain.toml` file in the crate's directory or any parent directory
+    :param crate: the path to the crate
+    :return: the toolchain for the crate
+    """
+    directory = crate
+    root = Path(directory.root)
+    
+    while directory != root:
+        toolchain_file = directory / "rust-toolchain.toml"
+        if toolchain_file.exists():
+            toolchain = toml.load(toolchain_file).get("toolchain", {}).get("channel")
+            if toolchain:
+                return toolchain
+        directory = directory.parent
+        
+    raise Exception("No rust-toolchain.toml with a `toolchain.channel` attribute found")
+    
 
 
 def filter_parent_crates(crates):
@@ -152,8 +175,8 @@ def filter_for_coverage_crates(crates):
     return [
         crate
         for crate in crates
-        for pattern in COVERAGE_PATTERNS
-        if fnmatch(crate, pattern)
+        for pattern in COVERAGE_EXCLUDE_PATTERNS
+        if not fnmatch(crate, pattern)
     ]
 
 
@@ -178,25 +201,27 @@ def output_matrix(name, github_output_file, crates, **kwargs):
     :param crates: a list of paths to crates
     """
 
-    available_toolchains = set()
+    crate_names = {}
     for crate in crates:
         with open(
-            crate / "rust-toolchain.toml", "r", encoding="UTF-8"
-        ) as toolchain_toml:
-            available_toolchains.add(
-                toml.loads(toolchain_toml.read())["toolchain"]["channel"]
-            )
+                crate / "Cargo.toml", "r", encoding="UTF-8"
+        ) as cargo_toml:
+            cargo_toml_obj = toml.loads(cargo_toml.read())
+            if "package" in cargo_toml_obj and "name" in cargo_toml_obj["package"]:
+                crate_names[crate] = cargo_toml_obj["package"]["name"]
+            else:
+                crate_names[crate] = str(crate.name.replace("_", "-"))
+
+    available_toolchains = set()
+    for crate in crates:
+        available_toolchains.add(find_toolchain(crate))
         for pattern, additional_toolchains in TOOLCHAINS.items():
             for additional_toolchain in additional_toolchains:
                 available_toolchains.add(additional_toolchain)
 
     used_toolchain_combinations = []
     for crate in crates:
-        toolchains = []
-        with open(
-            crate / "rust-toolchain.toml", "r", encoding="UTF-8"
-        ) as toolchain_toml:
-            toolchains.append(toml.loads(toolchain_toml.read())["toolchain"]["channel"])
+        toolchains = [find_toolchain(crate)]
 
         # We only run the default toolchain on coverage/lint/publish (rust-toolchain.toml)
         if name not in ("coverage", "lint", "publish"):
@@ -204,24 +229,24 @@ def output_matrix(name, github_output_file, crates, **kwargs):
                 if fnmatch(crate, pattern):
                     toolchains += additional_toolchains
         used_toolchain_combinations.append(
-            itertools.product([crate], toolchains, repeat=1)
+            itertools.product([crate_names[crate]], toolchains, repeat=1)
         )
 
-    available_toolchain_combinations = itertools.product(crates, available_toolchains)
+    available_toolchain_combinations = itertools.product(crate_names.values(), available_toolchains)
     excluded_toolchain_combinations = set(available_toolchain_combinations).difference(
         *used_toolchain_combinations
     )
 
     matrix = dict(
-        name=[crate.name.replace("_", "-") for crate in crates],
+        name=[crate_names[crate] for crate in crates],
         toolchain=list(available_toolchains),
         **kwargs,
         exclude=[
-            dict(name=elem[0].name.replace("_", "-"), toolchain=elem[1])
+            dict(name=elem[0], toolchain=elem[1])
             for elem in excluded_toolchain_combinations
         ],
         include=[
-            dict(name=crate.name.replace("_", "-"), directory=str(crate))
+            dict(name=crate_names[crate], directory=str(crate))
             for crate in crates
         ],
     )
