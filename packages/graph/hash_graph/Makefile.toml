@@ -59,7 +59,7 @@ script = """
 set -eo pipefail
 
 cargo build
-cargo run&
+cargo run -- server &
 pid=$!
 # Ensure the webserver process is killed regardless of script outcome.
 trap "kill $pid" 0 ERR
