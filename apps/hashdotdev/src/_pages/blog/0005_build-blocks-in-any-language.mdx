@@ -199,7 +199,7 @@ let listenForEAResponse (blockMessageRoot: HTMLElement) =
 
 Within the handler, each event must be properly paired with a request to make sense of the messages, although some messages coming from the embedding application might not be a response to a request.
 
-The specifics of routing requests and responses have not been talked about yet as it's important to note that this exact implementation detail is not the only way to handle the messages. If the language you're using has great primitives or tools for handling such routing challenges, it can certainly be used instead. But for the actual way the responses are routes to requests in F#, we're simply delegating the task further down to JavaScript, mimicking the way it's done for TypeScript in the [reference implementation](https://github.com/blockprotocol/blockprotocol/blob/37c503de7ed5804710a5132695fe49d9f36e450e/packages/%40blockprotocol/core/src/core-handler.ts#L295).
+The specifics of routing requests and responses have not been talked about yet as it's important to note that this exact implementation detail is not the only way to handle the messages. If the language you're using has great primitives or tools for handling such routing challenges, it can certainly be used instead. But for the actual way the responses are routes to requests in F#, we're simply delegating the task further down to JavaScript, mimicking the way it's done for TypeScript in the [reference implementation](https://github.com/blockprotocol/blockprotocol/blob/8658321085be5a0cca770b211ca191a3ca6e1cc1/libs/%40blockprotocol/core/src/core-handler.ts#L310).
 
 Using a JavaScript map from `requestId`s to unresolved promises, we're able to asynchronously resolve in-flight requests.
 
