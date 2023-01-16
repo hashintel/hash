@@ -1,17 +1,11 @@
 import { VersionedUri } from "@blockprotocol/type-system";
-import {
-  EntityVertexId,
-  extractEntityUuidFromEntityId,
-  Subgraph,
-  SubgraphRootTypes,
-} from "@hashintel/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import { useRouter } from "next/router";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useState } from "react";
 
 import { useBlockProtocolCreateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
-import { useBlockProtocolGetEntityType } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
 import { PageErrorState } from "../../../../components/page-error-state";
 import { generateEntityLabel } from "../../../../lib/entities";
 import { WorkspaceContext } from "../../../shared/workspace-context";
@@ -19,6 +13,7 @@ import { EditBar } from "../../types/entity-type/[entity-type-id].page/edit-bar"
 import { EntityEditorPage } from "./entity-editor-page";
 import { EntityPageLoadingState } from "./entity-page-loading-state";
 import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
+import { useDraftEntitySubgraph } from "./shared/use-draft-entity-subgraph";
 
 interface CreateEntityPageProps {
   entityTypeId: VersionedUri;
@@ -26,77 +21,15 @@ interface CreateEntityPageProps {
 
 export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [draftEntitySubgraph, setDraftEntitySubgraph] =
-    useState<Subgraph<SubgraphRootTypes["entity"]>>();
+
+  const [draftEntitySubgraph, setDraftEntitySubgraph, loading] =
+    useDraftEntitySubgraph(entityTypeId);
 
   const { activeWorkspace, activeWorkspaceAccountId } =
     useContext(WorkspaceContext);
   const { createEntity } = useBlockProtocolCreateEntity(
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     (activeWorkspaceAccountId as OwnedById) ?? null,
   );
-
-  const { getEntityType } = useBlockProtocolGetEntityType();
-
-  useEffect(() => {
-    const init = async () => {
-      try {
-        setLoading(true);
-
-        const { data: subgraph } = await getEntityType({
-          data: {
-            entityTypeId,
-            graphResolveDepths: {
-              constrainsValuesOn: { outgoing: 255 },
-              constrainsLinksOn: { outgoing: 255 },
-              constrainsLinkDestinationsOn: { outgoing: 255 },
-              constrainsPropertiesOn: { outgoing: 255 },
-            },
-          },
-        });
-
-        if (!subgraph) {
-          throw new Error("subgraph not found");
-        }
-
-        const draftEntityVertexId: EntityVertexId = {
-          baseId: "draft%draft",
-          version: new Date().toISOString(),
-        };
-
-        setDraftEntitySubgraph({
-          ...subgraph,
-          roots: [draftEntityVertexId],
-          vertices: {
-            ...subgraph.vertices,
-            [draftEntityVertexId.baseId]: {
-              [draftEntityVertexId.version]: {
-                kind: "entity",
-                inner: {
-                  properties: {},
-                  metadata: {
-                    editionId: draftEntityVertexId,
-                    entityTypeId,
-                    provenance: { updatedById: "" },
-                    archived: false,
-                    version: {
-                      decisionTime: { start: draftEntityVertexId.version },
-                      transactionTime: { start: draftEntityVertexId.version },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        } as Subgraph<SubgraphRootTypes["entity"]>);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void init();
-  }, [entityTypeId, getEntityType]);
 
   const [creating, setCreating] = useState(false);
   const handleCreateEntity = async () => {

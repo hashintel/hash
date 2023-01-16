@@ -1,9 +1,9 @@
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import corsMiddleware from "cors";
 
-import { StorageType } from "../graphql/api-types.gen";
+import { StorageType } from "../storage";
 
-function getEnvStorageType(): StorageType {
+export function getEnvStorageType(): StorageType {
   const envUploadProvider = process.env.FILE_UPLOAD_PROVIDER as string;
   if (!envUploadProvider) {
     return StorageType.LocalFileSystem;
@@ -17,7 +17,6 @@ function getEnvStorageType(): StorageType {
   );
 }
 
-export const FILE_UPLOAD_PROVIDER = getEnvStorageType();
 export const LOCAL_FILE_UPLOAD_PATH =
   process.env.LOCAL_FILE_UPLOAD_PATH || "var/uploads/";
 

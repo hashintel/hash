@@ -1,7 +1,7 @@
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
 import { Box, Container } from "@mui/material";
-import { useCallback, useState } from "react";
+import { ChangeEvent, useCallback, useState } from "react";
 
 import {
   AggregateDataTypesMessageCallback,
@@ -41,25 +41,48 @@ const ExampleUsage = ({ accountId }: { accountId: AccountId }) => {
   );
 
   const createPropertyType = useCallback(() => {
+    void functions
+      .createPropertyType({
+        data: {
+          propertyType: {
+            kind: "propertyType",
+            title: "Name",
+            oneOf: [{ $ref: types.dataType.text.dataTypeId }],
+          },
+        },
+      })
+      .then((result) => {
+        setContent(JSON.stringify(result.data ?? {}, null, 2));
+      })
+      .catch((error) => {
+        setContent(JSON.stringify(error ?? {}, null, 2));
+      });
+  }, [functions, setContent]);
+
+  const [file, setFile] = useState<File>();
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string>();
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      setFile(event.target.files[0]);
+    }
+  };
+
+  const handleUploadClick = useCallback(() => {
     void (async () => {
       await functions
-        .createPropertyType({
+        .uploadFile({
           data: {
-            propertyType: {
-              kind: "propertyType",
-              title: "Name",
-              oneOf: [{ $ref: types.dataType.text.dataTypeId }],
-            },
+            mediaType: "image",
+            file,
           },
         })
         .then((result) => {
-          setContent(JSON.stringify(result.data ?? {}, null, 2));
-        })
-        .catch((error) => {
-          setContent(JSON.stringify(error ?? {}, null, 2));
+          setContent(JSON.stringify(result));
+          setUploadedFileUrl(result.data?.url);
         });
     })();
-  }, [functions, setContent]);
+  }, [file, functions, setContent, setUploadedFileUrl]);
 
   return (
     <Container>
@@ -70,6 +93,7 @@ const ExampleUsage = ({ accountId }: { accountId: AccountId }) => {
           display: "flex",
           alignItems: "flex-end",
           justifyContent: "space-between",
+          marginBottom: "2em",
         }}
       >
         <Button size="medium" onClick={getType(functions.aggregateDataTypes)}>
@@ -89,11 +113,28 @@ const ExampleUsage = ({ accountId }: { accountId: AccountId }) => {
 
         <div>
           <br />
-
           <Button size="medium" onClick={createPropertyType}>
             Create property type
           </Button>
         </div>
+      </Box>
+      <Box
+        sx={{
+          marginBottom: "2em",
+        }}
+      >
+        <input type="file" onChange={handleFileChange} />
+        <Button size="small" onClick={handleUploadClick}>
+          Upload
+        </Button>
+        <br />
+        {uploadedFileUrl ? (
+          <img
+            style={{ maxWidth: "300px" }}
+            src={uploadedFileUrl}
+            alt="uploaded file result"
+          />
+        ) : undefined}
       </Box>
       <pre style={{ overflowX: "scroll" }}>{content}</pre>
     </Container>

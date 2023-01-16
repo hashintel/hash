@@ -48,6 +48,9 @@ export class AsyncRedisClient extends DataSource {
   /** Set a value. */
   set: (key: string, value: string) => Promise<void>;
 
+  /** Set a value with an expiration (in seconds). */
+  setex: (key: string, value: string, expireInSeconds: number) => Promise<void>;
+
   /** Get the TTL of a value. Returns a negative value if the key is not set, or if
    * the key does not have a TTL. */
   ttl: (key: string) => Promise<number>;
@@ -119,6 +122,15 @@ export class AsyncRedisClient extends DataSource {
     const set = promisify(client.set).bind(client);
     this.set = async (key: string, value: string) => {
       await set(key, value);
+    };
+
+    const setex = promisify(client.setex).bind(client);
+    this.setex = async (
+      key: string,
+      value: string,
+      expireInSeconds: number,
+    ) => {
+      await setex(key, expireInSeconds, value);
     };
   }
 

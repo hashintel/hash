@@ -1,6 +1,11 @@
+import { AccountId } from "@local/hash-isomorphic-utils/types";
 import { DataSource } from "apollo-datasource";
 
-import { StorageType } from "../graphql/api-types.gen";
+export enum StorageType {
+  AwsS3 = "AWS_S3",
+  ExternalUrl = "EXTERNAL_URL",
+  LocalFileSystem = "LOCAL_FILE_SYSTEM",
+}
 
 /** Interface describing a generic storage provider
  * used for allowing the download and upload files via presigned request.
@@ -16,9 +21,8 @@ export interface StorageProvider {
 }
 
 export interface GetFileEntityStorageKeyParams {
-  accountId: string;
-  fileName: string;
-  entityVersionId: string;
+  accountId: AccountId;
+  uniqueIdenitifier: string;
 }
 
 export interface UploadableStorageProvider extends StorageProvider, DataSource {
@@ -63,8 +67,3 @@ export interface PresignedPostUpload {
     [key: string]: string;
   };
 }
-
-/** Helper type to create a typed "dictionary" of storage types to their storage provider instance */
-export type StorageProviderLookup = Partial<
-  Record<StorageType, StorageProvider | UploadableStorageProvider>
->;

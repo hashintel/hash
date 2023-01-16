@@ -42,6 +42,27 @@ export type GetEntityMessageCallback = MessageCallback<
   ReadOrModifyResourceError
 >;
 
+export declare type FileMediaType = "image" | "video";
+
+export type UploadFileRequest = {
+  file?: File | null;
+  url?: string | null;
+  mediaType: FileMediaType;
+};
+
+export type UploadFileResponse = {
+  entityId: EntityId;
+  url: string;
+  mediaType: FileMediaType;
+};
+
+export type UploadFileRequestCallback = MessageCallback<
+  UploadFileRequest,
+  null,
+  UploadFileResponse,
+  CreateResourceError
+>;
+
 export type AggregateEntitiesRequest = {
   rootEntityTypeIds?: VersionedUri[];
   graphResolveDepths?: Partial<Subgraph["depths"]>;

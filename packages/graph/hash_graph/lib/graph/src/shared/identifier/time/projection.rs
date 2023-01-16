@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 use utoipa::{openapi, ToSchema};
 
 use crate::identifier::time::{
-    DecisionTime, ProjectedTime, TimeAxis, Timespan, TimespanBound, Timestamp, TransactionTime,
-    UnresolvedTimespan,
+    DecisionTime, ProjectedTime, TimeAxis, TimeInterval, TimeIntervalBound, Timestamp,
+    TransactionTime, UnresolvedTimeInterval,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -54,15 +54,15 @@ impl ToSchema for UnresolvedTransactionTimeKernel {
 pub struct UnresolvedImage<A> {
     pub axis: A,
     #[serde(flatten)]
-    pub span: UnresolvedTimespan<A>,
+    pub interval: UnresolvedTimeInterval<A>,
 }
 
 impl<A: Default> UnresolvedImage<A> {
     #[must_use]
-    pub fn new(start: Option<TimespanBound<A>>, end: Option<TimespanBound<A>>) -> Self {
+    pub fn new(start: Option<TimeIntervalBound<A>>, end: Option<TimeIntervalBound<A>>) -> Self {
         Self {
             axis: A::default(),
-            span: UnresolvedTimespan { start, end },
+            interval: UnresolvedTimeInterval { start, end },
         }
     }
 }
@@ -77,7 +77,7 @@ impl ToSchema for UnresolvedDecisionTimeImage {
                     .property("axis", openapi::Ref::from_schema_name("DecisionTime"))
                     .required("axis"),
             )
-            .item(UnresolvedTimespan::<DecisionTime>::schema())
+            .item(UnresolvedTimeInterval::<DecisionTime>::schema())
             .build()
             .into()
     }
@@ -93,7 +93,7 @@ impl ToSchema for UnresolvedTransactionTimeImage {
                     .property("axis", openapi::Ref::from_schema_name("TransactionTime"))
                     .required("axis"),
             )
-            .item(UnresolvedTimespan::<DecisionTime>::schema())
+            .item(UnresolvedTimeInterval::<DecisionTime>::schema())
             .build()
             .into()
     }
@@ -119,17 +119,13 @@ impl<K, I> UnresolvedProjection<K, I> {
             },
             image: Image {
                 axis: self.image.axis,
-                span: Timespan {
-                    start: self
-                        .image
-                        .span
-                        .start
-                        .unwrap_or_else(|| TimespanBound::Included(Timestamp::from_anonymous(now))),
-                    end: self
-                        .image
-                        .span
-                        .end
-                        .unwrap_or_else(|| TimespanBound::Included(Timestamp::from_anonymous(now))),
+                interval: TimeInterval {
+                    start: self.image.interval.start.unwrap_or_else(|| {
+                        TimeIntervalBound::Included(Timestamp::from_anonymous(now))
+                    }),
+                    end: self.image.interval.end.unwrap_or_else(|| {
+                        TimeIntervalBound::Included(Timestamp::from_anonymous(now))
+                    }),
                 },
             },
         }
@@ -186,8 +182,8 @@ impl Default for UnresolvedTimeProjection {
         Self::DecisionTime(UnresolvedProjection {
             kernel: UnresolvedKernel::new(None),
             image: UnresolvedImage::new(
-                Some(TimespanBound::Unbounded),
-                Some(TimespanBound::Unbounded),
+                Some(TimeIntervalBound::Unbounded),
+                Some(TimeIntervalBound::Unbounded),
             ),
         })
     }
@@ -264,7 +260,7 @@ impl ToSchema for TransactionTimeKernel {
 pub struct Image<A> {
     pub axis: A,
     #[serde(flatten)]
-    pub span: Timespan<A>,
+    pub interval: TimeInterval<A>,
 }
 
 pub type DecisionTimeImage = Image<DecisionTime>;
@@ -277,7 +273,7 @@ impl ToSchema for DecisionTimeImage {
                     .property("axis", openapi::Ref::from_schema_name("DecisionTime"))
                     .required("axis"),
             )
-            .item(Timespan::<DecisionTime>::schema())
+            .item(TimeInterval::<DecisionTime>::schema())
             .build()
             .into()
     }
@@ -293,7 +289,7 @@ impl ToSchema for TransactionTimeImage {
                     .property("axis", openapi::Ref::from_schema_name("TransactionTime"))
                     .required("axis"),
             )
-            .item(Timespan::<DecisionTime>::schema())
+            .item(TimeInterval::<DecisionTime>::schema())
             .build()
             .into()
     }
@@ -350,9 +346,9 @@ impl ToSchema for TransactionTimeProjection {
 ///
 /// In order to query data from the Graph, only one of the two time axes can be used. This is
 /// achieved by using a `TimeProjection`. The `TimeProjection` pins one axis to a specified
-/// [`Timestamp`], while the other axis can be a [`Timespan`]. The pinned axis is called the
+/// [`Timestamp`], while the other axis can be a [`TimeInterval`]. The pinned axis is called the
 /// [`Kernel`] and the other axis is called the [`Image`] of a projection. The returned data will
-/// then only contain temporal data that is contained in the [`Timespan`] of the [`Image`], the
+/// then only contain temporal data that is contained in the [`TimeInterval`] of the [`Image`], the
 /// [`ProjectedTime`], for the given [`Timestamp`] of the [`Kernel`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -363,7 +359,15 @@ pub enum TimeProjection {
 
 impl TimeProjection {
     #[must_use]
-    pub const fn time_axis(&self) -> TimeAxis {
+    pub const fn kernel_time_axis(&self) -> TimeAxis {
+        match self {
+            Self::DecisionTime(_) => TimeAxis::TransactionTime,
+            Self::TransactionTime(_) => TimeAxis::DecisionTime,
+        }
+    }
+
+    #[must_use]
+    pub const fn image_time_axis(&self) -> TimeAxis {
         match self {
             Self::DecisionTime(_) => TimeAxis::DecisionTime,
             Self::TransactionTime(_) => TimeAxis::TransactionTime,
@@ -379,10 +383,10 @@ impl TimeProjection {
     }
 
     #[must_use]
-    pub const fn image(&self) -> Timespan<ProjectedTime> {
+    pub const fn image(&self) -> TimeInterval<ProjectedTime> {
         match self {
-            Self::DecisionTime(projection) => projection.image.span.cast(),
-            Self::TransactionTime(projection) => projection.image.span.cast(),
+            Self::DecisionTime(projection) => projection.image.interval.cast(),
+            Self::TransactionTime(projection) => projection.image.interval.cast(),
         }
     }
 }

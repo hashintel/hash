@@ -6,6 +6,7 @@
       "dependsOn": ["codegen"]
     },
     "codegen": {
+      "cache": false,
       "outputs": ["./src/**/*.gen.*"]
     },
     "fix:eslint": {

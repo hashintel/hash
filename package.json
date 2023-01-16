@@ -8,7 +8,6 @@
       "libs/@local/*",
       "packages/graph/clients",
       "packages/graph/clients/typescript",
-      "packages/graph/migrations",
       "packages/hash/api",
       "packages/hash/frontend",
       "packages/hash/task-executor",

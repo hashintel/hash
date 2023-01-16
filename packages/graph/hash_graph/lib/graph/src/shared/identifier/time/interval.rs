@@ -1,7 +1,9 @@
-use std::collections::Bound;
+use std::{error::Error, ops::Bound};
 
 use derivative::Derivative;
 use interval_ops::{Interval, IntervalBounds, LowerBound, UpperBound};
+use postgres_protocol::types::RangeBound;
+use postgres_types::{private::BytesMut, ToSql};
 use serde::{Deserialize, Serialize};
 use utoipa::{openapi, ToSchema};
 
@@ -21,23 +23,24 @@ use crate::identifier::time::Timestamp;
     tag = "bound",
     content = "timestamp"
 )]
-pub enum TimespanBound<A> {
+pub enum TimeIntervalBound<A> {
     Unbounded,
     Included(Timestamp<A>),
     Excluded(Timestamp<A>),
 }
-impl<A> TimespanBound<A> {
+
+impl<A> TimeIntervalBound<A> {
     #[must_use]
-    pub const fn cast<B>(&self) -> TimespanBound<B> {
+    pub const fn cast<B>(&self) -> TimeIntervalBound<B> {
         match self {
-            Self::Unbounded => TimespanBound::Unbounded,
-            Self::Included(timestamp) => TimespanBound::Included(timestamp.cast()),
-            Self::Excluded(timestamp) => TimespanBound::Excluded(timestamp.cast()),
+            Self::Unbounded => TimeIntervalBound::Unbounded,
+            Self::Included(timestamp) => TimeIntervalBound::Included(timestamp.cast()),
+            Self::Excluded(timestamp) => TimeIntervalBound::Excluded(timestamp.cast()),
         }
     }
 }
 
-impl<A> From<Bound<Timestamp<A>>> for TimespanBound<A> {
+impl<A> From<Bound<Timestamp<A>>> for TimeIntervalBound<A> {
     fn from(bound: Bound<Timestamp<A>>) -> Self {
         match bound {
             Bound::Included(timestamp) => Self::Included(timestamp),
@@ -47,17 +50,17 @@ impl<A> From<Bound<Timestamp<A>>> for TimespanBound<A> {
     }
 }
 
-impl<A> From<TimespanBound<A>> for Bound<Timestamp<A>> {
-    fn from(bound: TimespanBound<A>) -> Self {
+impl<A> From<TimeIntervalBound<A>> for Bound<Timestamp<A>> {
+    fn from(bound: TimeIntervalBound<A>) -> Self {
         match bound {
-            TimespanBound::Included(timestamp) => Self::Included(timestamp),
-            TimespanBound::Excluded(timestamp) => Self::Excluded(timestamp),
-            TimespanBound::Unbounded => Self::Unbounded,
+            TimeIntervalBound::Included(timestamp) => Self::Included(timestamp),
+            TimeIntervalBound::Excluded(timestamp) => Self::Excluded(timestamp),
+            TimeIntervalBound::Unbounded => Self::Unbounded,
         }
     }
 }
 
-impl<A> LowerBound<Timestamp<A>> for TimespanBound<A> {
+impl<A> LowerBound<Timestamp<A>> for TimeIntervalBound<A> {
     fn as_bound(&self) -> Bound<&Timestamp<A>> {
         match self {
             Self::Unbounded => Bound::Unbounded,
@@ -75,7 +78,7 @@ impl<A> LowerBound<Timestamp<A>> for TimespanBound<A> {
     }
 }
 
-impl<A> UpperBound<Timestamp<A>> for TimespanBound<A> {
+impl<A> UpperBound<Timestamp<A>> for TimeIntervalBound<A> {
     fn as_bound(&self) -> Bound<&Timestamp<A>> {
         match self {
             Self::Unbounded => Bound::Unbounded,
@@ -93,7 +96,7 @@ impl<A> UpperBound<Timestamp<A>> for TimespanBound<A> {
     }
 }
 
-impl<A> ToSchema for TimespanBound<A> {
+impl<A> ToSchema for TimeIntervalBound<A> {
     fn schema() -> openapi::Schema {
         openapi::OneOfBuilder::new()
             .item(
@@ -128,9 +131,9 @@ impl<A> ToSchema for TimespanBound<A> {
     Hash(bound = "")
 )]
 #[serde(rename_all = "camelCase", bound = "", deny_unknown_fields)]
-pub struct UnresolvedTimespan<A> {
-    pub start: Option<TimespanBound<A>>,
-    pub end: Option<TimespanBound<A>>,
+pub struct UnresolvedTimeInterval<A> {
+    pub start: Option<TimeIntervalBound<A>>,
+    pub end: Option<TimeIntervalBound<A>>,
 }
 
 #[derive(Derivative, Serialize, Deserialize, ToSchema)]
@@ -142,15 +145,15 @@ pub struct UnresolvedTimespan<A> {
     Hash(bound = "")
 )]
 #[serde(rename_all = "camelCase", bound = "", deny_unknown_fields)]
-pub struct Timespan<A> {
-    pub start: TimespanBound<A>,
-    pub end: TimespanBound<A>,
+pub struct TimeInterval<A> {
+    pub start: TimeIntervalBound<A>,
+    pub end: TimeIntervalBound<A>,
 }
 
-impl<A> Timespan<A> {
+impl<A> TimeInterval<A> {
     #[must_use]
-    pub const fn cast<B>(&self) -> Timespan<B> {
-        Timespan {
+    pub const fn cast<B>(&self) -> TimeInterval<B> {
+        TimeInterval {
             start: self.start.cast(),
             end: self.end.cast(),
         }
@@ -162,9 +165,9 @@ impl<A> Timespan<A> {
     }
 }
 
-impl<A> Interval<Timestamp<A>> for Timespan<A> {
-    type LowerBound = TimespanBound<A>;
-    type UpperBound = TimespanBound<A>;
+impl<A> Interval<Timestamp<A>> for TimeInterval<A> {
+    type LowerBound = TimeIntervalBound<A>;
+    type UpperBound = TimeIntervalBound<A>;
 
     fn from_bounds(lower: Self::LowerBound, upper: Self::UpperBound) -> Self
     where
@@ -186,5 +189,41 @@ impl<A> Interval<Timestamp<A>> for Timespan<A> {
 
     fn into_bound(self) -> (Self::LowerBound, Self::UpperBound) {
         (self.start, self.end)
+    }
+}
+
+impl<A> ToSql for TimeInterval<A> {
+    postgres_types::accepts!(TSTZ_RANGE);
+
+    postgres_types::to_sql_checked!();
+
+    fn to_sql(
+        &self,
+        _: &postgres_types::Type,
+        buf: &mut BytesMut,
+    ) -> Result<postgres_types::IsNull, Box<dyn Error + Sync + Send>> {
+        fn bound_to_sql<A>(
+            bound: TimeIntervalBound<A>,
+            buf: &mut BytesMut,
+        ) -> Result<RangeBound<postgres_protocol::IsNull>, Box<dyn Error + Sync + Send>> {
+            Ok(match bound {
+                TimeIntervalBound::Unbounded => RangeBound::Unbounded,
+                TimeIntervalBound::Included(timestamp) => {
+                    timestamp.to_sql(&postgres_types::Type::TIMESTAMPTZ, buf)?;
+                    RangeBound::Inclusive(postgres_protocol::IsNull::No)
+                }
+                TimeIntervalBound::Excluded(timestamp) => {
+                    timestamp.to_sql(&postgres_types::Type::TIMESTAMPTZ, buf)?;
+                    RangeBound::Exclusive(postgres_protocol::IsNull::No)
+                }
+            })
+        }
+
+        postgres_protocol::types::range_to_sql(
+            |buf| bound_to_sql(self.start.clone(), buf),
+            |buf| bound_to_sql(self.end.clone(), buf),
+            buf,
+        )?;
+        Ok(postgres_types::IsNull::No)
     }
 }
