@@ -35,14 +35,14 @@ export const extractEntityUuidFromEntityId = (entityId: EntityId): string => {
 /** @todo - consider Type Branding this */
 export type Timestamp = string;
 
-export type VersionTimespan = {
+export type VersionInterval = {
   start: Timestamp;
   end?: Timestamp;
 };
 
 export type EntityVersion = {
-  decisionTime: VersionTimespan;
-  transactionTime: VersionTimespan;
+  decisionTime: VersionInterval;
+  transactionTime: VersionInterval;
 };
 
 export type EntityRecordId = number;
