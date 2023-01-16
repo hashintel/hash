@@ -115,7 +115,7 @@ export const resolvers = {
     ),
     updatePageContents: loggedInAndSignedUpMiddleware(updatePageContents),
     requestFileUpload: loggedInAndSignedUpMiddleware(requestFileUpload),
-    createFileFromLink: loggedInAndSignedUpMiddleware(createFileFromUrl),
+    createFileFromUrl: loggedInAndSignedUpMiddleware(createFileFromUrl),
     // Task execution
     executeDemoTask,
     executeGithubSpecTask,

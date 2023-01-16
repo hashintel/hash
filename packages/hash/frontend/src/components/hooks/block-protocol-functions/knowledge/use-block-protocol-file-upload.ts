@@ -6,14 +6,14 @@ import { useCallback } from "react";
 import * as SparkMD5 from "spark-md5";
 
 import {
-  CreateFileFromLinkMutation,
-  CreateFileFromLinkMutationVariables,
+  CreateFileFromUrlMutation,
+  CreateFileFromUrlMutationVariables,
   RequestFileUploadMutation,
   RequestFileUploadMutationVariables,
   RequestFileUploadResponse,
 } from "../../../../graphql/api-types.gen";
 import {
-  createFileFromLink,
+  createFileFromUrl,
   requestFileUpload,
 } from "../../../../graphql/queries/knowledge/file.queries";
 import { UploadFileRequestCallback } from "./knowledge-shim";
@@ -67,10 +67,10 @@ export const useBlockProtocolFileUpload = (
     RequestFileUploadMutationVariables
   >(requestFileUpload);
 
-  const [createFileFromLinkFn] = useMutation<
-    CreateFileFromLinkMutation,
-    CreateFileFromLinkMutationVariables
-  >(createFileFromLink);
+  const [createFileFromUrlFn] = useMutation<
+    CreateFileFromUrlMutation,
+    CreateFileFromUrlMutationVariables
+  >(createFileFromUrl);
 
   const uploadFileToStorageProvider = async (
     presignedPostData: RequestFileUploadResponse["presignedPost"],
@@ -97,7 +97,7 @@ export const useBlockProtocolFileUpload = (
         mediaType: "image",
       };
       if (url?.trim()) {
-        const result = await createFileFromLinkFn({
+        const result = await createFileFromUrlFn({
           variables: {
             url,
             mediaType,
@@ -111,7 +111,7 @@ export const useBlockProtocolFileUpload = (
         }
 
         const {
-          createFileFromLink: {
+          createFileFromUrl: {
             metadata: { editionId },
           },
         } = result.data;
@@ -161,7 +161,7 @@ export const useBlockProtocolFileUpload = (
         },
       };
     },
-    [createFileFromLinkFn, requestFileUploadFn],
+    [createFileFromUrlFn, requestFileUploadFn],
   );
 
   return {

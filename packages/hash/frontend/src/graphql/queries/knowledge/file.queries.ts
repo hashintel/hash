@@ -12,8 +12,8 @@ export const requestFileUpload = gql`
   }
 `;
 
-export const createFileFromLink = gql`
-  mutation createFileFromLink($url: String!, $mediaType: String!) {
-    createFileFromLink(url: $url, mediaType: $mediaType)
+export const createFileFromUrl = gql`
+  mutation createFileFromUrl($url: String!, $mediaType: String!) {
+    createFileFromUrl(url: $url, mediaType: $mediaType)
   }
 `;
