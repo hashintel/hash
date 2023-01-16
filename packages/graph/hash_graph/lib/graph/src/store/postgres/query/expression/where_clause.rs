@@ -9,11 +9,7 @@ pub struct WhereExpression<'p> {
 
 impl<'p> WhereExpression<'p> {
     pub fn add_condition(&mut self, condition: Condition<'p>) {
-        // TODO: Remove deduplication when adjusting structural queries
-        //   see https://app.asana.com/0/0/1203491211535116/f
-        if !self.conditions.iter().any(|c| c == &condition) {
-            self.conditions.push(condition);
-        }
+        self.conditions.push(condition);
     }
 
     pub fn len(&self) -> usize {

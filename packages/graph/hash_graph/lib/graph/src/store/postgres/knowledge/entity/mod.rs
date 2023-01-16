@@ -53,7 +53,7 @@ impl<C: AsClient> PostgresStore<C> {
                 .knowledge_dependency_map
                 .insert(&entity_vertex_id, current_resolve_depth);
 
-            let time_axis = subgraph.resolved_time_projection.time_axis();
+            let time_axis = subgraph.resolved_time_projection.image_time_axis();
 
             let entity: &Entity = match dependency_status {
                 DependencyStatus::Unresolved => {
@@ -451,7 +451,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             time_projection.clone().resolve(),
         );
         let mut dependency_context = DependencyContext::default();
-        let time_axis = subgraph.resolved_time_projection.time_axis();
+        let time_axis = subgraph.resolved_time_projection.image_time_axis();
 
         for entity in Read::<Entity>::read(self, filter, &subgraph.resolved_time_projection).await?
         {
