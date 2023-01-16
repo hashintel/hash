@@ -163,7 +163,15 @@ export const useFreezeScrollWhileTransitioning = () => {
     };
 
     const start = (evt: TransitionEvent) => {
-      if (isRelevant(evt) && scroller.scrollTop <= EDIT_BAR_HEIGHT) {
+      /**
+       * we don't need to freeze the scroll if edit bar did not started to behave as sticky yet
+       * when scroll passes the height of the edit bar, it stick to the top,
+       * when it sticks, we don't need to manipulate page scroll in this function,
+       * because sticky element does not shift the elements while appearing / disappearing
+       */
+      const notStickyYet = scroller.scrollTop <= EDIT_BAR_HEIGHT;
+
+      if (isRelevant(evt) && notStickyYet) {
         const rect = editBar.getBoundingClientRect();
 
         // If the user has scrolled far enough the edit bar is off-screen, the
