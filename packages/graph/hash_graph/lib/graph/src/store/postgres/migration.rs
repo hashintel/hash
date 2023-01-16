@@ -57,7 +57,7 @@ impl<C: AsClient<Client = Client>> StoreMigration for PostgresStore<C> {
         let applied_migrations = self.all_migrations().await?;
 
         // Migrations are expected to be a very small list, even with thousands of migrations, the
-        // performance implications of this
+        // performance implications of this are negligible.
         let difference: Vec<_> = all_migrations
             .into_iter()
             .filter(|item| !applied_migrations.contains(item))
