@@ -26,7 +26,7 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { Fragment, useId } from "react";
+import { Fragment, useCallback, useId } from "react";
 
 import { MenuItemProps } from "../../../../../../../shared/ui/menu-item";
 import {
@@ -61,6 +61,27 @@ export const TypeMenuCell = ({
     variant: "popover",
     popupId: `property-menu-${popupId}`,
   });
+
+  const EditButton = useCallback(
+    () => (
+      <MenuItem
+        key="edit"
+        {...editButtonProps}
+        disabled={!!editButtonDisabled}
+        onClick={(evt) => {
+          popupState.close();
+          editButtonProps?.onClick?.(evt);
+        }}
+        onTouchStart={(evt) => {
+          popupState.close();
+          editButtonProps?.onTouchStart?.(evt);
+        }}
+      >
+        <ListItemText primary={<>Edit {variant}</>} />
+      </MenuItem>
+    ),
+    [editButtonDisabled, popupState, editButtonProps, variant],
+  );
 
   return (
     <TableCell
@@ -125,25 +146,15 @@ export const TypeMenuCell = ({
                 Actions
               </Typography>,
               canEdit ? (
-                <Tooltip title={editButtonDisabled!}>
-                  <Box>
-                    <MenuItem
-                      key="edit"
-                      {...editButtonProps}
-                      disabled={!!editButtonDisabled}
-                      onClick={(evt) => {
-                        popupState.close();
-                        editButtonProps?.onClick?.(evt);
-                      }}
-                      onTouchStart={(evt) => {
-                        popupState.close();
-                        editButtonProps?.onTouchStart?.(evt);
-                      }}
-                    >
-                      <ListItemText primary={<>Edit {variant}</>} />
-                    </MenuItem>
-                  </Box>
-                </Tooltip>
+                editButtonDisabled ? (
+                  <Tooltip title={editButtonDisabled}>
+                    <Box>
+                      <EditButton />
+                    </Box>
+                  </Tooltip>
+                ) : (
+                  <EditButton />
+                )
               ) : null,
               canRemove ? (
                 <MenuItem
