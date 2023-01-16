@@ -2,9 +2,7 @@ pub mod completions;
 pub mod migrate;
 pub mod server;
 
-pub use completions::CompletionsArgs;
-pub use migrate::MigrateArgs;
-pub use server::ServerArgs;
+pub use self::{completions::CompletionsArgs, migrate::MigrateArgs, server::ServerArgs};
 
 /// Subcommand for the program.
 #[derive(Debug, clap::Subcommand)]
