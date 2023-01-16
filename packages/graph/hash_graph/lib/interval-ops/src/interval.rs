@@ -98,10 +98,10 @@ pub trait Interval<T>: Sized {
         let rhs_lower = other.lower_bound();
         let rhs_upper = other.upper_bound();
 
-        // Example |      A     |     B
-        // ========|============|============
-        // Range A |    [-----] | [-----]
-        // Range B | [-----]    |    [-----]
+        // Examples |      1     |     2
+        // =========|============|============
+        // Range A  |    [-----] | [-----]
+        // Range B  | [-----]    |    [-----]
         matches!(
             lhs_lower.cmp_lower(rhs_lower),
             Ordering::Greater | Ordering::Equal
@@ -164,7 +164,7 @@ pub trait Interval<T>: Sized {
     where
         T: PartialOrd,
     {
-        // Examples   |       1     |    2    |    3    |    4    |    5
+        // Examples   |      1      |    2    |    3    |    4    |    5
         // =========================|=========|=========|=========|=========
         // Range      |   [-----]   | ---)    | ---]    |    (--- |    [---
         // -------------------------|---------|---------|---------|---------
@@ -239,12 +239,12 @@ pub trait Interval<T>: Sized {
             let (lhs_lower, lhs_upper) = self.into_bound();
             let (rhs_lower, rhs_upper) = other.into_bound();
 
-            // Examples  |      1    |     2
-            // ==========|===========|===========
-            // Range A   |   [-----] | [-----]
-            // Range B   | [-----]   |   [-----]
-            // ----------|-----------|-----------
-            // Intersect |   [---]   |   [---]
+            // Examples     |     1     |     2
+            // =============|===========|===========
+            // Range A      |   [-----] | [-----]
+            // Range B      | [-----]   |   [-----]
+            // -------------|-----------|-----------
+            // Intersection |   [---]   |   [---]
             Self::from_bounds(
                 match lhs_lower.cmp_lower(&rhs_lower) {
                     Ordering::Less | Ordering::Equal => rhs_lower,
@@ -303,7 +303,7 @@ pub trait Interval<T>: Sized {
             }
 
             // Range A is completely contained in range B:
-            // Example    |     1     |    2    |    3    |   4
+            // Examples   |     1     |    2    |    3    |   4
             // ===========|===========|=========|=========|=======
             // Range A    |   [---]   | [---]   |   [---] | [---]
             // Range B    | [-------] | [-----] | [-----] | [---]
@@ -314,7 +314,7 @@ pub trait Interval<T>: Sized {
             }
 
             // Range A starts before range B:
-            // Example    |     1     |     2
+            // Examples   |     1     |     2
             // ===========|===========|===========
             // Range A    | [-----]   | [-------]
             // Range B    |     [---] |     [---]
@@ -328,7 +328,7 @@ pub trait Interval<T>: Sized {
             ) => Return::one(Self::from_bounds(lhs_lower, rhs_lower.into_upper())),
 
             // Range A ends after range B:
-            // Example    |     1     |     2
+            // Examples   |     1     |     2
             // ===========|===========|===========
             // Range A    |   [-----] | [-------]
             // Range B    | [---]     | [---]
