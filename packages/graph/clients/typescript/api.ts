@@ -304,7 +304,7 @@ export interface DataTypeStructuralQuery {
    * @type {UnresolvedTimeProjection}
    * @memberof DataTypeStructuralQuery
    */
-  timeProjection?: UnresolvedTimeProjection;
+  timeProjection: UnresolvedTimeProjection;
 }
 /**
  *
@@ -594,7 +594,6 @@ export interface EntityMetadata {
 
 export const EntityQueryToken = {
   Uuid: "uuid",
-  Version: "version",
   RecordId: "recordId",
   Archived: "archived",
   OwnedById: "ownedById",
@@ -635,7 +634,7 @@ export interface EntityStructuralQuery {
    * @type {UnresolvedTimeProjection}
    * @memberof EntityStructuralQuery
    */
-  timeProjection?: UnresolvedTimeProjection;
+  timeProjection: UnresolvedTimeProjection;
 }
 /**
  * Specifies the structure of an Entity Type
@@ -773,7 +772,7 @@ export interface EntityTypeStructuralQuery {
    * @type {UnresolvedTimeProjection}
    * @memberof EntityTypeStructuralQuery
    */
-  timeProjection?: UnresolvedTimeProjection;
+  timeProjection: UnresolvedTimeProjection;
 }
 /**
  *
@@ -1793,7 +1792,7 @@ export interface PropertyTypeStructuralQuery {
    * @type {UnresolvedTimeProjection}
    * @memberof PropertyTypeStructuralQuery
    */
-  timeProjection?: UnresolvedTimeProjection;
+  timeProjection: UnresolvedTimeProjection;
 }
 /**
  *

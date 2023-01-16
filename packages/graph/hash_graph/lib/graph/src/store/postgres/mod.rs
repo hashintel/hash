@@ -1,6 +1,7 @@
 mod knowledge;
 mod ontology;
 
+mod migration;
 mod pool;
 mod query;
 mod version_id;

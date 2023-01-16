@@ -138,9 +138,6 @@ export const getAllLatestEntitiesResolver: ResolverFn<
   const filter: Filter = {
     all: [
       {
-        equal: [{ path: ["version"] }, { parameter: "latest" }],
-      },
-      {
         equal: [{ path: ["archived"] }, { parameter: false }],
       },
     ],
@@ -168,6 +165,17 @@ export const getAllLatestEntitiesResolver: ResolverFn<
       isOfType,
       hasLeftEntity,
       hasRightEntity,
+    },
+    timeProjection: {
+      kernel: {
+        axis: "transaction",
+        timestamp: undefined,
+      },
+      image: {
+        axis: "decision",
+        start: undefined,
+        end: undefined,
+      },
     },
   });
 
@@ -202,12 +210,6 @@ export const getEntityResolver: ResolverFn<
   const filter: Filter = {
     all: [
       {
-        equal: [
-          { path: ["version"] },
-          { parameter: entityVersion ?? "latest" },
-        ],
-      },
-      {
         equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
       },
       {
@@ -227,6 +229,21 @@ export const getEntityResolver: ResolverFn<
       isOfType,
       hasLeftEntity,
       hasRightEntity,
+    },
+    timeProjection: {
+      kernel: {
+        axis: "transaction",
+        timestamp: undefined,
+      },
+      image: {
+        axis: "decision",
+        start: entityVersion
+          ? { bound: "included", timestamp: entityVersion }
+          : undefined,
+        end: entityVersion
+          ? { bound: "included", timestamp: entityVersion }
+          : undefined,
+      },
     },
   });
 
