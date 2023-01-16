@@ -34,13 +34,3 @@ services:
       interval: 2s
       timeout: 1s
       retries: 5
-
-  migrate:
-    build:
-      context: ..
-      dockerfile: deployment/migrations/Dockerfile
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      HASH_GRAPH_PG_MIGRATION_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${HASH_GRAPH_PG_DATABASE}"

@@ -464,35 +464,14 @@ mod tests {
             SELECT *
             FROM "entities" AS "entities_0_0_0"
             WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_0_0"."entity_uuid" = $2
+              AND "entities_0_0_0"."decision_time" && $2
+              AND "entities_0_0_0"."entity_uuid" = $3
             "#,
-            &[&kernel, &"12345678-ABCD-4321-5678-ABCD5555DCBA"],
-        );
-    }
-
-    #[test]
-    fn entity_latest_version_query() {
-        let time_projection = UnresolvedTimeProjection::default().resolve();
-        let kernel = time_projection.kernel().cast::<TransactionTime>();
-        let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
-
-        let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::ProjectedTime)),
-            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                "latest",
-            )))),
-        );
-        compiler.add_filter(&filter);
-
-        test_compilation(
-            &compiler,
-            r#"
-            SELECT *
-            FROM "entities" AS "entities_0_0_0"
-            WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_0_0"."decision_time" @> now()::TIMESTAMPTZ
-            "#,
-            &[&kernel],
+            &[
+                &kernel,
+                &time_projection.image(),
+                &"12345678-ABCD-4321-5678-ABCD5555DCBA",
+            ],
         );
     }
 
@@ -529,11 +508,12 @@ mod tests {
                 "entities_0_0_0"."properties"
             FROM "entities" AS "entities_0_0_0"
             WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_0_0"."updated_by_id" = $2
+              AND "entities_0_0_0"."decision_time" && $2
+              AND "entities_0_0_0"."updated_by_id" = $3
             ORDER BY "entities_0_0_0"."entity_uuid" ASC,
                      "entities_0_0_0"."decision_time" DESC
             "#,
-            &[&kernel, &Uuid::nil()],
+            &[&kernel, &time_projection.image(), &Uuid::nil()],
         );
     }
 
@@ -559,11 +539,13 @@ mod tests {
             SELECT *
             FROM "entities" AS "entities_0_0_0"
             WHERE "entities_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
-              AND "entities_0_0_0"."properties"->>$1 = $3
+              AND "entities_0_0_0"."decision_time" && $3
+              AND "entities_0_0_0"."properties"->>$1 = $4
             "#,
             &[
                 &"https://blockprotocol.org/@alice/types/property-type/name/",
                 &kernel,
+                &time_projection.image(),
                 &"Bob",
             ],
         );
@@ -589,11 +571,13 @@ mod tests {
             SELECT *
             FROM "entities" AS "entities_0_0_0"
             WHERE "entities_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
+              AND "entities_0_0_0"."decision_time" && $3
               AND "entities_0_0_0"."properties"->>$1 IS NULL
             "#,
             &[
                 &"https://blockprotocol.org/@alice/types/property-type/name/",
                 &kernel,
+                &time_projection.image(),
             ],
         );
     }
@@ -607,12 +591,10 @@ mod tests {
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
                 Box::new(EntityQueryPath::RightEntity(Box::new(
-                    EntityQueryPath::ProjectedTime,
+                    EntityQueryPath::RecordId,
                 ))),
             ))),
-            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                "latest",
-            )))),
+            Some(FilterExpression::Parameter(Parameter::Number(10.0))),
         );
         compiler.add_filter(&filter);
 
@@ -626,11 +608,14 @@ mod tests {
             RIGHT OUTER JOIN "entities" AS "entities_0_2_0"
               ON "entities_0_2_0"."entity_uuid" = "entities_0_1_0"."right_entity_uuid"
             WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entities_0_0_0"."decision_time" && $2
               AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entities_0_1_0"."decision_time" && $2
               AND "entities_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_2_0"."decision_time" @> now()::TIMESTAMPTZ
+              AND "entities_0_2_0"."decision_time" && $2
+              AND "entities_0_2_0"."entity_record_id" = $3
             "#,
-            &[&kernel],
+            &[&kernel, &time_projection.image(), &10.0],
         );
     }
 
@@ -643,12 +628,10 @@ mod tests {
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
                 Box::new(EntityQueryPath::LeftEntity(Box::new(
-                    EntityQueryPath::ProjectedTime,
+                    EntityQueryPath::RecordId,
                 ))),
             ))),
-            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                "latest",
-            )))),
+            Some(FilterExpression::Parameter(Parameter::Number(10.0))),
         );
         compiler.add_filter(&filter);
 
@@ -662,11 +645,14 @@ mod tests {
             RIGHT OUTER JOIN "entities" AS "entities_0_2_0"
               ON "entities_0_2_0"."entity_uuid" = "entities_0_1_0"."left_entity_uuid"
             WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entities_0_0_0"."decision_time" && $2
               AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entities_0_1_0"."decision_time" && $2
               AND "entities_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_2_0"."decision_time" @> now()::TIMESTAMPTZ
+              AND "entities_0_2_0"."decision_time" && $2
+              AND "entities_0_2_0"."entity_record_id" = $3
             "#,
-            &[&kernel],
+            &[&kernel, &time_projection.image(), &10.0],
         );
     }
 
@@ -710,13 +696,15 @@ mod tests {
             SELECT *
             FROM "entities" AS "entities_0_0_0"
             WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND ("entities_0_0_0"."left_entity_uuid" = $2)
-              AND ("entities_0_0_0"."left_owned_by_id" = $3)
-              AND ("entities_0_0_0"."right_entity_uuid" = $4)
-              AND ("entities_0_0_0"."right_owned_by_id" = $5)
+              AND "entities_0_0_0"."decision_time" && $2
+              AND ("entities_0_0_0"."left_entity_uuid" = $3)
+              AND ("entities_0_0_0"."left_owned_by_id" = $4)
+              AND ("entities_0_0_0"."right_entity_uuid" = $5)
+              AND ("entities_0_0_0"."right_owned_by_id" = $6)
             "#,
             &[
                 &kernel,
+                &time_projection.image(),
                 &Uuid::nil(),
                 &Uuid::nil(),
                 &Uuid::nil(),
@@ -734,8 +722,6 @@ mod tests {
                 account::AccountId,
                 knowledge::EntityId,
                 ontology::{OntologyTypeEditionId, OntologyTypeVersion},
-                time::Timestamp,
-                EntityVertexId,
             },
             knowledge::EntityUuid,
             provenance::OwnedById,
@@ -812,7 +798,7 @@ mod tests {
             let kernel = time_projection.kernel().cast::<TransactionTime>();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 
-            let filter = Filter::for_entity_by_entity_id(entity_id);
+            let filter = Filter::for_entity_by_id(entity_id);
             compiler.add_filter(&filter);
 
             test_compilation(
@@ -821,11 +807,13 @@ mod tests {
                 SELECT *
                 FROM "entities" AS "entities_0_0_0"
                 WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND ("entities_0_0_0"."owned_by_id" = $2)
-                  AND ("entities_0_0_0"."entity_uuid" = $3)
+                  AND "entities_0_0_0"."decision_time" && $2
+                  AND ("entities_0_0_0"."owned_by_id" = $3)
+                  AND ("entities_0_0_0"."entity_uuid" = $4)
                 "#,
                 &[
                     &kernel,
+                    &time_projection.image(),
                     &entity_id.owned_by_id().as_uuid(),
                     &entity_id.entity_uuid().as_uuid(),
                 ],
@@ -834,19 +822,16 @@ mod tests {
 
         #[test]
         fn for_entity_by_edition_id() {
-            let entity_vertex_id = EntityVertexId::new(
-                EntityId::new(
-                    OwnedById::new(AccountId::new(Uuid::new_v4())),
-                    EntityUuid::new(Uuid::new_v4()),
-                ),
-                Timestamp::now(),
+            let entity_id = EntityId::new(
+                OwnedById::new(AccountId::new(Uuid::new_v4())),
+                EntityUuid::new(Uuid::new_v4()),
             );
 
             let time_projection = UnresolvedTimeProjection::default().resolve();
             let kernel = time_projection.kernel().cast::<TransactionTime>();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 
-            let filter = Filter::for_entity_by_vertex_id(entity_vertex_id);
+            let filter = Filter::for_entity_by_id(entity_id);
             compiler.add_filter(&filter);
 
             test_compilation(
@@ -855,34 +840,31 @@ mod tests {
                 SELECT *
                 FROM "entities" AS "entities_0_0_0"
                 WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND ("entities_0_0_0"."owned_by_id" = $2)
-                  AND ("entities_0_0_0"."entity_uuid" = $3)
-                  AND (lower("entities_0_0_0"."decision_time") = $4)
+                  AND "entities_0_0_0"."decision_time" && $2
+                  AND ("entities_0_0_0"."owned_by_id" = $3)
+                  AND ("entities_0_0_0"."entity_uuid" = $4)
                 "#,
                 &[
                     &kernel,
-                    &entity_vertex_id.base_id().owned_by_id().as_uuid(),
-                    &entity_vertex_id.base_id().entity_uuid().as_uuid(),
-                    &entity_vertex_id.version(),
+                    &time_projection.image(),
+                    &entity_id.owned_by_id().as_uuid(),
+                    &entity_id.entity_uuid().as_uuid(),
                 ],
             );
         }
 
         #[test]
-        fn for_outgoing_link_by_source_entity_vertex_id() {
-            let entity_vertex_id = EntityVertexId::new(
-                EntityId::new(
-                    OwnedById::new(AccountId::new(Uuid::new_v4())),
-                    EntityUuid::new(Uuid::new_v4()),
-                ),
-                Timestamp::now(),
+        fn for_incoming_link_by_source_entity_id() {
+            let entity_id = EntityId::new(
+                OwnedById::new(AccountId::new(Uuid::new_v4())),
+                EntityUuid::new(Uuid::new_v4()),
             );
 
             let time_projection = UnresolvedTimeProjection::default().resolve();
             let kernel = time_projection.kernel().cast::<TransactionTime>();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 
-            let filter = Filter::for_outgoing_link_by_source_entity_vertex_id(entity_vertex_id);
+            let filter = Filter::for_incoming_link_by_source_entity_id(entity_id);
             compiler.add_filter(&filter);
 
             test_compilation(
@@ -890,38 +872,65 @@ mod tests {
                 r#"
                 SELECT *
                 FROM "entities" AS "entities_0_0_0"
-                RIGHT OUTER JOIN "entities" AS "entities_0_1_0"
-                  ON "entities_0_1_0"."entity_uuid" = "entities_0_0_0"."left_entity_uuid"
                 WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND ("entities_0_0_0"."left_owned_by_id" = $2)
-                  AND ("entities_0_0_0"."left_entity_uuid" = $3)
-                  AND (lower("entities_0_1_0"."decision_time") = $4)
+                  AND "entities_0_0_0"."decision_time" && $2
+                  AND ("entities_0_0_0"."right_owned_by_id" = $3)
+                  AND ("entities_0_0_0"."right_entity_uuid" = $4)
                 "#,
                 &[
                     &kernel,
-                    &entity_vertex_id.base_id().owned_by_id().as_uuid(),
-                    &entity_vertex_id.base_id().entity_uuid().as_uuid(),
-                    &entity_vertex_id.version(),
+                    &time_projection.image(),
+                    &entity_id.owned_by_id().as_uuid(),
+                    &entity_id.entity_uuid().as_uuid(),
                 ],
             );
         }
 
         #[test]
-        fn for_left_entity_by_entity_vertex_id() {
-            let entity_vertex_id = EntityVertexId::new(
-                EntityId::new(
-                    OwnedById::new(AccountId::new(Uuid::new_v4())),
-                    EntityUuid::new(Uuid::new_v4()),
-                ),
-                Timestamp::now(),
+        fn for_outgoing_link_by_source_entity_id() {
+            let entity_id = EntityId::new(
+                OwnedById::new(AccountId::new(Uuid::new_v4())),
+                EntityUuid::new(Uuid::new_v4()),
             );
 
             let time_projection = UnresolvedTimeProjection::default().resolve();
             let kernel = time_projection.kernel().cast::<TransactionTime>();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 
-            let filter = Filter::for_left_entity_by_entity_vertex_id(entity_vertex_id);
+            let filter = Filter::for_outgoing_link_by_source_entity_id(entity_id);
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "entities" AS "entities_0_0_0"
+                WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entities_0_0_0"."decision_time" && $2
+                  AND ("entities_0_0_0"."left_owned_by_id" = $3)
+                  AND ("entities_0_0_0"."left_entity_uuid" = $4)
+                "#,
+                &[
+                    &kernel,
+                    &time_projection.image(),
+                    &entity_id.owned_by_id().as_uuid(),
+                    &entity_id.entity_uuid().as_uuid(),
+                ],
+            );
+        }
+
+        #[test]
+        fn for_left_entity_by_entity_id() {
+            let entity_id = EntityId::new(
+                OwnedById::new(AccountId::new(Uuid::new_v4())),
+                EntityUuid::new(Uuid::new_v4()),
+            );
+
+            let time_projection = UnresolvedTimeProjection::default().resolve();
+            let kernel = time_projection.kernel().cast::<TransactionTime>();
+            let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
+
+            let filter = Filter::for_left_entity_by_entity_id(entity_id);
             compiler.add_filter(&filter);
 
             test_compilation(
@@ -932,35 +941,33 @@ mod tests {
                 LEFT OUTER JOIN "entities" AS "entities_0_1_0"
                   ON "entities_0_1_0"."left_entity_uuid" = "entities_0_0_0"."entity_uuid"
                 WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entities_0_0_0"."decision_time" && $2
                   AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND ("entities_0_1_0"."owned_by_id" = $2)
-                  AND ("entities_0_1_0"."entity_uuid" = $3)
-                  AND (lower("entities_0_1_0"."decision_time") = $4)
+                  AND "entities_0_1_0"."decision_time" && $2
+                  AND ("entities_0_1_0"."owned_by_id" = $3)
+                  AND ("entities_0_1_0"."entity_uuid" = $4)
                 "#,
                 &[
                     &kernel,
-                    &entity_vertex_id.base_id().owned_by_id().as_uuid(),
-                    &entity_vertex_id.base_id().entity_uuid().as_uuid(),
-                    &entity_vertex_id.version(),
+                    &time_projection.image(),
+                    &entity_id.owned_by_id().as_uuid(),
+                    &entity_id.entity_uuid().as_uuid(),
                 ],
             );
         }
 
         #[test]
-        fn for_right_entity_by_entity_vertex_id() {
-            let entity_vertex_id = EntityVertexId::new(
-                EntityId::new(
-                    OwnedById::new(AccountId::new(Uuid::new_v4())),
-                    EntityUuid::new(Uuid::new_v4()),
-                ),
-                Timestamp::now(),
+        fn for_right_entity_by_entity_id() {
+            let entity_id = EntityId::new(
+                OwnedById::new(AccountId::new(Uuid::new_v4())),
+                EntityUuid::new(Uuid::new_v4()),
             );
 
             let time_projection = UnresolvedTimeProjection::default().resolve();
             let kernel = time_projection.kernel().cast::<TransactionTime>();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 
-            let filter = Filter::for_right_entity_by_entity_vertex_id(entity_vertex_id);
+            let filter = Filter::for_right_entity_by_entity_id(entity_id);
             compiler.add_filter(&filter);
 
             test_compilation(
@@ -971,16 +978,17 @@ mod tests {
                 LEFT OUTER JOIN "entities" AS "entities_0_1_0"
                   ON "entities_0_1_0"."right_entity_uuid" = "entities_0_0_0"."entity_uuid"
                 WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entities_0_0_0"."decision_time" && $2
                   AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND ("entities_0_1_0"."owned_by_id" = $2)
-                  AND ("entities_0_1_0"."entity_uuid" = $3)
-                  AND (lower("entities_0_1_0"."decision_time") = $4)
+                  AND "entities_0_1_0"."decision_time" && $2
+                  AND ("entities_0_1_0"."owned_by_id" = $3)
+                  AND ("entities_0_1_0"."entity_uuid" = $4)
                 "#,
                 &[
                     &kernel,
-                    &entity_vertex_id.base_id().owned_by_id().as_uuid(),
-                    &entity_vertex_id.base_id().entity_uuid().as_uuid(),
-                    &entity_vertex_id.version(),
+                    &time_projection.image(),
+                    &entity_id.owned_by_id().as_uuid(),
+                    &entity_id.entity_uuid().as_uuid(),
                 ],
             );
         }

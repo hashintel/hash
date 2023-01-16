@@ -4,7 +4,7 @@ use postgres_types::ToSql;
 use tokio_postgres::row::RowIndex;
 
 use crate::{
-    identifier::time::{TimeAxis, TimeProjection, Timespan, TimespanBound},
+    identifier::time::TimeProjection,
     store::{
         postgres::query::{
             expression::Constant,
@@ -25,7 +25,8 @@ use crate::{
 
 pub struct TemporalTableInfo {
     tables: HashSet<AliasedTable>,
-    parameter_index: usize,
+    kernel_index: usize,
+    image_index: usize,
 }
 
 pub struct CompilerArtifacts<'p> {
@@ -45,15 +46,6 @@ pub struct SelectCompiler<'c, 'p, T> {
 impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     /// Creates a new, empty compiler.
     pub fn new(time_projection: &'p TimeProjection) -> Self {
-        assert_eq!(
-            time_projection.image(),
-            Timespan {
-                start: TimespanBound::Unbounded,
-                end: TimespanBound::Unbounded
-            },
-            "custom time projection images are not supported yet"
-        );
-
         Self {
             statement: SelectStatement {
                 with: WithExpression::default(),
@@ -92,31 +84,48 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     fn pin_entity_table(&mut self, alias: Alias) {
         let table = Table::Entities.aliased(alias);
         let temporal_table_info = self.artifacts.temporal_tables.get_or_insert_with(|| {
-            self.artifacts.parameters.push(match self.time_projection {
-                TimeProjection::DecisionTime(projection) => &projection.kernel.timestamp,
-                TimeProjection::TransactionTime(projection) => &projection.kernel.timestamp,
-            });
+            match self.time_projection {
+                TimeProjection::DecisionTime(projection) => {
+                    self.artifacts.parameters.push(&projection.kernel.timestamp);
+                    self.artifacts.parameters.push(&projection.image.interval);
+                }
+                TimeProjection::TransactionTime(projection) => {
+                    self.artifacts.parameters.push(&projection.kernel.timestamp);
+                    self.artifacts.parameters.push(&projection.image.interval);
+                }
+            };
 
             TemporalTableInfo {
                 tables: HashSet::new(),
-                parameter_index: self.artifacts.parameters.len(),
+                kernel_index: self.artifacts.parameters.len() - 1,
+                image_index: self.artifacts.parameters.len(),
             }
         });
 
         if !temporal_table_info.tables.contains(&table) {
             // Adds the kernel timestamp condition, so for the projected decision time, we use the
             // transaction time and vice versa.
-            self.statement
-                .where_expression
-                .add_condition(Condition::TimerangeContainsTimestamp(
+            self.statement.where_expression.add_condition(
+                Condition::TimeIntervalContainsTimestamp(
                     Expression::Column(
-                        Column::Entities(match self.time_projection.time_axis() {
-                            TimeAxis::DecisionTime => Entities::TransactionTime,
-                            TimeAxis::TransactionTime => Entities::DecisionTime,
-                        })
+                        Column::Entities(Entities::from_time_axis(
+                            self.time_projection.kernel_time_axis(),
+                        ))
                         .aliased(alias),
                     ),
-                    Expression::Parameter(temporal_table_info.parameter_index),
+                    Expression::Parameter(temporal_table_info.kernel_index),
+                ),
+            );
+            self.statement
+                .where_expression
+                .add_condition(Condition::Overlap(
+                    Expression::Column(
+                        Column::Entities(Entities::from_time_axis(
+                            self.time_projection.image_time_axis(),
+                        ))
+                        .aliased(alias),
+                    ),
+                    Expression::Parameter(temporal_table_info.image_index),
                 ));
             temporal_table_info.tables.insert(table);
         }
@@ -280,12 +289,11 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         self.pin_entity_table(alias);
         // Adds the image timestamp condition, so we use the same time axis as specified in the
         // projection.
-        let condition = Condition::TimerangeContainsTimestamp(
+        let condition = Condition::TimeIntervalContainsTimestamp(
             Expression::Column(
-                Column::Entities(match self.time_projection.time_axis() {
-                    TimeAxis::DecisionTime => Entities::DecisionTime,
-                    TimeAxis::TransactionTime => Entities::TransactionTime,
-                })
+                Column::Entities(Entities::from_time_axis(
+                    self.time_projection.image_time_axis(),
+                ))
                 .aliased(alias),
             ),
             Expression::Function(Function::Now),
@@ -376,13 +384,11 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                 // TODO: Remove special casing when correctly resolving time intervals in subgraphs.
                 //   see https://app.asana.com/0/0/1203701389454316/f
                 if column.column == Column::Entities(Entities::ProjectedTime) {
-                    let alias = column.alias;
-                    let column = match self.time_projection.time_axis() {
-                        TimeAxis::DecisionTime => Column::Entities(Entities::DecisionTime),
-                        TimeAxis::TransactionTime => Column::Entities(Entities::TransactionTime),
-                    };
                     Expression::Function(Function::Lower(Box::new(Expression::Column(
-                        column.aliased(alias),
+                        Column::Entities(Entities::from_time_axis(
+                            self.time_projection.image_time_axis(),
+                        ))
+                        .aliased(column.alias),
                     ))))
                 } else {
                     Expression::Column(column)
