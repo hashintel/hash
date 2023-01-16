@@ -72,12 +72,12 @@ export const getAllLatestPropertyTypesResolver: ResolverFn<
       timeProjection: {
         kernel: {
           axis: "transaction",
-          timestamp: undefined,
+          timestamp: null,
         },
         image: {
           axis: "decision",
-          start: undefined,
-          end: undefined,
+          start: null,
+          end: null,
         },
       },
     },
@@ -116,12 +116,12 @@ export const getPropertyTypeResolver: ResolverFn<
       timeProjection: {
         kernel: {
           axis: "transaction",
-          timestamp: undefined,
+          timestamp: null,
         },
         image: {
           axis: "decision",
-          start: undefined,
-          end: undefined,
+          start: null,
+          end: null,
         },
       },
     },
