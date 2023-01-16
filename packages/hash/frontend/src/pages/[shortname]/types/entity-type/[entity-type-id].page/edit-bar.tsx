@@ -71,6 +71,8 @@ export const EditBarContents = ({
   );
 };
 
+const EDIT_BAR_HEIGHT = 66;
+
 /**
  * The edit bar transitions its height in and out which can cause the contents
  * under it to shift position. This can provide a bad experience. This hook
@@ -161,7 +163,7 @@ export const useFreezeScrollWhileTransitioning = () => {
     };
 
     const start = (evt: TransitionEvent) => {
-      if (isRelevant(evt)) {
+      if (isRelevant(evt) && scroller.scrollTop <= EDIT_BAR_HEIGHT) {
         const rect = editBar.getBoundingClientRect();
 
         // If the user has scrolled far enough the edit bar is off-screen, the
@@ -198,12 +200,18 @@ export const useFreezeScrollWhileTransitioning = () => {
 };
 
 export const EditBarContainer = styled(Box)(({ theme }) => ({
-  height: 66,
+  height: EDIT_BAR_HEIGHT,
   backgroundColor: theme.palette.blue[70],
   color: theme.palette.white,
   display: "flex",
   alignItems: "center",
 }));
+
+export const EditBarCollapse = styled(Collapse)({
+  position: "sticky",
+  top: 0,
+  zIndex: 100,
+});
 
 export const EditBar = ({
   discardButtonProps,
@@ -219,7 +227,7 @@ export const EditBar = ({
   const ref = useFreezeScrollWhileTransitioning();
 
   return (
-    <Collapse in={visible} ref={ref}>
+    <EditBarCollapse in={visible} ref={ref}>
       <EditBarContainer>
         <EditBarContents
           icon={<PencilSimpleLine />}
@@ -235,6 +243,6 @@ export const EditBar = ({
           }}
         />
       </EditBarContainer>
-    </Collapse>
+    </EditBarCollapse>
   );
 };
