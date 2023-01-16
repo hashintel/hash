@@ -411,7 +411,7 @@ mod tests {
         } else {
             assert!(
                 !lhs.contains_interval(&rhs),
-                "{lhs:?} does not contain {rhs:?}, but reports so"
+                "{lhs:?} does not contain {rhs:?}, but `contains_interval` reports so"
             );
         }
 
