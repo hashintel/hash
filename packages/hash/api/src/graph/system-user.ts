@@ -37,14 +37,9 @@ export const ensureSystemUserAccountIdExists = async (params: {
   const { data: existingUserEntitiesSubgraph } =
     await graphApi.getEntitiesByQuery({
       filter: {
-        all: [
-          { equal: [{ path: ["version"] }, { parameter: "latest" }] },
-          {
-            equal: [
-              { path: ["type", "versionedUri"] },
-              { parameter: types.entityType.user.entityTypeId },
-            ],
-          },
+        equal: [
+          { path: ["type", "versionedUri"] },
+          { parameter: types.entityType.user.entityTypeId },
         ],
       },
       graphResolveDepths: {
@@ -56,6 +51,17 @@ export const ensureSystemUserAccountIdExists = async (params: {
         isOfType: { outgoing: 0 },
         hasLeftEntity: { outgoing: 0, incoming: 0 },
         hasRightEntity: { outgoing: 0, incoming: 0 },
+      },
+      timeProjection: {
+        kernel: {
+          axis: "transaction",
+          timestamp: undefined,
+        },
+        image: {
+          axis: "decision",
+          start: undefined,
+          end: undefined,
+        },
       },
     });
 
