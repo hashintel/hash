@@ -124,5 +124,5 @@ seed-users.json
 *.secrets.tfvars
 *.pem
 
-# Workspace-specific
+# Storybook
 **/storybook-static
