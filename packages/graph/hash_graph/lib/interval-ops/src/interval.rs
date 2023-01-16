@@ -406,7 +406,7 @@ mod tests {
         if lhs.merge(rhs) == lhs {
             assert!(
                 lhs.contains_interval(&rhs),
-                "{lhs:?} contains {rhs:?}, but does not report so"
+                "{lhs:?} contains {rhs:?}, but `contains_interval` reported otherwise"
             );
         } else {
             assert!(
