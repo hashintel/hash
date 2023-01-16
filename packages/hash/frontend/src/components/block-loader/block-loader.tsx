@@ -23,9 +23,9 @@ import {
 import { useBlockLoadedContext } from "../../blocks/on-block-loaded";
 import { useIsReadonlyMode } from "../../shared/readonly-mode";
 import { useBlockProtocolAggregateEntities } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-aggregate-entities";
+import { useBlockProtocolFileUpload } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-file-upload";
 import { useBlockProtocolGetEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
 import { useBlockProtocolUpdateEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
-import { useBlockProtocolFileUpload } from "../hooks/block-protocol-functions/use-block-protocol-file-upload";
 import { RemoteBlock } from "../remote-block/remote-block";
 import { fetchEmbedCode } from "./fetch-embed-code";
 
