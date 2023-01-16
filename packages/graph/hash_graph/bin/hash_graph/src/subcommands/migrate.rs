@@ -18,7 +18,7 @@ pub struct MigrateArgs {
     pub db_info: DatabaseConnectionInfo,
 }
 
-pub async fn mirate(args: MigrateArgs) -> Result<(), GraphError> {
+pub async fn migrate(args: MigrateArgs) -> Result<(), GraphError> {
     let log_args = args.log_config.clone();
     let _log_guard = init_logger(
         log_args.log_format,

@@ -11,7 +11,7 @@ use subcommands::{completions::completions, Subcommand};
 
 use crate::{
     args::Args,
-    subcommands::{migrate::mirate, server::server},
+    subcommands::{migrate::migrate, server::server},
 };
 
 #[tokio::main]
@@ -20,7 +20,7 @@ async fn main() -> Result<(), GraphError> {
 
     match args.subcommand {
         Subcommand::Server(args) => server(args).await,
-        Subcommand::Migrate(args) => mirate(args).await,
+        Subcommand::Migrate(args) => migrate(args).await,
         Subcommand::Completions(args) => completions(args),
     }
 }
