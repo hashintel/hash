@@ -18,10 +18,12 @@ export * from "./aws-s3-storage-provider";
 export * from "./external-storage-provider";
 export * from "./storage-provider";
 
-// S3-like APIs have a 7 day upper bound.
+// S3-like APIs have a upper bound.
+// 7 days.
 const DOWNLOAD_URL_EXPIRATION_SECONDS = 60 * 60 * 24 * 7;
 // An offset for the cached URL to prevent serving invalid URL
-const DOWNLOAD_URL_CACHE_OFFSET = 60 * 60 * 1;
+// 1 hour.
+const DOWNLOAD_URL_CACHE_OFFSET_SECONDS = 60 * 60 * 1;
 
 /** Helper type to create a typed "dictionary" of storage types to their storage provider instance */
 export type StorageProviderLookup = Partial<
@@ -132,7 +134,7 @@ export const setupFileProxyHanldere = (
         await cache.setExpiring(
           key,
           presignUrl,
-          DOWNLOAD_URL_EXPIRATION_SECONDS - DOWNLOAD_URL_CACHE_OFFSET,
+          DOWNLOAD_URL_EXPIRATION_SECONDS - DOWNLOAD_URL_CACHE_OFFSET_SECONDS,
         );
       } catch (error) {
         logger.warn(

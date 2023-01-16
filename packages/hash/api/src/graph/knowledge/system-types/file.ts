@@ -8,8 +8,7 @@ import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
 import { createEntity, CreateEntityParams } from "../primitive/entity";
 
-const MAX_FILE_SIZE_BYTES = 1000 * 1000 * 1000;
-
+// 1800 seconds
 const UPLOAD_URL_EXPIRATION_SECONDS = 60 * 30;
 
 export type FileKey =
@@ -91,15 +90,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   params,
 ): Promise<{ presignedPost: PresignedPostUpload; entity: Entity }> => {
   const { uploadProvider } = ctx;
-  const { ownedById, actorId, mediaType, size } = params;
-
-  /**
-   * @todo we want the downstream upload services to enforce the given size
-   * limit, otherwise the size limits are meaningless
-   */
-  if (size > MAX_FILE_SIZE_BYTES) {
-    throw new Error("The file is heavier than the maximum allowed file size");
-  }
+  const { ownedById, actorId, mediaType } = params;
 
   const fileIdentifier = genId();
 
