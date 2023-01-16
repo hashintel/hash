@@ -53,8 +53,8 @@ pub enum Token {
     ///
     /// this is a separate variant, because there is no guarantee about the width of a usize/isize,
     /// it depends on the size to reference a memory address on the host system. There might be
-    /// systems that use 128 bit in the future that rusts supports, which means we too need to
-    /// support those, by special casing isize/usize.
+    /// systems that use 128 bit in the future that rust supports, which means we too need to
+    /// support those, by special casing usize.
     ///
     /// ```
     /// use deer_desert::{assert_tokens, Token};
