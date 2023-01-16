@@ -18,6 +18,9 @@ run_task = [
     { name = ["test-task"] }
 ]
 
+[tasks.test-task-doc]
+condition = { profiles = ["development"] }
+
 [tasks.miri]
 clear = true
 command = "echo"
