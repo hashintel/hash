@@ -7,7 +7,6 @@ on:
       - main
 
 env:
-  FORCE_COLOR: "1" ## https://www.npmjs.com/package/chalk#supportsColor
   TURBO_FORCE: true ## Turbo caching is disabled to avoid issues false cache hits (https://app.asana.com/0/1203193968491715/1203429129383865/f)
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: hashintel
@@ -62,6 +61,8 @@ jobs:
 
       - name: Run yarn lint:license-in-workspaces
         if: ${{ success() || failure() }}
+        env:
+          FORCE_COLOR: "1" ## https://www.npmjs.com/package/chalk#supportsColor
         run: |
           if ! yarn lint:license-in-workspaces; then
             echo ''
