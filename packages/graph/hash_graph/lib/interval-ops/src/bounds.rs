@@ -173,12 +173,12 @@ where
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-enum BoundType {
+pub enum BoundType {
     Lower,
     Upper,
 }
 
-fn compare_bounds<T: PartialOrd>(
+pub fn compare_bounds<T: PartialOrd>(
     lhs: Bound<&T>,
     rhs: Bound<&T>,
     lhs_type: BoundType,
