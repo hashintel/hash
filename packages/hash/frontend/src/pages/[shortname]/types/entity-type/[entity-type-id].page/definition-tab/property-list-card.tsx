@@ -127,20 +127,18 @@ const CollapsibleTableRow = ({
 };
 
 const DisabledCheckboxCell = ({
+  title,
   checked,
   width,
   sx,
 }: {
+  title: string;
   checked?: boolean;
   width: number;
 } & TableCellProps) => {
   return (
     <EntityTypeTableCenteredCell width={width}>
-      <Tooltip
-        title="Can't edit this on the entity type level"
-        placement="top"
-        disableInteractive
-      >
+      <Tooltip title={title} placement="top" disableInteractive>
         <Box
           sx={[
             {
@@ -208,6 +206,7 @@ const PropertyRow = ({
   isRequired,
   depth = 0,
   lines = [],
+  parentPropertyName,
   allowArraysTableCell,
   requiredTableCell,
   menuTableCell,
@@ -218,6 +217,7 @@ const PropertyRow = ({
   isRequired?: boolean;
   depth?: number;
   lines?: boolean[];
+  parentPropertyName?: string;
   allowArraysTableCell?: ReactNode;
   requiredTableCell?: ReactNode;
   menuTableCell?: ReactNode;
@@ -340,6 +340,7 @@ const PropertyRow = ({
 
         {allowArraysTableCell ?? (
           <DisabledCheckboxCell
+            title={`Edit the '${parentPropertyName}' property to change this`}
             checked={isArray}
             width={MULTIPLE_VALUES_CELL_WIDTH}
             sx={{ pr: 1 }}
@@ -348,6 +349,7 @@ const PropertyRow = ({
 
         {requiredTableCell ?? (
           <DisabledCheckboxCell
+            title={`Edit the '${parentPropertyName}' property to change this`}
             checked={isRequired}
             width={REQUIRED_CELL_WIDTH}
           />
@@ -377,6 +379,7 @@ const PropertyRow = ({
               lines={[...lines, pos !== children.length - 1]}
               isArray={prop.array}
               isRequired={prop.required}
+              parentPropertyName={property.title}
             />
           ))}
         </CollapsibleTableRow>

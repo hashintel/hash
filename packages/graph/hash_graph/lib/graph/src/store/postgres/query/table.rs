@@ -4,7 +4,7 @@ use std::{
     hash::Hash,
 };
 
-use crate::store::postgres::query::Transpile;
+use crate::{identifier::time::TimeAxis, store::postgres::query::Transpile};
 
 /// The name of a [`Table`] in the Postgres database.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -166,6 +166,13 @@ impl Entities<'_> {
             | Self::RightEntityOwnedById
             | Self::LeftToRightOrder
             | Self::RightToLeftOrder => true,
+        }
+    }
+
+    pub fn from_time_axis(time_axis: TimeAxis) -> Self {
+        match time_axis {
+            TimeAxis::DecisionTime => Self::DecisionTime,
+            TimeAxis::TransactionTime => Self::TransactionTime,
         }
     }
 }

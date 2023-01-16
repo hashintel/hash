@@ -13,7 +13,7 @@ use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
         ontology::OntologyTypeEditionId,
-        time::{DecisionTime, Timestamp, VersionTimespan},
+        time::{DecisionTime, Timestamp, VersionInterval},
         EntityVertexId,
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
@@ -53,7 +53,7 @@ impl<C: AsClient> PostgresStore<C> {
                 .knowledge_dependency_map
                 .insert(&entity_vertex_id, current_resolve_depth);
 
-            let time_axis = subgraph.resolved_time_projection.time_axis();
+            let time_axis = subgraph.resolved_time_projection.image_time_axis();
 
             let entity: &Entity = match dependency_status {
                 DependencyStatus::Unresolved => {
@@ -100,7 +100,7 @@ impl<C: AsClient> PostgresStore<C> {
             if current_resolve_depth.has_left_entity.incoming > 0 {
                 for outgoing_link_entity in <Self as Read<Entity>>::read(
                     self,
-                    &Filter::for_outgoing_link_by_source_entity_vertex_id(entity_vertex_id),
+                    &Filter::for_outgoing_link_by_source_entity_id(entity_vertex_id.base_id()),
                     &subgraph.resolved_time_projection,
                 )
                 .await?
@@ -138,7 +138,7 @@ impl<C: AsClient> PostgresStore<C> {
             if current_resolve_depth.has_right_entity.incoming > 0 {
                 for incoming_link_entity in <Self as Read<Entity>>::read(
                     self,
-                    &Filter::for_incoming_link_by_source_entity_vertex_id(entity_vertex_id),
+                    &Filter::for_incoming_link_by_source_entity_id(entity_vertex_id.base_id()),
                     &subgraph.resolved_time_projection,
                 )
                 .await?
@@ -176,7 +176,7 @@ impl<C: AsClient> PostgresStore<C> {
             if current_resolve_depth.has_left_entity.outgoing > 0 {
                 for left_entity in <Self as Read<Entity>>::read(
                     self,
-                    &Filter::for_left_entity_by_entity_vertex_id(entity_vertex_id),
+                    &Filter::for_left_entity_by_entity_id(entity_vertex_id.base_id()),
                     &subgraph.resolved_time_projection,
                 )
                 .await?
@@ -214,7 +214,7 @@ impl<C: AsClient> PostgresStore<C> {
             if current_resolve_depth.has_right_entity.outgoing > 0 {
                 for right_entity in <Self as Read<Entity>>::read(
                     self,
-                    &Filter::for_right_entity_by_entity_vertex_id(entity_vertex_id),
+                    &Filter::for_right_entity_by_entity_id(entity_vertex_id.base_id()),
                     &subgraph.resolved_time_projection,
                 )
                 .await?
@@ -339,8 +339,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(EntityMetadata::new(
             EntityEditionId::new(entity_id, EntityRecordId::new(row.get(0))),
             EntityVersion::new(
-                VersionTimespan::from_anonymous(row.get(1)),
-                VersionTimespan::from_anonymous(row.get(2)),
+                VersionInterval::from_anonymous(row.get(1)),
+                VersionInterval::from_anonymous(row.get(2)),
             ),
             entity_type_id,
             ProvenanceMetadata::new(updated_by_id),
@@ -451,7 +451,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             time_projection.clone().resolve(),
         );
         let mut dependency_context = DependencyContext::default();
-        let time_axis = subgraph.resolved_time_projection.time_axis();
+        let time_axis = subgraph.resolved_time_projection.image_time_axis();
 
         for entity in Read::<Entity>::read(self, filter, &subgraph.resolved_time_projection).await?
         {
@@ -565,8 +565,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(EntityMetadata::new(
             EntityEditionId::new(entity_id, EntityRecordId::new(row.get(0))),
             EntityVersion::new(
-                VersionTimespan::from_anonymous(row.get(1)),
-                VersionTimespan::from_anonymous(row.get(2)),
+                VersionInterval::from_anonymous(row.get(1)),
+                VersionInterval::from_anonymous(row.get(2)),
             ),
             entity_type_id,
             ProvenanceMetadata::new(updated_by_id),

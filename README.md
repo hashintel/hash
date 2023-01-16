@@ -88,7 +88,7 @@ We're also [hiring] for a number of key roles. If you contribute to HASH's publi
 
 ## [![a](/.github/assets/gh_icon_license_20px-base.svg)][gh-license] &nbsp; License
 
-Please see [LICENSE](LICENSE.md) for more information about the terms under which the various parts of this repository are made available.
+The vast majority of this repository is published as free, open-source software. Please see [LICENSE](LICENSE.md) for more information about the specific licenses under which the different parts are available.
 
 ## [![a](/.github/assets/gh_icon_security_20px-base.svg)][gh-security] &nbsp; Security
 

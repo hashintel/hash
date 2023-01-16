@@ -203,9 +203,20 @@ describe("Entity CRU", () => {
     const allEntitys = await graphApi
       .getEntitiesByQuery({
         filter: {
-          all: [{ equal: [{ path: ["version"] }, { parameter: "latest" }] }],
+          all: [],
         },
         graphResolveDepths: zeroedGraphResolveDepths,
+        timeProjection: {
+          kernel: {
+            axis: "transaction",
+            timestamp: undefined,
+          },
+          image: {
+            axis: "decision",
+            start: undefined,
+            end: undefined,
+          },
+        },
       })
       .then(({ data }) =>
         getRootsAsEntities(

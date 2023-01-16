@@ -8,6 +8,7 @@
     "validate": "openapi-generator-cli validate"
   },
   "devDependencies": {
-    "@openapitools/openapi-generator-cli": "2.5.2"
+    "@openapitools/openapi-generator-cli": "2.5.2",
+    "httpyac": "5.8.2"
   }
 }
