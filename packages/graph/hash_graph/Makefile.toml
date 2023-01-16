@@ -14,7 +14,7 @@ CARGO_MAKE_CARGO_PROFILE = "production"
 
 [tasks.test]
 run_task = [
-    { name = ["test-task", "yarn-install-migrations", "deployment-up", "test-integration", "generate-openapi-client", "deployment-down"], condition = { env_true = ["CARGO_MAKE_CI"] } },
+    { name = ["test-task", "yarn-install-openapi", "deployment-up", "test-integration", "generate-openapi-client", "deployment-down"], condition = { env_true = ["CARGO_MAKE_CI"] } },
     { name = ["test-task"] }
 ]
 
@@ -34,7 +34,7 @@ dependencies = ["install-cargo-nextest"]
 
 [tasks.coverage]
 run_task = [
-    { name = ["yarn-install-migrations", "deployment-up", "coverage-task", "coverage-integration", "deployment-down", "coverage-report"], condition = { env_true = ["CARGO_MAKE_CI"] } },
+    { name = ["deployment-up", "coverage-task", "coverage-integration", "deployment-down", "coverage-report"], condition = { env_true = ["CARGO_MAKE_CI"] } },
     { name = ["coverage-task", "coverage-integration", "coverage-report"] },
 ]
 
@@ -59,7 +59,7 @@ script = """
 set -eo pipefail
 
 cargo build
-cargo run&
+cargo run -- server &
 pid=$!
 # Ensure the webserver process is killed regardless of script outcome.
 trap "kill $pid" 0 ERR
