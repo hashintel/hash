@@ -23,7 +23,7 @@ impl<C: AsClient<Client = Client>> StoreMigration for PostgresStore<C> {
             .change_context(MigrationError)?
             .applied_migrations()
             .iter()
-            .map(|migration| migration.into())
+            .map(Migration::from)
             .collect();
 
         Ok(run_migrations)
@@ -33,7 +33,7 @@ impl<C: AsClient<Client = Client>> StoreMigration for PostgresStore<C> {
         let all_migrations = embedded::migrations::runner()
             .get_migrations()
             .iter()
-            .map(|migration| migration.into())
+            .map(Migration::from)
             .collect();
 
         Ok(all_migrations)
@@ -46,7 +46,7 @@ impl<C: AsClient<Client = Client>> StoreMigration for PostgresStore<C> {
             .into_report()
             .change_context(MigrationError)?
             .iter()
-            .map(|migration| migration.into())
+            .map(Migration::from)
             .collect();
 
         Ok(applied_migrations)
