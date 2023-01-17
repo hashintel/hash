@@ -1,4 +1,5 @@
 import {
+  EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
   OwnedById,
