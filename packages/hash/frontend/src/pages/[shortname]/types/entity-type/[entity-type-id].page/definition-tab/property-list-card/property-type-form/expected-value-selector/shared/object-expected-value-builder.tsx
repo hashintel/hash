@@ -1,4 +1,4 @@
-import { extractBaseUri, VersionedUri } from "@blockprotocol/type-system";
+import { extractBaseUri } from "@blockprotocol/type-system";
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
