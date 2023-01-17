@@ -1,3 +1,4 @@
+import { BaseUri } from "@blockprotocol/type-system";
 import {
   Button,
   Chip,
@@ -84,13 +85,15 @@ const ExpectedValueSelectorDropdown = ({ children, ...props }: PaperProps) => {
 };
 
 const ExpectedValueSelector: ForwardRefRenderFunction<
-  HTMLInputElement
-> = () => {
+  HTMLInputElement,
+  { propertyTypeBaseUri: BaseUri }
+> = ({ propertyTypeBaseUri }) => {
   const propertyTypeFormMethods = useFormContext<PropertyTypeFormValues>();
 
   const expectedValueSelectorFormMethods =
     useForm<ExpectedValueSelectorFormValues>({
       defaultValues: {
+        propertyTypeBaseUri,
         flattenedCustomExpectedValueList: {},
       },
       shouldFocusError: true,

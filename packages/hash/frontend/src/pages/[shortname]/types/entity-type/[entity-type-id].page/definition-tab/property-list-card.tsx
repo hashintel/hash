@@ -169,6 +169,7 @@ export const PropertyTypeRow = ({
       </EntityTypeTableRow>
       <TypeFormModal
         as={PropertyTypeForm}
+        baseUri={extractBaseUri($id)}
         popupState={editModalPopupState}
         modalTitle={<>Edit Property Type</>}
         onSubmit={async (data) => {
