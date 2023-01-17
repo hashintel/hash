@@ -116,7 +116,6 @@ where
                     // resolved for the full interval anyway.
                     DependencyStatus::Unresolved(*current_depths, current_interval.clone())
                 } else if old_interval.contains_interval(&new_interval) {
-                    tracing::info!("{old_interval:?} contains {new_interval:?}");
                     // The dependency is already resolved for the required interval
                     // old: [-----)
                     // new:  [---)
