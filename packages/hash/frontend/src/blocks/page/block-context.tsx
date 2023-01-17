@@ -2,8 +2,6 @@ import { createContext, useContext } from "react";
 
 type BlockContextType = {
   id: string;
-  showDataMappingUi: boolean;
-  setShowDataMappingUi: (shouldShow: boolean) => void;
   error: boolean;
   setError: (error: boolean) => void;
 };
