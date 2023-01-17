@@ -89,7 +89,7 @@ struct SerializeReference {
     ref_: String,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Reference {
     id: usize,
     name: &'static str,
@@ -190,6 +190,18 @@ impl Document {
     }
 
     #[must_use]
+    pub fn get(&self, reference: Reference) -> Option<&Schema> {
+        // TODO: We're able to optimize this via a `BiMap`
+        let type_id = self
+            .references
+            .iter()
+            .find(|(_, other)| **other == reference)
+            .map(|(type_id, _)| type_id)?;
+
+        self.schemas.get(type_id)
+    }
+
+    #[must_use]
     pub fn reference<T: Reflection + ?Sized>(id: usize) -> Reference {
         Reference {
             id,
@@ -245,34 +257,11 @@ impl Serialize for Document {
 pub(crate) mod visitor {
     use crate::{schema::Reflection, Document, Schema};
 
-    pub(crate) struct NullSchema;
-    impl Reflection for NullSchema {
-        fn schema(_: &mut Document) -> Schema {
-            Schema::new("null")
-        }
-    }
-
     // TODO: below here these are temporary until stdlib is implemented
     pub(crate) struct BoolSchema;
     impl Reflection for BoolSchema {
         fn schema(_: &mut Document) -> Schema {
             Schema::new("boolean")
-        }
-    }
-
-    pub(crate) struct NumberSchema;
-    impl Reflection for NumberSchema {
-        fn schema(_: &mut Document) -> Schema {
-            Schema::new("number")
-        }
-    }
-
-    pub(crate) struct CharSchema;
-    impl Reflection for CharSchema {
-        fn schema(_: &mut Document) -> Schema {
-            Schema::new("string")
-                .with("minLength", 1)
-                .with("maxLength", 1)
         }
     }
 
@@ -304,114 +293,6 @@ pub(crate) mod visitor {
             Schema::new("object")
         }
     }
-
-    pub(crate) struct I8Schema;
-    impl Reflection for I8Schema {
-        fn schema(_: &mut Document) -> Schema {
-            Schema::new("integer")
-                .with("minimum", i8::MIN)
-                .with("maximum", i8::MAX)
-        }
-    }
-
-    pub(crate) struct I16Schema;
-    impl Reflection for I16Schema {
-        fn schema(_: &mut Document) -> Schema {
-            Schema::new("integer")
-                .with("minimum", i16::MIN)
-                .with("maximum", i16::MAX)
-        }
-    }
-
-    pub(crate) struct I32Schema;
-    impl Reflection for I32Schema {
-        fn schema(_: &mut Document) -> Schema {
-            Schema::new("integer")
-                .with("minimum", i32::MIN)
-                .with("maximum", i32::MAX)
-        }
-    }
-
-    pub(crate) struct I64Schema;
-    impl Reflection for I64Schema {
-        fn schema(_: &mut Document) -> Schema {
-            Schema::new("integer")
-                .with("minimum", i64::MIN)
-                .with("maximum", i64::MAX)
-        }
-    }
-
-    pub(crate) struct I128Schema;
-    impl Reflection for I128Schema {
-        fn schema(_: &mut Document) -> Schema {
-            Schema::new("integer")
-                .with("minimum", i128::MIN)
-                .with("maximum", i128::MAX)
-        }
-    }
-
-    pub(crate) struct ISizeSchema;
-    impl Reflection for ISizeSchema {
-        fn schema(_: &mut Document) -> Schema {
-            Schema::new("integer")
-                .with("minimum", isize::MIN)
-                .with("maximum", isize::MAX)
-        }
-    }
-
-    pub(crate) struct U8Schema;
-    impl Reflection for U8Schema {
-        fn schema(_: &mut Document) -> Schema {
-            Schema::new("integer")
-                .with("minimum", u8::MIN)
-                .with("maximum", u8::MAX)
-        }
-    }
-
-    pub(crate) struct U16Schema;
-    impl Reflection for U16Schema {
-        fn schema(_: &mut Document) -> Schema {
-            Schema::new("integer")
-                .with("minimum", u16::MIN)
-                .with("maximum", u16::MAX)
-        }
-    }
-
-    pub(crate) struct U32Schema;
-    impl Reflection for U32Schema {
-        fn schema(_: &mut Document) -> Schema {
-            Schema::new("integer")
-                .with("minimum", u32::MIN)
-                .with("maximum", u32::MAX)
-        }
-    }
-
-    pub(crate) struct U64Schema;
-    impl Reflection for U64Schema {
-        fn schema(_: &mut Document) -> Schema {
-            Schema::new("integer")
-                .with("minimum", u64::MIN)
-                .with("maximum", u64::MAX)
-        }
-    }
-
-    pub(crate) struct U128Schema;
-    impl Reflection for U128Schema {
-        fn schema(_: &mut Document) -> Schema {
-            Schema::new("integer")
-                .with("minimum", u128::MIN)
-                .with("maximum", u128::MAX)
-        }
-    }
-
-    pub(crate) struct USizeSchema;
-    impl Reflection for USizeSchema {
-        fn schema(_: &mut Document) -> Schema {
-            Schema::new("integer")
-                .with("minimum", usize::MIN)
-                .with("maximum", usize::MAX)
-        }
-    }
 }
 
 #[cfg(test)]
@@ -419,11 +300,9 @@ mod tests {
     use alloc::{boxed::Box, collections::BTreeMap, vec::Vec};
 
     use serde_json::{json, to_value};
+    use similar_asserts::assert_serde_eq;
 
-    use crate::{
-        schema::visitor::{U16Schema, U32Schema, U8Schema},
-        Document, Reflection, Schema,
-    };
+    use crate::{Document, Reflection, Schema};
 
     struct U8;
 
@@ -569,10 +448,10 @@ mod tests {
         fn schema(doc: &mut Document) -> Schema {
             let mut properties = BTreeMap::new();
             // TODO: once `Describe` is implemented for `core` types replace this temporary type
-            properties.insert("a", doc.add::<U8Schema>());
-            properties.insert("b", doc.add::<U16Schema>());
-            properties.insert("c", doc.add::<U32Schema>());
-            properties.insert("d", doc.add::<U16Schema>());
+            properties.insert("a", doc.add::<u8>());
+            properties.insert("b", doc.add::<u16>());
+            properties.insert("c", doc.add::<u32>());
+            properties.insert("d", doc.add::<u16>());
             properties.insert("next", doc.add::<VecVertex>());
 
             Schema::new("object")
@@ -587,7 +466,7 @@ mod tests {
         let document = Vertex::document();
         let document = to_value(document).expect("should be valid json");
 
-        assert_eq!(
+        assert_serde_eq!(
             document,
             json!({
               "$ref": "#/$defs/0000-deer::schema::tests::Vertex",
@@ -598,12 +477,12 @@ mod tests {
                   },
                   "type": "array"
                 },
-                "0003-deer::schema::visitor::U32Schema": {
+                "0003-u32": {
                   "maximum": u32::MAX,
                   "minimum": 0,
                   "type": "integer"
                 },
-                "0001-deer::schema::visitor::U8Schema": {
+                "0001-u8": {
                   "maximum": u8::MAX,
                   "minimum": 0,
                   "type": "integer"
@@ -612,16 +491,16 @@ mod tests {
                   "additionalProperties": false,
                   "properties": {
                     "a": {
-                      "$ref": "#/$defs/0001-deer::schema::visitor::U8Schema"
+                      "$ref": "#/$defs/0001-u8"
                     },
                     "b": {
-                      "$ref": "#/$defs/0002-deer::schema::visitor::U16Schema"
+                      "$ref": "#/$defs/0002-u16"
                     },
                     "c": {
-                      "$ref": "#/$defs/0003-deer::schema::visitor::U32Schema"
+                      "$ref": "#/$defs/0003-u32"
                     },
                     "d": {
-                      "$ref": "#/$defs/0002-deer::schema::visitor::U16Schema"
+                      "$ref": "#/$defs/0002-u16"
                     },
                     "next": {
                       "$ref": "#/$defs/0004-deer::schema::tests::VecVertex"
@@ -629,7 +508,7 @@ mod tests {
                   },
                   "type": "object"
                 },
-                "0002-deer::schema::visitor::U16Schema": {
+                "0002-u16": {
                   "maximum": u16::MAX,
                   "minimum": 0,
                   "type": "integer"
