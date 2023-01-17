@@ -22,6 +22,7 @@ import {
 } from "@local/hash-isomorphic-utils/prosemirror";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { textBlockNodeToEntityProperties } from "@local/hash-isomorphic-utils/text";
+import { EntityId } from "@local/hash-isomorphic-utils/types";
 import * as Sentry from "@sentry/nextjs";
 import { Node } from "prosemirror-model";
 import { TextSelection, Transaction } from "prosemirror-state";
@@ -191,7 +192,9 @@ export class ComponentView implements NodeView {
             >
               <BlockLoader
                 key={entityId} // reset the component state when the entity changes
-                blockEntityId={childEntity?.metadata.editionId.baseId} // @todo make this always defined
+                blockEntityId={
+                  childEntity?.metadata.editionId.baseId as EntityId | undefined
+                } // @todo make this always defined
                 blockEntityTypeId={this.block.meta.schema as VersionedUri} // @todo-0.3 remove when @blockprotocol/core types updated
                 blockMetadata={this.block.meta}
                 // @todo uncomment this when sandbox is fixed
