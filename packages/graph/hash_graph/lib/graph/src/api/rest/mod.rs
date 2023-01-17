@@ -47,7 +47,7 @@ use crate::{
             DecisionTime, DecisionTimeImage, DecisionTimeKernel, DecisionTimeProjection,
             TimeIntervalBound, TimeProjection, Timestamp, TransactionTime, TransactionTimeImage,
             TransactionTimeKernel, TransactionTimeProjection, UnresolvedDecisionTimeImage,
-            UnresolvedDecisionTimeKernel, UnresolvedDecisionTimeProjection, UnresolvedTimeInterval,
+            UnresolvedDecisionTimeKernel, UnresolvedDecisionTimeProjection,
             UnresolvedTimeProjection, UnresolvedTransactionTimeImage,
             UnresolvedTransactionTimeKernel, UnresolvedTransactionTimeProjection, VersionInterval,
         },
