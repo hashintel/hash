@@ -60,7 +60,7 @@
       "depNameTemplate": "rust",
       "lookupNameTemplate": "rust-lang/rust-analyzer",
       "datasourceTemplate": "github-releases",
-      "versioningTemplate": "loose"
+      "versioningTemplate": "git"
     }
   ]
 }
