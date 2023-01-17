@@ -4,8 +4,14 @@ use core::fmt::{Display, Formatter};
 #[cfg(not(feature = "arbitrary-precision"))]
 use core::ops::Neg;
 
+use error_stack::ResultExt;
 use num_traits::{FromPrimitive, ToPrimitive};
 use serde::{Serialize, Serializer};
+
+use crate::{
+    error::{DeserializeError, VisitorError},
+    Deserialize, Deserializer, Document, Reflection, Schema,
+};
 
 // This indirection helps us to "disguise" the underlying storage, enabling us to seamlessly convert
 // and change the underlying storage at a later point in time, if required.
@@ -363,5 +369,37 @@ impl Serialize for Number {
         let mut s = serializer.serialize_struct(TOKEN, 1)?;
         s.serialize_field(TOKEN, &self.0)?;
         s.end()
+    }
+}
+
+impl Reflection for Number {
+    fn schema(_: &mut Document) -> Schema {
+        Schema::new("number")
+    }
+}
+
+impl<'de> Deserialize<'de> for Number {
+    type Reflection = Self;
+
+    fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
+        struct Visitor;
+
+        impl<'de> crate::Visitor<'de> for Visitor {
+            type Value = Number;
+
+            fn expecting(&self) -> Document {
+                Number::reflection()
+            }
+
+            fn visit_number(self, v: Number) -> error_stack::Result<Self::Value, VisitorError> {
+                Ok(v)
+            }
+
+            // TODO: visit_object, needs `deserialize_any`, first need to make decision which token
+            // to use!
+        }
+
+        de.deserialize_number(Visitor)
+            .change_context(DeserializeError)
     }
 }

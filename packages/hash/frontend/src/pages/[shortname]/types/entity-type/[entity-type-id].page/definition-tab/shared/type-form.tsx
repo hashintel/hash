@@ -345,6 +345,7 @@ export const TypeForm = <T extends TypeFormDefaults>({
         onSubmit={(event) => {
           event.stopPropagation(); // stop the parent submit being triggered
 
+          popupState.close();
           void handleSubmit(event);
         }}
       >

@@ -80,10 +80,11 @@ impl<'de> Deserialize<'de> for EntityId {
 }
 
 impl ToSchema for EntityId {
-    fn schema() -> openapi::Schema {
+    fn schema() -> openapi::RefOr<openapi::Schema> {
         openapi::Schema::Object(openapi::schema::Object::with_type(
             openapi::SchemaType::String,
         ))
+        .into()
     }
 }
 
@@ -95,7 +96,7 @@ pub struct EntityVersion {
 }
 
 impl ToSchema for EntityVersion {
-    fn schema() -> openapi::Schema {
+    fn schema() -> openapi::RefOr<openapi::Schema> {
         openapi::ObjectBuilder::new()
             .property(
                 "decisionTime",

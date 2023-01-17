@@ -102,7 +102,7 @@ export const setupStorageProviders = (
  * @param storageProvider - the provider we're using for file storage
  * @param cache - a cache to store presigned URLs so we don't needlessly create URLs for every download
  */
-export const setupFileProxyHanlder = (
+export const setupFileProxyHandler = (
   app: Express,
   storageProvider: StorageProvider,
   cache: CacheAdapter,
