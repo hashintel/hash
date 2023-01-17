@@ -2,6 +2,7 @@
 name = "deer"
 version = "0.0.0"
 edition = "2021"
+exclude = ["package.json"]
 publish = false
 
 [dependencies]
