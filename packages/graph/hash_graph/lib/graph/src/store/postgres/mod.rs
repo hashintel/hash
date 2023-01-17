@@ -124,10 +124,19 @@ where
                 } else if new_interval.contains_interval(&old_interval)
                     || new_interval.is_adjacent_to(&old_interval)
                 {
-                    // The dependency is already resolved, but not for the required interval or the
-                    // intervals are adjacent so we only have to resolve the new interval
-                    // old:  [---)   |  [---)
-                    // new: [-----)  |      [---)
+                    // The dependency is already resolved, but not for the required interval. If the
+                    // old interval is contained in the new interval, this means, that a portion of
+                    // the new interval has already been resolved, but not all of it. Ideally we
+                    // only want to resolve the symmetric difference of `new - old`, but we don't
+                    // have a way to store different resolve depths for different intervals for the
+                    // same identifier. For simplicity, we require to resolve the full interval.
+
+                    //         |  contains   |  adjacent
+                    // old     |    [---)    | [---)
+                    // new     | [---------) |     [---)
+                    // ========|=============|===========
+                    // optimal | [--)   [--) |     [---)
+                    // current | [---------) |     [---)
                     DependencyStatus::Unresolved(*current_depths, new_interval)
                 } else if old_interval.overlaps(&new_interval) {
                     // The time intervals either overlap or are disjoint, so only have to resolve
