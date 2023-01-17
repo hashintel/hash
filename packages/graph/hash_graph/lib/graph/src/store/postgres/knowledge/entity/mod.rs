@@ -71,13 +71,11 @@ impl<C: AsClient> PostgresStore<C> {
             // interval. We only want to resolve the entity further for the overlap of these two
             // intervals.
             let Some(mut intersected_time_projection) = time_projection.intersect_image(version_interval) else {
-                // The entity is not in the time projection, so we don't need to resolve it.
-                // This should never happen as the time projection is based on this entity's
-                // version interval, but we emit a warning just in case.
-                tracing::warn!(
-                    entity_id = ?entity_vertex_id.base_id(),
-                    "entity is not in the time projection"
-                );
+                // `traverse_entity` is called with the returned entities from `read` with
+                // `time_projection`. This implies, that the version interval of `entity` is
+                // overlaps with `time_projection`. `intersect_image` returns `None` if there are
+                // no overlapping points, so this should never happen.
+                unreachable!("the version interval of the entity does not overlap with the time projection");
                 return Ok(());
             };
 
