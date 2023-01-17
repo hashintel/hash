@@ -122,7 +122,7 @@ where
                     // new:  [---)
                     DependencyStatus::Resolved
                 } else if new_interval.contains_interval(&old_interval)
-                    | new_interval.is_adjacent_to(&old_interval)
+                    || new_interval.is_adjacent_to(&old_interval)
                 {
                     // The dependency is already resolved, but not for the required interval or the
                     // intervals are adjacent so we only have to resolve the new interval
