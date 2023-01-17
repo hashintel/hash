@@ -53,13 +53,14 @@
   ],
   "regexManagers": [
     {
-      "fileMatch": ["rust-toolchain\\.toml?$"],
+      "fileMatch": ["(^|/)rust-toolchain\\.toml?$"],
       "matchStrings": [
         "channel\\s*=\\s*\"nightly-(?<currentValue>\\d+-\\d+-\\d+)\""
       ],
       "depNameTemplate": "rust",
       "lookupNameTemplate": "rust-lang/rust-analyzer",
-      "datasourceTemplate": "github-releases"
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "loose"
     }
   ]
 }
