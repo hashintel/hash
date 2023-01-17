@@ -59,8 +59,7 @@
       ],
       "depNameTemplate": "rust",
       "lookupNameTemplate": "rust-lang/rust-analyzer",
-      "datasourceTemplate": "github-releases",
-      "versioningTemplate": "regex:^(?<major>\\d+)-(?<minor>\\d+)-(?<patch>\\d+)"
+      "datasourceTemplate": "github-releases"
     }
   ]
 }
