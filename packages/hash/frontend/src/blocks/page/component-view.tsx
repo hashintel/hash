@@ -1,3 +1,4 @@
+import { VersionedUri } from "@blockprotocol/type-system";
 import { HashBlock } from "@hashintel/hash-shared/blocks";
 import {
   BlockEntity,
@@ -21,6 +22,7 @@ import {
 } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorManager } from "@hashintel/hash-shared/prosemirror-manager";
 import { textBlockNodeToEntityProperties } from "@hashintel/hash-shared/text";
+import { EntityId } from "@hashintel/hash-shared/types";
 import * as Sentry from "@sentry/nextjs";
 import { Node } from "prosemirror-model";
 import { TextSelection, Transaction } from "prosemirror-state";
@@ -34,12 +36,6 @@ import {
   SuggesterAction,
   suggesterPluginKey,
 } from "./create-suggester/create-suggester";
-
-/**
- * Allows us to have a stable reference for properties where we do not yet
- * have a saved entity
- */
-const BLANK_PROPERTIES = {};
 
 const getChildEntity = (
   entity: DraftEntity | null | undefined,
@@ -195,21 +191,16 @@ export class ComponentView implements NodeView {
               }}
             >
               <BlockLoader
-                key={entityId} // reset the component state when the entity changes, e.g. to reset the data map state
-                blockEntityId={entityId}
+                key={entityId} // reset the component state when the entity changes
+                blockEntityId={
+                  childEntity?.metadata.editionId.baseId as EntityId | undefined
+                } // @todo make this always defined
+                blockEntityTypeId={this.block.meta.schema as VersionedUri} // @todo-0.3 remove when @blockprotocol/core types updated
                 blockMetadata={this.block.meta}
-                blockSchema={this.block.schema}
                 // @todo uncomment this when sandbox is fixed
                 // shouldSandbox={!this.editable}
                 editableRef={this.editableRef}
-                // @todo these asserted non-null fields do not definitely exist when the block is first loaded
-                entityId={childEntity?.metadata.editionId.baseId!}
-                entityTypeId={childEntity?.metadata.entityTypeId!}
-                entityProperties={
-                  childEntity && "properties" in childEntity
-                    ? childEntity.properties
-                    : BLANK_PROPERTIES
-                }
+                wrappingEntityId={entityId}
                 onBlockLoaded={this.onBlockLoaded}
               />
             </Sentry.ErrorBoundary>

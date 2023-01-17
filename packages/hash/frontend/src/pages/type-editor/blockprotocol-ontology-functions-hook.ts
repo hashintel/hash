@@ -36,7 +36,6 @@ export type GraphMessageCallbacks = Omit<
   | "getEntity"
   | "createEntity"
   | "aggregateEntities"
-  | "updateEntity"
   | "getEntityType"
   | "createLink"
   | "getLink"

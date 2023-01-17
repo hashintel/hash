@@ -4,7 +4,7 @@ import {
   loadCrossFrameRemoteBlock,
   loadRemoteBlock,
   UnknownBlock,
-} from "./loadremote-block";
+} from "./load-remote-block";
 import { isTopWindow } from "./util";
 
 type UseRemoteBlockHook = {

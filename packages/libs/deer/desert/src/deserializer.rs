@@ -36,6 +36,10 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
         deserialize_null,
         deserialize_bool,
         deserialize_number,
+        deserialize_u128,
+        deserialize_i128,
+        deserialize_usize,
+        deserialize_isize,
         deserialize_char,
         deserialize_string,
         deserialize_str,
@@ -57,7 +61,11 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
 
         match token {
             Token::Bool(value) => visitor.visit_bool(value),
-            Token::Number(value) => visitor.visit_number(value.clone()),
+            Token::Number(value) => visitor.visit_number(value),
+            Token::I128(value) => visitor.visit_i128(value),
+            Token::U128(value) => visitor.visit_u128(value),
+            Token::ISize(value) => visitor.visit_isize(value),
+            Token::USize(value) => visitor.visit_usize(value),
             Token::Char(value) => visitor.visit_char(value),
             Token::Str(value) => visitor.visit_str(value),
             Token::BorrowedStr(value) => visitor.visit_borrowed_str(value),
@@ -67,6 +75,7 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
             Token::BytesBuf(value) => visitor.visit_bytes_buffer(value.to_vec()),
             Token::Array { length } => visitor.visit_array(ArrayAccess::new(self, length)),
             Token::Object { length } => visitor.visit_object(ObjectAccess::new(self, length)),
+            Token::Null => visitor.visit_null(),
             _ => {
                 panic!("Deserializer did not expect {token}");
             }
