@@ -76,7 +76,6 @@ impl<C: AsClient> PostgresStore<C> {
                 // overlaps with `time_projection`. `intersect_image` returns `None` if there are
                 // no overlapping points, so this should never happen.
                 unreachable!("the version interval of the entity does not overlap with the time projection");
-                return Ok(());
             };
 
             let dependency_status = dependency_context.knowledge_dependency_map.update(

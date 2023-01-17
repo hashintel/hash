@@ -64,8 +64,8 @@ impl<C: AsClient> PostgresStore<C> {
 
             // Collecting references before traversing further to avoid having a shared
             // reference to the subgraph when borrowing it mutably
-            let property_type_ref_uris = (current_resolve_depths.constrains_properties_on.outgoing > 0)
-                .then(|| {
+            let property_type_ref_uris =
+                (current_resolve_depths.constrains_properties_on.outgoing > 0).then(|| {
                     entity_type
                         .inner()
                         .property_type_references()
@@ -75,8 +75,8 @@ impl<C: AsClient> PostgresStore<C> {
                         .collect::<Vec<_>>()
                 });
 
-            let inherits_from_type_ref_uris =
-                (current_resolve_depths.inherits_from.outgoing > 0).then(|| {
+            let inherits_from_type_ref_uris = (current_resolve_depths.inherits_from.outgoing > 0)
+                .then(|| {
                     entity_type
                         .inner()
                         .inherits_from()
@@ -88,25 +88,28 @@ impl<C: AsClient> PostgresStore<C> {
                 });
 
             let link_mappings = (current_resolve_depths.constrains_links_on.outgoing > 0
-                || current_resolve_depths.constrains_link_destinations_on.outgoing > 0)
-                .then(|| {
-                    entity_type
-                        .inner()
-                        .link_mappings()
-                        .into_iter()
-                        .map(|(entity_type_ref, destinations)| {
-                            (
-                                entity_type_ref.uri().clone(),
-                                destinations
-                                    .into_iter()
-                                    .flatten()
-                                    .map(EntityTypeReference::uri)
-                                    .cloned()
-                                    .collect::<Vec<_>>(),
-                            )
-                        })
-                        .collect::<Vec<_>>()
-                });
+                || current_resolve_depths
+                    .constrains_link_destinations_on
+                    .outgoing
+                    > 0)
+            .then(|| {
+                entity_type
+                    .inner()
+                    .link_mappings()
+                    .into_iter()
+                    .map(|(entity_type_ref, destinations)| {
+                        (
+                            entity_type_ref.uri().clone(),
+                            destinations
+                                .into_iter()
+                                .flatten()
+                                .map(EntityTypeReference::uri)
+                                .cloned()
+                                .collect::<Vec<_>>(),
+                        )
+                    })
+                    .collect::<Vec<_>>()
+            });
 
             if let Some(property_type_ref_uris) = property_type_ref_uris {
                 for property_type_ref_uri in property_type_ref_uris {
@@ -125,7 +128,8 @@ impl<C: AsClient> PostgresStore<C> {
                         subgraph,
                         GraphResolveDepths {
                             constrains_properties_on: OutgoingEdgeResolveDepth {
-                                outgoing: current_resolve_depths.constrains_properties_on.outgoing - 1,
+                                outgoing: current_resolve_depths.constrains_properties_on.outgoing
+                                    - 1,
                                 ..current_resolve_depths.constrains_properties_on
                             },
                             ..current_resolve_depths
@@ -184,7 +188,8 @@ impl<C: AsClient> PostgresStore<C> {
                             subgraph,
                             GraphResolveDepths {
                                 constrains_links_on: OutgoingEdgeResolveDepth {
-                                    outgoing: current_resolve_depths.constrains_links_on.outgoing - 1,
+                                    outgoing: current_resolve_depths.constrains_links_on.outgoing
+                                        - 1,
                                     ..current_resolve_depths.constrains_links_on
                                 },
                                 ..current_resolve_depths
@@ -193,7 +198,11 @@ impl<C: AsClient> PostgresStore<C> {
                         )
                         .await?;
 
-                        if current_resolve_depths.constrains_link_destinations_on.outgoing > 0 {
+                        if current_resolve_depths
+                            .constrains_link_destinations_on
+                            .outgoing
+                            > 0
+                        {
                             for destination_type_uri in destination_type_uris {
                                 subgraph.edges.insert(Edge::Ontology {
                                     vertex_id: entity_type_id.clone(),
