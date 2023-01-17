@@ -24,6 +24,6 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/node": "18.11.9",
-    "eslint": "8.31.0"
+    "eslint": "8.32.0"
   }
 }

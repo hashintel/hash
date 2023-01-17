@@ -32,8 +32,12 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     (cell.data as any).kind === "linked-with-cell",
   draw: (args, cell) => {
     const { rect, ctx, theme, spriteManager, hoverAmount, highlighted } = args;
-    const { linkAndTargetEntities, entitySubgraph, deleteLink, maxItems } =
-      cell.data.linkRow;
+    const {
+      linkAndTargetEntities,
+      entitySubgraph,
+      markLinkAsArchived,
+      maxItems,
+    } = cell.data.linkRow;
 
     ctx.fillStyle = theme.textHeader;
     ctx.font = theme.baseFontStyle;
@@ -50,6 +54,8 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       const emptyText = maxItems === 1 ? "No entity" : "No entities";
       ctx.fillText(emptyText, left, yCenter);
 
+      // before returning, set interactables to empty array to clear any stale interactables saved on previous draw
+      InteractableManager.setInteractablesForCell(args, []);
       return drawCellFadeOutGradient(args);
     }
 
@@ -106,9 +112,9 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
         bottom: yCenter + iconSize / 2,
       },
       onClick: () => {
-        void deleteLink(
+        markLinkAsArchived(
           linkAndTargetEntities[0]?.linkEntity.metadata.editionId
-            .baseId! as EntityId,
+            .baseId as EntityId,
         );
       },
     });
