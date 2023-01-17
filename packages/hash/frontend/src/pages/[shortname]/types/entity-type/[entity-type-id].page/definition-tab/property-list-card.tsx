@@ -618,6 +618,7 @@ export const PropertyListCard = () => {
                   Create new property type
                   <QuestionIcon
                     sx={{
+                      display: "flex",
                       ml: 1.25,
                     }}
                     tooltip={

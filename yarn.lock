@@ -3186,11 +3186,6 @@
     "@blockprotocol/core" "0.0.12"
     "@blockprotocol/graph" "0.1.0-canary-20230111084611"
 
-"@blockprotocol/type-system@0.0.1":
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.0.1.tgz#7c4313869dbbdc1509ec0be9a4ecf7aabd3a43ff"
-  integrity sha512-Np2sP7E/sl6WCvGOklYtYw6FqJylP3021UmyTNpmMB2CvEUNMU5DJ4DIQvg8L16Kul/ZnSs8ucBxEQmcEcd2Kg==
-
 "@blockprotocol/type-system@0.0.3-canary-20230111084611":
   version "0.0.3-canary-20230111084611"
   resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.0.3-canary-20230111084611.tgz#c8269e2b99645c2f92885c2cbd2c36fea2f953a9"
