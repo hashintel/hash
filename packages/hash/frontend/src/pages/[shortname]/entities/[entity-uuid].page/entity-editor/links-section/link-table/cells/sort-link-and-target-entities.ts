@@ -1,10 +1,7 @@
-import { Entity } from "@hashintel/hash-subgraph";
+import { LinkAndTargetEntity } from "../types";
 
 export const sortLinkAndTargetEntities = (
-  linkAndTargetEntities: {
-    linkEntity: Entity;
-    rightEntity: Entity;
-  }[],
+  linkAndTargetEntities: LinkAndTargetEntity[],
 ) => {
   return [...linkAndTargetEntities].sort((a, b) =>
     a.linkEntity.metadata.version.decisionTime.start.localeCompare(

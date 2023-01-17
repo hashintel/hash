@@ -1,35 +1,53 @@
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import { EntityId, OwnedById } from "@hashintel/hash-shared/types";
-import { Entity } from "@hashintel/hash-subgraph";
+import { EntityId } from "@hashintel/hash-shared/types";
+import { Entity, VersionedUri } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { Box } from "@mui/material";
 import produce from "immer";
-import { useContext, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
-import { useBlockProtocolArchiveEntity } from "../../../../../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
-import { useBlockProtocolCreateEntity } from "../../../../../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
 import { generateEntityLabel } from "../../../../../../../../../lib/entities";
-import { WorkspaceContext } from "../../../../../../../../shared/workspace-context";
+import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../../../entity-editor-context";
 import { AddAnotherButton } from "../../../../properties-section/property-table/cells/value-cell/array-editor/add-another-button";
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
+import { LinkAndTargetEntity } from "../../types";
 import { LinkedWithCell } from "../linked-with-cell";
 import { sortLinkAndTargetEntities } from "../sort-link-and-target-entities";
 import { EntitySelector } from "./entity-selector";
 import { LinkedEntityListRow } from "./linked-entity-list-editor/linked-entity-list-row";
 import { MaxItemsReached } from "./linked-entity-list-editor/max-items-reached";
 
+export const createDraftLinkEntity = ({
+  rightEntityId,
+  leftEntityId,
+  linkEntityTypeId,
+}: {
+  rightEntityId: EntityId;
+  leftEntityId: EntityId;
+  linkEntityTypeId: VersionedUri;
+}): Entity => {
+  return {
+    properties: {},
+    linkData: { rightEntityId, leftEntityId },
+    metadata: {
+      archived: false,
+      editionId: { recordId: 1, baseId: `draft%${Date.now()}` },
+      entityTypeId: linkEntityTypeId,
+      provenance: { updatedById: "" },
+      version: {
+        decisionTime: { start: "" },
+        transactionTime: { start: "" },
+      },
+    },
+  };
+};
+
 export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
   props,
 ) => {
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
-
-  const { entitySubgraph, refetch } = useEntityEditor();
-  const { createEntity } = useBlockProtocolCreateEntity(
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-    (activeWorkspaceAccountId as OwnedById) ?? null,
-  );
-  const { archiveEntity } = useBlockProtocolArchiveEntity();
+  const { entitySubgraph, setDraftLinksToCreate } = useEntityEditor();
+  const markLinkEntityToArchive = useMarkLinkEntityToArchive();
 
   const { value: cell, onFinishedEditing, onChange } = props;
   const {
@@ -44,7 +62,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
     string | null
   >(null);
 
-  const onSelect = async (selectedEntity: Entity) => {
+  const onSelect = (selectedEntity: Entity) => {
     const alreadyLinked = linkAndTargetEntities.find(
       ({ rightEntity }) =>
         rightEntity.metadata.editionId.baseId ===
@@ -56,22 +74,22 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
       return setAddingLink(false);
     }
 
-    // create new link
-    const { data: linkEntity } = await createEntity({
-      data: {
-        entityTypeId: linkEntityTypeId,
-        properties: {},
-        linkData: {
-          leftEntityId: getRoots(entitySubgraph)[0]?.metadata.editionId.baseId!,
-          rightEntityId: selectedEntity.metadata.editionId.baseId,
-        },
-      },
+    const leftEntityId = getRoots(entitySubgraph)[0]?.metadata.editionId
+      .baseId as EntityId;
+    const rightEntityId = selectedEntity.metadata.editionId.baseId as EntityId;
+
+    const linkEntity = createDraftLinkEntity({
+      leftEntityId,
+      rightEntityId,
+      linkEntityTypeId,
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
-    if (!linkEntity || linkEntity === undefined) {
-      throw new Error("failed to create link");
-    }
+    const newLinkAndTargetEntity: LinkAndTargetEntity = {
+      linkEntity,
+      rightEntity: selectedEntity,
+    };
+
+    setDraftLinksToCreate((prev) => [...prev, newLinkAndTargetEntity]);
 
     setAddingLink(false);
 
@@ -79,16 +97,11 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
       /** @see https://github.com/immerjs/immer/issues/839 for ts-ignore reason */
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      draftCell.data.linkRow.linkAndTargetEntities.push({
-        linkEntity,
-        rightEntity: selectedEntity,
-      });
+      draftCell.data.linkRow.linkAndTargetEntities.push(newLinkAndTargetEntity);
     });
 
     // used onChange for optimistic loading
     onChange(newCell);
-
-    await refetch();
   };
 
   const onCancel = () => {
@@ -119,7 +132,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
             <LinkedEntityListRow
               key={linkEntityId}
               title={generateEntityLabel(entitySubgraph, rightEntity)}
-              onDelete={async () => {
+              onDelete={() => {
                 const newCell = produce(cell, (draftCell) => {
                   draftCell.data.linkRow.linkAndTargetEntities =
                     draftCell.data.linkRow.linkAndTargetEntities.filter(
@@ -131,13 +144,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
 
                 onChange(newCell);
 
-                await archiveEntity({
-                  data: {
-                    entityId: linkEntity.metadata.editionId.baseId as EntityId,
-                  },
-                });
-
-                await refetch();
+                markLinkEntityToArchive(linkEntityId as EntityId);
               }}
               selected={selected}
               onSelect={() =>

@@ -23,6 +23,8 @@ import { EditBar } from "../types/entity-type/[entity-type-id].page/edit-bar";
 import { EntityEditorPage } from "./[entity-uuid].page/entity-editor-page";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
 import { updateEntitySubgraphStateByEntity } from "./[entity-uuid].page/shared/update-entity-subgraph-state-by-entity";
+import { useApplyDraftLinkEntityChanges } from "./[entity-uuid].page/shared/use-apply-draft-link-entity-changes";
+import { useDraftLinkState } from "./[entity-uuid].page/shared/use-draft-link-state";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -32,6 +34,8 @@ const Page: NextPageWithLayout = () => {
   const { getEntityType } = useBlockProtocolGetEntityType();
   const { updateEntity } = useBlockProtocolUpdateEntity();
 
+  const applyDraftLinkEntityChanges = useApplyDraftLinkEntityChanges();
+
   const [entitySubgraphFromDB, setEntitySubgraphFromDB] =
     useState<Subgraph<SubgraphRootTypes["entity"]>>();
   const [draftEntitySubgraph, setDraftEntitySubgraph] =
@@ -39,6 +43,13 @@ const Page: NextPageWithLayout = () => {
 
   const [isDirty, setIsDirty] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const [
+    draftLinksToCreate,
+    setDraftLinksToCreate,
+    draftLinksToArchive,
+    setDraftLinksToArchive,
+  ] = useDraftLinkState();
 
   useEffect(() => {
     if (routeNamespace) {
@@ -105,8 +116,14 @@ const Page: NextPageWithLayout = () => {
     setDraftEntitySubgraph(newDraftEntitySubgraph);
   };
 
-  const discardChanges = () => {
+  const resetDraftState = () => {
     setIsDirty(false);
+    setDraftLinksToCreate([]);
+    setDraftLinksToArchive([]);
+  };
+
+  const discardChanges = () => {
+    resetDraftState();
     setDraftEntitySubgraph(entitySubgraphFromDB);
   };
 
@@ -125,6 +142,13 @@ const Page: NextPageWithLayout = () => {
     try {
       setSavingChanges(true);
 
+      await applyDraftLinkEntityChanges(
+        getRoots(entitySubgraphFromDB)[0]?.metadata.editionId
+          .baseId as EntityId,
+        draftLinksToCreate,
+        draftLinksToArchive,
+      );
+
       /** @todo add validation here */
       await updateEntity({
         data: {
@@ -133,10 +157,13 @@ const Page: NextPageWithLayout = () => {
           properties: draftEntity.properties,
         },
       });
+
+      await refetch();
     } finally {
       setSavingChanges(false);
     }
-    setIsDirty(false);
+
+    resetDraftState();
   };
 
   if (loading) {
@@ -148,13 +175,15 @@ const Page: NextPageWithLayout = () => {
   }
 
   const entityLabel = generateEntityLabel(draftEntitySubgraph);
+  const showEditBar =
+    isDirty || !!draftLinksToCreate.length || !!draftLinksToArchive.length;
 
   return (
     <EntityEditorPage
       refetch={refetch}
       editBar={
         <EditBar
-          visible={isDirty}
+          visible={showEditBar}
           discardButtonProps={{
             onClick: discardChanges,
           }}
@@ -173,6 +202,10 @@ const Page: NextPageWithLayout = () => {
         setIsDirty(true);
         updateEntitySubgraphStateByEntity(entity, setDraftEntitySubgraph);
       }}
+      draftLinksToCreate={draftLinksToCreate}
+      setDraftLinksToCreate={setDraftLinksToCreate}
+      draftLinksToArchive={draftLinksToArchive}
+      setDraftLinksToArchive={setDraftLinksToArchive}
     />
   );
 };
