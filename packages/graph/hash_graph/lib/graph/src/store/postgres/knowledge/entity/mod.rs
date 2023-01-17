@@ -67,7 +67,10 @@ impl<C: AsClient> PostgresStore<C> {
                 .projected_time(time_axis)
                 .into_time_interval();
 
-            let Some(mut time_projection) = time_projection.intersect_image(version_interval) else {
+            // Intersects the version interval of the entity with the time projection's time
+            // interval. We only want to resolve the entity further for the overlap of these two
+            // intervals.
+            let Some(mut intersected_time_projection) = time_projection.intersect_image(version_interval) else {
                 // The entity is not in the time projection, so we don't need to resolve it.
                 // This should never happen as the time projection is based on this entity's
                 // version interval, but we emit a warning just in case.
@@ -81,7 +84,7 @@ impl<C: AsClient> PostgresStore<C> {
             let dependency_status = dependency_context.knowledge_dependency_map.update(
                 &entity_vertex_id,
                 resolve_depths,
-                time_projection.image(),
+                intersected_time_projection.image(),
             );
 
             match dependency_status {
@@ -92,8 +95,9 @@ impl<C: AsClient> PostgresStore<C> {
                     // requested, so we update the `resolve_depths` to the returned value.
                     resolve_depths = depths;
                     // It may also return a different time interval than the one requested, so
-                    // we update the `time_projection`'s time interval to the returned value.
-                    time_projection.set_image(interval);
+                    // we update the `intersected_time_projection`'s time interval to the returned
+                    // value.
+                    intersected_time_projection.set_image(interval);
                 }
                 DependencyStatus::Resolved => return Ok(()),
             };
@@ -121,18 +125,18 @@ impl<C: AsClient> PostgresStore<C> {
                         },
                         ..resolve_depths
                     },
-                    time_projection.clone(),
+                    intersected_time_projection.clone(),
                 )
-                .await?;
+                    .await?;
             }
 
             if resolve_depths.has_left_entity.incoming > 0 {
                 for outgoing_link_entity in <Self as Read<Entity>>::read(
                     self,
                     &Filter::for_outgoing_link_by_source_entity_id(entity_vertex_id.base_id()),
-                    &time_projection,
+                    &intersected_time_projection,
                 )
-                .await?
+                    .await?
                 {
                     subgraph.edges.insert(Edge::KnowledgeGraph {
                         vertex_id: entity_vertex_id,
@@ -159,9 +163,9 @@ impl<C: AsClient> PostgresStore<C> {
                             },
                             ..resolve_depths
                         },
-                        time_projection.clone(),
+                        intersected_time_projection.clone(),
                     )
-                    .await?;
+                        .await?;
                 }
             }
 
@@ -169,9 +173,9 @@ impl<C: AsClient> PostgresStore<C> {
                 for incoming_link_entity in <Self as Read<Entity>>::read(
                     self,
                     &Filter::for_incoming_link_by_source_entity_id(entity_vertex_id.base_id()),
-                    &time_projection,
+                    &intersected_time_projection,
                 )
-                .await?
+                    .await?
                 {
                     subgraph.edges.insert(Edge::KnowledgeGraph {
                         vertex_id: entity_vertex_id,
@@ -198,9 +202,9 @@ impl<C: AsClient> PostgresStore<C> {
                             },
                             ..resolve_depths
                         },
-                        time_projection.clone(),
+                        intersected_time_projection.clone(),
                     )
-                    .await?;
+                        .await?;
                 }
             }
 
@@ -208,9 +212,9 @@ impl<C: AsClient> PostgresStore<C> {
                 for left_entity in <Self as Read<Entity>>::read(
                     self,
                     &Filter::for_left_entity_by_entity_id(entity_vertex_id.base_id()),
-                    &time_projection,
+                    &intersected_time_projection,
                 )
-                .await?
+                    .await?
                 {
                     subgraph.edges.insert(Edge::KnowledgeGraph {
                         vertex_id: entity_vertex_id,
@@ -237,9 +241,9 @@ impl<C: AsClient> PostgresStore<C> {
                             },
                             ..resolve_depths
                         },
-                        time_projection.clone(),
+                        intersected_time_projection.clone(),
                     )
-                    .await?;
+                        .await?;
                 }
             }
 
@@ -247,9 +251,9 @@ impl<C: AsClient> PostgresStore<C> {
                 for right_entity in <Self as Read<Entity>>::read(
                     self,
                     &Filter::for_right_entity_by_entity_id(entity_vertex_id.base_id()),
-                    &time_projection,
+                    &intersected_time_projection,
                 )
-                .await?
+                    .await?
                 {
                     subgraph.edges.insert(Edge::KnowledgeGraph {
                         vertex_id: entity_vertex_id,
@@ -276,15 +280,15 @@ impl<C: AsClient> PostgresStore<C> {
                             },
                             ..resolve_depths
                         },
-                        time_projection.clone(),
+                        intersected_time_projection.clone(),
                     )
-                    .await?;
+                        .await?;
                 }
             }
 
             Ok(())
         }
-        .boxed()
+            .boxed()
     }
 }
 
