@@ -1,0 +1,6 @@
+{
+  "name": "deer",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "This is a Rust crate – look at Cargo.toml for details"
+}

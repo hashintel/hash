@@ -1,4 +1,4 @@
-[license]: https://github.com/hashintel/hash/blob/main/packages/libs/deer/LICENSE.md
+[license]: https://github.com/hashintel/hash/blob/main/libs/deer/LICENSE.md
 
 # deer
 
