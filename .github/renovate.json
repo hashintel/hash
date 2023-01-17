@@ -44,6 +44,23 @@
       "groupName": "Sentry",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@sentry/"]
+    },
+    {
+      "matchManagers": ["regex"],
+      "matchPackageNames": ["rust"],
+      "commitMessageTopic": "Rust"
+    }
+  ],
+  "regexManagers": [
+    {
+      "fileMatch": ["^rust-toolchain\\.toml?$"],
+      "matchStrings": [
+        "channel\\s*=\\s*\"nightly-(?<currentValue>\\d+-\\d+-\\d+)\""
+      ],
+      "depNameTemplate": "rust",
+      "lookupNameTemplate": "rust-lang/rust-analyzer",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "regex:^(?<year>\\d+)-(?<month>\\d+)-(?<day>\\d+)"
     }
   ]
 }
