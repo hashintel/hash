@@ -112,8 +112,9 @@ where
                 *current_interval = current_interval.clone().merge(new_interval.clone());
 
                 if current_depths.update(new_resolve_depth) {
-                    // It does not matter if the interval is updated or not, as it has to be
-                    // resolved for the full interval anyway.
+                    // We currently don't have a way to store different resolve depths for different
+                    // intervals for the same identifier. For simplicity, we require to resolve the
+                    // full interval with the updated resolve depths.
                     DependencyStatus::Unresolved(*current_depths, current_interval.clone())
                 } else if old_interval.contains_interval(&new_interval) {
                     // The dependency is already resolved for the required interval
