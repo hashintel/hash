@@ -28,6 +28,11 @@ inputs:
     description: Location of the Dockerfile
     required: true
 
+outputs:
+  ECR_IMAGE:
+    description: The name of the image in the ECR registry
+    value: ${{ inputs.AWS_ECR_URL }}/${{ inputs.IMAGE_NAME }}:${{ inputs.IMAGE_TAG }}
+
 runs:
   using: composite
   steps:
