@@ -35,13 +35,13 @@ impl<C: AsClient> PostgresStore<C> {
         property_type_id: &'a OntologyTypeEditionId,
         dependency_context: &'a mut DependencyContext,
         subgraph: &'a mut Subgraph,
-        mut resolve_depths: GraphResolveDepths,
+        mut current_resolve_depths: GraphResolveDepths,
         mut time_projection: TimeProjection,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
         async move {
             let dependency_status = dependency_context.ontology_dependency_map.update(
                 property_type_id,
-                resolve_depths,
+                current_resolve_depths,
                 time_projection.image(),
             );
 
@@ -49,7 +49,7 @@ impl<C: AsClient> PostgresStore<C> {
                 DependencyStatus::Unresolved(depths, interval) => {
                     // The dependency may have to be resolved more than anticipated, so we update
                     // the resolve depth and time projection.
-                    resolve_depths = depths;
+                    current_resolve_depths = depths;
                     time_projection.set_image(interval);
                     subgraph
                         .get_or_read::<PropertyTypeWithMetadata>(
@@ -64,8 +64,8 @@ impl<C: AsClient> PostgresStore<C> {
 
             // Collecting references before traversing further to avoid having a shared
             // reference to the subgraph when borrowing it mutably
-            let data_type_ref_uris =
-                (resolve_depths.constrains_values_on.outgoing > 0).then(|| {
+            let data_type_ref_uris = (current_resolve_depths.constrains_values_on.outgoing > 0)
+                .then(|| {
                     property_type
                         .inner()
                         .data_type_references()
@@ -75,8 +75,8 @@ impl<C: AsClient> PostgresStore<C> {
                         .collect::<Vec<_>>()
                 });
 
-            let property_type_ref_uris = (resolve_depths.constrains_properties_on.outgoing > 0)
-                .then(|| {
+            let property_type_ref_uris =
+                (current_resolve_depths.constrains_properties_on.outgoing > 0).then(|| {
                     property_type
                         .inner()
                         .property_type_references()
@@ -103,10 +103,10 @@ impl<C: AsClient> PostgresStore<C> {
                         subgraph,
                         GraphResolveDepths {
                             constrains_values_on: OutgoingEdgeResolveDepth {
-                                outgoing: resolve_depths.constrains_values_on.outgoing - 1,
-                                ..resolve_depths.constrains_values_on
+                                outgoing: current_resolve_depths.constrains_values_on.outgoing - 1,
+                                ..current_resolve_depths.constrains_values_on
                             },
-                            ..resolve_depths
+                            ..current_resolve_depths
                         },
                         time_projection.clone(),
                     )
@@ -131,10 +131,11 @@ impl<C: AsClient> PostgresStore<C> {
                         subgraph,
                         GraphResolveDepths {
                             constrains_properties_on: OutgoingEdgeResolveDepth {
-                                outgoing: resolve_depths.constrains_properties_on.outgoing - 1,
-                                ..resolve_depths.constrains_properties_on
+                                outgoing: current_resolve_depths.constrains_properties_on.outgoing
+                                    - 1,
+                                ..current_resolve_depths.constrains_properties_on
                             },
-                            ..resolve_depths
+                            ..current_resolve_depths
                         },
                         time_projection.clone(),
                     )

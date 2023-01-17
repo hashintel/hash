@@ -46,7 +46,7 @@ impl<C: AsClient> PostgresStore<C> {
         entity_vertex_id: EntityVertexId,
         dependency_context: &'a mut DependencyContext,
         subgraph: &'a mut Subgraph,
-        mut resolve_depths: GraphResolveDepths,
+        mut current_resolve_depths: GraphResolveDepths,
         time_projection: TimeProjection,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
         async move {
@@ -83,7 +83,7 @@ impl<C: AsClient> PostgresStore<C> {
 
             let dependency_status = dependency_context.knowledge_dependency_map.update(
                 &entity_vertex_id,
-                resolve_depths,
+                current_resolve_depths,
                 intersected_time_projection.image(),
             );
 
@@ -93,7 +93,7 @@ impl<C: AsClient> PostgresStore<C> {
                     // the resolve depth and time projection.
                     // `DependencyMap::update` may return a higher resolve depth than the one
                     // requested, so we update the `resolve_depths` to the returned value.
-                    resolve_depths = depths;
+                    current_resolve_depths = depths;
                     // It may also return a different time interval than the one requested, so
                     // we update the `intersected_time_projection`'s time interval to the returned
                     // value.
@@ -102,7 +102,7 @@ impl<C: AsClient> PostgresStore<C> {
                 DependencyStatus::Resolved => return Ok(()),
             };
 
-            if resolve_depths.is_of_type.outgoing > 0 {
+            if current_resolve_depths.is_of_type.outgoing > 0 {
                 let entity_type_id =
                     OntologyTypeEditionId::from(entity.metadata().entity_type_id());
                 subgraph.edges.insert(Edge::KnowledgeGraph {
@@ -120,17 +120,17 @@ impl<C: AsClient> PostgresStore<C> {
                     subgraph,
                     GraphResolveDepths {
                         is_of_type: OutgoingEdgeResolveDepth {
-                            outgoing: resolve_depths.is_of_type.outgoing - 1,
-                            ..resolve_depths.is_of_type
+                            outgoing: current_resolve_depths.is_of_type.outgoing - 1,
+                            ..current_resolve_depths.is_of_type
                         },
-                        ..resolve_depths
+                        ..current_resolve_depths
                     },
                     intersected_time_projection.clone(),
                 )
                     .await?;
             }
 
-            if resolve_depths.has_left_entity.incoming > 0 {
+            if current_resolve_depths.has_left_entity.incoming > 0 {
                 for outgoing_link_entity in <Self as Read<Entity>>::read(
                     self,
                     &Filter::for_outgoing_link_by_source_entity_id(entity_vertex_id.base_id()),
@@ -158,10 +158,10 @@ impl<C: AsClient> PostgresStore<C> {
                         subgraph,
                         GraphResolveDepths {
                             has_left_entity: EdgeResolveDepths {
-                                incoming: resolve_depths.has_left_entity.incoming - 1,
-                                ..resolve_depths.has_left_entity
+                                incoming: current_resolve_depths.has_left_entity.incoming - 1,
+                                ..current_resolve_depths.has_left_entity
                             },
-                            ..resolve_depths
+                            ..current_resolve_depths
                         },
                         intersected_time_projection.clone(),
                     )
@@ -169,7 +169,7 @@ impl<C: AsClient> PostgresStore<C> {
                 }
             }
 
-            if resolve_depths.has_right_entity.incoming > 0 {
+            if current_resolve_depths.has_right_entity.incoming > 0 {
                 for incoming_link_entity in <Self as Read<Entity>>::read(
                     self,
                     &Filter::for_incoming_link_by_source_entity_id(entity_vertex_id.base_id()),
@@ -197,10 +197,10 @@ impl<C: AsClient> PostgresStore<C> {
                         subgraph,
                         GraphResolveDepths {
                             has_right_entity: EdgeResolveDepths {
-                                incoming: resolve_depths.has_right_entity.incoming - 1,
-                                ..resolve_depths.has_right_entity
+                                incoming: current_resolve_depths.has_right_entity.incoming - 1,
+                                ..current_resolve_depths.has_right_entity
                             },
-                            ..resolve_depths
+                            ..current_resolve_depths
                         },
                         intersected_time_projection.clone(),
                     )
@@ -208,7 +208,7 @@ impl<C: AsClient> PostgresStore<C> {
                 }
             }
 
-            if resolve_depths.has_left_entity.outgoing > 0 {
+            if current_resolve_depths.has_left_entity.outgoing > 0 {
                 for left_entity in <Self as Read<Entity>>::read(
                     self,
                     &Filter::for_left_entity_by_entity_id(entity_vertex_id.base_id()),
@@ -236,10 +236,10 @@ impl<C: AsClient> PostgresStore<C> {
                         subgraph,
                         GraphResolveDepths {
                             has_left_entity: EdgeResolveDepths {
-                                outgoing: resolve_depths.has_left_entity.outgoing - 1,
-                                ..resolve_depths.has_left_entity
+                                outgoing: current_resolve_depths.has_left_entity.outgoing - 1,
+                                ..current_resolve_depths.has_left_entity
                             },
-                            ..resolve_depths
+                            ..current_resolve_depths
                         },
                         intersected_time_projection.clone(),
                     )
@@ -247,7 +247,7 @@ impl<C: AsClient> PostgresStore<C> {
                 }
             }
 
-            if resolve_depths.has_right_entity.outgoing > 0 {
+            if current_resolve_depths.has_right_entity.outgoing > 0 {
                 for right_entity in <Self as Read<Entity>>::read(
                     self,
                     &Filter::for_right_entity_by_entity_id(entity_vertex_id.base_id()),
@@ -275,10 +275,10 @@ impl<C: AsClient> PostgresStore<C> {
                         subgraph,
                         GraphResolveDepths {
                             has_right_entity: EdgeResolveDepths {
-                                outgoing: resolve_depths.has_right_entity.outgoing - 1,
-                                ..resolve_depths.has_right_entity
+                                outgoing: current_resolve_depths.has_right_entity.outgoing - 1,
+                                ..current_resolve_depths.has_right_entity
                             },
-                            ..resolve_depths
+                            ..current_resolve_depths
                         },
                         intersected_time_projection.clone(),
                     )

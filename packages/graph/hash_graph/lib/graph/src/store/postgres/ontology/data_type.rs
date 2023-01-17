@@ -25,12 +25,12 @@ impl<C: AsClient> PostgresStore<C> {
         data_type_id: &OntologyTypeEditionId,
         dependency_context: &mut DependencyContext,
         subgraph: &mut Subgraph,
-        mut resolve_depths: GraphResolveDepths,
+        mut current_resolve_depths: GraphResolveDepths,
         mut time_projection: TimeProjection,
     ) -> Result<(), QueryError> {
         let dependency_status = dependency_context.ontology_dependency_map.update(
             data_type_id,
-            resolve_depths,
+            current_resolve_depths,
             time_projection.image(),
         );
 
@@ -39,7 +39,7 @@ impl<C: AsClient> PostgresStore<C> {
             DependencyStatus::Unresolved(depths, interval) => {
                 // The dependency may have to be resolved more than anticipated, so we update
                 // the resolve depth and time projection.
-                resolve_depths = depths;
+                current_resolve_depths = depths;
                 time_projection.set_image(interval);
                 subgraph
                     .get_or_read::<DataTypeWithMetadata>(self, data_type_id, &time_projection)
