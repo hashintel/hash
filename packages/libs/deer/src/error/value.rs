@@ -104,15 +104,13 @@ impl Display for MissingError {
 
 #[cfg(test)]
 mod tests {
-    use alloc::vec;
-
     use error_stack::Report;
     use serde_json::json;
 
     use super::*;
     use crate::{
-        schema::{visitor::U8Schema, Reflection},
         test::{to_json, to_message},
+        Deserialize,
     };
 
     #[test]
@@ -124,7 +122,7 @@ mod tests {
         let error = Report::new(ValueError.into_error())
             .attach(Location::Field("field1"))
             .attach(Location::Array(0))
-            .attach(ExpectedType::new(U8Schema::document()))
+            .attach(ExpectedType::new(u8::reflection()))
             .attach(ReceivedValue::new(u16::from(u8::MAX) + 1));
 
         assert_eq!(
@@ -135,9 +133,9 @@ mod tests {
                     {"type": "field", "value": "field1"}
                 ],
                 "expected": {
-                    "$ref": "#/$defs/0000-deer::schema::visitor::U8Schema",
+                    "$ref": "#/$defs/0000-u8",
                     "$defs": {
-                        "0000-deer::schema::visitor::U8Schema": {
+                        "0000-u8": {
                             "type": "integer",
                             "minimum": 0,
                             "maximum": 255,
@@ -158,8 +156,7 @@ mod tests {
 
         assert_eq!(
             to_message::<ValueError>(
-                &Report::new(ValueError.into_error())
-                    .attach(ExpectedType::new(U8Schema::document()))
+                &Report::new(ValueError.into_error()).attach(ExpectedType::new(u8::reflection()))
             ),
             "received value is of correct type (integer), but does not fit constraints"
         );
@@ -174,7 +171,7 @@ mod tests {
         let error = Report::new(MissingError.into_error())
             .attach(Location::Field("field2"))
             .attach(Location::Array(0))
-            .attach(ExpectedType::new(U8Schema::document()));
+            .attach(ExpectedType::new(u8::reflection()));
 
         assert_eq!(
             to_json::<MissingError>(&error),
@@ -184,9 +181,9 @@ mod tests {
                     {"type": "field", "value": "field2"}
                 ],
                 "expected":  {
-                    "$ref": "#/$defs/0000-deer::schema::visitor::U8Schema",
+                    "$ref": "#/$defs/0000-u8",
                     "$defs": {
-                        "0000-deer::schema::visitor::U8Schema": {
+                        "0000-u8": {
                             "type": "integer",
                             "minimum": 0,
                             "maximum": 255,
@@ -206,8 +203,7 @@ mod tests {
 
         assert_eq!(
             to_message::<MissingError>(
-                &Report::new(MissingError.into_error())
-                    .attach(ExpectedType::new(U8Schema::document()))
+                &Report::new(MissingError.into_error()).attach(ExpectedType::new(u8::reflection()))
             ),
             "received no value, but expected value of type integer"
         );

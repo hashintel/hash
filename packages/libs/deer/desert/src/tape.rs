@@ -61,7 +61,7 @@ impl Tape<'_, '_> {
 impl<'a, 'de> Tape<'a, 'de> {
     // also includes trivia
     fn peek_all_n(&self, n: usize) -> Option<Token> {
-        self.tokens.get(n).copied()
+        self.tokens.get(n).cloned()
     }
 
     fn is_trivia_n(&self, n: usize) -> Option<bool> {
@@ -127,7 +127,7 @@ impl<'a, 'de> Tape<'a, 'de> {
         self.trivia.to_mut().shift_left(1);
         self.tokens = tokens;
 
-        Some((*token, is_trivia))
+        Some((token.clone(), is_trivia))
     }
 
     pub(crate) fn bump_n(&mut self, i: usize) {

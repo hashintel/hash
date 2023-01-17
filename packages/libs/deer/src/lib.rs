@@ -1,6 +1,11 @@
 #![cfg_attr(
     nightly,
-    feature(provide_any, error_in_core, error_generic_member_access)
+    feature(
+        provide_any,
+        error_in_core,
+        error_generic_member_access,
+        integer_atomics
+    )
 )]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(
@@ -25,9 +30,10 @@
 //  only be generated through `*Access` implementations.
 
 use alloc::{string::String, vec::Vec};
+use core::marker::PhantomData;
 
 use error_stack::{Report, Result, ResultExt};
-use num_traits::ToPrimitive;
+use num_traits::{FromPrimitive, ToPrimitive};
 pub use schema::{Document, Reflection, Schema};
 
 pub use crate::{context::Context, number::Number};
@@ -42,6 +48,7 @@ use crate::{
 
 mod context;
 pub mod error;
+mod impls;
 mod number;
 mod schema;
 
@@ -125,7 +132,7 @@ pub trait Visitor<'de>: Sized {
 
     fn visit_null(self) -> Result<Self::Value, VisitorError> {
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(visitor::NullSchema::document()))
+            .attach(ReceivedType::new(<()>::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
@@ -139,7 +146,7 @@ pub trait Visitor<'de>: Sized {
 
     fn visit_number(self, v: Number) -> Result<Self::Value, VisitorError> {
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(visitor::NumberSchema::document()))
+            .attach(ReceivedType::new(Number::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
@@ -149,12 +156,12 @@ pub trait Visitor<'de>: Sized {
         let v = v.encode_utf8(&mut buffer);
 
         self.visit_str(v)
-            .attach(ReceivedType::new(visitor::CharSchema::document()))
+            .attach(ReceivedType::new(char::reflection()))
     }
 
     fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(visitor::StringSchema::document()))
+            .attach(ReceivedType::new(<&str>::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
@@ -204,96 +211,131 @@ pub trait Visitor<'de>: Sized {
 
     fn visit_i8(self, v: i8) -> Result<Self::Value, VisitorError> {
         self.visit_number(Number::from(v))
-            .attach(ReceivedType::new(visitor::I8Schema::document()))
+            .attach(ReceivedType::new(i8::reflection()))
     }
 
     fn visit_i16(self, v: i16) -> Result<Self::Value, VisitorError> {
         self.visit_number(Number::from(v))
-            .attach(ReceivedType::new(visitor::I16Schema::document()))
+            .attach(ReceivedType::new(i16::reflection()))
     }
 
     fn visit_i32(self, v: i32) -> Result<Self::Value, VisitorError> {
-        self.visit_number(Number::from(v))
-            .attach(visitor::I32Schema::document())
+        self.visit_number(Number::from(v)).attach(i32::reflection())
     }
 
     fn visit_i64(self, v: i64) -> Result<Self::Value, VisitorError> {
         self.visit_number(Number::from(v))
-            .attach(ReceivedType::new(visitor::I64Schema::document()))
+            .attach(ReceivedType::new(i64::reflection()))
     }
 
     fn visit_i128(self, v: i128) -> Result<Self::Value, VisitorError> {
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(visitor::I128Schema::document()))
+            .attach(ReceivedType::new(i128::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
     fn visit_isize(self, v: isize) -> Result<Self::Value, VisitorError> {
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(visitor::ISizeSchema::document()))
+            .attach(ReceivedType::new(isize::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
     fn visit_u8(self, v: u8) -> Result<Self::Value, VisitorError> {
         self.visit_number(Number::from(v))
-            .attach(ReceivedType::new(visitor::U8Schema::document()))
+            .attach(ReceivedType::new(u8::reflection()))
     }
 
     fn visit_u16(self, v: u16) -> Result<Self::Value, VisitorError> {
         self.visit_number(Number::from(v))
-            .attach(ReceivedType::new(visitor::U16Schema::document()))
+            .attach(ReceivedType::new(u16::reflection()))
     }
 
     fn visit_u32(self, v: u32) -> Result<Self::Value, VisitorError> {
         self.visit_number(Number::from(v))
-            .attach(ReceivedType::new(visitor::U32Schema::document()))
+            .attach(ReceivedType::new(u32::reflection()))
     }
 
     fn visit_u64(self, v: u64) -> Result<Self::Value, VisitorError> {
         self.visit_number(Number::from(v))
-            .attach(ReceivedType::new(visitor::U64Schema::document()))
+            .attach(ReceivedType::new(u64::reflection()))
     }
 
     fn visit_u128(self, v: u128) -> Result<Self::Value, VisitorError> {
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(visitor::U128Schema::document()))
+            .attach(ReceivedType::new(u128::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
     fn visit_usize(self, v: usize) -> Result<Self::Value, VisitorError> {
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(visitor::USizeSchema::document()))
+            .attach(ReceivedType::new(usize::reflection()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
     fn visit_f32(self, v: f32) -> Result<Self::Value, VisitorError> {
         self.visit_number(Number::from(v))
-            .attach(ReceivedType::new(visitor::NumberSchema::document()))
+            .attach(ReceivedType::new(f32::reflection()))
     }
 
     fn visit_f64(self, v: f64) -> Result<Self::Value, VisitorError> {
         self.visit_number(Number::from(v))
-            .attach(ReceivedType::new(visitor::NumberSchema::document()))
+            .attach(ReceivedType::new(f64::reflection()))
     }
 }
 
 // internal visitor, which is used during the default implementation of the `deserialize_i*` and
 // `deserialize_u*` methods.
-struct NumberVisitor;
+struct NumberVisitor<T: Reflection>(PhantomData<fn() -> *const T>);
 
-impl Visitor<'_> for NumberVisitor {
+impl<T: Reflection> NumberVisitor<T> {
+    fn value_error(
+        &self,
+        value: impl erased_serde::Serialize + Send + Sync + 'static,
+    ) -> Report<VisitorError> {
+        Report::new(ValueError.into_error())
+            .attach(ReceivedValue::new(value))
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError)
+    }
+}
+
+impl<T: Reflection> Visitor<'_> for NumberVisitor<T> {
     type Value = Number;
 
     fn expecting(&self) -> Document {
-        visitor::NumberSchema::document()
+        T::document()
     }
 
     fn visit_number(self, v: Number) -> Result<Self::Value, VisitorError> {
         Ok(v)
+    }
+
+    fn visit_i128(self, v: i128) -> Result<Self::Value, VisitorError> {
+        Number::from_i128(v)
+            .ok_or_else(|| self.value_error(v))
+            .and_then(|number| self.visit_number(number))
+    }
+
+    fn visit_isize(self, v: isize) -> Result<Self::Value, VisitorError> {
+        Number::from_isize(v)
+            .ok_or_else(|| self.value_error(v))
+            .and_then(|number| self.visit_number(number))
+    }
+
+    fn visit_u128(self, v: u128) -> Result<Self::Value, VisitorError> {
+        Number::from_u128(v)
+            .ok_or_else(|| self.value_error(v))
+            .and_then(|number| self.visit_number(number))
+    }
+
+    fn visit_usize(self, v: usize) -> Result<Self::Value, VisitorError> {
+        Number::from_usize(v)
+            .ok_or_else(|| self.value_error(v))
+            .and_then(|number| self.visit_number(number))
     }
 }
 
@@ -313,12 +355,12 @@ macro_rules! derive_from_number {
         where
             V: Visitor<'de>,
         {
-            let n = self.deserialize_number(NumberVisitor)?;
+            let n = self.deserialize_number(NumberVisitor::<<$schema as Deserialize>::Reflection>(PhantomData))?;
             let v = n
                 .$to()
                 .ok_or_else(||
                     Report::new(ValueError.into_error())
-                        .attach(ExpectedType::new(visitor::$schema::document()))
+                        .attach(ExpectedType::new(<$schema>::reflection()))
                         .attach(ReceivedValue::new(n))
                 )
                 .change_context(DeserializerError)?;
@@ -419,6 +461,7 @@ pub trait Deserializer<'de>: Sized {
     where
         V: Visitor<'de>;
 
+    // TODO: in theory - can't we defer this?!
     fn deserialize_char<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>;
@@ -478,22 +521,22 @@ pub trait Deserializer<'de>: Sized {
         V: Visitor<'de>;
 
     derive_from_number![
-        deserialize_i8(to_i8: I8Schema) -> visit_i8,
-        deserialize_i16(to_i16: I16Schema) -> visit_i16,
-        deserialize_i32(to_i32: I32Schema) -> visit_i32,
-        deserialize_i64(to_i64: I64Schema) -> visit_i64,
-        deserialize_i128(to_i128: I128Schema) -> visit_i128,
-        deserialize_isize(to_isize: ISizeSchema) -> visit_isize,
+        deserialize_i8(to_i8: i8) -> visit_i8,
+        deserialize_i16(to_i16: i16) -> visit_i16,
+        deserialize_i32(to_i32: i32) -> visit_i32,
+        deserialize_i64(to_i64: i64) -> visit_i64,
+        deserialize_i128(to_i128: i128) -> visit_i128,
+        deserialize_isize(to_isize: isize) -> visit_isize,
 
-        deserialize_u8(to_u8: U8Schema) -> visit_u8,
-        deserialize_u16(to_u16: U16Schema) -> visit_u16,
-        deserialize_u32(to_u32: U32Schema) -> visit_u32,
-        deserialize_u64(to_u64: U64Schema) -> visit_u64,
-        deserialize_u128(to_u128: U128Schema) -> visit_u128,
-        deserialize_usize(to_usize: USizeSchema) -> visit_usize,
+        deserialize_u8(to_u8: u8) -> visit_u8,
+        deserialize_u16(to_u16: u16) -> visit_u16,
+        deserialize_u32(to_u32: u32) -> visit_u32,
+        deserialize_u64(to_u64: u64) -> visit_u64,
+        deserialize_u128(to_u128: u128) -> visit_u128,
+        deserialize_usize(to_usize: usize) -> visit_usize,
 
-        deserialize_f32(to_f32: NumberSchema) -> visit_f32,
-        deserialize_f64(to_f64: NumberSchema) -> visit_f64,
+        deserialize_f32(to_f32: f32) -> visit_f32,
+        deserialize_f64(to_f64: f64) -> visit_f64,
     ];
 }
 
