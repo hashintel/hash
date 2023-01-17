@@ -84,8 +84,11 @@ struct StackEntry<'a> {
 }
 
 impl<'a> StackEntry<'a> {
+    // Reason: MSRV + readability
+    #[allow(clippy::manual_let_else)]
     fn find(self) -> impl IntoIterator<Item = StackEntry<'a>> {
         let mut head = self.head;
+
         let mut next = match self.next {
             None => return EitherIterator::Left(once(StackEntry { head, next: None })),
             Some(frame) => frame,
@@ -395,10 +398,10 @@ mod tests {
         const ID: Id = id!["custom"];
         const NAMESPACE: Namespace = NAMESPACE;
 
-        fn message<'a>(
+        fn message(
             &self,
             fmt: &mut Formatter,
-            _: &<Self::Properties as ErrorProperties>::Value<'a>,
+            _: &<Self::Properties as ErrorProperties>::Value<'_>,
         ) -> core::fmt::Result {
             fmt.write_str("Z Error")
         }
@@ -636,10 +639,10 @@ mod tests {
         const ID: Id = id!["value"];
         const NAMESPACE: Namespace = NAMESPACE;
 
-        fn message<'a>(
+        fn message(
             &self,
             f: &mut Formatter,
-            _: &<Self::Properties as ErrorProperties>::Value<'a>,
+            _: &<Self::Properties as ErrorProperties>::Value<'_>,
         ) -> core::fmt::Result {
             f.write_str("X Error")
         }
