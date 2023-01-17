@@ -3,7 +3,7 @@ import { FunctionComponent, ReactElement } from "react";
 
 import { CustomElementLoader } from "./block-renderer/custom-element";
 import { HtmlLoader } from "./block-renderer/html";
-import { UnknownBlock } from "./loadremote-block";
+import { UnknownBlock } from "./load-remote-block";
 
 type BlockRendererProps = {
   blockSource: UnknownBlock;
