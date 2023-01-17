@@ -1,4 +1,5 @@
 import {
+  extractBaseUri,
   OneOf,
   PropertyType,
   PropertyValues,
@@ -85,7 +86,9 @@ export const propertyTypeToFormDataExpectedValues = (
                       id: propertyId,
                       allowArrays,
                       required:
-                        expectedValue.required?.includes(propertyId) ?? false,
+                        expectedValue.required?.includes(
+                          extractBaseUri(propertyId),
+                        ) ?? false,
                     };
                   },
                 ),
