@@ -46,6 +46,7 @@
       "matchPackagePatterns": ["^@sentry/"]
     },
     {
+      "enabled": "true",
       "matchManagers": ["regex"],
       "matchPackageNames": ["rust"],
       "commitMessageTopic": "Rust"
