@@ -4,14 +4,28 @@ use interval_ops::{Interval, IntervalBounds, LowerBound, UpperBound};
 use postgres_protocol::types::timestamp_from_sql;
 use postgres_types::{FromSql, Type};
 use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
+use utoipa::{openapi, ToSchema};
 
 use crate::identifier::time::timestamp::Timestamp;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct VersionInterval<A> {
     pub start: Timestamp<A>,
     pub end: Option<Timestamp<A>>,
+}
+
+impl<A> ToSchema for VersionInterval<A> {
+    fn schema() -> openapi::RefOr<openapi::Schema> {
+        openapi::Schema::Object(
+            openapi::ObjectBuilder::new()
+                .property("start", Timestamp::<A>::schema())
+                .required("start")
+                .property("end", openapi::Ref::from_schema_name("NullableTimestamp"))
+                .required("end")
+                .build(),
+        )
+        .into()
+    }
 }
 
 impl<A> Interval<Timestamp<A>> for VersionInterval<A> {
