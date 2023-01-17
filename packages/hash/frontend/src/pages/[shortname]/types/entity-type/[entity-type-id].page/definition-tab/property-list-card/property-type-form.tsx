@@ -15,7 +15,7 @@ export const PropertyTypeForm = ({
   baseUri,
   ...props
 }: TypeFormProps<PropertyTypeFormValues> & {
-  baseUri: BaseUri;
+  baseUri?: BaseUri;
 }) => {
   const { getPropertyType } = useBlockProtocolGetPropertyType();
   const generateTypeBaseUri = useGenerateTypeBaseUri("property-type");
