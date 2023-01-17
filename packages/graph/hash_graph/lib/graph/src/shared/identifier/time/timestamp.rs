@@ -149,7 +149,7 @@ impl<A> ToSql for Timestamp<A> {
 }
 
 impl<A> ToSchema for Timestamp<A> {
-    fn schema() -> openapi::Schema {
+    fn schema() -> openapi::RefOr<openapi::Schema> {
         openapi::schema::ObjectBuilder::new()
             .schema_type(openapi::SchemaType::String)
             .format(Some(openapi::SchemaFormat::KnownFormat(
