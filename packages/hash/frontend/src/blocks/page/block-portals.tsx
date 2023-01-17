@@ -17,14 +17,17 @@ export interface PortalProps {
  */
 export const BlockPortals = ({ draftId, portals }: PortalProps) => {
   const [error, setError] = useState(false);
+  const [showDataMappingUi, setShowDataMappingUi] = useState(false);
 
   const context = useMemo(
     () => ({
       id: draftId,
       error,
       setError,
+      showDataMappingUi,
+      setShowDataMappingUi,
     }),
-    [draftId, error, setError],
+    [draftId, error, setError, showDataMappingUi, setShowDataMappingUi],
   );
 
   return (

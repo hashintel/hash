@@ -153,9 +153,8 @@ const Page: NextPageWithLayout = () => {
       /** @todo add validation here */
       await updateEntity({
         data: {
-          entityId: draftEntity.metadata.editionId.baseId,
-          entityTypeId: draftEntity.metadata.entityTypeId,
-          properties: draftEntity.properties,
+          entityId: draftEntity.metadata.editionId.baseId as EntityId,
+          updatedProperties: draftEntity.properties,
         },
       });
 

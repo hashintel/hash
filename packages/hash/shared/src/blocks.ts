@@ -1,5 +1,7 @@
 import { BlockMetadata, BlockVariant } from "@blockprotocol/core";
 
+import { JsonSchema } from "./json-utils";
+
 /** @todo: might need refactor: https://github.com/hashintel/dev/pull/206#discussion_r723210329 */
 // eslint-disable-next-line global-require
 const fetch = (globalThis as any).fetch ?? require("node-fetch");
@@ -11,6 +13,7 @@ export interface HashBlockMeta extends BlockMetadata {
 
 export type HashBlock = {
   meta: HashBlockMeta;
+  schema: JsonSchema;
 };
 
 /**
@@ -96,15 +99,24 @@ function deriveAbsoluteUrl({
 const transformBlockConfig = ({
   componentId,
   metadata,
+  schema,
 }: {
   componentId: string;
   metadata: BlockMetadata;
+  schema: HashBlock["schema"];
 }): HashBlockMeta => {
+  const defaultProperties =
+    schema.default &&
+    typeof schema.default === "object" &&
+    !Array.isArray(schema.default)
+      ? schema.default
+      : {};
+
   const defaultVariant: BlockVariant = {
     description: metadata.description ?? metadata.displayName ?? metadata.name,
     name: metadata.displayName ?? metadata.name,
     icon: metadata.icon ?? "",
-    properties: {},
+    properties: defaultProperties,
   };
 
   const baseUrl = componentIdToUrl(componentId);
@@ -173,6 +185,22 @@ export const fetchBlock = async (
       );
     }
 
+    // schema urls may be absolute, as blocks may rely on schemas they do not define
+    let schema: HashBlock["schema"];
+    let schemaUrl;
+    try {
+      schemaUrl = deriveAbsoluteUrl({ baseUrl, path: metadata.schema });
+      // @todo needs validation
+      schema = (schemaUrl && (await (await fetch(schemaUrl)).json())) ?? {};
+    } catch (err) {
+      blockCache.delete(baseUrl);
+      throw new Error(
+        `Could not fetch and parse block schema at url ${
+          schemaUrl ?? "undefined"
+        }: ${(err as Error).message}`,
+      );
+    }
+
     // @todo Move this logic to a place where a block is mounted. This requires
     // block metadata to be available there. Current implementation reloads
     // the EA even if a locally developed block is not mounted (which should be rare).
@@ -191,8 +219,10 @@ export const fetchBlock = async (
     const result: HashBlock = {
       meta: transformBlockConfig({
         metadata,
+        schema,
         componentId: baseUrl,
       }),
+      schema,
     };
 
     return result;
