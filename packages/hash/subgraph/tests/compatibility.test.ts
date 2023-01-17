@@ -52,7 +52,7 @@ test("Graph API subgraph type is compatible with library type", () => {
     timeProjection: {
       kernel: {
         axis: "transaction",
-        timestamp: undefined,
+        timestamp: null,
       },
       image: {
         axis: "decision",

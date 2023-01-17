@@ -34,10 +34,11 @@ impl OntologyTypeVersion {
 }
 
 impl ToSchema for OntologyTypeVersion {
-    fn schema() -> openapi::Schema {
+    fn schema() -> openapi::RefOr<openapi::Schema> {
         openapi::Schema::Object(openapi::schema::Object::with_type(
             openapi::SchemaType::String,
         ))
+        .into()
     }
 }
 

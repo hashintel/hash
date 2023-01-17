@@ -234,7 +234,7 @@ export class BlockView implements NodeView {
 
     this.renderPortal(
       <BlockContext.Consumer>
-        {(ctx) => {
+        {() => {
           return (
             <BlockViewContext.Provider value={this}>
               <CollabPositionIndicators blockEntityId={blockEntityId} />
@@ -277,9 +277,6 @@ export class BlockView implements NodeView {
                   this.update(this.node);
                 }}
                 onClick={this.onDragEnd}
-                toggleShowDataMappingUi={() =>
-                  ctx?.setShowDataMappingUi(!ctx.showDataMappingUi)
-                }
               />
               <CreateBlockCommentButton
                 blockEntityId={blockEntityId}

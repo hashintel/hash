@@ -169,12 +169,12 @@ export const getAllLatestEntitiesResolver: ResolverFn<
     timeProjection: {
       kernel: {
         axis: "transaction",
-        timestamp: undefined,
+        timestamp: null,
       },
       image: {
         axis: "decision",
-        start: undefined,
-        end: undefined,
+        start: null,
+        end: null,
       },
     },
   });
@@ -233,16 +233,16 @@ export const getEntityResolver: ResolverFn<
     timeProjection: {
       kernel: {
         axis: "transaction",
-        timestamp: undefined,
+        timestamp: null,
       },
       image: {
         axis: "decision",
         start: entityVersion
           ? { bound: "included", timestamp: entityVersion }
-          : undefined,
+          : null,
         end: entityVersion
           ? { bound: "included", timestamp: entityVersion }
-          : undefined,
+          : null,
       },
     },
   });

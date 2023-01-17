@@ -25,7 +25,6 @@ export type KnowledgeCallbacks = {
   getEntity: GetEntityMessageCallback;
   createEntity: CreateEntityMessageCallback;
   aggregateEntities: AggregateEntitiesMessageCallback;
-  updateEntity: UpdateEntityMessageCallback;
   archiveEntity: ArchiveEntityMessageCallback;
 };
 
@@ -86,21 +85,6 @@ export type CreateEntityMessageCallback = MessageCallback<
   null,
   Entity,
   CreateResourceError
->;
-
-export type UpdateEntityRequest = {
-  entityId: EntityId;
-  entityTypeId?: VersionedUri;
-  updatedProperties: PropertyObject;
-  leftToRightOrder?: number;
-  rightToLeftOrder?: number;
-};
-
-export type UpdateEntityMessageCallback = MessageCallback<
-  UpdateEntityRequest,
-  null,
-  Entity,
-  ReadOrModifyResourceError
 >;
 
 export type ArchiveEntityRequest = {

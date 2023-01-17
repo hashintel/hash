@@ -36,8 +36,8 @@ export const createDraftLinkEntity = ({
       entityTypeId: linkEntityTypeId,
       provenance: { updatedById: "" },
       version: {
-        decisionTime: { start: "" },
-        transactionTime: { start: "" },
+        decisionTime: { start: "", end: null },
+        transactionTime: { start: "", end: null },
       },
     },
   };

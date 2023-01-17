@@ -1,44 +1,41 @@
-import { UnknownRecord } from "@blockprotocol/core";
 import {
-  BlockGraph,
   BlockGraphProperties,
-  EntityType as BpEntityType,
+  EntityEditionId,
+  GraphResolveDepths,
+  Subgraph,
+  SubgraphRootTypes,
 } from "@blockprotocol/graph";
-import { EntityId } from "@hashintel/hash-subgraph";
+import { VersionedUri } from "@blockprotocol/type-system/slim";
+import { Subgraph as LocalSubgraph } from "@hashintel/hash-subgraph";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
-import { JsonSchema } from "@local/hash-isomorphic-utils/json-utils";
-import { uniqBy } from "lodash";
+import { EntityId } from "@local/hash-isomorphic-utils/types";
 import {
   FunctionComponent,
   useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
-import { useLocalstorageState } from "rooks";
 
 import { useBlockLoadedContext } from "../../blocks/on-block-loaded";
-import { useBlockContext } from "../../blocks/page/block-context";
-import { convertApiEntityToBpEntity } from "../../lib/entities";
 import { useIsReadonlyMode } from "../../shared/readonly-mode";
 import { useBlockProtocolAggregateEntities } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-aggregate-entities";
 import { useBlockProtocolFileUpload } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-file-upload";
+import { useBlockProtocolGetEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
+import { useBlockProtocolUpdateEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { RemoteBlock } from "../remote-block/remote-block";
-import { DataMapEditor } from "./data-map-editor";
 import { fetchEmbedCode } from "./fetch-embed-code";
-import { SchemaMap } from "./shared";
 
-// @todo consolidate these properties, e.g. take all entityX, linkX into a single childEntity prop
-// @see https://app.asana.com/0/1200211978612931/1202807842439190/f
 type BlockLoaderProps = {
-  blockEntityId: string;
+  blockEntityId?: EntityId; // @todo make this always defined
+  blockEntityTypeId: VersionedUri;
   blockMetadata: HashBlockMeta;
-  blockSchema: JsonSchema;
   editableRef: (node: HTMLElement | null) => void;
-  entityId: EntityId;
-  entityTypeId: string;
-  entityProperties: {};
   onBlockLoaded: () => void;
+  wrappingEntityId: string;
   // shouldSandbox?: boolean;
 };
 
@@ -50,53 +47,105 @@ type BlockLoaderProps = {
  */
 export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   blockEntityId,
+  blockEntityTypeId,
   blockMetadata,
-  blockSchema,
   editableRef,
-  entityId,
-  entityTypeId,
-  entityProperties,
   onBlockLoaded,
   // shouldSandbox,
+  wrappingEntityId,
 }) => {
   const isReadonlyMode = useIsReadonlyMode();
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
+  const { updateEntity } = useBlockProtocolUpdateEntity();
   const { uploadFile } = useBlockProtocolFileUpload(isReadonlyMode);
+  const [graphProperties, setGraphProperties] = useState<Required<
+    BlockGraphProperties["graph"]
+  > | null>(null);
 
-  const { showDataMappingUi, setShowDataMappingUi } = useBlockContext();
+  const { getEntity } = useBlockProtocolGetEntity();
 
-  // Storing these in local storage is a temporary solution – we want them in the db soon
-  // Known issue: this hook always sets _some_ value in local storage, so we end up with unnecessary things stored there
-  const mapId = `${entityTypeId}:${blockMetadata.source}`;
-  const [schemaMap, setSchemaMap] = useLocalstorageState<SchemaMap>(
-    `map:${mapId}`,
-    { mapId },
-  );
-
-  const graphProperties = useMemo<
-    Required<BlockGraphProperties<UnknownRecord>["graph"]>
-  >(() => {
-    const convertedEntityTypesForProvidedEntities: BpEntityType[] = [];
-
-    const blockEntity = convertApiEntityToBpEntity({
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
-      entityId: entityId ?? "entityId-not-yet-set", // @todo ensure blocks always get sent an entityId
-      entityTypeId,
-      properties: entityProperties,
-    });
-
-    return {
-      blockEntity,
-      entityTypes: uniqBy(
-        convertedEntityTypesForProvidedEntities,
-        "entityTypeId",
-      ),
-      readonly: isReadonlyMode,
-      // We currently don't construct a block graph or linked aggregations.
-      blockGraph: {} as BlockGraph,
-      linkedAggregations: [],
+  useEffect(() => {
+    const depths: GraphResolveDepths = {
+      hasRightEntity: {
+        incoming: 2,
+        outgoing: 2,
+      },
+      hasLeftEntity: {
+        incoming: 2,
+        outgoing: 2,
+      },
     };
-  }, [entityId, entityProperties, entityTypeId, isReadonlyMode]);
+
+    if (!blockEntityId) {
+      // when inserting a block in the frontend we don't yet have an entity associated with it
+      // there's a delay while the request to the API to insert it is processed
+      // @todo some better way of handling this – probably affected by revamped collab.
+      //    or could simply not load a new block until the entity is created?
+      const now: string = new Date().toISOString();
+      const placeholderEntity = {
+        metadata: {
+          editionId: {
+            baseId: "placeholder-account%entity-id-not-set",
+            version: now, // @todo-0.3 check this against types in @blockprotocol/graph when mismatches fixed
+            versionId: now,
+          },
+          entityTypeId: blockEntityTypeId,
+        },
+
+        properties: {},
+      };
+      const blockEntitySubgraph = {
+        depths,
+        edges: {},
+        roots: [placeholderEntity.metadata.editionId as any as EntityEditionId], // @todo-0.3 fix when type mismatches fixed
+        vertices: {
+          [placeholderEntity.metadata.editionId.baseId]: {
+            [now]: {
+              kind: "entity",
+              inner: placeholderEntity,
+            },
+          },
+        } as unknown as Subgraph["vertices"], // @todo-0.3 do something about this
+      };
+      setGraphProperties({
+        blockEntitySubgraph,
+        readonly: isReadonlyMode,
+      });
+      return;
+    }
+
+    getEntity({
+      data: { entityId: blockEntityId },
+    })
+      .then(({ data, errors }) => {
+        if (!data) {
+          throw new Error(
+            `Could not get entity ${blockEntityId} ${
+              errors ? JSON.stringify(errors, null, 2) : ""
+            }`,
+          );
+        }
+
+        setGraphProperties({
+          blockEntitySubgraph: {
+            ...(data as unknown as Subgraph<SubgraphRootTypes["entity"]>), // @todo-0.3 do something about this,
+            roots: [
+              // @todo-0.3 remove this when edition ids match between HASH and BP
+              {
+                ...data.roots[0]!,
+                versionId: data.roots[0]!.version,
+              },
+            ],
+          },
+          readonly: isReadonlyMode,
+        });
+      })
+      .catch((err) => {
+        // eslint-disable-next-line no-console -- intentional debug log until we have better user-facing errors
+        console.error(err);
+        throw err;
+      });
+  }, [blockEntityId, blockEntityTypeId, getEntity, isReadonlyMode]);
 
   const functions = {
     aggregateEntities,
@@ -105,6 +154,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
      * @see https://app.asana.com/0/1200211978612931/1202509819279267/f
      */
     getEmbedBlock: fetchEmbedCode,
+    updateEntity,
     uploadFile,
   };
 
@@ -116,11 +166,11 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   });
 
   const onRemoteBlockLoaded = useCallback(() => {
-    onBlockLoadedFromContext(blockEntityId);
+    onBlockLoadedFromContext(wrappingEntityId);
     onBlockLoadedRef.current();
-  }, [blockEntityId, onBlockLoadedFromContext]);
+  }, [wrappingEntityId, onBlockLoadedFromContext]);
 
-  // @todo upgrade sandbox for BP 0.2 and remove feature flag
+  // @todo upgrade sandbox for BP 0.3 and remove feature flag
   // if (sandboxingEnabled && (shouldSandbox || sourceUrl.endsWith(".html"))) {
   //   return (
   //     <BlockFramer
@@ -136,21 +186,32 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   //   );
   // }
 
-  if (showDataMappingUi) {
-    return (
-      <DataMapEditor
-        onClose={() => setShowDataMappingUi(false)}
-        schemaMap={schemaMap}
-        sourceBlockEntity={{
-          ...graphProperties.blockEntity,
-          properties: entityProperties,
-        }}
-        sourceBlockGraph={graphProperties.blockGraph}
-        targetSchema={blockSchema}
-        transformedTree={graphProperties.blockEntity.properties}
-        onSchemaMapChange={setSchemaMap}
-      />
-    );
+  // The paragraph block needs updating to 0.3 and publishing – this ensures it doesn't crash
+  // @todo-0.3 remove this when the paragraph block is updated to 0.3
+  const temporaryBackwardsCompatibleProperties = useMemo(() => {
+    if (!graphProperties) {
+      return null;
+    }
+    // @todo.0-3 fix this to import from @blockprotocol/graph when key mismatches are fixed
+    const rootEntity = getRoots(
+      graphProperties.blockEntitySubgraph as unknown as LocalSubgraph,
+    )[0];
+
+    if (!rootEntity) {
+      throw new Error("Root entity not present in blockEntitySubgraph");
+    }
+
+    return {
+      ...graphProperties,
+      blockEntity: {
+        entityId: rootEntity.metadata.editionId.baseId,
+        properties: (rootEntity as any).properties, // @todo-0.3 fix this
+      },
+    };
+  }, [graphProperties]);
+
+  if (!temporaryBackwardsCompatibleProperties) {
+    return null;
   }
 
   return (
@@ -158,7 +219,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       blockMetadata={blockMetadata}
       editableRef={editableRef}
       graphCallbacks={functions}
-      graphProperties={graphProperties}
+      graphProperties={temporaryBackwardsCompatibleProperties}
       onBlockLoaded={onRemoteBlockLoaded}
     />
   );

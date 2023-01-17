@@ -121,12 +121,12 @@ export const getLatestEntityById: ImpureGraphFunction<
       timeProjection: {
         kernel: {
           axis: "transaction",
-          timestamp: undefined,
+          timestamp: null,
         },
         image: {
           axis: "decision",
-          start: undefined,
-          end: undefined,
+          start: null,
+          end: null,
         },
       },
     })
@@ -469,12 +469,12 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
   const timeProjection: TimeProjection = {
     kernel: {
       axis: "transaction",
-      timestamp: undefined,
+      timestamp: null,
     },
     image: {
       axis: "decision",
-      start: undefined,
-      end: undefined,
+      start: null,
+      end: null,
     },
   };
 
@@ -593,12 +593,12 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
   const timeProjection: TimeProjection = {
     kernel: {
       axis: "transaction",
-      timestamp: undefined,
+      timestamp: null,
     },
     image: {
       axis: "decision",
-      start: undefined,
-      end: undefined,
+      start: null,
+      end: null,
     },
   };
 
@@ -676,12 +676,12 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
     timeProjection: {
       kernel: {
         axis: "transaction",
-        timestamp: undefined,
+        timestamp: null,
       },
       image: {
         axis: "decision",
-        start: undefined,
-        end: undefined,
+        start: null,
+        end: null,
       },
     },
   });
