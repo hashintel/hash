@@ -51,7 +51,7 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
     const linkEntity = createDraftLinkEntity({
       linkEntityTypeId,
       leftEntityId: getRoots(entitySubgraph)[0]?.metadata.editionId
-        .baseId! as EntityId,
+        .baseId as EntityId,
       rightEntityId: selectedEntity.metadata.editionId.baseId as EntityId,
     });
 

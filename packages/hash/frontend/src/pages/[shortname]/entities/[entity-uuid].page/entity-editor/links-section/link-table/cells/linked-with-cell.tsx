@@ -114,7 +114,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       onClick: () => {
         markLinkAsArchived(
           linkAndTargetEntities[0]?.linkEntity.metadata.editionId
-            .baseId! as EntityId,
+            .baseId as EntityId,
         );
       },
     });
