@@ -299,7 +299,7 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
                     [
                       ...properties,
                       {
-                        id: details.option as VersionedUri,
+                        id: details.option,
                         allowArrays: false,
                         required: false,
                       },
@@ -331,7 +331,7 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
               }
             }}
             renderOption={(optProps, opt) => {
-              const property = propertyTypes?.[opt as VersionedUri];
+              const property = propertyTypes?.[opt];
               return property ? (
                 <Box component="li" {...optProps} sx={{ py: 1.5, px: 2.25 }}>
                   <FontAwesomeIcon
