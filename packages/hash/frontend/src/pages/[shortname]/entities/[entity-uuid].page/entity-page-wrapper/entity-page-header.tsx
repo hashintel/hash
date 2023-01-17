@@ -31,7 +31,7 @@ export const EntityPageHeader = ({
   }
 
   return (
-    <Box bgcolor="white">
+    <>
       <TopContextBar
         defaultCrumbIcon={null}
         crumbs={[
@@ -49,7 +49,9 @@ export const EntityPageHeader = ({
         ]}
         scrollToTop={() => {}}
       />
+
       {editBar}
+
       <Box py={3.75}>
         <Container>
           {chip}
@@ -66,6 +68,6 @@ export const EntityPageHeader = ({
           </Stack>
         </Container>
       </Box>
-    </Box>
+    </>
   );
 };

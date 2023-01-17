@@ -13,7 +13,9 @@ import { EditBar } from "../../types/entity-type/[entity-type-id].page/edit-bar"
 import { EntityEditorPage } from "./entity-editor-page";
 import { EntityPageLoadingState } from "./entity-page-loading-state";
 import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
+import { useApplyDraftLinkEntityChanges } from "./shared/use-apply-draft-link-entity-changes";
 import { useDraftEntitySubgraph } from "./shared/use-draft-entity-subgraph";
+import { useDraftLinkState } from "./shared/use-draft-link-state";
 
 interface CreateEntityPageProps {
   entityTypeId: VersionedUri;
@@ -21,6 +23,14 @@ interface CreateEntityPageProps {
 
 export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
   const router = useRouter();
+  const applyDraftLinkEntityChanges = useApplyDraftLinkEntityChanges();
+
+  const [
+    draftLinksToCreate,
+    setDraftLinksToCreate,
+    draftLinksToArchive,
+    setDraftLinksToArchive,
+  ] = useDraftLinkState();
 
   const [draftEntitySubgraph, setDraftEntitySubgraph, loading] =
     useDraftEntitySubgraph(entityTypeId);
@@ -56,6 +66,12 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
         return;
       }
 
+      await applyDraftLinkEntityChanges(
+        entity.metadata.editionId.baseId,
+        draftLinksToCreate,
+        draftLinksToArchive,
+      );
+
       const entityId = extractEntityUuidFromEntityId(
         entity.metadata.editionId.baseId,
       );
@@ -78,11 +94,6 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
 
   return (
     <EntityEditorPage
-      /**
-       * @todo links section is hidden temporarily on new entity page
-       * it should be visible again after draft state on links implemented
-       * */
-      hideLinksSection
       refetch={async () => {}}
       editBar={
         <EditBar
@@ -106,6 +117,10 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       setEntity={(entity) => {
         updateEntitySubgraphStateByEntity(entity, setDraftEntitySubgraph);
       }}
+      draftLinksToCreate={draftLinksToCreate}
+      setDraftLinksToCreate={setDraftLinksToCreate}
+      draftLinksToArchive={draftLinksToArchive}
+      setDraftLinksToArchive={setDraftLinksToArchive}
     />
   );
 };
