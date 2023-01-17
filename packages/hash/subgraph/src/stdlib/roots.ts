@@ -36,7 +36,7 @@ export const getRoots = <RootType extends SubgraphRootType>(
       ] as Vertex,
       `roots should have corresponding vertices but ${JSON.stringify(
         rootVertexId,
-      )} is missing`,
+      )} was missing`,
     );
 
     return root.inner as RootType["element"];
