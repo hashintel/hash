@@ -106,11 +106,9 @@ mod tests {
     use super::*;
     use crate::{
         error::Error,
-        schema::{
-            visitor::{StringSchema, U8Schema},
-            Reflection,
-        },
+        schema::{visitor::StringSchema, Reflection},
         test::{to_json, to_message},
+        Deserialize,
     };
 
     #[test]
@@ -124,7 +122,7 @@ mod tests {
             .attach(Location::Array(1))
             .attach(Location::Entry("entry1".into()))
             .attach(Location::Array(0))
-            .attach(ExpectedType::new(U8Schema::document()))
+            .attach(ExpectedType::new(u8::reflection()))
             .attach(ReceivedType::new(StringSchema::document()));
 
         assert_eq!(
@@ -137,9 +135,9 @@ mod tests {
                     {"type": "field", "value": "field2"}
                 ],
                 "expected": {
-                    "$ref": "#/$defs/0000-deer::schema::visitor::U8Schema",
+                    "$ref": "#/$defs/0000-u8",
                     "$defs": {
-                        "0000-deer::schema::visitor::U8Schema": {
+                        "0000-u8": {
                             "type": "integer",
                             "minimum": 0,
                             "maximum": 255,
@@ -175,8 +173,7 @@ mod tests {
 
         assert_eq!(
             to_message::<TypeError>(
-                &Report::new(TypeError.into_error())
-                    .attach(ExpectedType::new(U8Schema::document()))
+                &Report::new(TypeError.into_error()).attach(ExpectedType::new(u8::reflection()))
             ),
             r#"expected value of type integer"#
         );
@@ -185,7 +182,7 @@ mod tests {
             to_message::<TypeError>(
                 &Report::new(TypeError.into_error())
                     .attach(ReceivedType::new(StringSchema::document()))
-                    .attach(ExpectedType::new(U8Schema::document()))
+                    .attach(ExpectedType::new(u8::reflection()))
             ),
             "expected value of type integer, but received value of unexpected type string"
         );
