@@ -36,7 +36,13 @@ const script = async () => {
     absolute: true,
     caseSensitiveMatch: false,
     cwd: monorepoRootDirPath,
-    ignore: ["**/dist/**", "**/node_modules/**", "**/target/**", "**/venv/**"],
+    ignore: [
+      "**/dist/**",
+      "**/node_modules/**",
+      "**/runner_venv/**",
+      "**/target/**",
+      "**/venv/**",
+    ],
   });
 
   const misspelledLicenseFileSet = new Set<string>();
