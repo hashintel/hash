@@ -20,12 +20,7 @@ impl<A> ToSchema for VersionInterval<A> {
             openapi::ObjectBuilder::new()
                 .property("start", Timestamp::<A>::schema())
                 .required("start")
-                .property(
-                    "end",
-                    openapi::OneOfBuilder::new()
-                        .item(Timestamp::<A>::schema())
-                        .nullable(true),
-                )
+                .property("end", openapi::Ref::from_schema_name("NullableTimestamp"))
                 .required("end")
                 .build(),
         )

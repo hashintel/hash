@@ -32,7 +32,7 @@ impl ToSchema for UnresolvedDecisionTimeKernel {
             .required("axis")
             .property(
                 "timestamp",
-                openapi::Ref::from_schema_name("UnresolvedTimestamp"),
+                openapi::Ref::from_schema_name("NullableTimestamp"),
             )
             .required("timestamp")
             .build()
@@ -49,7 +49,7 @@ impl ToSchema for UnresolvedTransactionTimeKernel {
             .required("axis")
             .property(
                 "timestamp",
-                openapi::Ref::from_schema_name("UnresolvedTimestamp"),
+                openapi::Ref::from_schema_name("NullableTimestamp"),
             )
             .required("timestamp")
             .build()

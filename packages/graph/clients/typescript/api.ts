@@ -2547,10 +2547,10 @@ export interface UpdatePropertyTypeRequest {
 export interface VersionInterval {
   /**
    *
-   * @type {VersionIntervalEnd}
+   * @type {string}
    * @memberof VersionInterval
    */
-  end: VersionIntervalEnd | null;
+  end: string | null;
   /**
    *
    * @type {string}
@@ -2558,12 +2558,6 @@ export interface VersionInterval {
    */
   start: string;
 }
-/**
- * @type VersionIntervalEnd
- * @export
- */
-export type VersionIntervalEnd = string;
-
 /**
  * @type Vertex
  * @export

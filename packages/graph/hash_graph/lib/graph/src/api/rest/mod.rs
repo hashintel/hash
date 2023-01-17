@@ -461,7 +461,7 @@ impl Modify for TimeSchemaAddon {
                 .schemas
                 .insert("Timestamp".to_owned(), Timestamp::<()>::schema());
             components.schemas.insert(
-                "UnresolvedTimestamp".to_owned(),
+                "NullableTimestamp".to_owned(),
                 ObjectBuilder::new()
                     .schema_type(SchemaType::String)
                     .format(Some(SchemaFormat::KnownFormat(KnownFormat::DateTime)))
