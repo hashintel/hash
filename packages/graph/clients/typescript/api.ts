@@ -2078,23 +2078,36 @@ export interface UnresolvedDecisionTimeImage {
   axis: DecisionTime;
   /**
    *
-   * @type {UnresolvedDecisionTimeImageEnd}
+   * @type {TimeIntervalBound}
    * @memberof UnresolvedDecisionTimeImage
    */
-  end: UnresolvedDecisionTimeImageEnd | null;
+  end: TimeIntervalBound | null;
   /**
    *
-   * @type {UnresolvedDecisionTimeImageEnd}
+   * @type {TimeIntervalBound}
    * @memberof UnresolvedDecisionTimeImage
    */
-  start: UnresolvedDecisionTimeImageEnd | null;
+  start: TimeIntervalBound | null;
 }
 /**
- * @type UnresolvedDecisionTimeImageEnd
+ *
  * @export
+ * @interface UnresolvedDecisionTimeImageAllOf
  */
-export type UnresolvedDecisionTimeImageEnd = TimeIntervalBound;
-
+export interface UnresolvedDecisionTimeImageAllOf {
+  /**
+   *
+   * @type {TimeIntervalBound}
+   * @memberof UnresolvedDecisionTimeImageAllOf
+   */
+  end: TimeIntervalBound | null;
+  /**
+   *
+   * @type {TimeIntervalBound}
+   * @memberof UnresolvedDecisionTimeImageAllOf
+   */
+  start: TimeIntervalBound | null;
+}
 /**
  *
  * @export
@@ -2109,17 +2122,11 @@ export interface UnresolvedDecisionTimeKernel {
   axis: DecisionTime;
   /**
    *
-   * @type {UnresolvedDecisionTimeKernelTimestamp}
+   * @type {string}
    * @memberof UnresolvedDecisionTimeKernel
    */
-  timestamp: UnresolvedDecisionTimeKernelTimestamp | null;
+  timestamp: string | null;
 }
-/**
- * @type UnresolvedDecisionTimeKernelTimestamp
- * @export
- */
-export type UnresolvedDecisionTimeKernelTimestamp = string;
-
 /**
  *
  * @export
@@ -2161,16 +2168,16 @@ export interface UnresolvedTransactionTimeImage {
   axis: TransactionTime;
   /**
    *
-   * @type {UnresolvedDecisionTimeImageEnd}
+   * @type {TimeIntervalBound}
    * @memberof UnresolvedTransactionTimeImage
    */
-  end: UnresolvedDecisionTimeImageEnd | null;
+  end: TimeIntervalBound | null;
   /**
    *
-   * @type {UnresolvedDecisionTimeImageEnd}
+   * @type {TimeIntervalBound}
    * @memberof UnresolvedTransactionTimeImage
    */
-  start: UnresolvedDecisionTimeImageEnd | null;
+  start: TimeIntervalBound | null;
 }
 /**
  *
@@ -2186,10 +2193,10 @@ export interface UnresolvedTransactionTimeKernel {
   axis: TransactionTime;
   /**
    *
-   * @type {UnresolvedDecisionTimeKernelTimestamp}
+   * @type {string}
    * @memberof UnresolvedTransactionTimeKernel
    */
-  timestamp: UnresolvedDecisionTimeKernelTimestamp | null;
+  timestamp: string | null;
 }
 /**
  *

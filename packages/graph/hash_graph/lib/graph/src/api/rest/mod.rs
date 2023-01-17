@@ -47,7 +47,7 @@ use crate::{
             DecisionTime, DecisionTimeImage, DecisionTimeKernel, DecisionTimeProjection,
             TimeIntervalBound, TimeProjection, Timestamp, TransactionTime, TransactionTimeImage,
             TransactionTimeKernel, TransactionTimeProjection, UnresolvedDecisionTimeImage,
-            UnresolvedDecisionTimeKernel, UnresolvedDecisionTimeProjection,
+            UnresolvedDecisionTimeKernel, UnresolvedDecisionTimeProjection, UnresolvedTimeInterval,
             UnresolvedTimeProjection, UnresolvedTransactionTimeImage,
             UnresolvedTransactionTimeKernel, UnresolvedTransactionTimeProjection, VersionInterval,
         },
@@ -151,59 +151,57 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
 
 #[derive(OpenApi)]
 #[openapi(
-    tags(
-        (name = "Graph", description = "HASH Graph API")
-    ),
-    modifiers(&MergeAddon, &ExternalRefAddon, &OperationGraphTagAddon, &FilterSchemaAddon, &TimeSchemaAddon),
-    components(
-        schemas(
-            OwnedById,
-            UpdatedById,
-            ProvenanceMetadata,
-            OntologyTypeEditionId,
-            OntologyElementMetadata,
-            EntityVertexId,
-            Selector,
-
-            GraphElementId,
-            GraphElementVertexId,
-            OntologyVertex,
-            KnowledgeGraphVertex,
-            Vertex,
-            KnowledgeGraphVertices,
-            OntologyVertices,
-            Vertices,
-            SharedEdgeKind,
-            KnowledgeGraphEdgeKind,
-            OntologyEdgeKind,
-            OntologyOutwardEdges,
-            KnowledgeGraphOutwardEdges,
-            OntologyRootedEdges,
-            KnowledgeGraphRootedEdges,
-            Edges,
-            GraphResolveDepths,
-            EdgeResolveDepths,
-            OutgoingEdgeResolveDepth,
-            Subgraph,
-
-            DecisionTime,
-            TransactionTime,
-            TimeProjection,
-            UnresolvedTimeProjection,
-            UnresolvedDecisionTimeProjection,
-            UnresolvedDecisionTimeImage,
-            UnresolvedDecisionTimeKernel,
-            UnresolvedTransactionTimeProjection,
-            UnresolvedTransactionTimeImage,
-            UnresolvedTransactionTimeKernel,
-            DecisionTimeProjection,
-            DecisionTimeImage,
-            DecisionTimeKernel,
-            TransactionTimeProjection,
-            TransactionTimeImage,
-            TransactionTimeKernel,
-        )
-    ),
+tags(
+(name = "Graph", description = "HASH Graph API")
+),
+modifiers(& MergeAddon, & ExternalRefAddon, & OperationGraphTagAddon, & FilterSchemaAddon, & TimeSchemaAddon),
+components(
+schemas(
+OwnedById,
+UpdatedById,
+ProvenanceMetadata,
+OntologyTypeEditionId,
+OntologyElementMetadata,
+EntityVertexId,
+Selector,
+GraphElementId,
+GraphElementVertexId,
+OntologyVertex,
+KnowledgeGraphVertex,
+Vertex,
+KnowledgeGraphVertices,
+OntologyVertices,
+Vertices,
+SharedEdgeKind,
+KnowledgeGraphEdgeKind,
+OntologyEdgeKind,
+OntologyOutwardEdges,
+KnowledgeGraphOutwardEdges,
+OntologyRootedEdges,
+KnowledgeGraphRootedEdges,
+Edges,
+GraphResolveDepths,
+EdgeResolveDepths,
+OutgoingEdgeResolveDepth,
+Subgraph,
+DecisionTime,
+TransactionTime,
+TimeProjection,
+UnresolvedTimeProjection,
+UnresolvedDecisionTimeProjection,
+UnresolvedDecisionTimeImage,
+UnresolvedDecisionTimeKernel,
+UnresolvedTransactionTimeProjection,
+UnresolvedTransactionTimeImage,
+UnresolvedTransactionTimeKernel,
+DecisionTimeProjection,
+DecisionTimeImage,
+DecisionTimeKernel,
+TransactionTimeProjection,
+TransactionTimeImage,
+TransactionTimeKernel,
+)
+),
 )]
 struct OpenApiDocumentation;
 
@@ -462,6 +460,14 @@ impl Modify for TimeSchemaAddon {
             components
                 .schemas
                 .insert("Timestamp".to_owned(), Timestamp::<()>::schema());
+            components.schemas.insert(
+                "UnresolvedTimestamp".to_owned(),
+                ObjectBuilder::new()
+                    .schema_type(SchemaType::String)
+                    .format(Some(SchemaFormat::KnownFormat(KnownFormat::DateTime)))
+                    .nullable(true)
+                    .into(),
+            );
             components.schemas.insert(
                 "VersionInterval".to_owned(),
                 VersionInterval::<()>::schema(),

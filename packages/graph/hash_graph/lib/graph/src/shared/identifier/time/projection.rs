@@ -32,12 +32,7 @@ impl ToSchema for UnresolvedDecisionTimeKernel {
             .required("axis")
             .property(
                 "timestamp",
-                openapi::Schema::OneOf(
-                    openapi::OneOfBuilder::new()
-                        .item(openapi::Ref::from_schema_name("Timestamp"))
-                        .nullable(true)
-                        .build(),
-                ),
+                openapi::Ref::from_schema_name("UnresolvedTimestamp"),
             )
             .required("timestamp")
             .build()
@@ -54,12 +49,7 @@ impl ToSchema for UnresolvedTransactionTimeKernel {
             .required("axis")
             .property(
                 "timestamp",
-                openapi::Schema::OneOf(
-                    openapi::OneOfBuilder::new()
-                        .item(openapi::Ref::from_schema_name("Timestamp"))
-                        .nullable(true)
-                        .build(),
-                ),
+                openapi::Ref::from_schema_name("UnresolvedTimestamp"),
             )
             .required("timestamp")
             .build()
@@ -89,31 +79,17 @@ pub type UnresolvedDecisionTimeImage = UnresolvedImage<DecisionTime>;
 
 impl ToSchema for UnresolvedDecisionTimeImage {
     fn schema() -> openapi::RefOr<openapi::Schema> {
-        openapi::ObjectBuilder::new()
-            .property("axis", openapi::Ref::from_schema_name("DecisionTime"))
-            .required("axis")
-            .property(
-                "start",
-                openapi::Schema::OneOf(
-                    openapi::OneOfBuilder::new()
-                        .item(openapi::Ref::from_schema_name("TimeIntervalBound"))
-                        .nullable(true)
-                        .build(),
-                ),
-            )
-            .required("start")
-            .property(
-                "end",
-                openapi::Schema::OneOf(
-                    openapi::OneOfBuilder::new()
-                        .item(openapi::Ref::from_schema_name("TimeIntervalBound"))
-                        .nullable(true)
-                        .build(),
-                ),
-            )
-            .required("end")
-            .build()
-            .into()
+        openapi::Schema::AllOf(
+            openapi::AllOfBuilder::new()
+                .item(
+                    openapi::ObjectBuilder::new()
+                        .property("axis", openapi::Ref::from_schema_name("DecisionTime"))
+                        .required("axis"),
+                )
+                .item(UnresolvedTimeInterval::<DecisionTime>::schema())
+                .build(),
+        )
+        .into()
     }
 }
 
@@ -121,31 +97,17 @@ pub type UnresolvedTransactionTimeImage = UnresolvedImage<TransactionTime>;
 
 impl ToSchema for UnresolvedTransactionTimeImage {
     fn schema() -> openapi::RefOr<openapi::Schema> {
-        openapi::ObjectBuilder::new()
-            .property("axis", openapi::Ref::from_schema_name("TransactionTime"))
-            .required("axis")
-            .property(
-                "start",
-                openapi::Schema::OneOf(
-                    openapi::OneOfBuilder::new()
-                        .item(openapi::Ref::from_schema_name("TimeIntervalBound"))
-                        .nullable(true)
-                        .build(),
-                ),
-            )
-            .required("start")
-            .property(
-                "end",
-                openapi::Schema::OneOf(
-                    openapi::OneOfBuilder::new()
-                        .item(openapi::Ref::from_schema_name("TimeIntervalBound"))
-                        .nullable(true)
-                        .build(),
-                ),
-            )
-            .required("end")
-            .build()
-            .into()
+        openapi::Schema::AllOf(
+            openapi::AllOfBuilder::new()
+                .item(
+                    openapi::ObjectBuilder::new()
+                        .property("axis", openapi::Ref::from_schema_name("TransactionTime"))
+                        .required("axis"),
+                )
+                .item(UnresolvedTimeInterval::<TransactionTime>::schema())
+                .build(),
+        )
+        .into()
     }
 }
 
