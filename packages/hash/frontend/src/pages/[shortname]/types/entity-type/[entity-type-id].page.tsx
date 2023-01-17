@@ -33,9 +33,9 @@ import { EntityTypeContext } from "./[entity-type-id].page/shared/entity-type-co
 import { EntityTypeEntitiesContext } from "./[entity-type-id].page/shared/entity-type-entities-context";
 import { EntityTypeEditorForm } from "./[entity-type-id].page/shared/form-types";
 import { getEntityTypeBaseUri } from "./[entity-type-id].page/shared/get-entity-type-base-uri";
-import { PropertyTypesContext } from "./[entity-type-id].page/shared/property-types-context";
+import { LatestPropertyTypesContext } from "./[entity-type-id].page/shared/latest-property-types-context";
 import { useCurrentTab } from "./[entity-type-id].page/shared/tabs";
-import { usePropertyTypesContextValue } from "./[entity-type-id].page/shared/use-property-types-context-value";
+import { useLatestPropertyTypesContextValue } from "./[entity-type-id].page/shared/use-latest-property-types-context-value";
 import { useEntityTypeEntitiesContextValue } from "./[entity-type-id].page/use-entity-type-entities-context-value";
 import { useEntityTypeValue } from "./[entity-type-id].page/use-entity-type-value";
 
@@ -121,7 +121,7 @@ const Page: NextPageWithLayout = () => {
   const entityTypeEntitiesValue =
     useEntityTypeEntitiesContextValue(baseEntityTypeUri);
 
-  const propertyTypes = usePropertyTypesContextValue();
+  const propertyTypes = useLatestPropertyTypesContextValue();
 
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
@@ -254,7 +254,7 @@ const Page: NextPageWithLayout = () => {
         <title>{entityType.title} | Entity Type | HASH</title>
       </Head>
       <FormProvider {...formMethods}>
-        <PropertyTypesContext.Provider value={propertyTypes}>
+        <LatestPropertyTypesContext.Provider value={propertyTypes}>
           <EntityTypeContext.Provider value={entityTypeAndPropertyTypes}>
             <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
               <Box
@@ -366,7 +366,7 @@ const Page: NextPageWithLayout = () => {
               </Box>
             </EntityTypeEntitiesContext.Provider>
           </EntityTypeContext.Provider>
-        </PropertyTypesContext.Provider>
+        </LatestPropertyTypesContext.Provider>
       </FormProvider>
       <GlobalStyles<Theme>
         styles={(theme) => ({

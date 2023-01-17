@@ -49,9 +49,9 @@ import { useRouteNamespace } from "../../../../shared/use-route-namespace";
 import { useEntityType } from "../shared/entity-type-context";
 import { EntityTypeEditorForm } from "../shared/form-types";
 import {
-  usePropertyTypes,
-  useRefetchPropertyTypes,
-} from "../shared/property-types-context";
+  useLatestPropertyTypes,
+  useRefetchLatestPropertyTypes,
+} from "../shared/latest-property-types-context";
 import { getPropertyTypeSchema } from "./property-list-card/get-property-type-schema";
 import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
 import { PropertyTitleCell } from "./property-list-card/property-title-cell";
@@ -226,7 +226,7 @@ const PropertyRow = ({
   menuTableCell?: ReactNode;
   onUpdateVersion?: (nextId: VersionedUri) => void;
 }) => {
-  const [propertyTypes, propertyTypesSubgraph] = usePropertyTypes();
+  const [propertyTypes, propertyTypesSubgraph] = useLatestPropertyTypes();
   const { propertyTypes: entityTypePropertyTypes } = useEntityType();
 
   const [currentVersion, latestVersion, baseUri] = usePropertyTypeVersions(
@@ -417,13 +417,13 @@ export const PropertyTypeRow = ({
   });
 
   const { updatePropertyType } = useBlockProtocolUpdatePropertyType();
-  const refetchPropertyTypes = useRefetchPropertyTypes();
+  const refetchPropertyTypes = useRefetchLatestPropertyTypes();
   const onUpdateVersionRef = useRef(onUpdateVersion);
   useLayoutEffect(() => {
     onUpdateVersionRef.current = onUpdateVersion;
   });
 
-  const [propertyTypes, propertyTypesSubgraph] = usePropertyTypes();
+  const [propertyTypes, propertyTypesSubgraph] = useLatestPropertyTypes();
   const { propertyTypes: entityTypePropertyTypes } = useEntityType();
   const property = entityTypePropertyTypes[$id] ?? propertyTypes?.[$id];
 
@@ -528,7 +528,7 @@ const InsertPropertyRow = (
   const { control } = useFormContext<EntityTypeEditorForm>();
   const properties = useWatch({ control, name: "properties" });
 
-  const [propertyTypesObj] = usePropertyTypes();
+  const [propertyTypesObj] = useLatestPropertyTypes();
   const propertyTypes = Object.values(propertyTypesObj ?? {});
 
   // @todo make more efficient
@@ -569,7 +569,7 @@ export const PropertyListCard = () => {
     (routeNamespace?.accountId as OwnedById) ?? null,
   );
 
-  const refetchPropertyTypes = useRefetchPropertyTypes();
+  const refetchPropertyTypes = useRefetchLatestPropertyTypes();
   const modalTooltipId = useId();
   const createModalPopupState = usePopupState({
     variant: "popover",
