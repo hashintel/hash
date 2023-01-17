@@ -139,8 +139,8 @@ where
                     // current | [---------) |     [---)
                     DependencyStatus::Unresolved(*current_depths, new_interval)
                 } else if old_interval.overlaps(&new_interval) {
-                    // The time intervals either overlap or are disjoint, so only have to resolve
-                    // the difference of the two intervals.
+                    // This is a similar case to the above, but as the old interval is not contained
+                    // in the new interval, we can resolve the difference of `new - old`.
                     // old:     [-----)
                     // new:       [-------)
                     // resolve:       [---)
