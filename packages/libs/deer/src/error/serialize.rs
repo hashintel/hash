@@ -287,8 +287,8 @@ mod tests {
             ReceivedValue, ReportExt, ValueError, Variant, VisitorError, NAMESPACE,
         },
         id,
-        schema::visitor::{NumberSchema, StringSchema, U8Schema},
-        Reflection,
+        schema::visitor::StringSchema,
+        Deserialize, Number, Reflection,
     };
 
     #[derive(Debug)]
@@ -520,7 +520,7 @@ mod tests {
             .attach(Location::Field("b"))
             .attach(Location::Field("a"))
             .attach(Location::Array(0))
-            .attach(ExpectedType::new(NumberSchema::document()));
+            .attach(ExpectedType::new(Number::reflection()));
 
         let export = report.export();
         let export = to_value(export).expect("should be ok");
@@ -539,11 +539,11 @@ mod tests {
                     ],
                     "expected": {
                       "$defs": {
-                          "0000-deer::schema::visitor::NumberSchema": {
+                          "0000-deer::number::Number": {
                               "type": "number",
                           },
                       },
-                      "$ref": "#/$defs/0000-deer::schema::visitor::NumberSchema",
+                      "$ref": "#/$defs/0000-deer::number::Number",
                     }
                 }
             }])
@@ -563,7 +563,7 @@ mod tests {
 
         let value = Report::new(Error::new(ValueError))
             .attach(ReceivedValue::new(256u16))
-            .attach(ExpectedType::new(U8Schema::document()))
+            .attach(ExpectedType::new(u8::reflection()))
             .attach(Location::Field("a"))
             .change_context(VisitorError);
 
@@ -606,13 +606,13 @@ mod tests {
                     "received": 256,
                     "expected": {
                         "$defs": {
-                            "0000-deer::schema::visitor::U8Schema": {
+                            "0000-u8": {
                                 "maximum": 255,
                                 "minimum": 0,
                                 "type": "integer",
                             },
                         },
-                        "$ref": "#/$defs/0000-deer::schema::visitor::U8Schema",
+                        "$ref": "#/$defs/0000-u8",
                     }
                 }
             }])
