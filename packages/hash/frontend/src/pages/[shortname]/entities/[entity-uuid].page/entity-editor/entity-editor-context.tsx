@@ -23,6 +23,10 @@ export const EntityEditorContextProvider = ({
   setEntity,
   children,
   refetch,
+  draftLinksToCreate,
+  draftLinksToArchive,
+  setDraftLinksToCreate,
+  setDraftLinksToArchive,
 }: PropsWithChildren<EntityEditorProps>) => {
   const [propertyExpandStatus, setPropertyExpandStatus] =
     useState<TableExpandStatus>({});
@@ -39,6 +43,10 @@ export const EntityEditorContextProvider = ({
       setEntity,
       propertyExpandStatus,
       togglePropertyExpand,
+      draftLinksToCreate,
+      setDraftLinksToCreate,
+      draftLinksToArchive,
+      setDraftLinksToArchive,
       refetch,
     }),
     [
@@ -46,6 +54,10 @@ export const EntityEditorContextProvider = ({
       setEntity,
       propertyExpandStatus,
       togglePropertyExpand,
+      draftLinksToCreate,
+      setDraftLinksToCreate,
+      draftLinksToArchive,
+      setDraftLinksToArchive,
       refetch,
     ],
   );
