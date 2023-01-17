@@ -88,7 +88,11 @@ impl<C: AsClient> PostgresStore<C> {
                 DependencyStatus::Unresolved(depths, interval) => {
                     // The dependency may have to be resolved more than anticipated, so we update
                     // the resolve depth and time projection.
+                    // `DependencyMap::update` may return a higher resolve depth than the one
+                    // requested, so we update the `resolve_depths` to the returned value.
                     resolve_depths = depths;
+                    // It may also return a different time interval than the one requested, so
+                    // we update the `time_projection`'s time interval to the returned value.
                     time_projection.set_image(interval);
                 }
                 DependencyStatus::Resolved => return Ok(()),
