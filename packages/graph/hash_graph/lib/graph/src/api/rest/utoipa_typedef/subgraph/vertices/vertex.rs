@@ -38,7 +38,7 @@ impl From<EntityTypeWithMetadata> for OntologyVertex {
 // not currently support adjacently tagged enums so we must roll our own:
 // https://github.com/juhaku/utoipa/issues/219
 impl ToSchema for OntologyVertex {
-    fn schema() -> openapi::Schema {
+    fn schema() -> openapi::RefOr<openapi::Schema> {
         let mut builder =
             openapi::OneOfBuilder::new().discriminator(Some(openapi::Discriminator::new("kind")));
 
@@ -78,7 +78,7 @@ pub enum KnowledgeGraphVertex {
 // not currently support adjacently tagged enums so we must roll our own:
 // https://github.com/juhaku/utoipa/issues/219
 impl ToSchema for KnowledgeGraphVertex {
-    fn schema() -> openapi::Schema {
+    fn schema() -> openapi::RefOr<openapi::Schema> {
         let builder = openapi::OneOfBuilder::new()
             .discriminator(Some(openapi::Discriminator::new("kind")))
             .item(
@@ -113,7 +113,7 @@ pub enum Vertex {
 //   We have to do this because utoipa doesn't understand serde untagged:
 //   https://github.com/juhaku/utoipa/issues/320
 impl ToSchema for Vertex {
-    fn schema() -> openapi::Schema {
+    fn schema() -> openapi::RefOr<openapi::Schema> {
         openapi::OneOfBuilder::new()
             .item(openapi::Ref::from_schema_name("OntologyVertex"))
             .item(openapi::Ref::from_schema_name("KnowledgeGraphVertex"))
