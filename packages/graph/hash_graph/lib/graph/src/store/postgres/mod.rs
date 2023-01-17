@@ -149,7 +149,7 @@ where
                     )
                 } else {
                     // The time intervals are disjoint. Ideally, we only would resolve the new
-                    // interval, but we did not came up with a good way to store the different
+                    // interval, but we did not come up with a good way to store the different
                     // intervals in the dependency map. So we resolve the full interval for now.
 
                     // This case is expected to happen very rarely, so falling back to this logic
