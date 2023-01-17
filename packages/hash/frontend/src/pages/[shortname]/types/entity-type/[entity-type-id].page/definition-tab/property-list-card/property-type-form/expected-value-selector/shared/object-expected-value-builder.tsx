@@ -17,6 +17,7 @@ import { FunctionComponent, useEffect, useMemo, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import { usePropertyTypesContextValue } from "../../../../../shared/use-property-types-context-value";
+import { Property } from "../../../shared/expected-value-types";
 import { CustomExpectedValueSelector } from "./custom-expected-value-selector";
 import { DeleteExpectedValueModal } from "./delete-expected-value-modal";
 import { ExpectedValueBadge } from "./expected-value-badge";
@@ -44,7 +45,7 @@ const StyledTableBodyCell = styled(Box)({
 
 interface ObjectExpectedValueRowProps {
   objectId: string;
-  propertyId: VersionedUri;
+  property: Property;
   propertyIndex: number;
   allowArraysColumnWidth: number;
   requiredColumnWidth: number;
@@ -54,30 +55,27 @@ const ObjectExpectedValueRow: FunctionComponent<
   ObjectExpectedValueRowProps
 > = ({
   objectId,
-  propertyId,
+  property,
   propertyIndex,
   allowArraysColumnWidth,
   requiredColumnWidth,
 }) => {
   const [show, setShow] = useState(false);
 
-  const { setValue, control } =
-    useFormContext<ExpectedValueSelectorFormValues>();
-  const { allowArrays, required, animatingOut } = useWatch({
-    control,
-    name: `flattenedCustomExpectedValueList.${objectId}.data.properties.${propertyIndex}`,
-  });
+  const { setValue } = useFormContext<ExpectedValueSelectorFormValues>();
 
   const { types: propertyTypes } = usePropertyTypesContextValue();
-  const property = propertyTypes?.[propertyId];
+  const propertyType = propertyTypes?.[property.id];
 
   useEffect(() => {
-    if (property) {
+    if (propertyType) {
       setShow(true);
     }
-  }, [property]);
+  }, [propertyType]);
 
-  return property ? (
+  const { allowArrays, required, animatingOut } = property;
+
+  return propertyType ? (
     <Collapse in={show && !animatingOut} sx={{ width: 1 }}>
       <StyledTableRow sx={{ backgroundColor: "red" }}>
         <StyledTableBodyCell sx={{ justifyContent: "flex-start", flex: 1 }}>
@@ -94,7 +92,7 @@ const ObjectExpectedValueRow: FunctionComponent<
             ml={1.5}
             color={(theme) => theme.palette.gray[80]}
           >
-            {property.title}
+            {propertyType.title}
           </Typography>
           <Chip
             color="purple"
@@ -273,11 +271,11 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
           </Collapse>
 
           {properties.length
-            ? properties.map(({ id }, propertyIndex) => (
+            ? properties.map((property, propertyIndex) => (
                 <ObjectExpectedValueRow
-                  key={id}
+                  key={property.id}
                   objectId={expectedValueId}
-                  propertyId={id}
+                  property={property}
                   propertyIndex={propertyIndex}
                   allowArraysColumnWidth={allowArraysColumnWidth}
                   requiredColumnWidth={requiredColumnWidth}
