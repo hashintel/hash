@@ -20,8 +20,7 @@ export const EntityEditorPage = ({
   editBar,
   entityUuid,
   owner,
-  // `rest` is basically `EntityEditorProps` here, extracted other props above
-  ...rest
+  ...entityEditorProps
 }: EntityEditorPageProps) => {
   return (
     <>
@@ -66,7 +65,8 @@ export const EntityEditorPage = ({
           />
         }
       >
-        <EntityEditor {...rest} />
+        {/* use `satisfies EntityEditorProps` here when satisfies keyword is supported to make this safer */}
+        <EntityEditor {...entityEditorProps} />
       </EntityPageWrapper>
     </>
   );

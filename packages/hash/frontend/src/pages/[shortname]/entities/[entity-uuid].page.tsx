@@ -53,13 +53,6 @@ const Page: NextPageWithLayout = () => {
   ] = useDraftLinkState();
 
   useEffect(() => {
-    // set as dirty if draft link arrays are touched
-    if (draftLinksToCreate.length || draftLinksToArchive.length) {
-      setIsDirty(true);
-    }
-  }, [draftLinksToCreate, draftLinksToArchive]);
-
-  useEffect(() => {
     if (routeNamespace) {
       const init = async () => {
         try {
@@ -182,13 +175,15 @@ const Page: NextPageWithLayout = () => {
   }
 
   const entityLabel = generateEntityLabel(draftEntitySubgraph);
+  const showEditBar =
+    isDirty || !!draftLinksToCreate.length || !!draftLinksToArchive.length;
 
   return (
     <EntityEditorPage
       refetch={refetch}
       editBar={
         <EditBar
-          visible={isDirty}
+          visible={showEditBar}
           discardButtonProps={{
             onClick: discardChanges,
           }}
