@@ -53,7 +53,7 @@
   ],
   "regexManagers": [
     {
-      "fileMatch": ["^rust-toolchain\\.toml?$"],
+      "fileMatch": ["rust-toolchain\\.toml?$"],
       "matchStrings": [
         "channel\\s*=\\s*\"nightly-(?<currentValue>\\d+-\\d+-\\d+)\""
       ],
