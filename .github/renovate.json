@@ -48,8 +48,7 @@
     {
       "groupName": "Rust",
       "matchManagers": ["regex"],
-      "matchPackageNames": ["rust-lang/rust-analyzer"],
-      "commitMessageTopic": "Rust"
+      "matchPackageNames": ["rust-lang/rust-analyzer"]
     }
   ],
   "regexManagers": [
