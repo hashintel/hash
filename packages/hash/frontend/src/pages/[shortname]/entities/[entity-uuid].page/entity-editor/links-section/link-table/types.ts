@@ -8,6 +8,8 @@ import {
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
 
+export type LinkAndTargetEntity = { rightEntity: Entity; linkEntity: Entity };
+
 export type LinkRow = {
   rowId: string;
   linkEntityTypeId: VersionedUri;
@@ -15,9 +17,9 @@ export type LinkRow = {
   maxItems: number;
   expectedEntityTypes: EntityTypeWithMetadata[];
   expectedEntityTypeTitles: string[];
-  linkAndTargetEntities: { rightEntity: Entity; linkEntity: Entity }[];
+  linkAndTargetEntities: LinkAndTargetEntity[];
   entitySubgraph: Subgraph<SubgraphRootTypes["entity"]>;
-  deleteLink: (linkEntityId: EntityId) => Promise<void>;
+  markLinkAsArchived: (linkEntityId: EntityId) => void;
 };
 
 export type LinkColumnKey = "linkTitle" | "linkedWith" | "expectedEntityTypes";

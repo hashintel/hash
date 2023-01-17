@@ -13,7 +13,6 @@ interface EntityEditorPageProps extends EntityEditorProps {
   editBar: ReactNode;
   owner: string;
   entityUuid: string;
-  hideLinksSection?: boolean;
 }
 
 export const EntityEditorPage = ({
@@ -21,10 +20,7 @@ export const EntityEditorPage = ({
   editBar,
   entityUuid,
   owner,
-  entitySubgraph,
-  setEntity,
-  refetch,
-  hideLinksSection,
+  ...entityEditorProps
 }: EntityEditorPageProps) => {
   return (
     <>
@@ -69,12 +65,8 @@ export const EntityEditorPage = ({
           />
         }
       >
-        <EntityEditor
-          refetch={refetch}
-          entitySubgraph={entitySubgraph}
-          setEntity={setEntity}
-          hideLinksSection={!!hideLinksSection}
-        />
+        {/* use `satisfies EntityEditorProps` here when satisfies keyword is supported to make this safer */}
+        <EntityEditor {...entityEditorProps} />
       </EntityPageWrapper>
     </>
   );
