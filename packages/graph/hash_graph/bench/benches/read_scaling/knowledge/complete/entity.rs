@@ -6,7 +6,7 @@ use graph::{
     identifier::{
         account::AccountId,
         time::{
-            TimespanBound, UnresolvedImage, UnresolvedKernel, UnresolvedProjection,
+            TimeIntervalBound, UnresolvedImage, UnresolvedKernel, UnresolvedProjection,
             UnresolvedTimeProjection,
         },
     },
@@ -161,13 +161,13 @@ pub fn bench_get_entity_by_id(
         |entity_edition_id| async move {
             store
                 .get_entity(&StructuralQuery {
-                    filter: Filter::for_entity_by_entity_id(entity_edition_id.base_id()),
+                    filter: Filter::for_entity_by_id(entity_edition_id.base_id()),
                     graph_resolve_depths,
                     time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                         kernel: UnresolvedKernel::new(None),
                         image: UnresolvedImage::new(
-                            Some(TimespanBound::Unbounded),
-                            Some(TimespanBound::Unbounded),
+                            Some(TimeIntervalBound::Unbounded),
+                            Some(TimeIntervalBound::Unbounded),
                         ),
                     }),
                 })

@@ -21,7 +21,6 @@ import { customAlphabet } from "nanoid";
 
 import setupAuth from "./auth";
 import { RedisCache } from "./cache";
-// import { createCollabApp } from "./collab/collab-app";
 import {
   AwsSesEmailTransporter,
   DummyEmailTransporter,
@@ -31,7 +30,7 @@ import { createGraphClient, ensureSystemGraphIsInitialized } from "./graph";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
 import { getAwsRegion } from "./lib/aws-config";
-import { CORS_CONFIG, FILE_UPLOAD_PROVIDER } from "./lib/config";
+import { CORS_CONFIG, getEnvStorageType } from "./lib/config";
 import {
   isDevEnv,
   isProdEnv,
@@ -41,7 +40,7 @@ import {
 } from "./lib/env-config";
 import { logger } from "./logger";
 import { seedOrgsAndUsers } from "./seed-data";
-import { setupStorageProviders } from "./storage/storage-provider-lookup";
+import { setupFileProxyHandler, setupStorageProviders } from "./storage";
 import { connectToTaskExecutor } from "./task-execution";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { getRequiredEnv } from "./util";
@@ -132,10 +131,13 @@ const main = async () => {
     port: graphApiPort,
   });
 
+  const FILE_UPLOAD_PROVIDER = getEnvStorageType();
   // Setup upload storage provider and express routes for local file uploads
   const uploadProvider = setupStorageProviders(app, FILE_UPLOAD_PROVIDER);
 
   const context = { graphApi, uploadProvider };
+
+  setupFileProxyHandler(app, uploadProvider, redis);
 
   await ensureSystemGraphIsInitialized({ logger, context });
 
@@ -275,12 +277,6 @@ const main = async () => {
   shutdown.addCleanup("collabRedisQueue", async () =>
     collabRedisQueue.release(),
   );
-
-  // Collab is currently disabled.
-  // Register the collab backend
-  // const collabApp = await createCollabApp(collabRedisQueue);
-  // shutdown.addCleanup("collabApp", async () => collabApp.stop());
-  // app.use("/collab-backend", collabApp.router);
 };
 
 void main().catch(async (err) => {

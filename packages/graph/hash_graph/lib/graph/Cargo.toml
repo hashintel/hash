@@ -20,7 +20,7 @@ hyper = "0.14.23"
 postgres-types = { version = "0.2.4", default-features = false, features = ["derive", "with-uuid-1", "with-serde_json-1", "with-chrono-0_4"] }
 postgres-protocol = "0.6.4"
 regex = "1.7.0"
-serde = { version = "1.0.151", features = ["derive"] }
+serde = { version = "1.0.152", features = ["derive"] }
 serde_json = "1.0.91"
 tokio-postgres = { version = "0.7.7", default-features = false }
 tower = "0.4.13"
@@ -37,6 +37,7 @@ type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "2
 uuid = { version = "1.2.2", features = ["v4", "serde"] }
 utoipa = { version = "2.4.2", features = ["uuid"] }
 include_dir = "0.7.3"
+refinery = { version = "0.8", features = ["tokio-postgres"]}
 
 [dev-dependencies]
 tokio = { version = "1.23.1", features = ["rt-multi-thread", "macros", "tracing"] }

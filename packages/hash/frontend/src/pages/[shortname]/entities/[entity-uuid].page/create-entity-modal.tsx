@@ -56,7 +56,6 @@ export const CreateEntityModal = ({
       <EntityEditor
         refetch={async () => {}}
         entitySubgraph={draftEntitySubgraph}
-        hideLinksSection
         setEntity={(entity) => {
           updateEntitySubgraphStateByEntity(entity, setDraftEntitySubgraph);
         }}

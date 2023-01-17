@@ -108,5 +108,5 @@ seed-users.json
 *.secrets.tfvars
 *.pem
 
-# Workspace-specific
-/packages/hash/design-system/storybook-static
+# Storybook
+**/storybook-static
