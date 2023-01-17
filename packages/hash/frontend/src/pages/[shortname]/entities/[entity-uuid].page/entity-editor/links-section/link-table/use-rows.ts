@@ -4,15 +4,15 @@ import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/e
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { useMemo } from "react";
 
-import { useBlockProtocolArchiveEntity } from "../../../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
-import { useSnackbar } from "../../../../../../../components/hooks/use-snackbar";
+import { useMarkLinkEntityToArchive } from "../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../entity-editor-context";
 import { LinkRow } from "./types";
 
 export const useRows = () => {
-  const { entitySubgraph, refetch } = useEntityEditor();
-  const { archiveEntity } = useBlockProtocolArchiveEntity();
-  const snackbar = useSnackbar();
+  const { entitySubgraph, draftLinksToArchive, draftLinksToCreate } =
+    useEntityEditor();
+
+  const markLinkEntityToArchive = useMarkLinkEntityToArchive();
 
   const rows = useMemo<LinkRow[]>(() => {
     const entity = getRoots(entitySubgraph)[0]!;
@@ -47,11 +47,24 @@ export const useRows = () => {
         throw new Error("oneOf not found inside linkSchema.items");
       }
 
+      const additions = draftLinksToCreate.filter(
+        (draftToCreate) =>
+          draftToCreate.linkEntity.metadata.entityTypeId === linkEntityTypeId,
+      );
+
       const linkAndTargetEntities =
-        outgoingLinkAndTargetEntitiesAtMoment.filter(
-          ({ linkEntity }) =>
-            linkEntity.metadata.entityTypeId === linkEntityTypeId,
-        );
+        outgoingLinkAndTargetEntitiesAtMoment.filter((entities) => {
+          const { entityTypeId, editionId } = entities.linkEntity.metadata;
+
+          const isMatching = entityTypeId === linkEntityTypeId;
+          const isMarkedToArchive = draftLinksToArchive.some(
+            (markedLinkId) => markedLinkId === editionId.baseId,
+          );
+
+          return isMatching && !isMarkedToArchive;
+        });
+
+      linkAndTargetEntities.push(...additions);
 
       const expectedEntityTypes = linkSchema.items.oneOf.map(({ $ref }) => {
         const expectedEntityType = getEntityTypeById(entitySubgraph, $ref);
@@ -63,9 +76,9 @@ export const useRows = () => {
         return expectedEntityType;
       });
 
-      const expectedEntityTypeTitles = expectedEntityTypes.map((val) => {
-        return val.schema.title;
-      });
+      const expectedEntityTypeTitles = expectedEntityTypes.map(
+        (val) => val.schema.title,
+      );
 
       return {
         rowId: linkEntityTypeId,
@@ -76,17 +89,15 @@ export const useRows = () => {
         expectedEntityTypes,
         expectedEntityTypeTitles,
         entitySubgraph,
-        deleteLink: async (linkEntityId) => {
-          try {
-            await archiveEntity({ data: { entityId: linkEntityId } });
-            await refetch();
-          } catch {
-            snackbar.error("Failed to remove link");
-          }
-        },
+        markLinkAsArchived: markLinkEntityToArchive,
       };
     });
-  }, [entitySubgraph, archiveEntity, refetch, snackbar]);
+  }, [
+    entitySubgraph,
+    draftLinksToArchive,
+    draftLinksToCreate,
+    markLinkEntityToArchive,
+  ]);
 
   return rows;
 };

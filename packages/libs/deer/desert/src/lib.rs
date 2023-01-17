@@ -5,6 +5,7 @@ extern crate alloc;
 pub(crate) mod array;
 mod assert;
 mod deserializer;
+pub mod error;
 pub(crate) mod object;
 pub(crate) mod tape;
 mod token;

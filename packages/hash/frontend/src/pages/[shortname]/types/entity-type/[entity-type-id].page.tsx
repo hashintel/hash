@@ -26,7 +26,7 @@ import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { DefinitionTab } from "./[entity-type-id].page/definition-tab";
-import { EditBar } from "./[entity-type-id].page/edit-bar-type-editor";
+import { EditBarTypeEditor } from "./[entity-type-id].page/edit-bar-type-editor";
 import { EntitiesTab } from "./[entity-type-id].page/entities-tab";
 import { EntityTypeTabs } from "./[entity-type-id].page/entity-type-tabs";
 import { EntityTypeContext } from "./[entity-type-id].page/shared/entity-type-context";
@@ -257,104 +257,99 @@ const Page: NextPageWithLayout = () => {
         <LatestPropertyTypesContext.Provider value={propertyTypes}>
           <EntityTypeContext.Provider value={entityTypeAndPropertyTypes}>
             <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-                component="form"
-                onSubmit={handleSubmit}
-              >
-                <Box bgcolor="white" borderBottom={1} borderColor="gray.20">
-                  <TopContextBar
-                    defaultCrumbIcon={null}
-                    crumbs={[
-                      {
-                        title: "Types",
-                        href: "#",
-                        id: "types",
-                      },
-                      {
-                        title: "Entity types",
-                        href: "#",
-                        id: "entity-types",
-                      },
-                      {
-                        title: entityType.title,
-                        href: "#",
-                        id: entityType.$id,
-                        icon: <FontAwesomeIcon icon={faAsterisk} />,
-                      },
-                    ]}
-                    scrollToTop={() => {}}
-                  />
-                  <EditBar
-                    currentVersion={currentVersion}
-                    discardButtonProps={
-                      // @todo confirmation of discard when draft
-                      isDraft
-                        ? {
-                            href: `/new/types/entity-type`,
-                          }
-                        : {
-                            onClick() {
-                              reset();
-                            },
-                          }
-                    }
-                  />
+              <Box display="contents" component="form" onSubmit={handleSubmit}>
+                <TopContextBar
+                  defaultCrumbIcon={null}
+                  crumbs={[
+                    {
+                      title: "Types",
+                      href: "#",
+                      id: "types",
+                    },
+                    {
+                      title: "Entity types",
+                      href: "#",
+                      id: "entity-types",
+                    },
+                    {
+                      title: entityType.title,
+                      href: "#",
+                      id: entityType.$id,
+                      icon: <FontAwesomeIcon icon={faAsterisk} />,
+                    },
+                  ]}
+                  scrollToTop={() => {}}
+                  sx={{ bgcolor: "white" }}
+                />
 
-                  <Box pt={3.75}>
-                    <Container>
-                      <OntologyChip
-                        icon={<HashOntologyIcon />}
-                        domain="hash.ai"
-                        path={
-                          <>
-                            <Typography
-                              component="span"
-                              fontWeight="bold"
-                              color={(theme) => theme.palette.blue[70]}
-                            >
-                              {router.query.shortname}
-                            </Typography>
-                            <Typography
-                              component="span"
-                              color={(theme) => theme.palette.blue[70]}
-                            >
-                              /types/entity-types/
-                            </Typography>
-                            <Typography
-                              component="span"
-                              fontWeight="bold"
-                              color={(theme) => theme.palette.blue[70]}
-                            >
-                              {entityTypeId}
-                            </Typography>
-                          </>
+                <EditBarTypeEditor
+                  currentVersion={currentVersion}
+                  discardButtonProps={
+                    // @todo confirmation of discard when draft
+                    isDraft
+                      ? {
+                          href: `/new/types/entity-type`,
                         }
-                      />
-                      <Typography
-                        variant="h1"
-                        fontWeight="bold"
-                        mt={3}
-                        mb={5.25}
-                      >
-                        <FontAwesomeIcon
-                          icon={faAsterisk}
-                          sx={(theme) => ({
-                            fontSize: 40,
-                            mr: 3,
-                            color: theme.palette.gray[70],
-                            verticalAlign: "middle",
-                          })}
-                        />
-                        {entityType.title}
-                      </Typography>
+                      : {
+                          onClick() {
+                            reset();
+                          },
+                        }
+                  }
+                />
 
-                      <EntityTypeTabs isDraft={isDraft} />
-                    </Container>
-                  </Box>
+                <Box
+                  sx={{
+                    borderBottom: 1,
+                    borderColor: "gray.20",
+                    pt: 3.75,
+                    backgroundColor: "white",
+                  }}
+                >
+                  <Container>
+                    <OntologyChip
+                      icon={<HashOntologyIcon />}
+                      domain="hash.ai"
+                      path={
+                        <>
+                          <Typography
+                            component="span"
+                            fontWeight="bold"
+                            color={(theme) => theme.palette.blue[70]}
+                          >
+                            {router.query.shortname}
+                          </Typography>
+                          <Typography
+                            component="span"
+                            color={(theme) => theme.palette.blue[70]}
+                          >
+                            /types/entity-types/
+                          </Typography>
+                          <Typography
+                            component="span"
+                            fontWeight="bold"
+                            color={(theme) => theme.palette.blue[70]}
+                          >
+                            {entityTypeId}
+                          </Typography>
+                        </>
+                      }
+                    />
+                    <Typography variant="h1" fontWeight="bold" mt={3} mb={5.25}>
+                      <FontAwesomeIcon
+                        icon={faAsterisk}
+                        sx={(theme) => ({
+                          fontSize: 40,
+                          mr: 3,
+                          color: theme.palette.gray[70],
+                          verticalAlign: "middle",
+                        })}
+                      />
+                      {entityType.title}
+                    </Typography>
+
+                    <EntityTypeTabs isDraft={isDraft} />
+                  </Container>
                 </Box>
 
                 <Box py={5}>

@@ -13,8 +13,11 @@ serde = { version = "1.0.152", default_features = false, features = ['alloc', 'd
 erased-serde = { version = "0.3.24", default_features = false, features = ['alloc'] }
 
 [dev-dependencies]
-serde_json = "1.0.91"
+serde_json = { version = "1.0.91", features = ['arbitrary_precision'] }
 similar-asserts = { version = "1.4.2", features = ['serde'] }
+deer-desert = { path = "./desert", features = ['pretty'] }
+proptest = "1.0.0"
+paste = "1.0.11"
 
 [build-dependencies]
 rustc_version = "0.4.0"
