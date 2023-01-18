@@ -1,9 +1,9 @@
 import { EntityType, VersionedUri } from "@blockprotocol/type-system";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { OwnedById } from "@hashintel/hash-shared/types";
 import { linkEntityTypeUri } from "@hashintel/hash-subgraph";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
+import { Chip, FontAwesomeIcon } from "@local/design-system";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
   ClickAwayListener,
   Popper,
@@ -132,12 +132,6 @@ const LinkTypeRow = ({
   const chosenEntityTypes = useWatch({
     control,
     name: `links.${linkIndex}.entityTypes`,
-  });
-
-  const popupId = useId();
-  const menuPopupState = usePopupState({
-    variant: "popover",
-    popupId: `property-menu-${popupId}`,
   });
 
   const editModalPopupId = useId();
@@ -331,7 +325,6 @@ const LinkTypeRow = ({
         <TypeMenuCell
           typeId={linkId}
           editButtonProps={bindTrigger(editModalPopupState)}
-          popupState={menuPopupState}
           variant="link"
           onRemove={onRemove}
         />

@@ -1,13 +1,13 @@
 import {
   getRequiredEnv,
   waitOnResource,
-} from "@hashintel/hash-backend-utils/environment";
+} from "@local/hash-backend-utils/environment";
 /**
  * This script clears all indices created by the search-loader service. It is intended
  * for use during development.
  */
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { OpenSearch } from "@hashintel/hash-backend-utils/search/opensearch";
+import { Logger } from "@local/hash-backend-utils/logger";
+import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 
 if (process.env.HASH_OPENSEARCH_ENABLED !== "true") {
   console.log("Opensearch isn't enabled. Nothing to clear.");

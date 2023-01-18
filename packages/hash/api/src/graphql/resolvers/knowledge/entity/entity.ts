@@ -1,11 +1,11 @@
 import { Filter } from "@hashintel/hash-graph-client";
-import { OwnedById } from "@hashintel/hash-shared/types";
 import {
   Entity,
   isEntityId,
   splitEntityId,
   Subgraph,
 } from "@hashintel/hash-subgraph";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import { ForbiddenError, UserInputError } from "apollo-server-express";
 
 import {
@@ -169,12 +169,12 @@ export const getAllLatestEntitiesResolver: ResolverFn<
     timeProjection: {
       kernel: {
         axis: "transaction",
-        timestamp: undefined,
+        timestamp: null,
       },
       image: {
         axis: "decision",
-        start: undefined,
-        end: undefined,
+        start: null,
+        end: null,
       },
     },
   });
@@ -233,16 +233,16 @@ export const getEntityResolver: ResolverFn<
     timeProjection: {
       kernel: {
         axis: "transaction",
-        timestamp: undefined,
+        timestamp: null,
       },
       image: {
         axis: "decision",
         start: entityVersion
           ? { bound: "included", timestamp: entityVersion }
-          : undefined,
+          : null,
         end: entityVersion
           ? { bound: "included", timestamp: entityVersion }
-          : undefined,
+          : null,
       },
     },
   });

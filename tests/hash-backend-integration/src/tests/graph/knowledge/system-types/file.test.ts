@@ -10,8 +10,8 @@ import {
 import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
 import { SYSTEM_TYPES } from "@hashintel/hash-api/src/graph/system-types";
 import { StorageType } from "@hashintel/hash-api/src/storage";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { OwnedById } from "@hashintel/hash-shared/types";
+import { Logger } from "@local/hash-backend-utils/logger";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

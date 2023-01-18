@@ -1,6 +1,6 @@
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import {
@@ -85,12 +85,12 @@ export const getHashInstance: ImpureGraphFunction<
       timeProjection: {
         kernel: {
           axis: "transaction",
-          timestamp: undefined,
+          timestamp: null,
         },
         image: {
           axis: "decision",
-          start: undefined,
-          end: undefined,
+          start: null,
+          end: null,
         },
       },
     })

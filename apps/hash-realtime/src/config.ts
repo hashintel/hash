@@ -1,9 +1,9 @@
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { QueueProducer } from "@hashintel/hash-backend-utils/queue/adapter";
-import { RedisQueueProducer } from "@hashintel/hash-backend-utils/queue/redis";
-import { supportedRealtimeTables } from "@hashintel/hash-backend-utils/realtime";
-import { AsyncRedisClient } from "@hashintel/hash-backend-utils/redis";
+import { getRequiredEnv } from "@local/hash-backend-utils/environment";
+import { Logger } from "@local/hash-backend-utils/logger";
+import { QueueProducer } from "@local/hash-backend-utils/queue/adapter";
+import { RedisQueueProducer } from "@local/hash-backend-utils/queue/redis";
+import { supportedRealtimeTables } from "@local/hash-backend-utils/realtime";
+import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
 
 // The tables to monitor for changes
 export const MONITOR_TABLES = supportedRealtimeTables.map(

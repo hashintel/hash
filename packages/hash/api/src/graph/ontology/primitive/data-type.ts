@@ -1,6 +1,4 @@
 import { DataType } from "@blockprotocol/type-system";
-import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import {
   DataTypeWithMetadata,
   Subgraph,
@@ -9,6 +7,8 @@ import {
 } from "@hashintel/hash-subgraph";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
@@ -84,12 +84,12 @@ export const getDataTypeById: ImpureGraphFunction<
       timeProjection: {
         kernel: {
           axis: "transaction",
-          timestamp: undefined,
+          timestamp: null,
         },
         image: {
           axis: "decision",
-          start: undefined,
-          end: undefined,
+          start: null,
+          end: null,
         },
       },
     })

@@ -3,17 +3,17 @@ import {
   FontAwesomeIcon,
   IconButton,
   LoadingSpinner,
-} from "@hashintel/hash-design-system";
-import { TextToken } from "@hashintel/hash-shared/graphql/types";
+} from "@local/design-system";
+import { TextToken } from "@local/hash-isomorphic-utils/graphql/types";
 import {
   createSchema,
   formatKeymap,
   textTokenNodes,
-} from "@hashintel/hash-shared/prosemirror";
+} from "@local/hash-isomorphic-utils/prosemirror";
 import {
   textBlockNodesFromTokens,
   textBlockNodeToTextTokens,
-} from "@hashintel/hash-shared/text";
+} from "@local/hash-isomorphic-utils/text";
 import { Box } from "@mui/material";
 import { debounce, isEqual } from "lodash";
 import { baseKeymap } from "prosemirror-commands";
