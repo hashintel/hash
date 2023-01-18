@@ -37,7 +37,7 @@ export type Timestamp = string;
 
 export type VersionInterval = {
   start: Timestamp;
-  end?: Timestamp;
+  end: Timestamp | null;
 };
 
 export type EntityVersion = {

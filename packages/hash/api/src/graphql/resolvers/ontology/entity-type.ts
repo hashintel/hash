@@ -1,5 +1,5 @@
-import { OwnedById } from "@hashintel/hash-shared/types";
 import { EntityTypeWithMetadata, Subgraph } from "@hashintel/hash-subgraph";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 
 import {
   createEntityType,
@@ -70,12 +70,12 @@ export const getAllLatestEntityTypesResolver: ResolverFn<
     timeProjection: {
       kernel: {
         axis: "transaction",
-        timestamp: undefined,
+        timestamp: null,
       },
       image: {
         axis: "decision",
-        start: undefined,
-        end: undefined,
+        start: null,
+        end: null,
       },
     },
   });
@@ -119,12 +119,12 @@ export const getEntityTypeResolver: ResolverFn<
     timeProjection: {
       kernel: {
         axis: "transaction",
-        timestamp: undefined,
+        timestamp: null,
       },
       image: {
         axis: "decision",
-        start: undefined,
-        end: undefined,
+        start: null,
+        end: null,
       },
     },
   });

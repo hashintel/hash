@@ -1,17 +1,16 @@
 import { JsonObject } from "@blockprotocol/core";
 import { faEllipsisVertical } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
+import { FontAwesomeIcon, IconButton } from "@local/design-system";
 import {
   EntityStore,
   isBlockEntity,
-} from "@hashintel/hash-shared/entity-store";
+} from "@local/hash-isomorphic-utils/entity-store";
 import { Box } from "@mui/material";
 import { bindTrigger } from "material-ui-popup-state";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { forwardRef, ForwardRefRenderFunction } from "react";
 
 import { useIsReadonlyMode } from "../../shared/readonly-mode";
-import { useUserBlocks } from "../user-blocks";
 import { BlockConfigMenu } from "./block-config-menu/block-config-menu";
 import { useBlockContext } from "./block-context";
 import { BlockContextMenu } from "./block-context-menu/block-context-menu";
@@ -23,23 +22,12 @@ type BlockHandleProps = {
   entityStore: EntityStore;
   onMouseDown: () => void;
   onClick: () => void;
-  toggleShowDataMappingUi: () => void;
 };
 
 const BlockHandle: ForwardRefRenderFunction<
   HTMLDivElement,
   BlockHandleProps
-> = (
-  {
-    deleteBlock,
-    draftId,
-    entityStore,
-    onMouseDown,
-    onClick,
-    toggleShowDataMappingUi,
-  },
-  ref,
-) => {
+> = ({ deleteBlock, draftId, entityStore, onMouseDown, onClick }, ref) => {
   const isReadonlyMode = useIsReadonlyMode();
   const contextMenuPopupState = usePopupState({
     variant: "popover",
@@ -50,8 +38,6 @@ const BlockHandle: ForwardRefRenderFunction<
     variant: "popover",
     popupId: "block-config-menu",
   });
-
-  const { value: blocksMap } = useUserBlocks();
 
   /**
    * The context and config menu use data from the draft store to subscribe to the latest local changes.
@@ -80,10 +66,6 @@ const BlockHandle: ForwardRefRenderFunction<
       properties,
     );
   };
-
-  const blockSchema = blockEntity
-    ? blocksMap[blockEntity.properties.componentId as string]?.schema
-    : null;
 
   const blockContext = useBlockContext();
 
@@ -124,13 +106,11 @@ const BlockHandle: ForwardRefRenderFunction<
         openConfigMenu={configMenuPopupState.open}
         popupState={contextMenuPopupState}
         canSwap={!blockContext.error}
-        toggleShowDataMappingUi={toggleShowDataMappingUi}
       />
 
       <BlockConfigMenu
         anchorRef={ref}
         blockEntity={blockEntity}
-        blockSchema={blockSchema}
         closeMenu={configMenuPopupState.close}
         updateConfig={(properties: JsonObject) => updateChildEntity(properties)}
         popupState={configMenuPopupState}

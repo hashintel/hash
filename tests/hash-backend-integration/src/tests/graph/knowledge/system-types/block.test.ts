@@ -14,10 +14,10 @@ import {
 import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
 import { createEntityType } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
 import { generateSystemEntityTypeSchema } from "@hashintel/hash-api/src/graph/util";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
-import { OwnedById } from "@hashintel/hash-shared/types";
 import { Entity, EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
+import { Logger } from "@local/hash-backend-utils/logger";
+import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

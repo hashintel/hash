@@ -3,7 +3,7 @@ use std::collections::{hash_map::Entry, BTreeMap, HashMap};
 use serde::Serialize;
 use type_system::uri::BaseUri;
 use utoipa::{
-    openapi::{ObjectBuilder, OneOfBuilder, Ref, Schema},
+    openapi::{ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema},
     ToSchema,
 };
 
@@ -103,7 +103,7 @@ impl From<crate::subgraph::vertices::Vertices> for Vertices {
 // Utoipa generates `Edges` as an empty object if we don't manually do it, and we can't use
 // allOf because the generator can't handle it
 impl ToSchema for Vertices {
-    fn schema() -> Schema {
+    fn schema() -> RefOr<Schema> {
         ObjectBuilder::new()
             .additional_properties(Some(Schema::from(
                 ObjectBuilder::new().additional_properties(Some(

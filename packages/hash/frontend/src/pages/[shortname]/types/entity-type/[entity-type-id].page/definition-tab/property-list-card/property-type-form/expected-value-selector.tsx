@@ -1,9 +1,5 @@
-import {
-  Button,
-  Chip,
-  FontAwesomeIcon,
-  TextField,
-} from "@hashintel/hash-design-system";
+import { BaseUri } from "@blockprotocol/type-system";
+import { Button, Chip, FontAwesomeIcon, TextField } from "@local/design-system";
 import { Autocomplete, Box, PaperProps, Typography } from "@mui/material";
 import {
   forwardRef,
@@ -84,13 +80,15 @@ const ExpectedValueSelectorDropdown = ({ children, ...props }: PaperProps) => {
 };
 
 const ExpectedValueSelector: ForwardRefRenderFunction<
-  HTMLInputElement
-> = () => {
+  HTMLInputElement,
+  { propertyTypeBaseUri?: BaseUri }
+> = ({ propertyTypeBaseUri }) => {
   const propertyTypeFormMethods = useFormContext<PropertyTypeFormValues>();
 
   const expectedValueSelectorFormMethods =
     useForm<ExpectedValueSelectorFormValues>({
       defaultValues: {
+        propertyTypeBaseUri,
         flattenedCustomExpectedValueList: {},
       },
       shouldFocusError: true,

@@ -1,5 +1,5 @@
-import { OwnedById } from "@hashintel/hash-shared/types";
 import { PropertyTypeWithMetadata, Subgraph } from "@hashintel/hash-subgraph";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 
 import {
   createPropertyType,
@@ -72,12 +72,12 @@ export const getAllLatestPropertyTypesResolver: ResolverFn<
       timeProjection: {
         kernel: {
           axis: "transaction",
-          timestamp: undefined,
+          timestamp: null,
         },
         image: {
           axis: "decision",
-          start: undefined,
-          end: undefined,
+          start: null,
+          end: null,
         },
       },
     },
@@ -116,12 +116,12 @@ export const getPropertyTypeResolver: ResolverFn<
       timeProjection: {
         kernel: {
           axis: "transaction",
-          timestamp: undefined,
+          timestamp: null,
         },
         image: {
           axis: "decision",
-          start: undefined,
-          end: undefined,
+          start: null,
+          end: null,
         },
       },
     },

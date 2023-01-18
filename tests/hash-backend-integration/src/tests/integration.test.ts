@@ -17,7 +17,7 @@ import {
 } from "@hashintel/hash-api/src/model";
 import { PostgresAdapter } from "@hashintel/hash-api/src/db";
 import { DummyEmailTransporter } from "@hashintel/hash-api/src/email/transporters";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { Logger } from "@local/hash-backend-utils/logger";
 import { treeFromParentReferences } from "@hashintel/hash-api/src/util";
 
 import { ClientError } from "graphql-request";

@@ -6,11 +6,11 @@ import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   monorepoRootDir,
   waitOnResource,
-} from "@hashintel/hash-backend-utils/environment";
-import { RedisQueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/redis";
-import { AsyncRedisClient } from "@hashintel/hash-backend-utils/redis";
-import { OpenSearch } from "@hashintel/hash-backend-utils/search/opensearch";
-import { GracefulShutdown } from "@hashintel/hash-backend-utils/shutdown";
+} from "@local/hash-backend-utils/environment";
+import { RedisQueueExclusiveConsumer } from "@local/hash-backend-utils/queue/redis";
+import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
+import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
+import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { json } from "body-parser";
 import cors from "cors";
 import express from "express";

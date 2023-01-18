@@ -25,7 +25,7 @@ pub enum GraphElementId {
 //   We have to do this because utoipa doesn't understand serde untagged:
 //   https://github.com/juhaku/utoipa/issues/320
 impl ToSchema for GraphElementId {
-    fn schema() -> openapi::Schema {
+    fn schema() -> openapi::RefOr<openapi::Schema> {
         openapi::OneOfBuilder::new()
             .item(openapi::Object::with_type(openapi::SchemaType::String))
             .example(Some(serde_json::json!(
@@ -82,7 +82,7 @@ impl From<EntityVertexId> for GraphElementVertexId {
 //   We have to do this because utoipa doesn't understand serde untagged:
 //   https://github.com/juhaku/utoipa/issues/320
 impl ToSchema for GraphElementVertexId {
-    fn schema() -> openapi::Schema {
+    fn schema() -> openapi::RefOr<openapi::Schema> {
         openapi::OneOfBuilder::new()
             .item(openapi::Ref::from_schema_name("OntologyTypeEditionId"))
             .item(openapi::Ref::from_schema_name("EntityVertexId"))

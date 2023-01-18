@@ -1,3 +1,4 @@
+import { BaseUri } from "@blockprotocol/type-system";
 import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 
 import { useBlockProtocolGetPropertyType } from "../../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-property-type";
@@ -10,9 +11,12 @@ import {
 import { ExpectedValueSelector } from "./property-type-form/expected-value-selector";
 import { PropertyTypeFormValues } from "./shared/property-type-form-values";
 
-export const PropertyTypeForm = (
-  props: TypeFormProps<PropertyTypeFormValues>,
-) => {
+export const PropertyTypeForm = ({
+  baseUri,
+  ...props
+}: TypeFormProps<PropertyTypeFormValues> & {
+  baseUri?: BaseUri;
+}) => {
   const { getPropertyType } = useBlockProtocolGetPropertyType();
   const generateTypeBaseUri = useGenerateTypeBaseUri("property-type");
 
@@ -39,7 +43,7 @@ export const PropertyTypeForm = (
 
   return (
     <TypeForm nameExists={nameExists} {...props}>
-      <ExpectedValueSelector />
+      <ExpectedValueSelector propertyTypeBaseUri={baseUri} />
     </TypeForm>
   );
 };

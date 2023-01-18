@@ -1,9 +1,9 @@
-import { Logger } from "@hashintel/hash-backend-utils/logger";
 import {
   Configuration,
   GraphApi as GraphApiClient,
   GraphResolveDepths,
 } from "@hashintel/hash-graph-client";
+import { Logger } from "@local/hash-backend-utils/logger";
 import HttpAgent, { HttpsAgent } from "agentkeepalive";
 import { DataSource } from "apollo-datasource";
 import axios, { AxiosError } from "axios";

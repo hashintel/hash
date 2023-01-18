@@ -1,5 +1,5 @@
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { getRequiredEnv } from "@local/hash-backend-utils/environment";
+import { Logger } from "@local/hash-backend-utils/logger";
 import { Session } from "@ory/client";
 import { AxiosError } from "axios";
 import { Express, Request, RequestHandler } from "express";

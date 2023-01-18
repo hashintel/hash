@@ -1,9 +1,9 @@
 import {
   getRequiredEnv,
   waitOnResource,
-} from "@hashintel/hash-backend-utils/environment";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { AsyncRedisClient } from "@hashintel/hash-backend-utils/redis";
+} from "@local/hash-backend-utils/environment";
+import { Logger } from "@local/hash-backend-utils/logger";
+import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
 
 const logger = new Logger({
   serviceName: "clear-redis-queues",

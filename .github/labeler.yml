@@ -44,10 +44,10 @@ A-error-stack:
   - "packages/libs/error-stack/**/.*"
 
 A-deer:
-  - "packages/libs/deer/*"
-  - "packages/libs/deer/.*"
-  - "packages/libs/deer/**/*"
-  - "packages/libs/deer/**/.*"
+  - "libs/deer/*"
+  - "libs/deer/.*"
+  - "libs/deer/**/*"
+  - "libs/deer/**/.*"
 
 A-backend:
   - "packages/graph/*"
