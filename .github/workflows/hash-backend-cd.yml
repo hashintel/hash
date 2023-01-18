@@ -2,7 +2,7 @@ on:
   # We could allow configuring environment here.
   workflow_dispatch: {}
   push:
-    # branches: [main]
+    branches: [main]
     paths:
       - "packages/hash/**"
       - "packages/graph/**"
