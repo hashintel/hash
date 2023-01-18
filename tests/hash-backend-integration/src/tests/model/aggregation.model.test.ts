@@ -3,13 +3,13 @@
 // @ts-nocheck
 import "../load-test-env";
 
-import { PostgresAdapter } from "@hashintel/hash-api/src/db";
+import { PostgresAdapter } from "@apps/hash-api/src/db";
 import {
   Aggregation,
   Entity,
   EntityType,
   User,
-} from "@hashintel/hash-api/src/model";
+} from "@apps/hash-api/src/model";
 import { Logger } from "@local/hash-backend-utils/logger";
 
 import { recreateDbAndRunSchemaMigrations } from "../setup";

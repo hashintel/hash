@@ -18,18 +18,18 @@ COPY libs/@local/eslint-config/package.json libs/@local/eslint-config/
 COPY libs/@local/hash-isomorphic-utils/package.json libs/@local/hash-isomorphic-utils/
 COPY libs/@local/tsconfig/package.json libs/@local/tsconfig/
 COPY packages/graph/clients/typescript/package.json packages/graph/clients/typescript/
-COPY packages/hash/frontend/package.json packages/hash/frontend/
+COPY apps/hash-frontend/package.json apps/hash-frontend/
 COPY packages/hash/subgraph/package.json packages/hash/subgraph/
-RUN yarn workspace @hashintel/hash-frontend install --frozen-lockfile --prefer-offline
+RUN yarn workspace @apps/hash-frontend install --frozen-lockfile --prefer-offline
 
 COPY libs/@local/hash-isomorphic-utils/src/graphql libs/@local/hash-isomorphic-utils/src/graphql
 COPY libs/@local/hash-isomorphic-utils/src/queries libs/@local/hash-isomorphic-utils/src/queries
-COPY packages/hash/api/codegen.config.ts packages/hash/api/codegen.config.ts
-COPY packages/hash/api/src/graphql/type-defs packages/hash/api/src/graphql/type-defs
-COPY packages/hash/frontend/codegen.config.ts packages/hash/frontend/codegen.config.ts
-COPY packages/hash/frontend/src/graphql/queries packages/hash/frontend/src/graphql/queries
+COPY apps/hash-api/codegen.config.ts apps/hash-api/codegen.config.ts
+COPY apps/hash-api/src/graphql/type-defs apps/hash-api/src/graphql/type-defs
+COPY apps/hash-frontend/codegen.config.ts apps/hash-frontend/codegen.config.ts
+COPY apps/hash-frontend/src/graphql/queries apps/hash-frontend/src/graphql/queries
 
-RUN yarn workspace @hashintel/hash-frontend codegen
+RUN yarn workspace @apps/hash-frontend codegen
 
 COPY libs/@local/hash-isomorphic-utils/codegen.config.ts libs/@local/hash-isomorphic-utils/codegen.config.ts
 
@@ -40,10 +40,10 @@ COPY libs/@local/eslint-config libs/@local/eslint-config
 COPY libs/@local/hash-isomorphic-utils libs/@local/hash-isomorphic-utils
 COPY libs/@local/tsconfig libs/@local/tsconfig
 COPY packages/graph/clients/typescript packages/graph/clients/typescript
-COPY packages/hash/frontend packages/hash/frontend
+COPY apps/hash-frontend apps/hash-frontend
 COPY packages/hash/subgraph packages/hash/subgraph
 
-WORKDIR /app/packages/hash/frontend
+WORKDIR /app/apps/hash-frontend
 ENV NODE_ENV production
 ARG API_ORIGIN
 ENV API_ORIGIN ${API_ORIGIN}
@@ -65,11 +65,11 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 COPY --from=builder --chown=appgroup:appuser /app /app
 
 # Nextjs needs permissions to create caches
-RUN chown -R appuser:appgroup /app/packages/hash/frontend/.next
+RUN chown -R appuser:appgroup /app/apps/hash-frontend/.next
 WORKDIR /app
 
 USER appuser
 ENV NODE_ENV production
 
-CMD ["yarn", "workspace","@hashintel/hash-frontend", "start"]
+CMD ["yarn", "workspace","@apps/hash-frontend", "start"]
 

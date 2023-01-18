@@ -14,7 +14,7 @@ export const ProsemirrorLoadingState = () => {
           sx={{
             /**
              * 30px is space between blocks
-             * @see https://github.com/hashintel/hash/blob/ea0dacf87b6a120986081803a541cdb27ff85b02/packages/hash/frontend/src/blocks/page/style.module.css#L22
+             * @see https://github.com/hashintel/hash/blob/ea0dacf87b6a120986081803a541cdb27ff85b02/apps/hash-frontend/src/blocks/page/style.module.css#L22
              */
             mb: "30px",
           }}

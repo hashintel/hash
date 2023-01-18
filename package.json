@@ -9,10 +9,7 @@
       "libs/@local/*",
       "packages/graph/clients",
       "packages/graph/clients/typescript",
-      "packages/hash/api",
-      "packages/hash/frontend",
       "packages/hash/subgraph",
-      "packages/hash/task-executor",
       "packages/libs/error-stack",
       "tests/*"
     ]
@@ -21,10 +18,10 @@
     "codegen": "turbo run codegen",
     "dev": "concurrently \"yarn:dev:backend\" \"yarn:dev:frontend\"",
     "dev:backend": "concurrently \"yarn:dev:backend:*\"",
-    "dev:backend:api": "yarn workspace @hashintel/hash-api dev",
+    "dev:backend:api": "yarn workspace @apps/hash-api dev",
     "dev:backend:realtime": "yarn workspace @apps/hash-realtime dev",
     "dev:backend:search-loader": "yarn workspace @apps/hash-search-loader dev",
-    "dev:frontend": "yarn workspace @hashintel/hash-frontend dev",
+    "dev:frontend": "yarn workspace @apps/hash-frontend dev",
     "external-services-test": "docker compose --project-name external-services-test --file packages/hash/external-services/docker-compose.yml --file packages/hash/external-services/docker-compose.test.yml --env-file .env",
     "external-services": "docker compose --file packages/hash/external-services/docker-compose.yml --env-file .env",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
@@ -51,7 +48,7 @@
     "seed-data": "concurrently \"yarn:seed-data:*\"",
     "test:backend-integration": "yarn workspace @tests/hash-backend-integration test",
     "test:playwright": "yarn workspace @tests/hash-playwright playwright test",
-    "test:unit": "yarn workspace @hashintel/hash-api test && yarn workspace @local/hash-backend-utils test && yarn workspace @local/hash-isomorphic-utils test"
+    "test:unit": "yarn workspace @apps/hash-api test && yarn workspace @local/hash-backend-utils test && yarn workspace @local/hash-isomorphic-utils test"
   },
   "lint-staged": {
     "**": [

@@ -5,14 +5,14 @@ import {
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
-} from "@hashintel/hash-api/src/graph";
-import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
-import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
+} from "@apps/hash-api/src/graph";
+import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { createDataType } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import {
   createPropertyType,
   getPropertyTypeById,
   updatePropertyType,
-} from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
+} from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import {
   DataTypeWithMetadata,
   PropertyTypeWithMetadata,

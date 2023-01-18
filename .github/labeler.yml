@@ -56,16 +56,16 @@ C-dependencies:
   - "**/yarn.lock"
 
 frontend:
-  - packages/hash/frontend/*
-  - packages/hash/frontend/.*
-  - packages/hash/frontend/**/*
-  - packages/hash/frontend/**/.*
+  - apps/hash-frontend/*
+  - apps/hash-frontend/.*
+  - apps/hash-frontend/**/*
+  - apps/hash-frontend/**/.*
 
 api:
-  - packages/hash/api/*
-  - packages/hash/api/.*
-  - packages/hash/api/**/*
-  - packages/hash/api/**/.*
+  - apps/hash-api/*
+  - apps/hash-api/.*
+  - apps/hash-api/**/*
+  - apps/hash-api/**/.*
 
 integration:
   - tests/hash-backend-integration/*

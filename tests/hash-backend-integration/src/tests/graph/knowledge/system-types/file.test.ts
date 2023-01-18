@@ -1,15 +1,15 @@
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
-} from "@hashintel/hash-api/src/graph";
+} from "@apps/hash-api/src/graph";
 import {
   createFileFromExternalUrl,
   createFileFromUploadRequest,
-} from "@hashintel/hash-api/src/graph/knowledge/system-types/file";
-import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
-import { SYSTEM_TYPES } from "@hashintel/hash-api/src/graph/system-types";
-import { StorageType } from "@hashintel/hash-api/src/storage";
+} from "@apps/hash-api/src/graph/knowledge/system-types/file";
+import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
+import { StorageType } from "@apps/hash-api/src/storage";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
 
@@ -24,7 +24,6 @@ const logger = new Logger({
 });
 
 describe("File", () => {
-  /* eslint-disable @typescript-eslint/unbound-method */
   const mediaType = "image";
   let testUser: User;
 
