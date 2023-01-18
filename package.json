@@ -5,6 +5,7 @@
     "packages": [
       "apps/*",
       "blocks/*",
+      "libs/*",
       "libs/@local/*",
       "packages/graph/clients",
       "packages/graph/clients/typescript",
