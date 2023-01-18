@@ -1,7 +1,7 @@
 import { useQuery } from "@apollo/client";
-import { types } from "@hashintel/hash-shared/ontology-types";
 import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { useMemo } from "react";
 
 import {

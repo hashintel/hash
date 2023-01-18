@@ -1,8 +1,8 @@
 import { EntityType } from "@blockprotocol/type-system";
-import { Button, TextField } from "@hashintel/hash-design-system";
-import { frontendUrl } from "@hashintel/hash-shared/environment";
-import { generateBaseTypeId } from "@hashintel/hash-shared/ontology-types";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
+import { Button, TextField } from "@local/design-system";
+import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
+import { generateBaseTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   Box,
   Container,
