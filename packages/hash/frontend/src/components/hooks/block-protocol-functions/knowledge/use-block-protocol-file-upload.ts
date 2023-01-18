@@ -1,7 +1,7 @@
 import { useMutation } from "@apollo/client";
 import { extractBaseUri } from "@blockprotocol/type-system";
-import { types } from "@hashintel/hash-shared/ontology-types";
-import { EntityId } from "@hashintel/hash-shared/types";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { EntityId } from "@local/hash-isomorphic-utils/types";
 import { useCallback } from "react";
 
 import {

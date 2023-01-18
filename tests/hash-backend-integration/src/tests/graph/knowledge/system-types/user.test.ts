@@ -18,9 +18,9 @@ import {
   User,
 } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
 import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { EntityUuid } from "@hashintel/hash-shared/types";
 import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
+import { Logger } from "@local/hash-backend-utils/logger";
+import { EntityUuid } from "@local/hash-isomorphic-utils/types";
 
 import {
   createTestImpureGraphContext,

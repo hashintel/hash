@@ -1,4 +1,4 @@
-import { TextField } from "@hashintel/hash-design-system";
+import { TextField } from "@local/design-system";
 
 import { CellInputProps } from "./types";
 

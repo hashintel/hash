@@ -9,16 +9,15 @@ import {
   faArrowRight,
   faGear,
   faLink,
-  faMap,
   faRefresh,
 } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { PropertyObject } from "@hashintel/hash-subgraph";
+import { FontAwesomeIcon } from "@local/design-system";
 import {
   areComponentsCompatible,
   isHashTextBlock,
-} from "@hashintel/hash-shared/blocks";
-import { BlockEntity } from "@hashintel/hash-shared/entity";
-import { PropertyObject } from "@hashintel/hash-subgraph";
+} from "@local/hash-isomorphic-utils/blocks";
+import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import { PopupState } from "material-ui-popup-state/hooks";
@@ -39,21 +38,13 @@ type BlockContextMenuProps = {
   openConfigMenu: () => void;
   popupState: PopupState;
   canSwap: boolean;
-  toggleShowDataMappingUi: () => void;
 };
 
 const BlockContextMenu: ForwardRefRenderFunction<
   HTMLDivElement,
   BlockContextMenuProps
 > = (
-  {
-    blockEntity,
-    deleteBlock,
-    openConfigMenu,
-    popupState,
-    canSwap,
-    toggleShowDataMappingUi,
-  },
+  { blockEntity, deleteBlock, openConfigMenu, popupState, canSwap },
   ref,
 ) => {
   const { users: _users } = useUsers();
@@ -106,12 +97,6 @@ const BlockContextMenu: ForwardRefRenderFunction<
           url.hash = getBlockDomId((entityId ?? undefined)!);
           void navigator.clipboard.writeText(url.toString());
         },
-      },
-      {
-        key: "map-data",
-        title: "Map data",
-        icon: <FontAwesomeIcon icon={faMap} />,
-        onClick: () => toggleShowDataMappingUi(),
       },
       {
         key: "configure",
@@ -168,7 +153,6 @@ const BlockContextMenu: ForwardRefRenderFunction<
     popupState,
     canSwap,
     compatibleBlocks,
-    toggleShowDataMappingUi,
   ]);
 
   useKey(["Escape"], () => {

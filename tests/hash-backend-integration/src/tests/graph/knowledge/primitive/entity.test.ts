@@ -17,9 +17,6 @@ import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive
 import { createEntityType } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
 import { generateSystemEntityTypeSchema } from "@hashintel/hash-api/src/graph/util";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
-import { EntityId, OwnedById } from "@hashintel/hash-shared/types";
 import {
   DataTypeWithMetadata,
   Entity,
@@ -31,6 +28,9 @@ import {
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+import { Logger } from "@local/hash-backend-utils/logger";
+import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import { EntityId, OwnedById } from "@local/hash-isomorphic-utils/types";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
@@ -209,12 +209,12 @@ describe("Entity CRU", () => {
         timeProjection: {
           kernel: {
             axis: "transaction",
-            timestamp: undefined,
+            timestamp: null,
           },
           image: {
             axis: "decision",
-            start: undefined,
-            end: undefined,
+            start: null,
+            end: null,
           },
         },
       })

@@ -1,13 +1,6 @@
 import { BaseUri, VersionedUri } from "@blockprotocol/type-system";
 import { Filter, GraphResolveDepths } from "@hashintel/hash-graph-client";
 import {
-  AccountId,
-  EntityUuid,
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-  OwnedById,
-} from "@hashintel/hash-shared/types";
-import {
   Entity,
   EntityId,
   EntityMetadata,
@@ -19,6 +12,13 @@ import {
   TimeProjection,
 } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+import {
+  AccountId,
+  EntityUuid,
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+  OwnedById,
+} from "@local/hash-isomorphic-utils/types";
 import { ApolloError } from "apollo-server-errors";
 
 import {
@@ -121,12 +121,12 @@ export const getLatestEntityById: ImpureGraphFunction<
       timeProjection: {
         kernel: {
           axis: "transaction",
-          timestamp: undefined,
+          timestamp: null,
         },
         image: {
           axis: "decision",
-          start: undefined,
-          end: undefined,
+          start: null,
+          end: null,
         },
       },
     })
@@ -469,12 +469,12 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
   const timeProjection: TimeProjection = {
     kernel: {
       axis: "transaction",
-      timestamp: undefined,
+      timestamp: null,
     },
     image: {
       axis: "decision",
-      start: undefined,
-      end: undefined,
+      start: null,
+      end: null,
     },
   };
 
@@ -593,12 +593,12 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
   const timeProjection: TimeProjection = {
     kernel: {
       axis: "transaction",
-      timestamp: undefined,
+      timestamp: null,
     },
     image: {
       axis: "decision",
-      start: undefined,
-      end: undefined,
+      start: null,
+      end: null,
     },
   };
 
@@ -676,12 +676,12 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
     timeProjection: {
       kernel: {
         axis: "transaction",
-        timestamp: undefined,
+        timestamp: null,
       },
       image: {
         axis: "decision",
-        start: undefined,
-        end: undefined,
+        start: null,
+        end: null,
       },
     },
   });

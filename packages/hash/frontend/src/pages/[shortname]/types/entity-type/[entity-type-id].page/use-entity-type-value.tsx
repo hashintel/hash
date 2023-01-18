@@ -3,10 +3,10 @@ import {
   extractBaseUri,
   PropertyType,
 } from "@blockprotocol/type-system";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import { Subgraph } from "@hashintel/hash-subgraph";
 import { getEntityTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
+import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
 import { useRouter } from "next/router";
 import {
   useCallback,

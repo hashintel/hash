@@ -1,5 +1,5 @@
 import { BaseUri, VersionedUri } from "@blockprotocol/type-system";
-import { systemUserShortname } from "@hashintel/hash-shared/environment";
+import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
 import slugify from "slugify";
 
 import { frontendUrl } from "./environment";

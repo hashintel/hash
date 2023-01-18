@@ -20,7 +20,7 @@ module.exports = {
           {
             patterns: [
               {
-                group: ["@hashintel/hash-backend-utils/*"],
+                group: ["@local/hash-backend-utils/*"],
                 message:
                   "This package is shared by FE and BE, move backend utils here if both need them.",
               },

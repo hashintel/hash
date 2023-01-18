@@ -12,24 +12,24 @@ export type TimeIntervalBound =
 export type DecisionTimeProjection = {
   kernel: {
     axis: "transaction";
-    timestamp?: Timestamp;
+    timestamp: Timestamp | null;
   };
   image: {
     axis: "decision";
-    start?: TimeIntervalBound;
-    end?: TimeIntervalBound;
+    start: TimeIntervalBound | null;
+    end: TimeIntervalBound | null;
   };
 };
 
 export type TransactionTimeProjection = {
   kernel: {
     axis: "decision";
-    timestamp?: Timestamp;
+    timestamp: Timestamp | null;
   };
   image: {
     axis: "transaction";
-    start?: TimeIntervalBound;
-    end?: TimeIntervalBound;
+    start: TimeIntervalBound | null;
+    end: TimeIntervalBound | null;
   };
 };
 

@@ -4,7 +4,7 @@ import {
   faChevronRight,
   faList,
 } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
+import { FontAwesomeIcon, IconButton } from "@local/design-system";
 import {
   Box,
   Collapse,
@@ -16,6 +16,10 @@ import {
 } from "@mui/material";
 
 import { ArrowRightIcon } from "../../../../../../../shared/icons/arrow-right-icon";
+import {
+  CollapsibleRowLine,
+  ROW_DEPTH_INDENTATION,
+} from "../shared/collapsible-row-line";
 import { EntityTypeTableTitleCellText } from "../shared/entity-type-table";
 
 interface PropertyTitleCellProps {
@@ -49,18 +53,11 @@ export const PropertyTitleCell = ({
         <>
           {lines.map((display, lineDepth) =>
             display || lineDepth === lines.length - 1 ? (
-              <Box
+              <CollapsibleRowLine
                 // eslint-disable-next-line react/no-array-index-key
                 key={lineDepth}
-                sx={{
-                  position: "absolute",
-                  height: `${display ? 100 : 50}%`,
-                  width: "1px",
-                  left: `${13.4 + 20 * lineDepth}px`,
-                  top: 0,
-                  background: ({ palette }) => palette.gray[30],
-                  zIndex: 1,
-                }}
+                height={`${display ? 100 : 50}%`}
+                depth={lineDepth}
               />
             ) : null,
           )}
@@ -71,8 +68,9 @@ export const PropertyTitleCell = ({
               position: "absolute",
               top: "50%",
               transform: "translateY(-50%)",
-              left: Math.max(0, depth - 1) * 20 + 13.5,
+              left: Math.max(0, depth - 1) * ROW_DEPTH_INDENTATION,
               background: ({ palette }) => palette.gray[30],
+              ml: 1.6875,
             }}
           />
         </>

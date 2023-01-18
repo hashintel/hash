@@ -1,4 +1,4 @@
-import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { Logger } from "@local/hash-backend-utils/logger";
 
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";

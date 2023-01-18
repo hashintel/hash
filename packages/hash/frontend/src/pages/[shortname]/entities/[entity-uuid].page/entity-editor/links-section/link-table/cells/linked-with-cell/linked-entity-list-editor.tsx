@@ -1,7 +1,7 @@
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import { EntityId } from "@hashintel/hash-shared/types";
 import { Entity, VersionedUri } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { EntityId } from "@local/hash-isomorphic-utils/types";
 import { Box } from "@mui/material";
 import produce from "immer";
 import { useMemo, useState } from "react";
@@ -36,8 +36,8 @@ export const createDraftLinkEntity = ({
       entityTypeId: linkEntityTypeId,
       provenance: { updatedById: "" },
       version: {
-        decisionTime: { start: "" },
-        transactionTime: { start: "" },
+        decisionTime: { start: "", end: null },
+        transactionTime: { start: "", end: null },
       },
     },
   };

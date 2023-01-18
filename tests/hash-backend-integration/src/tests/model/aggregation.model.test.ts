@@ -10,7 +10,7 @@ import {
   EntityType,
   User,
 } from "@hashintel/hash-api/src/model";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { Logger } from "@local/hash-backend-utils/logger";
 
 import { recreateDbAndRunSchemaMigrations } from "../setup";
 

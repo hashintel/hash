@@ -5,10 +5,10 @@ import {
   VersionedUri,
 } from "@blockprotocol/type-system";
 import { faList } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { OwnedById } from "@hashintel/hash-shared/types";
 import { Subgraph } from "@hashintel/hash-subgraph";
 import { getPropertyTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
+import { FontAwesomeIcon } from "@local/design-system";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
   Box,
   Checkbox,
@@ -58,6 +58,7 @@ import { PropertyTitleCell } from "./property-list-card/property-title-cell";
 import { PropertyTypeForm } from "./property-list-card/property-type-form";
 import { propertyTypeToFormDataExpectedValues } from "./property-list-card/property-type-to-form-data-expected-values";
 import { PropertyTypeFormValues } from "./property-list-card/shared/property-type-form-values";
+import { CollapsibleRowLine } from "./shared/collapsible-row-line";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
@@ -96,21 +97,13 @@ const CollapsibleTableRow = ({
             position: "relative",
             top: `-${lineHeight}px`,
             mb: `-${lineHeight}px`,
+            pointerEvents: "none",
           }}
           appear
         >
-          <Box
-            sx={{
-              position: "absolute",
-              height: lineHeight,
-              width: "1px",
-              left: `${13.4 + 20 * depth}px`,
-              background: ({ palette }) => palette.gray[30],
-              zIndex: 1,
-            }}
-          />
+          <CollapsibleRowLine height={`${lineHeight}px`} depth={depth} />
 
-          <Table sx={{ mt: `${lineHeight}px` }}>
+          <Table sx={{ mt: `${lineHeight}px`, pointerEvents: "all" }}>
             <TableBody
               sx={{
                 "::before": {
@@ -494,6 +487,7 @@ export const PropertyTypeRow = ({
 
       <TypeFormModal
         as={PropertyTypeForm}
+        baseUri={extractBaseUri($id)}
         popupState={editModalPopupState}
         modalTitle={<>Edit Property Type</>}
         onSubmit={async (data) => {
@@ -531,11 +525,15 @@ const InsertPropertyRow = (
   const [propertyTypesObj] = useLatestPropertyTypes();
   const propertyTypes = Object.values(propertyTypesObj ?? {});
 
-  // @todo make more efficient
-  const filteredPropertyTypes = propertyTypes.filter(
-    (type) =>
-      !properties.some((includedProperty) => includedProperty.$id === type.$id),
-  );
+  const filteredPropertyTypes = useMemo(() => {
+    const propertyBaseUris = properties.map((includedProperty) =>
+      extractBaseUri(includedProperty.$id),
+    );
+
+    return propertyTypes.filter(
+      (type) => !propertyBaseUris.includes(extractBaseUri(type.$id)),
+    );
+  }, [properties, propertyTypes]);
 
   return (
     <InsertTypeRow
@@ -689,6 +687,7 @@ export const PropertyListCard = () => {
                   Create new property type
                   <QuestionIcon
                     sx={{
+                      display: "flex",
                       ml: 1.25,
                     }}
                     tooltip={

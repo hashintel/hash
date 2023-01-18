@@ -1,4 +1,4 @@
-import { Select, TextField } from "@hashintel/hash-design-system";
+import { Select, TextField } from "@local/design-system";
 import { Box, FormControl, InputLabel, ListItemText } from "@mui/material";
 import { useMemo, useState } from "react";
 

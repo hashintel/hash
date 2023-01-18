@@ -1,4 +1,4 @@
-import { OwnedById } from "@hashintel/hash-shared/types";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 
 import { createFileFromUploadRequest } from "../../../../graph/knowledge/system-types/file";
 import {

@@ -11,14 +11,14 @@ import {
   updateEntityType,
 } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { OwnedById } from "@hashintel/hash-shared/types";
 import {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   linkEntityTypeUri,
   PropertyTypeWithMetadata,
 } from "@hashintel/hash-subgraph";
+import { Logger } from "@local/hash-backend-utils/logger";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
