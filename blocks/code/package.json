@@ -12,9 +12,9 @@
   "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
-    "generate-types": "block-scripts codegen",
     "dev": "block-scripts dev",
     "fix:eslint": "eslint --fix .",
+    "generate-types": "block-scripts codegen",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "serve": "block-scripts serve"
