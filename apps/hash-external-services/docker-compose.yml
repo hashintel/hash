@@ -32,7 +32,7 @@ services:
     ## Details: https://github.com/opensearch-project/OpenSearch/issues/1579.
     ## We can revisit the setup after upgrading base image or by fixing permissions in a custom image.
     # volumes:
-    #   - ../../var/external-services/opensearch/data:/usr/share/opensearch/data
+    #   - ../../var/hash-external-service/opensearch/data:/usr/share/opensearch/data
 
   postgres:
     build:
