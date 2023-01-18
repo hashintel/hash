@@ -93,12 +93,13 @@ const CollapsibleTableRow = ({
             position: "relative",
             top: `-${lineHeight}px`,
             mb: `-${lineHeight}px`,
+            pointerEvents: "none",
           }}
           appear
         >
           <CollapsibleRowLine height={`${lineHeight}px`} depth={depth} />
 
-          <Table sx={{ mt: `${lineHeight}px` }}>
+          <Table sx={{ mt: `${lineHeight}px`, pointerEvents: "all" }}>
             <TableBody
               sx={{
                 "::before": {
