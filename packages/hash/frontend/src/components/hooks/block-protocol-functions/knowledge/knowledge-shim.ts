@@ -11,7 +11,6 @@ import {
   CreateResourceError,
   ReadOrModifyResourceError,
 } from "@blockprotocol/graph";
-import { EntityId } from "@hashintel/hash-shared/types";
 import {
   Entity,
   LinkData,
@@ -20,12 +19,12 @@ import {
   SubgraphRootTypes,
   VersionedUri,
 } from "@hashintel/hash-subgraph";
+import { EntityId } from "@local/hash-isomorphic-utils/types";
 
 export type KnowledgeCallbacks = {
   getEntity: GetEntityMessageCallback;
   createEntity: CreateEntityMessageCallback;
   aggregateEntities: AggregateEntitiesMessageCallback;
-  updateEntity: UpdateEntityMessageCallback;
   archiveEntity: ArchiveEntityMessageCallback;
 };
 
@@ -86,21 +85,6 @@ export type CreateEntityMessageCallback = MessageCallback<
   null,
   Entity,
   CreateResourceError
->;
-
-export type UpdateEntityRequest = {
-  entityId: EntityId;
-  entityTypeId?: VersionedUri;
-  updatedProperties: PropertyObject;
-  leftToRightOrder?: number;
-  rightToLeftOrder?: number;
-};
-
-export type UpdateEntityMessageCallback = MessageCallback<
-  UpdateEntityRequest,
-  null,
-  Entity,
-  ReadOrModifyResourceError
 >;
 
 export type ArchiveEntityRequest = {

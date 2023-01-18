@@ -10,7 +10,7 @@ import {
   updateOrgShortname,
 } from "@hashintel/hash-api/src/graph/knowledge/system-types/org";
 import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { Logger } from "@local/hash-backend-utils/logger";
 
 import {
   createTestImpureGraphContext,

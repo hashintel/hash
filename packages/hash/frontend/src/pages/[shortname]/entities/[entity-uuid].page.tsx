@@ -1,11 +1,11 @@
+import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
   OwnedById,
-} from "@hashintel/hash-shared/types";
-import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+} from "@local/hash-isomorphic-utils/types";
 import produce from "immer";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -153,8 +153,9 @@ const Page: NextPageWithLayout = () => {
       /** @todo add validation here */
       await updateEntity({
         data: {
-          entityId: draftEntity.metadata.editionId.baseId as EntityId,
-          updatedProperties: draftEntity.properties,
+          entityId: draftEntity.metadata.editionId.baseId,
+          entityTypeId: draftEntity.metadata.entityTypeId,
+          properties: draftEntity.properties,
         },
       });
 

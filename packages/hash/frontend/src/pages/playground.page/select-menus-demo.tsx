@@ -10,7 +10,7 @@ import {
   FontAwesomeIcon,
   MenuCheckboxItem,
   Select,
-} from "@hashintel/hash-design-system";
+} from "@local/design-system";
 import {
   Box,
   FormControl,

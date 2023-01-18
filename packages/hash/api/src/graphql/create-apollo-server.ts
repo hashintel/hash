@@ -1,8 +1,8 @@
 import { performance } from "node:perf_hooks";
 
 import { makeExecutableSchema } from "@graphql-tools/schema";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { SearchAdapter } from "@hashintel/hash-backend-utils/search/adapter";
+import { Logger } from "@local/hash-backend-utils/logger";
+import { SearchAdapter } from "@local/hash-backend-utils/search/adapter";
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
 import { ApolloServer } from "apollo-server-express";
 import { StatsD } from "hot-shots";

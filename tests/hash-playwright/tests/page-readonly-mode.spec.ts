@@ -1,4 +1,4 @@
-import { sleep } from "@hashintel/hash-shared/sleep";
+import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
 import { loginUsingUi } from "./shared/login-using-ui";
 import { resetDb } from "./shared/reset-db";

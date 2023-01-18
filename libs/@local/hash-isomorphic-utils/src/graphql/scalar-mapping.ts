@@ -2,21 +2,22 @@ export const scalars = {
   Date: "string",
   JSONObject: "@blockprotocol/core#JsonObject",
   UnknownEntityProperties:
-    "@hashintel/hash-shared/graphql/types#UnknownEntityProperties",
-  TextToken: "@hashintel/hash-shared/graphql/types#TextToken",
+    "@local/hash-isomorphic-utils/graphql/types#UnknownEntityProperties",
+  TextToken: "@local/hash-isomorphic-utils/graphql/types#TextToken",
 
   VersionedUri: "@hashintel/hash-subgraph#VersionedUri",
 
   DataTypeWithMetadata: "@hashintel/hash-subgraph#DataTypeWithMetadata",
-  DataTypeWithoutId: "@hashintel/hash-shared/graphql/types#DataTypeWithoutId",
+  DataTypeWithoutId:
+    "@local/hash-isomorphic-utils/graphql/types#DataTypeWithoutId",
 
   EntityTypeWithMetadata: "@hashintel/hash-subgraph#EntityTypeWithMetadata",
   EntityTypeWithoutId:
-    "@hashintel/hash-shared/graphql/types#EntityTypeWithoutId",
+    "@local/hash-isomorphic-utils/graphql/types#EntityTypeWithoutId",
 
   PropertyTypeWithMetadata: "@hashintel/hash-subgraph#PropertyTypeWithMetadata",
   PropertyTypeWithoutId:
-    "@hashintel/hash-shared/graphql/types#PropertyTypeWithoutId",
+    "@local/hash-isomorphic-utils/graphql/types#PropertyTypeWithoutId",
 
   Entity: "@hashintel/hash-subgraph#Entity",
   EntityEditionId: "@hashintel/hash-subgraph#EntityEditionId",
@@ -31,11 +32,11 @@ export const scalars = {
   TimeProjection: "@hashintel/hash-subgraph#TimeProjection",
   ResolvedTimeProjection: "@hashintel/hash-subgraph#ResolvedTimeProjection",
 
-  OwnedById: "@hashintel/hash-shared/types#OwnedById",
-  UpdatedById: "@hashintel/hash-shared/types#UpdatedById",
-  AccountId: "@hashintel/hash-shared/types#AccountId",
-  EntityId: "@hashintel/hash-shared/types#EntityId",
+  OwnedById: "@local/hash-isomorphic-utils/types#OwnedById",
+  UpdatedById: "@local/hash-isomorphic-utils/types#UpdatedById",
+  AccountId: "@local/hash-isomorphic-utils/types#AccountId",
+  EntityId: "@local/hash-isomorphic-utils/types#EntityId",
 
-  EntityUuid: "@hashintel/hash-shared/types#EntityUuid",
-  Uuid: "@hashintel/hash-shared/types#Uuid",
+  EntityUuid: "@local/hash-isomorphic-utils/types#EntityUuid",
+  Uuid: "@local/hash-isomorphic-utils/types#Uuid",
 };

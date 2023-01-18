@@ -1,17 +1,18 @@
+import { BaseUri } from "@blockprotocol/type-system";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
+import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import {
   Button,
   ButtonProps,
   FontAwesomeIcon,
   IconButton,
   TextField,
-} from "@hashintel/hash-design-system";
-import { frontendUrl } from "@hashintel/hash-shared/environment";
+} from "@local/design-system";
+import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import {
   generateBaseTypeId,
   SchemaKind,
-} from "@hashintel/hash-shared/ontology-types";
-import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
+} from "@local/hash-isomorphic-utils/ontology-types";
 import {
   Box,
   Divider,
@@ -212,6 +213,7 @@ type TypeFormModalProps<T extends ElementType = "div"> =
     as?: T;
     popupState: PopupState;
     ref?: Ref<ComponentPropsWithRef<T>["ref"]> | null;
+    baseUri?: BaseUri;
   };
 
 type PolymorphicProps<P, T extends ElementType> = P & TypeFormModalProps<T>;
@@ -345,8 +347,9 @@ export const TypeForm = <T extends TypeFormDefaults>({
         onSubmit={(event) => {
           event.stopPropagation(); // stop the parent submit being triggered
 
-          popupState.close();
-          void handleSubmit(event);
+          void handleSubmit(event).then(() => {
+            popupState.close();
+          });
         }}
       >
         <Stack

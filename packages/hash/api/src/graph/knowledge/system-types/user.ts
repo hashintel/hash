@@ -1,11 +1,4 @@
 import {
-  AccountId,
-  EntityUuid,
-  extractEntityUuidFromEntityId,
-  OwnedById,
-  Uuid,
-} from "@hashintel/hash-shared/types";
-import {
   Entity,
   EntityId,
   PropertyObject,
@@ -13,6 +6,13 @@ import {
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+import {
+  AccountId,
+  EntityUuid,
+  extractEntityUuidFromEntityId,
+  OwnedById,
+  Uuid,
+} from "@local/hash-isomorphic-utils/types";
 
 import {
   kratosIdentityApi,
@@ -152,12 +152,12 @@ export const getUserByShortname: ImpureGraphFunction<
       timeProjection: {
         kernel: {
           axis: "transaction",
-          timestamp: undefined,
+          timestamp: null,
         },
         image: {
           axis: "decision",
-          start: undefined,
-          end: undefined,
+          start: null,
+          end: null,
         },
       },
     })
@@ -213,12 +213,12 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
       timeProjection: {
         kernel: {
           axis: "transaction",
-          timestamp: undefined,
+          timestamp: null,
         },
         image: {
           axis: "decision",
-          start: undefined,
-          end: undefined,
+          start: null,
+          end: null,
         },
       },
     })
