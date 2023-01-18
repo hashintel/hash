@@ -39,7 +39,7 @@ export const PropertyTitleCell = ({
                   position: "absolute",
                   height: `${display ? 100 : 50}%`,
                   width: 8,
-                  left: `${10 + 20 * (depth - 1)}px`,
+                  left: `${10 + 20 * lineDepth}px`,
                   top: 0,
                   zIndex: 1,
                 }}
