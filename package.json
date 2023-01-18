@@ -11,8 +11,9 @@
       "packages/graph/clients/typescript",
       "packages/hash/api",
       "packages/hash/frontend",
-      "packages/hash/task-executor",
       "packages/hash/subgraph",
+      "packages/hash/task-executor",
+      "packages/libs/error-stack",
       "tests/*"
     ]
   },
