@@ -1,6 +1,6 @@
 import { Button } from "@hashintel/hash-design-system";
 import { EntityId } from "@hashintel/hash-shared/types";
-import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
+import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { Drawer, Stack, Typography } from "@mui/material";
 import { useState } from "react";
@@ -14,7 +14,7 @@ import { useDraftLinkState } from "./shared/use-draft-link-state";
 interface EditEntityModalProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (entity: Entity) => void;
+  onSubmit: () => void;
   entitySubgraph: Subgraph<SubgraphRootTypes["entity"]>;
 }
 
@@ -76,7 +76,8 @@ export const EditEntityModal = ({
       const updateEntityResponse = await updateEntity({
         data: {
           entityId: draftEntity.metadata.editionId.baseId as EntityId,
-          updatedProperties: draftEntity.properties,
+          properties: draftEntity.properties,
+          entityTypeId: draftEntity.metadata.entityTypeId,
         },
       });
 
@@ -84,7 +85,7 @@ export const EditEntityModal = ({
         throw new Error("Updating entity failed");
       }
 
-      onSubmit(updateEntityResponse.data);
+      onSubmit();
     } catch (err) {
       setSavingChanges(false);
     }

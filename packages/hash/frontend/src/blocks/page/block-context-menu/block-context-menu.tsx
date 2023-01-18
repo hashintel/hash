@@ -8,6 +8,7 @@ import {
   faAdd,
   faArrowRight,
   faGear,
+  faGears,
   faLink,
   faRefresh,
 } from "@fortawesome/free-solid-svg-icons";
@@ -17,15 +18,29 @@ import {
   isHashTextBlock,
 } from "@hashintel/hash-shared/blocks";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
-import { PropertyObject } from "@hashintel/hash-subgraph";
+import { EntityId } from "@hashintel/hash-shared/types";
+import {
+  PropertyObject,
+  Subgraph,
+  SubgraphRootTypes,
+} from "@hashintel/hash-subgraph";
 import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import { PopupState } from "material-ui-popup-state/hooks";
-import { forwardRef, ForwardRefRenderFunction, useMemo, useRef } from "react";
+import {
+  forwardRef,
+  ForwardRefRenderFunction,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useKey } from "rooks";
 
 import { useUsers } from "../../../components/hooks/use-users";
+import { EditEntityModal } from "../../../pages/[shortname]/entities/[entity-uuid].page/edit-entity-modal";
+import { useFetchBlockSubgraph } from "../../use-fetch-block-subgraph";
 import { useUserBlocks } from "../../user-blocks";
+import { useBlockContext } from "../block-context";
 import { getBlockDomId } from "../block-view";
 import { BlockContextMenuItem } from "./block-context-menu-item";
 import { BlockListMenuContent } from "./block-list-menu-content";
@@ -47,6 +62,11 @@ const BlockContextMenu: ForwardRefRenderFunction<
   { blockEntity, deleteBlock, openConfigMenu, popupState, canSwap },
   ref,
 ) => {
+  const { blockSubgraph, setBlockSubgraph } = useBlockContext();
+  const fetchBlockSubgraph = useFetchBlockSubgraph();
+
+  const [open, setOpen] = useState(false);
+
   const { users: _users } = useUsers();
   const setEntityMenuItemRef = useRef<HTMLLIElement>(null);
   const swapBlocksMenuItemRef = useRef<HTMLLIElement>(null);
@@ -97,6 +117,12 @@ const BlockContextMenu: ForwardRefRenderFunction<
           url.hash = getBlockDomId((entityId ?? undefined)!);
           void navigator.clipboard.writeText(url.toString());
         },
+      },
+      {
+        key: "edit-block",
+        title: "Edit Block",
+        icon: <FontAwesomeIcon icon={faGears} />,
+        onClick: () => setOpen(true),
       },
       {
         key: "configure",
@@ -171,96 +197,125 @@ const BlockContextMenu: ForwardRefRenderFunction<
     }
   });
 
+  const handleEntityModalSubmit = async () => {
+    if (!blockEntity) {
+      return;
+    }
+
+    const { editionId, entityTypeId } = blockEntity.blockChildEntity.metadata;
+    const newBlockSubgraph = await fetchBlockSubgraph(
+      entityTypeId,
+      editionId.baseId as EntityId,
+    );
+
+    setBlockSubgraph(newBlockSubgraph);
+    setOpen(false);
+  };
+
   return (
-    <Menu
-      {...bindMenu(popupState)}
-      ref={ref}
-      anchorOrigin={{
-        horizontal: "left",
-        vertical: "bottom",
-      }}
-      transformOrigin={{
-        horizontal: "right",
-        vertical: "top",
-      }}
-      PaperProps={{
-        sx: {
-          width: 228,
-        },
-      }}
-      data-testid="block-context-menu"
-    >
-      <Box component="li" px={2} pt={1.5} mb={1}>
-        <BlockLoaderInput onLoad={() => popupState.close()} />
-      </Box>
-
-      {menuItems.map(
-        ({
-          icon,
-          isNotYetImplemented,
-          key,
-          onClick,
-          subMenu,
-          subMenuWidth,
-          title,
-        }) => {
-          if (key === "copy-link" && !entityId) {
-            return null;
+    <>
+      {blockSubgraph && (
+        <EditEntityModal
+          open={open}
+          onClose={() => setOpen(false)}
+          entitySubgraph={
+            /** @todo add timeProjection & resolvedTimeProjection properly */
+            blockSubgraph as unknown as Subgraph<SubgraphRootTypes["entity"]>
           }
-
-          let menuItemRef;
-          if (key === "set-entity") {
-            menuItemRef = setEntityMenuItemRef;
-          }
-          if (key === "swap-block") {
-            menuItemRef = swapBlocksMenuItemRef;
-          }
-
-          if (isNotYetImplemented) {
-            return null;
-          }
-
-          return (
-            <BlockContextMenuItem
-              key={key}
-              title={title}
-              itemKey={key}
-              icon={icon}
-              onClick={() => {
-                onClick?.();
-                popupState.close();
-              }}
-              subMenu={subMenu}
-              subMenuWidth={subMenuWidth}
-              {...(menuItemRef && { ref: menuItemRef })}
-            />
-          );
-        },
+          onSubmit={handleEntityModalSubmit}
+        />
       )}
+      <Menu
+        {...bindMenu(popupState)}
+        ref={ref}
+        anchorOrigin={{
+          horizontal: "left",
+          vertical: "bottom",
+        }}
+        transformOrigin={{
+          horizontal: "right",
+          vertical: "top",
+        }}
+        PaperProps={{
+          sx: {
+            width: 228,
+          },
+        }}
+        data-testid="block-context-menu"
+      >
+        <Box component="li" px={2} pt={1.5} mb={1}>
+          <BlockLoaderInput onLoad={() => popupState.close()} />
+        </Box>
 
-      <Divider />
-      <Box px={1.75} pt={1.25} pb={1.5}>
-        <Typography
-          variant="microText"
-          sx={({ palette }) => ({
-            color: palette.gray[60],
-            display: "block",
-          })}
-        >
-          Last edited by
-          {/**
-           * @todo: re-implement when provenance fields are made available to the frontend
-           * @see https://app.asana.com/0/1201095311341924/1203170881776185/f
-           */}
-          {/* {
+        {menuItems.map(
+          ({
+            icon,
+            isNotYetImplemented,
+            key,
+            onClick,
+            subMenu,
+            subMenuWidth,
+            title,
+          }) => {
+            if (key === "copy-link" && !entityId) {
+              return null;
+            }
+
+            let menuItemRef;
+            if (key === "set-entity") {
+              menuItemRef = setEntityMenuItemRef;
+            }
+            if (key === "swap-block") {
+              menuItemRef = swapBlocksMenuItemRef;
+            }
+
+            if (isNotYetImplemented) {
+              return null;
+            }
+
+            return (
+              <BlockContextMenuItem
+                key={key}
+                title={title}
+                itemKey={key}
+                icon={icon}
+                onClick={() => {
+                  onClick?.();
+                  popupState.close();
+                }}
+                subMenu={subMenu}
+                subMenuWidth={subMenuWidth}
+                {...(menuItemRef && { ref: menuItemRef })}
+              />
+            );
+          },
+        )}
+
+        <Divider />
+        <Box px={1.75} pt={1.25} pb={1.5}>
+          <Typography
+            variant="microText"
+            sx={({ palette }) => ({
+              color: palette.gray[60],
+              display: "block",
+            })}
+          >
+            Last edited by
+            {/**
+             * @todo: re-implement when provenance fields are made available to the frontend
+             * @see https://app.asana.com/0/1201095311341924/1203170881776185/f
+             */}
+            {/* {
             users?.find(
               (account) =>
                 account.entityId ===
                 blockEntity?.properties.entity.createdByAccountId,
             )?.preferredName
           } */}
-        </Typography>
+          </Typography>
+          {/** 
         {/** 
+          {/** 
          * @todo re-implement after collab works https://app.asana.com/0/0/1203099452204542/f
          {typeof blockEntity?.properties.entity.updatedAt ===
             "string" && (
@@ -282,8 +337,9 @@ const BlockContextMenu: ForwardRefRenderFunction<
             </Typography>
           )
         } */}
-      </Box>
-    </Menu>
+        </Box>
+      </Menu>
+    </>
   );
 };
 
