@@ -100,7 +100,9 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
-          BUILD_ARGS: ENV=prod,API_SECRET=testing-secret
+          BUILD_ARGS:
+            - ENV=prod
+            - API_SECRET=testing-secret
 
   # We need a SSH tunnel to migrate the DB, for now we disable the entire job.
   deploy:
