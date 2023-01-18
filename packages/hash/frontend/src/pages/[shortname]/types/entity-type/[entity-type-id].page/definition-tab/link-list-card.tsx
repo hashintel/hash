@@ -175,6 +175,11 @@ const LinkTypeRow = ({
 
   const link = linkTypes[linkId];
 
+  const [popperPlacement, setPopperPlacement] =
+    useState<PopperPlacementType>("bottom");
+
+  const [autocompleteFocused, setAutocompleteFocused] = useState(false);
+
   if (!link) {
     throw new Error("Missing link");
   }
@@ -186,9 +191,6 @@ const LinkTypeRow = ({
   const chosenEntityTypeSchemas = entityTypeSchemas.filter((schema) =>
     chosenEntityTypes.includes(schema.$id),
   );
-
-  const [popperPlacement, setPopperPlacement] =
-    useState<PopperPlacementType>("bottom");
 
   return (
     <>
@@ -214,7 +216,13 @@ const LinkTypeRow = ({
                 minWidth: 440,
               },
             ]}
-            open
+            open={autocompleteFocused || true}
+            onFocus={() => {
+              setAutocompleteFocused(true);
+            }}
+            onBlur={() => {
+              setAutocompleteFocused(false);
+            }}
             onChange={(_, chosenTypes) => {
               setValue(
                 `links.${linkIndex}.entityTypes`,
@@ -231,37 +239,31 @@ const LinkTypeRow = ({
               query: "",
               createButtonProps: null,
               variant: "entityType",
-              joined: true,
             }}
-            renderTags={() => (
+            joined
+            renderTags={(value, getTagProps) => (
               <Stack
                 direction="row"
                 flexWrap="wrap"
                 sx={[
                   (theme) => ({
-                    border: 1,
-                    borderColor: "transparent",
-                    borderRadius: 1.5,
-                    p: 0.5,
-                    userSelect: "none",
-                    minWidth: 200,
-                    minHeight: 42,
-                    left: -7,
-                    width: "calc(100% + 14px)",
-                    overflow: "hidden",
-                    position: "relative",
-                    zIndex: theme.zIndex.drawer,
+                    // border: 1,
+                    // borderColor: "transparent",
+                    // borderRadius: 1.5,
+                    // p: 0.5,
+                    // userSelect: "none",
+                    // minWidth: 200,
+                    // minHeight: 42,
+                    // left: -7,
+                    // width: "calc(100% + 14px)",
+                    // overflow: "hidden",
+                    // position: "relative",
+                    // zIndex: theme.zIndex.drawer,
                   }),
                 ]}
               >
-                {chosenEntityTypes.length ? (
-                  chosenEntityTypes.map((entityTypeId) => {
-                    const type = entityTypes[entityTypeId];
-
-                    if (!type) {
-                      throw new Error("Entity type missing in links table");
-                    }
-
+                {value.length ? (
+                  value.map((type, index) => {
                     return (
                       <Chip
                         sx={{ m: 0.25 }}
@@ -277,10 +279,11 @@ const LinkTypeRow = ({
                               icon={faAsterisk}
                               sx={{ fontSize: "inherit" }}
                             />
-                            <Box component="span">{type.schema.title}</Box>
+                            <Box component="span">{type.title}</Box>
                           </Stack>
                         }
-                        key={type.schema.$id}
+                        {...getTagProps({ index })}
+                        key={type.$id}
                       />
                     );
                   })
@@ -319,12 +322,10 @@ const LinkTypeRow = ({
             ]}
             onKeyDown={(evt) => {
               if (evt.key === "Escape") {
-                entityTypeSelectorPopupState.close();
+                // @todo do we need to trigger a blur?
+                setAutocompleteFocused(false);
               }
             }}
-            // onBlur={() => {
-            //   entityTypeSelectorPopupState.close();
-            // }}
           />
         </TableCell>
         <MultipleValuesCell index={linkIndex} variant="link" />
