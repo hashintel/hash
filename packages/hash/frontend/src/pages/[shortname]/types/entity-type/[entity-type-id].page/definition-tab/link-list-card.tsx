@@ -17,6 +17,7 @@ import {
 import { Box } from "@mui/system";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useId, useLayoutEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 
 import { useBlockProtocolCreateEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
@@ -216,12 +217,6 @@ const LinkTypeRow = ({
                 boxShadow: theme.boxShadows.xs,
                 borderColor: `${theme.palette.gray[30]} !important`,
                 backgroundColor: "white",
-                ...(popperPlacement === "bottom"
-                  ? { borderTopLeftRadius: 0, borderTopRightRadius: 0 }
-                  : {
-                      borderBottomLeftRadius: 0,
-                      borderBottomRightRadius: 0,
-                    }),
               },
             })}
           >
@@ -318,6 +313,16 @@ const LinkTypeRow = ({
                   borderColor: theme.palette.gray[30],
                   boxShadow: theme.boxShadows.md,
                   zIndex: theme.zIndex.drawer - 1,
+
+                  ...(popperPlacement === "top"
+                    ? {
+                        borderTopLeftRadius: "0 !important",
+                        borderTopRightRadius: "0 !important",
+                      }
+                    : {
+                        borderBottomLeftRadius: "0 !important",
+                        borderBottomRightRadius: "0 !important",
+                      }),
                 })}
               >
                 <HashSelectorAutocomplete
@@ -325,12 +330,13 @@ const LinkTypeRow = ({
                   sx={[
                     popperPlacementPopperNoRadius,
                     {
-                      width: "100%",
                       minWidth: 440,
                       position: "absolute",
+                      left: -1,
+                      width: "calc(100% + 2px)",
                       ...(popperPlacement === "top"
-                        ? { top: "100%" }
-                        : { bottom: "100%" }),
+                        ? { bottom: "100%" }
+                        : { top: "100%" }),
                     },
                   ]}
                   open
@@ -350,15 +356,19 @@ const LinkTypeRow = ({
                     query: "",
                     createButtonProps: null,
                     variant: "entityType",
+                    joined: true,
                   }}
                   renderTags={() => <Box />}
                   value={chosenEntityTypeSchemas}
                   modifiers={[
                     {
                       name: "addPositionClass",
+                      phase: "write",
                       options: {
                         update(placement: PopperPlacementType) {
-                          console.log("foo", placement);
+                          flushSync(() => {
+                            setPopperPlacement(placement);
+                          });
                         },
                       },
                     },
@@ -368,7 +378,6 @@ const LinkTypeRow = ({
                       entityTypeSelectorPopupState.close();
                     }
                   }}
-                  referenceConnection="flat"
                   // onBlur={() => {
                   //   entityTypeSelectorPopupState.close();
                   // }}
