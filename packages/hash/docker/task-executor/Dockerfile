@@ -28,6 +28,7 @@ RUN pip3 install --no-cache --upgrade pip setuptools
 WORKDIR /app
 
 EXPOSE 5010
+USER appuser
 ENV NODE_ENV production
 
 CMD ["yarn", "workspace", "@apps/hash-task-executor", "start"]
