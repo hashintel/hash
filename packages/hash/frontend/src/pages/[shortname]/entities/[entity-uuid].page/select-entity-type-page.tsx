@@ -1,5 +1,5 @@
 import { faPlus, faWarning } from "@fortawesome/free-solid-svg-icons";
-import { Button, Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { Button, Chip, FontAwesomeIcon } from "@local/design-system";
 import { Box, Divider, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useContext, useState } from "react";

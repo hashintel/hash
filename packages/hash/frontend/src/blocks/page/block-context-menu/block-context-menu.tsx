@@ -12,18 +12,18 @@ import {
   faLink,
   faRefresh,
 } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
-import {
-  areComponentsCompatible,
-  isHashTextBlock,
-} from "@hashintel/hash-shared/blocks";
-import { BlockEntity } from "@hashintel/hash-shared/entity";
-import { EntityId } from "@hashintel/hash-shared/types";
 import {
   PropertyObject,
   Subgraph,
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
+import { FontAwesomeIcon } from "@local/design-system";
+import {
+  areComponentsCompatible,
+  isHashTextBlock,
+} from "@local/hash-isomorphic-utils/blocks";
+import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
+import { EntityId } from "@local/hash-isomorphic-utils/types";
 import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import { PopupState } from "material-ui-popup-state/hooks";

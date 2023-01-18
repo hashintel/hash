@@ -1,7 +1,7 @@
-import { Button } from "@hashintel/hash-design-system";
-import { EntityId } from "@hashintel/hash-shared/types";
 import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { Button } from "@local/design-system";
+import { EntityId } from "@local/hash-isomorphic-utils/types";
 import { Drawer, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 

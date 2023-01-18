@@ -46,9 +46,28 @@
       "matchPackagePatterns": ["^@sentry/"]
     },
     {
-      "groupName": "Rust",
       "matchManagers": ["regex"],
-      "matchPackageNames": ["rust-lang/rust-analyzer"]
+      "matchDepNames": ["rust"],
+      "separateMajorMinor": false,
+      "fetchReleaseNotes": false
+    },
+    {
+      "matchManagers": ["regex"],
+      "matchDepNames": ["rust"],
+      "matchPaths": ["error-stack/**"],
+      "groupName": "error-stack"
+    },
+    {
+      "matchManagers": ["regex"],
+      "matchDepNames": ["rust"],
+      "matchPaths": ["deer/**"],
+      "groupName": "deer"
+    },
+    {
+      "matchManagers": ["regex"],
+      "matchDepNames": ["rust"],
+      "matchPaths": ["graph/**"],
+      "groupName": "graph"
     }
   ],
   "regexManagers": [
@@ -57,9 +76,21 @@
       "matchStrings": [
         "channel\\s*=\\s*\"nightly-(?<currentValue>\\d+-\\d+-\\d+)\""
       ],
-      "depNameTemplate": "rust-lang/rust-analyzer",
+      "depNameTemplate": "rust",
+      "packageNameTemplate": "rust-lang/rust-analyzer",
       "datasourceTemplate": "github-releases",
       "versioningTemplate": "regex:(?<major>\\d+)-(?<minor>\\d+)-(?<patch>\\d+)"
+    },
+    {
+      "fileMatch": ["(^|/)README\\.md?$", "(^|/)lib\\.rs?$"],
+      "matchStrings": [
+        "\\[!\\[rust-version]\\(https://img\\.shields\\.io/badge/Rust-(?<stable>\\d+\\.\\d+\\.\\d+)/nightly--(?<currentValue>\\d+--\\d+--\\d+)-blue\\)]\\[rust-version]"
+      ],
+      "depNameTemplate": "rust",
+      "packageNameTemplate": "rust-lang/rust-analyzer",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "regex:(?<major>\\d+)-?-(?<minor>\\d+)-?-(?<patch>\\d+)",
+      "autoReplaceStringTemplate": "[![rust-version](https://img.shields.io/badge/Rust-{{stable}}/nightly--{{replace '-' '--' newValue}}-blue)][rust-version]"
     }
   ]
 }

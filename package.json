@@ -10,12 +10,10 @@
       "packages/graph/clients",
       "packages/graph/clients/typescript",
       "packages/hash/api",
-      "packages/hash/backend-utils",
-      "packages/hash/design-system",
       "packages/hash/frontend",
-      "packages/hash/shared",
-      "packages/hash/task-executor",
       "packages/hash/subgraph",
+      "packages/hash/task-executor",
+      "packages/libs/error-stack",
       "tests/*"
     ]
   },
@@ -53,7 +51,7 @@
     "seed-data": "concurrently \"yarn:seed-data:*\"",
     "test:backend-integration": "yarn workspace @tests/hash-backend-integration test",
     "test:playwright": "yarn workspace @tests/hash-playwright playwright test",
-    "test:unit": "yarn workspace @hashintel/hash-api test && yarn workspace @hashintel/hash-backend-utils test && yarn workspace @hashintel/hash-shared test"
+    "test:unit": "yarn workspace @hashintel/hash-api test && yarn workspace @local/hash-backend-utils test && yarn workspace @local/hash-isomorphic-utils test"
   },
   "lint-staged": {
     "**": [
@@ -81,6 +79,7 @@
     "prettier": "2.8.2",
     "prettier-plugin-packagejson": "2.3.0",
     "prettier-plugin-sh": "0.12.8",
+    "prettier-plugin-sql": "0.12.1",
     "suppress-exit-code": "3.1.0",
     "turbo": "1.6.3",
     "wait-on": "6.0.1",

@@ -1,8 +1,8 @@
 import { useQuery } from "@apollo/client";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
-import { EntityId } from "@hashintel/hash-shared/types";
+import { FontAwesomeIcon } from "@local/design-system";
+import { getPageInfoQuery } from "@local/hash-isomorphic-utils/queries/page.queries";
+import { EntityId } from "@local/hash-isomorphic-utils/types";
 import { Box } from "@mui/material";
 
 import {

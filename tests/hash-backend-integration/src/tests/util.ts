@@ -13,7 +13,7 @@ import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-typ
 import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
 import { StorageType } from "@hashintel/hash-api/src/storage";
 import { getRequiredEnv } from "@hashintel/hash-api/src/util";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { Logger } from "@local/hash-backend-utils/logger";
 
 import { OrgSize } from "../graphql/api-types.gen";
 

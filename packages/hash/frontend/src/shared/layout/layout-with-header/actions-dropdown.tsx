@@ -1,6 +1,6 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
+import { FontAwesomeIcon } from "@local/design-system";
+import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
   Box,
   listItemSecondaryActionClasses,

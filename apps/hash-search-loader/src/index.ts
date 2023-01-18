@@ -5,12 +5,12 @@
 import * as http from "node:http";
 import { promisify } from "node:util";
 
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
-import { RedisQueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/redis";
-import { AsyncRedisClient } from "@hashintel/hash-backend-utils/redis";
-import { ENTITIES_SEARCH_INDEX } from "@hashintel/hash-backend-utils/search/doc-types";
-import { OpenSearch } from "@hashintel/hash-backend-utils/search/opensearch";
-import { GracefulShutdown } from "@hashintel/hash-backend-utils/shutdown";
+import { getRequiredEnv } from "@local/hash-backend-utils/environment";
+import { RedisQueueExclusiveConsumer } from "@local/hash-backend-utils/queue/redis";
+import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
+import { ENTITIES_SEARCH_INDEX } from "@local/hash-backend-utils/search/doc-types";
+import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
+import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { StatsD } from "hot-shots";
 
 import { INSTANCE_ID, logger } from "./config";

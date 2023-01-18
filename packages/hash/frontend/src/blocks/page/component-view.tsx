@@ -1,28 +1,28 @@
 import { VersionedUri } from "@blockprotocol/type-system";
-import { HashBlock } from "@hashintel/hash-shared/blocks";
+import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import {
   BlockEntity,
   getBlockChildEntity,
   isTextEntity,
-} from "@hashintel/hash-shared/entity";
+} from "@local/hash-isomorphic-utils/entity";
 import {
   DraftEntity,
   EntityStore,
   isDraftBlockEntity,
-} from "@hashintel/hash-shared/entity-store";
+} from "@local/hash-isomorphic-utils/entity-store";
 import {
   addEntityStoreAction,
   entityStorePluginState,
   subscribeToEntityStore,
-} from "@hashintel/hash-shared/entity-store-plugin";
+} from "@local/hash-isomorphic-utils/entity-store-plugin";
 import {
   componentNodeToId,
   isComponentNode,
   isParagraphNode,
-} from "@hashintel/hash-shared/prosemirror";
-import { ProsemirrorManager } from "@hashintel/hash-shared/prosemirror-manager";
-import { textBlockNodeToEntityProperties } from "@hashintel/hash-shared/text";
-import { EntityId } from "@hashintel/hash-shared/types";
+} from "@local/hash-isomorphic-utils/prosemirror";
+import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
+import { textBlockNodeToEntityProperties } from "@local/hash-isomorphic-utils/text";
+import { EntityId } from "@local/hash-isomorphic-utils/types";
 import * as Sentry from "@sentry/nextjs";
 import { Node } from "prosemirror-model";
 import { TextSelection, Transaction } from "prosemirror-state";

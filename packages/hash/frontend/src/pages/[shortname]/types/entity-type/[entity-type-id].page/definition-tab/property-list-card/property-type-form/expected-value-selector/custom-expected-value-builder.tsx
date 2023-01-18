@@ -1,11 +1,6 @@
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { faClose, faList } from "@fortawesome/free-solid-svg-icons";
-import {
-  Button,
-  Chip,
-  ChipProps,
-  FontAwesomeIcon,
-} from "@hashintel/hash-design-system";
+import { Button, Chip, ChipProps, FontAwesomeIcon } from "@local/design-system";
 import {
   Box,
   buttonClasses,
