@@ -30,10 +30,7 @@ import {
 } from "../../../../../../shared/entity-types-context/hooks";
 import { LinkIcon } from "../../../../../../shared/icons/link";
 import { autocompleteDropdownClasses } from "../../../../shared/autocomplete-dropdown";
-import {
-  AUTOCOMPLETE_INPUT_HEIGHT,
-  HashSelectorAutocomplete,
-} from "../../../../shared/hash-selector-autocomplete";
+import { HashSelectorAutocomplete } from "../../../../shared/hash-selector-autocomplete";
 import {
   addPopperPositionClassPopperModifier,
   popperPlacementInputNoRadius,
@@ -253,7 +250,7 @@ const LinkTypeRow = ({
                     // border: 1,
                     // borderColor: "transparent",
                     // borderRadius: 1.5,
-                    py: 0.5,
+                    // p: 0.5,
                     // userSelect: "none",
                     // minWidth: 200,
                     // minHeight: 42,
@@ -262,9 +259,6 @@ const LinkTypeRow = ({
                     // overflow: "hidden",
                     // position: "relative",
                     // zIndex: theme.zIndex.drawer,
-                    // @todo position
-                    minHeight: `${AUTOCOMPLETE_INPUT_HEIGHT}px`,
-                    alignItems: "center",
                   }),
                 ]}
               >
@@ -289,8 +283,6 @@ const LinkTypeRow = ({
                           </Stack>
                         }
                         {...getTagProps({ index })}
-                        onDelete={undefined}
-                        disabled={true}
                         key={type.$id}
                       />
                     );
