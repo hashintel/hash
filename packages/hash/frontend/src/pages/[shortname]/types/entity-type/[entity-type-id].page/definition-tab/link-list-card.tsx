@@ -5,16 +5,14 @@ import { OwnedById } from "@hashintel/hash-shared/types";
 import { linkEntityTypeUri } from "@hashintel/hash-subgraph";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import {
-  ClickAwayListener,
+  Box,
+  PopperPlacementType,
   Stack,
   TableBody,
   TableCell,
   TableFooter,
   TableHead,
-  tableRowClasses,
-  PopperPlacementType,
 } from "@mui/material";
-import { Box } from "@mui/system";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
@@ -30,13 +28,10 @@ import {
   useLinkEntityTypesOptional,
 } from "../../../../../../shared/entity-types-context/hooks";
 import { LinkIcon } from "../../../../../../shared/icons/link";
-import { autocompleteDropdownClasses } from "../../../../shared/autocomplete-dropdown";
 import { HashSelectorAutocomplete } from "../../../../shared/hash-selector-autocomplete";
 import {
-  addPopperPositionClassPopperModifier,
   popperPlacementInputNoRadius,
   popperPlacementPopperNoRadius,
-  popperPlacementSelectors,
 } from "../../../../shared/popper-placement-modifier";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
 import { useRouteNamespace } from "../../../../shared/use-route-namespace";
@@ -49,7 +44,6 @@ import {
   EntityTypeTableHeaderRow,
   EntityTypeTableRow,
   EntityTypeTableTitleCellText,
-  rowBackground,
 } from "./shared/entity-type-table";
 import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
 import { MultipleValuesCell } from "./shared/multiple-values-cell";
@@ -117,12 +111,10 @@ const LinkTypeRow = ({
 }) => {
   const { control, setValue } = useFormContext<EntityTypeEditorForm>();
 
-  const entityTypeSelectorPopupId = useId();
-  // @todo replace with state
-  const entityTypeSelectorPopupState = usePopupState({
-    variant: "popper",
-    popupId: entityTypeSelectorPopupId,
-  });
+  const [entityTypeSelectorPlacement, setEntityTypeSelectorPlacement] =
+    useState<PopperPlacementType>("bottom");
+  const [entityTypeSelectorPopupOpen, setEntityTypeSelectorPopupOpen] =
+    useState(true);
 
   const linkTypes = useLinkEntityTypes();
   const entityTypes = useEntityTypes();
@@ -188,9 +180,6 @@ const LinkTypeRow = ({
     chosenEntityTypes.includes(schema.$id),
   );
 
-  const [popperPlacement, setPopperPlacement] =
-    useState<PopperPlacementType>("bottom");
-
   return (
     <>
       <EntityTypeTableRow>
@@ -200,20 +189,20 @@ const LinkTypeRow = ({
           </EntityTypeTableTitleCellText>
         </TableCell>
         <TableCell
-          sx={(theme) => ({
+          sx={{
             "&, *": {
               cursor: "pointer",
             },
-          })}
+          }}
         >
           <Box
             sx={(theme) => ({
               position: "relative",
-              ...(entityTypeSelectorPopupState.isOpen
+              ...(entityTypeSelectorPopupOpen
                 ? { zIndex: theme.zIndex.modal + 1 }
                 : {}),
 
-              [entityTypeSelectorPopupState.isOpen ? "& > *" : "&:hover > *"]: {
+              [entityTypeSelectorPopupOpen ? "& > *" : "&:hover > *"]: {
                 boxShadow: theme.boxShadows.xs,
                 borderColor: `${theme.palette.gray[30]} !important`,
                 backgroundColor: "white",
@@ -238,11 +227,11 @@ const LinkTypeRow = ({
                   position: "relative",
                   zIndex: theme.zIndex.drawer,
                 }),
-                ...(entityTypeSelectorPopupState.isOpen
+                ...(entityTypeSelectorPopupOpen
                   ? [popperPlacementInputNoRadius]
                   : []),
               ]}
-              {...bindTrigger(entityTypeSelectorPopupState)}
+              onClick={() => setEntityTypeSelectorPopupOpen(true)}
             >
               {chosenEntityTypes.length ? (
                 chosenEntityTypes.map((entityTypeId) => {
@@ -295,7 +284,7 @@ const LinkTypeRow = ({
                 />
               )}
             </Stack>
-            {entityTypeSelectorPopupState.isOpen ? (
+            {entityTypeSelectorPopupOpen ? (
               <Box
                 onClick={(evt) => {
                   evt.stopPropagation();
@@ -314,7 +303,7 @@ const LinkTypeRow = ({
                   boxShadow: theme.boxShadows.md,
                   zIndex: theme.zIndex.drawer - 1,
 
-                  ...(popperPlacement === "top"
+                  ...(entityTypeSelectorPlacement === "top"
                     ? {
                         borderTopLeftRadius: "0 !important",
                         borderTopRightRadius: "0 !important",
@@ -334,7 +323,7 @@ const LinkTypeRow = ({
                       position: "absolute",
                       left: -1,
                       width: "calc(100% + 2px)",
-                      ...(popperPlacement === "top"
+                      ...(entityTypeSelectorPlacement === "top"
                         ? { bottom: "100%" }
                         : { top: "100%" }),
                     },
@@ -356,8 +345,8 @@ const LinkTypeRow = ({
                     query: "",
                     createButtonProps: null,
                     variant: "entityType",
-                    joined: true,
                   }}
+                  joined
                   renderTags={() => <Box />}
                   value={chosenEntityTypeSchemas}
                   modifiers={[
@@ -366,21 +355,23 @@ const LinkTypeRow = ({
                       phase: "write",
                       options: {
                         update(placement: PopperPlacementType) {
-                          flushSync(() => {
-                            setPopperPlacement(placement);
-                          });
+                          if (placement !== entityTypeSelectorPlacement) {
+                            flushSync(() => {
+                              setEntityTypeSelectorPlacement(placement);
+                            });
+                          }
                         },
                       },
                     },
                   ]}
                   onKeyDown={(evt) => {
                     if (evt.key === "Escape") {
-                      entityTypeSelectorPopupState.close();
+                      // setEntityTypeSelectorPopupOpen(false);
                     }
                   }}
-                  // onBlur={() => {
-                  //   entityTypeSelectorPopupState.close();
-                  // }}
+                  onBlur={() => {
+                    // setEntityTypeSelectorPopupOpen(false);
+                  }}
                 />
               </Box>
             ) : null}

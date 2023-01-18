@@ -33,7 +33,6 @@ export type TypeListSelectorDropdownProps = {
   query: string;
   createButtonProps: Omit<ButtonProps, "children" | "variant" | "size"> | null;
   variant: "entityType" | "propertyType" | "entity" | "linkType";
-  joined?: boolean;
 };
 
 const TypeListSelectorDropdown = ({
@@ -41,14 +40,10 @@ const TypeListSelectorDropdown = ({
   dropdownProps,
   ...props
 }: PaperProps & { dropdownProps: TypeListSelectorDropdownProps }) => {
-  const { query, createButtonProps, variant, joined } = dropdownProps;
+  const { query, createButtonProps, variant } = dropdownProps;
 
   return (
-    <AutocompleteDropdown
-      buttonHeight={TYPE_SELECTOR_HEIGHT}
-      joined={joined}
-      {...props}
-    >
+    <AutocompleteDropdown {...props}>
       {children}
       {createButtonProps ? (
         <Button
@@ -138,6 +133,7 @@ export const HashSelectorAutocomplete = <
   dropdownProps,
   autoFocus = true,
   modifiers,
+  joined,
   ...rest
 }: HashSelectorAutocompleteProps<
   Multiple extends true ? (T extends any[] ? T[number] : T) : T,
@@ -146,6 +142,26 @@ export const HashSelectorAutocomplete = <
   const allModifiers = useMemo(
     (): PopperProps["modifiers"] => [
       addPopperPositionClassPopperModifier,
+      {
+        phase: "beforeWrite",
+        enabled: true,
+        fn({ state }) {
+          // eslint-disable-next-line no-param-reassign
+          if (state.placement === "bottom") {
+            state.elements.popper.style.paddingTop = `${TYPE_SELECTOR_HEIGHT}px`;
+            state.elements.popper.style.paddingBottom = "0";
+          } else {
+            state.elements.popper.style.paddingBottom = `${TYPE_SELECTOR_HEIGHT}px`;
+            state.elements.popper.style.paddingTop = "0";
+          }
+        },
+      },
+      {
+        name: "offset",
+        options: {
+          offset: [0, -TYPE_SELECTOR_HEIGHT],
+        },
+      },
       ...(modifiers ?? []),
     ],
     [modifiers],
@@ -195,9 +211,7 @@ export const HashSelectorAutocomplete = <
                 ? [
                     popperPlacementInputNoRadius,
                     popperPlacementInputNoBorder,
-                    dropdownProps.joined
-                      ? { borderRadius: "0 !important" }
-                      : {},
+                    joined ? { borderRadius: "0 !important" } : {},
                   ]
                 : []),
             ],
