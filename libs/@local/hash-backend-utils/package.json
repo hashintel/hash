@@ -1,5 +1,5 @@
 {
-  "name": "@hashintel/hash-backend-utils",
+  "name": "@local/hash-backend-utils",
   "version": "0.0.0-private",
   "private": true,
   "description": "HASH backend utilities",

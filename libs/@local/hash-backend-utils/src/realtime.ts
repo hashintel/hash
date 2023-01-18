@@ -1,4 +1,4 @@
-import { Entity, Link } from "@hashintel/hash-backend-utils/pg-tables";
+import { Entity, Link } from "@local/hash-backend-utils/pg-tables";
 
 /**
  * @todo Consider adding realtime handling for types

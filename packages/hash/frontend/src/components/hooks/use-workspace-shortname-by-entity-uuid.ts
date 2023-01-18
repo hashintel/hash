@@ -1,12 +1,12 @@
 import { extractBaseUri } from "@blockprotocol/type-system";
-import { systemUserShortname } from "@hashintel/hash-shared/environment";
-import { types } from "@hashintel/hash-shared/ontology-types";
+import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
   OwnedById,
-} from "@hashintel/hash-shared/types";
-import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+} from "@local/hash-isomorphic-utils/types";
 import { useEffect, useMemo, useState } from "react";
 
 import { useBlockProtocolGetEntity } from "./block-protocol-functions/knowledge/use-block-protocol-get-entity";

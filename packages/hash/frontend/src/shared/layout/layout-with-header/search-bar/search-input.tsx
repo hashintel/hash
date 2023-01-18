@@ -1,5 +1,5 @@
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
+import { FontAwesomeIcon, IconButton } from "@local/design-system";
 import {
   Box,
   InputAdornment,

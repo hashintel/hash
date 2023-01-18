@@ -11,7 +11,7 @@ import {
   OrgMembership,
 } from "@hashintel/hash-api/src/graph/knowledge/system-types/org-membership";
 import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { Logger } from "@local/hash-backend-utils/logger";
 
 import {
   createTestImpureGraphContext,
