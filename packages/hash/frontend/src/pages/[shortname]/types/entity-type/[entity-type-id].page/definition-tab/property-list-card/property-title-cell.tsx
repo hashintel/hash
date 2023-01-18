@@ -1,6 +1,6 @@
 import { PropertyType } from "@blockprotocol/type-system";
 import { faChevronRight, faList } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
+import { FontAwesomeIcon, IconButton } from "@local/design-system";
 import { Box, Collapse, Fade, TableCell } from "@mui/material";
 
 import { EntityTypeTableTitleCellText } from "../shared/entity-type-table";
