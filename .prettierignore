@@ -15,10 +15,10 @@
 !*.mdx
 !*.mjs
 !*.scss
+!*.sql
 !*.ts
 !*.tsx
 !*.yml
-!*.sql
 
 # Keep license files as is
 LICENSE.md
