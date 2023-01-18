@@ -1,6 +1,7 @@
 [workspace]
 members = [".", "macros"]
 default-members = ["."]
+exclude = ["package.json"]
 
 [package]
 name = "error-stack"
