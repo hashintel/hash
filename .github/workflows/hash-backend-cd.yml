@@ -4,8 +4,10 @@ on:
   push:
     branches: [main]
     paths:
+      - "apps/hash-api/**"
+      - "libs/@local/hash-backend-utils-utils/**"
+      - "libs/@local/hash-isomorphic-utils/**"
       - "packages/hash/**"
-      - "!apps/hash-frontend/**"
 
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}

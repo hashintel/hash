@@ -295,6 +295,6 @@ jobs:
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           fail_ci_if_error: true
-          files: apps/hash-api/coverage/lcov.info,libs/@local/hash-backend-utils/coverage/lcov.info,apps/hash-frontend/coverage/lcov.info,libs/@local/hash-isomorphic-utils/coverage/lcov.info,
+          files: apps/hash-api/coverage/lcov.info,apps/hash-frontend/coverage/lcov.info,libs/@local/hash-backend-utils/coverage/lcov.info,libs/@local/hash-isomorphic-utils/coverage/lcov.info,
           flags: unit-tests
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
