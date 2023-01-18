@@ -1,3 +1,4 @@
+import { BaseUri } from "@blockprotocol/type-system";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import {
   Button,
@@ -212,6 +213,7 @@ type TypeFormModalProps<T extends ElementType = "div"> =
     as?: T;
     popupState: PopupState;
     ref?: Ref<ComponentPropsWithRef<T>["ref"]> | null;
+    baseUri?: BaseUri;
   };
 
 type PolymorphicProps<P, T extends ElementType> = P & TypeFormModalProps<T>;
@@ -345,8 +347,9 @@ export const TypeForm = <T extends TypeFormDefaults>({
         onSubmit={(event) => {
           event.stopPropagation(); // stop the parent submit being triggered
 
-          popupState.close();
-          void handleSubmit(event);
+          void handleSubmit(event).then(() => {
+            popupState.close();
+          });
         }}
       >
         <Stack
