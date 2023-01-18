@@ -1,4 +1,3 @@
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
@@ -10,6 +9,7 @@ import {
   updateOrgShortname,
 } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import { systemUserAccountId } from "@apps/hash-api/src/graph/system-user";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 
 import {

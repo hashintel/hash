@@ -1,4 +1,3 @@
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
@@ -20,6 +19,7 @@ import {
   EntityTypeCreatorParams,
   generateSystemEntityTypeSchema,
 } from "@apps/hash-api/src/graph/util";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   Entity,
   EntityTypeWithMetadata,

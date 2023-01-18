@@ -70,7 +70,7 @@ describe("Hash Instance", () => {
 
     expect(
       await getLinkEntityRightEntity(graphContext, {
-        linkEntity: hashOutgoingAdminLink,
+        linkEntity: hashOutgoingAdminLink!,
       }),
     ).toEqual(testHashInstanceAdmin.entity);
   });

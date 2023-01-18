@@ -1,4 +1,3 @@
-import { EntityType, TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
@@ -11,6 +10,7 @@ import {
   updateEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import { EntityType, TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,

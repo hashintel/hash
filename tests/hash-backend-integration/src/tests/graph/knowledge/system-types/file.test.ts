@@ -24,6 +24,7 @@ const logger = new Logger({
 });
 
 describe("File", () => {
+  /* eslint-disable @typescript-eslint/unbound-method */
   const mediaType = "image";
   let testUser: User;
 

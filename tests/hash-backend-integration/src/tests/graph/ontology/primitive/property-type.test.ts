@@ -1,8 +1,4 @@
 import {
-  PropertyType,
-  TypeSystemInitializer,
-} from "@blockprotocol/type-system";
-import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
 } from "@apps/hash-api/src/graph";
@@ -13,6 +9,10 @@ import {
   getPropertyTypeById,
   updatePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import {
+  PropertyType,
+  TypeSystemInitializer,
+} from "@blockprotocol/type-system";
 import {
   DataTypeWithMetadata,
   PropertyTypeWithMetadata,
