@@ -54,6 +54,7 @@ import { PropertyTitleCell } from "./property-list-card/property-title-cell";
 import { PropertyTypeForm } from "./property-list-card/property-type-form";
 import { propertyTypeToFormDataExpectedValues } from "./property-list-card/property-type-to-form-data-expected-values";
 import { PropertyTypeFormValues } from "./property-list-card/shared/property-type-form-values";
+import { CollapsibleRowLine } from "./shared/collapsible-row-line";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
@@ -95,25 +96,7 @@ const CollapsibleTableRow = ({
           }}
           appear
         >
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              position: "absolute",
-              height: lineHeight,
-              width: 8,
-              left: `${10 + 20 * depth}px`,
-              zIndex: 1,
-            }}
-          >
-            <Box
-              sx={{
-                height: 1,
-                width: "1px",
-                background: ({ palette }) => palette.gray[30],
-              }}
-            />
-          </Box>
+          <CollapsibleRowLine height={`${lineHeight}px`} depth={depth} />
 
           <Table sx={{ mt: `${lineHeight}px` }}>
             <TableBody
