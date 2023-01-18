@@ -49,7 +49,7 @@ const script = async () => {
 
   for (const licenseFilePath of licenseFilePaths) {
     const licenseFileName = path.basename(licenseFilePath);
-    if (!licenseFileName.match(/^LICENSE(-[A-Z0-9]+)?.md$/)) {
+    if (!licenseFileName.match(/^LICENSE(-[A-Z0-9]+)?(\.(md|txt))?$/)) {
       misspelledLicenseFileSet.add(licenseFilePath);
     }
   }
