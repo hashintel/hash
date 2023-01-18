@@ -7,7 +7,7 @@ import { createRoot } from "react-dom/client";
 
 import packageJSON from "../package.json";
 import Component from "./index";
-import { RootEntity } from "./types.gen";
+import { RootEntity } from "./types";
 
 const node = document.getElementById("app");
 
