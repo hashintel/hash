@@ -65,6 +65,8 @@ const MultipleValuesCellSummary = ({
   </Collapse>
 );
 
+export const MULTIPLE_VALUES_CELL_WIDTH = 170;
+
 export const MultipleValuesCell = ({
   index,
   variant,
@@ -162,6 +164,7 @@ export const MultipleValuesCell = ({
           p: "0 !important",
           position: "relative",
         }}
+        width={MULTIPLE_VALUES_CELL_WIDTH}
       >
         <Box
           onClick={() => {
