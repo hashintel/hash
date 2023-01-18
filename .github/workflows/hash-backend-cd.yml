@@ -102,7 +102,7 @@ jobs:
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           BUILD_ARGS: |
             ENV=prod
-            API_SECRET=testing-secret
+            API_SECRET=${{ secrets.HASH_KRATOS_API_SECRET }}
 
   # We need a SSH tunnel to migrate the DB, for now we disable the entire job.
   deploy:
