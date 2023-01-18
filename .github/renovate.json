@@ -48,26 +48,26 @@
     {
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
-      "matchPaths": ["error-stack/**"],
-      "groupName": "error-stack",
       "separateMajorMinor": false,
       "fetchReleaseNotes": false
+    },
+    {
+      "matchManagers": ["regex"],
+      "matchDepNames": ["rust"],
+      "matchPaths": ["error-stack/**"],
+      "groupName": "error-stack"
     },
     {
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
       "matchPaths": ["deer/**"],
-      "groupName": "deer",
-      "separateMajorMinor": false,
-      "fetchReleaseNotes": false
+      "groupName": "deer"
     },
     {
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
       "matchPaths": ["graph/**"],
-      "groupName": "graph",
-      "separateMajorMinor": false,
-      "fetchReleaseNotes": false
+      "groupName": "graph"
     }
   ],
   "regexManagers": [
