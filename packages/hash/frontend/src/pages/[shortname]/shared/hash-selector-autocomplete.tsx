@@ -27,7 +27,7 @@ import {
 } from "./popper-placement-modifier";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 
-const TYPE_SELECTOR_HEIGHT = 57;
+export const AUTOCOMPLETE_INPUT_HEIGHT = 57;
 
 export type TypeListSelectorDropdownProps = {
   query: string;
@@ -45,7 +45,7 @@ const TypeListSelectorDropdown = ({
 
   return (
     <AutocompleteDropdown
-      inputHeight={TYPE_SELECTOR_HEIGHT}
+      inputHeight={AUTOCOMPLETE_INPUT_HEIGHT}
       joined={joined}
       {...props}
     >
@@ -150,7 +150,7 @@ export const HashSelectorAutocomplete = <
       {
         name: "offset",
         options: {
-          offset: [0, joined ? -TYPE_SELECTOR_HEIGHT : 0],
+          offset: [0, joined ? -AUTOCOMPLETE_INPUT_HEIGHT : 0],
         },
       },
       ...(modifiers ?? []),
@@ -185,17 +185,18 @@ export const HashSelectorAutocomplete = <
             ),
             sx: [
               (theme) => ({
-                // The popover needs to know how tall this is to draw
-                // a shadow around it
-                height: TYPE_SELECTOR_HEIGHT,
-
                 // @todo placement
                 ...(joined
                   ? {
-                      top: `-${TYPE_SELECTOR_HEIGHT}px`,
+                      top: `-${AUTOCOMPLETE_INPUT_HEIGHT}px`,
                       zIndex: theme.zIndex.modal + 1,
+                      minHeight: AUTOCOMPLETE_INPUT_HEIGHT,
                     }
-                  : {}),
+                  : {
+                      // The popover needs to know how tall this is to draw
+                      // a shadow around it
+                      height: AUTOCOMPLETE_INPUT_HEIGHT,
+                    }),
 
                 // Focus is handled by the options popover
                 "&.Mui-focused": {
