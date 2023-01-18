@@ -205,127 +205,177 @@ const LinkTypeRow = ({
             },
           })}
         >
-          <HashSelectorAutocomplete
-            multiple
-            sx={[
-              popperPlacementPopperNoRadius,
-              {
-                width: "100%",
-                minWidth: 440,
+          <Box
+            sx={(theme) => ({
+              position: "relative",
+              ...(entityTypeSelectorPopupState.isOpen
+                ? { zIndex: theme.zIndex.modal + 1 }
+                : {}),
+
+              [entityTypeSelectorPopupState.isOpen ? "& > *" : "&:hover > *"]: {
+                boxShadow: theme.boxShadows.xs,
+                borderColor: `${theme.palette.gray[30]} !important`,
+                backgroundColor: "white",
+                ...(popperPlacement === "bottom"
+                  ? { borderTopLeftRadius: 0, borderTopRightRadius: 0 }
+                  : {
+                      borderBottomLeftRadius: 0,
+                      borderBottomRightRadius: 0,
+                    }),
               },
-            ]}
-            open
-            onChange={(_, chosenTypes) => {
-              setValue(
-                `links.${linkIndex}.entityTypes`,
-                chosenTypes.map((type) => type.$id),
-              );
-            }}
-            options={entityTypeSchemas}
-            optionToRenderData={({ $id, title, description }) => ({
-              $id,
-              title,
-              description,
             })}
-            dropdownProps={{
-              query: "",
-              createButtonProps: null,
-              variant: "entityType",
-              joined: true,
-            }}
-            renderTags={() => (
-              <Stack
-                direction="row"
-                flexWrap="wrap"
-                sx={[
-                  (theme) => ({
-                    border: 1,
-                    borderColor: "transparent",
-                    borderRadius: 1.5,
-                    p: 0.5,
-                    userSelect: "none",
-                    minWidth: 200,
-                    minHeight: 42,
-                    left: -7,
-                    width: "calc(100% + 14px)",
-                    overflow: "hidden",
-                    position: "relative",
-                    zIndex: theme.zIndex.drawer,
-                  }),
-                ]}
-              >
-                {chosenEntityTypes.length ? (
-                  chosenEntityTypes.map((entityTypeId) => {
-                    const type = entityTypes[entityTypeId];
+          >
+            <Stack
+              direction="row"
+              flexWrap="wrap"
+              sx={[
+                (theme) => ({
+                  border: 1,
+                  borderColor: "transparent",
+                  borderRadius: 1.5,
+                  p: 0.5,
+                  userSelect: "none",
+                  minWidth: 200,
+                  minHeight: 42,
+                  left: -7,
+                  width: "calc(100% + 14px)",
+                  overflow: "hidden",
+                  position: "relative",
+                  zIndex: theme.zIndex.drawer,
+                }),
+                ...(entityTypeSelectorPopupState.isOpen
+                  ? [popperPlacementInputNoRadius]
+                  : []),
+              ]}
+              {...bindTrigger(entityTypeSelectorPopupState)}
+            >
+              {chosenEntityTypes.length ? (
+                chosenEntityTypes.map((entityTypeId) => {
+                  const type = entityTypes[entityTypeId];
 
-                    if (!type) {
-                      throw new Error("Entity type missing in links table");
-                    }
+                  if (!type) {
+                    throw new Error("Entity type missing in links table");
+                  }
 
-                    return (
-                      <Chip
-                        sx={{ m: 0.25 }}
-                        color="blue"
-                        label={
-                          <Stack
-                            direction="row"
-                            spacing={0.75}
-                            fontSize={14}
-                            alignItems="center"
-                          >
-                            <FontAwesomeIcon
-                              icon={faAsterisk}
-                              sx={{ fontSize: "inherit" }}
-                            />
-                            <Box component="span">{type.schema.title}</Box>
-                          </Stack>
-                        }
-                        key={type.schema.$id}
+                  return (
+                    <Chip
+                      sx={{ m: 0.25 }}
+                      color="blue"
+                      label={
+                        <Stack
+                          direction="row"
+                          spacing={0.75}
+                          fontSize={14}
+                          alignItems="center"
+                        >
+                          <FontAwesomeIcon
+                            icon={faAsterisk}
+                            sx={{ fontSize: "inherit" }}
+                          />
+                          <Box component="span">{type.schema.title}</Box>
+                        </Stack>
+                      }
+                      key={type.schema.$id}
+                    />
+                  );
+                })
+              ) : (
+                <Chip
+                  color="blue"
+                  variant="outlined"
+                  label={
+                    <Stack
+                      direction="row"
+                      spacing={0.75}
+                      fontSize={14}
+                      alignItems="center"
+                    >
+                      <FontAwesomeIcon
+                        icon={faAsterisk}
+                        sx={{ fontSize: "inherit" }}
                       />
+                      <Box component="span">Anything</Box>
+                    </Stack>
+                  }
+                />
+              )}
+            </Stack>
+            {entityTypeSelectorPopupState.isOpen ? (
+              <Box
+                onClick={(evt) => {
+                  evt.stopPropagation();
+                  evt.preventDefault();
+                }}
+                sx={(theme) => ({
+                  position: "absolute",
+                  left: -19,
+                  right: -19,
+                  top: -12,
+                  bottom: -12,
+                  background: "white",
+                  borderRadius: 1.5,
+                  border: 1,
+                  borderColor: theme.palette.gray[30],
+                  boxShadow: theme.boxShadows.md,
+                  zIndex: theme.zIndex.drawer - 1,
+                })}
+              >
+                <HashSelectorAutocomplete
+                  multiple
+                  sx={[
+                    popperPlacementPopperNoRadius,
+                    {
+                      width: "100%",
+                      minWidth: 440,
+                      position: "absolute",
+                      ...(popperPlacement === "top"
+                        ? { top: "100%" }
+                        : { bottom: "100%" }),
+                    },
+                  ]}
+                  open
+                  onChange={(_, chosenTypes) => {
+                    setValue(
+                      `links.${linkIndex}.entityTypes`,
+                      chosenTypes.map((type) => type.$id),
                     );
-                  })
-                ) : (
-                  <Chip
-                    color="blue"
-                    variant="outlined"
-                    label={
-                      <Stack
-                        direction="row"
-                        spacing={0.75}
-                        fontSize={14}
-                        alignItems="center"
-                      >
-                        <FontAwesomeIcon
-                          icon={faAsterisk}
-                          sx={{ fontSize: "inherit" }}
-                        />
-                        <Box component="span">Anything</Box>
-                      </Stack>
+                  }}
+                  options={entityTypeSchemas}
+                  optionToRenderData={({ $id, title, description }) => ({
+                    $id,
+                    title,
+                    description,
+                  })}
+                  dropdownProps={{
+                    query: "",
+                    createButtonProps: null,
+                    variant: "entityType",
+                  }}
+                  renderTags={() => <Box />}
+                  value={chosenEntityTypeSchemas}
+                  modifiers={[
+                    {
+                      name: "addPositionClass",
+                      options: {
+                        update(placement: PopperPlacementType) {
+                          console.log("foo", placement);
+                        },
+                      },
+                    },
+                  ]}
+                  onKeyDown={(evt) => {
+                    if (evt.key === "Escape") {
+                      entityTypeSelectorPopupState.close();
                     }
-                  />
-                )}
-              </Stack>
-            )}
-            value={chosenEntityTypeSchemas}
-            modifiers={[
-              {
-                name: "addPositionClass",
-                options: {
-                  update(placement: PopperPlacementType) {
-                    setPopperPlacement(placement);
-                  },
-                },
-              },
-            ]}
-            onKeyDown={(evt) => {
-              if (evt.key === "Escape") {
-                entityTypeSelectorPopupState.close();
-              }
-            }}
-            // onBlur={() => {
-            //   entityTypeSelectorPopupState.close();
-            // }}
-          />
+                  }}
+                  referenceConnection="flat"
+                  // onBlur={() => {
+                  //   entityTypeSelectorPopupState.close();
+                  // }}
+                />
+              </Box>
+            ) : null}
+          </Box>
         </TableCell>
         <MultipleValuesCell index={linkIndex} variant="link" />
         <TypeMenuCell

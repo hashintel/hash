@@ -23,18 +23,12 @@ export const AutocompleteDropdown = ({
           borderRadius: `${textFieldBorderRadius}px`,
           [`${popperPlacementSelectors.top} &`]: {
             bottom: -buttonHeight,
-            ...(joined
-              ? { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }
-              : {}),
           },
           [`${popperPlacementSelectors.topStart} &`]: {
             bottom: -buttonHeight,
           },
           [`${popperPlacementSelectors.bottom} &`]: {
             top: -buttonHeight,
-            ...(joined
-              ? { borderTopLeftRadius: 0, borderTopRightRadius: 0 }
-              : {}),
           },
           [`${popperPlacementSelectors.bottomStart} &`]: {
             top: -buttonHeight,
