@@ -45,7 +45,7 @@ const TypeListSelectorDropdown = ({
 
   return (
     <AutocompleteDropdown
-      inputHeight={TYPE_SELECTOR_HEIGHT}
+      buttonHeight={TYPE_SELECTOR_HEIGHT}
       joined={joined}
       {...props}
     >
@@ -120,7 +120,7 @@ type HashSelectorAutocompleteProps<
   inputRef?: Ref<any>;
   inputPlaceholder?: string;
   optionToRenderData: (option: T) => OptionRenderData;
-  dropdownProps: Omit<TypeListSelectorDropdownProps, "joined">;
+  dropdownProps: TypeListSelectorDropdownProps;
   autoFocus?: boolean;
   modifiers?: PopperProps["modifiers"];
   joined?: boolean;
@@ -138,7 +138,6 @@ export const HashSelectorAutocomplete = <
   dropdownProps,
   autoFocus = true,
   modifiers,
-  joined,
   ...rest
 }: HashSelectorAutocompleteProps<
   Multiple extends true ? (T extends any[] ? T[number] : T) : T,
@@ -147,12 +146,6 @@ export const HashSelectorAutocomplete = <
   const allModifiers = useMemo(
     (): PopperProps["modifiers"] => [
       addPopperPositionClassPopperModifier,
-      {
-        name: "offset",
-        options: {
-          offset: [0, joined ? -TYPE_SELECTOR_HEIGHT : 0],
-        },
-      },
       ...(modifiers ?? []),
     ],
     [modifiers],
@@ -189,14 +182,6 @@ export const HashSelectorAutocomplete = <
                 // a shadow around it
                 height: TYPE_SELECTOR_HEIGHT,
 
-                // @todo placement
-                ...(joined
-                  ? {
-                      top: `-${TYPE_SELECTOR_HEIGHT}px`,
-                      zIndex: theme.zIndex.modal + 1,
-                    }
-                  : {}),
-
                 // Focus is handled by the options popover
                 "&.Mui-focused": {
                   boxShadow: "none",
@@ -209,7 +194,9 @@ export const HashSelectorAutocomplete = <
               ...(open
                 ? [popperPlacementInputNoRadius, popperPlacementInputNoBorder]
                 : []),
-              ...(joined ? [{}] : []),
+              ...(dropdownProps.joined
+                ? [{ borderRadius: "0 !important" }]
+                : []),
             ],
           }}
         />
@@ -289,10 +276,7 @@ export const HashSelectorAutocomplete = <
       getOptionLabel={(opt) => optionToRenderData(opt).title}
       // eslint-disable-next-line react/no-unstable-nested-components
       PaperComponent={(props) => (
-        <TypeListSelectorDropdown
-          {...props}
-          dropdownProps={{ ...dropdownProps, joined }}
-        />
+        <TypeListSelectorDropdown {...props} dropdownProps={dropdownProps} />
       )}
       componentsProps={{
         popper: { modifiers: allModifiers },

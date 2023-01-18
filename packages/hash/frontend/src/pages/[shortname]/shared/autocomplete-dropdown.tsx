@@ -4,11 +4,11 @@ import { autocompleteClasses, Box, Paper, PaperProps } from "@mui/material";
 import { popperPlacementSelectors } from "./popper-placement-modifier";
 
 export const AutocompleteDropdown = ({
-  inputHeight = 0,
+  buttonHeight = 0,
   joined = false,
   children,
   ...props
-}: PaperProps & { inputHeight?: number; joined?: boolean }) => {
+}: PaperProps & { buttonHeight?: number; joined?: boolean }) => {
   return (
     <>
       <Box
@@ -17,19 +17,27 @@ export const AutocompleteDropdown = ({
           left: 0,
           right: 0,
           width: "100%",
-          height: joined ? "100%" : `calc(100% + ${inputHeight}px)`,
+          height: `calc(100% + ${buttonHeight}px)`,
           boxShadow: theme.boxShadows.md,
           pointerEvents: "none",
           borderRadius: `${textFieldBorderRadius}px`,
           [`${popperPlacementSelectors.top} &`]: {
+            bottom: -buttonHeight,
             ...(joined
               ? { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }
-              : { bottom: -inputHeight }),
+              : {}),
+          },
+          [`${popperPlacementSelectors.topStart} &`]: {
+            bottom: -buttonHeight,
           },
           [`${popperPlacementSelectors.bottom} &`]: {
+            top: -buttonHeight,
             ...(joined
               ? { borderTopLeftRadius: 0, borderTopRightRadius: 0 }
-              : { top: -inputHeight }),
+              : {}),
+          },
+          [`${popperPlacementSelectors.bottomStart} &`]: {
+            top: -buttonHeight,
           },
         })}
         aria-hidden
@@ -46,14 +54,21 @@ export const AutocompleteDropdown = ({
             borderBottom: 0,
             borderBottomLeftRadius: 0,
             borderBottomRightRadius: 0,
-            ...(joined ? { paddingBottom: `${inputHeight}px` } : {}),
+          },
+          [`${popperPlacementSelectors.topStart} &`]: {
+            borderBottom: 0,
+            borderBottomLeftRadius: 0,
           },
           [`${popperPlacementSelectors.bottom} &`]: {
             borderTop: 0,
             borderTopLeftRadius: 0,
             borderTopRightRadius: 0,
-            ...(joined ? { paddingTop: `${inputHeight}px` } : {}),
           },
+          [`${popperPlacementSelectors.bottomStart} &`]: {
+            borderTop: 0,
+            borderTopLeftRadius: 0,
+          },
+
           [`.${autocompleteClasses.listbox}`]: { p: 0 },
           [`.${autocompleteClasses.noOptions}`]: { display: "none" },
           [`.${autocompleteClasses.option}`]: {
