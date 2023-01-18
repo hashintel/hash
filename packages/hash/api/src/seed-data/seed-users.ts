@@ -1,4 +1,4 @@
-import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { Logger } from "@local/hash-backend-utils/logger";
 import { AxiosError } from "axios";
 
 import { createKratosIdentity } from "../auth/ory-kratos";

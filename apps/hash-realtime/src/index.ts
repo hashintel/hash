@@ -6,13 +6,13 @@ import * as http from "node:http";
 import {
   getRequiredEnv,
   waitOnResource,
-} from "@hashintel/hash-backend-utils/environment";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
+} from "@local/hash-backend-utils/environment";
+import { Logger } from "@local/hash-backend-utils/logger";
 import {
   createPostgresConnPool,
   PgPool,
-} from "@hashintel/hash-backend-utils/postgres";
-import { GracefulShutdown } from "@hashintel/hash-backend-utils/shutdown";
+} from "@local/hash-backend-utils/postgres";
+import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import {
   clearIntervalAsync,
   setIntervalAsync,

@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
 import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
-import { EntityId } from "@hashintel/hash-shared/types";
+import { EntityId } from "@local/hash-isomorphic-utils/types";
 import { useCallback } from "react";
 
 import {

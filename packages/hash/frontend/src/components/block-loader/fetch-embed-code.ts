@@ -1,5 +1,5 @@
 import { JsonObject } from "@blockprotocol/core";
-import { apiGraphQLEndpoint } from "@hashintel/hash-shared/environment";
+import { apiGraphQLEndpoint } from "@local/hash-isomorphic-utils/environment";
 
 export type FetchEmbedCodeFn = (
   url: string,

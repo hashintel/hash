@@ -1,5 +1,5 @@
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import { EntityId } from "@hashintel/hash-subgraph";
+import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
 import ArticleIcon from "@mui/icons-material/Article";
 import { FunctionComponent, useContext, useMemo } from "react";
 

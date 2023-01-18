@@ -1,1 +1,1 @@
-import "@hashintel/hash-backend-utils/environment";
+import "@local/hash-backend-utils/environment";
