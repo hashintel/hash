@@ -47,6 +47,7 @@ jobs:
           IMAGE_NAME: ${{ env.HASH_GRAPH_RESOURCE_NAME }}
         with:
           SHORTNAME: "graph"
+          CONTEXT_PATH: ${{ github.workspace }}/packages/graph
           DOCKERFILE_LOCATION: ${{ github.workspace }}/packages/graph/deployment/graph/Dockerfile
           AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
@@ -69,6 +70,7 @@ jobs:
           IMAGE_NAME: ${{ env.HASH_API_RESOURCE_NAME }}
         with:
           SHORTNAME: "api"
+          CONTEXT_PATH: ${{ github.workspace }}
           DOCKERFILE_LOCATION: ${{ github.workspace }}/packages/hash/docker/api/prod/Dockerfile
           AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
@@ -91,6 +93,7 @@ jobs:
           IMAGE_NAME: ${{ env.HASH_KRATOS_RESOURCE_NAME }}
         with:
           SHORTNAME: "kratos"
+          CONTEXT_PATH: ${{ github.workspace }}/packages/hash/external-services/kratos
           DOCKERFILE_LOCATION: ${{ github.workspace }}/packages/hash/external-services/kratos/Dockerfile
           AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
