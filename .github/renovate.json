@@ -46,9 +46,8 @@
       "matchPackagePatterns": ["^@sentry/"]
     },
     {
-      "groupName": "Rust",
       "matchManagers": ["regex"],
-      "matchPackageNames": ["rust-lang/rust-analyzer"]
+      "matchPackageNames": ["rust"]
     }
   ],
   "regexManagers": [
@@ -57,7 +56,8 @@
       "matchStrings": [
         "channel\\s*=\\s*\"nightly-(?<currentValue>\\d+-\\d+-\\d+)\""
       ],
-      "depNameTemplate": "rust-lang/rust-analyzer",
+      "depNameTemplate": "rust",
+      "lookupNameTemplate": "rust-lang/rust-analyzer",
       "datasourceTemplate": "github-releases",
       "versioningTemplate": "regex:(?<major>\\d+)-(?<minor>\\d+)-(?<patch>\\d+)"
     }
