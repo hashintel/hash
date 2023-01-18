@@ -54,19 +54,19 @@
     {
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
-      "matchPaths": ["error-stack/**"],
+      "matchPaths": ["**/error-stack/**"],
       "groupName": "error-stack"
     },
     {
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
-      "matchPaths": ["deer/**"],
+      "matchPaths": ["**/deer/**"],
       "groupName": "deer"
     },
     {
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
-      "matchPaths": ["graph/**"],
+      "matchPaths": ["**/graph/**"],
       "groupName": "graph"
     }
   ],
