@@ -1,4 +1,4 @@
-import { VersionedUri } from "@blockprotocol/type-system";
+import { extractBaseUri } from "@blockprotocol/type-system";
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
@@ -17,6 +17,7 @@ import { FunctionComponent, useEffect, useMemo, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import { usePropertyTypesContextValue } from "../../../../../shared/use-property-types-context-value";
+import { Property } from "../../../shared/expected-value-types";
 import { CustomExpectedValueSelector } from "./custom-expected-value-selector";
 import { DeleteExpectedValueModal } from "./delete-expected-value-modal";
 import { ExpectedValueBadge } from "./expected-value-badge";
@@ -44,7 +45,7 @@ const StyledTableBodyCell = styled(Box)({
 
 interface ObjectExpectedValueRowProps {
   objectId: string;
-  propertyId: VersionedUri;
+  property: Property;
   propertyIndex: number;
   allowArraysColumnWidth: number;
   requiredColumnWidth: number;
@@ -54,30 +55,27 @@ const ObjectExpectedValueRow: FunctionComponent<
   ObjectExpectedValueRowProps
 > = ({
   objectId,
-  propertyId,
+  property,
   propertyIndex,
   allowArraysColumnWidth,
   requiredColumnWidth,
 }) => {
   const [show, setShow] = useState(false);
 
-  const { setValue, control } =
-    useFormContext<ExpectedValueSelectorFormValues>();
-  const { allowArrays, required, animatingOut } = useWatch({
-    control,
-    name: `flattenedCustomExpectedValueList.${objectId}.data.properties.${propertyIndex}`,
-  });
+  const { setValue } = useFormContext<ExpectedValueSelectorFormValues>();
 
   const { types: propertyTypes } = usePropertyTypesContextValue();
-  const property = propertyTypes?.[propertyId];
+  const propertyType = propertyTypes?.[property.id];
 
   useEffect(() => {
-    if (property) {
+    if (propertyType) {
       setShow(true);
     }
-  }, [property]);
+  }, [propertyType]);
 
-  return property ? (
+  const { allowArrays, required, animatingOut } = property;
+
+  return propertyType ? (
     <Collapse in={show && !animatingOut} sx={{ width: 1 }}>
       <StyledTableRow sx={{ backgroundColor: "red" }}>
         <StyledTableBodyCell sx={{ justifyContent: "flex-start", flex: 1 }}>
@@ -94,7 +92,7 @@ const ObjectExpectedValueRow: FunctionComponent<
             ml={1.5}
             color={(theme) => theme.palette.gray[80]}
           >
-            {property.title}
+            {propertyType.title}
           </Typography>
           <Chip
             color="purple"
@@ -158,7 +156,7 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
 > = ({ expectedValueId, prefix, deleteTooltip, onDelete, index = [] }) => {
   const { types: propertyTypes } = usePropertyTypesContextValue();
 
-  const { setValue, control } =
+  const { setValue, getValues, control } =
     useFormContext<ExpectedValueSelectorFormValues>();
 
   const editingExpectedValueIndex = useWatch({
@@ -193,6 +191,18 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
       setShow(true);
     }
   }, [properties, show]);
+
+  const options = useMemo(() => {
+    const propertyTypeBaseUri = getValues(`propertyTypeBaseUri`);
+    return propertyTypes
+      ? Object.values(propertyTypes)
+          .map(({ $id }) => $id)
+          .filter(
+            (versionedUri) =>
+              extractBaseUri(versionedUri) !== propertyTypeBaseUri,
+          )
+      : [];
+  }, [propertyTypes, getValues]);
 
   return (
     <Stack sx={{ mb: 1 }}>
@@ -261,11 +271,11 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
           </Collapse>
 
           {properties.length
-            ? properties.map(({ id }, propertyIndex) => (
+            ? properties.map((property, propertyIndex) => (
                 <ObjectExpectedValueRow
-                  key={id}
+                  key={property.id}
                   objectId={expectedValueId}
-                  propertyId={id}
+                  property={property}
                   propertyIndex={propertyIndex}
                   allowArraysColumnWidth={allowArraysColumnWidth}
                   requiredColumnWidth={requiredColumnWidth}
@@ -279,7 +289,7 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
             inputLabel="Add to property object"
             collapsedWidth={214}
             value={propertyIds}
-            options={propertyTypes ? Object.keys(propertyTypes) : []}
+            options={options}
             onChange={(_evt, _data, reason, details) => {
               const typeId = details?.option;
               if (typeId) {
@@ -289,7 +299,7 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
                     [
                       ...properties,
                       {
-                        id: details.option as VersionedUri,
+                        id: details.option,
                         allowArrays: false,
                         required: false,
                       },
@@ -321,7 +331,7 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
               }
             }}
             renderOption={(optProps, opt) => {
-              const property = propertyTypes?.[opt as VersionedUri];
+              const property = propertyTypes?.[opt];
               return property ? (
                 <Box component="li" {...optProps} sx={{ py: 1.5, px: 2.25 }}>
                   <FontAwesomeIcon

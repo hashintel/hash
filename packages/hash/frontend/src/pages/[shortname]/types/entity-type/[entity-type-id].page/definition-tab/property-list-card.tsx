@@ -1,4 +1,8 @@
-import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
+import {
+  extractBaseUri,
+  PropertyType,
+  VersionedUri,
+} from "@blockprotocol/type-system";
 import { faList } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { OwnedById } from "@hashintel/hash-shared/types";
@@ -11,7 +15,14 @@ import {
   TableHead,
 } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import { useCallback, useId, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Controller,
   useFieldArray,
@@ -158,6 +169,7 @@ export const PropertyTypeRow = ({
       </EntityTypeTableRow>
       <TypeFormModal
         as={PropertyTypeForm}
+        baseUri={extractBaseUri($id)}
         popupState={editModalPopupState}
         modalTitle={<>Edit Property Type</>}
         onSubmit={async (data) => {
@@ -195,11 +207,15 @@ const InsertPropertyRow = (
   const propertyTypesObj = usePropertyTypes();
   const propertyTypes = Object.values(propertyTypesObj ?? {});
 
-  // @todo make more efficient
-  const filteredPropertyTypes = propertyTypes.filter(
-    (type) =>
-      !properties.some((includedProperty) => includedProperty.$id === type.$id),
-  );
+  const filteredPropertyTypes = useMemo(() => {
+    const propertyBaseUris = properties.map((includedProperty) =>
+      extractBaseUri(includedProperty.$id),
+    );
+
+    return propertyTypes.filter(
+      (type) => !propertyBaseUris.includes(extractBaseUri(type.$id)),
+    );
+  }, [properties, propertyTypes]);
 
   return (
     <InsertTypeRow
