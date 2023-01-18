@@ -34,15 +34,24 @@ export const PropertyTitleCell = ({
                 // eslint-disable-next-line react/no-array-index-key
                 key={lineDepth}
                 sx={{
+                  display: "flex",
+                  justifyContent: "center",
                   position: "absolute",
                   height: `${display ? 100 : 50}%`,
-                  width: "1px",
-                  left: `${13.4 + 20 * lineDepth}px`,
+                  width: 8,
+                  left: `${10 + 20 * (depth - 1)}px`,
                   top: 0,
-                  background: ({ palette }) => palette.gray[30],
                   zIndex: 1,
                 }}
-              />
+              >
+                <Box
+                  sx={{
+                    height: 1,
+                    width: "1px",
+                    background: ({ palette }) => palette.gray[30],
+                  }}
+                />
+              </Box>
             ) : null,
           )}
           <Box

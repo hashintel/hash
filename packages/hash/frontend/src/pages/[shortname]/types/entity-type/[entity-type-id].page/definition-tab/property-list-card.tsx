@@ -97,14 +97,23 @@ const CollapsibleTableRow = ({
         >
           <Box
             sx={{
+              display: "flex",
+              justifyContent: "center",
               position: "absolute",
               height: lineHeight,
-              width: "1px",
-              left: `${13.4 + 20 * depth}px`,
-              background: ({ palette }) => palette.gray[30],
+              width: 8,
+              left: `${10 + 20 * depth}px`,
               zIndex: 1,
             }}
-          />
+          >
+            <Box
+              sx={{
+                height: 1,
+                width: "1px",
+                background: ({ palette }) => palette.gray[30],
+              }}
+            />
+          </Box>
 
           <Table sx={{ mt: `${lineHeight}px` }}>
             <TableBody
