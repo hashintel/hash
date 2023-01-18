@@ -181,7 +181,7 @@ jobs:
       - name: Show external services logs
         if: ${{ success() || failure() }}
         run: |
-          docker-compose --file packages/hash/external-services/docker-compose.yml logs 2>&1 | tee var/logs/external-services.log
+          docker-compose --file apps/external-services/docker-compose.yml logs 2>&1 | tee var/logs/external-services.log
 
       - name: Upload artifact backend-integration-tests-var
         uses: actions/upload-artifact@v3
@@ -248,7 +248,7 @@ jobs:
       - name: Show external services logs
         if: ${{ success() || failure() }}
         run: |
-          docker-compose --file packages/hash/external-services/docker-compose.yml logs 2>&1 | tee var/logs/external-services.log
+          docker-compose --file apps/external-services/docker-compose.yml logs 2>&1 | tee var/logs/external-services.log
           cat var/logs/external-services.log
 
       - name: Show backend logs

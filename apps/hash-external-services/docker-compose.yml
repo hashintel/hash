@@ -9,7 +9,7 @@ services:
       restart_policy:
         condition: on-failure
     env_file:
-      - ../../../.env
+      - ../../.env
     environment:
       ## Tell OpenSearch that it's operating in single-node mode
       - discovery.type=single-node
@@ -32,7 +32,7 @@ services:
     ## Details: https://github.com/opensearch-project/OpenSearch/issues/1579.
     ## We can revisit the setup after upgrading base image or by fixing permissions in a custom image.
     # volumes:
-    #   - ../../../var/external-services/opensearch/data:/usr/share/opensearch/data
+    #   - ../../var/external-services/opensearch/data:/usr/share/opensearch/data
 
   postgres:
     build:
@@ -74,7 +74,7 @@ services:
         condition: service_healthy
     build:
       dockerfile: deployment/graph/Dockerfile
-      context: ../../graph
+      context: ../../packages/graph
       args:
         PROFILE: dev
     command: migrate
@@ -128,7 +128,7 @@ services:
         condition: service_healthy
     build:
       dockerfile: deployment/graph/Dockerfile
-      context: ../../graph
+      context: ../../packages/graph
       args:
         PROFILE: dev
     environment:
