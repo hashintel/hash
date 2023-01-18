@@ -124,8 +124,8 @@ OR REPLACE FUNCTION "update_entity" (
     END
     $pga$ VOLATILE LANGUAGE plpgsql;
 
-CREATE FUNCTION
-  "update_entity_version_trigger" () RETURNS TRIGGER AS $pga$
+CREATE
+OR REPLACE FUNCTION "update_entity_version_trigger" () RETURNS TRIGGER AS $pga$
     BEGIN
       SET CONSTRAINTS entity_versions_overlapping DEFERRED;
 
@@ -162,8 +162,8 @@ CREATE FUNCTION
       RETURN NEW;
     END$pga$ VOLATILE LANGUAGE plpgsql;
 
-CREATE TRIGGER
-  "update_entity_version_trigger" BEFORE
+CREATE
+OR REPLACE TRIGGER "update_entity_version_trigger" BEFORE
 UPDATE
   ON "entity_versions" FOR EACH ROW
 EXECUTE

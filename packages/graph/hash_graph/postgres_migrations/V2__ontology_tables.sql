@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS
     "base_uri" TEXT NOT NULL REFERENCES "base_uris",
     "version" BIGINT NOT NULL,
     "version_id" UUID REFERENCES "version_ids",
-    PRIMARY KEY ("base_uri", "version")
+    PRIMARY KEY ("base_uri", "version"),
+    UNIQUE ("version_id")
   );
 
 COMMENT
