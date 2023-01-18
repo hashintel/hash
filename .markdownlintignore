@@ -10,9 +10,6 @@
 !*.md
 !*.mdx
 
-# Keep license files as is
-LICENSE.md
-
 ########################
 ## Same as in .gitignore
 ########################
@@ -126,3 +123,11 @@ seed-users.json
 
 # Storybook
 **/storybook-static
+
+#########################
+## Shared between linters
+#########################
+
+# Keep license files as is
+LICENSE.md
+LICENSE-*.md
