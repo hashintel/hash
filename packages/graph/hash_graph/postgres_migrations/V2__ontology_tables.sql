@@ -11,8 +11,17 @@ CREATE TABLE IF NOT EXISTS
     "version_id" UUID REFERENCES "version_ids",
     "owned_by_id" UUID NOT NULL REFERENCES "accounts",
     "updated_by_id" UUID NOT NULL REFERENCES "accounts",
+    "transaction_time" tstzrange NOT NULL,
     CONSTRAINT type_ids_pkey PRIMARY KEY ("base_uri", "version") DEFERRABLE INITIALLY IMMEDIATE,
-    CONSTRAINT type_id_unique UNIQUE ("version_id") DEFERRABLE INITIALLY IMMEDIATE
+    CONSTRAINT type_id_unique UNIQUE ("version_id") DEFERRABLE INITIALLY IMMEDIATE,
+    CONSTRAINT type_ids_overlapping EXCLUDE USING gist (
+      base_uri
+      WITH
+        =,
+        transaction_time
+      WITH
+        &&
+    ) DEFERRABLE INITIALLY IMMEDIATE
   );
 
 COMMENT
