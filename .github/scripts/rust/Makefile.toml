@@ -237,4 +237,4 @@ install_crate = { crate_name = "cargo-hack", version = "0.5.26", binary = "cargo
 
 [tasks.install-cargo-nextest]
 private = true
-install_crate = { crate_name = "cargo-nextest", version = "0.9.28", binary = "cargo", test_arg = ["nextest", "--version"] }
+install_crate = { crate_name = "cargo-nextest", version = "0.9.49", binary = "cargo", test_arg = ["nextest", "--version"] }
