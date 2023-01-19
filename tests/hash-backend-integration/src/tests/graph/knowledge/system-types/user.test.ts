@@ -1,12 +1,11 @@
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   createKratosIdentity,
   kratosIdentityApi,
-} from "@hashintel/hash-api/src/auth/ory-kratos";
+} from "@apps/hash-api/src/auth/ory-kratos";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
-} from "@hashintel/hash-api/src/graph";
+} from "@apps/hash-api/src/graph";
 import {
   createUser,
   getUserByKratosIdentityId,
@@ -16,8 +15,9 @@ import {
   updateUserPreferredName,
   updateUserShortname,
   User,
-} from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
-import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
+} from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { systemUserAccountId } from "@apps/hash-api/src/graph/system-user";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { EntityUuid } from "@local/hash-isomorphic-utils/types";

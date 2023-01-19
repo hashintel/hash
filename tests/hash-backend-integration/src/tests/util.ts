@@ -1,18 +1,18 @@
-import { createKratosIdentity } from "@hashintel/hash-api/src/auth/ory-kratos";
+import { createKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
-} from "@hashintel/hash-api/src/graph";
-import { createOrg } from "@hashintel/hash-api/src/graph/knowledge/system-types/org";
+} from "@apps/hash-api/src/graph";
+import { createOrg } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import {
   createUser,
   updateUserShortname,
-} from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
-import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
-import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
-import { StorageType } from "@hashintel/hash-api/src/storage";
-import { getRequiredEnv } from "@hashintel/hash-api/src/util";
+} from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { ensureSystemTypesExist } from "@apps/hash-api/src/graph/system-types";
+import { systemUserAccountId } from "@apps/hash-api/src/graph/system-user";
+import { StorageType } from "@apps/hash-api/src/storage";
+import { getRequiredEnv } from "@apps/hash-api/src/util";
 import { Logger } from "@local/hash-backend-utils/logger";
 
 import { OrgSize } from "../graphql/api-types.gen";

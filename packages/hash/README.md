@@ -186,8 +186,8 @@ yarn seed-data
 yarn dev:frontend
 
 ## option 2: frontend in prod mode
-yarn workspace @hashintel/hash-frontend build
-yarn workspace @hashintel/hash-frontend start
+yarn workspace @apps/hash-frontend build
+yarn workspace @apps/hash-frontend start
 ```
 
 #### Terminal 3
@@ -242,7 +242,7 @@ plugin's settings:
 
 ```json
 "eslint.workingDirectories": [
-  { "directory": "packages/hash/api", "!cwd": true }
+  { "directory": "apps/hash-api", "!cwd": true }
 ]
 ```
 

@@ -1,5 +1,5 @@
 {
-  "name": "@hashintel/hash-api",
+  "name": "@apps/hash-api",
   "version": "0.0.0-private",
   "private": true,
   "description": "API and data store for HASH",

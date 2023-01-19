@@ -15,7 +15,7 @@ const config: CodegenConfig = {
     "./src/graphql/api-types.gen.ts": {
       plugins: ["typescript", "typescript-resolvers", "typescript-operations"],
       documents: [
-        "../../../libs/@local/hash-isomorphic-utils/src/queries/**/*.ts",
+        "../../libs/@local/hash-isomorphic-utils/src/queries/**/*.ts",
       ],
       hooks: {
         afterOneFileWrite: ["prettier --write"],

@@ -4,9 +4,9 @@
  * @todo remove above ts-nocheck as we start re-enabling OpenSearch indexing
  *   https://app.asana.com/0/1200211978612931/1202938382575963/f
  */
-import { DbAdapter } from "@hashintel/hash-api/src/db";
-import { EntityType as DbEntityType } from "@hashintel/hash-api/src/db/adapter";
-import { Entity, EntityType, Page } from "@hashintel/hash-api/src/model";
+import { DbAdapter } from "@apps/hash-api/src/db";
+import { EntityType as DbEntityType } from "@apps/hash-api/src/db/adapter";
+import { Entity, EntityType, Page } from "@apps/hash-api/src/model";
 import { EntityVersion } from "@local/hash-backend-utils/pg-tables";
 import { QueueExclusiveConsumer } from "@local/hash-backend-utils/queue/adapter";
 import { SearchAdapter } from "@local/hash-backend-utils/search/adapter";

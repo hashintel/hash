@@ -3,14 +3,14 @@ FROM node:16.18.1-alpine AS builder
 WORKDIR /app
 
 COPY libs/@local/tsconfig libs/@local/tsconfig
-COPY packages/hash/task-executor packages/hash/task-executor
+COPY apps/hash-task-executor apps/hash-task-executor
 COPY package.json .
 COPY yarn.lock .
 
 RUN --mount=type=cache,mode=0755,target=/yarn-cache \
   --mount=type=cache,mode=0755,target=/var/cache/apt \
   --mount=type=cache,mode=0755,target=/var/lib/apt \
-  yarn workspace @hashintel/hash-task-executor install --cache-folder /yarn-cache \
+  yarn workspace @apps/hash-task-executor install --cache-folder /yarn-cache \
   && yarn install --production --ignore-scripts --prefer-offline --cache-folder /yarn-cache # Remove devDependencies
 
   #########################################################################################
@@ -28,6 +28,7 @@ RUN pip3 install --no-cache --upgrade pip setuptools
 WORKDIR /app
 
 EXPOSE 5010
+USER appuser
 ENV NODE_ENV production
 
-CMD ["yarn", "workspace", "@hashintel/hash-task-executor", "start"]
+CMD ["yarn", "workspace", "@apps/hash-task-executor", "start"]
