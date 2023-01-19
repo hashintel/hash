@@ -1,16 +1,16 @@
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
-} from "@hashintel/hash-api/src/graph";
-import { Org } from "@hashintel/hash-api/src/graph/knowledge/system-types/org";
+} from "@apps/hash-api/src/graph";
+import { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import {
   createOrgMembership,
   getOrgMembershipOrg,
   getOrgMembershipUser,
   OrgMembership,
-} from "@hashintel/hash-api/src/graph/knowledge/system-types/org-membership";
-import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
+} from "@apps/hash-api/src/graph/knowledge/system-types/org-membership";
+import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 
 import {
