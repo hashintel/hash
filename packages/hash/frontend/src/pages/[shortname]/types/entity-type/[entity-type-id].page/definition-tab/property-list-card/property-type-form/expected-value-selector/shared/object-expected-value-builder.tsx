@@ -16,7 +16,7 @@ import { usePopupState } from "material-ui-popup-state/hooks";
 import { FunctionComponent, useEffect, useMemo, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
-import { usePropertyTypesContextValue } from "../../../../../shared/use-property-types-context-value";
+import { useLatestPropertyTypesContextValue } from "../../../../../shared/use-latest-property-types-context-value";
 import { Property } from "../../../shared/expected-value-types";
 import { CustomExpectedValueSelector } from "./custom-expected-value-selector";
 import { DeleteExpectedValueModal } from "./delete-expected-value-modal";
@@ -64,7 +64,7 @@ const ObjectExpectedValueRow: FunctionComponent<
 
   const { setValue } = useFormContext<ExpectedValueSelectorFormValues>();
 
-  const { types: propertyTypes } = usePropertyTypesContextValue();
+  const { types: propertyTypes } = useLatestPropertyTypesContextValue();
   const propertyType = propertyTypes?.[property.id];
 
   useEffect(() => {
@@ -154,7 +154,7 @@ type ObjectExpectedValueBuilderProps = {
 export const ObjectExpectedValueBuilder: FunctionComponent<
   ObjectExpectedValueBuilderProps
 > = ({ expectedValueId, prefix, deleteTooltip, onDelete, index = [] }) => {
-  const { types: propertyTypes } = usePropertyTypesContextValue();
+  const { types: propertyTypes } = useLatestPropertyTypesContextValue();
 
   const { setValue, getValues, control } =
     useFormContext<ExpectedValueSelectorFormValues>();
