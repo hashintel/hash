@@ -9,7 +9,7 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import { Box, experimental_sx, styled, Theme } from "@mui/system";
+import { Box, experimental_sx, styled } from "@mui/system";
 import { ReactNode } from "react";
 
 import { WhiteCard } from "../../../../../shared/white-card";
