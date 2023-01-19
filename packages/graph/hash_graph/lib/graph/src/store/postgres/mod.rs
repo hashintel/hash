@@ -198,7 +198,8 @@ where
             })
     }
 
-    /// Creates a new [`VersionId`] from the provided [`VersionedUri`].
+    /// Updates the latest version of [`VersionedUri::base_uri`] and creates a new [`VersionId`] for
+    /// it..
     ///
     /// # Errors
     ///
