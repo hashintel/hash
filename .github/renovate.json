@@ -92,7 +92,7 @@
       ],
       "packageNameTemplate": "rust-lang/rust-analyzer",
       "datasourceTemplate": "github-releases",
-      "versioningTemplate": "regex:(?<major>\\d+)-?-(?<minor>\\d+)-?-(?<patch>\\d+)",
+      "versioningTemplate": "regex:(?<patch>.*)",
       "autoReplaceStringTemplate": "[![rust-version](https://img.shields.io/badge/{{depName}}/nightly--{{replace '-' '--' newValue}}-blue)][rust-version]"
     }
   ]
