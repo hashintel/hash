@@ -13,13 +13,6 @@ use uuid::Uuid;
 #[postgres(transparent)]
 pub struct VersionId(Uuid);
 
-impl VersionId {
-    #[must_use]
-    pub const fn new(uuid: Uuid) -> Self {
-        Self(uuid)
-    }
-}
-
 impl fmt::Display for VersionId {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(fmt, "{}", &self.0)

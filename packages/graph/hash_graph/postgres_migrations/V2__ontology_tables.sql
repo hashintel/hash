@@ -11,8 +11,8 @@ CREATE TABLE IF NOT EXISTS
     "version_id" UUID REFERENCES "version_ids",
     "owned_by_id" UUID NOT NULL REFERENCES "accounts",
     "updated_by_id" UUID NOT NULL REFERENCES "accounts",
-    PRIMARY KEY ("base_uri", "version"),
-    UNIQUE ("version_id")
+    CONSTRAINT type_ids_pkey PRIMARY KEY ("base_uri", "version") DEFERRABLE INITIALLY IMMEDIATE,
+    CONSTRAINT type_id_unique UNIQUE ("version_id") DEFERRABLE INITIALLY IMMEDIATE
   );
 
 COMMENT

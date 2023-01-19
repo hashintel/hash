@@ -14,30 +14,24 @@ use std::{
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
-use tokio_postgres::GenericClient;
 #[cfg(feature = "__internal_bench")]
 use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
+use tokio_postgres::{error::SqlState, GenericClient};
 use type_system::{
-    uri::{BaseUri, VersionedUri},
-    DataTypeReference, EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
+    uri::VersionedUri, DataTypeReference, EntityType, EntityTypeReference, PropertyType,
+    PropertyTypeReference,
 };
-use uuid::Uuid;
 
 pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
-    identifier::{
-        account::AccountId, ontology::OntologyTypeEditionId, time::UnresolvedTimeProjection,
-        EntityVertexId,
-    },
-    ontology::{OntologyElementMetadata, OntologyTypeWithMetadata},
+    identifier::{account::AccountId, ontology::OntologyTypeEditionId, EntityVertexId},
+    ontology::OntologyElementMetadata,
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
-        crud::Read,
         error::VersionedUriAlreadyExists,
-        postgres::{ontology::OntologyDatabaseType, query::PostgresRecord, version_id::VersionId},
-        query::{Filter, OntologyQueryPath},
-        AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError,
-        Record, Store, StoreError, Transaction, UpdateError,
+        postgres::{ontology::OntologyDatabaseType, version_id::VersionId},
+        AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, Store,
+        StoreError, Transaction, UpdateError,
     },
     subgraph::edges::GraphResolveDepths,
 };
@@ -162,148 +156,97 @@ where
         Self { client }
     }
 
-    /// Checks if the specified [`BaseUri`] exists in the database.
+    /// Creates a new [`VersionId`] from the provided [`VersionedUri`].
     ///
     /// # Errors
     ///
-    /// - if checking for the [`BaseUri`] failed.
-    ///
-    /// [`BaseUri`]: type_system::uri::BaseUri
+    /// - if [`VersionedUri::base_uri`] did already exist in the database
     #[tracing::instrument(level = "debug", skip(self))]
-    async fn contains_base_uri(&self, base_uri: &BaseUri) -> Result<bool, QueryError> {
-        Ok(self
-            .client
-            .as_client()
-            .query_one(
-                r#"
-                    SELECT EXISTS(
-                        SELECT 1
-                        FROM base_uris
-                        WHERE base_uri = $1
-                    );
-                "#,
-                &[&base_uri.as_str()],
-            )
-            .await
-            .into_report()
-            .change_context(QueryError)
-            .attach_printable_lazy(|| base_uri.clone())?
-            .get(0))
-    }
-
-    /// Checks if the specified [`VersionedUri`] exists in the database.
-    ///
-    /// # Errors
-    ///
-    /// - if checking for the [`VersionedUri`] failed.
-    #[tracing::instrument(level = "debug", skip(self))]
-    async fn contains_uri(&self, uri: &VersionedUri) -> Result<bool, QueryError> {
-        let version = i64::from(uri.version());
-        Ok(self
-            .client
-            .as_client()
-            .query_one(
-                r#"
-                    SELECT EXISTS(
-                        SELECT 1
-                        FROM type_ids
-                        WHERE base_uri = $1 AND version = $2
-                    );
-                "#,
-                &[&uri.base_uri().as_str(), &version],
-            )
-            .await
-            .into_report()
-            .change_context(QueryError)
-            .attach_printable_lazy(|| uri.clone())?
-            .get(0))
-    }
-
-    /// Inserts the specified [`VersionedUri`] into the database.
-    ///
-    /// # Errors
-    ///
-    /// - if inserting the [`VersionedUri`] failed.
-    #[tracing::instrument(level = "debug", skip(self))]
-    async fn insert_uri(
+    async fn create_ontology_id(
         &self,
         uri: &VersionedUri,
-        version_id: VersionId,
         owned_by_id: OwnedById,
         updated_by_id: UpdatedById,
-    ) -> Result<(), InsertionError> {
-        let version = i64::from(uri.version());
+    ) -> Result<VersionId, InsertionError> {
         self.as_client()
             .query_one(
                 r#"
-                    INSERT INTO type_ids (base_uri, version, version_id, owned_by_id, updated_by_id)
-                    VALUES ($1, $2, $3, $4, $5)
-                    RETURNING version_id;
-                "#,
+                SELECT
+                    version_id
+                FROM create_ontology_id(
+                    base_uri := $1,
+                    version := $2,
+                    owned_by_id := $3,
+                    updated_by_id := $4
+                );"#,
                 &[
                     &uri.base_uri().as_str(),
-                    &version,
-                    &version_id,
+                    &i64::from(uri.version()),
                     &owned_by_id,
                     &updated_by_id,
                 ],
             )
             .await
             .into_report()
-            .change_context(InsertionError)
-            .attach_printable_lazy(|| uri.clone())?;
-
-        Ok(())
+            .map(|row| row.get(0))
+            .map_err(|report| match report.current_context().code() {
+                Some(&SqlState::UNIQUE_VIOLATION) => report
+                    .change_context(BaseUriAlreadyExists)
+                    .attach_printable(uri.base_uri().clone())
+                    .change_context(InsertionError),
+                _ => report
+                    .change_context(InsertionError)
+                    .attach_printable(uri.clone()),
+            })
     }
 
-    /// Inserts the specified [`BaseUri`] into the database.
+    /// Updates the latest version of [`VersionedUri::base_uri`] and creates a new [`VersionId`] for
+    /// it.
     ///
     /// # Errors
     ///
-    /// - if inserting the [`BaseUri`] failed.
-    ///
-    /// [`BaseUri`]: type_system::uri::BaseUri
+    /// - if [`VersionedUri::base_uri`] did not already exist in the database
+    /// - if [`VersionedUri`] did already exist in the database
     #[tracing::instrument(level = "debug", skip(self))]
-    async fn insert_base_uri(&self, base_uri: &BaseUri) -> Result<(), InsertionError> {
+    async fn update_ontology_id(
+        &self,
+        uri: &VersionedUri,
+        updated_by_id: UpdatedById,
+    ) -> Result<(VersionId, OwnedById), UpdateError> {
         self.as_client()
-            .query_one(
+            .query_opt(
                 r#"
-                    INSERT INTO base_uris (base_uri)
-                    VALUES ($1)
-                    RETURNING base_uri;
-                "#,
-                &[&base_uri.as_str()],
+                SELECT
+                    version_id,
+                    owned_by_id
+                FROM update_ontology_id(
+                    base_uri := $1,
+                    version := $2,
+                    updated_by_id := $3
+                );"#,
+                &[
+                    &uri.base_uri().as_str(),
+                    &i64::from(uri.version()),
+                    &updated_by_id,
+                ],
             )
             .await
             .into_report()
-            .change_context(InsertionError)
-            .attach_printable_lazy(|| base_uri.clone())?;
-
-        Ok(())
-    }
-
-    /// Inserts the specified [`VersionId`] into the database.
-    ///
-    /// # Errors
-    ///
-    /// - if inserting the [`VersionId`] failed.
-    #[tracing::instrument(level = "debug", skip(self))]
-    async fn insert_version_id(&self, version_id: VersionId) -> Result<(), InsertionError> {
-        self.as_client()
-            .query_one(
-                r#"
-                    INSERT INTO version_ids (version_id)
-                    VALUES ($1)
-                    RETURNING version_id;
-                "#,
-                &[&version_id],
-            )
-            .await
-            .into_report()
-            .change_context(InsertionError)
-            .attach_printable(version_id)?;
-
-        Ok(())
+            .map_err(|report| match report.current_context().code() {
+                Some(&SqlState::UNIQUE_VIOLATION) => report
+                    .change_context(VersionedUriAlreadyExists)
+                    .attach_printable(uri.clone())
+                    .change_context(UpdateError),
+                _ => report
+                    .change_context(UpdateError)
+                    .attach_printable(uri.clone()),
+            })?
+            .map(|row| (row.get(0), OwnedById::new(row.get(1))))
+            .ok_or_else(|| {
+                Report::new(BaseUriDoesNotExist)
+                    .attach_printable(uri.base_uri().clone())
+                    .change_context(UpdateError)
+            })
     }
 
     /// Inserts the specified [`OntologyDatabaseType`].
@@ -325,35 +268,12 @@ where
         updated_by_id: UpdatedById,
     ) -> Result<(VersionId, OntologyElementMetadata), InsertionError>
     where
-        T: OntologyDatabaseType<Representation: Send> + Send + Sync,
+        T: OntologyDatabaseType,
     {
         let uri = database_type.id().clone();
 
-        if self
-            .contains_base_uri(uri.base_uri())
-            .await
-            .change_context(InsertionError)?
-        {
-            return Err(Report::new(BaseUriAlreadyExists)
-                .attach_printable(uri.base_uri().clone())
-                .change_context(InsertionError));
-        }
-
-        self.insert_base_uri(uri.base_uri()).await?;
-
-        if self
-            .contains_uri(&uri)
-            .await
-            .change_context(InsertionError)?
-        {
-            return Err(Report::new(InsertionError)
-                .attach_printable(VersionedUriAlreadyExists)
-                .attach(uri.clone()));
-        }
-
-        let version_id = VersionId::new(Uuid::new_v4());
-        self.insert_version_id(version_id).await?;
-        self.insert_uri(&uri, version_id, owned_by_id, updated_by_id)
+        let version_id = self
+            .create_ontology_id(&uri, owned_by_id, updated_by_id)
             .await?;
 
         self.insert_with_id(version_id, database_type).await?;
@@ -385,39 +305,13 @@ where
         updated_by_id: UpdatedById,
     ) -> Result<(VersionId, OntologyElementMetadata), UpdateError>
     where
-        T: OntologyDatabaseType<Representation: Send> + Send + Sync,
-        T::WithMetadata: PostgresRecord + Send,
-        for<'p> <T::WithMetadata as Record>::QueryPath<'p>: OntologyQueryPath + Send + Sync,
+        T: OntologyDatabaseType,
     {
-        let uri = database_type.id().clone();
+        let uri = database_type.id();
+        let edition_id = OntologyTypeEditionId::from(uri);
 
-        if !self
-            .contains_base_uri(uri.base_uri())
-            .await
-            .change_context(UpdateError)?
-        {
-            return Err(Report::new(BaseUriDoesNotExist)
-                .attach_printable(uri.base_uri().clone())
-                .change_context(UpdateError));
-        }
-
-        // TODO - address potential race condition
-        //  https://app.asana.com/0/1202805690238892/1203201674100967/f
-        let previous_ontology_type = <Self as Read<T::WithMetadata>>::read_one(
-            self,
-            &Filter::for_latest_base_uri(uri.base_uri()),
-            &UnresolvedTimeProjection::default().resolve(),
-        )
-        .await
-        .change_context(UpdateError)?;
-
-        let owned_by_id = previous_ontology_type.metadata().owned_by_id();
-
-        let version_id = VersionId::new(Uuid::new_v4());
-        self.insert_version_id(version_id)
-            .await
-            .change_context(UpdateError)?;
-        self.insert_uri(&uri, version_id, owned_by_id, updated_by_id)
+        let (version_id, owned_by_id) = self
+            .update_ontology_id(uri, updated_by_id)
             .await
             .change_context(UpdateError)?;
         self.insert_with_id(version_id, database_type)
@@ -427,7 +321,7 @@ where
         Ok((
             version_id,
             OntologyElementMetadata::new(
-                OntologyTypeEditionId::from(&uri),
+                edition_id,
                 ProvenanceMetadata::new(updated_by_id),
                 owned_by_id,
             ),
@@ -447,7 +341,7 @@ where
         database_type: T,
     ) -> Result<(), InsertionError>
     where
-        T: OntologyDatabaseType<Representation: Send> + Send + Sync,
+        T: OntologyDatabaseType,
     {
         let value_repr = T::Representation::from(database_type);
         let value = serde_json::to_value(value_repr)
