@@ -1,2 +1,2 @@
-create extension
+CREATE EXTENSION
   citus;
