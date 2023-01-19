@@ -46,7 +46,7 @@ services:
         condition: service_healthy
     build:
       dockerfile: deployment/graph/Dockerfile
-      context: ../../graph
+      context: ../../packages/graph
     command: migrate
     environment:
       # Intentionaly use the POSTGRES user as it's the "superadmin" which has access to schema
@@ -64,7 +64,7 @@ services:
     init: true
     build:
       dockerfile: deployment/graph/Dockerfile
-      context: ../../graph
+      context: ../../packages/graph
     depends_on:
       postgres:
         condition: service_healthy
@@ -171,7 +171,7 @@ services:
 
   hash-api:
     build:
-      context: ../../../
+      context: ../../
       dockerfile: packages/hash/docker/api/prod/Dockerfile
     depends_on:
       hash-graph:
@@ -212,7 +212,7 @@ services:
 
   hash-frontend:
     build:
-      context: ../../../
+      context: ../../
       dockerfile: packages/hash/docker/frontend/prod/Dockerfile
       args:
         FRONTEND_URL: "${FRONTEND_URL}"
