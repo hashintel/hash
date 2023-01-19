@@ -17,7 +17,7 @@ impl PostgresRecord for DataTypeWithMetadata {
 impl PostgresQueryPath for DataTypeQueryPath {
     fn relations(&self) -> Vec<Relation> {
         match self {
-            Self::BaseUri | Self::Version => {
+            Self::BaseUri | Self::Version | Self::OwnedById | Self::UpdatedById => {
                 vec![Relation::DataTypeIds]
             }
             _ => vec![],
@@ -28,9 +28,9 @@ impl PostgresQueryPath for DataTypeQueryPath {
         match self {
             Self::BaseUri => Column::TypeIds(TypeIds::BaseUri),
             Self::Version => Column::TypeIds(TypeIds::Version),
+            Self::OwnedById => Column::TypeIds(TypeIds::OwnedById),
+            Self::UpdatedById => Column::TypeIds(TypeIds::UpdatedById),
             Self::VersionId => Column::DataTypes(DataTypes::VersionId),
-            Self::OwnedById => Column::DataTypes(DataTypes::OwnedById),
-            Self::UpdatedById => Column::DataTypes(DataTypes::UpdatedById),
             Self::Schema => Column::DataTypes(DataTypes::Schema(None)),
             Self::VersionedUri => Column::DataTypes(DataTypes::Schema(Some(JsonField::Text(
                 &Cow::Borrowed("$id"),

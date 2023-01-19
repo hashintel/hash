@@ -59,6 +59,8 @@ pub enum TypeIds {
     BaseUri,
     Version,
     LatestVersion,
+    OwnedById,
+    UpdatedById,
 }
 
 impl Transpile for TypeIds {
@@ -68,6 +70,8 @@ impl Transpile for TypeIds {
             Self::BaseUri => "base_uri",
             Self::Version => "version",
             Self::LatestVersion => "latest_version",
+            Self::OwnedById => "owned_by_id",
+            Self::UpdatedById => "updated_by_id",
         };
         write!(fmt, r#"."{column}""#)
     }
@@ -79,17 +83,13 @@ macro_rules! impl_ontology_column {
             #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
             pub enum $name {
                 VersionId,
-                OwnedById,
-                UpdatedById,
                 Schema(Option<JsonField<'static>>),
             }
 
             impl $name {
                 pub const fn nullable(self) -> bool {
                     match self {
-                        Self::VersionId
-                        | Self::OwnedById
-                        | Self::UpdatedById => false,
+                        Self::VersionId => false,
                         Self::Schema(_) => true,
                     }
                 }
@@ -99,8 +99,6 @@ macro_rules! impl_ontology_column {
                 fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
                     let column = match self {
                         Self::VersionId => "version_id",
-                        Self::OwnedById => "owned_by_id",
-                        Self::UpdatedById => "updated_by_id",
                         Self::Schema(None) => "schema",
                         Self::Schema(Some(path)) => match path {
                             JsonField::Json(field) => {
