@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import styles from "./app.module.css";
 import { Editor } from "./editor";
 import { CopyIcon } from "./icons";
-import { RootEntity } from "./types.gen";
+import { RootEntity } from "./types";
 import { languages, LanguageType } from "./utils";
 
 export const App: BlockComponent<RootEntity> = ({
