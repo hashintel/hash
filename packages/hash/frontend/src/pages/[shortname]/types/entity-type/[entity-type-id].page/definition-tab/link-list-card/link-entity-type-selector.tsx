@@ -35,7 +35,7 @@ const linkEntityTypeSelectorDropdownProps = {
    * @todo Add a create entity type button
    */
   createButtonProps: null,
-  variant: "entityType",
+  variant: "entityType" as const,
 };
 
 export const LinkEntityTypeSelector = ({
