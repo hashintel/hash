@@ -114,7 +114,7 @@ const LinkTypeRow = ({
   const [entityTypeSelectorPlacement, setEntityTypeSelectorPlacement] =
     useState<PopperPlacementType>("bottom");
   const [entityTypeSelectorPopupOpen, setEntityTypeSelectorPopupOpen] =
-    useState(true);
+    useState(false);
 
   const linkTypes = useLinkEntityTypes();
   const entityTypes = useEntityTypes();
@@ -284,7 +284,7 @@ const LinkTypeRow = ({
                 />
               )}
             </Stack>
-            {entityTypeSelectorPopupOpen ? (
+            {entityTypeSelectorPopupOpen || true ? (
               <Box
                 onClick={(evt) => {
                   evt.stopPropagation();
@@ -323,9 +323,8 @@ const LinkTypeRow = ({
                       position: "absolute",
                       left: -1,
                       width: "calc(100% + 2px)",
-                      ...(entityTypeSelectorPlacement === "top"
-                        ? { bottom: "100%" }
-                        : { top: "100%" }),
+                      // @todo theme
+                      zIndex: 1501,
                     },
                   ]}
                   open
@@ -366,11 +365,11 @@ const LinkTypeRow = ({
                   ]}
                   onKeyDown={(evt) => {
                     if (evt.key === "Escape") {
-                      // setEntityTypeSelectorPopupOpen(false);
+                      setEntityTypeSelectorPopupOpen(false);
                     }
                   }}
                   onBlur={() => {
-                    // setEntityTypeSelectorPopupOpen(false);
+                    setEntityTypeSelectorPopupOpen(false);
                   }}
                 />
               </Box>

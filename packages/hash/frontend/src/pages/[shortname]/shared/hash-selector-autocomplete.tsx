@@ -24,6 +24,7 @@ import {
   addPopperPositionClassPopperModifier,
   popperPlacementInputNoBorder,
   popperPlacementInputNoRadius,
+  popperPlacementSelectors,
 } from "./popper-placement-modifier";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 
@@ -162,6 +163,15 @@ export const HashSelectorAutocomplete = <
           offset: [0, -TYPE_SELECTOR_HEIGHT],
         },
       },
+      {
+        name: "flip",
+        options: {
+          padding: {
+            top: TYPE_SELECTOR_HEIGHT,
+            bottom: TYPE_SELECTOR_HEIGHT,
+          },
+        },
+      },
       ...(modifiers ?? []),
     ],
     [modifiers],
@@ -211,7 +221,18 @@ export const HashSelectorAutocomplete = <
                 ? [
                     popperPlacementInputNoRadius,
                     popperPlacementInputNoBorder,
-                    joined ? { borderRadius: "0 !important" } : {},
+                    joined
+                      ? {
+                          borderRadius: "0 !important",
+                          position: "relative",
+                          [`&${popperPlacementSelectors.top}`]: {
+                            top: `-${TYPE_SELECTOR_HEIGHT}px`,
+                          },
+                          [`&${popperPlacementSelectors.bottom}`]: {
+                            bottom: `-${TYPE_SELECTOR_HEIGHT}px`,
+                          },
+                        }
+                      : {},
                   ]
                 : []),
             ],
