@@ -88,7 +88,7 @@
     {
       "fileMatch": ["(^|/)README\\.md?$"],
       "matchStrings": [
-        "nightly--(?<currentValue>\\d+--\\d+--\\d+)-blue"
+        "nightly--(?<currentValue>\\d+-?-\\d+-?-\\d+)-blue"
       ],
       "depNameTemplate": "rust",
       "packageNameTemplate": "rust-lang/rust-analyzer",
