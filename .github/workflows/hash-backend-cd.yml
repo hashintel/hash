@@ -40,9 +40,8 @@ name: HASH backend deployment
 jobs:
   build-graph:
     name: Build and push HASH graph image
+    if: false
     runs-on: ubuntu-latest
-    outputs:
-      ECR_IMAGE: ${{ steps.build.outputs.ECR_IMAGE }}
     steps:
       - uses: actions/checkout@v3
 
@@ -63,9 +62,8 @@ jobs:
 
   build-api:
     name: Build and push HASH api image
+    if: false
     runs-on: ubuntu-latest
-    outputs:
-      ECR_IMAGE: ${{ steps.build.outputs.ECR_IMAGE }}
     steps:
       - uses: actions/checkout@v3
 
@@ -86,9 +84,8 @@ jobs:
 
   build-kratos:
     name: Build and push Kratos image
+    if: false
     runs-on: ubuntu-latest
-    outputs:
-      ECR_IMAGE: ${{ steps.build.outputs.ECR_IMAGE }}
     steps:
       - uses: actions/checkout@v3
 
@@ -113,12 +110,11 @@ jobs:
   # We need a SSH tunnel to migrate the DB, for now we disable the entire job.
   deploy:
     name: Deploy HASH images
-    if: false
     runs-on: ubuntu-latest
-    needs:
-      - build-graph
-      - build-api
-      - build-kratos
+    # needs:
+    #   - build-graph
+    #   - build-api
+    #   - build-kratos
     steps:
       - uses: actions/checkout@v3
 
@@ -138,20 +134,20 @@ jobs:
           ssh-keyscan -H "$PUBLIC_HOST" >> ~/.ssh/known_hosts
           eval `ssh-agent -s`
           ssh-add - <<< "${{ secrets.BASTION_SSH_KEY }}"
-          ssh -fN -v -L "5432:$HASH_GRAPH_PG_HOST:$HASH_GRAPH_PG_PORT" "ec2-user@$PUBLIC_HOST"
+          ssh -fN -L "5432:$HASH_GRAPH_PG_HOST:$HASH_GRAPH_PG_PORT" "ec2-user@$PUBLIC_HOST"
 
       # TODO: should we stop the service before migrating the db?
 
-      - name: Migrate Graph database
+      - name: Migrate Graph db
         env:
-          HASH_GRAPH_ECR_IMAGE: ${{ needs.build-graph.outputs.ECR_IMAGE }}
+          HASH_GRAPH_ECR_IMAGE: ${{ env.AWS_ECR_URL }}/${{ env.HASH_GRAPH_RESOURCE_NAME }}:latest
           # Env vars for running the migrations
           HASH_GRAPH_PG_USER: ${{ env.HASH_GRAPH_PG_USER }}
           HASH_GRAPH_PG_PASSWORD: ${{ env.HASH_GRAPH_PG_PASSWORD }}
           HASH_GRAPH_PG_DATABASE: ${{ env.HASH_GRAPH_PG_DATABASE }}
           # As we're using an SSH tunnel to connect to the DB, we can use 'localhost' as the host
           # and '5432' as the port.
-          HASH_GRAPH_PG_HOST: localhost
+          HASH_GRAPH_PG_HOST: "127.0.0.1"
           HASH_GRAPH_PG_PORT: "5432"
           RUST_LOG: "graph=info,debug"
         run: |
@@ -162,12 +158,13 @@ jobs:
             -e HASH_GRAPH_PG_HOST \
             -e HASH_GRAPH_PG_PORT \
             -e HASH_GRAPH_PG_DATABASE \
+            -e RUST_LOG \
             ${{ env.HASH_GRAPH_ECR_IMAGE }} \
             migrate
 
-      - name: Migrate Kratos database
+      - name: Migrate Kratos db
         env:
-          HASH_KRATOS_ECR_IMAGE: ${{ needs.build-kratos.outputs.ECR_IMAGE }}
+          HASH_KRATOS_ECR_IMAGE: ${{ env.AWS_ECR_URL }}/${{ env.HASH_KRATOS_RESOURCE_NAME }}:latest
           # Env vars for running the migrations
           HASH_KRATOS_PG_USER: ${{ env.HASH_KRATOS_PG_USER }}
           HASH_KRATOS_PG_PASSWORD: ${{ env.HASH_KRATOS_PG_PASSWORD }}
@@ -181,12 +178,13 @@ jobs:
           docker run --rm \
             --network host \
             -e LOG_LEVEL \
-            -e "DSN=postgres://$HASH_KRATOS_PG_USER:$HASH_KRATOS_PG_PASSWORD@$HASH_KRATOS_PG_HOST$HASH_KRATOS_PG_PORT/$KRATOS_PG_DATABASE" \
+            -e "DSN=postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@${HASH_KRATOS_PG_HOST}:${HASH_KRATOS_PG_PORT}/${HASH_KRATOS_PG_DATABASE}" \
             ${{ env.HASH_KRATOS_ECR_IMAGE }} \
             migrate sql -e --yes
 
       - name: Redeploy api service
         env:
-          HASH_API_SERVICE_NAME: ${{ env.HASH_API_RESOURCE_NAME }}svc
+          HASH_ECS_CLUSTER_NAME: ${{ env.HASH_ECS_CLUSTER_NAME }}
+          HASH_APP_SERVICE_NAME: ${{ env.HASH_APP_SERVICE_NAME }}
         run: |
-          aws ecs update-service --cluster ${{ env.HASH_ECS_CLUSTER_NAME }} --service ${{ env.HASH_API_SERVICE_NAME }} --force-new-deployment 1> /dev/null
+          aws ecs update-service --cluster ${{ env.HASH_ECS_CLUSTER_NAME }} --service ${{ env.HASH_APP_SERVICE_NAME }} --force-new-deployment 1> /dev/null
