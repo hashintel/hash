@@ -21,8 +21,6 @@ export const EntityTypeTableCenteredCell = styled(TableCell)(
   }),
 );
 
-export const rowBackground = (theme: Theme) => theme.palette.gray[10];
-
 export const EntityTypeTableRow = ({ children }: { children: ReactNode }) => (
   <TableRow
     sx={[
@@ -40,7 +38,7 @@ export const EntityTypeTableRow = ({ children }: { children: ReactNode }) => (
       }),
       (theme) => ({
         [`&:hover .${tableCellClasses.root}`]: {
-          background: rowBackground(theme),
+          background: theme.palette.gray[10],
         },
       }),
     ]}
