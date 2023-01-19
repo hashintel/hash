@@ -1,22 +1,22 @@
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
   zeroedGraphResolveDepths,
-} from "@hashintel/hash-api/src/graph";
+} from "@apps/hash-api/src/graph";
 import {
   createEntity,
   createEntityWithLinks,
   getEntityOutgoingLinks,
   getLatestEntityById,
   updateEntity,
-} from "@hashintel/hash-api/src/graph/knowledge/primitive/entity";
-import { getLinkEntityRightEntity } from "@hashintel/hash-api/src/graph/knowledge/primitive/link-entity";
-import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
-import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
-import { createEntityType } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
-import { createPropertyType } from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
-import { generateSystemEntityTypeSchema } from "@hashintel/hash-api/src/graph/util";
+} from "@apps/hash-api/src/graph/knowledge/primitive/entity";
+import { getLinkEntityRightEntity } from "@apps/hash-api/src/graph/knowledge/primitive/link-entity";
+import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { createDataType } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
+import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
+import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/util";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   DataTypeWithMetadata,
   Entity,

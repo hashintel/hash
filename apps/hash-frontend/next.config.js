@@ -12,7 +12,7 @@ const { withSentryConfig } = require("@sentry/nextjs");
 
 const { buildStamp } = require("./buildstamp");
 
-config({ silent: true, path: "../../.." });
+config({ silent: true, path: "../.." });
 
 const sentryWebpackPluginOptions = {
   dryRun: !process.env.SENTRY_AUTH_TOKEN,
