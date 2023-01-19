@@ -88,8 +88,9 @@
     {
       "fileMatch": ["(^|/)README\\.md?$"],
       "matchStrings": [
-        "\\[\\!\\[rust-version\\]\\(https://img\\.shields\\.io/badge/(?<depName>Rust-\\d+\\.\\d+\\.\\d+)/nightly--(?<currentValue>\\d+--\\d+--\\d+)-blue\\)\\]\\[rust-version\\]"
+        "nightly--(?<currentValue>\\d+--\\d+--\\d+)-blue"
       ],
+      "depNameTemplate": "rust",
       "packageNameTemplate": "rust-lang/rust-analyzer",
       "datasourceTemplate": "github-releases",
       "versioningTemplate": "regex:(?<patch>.*)"
