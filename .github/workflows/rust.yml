@@ -80,7 +80,7 @@ jobs:
         shell: bash
         run: |
           cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.35.15
+          cargo quickinstall cargo-make --version 0.36.3
           cargo quickinstall cargo-hack --version 0.5.15
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
@@ -146,7 +146,7 @@ jobs:
         shell: bash
         run: |
           cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.35.15
+          cargo quickinstall cargo-make --version 0.36.3
           cargo quickinstall cargo-hack --version 0.5.15
           cargo quickinstall cargo-nextest --version 0.9.28
 
@@ -230,7 +230,7 @@ jobs:
         shell: bash
         run: |
           cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.35.15
+          cargo quickinstall cargo-make --version 0.36.3
           cargo quickinstall cargo-nextest --version 0.9.28
           cargo quickinstall cargo-llvm-cov --version 0.5.0
 
@@ -279,7 +279,7 @@ jobs:
       - name: Install tools
         run: |
           cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.35.15
+          cargo quickinstall cargo-make --version 0.36.3
 
       - name: Build Docker container
         run: cargo make --profile ${{ matrix.profile }} build-docker
@@ -309,7 +309,7 @@ jobs:
         shell: bash
         run: |
           cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.35.15
+          cargo quickinstall cargo-make --version 0.36.3
           cargo quickinstall cargo-hack --version 0.5.15
           cargo quickinstall cargo-nextest --version 0.9.28
 
