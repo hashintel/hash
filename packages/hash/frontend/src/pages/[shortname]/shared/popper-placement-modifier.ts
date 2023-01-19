@@ -13,6 +13,13 @@ export const popperPlacementSelectors = {
   bottomEnd: `[${popperPositionDataAttribute}="bottom-end"]`,
 };
 
+export const setPopperPlacementAttribute = (
+  node: HTMLElement,
+  placement: PopperProps["placement"],
+) => {
+  node.setAttribute(popperPositionDataAttribute, placement);
+};
+
 export const addPopperPositionClassPopperModifier: NonNullable<
   PopperProps["modifiers"]
 >[number] = {
@@ -21,13 +28,11 @@ export const addPopperPositionClassPopperModifier: NonNullable<
   phase: "write",
   fn({ state, options }) {
     if (state.elements.reference instanceof HTMLElement) {
-      state.elements.reference.setAttribute(
-        popperPositionDataAttribute,
-        state.placement,
-      );
+      setPopperPlacementAttribute(state.elements.reference, state.placement);
     }
     const { update } = options;
     if (typeof update === "function") {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       update(state.placement);
     }
   },

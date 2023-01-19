@@ -27,7 +27,7 @@ import {
 } from "./popper-placement-modifier";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 
-const TYPE_SELECTOR_HEIGHT = 57;
+export const TYPE_SELECTOR_HEIGHT = 57;
 
 export type TypeListSelectorDropdownProps = {
   query: string;
@@ -43,7 +43,7 @@ const TypeListSelectorDropdown = ({
   const { query, createButtonProps, variant } = dropdownProps;
 
   return (
-    <AutocompleteDropdown {...props}>
+    <AutocompleteDropdown {...props} inputHeight={TYPE_SELECTOR_HEIGHT}>
       {children}
       {createButtonProps ? (
         <Button
@@ -142,26 +142,8 @@ export const HashSelectorAutocomplete = <
   const allModifiers = useMemo(
     (): PopperProps["modifiers"] => [
       addPopperPositionClassPopperModifier,
-      {
-        phase: "beforeWrite",
-        enabled: true,
-        fn({ state }) {
-          // eslint-disable-next-line no-param-reassign
-          if (state.placement === "bottom") {
-            state.elements.popper.style.paddingTop = `${TYPE_SELECTOR_HEIGHT}px`;
-            state.elements.popper.style.paddingBottom = "0";
-          } else {
-            state.elements.popper.style.paddingBottom = `${TYPE_SELECTOR_HEIGHT}px`;
-            state.elements.popper.style.paddingTop = "0";
-          }
-        },
-      },
-      {
-        name: "offset",
-        options: {
-          offset: [0, -TYPE_SELECTOR_HEIGHT],
-        },
-      },
+      { name: "preventOverflow", enabled: false },
+      // { name: "flip", enabled: false },
       ...(modifiers ?? []),
     ],
     [modifiers],

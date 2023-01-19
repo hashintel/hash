@@ -15,8 +15,8 @@ import {
 } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useId, useLayoutEffect, useRef, useState } from "react";
-import { flushSync } from "react-dom";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
+import { useResizeObserverRef } from "rooks";
 
 import { useBlockProtocolCreateEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
 import { useBlockProtocolGetEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
@@ -28,10 +28,15 @@ import {
   useLinkEntityTypesOptional,
 } from "../../../../../../shared/entity-types-context/hooks";
 import { LinkIcon } from "../../../../../../shared/icons/link";
-import { HashSelectorAutocomplete } from "../../../../shared/hash-selector-autocomplete";
+import {
+  HashSelectorAutocomplete,
+  TYPE_SELECTOR_HEIGHT,
+} from "../../../../shared/hash-selector-autocomplete";
 import {
   popperPlacementInputNoRadius,
   popperPlacementPopperNoRadius,
+  popperPlacementSelectors,
+  setPopperPlacementAttribute,
 } from "../../../../shared/popper-placement-modifier";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
 import { useRouteNamespace } from "../../../../shared/use-route-namespace";
@@ -111,10 +116,8 @@ const LinkTypeRow = ({
 }) => {
   const { control, setValue } = useFormContext<EntityTypeEditorForm>();
 
-  const [entityTypeSelectorPlacement, setEntityTypeSelectorPlacement] =
-    useState<PopperPlacementType>("bottom");
   const [entityTypeSelectorPopupOpen, setEntityTypeSelectorPopupOpen] =
-    useState(true);
+    useState(false);
 
   const linkTypes = useLinkEntityTypes();
   const entityTypes = useEntityTypes();
@@ -180,6 +183,22 @@ const LinkTypeRow = ({
     chosenEntityTypes.includes(schema.$id),
   );
 
+  const entityTypeSelectorRef = useRef<HTMLDivElement>(null);
+
+  // const [inputWrapperRef, inputWrapperRect] = useBoundingclientrectRef();
+
+  // console.log(inputWrapperRect);
+
+  const [inputWrapperHeight, setInputWrapperHeight] = useState(66);
+  const [resizeObserverRef] = useResizeObserverRef(([size]) => {
+    const resizeObserverSize = size?.borderBoxSize[0];
+    if (resizeObserverSize) {
+      setInputWrapperHeight(resizeObserverSize.blockSize);
+    }
+  });
+
+  const selectorOffset = TYPE_SELECTOR_HEIGHT + inputWrapperHeight;
+
   return (
     <>
       <EntityTypeTableRow>
@@ -208,6 +227,7 @@ const LinkTypeRow = ({
                 backgroundColor: "white",
               },
             })}
+            ref={entityTypeSelectorRef}
           >
             <Stack
               direction="row"
@@ -227,9 +247,6 @@ const LinkTypeRow = ({
                   position: "relative",
                   zIndex: theme.zIndex.drawer,
                 }),
-                ...(entityTypeSelectorPopupOpen
-                  ? [popperPlacementInputNoRadius]
-                  : []),
               ]}
               onClick={() => setEntityTypeSelectorPopupOpen(true)}
             >
@@ -286,33 +303,47 @@ const LinkTypeRow = ({
             </Stack>
             {entityTypeSelectorPopupOpen ? (
               <Box
+                ref={resizeObserverRef}
                 onClick={(evt) => {
                   evt.stopPropagation();
                   evt.preventDefault();
                 }}
-                sx={(theme) => ({
-                  position: "absolute",
-                  left: -19,
-                  right: -19,
-                  top: -12,
-                  bottom: -12,
-                  background: "white",
-                  borderRadius: 1.5,
-                  border: 1,
-                  borderColor: theme.palette.gray[30],
-                  boxShadow: theme.boxShadows.md,
-                  zIndex: theme.zIndex.drawer - 1,
+                sx={[
+                  (theme) => ({
+                    position: "absolute",
+                    left: -19,
+                    right: -19,
+                    top: -12,
+                    bottom: -12,
+                    background: "white",
+                    borderRadius: 1.5,
+                    border: 1,
+                    borderColor: theme.palette.gray[30],
+                    boxShadow: theme.boxShadows.md,
+                    zIndex: theme.zIndex.drawer - 1,
 
-                  ...(entityTypeSelectorPlacement === "top"
-                    ? {
-                        borderTopLeftRadius: "0 !important",
-                        borderTopRightRadius: "0 !important",
-                      }
-                    : {
-                        borderBottomLeftRadius: "0 !important",
-                        borderBottomRightRadius: "0 !important",
-                      }),
-                })}
+                    // [`${popperPlacementSelectors.top} &`]: {
+                    //   borderTopLeftRadius: "0 !important",
+                    //   borderTopRightRadius: "0 !important",
+                    // },
+                    //
+                    // [`${popperPlacementSelectors.bottom} &`]: {
+                    //   borderBottomLeftRadius: "0 !important",
+                    //   borderBottomRightRadius: "0 !important",
+                    // },
+
+                    // ...(entityTypeSelectorPlacement === "top"
+                    //   ? {
+                    //       borderTopLeftRadius: "0 !important",
+                    //       borderTopRightRadius: "0 !important",
+                    //     }
+                    //   : {
+                    //       borderBottomLeftRadius: "0 !important",
+                    //       borderBottomRightRadius: "0 !important",
+                    //     }),
+                  }),
+                  popperPlacementInputNoRadius,
+                ]}
               >
                 <HashSelectorAutocomplete
                   multiple
@@ -323,9 +354,17 @@ const LinkTypeRow = ({
                       position: "absolute",
                       left: -1,
                       width: "calc(100% + 2px)",
-                      ...(entityTypeSelectorPlacement === "top"
-                        ? { bottom: "100%" }
-                        : { top: "100%" }),
+                      height: TYPE_SELECTOR_HEIGHT + selectorOffset,
+
+                      [`${popperPlacementSelectors.top} &`]: {
+                        bottom: `calc(100% - ${selectorOffset}px)`,
+                        paddingBottom: `${selectorOffset}px`,
+                      },
+
+                      [`${popperPlacementSelectors.bottom} &`]: {
+                        top: `calc(100% - ${selectorOffset}px)`,
+                        paddingTop: `${selectorOffset}px`,
+                      },
                     },
                   ]}
                   open
@@ -355,10 +394,9 @@ const LinkTypeRow = ({
                       phase: "write",
                       options: {
                         update(placement: PopperPlacementType) {
-                          if (placement !== entityTypeSelectorPlacement) {
-                            flushSync(() => {
-                              setEntityTypeSelectorPlacement(placement);
-                            });
+                          const node = entityTypeSelectorRef.current;
+                          if (node) {
+                            setPopperPlacementAttribute(node, placement);
                           }
                         },
                       },
@@ -366,7 +404,7 @@ const LinkTypeRow = ({
                   ]}
                   onKeyDown={(evt) => {
                     if (evt.key === "Escape") {
-                      // setEntityTypeSelectorPopupOpen(false);
+                      setEntityTypeSelectorPopupOpen(false);
                     }
                   }}
                   onBlur={() => {
