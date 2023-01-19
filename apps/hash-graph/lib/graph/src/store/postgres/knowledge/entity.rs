@@ -20,7 +20,7 @@ use crate::{
     store::{
         crud::Read,
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
-        postgres::{DependencyContext, DependencyStatus},
+        postgres::{TraversalContext, TraversalStatus},
         query::Filter,
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
@@ -36,14 +36,14 @@ use crate::{
 };
 
 impl<C: AsClient> PostgresStore<C> {
-    /// Internal method to read an [`Entity`] into a [`DependencyContext`].
+    /// Internal method to read an [`Entity`] into a [`TraversalContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(level = "trace", skip(self, dependency_context, subgraph))]
+    #[tracing::instrument(level = "trace", skip(self, traversal_context, subgraph))]
     pub(crate) fn traverse_entity<'a>(
         &'a self,
         entity_vertex_id: EntityVertexId,
-        dependency_context: &'a mut DependencyContext,
+        traversal_context: &'a mut TraversalContext,
         subgraph: &'a mut Subgraph,
         mut current_resolve_depths: GraphResolveDepths,
         temporal_axes: QueryTemporalAxes,
@@ -76,19 +76,19 @@ impl<C: AsClient> PostgresStore<C> {
                 unreachable!("the version interval of the entity does not overlap with the variable axis's time interval");
             };
 
-            let dependency_status = dependency_context.knowledge_dependency_map.update(
+            let traversal_status = traversal_context.knowledge_traversal_map.update(
                 &entity_vertex_id,
                 current_resolve_depths,
                 intersected_temporal_axes.variable_interval().convert(),
             );
 
-            match dependency_status {
-                DependencyStatus::Unresolved(depths, interval) => {
+            match traversal_status {
+                TraversalStatus::Unresolved(depths, interval) => {
                     // Depending on previous traversals, we may have to resolve with parameters
                     // different to those provided, so we update the resolve depths and the temporal
                     // axes.
                     //
-                    // `DependencyMap::update` may return a higher resolve depth than the one
+                    // `TraversalMap::update` may return a higher resolve depth than the one
                     // requested, so we update the `resolve_depths` to the returned value.
                     current_resolve_depths = depths;
                     // It may also return a different time interval than the one requested, so
@@ -96,7 +96,7 @@ impl<C: AsClient> PostgresStore<C> {
                     // value.
                     intersected_temporal_axes.set_variable_interval(interval.convert());
                 }
-                DependencyStatus::Resolved => return Ok(()),
+                TraversalStatus::Resolved => return Ok(()),
             };
 
             if current_resolve_depths.is_of_type.outgoing > 0 {
@@ -113,7 +113,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                 self.traverse_entity_type(
                     &entity_type_id,
-                    dependency_context,
+                    traversal_context,
                     subgraph,
                     GraphResolveDepths {
                         is_of_type: OutgoingEdgeResolveDepth {
@@ -159,7 +159,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                     self.traverse_entity(
                         outgoing_link_entity_vertex_id,
-                        dependency_context,
+                        traversal_context,
                         subgraph,
                         GraphResolveDepths {
                             has_left_entity: EdgeResolveDepths {
@@ -206,7 +206,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                     self.traverse_entity(
                         incoming_link_entity_vertex_id,
-                        dependency_context,
+                        traversal_context,
                         subgraph,
                         GraphResolveDepths {
                             has_right_entity: EdgeResolveDepths {
@@ -248,7 +248,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                     self.traverse_entity(
                         left_entity_vertex_id,
-                        dependency_context,
+                        traversal_context,
                         subgraph,
                         GraphResolveDepths {
                             has_left_entity: EdgeResolveDepths {
@@ -290,7 +290,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                     self.traverse_entity(
                         right_entity_vertex_id,
-                        dependency_context,
+                        traversal_context,
                         subgraph,
                         GraphResolveDepths {
                             has_right_entity: EdgeResolveDepths {
@@ -525,7 +525,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             unresolved_temporal_axes.clone(),
             temporal_axes.clone(),
         );
-        let mut dependency_context = DependencyContext::default();
+        let mut traversal_context = TraversalContext::default();
 
         for entity in Read::<Entity>::read(self, filter, &temporal_axes).await? {
             let vertex_id = entity.vertex_id(time_axis);
@@ -534,7 +534,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
             self.traverse_entity(
                 vertex_id,
-                &mut dependency_context,
+                &mut traversal_context,
                 &mut subgraph,
                 graph_resolve_depths,
                 temporal_axes.clone(),
