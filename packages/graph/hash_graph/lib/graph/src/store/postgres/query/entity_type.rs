@@ -18,7 +18,9 @@ impl PostgresQueryPath for EntityTypeQueryPath {
     /// Returns the relations that are required to access the path.
     fn relations(&self) -> Vec<Relation> {
         match self {
-            Self::BaseUri | Self::Version => vec![Relation::EntityTypeIds],
+            Self::BaseUri | Self::Version | Self::OwnedById | Self::UpdatedById => {
+                vec![Relation::EntityTypeIds]
+            }
             Self::Properties(path) => once(Relation::EntityTypePropertyTypeReferences)
                 .chain(path.relations())
                 .collect(),
@@ -36,9 +38,9 @@ impl PostgresQueryPath for EntityTypeQueryPath {
         match self {
             Self::BaseUri => Column::TypeIds(TypeIds::BaseUri),
             Self::Version => Column::TypeIds(TypeIds::Version),
+            Self::OwnedById => Column::TypeIds(TypeIds::OwnedById),
+            Self::UpdatedById => Column::TypeIds(TypeIds::UpdatedById),
             Self::VersionId => Column::EntityTypes(EntityTypes::VersionId),
-            Self::OwnedById => Column::EntityTypes(EntityTypes::OwnedById),
-            Self::UpdatedById => Column::EntityTypes(EntityTypes::UpdatedById),
             Self::Schema => Column::EntityTypes(EntityTypes::Schema(None)),
             Self::VersionedUri => Column::EntityTypes(EntityTypes::Schema(Some(JsonField::Text(
                 &Cow::Borrowed("$id"),

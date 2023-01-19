@@ -229,16 +229,24 @@ where
         &self,
         uri: &VersionedUri,
         version_id: VersionId,
+        owned_by_id: OwnedById,
+        updated_by_id: UpdatedById,
     ) -> Result<(), InsertionError> {
         let version = i64::from(uri.version());
         self.as_client()
             .query_one(
                 r#"
-                    INSERT INTO type_ids (base_uri, version, version_id)
-                    VALUES ($1, $2, $3)
+                    INSERT INTO type_ids (base_uri, version, version_id, owned_by_id, updated_by_id)
+                    VALUES ($1, $2, $3, $4, $5)
                     RETURNING version_id;
                 "#,
-                &[&uri.base_uri().as_str(), &version, &version_id],
+                &[
+                    &uri.base_uri().as_str(),
+                    &version,
+                    &version_id,
+                    &owned_by_id,
+                    &updated_by_id,
+                ],
             )
             .await
             .into_report()
@@ -345,10 +353,10 @@ where
 
         let version_id = VersionId::new(Uuid::new_v4());
         self.insert_version_id(version_id).await?;
-        self.insert_uri(&uri, version_id).await?;
-
-        self.insert_with_id(version_id, database_type, owned_by_id, updated_by_id)
+        self.insert_uri(&uri, version_id, owned_by_id, updated_by_id)
             .await?;
+
+        self.insert_with_id(version_id, database_type).await?;
 
         Ok((
             version_id,
@@ -409,10 +417,10 @@ where
         self.insert_version_id(version_id)
             .await
             .change_context(UpdateError)?;
-        self.insert_uri(&uri, version_id)
+        self.insert_uri(&uri, version_id, owned_by_id, updated_by_id)
             .await
             .change_context(UpdateError)?;
-        self.insert_with_id(version_id, database_type, owned_by_id, updated_by_id)
+        self.insert_with_id(version_id, database_type)
             .await
             .change_context(UpdateError)?;
 
@@ -437,8 +445,6 @@ where
         &self,
         version_id: VersionId,
         database_type: T,
-        owned_by_id: OwnedById,
-        updated_by_id: UpdatedById,
     ) -> Result<(), InsertionError>
     where
         T: OntologyDatabaseType<Representation: Send> + Send + Sync,
@@ -454,18 +460,13 @@ where
             .query_one(
                 &format!(
                     r#"
-                        INSERT INTO {} (version_id, schema, owned_by_id, updated_by_id)
-                        VALUES ($1, $2, $3, $4)
+                        INSERT INTO {} (version_id, schema)
+                        VALUES ($1, $2)
                         RETURNING version_id;
                     "#,
                     T::table()
                 ),
-                &[
-                    &version_id,
-                    &value,
-                    &owned_by_id.as_account_id(),
-                    &updated_by_id.as_account_id(),
-                ],
+                &[&version_id, &value],
             )
             .await
             .into_report()
