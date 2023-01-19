@@ -73,7 +73,7 @@ jobs:
         with:
           SHORTNAME: "api"
           CONTEXT_PATH: ${{ github.workspace }}
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/packages/hash/docker/api/prod/Dockerfile
+          DOCKERFILE_LOCATION: ${{ github.workspace }}/infra/docker/api/prod/Dockerfile
           AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ env.AWS_REGION }}

@@ -16,10 +16,10 @@ A-blocks:
   - "blocks/**/.*"
 
 A-hash:
-  - "packages/hash/*"
-  - "packages/hash/.*"
-  - "packages/hash/**/*"
-  - "packages/hash/**/.*"
+  - "infra
+  - "infra
+  - "infra
+  - "infra
 
 A-engine:
   - "apps/engine/*"
@@ -78,10 +78,10 @@ integration:
   - tests/hash-backend-integration/**/.*
 
 docker:
-  - packages/hash/docker/*
-  - packages/hash/docker/.*
-  - packages/hash/docker/**/*
-  - packages/hash/docker/**/.*
+  - infra/docker/*
+  - infra/docker/.*
+  - infra/docker/**/*
+  - infra/docker/**/.*
 
 playwright:
   - tests/hash-playwright/*
