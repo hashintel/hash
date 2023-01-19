@@ -51,7 +51,7 @@
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
       "separateMajorMinor": false,
       "fetchReleaseNotes": false,
-      "commitMessageExtra": "to {{newVersion}}"
+      "commitMessageExtra": "to nightly-{{newVersion}}"
     },
     {
       "matchManagers": ["regex"],
