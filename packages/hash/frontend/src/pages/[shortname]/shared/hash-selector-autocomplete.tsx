@@ -175,7 +175,10 @@ export const HashSelectorAutocomplete = <
           inputRef={inputRef}
           placeholder={inputPlaceholder}
           sx={{ width: "100%" }}
-          // Prevents backspace deleting chips when in multiple mode
+          /**
+           * Prevents backspace deleting chips when in multiple mode
+           * @see https://github.com/mui/material-ui/issues/21129#issuecomment-636919142
+           */
           onKeyDown={(event) => {
             if (event.key === "Backspace") {
               event.stopPropagation();
