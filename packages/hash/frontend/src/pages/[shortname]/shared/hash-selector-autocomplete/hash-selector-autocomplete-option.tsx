@@ -18,13 +18,11 @@ export const HashSelectorAutocompleteOption = ({
   const ontology = parseUriForOntologyChip($id);
 
   return (
-    <Box
-      component="li"
+    <li
       {...liProps}
       data-testid="property-selector-option"
       /** added "click-outside-ignore" to be able to use this selector with Grid component */
       className={clsx(liProps.className, "click-outside-ignore")}
-      sx={{ my: 0.25 }}
     >
       <Box width="100%">
         <Box
@@ -77,6 +75,6 @@ export const HashSelectorAutocompleteOption = ({
           {description}
         </Typography>
       </Box>
-    </Box>
+    </li>
   );
 };

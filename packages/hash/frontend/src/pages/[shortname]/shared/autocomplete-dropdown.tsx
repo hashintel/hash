@@ -66,6 +66,7 @@ export const AutocompleteDropdown = ({
           [`.${autocompleteClasses.noOptions}`]: { display: "none" },
           [`.${autocompleteClasses.option}`]: {
             borderRadius: 1,
+            my: 0.25,
 
             [`&[aria-selected="true"]`]: {
               backgroundColor: `${theme.palette.blue[20]} !important`,
