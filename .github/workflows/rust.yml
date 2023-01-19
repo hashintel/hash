@@ -148,7 +148,7 @@ jobs:
           cargo install cargo-quickinstall
           cargo quickinstall cargo-make --version 0.36.3
           cargo quickinstall cargo-hack --version 0.5.26
-          cargo quickinstall cargo-nextest --version 0.9.49
+          cargo quickinstall cargo-nextest --version 0.9.37
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
@@ -231,7 +231,7 @@ jobs:
         run: |
           cargo install cargo-quickinstall
           cargo quickinstall cargo-make --version 0.36.3
-          cargo quickinstall cargo-nextest --version 0.9.49
+          cargo quickinstall cargo-nextest --version 0.9.37
           cargo quickinstall cargo-llvm-cov --version 0.5.9
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
@@ -311,7 +311,7 @@ jobs:
           cargo install cargo-quickinstall
           cargo quickinstall cargo-make --version 0.36.3
           cargo quickinstall cargo-hack --version 0.5.26
-          cargo quickinstall cargo-nextest --version 0.9.49
+          cargo quickinstall cargo-nextest --version 0.9.37
 
       - name: Run lints
         if: github.event_name == 'pull_request'
