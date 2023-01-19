@@ -29,6 +29,15 @@ const TypeChipLabel = ({ children }: { children: ReactNode }) => (
   </Stack>
 );
 
+const linkEntityTypeSelectorDropdownProps = {
+  query: "",
+  /**
+   * @todo Add a create entity type button
+   */
+  createButtonProps: null,
+  variant: "entityType",
+};
+
 export const LinkEntityTypeSelector = ({
   linkIndex,
 }: {
@@ -264,14 +273,7 @@ export const LinkEntityTypeSelector = ({
               title,
               description,
             })}
-            dropdownProps={{
-              query: "",
-              /**
-               * @todo Add a create entity type button
-               */
-              createButtonProps: null,
-              variant: "entityType",
-            }}
+            dropdownProps={linkEntityTypeSelectorDropdownProps}
             joined
             // We render our tags manually, so we don't want MUI doing it for us
             renderTags={() => <Box />}

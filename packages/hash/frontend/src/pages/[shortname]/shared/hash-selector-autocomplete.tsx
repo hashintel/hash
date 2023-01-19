@@ -14,7 +14,7 @@ import {
   PopperProps,
   Typography,
 } from "@mui/material";
-import { Ref, useMemo, useState } from "react";
+import { createContext, Ref, useContext, useMemo, useState } from "react";
 
 import { AutocompleteDropdown } from "./autocomplete-dropdown";
 import { HashSelectorAutocompleteOption } from "./hash-selector-autocomplete/hash-selector-autocomplete-option";
@@ -33,12 +33,21 @@ export type TypeListSelectorDropdownProps = {
   variant: "entityType" | "propertyType" | "entity" | "linkType";
 };
 
-const TypeListSelectorDropdown = ({
-  children,
-  dropdownProps,
-  ...props
-}: PaperProps & { dropdownProps: TypeListSelectorDropdownProps }) => {
-  const { query, createButtonProps, variant } = dropdownProps;
+const DropdownPropsContext =
+  createContext<TypeListSelectorDropdownProps | null>(null);
+
+const useDropdownProps = () => {
+  const value = useContext(DropdownPropsContext);
+
+  if (!value) {
+    throw new Error("Dropdown props context provider missing");
+  }
+
+  return value;
+};
+
+const TypeListSelectorDropdown = ({ children, ...props }: PaperProps) => {
+  const { query, createButtonProps, variant } = useDropdownProps();
 
   return (
     <AutocompleteDropdown {...props} inputHeight={TYPE_SELECTOR_HEIGHT}>
@@ -155,101 +164,100 @@ export const HashSelectorAutocomplete = <
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
 
   return (
-    <Autocomplete
-      open={open}
-      sx={[{ width: "100%" }, ...(Array.isArray(sx) ? sx : [sx])]}
-      /**
-       * By default, the anchor element for an autocomplete dropdown is the
-       * input base, but we some uses of this component depend on resizing the
-       * autocomplete root in order to attach the popup in a slightly different
-       * place, so we make the autocomplete root the anchor element for the
-       * popup.
-       *
-       * @see LinkEntityTypeSelector
-       */
-      ref={setAnchorEl}
-      renderInput={(props) => (
-        <TextField
-          {...props}
-          autoFocus={autoFocus}
-          inputRef={inputRef}
-          placeholder={inputPlaceholder}
-          sx={{ width: "100%" }}
-          /**
-           * Prevents backspace deleting chips when in multiple mode
-           * @see https://github.com/mui/material-ui/issues/21129#issuecomment-636919142
-           */
-          onKeyDown={(event) => {
-            if (event.key === "Backspace") {
-              event.stopPropagation();
-            }
-          }}
-          InputProps={{
-            ...props.InputProps,
-            endAdornment: (
-              <FontAwesomeIcon
-                icon={faSearch}
-                sx={(theme) => ({
-                  fontSize: 12,
-                  mr: 2,
-                  color: theme.palette.gray[50],
-                })}
-              />
-            ),
-            sx: [
-              (theme) => ({
-                // The popover needs to know how tall this is to draw
-                // a shadow around it
-                height: TYPE_SELECTOR_HEIGHT,
+    <DropdownPropsContext.Provider value={dropdownProps}>
+      <Autocomplete
+        open={open}
+        sx={[{ width: "100%" }, ...(Array.isArray(sx) ? sx : [sx])]}
+        /**
+         * By default, the anchor element for an autocomplete dropdown is the
+         * input base, but we some uses of this component depend on resizing the
+         * autocomplete root in order to attach the popup in a slightly different
+         * place, so we make the autocomplete root the anchor element for the
+         * popup.
+         *
+         * @see LinkEntityTypeSelector
+         */
+        ref={setAnchorEl}
+        renderInput={(props) => (
+          <TextField
+            {...props}
+            autoFocus={autoFocus}
+            inputRef={inputRef}
+            placeholder={inputPlaceholder}
+            sx={{ width: "100%" }}
+            /**
+             * Prevents backspace deleting chips when in multiple mode
+             * @see https://github.com/mui/material-ui/issues/21129#issuecomment-636919142
+             */
+            onKeyDown={(event) => {
+              if (event.key === "Backspace") {
+                event.stopPropagation();
+              }
+            }}
+            InputProps={{
+              ...props.InputProps,
+              endAdornment: (
+                <FontAwesomeIcon
+                  icon={faSearch}
+                  sx={(theme) => ({
+                    fontSize: 12,
+                    mr: 2,
+                    color: theme.palette.gray[50],
+                  })}
+                />
+              ),
+              sx: [
+                (theme) => ({
+                  // The popover needs to know how tall this is to draw
+                  // a shadow around it
+                  height: TYPE_SELECTOR_HEIGHT,
 
-                // Focus is handled by the options popover
-                "&.Mui-focused": {
-                  boxShadow: "none",
-                },
+                  // Focus is handled by the options popover
+                  "&.Mui-focused": {
+                    boxShadow: "none",
+                  },
 
-                [`.${outlinedInputClasses.notchedOutline}`]: {
-                  border: `1px solid ${theme.palette.gray[30]} !important`,
-                },
-              }),
-              ...(open
-                ? [
-                    popperPlacementInputNoRadius,
-                    popperPlacementInputNoBorder,
-                    joined
-                      ? { borderRadius: "0 !important", boxShadow: "none" }
-                      : {},
-                  ]
-                : []),
-            ],
-          }}
-        />
-      )}
-      renderOption={(props, option) => {
-        const optionRenderData = optionToRenderData(option);
-
-        return (
-          <HashSelectorAutocompleteOption
-            liProps={props}
-            key={optionRenderData.$id}
-            {...optionRenderData}
+                  [`.${outlinedInputClasses.notchedOutline}`]: {
+                    border: `1px solid ${theme.palette.gray[30]} !important`,
+                  },
+                }),
+                ...(open
+                  ? [
+                      popperPlacementInputNoRadius,
+                      popperPlacementInputNoBorder,
+                      joined
+                        ? { borderRadius: "0 !important", boxShadow: "none" }
+                        : {},
+                    ]
+                  : []),
+              ],
+            }}
           />
-        );
-      }}
-      popupIcon={null}
-      disableClearable
-      forcePopupIcon={false}
-      selectOnFocus={false}
-      openOnFocus
-      clearOnBlur={false}
-      getOptionLabel={(opt) => optionToRenderData(opt).title}
-      // eslint-disable-next-line react/no-unstable-nested-components
-      PaperComponent={(props) => (
-        <TypeListSelectorDropdown {...props} dropdownProps={dropdownProps} />
-      )}
-      componentsProps={{
-        popper: { modifiers: allModifiers, anchorEl },
-      }}
-      {...rest}
-    />
+        )}
+        renderOption={(props, option) => {
+          const optionRenderData = optionToRenderData(option);
+
+          return (
+            <HashSelectorAutocompleteOption
+              liProps={props}
+              key={optionRenderData.$id}
+              {...optionRenderData}
+            />
+          );
+        }}
+        popupIcon={null}
+        disableClearable
+        forcePopupIcon={false}
+        selectOnFocus={false}
+        openOnFocus
+        clearOnBlur={false}
+        getOptionLabel={(opt) => optionToRenderData(opt).title}
+        PaperComponent={TypeListSelectorDropdown}
+        componentsProps={{
+          popper: { modifiers: allModifiers, anchorEl },
+        }}
+        {...rest}
+      />
+    </DropdownPropsContext.Provider>
   );
 };
