@@ -4,7 +4,7 @@ OR REPLACE FUNCTION create_ontology_id (
   "version" BIGINT,
   "owned_by_id" UUID,
   "updated_by_id" UUID
-) RETURNS UUID AS $create_ontology_id$
+) RETURNS TABLE (version_id UUID) AS $create_ontology_id$
 DECLARE
   _version_id UUID;
 BEGIN
@@ -20,6 +20,7 @@ BEGIN
     gen_random_uuid()
   ) RETURNING version_ids.version_id INTO _version_id;
 
+  RETURN QUERY
   INSERT INTO type_ids (
     "base_uri",
     "version",
@@ -32,9 +33,7 @@ BEGIN
     _version_id,
     create_ontology_id.owned_by_id,
     create_ontology_id.updated_by_id
-  );
-
-  RETURN _version_id;
+  ) RETURNING type_ids.version_id;
 END $create_ontology_id$ VOLATILE LANGUAGE plpgsql;
 
 CREATE

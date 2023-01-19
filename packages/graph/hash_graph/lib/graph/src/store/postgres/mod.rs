@@ -171,7 +171,9 @@ where
         self.as_client()
             .query_one(
                 r#"
-                SELECT create_ontology_id(
+                SELECT
+                    version_id
+                FROM create_ontology_id(
                     base_uri := $1,
                     version := $2,
                     owned_by_id := $3,
