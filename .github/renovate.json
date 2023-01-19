@@ -88,13 +88,12 @@
     {
       "fileMatch": ["(^|/)README\\.md?$"],
       "matchStrings": [
-        "nightly--(?<currentValue>\\d+-?-\\d+-?-\\d+)-blue"
+        "https://img.shields.io/static/v1?label=Rust&message=\\d+.\\d+.\\d+/nightly-(?<currentValue>\\d+-\\d+-\\d+)&color=blue"
       ],
       "depNameTemplate": "rust",
       "packageNameTemplate": "rust-lang/rust-analyzer",
       "datasourceTemplate": "github-releases",
-      "versioningTemplate": "regex:(?<patch>.*)",
-      "autoReplaceStringTemplate": "nightly--{{{replace '-' '--' newValue}}}-blue"
+      "versioningTemplate": "regex:(?<major>\\d+)-(?<minor>\\d+)-(?<patch>\\d+)"
     }
   ]
 }
