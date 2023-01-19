@@ -43,7 +43,7 @@ const TypeListSelectorDropdown = ({
   const { query, createButtonProps, variant } = dropdownProps;
 
   return (
-    <AutocompleteDropdown {...props} inputHeight={TYPE_SELECTOR_HEIGHT}>
+    <AutocompleteDropdown {...props}>
       {children}
       {createButtonProps ? (
         <Button
@@ -148,14 +148,10 @@ export const HashSelectorAutocomplete = <
         fn({ state }) {
           // eslint-disable-next-line no-param-reassign
           if (state.placement === "bottom") {
-            state.elements.popper.style.paddingTop = `${
-              TYPE_SELECTOR_HEIGHT * 2 + 66
-            }px`;
+            state.elements.popper.style.paddingTop = `${TYPE_SELECTOR_HEIGHT}px`;
             state.elements.popper.style.paddingBottom = "0";
           } else {
-            state.elements.popper.style.paddingBottom = `${
-              TYPE_SELECTOR_HEIGHT * 2 + 66
-            }px`;
+            state.elements.popper.style.paddingBottom = `${TYPE_SELECTOR_HEIGHT}px`;
             state.elements.popper.style.paddingTop = "0";
           }
         },
@@ -163,7 +159,7 @@ export const HashSelectorAutocomplete = <
       {
         name: "offset",
         options: {
-          offset: [0, -(TYPE_SELECTOR_HEIGHT * 2 + 66)],
+          offset: [0, -TYPE_SELECTOR_HEIGHT],
         },
       },
       ...(modifiers ?? []),

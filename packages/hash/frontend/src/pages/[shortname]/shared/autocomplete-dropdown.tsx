@@ -3,11 +3,7 @@ import { autocompleteClasses, Box, Paper, PaperProps } from "@mui/material";
 
 import { popperPlacementSelectors } from "./popper-placement-modifier";
 
-export const AutocompleteDropdown = ({
-  inputHeight = 0,
-  children,
-  ...props
-}: PaperProps & { inputHeight?: number }) => {
+export const AutocompleteDropdown = ({ children, ...props }: PaperProps) => {
   return (
     <>
       <Box
@@ -15,23 +11,13 @@ export const AutocompleteDropdown = ({
           position: "absolute",
           left: 0,
           right: 0,
+          top: 0,
+          bottom: 0,
           width: "100%",
-          height: `calc(100% - ${inputHeight}px)`,
+          height: "100%",
           boxShadow: theme.boxShadows.md,
           pointerEvents: "none",
           borderRadius: `${textFieldBorderRadius}px`,
-          [`${popperPlacementSelectors.top} &`]: {
-            top: 0,
-          },
-          [`${popperPlacementSelectors.topStart} &`]: {
-            top: 0,
-          },
-          [`${popperPlacementSelectors.bottom} &`]: {
-            bottom: 0,
-          },
-          [`${popperPlacementSelectors.bottomStart} &`]: {
-            bottom: 0,
-          },
         })}
         aria-hidden
       />
