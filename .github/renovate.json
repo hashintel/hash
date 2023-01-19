@@ -92,8 +92,7 @@
       ],
       "packageNameTemplate": "rust-lang/rust-analyzer",
       "datasourceTemplate": "github-releases",
-      "versioningTemplate": "regex:(?<patch>.*)",
-      "autoReplaceStringTemplate": "Hello World!"
+      "versioningTemplate": "regex:(?<patch>.*)"
     }
   ]
 }
