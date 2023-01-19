@@ -86,8 +86,10 @@ impl<C: AsClient> PostgresStore<C> {
 
             match dependency_status {
                 DependencyStatus::Unresolved(depths, interval) => {
-                    // The dependency may have to be resolved more than anticipated, so we update
-                    // the resolve depth and time projection.
+                    // Depending on previous traversals, we may have to resolve with parameters
+                    // different to those provided, so we update the resolve depths and time
+                    // projection.
+                    //
                     // `DependencyMap::update` may return a higher resolve depth than the one
                     // requested, so we update the `resolve_depths` to the returned value.
                     current_resolve_depths = depths;
