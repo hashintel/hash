@@ -88,7 +88,7 @@
     {
       "fileMatch": ["(^|/)README\\.md?$"],
       "matchStrings": [
-        "\\[!\\[rust-version]\\(https://img\\.shields\\.io/badge/(?<depName>Rust-\\d+\\.\\d+\\.\\d+)/nightly--(?<currentValue>\\d+--\\d+--\\d+)-blue\\)]\\[rust-version]"
+        "\\[\\!\\[rust-version\\]\\(https://img\\.shields\\.io/badge/(?<depName>Rust-\\d+\\.\\d+\\.\\d+)/nightly--(?<currentValue>\\d+--\\d+--\\d+)-blue\\)\\]\\[rust-version\\]"
       ],
       "packageNameTemplate": "rust-lang/rust-analyzer",
       "datasourceTemplate": "github-releases",
