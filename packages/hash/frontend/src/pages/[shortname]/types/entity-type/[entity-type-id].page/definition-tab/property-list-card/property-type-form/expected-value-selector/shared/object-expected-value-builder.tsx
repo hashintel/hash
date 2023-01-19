@@ -1,7 +1,7 @@
-import { VersionedUri } from "@blockprotocol/type-system";
+import { extractBaseUri } from "@blockprotocol/type-system";
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { Chip, FontAwesomeIcon } from "@local/design-system";
 import {
   Box,
   Checkbox,
@@ -16,7 +16,7 @@ import { usePopupState } from "material-ui-popup-state/hooks";
 import { FunctionComponent, useEffect, useMemo, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
-import { usePropertyTypesContextValue } from "../../../../../shared/use-property-types-context-value";
+import { useLatestPropertyTypesContextValue } from "../../../../../shared/use-latest-property-types-context-value";
 import { Property } from "../../../shared/expected-value-types";
 import { CustomExpectedValueSelector } from "./custom-expected-value-selector";
 import { DeleteExpectedValueModal } from "./delete-expected-value-modal";
@@ -64,7 +64,7 @@ const ObjectExpectedValueRow: FunctionComponent<
 
   const { setValue } = useFormContext<ExpectedValueSelectorFormValues>();
 
-  const { types: propertyTypes } = usePropertyTypesContextValue();
+  const { types: propertyTypes } = useLatestPropertyTypesContextValue();
   const propertyType = propertyTypes?.[property.id];
 
   useEffect(() => {
@@ -154,9 +154,9 @@ type ObjectExpectedValueBuilderProps = {
 export const ObjectExpectedValueBuilder: FunctionComponent<
   ObjectExpectedValueBuilderProps
 > = ({ expectedValueId, prefix, deleteTooltip, onDelete, index = [] }) => {
-  const { types: propertyTypes } = usePropertyTypesContextValue();
+  const { types: propertyTypes } = useLatestPropertyTypesContextValue();
 
-  const { setValue, control } =
+  const { setValue, getValues, control } =
     useFormContext<ExpectedValueSelectorFormValues>();
 
   const editingExpectedValueIndex = useWatch({
@@ -191,6 +191,18 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
       setShow(true);
     }
   }, [properties, show]);
+
+  const options = useMemo(() => {
+    const propertyTypeBaseUri = getValues(`propertyTypeBaseUri`);
+    return propertyTypes
+      ? Object.values(propertyTypes)
+          .map(({ $id }) => $id)
+          .filter(
+            (versionedUri) =>
+              extractBaseUri(versionedUri) !== propertyTypeBaseUri,
+          )
+      : [];
+  }, [propertyTypes, getValues]);
 
   return (
     <Stack sx={{ mb: 1 }}>
@@ -277,7 +289,7 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
             inputLabel="Add to property object"
             collapsedWidth={214}
             value={propertyIds}
-            options={propertyTypes ? Object.keys(propertyTypes) : []}
+            options={options}
             onChange={(_evt, _data, reason, details) => {
               const typeId = details?.option;
               if (typeId) {
@@ -287,7 +299,7 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
                     [
                       ...properties,
                       {
-                        id: details.option as VersionedUri,
+                        id: details.option,
                         allowArrays: false,
                         required: false,
                       },
@@ -319,7 +331,7 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
               }
             }}
             renderOption={(optProps, opt) => {
-              const property = propertyTypes?.[opt as VersionedUri];
+              const property = propertyTypes?.[opt];
               return property ? (
                 <Box component="li" {...optProps} sx={{ py: 1.5, px: 2.25 }}>
                   <FontAwesomeIcon

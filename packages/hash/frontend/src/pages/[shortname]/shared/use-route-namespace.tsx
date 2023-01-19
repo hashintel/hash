@@ -1,4 +1,4 @@
-import { AccountId } from "@hashintel/hash-shared/types";
+import { AccountId } from "@local/hash-isomorphic-utils/types";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 

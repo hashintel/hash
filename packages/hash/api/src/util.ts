@@ -4,7 +4,7 @@ export {
   DefaultMap,
   topologicalSort,
   treeFromParentReferences,
-} from "@hashintel/hash-shared/util";
+} from "@local/hash-isomorphic-utils/util";
 
 /**
  * Generate a new ID.

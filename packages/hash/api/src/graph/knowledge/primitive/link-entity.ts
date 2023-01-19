@@ -1,4 +1,3 @@
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import {
   Entity,
   EntityId,
@@ -7,6 +6,7 @@ import {
   LinkData,
   PropertyObject,
 } from "@hashintel/hash-subgraph";
+import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
 
 import { ImpureGraphFunction } from "../..";
 import { isEntityTypeLinkEntityType } from "../../ontology/primitive/entity-type";

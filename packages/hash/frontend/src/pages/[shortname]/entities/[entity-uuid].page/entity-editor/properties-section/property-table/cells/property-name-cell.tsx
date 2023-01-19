@@ -3,7 +3,7 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
-import { customColors } from "@hashintel/hash-design-system/src/theme/palette";
+import { customColors } from "@local/design-system/src/theme/palette";
 
 import {
   getCellHorizontalPadding,

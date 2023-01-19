@@ -1,7 +1,7 @@
 import { VersionedUri } from "@blockprotocol/type-system";
-import { OwnedById } from "@hashintel/hash-shared/types";
 import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import { useRouter } from "next/router";
 import { useContext, useState } from "react";
 
@@ -38,8 +38,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
   const { activeWorkspace, activeWorkspaceAccountId } =
     useContext(WorkspaceContext);
   const { createEntity } = useBlockProtocolCreateEntity(
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-    (activeWorkspaceAccountId as OwnedById) ?? null,
+    (activeWorkspaceAccountId as OwnedById | undefined) ?? null,
   );
 
   const [creating, setCreating] = useState(false);

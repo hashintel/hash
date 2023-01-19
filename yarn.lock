@@ -8864,7 +8864,7 @@ better-opn@^2.1.1:
   dependencies:
     open "^7.0.3"
 
-big-integer@^1.6.44:
+big-integer@^1.6.44, big-integer@^1.6.48:
   version "1.6.51"
   resolved "https://registry.yarnpkg.com/big-integer/-/big-integer-1.6.51.tgz#0df92a5d9880560d3ff2d5fd20245c889d130686"
   integrity sha512-GPEid2Y9QU1Exl1rpO9B2IPJGHPSupF5GnVIP0blYvNOMer2bTvSWs1jGOUg04hTmu67nmLsQ9TBo1puaotBHg==
@@ -16435,6 +16435,13 @@ node-releases@^2.0.6:
   resolved "https://registry.yarnpkg.com/node-releases/-/node-releases-2.0.6.tgz#8a7088c63a55e493845683ebf3c828d8c51c5503"
   integrity sha512-PiVXnNuFm5+iYkLBNeq5211hvO38y63T0i2KKh2KnUs3RpzJ+JtODFjkD8yjLwnDkTYF1eKXheUwdssR+NRZdg==
 
+node-sql-parser@^4.4.0:
+  version "4.6.4"
+  resolved "https://registry.yarnpkg.com/node-sql-parser/-/node-sql-parser-4.6.4.tgz#35b00401ca23018798b69d3cec0917aa87e5a84d"
+  integrity sha512-OPzbsiN5VX37/HM5BgGxcoDt1ggvFUc6gdzyQzoPjk8orTOHBlgHuDUugP5oRU+CcOw8GniilvV3pt5FBxp47A==
+  dependencies:
+    big-integer "^1.6.48"
+
 nodemailer@6.6.3:
   version "6.6.3"
   resolved "https://registry.yarnpkg.com/nodemailer/-/nodemailer-6.6.3.tgz#31fb53dd4d8ae16fc088a65cb9ffa8d928a69b48"
@@ -17454,6 +17461,15 @@ prettier-plugin-sh@0.12.8:
     mvdan-sh "^0.10.1"
     sh-syntax "^0.3.6"
     synckit "^0.8.1"
+
+prettier-plugin-sql@0.12.1:
+  version "0.12.1"
+  resolved "https://registry.yarnpkg.com/prettier-plugin-sql/-/prettier-plugin-sql-0.12.1.tgz#ae1d87640a51cd2e3f82c51561a299c0d30003d7"
+  integrity sha512-2z0pMmQEC61Xywerw2FJFpEIaA9lJUjB5mj+9dfRU8HkU7iICFrIizpMjSSDMoGkhh5W+IRROVgLlgRdpphI7g==
+  dependencies:
+    node-sql-parser "^4.4.0"
+    sql-formatter "^10.0.0"
+    tslib "^2.4.0"
 
 prettier@2.8.2, prettier@^2.3.2, prettier@^2.6.2, prettier@^2.8.0:
   version "2.8.2"
@@ -19579,6 +19595,14 @@ sprintf-js@~1.0.2:
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.0.3.tgz#04e6926f662895354f3dd015203633b857297e2c"
   integrity sha1-BOaSb2YolTVPPdAVIDYzuFcpfiw=
+
+sql-formatter@^10.0.0:
+  version "10.7.2"
+  resolved "https://registry.yarnpkg.com/sql-formatter/-/sql-formatter-10.7.2.tgz#e482d73c44fa1243a6730f27dfab2ad734b95f30"
+  integrity sha512-YspJXMr2rKMGZY50zYRBs2nCtEO/AKDrmQOxmV2CrGEOFSXUhY3YbsOUe6lX0T/7xbBs4pAYv4UObmwf78vtKg==
+  dependencies:
+    argparse "^2.0.1"
+    nearley "^2.20.1"
 
 sshpk@^1.7.0:
   version "1.17.0"

@@ -1,5 +1,5 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { FontAwesomeIcon } from "@local/design-system";
 import { Box, Tabs, tabsClasses } from "@mui/material";
 import { useRouter } from "next/router";
 import { useState } from "react";
@@ -16,7 +16,7 @@ import { getTabUri, getTabValue, useCurrentTab } from "./shared/tabs";
 export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
   const router = useRouter();
 
-  const entityType = useEntityType();
+  const { entityType } = useEntityType();
 
   const [animateTabs, setAnimateTabs] = useState(false);
 

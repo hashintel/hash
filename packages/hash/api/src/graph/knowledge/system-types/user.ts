@@ -1,11 +1,4 @@
 import {
-  AccountId,
-  EntityUuid,
-  extractEntityUuidFromEntityId,
-  OwnedById,
-  Uuid,
-} from "@hashintel/hash-shared/types";
-import {
   Entity,
   EntityId,
   PropertyObject,
@@ -13,6 +6,13 @@ import {
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+import {
+  AccountId,
+  EntityUuid,
+  extractEntityUuidFromEntityId,
+  OwnedById,
+  Uuid,
+} from "@local/hash-isomorphic-utils/types";
 
 import {
   kratosIdentityApi,

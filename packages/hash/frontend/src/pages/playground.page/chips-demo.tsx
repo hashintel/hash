@@ -1,10 +1,6 @@
 /* eslint-disable no-alert -- used for testing purposes */
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
-import {
-  Chip,
-  ChipGroup,
-  FontAwesomeIcon,
-} from "@hashintel/hash-design-system";
+import { Chip, ChipGroup, FontAwesomeIcon } from "@local/design-system";
 import { Box, Stack } from "@mui/material";
 
 export const ChipsDemo = () => {

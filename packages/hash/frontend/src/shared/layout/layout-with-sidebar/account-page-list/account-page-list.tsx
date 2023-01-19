@@ -17,14 +17,14 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { isEntityId } from "@hashintel/hash-subgraph";
 import {
   AccountId,
   EntityId,
   EntityUuid,
   extractEntityUuidFromEntityId,
   OwnedById,
-} from "@hashintel/hash-shared/types";
-import { isEntityId } from "@hashintel/hash-subgraph";
+} from "@local/hash-isomorphic-utils/types";
 import { Box, Collapse } from "@mui/material";
 import {
   FunctionComponent,

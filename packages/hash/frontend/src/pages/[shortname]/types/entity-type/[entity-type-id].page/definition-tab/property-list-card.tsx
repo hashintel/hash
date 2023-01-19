@@ -1,17 +1,40 @@
-import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
-import { faList } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { OwnedById } from "@hashintel/hash-shared/types";
 import {
+  extractBaseUri,
+  extractVersion,
+  PropertyType,
+  VersionedUri,
+} from "@blockprotocol/type-system";
+import { faList } from "@fortawesome/free-solid-svg-icons";
+import { Subgraph } from "@hashintel/hash-subgraph";
+import { getPropertyTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
+import { FontAwesomeIcon } from "@local/design-system";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
+import {
+  Box,
   Checkbox,
-  Fade,
+  checkboxClasses,
+  Collapse,
+  svgIconClasses,
+  Table,
   TableBody,
   TableCell,
+  TableCellProps,
   TableFooter,
   TableHead,
+  TableRow,
+  Tooltip,
 } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import { useCallback, useId, useLayoutEffect, useRef, useState } from "react";
+import {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Controller,
   useFieldArray,
@@ -23,16 +46,19 @@ import { useBlockProtocolCreatePropertyType } from "../../../../../../components
 import { useBlockProtocolUpdatePropertyType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-property-type";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
 import { useRouteNamespace } from "../../../../shared/use-route-namespace";
+import { useEntityType } from "../shared/entity-type-context";
 import { EntityTypeEditorForm } from "../shared/form-types";
 import {
-  usePropertyTypes,
-  useRefetchPropertyTypes,
-} from "../shared/property-types-context";
+  useLatestPropertyTypes,
+  useRefetchLatestPropertyTypes,
+} from "../shared/latest-property-types-context";
 import { getPropertyTypeSchema } from "./property-list-card/get-property-type-schema";
 import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
+import { PropertyTitleCell } from "./property-list-card/property-title-cell";
 import { PropertyTypeForm } from "./property-list-card/property-type-form";
 import { propertyTypeToFormDataExpectedValues } from "./property-list-card/property-type-to-form-data-expected-values";
 import { PropertyTypeFormValues } from "./property-list-card/shared/property-type-form-values";
+import { CollapsibleRowLine } from "./shared/collapsible-row-line";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
@@ -40,14 +66,323 @@ import {
   EntityTypeTableCenteredCell,
   EntityTypeTableHeaderRow,
   EntityTypeTableRow,
-  EntityTypeTableTitleCellText,
 } from "./shared/entity-type-table";
 import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
-import { MultipleValuesCell } from "./shared/multiple-values-cell";
+import {
+  MULTIPLE_VALUES_CELL_WIDTH,
+  MultipleValuesCell,
+} from "./shared/multiple-values-cell";
 import { QuestionIcon } from "./shared/question-icon";
 import { TypeFormModal } from "./shared/type-form";
-import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
+import { TypeMenuCell } from "./shared/type-menu-cell";
 import { useStateCallback } from "./shared/use-state-callback";
+
+const CollapsibleTableRow = ({
+  expanded,
+  depth,
+  lineHeight,
+  children,
+}: {
+  expanded: boolean;
+  depth: number;
+  lineHeight: number;
+  children: ReactNode;
+}) => {
+  return (
+    <TableRow>
+      <TableCell colSpan={12} sx={{ p: "0 !important", position: "relative" }}>
+        <Collapse
+          in={expanded}
+          sx={{
+            position: "relative",
+            top: `-${lineHeight}px`,
+            mb: `-${lineHeight}px`,
+            pointerEvents: "none",
+          }}
+          appear
+        >
+          <CollapsibleRowLine height={`${lineHeight}px`} depth={depth} />
+
+          <Table sx={{ mt: `${lineHeight}px`, pointerEvents: "all" }}>
+            <TableBody
+              sx={{
+                "::before": {
+                  height: 0,
+                },
+              }}
+            >
+              {children}
+            </TableBody>
+          </Table>
+        </Collapse>
+      </TableCell>
+    </TableRow>
+  );
+};
+
+const DisabledCheckboxCell = ({
+  title,
+  checked,
+  width,
+  sx,
+}: {
+  title: string;
+  checked?: boolean;
+  width: number;
+} & TableCellProps) => {
+  return (
+    <EntityTypeTableCenteredCell width={width}>
+      <Tooltip title={title} placement="top" disableInteractive>
+        <Box
+          sx={[
+            {
+              boxSizing: "content-box",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            },
+            ...(Array.isArray(sx) ? sx : [sx]),
+          ]}
+        >
+          <Checkbox
+            disabled
+            checked={checked}
+            sx={[
+              {
+                color: ({ palette }) => `${palette.gray[40]} !important`,
+                [`.${svgIconClasses.root}`]: {
+                  color: "inherit",
+                },
+                [`&.${checkboxClasses.checked}.${checkboxClasses.disabled}`]: {
+                  color: ({ palette }) => `${palette.blue[30]} !important`,
+                },
+              },
+            ]}
+          />
+        </Box>
+      </Tooltip>
+    </EntityTypeTableCenteredCell>
+  );
+};
+
+const usePropertyTypeVersions = (
+  propertyTypeId: VersionedUri,
+  propertyTypesSubgraph?: Subgraph | null,
+) => {
+  return useMemo(() => {
+    const baseUri = extractBaseUri(propertyTypeId);
+
+    const versions = propertyTypesSubgraph
+      ? getPropertyTypesByBaseUri(propertyTypesSubgraph, baseUri)
+      : [];
+
+    const latestVersion = Math.max(
+      ...versions.map(
+        ({
+          metadata: {
+            editionId: { version },
+          },
+        }) => version,
+      ),
+    );
+
+    return [
+      extractVersion(propertyTypeId),
+      latestVersion,
+      baseUri.slice(0, -1),
+    ] as const;
+  }, [propertyTypeId, propertyTypesSubgraph]);
+};
+
+const REQUIRED_CELL_WIDTH = 100;
+
+const PropertyRow = ({
+  property,
+  isArray,
+  isRequired,
+  depth = 0,
+  lines = [],
+  parentPropertyName,
+  allowArraysTableCell,
+  requiredTableCell,
+  menuTableCell,
+  onUpdateVersion,
+}: {
+  property: PropertyType;
+  isArray: boolean;
+  isRequired?: boolean;
+  depth?: number;
+  lines?: boolean[];
+  parentPropertyName?: string;
+  allowArraysTableCell?: ReactNode;
+  requiredTableCell?: ReactNode;
+  menuTableCell?: ReactNode;
+  onUpdateVersion?: (nextId: VersionedUri) => void;
+}) => {
+  const [propertyTypes, propertyTypesSubgraph] = useLatestPropertyTypes();
+  const { propertyTypes: entityTypePropertyTypes } = useEntityType();
+
+  const [currentVersion, latestVersion, baseUri] = usePropertyTypeVersions(
+    property.$id,
+    propertyTypesSubgraph,
+  );
+
+  const [expanded, setExpanded] = useState(true);
+
+  const mainRef = useRef<HTMLTableRowElement | null>(null);
+  const [lineHeight, setLineHeight] = useState(0);
+
+  const [animatingOutExpectedValue, setAnimatingOutExpectedValue] =
+    useState(false);
+  const [selectedExpectedValueIndex, setSelectedExpectedValueIndex] =
+    useState(-1);
+
+  const children = useMemo(() => {
+    const selectedProperty = property.oneOf[selectedExpectedValueIndex]
+      ? property.oneOf[selectedExpectedValueIndex]
+      : null;
+
+    const selectedObjectProperties =
+      selectedProperty && "properties" in selectedProperty
+        ? selectedProperty.properties
+        : undefined;
+
+    return selectedObjectProperties
+      ? Object.entries(selectedObjectProperties).reduce(
+          (
+            childrenArray: ({
+              array: boolean;
+              required: boolean;
+            } & PropertyType)[],
+            [propertyId, ref],
+          ) => {
+            const $ref = "items" in ref ? ref.items.$ref : ref.$ref;
+            const propertyType =
+              entityTypePropertyTypes[$ref] ?? propertyTypes?.[$ref];
+
+            if (propertyType) {
+              const array = "type" in ref;
+              const required = Boolean(
+                selectedProperty &&
+                  "required" in selectedProperty &&
+                  selectedProperty.required?.includes(propertyId),
+              );
+              return [...childrenArray, { ...propertyType, array, required }];
+            }
+
+            return childrenArray;
+          },
+          [],
+        )
+      : [];
+  }, [
+    selectedExpectedValueIndex,
+    property.oneOf,
+    propertyTypes,
+    entityTypePropertyTypes,
+  ]);
+
+  const handleResize = () => {
+    if (mainRef.current) {
+      setLineHeight(mainRef.current.offsetHeight * 0.5 - 8);
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  return (
+    <>
+      <EntityTypeTableRow
+        ref={(row: HTMLTableRowElement | null) => {
+          if (row) {
+            mainRef.current = row;
+            handleResize();
+          }
+        }}
+      >
+        <PropertyTitleCell
+          property={property}
+          array={isArray}
+          depth={depth}
+          lines={lines}
+          expanded={children.length ? expanded : undefined}
+          setExpanded={setExpanded}
+          currentVersion={currentVersion}
+          latestVersion={latestVersion}
+          onVersionUpdate={() => {
+            if (latestVersion) {
+              onUpdateVersion?.(`${baseUri}/v/${latestVersion}`);
+            }
+          }}
+        />
+
+        <TableCell>
+          <PropertyExpectedValues
+            property={property}
+            selectedExpectedValueIndex={selectedExpectedValueIndex}
+            setSelectedExpectedValueIndex={(value) => {
+              setSelectedExpectedValueIndex(value);
+              setExpanded(true);
+            }}
+            setAnimatingOutExpectedValue={setAnimatingOutExpectedValue}
+          />
+        </TableCell>
+
+        {allowArraysTableCell ?? (
+          <DisabledCheckboxCell
+            title={`Edit the '${parentPropertyName}' property to change this`}
+            checked={isArray}
+            width={MULTIPLE_VALUES_CELL_WIDTH}
+            sx={{ pr: 1 }}
+          />
+        )}
+
+        {requiredTableCell ?? (
+          <DisabledCheckboxCell
+            title={`Edit the '${parentPropertyName}' property to change this`}
+            checked={isRequired}
+            width={REQUIRED_CELL_WIDTH}
+          />
+        )}
+
+        {menuTableCell ?? (
+          <TypeMenuCell
+            typeId={property.$id}
+            variant="property"
+            canEdit={false}
+            canRemove={false}
+          />
+        )}
+      </EntityTypeTableRow>
+
+      {children.length ? (
+        <CollapsibleTableRow
+          expanded={expanded && !animatingOutExpectedValue}
+          depth={depth}
+          lineHeight={lineHeight}
+        >
+          {children.map((prop, pos) => (
+            <PropertyRow
+              key={prop.$id}
+              property={prop}
+              depth={depth + 1}
+              lines={[...lines, pos !== children.length - 1]}
+              isArray={prop.array}
+              isRequired={prop.required}
+              parentPropertyName={property.title}
+            />
+          ))}
+        </CollapsibleTableRow>
+      ) : null}
+    </>
+  );
+};
 
 export const PropertyTypeRow = ({
   propertyIndex,
@@ -68,12 +403,6 @@ export const PropertyTypeRow = ({
     ],
   });
 
-  const popupId = useId();
-  const menuPopupState = usePopupState({
-    variant: "popover",
-    popupId: `property-menu-${popupId}`,
-  });
-
   const editModalId = useId();
   const editModalPopupState = usePopupState({
     variant: "popover",
@@ -81,14 +410,20 @@ export const PropertyTypeRow = ({
   });
 
   const { updatePropertyType } = useBlockProtocolUpdatePropertyType();
-  const refetchPropertyTypes = useRefetchPropertyTypes();
+  const refetchPropertyTypes = useRefetchLatestPropertyTypes();
   const onUpdateVersionRef = useRef(onUpdateVersion);
   useLayoutEffect(() => {
     onUpdateVersionRef.current = onUpdateVersion;
   });
 
-  const propertyTypes = usePropertyTypes();
-  const property = propertyTypes?.[$id];
+  const [propertyTypes, propertyTypesSubgraph] = useLatestPropertyTypes();
+  const { propertyTypes: entityTypePropertyTypes } = useEntityType();
+  const property = entityTypePropertyTypes[$id] ?? propertyTypes?.[$id];
+
+  const [currentVersion, latestVersion] = usePropertyTypeVersions(
+    $id,
+    propertyTypesSubgraph,
+  );
 
   const getDefaultValues = useCallback(() => {
     if (!property) {
@@ -116,48 +451,43 @@ export const PropertyTypeRow = ({
 
   return (
     <>
-      <EntityTypeTableRow>
-        <TableCell>
-          <EntityTypeTableTitleCellText>
-            {property.title}
-            <Fade in={array} appear={false}>
-              <FontAwesomeIcon
-                sx={{
-                  color: ({ palette }) => palette.gray[70],
-                  fontSize: 14,
-                  ml: 1,
-                }}
-                icon={faList}
-              />
-            </Fade>
-          </EntityTypeTableTitleCellText>
-        </TableCell>
-        <TableCell>
-          <PropertyExpectedValues property={property} />
-        </TableCell>
-
-        <MultipleValuesCell index={propertyIndex} variant="property" />
-
-        <EntityTypeTableCenteredCell>
-          <Controller
-            render={({ field: { value, ...field } }) => (
-              <Checkbox {...field} checked={value} />
-            )}
-            control={control}
-            name={`properties.${propertyIndex}.required`}
+      <PropertyRow
+        property={property}
+        isArray={array}
+        allowArraysTableCell={
+          <MultipleValuesCell index={propertyIndex} variant="property" />
+        }
+        requiredTableCell={
+          <EntityTypeTableCenteredCell width={REQUIRED_CELL_WIDTH}>
+            <Controller
+              render={({ field: { value, ...field } }) => (
+                <Checkbox {...field} checked={value} />
+              )}
+              control={control}
+              name={`properties.${propertyIndex}.required`}
+            />
+          </EntityTypeTableCenteredCell>
+        }
+        menuTableCell={
+          <TypeMenuCell
+            editButtonProps={bindTrigger(editModalPopupState)}
+            onRemove={onRemove}
+            typeId={property.$id}
+            variant="property"
+            {...(currentVersion !== latestVersion
+              ? {
+                  editButtonDisabled:
+                    "Update the property type to the latest version to edit",
+                }
+              : {})}
           />
-        </EntityTypeTableCenteredCell>
+        }
+        onUpdateVersion={onUpdateVersion}
+      />
 
-        <TypeMenuCell
-          editButtonProps={bindTrigger(editModalPopupState)}
-          onRemove={onRemove}
-          typeId={property.$id}
-          popupState={menuPopupState}
-          variant="property"
-        />
-      </EntityTypeTableRow>
       <TypeFormModal
         as={PropertyTypeForm}
+        baseUri={extractBaseUri($id)}
         popupState={editModalPopupState}
         modalTitle={<>Edit Property Type</>}
         onSubmit={async (data) => {
@@ -192,14 +522,18 @@ const InsertPropertyRow = (
   const { control } = useFormContext<EntityTypeEditorForm>();
   const properties = useWatch({ control, name: "properties" });
 
-  const propertyTypesObj = usePropertyTypes();
+  const [propertyTypesObj] = useLatestPropertyTypes();
   const propertyTypes = Object.values(propertyTypesObj ?? {});
 
-  // @todo make more efficient
-  const filteredPropertyTypes = propertyTypes.filter(
-    (type) =>
-      !properties.some((includedProperty) => includedProperty.$id === type.$id),
-  );
+  const filteredPropertyTypes = useMemo(() => {
+    const propertyBaseUris = properties.map((includedProperty) =>
+      extractBaseUri(includedProperty.$id),
+    );
+
+    return propertyTypes.filter(
+      (type) => !propertyBaseUris.includes(extractBaseUri(type.$id)),
+    );
+  }, [properties, propertyTypes]);
 
   return (
     <InsertTypeRow
@@ -233,7 +567,7 @@ export const PropertyListCard = () => {
     (routeNamespace?.accountId as OwnedById) ?? null,
   );
 
-  const refetchPropertyTypes = useRefetchPropertyTypes();
+  const refetchPropertyTypes = useRefetchLatestPropertyTypes();
   const modalTooltipId = useId();
   const createModalPopupState = usePopupState({
     variant: "popover",
@@ -302,9 +636,9 @@ export const PropertyListCard = () => {
     <EntityTypeTable>
       <TableHead>
         <EntityTypeTableHeaderRow>
-          <TableCell width={260}>Property name</TableCell>
+          <TableCell>Property name</TableCell>
           <TableCell>Expected values</TableCell>
-          <EntityTypeTableCenteredCell width={170}>
+          <EntityTypeTableCenteredCell>
             Allow arrays{" "}
             <QuestionIcon
               tooltip={
@@ -315,10 +649,8 @@ export const PropertyListCard = () => {
               }
             />
           </EntityTypeTableCenteredCell>
-          <EntityTypeTableCenteredCell width={100}>
-            Required
-          </EntityTypeTableCenteredCell>
-          <TableCell width={TYPE_MENU_CELL_WIDTH} />
+          <EntityTypeTableCenteredCell>Required</EntityTypeTableCenteredCell>
+          <TableCell />
         </EntityTypeTableHeaderRow>
       </TableHead>
       <TableBody>

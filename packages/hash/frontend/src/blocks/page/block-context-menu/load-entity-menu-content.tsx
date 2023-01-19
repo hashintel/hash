@@ -1,12 +1,12 @@
 import { faAsterisk, faSearch } from "@fortawesome/free-solid-svg-icons";
+import { EntityId } from "@hashintel/hash-subgraph";
 import {
   FontAwesomeIcon,
   LoadingSpinner,
   TextField,
-} from "@hashintel/hash-design-system";
-import { BlockEntity } from "@hashintel/hash-shared/entity";
-import { EntityStoreType } from "@hashintel/hash-shared/entity-store";
-import { EntityId } from "@hashintel/hash-subgraph";
+} from "@local/design-system";
+import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
+import { EntityStoreType } from "@local/hash-isomorphic-utils/entity-store";
 import {
   Box,
   InputAdornment,

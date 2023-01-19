@@ -4,7 +4,7 @@ import {
   getInputProps,
   inputLabelProps,
   TextField,
-} from "@hashintel/hash-design-system";
+} from "@local/design-system";
 import {
   Box,
   Checkbox,
@@ -64,6 +64,8 @@ const MultipleValuesCellSummary = ({
     </Frozen>
   </Collapse>
 );
+
+export const MULTIPLE_VALUES_CELL_WIDTH = 170;
 
 export const MultipleValuesCell = ({
   index,
@@ -162,6 +164,7 @@ export const MultipleValuesCell = ({
           p: "0 !important",
           position: "relative",
         }}
+        width={MULTIPLE_VALUES_CELL_WIDTH}
       >
         <Box
           onClick={() => {
