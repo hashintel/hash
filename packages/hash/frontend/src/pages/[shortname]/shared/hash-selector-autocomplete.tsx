@@ -224,12 +224,17 @@ export const HashSelectorAutocomplete = <
           }}
         />
       )}
-      renderOption={(props, option) => (
-        <HashSelectorAutocompleteOption
-          liProps={props}
-          {...optionToRenderData(option)}
-        />
-      )}
+      renderOption={(props, option) => {
+        const optionRenderData = optionToRenderData(option);
+
+        return (
+          <HashSelectorAutocompleteOption
+            liProps={props}
+            key={optionRenderData.$id}
+            {...optionRenderData}
+          />
+        );
+      }}
       popupIcon={null}
       disableClearable
       forcePopupIcon={false}

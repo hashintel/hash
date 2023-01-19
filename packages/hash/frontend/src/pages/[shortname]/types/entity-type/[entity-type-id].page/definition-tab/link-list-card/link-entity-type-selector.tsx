@@ -201,6 +201,7 @@ export const LinkEntityTypeSelector = ({
           ]}
         >
           <HashSelectorAutocomplete
+            disableCloseOnSelect
             multiple
             sx={[
               popperPlacementPopperNoRadius,
@@ -254,6 +255,8 @@ export const LinkEntityTypeSelector = ({
                     break;
                 }
               }
+
+              return false;
             }}
             options={entityTypesArray}
             optionToRenderData={({ schema: { $id, title, description } }) => ({
