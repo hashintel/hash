@@ -168,6 +168,7 @@ export const LinkEntityTypeSelector = ({
                           chosenEntityTypeIds.filter(
                             (id) => id !== entityTypeId,
                           ),
+                          { shouldDirty: true },
                         );
                       },
                     }
@@ -248,10 +249,11 @@ export const LinkEntityTypeSelector = ({
               if (details) {
                 switch (reason) {
                   case "selectOption":
-                    setValue(`links.${linkIndex}.entityTypes`, [
-                      ...chosenEntityTypeIds,
-                      details.option.schema.$id,
-                    ]);
+                    setValue(
+                      `links.${linkIndex}.entityTypes`,
+                      [...chosenEntityTypeIds, details.option.schema.$id],
+                      { shouldDirty: true },
+                    );
                     break;
 
                   case "removeOption":
@@ -260,6 +262,7 @@ export const LinkEntityTypeSelector = ({
                       chosenEntityTypeIds.filter(
                         (id) => id !== details.option.schema.$id,
                       ),
+                      { shouldDirty: true },
                     );
                     break;
                 }
