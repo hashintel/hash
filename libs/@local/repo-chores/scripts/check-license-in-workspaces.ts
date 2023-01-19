@@ -134,8 +134,11 @@ const script = async () => {
     }
   }
 
-  if (checkFailed) {
+  if (checkFailed || extraLicenseFilesArePresent) {
     console.log();
+  }
+
+  if (checkFailed) {
     console.log(
       chalk.red(
         "Please make sure that each Yarn workspace has a LICENSE.md file. Additional license files need to be named as LICENSE-*.md (all caps)",
