@@ -3,6 +3,7 @@ import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import { VersionedUri } from "@hashintel/hash-subgraph";
 import { FontAwesomeIcon, IconButton, MenuItem } from "@local/design-system";
 import {
+  Box,
   Divider,
   iconButtonClasses,
   ListItem,
@@ -21,7 +22,7 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { Fragment, useId } from "react";
+import { Fragment, useCallback, useId } from "react";
 
 import { MenuItemProps } from "../../../../../../../shared/ui/menu-item";
 import {
@@ -38,11 +39,13 @@ export const TypeMenuCell = ({
   canRemove = true,
   editButtonProps,
   onRemove,
+  editButtonDisabled,
 }: {
   typeId: VersionedUri;
   variant: "property" | "link";
   canRemove?: boolean;
   canEdit?: boolean;
+  editButtonDisabled?: string;
   editButtonProps?: MenuItemProps;
   onRemove?: () => void;
 }) => {
@@ -54,6 +57,26 @@ export const TypeMenuCell = ({
     variant: "popover",
     popupId: `property-menu-${popupId}`,
   });
+
+  const EditButton = useCallback(
+    () => (
+      <MenuItem
+        {...editButtonProps}
+        disabled={!!editButtonDisabled}
+        onClick={(evt) => {
+          popupState.close();
+          editButtonProps?.onClick?.(evt);
+        }}
+        onTouchStart={(evt) => {
+          popupState.close();
+          editButtonProps?.onTouchStart?.(evt);
+        }}
+      >
+        <ListItemText primary={<>Edit {variant}</>} />
+      </MenuItem>
+    ),
+    [editButtonDisabled, popupState, editButtonProps, variant],
+  );
 
   return (
     <TableCell
@@ -118,20 +141,15 @@ export const TypeMenuCell = ({
                 Actions
               </Typography>,
               canEdit ? (
-                <MenuItem
-                  key="edit"
-                  {...editButtonProps}
-                  onClick={(evt) => {
-                    popupState.close();
-                    editButtonProps?.onClick?.(evt);
-                  }}
-                  onTouchStart={(evt) => {
-                    popupState.close();
-                    editButtonProps?.onTouchStart?.(evt);
-                  }}
-                >
-                  <ListItemText primary={<>Edit {variant}</>} />
-                </MenuItem>
+                editButtonDisabled ? (
+                  <Tooltip key="edit" title={editButtonDisabled}>
+                    <Box>
+                      <EditButton />
+                    </Box>
+                  </Tooltip>
+                ) : (
+                  <EditButton key="edit" />
+                )
               ) : null,
               canRemove ? (
                 <MenuItem
