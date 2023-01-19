@@ -109,6 +109,15 @@ where
             RawEntryMut::Occupied(entry) => {
                 let (current_depths, current_interval) = entry.into_mut();
                 let old_interval = current_interval.clone();
+
+                // Ideally, we want to use a `union` here instead, as we only want to resolve
+                // elements contained in either sets of intervals. However, the current
+                // implementation doesn't have the necessary support to handle a bigger set of
+                // multiple intervals so we use a `merge` instead to make sure we're covering
+                // _at least_ the intervals requested. This does imply that in some cases the
+                // subgraph will contain more information than requested, where we'll also be
+                // querying the space between the two intervals when they're not adjacent or
+                // overlapping.
                 *current_interval = current_interval.clone().merge(new_interval.clone());
 
                 if current_depths.update(new_resolve_depth) {
@@ -127,10 +136,10 @@ where
                     // The dependency is already resolved, but not for the required interval. If the
                     // old interval is contained in the new interval, this means, that a portion of
                     // the new interval has already been resolved, but not all of it. Ideally we
-                    // only want to resolve the symmetric difference of `new - old`, but we don't
-                    // have a way to store different resolve depths for different intervals for the
-                    // same identifier. For simplicity, we require to resolve the full interval.
-
+                    // only want to resolve the difference of `new - old`, but we don't have a way
+                    // to store different resolve depths for different intervals for the same
+                    // identifier. For simplicity, we require to resolve the full interval.
+                    //
                     //         |  contains   |  adjacent
                     // old     |    [---)    | [---)
                     // new     | [---------) |     [---)
@@ -161,23 +170,18 @@ where
                     // resolve the new interval, but we did not come up with a good way to store the
                     // different intervals in the dependency map. So we resolve the full interval
                     // for now.
-
-                    // This case is expected to happen very rarely, so falling back to this logic
-                    // is fine for now. If it turns out to be a performance bottleneck, we can
-                    // find and implement a better solution. To track this, we log a warning.
-                    tracing::warn!(
-                        vertex_id=?identifier,
-                        ?old_interval,
-                        ?new_interval,
-                        "dependency is resolved for disjoint intervals"
-                    );
-
+                    //
                     // We only require this logic when traversing edges of the graph, so the roots
                     // of the graph are always precisely resolved correctly. By this implementation,
-                    // we may get a few more dependencies resolved than necessary, which will appear
-                    // as vertices/edges in the subgraph. As we do not guarantee that the subgraph's
-                    // vertices/edges are minimal, this is not a problem.
-
+                    // we may get more dependencies resolved than necessary, which will appear as
+                    // vertices/edges in the subgraph. until we have decided, if we consider this a
+                    // bug or not, we keep the current behavior
+                    // see https://app.asana.com/0/0/1203774687353264/f.
+                    //
+                    // Ideally, we want to track this occurrence in production, but utilizing our
+                    // current logging strategy does not work well as we would have to log with a
+                    // high severity. see https://app.asana.com/0/0/1203774687353266/f
+                    //
                     // However, we only have to resolve the difference of the merge of the two, as
                     // the old interval is already resolved. and the intervals are disjoint:
                     // Examples |      1      |      B
@@ -185,7 +189,8 @@ where
                     // old      | [---)       |       [---)
                     // new      |       [---) | [---)
                     // ---------|-------------|-------------
-                    // resolve  |     [-----) | [-----)
+                    // optimal  |       [---) | [---)
+                    // current  |     [-----) | [-----)
                     let difference = old_interval
                         .clone()
                         .merge(new_interval)
