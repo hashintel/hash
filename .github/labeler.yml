@@ -16,10 +16,10 @@ A-blocks:
   - "blocks/**/.*"
 
 A-hash:
-  - "infra
-  - "infra
-  - "infra
-  - "infra
+  - "packages/hash/*"
+  - "packages/hash/.*"
+  - "packages/hash/**/*"
+  - "packages/hash/**/.*"
 
 A-engine:
   - "apps/engine/*"
