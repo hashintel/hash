@@ -57,21 +57,24 @@
       "matchDepNames": ["rust"],
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
       "matchPaths": ["**/error-stack/**"],
-      "groupName": "error-stack"
+      "groupName": "error-stack",
+      "commitMessageTopic": "error-stack"
     },
     {
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
       "matchPaths": ["**/deer/**"],
-      "groupName": "deer"
+      "groupName": "deer",
+      "commitMessageTopic": "deer"
     },
     {
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
       "matchPaths": ["**/graph/**"],
-      "groupName": "graph"
+      "groupName": "graph",
+      "commitMessageTopic": "graph"
     }
   ],
   "regexManagers": [
