@@ -1,9 +1,12 @@
 import {
   extractBaseUri,
+  extractVersion,
   PropertyType,
   VersionedUri,
 } from "@blockprotocol/type-system";
 import { faList } from "@fortawesome/free-solid-svg-icons";
+import { Subgraph } from "@hashintel/hash-subgraph";
+import { getPropertyTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 import { FontAwesomeIcon } from "@local/design-system";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
@@ -43,11 +46,12 @@ import { useBlockProtocolCreatePropertyType } from "../../../../../../components
 import { useBlockProtocolUpdatePropertyType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-property-type";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
 import { useRouteNamespace } from "../../../../shared/use-route-namespace";
+import { useEntityType } from "../shared/entity-type-context";
 import { EntityTypeEditorForm } from "../shared/form-types";
 import {
-  usePropertyTypes,
-  useRefetchPropertyTypes,
-} from "../shared/property-types-context";
+  useLatestPropertyTypes,
+  useRefetchLatestPropertyTypes,
+} from "../shared/latest-property-types-context";
 import { getPropertyTypeSchema } from "./property-list-card/get-property-type-schema";
 import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
 import { PropertyTitleCell } from "./property-list-card/property-title-cell";
@@ -161,6 +165,35 @@ const DisabledCheckboxCell = ({
   );
 };
 
+const usePropertyTypeVersions = (
+  propertyTypeId: VersionedUri,
+  propertyTypesSubgraph?: Subgraph | null,
+) => {
+  return useMemo(() => {
+    const baseUri = extractBaseUri(propertyTypeId);
+
+    const versions = propertyTypesSubgraph
+      ? getPropertyTypesByBaseUri(propertyTypesSubgraph, baseUri)
+      : [];
+
+    const latestVersion = Math.max(
+      ...versions.map(
+        ({
+          metadata: {
+            editionId: { version },
+          },
+        }) => version,
+      ),
+    );
+
+    return [
+      extractVersion(propertyTypeId),
+      latestVersion,
+      baseUri.slice(0, -1),
+    ] as const;
+  }, [propertyTypeId, propertyTypesSubgraph]);
+};
+
 const REQUIRED_CELL_WIDTH = 100;
 
 const PropertyRow = ({
@@ -173,6 +206,7 @@ const PropertyRow = ({
   allowArraysTableCell,
   requiredTableCell,
   menuTableCell,
+  onUpdateVersion,
 }: {
   property: PropertyType;
   isArray: boolean;
@@ -183,8 +217,15 @@ const PropertyRow = ({
   allowArraysTableCell?: ReactNode;
   requiredTableCell?: ReactNode;
   menuTableCell?: ReactNode;
+  onUpdateVersion?: (nextId: VersionedUri) => void;
 }) => {
-  const propertyTypes = usePropertyTypes();
+  const [propertyTypes, propertyTypesSubgraph] = useLatestPropertyTypes();
+  const { propertyTypes: entityTypePropertyTypes } = useEntityType();
+
+  const [currentVersion, latestVersion, baseUri] = usePropertyTypeVersions(
+    property.$id,
+    propertyTypesSubgraph,
+  );
 
   const [expanded, setExpanded] = useState(true);
 
@@ -216,7 +257,8 @@ const PropertyRow = ({
             [propertyId, ref],
           ) => {
             const $ref = "items" in ref ? ref.items.$ref : ref.$ref;
-            const propertyType = propertyTypes?.[$ref];
+            const propertyType =
+              entityTypePropertyTypes[$ref] ?? propertyTypes?.[$ref];
 
             if (propertyType) {
               const array = "type" in ref;
@@ -233,7 +275,12 @@ const PropertyRow = ({
           [],
         )
       : [];
-  }, [selectedExpectedValueIndex, property.oneOf, propertyTypes]);
+  }, [
+    selectedExpectedValueIndex,
+    property.oneOf,
+    propertyTypes,
+    entityTypePropertyTypes,
+  ]);
 
   const handleResize = () => {
     if (mainRef.current) {
@@ -266,6 +313,13 @@ const PropertyRow = ({
           lines={lines}
           expanded={children.length ? expanded : undefined}
           setExpanded={setExpanded}
+          currentVersion={currentVersion}
+          latestVersion={latestVersion}
+          onVersionUpdate={() => {
+            if (latestVersion) {
+              onUpdateVersion?.(`${baseUri}/v/${latestVersion}`);
+            }
+          }}
         />
 
         <TableCell>
@@ -356,14 +410,20 @@ export const PropertyTypeRow = ({
   });
 
   const { updatePropertyType } = useBlockProtocolUpdatePropertyType();
-  const refetchPropertyTypes = useRefetchPropertyTypes();
+  const refetchPropertyTypes = useRefetchLatestPropertyTypes();
   const onUpdateVersionRef = useRef(onUpdateVersion);
   useLayoutEffect(() => {
     onUpdateVersionRef.current = onUpdateVersion;
   });
 
-  const propertyTypes = usePropertyTypes();
-  const property = propertyTypes?.[$id];
+  const [propertyTypes, propertyTypesSubgraph] = useLatestPropertyTypes();
+  const { propertyTypes: entityTypePropertyTypes } = useEntityType();
+  const property = entityTypePropertyTypes[$id] ?? propertyTypes?.[$id];
+
+  const [currentVersion, latestVersion] = usePropertyTypeVersions(
+    $id,
+    propertyTypesSubgraph,
+  );
 
   const getDefaultValues = useCallback(() => {
     if (!property) {
@@ -414,8 +474,15 @@ export const PropertyTypeRow = ({
             onRemove={onRemove}
             typeId={property.$id}
             variant="property"
+            {...(currentVersion !== latestVersion
+              ? {
+                  editButtonDisabled:
+                    "Update the property type to the latest version to edit",
+                }
+              : {})}
           />
         }
+        onUpdateVersion={onUpdateVersion}
       />
 
       <TypeFormModal
@@ -455,7 +522,7 @@ const InsertPropertyRow = (
   const { control } = useFormContext<EntityTypeEditorForm>();
   const properties = useWatch({ control, name: "properties" });
 
-  const propertyTypesObj = usePropertyTypes();
+  const [propertyTypesObj] = useLatestPropertyTypes();
   const propertyTypes = Object.values(propertyTypesObj ?? {});
 
   const filteredPropertyTypes = useMemo(() => {
@@ -500,7 +567,7 @@ export const PropertyListCard = () => {
     (routeNamespace?.accountId as OwnedById) ?? null,
   );
 
-  const refetchPropertyTypes = useRefetchPropertyTypes();
+  const refetchPropertyTypes = useRefetchLatestPropertyTypes();
   const modalTooltipId = useId();
   const createModalPopupState = usePopupState({
     variant: "popover",
