@@ -86,14 +86,14 @@
       "versioningTemplate": "regex:(?<major>\\d+)-(?<minor>\\d+)-(?<patch>\\d+)"
     },
     {
-      "fileMatch": ["(^|/)README\\.md?$", "(^|/)lib\\.rs?$"],
+      "fileMatch": ["(^|/)README\\.md?$"],
       "matchStrings": [
         "\\[!\\[rust-version]\\(https://img\\.shields\\.io/badge/(?<depName>Rust-\\d+\\.\\d+\\.\\d+)/nightly--(?<currentValue>\\d+--\\d+--\\d+)-blue\\)]\\[rust-version]"
       ],
       "packageNameTemplate": "rust-lang/rust-analyzer",
       "datasourceTemplate": "github-releases",
       "versioningTemplate": "regex:(?<major>\\d+)-?-(?<minor>\\d+)-?-(?<patch>\\d+)",
-      "autoReplaceStringTemplate": "[![rust-version](https://img.shields.io/badge/{{depName}}/nightly--{{newValue}}-blue)][rust-version]"
+      "autoReplaceStringTemplate": "[![rust-version](https://img.shields.io/badge/{{depName}}/nightly--{{replace '-' '--' newValue}}-blue)][rust-version]"
     }
   ]
 }
