@@ -93,7 +93,8 @@
       "depNameTemplate": "rust",
       "packageNameTemplate": "rust-lang/rust-analyzer",
       "datasourceTemplate": "github-releases",
-      "versioningTemplate": "regex:(?<patch>.*)"
+      "versioningTemplate": "regex:(?<patch>.*)",
+      "autoReplaceStringTemplate": "nightly--{{{replace '-' '--' newValue}}}-blue"
     }
   ]
 }
