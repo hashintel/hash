@@ -1,3 +1,5 @@
+<!-- markdownlint-disable -->
+
 # Apache License
 
 _Version 2.0, January 2004_  
