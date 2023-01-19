@@ -1,12 +1,12 @@
 use std::{collections::Bound, error::Error, ops::RangeBounds};
 
-use interval_ops::{Interval, IntervalBounds, LowerBound, UpperBound};
+use interval_ops::{Interval, LowerBound, UpperBound};
 use postgres_protocol::types::timestamp_from_sql;
 use postgres_types::{FromSql, Type};
 use serde::{Deserialize, Serialize};
 use utoipa::{openapi, ToSchema};
 
-use crate::identifier::time::timestamp::Timestamp;
+use crate::identifier::time::{timestamp::Timestamp, TimeInterval, TimeIntervalBound};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct VersionInterval<A> {
@@ -69,8 +69,20 @@ impl<A> VersionInterval<A> {
     }
 
     #[must_use]
-    pub fn into_interval_bounds(self) -> IntervalBounds<Timestamp<A>> {
-        IntervalBounds::from_range(self)
+    pub fn into_time_interval(self) -> TimeInterval<A> {
+        TimeInterval::from_bounds(
+            TimeIntervalBound::Included(self.start),
+            self.end
+                .map_or(TimeIntervalBound::Unbounded, TimeIntervalBound::Excluded),
+        )
+    }
+
+    #[must_use]
+    pub fn cast<B>(self) -> VersionInterval<B> {
+        VersionInterval {
+            start: self.start.cast(),
+            end: self.end.map(Timestamp::cast),
+        }
     }
 }
 
