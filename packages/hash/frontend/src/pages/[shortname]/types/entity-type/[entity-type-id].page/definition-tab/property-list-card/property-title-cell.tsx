@@ -1,8 +1,21 @@
 import { PropertyType } from "@blockprotocol/type-system";
-import { faChevronRight, faList } from "@fortawesome/free-solid-svg-icons";
+import {
+  faArrowsRotate,
+  faChevronRight,
+  faList,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@local/design-system";
-import { Box, Collapse, Fade, TableCell } from "@mui/material";
+import {
+  Box,
+  Collapse,
+  Fade,
+  Stack,
+  svgIconClasses,
+  TableCell,
+  Typography,
+} from "@mui/material";
 
+import { ArrowRightIcon } from "../../../../../../../shared/icons/arrow-right-icon";
 import {
   CollapsibleRowLine,
   ROW_DEPTH_INDENTATION,
@@ -15,7 +28,10 @@ interface PropertyTitleCellProps {
   depth: number;
   lines: boolean[];
   expanded?: boolean;
+  currentVersion?: number;
+  latestVersion?: number;
   setExpanded?: (expanded: boolean) => void;
+  onVersionUpdate?: () => void;
 }
 
 const PROPERTY_TITLE_CELL_WIDTH = 260;
@@ -27,6 +43,9 @@ export const PropertyTitleCell = ({
   lines,
   expanded,
   setExpanded,
+  currentVersion,
+  latestVersion,
+  onVersionUpdate,
 }: PropertyTitleCellProps) => {
   return (
     <TableCell width={PROPERTY_TITLE_CELL_WIDTH} sx={{ position: "relative" }}>
@@ -101,6 +120,59 @@ export const PropertyTitleCell = ({
             icon={faList}
           />
         </Fade>
+
+        {depth === 0 && currentVersion !== latestVersion ? (
+          <Stack direction="row" gap={1} alignItems="center">
+            <Typography
+              variant="smallTextLabels"
+              color="gray.50"
+              fontWeight={500}
+            >
+              v{currentVersion}
+            </Typography>
+            <ArrowRightIcon
+              sx={{ color: ({ palette }) => palette.gray[50], fontSize: 14 }}
+            />
+            <Typography
+              variant="smallTextLabels"
+              color="blue.70"
+              fontWeight={500}
+            >
+              v{latestVersion}
+            </Typography>
+            <IconButton
+              onClick={onVersionUpdate}
+              sx={{
+                p: 0.5,
+                minWidth: 0,
+                minHeight: 0,
+                fontSize: 11,
+                fontWeight: 700,
+                color: ({ palette }) => palette.blue[70],
+                textTransform: "uppercase",
+                gap: 0.625,
+                lineHeight: "18px",
+                ":hover": {
+                  color: ({ palette }) => palette.blue[70],
+
+                  [`.${svgIconClasses.root}`]: {
+                    transform: "rotate(360deg)",
+                    transition: ({ transitions }) =>
+                      transitions.create("transform"),
+                  },
+                },
+              }}
+            >
+              <FontAwesomeIcon
+                icon={faArrowsRotate}
+                sx={{
+                  fontSize: 11,
+                }}
+              />
+              Update
+            </IconButton>
+          </Stack>
+        ) : null}
       </EntityTypeTableTitleCellText>
     </TableCell>
   );

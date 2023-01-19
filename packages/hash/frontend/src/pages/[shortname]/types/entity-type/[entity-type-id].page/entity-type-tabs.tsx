@@ -16,7 +16,7 @@ import { getTabUri, getTabValue, useCurrentTab } from "./shared/tabs";
 export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
   const router = useRouter();
 
-  const entityType = useEntityType();
+  const { entityType } = useEntityType();
 
   const [animateTabs, setAnimateTabs] = useState(false);
 

@@ -3,7 +3,7 @@ import { Chip, FontAwesomeIcon } from "@local/design-system";
 import { chipClasses, Tooltip } from "@mui/material";
 import { Stack } from "@mui/system";
 
-import { usePropertyTypes } from "../../shared/property-types-context";
+import { useLatestPropertyTypes } from "../../shared/latest-property-types-context";
 import { expectedValuesOptions } from "./shared/expected-values-options";
 import { getArrayExpectedValueType } from "./shared/get-expected-value-descriptor";
 
@@ -18,7 +18,7 @@ export const PropertyExpectedValues = ({
   setSelectedExpectedValueIndex: (expectedValue: number) => void;
   setAnimatingOutExpectedValue: (value: boolean) => void;
 }) => {
-  const propertyTypes = usePropertyTypes();
+  const [propertyTypes] = useLatestPropertyTypes();
 
   return (
     <Stack direction="row" flexWrap="wrap" gap="2px 8px">
