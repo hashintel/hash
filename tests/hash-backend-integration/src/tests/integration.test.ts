@@ -14,11 +14,11 @@ import {
   OrgEmailInvitation,
   User,
   VerificationCode,
-} from "@hashintel/hash-api/src/model";
-import { PostgresAdapter } from "@hashintel/hash-api/src/db";
-import { DummyEmailTransporter } from "@hashintel/hash-api/src/email/transporters";
+} from "@apps/hash-api/src/model";
+import { PostgresAdapter } from "@apps/hash-api/src/db";
+import { DummyEmailTransporter } from "@apps/hash-api/src/email/transporters";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { treeFromParentReferences } from "@hashintel/hash-api/src/util";
+import { treeFromParentReferences } from "@apps/hash-api/src/util";
 
 import { ClientError } from "graphql-request";
 import { ApiClient } from "./util";

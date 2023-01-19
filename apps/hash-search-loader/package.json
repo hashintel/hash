@@ -13,7 +13,7 @@
     "start": "cross-env NODE_ENV=production node --max-old-space-size=2048 ./node_modules/.bin/ts-node --transpile-only ./src/index.ts"
   },
   "dependencies": {
-    "@hashintel/hash-api": "0.0.0-private",
+    "@apps/hash-api": "0.0.0-private",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "hot-shots": "8.5.0",
