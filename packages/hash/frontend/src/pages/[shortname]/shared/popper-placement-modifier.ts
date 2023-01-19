@@ -15,7 +15,7 @@ export const popperPlacementSelectors = {
 
 export const setPopperPlacementAttribute = (
   node: HTMLElement,
-  placement: PopperProps["placement"],
+  placement: NonNullable<PopperProps["placement"]>,
 ) => {
   node.setAttribute(popperPositionDataAttribute, placement);
 };
@@ -23,13 +23,14 @@ export const setPopperPlacementAttribute = (
 export const addPopperPositionClassPopperModifier: NonNullable<
   PopperProps["modifiers"]
 >[number] = {
-  name: "addPositionClass",
+  name: "addPositionSelector",
   enabled: true,
   phase: "write",
   fn({ state, options }) {
     if (state.elements.reference instanceof HTMLElement) {
       setPopperPlacementAttribute(state.elements.reference, state.placement);
     }
+    // This allows a consumer to be notified when the placement has changed
     const { update } = options;
     if (typeof update === "function") {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call

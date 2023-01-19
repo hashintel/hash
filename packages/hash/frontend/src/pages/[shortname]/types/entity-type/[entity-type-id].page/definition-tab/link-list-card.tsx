@@ -1,47 +1,25 @@
 import { EntityType, VersionedUri } from "@blockprotocol/type-system";
-import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { OwnedById } from "@hashintel/hash-shared/types";
 import { linkEntityTypeUri } from "@hashintel/hash-subgraph";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
-import {
-  Box,
-  PopperPlacementType,
-  Stack,
-  TableBody,
-  TableCell,
-  TableFooter,
-  TableHead,
-} from "@mui/material";
+import { TableBody, TableCell, TableFooter, TableHead } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useId, useLayoutEffect, useRef, useState } from "react";
-import { flushSync } from "react-dom";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
-import { useResizeObserverRef } from "rooks";
 
 import { useBlockProtocolCreateEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
 import { useBlockProtocolGetEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
 import { useBlockProtocolUpdateEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-entity-type";
 import {
-  useEntityTypes,
   useFetchEntityTypes,
   useLinkEntityTypes,
   useLinkEntityTypesOptional,
 } from "../../../../../../shared/entity-types-context/hooks";
 import { LinkIcon } from "../../../../../../shared/icons/link";
-import {
-  HashSelectorAutocomplete,
-  TYPE_SELECTOR_HEIGHT,
-} from "../../../../shared/hash-selector-autocomplete";
-import {
-  popperPlacementInputNoRadius,
-  popperPlacementPopperNoRadius,
-  popperPlacementSelectors,
-  setPopperPlacementAttribute,
-} from "../../../../shared/popper-placement-modifier";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
 import { useRouteNamespace } from "../../../../shared/use-route-namespace";
 import { EntityTypeEditorForm } from "../shared/form-types";
+import { LinkEntityTypeSelector } from "./link-list-card/link-entity-type-selector";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
@@ -115,36 +93,12 @@ const LinkTypeRow = ({
   onRemove: () => void;
   onUpdateVersion: (nextId: VersionedUri) => void;
 }) => {
-  const { control, setValue } = useFormContext<EntityTypeEditorForm>();
-
-  const [entityTypeSelectorPopupOpen, setEntityTypeSelectorPopupOpen] =
-    useState(false);
-
-  const entityTypeSelectorRef = useRef<HTMLDivElement>(null);
-
-  const [inputWrapperHeight, setInputWrapperHeight] = useState(0);
-  const [resizeObserverRef] = useResizeObserverRef(([size]) => {
-    if (size) {
-      // Using flush sync so that the UI updates immediately, rather than the
-      // popup lagging behind
-      flushSync(() => {
-        setInputWrapperHeight(size.contentRect.height);
-      });
-    }
-  });
-
-  const selectorOffset = TYPE_SELECTOR_HEIGHT + inputWrapperHeight;
+  const { control } = useFormContext<EntityTypeEditorForm>();
 
   const linkTypes = useLinkEntityTypes();
-  const entityTypes = useEntityTypes();
   const linkId = useWatch({
     control,
     name: `links.${linkIndex}.$id`,
-  });
-
-  const chosenEntityTypes = useWatch({
-    control,
-    name: `links.${linkIndex}.entityTypes`,
   });
 
   const popupId = useId();
@@ -191,14 +145,6 @@ const LinkTypeRow = ({
     throw new Error("Missing link");
   }
 
-  const entityTypeSchemas = Object.values(entityTypes).map(
-    (type) => type.schema,
-  );
-
-  const chosenEntityTypeSchemas = entityTypeSchemas.filter((schema) =>
-    chosenEntityTypes.includes(schema.$id),
-  );
-
   return (
     <>
       <EntityTypeTableRow>
@@ -207,194 +153,8 @@ const LinkTypeRow = ({
             {link.schema.title}
           </EntityTypeTableTitleCellText>
         </TableCell>
-        <TableCell
-          sx={{
-            "&, *": {
-              cursor: "pointer",
-            },
-          }}
-        >
-          <Box
-            sx={(theme) => ({
-              position: "relative",
-              ...(entityTypeSelectorPopupOpen
-                ? { zIndex: theme.zIndex.modal + 1 }
-                : {}),
-
-              [entityTypeSelectorPopupOpen ? "& > *" : "&:hover > *"]: {
-                boxShadow: theme.boxShadows.xs,
-                borderColor: `${theme.palette.gray[30]} !important`,
-                backgroundColor: "white",
-              },
-            })}
-            ref={entityTypeSelectorRef}
-          >
-            <Stack
-              direction="row"
-              flexWrap="wrap"
-              sx={[
-                (theme) => ({
-                  border: 1,
-                  borderColor: "transparent",
-                  borderRadius: 1.5,
-                  p: 0.5,
-                  userSelect: "none",
-                  minWidth: 200,
-                  minHeight: 42,
-                  left: -7,
-                  width: "calc(100% + 14px)",
-                  overflow: "hidden",
-                  position: "relative",
-                  zIndex: theme.zIndex.drawer,
-                }),
-              ]}
-              onClick={() => setEntityTypeSelectorPopupOpen(true)}
-            >
-              {chosenEntityTypes.length ? (
-                chosenEntityTypes.map((entityTypeId) => {
-                  const type = entityTypes[entityTypeId];
-
-                  if (!type) {
-                    throw new Error("Entity type missing in links table");
-                  }
-
-                  return (
-                    <Chip
-                      sx={{ m: 0.25 }}
-                      color="blue"
-                      label={
-                        <Stack
-                          direction="row"
-                          spacing={0.75}
-                          fontSize={14}
-                          alignItems="center"
-                        >
-                          <FontAwesomeIcon
-                            icon={faAsterisk}
-                            sx={{ fontSize: "inherit" }}
-                          />
-                          <Box component="span">{type.schema.title}</Box>
-                        </Stack>
-                      }
-                      key={type.schema.$id}
-                    />
-                  );
-                })
-              ) : (
-                <Chip
-                  color="blue"
-                  variant="outlined"
-                  label={
-                    <Stack
-                      direction="row"
-                      spacing={0.75}
-                      fontSize={14}
-                      alignItems="center"
-                    >
-                      <FontAwesomeIcon
-                        icon={faAsterisk}
-                        sx={{ fontSize: "inherit" }}
-                      />
-                      <Box component="span">Anything</Box>
-                    </Stack>
-                  }
-                />
-              )}
-            </Stack>
-            {entityTypeSelectorPopupOpen ? (
-              <Box
-                ref={resizeObserverRef}
-                onClick={(evt) => {
-                  evt.stopPropagation();
-                  evt.preventDefault();
-                }}
-                sx={[
-                  (theme) => ({
-                    position: "absolute",
-                    left: -19,
-                    right: -19,
-                    top: -12,
-                    bottom: -12,
-                    background: "white",
-                    borderRadius: 1.5,
-                    border: 1,
-                    borderColor: theme.palette.gray[30],
-                    boxShadow: theme.boxShadows.md,
-                    zIndex: theme.zIndex.drawer - 1,
-                  }),
-                  popperPlacementInputNoRadius,
-                ]}
-              >
-                <HashSelectorAutocomplete
-                  multiple
-                  sx={[
-                    popperPlacementPopperNoRadius,
-                    {
-                      minWidth: 440,
-                      position: "absolute",
-                      left: -1,
-                      width: "calc(100% + 2px)",
-                      height: TYPE_SELECTOR_HEIGHT + selectorOffset,
-                      top: `calc(100% - ${selectorOffset}px)`,
-                      paddingTop: `${selectorOffset}px`,
-                      pointerEvents: "none",
-
-                      "> *": {
-                        pointerEvents: "all",
-                      },
-
-                      [`${popperPlacementSelectors.top} &`]: {
-                        paddingTop: 0,
-                      },
-                    },
-                  ]}
-                  open
-                  onChange={(_, chosenTypes) => {
-                    setValue(
-                      `links.${linkIndex}.entityTypes`,
-                      chosenTypes.map((type) => type.$id),
-                    );
-                  }}
-                  options={entityTypeSchemas}
-                  optionToRenderData={({ $id, title, description }) => ({
-                    $id,
-                    title,
-                    description,
-                  })}
-                  dropdownProps={{
-                    query: "",
-                    createButtonProps: null,
-                    variant: "entityType",
-                  }}
-                  joined
-                  renderTags={() => <Box />}
-                  value={chosenEntityTypeSchemas}
-                  modifiers={[
-                    {
-                      name: "addPositionClass",
-                      phase: "write",
-                      options: {
-                        update(placement: PopperPlacementType) {
-                          const node = entityTypeSelectorRef.current;
-                          if (node) {
-                            setPopperPlacementAttribute(node, placement);
-                          }
-                        },
-                      },
-                    },
-                  ]}
-                  onKeyDown={(evt) => {
-                    if (evt.key === "Escape") {
-                      setEntityTypeSelectorPopupOpen(false);
-                    }
-                  }}
-                  onBlur={() => {
-                    // setEntityTypeSelectorPopupOpen(false);
-                  }}
-                />
-              </Box>
-            ) : null}
-          </Box>
+        <TableCell sx={{ py: "0 !important" }}>
+          <LinkEntityTypeSelector linkIndex={linkIndex} />
         </TableCell>
         <MultipleValuesCell index={linkIndex} variant="link" />
         <TypeMenuCell

@@ -105,7 +105,7 @@ type HashSelectorAutocompleteProps<
   T,
   Multiple extends boolean | undefined = undefined,
 > = Omit<
-  AutocompleteProps<T, Multiple, false, false>,
+  AutocompleteProps<T, Multiple, true, false>,
   | "renderInput"
   | "renderOption"
   | "getOptionLabel"
@@ -118,6 +118,11 @@ type HashSelectorAutocompleteProps<
   dropdownProps: TypeListSelectorDropdownProps;
   autoFocus?: boolean;
   modifiers?: PopperProps["modifiers"];
+  /**
+   * joined indicates that the input is connected to another element, so we
+   * change the visual appearance of the component to make it flow straight into
+   * whatever element its connected to
+   */
   joined?: boolean;
 };
 
@@ -142,8 +147,8 @@ export const HashSelectorAutocomplete = <
   const allModifiers = useMemo(
     (): PopperProps["modifiers"] => [
       addPopperPositionClassPopperModifier,
+      // We don't want the popup shifting position as that will break styles
       { name: "preventOverflow", enabled: false },
-      // { name: "flip", enabled: false },
       ...(modifiers ?? []),
     ],
     [modifiers],
@@ -155,6 +160,15 @@ export const HashSelectorAutocomplete = <
     <Autocomplete
       open={open}
       sx={[{ width: "100%" }, ...(Array.isArray(sx) ? sx : [sx])]}
+      /**
+       * By default, the anchor element for an autocomplete dropdown is the
+       * input base, but we some uses of this component depend on resizing the
+       * autocomplete root in order to attach the popup in a slightly different
+       * place, so we make the autocomplete root the anchor element for the
+       * popup.
+       *
+       * @see LinkEntityTypeSelector
+       */
       ref={setAnchorEl}
       renderInput={(props) => (
         <TextField
@@ -162,8 +176,12 @@ export const HashSelectorAutocomplete = <
           autoFocus={autoFocus}
           inputRef={inputRef}
           placeholder={inputPlaceholder}
-          sx={{
-            width: "100%",
+          sx={{ width: "100%" }}
+          // Prevents backspace deleting chips when in multiple mode
+          onKeyDown={(event) => {
+            if (event.key === "Backspace") {
+              event.stopPropagation();
+            }
           }}
           InputProps={{
             ...props.InputProps,
@@ -210,12 +228,14 @@ export const HashSelectorAutocomplete = <
         const ontology = parseUriForOntologyChip($id);
 
         // @todo extract component
+        let className = clsx(props.className, "click-outside-ignore");
+
         return (
           <li
             {...props}
             data-testid="property-selector-option"
             /** added "click-outside-ignore" to be able to use this selector with Grid component */
-            className={clsx(props.className, "click-outside-ignore")}
+            className={className}
           >
             <Box width="100%">
               <Box
@@ -272,7 +292,7 @@ export const HashSelectorAutocomplete = <
         );
       }}
       popupIcon={null}
-      clearIcon={null}
+      disableClearable
       forcePopupIcon={false}
       selectOnFocus={false}
       openOnFocus
