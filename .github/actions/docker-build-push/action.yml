@@ -27,6 +27,18 @@ inputs:
   DOCKERFILE_LOCATION:
     description: Location of the Dockerfile
     required: true
+  CONTEXT_PATH:
+    description: Context to build the image within
+    required: false
+    default: ${{ github.workspace }}
+  BUILD_ARGS:
+    description: Build arguments to pass to the Docker build
+    required: false
+
+outputs:
+  ECR_IMAGE:
+    description: The name of the image in the ECR registry
+    value: ${{ inputs.AWS_ECR_URL }}/${{ inputs.IMAGE_NAME }}:${{ inputs.IMAGE_TAG }}
 
 runs:
   using: composite
@@ -56,9 +68,10 @@ runs:
       with:
         # The Dockerfile is in a leaf-folder without access to what it needs.
         # Thus the context is within the root, while the dockerfile is deeply nested.
-        context: ${{ github.workspace }}
+        context: ${{ inputs.CONTEXT_PATH }}
         push: true
         file: ${{ inputs.DOCKERFILE_LOCATION }}
+        build-args: ${{ inputs.BUILD_ARGS }}
         tags: ${{ inputs.AWS_ECR_URL }}/${{ inputs.IMAGE_NAME }}:${{ inputs.IMAGE_TAG }} , ${{ inputs.AWS_ECR_URL }}/${{ inputs.IMAGE_NAME }}:run-${{ env.GH_RUN_ID }}
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,mode=max,dest=/tmp/.buildx-cache-new

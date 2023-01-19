@@ -1,9 +1,9 @@
 import { VersionedUri } from "@blockprotocol/type-system";
-import { GraphApi } from "@hashintel/hash-graph-client";
-import { types } from "@hashintel/hash-shared/ontology-types";
 import { Entity, PropertyObject } from "@hashintel/hash-subgraph";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { ApolloError, UserInputError } from "apollo-server-express";
 
+import { ImpureGraphContext } from "../../../../graph";
 import {
   shortnameContainsInvalidCharacter,
   shortnameIsRestricted,
@@ -18,7 +18,7 @@ import {
 import { SYSTEM_TYPES } from "../../../../graph/system-types";
 
 const validateAccountShortname = async (
-  graphApi: GraphApi,
+  context: ImpureGraphContext,
   shortname: string,
 ) => {
   if (shortnameContainsInvalidCharacter({ shortname })) {
@@ -32,7 +32,7 @@ const validateAccountShortname = async (
 
   if (
     shortnameIsRestricted({ shortname }) ||
-    (await shortnameIsTaken({ graphApi }, { shortname }))
+    (await shortnameIsTaken(context, { shortname }))
   ) {
     throw new ApolloError(`Shortname "${shortname}" taken`, "NAME_TAKEN");
   }
@@ -50,7 +50,7 @@ const validateAccountShortname = async (
 };
 
 type BeforeUpdateEntityHookCallback = (params: {
-  graphApi: GraphApi;
+  context: ImpureGraphContext;
   entity: Entity;
   updatedProperties: PropertyObject;
 }) => Promise<void>;
@@ -58,7 +58,7 @@ type BeforeUpdateEntityHookCallback = (params: {
 const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
   entity,
   updatedProperties,
-  graphApi,
+  context,
 }) => {
   const user = getUserFromEntity({ entity });
 
@@ -73,7 +73,7 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
       throw new ApolloError("Cannot unset shortname");
     }
 
-    await validateAccountShortname(graphApi, updatedShortname);
+    await validateAccountShortname(context, updatedShortname);
   }
 
   const currentPreferredName = user.preferredName;
@@ -98,15 +98,12 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
     [...currentEmails].sort().join().toLowerCase() !==
     [...updatedEmails].sort().join().toLowerCase()
   ) {
-    await updateUserKratosIdentityTraits(
-      { graphApi },
-      {
-        user,
-        updatedTraits: {
-          emails: updatedEmails,
-        },
+    await updateUserKratosIdentityTraits(context, {
+      user,
+      updatedTraits: {
+        emails: updatedEmails,
       },
-    );
+    });
   }
 };
 

@@ -1,5 +1,5 @@
 import { BlockVariant } from "@blockprotocol/core";
-import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
+import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { Box, SxProps, Theme, Typography } from "@mui/material";
 import { FunctionComponent, useMemo } from "react";
 

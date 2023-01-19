@@ -1,10 +1,10 @@
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { GraphApi } from "@hashintel/hash-graph-client";
+import { getRequiredEnv } from "@local/hash-backend-utils/environment";
+import { Logger } from "@local/hash-backend-utils/logger";
 import { Session } from "@ory/client";
 import { AxiosError } from "axios";
 import { Express, Request, RequestHandler } from "express";
 
+import { ImpureGraphContext } from "../graph";
 import { getHashInstance } from "../graph/knowledge/system-types/hash-instance";
 import {
   createUser,
@@ -29,12 +29,10 @@ const requestHeaderContainsValidKratosApiKey = (req: Request): boolean =>
   req.header("KRATOS_API_KEY") === KRATOS_API_KEY;
 
 const kratosAfterRegistrationHookHandler =
-  (params: {
-    graphApi: GraphApi;
-  }): RequestHandler<{}, {}, { identity: KratosUserIdentity }> =>
+  (
+    context: ImpureGraphContext,
+  ): RequestHandler<{}, {}, { identity: KratosUserIdentity }> =>
   (req, res) => {
-    const { graphApi } = params;
-
     const {
       body: {
         identity: { id: kratosIdentityId, traits },
@@ -57,20 +55,17 @@ const kratosAfterRegistrationHookHandler =
       try {
         const { emails } = traits;
 
-        const hashInstance = await getHashInstance({ graphApi }, {});
+        const hashInstance = await getHashInstance(context, {});
 
         if (!hashInstance.userSelfRegistrationIsEnabled) {
           throw new Error("User registration is disabled.");
         }
 
-        await createUser(
-          { graphApi },
-          {
-            emails,
-            kratosIdentityId,
-            actorId: systemUserAccountId,
-          },
-        );
+        await createUser(context, {
+          emails,
+          kratosIdentityId,
+          actorId: systemUserAccountId,
+        });
 
         res.status(200).end();
       } catch (error) {
@@ -94,15 +89,15 @@ const kratosAfterRegistrationHookHandler =
 
 const setupAuth = (params: {
   app: Express;
-  graphApi: GraphApi;
   logger: Logger;
+  context: ImpureGraphContext;
 }) => {
-  const { app, graphApi, logger } = params;
+  const { app, logger, context } = params;
 
   // Kratos hook handlers
   app.post(
     "/kratos-after-registration",
-    kratosAfterRegistrationHookHandler({ graphApi }),
+    kratosAfterRegistrationHookHandler(context),
   );
 
   // eslint-disable-next-line @typescript-eslint/no-misused-promises -- https://github.com/DefinitelyTyped/DefinitelyTyped/issues/50871
@@ -140,12 +135,9 @@ const setupAuth = (params: {
 
       const { id: kratosIdentityId } = identity;
 
-      const user = await getUserByKratosIdentityId(
-        { graphApi },
-        {
-          kratosIdentityId,
-        },
-      );
+      const user = await getUserByKratosIdentityId(context, {
+        kratosIdentityId,
+      });
 
       if (!user) {
         throw new Error(

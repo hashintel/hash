@@ -1,8 +1,8 @@
 import { performance } from "node:perf_hooks";
 
 import { makeExecutableSchema } from "@graphql-tools/schema";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { SearchAdapter } from "@hashintel/hash-backend-utils/search/adapter";
+import { Logger } from "@local/hash-backend-utils/logger";
+import { SearchAdapter } from "@local/hash-backend-utils/search/adapter";
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
 import { ApolloServer } from "apollo-server-express";
 import { StatsD } from "hot-shots";
@@ -10,8 +10,8 @@ import { StatsD } from "hot-shots";
 import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
 import { GraphApi } from "../graph";
+import { UploadableStorageProvider } from "../storage";
 import { TaskExecutor } from "../task-execution";
-import { StorageType } from "./api-types.gen";
 import { GraphQLContext } from "./context";
 import { resolvers } from "./resolvers";
 import { schema } from "./type-defs";
@@ -19,11 +19,10 @@ import { schema } from "./type-defs";
 export interface CreateApolloServerParams {
   graphApi: GraphApi;
   cache: CacheAdapter;
+  uploadProvider: UploadableStorageProvider;
   search?: SearchAdapter;
   taskExecutor?: TaskExecutor;
   emailTransporter: EmailTransporter;
-  /** The storage provider to use for new file uploads */
-  uploadProvider: StorageType;
   logger: Logger;
   statsd?: StatsD;
 }
@@ -48,6 +47,7 @@ export const createApolloServer = ({
     const sources: GraphQLContext["dataSources"] = {
       graphApi,
       cache,
+      uploadProvider,
     };
     if (search) {
       sources.search = search;
@@ -65,7 +65,6 @@ export const createApolloServer = ({
       ...ctx,
       user: ctx.req.user,
       emailTransporter,
-      uploadProvider,
       logger: logger.child({
         requestId: ctx.res.get("x-hash-request-id") ?? "",
       }),

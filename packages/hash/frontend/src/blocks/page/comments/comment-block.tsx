@@ -15,10 +15,10 @@ import {
   FontAwesomeIcon,
   IconButton,
   LoadingSpinner,
-} from "@hashintel/hash-design-system";
-import { TextToken } from "@hashintel/hash-shared/graphql/types";
-import { types } from "@hashintel/hash-shared/ontology-types";
-import { EntityId } from "@hashintel/hash-shared/types";
+} from "@local/design-system";
+import { TextToken } from "@local/hash-isomorphic-utils/graphql/types";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { EntityId } from "@local/hash-isomorphic-utils/types";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
 import { isEqual } from "lodash";
@@ -121,7 +121,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
 
   const commentCreatedAt = useMemo(() => {
     // @todo: replace this with the createdAt from the comment entity
-    const updatedAt = new Date(textUpdatedAt);
+    const updatedAt = new Date(textUpdatedAt.decisionTime.start);
     const timeDistance = formatDistanceToNowStrict(updatedAt);
     return timeDistance === "0 seconds"
       ? "Just now"

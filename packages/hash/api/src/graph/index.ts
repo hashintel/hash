@@ -1,13 +1,14 @@
-import { Logger } from "@hashintel/hash-backend-utils/logger";
 import {
   Configuration,
   GraphApi as GraphApiClient,
   GraphResolveDepths,
 } from "@hashintel/hash-graph-client";
+import { Logger } from "@local/hash-backend-utils/logger";
 import HttpAgent, { HttpsAgent } from "agentkeepalive";
 import { DataSource } from "apollo-datasource";
 import axios, { AxiosError } from "axios";
 
+import { UploadableStorageProvider } from "../storage";
 import { ensureSystemEntitiesExists } from "./system-entities";
 import { ensureSystemTypesExist } from "./system-types";
 import {
@@ -17,11 +18,12 @@ import {
 
 export type ImpureGraphContext = {
   graphApi: GraphApi;
+  uploadProvider: UploadableStorageProvider;
   /** @todo: add logger? */
 };
 
 export type ImpureGraphFunction<Parameters, ReturnType> = (
-  ctx: ImpureGraphContext,
+  context: ImpureGraphContext,
   params: Parameters,
 ) => ReturnType;
 
@@ -119,8 +121,8 @@ export const createGraphClient = (
 };
 
 export const ensureSystemGraphIsInitialized = async (params: {
-  graphApi: GraphApi;
   logger: Logger;
+  context: ImpureGraphContext;
 }) => {
   await ensureSystemUserAccountIdExists(params);
 

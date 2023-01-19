@@ -7,22 +7,34 @@ import { createRoot } from "react-dom/client";
 
 import packageJSON from "../package.json";
 import Component from "./index";
+import { RootEntity } from "./types";
 
 const node = document.getElementById("app");
 
 /**
  * @type {{content: string; language: import("./utils").LanguageType;}}
  */
-const initialData = {
-  content: 'var foo = "bar";',
-  language: "javascript",
+const initialData: RootEntity = {
+  metadata: {
+    entityTypeId: "https://alpha.hash.ai/@ciaran/types/entity-type/code/v/1",
+    editionId: {
+      baseId: "entity-code",
+      versionId: "1",
+    },
+  },
+  properties: {
+    "https://alpha.hash.ai/@ciaran/types/property-type/content/":
+      'var foo = "bar";',
+    "https://alpha.hash.ai/@ciaran/types/property-type/language/": "javascript",
+  },
 };
 
 const DevApp = () => {
   return (
     <MockBlockDock
       blockDefinition={{ ReactComponent: Component }}
-      blockEntity={{ entityId: "entity-code", properties: initialData }}
+      blockEntityEditionId={initialData.metadata.editionId}
+      initialEntities={[initialData]}
       blockInfo={packageJSON.blockprotocol}
       debug
     />

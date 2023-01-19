@@ -1,5 +1,5 @@
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { FontAwesomeIcon } from "@local/design-system";
 import { Box, Stack, Typography } from "@mui/material";
 import { Container } from "@mui/system";
 import { useRouter } from "next/router";
@@ -31,7 +31,7 @@ export const EntityPageHeader = ({
   }
 
   return (
-    <Box bgcolor="white">
+    <>
       <TopContextBar
         defaultCrumbIcon={null}
         crumbs={[
@@ -49,7 +49,9 @@ export const EntityPageHeader = ({
         ]}
         scrollToTop={() => {}}
       />
+
       {editBar}
+
       <Box py={3.75}>
         <Container>
           {chip}
@@ -66,6 +68,6 @@ export const EntityPageHeader = ({
           </Stack>
         </Container>
       </Box>
-    </Box>
+    </>
   );
 };

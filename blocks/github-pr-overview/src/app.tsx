@@ -2,7 +2,7 @@ import {
   BlockComponent,
   useGraphBlockService,
 } from "@blockprotocol/graph/react";
-import { theme } from "@hashintel/hash-design-system";
+import { theme } from "@local/design-system";
 import { Box, CssBaseline, Theme, ThemeProvider } from "@mui/material";
 import { Reducer, useEffect, useReducer, useRef } from "react";
 

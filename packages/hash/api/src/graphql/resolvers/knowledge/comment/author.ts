@@ -6,6 +6,7 @@ import {
 } from "../../../../graph/knowledge/system-types/comment";
 import { ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
+import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapEntityToGQL, UnresolvedCommentGQL } from "../graphql-mapping";
 
 export const commentAuthorResolver: ResolverFn<
@@ -13,14 +14,13 @@ export const commentAuthorResolver: ResolverFn<
   UnresolvedCommentGQL,
   LoggedInGraphQLContext,
   {}
-> = async ({ metadata }, _, { dataSources: { graphApi } }) => {
-  const comment = await getCommentById(
-    { graphApi },
-    {
-      entityId: metadata.editionId.baseId,
-    },
-  );
-  const author = await getCommentAuthor({ graphApi }, { comment });
+> = async ({ metadata }, _, { dataSources }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
+  const comment = await getCommentById(context, {
+    entityId: metadata.editionId.baseId,
+  });
+  const author = await getCommentAuthor(context, { comment });
 
   return mapEntityToGQL(author.entity);
 };

@@ -3,7 +3,7 @@ import {
   EntityUuid,
   OwnedById,
   Uuid,
-} from "@hashintel/hash-shared/types";
+} from "@local/hash-isomorphic-utils/types";
 
 import { getOrgById } from "../../../../graph/knowledge/system-types/org";
 import {
@@ -24,6 +24,7 @@ import {
   ResolverFn,
 } from "../../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
+import { dataSourcesToImpureGraphContext } from "../../util";
 import {
   mapCommentToGQL,
   mapPageToGQL,
@@ -36,13 +37,12 @@ export const pageResolver: ResolverFn<
   {},
   GraphQLContext,
   QueryPageArgs
-> = async (_, { entityId }, { dataSources: { graphApi } }) => {
-  const page = await getPageById(
-    { graphApi },
-    {
-      entityId,
-    },
-  );
+> = async (_, { entityId }, { dataSources }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
+  const page = await getPageById(context, {
+    entityId,
+  });
 
   return mapPageToGQL(page);
 };
@@ -55,17 +55,16 @@ export const createPageResolver: ResolverFn<
 > = async (
   _,
   { ownedById, properties: { title, prevIndex } },
-  { dataSources: { graphApi }, user },
+  { dataSources, user },
 ) => {
-  const page = await createPage(
-    { graphApi },
-    {
-      ownedById,
-      title,
-      prevIndex: prevIndex ?? undefined,
-      actorId: user.accountId,
-    },
-  );
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
+  const page = await createPage(context, {
+    ownedById,
+    title,
+    prevIndex: prevIndex ?? undefined,
+    actorId: user.accountId,
+  });
 
   return mapPageToGQL(page);
 };
@@ -75,14 +74,13 @@ export const parentPageResolver: ResolverFn<
   UnresolvedPageGQL,
   GraphQLContext,
   QueryPagesArgs
-> = async (pageGql, _, { dataSources: { graphApi } }) => {
-  const page = await getPageById(
-    { graphApi },
-    {
-      entityId: pageGql.metadata.editionId.baseId,
-    },
-  );
-  const parentPage = await getPageParentPage({ graphApi }, { page });
+> = async (pageGql, _, { dataSources }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
+  const page = await getPageById(context, {
+    entityId: pageGql.metadata.editionId.baseId,
+  });
+  const parentPage = await getPageParentPage(context, { page });
 
   return parentPage ? mapPageToGQL(parentPage) : null;
 };
@@ -92,7 +90,9 @@ export const pagesResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   QueryPagesArgs
-> = async (_, { ownedById }, { dataSources: { graphApi }, user }) => {
+> = async (_, { ownedById }, { dataSources, user }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
   const accountEntityId = ownedById
     ? entityIdFromOwnedByIdAndEntityUuid(
         systemUserAccountId as OwnedById,
@@ -101,25 +101,19 @@ export const pagesResolver: ResolverFn<
     : undefined;
 
   const workspace = accountEntityId
-    ? await getUserById(
-        { graphApi },
-        {
-          entityId: accountEntityId,
-        },
-      ).catch((error: Error) => {
+    ? await getUserById(context, {
+        entityId: accountEntityId,
+      }).catch((error: Error) => {
         if (error instanceof EntityTypeMismatchError) {
-          return getOrgById({ graphApi }, { entityId: accountEntityId });
+          return getOrgById(context, { entityId: accountEntityId });
         }
         throw error;
       })
     : user;
 
-  const pages = await getAllPagesInWorkspace(
-    { graphApi },
-    {
-      workspace,
-    },
-  );
+  const pages = await getAllPagesInWorkspace(context, {
+    workspace,
+  });
 
   return pages.map(mapPageToGQL);
 };
@@ -129,15 +123,14 @@ export const pageCommentsResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   QueryPageCommentsArgs
-> = async (_, { entityId }, { dataSources: { graphApi } }) => {
-  const page = await getPageById(
-    { graphApi },
-    {
-      entityId,
-    },
-  );
+> = async (_, { entityId }, { dataSources }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const comments = await getPageComments({ graphApi }, { page });
+  const page = await getPageById(context, {
+    entityId,
+  });
+
+  const comments = await getPageComments(context, { page });
 
   return comments.map(mapCommentToGQL);
 };

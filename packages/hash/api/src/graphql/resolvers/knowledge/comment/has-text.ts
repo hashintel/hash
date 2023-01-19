@@ -1,4 +1,4 @@
-import { TextToken } from "@hashintel/hash-shared/graphql/types";
+import { TextToken } from "@local/hash-isomorphic-utils/graphql/types";
 
 import {
   getCommentById,
@@ -7,6 +7,7 @@ import {
 import { SYSTEM_TYPES } from "../../../../graph/system-types";
 import { ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
+import { dataSourcesToImpureGraphContext } from "../../util";
 import { UnresolvedCommentGQL } from "../graphql-mapping";
 
 export const commentHasTextResolver: ResolverFn<
@@ -15,14 +16,12 @@ export const commentHasTextResolver: ResolverFn<
   LoggedInGraphQLContext,
   {}
 > = async ({ metadata }, _, { dataSources }) => {
-  const { graphApi } = dataSources;
-  const comment = await getCommentById(
-    { graphApi },
-    {
-      entityId: metadata.editionId.baseId,
-    },
-  );
-  const textEntity = await getCommentText({ graphApi }, { comment });
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
+  const comment = await getCommentById(context, {
+    entityId: metadata.editionId.baseId,
+  });
+  const textEntity = await getCommentText(context, { comment });
 
   // @todo implement `Text` class so that a `Text.getTokens()` method can be used here
   return (

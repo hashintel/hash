@@ -1,7 +1,7 @@
 import { EntityType, VersionedUri } from "@blockprotocol/type-system";
-import { OwnedById } from "@hashintel/hash-shared/types";
 import { linkEntityTypeUri } from "@hashintel/hash-subgraph";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import { TableBody, TableCell, TableFooter, TableHead } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useId, useLayoutEffect, useRef, useState } from "react";
@@ -101,12 +101,6 @@ const LinkTypeRow = ({
     name: `links.${linkIndex}.$id`,
   });
 
-  const popupId = useId();
-  const menuPopupState = usePopupState({
-    variant: "popover",
-    popupId: `property-menu-${popupId}`,
-  });
-
   const editModalPopupId = useId();
   const editModalPopupState = usePopupState({
     variant: "popover",
@@ -160,7 +154,6 @@ const LinkTypeRow = ({
         <TypeMenuCell
           typeId={linkId}
           editButtonProps={bindTrigger(editModalPopupState)}
-          popupState={menuPopupState}
           variant="link"
           onRemove={onRemove}
         />

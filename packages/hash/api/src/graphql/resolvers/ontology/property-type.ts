@@ -1,5 +1,5 @@
-import { OwnedById } from "@hashintel/hash-shared/types";
 import { PropertyTypeWithMetadata, Subgraph } from "@hashintel/hash-subgraph";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 
 import {
   createPropertyType,
@@ -13,6 +13,7 @@ import {
   ResolverFn,
 } from "../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../context";
+import { dataSourcesToImpureGraphContext } from "../util";
 
 export const createPropertyTypeResolver: ResolverFn<
   Promise<PropertyTypeWithMetadata>,
@@ -20,18 +21,16 @@ export const createPropertyTypeResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationCreatePropertyTypeArgs
 > = async (_, params, { dataSources, user }) => {
-  const { graphApi } = dataSources;
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
   const { ownedById, propertyType } = params;
 
-  const createdPropertyType = await createPropertyType(
-    { graphApi },
-    {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-      ownedById: (ownedById as OwnedById) ?? user.accountId,
-      schema: propertyType,
-      actorId: user.accountId,
-    },
-  );
+  const createdPropertyType = await createPropertyType(context, {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
+    ownedById: (ownedById as OwnedById) ?? user.accountId,
+    schema: propertyType,
+    actorId: user.accountId,
+  });
 
   return createdPropertyType;
 };
@@ -70,6 +69,17 @@ export const getAllLatestPropertyTypesResolver: ResolverFn<
         hasLeftEntity: { incoming: 0, outgoing: 0 },
         hasRightEntity: { incoming: 0, outgoing: 0 },
       },
+      timeProjection: {
+        kernel: {
+          axis: "transaction",
+          timestamp: null,
+        },
+        image: {
+          axis: "decision",
+          start: null,
+          end: null,
+        },
+      },
     },
   );
   return propertyTypeSubgraph as Subgraph;
@@ -103,6 +113,17 @@ export const getPropertyTypeResolver: ResolverFn<
         hasLeftEntity: { incoming: 0, outgoing: 0 },
         hasRightEntity: { incoming: 0, outgoing: 0 },
       },
+      timeProjection: {
+        kernel: {
+          axis: "transaction",
+          timestamp: null,
+        },
+        image: {
+          axis: "decision",
+          start: null,
+          end: null,
+        },
+      },
     },
   );
 
@@ -115,18 +136,16 @@ export const updatePropertyTypeResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationUpdatePropertyTypeArgs
 > = async (_, params, { dataSources, user }) => {
-  const { graphApi } = dataSources;
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
   const { propertyTypeId, updatedPropertyType: updatedPropertyTypeSchema } =
     params;
 
-  const updatedPropertyType = await updatePropertyType(
-    { graphApi },
-    {
-      propertyTypeId,
-      schema: updatedPropertyTypeSchema,
-      actorId: user.accountId,
-    },
-  );
+  const updatedPropertyType = await updatePropertyType(context, {
+    propertyTypeId,
+    schema: updatedPropertyTypeSchema,
+    actorId: user.accountId,
+  });
 
   return updatedPropertyType;
 };

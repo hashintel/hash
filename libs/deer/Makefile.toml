@@ -1,0 +1,38 @@
+extend = { path = "../../.github/scripts/rust/Makefile.toml" }
+
+[env]
+CARGO_CLIPPY_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default"
+CARGO_TEST_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default"
+CARGO_RUSTDOC_FLAGS = "--all-features -Zunstable-options -Zrustdoc-scrape-examples=examples -- -Zunstable-options"
+CARGO_RUSTDOC_HACK_FLAGS = ""
+CARGO_DOC_HACK_FLAGS = ""
+
+[tasks.test]
+dependencies = ['install-rust-src']
+
+# required for deer-macro UI tests
+[tasks.install-rust-src]
+private = true
+install_crate = { rustup_component_name = "rust-src" }
+
+[tasks.rustdoc]
+workspace = true
+run_task = [
+    { name = ["rustdoc-task"], condition = { env_true = ["CARGO_MAKE_CRATE_IS_WORKSPACE"] } },
+    { name = ["rustdoc-task-subcrate"] },
+]
+
+[tasks.rustdoc-task-subcrate]
+env = { CARGO_RUSTDOC_FLAGS = "--all-features -- -Z unstable-options" }
+run_task = { name = ["rustdoc-task"] }
+
+[tasks.doc]
+workspace = true
+run_task = [
+    { name = ["doc-task"], condition = { env_true = ["CARGO_MAKE_CRATE_IS_WORKSPACE"] } },
+    { name = ["doc-task-subcrate"] },
+]
+
+[tasks.doc-task-subcrate]
+env = { CARGO_DOC_FLAGS = "--all-features" }
+run_task = { name = ["doc-task"] }

@@ -1,6 +1,6 @@
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import {
@@ -74,19 +74,25 @@ export const getHashInstance: ImpureGraphFunction<
   const entities = await graphApi
     .getEntitiesByQuery({
       filter: {
-        all: [
-          { equal: [{ path: ["version"] }, { parameter: "latest" }] },
+        equal: [
+          { path: ["type", "versionedUri"] },
           {
-            equal: [
-              { path: ["type", "versionedUri"] },
-              {
-                parameter: SYSTEM_TYPES.entityType.hashInstance.schema.$id,
-              },
-            ],
+            parameter: SYSTEM_TYPES.entityType.hashInstance.schema.$id,
           },
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
+      timeProjection: {
+        kernel: {
+          axis: "transaction",
+          timestamp: null,
+        },
+        image: {
+          axis: "decision",
+          start: null,
+          end: null,
+        },
+      },
     })
     .then(({ data: subgraph }) =>
       getRootsAsEntities(subgraph as Subgraph<SubgraphRootTypes["entity"]>),

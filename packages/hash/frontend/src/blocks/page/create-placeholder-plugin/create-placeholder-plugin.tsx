@@ -1,7 +1,7 @@
 import {
   findComponentNodes,
   isParagraphNode,
-} from "@hashintel/hash-shared/prosemirror";
+} from "@local/hash-isomorphic-utils/prosemirror";
 import { Plugin, PluginKey } from "prosemirror-state";
 import { Decoration, DecorationSet } from "prosemirror-view";
 

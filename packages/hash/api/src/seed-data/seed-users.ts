@@ -1,8 +1,8 @@
-import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { Logger } from "@local/hash-backend-utils/logger";
 import { AxiosError } from "axios";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
-import { GraphApi } from "../graph";
+import { ImpureGraphContext } from "../graph";
 import {
   createUser,
   updateUserPreferredName,
@@ -41,11 +41,11 @@ const devUsers: readonly SeededUser[] = [
 ] as const;
 
 export const ensureUsersAreSeeded = async ({
-  graphApi,
   logger,
+  context,
 }: {
-  graphApi: GraphApi;
   logger: Logger;
+  context: ImpureGraphContext;
 }): Promise<User[]> => {
   const createdUsers = [];
 
@@ -104,33 +104,24 @@ export const ensureUsersAreSeeded = async ({
       const { traits, id: kratosIdentityId } = maybeNewIdentity;
       const { emails } = traits;
 
-      let user = await createUser(
-        { graphApi },
-        {
-          emails,
-          kratosIdentityId,
-          actorId: systemUserAccountId,
-          isInstanceAdmin,
-        },
-      );
+      let user = await createUser(context, {
+        emails,
+        kratosIdentityId,
+        actorId: systemUserAccountId,
+        isInstanceAdmin,
+      });
 
-      user = await updateUserShortname(
-        { graphApi },
-        {
-          user,
-          updatedShortname: shortname,
-          actorId: systemUserAccountId,
-        },
-      );
+      user = await updateUserShortname(context, {
+        user,
+        updatedShortname: shortname,
+        actorId: systemUserAccountId,
+      });
 
-      user = await updateUserPreferredName(
-        { graphApi },
-        {
-          user,
-          updatedPreferredName: preferredName,
-          actorId: systemUserAccountId,
-        },
-      );
+      user = await updateUserPreferredName(context, {
+        user,
+        updatedPreferredName: preferredName,
+        actorId: systemUserAccountId,
+      });
 
       createdUsers.push(user);
     }

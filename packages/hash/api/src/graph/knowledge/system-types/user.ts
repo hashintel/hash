@@ -1,11 +1,4 @@
 import {
-  AccountId,
-  EntityUuid,
-  extractEntityUuidFromEntityId,
-  OwnedById,
-  Uuid,
-} from "@hashintel/hash-shared/types";
-import {
   Entity,
   EntityId,
   PropertyObject,
@@ -13,6 +6,13 @@ import {
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+import {
+  AccountId,
+  EntityUuid,
+  extractEntityUuidFromEntityId,
+  OwnedById,
+  Uuid,
+} from "@local/hash-isomorphic-utils/types";
 
 import {
   kratosIdentityApi,
@@ -129,7 +129,6 @@ export const getUserByShortname: ImpureGraphFunction<
     .getEntitiesByQuery({
       filter: {
         all: [
-          { equal: [{ path: ["version"] }, { parameter: "latest" }] },
           {
             equal: [
               { path: ["type", "versionedUri"] },
@@ -150,6 +149,17 @@ export const getUserByShortname: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
+      timeProjection: {
+        kernel: {
+          axis: "transaction",
+          timestamp: null,
+        },
+        image: {
+          axis: "decision",
+          start: null,
+          end: null,
+        },
+      },
     })
     .then(({ data: userEntitiesSubgraph }) =>
       getRootsAsEntities(
@@ -179,7 +189,6 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
     .getEntitiesByQuery({
       filter: {
         all: [
-          { equal: [{ path: ["version"] }, { parameter: "latest" }] },
           {
             equal: [
               { path: ["type", "versionedUri"] },
@@ -201,6 +210,17 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
+      timeProjection: {
+        kernel: {
+          axis: "transaction",
+          timestamp: null,
+        },
+        image: {
+          axis: "decision",
+          start: null,
+          end: null,
+        },
+      },
     })
     .then(({ data: userEntitiesSubgraph }) =>
       getRootsAsEntities(

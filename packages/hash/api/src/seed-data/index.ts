@@ -1,6 +1,6 @@
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { GraphApi } from "@hashintel/hash-graph-client";
+import { Logger } from "@local/hash-backend-utils/logger";
 
+import { ImpureGraphContext } from "../graph";
 import {
   createOrg,
   getOrgByShortname,
@@ -14,36 +14,30 @@ import { ensureUsersAreSeeded } from "./seed-users";
 
 // Seed Org with some pages.
 const seedOrg = async (params: {
-  graphApi: GraphApi;
   logger: Logger;
+  context: ImpureGraphContext;
 }): Promise<Org> => {
-  const { graphApi, logger } = params;
+  const { logger, context } = params;
 
   const exampleOrgShortname = "example-org";
   const exampleOrgName = "Example";
 
-  const existingOrg = await getOrgByShortname(
-    { graphApi },
-    {
-      shortname: exampleOrgShortname,
-    },
-  );
+  const existingOrg = await getOrgByShortname(context, {
+    shortname: exampleOrgShortname,
+  });
 
   if (existingOrg) {
     return existingOrg;
   }
 
-  const sharedOrg = await createOrg(
-    { graphApi },
-    {
-      name: exampleOrgName,
-      shortname: exampleOrgShortname,
-      providedInfo: {
-        orgSize: OrgSize.ElevenToFifty,
-      },
-      actorId: systemUserAccountId,
+  const sharedOrg = await createOrg(context, {
+    name: exampleOrgName,
+    shortname: exampleOrgShortname,
+    providedInfo: {
+      orgSize: OrgSize.ElevenToFifty,
     },
-  );
+    actorId: systemUserAccountId,
+  });
 
   logger.info(
     `Development Org available with shortname = "${sharedOrg.shortname}"`,
@@ -71,10 +65,10 @@ const seedOrg = async (params: {
 };
 
 export const seedOrgsAndUsers = async (params: {
-  graphApi: GraphApi;
   logger: Logger;
+  context: ImpureGraphContext;
 }): Promise<void> => {
-  const { graphApi, logger } = params;
+  const { logger, context } = params;
 
   const createdUsers = await ensureUsersAreSeeded(params);
 
@@ -82,15 +76,12 @@ export const seedOrgsAndUsers = async (params: {
     const sharedOrg = await seedOrg(params);
 
     for (const user of createdUsers) {
-      await joinOrg(
-        { graphApi },
-        {
-          user,
-          org: sharedOrg,
-          responsibility: "Member",
-          actorId: systemUserAccountId,
-        },
-      );
+      await joinOrg(context, {
+        user,
+        org: sharedOrg,
+        responsibility: "Member",
+        actorId: systemUserAccountId,
+      });
 
       logger.info(
         `User with shortname = "${user.shortname}" joined org with shortname = '${sharedOrg.shortname}'`,

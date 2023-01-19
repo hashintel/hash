@@ -23,7 +23,7 @@ where
     K: ToSchema,
     E: ToSchema,
 {
-    fn schema() -> openapi::Schema {
+    fn schema() -> openapi::RefOr<openapi::Schema> {
         openapi::ObjectBuilder::new()
             .property("kind", K::schema())
             .required("kind")
@@ -49,7 +49,7 @@ pub enum OntologyOutwardEdges {
 //   We have to do this because utoipa doesn't understand serde untagged:
 //   https://github.com/juhaku/utoipa/issues/320
 impl ToSchema for OntologyOutwardEdges {
-    fn schema() -> openapi::Schema {
+    fn schema() -> openapi::RefOr<openapi::Schema> {
         openapi::OneOfBuilder::new()
             .item(<OutwardEdge<OntologyEdgeKind, OntologyTypeEditionId>>::schema())
             .item(<OutwardEdge<SharedEdgeKind, EntityVertexId>>::schema())

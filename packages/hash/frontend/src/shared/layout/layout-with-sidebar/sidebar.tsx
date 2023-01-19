@@ -1,5 +1,5 @@
 import { faHome } from "@fortawesome/free-solid-svg-icons";
-import { IconButton } from "@hashintel/hash-design-system";
+import { IconButton } from "@local/design-system";
 import { Box, Drawer, Tooltip } from "@mui/material";
 import { useRouter } from "next/router";
 import { FunctionComponent, useContext } from "react";
@@ -26,6 +26,7 @@ export const PageSidebar: FunctionComponent = () => {
   return (
     <Drawer
       variant="persistent"
+      anchor="left"
       open={sidebarOpen}
       sx={{
         zIndex: 0,
@@ -33,9 +34,15 @@ export const PageSidebar: FunctionComponent = () => {
         height: `calc(100vh - ${HEADER_HEIGHT}px)`,
       }}
       PaperProps={{
-        sx: {
+        sx: (theme) => ({
           width: SIDEBAR_WIDTH,
-        },
+          position: "relative",
+          flex: 1,
+          backgroundColor: theme.palette.gray[10],
+          borderRight: `1px solid ${theme.palette.gray[30]}`,
+          boxShadow:
+            "inset -24px 0px 24px rgba(220, 229, 235, 0.15), inset -1px 0px 16px rgba(220, 229, 235, 0.4)",
+        }),
       }}
       data-testid="page-sidebar"
     >

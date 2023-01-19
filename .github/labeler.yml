@@ -22,16 +22,20 @@ A-hash:
   - "packages/hash/**/.*"
 
 A-engine:
-  - "packages/engine/*"
-  - "packages/engine/.*"
-  - "packages/engine/**/*"
-  - "packages/engine/**/.*"
+  - "apps/engine/*"
+  - "apps/engine/.*"
+  - "apps/engine/**/*"
+  - "apps/engine/**/.*"
 
 A-learn:
-  - "apps/hashdotai/resources/*"
-  - "apps/hashdotai/resources/.*"
-  - "apps/hashdotai/resources/**/*"
-  - "apps/hashdotai/resources/**/.*"
+  - "apps/hashdotai/docs/*"
+  - "apps/hashdotai/docs/.*"
+  - "apps/hashdotai/docs/**/*"
+  - "apps/hashdotai/docs/**/.*"
+  - "apps/hashdotai/glossary/*"
+  - "apps/hashdotai/glossary/.*"
+  - "apps/hashdotai/glossary/**/*"
+  - "apps/hashdotai/glossary/**/.*"
 
 A-error-stack:
   - "packages/libs/error-stack/*"
@@ -40,10 +44,10 @@ A-error-stack:
   - "packages/libs/error-stack/**/.*"
 
 A-deer:
-  - "packages/libs/deer/*"
-  - "packages/libs/deer/.*"
-  - "packages/libs/deer/**/*"
-  - "packages/libs/deer/**/.*"
+  - "libs/deer/*"
+  - "libs/deer/.*"
+  - "libs/deer/**/*"
+  - "libs/deer/**/.*"
 
 A-backend:
   - "packages/graph/*"
@@ -68,10 +72,10 @@ api:
   - packages/hash/api/**/.*
 
 integration:
-  - packages/hash/integration/*
-  - packages/hash/integration/.*
-  - packages/hash/integration/**/*
-  - packages/hash/integration/**/.*
+  - tests/hash-backend-integration/*
+  - tests/hash-backend-integration/.*
+  - tests/hash-backend-integration/**/*
+  - tests/hash-backend-integration/**/.*
 
 docker:
   - packages/hash/docker/*
@@ -80,19 +84,19 @@ docker:
   - packages/hash/docker/**/.*
 
 playwright:
-  - packages/hash/playwright/*
-  - packages/hash/playwright/.*
-  - packages/hash/playwright/**/*
-  - packages/hash/playwright/**/.*
+  - tests/hash-playwright/*
+  - tests/hash-playwright/.*
+  - tests/hash-playwright/**/*
+  - tests/hash-playwright/**/.*
 
 realtime:
-  - packages/hash/realtime/*
-  - packages/hash/realtime/.*
-  - packages/hash/realtime/**/*
-  - packages/hash/realtime/**/.*
+  - apps/hash-realtime/*
+  - apps/hash-realtime/.*
+  - apps/hash-realtime/**/*
+  - apps/hash-realtime/**/.*
 
 search-loader:
-  - packages/hash/search-loader/*
-  - packages/hash/search-loader/.*
-  - packages/hash/search-loader/**/*
-  - packages/hash/search-loader/**/.*
+  - apps/hash-search-realtime/*
+  - apps/hash-search-realtime/.*
+  - apps/hash-search-realtime/**/*
+  - apps/hash-search-realtime/**/.*

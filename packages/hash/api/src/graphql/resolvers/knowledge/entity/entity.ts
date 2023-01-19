@@ -1,11 +1,11 @@
 import { Filter } from "@hashintel/hash-graph-client";
-import { OwnedById } from "@hashintel/hash-shared/types";
 import {
   Entity,
   isEntityId,
   splitEntityId,
   Subgraph,
 } from "@hashintel/hash-subgraph";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import { ForbiddenError, UserInputError } from "apollo-server-express";
 
 import {
@@ -30,6 +30,7 @@ import {
   ResolverFn,
 } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
+import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapEntityToGQL } from "../graphql-mapping";
 import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
 
@@ -62,8 +63,10 @@ export const createEntityResolver: ResolverFn<
 > = async (
   _,
   { ownedById, properties, entityTypeId, linkedEntities, linkData },
-  { dataSources: { graphApi }, user },
+  { dataSources, user },
 ) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
   /**
    * @todo: prevent callers of this mutation from being able to create restricted
    * system types (e.g. a `User` or an `Org`)
@@ -78,45 +81,33 @@ export const createEntityResolver: ResolverFn<
       linkData;
 
     const [leftEntity, rightEntity, linkEntityType] = await Promise.all([
-      getLatestEntityById(
-        { graphApi },
-        {
-          entityId: leftEntityId,
-        },
-      ),
-      getLatestEntityById(
-        { graphApi },
-        {
-          entityId: rightEntityId,
-        },
-      ),
-      getEntityTypeById({ graphApi }, { entityTypeId }),
+      getLatestEntityById(context, {
+        entityId: leftEntityId,
+      }),
+      getLatestEntityById(context, {
+        entityId: rightEntityId,
+      }),
+      getEntityTypeById(context, { entityTypeId }),
     ]);
 
-    entity = await createLinkEntity(
-      { graphApi },
-      {
-        leftEntityId: leftEntity.metadata.editionId.baseId,
-        leftToRightOrder: leftToRightOrder ?? undefined,
-        rightEntityId: rightEntity.metadata.editionId.baseId,
-        rightToLeftOrder: rightToLeftOrder ?? undefined,
-        properties,
-        linkEntityType,
-        ownedById: ownedById ?? (user.accountId as OwnedById),
-        actorId: user.accountId,
-      },
-    );
+    entity = await createLinkEntity(context, {
+      leftEntityId: leftEntity.metadata.editionId.baseId,
+      leftToRightOrder: leftToRightOrder ?? undefined,
+      rightEntityId: rightEntity.metadata.editionId.baseId,
+      rightToLeftOrder: rightToLeftOrder ?? undefined,
+      properties,
+      linkEntityType,
+      ownedById: ownedById ?? (user.accountId as OwnedById),
+      actorId: user.accountId,
+    });
   } else {
-    entity = await createEntityWithLinks(
-      { graphApi },
-      {
-        ownedById: ownedById ?? (user.accountId as OwnedById),
-        entityTypeId,
-        properties,
-        linkedEntities: linkedEntities ?? undefined,
-        actorId: user.accountId,
-      },
-    );
+    entity = await createEntityWithLinks(context, {
+      ownedById: ownedById ?? (user.accountId as OwnedById),
+      entityTypeId,
+      properties,
+      linkedEntities: linkedEntities ?? undefined,
+      actorId: user.accountId,
+    });
   }
 
   return mapEntityToGQL(entity);
@@ -147,9 +138,6 @@ export const getAllLatestEntitiesResolver: ResolverFn<
   const filter: Filter = {
     all: [
       {
-        equal: [{ path: ["version"] }, { parameter: "latest" }],
-      },
-      {
         equal: [{ path: ["archived"] }, { parameter: false }],
       },
     ],
@@ -177,6 +165,17 @@ export const getAllLatestEntitiesResolver: ResolverFn<
       isOfType,
       hasLeftEntity,
       hasRightEntity,
+    },
+    timeProjection: {
+      kernel: {
+        axis: "transaction",
+        timestamp: null,
+      },
+      image: {
+        axis: "decision",
+        start: null,
+        end: null,
+      },
     },
   });
 
@@ -211,12 +210,6 @@ export const getEntityResolver: ResolverFn<
   const filter: Filter = {
     all: [
       {
-        equal: [
-          { path: ["version"] },
-          { parameter: entityVersion ?? "latest" },
-        ],
-      },
-      {
         equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
       },
       {
@@ -236,6 +229,21 @@ export const getEntityResolver: ResolverFn<
       isOfType,
       hasLeftEntity,
       hasRightEntity,
+    },
+    timeProjection: {
+      kernel: {
+        axis: "transaction",
+        timestamp: null,
+      },
+      image: {
+        axis: "decision",
+        start: entityVersion
+          ? { bound: "included", timestamp: entityVersion }
+          : null,
+        end: entityVersion
+          ? { bound: "included", timestamp: entityVersion }
+          : null,
+      },
     },
   });
 
@@ -257,8 +265,10 @@ export const updateEntityResolver: ResolverFn<
     rightToLeftOrder,
     entityTypeId,
   },
-  { dataSources: { graphApi }, user },
+  { dataSources, user },
 ) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
   // The user needs to be signed up if they aren't updating their own user entity
   if (
     entityId !== user.entity.metadata.editionId.baseId &&
@@ -269,12 +279,12 @@ export const updateEntityResolver: ResolverFn<
     );
   }
 
-  const entity = await getLatestEntityById({ graphApi }, { entityId });
+  const entity = await getLatestEntityById(context, { entityId });
 
   for (const beforeUpdateHook of beforeUpdateEntityHooks) {
     if (beforeUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
       await beforeUpdateHook.callback({
-        graphApi,
+        context,
         entity,
         updatedProperties,
       });
@@ -284,16 +294,13 @@ export const updateEntityResolver: ResolverFn<
   let updatedEntity: Entity;
 
   if (isEntityLinkEntity(entity)) {
-    updatedEntity = await updateLinkEntity(
-      { graphApi },
-      {
-        linkEntity: entity,
-        properties: updatedProperties,
-        actorId: user.accountId,
-        leftToRightOrder: leftToRightOrder ?? undefined,
-        rightToLeftOrder: rightToLeftOrder ?? undefined,
-      },
-    );
+    updatedEntity = await updateLinkEntity(context, {
+      linkEntity: entity,
+      properties: updatedProperties,
+      actorId: user.accountId,
+      leftToRightOrder: leftToRightOrder ?? undefined,
+      rightToLeftOrder: rightToLeftOrder ?? undefined,
+    });
   } else {
     if (leftToRightOrder || rightToLeftOrder) {
       throw new UserInputError(
@@ -301,15 +308,12 @@ export const updateEntityResolver: ResolverFn<
       );
     }
 
-    updatedEntity = await updateEntity(
-      { graphApi },
-      {
-        entity,
-        entityTypeId: entityTypeId ?? undefined,
-        properties: updatedProperties,
-        actorId: user.accountId,
-      },
-    );
+    updatedEntity = await updateEntity(context, {
+      entity,
+      entityTypeId: entityTypeId ?? undefined,
+      properties: updatedProperties,
+      actorId: user.accountId,
+    });
   }
 
   return mapEntityToGQL(updatedEntity);
@@ -320,10 +324,10 @@ export const archiveEntityResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationArchiveEntityArgs
-> = async (_, { entityId }, { dataSources: { graphApi }, user }) => {
-  const entity = await getLatestEntityById({ graphApi }, { entityId });
+> = async (_, { entityId }, { dataSources: context, user }) => {
+  const entity = await getLatestEntityById(context, { entityId });
 
-  await archiveEntity({ graphApi }, { entity, actorId: user.accountId });
+  await archiveEntity(context, { entity, actorId: user.accountId });
 
   return true;
 };

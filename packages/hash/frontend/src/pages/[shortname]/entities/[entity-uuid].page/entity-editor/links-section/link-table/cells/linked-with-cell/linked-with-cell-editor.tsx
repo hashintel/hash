@@ -1,27 +1,23 @@
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import { EntityId, OwnedById } from "@hashintel/hash-shared/types";
 import { Entity } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
-import { useContext } from "react";
+import { EntityId } from "@local/hash-isomorphic-utils/types";
 
-import { useBlockProtocolArchiveEntity } from "../../../../../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
-import { useBlockProtocolCreateEntity } from "../../../../../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
-import { WorkspaceContext } from "../../../../../../../../shared/workspace-context";
+import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../../../entity-editor-context";
+import { LinkAndTargetEntity } from "../../types";
 import { LinkedWithCell } from "../linked-with-cell";
 import { EntitySelector } from "./entity-selector";
-import { LinkedEntityListEditor } from "./linked-entity-list-editor";
+import {
+  createDraftLinkEntity,
+  LinkedEntityListEditor,
+} from "./linked-entity-list-editor";
 
 export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
   props,
 ) => {
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
-  const { entitySubgraph, refetch } = useEntityEditor();
-  const { createEntity } = useBlockProtocolCreateEntity(
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-    (activeWorkspaceAccountId as OwnedById) ?? null,
-  );
-  const { archiveEntity } = useBlockProtocolArchiveEntity();
+  const { entitySubgraph, setDraftLinksToCreate } = useEntityEditor();
+  const markLinkEntityToArchive = useMarkLinkEntityToArchive();
 
   const { value: cell, onFinishedEditing } = props;
   const {
@@ -31,13 +27,13 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
     maxItems,
   } = cell.data.linkRow;
 
-  const onSelectForSingleLink = async (val: Entity) => {
+  const onSelectForSingleLink = (selectedEntity: Entity) => {
     const { linkEntity: currentLink, rightEntity: currentLinkedEntity } =
       linkAndTargetEntities[0] ?? {};
 
     const sameEntity =
       currentLinkedEntity?.metadata.editionId.baseId ===
-      val.metadata.editionId.baseId;
+      selectedEntity.metadata.editionId.baseId;
 
     // if clicked on the same entity, do nothing
     if (sameEntity) {
@@ -46,24 +42,26 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
 
     // if there is an existing link, archive it
     if (currentLink) {
-      await archiveEntity({
-        data: { entityId: currentLink.metadata.editionId.baseId as EntityId },
-      });
+      markLinkEntityToArchive(
+        currentLink.metadata.editionId.baseId as EntityId,
+      );
     }
 
     // create new link
-    await createEntity({
-      data: {
-        entityTypeId: linkEntityTypeId,
-        properties: {},
-        linkData: {
-          leftEntityId: getRoots(entitySubgraph)[0]?.metadata.editionId.baseId!,
-          rightEntityId: val.metadata.editionId.baseId,
-        },
-      },
+    const linkEntity = createDraftLinkEntity({
+      linkEntityTypeId,
+      leftEntityId: getRoots(entitySubgraph)[0]?.metadata.editionId
+        .baseId as EntityId,
+      rightEntityId: selectedEntity.metadata.editionId.baseId as EntityId,
     });
 
-    await refetch();
+    const newLinkAndTargetEntity: LinkAndTargetEntity = {
+      linkEntity,
+      rightEntity: selectedEntity,
+    };
+
+    setDraftLinksToCreate((prev) => [...prev, newLinkAndTargetEntity]);
+
     onFinishedEditing(undefined);
   };
 

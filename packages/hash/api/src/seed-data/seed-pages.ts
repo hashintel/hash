@@ -1,7 +1,7 @@
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { GraphApi } from "@hashintel/hash-graph-client";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
+import { Logger } from "@local/hash-backend-utils/logger";
+import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
 
+import { ImpureGraphContext } from "../graph";
 import {
   createPage,
   Page,
@@ -17,37 +17,31 @@ export const seedPages = async (
   pageDefinitions: PageDefinition[],
   owningActorId: AccountId,
   sharedParams: {
-    graphApi: GraphApi;
     logger: Logger;
+    context: ImpureGraphContext;
   },
   parentPage?: Page,
 ) => {
-  const { graphApi } = sharedParams;
+  const { context } = sharedParams;
 
   let prevIndex: string | undefined;
 
   for (const pageDefinition of pageDefinitions) {
-    const newPage: Page = await createPage(
-      { graphApi },
-      {
-        actorId: owningActorId,
-        ownedById: owningActorId as OwnedById,
-        title: pageDefinition.title,
-        prevIndex,
-      },
-    );
+    const newPage: Page = await createPage(context, {
+      actorId: owningActorId,
+      ownedById: owningActorId as OwnedById,
+      title: pageDefinition.title,
+      prevIndex,
+    });
 
     if (parentPage) {
-      await setPageParentPage(
-        { graphApi },
-        {
-          page: newPage,
-          actorId: owningActorId,
-          parentPage,
-          prevIndex: parentPage.index ?? null,
-          nextIndex: null,
-        },
-      );
+      await setPageParentPage(context, {
+        page: newPage,
+        actorId: owningActorId,
+        parentPage,
+        prevIndex: parentPage.index ?? null,
+        nextIndex: null,
+      });
     }
 
     prevIndex = newPage.index;

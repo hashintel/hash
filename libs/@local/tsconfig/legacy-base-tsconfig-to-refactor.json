@@ -14,10 +14,8 @@
     "target": "es2020",
     "baseUrl": ".",
     "paths": {
-      "@hashintel/hash-shared/*": ["../../../../packages/hash/shared/src/*"],
-      "@hashintel/hash-backend-utils/*": [
-        "../../../../packages/hash/backend-utils/src/*"
-      ]
+      "@local/hash-isomorphic-utils/*": ["../hash-isomorphic-utils/src/*"],
+      "@local/hash-backend-utils/*": ["../hash-backend-utils/src/*"]
     }
   },
   "ts-node": {

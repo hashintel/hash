@@ -7,12 +7,13 @@
  * relevant for the type editors.
  */
 import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
-import { OwnedById } from "@hashintel/hash-shared/types";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 
 import { KnowledgeCallbacks } from "../../components/hooks/block-protocol-functions/knowledge/knowledge-shim";
 import { useBlockProtocolAggregateEntities } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-aggregate-entities";
 import { useBlockProtocolArchiveEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
 import { useBlockProtocolCreateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
+import { useBlockProtocolFileUpload } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-file-upload";
 // Knowledge Graph Operations
 import { useBlockProtocolGetEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
 import { useBlockProtocolUpdateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
@@ -28,7 +29,6 @@ import { useBlockProtocolGetEntityType } from "../../components/hooks/block-prot
 import { useBlockProtocolGetPropertyType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-property-type";
 import { useBlockProtocolUpdateEntityType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-entity-type";
 import { useBlockProtocolUpdatePropertyType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-property-type";
-import { useBlockProtocolFileUpload } from "../../components/hooks/block-protocol-functions/use-block-protocol-file-upload";
 import { useIsReadonlyMode } from "../../shared/readonly-mode";
 
 export type GraphMessageCallbacks = Omit<
@@ -36,7 +36,6 @@ export type GraphMessageCallbacks = Omit<
   | "getEntity"
   | "createEntity"
   | "aggregateEntities"
-  | "updateEntity"
   | "getEntityType"
   | "createLink"
   | "getLink"

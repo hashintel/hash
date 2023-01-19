@@ -1,8 +1,5 @@
 import { EntityType, VersionedUri } from "@blockprotocol/type-system";
 import { UpdateEntityTypeRequest } from "@hashintel/hash-graph-client";
-import { EntityTypeWithoutId } from "@hashintel/hash-shared/graphql/types";
-import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
-import { AccountId, OwnedById } from "@hashintel/hash-shared/types";
 import {
   EntityTypeWithMetadata,
   linkEntityTypeUri,
@@ -11,6 +8,9 @@ import {
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { EntityTypeWithoutId } from "@local/hash-isomorphic-utils/graphql/types";
+import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
 
 import { NotFoundError } from "../../../lib/error";
 import {
@@ -78,6 +78,17 @@ export const getEntityTypeById: ImpureGraphFunction<
         equal: [{ path: ["versionedUri"] }, { parameter: entityTypeId }],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
+      timeProjection: {
+        kernel: {
+          axis: "transaction",
+          timestamp: null,
+        },
+        image: {
+          axis: "decision",
+          start: null,
+          end: null,
+        },
+      },
     })
     .then(({ data }) => data as Subgraph<SubgraphRootTypes["entityType"]>);
 

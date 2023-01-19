@@ -1,4 +1,4 @@
-import { EntityId } from "@hashintel/hash-shared/types";
+import { EntityId } from "@local/hash-isomorphic-utils/types";
 import { EditorView } from "prosemirror-view";
 import {
   createContext,

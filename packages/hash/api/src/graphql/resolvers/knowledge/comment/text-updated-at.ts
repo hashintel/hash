@@ -1,26 +1,19 @@
-import { EntityVersion } from "@hashintel/hash-subgraph";
-
 import {
   getCommentById,
   getCommentText,
 } from "../../../../graph/knowledge/system-types/comment";
-import { ResolverFn } from "../../../api-types.gen";
+import { CommentResolvers } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { UnresolvedCommentGQL } from "../graphql-mapping";
+import { dataSourcesToImpureGraphContext } from "../../util";
 
-export const commentTextUpdatedAtResolver: ResolverFn<
-  Promise<EntityVersion>,
-  UnresolvedCommentGQL,
-  LoggedInGraphQLContext,
-  {}
-> = async ({ metadata }, _, { dataSources: { graphApi } }) => {
-  const comment = await getCommentById(
-    { graphApi },
-    {
+export const commentTextUpdatedAtResolver: CommentResolvers<LoggedInGraphQLContext>["textUpdatedAt"] =
+  async ({ metadata }, _, { dataSources }) => {
+    const context = dataSourcesToImpureGraphContext(dataSources);
+
+    const comment = await getCommentById(context, {
       entityId: metadata.editionId.baseId,
-    },
-  );
-  const textEntity = await getCommentText({ graphApi }, { comment });
+    });
+    const textEntity = await getCommentText(context, { comment });
 
-  return textEntity.metadata.version;
-};
+    return textEntity.metadata.version;
+  };

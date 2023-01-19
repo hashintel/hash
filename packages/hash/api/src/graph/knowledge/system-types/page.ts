@@ -1,9 +1,4 @@
 import {
-  AccountId,
-  extractOwnedByIdFromEntityId,
-  OwnedById,
-} from "@hashintel/hash-shared/types";
-import {
   Entity,
   EntityId,
   PropertyObject,
@@ -11,6 +6,11 @@ import {
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
 import { getEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+import {
+  AccountId,
+  extractOwnedByIdFromEntityId,
+  OwnedById,
+} from "@local/hash-isomorphic-utils/types";
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 
@@ -251,17 +251,23 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
   const pageEntities = await graphApi
     .getEntitiesByQuery({
       filter: {
-        all: [
-          { equal: [{ path: ["version"] }, { parameter: "latest" }] },
-          {
-            equal: [
-              { path: ["type", "versionedUri"] },
-              { parameter: SYSTEM_TYPES.entityType.page.schema.$id },
-            ],
-          },
+        equal: [
+          { path: ["type", "versionedUri"] },
+          { parameter: SYSTEM_TYPES.entityType.page.schema.$id },
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
+      timeProjection: {
+        kernel: {
+          axis: "transaction",
+          timestamp: null,
+        },
+        image: {
+          axis: "decision",
+          start: null,
+          end: null,
+        },
+      },
     })
     .then(({ data: subgraph }) =>
       getEntities(subgraph as Subgraph<SubgraphRootTypes["entity"]>),

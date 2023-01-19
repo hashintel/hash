@@ -59,6 +59,21 @@ jobs:
             exit 1
           fi
 
+      - name: Run yarn lint:license-in-workspaces
+        if: ${{ success() || failure() }}
+        env:
+          FORCE_COLOR: "1" ## https://www.npmjs.com/package/chalk#supportsColor
+        run: |
+          if ! yarn lint:license-in-workspaces; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Please fix the above errors locally for the check to pass.'
+            echo 'If you don’t see them, try merging target branch into yours.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
       - name: Run yarn lint:markdownlint
         if: ${{ success() || failure() }}
         run: |
@@ -159,14 +174,14 @@ jobs:
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           fail_ci_if_error: true
-          files: packages/hash/integration/coverage/lcov.info
+          files: tests/hash-backend-integration/coverage/lcov.info
           flags: backend-integration-tests
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
 
       - name: Show external services logs
         if: ${{ success() || failure() }}
         run: |
-          docker-compose --file packages/hash/external-services/docker-compose.yml logs 2>&1 | tee var/logs/external-services.log
+          docker-compose --file apps/hash-external-services/docker-compose.yml logs 2>&1 | tee var/logs/hash-external-services.log
 
       - name: Upload artifact backend-integration-tests-var
         uses: actions/upload-artifact@v3
@@ -233,8 +248,8 @@ jobs:
       - name: Show external services logs
         if: ${{ success() || failure() }}
         run: |
-          docker-compose --file packages/hash/external-services/docker-compose.yml logs 2>&1 | tee var/logs/external-services.log
-          cat var/logs/external-services.log
+          docker-compose --file apps/hash-external-services/docker-compose.yml logs 2>&1 | tee var/logs/hash-external-services.log
+          cat var/logs/hash-external-services.log
 
       - name: Show backend logs
         if: ${{ success() || failure() }}
@@ -249,7 +264,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: playwright-report
-          path: packages/hash/playwright/playwright-report
+          path: tests/hash-playwright/playwright-report
 
       - name: Upload artifact playwright-var
         uses: actions/upload-artifact@v3
@@ -280,6 +295,6 @@ jobs:
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           fail_ci_if_error: true
-          files: packages/hash/api/coverage/lcov.info,packages/hash/backend-utils/coverage/lcov.info,packages/hash/frontend/coverage/lcov.infopackages/hash/shared/coverage/lcov.info,
+          files: packages/hash/api/coverage/lcov.info,libs/@local/hash-backend-utils/coverage/lcov.info,packages/hash/frontend/coverage/lcov.info,libs/@local/hash-isomorphic-utils/coverage/lcov.info,
           flags: unit-tests
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved

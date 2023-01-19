@@ -1,12 +1,9 @@
 import { extractVersion } from "@blockprotocol/type-system";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
-import {
-  FontAwesomeIcon,
-  IconButton,
-  MenuItem,
-} from "@hashintel/hash-design-system";
 import { VersionedUri } from "@hashintel/hash-subgraph";
+import { FontAwesomeIcon, IconButton, MenuItem } from "@local/design-system";
 import {
+  Box,
   Divider,
   iconButtonClasses,
   ListItem,
@@ -23,9 +20,9 @@ import {
 import {
   bindMenu,
   bindTrigger,
-  PopupState,
+  usePopupState,
 } from "material-ui-popup-state/hooks";
-import { Fragment } from "react";
+import { Fragment, useCallback, useId } from "react";
 
 import { MenuItemProps } from "../../../../../../../shared/ui/menu-item";
 import {
@@ -37,28 +34,57 @@ export const TYPE_MENU_CELL_WIDTH = 70;
 
 export const TypeMenuCell = ({
   typeId,
-  editButtonProps,
-  onRemove,
-  popupState,
   variant,
   canEdit = true,
+  canRemove = true,
+  editButtonProps,
+  onRemove,
+  editButtonDisabled,
 }: {
   typeId: VersionedUri;
-  editButtonProps: MenuItemProps;
-  onRemove?: () => void;
-  popupState: PopupState;
   variant: "property" | "link";
+  canRemove?: boolean;
   canEdit?: boolean;
+  editButtonDisabled?: string;
+  editButtonProps?: MenuItemProps;
+  onRemove?: () => void;
 }) => {
   const version = extractVersion(typeId);
   const ontology = parseUriForOntologyChip(typeId);
 
+  const popupId = useId();
+  const popupState = usePopupState({
+    variant: "popover",
+    popupId: `property-menu-${popupId}`,
+  });
+
+  const EditButton = useCallback(
+    () => (
+      <MenuItem
+        {...editButtonProps}
+        disabled={!!editButtonDisabled}
+        onClick={(evt) => {
+          popupState.close();
+          editButtonProps?.onClick?.(evt);
+        }}
+        onTouchStart={(evt) => {
+          popupState.close();
+          editButtonProps?.onTouchStart?.(evt);
+        }}
+      >
+        <ListItemText primary={<>Edit {variant}</>} />
+      </MenuItem>
+    ),
+    [editButtonDisabled, popupState, editButtonProps, variant],
+  );
+
   return (
     <TableCell
+      width={70}
       sx={{
         [`.${iconButtonClasses.root}`]: {
           opacity: 0,
-          [`.${tableRowClasses.root}:hover &`]: {
+          [`.${tableRowClasses.root}:hover > &`]: {
             opacity: 1,
           },
         },
@@ -105,34 +131,41 @@ export const TypeMenuCell = ({
           },
         })}
       >
-        <Typography component={ListItem} variant="smallCaps">
-          Actions
-        </Typography>
+        {canEdit || canRemove
+          ? [
+              <Typography
+                key="actions"
+                component={ListItem}
+                variant="smallCaps"
+              >
+                Actions
+              </Typography>,
+              canEdit ? (
+                editButtonDisabled ? (
+                  <Tooltip key="edit" title={editButtonDisabled}>
+                    <Box>
+                      <EditButton />
+                    </Box>
+                  </Tooltip>
+                ) : (
+                  <EditButton key="edit" />
+                )
+              ) : null,
+              canRemove ? (
+                <MenuItem
+                  key="remove"
+                  onClick={() => {
+                    popupState.close();
+                    onRemove?.();
+                  }}
+                >
+                  <ListItemText primary={<>Remove {variant}</>} />
+                </MenuItem>
+              ) : null,
+              <Divider key="divider" />,
+            ]
+          : null}
 
-        {canEdit ? (
-          <MenuItem
-            {...editButtonProps}
-            onClick={(evt) => {
-              popupState.close();
-              editButtonProps.onClick?.(evt);
-            }}
-            onTouchStart={(evt) => {
-              popupState.close();
-              editButtonProps.onTouchStart?.(evt);
-            }}
-          >
-            <ListItemText primary={<>Edit {variant}</>} />
-          </MenuItem>
-        ) : null}
-        <MenuItem
-          onClick={() => {
-            popupState.close();
-            onRemove?.();
-          }}
-        >
-          <ListItemText primary={<>Remove {variant}</>} />
-        </MenuItem>
-        <Divider />
         <Typography component={ListItem} variant="smallCaps">
           Source
         </Typography>

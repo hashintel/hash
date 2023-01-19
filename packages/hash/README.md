@@ -108,7 +108,7 @@ Email-sending in HASH is handled by either Kratos (in the case of authentication
 
 Transactional emails templates are located in the following locations:
 
-- Kratos emails in [`./external-services/kratos/templates/`](./external-services/kratos/templates/)
+- Kratos emails in [`./../../apps/hash-external-services/kratos/templates/`](./../../apps/hash-external-services/kratos/templates/)
 - HASH emails in [`./api/src/email/index.ts`](./api/src/email/index.ts)
 
 To use `AwsSesEmailTransporter` instead, set `export HASH_EMAIL_TRANSPORTER=aws_ses` in your terminal before running the app.
@@ -152,9 +152,9 @@ localStorage["hash.internal.debugging"] = "true";
 
 ### Backend integration tests
 
-Backend integration tests are located in the [/packages/hash/integration](/packages/hash/integration) folder.
+Backend integration tests are located in the [/tests/hash-backend-integration](/tests/hash-backend-integration) folder.
 
-_The tests require a running instance of `external-services`. see [here](#external-services-test-mode) for information on doing this without polluting the development database._
+_The tests require a running instance of `hash-external-services`. see [here](#external-services-test-mode) for information on doing this without polluting the development database._
 
 ```sh
 yarn test:backend-integration
@@ -166,7 +166,7 @@ Thus, `yarn test:backend-integration` and `yarn test:playwright` will probably c
 ### Playwright tests
 
 [Playwright](https://playwright.dev) tests are browser-based integration and end-to-end tests.
-The playwright tests are located within the [/packages/hash/playwright/tests](/packages/hash/playwright/tests) folder.
+The playwright tests are located within the [/tests/hash-playwright/tests](/tests/hash-playwright/tests) folder.
 To run these tests locally, you will need to have both backend and frontend running.
 
 - _The tests require a running instance of `external-services`. see [here](#external-services-test-mode) for information on doing this without polluting the development database._

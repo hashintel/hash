@@ -1,20 +1,34 @@
 use std::{collections::Bound, error::Error, ops::RangeBounds};
 
-use interval_ops::{Interval, IntervalBounds, LowerBound, UpperBound};
+use interval_ops::{Interval, LowerBound, UpperBound};
 use postgres_protocol::types::timestamp_from_sql;
 use postgres_types::{FromSql, Type};
 use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
+use utoipa::{openapi, ToSchema};
 
-use crate::identifier::time::timestamp::Timestamp;
+use crate::identifier::time::{timestamp::Timestamp, TimeInterval, TimeIntervalBound};
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
-pub struct VersionTimespan<A> {
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct VersionInterval<A> {
     pub start: Timestamp<A>,
     pub end: Option<Timestamp<A>>,
 }
 
-impl<A> Interval<Timestamp<A>> for VersionTimespan<A> {
+impl<A> ToSchema for VersionInterval<A> {
+    fn schema() -> openapi::RefOr<openapi::Schema> {
+        openapi::Schema::Object(
+            openapi::ObjectBuilder::new()
+                .property("start", Timestamp::<A>::schema())
+                .required("start")
+                .property("end", openapi::Ref::from_schema_name("NullableTimestamp"))
+                .required("end")
+                .build(),
+        )
+        .into()
+    }
+}
+
+impl<A> Interval<Timestamp<A>> for VersionInterval<A> {
     type LowerBound = Timestamp<A>;
     type UpperBound = Option<Timestamp<A>>;
 
@@ -45,9 +59,9 @@ impl<A> Interval<Timestamp<A>> for VersionTimespan<A> {
     }
 }
 
-impl<A> VersionTimespan<A> {
+impl<A> VersionInterval<A> {
     #[must_use]
-    pub fn from_anonymous(interval: VersionTimespan<()>) -> Self {
+    pub fn from_anonymous(interval: VersionInterval<()>) -> Self {
         Self {
             start: Timestamp::from_anonymous(interval.start),
             end: interval.end.map(Timestamp::from_anonymous),
@@ -55,12 +69,24 @@ impl<A> VersionTimespan<A> {
     }
 
     #[must_use]
-    pub fn into_interval_bounds(self) -> IntervalBounds<Timestamp<A>> {
-        IntervalBounds::from_range(self)
+    pub fn into_time_interval(self) -> TimeInterval<A> {
+        TimeInterval::from_bounds(
+            TimeIntervalBound::Included(self.start),
+            self.end
+                .map_or(TimeIntervalBound::Unbounded, TimeIntervalBound::Excluded),
+        )
+    }
+
+    #[must_use]
+    pub fn cast<B>(self) -> VersionInterval<B> {
+        VersionInterval {
+            start: self.start.cast(),
+            end: self.end.map(Timestamp::cast),
+        }
     }
 }
 
-impl<A> RangeBounds<Timestamp<A>> for VersionTimespan<A> {
+impl<A> RangeBounds<Timestamp<A>> for VersionInterval<A> {
     fn start_bound(&self) -> Bound<&Timestamp<A>> {
         LowerBound::as_bound(&self.start)
     }
@@ -103,7 +129,7 @@ fn parse_bound(
     }
 }
 
-impl FromSql<'_> for VersionTimespan<()> {
+impl FromSql<'_> for VersionInterval<()> {
     fn from_sql(_: &Type, buf: &[u8]) -> Result<Self, Box<dyn Error + Send + Sync>> {
         match postgres_protocol::types::range_from_sql(buf)? {
             postgres_protocol::types::Range::Empty => {
