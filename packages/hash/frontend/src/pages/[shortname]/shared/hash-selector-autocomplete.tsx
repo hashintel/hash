@@ -9,17 +9,15 @@ import {
 import {
   Autocomplete,
   AutocompleteProps,
-  Box,
   outlinedInputClasses,
   PaperProps,
   PopperProps,
   Typography,
 } from "@mui/material";
-import clsx from "clsx";
 import { Ref, useMemo, useState } from "react";
 
 import { AutocompleteDropdown } from "./autocomplete-dropdown";
-import { OntologyChip, parseUriForOntologyChip } from "./ontology-chip";
+import { HashSelectorAutocompleteOption } from "./hash-selector-autocomplete/hash-selector-autocomplete-option";
 import {
   addPopperPositionClassPopperModifier,
   popperPlacementInputNoBorder,
@@ -121,7 +119,7 @@ type HashSelectorAutocompleteProps<
   /**
    * joined indicates that the input is connected to another element, so we
    * change the visual appearance of the component to make it flow straight into
-   * whatever element its connected to
+   * whatever element it's connected to
    */
   joined?: boolean;
 };
@@ -223,74 +221,12 @@ export const HashSelectorAutocomplete = <
           }}
         />
       )}
-      renderOption={(props, option) => {
-        const { $id, description, title } = optionToRenderData(option);
-        const ontology = parseUriForOntologyChip($id);
-
-        // @todo extract component
-        let className = clsx(props.className, "click-outside-ignore");
-
-        return (
-          <li
-            {...props}
-            data-testid="property-selector-option"
-            /** added "click-outside-ignore" to be able to use this selector with Grid component */
-            className={className}
-          >
-            <Box width="100%">
-              <Box
-                width="100%"
-                display="flex"
-                alignItems="center"
-                mb={0.5}
-                whiteSpace="nowrap"
-              >
-                <Box
-                  component="span"
-                  flexShrink={0}
-                  display="flex"
-                  alignItems="center"
-                >
-                  <Typography
-                    variant="smallTextLabels"
-                    fontWeight={500}
-                    mr={0.5}
-                    color="black"
-                  >
-                    {title}
-                  </Typography>
-                </Box>
-                <OntologyChip
-                  {...ontology}
-                  path={
-                    <Typography
-                      component="span"
-                      fontWeight="bold"
-                      color={(theme) => theme.palette.blue[70]}
-                    >
-                      {ontology.path}
-                    </Typography>
-                  }
-                  sx={{ flexShrink: 1, ml: 1.25, mr: 2 }}
-                />
-              </Box>
-              <Typography
-                component={Box}
-                variant="microText"
-                sx={(theme) => ({
-                  color: theme.palette.gray[50],
-                  whiteSpace: "nowrap",
-                  textOverflow: "ellipsis",
-                  overflow: "hidden",
-                  width: "100%",
-                })}
-              >
-                {description}
-              </Typography>
-            </Box>
-          </li>
-        );
-      }}
+      renderOption={(props, option) => (
+        <HashSelectorAutocompleteOption
+          liProps={props}
+          {...optionToRenderData(option)}
+        />
+      )}
       popupIcon={null}
       disableClearable
       forcePopupIcon={false}
