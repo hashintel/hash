@@ -50,7 +50,8 @@
       "matchDepNames": ["rust"],
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
       "separateMajorMinor": false,
-      "fetchReleaseNotes": false
+      "fetchReleaseNotes": false,
+      "commitMessageExtra": "to {{prettyNewVersion}}"
     },
     {
       "matchManagers": ["regex"],
@@ -58,7 +59,7 @@
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
       "matchPaths": ["**/error-stack/**"],
       "groupName": "error-stack",
-      "commitMessageTopic": "error-stack"
+      "commitMessageTopic": "Rust toolchain for error-stack"
     },
     {
       "matchManagers": ["regex"],
@@ -66,7 +67,7 @@
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
       "matchPaths": ["**/deer/**"],
       "groupName": "deer",
-      "commitMessageTopic": "deer"
+      "commitMessageTopic": "Rust toolchain for deer"
     },
     {
       "matchManagers": ["regex"],
@@ -74,7 +75,7 @@
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
       "matchPaths": ["**/graph/**"],
       "groupName": "graph",
-      "commitMessageTopic": "graph"
+      "commitMessageTopic": "Rust toolchain for Graph"
     }
   ],
   "regexManagers": [
