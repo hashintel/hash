@@ -15,6 +15,7 @@ import {
 } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useId, useLayoutEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { useResizeObserverRef } from "rooks";
 
@@ -119,6 +120,21 @@ const LinkTypeRow = ({
   const [entityTypeSelectorPopupOpen, setEntityTypeSelectorPopupOpen] =
     useState(false);
 
+  const entityTypeSelectorRef = useRef<HTMLDivElement>(null);
+
+  const [inputWrapperHeight, setInputWrapperHeight] = useState(0);
+  const [resizeObserverRef] = useResizeObserverRef(([size]) => {
+    if (size) {
+      // Using flush sync so that the UI updates immediately, rather than the
+      // popup lagging behind
+      flushSync(() => {
+        setInputWrapperHeight(size.contentRect.height);
+      });
+    }
+  });
+
+  const selectorOffset = TYPE_SELECTOR_HEIGHT + inputWrapperHeight;
+
   const linkTypes = useLinkEntityTypes();
   const entityTypes = useEntityTypes();
   const linkId = useWatch({
@@ -182,22 +198,6 @@ const LinkTypeRow = ({
   const chosenEntityTypeSchemas = entityTypeSchemas.filter((schema) =>
     chosenEntityTypes.includes(schema.$id),
   );
-
-  const entityTypeSelectorRef = useRef<HTMLDivElement>(null);
-
-  // const [inputWrapperRef, inputWrapperRect] = useBoundingclientrectRef();
-
-  // console.log(inputWrapperRect);
-
-  const [inputWrapperHeight, setInputWrapperHeight] = useState(66);
-  const [resizeObserverRef] = useResizeObserverRef(([size]) => {
-    const resizeObserverSize = size?.borderBoxSize[0];
-    if (resizeObserverSize) {
-      setInputWrapperHeight(resizeObserverSize.blockSize);
-    }
-  });
-
-  const selectorOffset = TYPE_SELECTOR_HEIGHT + inputWrapperHeight;
 
   return (
     <>
@@ -321,26 +321,6 @@ const LinkTypeRow = ({
                     borderColor: theme.palette.gray[30],
                     boxShadow: theme.boxShadows.md,
                     zIndex: theme.zIndex.drawer - 1,
-
-                    // [`${popperPlacementSelectors.top} &`]: {
-                    //   borderTopLeftRadius: "0 !important",
-                    //   borderTopRightRadius: "0 !important",
-                    // },
-                    //
-                    // [`${popperPlacementSelectors.bottom} &`]: {
-                    //   borderBottomLeftRadius: "0 !important",
-                    //   borderBottomRightRadius: "0 !important",
-                    // },
-
-                    // ...(entityTypeSelectorPlacement === "top"
-                    //   ? {
-                    //       borderTopLeftRadius: "0 !important",
-                    //       borderTopRightRadius: "0 !important",
-                    //     }
-                    //   : {
-                    //       borderBottomLeftRadius: "0 !important",
-                    //       borderBottomRightRadius: "0 !important",
-                    //     }),
                   }),
                   popperPlacementInputNoRadius,
                 ]}
@@ -355,15 +335,16 @@ const LinkTypeRow = ({
                       left: -1,
                       width: "calc(100% + 2px)",
                       height: TYPE_SELECTOR_HEIGHT + selectorOffset,
+                      top: `calc(100% - ${selectorOffset}px)`,
+                      paddingTop: `${selectorOffset}px`,
+                      pointerEvents: "none",
 
-                      [`${popperPlacementSelectors.top} &`]: {
-                        bottom: `calc(100% - ${selectorOffset}px)`,
-                        paddingBottom: `${selectorOffset}px`,
+                      "> *": {
+                        pointerEvents: "all",
                       },
 
-                      [`${popperPlacementSelectors.bottom} &`]: {
-                        top: `calc(100% - ${selectorOffset}px)`,
-                        paddingTop: `${selectorOffset}px`,
+                      [`${popperPlacementSelectors.top} &`]: {
+                        paddingTop: 0,
                       },
                     },
                   ]}

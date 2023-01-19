@@ -16,7 +16,7 @@ import {
   Typography,
 } from "@mui/material";
 import clsx from "clsx";
-import { Ref, useMemo } from "react";
+import { Ref, useMemo, useState } from "react";
 
 import { AutocompleteDropdown } from "./autocomplete-dropdown";
 import { OntologyChip, parseUriForOntologyChip } from "./ontology-chip";
@@ -149,10 +149,13 @@ export const HashSelectorAutocomplete = <
     [modifiers],
   );
 
+  const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
+
   return (
     <Autocomplete
       open={open}
       sx={[{ width: "100%" }, ...(Array.isArray(sx) ? sx : [sx])]}
+      ref={setAnchorEl}
       renderInput={(props) => (
         <TextField
           {...props}
@@ -193,7 +196,9 @@ export const HashSelectorAutocomplete = <
                 ? [
                     popperPlacementInputNoRadius,
                     popperPlacementInputNoBorder,
-                    joined ? { borderRadius: "0 !important" } : {},
+                    joined
+                      ? { borderRadius: "0 !important", boxShadow: "none" }
+                      : {},
                   ]
                 : []),
             ],
@@ -278,7 +283,7 @@ export const HashSelectorAutocomplete = <
         <TypeListSelectorDropdown {...props} dropdownProps={dropdownProps} />
       )}
       componentsProps={{
-        popper: { modifiers: allModifiers },
+        popper: { modifiers: allModifiers, anchorEl },
       }}
       {...rest}
     />
