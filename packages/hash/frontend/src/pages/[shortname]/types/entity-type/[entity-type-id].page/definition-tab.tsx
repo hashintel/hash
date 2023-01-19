@@ -6,7 +6,7 @@ import { PropertyListCard } from "./definition-tab/property-list-card";
 import { useEntityType } from "./shared/entity-type-context";
 
 export const DefinitionTab: FunctionComponent = () => {
-  const entityType = useEntityType();
+  const { entityType } = useEntityType();
 
   return (
     <Stack spacing={6.5}>

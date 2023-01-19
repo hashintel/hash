@@ -1,5 +1,11 @@
-import { EntityType, extractBaseUri } from "@blockprotocol/type-system";
+import {
+  EntityType,
+  extractBaseUri,
+  PropertyType,
+} from "@blockprotocol/type-system";
+import { Subgraph } from "@hashintel/hash-subgraph";
 import { getEntityTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
+import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
 import { useRouter } from "next/router";
 import {
@@ -19,10 +25,47 @@ import {
   useFetchEntityTypes,
 } from "../../../../../shared/entity-types-context/hooks";
 
+interface EntityTypeAndPropertyTypes {
+  entityType: EntityType;
+  propertyTypes: Record<string, PropertyType>;
+}
+
+const getPropertyTypes = (
+  properties: any,
+  subgraph: Subgraph,
+  propertyTypes?: Map<string, PropertyType>,
+) => {
+  let propertyTypesMap = propertyTypes ?? new Map<string, PropertyType>();
+  for (const prop of properties) {
+    const propertyUri = "items" in prop ? prop.items.$ref : prop.$ref;
+    if (!propertyTypesMap.has(propertyUri)) {
+      const propertyType = getPropertyTypeById(subgraph, propertyUri)?.schema;
+
+      if (propertyType) {
+        for (const childProp of propertyType.oneOf) {
+          if ("type" in childProp && childProp.type === "object") {
+            propertyTypesMap = getPropertyTypes(
+              Object.values(childProp.properties),
+              subgraph,
+              propertyTypesMap,
+            );
+          }
+        }
+      }
+
+      if (propertyType) {
+        propertyTypesMap.set(propertyUri, propertyType);
+      }
+    }
+  }
+
+  return propertyTypesMap;
+};
+
 export const useEntityTypeValue = (
   entityTypeBaseUri: string | null,
   accountId: AccountId | null,
-  onCompleted?: (entityType: EntityType) => void,
+  onCompleted?: (entityType: EntityTypeAndPropertyTypes) => void,
 ) => {
   const router = useRouter();
 
@@ -36,49 +79,78 @@ export const useEntityTypeValue = (
 
   const { updateEntityType } = useBlockProtocolUpdateEntityType();
 
-  const availableEntityType = useMemo(() => {
-    if (entityTypesLoading || !entityTypeBaseUri) {
+  const availableEntityTypeAndPropertyTypes = useMemo(() => {
+    if (entityTypesLoading || !entityTypeBaseUri || !entityTypesSubgraph) {
       return null;
     }
 
-    const relevantEntityTypes = entityTypesSubgraph
-      ? getEntityTypesByBaseUri(entityTypesSubgraph, entityTypeBaseUri)
-      : [];
+    const relevantEntityTypes = getEntityTypesByBaseUri(
+      entityTypesSubgraph,
+      entityTypeBaseUri,
+    );
 
     /** @todo - pick the latest version? */
     // @todo handle adding any linked properties to known property types
-    return relevantEntityTypes.length > 0
-      ? relevantEntityTypes[0]!.schema
-      : null;
+    const relevantEntityType =
+      relevantEntityTypes.length > 0 ? relevantEntityTypes[0]!.schema : null;
+
+    if (!relevantEntityType) {
+      return null;
+    }
+
+    const relevantPropertiesMap = getPropertyTypes(
+      Object.values(relevantEntityType.properties),
+      entityTypesSubgraph,
+    );
+
+    return {
+      entityType: relevantEntityType,
+      propertyTypes: Object.fromEntries(relevantPropertiesMap),
+    };
   }, [entityTypeBaseUri, entityTypesSubgraph, entityTypesLoading]);
 
-  const [rememberedEntityType, setRememberedEntityType] =
-    useState<EntityType | null>(availableEntityType);
+  const [
+    rememberedEntityTypeAndPropertyTypes,
+    setRememberedEntityTypeAndPropertyTypes,
+  ] = useState<EntityTypeAndPropertyTypes | null>(
+    availableEntityTypeAndPropertyTypes,
+  );
 
   if (
-    rememberedEntityType !== availableEntityType &&
-    (availableEntityType ||
-      (rememberedEntityType &&
-        extractBaseUri(rememberedEntityType.$id) !== entityTypeBaseUri))
+    rememberedEntityTypeAndPropertyTypes !==
+      availableEntityTypeAndPropertyTypes &&
+    (availableEntityTypeAndPropertyTypes ||
+      (rememberedEntityTypeAndPropertyTypes &&
+        extractBaseUri(rememberedEntityTypeAndPropertyTypes.entityType.$id) !==
+          entityTypeBaseUri))
   ) {
-    setRememberedEntityType(availableEntityType);
+    setRememberedEntityTypeAndPropertyTypes(
+      availableEntityTypeAndPropertyTypes,
+    );
   }
 
-  const rememberedEntityTypeRef = useRef(rememberedEntityType);
+  const rememberedEntityTypeAndPropertyTypesRef = useRef(
+    rememberedEntityTypeAndPropertyTypes,
+  );
   useLayoutEffect(() => {
-    rememberedEntityTypeRef.current = rememberedEntityType;
+    rememberedEntityTypeAndPropertyTypesRef.current =
+      rememberedEntityTypeAndPropertyTypes;
   });
 
-  const completedRef = useRef<EntityType | null>(null);
+  const completedRef = useRef<EntityTypeAndPropertyTypes | null>(null);
 
   useLayoutEffect(() => {
-    if (completedRef.current !== rememberedEntityType && rememberedEntityType) {
-      completedRef.current = rememberedEntityType;
-      onCompleted?.(rememberedEntityType);
+    if (
+      completedRef.current !== rememberedEntityTypeAndPropertyTypes &&
+      rememberedEntityTypeAndPropertyTypes
+    ) {
+      completedRef.current = rememberedEntityTypeAndPropertyTypes;
+      onCompleted?.(rememberedEntityTypeAndPropertyTypes);
     }
   });
 
-  const entityTypeUnavailable = entityTypesLoading && !rememberedEntityType;
+  const entityTypeUnavailable =
+    entityTypesLoading && !rememberedEntityTypeAndPropertyTypes;
 
   const lastFetchedBaseUri = useRef(entityTypeBaseUri);
 
@@ -91,12 +163,12 @@ export const useEntityTypeValue = (
 
   const updateCallback = useCallback(
     async (partialEntityType: Partial<Omit<EntityType, "$id">>) => {
-      if (!rememberedEntityTypeRef.current) {
+      if (!rememberedEntityTypeAndPropertyTypesRef.current) {
         throw new Error("Cannot update yet");
       }
 
-      const currentEntity = rememberedEntityTypeRef.current;
-      const { $id, ...restOfEntityType } = currentEntity;
+      const currentEntity = rememberedEntityTypeAndPropertyTypesRef.current;
+      const { $id, ...restOfEntityType } = currentEntity.entityType;
 
       const res = await updateEntityType({
         data: {
@@ -139,7 +211,7 @@ export const useEntityTypeValue = (
   );
 
   return [
-    entityTypeUnavailable ? null : rememberedEntityType,
+    entityTypeUnavailable ? null : rememberedEntityTypeAndPropertyTypes,
     updateCallback,
     publishDraft,
     { loading: entityTypeUnavailable },
