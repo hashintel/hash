@@ -12,22 +12,22 @@ COPY apps/hash-search-realtime/package.json apps/hash-search-realtime/
 COPY libs/@local/hash-backend-utils/package.json libs/@local/hash-backend-utils/
 COPY libs/@local/hash-isomorphic-utils/package.json libs/@local/hash-isomorphic-utils/
 COPY libs/@local/tsconfig/package.json libs/@local/tsconfig/
-COPY packages/hash/api/package.json packages/hash/api/
+COPY apps/hash-api/package.json apps/hash-api/
 RUN yarn workspace @apps/hash-search-loader install --frozen-lockfile --ignore-scripts --prefer-offline
 
 COPY libs/@local/hash-isomorphic-utils/src/graphql libs/@local/hash-isomorphic-utils/src/graphql
 COPY libs/@local/hash-isomorphic-utils/src/queries libs/@local/hash-isomorphic-utils/src/queries
-COPY packages/hash/api/codegen.config.ts packages/hash/api/codegen.config.ts
-COPY packages/hash/api/src/collab/graphql/queries packages/hash/api/src/collab/graphql/queries
-COPY packages/hash/api/src/graphql/type-defs packages/hash/api/src/graphql/type-defs
+COPY apps/hash-api/codegen.config.ts apps/hash-api/codegen.config.ts
+COPY apps/hash-api/src/collab/graphql/queries apps/hash-api/src/collab/graphql/queries
+COPY apps/hash-api/src/graphql/type-defs apps/hash-api/src/graphql/type-defs
 
-RUN yarn workspace @hashintel/hash-api codegen
+RUN yarn workspace @apps/hash-api codegen
 
 COPY apps/hash-search-realtime apps/hash-search-realtime
 COPY libs/@local/hash-backend-utils libs/@local/hash-backend-utils
 COPY libs/@local/hash-isomorphic-utils libs/@local/hash-isomorphic-utils
 COPY libs/@local/tsconfig libs/@local/tsconfig
-COPY packages/hash/api packages/hash/api
+COPY apps/hash-api apps/hash-api
 
 
 #########################################################################################

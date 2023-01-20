@@ -7,7 +7,7 @@
 
 [![crates.io](https://img.shields.io/crates/v/error-stack-macros)][crates.io]
 [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack--macros-orange)][libs.rs]
-[![rust-version](https://img.shields.io/badge/Rust-1.63.0/nightly--2022--11--14-blue)][rust-version]
+[![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.63.0/nightly-2022-12-09&color=blue)][rust-version]
 [![documentation](https://img.shields.io/docsrs/error-stack-macros)][documentation]
 [![license](https://img.shields.io/crates/l/error-stack)][license]
 [![discord](https://img.shields.io/discord/840573247803097118)][discord]
