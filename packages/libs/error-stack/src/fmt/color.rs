@@ -29,7 +29,7 @@ fn has_stdout_color_support() -> ColorMode {
     core::write!(VoidWriter, "{display}").expect("should be infallible");
 
     if supported.load(Ordering::Relaxed) {
-        ColorMode::Color
+        ColorMode::Emphasis
     } else {
         ColorMode::None
     }
