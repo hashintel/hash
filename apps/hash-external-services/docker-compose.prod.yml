@@ -172,7 +172,7 @@ services:
   hash-api:
     build:
       context: ../../
-      dockerfile: packages/hash/docker/api/prod/Dockerfile
+      dockerfile: infra/docker/api/prod/Dockerfile
     depends_on:
       hash-graph:
         condition: service_healthy
@@ -213,7 +213,7 @@ services:
   hash-frontend:
     build:
       context: ../../
-      dockerfile: packages/hash/docker/frontend/prod/Dockerfile
+      dockerfile: infra/docker/frontend/prod/Dockerfile
       args:
         FRONTEND_URL: "${FRONTEND_URL}"
         # At build-time (client-side) we use the public API origin that is

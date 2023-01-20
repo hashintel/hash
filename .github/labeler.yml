@@ -78,10 +78,10 @@ integration:
   - tests/hash-backend-integration/**/.*
 
 docker:
-  - packages/hash/docker/*
-  - packages/hash/docker/.*
-  - packages/hash/docker/**/*
-  - packages/hash/docker/**/.*
+  - infra/docker/*
+  - infra/docker/.*
+  - infra/docker/**/*
+  - infra/docker/**/.*
 
 playwright:
   - tests/hash-playwright/*
