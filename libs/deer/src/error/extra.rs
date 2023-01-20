@@ -42,10 +42,10 @@ impl Variant for ObjectItemsExtraError {
     const ID: Id = id!["object", "items", "extra"];
     const NAMESPACE: Namespace = NAMESPACE;
 
-    fn message<'a>(
+    fn message(
         &self,
         fmt: &mut Formatter,
-        properties: &<Self::Properties as ErrorProperties>::Value<'a>,
+        properties: &<Self::Properties as ErrorProperties>::Value<'_>,
     ) -> fmt::Result {
         // received [n] unexpected keys ([received])
         let (_, received) = properties;
@@ -87,10 +87,10 @@ impl Variant for ObjectLengthError {
     const ID: Id = id!["object", "length"];
     const NAMESPACE: Namespace = NAMESPACE;
 
-    fn message<'a>(
+    fn message(
         &self,
         fmt: &mut Formatter,
-        properties: &<Self::Properties as ErrorProperties>::Value<'a>,
+        properties: &<Self::Properties as ErrorProperties>::Value<'_>,
     ) -> fmt::Result {
         // expected object of length {expected}, but received object of length {received}
         let (_, expected, received) = properties;
@@ -177,10 +177,10 @@ impl Variant for ArrayLengthError {
     const ID: Id = id!["array", "length"];
     const NAMESPACE: Namespace = NAMESPACE;
 
-    fn message<'a>(
+    fn message(
         &self,
         fmt: &mut Formatter,
-        properties: &<Self::Properties as ErrorProperties>::Value<'a>,
+        properties: &<Self::Properties as ErrorProperties>::Value<'_>,
     ) -> fmt::Result {
         // expected array of length {expected}, but received array of length {received}
         let (_, expected, received) = properties;
