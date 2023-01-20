@@ -144,7 +144,7 @@ jobs:
           HASH_GRAPH_PG_DATABASE: ${{ env.HASH_GRAPH_PG_DATABASE }}
           # As we're using an SSH tunnel to connect to the DB, we can use 'localhost' as the host
           # and '5432' as the port.
-          HASH_GRAPH_PG_HOST: "127.0.0.1"
+          HASH_GRAPH_PG_HOST: "localhost"
           HASH_GRAPH_PG_PORT: "5432"
           RUST_LOG: "graph=info,debug"
         run: |
