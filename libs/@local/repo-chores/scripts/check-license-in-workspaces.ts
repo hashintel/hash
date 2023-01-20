@@ -49,7 +49,7 @@ const script = async () => {
 
   for (const licenseFilePath of licenseFilePaths) {
     const licenseFileName = path.basename(licenseFilePath);
-    if (!licenseFileName.match(/^LICENSE(-[A-Z0-9]+)?.md$/)) {
+    if (!licenseFileName.match(/^LICENSE(-[A-Z0-9]+)?(\.(md|txt))?$/)) {
       misspelledLicenseFileSet.add(licenseFilePath);
     }
   }
@@ -134,8 +134,11 @@ const script = async () => {
     }
   }
 
-  if (checkFailed) {
+  if (checkFailed || extraLicenseFilesArePresent) {
     console.log();
+  }
+
+  if (checkFailed) {
     console.log(
       chalk.red(
         "Please make sure that each Yarn workspace has a LICENSE.md file. Additional license files need to be named as LICENSE-*.md (all caps)",
@@ -151,10 +154,9 @@ const script = async () => {
     );
   }
 
-  // @todo Uncomment when all workspaces have a license file
-  // if (checkFailed) {
-  //   process.exit(1);
-  // }
+  if (checkFailed) {
+    process.exit(1);
+  }
 };
 
 void (async () => {
