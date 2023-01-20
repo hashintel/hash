@@ -84,8 +84,6 @@ struct StackEntry<'a> {
 }
 
 impl<'a> StackEntry<'a> {
-    // Reason: let else is stabilized in 1.67, our MSRV is 1.65
-    #[allow(clippy::manual_let_else)]
     fn find(self) -> impl IntoIterator<Item = StackEntry<'a>> {
         let mut head = self.head;
         let Some(mut next) = self.next else {
