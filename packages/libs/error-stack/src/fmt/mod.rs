@@ -142,6 +142,7 @@
 //! [`atomic`]: std::sync::atomic
 //! [`Error::provide`]: core::error::Error::provide
 
+mod charset;
 mod color;
 #[cfg(any(feature = "std", feature = "hooks"))]
 mod hook;

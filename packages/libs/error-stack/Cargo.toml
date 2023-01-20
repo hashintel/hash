@@ -17,6 +17,7 @@ keywords = ["error", "errorstack", "error-handling", "report", "no_std"]
 categories = ["rust-patterns", "no-std"]
 
 [dependencies]
+supports-unicode = { version = "1.0.2", optional = true, default_features = false }
 tracing-error = { version = "0.2", optional = true, default_features = false }
 anyhow = { version = "1.0.65", default-features = false, optional = true }
 eyre = { version = "0.6", default-features = false, optional = true }
@@ -45,7 +46,8 @@ default = ["std", "pretty-print"]
 
 pretty-print = ["dep:owo-colors"]
 spantrace = ["dep:tracing-error", "std"]
-std = ["anyhow?/std", "owo-colors?/supports-colors"]
+std = ["anyhow?/std"]
+detect = ["std", "dep:supports-unicode", "owo-colors?/supports-colors"]
 eyre = ["dep:eyre", "std"]
 serde = ["dep:serde"]
 hooks = ['dep:spin']
