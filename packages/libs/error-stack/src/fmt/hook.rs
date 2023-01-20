@@ -462,7 +462,7 @@ mod default {
     #[cfg(feature = "std")]
     use std::sync::Once;
 
-    #[cfg(feature = "pretty-print")]
+    #[cfg(feature = "color")]
     use owo_colors::OwoColorize;
     #[cfg(all(not(feature = "std"), feature = "hooks"))]
     use spin::once::Once;

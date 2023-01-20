@@ -6,7 +6,7 @@
 mod common;
 
 use common::*;
-#[cfg(feature = "pretty-print")]
+#[cfg(feature = "color")]
 use error_stack::fmt::ColorMode;
 #[allow(unused_imports)]
 use error_stack::Report;
@@ -40,7 +40,7 @@ fn setup_backtrace() {
     std::env::set_var("RUST_LIB_BACKTRACE", "1");
 }
 
-#[cfg(feature = "pretty-print")]
+#[cfg(feature = "color")]
 fn setup_color() {
     Report::format_color_mode_preference(Some(ColorMode::None));
 }
@@ -48,7 +48,7 @@ fn setup_color() {
 fn setup() {
     setup_tracing();
     setup_backtrace();
-    #[cfg(feature = "pretty-print")]
+    #[cfg(feature = "color")]
     setup_color();
 }
 
@@ -66,7 +66,7 @@ fn snap_suffix() -> String {
         suffix.push("backtrace");
     }
 
-    #[cfg(feature = "pretty-print")]
+    #[cfg(feature = "color")]
     {
         suffix.push("pretty-print");
     }
@@ -240,7 +240,7 @@ fn sources_nested_alternate() {
     rust_1_65,
     any(feature = "std", feature = "hooks"),
     feature = "spantrace",
-    feature = "pretty-print"
+    feature = "color"
 ))]
 mod full {
     //! Why so many cfg guards?

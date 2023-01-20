@@ -4,7 +4,7 @@ use core::{
     panic::Location,
 };
 
-#[cfg(feature = "pretty-print")]
+#[cfg(feature = "color")]
 use owo_colors::OwoColorize;
 
 use crate::fmt::ColorMode;
@@ -27,9 +27,9 @@ impl<'a> Display for LocationDisplay<'a> {
 
         match self.mode {
             ColorMode::None => f.write_fmt(format_args!("at {location}")),
-            #[cfg(feature = "pretty-print")]
+            #[cfg(feature = "color")]
             ColorMode::Color => Display::fmt(&(*location).bright_black(), f),
-            #[cfg(feature = "pretty-print")]
+            #[cfg(feature = "color")]
             ColorMode::Emphasis => Display::fmt(&(*location).italic(), f),
         }
     }

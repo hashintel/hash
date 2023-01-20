@@ -1,10 +1,10 @@
 use core::fmt::Write;
-#[cfg(all(feature = "std", feature = "pretty-print"))]
+#[cfg(all(feature = "std", feature = "color"))]
 use core::sync::atomic::AtomicBool;
-#[cfg(feature = "pretty-print")]
+#[cfg(feature = "color")]
 use core::sync::atomic::{AtomicU8, Ordering};
 
-#[cfg(all(feature = "std", feature = "pretty-print"))]
+#[cfg(all(feature = "std", feature = "color"))]
 use owo_colors::{OwoColorize, Stream};
 
 use crate::Report;
@@ -17,7 +17,7 @@ impl Write for VoidWriter {
 }
 
 // TODO: temporary until https://github.com/jam1garner/owo-colors/issues/87 is resolved
-#[cfg(all(feature = "pretty-print", feature = "std"))]
+#[cfg(all(feature = "color", feature = "std"))]
 fn has_stdout_color_support() -> ColorMode {
     let supported = AtomicBool::new(false);
     let display = "".if_supports_color(Stream::Stdout, |x| {
@@ -35,15 +35,15 @@ fn has_stdout_color_support() -> ColorMode {
     }
 }
 
-#[cfg(not(all(feature = "pretty-print", feature = "std")))]
+#[cfg(not(all(feature = "color", feature = "std")))]
 const fn has_stdout_color_support() -> ColorMode {
     ColorMode::None
 }
 
-#[cfg(feature = "pretty-print")]
+#[cfg(feature = "color")]
 pub(crate) struct ColorPreference(AtomicU8);
 
-#[cfg(feature = "pretty-print")]
+#[cfg(feature = "color")]
 impl ColorPreference {
     pub(crate) const fn new() -> Self {
         Self(AtomicU8::new(0))
@@ -105,18 +105,18 @@ pub enum ColorMode {
 }
 
 impl ColorMode {
-    #[cfg(feature = "pretty-print")]
+    #[cfg(feature = "color")]
     pub(super) fn load() -> Self {
         FMT_MODE.load_derive()
     }
 
-    #[cfg(not(feature = "pretty-print"))]
+    #[cfg(not(feature = "color"))]
     pub(super) const fn load() -> Self {
         has_stdout_color_support()
     }
 }
 
-#[cfg(feature = "pretty-print")]
+#[cfg(feature = "color")]
 static FMT_MODE: ColorPreference = ColorPreference::new();
 
 impl Report<()> {
@@ -190,7 +190,7 @@ impl Report<()> {
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__preference_color.snap"))]
     /// </pre>
-    #[cfg(feature = "pretty-print")]
+    #[cfg(feature = "color")]
     pub fn format_color_mode_preference(mode: Option<ColorMode>) {
         FMT_MODE.store(mode);
     }

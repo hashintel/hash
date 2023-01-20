@@ -162,9 +162,9 @@ use core::{
     mem,
 };
 
-#[cfg(not(feature = "pretty-print"))]
+#[cfg(not(feature = "color"))]
 use color::ColorMode;
-#[cfg(feature = "pretty-print")]
+#[cfg(feature = "color")]
 pub use color::ColorMode;
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub use hook::HookContext;
@@ -172,7 +172,7 @@ pub use hook::HookContext;
 pub(crate) use hook::{install_builtin_hooks, Format, Hooks};
 #[cfg(not(any(feature = "std", feature = "hooks")))]
 use location::LocationDisplay;
-#[cfg(feature = "pretty-print")]
+#[cfg(feature = "color")]
 use owo_colors::{OwoColorize, Style as OwOStyle};
 
 use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
@@ -246,7 +246,7 @@ macro_rules! sym {
     };
 }
 
-#[cfg(feature = "pretty-print")]
+#[cfg(feature = "color")]
 impl Display for Symbol {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
@@ -262,7 +262,7 @@ impl Display for Symbol {
     }
 }
 
-#[cfg(not(feature = "pretty-print"))]
+#[cfg(not(feature = "color"))]
 impl Display for Symbol {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
@@ -286,7 +286,7 @@ impl Style {
     pub(crate) fn apply(self, fmt: &mut Formatter, value: &str, mode: ColorMode) -> fmt::Result {
         match mode {
             ColorMode::None => Display::fmt(value, fmt),
-            #[cfg(feature = "pretty-print")]
+            #[cfg(feature = "color")]
             ColorMode::Color | ColorMode::Emphasis => Display::fmt(&value.style(self.into()), fmt),
         }
     }
@@ -303,7 +303,7 @@ impl Style {
     }
 }
 
-#[cfg(feature = "pretty-print")]
+#[cfg(feature = "color")]
 impl From<Style> for OwOStyle {
     fn from(value: Style) -> Self {
         let mut this = Self::new();
@@ -503,9 +503,9 @@ impl Display for InstructionDisplay<'_> {
                 for symbol in symbols {
                     match mode {
                         ColorMode::None => Display::fmt(symbol, fmt)?,
-                        #[cfg(feature = "pretty-print")]
+                        #[cfg(feature = "color")]
                         ColorMode::Color => Display::fmt(&symbol.red(), fmt)?,
-                        #[cfg(feature = "pretty-print")]
+                        #[cfg(feature = "color")]
                         ColorMode::Emphasis => Display::fmt(&symbol.bold(), fmt)?,
                     };
                 }
@@ -1020,11 +1020,11 @@ impl<C> Debug for Report<C> {
                 lines.reserve(44 + appendix.len());
 
                 lines.push_str("\n\n");
-                #[cfg(feature = "pretty-print")]
+                #[cfg(feature = "color")]
                 {
                     lines.push_str(&"━".repeat(40));
                 }
-                #[cfg(not(feature = "pretty-print"))]
+                #[cfg(not(feature = "color"))]
                 {
                     lines.push_str(&"=".repeat(40));
                 }

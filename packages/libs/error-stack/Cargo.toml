@@ -42,9 +42,9 @@ once_cell = "1.16.0"
 rustc_version = "0.4"
 
 [features]
-default = ["std", "pretty-print"]
+default = ["std"]
 
-pretty-print = ["dep:owo-colors"]
+color = ["dep:owo-colors"]
 spantrace = ["dep:tracing-error", "std"]
 std = ["anyhow?/std"]
 detect = ["std", "dep:supports-unicode", "owo-colors?/supports-colors"]
