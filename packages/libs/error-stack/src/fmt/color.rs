@@ -95,14 +95,12 @@ pub enum ColorMode {
     ///
     /// This will also temporarily set [`owo_colors::set_override`] to enable execution of
     /// [`OwoColorize::if_supports_color`].
-    #[cfg(feature = "pretty-print")]
     Color,
 
     /// User preference to enable styles, but discourage colors
     ///
     /// This is the same as [`ColorMode::Color`], but signals to the user that while colors are
     /// supported, the user prefers instead the use of emphasis, like bold and italic text.
-    #[cfg(feature = "pretty-print")]
     Emphasis,
 }
 

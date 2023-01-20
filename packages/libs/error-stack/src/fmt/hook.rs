@@ -12,21 +12,25 @@ use core::{any::TypeId, mem};
 
 pub(crate) use default::install_builtin_hooks;
 
-use crate::fmt::{ColorMode, Frame};
+use crate::fmt::{charset::Charset, ColorMode, Frame};
 
 pub struct Format {
     alternate: bool,
-    mode: ColorMode,
+
+    color: ColorMode,
+    charset: Charset,
 
     body: Vec<String>,
     appendix: Vec<String>,
 }
 
 impl Format {
-    pub(crate) const fn new(alternate: bool, mode: ColorMode) -> Self {
+    pub(crate) const fn new(alternate: bool, color: ColorMode, charset: Charset) -> Self {
         Self {
             alternate,
-            mode,
+
+            color,
+            charset,
 
             body: Vec::new(),
             appendix: Vec::new(),
@@ -236,7 +240,7 @@ impl<T> HookContext<T> {
     /// Hooks can be invoked in different color modes, which represent the preferences of an
     /// end-user.
     pub const fn mode(&self) -> ColorMode {
-        self.inner().extra().mode
+        self.inner().extra().color
     }
 
     /// The contents of the appendix are going to be displayed after the body in the order they have

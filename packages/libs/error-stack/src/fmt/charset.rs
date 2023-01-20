@@ -3,20 +3,48 @@ use core::sync::atomic::{AtomicU8, Ordering};
 
 use owo_colors::Stream;
 
+use crate::Report;
+
 #[derive(Debug, Copy, Clone)]
 pub enum Charset {
     Utf8,
     Ascii,
 }
 
+impl Charset {
+    #[cfg(feature = "detect")]
+    pub(super) fn load() -> Self {
+        if let Some(charset) = CHARSET_OVERRIDE.load() {
+            return charset;
+        }
+
+        if on_cached(Stream::Stdout) {
+            Charset::Utf8
+        } else {
+            Charset::Ascii
+        }
+    }
+
+    #[cfg(not(feature = "detect"))]
+    pub(super) fn load() -> Self {
+        if let Some(charset) = CHARSET_OVERRIDE.load() {
+            charset;
+        } else {
+            // we assume that most fonts and terminals nowadays support Utf8, which is why this is
+            // the default
+            Charset::Utf8
+        }
+    }
+}
+
 #[cfg(feature = "detect")]
 pub(crate) fn on_cached(stream: Stream) -> bool {
-    if let Some(supports) = SUPPORTS.load(stream) {
+    if let Some(supports) = CHARSET_SUPPORTS.load(stream) {
         return supports;
     }
 
     let supports = supports_unicode::on(stream);
-    SUPPORTS.store(stream, supports);
+    CHARSET_SUPPORTS.store(stream, supports);
 
     supports
 }
@@ -80,5 +108,45 @@ impl AtomicSupport {
     }
 }
 
-#[cfg(feature = "detect")]
-static SUPPORTS: AtomicSupport = AtomicSupport::new();
+static CHARSET_SUPPORTS: AtomicSupport = AtomicSupport::new();
+
+/// Value layout:
+/// `0x00`: `Charset::Ascii`
+/// `0x01`: `Charset::Utf8`
+///
+/// all others: unset/none
+struct AtomicOverride(AtomicU8);
+
+impl AtomicOverride {
+    const fn new() -> Self {
+        Self(AtomicU8::new(0xFF))
+    }
+
+    fn store(&self, value: Option<Charset>) {
+        let inner = match value {
+            None => 0xFF,
+            Some(Charset::Ascii) => 0x00,
+            Some(Charset::Utf8) => 0x01,
+        };
+
+        self.0.store(inner, Ordering::Relaxed);
+    }
+
+    fn load(&self) -> Option<Charset> {
+        let inner = self.0.load(Ordering::Relaxed);
+
+        match inner {
+            0x00 => Some(Charset::Ascii),
+            0x01 => Some(Charset::Utf8),
+            _ => None,
+        }
+    }
+}
+
+static CHARSET_OVERRIDE: AtomicOverride = AtomicOverride::new();
+
+impl Report<()> {
+    fn set_charset(charset: Option<Charset>) {
+        CHARSET_OVERRIDE.store(charset);
+    }
+}
