@@ -4,9 +4,11 @@ on:
   push:
     branches: [main]
     paths:
+      - "apps/hash-api/**"
+      - "libs/@local/hash-backend-utils-utils/**"
+      - "libs/@local/hash-isomorphic-utils/**"
+      - "packages/graph/**"
       - "packages/hash/**"
-      - "!packages/hash/frontend/**"
-      - "!packages/hash/playwright/**"
 
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -14,21 +16,49 @@ env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
   AWS_ECR_URL: ${{ secrets.AWS_ECR_URL }}
 
-  # Format "user:pass"
-  HASH_POSTGRES_MIGRATE_USER_PASS: ${{ secrets.HASH_POSTGRES_MIGRATE_USER_PASS }}
-  # Format: "env.id.region.rds.amazonaws.com/database"
-  HASH_POSTGRES_HOST_DB: ${{ secrets.HASH_POSTGRES_HOST_DB }}
-
   GH_RUN_ID: ${{ github.run_id }}
 
   HASH_API_RESOURCE_NAME: ${{ secrets.HASH_API_RESOURCE_NAME }}
-  HASH_REALTIME_RESOURCE_NAME: ${{ secrets.HASH_REALTIME_RESOURCE_NAME }}
-  HASH_SEARCHLOADER_RESOURCE_NAME: ${{ secrets.HASH_SEARCHLOADER_RESOURCE_NAME }}
+  HASH_GRAPH_RESOURCE_NAME: ${{ secrets.HASH_GRAPH_RESOURCE_NAME }}
+  HASH_KRATOS_RESOURCE_NAME: ${{ secrets.HASH_KRATOS_RESOURCE_NAME }}
 
   HASH_ECS_CLUSTER_NAME: ${{ secrets.HASH_ECS_CLUSTER_NAME }}
+  HASH_APP_SERVICE_NAME: ${{ secrets.HASH_APP_SERVICE_NAME }}
+
+  HASH_PG_HOST: ${{ secrets.HASH_PG_HOST }}
+  HASH_PG_PORT: ${{ secrets.HASH_PG_PORT }}
+
+  HASH_GRAPH_PG_USER: ${{ secrets.HASH_GRAPH_PG_USER }}
+  HASH_GRAPH_PG_PASSWORD: ${{ secrets.HASH_GRAPH_PG_PASSWORD }}
+  HASH_GRAPH_PG_DATABASE: ${{ secrets.HASH_GRAPH_PG_DATABASE }}
+
+  HASH_KRATOS_PG_USER: ${{ secrets.HASH_KRATOS_PG_USER }}
+  HASH_KRATOS_PG_PASSWORD: ${{ secrets.HASH_KRATOS_PG_PASSWORD }}
+  HASH_KRATOS_PG_DATABASE: ${{ secrets.HASH_KRATOS_PG_DATABASE }}
 
 name: HASH backend deployment
 jobs:
+  build-graph:
+    name: Build and push HASH graph image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Docker image build through docker-build-push
+        uses: ./.github/actions/docker-build-push
+        id: build
+        env:
+          IMAGE_NAME: ${{ env.HASH_GRAPH_RESOURCE_NAME }}
+        with:
+          SHORTNAME: "graph"
+          CONTEXT_PATH: ${{ github.workspace }}/packages/graph
+          DOCKERFILE_LOCATION: ${{ github.workspace }}/packages/graph/deployment/graph/Dockerfile
+          AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+
   build-api:
     name: Build and push HASH api image
     runs-on: ubuntu-latest
@@ -37,62 +67,51 @@ jobs:
 
       - name: Docker image build through docker-build-push
         uses: ./.github/actions/docker-build-push
+        id: build
         env:
-          HASH_API_IMAGE_NAME: ${{ env.HASH_API_RESOURCE_NAME }}ecr
+          IMAGE_NAME: ${{ env.HASH_API_RESOURCE_NAME }}
         with:
           SHORTNAME: "api"
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/packages/hash/docker/api/prod/Dockerfile
+          CONTEXT_PATH: ${{ github.workspace }}
+          DOCKERFILE_LOCATION: ${{ github.workspace }}/infra/docker/api/prod/Dockerfile
           AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
-          IMAGE_NAME: ${{ env.HASH_API_IMAGE_NAME }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
 
-  build-realtime:
-    name: Build and push HASH realtime image
+  build-kratos:
+    name: Build and push Kratos image
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
       - name: Docker image build through docker-build-push
         uses: ./.github/actions/docker-build-push
+        id: build
         env:
-          HASH_REALTIME_IMAGE_NAME: ${{ env.HASH_REALTIME_RESOURCE_NAME }}ecr
+          IMAGE_NAME: ${{ env.HASH_KRATOS_RESOURCE_NAME }}
         with:
-          SHORTNAME: "realtime"
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/packages/hash/docker/realtime/prod/Dockerfile
+          SHORTNAME: "kratos"
+          CONTEXT_PATH: ${{ github.workspace }}/apps/hash-external-services/kratos
+          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-external-services/kratos/Dockerfile
           AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
-          IMAGE_NAME: ${{ env.HASH_REALTIME_IMAGE_NAME }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          BUILD_ARGS: |
+            ENV=prod
+            API_SECRET=${{ secrets.HASH_KRATOS_API_SECRET }}
 
-  build-searchloader:
-    name: Build and push HASH searchloader image
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Docker image build through docker-build-push
-        uses: ./.github/actions/docker-build-push
-        env:
-          HASH_SEARCHLOADER_IMAGE_NAME: ${{ env.HASH_SEARCHLOADER_RESOURCE_NAME }}ecr
-        with:
-          SHORTNAME: "search-loader"
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/packages/hash/docker/search-loader/prod/Dockerfile
-          AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-          AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
-          IMAGE_NAME: ${{ env.HASH_SEARCHLOADER_IMAGE_NAME }}
-
+  # We need a SSH tunnel to migrate the DB, for now we disable the entire job.
   deploy:
     name: Deploy HASH images
     runs-on: ubuntu-latest
     needs:
+      - build-graph
       - build-api
-      - build-realtime
-      - build-searchloader
+      - build-kratos
     steps:
       - uses: actions/checkout@v3
 
@@ -102,36 +121,67 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ env.AWS_REGION }}
 
-      # Node is used for migrating the DB
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 16 ## aligned with Node version on Vercel
-          cache: yarn
-
-      - name: Prepare dev tools for DB migration
-        run: yarn install
-        shell: bash
-
-      # TODO: should we stop the services before migrating the db?
-      - name: Migrate database
+      - name: SSH tunnel to DB
+        env:
+          PUBLIC_HOST: ${{ secrets.PUBLIC_HOST }}
+          HASH_GRAPH_PG_HOST: ${{ secrets.HASH_PG_HOST }}
+          HASH_GRAPH_PG_PORT: ${{ secrets.HASH_PG_PORT }}
         run: |
-          HASH_MIGRATION_PG_URL=postgres://${{ env.HASH_POSTGRES_MIGRATE_USER_PASS }}@${{ env.HASH_POSTGRES_HOST_DB }} \
-            yarn workspace @hashintel/hash-datastore pg:migrate up
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "$PUBLIC_HOST" >> ~/.ssh/known_hosts
+          eval `ssh-agent -s`
+          ssh-add - <<< "${{ secrets.BASTION_SSH_KEY }}"
+          ssh -fN -L "5432:$HASH_GRAPH_PG_HOST:$HASH_GRAPH_PG_PORT" "ec2-user@$PUBLIC_HOST"
+
+      # TODO: should we stop the service before migrating the db?
+
+      - name: Migrate Graph db
+        env:
+          HASH_GRAPH_ECR_IMAGE: ${{ env.AWS_ECR_URL }}/${{ env.HASH_GRAPH_RESOURCE_NAME }}:latest
+          # Env vars for running the migrations
+          HASH_GRAPH_PG_USER: ${{ env.HASH_GRAPH_PG_USER }}
+          HASH_GRAPH_PG_PASSWORD: ${{ env.HASH_GRAPH_PG_PASSWORD }}
+          HASH_GRAPH_PG_DATABASE: ${{ env.HASH_GRAPH_PG_DATABASE }}
+          # As we're using an SSH tunnel to connect to the DB, we can use 'localhost' as the host
+          # and '5432' as the port.
+          HASH_GRAPH_PG_HOST: "localhost"
+          HASH_GRAPH_PG_PORT: "5432"
+          RUST_LOG: "graph=info,debug"
+        run: |
+          docker run --rm \
+            --network host \
+            -e HASH_GRAPH_PG_USER \
+            -e HASH_GRAPH_PG_PASSWORD \
+            -e HASH_GRAPH_PG_HOST \
+            -e HASH_GRAPH_PG_PORT \
+            -e HASH_GRAPH_PG_DATABASE \
+            -e RUST_LOG \
+            ${{ env.HASH_GRAPH_ECR_IMAGE }} \
+            migrate
+
+      - name: Migrate Kratos db
+        env:
+          HASH_KRATOS_ECR_IMAGE: ${{ env.AWS_ECR_URL }}/${{ env.HASH_KRATOS_RESOURCE_NAME }}:latest
+          # Env vars for running the migrations
+          HASH_KRATOS_PG_USER: ${{ env.HASH_KRATOS_PG_USER }}
+          HASH_KRATOS_PG_PASSWORD: ${{ env.HASH_KRATOS_PG_PASSWORD }}
+          HASH_KRATOS_PG_DATABASE: ${{ env.HASH_KRATOS_PG_DATABASE }}
+          # As we're using an SSH tunnel to connect to the DB, we can use 'localhost' as the host
+          # and '5432' as the port.
+          HASH_KRATOS_PG_HOST: "localhost"
+          HASH_KRATOS_PG_PORT: "5432"
+          LOG_LEVEL: "info"
+        run: |
+          docker run --rm \
+            --network host \
+            -e LOG_LEVEL \
+            -e "DSN=postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@${HASH_KRATOS_PG_HOST}:${HASH_KRATOS_PG_PORT}/${HASH_KRATOS_PG_DATABASE}" \
+            ${{ env.HASH_KRATOS_ECR_IMAGE }} \
+            migrate sql -e --yes
 
       - name: Redeploy api service
         env:
-          HASH_API_SERVICE_NAME: ${{ env.HASH_API_RESOURCE_NAME }}svc
+          HASH_ECS_CLUSTER_NAME: ${{ env.HASH_ECS_CLUSTER_NAME }}
+          HASH_APP_SERVICE_NAME: ${{ env.HASH_APP_SERVICE_NAME }}
         run: |
-          aws ecs update-service --cluster ${{ env.HASH_ECS_CLUSTER_NAME }} --service ${{ env.HASH_API_SERVICE_NAME }} --force-new-deployment 1> /dev/null
-
-      - name: Redeploy realtime service
-        env:
-          HASH_REALTIME_SERVICE_NAME: ${{ env.HASH_REALTIME_RESOURCE_NAME }}svc
-        run: |
-          aws ecs update-service --cluster ${{ env.HASH_ECS_CLUSTER_NAME }} --service ${{ env.HASH_REALTIME_SERVICE_NAME }} --force-new-deployment 1> /dev/null
-
-      - name: Redeploy serach-loader service
-        env:
-          HASH_SEARCHLOADER_SERVICE_NAME: ${{ env.HASH_SEARCHLOADER_RESOURCE_NAME }}svc
-        run: |
-          aws ecs update-service --cluster ${{ env.HASH_ECS_CLUSTER_NAME }} --service ${{ env.HASH_SEARCHLOADER_SERVICE_NAME }} --force-new-deployment 1> /dev/null
+          aws ecs update-service --cluster ${{ env.HASH_ECS_CLUSTER_NAME }} --service ${{ env.HASH_APP_SERVICE_NAME }} --force-new-deployment 1> /dev/null

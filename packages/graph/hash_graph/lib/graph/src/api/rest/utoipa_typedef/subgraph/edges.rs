@@ -3,7 +3,7 @@ use std::collections::{hash_map::Entry, BTreeMap, HashMap};
 use serde::Serialize;
 use type_system::uri::BaseUri;
 use utoipa::{
-    openapi::{Array, ObjectBuilder, OneOfBuilder, Ref, Schema},
+    openapi::{Array, ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema},
     ToSchema,
 };
 
@@ -29,7 +29,7 @@ pub enum KnowledgeGraphOutwardEdges {
 //   We have to do this because utoipa doesn't understand serde untagged:
 //   https://github.com/juhaku/utoipa/issues/320
 impl ToSchema for KnowledgeGraphOutwardEdges {
-    fn schema() -> Schema {
+    fn schema() -> RefOr<Schema> {
         OneOfBuilder::new()
             .item(<OutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>>::schema())
             .item(<OutwardEdge<SharedEdgeKind, OntologyTypeEditionId>>::schema())
@@ -154,7 +154,7 @@ impl Edges {
 // Utoipa generates `Edges` as an empty object if we don't manually do it, and we can't use
 // allOf because the generator can't handle it
 impl ToSchema for Edges {
-    fn schema() -> Schema {
+    fn schema() -> RefOr<Schema> {
         ObjectBuilder::new()
             .additional_properties(Some(Schema::from(
                 ObjectBuilder::new().additional_properties(Some(Array::new(

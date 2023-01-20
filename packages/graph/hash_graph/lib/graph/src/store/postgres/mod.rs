@@ -1,6 +1,7 @@
 mod knowledge;
 mod ontology;
 
+mod migration;
 mod pool;
 mod query;
 mod version_id;
@@ -13,6 +14,7 @@ use std::{
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
+use interval_ops::Interval;
 use tokio_postgres::GenericClient;
 #[cfg(feature = "__internal_bench")]
 use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
@@ -25,7 +27,9 @@ use uuid::Uuid;
 pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
     identifier::{
-        account::AccountId, ontology::OntologyTypeEditionId, time::UnresolvedTimeProjection,
+        account::AccountId,
+        ontology::OntologyTypeEditionId,
+        time::{ProjectedTime, TimeInterval, UnresolvedTimeProjection},
         EntityVertexId,
     },
     ontology::{OntologyElementMetadata, OntologyTypeWithMetadata},
@@ -44,19 +48,26 @@ use crate::{
 use crate::{
     identifier::{
         knowledge::{EntityId, EntityRecordId, EntityVersion},
-        time::{DecisionTime, Timestamp, VersionTimespan},
+        time::{DecisionTime, Timestamp, VersionInterval},
     },
     knowledge::{EntityProperties, LinkOrder},
 };
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+/// Status of a traversal of the graph.
+///
+/// This is used to determine whether a traversal should continue or stop. If a traversal is
+/// resolved for a sufficient depths and a large enough interval, [`DependencyStatus::Resolved`]
+/// will be returned from [`DependencyMap::update`], otherwise [`DependencyStatus::Unresolved`] will
+/// be returned with the [`GraphResolveDepths`] and [`TimeInterval`] that the traversal should
+/// continue with.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DependencyStatus {
-    Unresolved,
+    Unresolved(GraphResolveDepths, TimeInterval<ProjectedTime>),
     Resolved,
 }
 
 pub struct DependencyMap<K> {
-    resolved: HashMap<K, GraphResolveDepths>,
+    resolved: HashMap<K, (GraphResolveDepths, TimeInterval<ProjectedTime>)>,
 }
 
 impl<K> Default for DependencyMap<K> {
@@ -69,34 +80,130 @@ impl<K> Default for DependencyMap<K> {
 
 impl<K> DependencyMap<K>
 where
-    K: Eq + Hash + Clone,
+    K: Eq + Hash + Clone + Debug,
 {
     /// Inserts a dependency into the map.
     ///
     /// If the dependency does not already exist in the dependency map, it will be inserted with the
-    /// provided `resolved_depth` and a reference to this dependency will be returned in order to
-    /// continue resolving it. In the case, that the dependency already exists, the
-    /// `resolved_depth` will be compared with depth used when inserting it before:
-    /// - If the previous `resolved_depth` was `None`, the dependency was not resolved yet and the
-    ///   value is returned
-    /// - If the new depth is higher, the depth will be updated and a reference to the dependency
-    ///   will be returned in order to keep resolving it
-    /// - Otherwise, `None` will be returned as no further resolution is needed
-    pub fn insert(
+    /// provided `new_resolve_depth` and `new_interval`. If the dependency was already resolved it
+    /// is checked whether the new resolve depth and interval are more general than the existing
+    /// resolve depth and interval. If they are, the existing resolve depth and interval are updated
+    /// to cover the new resolve depth and interval.
+    ///
+    /// If the traversed entry has to be resolved further, [`DependencyStatus::Unresolved`] is
+    /// returned with the new resolve depth and interval that the traversal should continue with.
+    pub fn update(
         &mut self,
         identifier: &K,
-        resolved_depth: GraphResolveDepths,
+        new_resolve_depth: GraphResolveDepths,
+        new_interval: TimeInterval<ProjectedTime>,
     ) -> DependencyStatus {
         match self.resolved.raw_entry_mut().from_key(identifier) {
             RawEntryMut::Vacant(entry) => {
-                entry.insert(identifier.clone(), resolved_depth);
-                DependencyStatus::Unresolved
+                entry.insert(
+                    identifier.clone(),
+                    (new_resolve_depth, new_interval.clone()),
+                );
+                DependencyStatus::Unresolved(new_resolve_depth, new_interval)
             }
             RawEntryMut::Occupied(entry) => {
-                if entry.into_mut().update(resolved_depth) {
-                    DependencyStatus::Unresolved
-                } else {
+                let (current_depths, current_interval) = entry.into_mut();
+                let old_interval = current_interval.clone();
+
+                // Ideally, we want to use a `union` here instead, as we only want to resolve
+                // elements contained in either sets of intervals. However, the current
+                // implementation doesn't have the necessary support to handle a bigger set of
+                // multiple intervals so we use a `merge` instead to make sure we're covering
+                // _at least_ the intervals requested. This does imply that in some cases the
+                // subgraph will contain more information than requested, where we'll also be
+                // querying the space between the two intervals when they're not adjacent or
+                // overlapping.
+                *current_interval = current_interval.clone().merge(new_interval.clone());
+
+                if current_depths.update(new_resolve_depth) {
+                    // We currently don't have a way to store different resolve depths for different
+                    // intervals for the same identifier. For simplicity, we require to resolve the
+                    // full interval with the updated resolve depths.
+                    DependencyStatus::Unresolved(*current_depths, current_interval.clone())
+                } else if old_interval.contains_interval(&new_interval) {
+                    // The dependency is already resolved for the required interval
+                    // old: [-----)
+                    // new:  [---)
                     DependencyStatus::Resolved
+                } else if new_interval.contains_interval(&old_interval)
+                    || new_interval.is_adjacent_to(&old_interval)
+                {
+                    // The dependency is already resolved, but not for the required interval. If the
+                    // old interval is contained in the new interval, this means, that a portion of
+                    // the new interval has already been resolved, but not all of it. Ideally we
+                    // only want to resolve the difference of `new - old`, but we don't have a way
+                    // to store different resolve depths for different intervals for the same
+                    // identifier. For simplicity, we require to resolve the full interval.
+                    //
+                    //         |  contains   |  adjacent
+                    // old     |    [---)    | [---)
+                    // new     | [---------) |     [---)
+                    // ========|=============|===========
+                    // optimal | [--)   [--) |     [---)
+                    // current | [---------) |     [---)
+                    DependencyStatus::Unresolved(*current_depths, new_interval)
+                } else if old_interval.overlaps(&new_interval) {
+                    // This is a similar case to the above, but as the old interval is not contained
+                    // in the new interval, we can resolve the difference of `new - old`.
+                    // old:     [-----)
+                    // new:       [-------)
+                    // resolve:       [---)
+                    let difference = new_interval.difference(old_interval);
+                    // The intervals do overlap and the current interval is not a subset of
+                    // the required interval, so the difference must be a single interval
+                    debug_assert_eq!(difference.len(), 1, "difference must be a single interval");
+
+                    DependencyStatus::Unresolved(
+                        *current_depths,
+                        difference
+                            .into_iter()
+                            .next()
+                            .expect("difference must be a single interval"),
+                    )
+                } else {
+                    // The time intervals are disjoint and not adjacent. Ideally, we only would
+                    // resolve the new interval, but we did not come up with a good way to store the
+                    // different intervals in the dependency map. So we resolve the full interval
+                    // for now.
+                    //
+                    // We only require this logic when traversing edges of the graph, so the roots
+                    // of the graph are always precisely resolved correctly. By this implementation,
+                    // we may get more dependencies resolved than necessary, which will appear as
+                    // vertices/edges in the subgraph. until we have decided, if we consider this a
+                    // bug or not, we keep the current behavior
+                    // see https://app.asana.com/0/0/1203774687353264/f.
+                    //
+                    // Ideally, we want to track this occurrence in production, but utilizing our
+                    // current logging strategy does not work well as we would have to log with a
+                    // high severity. see https://app.asana.com/0/0/1203774687353266/f
+                    //
+                    // However, we only have to resolve the difference of the merge of the two, as
+                    // the old interval is already resolved. and the intervals are disjoint:
+                    // Examples |      1      |      B
+                    // =========|=============|=============
+                    // old      | [---)       |       [---)
+                    // new      |       [---) | [---)
+                    // ---------|-------------|-------------
+                    // optimal  |       [---) | [---)
+                    // current  |     [-----) | [-----)
+                    let difference = old_interval
+                        .clone()
+                        .merge(new_interval)
+                        .difference(old_interval);
+                    debug_assert_eq!(difference.len(), 1, "difference must be a single interval");
+
+                    DependencyStatus::Unresolved(
+                        *current_depths,
+                        difference
+                            .into_iter()
+                            .next()
+                            .expect("difference must be a single interval"),
+                    )
                 }
             }
         }
@@ -935,8 +1042,8 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .into_iter()
             .map(|row| {
                 EntityVersion::new(
-                    VersionTimespan::from_anonymous(row.get(0)),
-                    VersionTimespan::from_anonymous(row.get(1)),
+                    VersionInterval::from_anonymous(row.get(0)),
+                    VersionInterval::from_anonymous(row.get(1)),
                 )
             })
             .collect();

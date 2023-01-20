@@ -10,7 +10,7 @@ use utoipa::{openapi, ToSchema};
 use crate::{
     identifier::{
         account::AccountId,
-        time::{DecisionTime, TransactionTime, VersionTimespan},
+        time::{DecisionTime, ProjectedTime, TimeAxis, TransactionTime, VersionInterval},
         EntityVertexId,
     },
     knowledge::{Entity, EntityUuid},
@@ -80,31 +80,32 @@ impl<'de> Deserialize<'de> for EntityId {
 }
 
 impl ToSchema for EntityId {
-    fn schema() -> openapi::Schema {
+    fn schema() -> openapi::RefOr<openapi::Schema> {
         openapi::Schema::Object(openapi::schema::Object::with_type(
             openapi::SchemaType::String,
         ))
+        .into()
     }
 }
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityVersion {
-    decision_time: VersionTimespan<DecisionTime>,
-    transaction_time: VersionTimespan<TransactionTime>,
+    decision_time: VersionInterval<DecisionTime>,
+    transaction_time: VersionInterval<TransactionTime>,
 }
 
 impl ToSchema for EntityVersion {
-    fn schema() -> openapi::Schema {
+    fn schema() -> openapi::RefOr<openapi::Schema> {
         openapi::ObjectBuilder::new()
             .property(
                 "decisionTime",
-                openapi::Ref::from_schema_name("VersionTimespan"),
+                openapi::Ref::from_schema_name("VersionInterval"),
             )
             .required("decisionTime")
             .property(
                 "transactionTime",
-                openapi::Ref::from_schema_name("VersionTimespan"),
+                openapi::Ref::from_schema_name("VersionInterval"),
             )
             .required("transactionTime")
             .build()
@@ -115,8 +116,8 @@ impl ToSchema for EntityVersion {
 impl EntityVersion {
     #[must_use]
     pub const fn new(
-        decision_time: VersionTimespan<DecisionTime>,
-        transaction_time: VersionTimespan<TransactionTime>,
+        decision_time: VersionInterval<DecisionTime>,
+        transaction_time: VersionInterval<TransactionTime>,
     ) -> Self {
         Self {
             decision_time,
@@ -125,13 +126,21 @@ impl EntityVersion {
     }
 
     #[must_use]
-    pub const fn decision_time(&self) -> VersionTimespan<DecisionTime> {
+    pub const fn decision_time(&self) -> VersionInterval<DecisionTime> {
         self.decision_time
     }
 
     #[must_use]
-    pub const fn transaction_time(&self) -> VersionTimespan<TransactionTime> {
+    pub const fn transaction_time(&self) -> VersionInterval<TransactionTime> {
         self.transaction_time
+    }
+
+    #[must_use]
+    pub fn projected_time(&self, time_axis: TimeAxis) -> VersionInterval<ProjectedTime> {
+        match time_axis {
+            TimeAxis::DecisionTime => self.decision_time.cast(),
+            TimeAxis::TransactionTime => self.transaction_time.cast(),
+        }
     }
 }
 

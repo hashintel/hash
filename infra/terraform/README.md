@@ -122,7 +122,7 @@ $ docker run --rm --network host -e 'HASH_GRAPH_PG_MIGRATION_URL=postgres://grap
 You can simultaneously run the migrations for Kratos:
 
 ```console
-$ DOCKER_BUILDKIT=1 docker build ./packages/hash/external-services/kratos --build-arg ENV=prod -t kratos:latest
+$ DOCKER_BUILDKIT=1 docker build ./apps/hash-external-services/kratos --build-arg ENV=prod -t kratos:latest
 ..
 $ docker run --network host --rm -e "DSN=postgres://kratos:changeme@localhost:5554/kratos" kratos:latest migrate sql -e --yes
 ..
@@ -158,7 +158,7 @@ $ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-gra
 **Building `hash-api`**:
 
 ```console
-$ DOCKER_BUILDKIT=1 docker build . -f ./packages/hash/docker/api/prod/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-apiecr:latest
+$ DOCKER_BUILDKIT=1 docker build . -f ./infra/docker/api/prod/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-apiecr:latest
 ..
 $ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-apiecr:latest
 ..
@@ -169,7 +169,7 @@ $ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-api
 For Kratos, it's required to provide some build-time args to ensure a secure instance running in production mode (and configuring an API secret `$SECRET` which should match the `kratos_api_key` tfvar).
 
 ```console
-$ DOCKER_BUILDKIT=1 docker build ./packages/hash/external-services/kratos --build-arg ENV=prod --build-arg API_SECRET=$SECRET -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-kratosecr:latest
+$ DOCKER_BUILDKIT=1 docker build ./apps/hash-external-services/kratos --build-arg ENV=prod --build-arg API_SECRET=$SECRET -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-kratosecr:latest
 ..
 $ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-kratosecr:latest
 ..

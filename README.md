@@ -48,7 +48,7 @@ _Coming soon_
 
 ## [![a](/.github/assets/gh_icon_roadmap_20px-base.svg)][gh-roadmap] &nbsp; Roadmap
 
-Browse the [HASH roadmap] at for more information about upcoming features and releases.
+Browse the [HASH roadmap] for more information about upcoming features and releases.
 
 ## [![a](/.github/assets/gh_icon_repo-structure_20px-base.svg)][gh-repo-structure] &nbsp; About this repository
 
@@ -63,8 +63,7 @@ This repository's contents is divided across four primary sections:
 
 ### Applications
 
-Site code and content:
-
+- [`/apps/engine`](apps/engine): codebase for our next-gen version of [HASH Engine] - a versatile agent-based simulation engine written in Rust
 - [`/apps/hashdotai`](apps/hashdotai): contains the [HASH user guide] and [glossary of terms] content
 - [`/apps/hashdotdev`](apps/hashdotdev): contains the [hash.dev] developer-education website content and code
 
@@ -79,7 +78,6 @@ Site code and content:
 ### Libraries
 
 - [`/packages/hash`](packages/hash): codebase for [HASH] - a data-driven, entity-centric, all-in-one workspace based on the Block Protocol
-- [`/packages/engine`](packages/engine): codebase for our next-gen version of [HASH Engine] - a versatile agent-based simulation engine written in Rust
 - [`/packages/libs`](packages/libs): source code for our open-source developer libraries
 
 ## [![a](/.github/assets/gh_icon_contributing_20px-base.svg)][gh-contributing] &nbsp; Contributing
@@ -90,7 +88,7 @@ We're also [hiring] for a number of key roles. If you contribute to HASH's publi
 
 ## [![a](/.github/assets/gh_icon_license_20px-base.svg)][gh-license] &nbsp; License
 
-Please see [LICENSE](LICENSE.md) for more information about the terms under which the various parts of this repository are made available.
+The vast majority of this repository is published as free, open-source software. Please see [LICENSE](LICENSE.md) for more information about the specific licenses under which the different parts are available.
 
 ## [![a](/.github/assets/gh_icon_security_20px-base.svg)][gh-security] &nbsp; Security
 

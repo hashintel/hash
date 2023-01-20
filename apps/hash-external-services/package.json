@@ -1,0 +1,6 @@
+{
+  "name": "@apps/hash-external-services",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "External services needed to run HASH (databases, auth, etc.)"
+}
