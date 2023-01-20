@@ -21,7 +21,6 @@ import {
 } from "react";
 
 import { useBlockLoadedContext } from "../../blocks/on-block-loaded";
-import { useIsReadonlyMode } from "../../shared/readonly-mode";
 import { useBlockProtocolAggregateEntities } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-aggregate-entities";
 import { useBlockProtocolFileUpload } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-file-upload";
 import { useBlockProtocolGetEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
@@ -36,6 +35,7 @@ type BlockLoaderProps = {
   editableRef: (node: HTMLElement | null) => void;
   onBlockLoaded: () => void;
   wrappingEntityId: string;
+  readonly: boolean;
   // shouldSandbox?: boolean;
 };
 
@@ -53,11 +53,11 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   onBlockLoaded,
   // shouldSandbox,
   wrappingEntityId,
+  readonly,
 }) => {
-  const isReadonlyMode = useIsReadonlyMode();
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
   const { updateEntity } = useBlockProtocolUpdateEntity();
-  const { uploadFile } = useBlockProtocolFileUpload(isReadonlyMode);
+  const { uploadFile } = useBlockProtocolFileUpload(readonly);
   const [graphProperties, setGraphProperties] = useState<Required<
     BlockGraphProperties["graph"]
   > | null>(null);
@@ -109,7 +109,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       };
       setGraphProperties({
         blockEntitySubgraph,
-        readonly: isReadonlyMode,
+        readonly,
       });
       return;
     }
@@ -137,7 +137,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
               },
             ],
           },
-          readonly: isReadonlyMode,
+          readonly,
         });
       })
       .catch((err) => {
@@ -145,7 +145,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
         console.error(err);
         throw err;
       });
-  }, [blockEntityId, blockEntityTypeId, getEntity, isReadonlyMode]);
+  }, [blockEntityId, blockEntityTypeId, getEntity, readonly]);
 
   const functions = {
     aggregateEntities,
