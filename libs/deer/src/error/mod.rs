@@ -256,10 +256,10 @@ pub trait Variant: Sized + Debug + Display + Send + Sync + 'static {
     ///
     /// The caller does not guarantee to call the [`Display`] implementation as fallback, the
     /// implementation should make sure to call it themselves as fallback, if needed.
-    fn message<'a>(
+    fn message(
         &self,
         fmt: &mut Formatter,
-        properties: &<Self::Properties as ErrorProperties>::Value<'a>,
+        properties: &<Self::Properties as ErrorProperties>::Value<'_>,
     ) -> fmt::Result;
 
     #[cfg(nightly)]
