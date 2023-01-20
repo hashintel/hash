@@ -6,7 +6,7 @@ import {
 } from "@local/design-system";
 import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import { EntityStoreType } from "@local/hash-isomorphic-utils/entity-store";
-import { EntityId } from "@local/hash-subgraph";
+import { EntityId } from "../hash-subgraph/src";
 import {
   Box,
   InputAdornment,

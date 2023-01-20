@@ -1,7 +1,7 @@
 import { extractBaseUri, extractVersion } from "@blockprotocol/type-system";
-import { versionedUriFromComponents } from "@local/hash-subgraph/src/shared/type-system-patch";
-import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { versionedUriFromComponents } from "../hash-subgraph/src/shared/type-system-patch";
+import { getEntityTypeById } from "../hash-subgraph/src/stdlib/element/entity-type";
+import { getRoots } from "../hash-subgraph/src/stdlib/roots";
 import { Box } from "@mui/material";
 import { useEffect, useState } from "react";
 

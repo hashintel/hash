@@ -4,10 +4,10 @@ import {
   extractBaseUri,
   PropertyType,
 } from "@blockprotocol/type-system";
-import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
-import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
-import { getPropertyTypeById } from "@local/hash-subgraph/src/stdlib/element/property-type";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { Subgraph, SubgraphRootTypes } from "../hash-subgraph/src";
+import { getEntityTypeById } from "../hash-subgraph/src/stdlib/element/entity-type";
+import { getPropertyTypeById } from "../hash-subgraph/src/stdlib/element/property-type";
+import { getRoots } from "../hash-subgraph/src/stdlib/roots";
 import { useEffect, useMemo, useState } from "react";
 
 import { useBlockProtocolAggregateEntities } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-aggregate-entities";

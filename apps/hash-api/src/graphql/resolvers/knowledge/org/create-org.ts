@@ -1,10 +1,9 @@
-import { Subgraph } from "@local/hash-subgraph/src";
-
 import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity";
 import { createOrg } from "../../../../graph/knowledge/system-types/org";
 import { MutationCreateOrgArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
+import { Subgraph } from "../hash-subgraph/src";
 
 export const createOrgResolver: ResolverFn<
   Promise<Subgraph>,

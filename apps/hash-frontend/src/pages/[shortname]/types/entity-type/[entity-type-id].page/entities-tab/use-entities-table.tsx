@@ -10,7 +10,7 @@ import {
   extractEntityUuidFromEntityId,
   Subgraph,
   SubgraphRootTypes,
-} from "@local/hash-subgraph";
+} from "../hash-subgraph/src";
 import { useMemo } from "react";
 
 import { useGetOwnerForEntity } from "../../../../../../components/hooks/use-get-owner-for-entity";

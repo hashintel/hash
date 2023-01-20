@@ -11,13 +11,13 @@ import {
   EntityEditionIdString,
   entityEditionIdToString,
   Subgraph,
-} from "@local/hash-subgraph";
+} from "../hash-subgraph/src";
 import {
   getIncomingLinksForEntityAtMoment,
   getLeftEntityForLinkEntityAtMoment,
   getOutgoingLinksForEntityAtMoment,
   getRightEntityForLinkEntityAtMoment,
-} from "@local/hash-subgraph/src/stdlib/edge/link";
+} from "../hash-subgraph/src/stdlib/edge/link";
 import { Session } from "@ory/client";
 
 export type MinimalUser = {

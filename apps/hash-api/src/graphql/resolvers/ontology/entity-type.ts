@@ -1,5 +1,4 @@
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
-import { EntityTypeWithMetadata, Subgraph } from "@local/hash-subgraph/src";
 
 import {
   createEntityType,
@@ -13,6 +12,7 @@ import {
   ResolverFn,
 } from "../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../context";
+import { EntityTypeWithMetadata, Subgraph } from "../hash-subgraph/src";
 import { dataSourcesToImpureGraphContext } from "../util";
 
 export const createEntityTypeResolver: ResolverFn<

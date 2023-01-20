@@ -3,14 +3,6 @@ import { UpdateEntityTypeRequest } from "@hashintel/hash-graph-client";
 import { EntityTypeWithoutId } from "@local/hash-isomorphic-utils/graphql/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
-import {
-  EntityTypeWithMetadata,
-  linkEntityTypeUri,
-  ontologyTypeEditionIdToVersionedUri,
-  Subgraph,
-  SubgraphRootTypes,
-} from "@local/hash-subgraph/src";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 
 import { NotFoundError } from "../../../lib/error";
 import {
@@ -18,6 +10,14 @@ import {
   PureGraphFunction,
   zeroedGraphResolveDepths,
 } from "../..";
+import {
+  EntityTypeWithMetadata,
+  linkEntityTypeUri,
+  ontologyTypeEditionIdToVersionedUri,
+  Subgraph,
+  SubgraphRootTypes,
+} from "../hash-subgraph/src";
+import { getRoots } from "../hash-subgraph/src/stdlib/roots";
 import { getNamespaceOfAccountOwner } from "./util";
 
 /**

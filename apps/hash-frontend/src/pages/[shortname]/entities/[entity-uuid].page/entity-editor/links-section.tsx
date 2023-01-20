@@ -1,8 +1,8 @@
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import { Chip, FontAwesomeIcon, IconButton } from "@local/design-system";
-import { getOutgoingLinksForEntityAtMoment } from "@local/hash-subgraph/src/stdlib/edge/link";
-import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { getOutgoingLinksForEntityAtMoment } from "../hash-subgraph/src/stdlib/edge/link";
+import { getEntityTypeById } from "../hash-subgraph/src/stdlib/element/entity-type";
+import { getRoots } from "../hash-subgraph/src/stdlib/roots";
 import { Paper, Stack } from "@mui/material";
 import { useState } from "react";
 

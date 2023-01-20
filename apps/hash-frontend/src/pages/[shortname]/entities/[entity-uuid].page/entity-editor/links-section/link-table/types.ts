@@ -6,7 +6,7 @@ import {
   EntityTypeWithMetadata,
   Subgraph,
   SubgraphRootTypes,
-} from "@local/hash-subgraph";
+} from "../hash-subgraph/src";
 
 export type LinkAndTargetEntity = { rightEntity: Entity; linkEntity: Entity };
 

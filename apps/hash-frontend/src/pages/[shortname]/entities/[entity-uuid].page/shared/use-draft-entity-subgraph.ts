@@ -3,7 +3,7 @@ import {
   EntityVertexId,
   Subgraph,
   SubgraphRootTypes,
-} from "@local/hash-subgraph";
+} from "../hash-subgraph/src";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
 import { useBlockProtocolGetEntityType } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";

@@ -1,11 +1,10 @@
-import { Subgraph } from "@local/hash-subgraph/src";
-
 import { createKratosIdentity } from "../../../../auth/ory-kratos";
 import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity";
 import { createUser } from "../../../../graph/knowledge/system-types/user";
 import { MutationCreateUserArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
+import { Subgraph } from "../hash-subgraph/src";
 
 export const createUserResolver: ResolverFn<
   Promise<Subgraph>,

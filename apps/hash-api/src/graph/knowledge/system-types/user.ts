@@ -5,14 +5,6 @@ import {
   OwnedById,
   Uuid,
 } from "@local/hash-isomorphic-utils/types";
-import {
-  Entity,
-  EntityId,
-  PropertyObject,
-  Subgraph,
-  SubgraphRootTypes,
-} from "@local/hash-subgraph/src";
-import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
 
 import {
   kratosIdentityApi,
@@ -27,6 +19,14 @@ import {
 } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
 import { systemUserAccountId } from "../../system-user";
+import {
+  Entity,
+  EntityId,
+  PropertyObject,
+  Subgraph,
+  SubgraphRootTypes,
+} from "../hash-subgraph/src";
+import { getRootsAsEntities } from "../hash-subgraph/src/stdlib/element/entity";
 import {
   createEntity,
   CreateEntityParams,

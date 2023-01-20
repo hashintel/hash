@@ -1,5 +1,3 @@
-import { Entity } from "@local/hash-subgraph";
-
 import {
   getCommentById,
   getCommentParent,
@@ -8,6 +6,7 @@ import { ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapEntityToGQL, UnresolvedCommentGQL } from "../graphql-mapping";
+import { Entity } from "../hash-subgraph/src";
 
 export const commentParentResolver: ResolverFn<
   Promise<Entity>,

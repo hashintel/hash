@@ -20,7 +20,7 @@ import { systemUserAccountId } from "@apps/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { EntityUuid } from "@local/hash-isomorphic-utils/types";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "../hash-subgraph/src";
 
 import {
   createTestImpureGraphContext,

@@ -1,9 +1,10 @@
 import { VersionedUri } from "@blockprotocol/type-system";
+
 import {
   EntityTypeWithMetadata,
   Subgraph,
   SubgraphRootTypes,
-} from "@local/hash-subgraph";
+} from "../hash-subgraph/src";
 
 export type EntityTypesSet = Record<VersionedUri, EntityTypeWithMetadata>;
 export type EntityTypesContextValue = {

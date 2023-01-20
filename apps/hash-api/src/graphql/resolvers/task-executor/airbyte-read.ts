@@ -7,12 +7,12 @@ import {
 import { Logger } from "@local/hash-backend-utils/logger";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import { typedEntries, typedKeys } from "@local/hash-isomorphic-utils/util";
-import { PropertyObject } from "@local/hash-subgraph/src";
 import { ApolloError } from "apollo-server-express";
 
 import { ImpureGraphContext } from "../../../graph";
 import { User } from "../../../graph/knowledge/system-types/user";
 import { Task, TaskExecutor } from "../../../task-execution";
+import { PropertyObject } from "../hash-subgraph/src";
 import {
   createEntityTypeTree,
   rewriteEntityPropertiesInTypeSystem,

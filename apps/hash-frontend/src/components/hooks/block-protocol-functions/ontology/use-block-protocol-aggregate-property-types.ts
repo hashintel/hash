@@ -1,5 +1,5 @@
 import { useLazyQuery } from "@apollo/client";
-import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
+import { Subgraph, SubgraphRootTypes } from "../hash-subgraph/src";
 import { useCallback } from "react";
 
 import {

@@ -19,7 +19,7 @@ import {
   Subgraph,
   SubgraphRootTypes,
   VersionedUri,
-} from "@local/hash-subgraph";
+} from "../hash-subgraph/src";
 
 export type KnowledgeCallbacks = {
   getEntity: GetEntityMessageCallback;

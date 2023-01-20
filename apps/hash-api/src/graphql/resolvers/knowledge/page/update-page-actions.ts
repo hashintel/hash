@@ -4,7 +4,6 @@ import {
   EntityId,
   OwnedById,
 } from "@local/hash-isomorphic-utils/types";
-import { Entity } from "@local/hash-subgraph";
 import { UserInputError } from "apollo-server-errors";
 import produce from "immer";
 
@@ -31,6 +30,7 @@ import {
   UpdateEntityAction,
   UpdatePageAction,
 } from "../../../api-types.gen";
+import { Entity } from "../hash-subgraph/src";
 
 export const createEntityWithPlaceholdersFn =
   (context: ImpureGraphContext, placeholderResults: PlaceholderResultsMap) =>

@@ -8,8 +8,8 @@ import {
 import { VersionedUri } from "@blockprotocol/type-system/slim";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { EntityId } from "@local/hash-isomorphic-utils/types";
-import { Subgraph as LocalSubgraph } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { Subgraph as LocalSubgraph } from "../hash-subgraph/src";
+import { getRoots } from "../hash-subgraph/src/stdlib/roots";
 import {
   FunctionComponent,
   useCallback,

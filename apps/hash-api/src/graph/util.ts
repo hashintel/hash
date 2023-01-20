@@ -15,12 +15,12 @@ import {
   types,
 } from "@local/hash-isomorphic-utils/ontology-types";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
+
 import {
   EntityTypeWithMetadata,
   linkEntityTypeUri,
   PropertyTypeWithMetadata,
-} from "@local/hash-subgraph/src";
-
+} from "../hash-subgraph/src";
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";
 import { ImpureGraphContext } from "./index";

@@ -1,5 +1,3 @@
-import { Entity } from "@local/hash-subgraph";
-
 import {
   getBlockById,
   getBlockData,
@@ -8,6 +6,7 @@ import { QueryBlocksArgs, ResolverFn } from "../../../api-types.gen";
 import { GraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapEntityToGQL, UnresolvedBlockGQL } from "../graphql-mapping";
+import { Entity } from "../hash-subgraph/src";
 
 export const blockChildEntityResolver: ResolverFn<
   Promise<Entity>,

@@ -1,6 +1,6 @@
-import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
-import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { Subgraph, SubgraphRootTypes } from "../hash-subgraph/src";
+import { getEntityTypeById } from "../hash-subgraph/src/stdlib/element/entity-type";
+import { getRoots } from "../hash-subgraph/src/stdlib/roots";
 
 import { PropertyRow } from "../types";
 import { generatePropertyRowRecursively } from "./generate-property-rows-from-entity/generate-property-row-recursively";

@@ -1,6 +1,6 @@
 import { ApolloClient } from "@apollo/client";
 import { EntityId, OwnedById } from "@local/hash-isomorphic-utils/types";
-import { VersionedUri } from "@local/hash-subgraph";
+import { VersionedUri } from "../hash-subgraph/src";
 import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";

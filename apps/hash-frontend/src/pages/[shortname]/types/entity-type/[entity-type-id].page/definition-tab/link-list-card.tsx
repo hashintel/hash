@@ -2,8 +2,8 @@ import { EntityType, VersionedUri } from "@blockprotocol/type-system";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { Chip, FontAwesomeIcon } from "@local/design-system";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
-import { linkEntityTypeUri } from "@local/hash-subgraph";
-import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
+import { linkEntityTypeUri } from "../hash-subgraph/src";
+import { getEntityTypeById } from "../hash-subgraph/src/stdlib/element/entity-type";
 import {
   ClickAwayListener,
   Popper,

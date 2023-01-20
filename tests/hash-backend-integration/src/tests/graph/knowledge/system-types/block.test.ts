@@ -17,7 +17,7 @@ import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
-import { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
+import { Entity, EntityTypeWithMetadata } from "../hash-subgraph/src";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

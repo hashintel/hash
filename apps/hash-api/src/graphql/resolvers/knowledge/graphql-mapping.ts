@@ -1,5 +1,3 @@
-import { Entity } from "@local/hash-subgraph";
-
 import { Block } from "../../../graph/knowledge/system-types/block";
 import { Comment } from "../../../graph/knowledge/system-types/comment";
 import { Page } from "../../../graph/knowledge/system-types/page";
@@ -8,6 +6,7 @@ import {
   Comment as GQLComment,
   Page as GQLPage,
 } from "../../api-types.gen";
+import { Entity } from "../hash-subgraph/src";
 
 export const mapEntityToGQL = (entity: Entity): Entity => entity;
 

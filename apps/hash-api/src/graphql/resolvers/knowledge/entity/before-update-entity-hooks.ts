@@ -1,6 +1,5 @@
 import { VersionedUri } from "@blockprotocol/type-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { Entity, PropertyObject } from "@local/hash-subgraph/src";
 import { ApolloError, UserInputError } from "apollo-server-express";
 
 import { ImpureGraphContext } from "../../../../graph";
@@ -16,6 +15,7 @@ import {
   updateUserKratosIdentityTraits,
 } from "../../../../graph/knowledge/system-types/user";
 import { SYSTEM_TYPES } from "../../../../graph/system-types";
+import { Entity, PropertyObject } from "../hash-subgraph/src";
 
 const validateAccountShortname = async (
   context: ImpureGraphContext,

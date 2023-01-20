@@ -4,8 +4,8 @@ import {
   EntityUuid,
   OwnedById,
 } from "@local/hash-isomorphic-utils/types";
-import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { Subgraph, SubgraphRootTypes } from "../hash-subgraph/src";
+import { getRoots } from "../hash-subgraph/src/stdlib/roots";
 import produce from "immer";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";

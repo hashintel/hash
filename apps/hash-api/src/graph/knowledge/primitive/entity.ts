@@ -7,6 +7,15 @@ import {
   extractOwnedByIdFromEntityId,
   OwnedById,
 } from "@local/hash-isomorphic-utils/types";
+import { ApolloError } from "apollo-server-errors";
+
+import {
+  EntityDefinition,
+  LinkedEntityDefinition,
+} from "../../../graphql/api-types.gen";
+import { linkedTreeFlatten } from "../../../util";
+import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
+import { getEntityTypeById } from "../../ontology/primitive/entity-type";
 import {
   Entity,
   EntityId,
@@ -17,17 +26,8 @@ import {
   Subgraph,
   SubgraphRootTypes,
   TimeProjection,
-} from "@local/hash-subgraph/src";
-import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
-import { ApolloError } from "apollo-server-errors";
-
-import {
-  EntityDefinition,
-  LinkedEntityDefinition,
-} from "../../../graphql/api-types.gen";
-import { linkedTreeFlatten } from "../../../util";
-import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
-import { getEntityTypeById } from "../../ontology/primitive/entity-type";
+} from "../hash-subgraph/src";
+import { getRootsAsEntities } from "../hash-subgraph/src/stdlib/element/entity";
 import {
   createLinkEntity,
   isEntityLinkEntity,

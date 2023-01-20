@@ -11,7 +11,7 @@ import {
 import { DataType, TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
-import { DataTypeWithMetadata } from "@local/hash-subgraph";
+import { DataTypeWithMetadata } from "../hash-subgraph/src";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
