@@ -158,7 +158,7 @@ $ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-gra
 **Building `hash-api`**:
 
 ```console
-$ DOCKER_BUILDKIT=1 docker build . -f ./packages/hash/docker/api/prod/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-apiecr:latest
+$ DOCKER_BUILDKIT=1 docker build . -f ./infra/docker/api/prod/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-apiecr:latest
 ..
 $ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-apiecr:latest
 ..
