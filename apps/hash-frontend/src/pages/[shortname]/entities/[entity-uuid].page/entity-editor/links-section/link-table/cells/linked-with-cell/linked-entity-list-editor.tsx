@@ -74,7 +74,8 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
       return setAddingLink(false);
     }
 
-    const leftEntityId = getRoots(entitySubgraph)[0]?.metadata.editionId.baseId;
+    const leftEntityId = getRoots(entitySubgraph)[0]?.metadata.editionId
+      .baseId as EntityId;
     const rightEntityId = selectedEntity.metadata.editionId.baseId as EntityId;
 
     const linkEntity = createDraftLinkEntity({
