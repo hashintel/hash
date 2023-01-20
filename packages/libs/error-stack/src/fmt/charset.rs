@@ -1,7 +1,7 @@
-#[cfg(feature = "detect")]
 use core::sync::atomic::{AtomicU8, Ordering};
 
-use owo_colors::Stream;
+#[cfg(feature = "detect")]
+use supports_unicode::Stream;
 
 use crate::Report;
 
@@ -28,7 +28,7 @@ impl Charset {
     #[cfg(not(feature = "detect"))]
     pub(super) fn load() -> Self {
         if let Some(charset) = CHARSET_OVERRIDE.load() {
-            charset;
+            charset
         } else {
             // we assume that most fonts and terminals nowadays support Utf8, which is why this is
             // the default
@@ -108,6 +108,7 @@ impl AtomicSupport {
     }
 }
 
+#[cfg(feature = "detect")]
 static CHARSET_SUPPORTS: AtomicSupport = AtomicSupport::new();
 
 /// Value layout:

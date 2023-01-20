@@ -239,8 +239,16 @@ impl<T> HookContext<T> {
     ///
     /// Hooks can be invoked in different color modes, which represent the preferences of an
     /// end-user.
-    pub const fn mode(&self) -> ColorMode {
+    pub const fn color(&self) -> ColorMode {
         self.inner().extra().color
+    }
+
+    /// The requested [`Charset`] for this invocation of hooks
+    ///
+    /// Hooks can be invoked in using different charsets, which reflect the capabilities of the
+    /// terminal.
+    pub const fn charset(&self) -> Charset {
+        self.inner().extra().charset
     }
 
     /// The contents of the appendix are going to be displayed after the body in the order they have
@@ -513,7 +521,7 @@ mod default {
     }
 
     fn location(location: &Location<'static>, context: &mut HookContext<Location<'static>>) {
-        context.push_body(LocationDisplay::new(location, context.mode()).to_string());
+        context.push_body(LocationDisplay::new(location, context.color()).to_string());
     }
 
     #[cfg(all(feature = "std", rust_1_65))]
