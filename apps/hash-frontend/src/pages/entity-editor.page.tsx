@@ -118,7 +118,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
       return;
     }
     await archiveEntity({
-      data: { entityId: createdEntity.metadata.editionId.baseId },
+      data: { entityId: createdEntity.metadata.editionId.baseId as EntityId },
     }).then(() => setCreatedEntity(undefined));
   };
 

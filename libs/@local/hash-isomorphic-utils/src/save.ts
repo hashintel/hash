@@ -89,7 +89,7 @@ const calculateSaveActions = async (
 
       actions.push({
         updateEntity: {
-          entityId: draftEntity.metadata.editionId.baseId,
+          entityId: draftEntity.metadata.editionId.baseId as EntityId,
           properties: nextProperties,
         },
       });
@@ -330,7 +330,8 @@ const calculateSaveActions = async (
           },
           ...(draftEntity.metadata.editionId.baseId
             ? {
-                existingBlockEntityId: draftEntity.metadata.editionId.baseId,
+                existingBlockEntityId: draftEntity.metadata.editionId
+                  .baseId as EntityId,
               }
             : {
                 blockPlaceholderId,

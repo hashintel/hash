@@ -144,7 +144,8 @@ const Page: NextPageWithLayout = () => {
       setSavingChanges(true);
 
       await applyDraftLinkEntityChanges(
-        getRoots(entitySubgraphFromDB)[0]?.metadata.editionId.baseId,
+        getRoots(entitySubgraphFromDB)[0]?.metadata.editionId
+          .baseId as EntityId,
         draftLinksToCreate,
         draftLinksToArchive,
       );

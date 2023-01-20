@@ -233,6 +233,7 @@ export const PageNotificationBanner: FunctionComponent = () => {
               background: alpha(palette.gray[90], 0.08),
             },
           })}
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
           onClick={() => pageEntityId && archivePage(false, pageEntityId)}
         >
           Restore
