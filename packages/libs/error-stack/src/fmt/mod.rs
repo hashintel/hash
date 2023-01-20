@@ -179,6 +179,7 @@ use owo_colors::{OwoColorize, Style as OwOStyle};
 use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
 #[cfg(not(any(feature = "std", feature = "hooks")))]
+#[derive(Debug, Copy, Clone)]
 struct Config {
     charset: Charset,
     color: ColorMode,
