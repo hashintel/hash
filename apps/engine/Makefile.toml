@@ -30,7 +30,7 @@ dependencies = ["build-test-deps"]
 [tasks.run-integrations]
 private = true
 extend = "cargo"
-args = ["nextest", "run", "--workspace", "--test", "integration", "--no-fail-fast", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "--all-features"]
+args = ["nextest", "run", "--workspace", "--test", "integration", "--no-fail-fast", "--cargo-profile", "${CARGO_MAKE_CARGO_PROFILE}", "--all-features"]
 dependencies = ["install-cargo-nextest", "setup-python"]
 
 # The workspace crate (`hash_engine_lib`) does not have any source files but only the integration tests. `rustdoc` will
