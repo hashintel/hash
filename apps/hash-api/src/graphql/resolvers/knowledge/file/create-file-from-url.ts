@@ -1,4 +1,5 @@
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
+import { Entity } from "@local/hash-subgraph";
 
 import { createFileFromExternalUrl } from "../../../../graph/knowledge/system-types/file";
 import {
@@ -7,7 +8,6 @@ import {
 } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
-import { Entity } from "../hash-subgraph/src";
 
 export const createFileFromUrl: ResolverFn<
   Promise<Entity>,

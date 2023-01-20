@@ -2,11 +2,11 @@ import {
   AccountId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-isomorphic-utils/types";
+import { Entity, EntityId, PropertyObject } from "@local/hash-subgraph";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
-import { Entity, EntityId, PropertyObject } from "../hash-subgraph/src";
 import {
   archiveEntity,
   createEntity,

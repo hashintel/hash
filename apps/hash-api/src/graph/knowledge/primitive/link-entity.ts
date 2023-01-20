@@ -1,7 +1,4 @@
 import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
-
-import { ImpureGraphFunction } from "../..";
-import { isEntityTypeLinkEntityType } from "../../ontology/primitive/entity-type";
 import {
   Entity,
   EntityId,
@@ -9,7 +6,10 @@ import {
   EntityTypeWithMetadata,
   LinkData,
   PropertyObject,
-} from "../hash-subgraph/src";
+} from "@local/hash-subgraph";
+
+import { ImpureGraphFunction } from "../..";
+import { isEntityTypeLinkEntityType } from "../../ontology/primitive/entity-type";
 import { getLatestEntityById } from "./entity";
 
 export type CreateLinkEntityParams = {

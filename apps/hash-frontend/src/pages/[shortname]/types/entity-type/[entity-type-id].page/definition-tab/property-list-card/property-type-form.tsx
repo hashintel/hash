@@ -1,5 +1,5 @@
 import { BaseUri } from "@blockprotocol/type-system";
-import { getPropertyTypeById } from "../hash-subgraph/src/stdlib/element/property-type";
+import { getPropertyTypeById } from "@local/hash-subgraph/src/stdlib/element/property-type";
 
 import { useBlockProtocolGetPropertyType } from "../../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-property-type";
 import {

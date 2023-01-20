@@ -1,10 +1,11 @@
+import { Subgraph } from "@local/hash-subgraph";
+
 import {
   QueryGetAllLatestDataTypesArgs,
   QueryGetDataTypeArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
-import { Subgraph } from "../hash-subgraph/src";
 
 export const getAllLatestDataTypes: ResolverFn<
   Promise<Subgraph>,

@@ -1,6 +1,5 @@
 import { DataType, EntityType, PropertyType } from "@blockprotocol/type-system";
-
-import { EntityId } from "../hash-subgraph/src";
+import { EntityId } from "@local/hash-subgraph";
 
 export type TextToken =
   | {

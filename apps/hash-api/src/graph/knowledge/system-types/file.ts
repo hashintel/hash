@@ -1,11 +1,11 @@
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
+import { Entity, PropertyObject } from "@local/hash-subgraph";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { PresignedPostUpload } from "../../../storage";
 import { genId } from "../../../util";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
-import { Entity, PropertyObject } from "../hash-subgraph/src";
 import { createEntity, CreateEntityParams } from "../primitive/entity";
 
 // 1800 seconds

@@ -18,7 +18,7 @@ import {
   EntityTypeWithMetadata,
   linkEntityTypeUri,
   PropertyTypeWithMetadata,
-} from "../hash-subgraph/src";
+} from "@local/hash-subgraph";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

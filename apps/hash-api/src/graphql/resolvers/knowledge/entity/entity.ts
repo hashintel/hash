@@ -1,5 +1,11 @@
 import { Filter } from "@hashintel/hash-graph-client";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
+import {
+  Entity,
+  isEntityId,
+  splitEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import { ForbiddenError, UserInputError } from "apollo-server-express";
 
 import {
@@ -26,12 +32,6 @@ import {
 import { LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapEntityToGQL } from "../graphql-mapping";
-import {
-  Entity,
-  isEntityId,
-  splitEntityId,
-  Subgraph,
-} from "../hash-subgraph/src";
 import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
 
 /**

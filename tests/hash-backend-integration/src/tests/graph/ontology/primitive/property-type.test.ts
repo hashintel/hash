@@ -18,7 +18,7 @@ import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
   DataTypeWithMetadata,
   PropertyTypeWithMetadata,
-} from "../hash-subgraph/src";
+} from "@local/hash-subgraph";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

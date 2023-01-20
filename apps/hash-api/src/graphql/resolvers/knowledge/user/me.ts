@@ -1,8 +1,9 @@
+import { Subgraph } from "@local/hash-subgraph";
+
 import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity";
 import { QueryMeArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
-import { Subgraph } from "../hash-subgraph/src";
 
 export const meResolver: ResolverFn<
   Subgraph,

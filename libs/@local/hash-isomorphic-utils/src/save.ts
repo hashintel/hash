@@ -1,6 +1,6 @@
 import { ApolloClient } from "@apollo/client";
 import { EntityId, OwnedById } from "@local/hash-isomorphic-utils/types";
-import { VersionedUri } from "../hash-subgraph/src";
+import { VersionedUri } from "@local/hash-subgraph";
 import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
@@ -89,7 +89,7 @@ const calculateSaveActions = async (
 
       actions.push({
         updateEntity: {
-          entityId: draftEntity.metadata.editionId.baseId as EntityId,
+          entityId: draftEntity.metadata.editionId.baseId,
           properties: nextProperties,
         },
       });
@@ -330,8 +330,7 @@ const calculateSaveActions = async (
           },
           ...(draftEntity.metadata.editionId.baseId
             ? {
-                existingBlockEntityId: draftEntity.metadata.editionId
-                  .baseId as EntityId,
+                existingBlockEntityId: draftEntity.metadata.editionId.baseId,
               }
             : {
                 blockPlaceholderId,

@@ -1,7 +1,7 @@
 import { extractVersion } from "@blockprotocol/type-system";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton, MenuItem } from "@local/design-system";
-import { VersionedUri } from "../hash-subgraph/src";
+import { VersionedUri } from "@local/hash-subgraph";
 import {
   Box,
   Divider,

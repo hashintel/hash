@@ -4,9 +4,9 @@ import {
   PropertyType,
 } from "@blockprotocol/type-system";
 import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
-import { Subgraph } from "../hash-subgraph/src";
-import { getEntityTypesByBaseUri } from "../hash-subgraph/src/stdlib/element/entity-type";
-import { getPropertyTypeById } from "../hash-subgraph/src/stdlib/element/property-type";
+import { Subgraph } from "@local/hash-subgraph";
+import { getEntityTypesByBaseUri } from "@local/hash-subgraph/src/stdlib/element/entity-type";
+import { getPropertyTypeById } from "@local/hash-subgraph/src/stdlib/element/property-type";
 import { useRouter } from "next/router";
 import {
   useCallback,

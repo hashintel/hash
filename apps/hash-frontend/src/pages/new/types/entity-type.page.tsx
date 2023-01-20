@@ -2,7 +2,7 @@ import { EntityType } from "@blockprotocol/type-system";
 import { Button, TextField } from "@local/design-system";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { generateBaseTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { versionedUriFromComponents } from "../hash-subgraph/src/shared/type-system-patch";
+import { versionedUriFromComponents } from "@local/hash-subgraph/src/shared/type-system-patch";
 import {
   Box,
   Container,

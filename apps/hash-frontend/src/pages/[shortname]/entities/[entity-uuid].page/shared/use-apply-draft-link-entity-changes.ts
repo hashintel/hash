@@ -1,5 +1,5 @@
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
-import { EntityId } from "../hash-subgraph/src";
+import { EntityId } from "@local/hash-subgraph";
 import { useContext } from "react";
 
 import { useBlockProtocolArchiveEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";

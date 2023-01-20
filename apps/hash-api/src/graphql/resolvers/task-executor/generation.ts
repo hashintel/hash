@@ -19,11 +19,11 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import { typedEntries } from "@local/hash-isomorphic-utils/util";
+import { PropertyObject } from "@local/hash-subgraph";
 import { camelCase, isEqual, upperFirst } from "lodash";
 import { singular } from "pluralize";
 
 import { User } from "../../../graph/knowledge/system-types/user";
-import { PropertyObject } from "../hash-subgraph/src";
 
 const TEXT_DATA_TYPE_ID =
   "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1";

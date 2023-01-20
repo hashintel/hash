@@ -6,7 +6,7 @@ import {
   EntityUuid,
   OwnedById,
 } from "@local/hash-isomorphic-utils/types";
-import { getRootsAsEntities } from "../hash-subgraph/src/stdlib/element/entity";
+import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
 import { useEffect, useMemo, useState } from "react";
 
 import { useBlockProtocolGetEntity } from "./block-protocol-functions/knowledge/use-block-protocol-get-entity";

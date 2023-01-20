@@ -1,4 +1,5 @@
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
+import { PropertyTypeWithMetadata, Subgraph } from "@local/hash-subgraph";
 
 import {
   createPropertyType,
@@ -12,7 +13,6 @@ import {
   ResolverFn,
 } from "../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../context";
-import { PropertyTypeWithMetadata, Subgraph } from "../hash-subgraph/src";
 import { dataSourcesToImpureGraphContext } from "../util";
 
 export const createPropertyTypeResolver: ResolverFn<

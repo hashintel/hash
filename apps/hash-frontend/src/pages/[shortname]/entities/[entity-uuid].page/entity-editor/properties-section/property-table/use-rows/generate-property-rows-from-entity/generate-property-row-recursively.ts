@@ -3,8 +3,8 @@ import {
   PropertyTypeReference,
   ValueOrArray,
 } from "@blockprotocol/type-system";
-import { Entity, Subgraph, SubgraphRootTypes } from "../hash-subgraph/src";
-import { getPropertyTypesByBaseUri } from "../hash-subgraph/src/stdlib/element/property-type";
+import { Entity, Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
+import { getPropertyTypesByBaseUri } from "@local/hash-subgraph/src/stdlib/element/property-type";
 import { get } from "lodash";
 
 import {

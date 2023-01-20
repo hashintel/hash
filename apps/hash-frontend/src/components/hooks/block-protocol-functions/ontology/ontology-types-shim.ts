@@ -22,7 +22,7 @@ import {
   PropertyTypeWithMetadata,
   Subgraph,
   SubgraphRootTypes,
-} from "../hash-subgraph/src";
+} from "@local/hash-subgraph";
 
 export type OntologyCallbacks = {
   aggregateDataTypes: AggregateDataTypesMessageCallback;

@@ -7,7 +7,7 @@ import {
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
-} from "../hash-subgraph/src";
+} from "@local/hash-subgraph";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
 

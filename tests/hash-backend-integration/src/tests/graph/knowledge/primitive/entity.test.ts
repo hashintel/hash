@@ -29,8 +29,8 @@ import {
   PropertyTypeWithMetadata,
   Subgraph,
   SubgraphRootTypes,
-} from "../hash-subgraph/src";
-import { getRootsAsEntities } from "../hash-subgraph/src/stdlib/element/entity";
+} from "@local/hash-subgraph";
+import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

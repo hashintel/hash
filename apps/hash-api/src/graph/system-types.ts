@@ -1,11 +1,11 @@
 import { Logger } from "@local/hash-backend-utils/logger";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-
 import {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-} from "../hash-subgraph/src";
+} from "@local/hash-subgraph";
+
 import { logger } from "../logger";
 import { ImpureGraphContext } from "./index";
 import { entityTypeInitializer, propertyTypeInitializer } from "./util";

@@ -24,7 +24,7 @@ import {
   extractEntityUuidFromEntityId,
   OwnedById,
 } from "@local/hash-isomorphic-utils/types";
-import { isEntityId } from "../hash-subgraph/src";
+import { isEntityId } from "@local/hash-subgraph";
 import { Box, Collapse } from "@mui/material";
 import {
   FunctionComponent,

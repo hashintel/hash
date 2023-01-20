@@ -4,7 +4,7 @@ import {
   extractEntityUuidFromEntityId as extractEntityUuidFromEntityIdSubgraph,
   extractOwnedByIdFromEntityId as extractOwnedByIdFromEntityIdSubgraph,
   splitEntityId as splitEntityIdSubgraph,
-} from "../hash-subgraph/src";
+} from "@local/hash-subgraph";
 
 type BrandedBase<Base, Kind extends {}> = Base & {
   // The property prefixes are chosen such that they shouldn't appear in intellisense.

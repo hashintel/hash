@@ -1,3 +1,4 @@
+import { Entity } from "@local/hash-subgraph";
 import { ApolloError } from "apollo-server-errors";
 
 import {
@@ -8,7 +9,6 @@ import { ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapBlockToGQL, UnresolvedPageGQL } from "../graphql-mapping";
-import { Entity } from "../hash-subgraph/src";
 
 export const pageContents: ResolverFn<
   Promise<Entity[]>,

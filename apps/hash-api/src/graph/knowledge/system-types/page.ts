@@ -3,6 +3,14 @@ import {
   extractOwnedByIdFromEntityId,
   OwnedById,
 } from "@local/hash-isomorphic-utils/types";
+import {
+  Entity,
+  EntityId,
+  PropertyObject,
+  Subgraph,
+  SubgraphRootTypes,
+} from "@local/hash-subgraph";
+import { getEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 
@@ -13,14 +21,6 @@ import {
   zeroedGraphResolveDepths,
 } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
-import {
-  Entity,
-  EntityId,
-  PropertyObject,
-  Subgraph,
-  SubgraphRootTypes,
-} from "../hash-subgraph/src";
-import { getEntities } from "../hash-subgraph/src/stdlib/element/entity";
 import {
   archiveEntity,
   createEntity,

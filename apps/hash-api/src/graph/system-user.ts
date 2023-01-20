@@ -7,10 +7,10 @@ import {
   AccountId,
   extractAccountId,
 } from "@local/hash-isomorphic-utils/types";
+import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
+import { getEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
-import { Subgraph, SubgraphRootTypes } from "../hash-subgraph/src";
-import { getEntities } from "../hash-subgraph/src/stdlib/element/entity";
 import { getRequiredEnv } from "../util";
 import { ImpureGraphContext } from "./index";
 import {

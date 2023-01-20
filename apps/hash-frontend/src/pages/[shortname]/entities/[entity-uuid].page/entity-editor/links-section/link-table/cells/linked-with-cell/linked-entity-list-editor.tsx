@@ -1,7 +1,7 @@
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
 import { EntityId } from "@local/hash-isomorphic-utils/types";
-import { Entity, VersionedUri } from "../hash-subgraph/src";
-import { getRoots } from "../hash-subgraph/src/stdlib/roots";
+import { Entity, VersionedUri } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import { Box } from "@mui/material";
 import produce from "immer";
 import { useMemo, useState } from "react";

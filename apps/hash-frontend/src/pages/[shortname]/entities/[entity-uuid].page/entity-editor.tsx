@@ -1,4 +1,4 @@
-import { Entity, Subgraph, SubgraphRootTypes } from "../hash-subgraph/src";
+import { Entity, Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
 
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";

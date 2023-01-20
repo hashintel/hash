@@ -22,7 +22,7 @@ import {
   OwnedById,
 } from "@local/hash-isomorphic-utils/types";
 import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
-import { getRootsAsEntities } from "../hash-subgraph/src/stdlib/element/entity";
+import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
 import { alpha, Box, Collapse } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetServerSideProps } from "next";

@@ -1,7 +1,7 @@
 import { VersionedUri } from "@blockprotocol/type-system";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
-import { extractEntityUuidFromEntityId } from "../hash-subgraph/src";
-import { getRoots } from "../hash-subgraph/src/stdlib/roots";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import { useRouter } from "next/router";
 import { useContext, useState } from "react";
 

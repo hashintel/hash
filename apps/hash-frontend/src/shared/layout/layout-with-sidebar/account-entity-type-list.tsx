@@ -1,6 +1,6 @@
 import { faArrowUpAZ, faSearch } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton, TextField } from "@local/design-system";
-import { getRoots } from "../hash-subgraph/src/stdlib/roots";
+import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import {
   Box,
   Collapse,

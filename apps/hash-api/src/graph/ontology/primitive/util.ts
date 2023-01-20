@@ -1,11 +1,11 @@
 import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
+import { entityIdFromOwnedByIdAndEntityUuid } from "@local/hash-subgraph";
 
 import { ImpureGraphFunction } from "../..";
 import { getOrgById } from "../../knowledge/system-types/org";
 import { getUserById } from "../../knowledge/system-types/user";
 import { systemUserAccountId } from "../../system-user";
-import { entityIdFromOwnedByIdAndEntityUuid } from "../hash-subgraph/src";
 
 /**
  * Get the namespace of an account owner by its id

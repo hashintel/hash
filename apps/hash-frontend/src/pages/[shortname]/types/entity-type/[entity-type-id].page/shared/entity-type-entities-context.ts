@@ -1,5 +1,5 @@
 import { EntityType, PropertyType } from "@blockprotocol/type-system";
-import { Entity, Subgraph, SubgraphRootTypes } from "../hash-subgraph/src";
+import { Entity, Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
 import { createContext, useContext } from "react";
 
 export type EntityTypeEntitiesContextValue = {
