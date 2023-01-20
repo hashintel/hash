@@ -1,22 +1,22 @@
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
-} from "@hashintel/hash-api/src/graph";
-import { getEntityOutgoingLinks } from "@hashintel/hash-api/src/graph/knowledge/primitive/entity";
-import { getLinkEntityRightEntity } from "@hashintel/hash-api/src/graph/knowledge/primitive/link-entity";
+} from "@apps/hash-api/src/graph";
+import { getEntityOutgoingLinks } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
+import { getLinkEntityRightEntity } from "@apps/hash-api/src/graph/knowledge/primitive/link-entity";
 import {
   addHashInstanceAdmin,
   getHashInstance,
   HashInstance,
   removeHashInstanceAdmin,
-} from "@hashintel/hash-api/src/graph/knowledge/system-types/hash-instance";
+} from "@apps/hash-api/src/graph/knowledge/system-types/hash-instance";
 import {
   isUserHashInstanceAdmin,
   User,
-} from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
-import { SYSTEM_TYPES } from "@hashintel/hash-api/src/graph/system-types";
-import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
+} from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
+import { systemUserAccountId } from "@apps/hash-api/src/graph/system-user";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";

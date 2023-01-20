@@ -1,5 +1,5 @@
 {
-  "name": "@hashintel/hash-frontend",
+  "name": "@apps/hash-frontend",
   "version": "0.0.0-private",
   "private": true,
   "description": "HASH frontend",

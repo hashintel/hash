@@ -3,7 +3,7 @@ import { scalars } from "@local/hash-isomorphic-utils/graphql/scalar-mapping";
 
 const config: CodegenConfig = {
   overwrite: true,
-  schema: "../api/src/graphql/type-defs/**/*.ts",
+  schema: "../hash-api/src/graphql/type-defs/**/*.ts",
   generates: {
     "./src/graphql/fragment-types.gen.json": {
       plugins: ["fragment-matcher"],
@@ -12,7 +12,7 @@ const config: CodegenConfig = {
       plugins: ["typescript", "typescript-operations"],
       documents: [
         "./src/graphql/queries/**/*.ts",
-        "../../../libs/@local/hash-isomorphic-utils/src/queries/**/*.ts",
+        "../../libs/@local/hash-isomorphic-utils/src/queries/**/*.ts",
       ],
       config: {
         skipTypename: true,

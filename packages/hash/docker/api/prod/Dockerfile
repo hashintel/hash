@@ -12,17 +12,17 @@ COPY libs/@local/eslint-config/package.json libs/@local/eslint-config/
 COPY libs/@local/hash-backend-utils/package.json libs/@local/hash-backend-utils/
 COPY libs/@local/hash-isomorphic-utils/package.json libs/@local/hash-isomorphic-utils/
 COPY libs/@local/tsconfig/package.json libs/@local/tsconfig/
-COPY packages/hash/api/package.json packages/hash/api/
+COPY apps/hash-api/package.json apps/hash-api/
 COPY packages/hash/subgraph/package.json packages/hash/subgraph/
 COPY packages/graph/clients/typescript/package.json packages/graph/clients/typescript/
-RUN yarn workspace @hashintel/hash-api install --frozen-lockfile --ignore-scripts --prefer-offline
+RUN yarn workspace @apps/hash-api install --frozen-lockfile --ignore-scripts --prefer-offline
 
 COPY libs/@local/hash-isomorphic-utils/src/graphql libs/@local/hash-isomorphic-utils/src/graphql
 COPY libs/@local/hash-isomorphic-utils/src/queries libs/@local/hash-isomorphic-utils/src/queries
-COPY packages/hash/api/codegen.config.ts packages/hash/api/codegen.config.ts
-COPY packages/hash/api/src/graphql/type-defs packages/hash/api/src/graphql/type-defs
+COPY apps/hash-api/codegen.config.ts apps/hash-api/codegen.config.ts
+COPY apps/hash-api/src/graphql/type-defs apps/hash-api/src/graphql/type-defs
 
-RUN yarn workspace @hashintel/hash-api codegen
+RUN yarn workspace @apps/hash-api codegen
 
 COPY libs/@local/hash-isomorphic-utils/codegen.config.ts libs/@local/hash-isomorphic-utils/codegen.config.ts
 
@@ -33,7 +33,7 @@ COPY libs/@local/hash-backend-utils libs/@local/hash-backend-utils
 COPY libs/@local/hash-isomorphic-utils libs/@local/hash-isomorphic-utils
 COPY libs/@local/tsconfig libs/@local/tsconfig
 COPY packages/graph/clients/typescript packages/graph/clients/typescript
-COPY packages/hash/api packages/hash/api
+COPY apps/hash-api apps/hash-api
 COPY packages/hash/subgraph packages/hash/subgraph
 RUN mkdir -p /app/var/uploads
 
@@ -55,4 +55,4 @@ ENV NODE_ENV production
 HEALTHCHECK --interval=2s --timeout=10s --retries=5 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:5001 || exit 1
 
-CMD ["yarn", "workspace","@hashintel/hash-api", "start"]
+CMD ["yarn", "workspace","@apps/hash-api", "start"]

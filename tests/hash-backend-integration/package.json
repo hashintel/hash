@@ -12,8 +12,8 @@
     "test": "jest --runInBand"
   },
   "dependencies": {
+    "@apps/hash-api": "0.0.0-private",
     "@blockprotocol/type-system": "0.0.3-canary-20230111084611",
-    "@hashintel/hash-api": "0.0.0-private",
     "@hashintel/hash-graph-client": "0.0.0-private",
     "@hashintel/hash-subgraph": "0.0.0-private",
     "@local/hash-backend-utils": "0.0.0-private",
