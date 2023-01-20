@@ -1,19 +1,12 @@
 CREATE TABLE IF NOT EXISTS
-  "base_uris" ("base_uri" TEXT PRIMARY KEY);
-
-CREATE TABLE IF NOT EXISTS
-  "version_ids" ("version_id" UUID PRIMARY KEY);
-
-CREATE TABLE IF NOT EXISTS
   "type_ids" (
-    "base_uri" TEXT NOT NULL REFERENCES "base_uris",
+    "version_id" UUID PRIMARY KEY,
+    "base_uri" TEXT NOT NULL,
     "version" BIGINT NOT NULL,
-    "version_id" UUID REFERENCES "version_ids",
     "owned_by_id" UUID NOT NULL REFERENCES "accounts",
     "updated_by_id" UUID NOT NULL REFERENCES "accounts",
     "transaction_time" tstzrange NOT NULL,
-    CONSTRAINT type_ids_pkey PRIMARY KEY ("base_uri", "version") DEFERRABLE INITIALLY IMMEDIATE,
-    CONSTRAINT type_id_unique UNIQUE ("version_id") DEFERRABLE INITIALLY IMMEDIATE,
+    UNIQUE ("base_uri", "version"),
     CONSTRAINT type_ids_overlapping EXCLUDE USING gist (
       base_uri
       WITH
@@ -29,19 +22,19 @@ COMMENT
 
 CREATE TABLE IF NOT EXISTS
   "data_types" (
-    "version_id" UUID PRIMARY KEY REFERENCES "version_ids",
+    "version_id" UUID PRIMARY KEY REFERENCES "type_ids",
     "schema" JSONB NOT NULL
   );
 
 CREATE TABLE IF NOT EXISTS
   "property_types" (
-    "version_id" UUID PRIMARY KEY REFERENCES "version_ids",
+    "version_id" UUID PRIMARY KEY REFERENCES "type_ids",
     "schema" JSONB NOT NULL
   );
 
 CREATE TABLE IF NOT EXISTS
   "entity_types" (
-    "version_id" UUID PRIMARY KEY REFERENCES "version_ids",
+    "version_id" UUID PRIMARY KEY REFERENCES "type_ids",
     "schema" JSONB NOT NULL
   );
 

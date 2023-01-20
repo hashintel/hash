@@ -190,7 +190,7 @@ where
             .into_report()
             .map(|row| row.get(0))
             .map_err(|report| match report.current_context().code() {
-                Some(&SqlState::UNIQUE_VIOLATION) => report
+                Some(&SqlState::EXCLUSION_VIOLATION | &SqlState::UNIQUE_VIOLATION) => report
                     .change_context(BaseUriAlreadyExists)
                     .attach_printable(uri.base_uri().clone())
                     .change_context(InsertionError),
