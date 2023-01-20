@@ -25,12 +25,15 @@ impl<'a> Display for LocationDisplay<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let location = self.location;
 
+        #[cfg(feature = "color")]
         match self.mode {
             ColorMode::None => f.write_fmt(format_args!("at {location}")),
-            #[cfg(feature = "color")]
             ColorMode::Color => Display::fmt(&(*location).bright_black(), f),
-            #[cfg(feature = "color")]
             ColorMode::Emphasis => Display::fmt(&(*location).italic(), f),
-        }
+        }?;
+
+        f.write_fmt(format_args!("at {location}"))?;
+
+        Ok(())
     }
 }
