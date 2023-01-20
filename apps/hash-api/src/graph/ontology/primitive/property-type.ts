@@ -1,15 +1,15 @@
 import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
 import { UpdatePropertyTypeRequest } from "@hashintel/hash-graph-client";
+import { PropertyTypeWithoutId } from "@local/hash-isomorphic-utils/graphql/types";
+import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
   PropertyTypeWithMetadata,
   Subgraph,
   SubgraphRootTypes,
-} from "@hashintel/hash-subgraph";
-import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
-import { PropertyTypeWithoutId } from "@local/hash-isomorphic-utils/graphql/types";
-import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
+} from "@local/hash-subgraph/src";
+import { versionedUriFromComponents } from "@local/hash-subgraph/src/shared/type-system-patch";
+import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";

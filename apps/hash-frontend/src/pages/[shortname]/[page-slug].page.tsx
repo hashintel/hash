@@ -1,5 +1,4 @@
 import { useQuery } from "@apollo/client";
-import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import {
   defaultBlockComponentIds,
   fetchBlock,
@@ -23,6 +22,7 @@ import {
   OwnedById,
 } from "@local/hash-isomorphic-utils/types";
 import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
+import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
 import { alpha, Box, Collapse } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetServerSideProps } from "next";
@@ -233,7 +233,6 @@ export const PageNotificationBanner: FunctionComponent = () => {
               background: alpha(palette.gray[90], 0.08),
             },
           })}
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
           onClick={() => pageEntityId && archivePage(false, pageEntityId)}
         >
           Restore

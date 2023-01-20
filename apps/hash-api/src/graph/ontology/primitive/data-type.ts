@@ -1,14 +1,14 @@
 import { DataType } from "@blockprotocol/type-system";
+import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
   DataTypeWithMetadata,
   Subgraph,
   SubgraphRootTypes,
   VersionedUri,
-} from "@hashintel/hash-subgraph";
-import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
-import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
+} from "@local/hash-subgraph/src";
+import { versionedUriFromComponents } from "@local/hash-subgraph/src/shared/type-system-patch";
+import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";

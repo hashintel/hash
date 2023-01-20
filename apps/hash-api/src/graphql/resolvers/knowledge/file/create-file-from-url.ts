@@ -1,5 +1,5 @@
-import { Entity } from "@hashintel/hash-subgraph";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
+import { Entity } from "@local/hash-subgraph/src";
 
 import { createFileFromExternalUrl } from "../../../../graph/knowledge/system-types/file";
 import {

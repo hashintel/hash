@@ -1,7 +1,7 @@
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import { Entity, VersionedUri } from "@hashintel/hash-subgraph";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { EntityId } from "@local/hash-isomorphic-utils/types";
+import { Entity, VersionedUri } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import { Box } from "@mui/material";
 import produce from "immer";
 import { useMemo, useState } from "react";
@@ -74,8 +74,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
       return setAddingLink(false);
     }
 
-    const leftEntityId = getRoots(entitySubgraph)[0]?.metadata.editionId
-      .baseId as EntityId;
+    const leftEntityId = getRoots(entitySubgraph)[0]?.metadata.editionId.baseId;
     const rightEntityId = selectedEntity.metadata.editionId.baseId as EntityId;
 
     const linkEntity = createDraftLinkEntity({

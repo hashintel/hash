@@ -11,15 +11,15 @@ import {
   VersionedUri,
 } from "@blockprotocol/type-system";
 import {
-  EntityTypeWithMetadata,
-  linkEntityTypeUri,
-  PropertyTypeWithMetadata,
-} from "@hashintel/hash-subgraph";
-import {
   PrimitiveDataTypeKey,
   types,
 } from "@local/hash-isomorphic-utils/ontology-types";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
+import {
+  EntityTypeWithMetadata,
+  linkEntityTypeUri,
+  PropertyTypeWithMetadata,
+} from "@local/hash-subgraph/src";
 
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";
@@ -164,7 +164,6 @@ export const propertyTypeInitializer = (
   let propertyType: PropertyTypeWithMetadata;
 
   return async (context?: ImpureGraphContext) => {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     if (propertyType) {
       return propertyType;
     } else if (!context) {

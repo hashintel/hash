@@ -1,10 +1,10 @@
 import { VersionedUri } from "@blockprotocol/type-system";
-import { Entity } from "@hashintel/hash-subgraph";
 import {
   AccountId,
   EntityId,
   OwnedById,
 } from "@local/hash-isomorphic-utils/types";
+import { Entity } from "@local/hash-subgraph/src";
 import { UserInputError } from "apollo-server-errors";
 import produce from "immer";
 

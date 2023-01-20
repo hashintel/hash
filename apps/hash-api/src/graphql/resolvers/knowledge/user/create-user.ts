@@ -1,4 +1,4 @@
-import { Subgraph } from "@hashintel/hash-subgraph";
+import { Subgraph } from "@local/hash-subgraph/src";
 
 import { createKratosIdentity } from "../../../../auth/ory-kratos";
 import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity";

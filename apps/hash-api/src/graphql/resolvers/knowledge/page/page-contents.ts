@@ -1,4 +1,4 @@
-import { Entity } from "@hashintel/hash-subgraph";
+import { Entity } from "@local/hash-subgraph/src";
 import { ApolloError } from "apollo-server-errors";
 
 import {

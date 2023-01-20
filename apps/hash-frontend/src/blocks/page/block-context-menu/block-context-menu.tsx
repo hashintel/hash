@@ -11,13 +11,13 @@ import {
   faLink,
   faRefresh,
 } from "@fortawesome/free-solid-svg-icons";
-import { PropertyObject } from "@hashintel/hash-subgraph";
 import { FontAwesomeIcon } from "@local/design-system";
 import {
   areComponentsCompatible,
   isHashTextBlock,
 } from "@local/hash-isomorphic-utils/blocks";
 import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
+import { PropertyObject } from "@local/hash-subgraph";
 import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import { PopupState } from "material-ui-popup-state/hooks";

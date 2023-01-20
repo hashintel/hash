@@ -9,9 +9,9 @@ import {
   updateDataType,
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import { DataType, TypeSystemInitializer } from "@blockprotocol/type-system";
-import { DataTypeWithMetadata } from "@hashintel/hash-subgraph";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
+import { DataTypeWithMetadata } from "@local/hash-subgraph";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

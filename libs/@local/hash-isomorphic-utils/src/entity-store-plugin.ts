@@ -1,4 +1,4 @@
-import { EntityId, PropertyObject } from "@hashintel/hash-subgraph";
+import { EntityId, PropertyObject } from "@local/hash-subgraph";
 import { Draft, produce } from "immer";
 import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
@@ -301,7 +301,6 @@ const entityStoreReducer = (
         );
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
       if (!action.payload.targetEntity) {
         throw new Error("Entity missing to update Block data");
       }

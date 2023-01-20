@@ -1,5 +1,5 @@
-import { EntityTypeWithMetadata, Subgraph } from "@hashintel/hash-subgraph";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
+import { EntityTypeWithMetadata, Subgraph } from "@local/hash-subgraph/src";
 
 import {
   createEntityType,

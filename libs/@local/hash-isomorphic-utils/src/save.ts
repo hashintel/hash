@@ -1,6 +1,6 @@
 import { ApolloClient } from "@apollo/client";
-import { VersionedUri } from "@hashintel/hash-subgraph";
 import { EntityId, OwnedById } from "@local/hash-isomorphic-utils/types";
+import { VersionedUri } from "@local/hash-subgraph";
 import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
@@ -89,7 +89,7 @@ const calculateSaveActions = async (
 
       actions.push({
         updateEntity: {
-          entityId: draftEntity.metadata.editionId.baseId as EntityId,
+          entityId: draftEntity.metadata.editionId.baseId,
           properties: nextProperties,
         },
       });
@@ -277,9 +277,8 @@ const calculateSaveActions = async (
 
         actions.push({
           swapBlockData: {
-            entityId: savedEntity.metadata.editionId.baseId as EntityId,
-            newEntityEntityId: newChildEntityForBlock.metadata.editionId
-              .baseId as EntityId,
+            entityId: savedEntity.metadata.editionId.baseId,
+            newEntityEntityId: newChildEntityForBlock.metadata.editionId.baseId,
           },
         });
       }
@@ -326,12 +325,11 @@ const calculateSaveActions = async (
           entity: {
             // This cast is technically incorrect as the blockChildEntityId could be a placeholder.
             // In that case, we rely on the EntityId to be swapped out in the GQL resolver.
-            existingEntityId: blockChildEntityId as EntityId,
+            existingEntityId: blockChildEntityId,
           },
           ...(draftEntity.metadata.editionId.baseId
             ? {
-                existingBlockEntityId: draftEntity.metadata.editionId
-                  .baseId as EntityId,
+                existingBlockEntityId: draftEntity.metadata.editionId.baseId,
               }
             : {
                 blockPlaceholderId,

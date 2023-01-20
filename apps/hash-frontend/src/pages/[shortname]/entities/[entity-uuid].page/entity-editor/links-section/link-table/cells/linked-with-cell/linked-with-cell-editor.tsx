@@ -1,7 +1,7 @@
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import { Entity } from "@hashintel/hash-subgraph";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { EntityId } from "@local/hash-isomorphic-utils/types";
+import { Entity } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 
 import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../../../entity-editor-context";
@@ -42,16 +42,13 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
 
     // if there is an existing link, archive it
     if (currentLink) {
-      markLinkEntityToArchive(
-        currentLink.metadata.editionId.baseId as EntityId,
-      );
+      markLinkEntityToArchive(currentLink.metadata.editionId.baseId);
     }
 
     // create new link
     const linkEntity = createDraftLinkEntity({
       linkEntityTypeId,
-      leftEntityId: getRoots(entitySubgraph)[0]?.metadata.editionId
-        .baseId as EntityId,
+      leftEntityId: getRoots(entitySubgraph)[0]?.metadata.editionId.baseId,
       rightEntityId: selectedEntity.metadata.editionId.baseId as EntityId,
     });
 
