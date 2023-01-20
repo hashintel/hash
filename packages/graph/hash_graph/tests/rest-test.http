@@ -45,6 +45,21 @@ Content-Type: application/json
       "incoming": 0,
       "outgoing": 0
     }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": {
+        "bound": "unbounded"
+      },
+      "end": {
+        "bound": "unbounded"
+      }
+    }
   }
 }
 
@@ -121,6 +136,21 @@ Content-Type: application/json
     "hasRightEntity": {
       "incoming": 0,
       "outgoing": 0
+    }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": {
+        "bound": "unbounded"
+      },
+      "end": {
+        "bound": "unbounded"
+      }
     }
   }
 }
@@ -219,6 +249,21 @@ Content-Type: application/json
       "incoming": 0,
       "outgoing": 0
     }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": {
+        "bound": "unbounded"
+      },
+      "end": {
+        "bound": "unbounded"
+      }
+    }
   }
 }
 
@@ -261,8 +306,14 @@ Content-Type: application/json
 {
   "filter": {
     "equal": [
-      { "path": ["version"] },
-      { "parameter": "latest" }
+      {
+        "path": [
+          "version"
+        ]
+      },
+      {
+        "parameter": "latest"
+      }
     ]
   },
   "graphResolveDepths": {
@@ -291,6 +342,21 @@ Content-Type: application/json
     "hasRightEntity": {
       "incoming": 0,
       "outgoing": 0
+    }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": {
+        "bound": "unbounded"
+      },
+      "end": {
+        "bound": "unbounded"
+      }
     }
   }
 }
@@ -375,6 +441,21 @@ Content-Type: application/json
       "incoming": 2,
       "outgoing": 2
     }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": {
+        "bound": "unbounded"
+      },
+      "end": {
+        "bound": "unbounded"
+      }
+    }
   }
 }
 
@@ -451,6 +532,21 @@ Content-Type: application/json
       "incoming": 0,
       "outgoing": 0
     }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": {
+        "bound": "unbounded"
+      },
+      "end": {
+        "bound": "unbounded"
+      }
+    }
   }
 }
 
@@ -507,8 +603,14 @@ Content-Type: application/json
 {
   "filter": {
     "equal": [
-      { "path": ["version"] },
-      { "parameter": "latest" }
+      {
+        "path": [
+          "version"
+        ]
+      },
+      {
+        "parameter": "latest"
+      }
     ]
   },
   "graphResolveDepths": {
@@ -537,6 +639,21 @@ Content-Type: application/json
     "hasRightEntity": {
       "incoming": 0,
       "outgoing": 0
+    }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": {
+        "bound": "unbounded"
+      },
+      "end": {
+        "bound": "unbounded"
+      }
     }
   }
 }
@@ -593,6 +710,21 @@ Content-Type: application/json
     "hasRightEntity": {
       "incoming": 2,
       "outgoing": 2
+    }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": {
+        "bound": "unbounded"
+      },
+      "end": {
+        "bound": "unbounded"
+      }
     }
   }
 }
@@ -653,6 +785,21 @@ Content-Type: application/json
     "hasRightEntity": {
       "incoming": 2,
       "outgoing": 2
+    }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": {
+        "bound": "unbounded"
+      },
+      "end": {
+        "bound": "unbounded"
+      }
     }
   }
 }
@@ -719,18 +866,6 @@ Content-Type: application/json
             "parameter": "{{person_a_owned_by_id}}"
           }
         ]
-      },
-      {
-        "equal": [
-          {
-            "path": [
-              "version"
-            ]
-          },
-          {
-            "parameter": "latest"
-          }
-        ]
       }
     ]
   },
@@ -760,6 +895,17 @@ Content-Type: application/json
     "hasRightEntity": {
       "incoming": 2,
       "outgoing": 2
+    }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": null,
+      "end": null
     }
   }
 }
@@ -820,16 +966,7 @@ Content-Type: application/json
 
 {
   "filter": {
-    "equal": [
-      {
-        "path": [
-          "version"
-        ]
-      },
-      {
-        "parameter": "latest"
-      }
-    ]
+    "all": []
   },
   "graphResolveDepths": {
     "inheritsFrom": {
@@ -857,6 +994,17 @@ Content-Type: application/json
     "hasRightEntity": {
       "incoming": 2,
       "outgoing": 2
+    }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": null,
+      "end": null
     }
   }
 }
@@ -957,6 +1105,17 @@ Content-Type: application/json
       "incoming": 2,
       "outgoing": 2
     }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": { "bound": "unbounded" },
+      "end": { "bound": "unbounded" }
+    }
   }
 }
 
@@ -995,30 +1154,14 @@ Content-Type: application/json
 
 {
   "filter": {
-    "all": [
+    "equal": [
       {
-        "equal": [
-          {
-            "path": [
-              "version"
-            ]
-          },
-          {
-            "parameter": "latest"
-          }
+        "path": [
+          "archived"
         ]
       },
       {
-        "equal": [
-          {
-            "path": [
-              "archived"
-            ]
-          },
-          {
-            "parameter": false
-          }
-        ]
+        "parameter": false
       }
     ]
   },
@@ -1048,6 +1191,17 @@ Content-Type: application/json
     "hasRightEntity": {
       "incoming": 2,
       "outgoing": 2
+    }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": null,
+      "end": null
     }
   }
 }
@@ -1103,6 +1257,21 @@ Content-Type: application/json
     "hasRightEntity": {
       "incoming": 2,
       "outgoing": 2
+    }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": {
+        "bound": "unbounded"
+      },
+      "end": {
+        "bound": "unbounded"
+      }
     }
   }
 }

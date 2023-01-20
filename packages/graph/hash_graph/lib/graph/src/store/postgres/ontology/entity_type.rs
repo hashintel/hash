@@ -6,7 +6,7 @@ use futures::FutureExt;
 use type_system::{EntityType, EntityTypeReference, PropertyTypeReference};
 
 use crate::{
-    identifier::ontology::OntologyTypeEditionId,
+    identifier::{ontology::OntologyTypeEditionId, time::TimeProjection},
     ontology::{EntityTypeWithMetadata, OntologyElementMetadata, OntologyTypeWithMetadata},
     provenance::{OwnedById, UpdatedById},
     store::{
@@ -35,16 +35,22 @@ impl<C: AsClient> PostgresStore<C> {
         entity_type_id: &'a OntologyTypeEditionId,
         dependency_context: &'a mut DependencyContext,
         subgraph: &'a mut Subgraph,
-        current_resolve_depth: GraphResolveDepths,
+        mut current_resolve_depths: GraphResolveDepths,
+        mut time_projection: TimeProjection,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
         async move {
-            let dependency_status = dependency_context
-                .ontology_dependency_map
-                .insert(entity_type_id, current_resolve_depth);
+            let dependency_status = dependency_context.ontology_dependency_map.update(
+                entity_type_id,
+                current_resolve_depths,
+                time_projection.image(),
+            );
 
             let entity_type = match dependency_status {
-                DependencyStatus::Unresolved => {
-                    let time_projection = subgraph.resolved_time_projection.clone();
+                DependencyStatus::Unresolved(depths, interval) => {
+                    // The dependency may have to be resolved more than anticipated, so we update
+                    // the resolve depth and time projection.
+                    current_resolve_depths = depths;
+                    time_projection.set_image(interval);
                     subgraph
                         .get_or_read::<EntityTypeWithMetadata>(
                             self,
@@ -59,7 +65,7 @@ impl<C: AsClient> PostgresStore<C> {
             // Collecting references before traversing further to avoid having a shared
             // reference to the subgraph when borrowing it mutably
             let property_type_ref_uris =
-                (current_resolve_depth.constrains_properties_on.outgoing > 0).then(|| {
+                (current_resolve_depths.constrains_properties_on.outgoing > 0).then(|| {
                     entity_type
                         .inner()
                         .property_type_references()
@@ -69,7 +75,7 @@ impl<C: AsClient> PostgresStore<C> {
                         .collect::<Vec<_>>()
                 });
 
-            let inherits_from_type_ref_uris = (current_resolve_depth.inherits_from.outgoing > 0)
+            let inherits_from_type_ref_uris = (current_resolve_depths.inherits_from.outgoing > 0)
                 .then(|| {
                     entity_type
                         .inner()
@@ -81,8 +87,8 @@ impl<C: AsClient> PostgresStore<C> {
                         .collect::<Vec<_>>()
                 });
 
-            let link_mappings = (current_resolve_depth.constrains_links_on.outgoing > 0
-                || current_resolve_depth
+            let link_mappings = (current_resolve_depths.constrains_links_on.outgoing > 0
+                || current_resolve_depths
                     .constrains_link_destinations_on
                     .outgoing
                     > 0)
@@ -122,12 +128,13 @@ impl<C: AsClient> PostgresStore<C> {
                         subgraph,
                         GraphResolveDepths {
                             constrains_properties_on: OutgoingEdgeResolveDepth {
-                                outgoing: current_resolve_depth.constrains_properties_on.outgoing
+                                outgoing: current_resolve_depths.constrains_properties_on.outgoing
                                     - 1,
-                                ..current_resolve_depth.constrains_properties_on
+                                ..current_resolve_depths.constrains_properties_on
                             },
-                            ..current_resolve_depth
+                            ..current_resolve_depths
                         },
+                        time_projection.clone(),
                     )
                     .await?;
                 }
@@ -152,11 +159,12 @@ impl<C: AsClient> PostgresStore<C> {
                         subgraph,
                         GraphResolveDepths {
                             inherits_from: OutgoingEdgeResolveDepth {
-                                outgoing: current_resolve_depth.inherits_from.outgoing - 1,
-                                ..current_resolve_depth.inherits_from
+                                outgoing: current_resolve_depths.inherits_from.outgoing - 1,
+                                ..current_resolve_depths.inherits_from
                             },
-                            ..current_resolve_depth
+                            ..current_resolve_depths
                         },
+                        time_projection.clone(),
                     )
                     .await?;
                 }
@@ -164,7 +172,7 @@ impl<C: AsClient> PostgresStore<C> {
 
             if let Some(link_mappings) = link_mappings {
                 for (link_type_uri, destination_type_uris) in link_mappings {
-                    if current_resolve_depth.constrains_links_on.outgoing > 0 {
+                    if current_resolve_depths.constrains_links_on.outgoing > 0 {
                         subgraph.edges.insert(Edge::Ontology {
                             vertex_id: entity_type_id.clone(),
                             outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
@@ -180,16 +188,17 @@ impl<C: AsClient> PostgresStore<C> {
                             subgraph,
                             GraphResolveDepths {
                                 constrains_links_on: OutgoingEdgeResolveDepth {
-                                    outgoing: current_resolve_depth.constrains_links_on.outgoing
+                                    outgoing: current_resolve_depths.constrains_links_on.outgoing
                                         - 1,
-                                    ..current_resolve_depth.constrains_links_on
+                                    ..current_resolve_depths.constrains_links_on
                                 },
-                                ..current_resolve_depth
+                                ..current_resolve_depths
                             },
+                            time_projection.clone(),
                         )
                         .await?;
 
-                        if current_resolve_depth
+                        if current_resolve_depths
                             .constrains_link_destinations_on
                             .outgoing
                             > 0
@@ -212,14 +221,15 @@ impl<C: AsClient> PostgresStore<C> {
                                     subgraph,
                                     GraphResolveDepths {
                                         constrains_link_destinations_on: OutgoingEdgeResolveDepth {
-                                            outgoing: current_resolve_depth
+                                            outgoing: current_resolve_depths
                                                 .constrains_link_destinations_on
                                                 .outgoing
                                                 - 1,
-                                            ..current_resolve_depth.constrains_link_destinations_on
+                                            ..current_resolve_depths.constrains_link_destinations_on
                                         },
-                                        ..current_resolve_depth
+                                        ..current_resolve_depths
                                     },
+                                    time_projection.clone(),
                                 )
                                 .await?;
                             }
@@ -276,20 +286,21 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         let StructuralQuery {
             ref filter,
             graph_resolve_depths,
-            ref time_projection,
+            time_projection: ref unresolved_time_projection,
         } = *query;
+
+        let time_projection = unresolved_time_projection.clone().resolve();
+        let time_axis = time_projection.image_time_axis();
 
         let mut subgraph = Subgraph::new(
             graph_resolve_depths,
+            unresolved_time_projection.clone(),
             time_projection.clone(),
-            time_projection.clone().resolve(),
         );
         let mut dependency_context = DependencyContext::default();
-        let time_axis = subgraph.resolved_time_projection.time_axis();
 
         for entity_type in
-            Read::<EntityTypeWithMetadata>::read(self, filter, &subgraph.resolved_time_projection)
-                .await?
+            Read::<EntityTypeWithMetadata>::read(self, filter, &time_projection).await?
         {
             let vertex_id = entity_type.vertex_id(time_axis);
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
@@ -300,6 +311,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 &mut dependency_context,
                 &mut subgraph,
                 graph_resolve_depths,
+                time_projection.clone(),
             )
             .await?;
 

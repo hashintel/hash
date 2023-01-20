@@ -25,7 +25,7 @@ use error_stack::Report;
 use include_dir::{include_dir, Dir};
 use utoipa::{
     openapi::{
-        self, schema, schema::RefOr, ArrayBuilder, KnownFormat, ObjectBuilder, OneOfBuilder, Ref,
+        self, schema, ArrayBuilder, KnownFormat, ObjectBuilder, OneOfBuilder, Ref, RefOr,
         SchemaFormat, SchemaType,
     },
     Modify, OpenApi, ToSchema,
@@ -45,11 +45,11 @@ use crate::{
         ontology::OntologyTypeEditionId,
         time::{
             DecisionTime, DecisionTimeImage, DecisionTimeKernel, DecisionTimeProjection,
-            TimeProjection, TimespanBound, Timestamp, TransactionTime, TransactionTimeImage,
+            TimeIntervalBound, TimeProjection, Timestamp, TransactionTime, TransactionTimeImage,
             TransactionTimeKernel, TransactionTimeProjection, UnresolvedDecisionTimeImage,
             UnresolvedDecisionTimeKernel, UnresolvedDecisionTimeProjection,
             UnresolvedTimeProjection, UnresolvedTransactionTimeImage,
-            UnresolvedTransactionTimeKernel, UnresolvedTransactionTimeProjection, VersionTimespan,
+            UnresolvedTransactionTimeKernel, UnresolvedTransactionTimeProjection, VersionInterval,
         },
         EntityVertexId, GraphElementId, GraphElementVertexId,
     },
@@ -461,14 +461,22 @@ impl Modify for TimeSchemaAddon {
         if let Some(ref mut components) = openapi.components {
             components
                 .schemas
-                .insert("Timestamp".to_owned(), Timestamp::<()>::schema().into());
+                .insert("Timestamp".to_owned(), Timestamp::<()>::schema());
             components.schemas.insert(
-                "VersionTimespan".to_owned(),
-                VersionTimespan::<()>::schema().into(),
+                "NullableTimestamp".to_owned(),
+                ObjectBuilder::new()
+                    .schema_type(SchemaType::String)
+                    .format(Some(SchemaFormat::KnownFormat(KnownFormat::DateTime)))
+                    .nullable(true)
+                    .into(),
             );
             components.schemas.insert(
-                "TimespanBound".to_owned(),
-                TimespanBound::<()>::schema().into(),
+                "VersionInterval".to_owned(),
+                VersionInterval::<()>::schema(),
+            );
+            components.schemas.insert(
+                "TimeIntervalBound".to_owned(),
+                TimeIntervalBound::<()>::schema(),
             );
         }
     }

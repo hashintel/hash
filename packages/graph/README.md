@@ -25,7 +25,7 @@ _It is possible to teardown the database with the equivalent `deployment-down` t
 Then, the Graph Query Layer can be started:
 
 ```shell
-cargo run
+cargo run -- server
 ```
 
 ### Logging configuration
@@ -61,12 +61,6 @@ cargo make doc --open
 
 ---
 
-It's possible to recreate the database by using
-
-```shell
-cargo make recreate-db
-```
-
 ## Test the code
 
 The code base has two test suites: The unit test suite and the integration tests. To run the unit-test suite, simply run the `test` command:
@@ -87,6 +81,22 @@ The REST API can be tested as well. Note, that this requires the Graph to run an
 cargo make test-rest-api
 ```
 
+## Migrations
+
+Migrations in the Graph are handled through [`refinery`](https://github.com/rust-db/refinery). The migrations are located at [./hash_graph/postgres_migrations](./hash_graph/postgres_migrations/) and can be manually added to.
+
+The `V` prefix **is significant** and must be set followed by an incrementing number. This number specifies the sequence migrations are applied in. the `V` refers to a versioned migration. The migration file format is `[V]{1}__{2}.sql` in our case, where `{1}` is the incrementing sequence number and `{2}` is a display name for the migration.
+
+For undoing a migration we should create new migrations that undo changes. In general, migrations are easiest to manage from an Operations perspective if they are non-destructive wherever possible, doing as little data wrangling.
+
+The tool we are using, `refinery`, also supports Rust based (`.rs`) migration files with the same naming scheme.
+
+Migrations are run through the same binary as the server using the following command:
+
+```shell
+cargo run -- migrate
+```
+
 ## Generate OpenAPI client
 
 The HASH Graph produces an OpenAPI Spec while running, which can be used to generate the `@hashintel/hash-graph-client` typescript client. In the `hash_graph` directory run:
@@ -99,7 +109,7 @@ Make sure to run this command whenever changes are made to the specification. CI
 
 ## Benchmark the code
 
-The benchmark suite can be ran with:
+The benchmark suite can be run with:
 
 ```shell
 cargo make bench

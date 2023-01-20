@@ -10,9 +10,6 @@
 !*.md
 !*.mdx
 
-# Keep license files as is
-LICENSE.md
-
 ########################
 ## Same as in .gitignore
 ########################
@@ -124,5 +121,13 @@ seed-users.json
 *.secrets.tfvars
 *.pem
 
-# Workspace-specific
-/packages/hash/design-system/storybook-static
+# Storybook
+**/storybook-static
+
+#########################
+## Shared between linters
+#########################
+
+# Keep license files as is
+LICENSE.md
+LICENSE-*.md

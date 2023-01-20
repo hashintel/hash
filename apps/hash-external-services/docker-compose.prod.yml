@@ -1,0 +1,242 @@
+version: "3.9"
+
+volumes:
+  hash-postgres-data:
+
+services:
+  postgres:
+    build:
+      context: ./postgres
+    deploy:
+      restart_policy:
+        condition: on-failure
+    environment:
+      PGDATA: /data/pgdata
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      HASH_KRATOS_PG_USER: "${HASH_KRATOS_PG_USER}"
+      HASH_KRATOS_PG_PASSWORD: "${HASH_KRATOS_PG_PASSWORD}"
+      HASH_KRATOS_PG_DATABASE: "${HASH_KRATOS_PG_DEV_DATABASE}"
+      HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
+      HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
+      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
+      HASH_GRAPH_REALTIME_PG_USER: "${HASH_GRAPH_REALTIME_PG_USER}"
+      HASH_GRAPH_REALTIME_PG_PASSWORD: "${HASH_GRAPH_REALTIME_PG_PASSWORD}"
+    # Note this isn't a complete security measure, we'd have to restrict
+    # `listen_addresses` and other postgres config to lock down access.
+    # The database port isn't forwarded outside the docker network.
+    # Uncomment the next lines to debug/introspect the instance.
+    # ports:
+    #   - "5432:5432"
+    volumes:
+      - hash-postgres-data:/var/lib/postgresql/data
+      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./postgres/init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready --username ${POSTGRES_USER}"]
+      interval: 2s
+      timeout: 2s
+      retries: 5
+    command: -c 'config_file=/etc/postgresql/postgresql.conf'
+
+  hash-graph-migrate:
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    build:
+      dockerfile: deployment/graph/Dockerfile
+      context: ../../packages/graph
+    command: migrate
+    environment:
+      # Intentionaly use the POSTGRES user as it's the "superadmin" which has access to schema
+      HASH_GRAPH_PG_USER: "${POSTGRES_USER}"
+      HASH_GRAPH_PG_PASSWORD: "${POSTGRES_PASSWORD}"
+      HASH_GRAPH_PG_HOST: "postgres"
+      HASH_GRAPH_PG_PORT: "5432"
+      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
+      HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
+      HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN: "${FRONTEND_URL}/@(?P<shortname>[\\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))/[\\w\\-_%]+/"
+      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-debug}"
+      RUST_BACKTRACE: 1
+
+  hash-graph:
+    init: true
+    build:
+      dockerfile: deployment/graph/Dockerfile
+      context: ../../packages/graph
+    depends_on:
+      postgres:
+        condition: service_healthy
+      hash-graph-migrate:
+        condition: service_completed_successfully
+    environment:
+      HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
+      HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
+      HASH_GRAPH_PG_HOST: "postgres"
+      HASH_GRAPH_PG_PORT: "5432"
+      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
+      HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
+      HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN: "${FRONTEND_URL}/@(?P<shortname>[\\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))/[\\w\\-_%]+/"
+      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-info}"
+      RUST_BACKTRACE: 1
+    ports:
+      - "4000:4000"
+
+  kratos-migrate:
+    build:
+      context: ./kratos
+      args:
+        ENV: prod
+        SECRET: "${KRATOS_API_KEY}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    read_only: true
+    environment:
+      - DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${HASH_KRATOS_PG_DEV_DATABASE}
+    command: migrate sql -e --yes
+    security_opt:
+      - no-new-privileges:true
+
+  kratos:
+    build:
+      context: ./kratos
+      args:
+        ENV: prod
+        API_SECRET: "${KRATOS_API_KEY}"
+        API_CALLBACK_URL: "http://hash-api:5001/kratos-after-registration"
+    depends_on:
+      - kratos-migrate
+    read_only: true
+    # These ports can be useful for introspection/debugging kratos.
+    # ports:
+    #   - "4433:4433" # public, doesn't need to be exposed
+    #   - "4434:4434" # admin, we don't want to expose this
+    restart: unless-stopped
+    environment:
+      SECRETS_COOKIE: "${KRATOS_SECRETS_COOKIE}"
+      SECRETS_CIPHER: "${KRATOS_SECRETS_CIPHER}"
+      COURIER_SMTP_CONNECTION_URI: "smtps://test:test@mailslurper:1025/?skip_ssl_verify=true"
+      DSN: "postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@postgres:5432/${HASH_KRATOS_PG_DEV_DATABASE}"
+      LOG_LEVEL: "warning"
+      COOKIES_PATH: "/"
+      COOKIES_DOMAIN: "${KRATOS_COOKIE_DOMAIN}"
+      COOKIES_SAME_SITE: "Lax"
+      SERVE_PUBLIC_BASE_URL: "${FRONTEND_URL}/api/ory"
+      SERVE_PUBLIC_CORS_ALLOWED_HEADERS: "Authorization,Content-Type,X-Session-Token,X-CSRF-Token"
+      SERVE_PUBLIC_CORS_ALLOWED_ORIGINS: "${FRONTEND_URL}"
+      SELFSERVICE_DEFAULT_BROWSER_RETURN_URL: "${FRONTEND_URL}/"
+      SELFSERVICE_ALLOWED_RETURN_URLS: "${FRONTEND_URL}"
+      SELFSERVICE_FLOWS_ERROR_UI_URL: "${FRONTEND_URL}/error"
+      SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL: "${FRONTEND_URL}/login"
+      SELFSERVICE_FLOWS_LOGIN_UI_URL: "${FRONTEND_URL}/login"
+      SELFSERVICE_FLOWS_REGISTRATION_UI_URL: "${FRONTEND_URL}/signup"
+      SELFSERVICE_METHODS_LINK_CONFIG_BASE_URL: "${FRONTEND_URL}/api/ory"
+      SELFSERVICE_FLOWS_VERIFICATION_UI_URL: "${FRONTEND_URL}/verification"
+      SELFSERVICE_FLOWS_RECOVERY_UI_URL: "${FRONTEND_URL}/recovery"
+      SELFSERVICE_FLOWS_SETTINGS_UI_URL: "${FRONTEND_URL}/settings"
+      LOG_LEAK_SENSITIVE_VALUES: "false"
+      COURIER_SMTP_FROM_ADDRESS: "noreply@hash.ai"
+      COURIER_SMTP_FROM_NAME: "HASH"
+
+    command: serve --watch-courier
+    security_opt:
+      - no-new-privileges:true
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
+  mailslurper:
+    image: oryd/mailslurper:latest-smtps
+    security_opt:
+      - no-new-privileges:true
+    # These ports can be useful for introspection/debugging the mock mail server.
+    ports:
+      - "4436:4436"
+      - "4437:4437"
+
+  hash-redis:
+    image: redis:6.2
+    read_only: true
+    deploy:
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 2s
+      timeout: 2s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+
+  hash-api:
+    build:
+      context: ../../
+      dockerfile: infra/docker/api/prod/Dockerfile
+    depends_on:
+      hash-graph:
+        condition: service_healthy
+      hash-redis:
+        condition: service_healthy
+    deploy:
+      restart_policy:
+        condition: on-failure
+    environment:
+      FRONTEND_URL: "${FRONTEND_URL}"
+
+      API_ORIGIN: "${API_ORIGIN}"
+      SYSTEM_ACCOUNT_NAME: "${SYSTEM_ACCOUNT_NAME}"
+      SYSTEM_USER_SHORTNAME: "${SYSTEM_USER_SHORTNAME}"
+      SYSTEM_USER_PREFERRED_NAME: "${SYSTEM_USER_PREFERRED_NAME}"
+      SYSTEM_USER_PASSWORD: "${SYSTEM_USER_PASSWORD}"
+      SYSTEM_USER_EMAIL_ADDRESS: "${SYSTEM_USER_EMAIL_ADDRESS}"
+      HASH_SEED_USERS: "${HASH_SEED_USERS}"
+
+      HASH_GRAPH_API_HOST: "hash-graph"
+      HASH_GRAPH_API_PORT: "4000"
+      LOG_LEVEL: "${LOG_LEVEL}"
+
+      HASH_REDIS_HOST: "hash-redis"
+      HASH_REDIS_PORT: "6379"
+
+      HASH_OPENSEARCH_ENABLED: "false"
+
+      HASH_TASK_EXECUTOR_HOST: "${HASH_TASK_EXECUTOR_HOST}"
+      HASH_TASK_EXECUTOR_PORT: "${HASH_TASK_EXECUTOR_PORT}"
+
+      ORY_KRATOS_PUBLIC_URL: "http://kratos:4433"
+      ORY_KRATOS_ADMIN_URL: "http://kratos:4434"
+      KRATOS_API_KEY: "${KRATOS_API_KEY}"
+    ports:
+      - "5001:5001"
+
+  hash-frontend:
+    build:
+      context: ../../
+      dockerfile: infra/docker/frontend/prod/Dockerfile
+      args:
+        FRONTEND_URL: "${FRONTEND_URL}"
+        # At build-time (client-side) we use the public API origin that is
+        # outside the docker network.
+        API_ORIGIN: "${API_ORIGIN}"
+        SYSTEM_USER_PREFERRED_NAME: "${SYSTEM_USER_PREFERRED_NAME}"
+        SYSTEM_USER_SHORTNAME: "${SYSTEM_USER_SHORTNAME}"
+    depends_on:
+      hash-api:
+        condition: service_healthy
+    deploy:
+      restart_policy:
+        condition: on-failure
+    environment:
+      FRONTEND_URL: "${FRONTEND_URL}"
+      # At runtime (server-side) we make use of the internal docker-network URL
+      # for the API origin so that the server can resolve the backend
+      # appropriately. The backend is not on "localhost" from the perspective of
+      # this container.
+      API_ORIGIN: "http://hash-api:5001"
+      ORY_KRATOS_PUBLIC_URL: "http://kratos:4433"
+      SYSTEM_USER_PREFERRED_NAME: "${SYSTEM_USER_PREFERRED_NAME}"
+      SYSTEM_USER_SHORTNAME: "${SYSTEM_USER_SHORTNAME}"
+
+    ports:
+      - "3000:3000"

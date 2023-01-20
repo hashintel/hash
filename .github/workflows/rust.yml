@@ -80,8 +80,8 @@ jobs:
         shell: bash
         run: |
           cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.35.15
-          cargo quickinstall cargo-hack --version 0.5.15
+          cargo quickinstall cargo-make --version 0.36.3
+          cargo quickinstall cargo-hack --version 0.5.26
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
@@ -146,9 +146,9 @@ jobs:
         shell: bash
         run: |
           cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.35.15
-          cargo quickinstall cargo-hack --version 0.5.15
-          cargo quickinstall cargo-nextest --version 0.9.28
+          cargo quickinstall cargo-make --version 0.36.3
+          cargo quickinstall cargo-hack --version 0.5.26
+          cargo quickinstall cargo-nextest --version 0.9.37
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
@@ -158,7 +158,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Python
-        if: matrix.directory == 'packages/engine'
+        if: matrix.directory == 'apps/engine'
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
@@ -175,8 +175,8 @@ jobs:
       - name: Ensure empty git diff
         run: git --no-pager diff --exit-code --color
 
-      - name: Upload to DataDog
-        if: matrix.directory == 'packages/engine' && matrix.profile == 'production'
+      - name: Upload to Datadog
+        if: matrix.directory == 'apps/engine' && matrix.profile == 'production'
         run: |
           message=$(find ${{ matrix.directory }}/${{ env.OUTPUT_DIRECTORY }} -name timing.json -exec cat {} + \
                     | sed 's|::|-|g' \
@@ -230,9 +230,9 @@ jobs:
         shell: bash
         run: |
           cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.35.15
-          cargo quickinstall cargo-nextest --version 0.9.28
-          cargo quickinstall cargo-llvm-cov --version 0.5.0
+          cargo quickinstall cargo-make --version 0.36.3
+          cargo quickinstall cargo-nextest --version 0.9.37
+          cargo quickinstall cargo-llvm-cov --version 0.5.9
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
@@ -279,7 +279,7 @@ jobs:
       - name: Install tools
         run: |
           cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.35.15
+          cargo quickinstall cargo-make --version 0.36.3
 
       - name: Build Docker container
         run: cargo make --profile ${{ matrix.profile }} build-docker
@@ -309,9 +309,9 @@ jobs:
         shell: bash
         run: |
           cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.35.15
-          cargo quickinstall cargo-hack --version 0.5.15
-          cargo quickinstall cargo-nextest --version 0.9.28
+          cargo quickinstall cargo-make --version 0.36.3
+          cargo quickinstall cargo-hack --version 0.5.26
+          cargo quickinstall cargo-nextest --version 0.9.37
 
       - name: Run lints
         if: github.event_name == 'pull_request'

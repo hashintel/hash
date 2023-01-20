@@ -1,0 +1,21 @@
+[package]
+name = "deer-desert"
+version = "0.0.0"
+edition = "2021"
+# NOTE: THIS PACKAGE IS NEVER INTENDED TO BE PUBLISHED
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+deer = { path = ".." }
+error-stack = { version = "0.2.4", default_features = false }
+serde_json = { version = "1.0.91", default_features = false, features = ['alloc'] }
+serde = { version = "1.0.151", default_features = false, features = ['alloc'] }
+bitvec = { version = "1", default_features = false, features = ['alloc', 'atomic'] }
+
+similar-asserts = { version = "1.4.2", default_features = false, features = ['serde'], optional = true }
+
+[features]
+default = ['pretty']
+pretty = ['dep:similar-asserts']

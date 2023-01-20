@@ -1,6 +1,6 @@
 import { Timestamp } from "./identifier";
 
-export type TimespanBound =
+export type TimeIntervalBound =
   | {
       bound: "unbounded";
     }
@@ -12,24 +12,24 @@ export type TimespanBound =
 export type DecisionTimeProjection = {
   kernel: {
     axis: "transaction";
-    timestamp?: Timestamp;
+    timestamp: Timestamp | null;
   };
   image: {
     axis: "decision";
-    start?: TimespanBound;
-    end?: TimespanBound;
+    start: TimeIntervalBound | null;
+    end: TimeIntervalBound | null;
   };
 };
 
 export type TransactionTimeProjection = {
   kernel: {
     axis: "decision";
-    timestamp?: Timestamp;
+    timestamp: Timestamp | null;
   };
   image: {
     axis: "transaction";
-    start?: TimespanBound;
-    end?: TimespanBound;
+    start: TimeIntervalBound | null;
+    end: TimeIntervalBound | null;
   };
 };
 
@@ -42,8 +42,8 @@ export type ResolvedDecisionTimeProjection = {
   };
   image: {
     axis: "decision";
-    start: TimespanBound;
-    end: TimespanBound;
+    start: TimeIntervalBound;
+    end: TimeIntervalBound;
   };
 };
 
@@ -54,8 +54,8 @@ export type ResolvedTransactionTimeProjection = {
   };
   image: {
     axis: "transaction";
-    start: TimespanBound;
-    end: TimespanBound;
+    start: TimeIntervalBound;
+    end: TimeIntervalBound;
   };
 };
 

@@ -1,0 +1,197 @@
+version: "3.9"
+
+volumes:
+  hash-postgres-data:
+
+services:
+  hash-dev-opensearch:
+    deploy:
+      restart_policy:
+        condition: on-failure
+    env_file:
+      - ../../.env
+    environment:
+      ## Tell OpenSearch that it's operating in single-node mode
+      - discovery.type=single-node
+      ## Disable the security module for development so we can connect over plain HTTP
+      - plugins.security.disabled=true
+      ## Docker volumes are ~10GB by default which is typically much smaller than the
+      ## host's drive size. This can cause OpenSearch to shutdown if it thinks disk
+      ## space is running low. Set the disk high watermark to 100% to ignore this.
+      - cluster.routing.allocation.disk.watermark.high=100%
+      - cluster.routing.allocation.disk.watermark.flood_stage=100%
+    build:
+      context: ./opensearch
+    ports:
+      - 9200:9200
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    ## Mouting open search data to a local directory may lead to java.nio.file.AccessDeniedException.
+    ## Details: https://github.com/opensearch-project/OpenSearch/issues/1579.
+    ## We can revisit the setup after upgrading base image or by fixing permissions in a custom image.
+    # volumes:
+    #   - ../../var/hash-external-service/opensearch/data:/usr/share/opensearch/data
+
+  postgres:
+    build:
+      context: ./postgres
+    deploy:
+      restart_policy:
+        condition: on-failure
+    environment:
+      PGDATA: /data/pgdata
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      HASH_KRATOS_PG_USER: "${HASH_KRATOS_PG_USER}"
+      HASH_KRATOS_PG_PASSWORD: "${HASH_KRATOS_PG_PASSWORD}"
+      HASH_KRATOS_PG_DATABASE: "${HASH_KRATOS_PG_DEV_DATABASE}"
+      HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
+      HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
+      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
+      HASH_GRAPH_REALTIME_PG_USER: "${HASH_GRAPH_REALTIME_PG_USER}"
+      HASH_GRAPH_REALTIME_PG_PASSWORD: "${HASH_GRAPH_REALTIME_PG_PASSWORD}"
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - hash-postgres-data:/var/lib/postgresql/data
+      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./postgres/init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready --username ${POSTGRES_USER}"]
+      interval: 2s
+      timeout: 2s
+      retries: 5
+    command: -c 'config_file=/etc/postgresql/postgresql.conf'
+
+  graph-migrate:
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      telemetry-collector:
+        condition: service_healthy
+    build:
+      dockerfile: deployment/graph/Dockerfile
+      context: ../../packages/graph
+      args:
+        PROFILE: dev
+    command: migrate
+    environment:
+      # Intentionaly use the POSTGRES user as it's the "superadmin" which has access to schema
+      HASH_GRAPH_PG_USER: "${POSTGRES_USER}"
+      HASH_GRAPH_PG_PASSWORD: "${POSTGRES_PASSWORD}"
+      HASH_GRAPH_PG_HOST: "postgres"
+      HASH_GRAPH_PG_PORT: "5432"
+      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
+      HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
+      # For unknown reasons, our error return values are consumed when we
+      # configure the OTLP endpoint for the Graph. For now we've disabled traces.
+      # https://app.asana.com/0/1201095311341924/1203636955054323/f
+      # HASH_GRAPH_OTLP_ENDPOINT: "http://telemetry-collector:4317"
+      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-graph=trace,hash_graph=trace,tokio_postgres=debug}"
+      RUST_BACKTRACE: 1
+
+  telemetry-collector:
+    image: jaegertracing/all-in-one:1.40
+    deploy:
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      # Port 14269 is the Jaeger admin endpoint
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:14269 || exit 1",
+        ]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+    ports:
+      - 16686:16686
+      # To expose OTLP collector over gRPC on the host
+      - 4317:4317
+      # To expose OTLP collector over HTTP on the host
+      # - 4318:4318
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+
+  graph:
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      graph-migrate:
+        condition: service_completed_successfully
+      telemetry-collector:
+        condition: service_healthy
+    build:
+      dockerfile: deployment/graph/Dockerfile
+      context: ../../packages/graph
+      args:
+        PROFILE: dev
+    environment:
+      HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
+      HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
+      HASH_GRAPH_PG_HOST: "postgres"
+      HASH_GRAPH_PG_PORT: "5432"
+      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
+      HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
+      # For unknown reasons, our error return values are consumed when we
+      # configure the OTLP endpoint for the Graph. For now we've disabled traces.
+      # https://app.asana.com/0/1201095311341924/1203636955054323/f
+      # HASH_GRAPH_OTLP_ENDPOINT: "http://telemetry-collector:4317"
+      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-graph=trace,hash_graph=trace,tokio_postgres=debug}"
+      RUST_BACKTRACE: 1
+    ports:
+      - "${HASH_GRAPH_API_PORT}:4000"
+
+  hash-dev-redis:
+    image: redis:6.2
+    deploy:
+      restart_policy:
+        condition: on-failure
+    ports:
+      - 6379:6379
+
+  kratos-migrate:
+    build:
+      context: ./kratos
+      args:
+        ENV: dev
+        SECRET: "${KRATOS_API_KEY}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DEV_DATABASE}
+    command: migrate sql -e --yes
+
+  kratos:
+    build:
+      context: ./kratos
+      args:
+        ENV: dev
+        SECRET: "${KRATOS_API_KEY}"
+    depends_on:
+      - kratos-migrate
+    ports:
+      - "4433:4433" # public
+      - "4434:4434" # admin
+    restart: unless-stopped
+    environment:
+      SECRETS_COOKIE: "${KRATOS_SECRETS_COOKIE}"
+      SECRETS_CIPHER: "${KRATOS_SECRETS_CIPHER}"
+      COURIER_SMTP_CONNECTION_URI: "smtps://test:test@mailslurper:1025/?skip_ssl_verify=true"
+      DSN: "postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DEV_DATABASE}"
+      LOG_LEVEL: trace
+    command: serve --dev --watch-courier
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
+  mailslurper:
+    image: oryd/mailslurper:latest-smtps
+    ports:
+      - "4436:4436"
+      - "4437:4437"
