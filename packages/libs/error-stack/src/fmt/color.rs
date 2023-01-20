@@ -78,10 +78,10 @@ impl ColorPreference {
 
 /// The available modes of color support
 ///
-/// Can be accessed through [`crate::fmt::HookContext::color`], and set via
+/// Can be accessed through [`crate::fmt::HookContext::color_mode`], and set via
 /// [`Report::format_color_mode_preference`]
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-// This is for ease of use, if pretty-print is enabled this will be visible
+// This is for ease of use, if color is enabled this will be visible
 #[allow(unreachable_pub)]
 pub enum ColorMode {
     /// User preference to disable all colors
@@ -123,8 +123,11 @@ impl Report<()> {
     /// Set the color mode preference
     ///
     /// If the value is [`None`], a previously set preference will be unset, while with [`Some`] a
-    /// specific color mode will be set, this mode will be used, if the terminal supports it
-    /// (checked through the [`owo-colors`](https://docs.rs/owo-colors) crate)
+    /// specific color mode will be set, this mode will be used, otherwise if `detect` is enabled
+    /// the capabilities of the terminal are queried through [`owo_colors`].
+    ///
+    /// The value defaults to [`ColorMode::Emphasis`] (if the terminal supports it), otherwise
+    /// [`ColorMode::None`].
     ///
     /// # Example
     ///
@@ -141,7 +144,7 @@ impl Report<()> {
     ///
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(value), context| {
     ///     let body = format!("suggestion: {value}");
-    ///     match context.color() {
+    ///     match context.color_mode() {
     ///         ColorMode::Color => context.push_body(body.green().to_string()),
     ///         ColorMode::Emphasis => context.push_body(body.italic().to_string()),
     ///         ColorMode::None => context.push_body(body)

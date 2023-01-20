@@ -239,7 +239,7 @@ impl<T> HookContext<T> {
     ///
     /// Hooks can be invoked in different color modes, which represent the preferences of an
     /// end-user.
-    pub const fn color(&self) -> ColorMode {
+    pub const fn color_mode(&self) -> ColorMode {
         self.inner().extra().color
     }
 
