@@ -89,7 +89,7 @@ const calculateSaveActions = async (
 
       actions.push({
         updateEntity: {
-          entityId: draftEntity.metadata.editionId.baseId,
+          entityId: draftEntity.metadata.editionId.baseId as EntityId,
           properties: nextProperties,
         },
       });
@@ -277,8 +277,9 @@ const calculateSaveActions = async (
 
         actions.push({
           swapBlockData: {
-            entityId: savedEntity.metadata.editionId.baseId,
-            newEntityEntityId: newChildEntityForBlock.metadata.editionId.baseId,
+            entityId: savedEntity.metadata.editionId.baseId as EntityId,
+            newEntityEntityId: newChildEntityForBlock.metadata.editionId
+              .baseId as EntityId,
           },
         });
       }
@@ -325,11 +326,12 @@ const calculateSaveActions = async (
           entity: {
             // This cast is technically incorrect as the blockChildEntityId could be a placeholder.
             // In that case, we rely on the EntityId to be swapped out in the GQL resolver.
-            existingEntityId: blockChildEntityId,
+            existingEntityId: blockChildEntityId as EntityId,
           },
           ...(draftEntity.metadata.editionId.baseId
             ? {
-                existingBlockEntityId: draftEntity.metadata.editionId.baseId,
+                existingBlockEntityId: draftEntity.metadata.editionId
+                  .baseId as EntityId,
               }
             : {
                 blockPlaceholderId,

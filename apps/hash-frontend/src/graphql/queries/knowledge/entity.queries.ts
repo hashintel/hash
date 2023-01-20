@@ -1,5 +1,6 @@
 import { gql } from "@apollo/client";
-import { subgraphFieldsFragment } from "@local/hash-subgraph";
+
+import { subgraphFieldsFragment } from "../subgraph";
 
 export const createEntityMutation = gql`
   mutation createEntity(
