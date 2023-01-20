@@ -42,13 +42,16 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
 
     // if there is an existing link, archive it
     if (currentLink) {
-      markLinkEntityToArchive(currentLink.metadata.editionId.baseId);
+      markLinkEntityToArchive(
+        currentLink.metadata.editionId.baseId as EntityId,
+      );
     }
 
     // create new link
     const linkEntity = createDraftLinkEntity({
       linkEntityTypeId,
-      leftEntityId: getRoots(entitySubgraph)[0]?.metadata.editionId.baseId,
+      leftEntityId: getRoots(entitySubgraph)[0]?.metadata.editionId
+        .baseId as EntityId,
       rightEntityId: selectedEntity.metadata.editionId.baseId as EntityId,
     });
 

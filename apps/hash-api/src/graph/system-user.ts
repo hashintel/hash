@@ -78,7 +78,7 @@ export const ensureSystemUserAccountIdExists = async (params: {
 
   if (existingSystemUserEntity) {
     systemUserAccountId = extractAccountId(
-      existingSystemUserEntity.metadata.editionId.baseId,
+      existingSystemUserEntity.metadata.editionId.baseId as AccountEntityId,
     );
     logger.info(
       `Using existing system user account id: ${systemUserAccountId}`,

@@ -59,7 +59,11 @@ export const useCreateSubPage = (ownedById: OwnedById) => {
           },
         });
 
-        if (workspaceShortname && pageEntityId) {
+        if (
+          workspaceShortname &&
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
+          pageEntityId
+        ) {
           const pageEntityUuid = extractEntityUuidFromEntityId(pageEntityId);
           return router.push(
             constructPageRelativeUrl({ workspaceShortname, pageEntityUuid }),
