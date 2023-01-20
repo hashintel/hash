@@ -36,7 +36,7 @@ impl Variant for BoundedContractViolationError {
     fn message(
         &self,
         fmt: &mut Formatter,
-        _: &<Self::Properties as ErrorProperties>::Value<'_>,
+        _properties: &<Self::Properties as ErrorProperties>::Value<'_>,
     ) -> core::fmt::Result {
         Display::fmt(&self, fmt)
     }

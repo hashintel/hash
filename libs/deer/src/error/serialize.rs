@@ -88,9 +88,8 @@ impl<'a> StackEntry<'a> {
     #[allow(clippy::manual_let_else)]
     fn find(self) -> impl IntoIterator<Item = StackEntry<'a>> {
         let mut head = self.head;
-        let mut next = match self.next {
-            None => return EitherIterator::Left(once(StackEntry { head, next: None })),
-            Some(frame) => frame,
+        let Some(mut next) = self.next else {
+            return EitherIterator::Left(once(StackEntry { head, next: None }))
         };
 
         while next.sources().len() == 1 {
@@ -400,7 +399,7 @@ mod tests {
         fn message(
             &self,
             fmt: &mut Formatter,
-            _: &<Self::Properties as ErrorProperties>::Value<'_>,
+            _properties: &<Self::Properties as ErrorProperties>::Value<'_>,
         ) -> core::fmt::Result {
             fmt.write_str("Z Error")
         }
@@ -640,10 +639,10 @@ mod tests {
 
         fn message(
             &self,
-            f: &mut Formatter,
-            _: &<Self::Properties as ErrorProperties>::Value<'_>,
+            fmt: &mut Formatter,
+            _properties: &<Self::Properties as ErrorProperties>::Value<'_>,
         ) -> core::fmt::Result {
-            f.write_str("X Error")
+            fmt.write_str("X Error")
         }
     }
 }
