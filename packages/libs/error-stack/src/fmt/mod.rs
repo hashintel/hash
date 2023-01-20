@@ -162,6 +162,7 @@ use core::{
     mem,
 };
 
+pub use charset::Charset;
 #[cfg(not(feature = "color"))]
 use color::ColorMode;
 #[cfg(feature = "color")]
@@ -175,7 +176,7 @@ use location::LocationDisplay;
 #[cfg(feature = "color")]
 use owo_colors::{OwoColorize, Style as OwOStyle};
 
-use crate::{fmt::charset::Charset, AttachmentKind, Context, Frame, FrameKind, Report};
+use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
 #[cfg(not(any(feature = "std", feature = "hooks")))]
 struct Config {
