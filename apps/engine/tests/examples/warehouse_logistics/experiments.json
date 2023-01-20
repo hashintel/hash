@@ -3,7 +3,7 @@
     "type": "values",
     "field": "layout",
     "values": ["columns", "rows"],
-    "steps": 500
+    "steps": 10
   },
   "find_optimal_layout": {
     "type": "optimization",
