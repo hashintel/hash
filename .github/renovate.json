@@ -50,28 +50,32 @@
       "matchDepNames": ["rust"],
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
       "separateMajorMinor": false,
-      "fetchReleaseNotes": false
+      "fetchReleaseNotes": false,
+      "commitMessageExtra": "to nightly-{{newVersion}}"
     },
     {
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
       "matchPaths": ["**/error-stack/**"],
-      "groupName": "error-stack"
+      "groupName": "error-stack",
+      "commitMessageTopic": "Rust toolchain for `error-stack`"
     },
     {
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
       "matchPaths": ["**/deer/**"],
-      "groupName": "deer"
+      "groupName": "deer",
+      "commitMessageTopic": "Rust toolchain for `deer`"
     },
     {
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
       "matchPaths": ["**/graph/**"],
-      "groupName": "graph"
+      "groupName": "graph",
+      "commitMessageTopic": "Rust toolchain for `graph`"
     }
   ],
   "regexManagers": [
@@ -86,14 +90,14 @@
       "versioningTemplate": "regex:(?<major>\\d+)-(?<minor>\\d+)-(?<patch>\\d+)"
     },
     {
-      "fileMatch": ["(^|/)README\\.md?$", "(^|/)lib\\.rs?$"],
+      "fileMatch": ["(^|/)README\\.md$", "(^|/)src/lib\\.rs$"],
       "matchStrings": [
-        "\\[!\\[rust-version]\\(https://img\\.shields\\.io/badge/(?<depName>Rust-\\d+\\.\\d+\\.\\d+)/nightly--(?<currentValue>\\d+--\\d+--\\d+)-blue\\)]\\[rust-version]"
+        "https:\\/\\/img\\.shields\\.io\\/static\\/v1\\?label=Rust\\&message=\\d+\\.\\d+\\.\\d+\\/nightly-(?<currentValue>\\d+-\\d+-\\d+)\\&color=blue"
       ],
+      "depNameTemplate": "rust",
       "packageNameTemplate": "rust-lang/rust-analyzer",
       "datasourceTemplate": "github-releases",
-      "versioningTemplate": "regex:(?<major>\\d+)-?-(?<minor>\\d+)-?-(?<patch>\\d+)",
-      "autoReplaceStringTemplate": "[![rust-version](https://img.shields.io/badge/{{depName}}/nightly--{{replace '-' '--' newValue}}-blue)][rust-version]"
+      "versioningTemplate": "regex:(?<major>\\d+)-(?<minor>\\d+)-(?<patch>\\d+)"
     }
   ]
 }
