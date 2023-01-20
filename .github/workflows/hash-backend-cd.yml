@@ -40,7 +40,6 @@ name: HASH backend deployment
 jobs:
   build-graph:
     name: Build and push HASH graph image
-    if: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -62,7 +61,6 @@ jobs:
 
   build-api:
     name: Build and push HASH api image
-    if: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -84,7 +82,6 @@ jobs:
 
   build-kratos:
     name: Build and push Kratos image
-    if: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -111,10 +108,10 @@ jobs:
   deploy:
     name: Deploy HASH images
     runs-on: ubuntu-latest
-    # needs:
-    #   - build-graph
-    #   - build-api
-    #   - build-kratos
+    needs:
+      - build-graph
+      - build-api
+      - build-kratos
     steps:
       - uses: actions/checkout@v3
 
