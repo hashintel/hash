@@ -17,7 +17,7 @@ impl Write for VoidWriter {
 }
 
 // TODO: temporary until https://github.com/jam1garner/owo-colors/issues/87 is resolved
-#[cfg(all(feature = "color", feature = "std"))]
+#[cfg(feature = "detect")]
 fn has_stdout_color_support() -> ColorMode {
     let supported = AtomicBool::new(false);
     let display = "".if_supports_color(Stream::Stdout, |x| {
@@ -35,7 +35,7 @@ fn has_stdout_color_support() -> ColorMode {
     }
 }
 
-#[cfg(not(all(feature = "color", feature = "std")))]
+#[cfg(not(feature = "detect"))]
 const fn has_stdout_color_support() -> ColorMode {
     ColorMode::None
 }
