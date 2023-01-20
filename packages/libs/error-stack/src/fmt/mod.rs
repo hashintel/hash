@@ -175,7 +175,13 @@ use location::LocationDisplay;
 #[cfg(feature = "color")]
 use owo_colors::{OwoColorize, Style as OwOStyle};
 
-use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
+use crate::{fmt::charset::Charset, AttachmentKind, Context, Frame, FrameKind, Report};
+
+#[cfg(not(any(feature = "std", feature = "hooks")))]
+struct Config {
+    charset: Charset,
+    color: ColorMode,
+}
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum Symbol {
@@ -246,31 +252,45 @@ macro_rules! sym {
     };
 }
 
-#[cfg(feature = "color")]
-impl Display for Symbol {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+impl Symbol {
+    const fn to_str_utf8(self) -> &'static str {
         match self {
-            Self::Vertical => f.write_str("│"),
-            Self::VerticalRight => f.write_str("├"),
-            Self::Horizontal => f.write_str("─"),
-            Self::HorizontalLeft => f.write_str("╴"),
-            Self::HorizontalDown => f.write_str("┬"),
-            Self::ArrowRight => f.write_str("▶"),
-            Self::CurveRight => f.write_str("╰"),
-            Self::Space => f.write_str(" "),
+            Self::Vertical => "│",
+            Self::VerticalRight => "├",
+            Self::Horizontal => "─",
+            Self::HorizontalLeft => "╴",
+            Self::HorizontalDown => "┬",
+            Self::ArrowRight => "▶",
+            Self::CurveRight => "╰",
+            Self::Space => " ",
+        }
+    }
+
+    const fn to_str_ascii(self) -> &'static str {
+        match self {
+            Self::Vertical | Self::VerticalRight | Self::CurveRight => "|",
+            Self::Horizontal | Self::HorizontalDown | Self::HorizontalLeft => "-",
+            Self::ArrowRight => ">",
+            Self::Space => " ",
+        }
+    }
+
+    const fn to_str(self, charset: Charset) -> &'static str {
+        match charset {
+            Charset::Utf8 => self.to_str_utf8(),
+            Charset::Ascii => self.to_str_ascii(),
         }
     }
 }
 
-#[cfg(not(feature = "color"))]
-impl Display for Symbol {
+struct SymbolDisplay {
+    inner: Symbol,
+    charset: Charset,
+}
+
+impl Display for SymbolDisplay {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Vertical | Self::VerticalRight | Self::CurveRight => f.write_str("|"),
-            Self::Horizontal | Self::HorizontalDown | Self::HorizontalLeft => f.write_str("-"),
-            Self::ArrowRight => f.write_str(">"),
-            Self::Space => f.write_str(" "),
-        }
+        f.write_str(self.inner.to_str(self.charset))
     }
 }
 
@@ -281,12 +301,10 @@ struct Style {
 }
 
 impl Style {
-    // Reason: conditionally disabled
-    #[allow(clippy::unused_self)]
+    #[cfg(feature = "color")]
     pub(crate) fn apply(self, fmt: &mut Formatter, value: &str, mode: ColorMode) -> fmt::Result {
         match mode {
             ColorMode::None => Display::fmt(value, fmt),
-            #[cfg(feature = "color")]
             ColorMode::Color | ColorMode::Emphasis => Display::fmt(&value.style(self.into()), fmt),
         }
     }
@@ -490,27 +508,38 @@ impl Instruction {
 }
 
 struct InstructionDisplay<'a> {
-    mode: ColorMode,
+    #[cfg(feature = "color")]
+    color: ColorMode,
+    charset: Charset,
+
     instruction: &'a Instruction,
 }
 
 impl Display for InstructionDisplay<'_> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        let Self { mode, instruction } = self;
-
-        match instruction.prepare() {
+        match self.instruction.prepare() {
             PreparedInstruction::Symbols(symbols) => {
                 for symbol in symbols {
-                    match mode {
-                        ColorMode::None => Display::fmt(symbol, fmt)?,
-                        #[cfg(feature = "color")]
-                        ColorMode::Color => Display::fmt(&symbol.red(), fmt)?,
-                        #[cfg(feature = "color")]
-                        ColorMode::Emphasis => Display::fmt(&symbol.bold(), fmt)?,
+                    let display = SymbolDisplay {
+                        inner: *symbol,
+                        charset: self.charset,
                     };
+
+                    #[cfg(feature = "color")]
+                    match self.color {
+                        ColorMode::None => Display::fmt(&display, fmt)?,
+                        ColorMode::Color => Display::fmt(&display.red(), fmt)?,
+                        ColorMode::Emphasis => Display::fmt(&display.bold(), fmt)?,
+                    };
+
+                    #[cfg(not(feature = "color"))]
+                    Display::fmt(&display, fmt)?;
                 }
             }
-            PreparedInstruction::Content(value, &style) => style.apply(fmt, value, *mode)?,
+            #[cfg(feature = "color")]
+            PreparedInstruction::Content(value, &style) => style.apply(fmt, value, self.color)?,
+            #[cfg(not(feature = "color"))]
+            PreparedInstruction::Content(value, _) => Display::fmt(value, fmt)?,
         }
 
         Ok(())
@@ -536,18 +565,21 @@ impl Line {
 }
 
 struct LineDisplay<'a> {
-    mode: ColorMode,
+    #[cfg(feature = "color")]
+    color: ColorMode,
+    charset: Charset,
+
     line: &'a Line,
 }
 
 impl Display for LineDisplay<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let Self { mode, line } = self;
-
-        for instruction in line.0.iter().rev() {
+        for instruction in self.line.0.iter().rev() {
             Display::fmt(
                 &InstructionDisplay {
-                    mode: *mode,
+                    #[cfg(feature = "color")]
+                    color: self.color,
+                    charset: self.charset,
                     instruction,
                 },
                 f,
@@ -694,7 +726,7 @@ impl Opaque {
 
 fn debug_attachments_invoke<'a>(
     frames: impl IntoIterator<Item = &'a Frame>,
-    #[cfg(not(any(feature = "std", feature = "hooks")))] mode: ColorMode,
+    #[cfg(not(any(feature = "std", feature = "hooks")))] config: Config,
     #[cfg(any(feature = "std", feature = "hooks"))] context: &mut HookContext<Frame>,
 ) -> (Opaque, Vec<String>) {
     let mut opaque = Opaque::new();
@@ -728,7 +760,7 @@ fn debug_attachments_invoke<'a>(
             #[cfg(not(any(feature = "std", feature = "hooks")))]
             FrameKind::Attachment(AttachmentKind::Opaque(_)) => frame
                 .downcast_ref::<core::panic::Location<'static>>()
-                .map(|location| vec![LocationDisplay::new(location, mode).to_string()]),
+                .map(|location| vec![LocationDisplay::new(location, config.color).to_string()]),
         })
         .flat_map(|body| {
             body.unwrap_or_else(|| {
@@ -746,7 +778,7 @@ fn debug_attachments_invoke<'a>(
 fn debug_attachments<'a>(
     position: Position,
     frames: impl IntoIterator<Item = &'a Frame>,
-    #[cfg(not(any(feature = "std", feature = "hooks")))] mode: ColorMode,
+    #[cfg(not(any(feature = "std", feature = "hooks")))] config: Config,
     #[cfg(any(feature = "std", feature = "hooks"))] context: &mut HookContext<Frame>,
 ) -> Lines {
     let last = matches!(position, Position::Final);
@@ -754,7 +786,7 @@ fn debug_attachments<'a>(
     let (opaque, entries) = debug_attachments_invoke(
         frames,
         #[cfg(not(any(feature = "std", feature = "hooks")))]
-        mode,
+        config,
         #[cfg(any(feature = "std", feature = "hooks"))]
         context,
     );
@@ -881,7 +913,7 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
 fn debug_frame(
     root: &Frame,
     prefix: &[&Frame],
-    #[cfg(not(any(feature = "std", feature = "hooks")))] mode: ColorMode,
+    #[cfg(not(any(feature = "std", feature = "hooks")))] config: Config,
     #[cfg(any(feature = "std", feature = "hooks"))] context: &mut HookContext<Frame>,
 ) -> Vec<Lines> {
     let (stack, sources) = collect(root, prefix);
@@ -924,7 +956,7 @@ fn debug_frame(
                 },
                 once(head).chain(body),
                 #[cfg(not(any(feature = "std", feature = "hooks")))]
-                mode,
+                config,
                 #[cfg(any(feature = "std", feature = "hooks"))]
                 context,
             );
@@ -942,7 +974,7 @@ fn debug_frame(
                     source,
                     &prefix,
                     #[cfg(not(any(feature = "std", feature = "hooks")))]
-                    mode,
+                    config,
                     #[cfg(any(feature = "std", feature = "hooks"))]
                     context,
                 )
@@ -966,11 +998,16 @@ fn debug_frame(
 
 impl<C> Debug for Report<C> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        let mode = ColorMode::load();
+        let color = ColorMode::load();
+        let charset = Charset::load();
+
+        #[cfg(not(any(feature = "std", feature = "hooks")))]
+        let config = Config { charset, color };
+
         // TODO: set temporary override!
 
         #[cfg(any(feature = "std", feature = "hooks"))]
-        let mut context = HookContext::new(Format::new(fmt.alternate(), mode));
+        let mut context = HookContext::new(Format::new(fmt.alternate(), mode, charset));
 
         #[cfg_attr(not(any(feature = "std", feature = "hooks")), allow(unused_mut))]
         let mut lines = self
@@ -981,7 +1018,7 @@ impl<C> Debug for Report<C> {
                     frame,
                     &[],
                     #[cfg(not(any(feature = "std", feature = "hooks")))]
-                    mode,
+                    config,
                     #[cfg(any(feature = "std", feature = "hooks"))]
                     context.cast(),
                 )
@@ -999,7 +1036,15 @@ impl<C> Debug for Report<C> {
                         .into_vec()
                 }
             })
-            .map(|line| LineDisplay { mode, line: &line }.to_string())
+            .map(|line| {
+                LineDisplay {
+                    #[cfg(feature = "color")]
+                    color,
+                    charset,
+                    line: &line,
+                }
+                .to_string()
+            })
             .collect::<Vec<_>>()
             .join("\n");
 
