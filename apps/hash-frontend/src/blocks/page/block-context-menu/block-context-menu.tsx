@@ -1,6 +1,7 @@
 import {
   faCopy,
   faMessage,
+  faPenToSquare,
   faTrashCan,
 } from "@fortawesome/free-regular-svg-icons";
 // import { format } from "date-fns";
@@ -8,7 +9,6 @@ import {
   faAdd,
   faArrowRight,
   faGear,
-  faGears,
   faLink,
   faRefresh,
 } from "@fortawesome/free-solid-svg-icons";
@@ -65,7 +65,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
   const { blockSubgraph, setBlockSubgraph } = useBlockContext();
   const fetchBlockSubgraph = useFetchBlockSubgraph();
 
-  const [open, setOpen] = useState(false);
+  const [entityEditorOpen, setEntityEditorOpen] = useState(false);
 
   const { users: _users } = useUsers();
   const setEntityMenuItemRef = useRef<HTMLLIElement>(null);
@@ -121,8 +121,8 @@ const BlockContextMenu: ForwardRefRenderFunction<
       {
         key: "edit-block",
         title: "Edit Block",
-        icon: <FontAwesomeIcon icon={faGears} />,
-        onClick: () => setOpen(true),
+        icon: <FontAwesomeIcon icon={faPenToSquare} />,
+        onClick: () => setEntityEditorOpen(true),
       },
       {
         key: "configure",
@@ -209,15 +209,15 @@ const BlockContextMenu: ForwardRefRenderFunction<
     );
 
     setBlockSubgraph(newBlockSubgraph);
-    setOpen(false);
+    setEntityEditorOpen(false);
   };
 
   return (
     <>
       {blockSubgraph && (
         <EditEntityModal
-          open={open}
-          onClose={() => setOpen(false)}
+          open={entityEditorOpen}
+          onClose={() => setEntityEditorOpen(false)}
           entitySubgraph={
             /** @todo add timeProjection & resolvedTimeProjection properly */
             blockSubgraph as unknown as Subgraph<SubgraphRootTypes["entity"]>
@@ -313,12 +313,8 @@ const BlockContextMenu: ForwardRefRenderFunction<
             )?.preferredName
           } */}
           </Typography>
-          {/** 
-        {/** 
-          {/** 
-         * @todo re-implement after collab works https://app.asana.com/0/0/1203099452204542/f
-         {typeof blockEntity?.properties.entity.updatedAt ===
-            "string" && (
+          {/* @todo re-implement after collab works https://app.asana.com/0/0/1203099452204542/f */}
+          {/* {typeof blockEntity?.properties.entity.updatedAt === "string" && (
             <Typography
               variant="microText"
               sx={({ palette }) => ({
@@ -335,8 +331,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
                 "dd/MM/yyyy",
               )}
             </Typography>
-          )
-        } */}
+          )} */}
         </Box>
       </Menu>
     </>

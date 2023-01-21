@@ -1,5 +1,4 @@
-// import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
-import { Subgraph, SubgraphRootTypes } from "@blockprotocol/graph/.";
+import { Subgraph, SubgraphRootTypes } from "@blockprotocol/graph";
 import { Fragment, ReactNode, useCallback, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { v4 as uuid } from "uuid";
