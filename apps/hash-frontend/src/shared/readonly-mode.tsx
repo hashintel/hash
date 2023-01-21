@@ -5,9 +5,13 @@ import { AuthenticatedUser } from "../lib/user-and-org";
 import { useAuthInfo } from "../pages/shared/auth-info-context";
 
 const canUserEditResource = (
-  resourceAccountId: AccountId,
-  user: AuthenticatedUser,
+  resourceAccountId?: AccountId,
+  user?: AuthenticatedUser,
 ) => {
+  if (!resourceAccountId || !user) {
+    return false;
+  }
+
   return (
     resourceAccountId === user.accountId ||
     user.memberOf.find((org) => org.accountId === resourceAccountId)
@@ -23,7 +27,7 @@ export const useIsReadonlyModeForApp = () => {
   return isReadonlyMode;
 };
 
-export const useIsReadonlyModeForResource = (resourceAccountId: AccountId) => {
+export const useIsReadonlyModeForResource = (resourceAccountId?: AccountId) => {
   const { authenticatedUser } = useAuthInfo();
 
   const appIsReadOnly = useIsReadonlyModeForApp();

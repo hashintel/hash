@@ -1,6 +1,7 @@
 import { GridCellKind, Item } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
 
+import { useEntityEditor } from "../../entity-editor-context";
 import { ChipCell } from "../../properties-section/property-table/cells/chip-cell";
 import { SummaryChipCell } from "../../properties-section/property-table/cells/summary-chip-cell";
 import { LinkCell } from "./cells/link-cell";
@@ -9,6 +10,8 @@ import { linkGridIndexes } from "./constants";
 import { LinkRow } from "./types";
 
 export const useCreateGetCellContent = () => {
+  const { readonly } = useEntityEditor();
+
   const createGetCellContent = useCallback(
     (rows: LinkRow[]) =>
       ([colIndex, rowIndex]: Item):
@@ -44,13 +47,14 @@ export const useCreateGetCellContent = () => {
             return {
               kind: GridCellKind.Custom,
               readonly: true,
-              allowOverlay: true,
+              allowOverlay: !readonly,
               /** @todo add copy data */
               copyData: "",
-              cursor: "pointer",
+              cursor: readonly ? "default" : "pointer",
               data: {
                 kind: "linked-with-cell",
                 linkRow: row,
+                readonly,
               },
             };
           case "expectedEntityTypes":
@@ -69,7 +73,7 @@ export const useCreateGetCellContent = () => {
             };
         }
       },
-    [],
+    [readonly],
   );
 
   return createGetCellContent;

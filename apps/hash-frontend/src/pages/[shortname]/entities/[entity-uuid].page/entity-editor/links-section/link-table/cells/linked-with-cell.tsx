@@ -21,6 +21,7 @@ import { sortLinkAndTargetEntities } from "./sort-link-and-target-entities";
 export interface LinkedWithCellProps {
   readonly kind: "linked-with-cell";
   linkRow: LinkRow;
+  readonly: boolean;
 }
 
 export type LinkedWithCell = CustomCell<LinkedWithCellProps>;
@@ -32,12 +33,13 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     (cell.data as any).kind === "linked-with-cell",
   draw: (args, cell) => {
     const { rect, ctx, theme, spriteManager, hoverAmount, highlighted } = args;
+    const { linkRow, readonly } = cell.data;
     const {
       linkAndTargetEntities,
       entitySubgraph,
       markLinkAsArchived,
       maxItems,
-    } = cell.data.linkRow;
+    } = linkRow;
 
     ctx.fillStyle = theme.textHeader;
     ctx.font = theme.baseFontStyle;
@@ -95,6 +97,11 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       ctx.fillText(text, rect.x + rect.width - textWidth - 10, yCenter);
 
       return;
+    }
+
+    // do not draw delete button if readonly
+    if (readonly) {
+      return drawCellFadeOutGradient(args);
     }
 
     // draw delete button
