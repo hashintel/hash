@@ -16,7 +16,7 @@ RUN apt-get update \
   && apt-get -y install postgresql-13-citus-10.1 postgresql-13-wal2json \
   && rm -rf /var/lib/apt/lists/*
 
-COPY packages/hash/docker/citus/prod/postgresql.conf /etc/postgresql/
-COPY packages/hash/docker/citus/prod/pg_hba.conf /etc/postgresql/
-COPY packages/hash/docker/citus/prod/initdb /docker-entrypoint-initdb.d
-COPY packages/hash/docker/citus/prod/initdb/0000_init.sql /0001_init.sql
+COPY infra/docker/citus/prod/postgresql.conf /etc/postgresql/
+COPY infra/docker/citus/prod/pg_hba.conf /etc/postgresql/
+COPY infra/docker/citus/prod/initdb /docker-entrypoint-initdb.d
+COPY infra/docker/citus/prod/initdb/0000_init.sql /0001_init.sql

@@ -35,11 +35,6 @@ inputs:
     description: Build arguments to pass to the Docker build
     required: false
 
-outputs:
-  ECR_IMAGE:
-    description: The name of the image in the ECR registry
-    value: ${{ inputs.AWS_ECR_URL }}/${{ inputs.IMAGE_NAME }}:${{ inputs.IMAGE_TAG }}
-
 runs:
   using: composite
   steps:

@@ -22,10 +22,10 @@ impl Variant for BytesUnsupportedError {
     const ID: Id = id!["bytes"];
     const NAMESPACE: Namespace = NAMESPACE;
 
-    fn message<'a>(
+    fn message(
         &self,
         fmt: &mut Formatter,
-        _: &<Self::Properties as ErrorProperties>::Value<'a>,
+        _: &<Self::Properties as ErrorProperties>::Value<'_>,
     ) -> core::fmt::Result {
         fmt.write_str("deer-json does not support deserialization of bytes")
     }
@@ -48,10 +48,10 @@ impl Variant for OverflowError {
     const ID: Id = id!["number", "overflow"];
     const NAMESPACE: Namespace = NAMESPACE;
 
-    fn message<'a>(
+    fn message(
         &self,
         fmt: &mut Formatter,
-        _: &<Self::Properties as ErrorProperties>::Value<'a>,
+        _: &<Self::Properties as ErrorProperties>::Value<'_>,
     ) -> core::fmt::Result {
         Display::fmt(&self, fmt)?;
 
