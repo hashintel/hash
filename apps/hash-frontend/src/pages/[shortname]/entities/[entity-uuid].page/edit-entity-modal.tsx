@@ -116,6 +116,7 @@ export const EditEntityModal = ({
       </Typography>
 
       <EntityEditor
+        readonly={false}
         refetch={async () => {}}
         entitySubgraph={draftEntitySubgraph}
         setEntity={(entity) => {
