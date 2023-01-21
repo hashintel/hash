@@ -41,10 +41,10 @@ impl Variant for ValueError {
     const ID: Id = id!["value"];
     const NAMESPACE: Namespace = NAMESPACE;
 
-    fn message<'a>(
+    fn message(
         &self,
         fmt: &mut Formatter,
-        properties: &<Self::Properties as ErrorProperties>::Value<'a>,
+        properties: &<Self::Properties as ErrorProperties>::Value<'_>,
     ) -> fmt::Result {
         let (_, expected, _) = properties;
 
@@ -76,10 +76,10 @@ impl Variant for MissingError {
     const ID: Id = id!["value", "missing"];
     const NAMESPACE: Namespace = NAMESPACE;
 
-    fn message<'a>(
+    fn message(
         &self,
         fmt: &mut Formatter,
-        properties: &<Self::Properties as ErrorProperties>::Value<'a>,
+        properties: &<Self::Properties as ErrorProperties>::Value<'_>,
     ) -> fmt::Result {
         let (_, expected) = properties;
 

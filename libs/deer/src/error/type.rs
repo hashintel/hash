@@ -65,10 +65,10 @@ impl Variant for TypeError {
     const ID: Id = id!["type"];
     const NAMESPACE: Namespace = NAMESPACE;
 
-    fn message<'a>(
+    fn message(
         &self,
         fmt: &mut Formatter,
-        properties: &<Self::Properties as ErrorProperties>::Value<'a>,
+        properties: &<Self::Properties as ErrorProperties>::Value<'_>,
     ) -> core::fmt::Result {
         let (_, expected, received) = properties;
 
