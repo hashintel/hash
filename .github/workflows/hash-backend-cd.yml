@@ -2,7 +2,9 @@ on:
   # We could allow configuring environment here.
   workflow_dispatch: {}
   push:
-    branches: [main]
+    branches:
+      - main
+      - "trunk-merge/**"
     paths:
       - "apps/hash-api/**"
       - "libs/@local/hash-backend-utils-utils/**"
