@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - main
-      - 'trunk-merge/**'
+      - "trunk-merge/**"
 
 env:
   TURBO_FORCE: true ## Turbo caching is disabled to avoid issues false cache hits (https://app.asana.com/0/1203193968491715/1203429129383865/f)

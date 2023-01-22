@@ -6,7 +6,7 @@ on:
     branches:
       - main
       - dev/**
-      - 'trunk-merge/**'
+      - "trunk-merge/**"
 
 defaults:
   run:
