@@ -18,10 +18,6 @@ merge:
     - CI / Playwright tests
     - Rust / merging enabled
     - Vercel – hash
-lint:
-  enabled:
-runtimes:
-  enabled:
 actions:
   enabled:
     - trunk-announce
