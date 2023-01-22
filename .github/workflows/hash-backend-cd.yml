@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - "trunk-merge/**"
     paths:
       - "apps/hash-api/**"
       - "libs/@local/hash-backend-utils-utils/**"
