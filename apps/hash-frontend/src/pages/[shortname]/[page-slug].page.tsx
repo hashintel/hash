@@ -393,7 +393,7 @@ const Page: NextPageWithLayout<PageProps> = ({
 
       <PageContextProvider pageEntityId={pageEntityId}>
         <Box
-          sx={({ zIndex, palette }) => ({
+          sx={({ palette, zIndex }) => ({
             position: "sticky",
             top: 0,
             zIndex: zIndex.appBar,
