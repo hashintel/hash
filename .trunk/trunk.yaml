@@ -10,6 +10,14 @@ plugins:
     - id: trunk
       ref: v0.0.8
       uri: https://github.com/trunk-io/plugins
+merge:
+  required_statuses:
+    - Linting
+    - Unit Tests
+    - Backend integration tests
+    - Playwright tests
+    - merging enabled
+    - Vercel – hash
 actions:
   enabled:
     - trunk-announce
