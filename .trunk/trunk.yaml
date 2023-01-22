@@ -10,6 +10,14 @@ plugins:
     - id: trunk
       ref: v0.0.8
       uri: https://github.com/trunk-io/plugins
+merge:
+  required_statuses:
+    - CI / Linting
+    - CI / Unit Tests
+    - CI / Backend integration tests
+    - CI / Playwright tests
+    - Rust / merging enabled
+    - Vercel – hash
 lint:
   enabled:
 runtimes:
