@@ -29,7 +29,7 @@ import { useBlockProtocolGetEntityType } from "../../components/hooks/block-prot
 import { useBlockProtocolGetPropertyType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-property-type";
 import { useBlockProtocolUpdateEntityType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-entity-type";
 import { useBlockProtocolUpdatePropertyType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-property-type";
-import { useIsReadonlyMode } from "../../shared/readonly-mode";
+import { useIsReadonlyModeForApp } from "../../shared/readonly-mode";
 
 export type GraphMessageCallbacks = Omit<
   EmbedderGraphMessageCallbacks,
@@ -59,7 +59,7 @@ export type GraphMessageCallbacks = Omit<
 export const useBlockProtocolFunctionsWithOntology = (
   ownedById: OwnedById | null,
 ): GraphMessageCallbacks => {
-  const isReadonlyMode = useIsReadonlyMode();
+  const isReadonlyMode = useIsReadonlyModeForApp();
 
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
   const { createEntity } = useBlockProtocolCreateEntity(
