@@ -2,11 +2,14 @@ on:
   # We could allow configuring environment here.
   workflow_dispatch: {}
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
       - "apps/hash-api/**"
+      - "apps/hash-external-services/kratos/**"
       - "libs/@local/hash-backend-utils-utils/**"
       - "libs/@local/hash-isomorphic-utils/**"
+      # TODO: remove/rewrite these as we remove the package directory.
       - "packages/graph/**"
       - "packages/hash/**"
 
