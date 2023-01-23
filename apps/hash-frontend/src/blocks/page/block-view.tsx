@@ -100,6 +100,7 @@ export class BlockView implements NodeView {
     public renderPortal: RenderPortal,
     public manager: ProsemirrorManager,
     public documentRoot: HTMLElement,
+    public readonly: boolean,
   ) {
     this.rootNode = documentRoot;
     this.dom = document.createElement("div");
@@ -127,7 +128,10 @@ export class BlockView implements NodeView {
     );
     this.insertBlockBottomContainer.contentEditable = "false";
     this.renderPortal(
-      <InsertBlock onBlockSuggesterChange={this.onBlockInsert(true)} />,
+      <InsertBlock
+        onBlockSuggesterChange={this.onBlockInsert(true)}
+        readonly={this.readonly}
+      />,
       this.insertBlockBottomContainer,
     );
 
@@ -300,7 +304,10 @@ export class BlockView implements NodeView {
         );
         this.insertBlockTopContainer.contentEditable = "false";
         this.renderPortal(
-          <InsertBlock onBlockSuggesterChange={this.onBlockInsert(false)} />,
+          <InsertBlock
+            onBlockSuggesterChange={this.onBlockInsert(false)}
+            readonly={this.readonly}
+          />,
           this.insertBlockTopContainer,
         );
       }

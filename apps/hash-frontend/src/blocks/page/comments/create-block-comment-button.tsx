@@ -4,7 +4,7 @@ import { EntityId } from "@local/hash-isomorphic-utils/types";
 import { Box, Popper } from "@mui/material";
 import { FunctionComponent, useCallback, useState } from "react";
 
-import { useIsReadonlyMode } from "../../../shared/readonly-mode";
+import { useBlockView } from "../block-view";
 import styles from "../style.module.css";
 import { CreateBlockComment } from "./create-block-comment";
 
@@ -18,13 +18,13 @@ export const CreateBlockCommentButton: FunctionComponent<
 > = ({ blockEntityId, rootNode }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
-  const isReadonlyMode = useIsReadonlyMode();
+  const { readonly } = useBlockView();
 
   const closeInput = useCallback(() => {
     setAnchorEl(null);
   }, []);
 
-  if (isReadonlyMode) {
+  if (readonly) {
     return null;
   }
 
