@@ -38,7 +38,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       linkAndTargetEntities,
       entitySubgraph,
       markLinkAsArchived,
-      maxItems,
+      isList,
     } = linkRow;
 
     ctx.fillStyle = theme.textHeader;
@@ -53,7 +53,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       ctx.fillStyle = customColors.gray[50];
       ctx.font = "italic 14px Inter";
 
-      const emptyText = maxItems === 1 ? "No entity" : "No entities";
+      const emptyText = isList ? "No entities" : "No entity";
       ctx.fillText(emptyText, left, yCenter);
 
       // before returning, set interactables to empty array to clear any stale interactables saved on previous draw
@@ -80,7 +80,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     }
 
     // do not draw delete button if multiple links are allowed
-    if (maxItems > 1) {
+    if (isList) {
       const overflowed = accumulatedLeft > rect.x + rect.width;
 
       if (!overflowed) {
