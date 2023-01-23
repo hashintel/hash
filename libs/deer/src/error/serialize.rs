@@ -86,9 +86,8 @@ struct StackEntry<'a> {
 impl<'a> StackEntry<'a> {
     fn find(self) -> impl IntoIterator<Item = StackEntry<'a>> {
         let mut head = self.head;
-        let mut next = match self.next {
-            None => return EitherIterator::Left(once(StackEntry { head, next: None })),
-            Some(frame) => frame,
+        let Some(mut next) = self.next else {
+            return EitherIterator::Left(once(StackEntry { head, next: None }))
         };
 
         while next.sources().len() == 1 {
@@ -361,7 +360,7 @@ mod tests {
 
         let a = b.attach_printable(Printable("A"));
 
-        let stacks: Vec<_> = FrameSplitIterator::new(&a).into_iter().collect();
+        let stacks: Vec<_> = FrameSplitIterator::new(&a).collect();
 
         assert_stack(&stacks[0], &["A", "B", "D", "Root Error"]);
         assert_stack(&stacks[1], &["A", "B", "E", "Root Error"]);
@@ -395,10 +394,10 @@ mod tests {
         const ID: Id = id!["custom"];
         const NAMESPACE: Namespace = NAMESPACE;
 
-        fn message<'a>(
+        fn message(
             &self,
             fmt: &mut Formatter,
-            _: &<Self::Properties as ErrorProperties>::Value<'a>,
+            _properties: &<Self::Properties as ErrorProperties>::Value<'_>,
         ) -> core::fmt::Result {
             fmt.write_str("Z Error")
         }
@@ -636,12 +635,12 @@ mod tests {
         const ID: Id = id!["value"];
         const NAMESPACE: Namespace = NAMESPACE;
 
-        fn message<'a>(
+        fn message(
             &self,
-            f: &mut Formatter,
-            _: &<Self::Properties as ErrorProperties>::Value<'a>,
+            fmt: &mut Formatter,
+            _properties: &<Self::Properties as ErrorProperties>::Value<'_>,
         ) -> core::fmt::Result {
-            f.write_str("X Error")
+            fmt.write_str("X Error")
         }
     }
 }

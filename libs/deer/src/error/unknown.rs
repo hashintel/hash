@@ -66,10 +66,10 @@ impl Variant for UnknownFieldError {
     const ID: Id = id!["unknown", "field"];
     const NAMESPACE: Namespace = NAMESPACE;
 
-    fn message<'a>(
+    fn message(
         &self,
         fmt: &mut Formatter,
-        properties: &<Self::Properties as ErrorProperties>::Value<'a>,
+        properties: &<Self::Properties as ErrorProperties>::Value<'_>,
     ) -> fmt::Result {
         // expected fields "field1", "...", but received fields "field1", "..."
         let (_, expected, received) = properties;
@@ -163,10 +163,10 @@ impl Variant for UnknownVariantError {
     const ID: Id = id!["unknown", "value"];
     const NAMESPACE: Namespace = NAMESPACE;
 
-    fn message<'a>(
+    fn message(
         &self,
         fmt: &mut Formatter,
-        properties: &<Self::Properties as ErrorProperties>::Value<'a>,
+        properties: &<Self::Properties as ErrorProperties>::Value<'_>,
     ) -> fmt::Result {
         // expected enum variants "{expected}, but received unknown enum variant "{received}"",
         let (_, expected, received) = properties;

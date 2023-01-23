@@ -16,25 +16,25 @@ If you wish to build the Docker images for deployment, these are the steps to ta
 1.  For `api` Docker image run
 
     ```shell
-    docker build -t hash-api-prod . -f ./packages/hash/docker/api/prod/Dockerfile
+    docker build -t hash-api-prod . -f ./infra/docker/api/prod/Dockerfile
     ```
 
 1.  For `realtime` Docker image run
 
     ```shell
-    docker build -t hash-realtime-prod . -f ./packages/hash/docker/realtime/prod/Dockerfile
+    docker build -t hash-realtime-prod . -f ./infra/docker/realtime/prod/Dockerfile
     ```
 
 1.  For `search-loader` Docker image run
 
     ```shell
-    docker build -t hash-search-loader-prod . -f ./packages/hash/docker/search-loader/prod/Dockerfile
+    docker build -t hash-search-loader-prod . -f ./infra/docker/search-loader/prod/Dockerfile
     ```
 
 1.  For `task-executor` Docker image run
 
     ```shell
-    docker build -t hash-task-executor . -f ./packages/hash/docker/task-executor/Dockerfile
+    docker build -t hash-task-executor . -f ./infra/docker/task-executor/Dockerfile
     ```
 
     The executor runs on port 5010 within the container and needs to be exposed on the local machine using `-p` when ran
