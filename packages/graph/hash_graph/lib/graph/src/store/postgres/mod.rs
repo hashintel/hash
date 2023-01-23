@@ -28,7 +28,7 @@ use crate::{
     ontology::OntologyElementMetadata,
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
-        error::VersionedUriAlreadyExists,
+        error::{VersionedUriAlreadyExists, WrongOntologyVersion},
         postgres::{ontology::OntologyDatabaseType, version_id::VersionId},
         AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, Store,
         StoreError, Transaction, UpdateError,
@@ -235,6 +235,10 @@ where
             .map_err(|report| match report.current_context().code() {
                 Some(&SqlState::UNIQUE_VIOLATION) => report
                     .change_context(VersionedUriAlreadyExists)
+                    .attach_printable(uri.clone())
+                    .change_context(UpdateError),
+                Some(&SqlState::INVALID_PARAMETER_VALUE) => report
+                    .change_context(WrongOntologyVersion)
                     .attach_printable(uri.clone())
                     .change_context(UpdateError),
                 _ => report
