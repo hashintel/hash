@@ -10,12 +10,14 @@ import {
   TableRow,
   Typography,
   TypographyProps,
+  useForkRef,
 } from "@mui/material";
 import { Box, experimental_sx, styled } from "@mui/system";
 import { memoize } from "lodash";
-import { forwardRef, ReactNode } from "react";
+import { forwardRef, ReactNode, useEffect, useRef, useState } from "react";
 
 import { WhiteCard } from "../../../../../shared/white-card";
+import { EDIT_BAR_HEIGHT } from "../../shared/edit-bar";
 
 export const EntityTypeTableCenteredCell = styled(TableCell)(
   experimental_sx({
@@ -41,39 +43,92 @@ const flashAnimation = memoize(
 export const EntityTypeTableRow = forwardRef<
   HTMLTableRowElement,
   { children: ReactNode; flash?: boolean }
->(({ children, flash = false }, ref) => (
-  <TableRow
-    ref={ref}
-    sx={[
-      (theme) => ({
-        [`.${tableCellClasses.root}`]: {
-          "&:first-of-type": {
-            borderTopLeftRadius: theme.borderRadii.md,
-            borderBottomLeftRadius: theme.borderRadii.md,
+>(({ children, flash = false }, ref) => {
+  const [flashed, setFlashed] = useState(false);
+  const rowRef = useRef<HTMLElement>(null);
+
+  const combinedRef = useForkRef(ref, rowRef);
+
+  if (flashed && !flash) {
+    setFlashed(false);
+  }
+
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  useEffect(() => {
+    if (flash && !flashed) {
+      setFlashed(true);
+
+      const node = rowRef.current;
+      if (node) {
+        const observer = new IntersectionObserver(
+          ([entry]) => {
+            if (entry) {
+              const ratio = entry.intersectionRatio;
+              if (ratio < 1) {
+                const place: ScrollLogicalPosition =
+                  ratio <= 0 ? "center" : "nearest";
+                node.scrollIntoView({
+                  block: place,
+                  inline: place,
+                  behavior: "smooth",
+                });
+              }
+            }
+            observer.disconnect();
           },
-          "&:last-of-type": {
-            borderTopRightRadius: theme.borderRadii.md,
-            borderBottomRightRadius: theme.borderRadii.md,
+          {
+            rootMargin: `${EDIT_BAR_HEIGHT}px`,
           },
-        },
-        [`&:hover .${tableCellClasses.root}`]: {
-          background: theme.palette.gray[10],
-        },
-      }),
-      flash &&
-        ((theme) => ({
+        );
+
+        observer.observe(node);
+        observerRef.current?.disconnect();
+        observerRef.current = observer;
+      }
+    }
+  }, [flashed, flash]);
+
+  useEffect(() => {
+    return () => {
+      observerRef.current?.disconnect();
+    };
+  });
+
+  return (
+    <TableRow
+      ref={combinedRef}
+      sx={[
+        (theme) => ({
           [`.${tableCellClasses.root}`]: {
-            animation: `${flashAnimation(theme.palette.blue[20])} ease-in ${
-              FLASHING_ROW_MS / 1000
-            }s`,
-            animationFillMode: "forwards",
+            "&:first-of-type": {
+              borderTopLeftRadius: theme.borderRadii.md,
+              borderBottomLeftRadius: theme.borderRadii.md,
+            },
+            "&:last-of-type": {
+              borderTopRightRadius: theme.borderRadii.md,
+              borderBottomRightRadius: theme.borderRadii.md,
+            },
           },
-        })),
-    ]}
-  >
-    {children}
-  </TableRow>
-));
+          [`&:hover .${tableCellClasses.root}`]: {
+            background: theme.palette.gray[10],
+          },
+        }),
+        flash &&
+          ((theme) => ({
+            [`.${tableCellClasses.root}`]: {
+              animation: `${flashAnimation(theme.palette.blue[20])} ease-in ${
+                FLASHING_ROW_MS / 1000
+              }s`,
+              animationFillMode: "forwards",
+            },
+          })),
+      ]}
+    >
+      {children}
+    </TableRow>
+  );
+});
 
 export const EntityTypeTableTitleCellText = ({
   children,

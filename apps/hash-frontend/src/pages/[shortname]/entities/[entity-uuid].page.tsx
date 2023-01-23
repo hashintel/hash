@@ -20,7 +20,7 @@ import {
   NextPageWithLayout,
 } from "../../../shared/layout";
 import { useRouteNamespace } from "../shared/use-route-namespace";
-import { EditBar } from "../types/entity-type/[entity-type-id].page/edit-bar";
+import { EditBar } from "../types/entity-type/[entity-type-id].page/shared/edit-bar";
 import { EntityEditorPage } from "./[entity-uuid].page/entity-editor-page";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
 import { updateEntitySubgraphStateByEntity } from "./[entity-uuid].page/shared/update-entity-subgraph-state-by-entity";
