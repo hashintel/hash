@@ -13,7 +13,7 @@ plugins:
 merge:
   required_statuses:
     - Linting
-    - Unit Tests
+    - Unit tests
     - Backend integration tests
     - Playwright tests
     - merging enabled
