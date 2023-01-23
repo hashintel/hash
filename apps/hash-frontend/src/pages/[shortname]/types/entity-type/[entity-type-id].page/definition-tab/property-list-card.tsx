@@ -66,6 +66,7 @@ import {
   EntityTypeTableCenteredCell,
   EntityTypeTableHeaderRow,
   EntityTypeTableRow,
+  FLASHING_ROW_MS,
 } from "./shared/entity-type-table";
 import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
 import {
@@ -588,16 +589,7 @@ export const PropertyListCard = () => {
       return a.property.title.localeCompare(b.property.title);
     });
 
-  const allProperties = fields.map((field) => field.field.$id);
-  const [knownProperties, setKnownProperties] = useState(allProperties);
   const [flashingProperties, setFlashingProperties] = useState<string[]>([]);
-  if (JSON.stringify(allProperties) !== JSON.stringify(knownProperties)) {
-    setFlashingProperties(
-      allProperties.filter((id) => !knownProperties.includes(id)),
-    );
-    setKnownProperties(allProperties);
-  }
-
   const [addingNewProperty, setAddingNewProperty] = useStateCallback(false);
   const [searchText, setSearchText] = useState("");
   const addingNewPropertyRef = useRef<HTMLInputElement>(null);
@@ -620,6 +612,10 @@ export const PropertyListCard = () => {
     popupId: `createProperty-${modalTooltipId}`,
   });
 
+  const flashingTimeouts = useRef<
+    Record<string, ReturnType<typeof setTimeout>>
+  >({});
+
   const handleAddPropertyType = (propertyType: PropertyType) => {
     cancelAddingNewProperty();
     if (!getValues("properties").some(({ $id }) => $id === propertyType.$id)) {
@@ -631,6 +627,15 @@ export const PropertyListCard = () => {
         maxValue: 1,
         infinity: true,
       });
+      setFlashingProperties([...flashingProperties, propertyType.$id]);
+
+      clearTimeout(flashingTimeouts.current[propertyType.$id]);
+
+      flashingTimeouts.current[propertyType.$id] = setTimeout(() => {
+        setFlashingProperties(
+          flashingProperties.filter((id) => id !== propertyType.$id),
+        );
+      }, FLASHING_ROW_MS);
     }
   };
 

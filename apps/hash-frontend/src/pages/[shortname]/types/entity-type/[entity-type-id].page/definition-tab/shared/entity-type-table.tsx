@@ -24,6 +24,8 @@ export const EntityTypeTableCenteredCell = styled(TableCell)(
   }),
 );
 
+export const FLASHING_ROW_MS = 3_000;
+
 const flashAnimation = memoize(
   (color: string) => keyframes`
   from, 83% {
@@ -61,7 +63,9 @@ export const EntityTypeTableRow = forwardRef<
       flash &&
         ((theme) => ({
           [`.${tableCellClasses.root}`]: {
-            animation: `${flashAnimation(theme.palette.blue[20])} ease-in 3s`,
+            animation: `${flashAnimation(theme.palette.blue[20])} ease-in ${
+              FLASHING_ROW_MS / 1000
+            }s`,
             animationFillMode: "forwards",
           },
         })),
