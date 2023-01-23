@@ -32,6 +32,7 @@ import {
   WayToUseHash,
   DeprecatedEntityType,
 } from "../graphql/api-types.gen";
+import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 
 const logger = new Logger({
   mode: "dev",
@@ -869,7 +870,7 @@ describe("logged in user ", () => {
         {
           insertBlock: {
             accountId: page.accountId,
-            componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
+            componentId: paragraphBlockComponentId,
             position: 1,
             entity: {
               entityType: {
@@ -882,7 +883,7 @@ describe("logged in user ", () => {
         {
           insertBlock: {
             accountId: page.accountId,
-            componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
+            componentId: paragraphBlockComponentId,
             position: 2,
             entity: {
               entityType: {
@@ -1083,7 +1084,7 @@ describe("logged in user ", () => {
         {
           insertBlock: {
             accountId: page.accountId,
-            componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
+            componentId: paragraphBlockComponentId,
             position: 1,
             entity: {
               entityType: {
