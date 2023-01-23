@@ -138,7 +138,7 @@ See the [Developing Blocks](https://blockprotocol.org/docs/developing-blocks) pa
 
 ### The Graph Query Layer
 
-HASH's primary datastore is an entity graph. The service that provides this is located within the /packages/graph folder. The README contains more information for development. You do not need to visit that README or folder unless you want to amend the graph service.
+HASH's primary datastore is an entity graph. The service that provides this is located within the /apps/hash-graph folder. The README contains more information for development. You do not need to visit that README or folder unless you want to amend the graph service.
 
 ## Testing
 

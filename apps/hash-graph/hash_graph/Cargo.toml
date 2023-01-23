@@ -10,7 +10,7 @@ edition = "2021"
 authors = ["HASH"]
 license-file = "LICENSE.md"
 publish = false
-repository = "https://github.com/hashintel/hash/tree/main/packages/graph/hash_graph"
+repository = "https://github.com/hashintel/hash/tree/main/apps/hash-graph/hash_graph"
 
 [profile.production]
 inherits = "release"

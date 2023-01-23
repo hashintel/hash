@@ -17,7 +17,7 @@ COPY libs/@local/design-system/package.json libs/@local/design-system/
 COPY libs/@local/eslint-config/package.json libs/@local/eslint-config/
 COPY libs/@local/hash-isomorphic-utils/package.json libs/@local/hash-isomorphic-utils/
 COPY libs/@local/tsconfig/package.json libs/@local/tsconfig/
-COPY packages/graph/clients/typescript/package.json packages/graph/clients/typescript/
+COPY apps/hash-graph/clients/typescript/package.json apps/hash-graph/clients/typescript/
 COPY apps/hash-frontend/package.json apps/hash-frontend/
 COPY packages/hash/subgraph/package.json packages/hash/subgraph/
 RUN yarn workspace @apps/hash-frontend install --frozen-lockfile --prefer-offline
@@ -39,7 +39,7 @@ COPY libs/@local/design-system libs/@local/design-system
 COPY libs/@local/eslint-config libs/@local/eslint-config
 COPY libs/@local/hash-isomorphic-utils libs/@local/hash-isomorphic-utils
 COPY libs/@local/tsconfig libs/@local/tsconfig
-COPY packages/graph/clients/typescript packages/graph/clients/typescript
+COPY apps/hash-graph/clients/typescript apps/hash-graph/clients/typescript
 COPY apps/hash-frontend apps/hash-frontend
 COPY packages/hash/subgraph packages/hash/subgraph
 

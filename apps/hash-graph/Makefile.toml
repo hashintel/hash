@@ -3,14 +3,14 @@ extend = { path = "../../.github/scripts/rust/Makefile.toml" }
 [tasks.yarn-install-openapi]
 description = "Installs the required yarn dependencies for generating the API client"
 extend = "yarn"
-cwd = "${REPO_ROOT}/packages/graph/clients"
+cwd = "${REPO_ROOT}/apps/hash-graph/clients"
 
 [tasks.migrate-up]
 category = "Deploy"
 description = "Runs all migrations"
 extend = "docker"
-args = ["compose", "--env-file", "${REPO_ROOT}/packages/graph/.env", "up", "migrate", "--no-recreate"]
-cwd = "${REPO_ROOT}/packages/graph/deployment"
+args = ["compose", "--env-file", "${REPO_ROOT}/apps/hash-graph/.env", "up", "migrate", "--no-recreate"]
+cwd = "${REPO_ROOT}/apps/hash-graph/deployment"
 
 [tasks.deployment-up]
 run_task = { name = ["docker-compose-deployment-up", "migrate-db"] }
@@ -21,14 +21,14 @@ category = "Deploy"
 description = "Spins up the deployment environment"
 extend = "docker"
 args = ["compose", "--env-file", "../.env", "up", "--wait", "--build"]
-cwd = "${REPO_ROOT}/packages/graph/deployment"
+cwd = "${REPO_ROOT}/apps/hash-graph/deployment"
 
 [tasks.migrate-db]
 private = false
 category = "Deploy"
 extend = "run-task"
 description = "Run DB migrations using the Graph binary"
-cwd = "${REPO_ROOT}/packages/graph"
+cwd = "${REPO_ROOT}/apps/hash-graph"
 args = ["run", "--manifest-path", "./hash_graph/Cargo.toml", "--", "migrate"]
 
 [tasks.deployment-down]
@@ -37,7 +37,7 @@ category = "Deploy"
 description = "Tears down the deployment environment"
 extend = "docker"
 args = ["compose", "--env-file", "../.env", "down"]
-cwd = "${REPO_ROOT}/packages/graph/deployment"
+cwd = "${REPO_ROOT}/apps/hash-graph/deployment"
 
 [tasks.build-docker]
 category = "Deploy"
@@ -67,4 +67,4 @@ run_task = { name = ["yarn-install-openapi", "graph-up", "test-rest-api", "graph
 [tasks.test-rest-api]
 # This is a temporary solution until we have e2e tests in place
 extend = "yarn"
-args = ["httpyac", "send", "--all", "${REPO_ROOT}/packages/graph/hash_graph/tests/rest-test.http", "${@}"]
+args = ["httpyac", "send", "--all", "${REPO_ROOT}/apps/hash-graph/hash_graph/tests/rest-test.http", "${@}"]
