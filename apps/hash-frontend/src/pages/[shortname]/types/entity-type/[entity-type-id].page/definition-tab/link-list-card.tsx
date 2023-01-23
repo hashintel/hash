@@ -53,6 +53,7 @@ import {
   EntityTypeTableRow,
   EntityTypeTableTitleCellText,
   sortRows,
+  useFlashRow,
 } from "./shared/entity-type-table";
 import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
 import { MultipleValuesCell } from "./shared/multiple-values-cell";
@@ -114,11 +115,13 @@ const LinkTypeRow = ({
   link,
   onRemove,
   onUpdateVersion,
+  flash,
 }: {
   linkIndex: number;
   link: EntityTypeWithMetadata | undefined;
   onRemove: () => void;
   onUpdateVersion: (nextId: VersionedUri) => void;
+  flash: boolean;
 }) => {
   if (!link) {
     throw new Error("Missing link");
@@ -172,7 +175,7 @@ const LinkTypeRow = ({
 
   return (
     <>
-      <EntityTypeTableRow>
+      <EntityTypeTableRow flash={flash}>
         <TableCell>
           <EntityTypeTableTitleCellText>
             {link.schema.title}
@@ -385,6 +388,8 @@ export const LinkListCard = () => {
     [linkTypes, unsortedFields],
   );
 
+  const [flashingRows, flashRow] = useFlashRow();
+
   const linkEntityTypes = useLinkEntityTypesOptional();
   const [addingNewLink, setAddingNewLink] = useStateCallback(false);
   const addingNewLinkRef = useRef<HTMLInputElement>(null);
@@ -419,6 +424,7 @@ export const LinkListCard = () => {
       },
       { shouldFocus: false },
     );
+    flashRow(link.$id);
   };
 
   const handleSubmit = async (data: TypeFormDefaults) => {
@@ -500,6 +506,7 @@ export const LinkListCard = () => {
               });
             }}
             link={row}
+            flash={flashingRows.includes(row.schema.$id)}
           />
         ))}
       </TableBody>
