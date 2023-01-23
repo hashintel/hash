@@ -4,7 +4,7 @@ mod entity_type;
 mod links;
 mod property_type;
 
-use std::{borrow::Cow, ops::Bound, str::FromStr, time::SystemTime};
+use std::{borrow::Cow, str::FromStr, time::SystemTime};
 
 use chrono::{DateTime, Days, Utc};
 use error_stack::Result;
