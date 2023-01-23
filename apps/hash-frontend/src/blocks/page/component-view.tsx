@@ -91,6 +91,7 @@ export class ComponentView implements NodeView {
     private readonly renderPortal: RenderPortal,
     private readonly block: HashBlock,
     private readonly manager: ProsemirrorManager,
+    private readonly readonly: boolean,
   ) {
     this.dom.setAttribute("data-dom", "true");
     this.contentDOM.setAttribute("data-contentDOM", "true");
@@ -202,6 +203,7 @@ export class ComponentView implements NodeView {
                 editableRef={this.editableRef}
                 wrappingEntityId={entityId}
                 onBlockLoaded={this.onBlockLoaded}
+                readonly={this.readonly}
               />
             </Sentry.ErrorBoundary>
           )}
