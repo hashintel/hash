@@ -4,10 +4,10 @@ import { autocompleteClasses, Box, Paper, PaperProps } from "@mui/material";
 import { popperPlacementSelectors } from "./popper-placement-modifier";
 
 export const AutocompleteDropdown = ({
-  buttonHeight = 0,
   children,
+  inputHeight = 0,
   ...props
-}: PaperProps & { buttonHeight?: number }) => {
+}: PaperProps & { inputHeight?: number }) => {
   return (
     <>
       <Box
@@ -16,21 +16,21 @@ export const AutocompleteDropdown = ({
           left: 0,
           right: 0,
           width: "100%",
-          height: `calc(100% + ${buttonHeight}px)`,
+          height: `calc(100% + ${inputHeight}px)`,
           boxShadow: theme.boxShadows.md,
           pointerEvents: "none",
           borderRadius: `${textFieldBorderRadius}px`,
           [`${popperPlacementSelectors.top} &`]: {
-            bottom: -buttonHeight,
+            bottom: -inputHeight,
           },
           [`${popperPlacementSelectors.topStart} &`]: {
-            bottom: -buttonHeight,
+            bottom: -inputHeight,
           },
           [`${popperPlacementSelectors.bottom} &`]: {
-            top: -buttonHeight,
+            top: -inputHeight,
           },
           [`${popperPlacementSelectors.bottomStart} &`]: {
-            top: -buttonHeight,
+            top: -inputHeight,
           },
         })}
         aria-hidden
@@ -66,8 +66,18 @@ export const AutocompleteDropdown = ({
           [`.${autocompleteClasses.noOptions}`]: { display: "none" },
           [`.${autocompleteClasses.option}`]: {
             borderRadius: 1,
+            my: 0.25,
+
+            [`&[aria-selected="true"]`]: {
+              backgroundColor: `${theme.palette.blue[20]} !important`,
+            },
+
             "&.Mui-focused": {
               backgroundColor: `${theme.palette.gray[10]} !important`,
+
+              [`&[aria-selected="true"]`]: {
+                backgroundColor: `${theme.palette.gray[20]} !important`,
+              },
             },
           },
         })}
