@@ -112,7 +112,8 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
     linkAndTargetEntities,
   );
 
-  const canAddMore = linkAndTargetEntities.length < maxItems;
+  const canAddMore =
+    maxItems === undefined || linkAndTargetEntities.length < maxItems;
 
   const linkedEntityIds = useMemo(
     () =>

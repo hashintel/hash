@@ -1,4 +1,4 @@
-import { VersionedUri } from "@local/hash-subgraph";
+import { EntityTypeWithMetadata, VersionedUri } from "@local/hash-subgraph";
 import { getOutgoingLinkAndTargetEntitiesAtMoment } from "@local/hash-subgraph/src/stdlib/edge/link";
 import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
@@ -43,8 +43,18 @@ export const useRows = () => {
         linkEntityTypeId,
       );
 
-      if (!("oneOf" in linkSchema.items)) {
-        throw new Error("oneOf not found inside linkSchema.items");
+      let expectedEntityTypes: EntityTypeWithMetadata[] = [];
+
+      if ("oneOf" in linkSchema.items) {
+        expectedEntityTypes = linkSchema.items.oneOf.map(({ $ref }) => {
+          const expectedEntityType = getEntityTypeById(entitySubgraph, $ref);
+
+          if (!expectedEntityType) {
+            throw new Error("entity type not found");
+          }
+
+          return expectedEntityType;
+        });
       }
 
       const additions = draftLinksToCreate.filter(
@@ -66,16 +76,6 @@ export const useRows = () => {
 
       linkAndTargetEntities.push(...additions);
 
-      const expectedEntityTypes = linkSchema.items.oneOf.map(({ $ref }) => {
-        const expectedEntityType = getEntityTypeById(entitySubgraph, $ref);
-
-        if (!expectedEntityType) {
-          throw new Error("entity type not found");
-        }
-
-        return expectedEntityType;
-      });
-
       const expectedEntityTypeTitles = expectedEntityTypes.map(
         (val) => val.schema.title,
       );
@@ -85,7 +85,8 @@ export const useRows = () => {
         linkEntityTypeId,
         linkTitle: linkEntityType?.schema.title ?? "",
         linkAndTargetEntities,
-        maxItems: linkSchema.maxItems ?? 1,
+        maxItems: linkSchema.maxItems,
+        isList: linkSchema.maxItems === undefined || linkSchema.maxItems > 1,
         expectedEntityTypes,
         expectedEntityTypeTitles,
         entitySubgraph,

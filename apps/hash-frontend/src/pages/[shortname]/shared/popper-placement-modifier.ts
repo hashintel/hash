@@ -13,18 +13,27 @@ export const popperPlacementSelectors = {
   bottomEnd: `[${popperPositionDataAttribute}="bottom-end"]`,
 };
 
+export const setPopperPlacementAttribute = (
+  node: HTMLElement,
+  placement: NonNullable<PopperProps["placement"]>,
+) => {
+  node.setAttribute(popperPositionDataAttribute, placement);
+};
+
 export const addPopperPositionClassPopperModifier: NonNullable<
   PopperProps["modifiers"]
 >[number] = {
-  name: "addPositionClass",
+  name: "addPositionSelector",
   enabled: true,
   phase: "write",
-  fn({ state }) {
+  fn({ state, options }) {
     if (state.elements.reference instanceof HTMLElement) {
-      state.elements.reference.setAttribute(
-        popperPositionDataAttribute,
-        state.placement,
-      );
+      setPopperPlacementAttribute(state.elements.reference, state.placement);
+    }
+    // This allows a consumer to be notified when the placement has changed
+    const { update } = options as { update?: unknown };
+    if (typeof update === "function") {
+      update(state.placement);
     }
   },
 };

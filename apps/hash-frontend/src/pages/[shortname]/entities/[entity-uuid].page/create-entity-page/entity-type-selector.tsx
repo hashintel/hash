@@ -50,9 +50,7 @@ export const EntityTypeSelector: FunctionComponent<{
         highlightedRef.current = value;
       }}
       onChange={(_, option) => {
-        if (option) {
-          onSelect(option.schema);
-        }
+        onSelect(option.schema);
       }}
       onKeyUp={(evt) => {
         if (evt.key === "Enter" && !highlightedRef.current) {

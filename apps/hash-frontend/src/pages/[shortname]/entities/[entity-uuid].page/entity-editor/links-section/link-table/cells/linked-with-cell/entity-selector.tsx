@@ -111,9 +111,7 @@ export const EntitySelector = ({
         highlightedRef.current = value;
       }}
       onChange={(_, option) => {
-        if (option) {
-          onSelect(option);
-        }
+        onSelect(option);
       }}
       onKeyUp={(evt) => {
         if (evt.key === "Enter" && !highlightedRef.current) {

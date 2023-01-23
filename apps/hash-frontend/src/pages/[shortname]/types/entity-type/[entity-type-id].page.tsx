@@ -91,7 +91,9 @@ const getSchemaFromEditorForm = (
       minItems: link.minValue,
       ...(link.infinity ? {} : { maxItems: link.maxValue }),
       ordered: false,
-      items: { oneOf: link.entityTypes.map((id) => ({ $ref: id })) },
+      items: link.entityTypes.length
+        ? { oneOf: link.entityTypes.map((id) => ({ $ref: id })) }
+        : {},
     };
   }
 
