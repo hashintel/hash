@@ -570,9 +570,15 @@ export const PropertyListCard = () => {
       return { field, property, index };
     })
     .sort((a, b) => {
-      if (!a.property && !b.property) return 0;
-      if (!a.property) return 1;
-      if (!b.property) return -1;
+      if (!a.property && !b.property) {
+        return 0;
+      }
+      if (!a.property) {
+        return 1;
+      }
+      if (!b.property) {
+        return -1;
+      }
       return a.property.title.localeCompare(b.property.title);
     });
 
