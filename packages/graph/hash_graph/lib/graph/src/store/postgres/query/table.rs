@@ -105,9 +105,10 @@ macro_rules! impl_ontology_column {
                         Self::Schema(None) => "schema",
                         Self::Schema(Some(path)) => {
                             return match path {
-                                JsonField::Json(field) => {
-                                    write!(fmt, r#"."schema"->'{field}'"#)
-                                }
+                                JsonField::Json(field) => panic!(
+                                    "attempting to access JSON field `{field}` on schema column \
+                                     without preparing the value"
+                                ),
                                 JsonField::JsonParameter(index) => {
                                     write!(fmt, r#"."schema"->${index}"#)
                                 }
@@ -198,9 +199,10 @@ impl Transpile for Entities<'_> {
             Self::Properties(None) => "properties",
             Self::Properties(Some(path)) => {
                 return match path {
-                    JsonField::Json(field) => {
-                        write!(fmt, r#"."properties"->'{field}'"#)
-                    }
+                    JsonField::Json(field) => panic!(
+                        "attempting to access JSON field `{field}` on properties column without \
+                         preparing the value"
+                    ),
                     JsonField::JsonParameter(index) => {
                         write!(fmt, r#"."properties"->${index}"#)
                     }
