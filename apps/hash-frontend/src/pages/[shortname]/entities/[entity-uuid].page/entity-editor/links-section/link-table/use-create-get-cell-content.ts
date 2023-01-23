@@ -28,6 +28,8 @@ export const useCreateGetCellContent = () => {
           throw new Error("columnKey not found");
         }
 
+        const expectsAnything = !row.expectedEntityTypeTitles.length;
+
         switch (columnKey) {
           case "linkTitle":
             return {
@@ -61,10 +63,13 @@ export const useCreateGetCellContent = () => {
               copyData: String(row.expectedEntityTypeTitles),
               data: {
                 kind: "chip-cell",
-                chips: row.expectedEntityTypeTitles.map((title) => ({
-                  text: title,
-                })),
+                chips: expectsAnything
+                  ? [{ text: "Anything" }]
+                  : row.expectedEntityTypeTitles.map((title) => ({
+                      text: title,
+                    })),
                 color: "blue",
+                variant: expectsAnything ? "outlined" : "filled",
               },
             };
         }
