@@ -632,8 +632,8 @@ export const PropertyListCard = () => {
       clearTimeout(flashingTimeouts.current[propertyType.$id]);
 
       flashingTimeouts.current[propertyType.$id] = setTimeout(() => {
-        setFlashingProperties(
-          flashingProperties.filter((id) => id !== propertyType.$id),
+        setFlashingProperties((current) =>
+          current.filter((id) => id !== propertyType.$id),
         );
       }, FLASHING_ROW_MS);
     }
