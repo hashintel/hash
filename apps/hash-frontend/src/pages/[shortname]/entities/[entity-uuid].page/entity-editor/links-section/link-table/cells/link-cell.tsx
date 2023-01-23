@@ -25,7 +25,7 @@ export const renderLinkCell: CustomRenderer<LinkCell> = {
     (cell.data as any).kind === "link-cell",
   draw: (args, cell) => {
     const { rect, ctx, theme, spriteManager } = args;
-    const { linkTitle, maxItems } = cell.data.linkRow;
+    const { linkTitle, isList } = cell.data.linkRow;
 
     ctx.fillStyle = theme.textHeader;
     ctx.font = theme.baseFontStyle;
@@ -35,13 +35,13 @@ export const renderLinkCell: CustomRenderer<LinkCell> = {
 
     const iconSize = 16;
     spriteManager.drawSprite(
-      maxItems > 1 ? "bpList" : "bpLink",
+      isList ? "bpList" : "bpLink",
       "normal",
       ctx,
       iconLeft,
       yCenter - iconSize / 2,
       iconSize,
-      maxItems > 1 ? theme : { ...theme, fgIconHeader: customColors.blue[70] },
+      isList ? theme : { ...theme, fgIconHeader: customColors.blue[70] },
     );
 
     const textLeft = iconLeft + iconSize + 5;

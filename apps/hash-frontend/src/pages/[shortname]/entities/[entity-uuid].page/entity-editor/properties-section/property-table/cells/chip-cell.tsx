@@ -20,20 +20,26 @@ export interface ChipCellProps {
     faIconDefinition?: Pick<IconDefinition, "icon">;
   }[];
   color?: ChipProps["color"];
+  variant?: ChipProps["variant"];
 }
 
 export type ChipCell = CustomCell<ChipCellProps>;
 
-export const getChipColors = (color: ChipProps["color"]) => {
+export const getChipColors = (
+  color: ChipProps["color"],
+  variant: ChipProps["variant"] = "filled",
+) => {
+  const isOutlined = variant === "outlined";
   switch (color) {
     case "blue":
       return {
         textColor: customColors.blue[70],
-        bgColor: customColors.blue[20],
+        bgColor: isOutlined ? customColors.blue[10] : customColors.blue[20],
+        borderColor: isOutlined ? customColors.blue[30] : "white",
       };
 
     default:
-      return { textColor: undefined, bgColor: undefined };
+      return {};
   }
 };
 
@@ -43,12 +49,12 @@ export const renderChipCell: CustomRenderer<ChipCell> = {
     (cell.data as any).kind === "chip-cell",
   draw: (args, cell) => {
     const { theme, rect } = args;
-    const { chips, color = "gray" } = cell.data;
+    const { chips, color = "gray", variant } = cell.data;
 
     const chipGap = 8;
     let chipLeft = rect.x + theme.cellHorizontalPadding;
 
-    const { bgColor, textColor } = getChipColors(color);
+    const { bgColor, textColor, borderColor } = getChipColors(color, variant);
     for (let i = 0; i < chips.length; i++) {
       const { icon, text = "" } = chips[i] ?? {};
       const chipWidth = drawChipWithIcon({
@@ -58,6 +64,7 @@ export const renderChipCell: CustomRenderer<ChipCell> = {
         textColor,
         bgColor,
         icon,
+        borderColor,
       });
 
       chipLeft += chipWidth + chipGap;
@@ -66,7 +73,7 @@ export const renderChipCell: CustomRenderer<ChipCell> = {
     drawCellFadeOutGradient(args);
   },
   provideEditor: (cell) => {
-    const { chips, color = "gray" } = cell.data;
+    const { chips, color = "gray", variant } = cell.data;
 
     return {
       disablePadding: true,
@@ -89,6 +96,7 @@ export const renderChipCell: CustomRenderer<ChipCell> = {
                 key={text}
                 label={text}
                 color={color}
+                variant={variant}
                 icon={<FontAwesomeIcon icon={faIconDefinition ?? faAsterisk} />}
               />
             ))}
