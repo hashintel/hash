@@ -306,12 +306,18 @@ pub struct ParameterConversionError {
 impl fmt::Display for ParameterConversionError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         let actual = match &self.actual {
-            Parameter::Boolean(boolean) => boolean.to_string(),
+            Parameter::Any(Value::Null) => "null".to_string(),
+            Parameter::Boolean(boolean) | Parameter::Any(Value::Bool(boolean)) => {
+                boolean.to_string()
+            }
             Parameter::Number(number) => number.to_string(),
+            Parameter::Any(Value::Number(number)) => number.to_string(),
             Parameter::Text(text) => text.to_string(),
-            Parameter::Any(_) => "JSON value".to_owned(),
+            Parameter::Any(Value::String(string)) => string.clone(),
             Parameter::Uuid(uuid) => uuid.to_string(),
             Parameter::SignedInteger(integer) => integer.to_string(),
+            Parameter::Any(Value::Object(_)) => "object".to_string(),
+            Parameter::Any(Value::Array(_)) => "array".to_string(),
         };
 
         write!(fmt, "could not convert {actual} to {}", self.expected)
