@@ -1,3 +1,4 @@
+import { VersionedUri } from "@blockprotocol/type-system";
 import {
   ButtonBase,
   checkboxClasses,
@@ -26,7 +27,28 @@ export const EntityTypeTableCenteredCell = styled(TableCell)(
   }),
 );
 
-export const FLASHING_ROW_MS = 3_000;
+export const sortRows = <V, R extends { $id: VersionedUri }>(
+  rows: R[],
+  resolveRow: ($id: VersionedUri) => V | undefined,
+  resolveTitle: (row: V) => string,
+) => {
+  return rows
+    .map((field, index) => ({ field, row: resolveRow(field.$id), index }))
+    .sort((a, b) => {
+      if (!a.row && !b.row) {
+        return 0;
+      }
+      if (!a.row) {
+        return 1;
+      }
+      if (!b.row) {
+        return -1;
+      }
+      return resolveTitle(a.row).localeCompare(resolveTitle(b.row));
+    });
+};
+
+const FLASHING_ROW_MS = 3_000;
 
 const flashAnimation = memoize(
   (color: string) => keyframes`
@@ -39,6 +61,25 @@ const flashAnimation = memoize(
   } 
 `,
 );
+
+export const useFlashRow = () => {
+  const [flashingRows, setFlashingRows] = useState<string[]>([]);
+  const flashingTimeouts = useRef<
+    Record<string, ReturnType<typeof setTimeout>>
+  >({});
+
+  const flashRow = (row: string) => {
+    setFlashingRows([...flashingRows, row]);
+
+    clearTimeout(flashingTimeouts.current[row]);
+
+    flashingTimeouts.current[row] = setTimeout(() => {
+      setFlashingRows((current) => current.filter((id) => id !== row));
+    }, FLASHING_ROW_MS);
+  };
+
+  return [flashingRows, flashRow] as const;
+};
 
 export const EntityTypeTableRow = forwardRef<
   HTMLTableRowElement,

@@ -1,3 +1,4 @@
+import { EntityTypeWithMetadata } from "@blockprotocol/graph";
 import { EntityType, VersionedUri } from "@blockprotocol/type-system";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { linkEntityTypeUri } from "@hashintel/hash-subgraph";
@@ -19,7 +20,7 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { useId, useLayoutEffect, useRef, useState } from "react";
+import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 
 import { useBlockProtocolCreateEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
@@ -40,7 +41,9 @@ import {
 } from "../../../../shared/popper-placement-modifier";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
 import { useRouteNamespace } from "../../../../shared/use-route-namespace";
+import { useEntityType } from "../shared/entity-type-context";
 import { EntityTypeEditorForm } from "../shared/form-types";
+import { useLatestPropertyTypes } from "../shared/latest-property-types-context";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
@@ -49,6 +52,7 @@ import {
   EntityTypeTableHeaderRow,
   EntityTypeTableRow,
   EntityTypeTableTitleCellText,
+  sortRows,
 } from "./shared/entity-type-table";
 import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
 import { MultipleValuesCell } from "./shared/multiple-values-cell";
@@ -107,13 +111,19 @@ export const LinkTypeForm = (props: TypeFormProps) => {
 
 const LinkTypeRow = ({
   linkIndex,
+  link,
   onRemove,
   onUpdateVersion,
 }: {
   linkIndex: number;
+  link: EntityTypeWithMetadata | undefined;
   onRemove: () => void;
   onUpdateVersion: (nextId: VersionedUri) => void;
 }) => {
+  if (!link) {
+    throw new Error("Missing link");
+  }
+
   const { control, setValue } = useFormContext<EntityTypeEditorForm>();
 
   const entityTypeSelectorPopupId = useId();
@@ -122,13 +132,7 @@ const LinkTypeRow = ({
     popupId: entityTypeSelectorPopupId,
   });
 
-  const linkTypes = useLinkEntityTypes();
   const entityTypes = useEntityTypes();
-  const linkId = useWatch({
-    control,
-    name: `links.${linkIndex}.$id`,
-  });
-
   const chosenEntityTypes = useWatch({
     control,
     name: `links.${linkIndex}.entityTypes`,
@@ -150,7 +154,7 @@ const LinkTypeRow = ({
   const handleSubmit = async (data: TypeFormDefaults) => {
     const res = await updateEntityType({
       data: {
-        entityTypeId: linkId,
+        entityTypeId: link.schema.$id,
         entityType: formDataToEntityType(data),
       },
     });
@@ -165,12 +169,6 @@ const LinkTypeRow = ({
 
     editModalPopupState.close();
   };
-
-  const link = linkTypes[linkId];
-
-  if (!link) {
-    throw new Error("Missing link");
-  }
 
   return (
     <>
@@ -323,7 +321,7 @@ const LinkTypeRow = ({
         </TableCell>
         <MultipleValuesCell index={linkIndex} variant="link" />
         <TypeMenuCell
-          typeId={linkId}
+          typeId={link.schema.$id}
           editButtonProps={bindTrigger(editModalPopupState)}
           variant="link"
           onRemove={onRemove}
@@ -370,7 +368,23 @@ const InsertLinkRow = (
 
 export const LinkListCard = () => {
   const { control, setValue } = useFormContext<EntityTypeEditorForm>();
-  const { fields, append, remove } = useFieldArray({ control, name: "links" });
+  const {
+    fields: unsortedFields,
+    append,
+    remove,
+  } = useFieldArray({ control, name: "links" });
+  const linkTypes = useLinkEntityTypes();
+
+  const fields = useMemo(
+    () =>
+      sortRows(
+        unsortedFields,
+        (linkId) => linkTypes[linkId],
+        (row) => row.schema.title,
+      ),
+    [linkTypes, unsortedFields],
+  );
+
   const linkEntityTypes = useLinkEntityTypesOptional();
   const [addingNewLink, setAddingNewLink] = useStateCallback(false);
   const addingNewLinkRef = useRef<HTMLInputElement>(null);
@@ -473,9 +487,9 @@ export const LinkListCard = () => {
         </EntityTypeTableHeaderRow>
       </TableHead>
       <TableBody>
-        {fields.map((type, index) => (
+        {fields.map(({ field, row, index }) => (
           <LinkTypeRow
-            key={type.id}
+            key={field.id}
             linkIndex={index}
             onRemove={() => {
               remove(index);
@@ -485,6 +499,7 @@ export const LinkListCard = () => {
                 shouldDirty: true,
               });
             }}
+            link={row}
           />
         ))}
       </TableBody>

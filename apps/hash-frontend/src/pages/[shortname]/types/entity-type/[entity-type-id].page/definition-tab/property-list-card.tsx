@@ -66,7 +66,8 @@ import {
   EntityTypeTableCenteredCell,
   EntityTypeTableHeaderRow,
   EntityTypeTableRow,
-  FLASHING_ROW_MS,
+  sortRows,
+  useFlashRow,
 } from "./shared/entity-type-table";
 import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
 import {
@@ -564,32 +565,20 @@ export const PropertyListCard = () => {
     control,
     name: "properties",
   });
-
   const propertyTypes = useLatestPropertyTypes()[0];
   const { propertyTypes: entityTypePropertyTypes } = useEntityType();
 
-  const fields = unsortedFields
-    .map((field, index) => {
-      const propertyId = field.$id;
-      const property =
-        entityTypePropertyTypes[propertyId] ?? propertyTypes?.[propertyId];
+  const fields = useMemo(
+    () =>
+      sortRows(
+        unsortedFields,
+        (propertyId) =>
+          entityTypePropertyTypes[propertyId] ?? propertyTypes?.[propertyId],
+        (row) => row.title,
+      ),
+    [entityTypePropertyTypes, propertyTypes, unsortedFields],
+  );
 
-      return { field, property, index };
-    })
-    .sort((a, b) => {
-      if (!a.property && !b.property) {
-        return 0;
-      }
-      if (!a.property) {
-        return 1;
-      }
-      if (!b.property) {
-        return -1;
-      }
-      return a.property.title.localeCompare(b.property.title);
-    });
-
-  const [flashingProperties, setFlashingProperties] = useState<string[]>([]);
   const [addingNewProperty, setAddingNewProperty] = useStateCallback(false);
   const [searchText, setSearchText] = useState("");
   const addingNewPropertyRef = useRef<HTMLInputElement>(null);
@@ -611,10 +600,7 @@ export const PropertyListCard = () => {
     variant: "popover",
     popupId: `createProperty-${modalTooltipId}`,
   });
-
-  const flashingTimeouts = useRef<
-    Record<string, ReturnType<typeof setTimeout>>
-  >({});
+  const [flashingRows, flashRow] = useFlashRow();
 
   const handleAddPropertyType = (propertyType: PropertyType) => {
     cancelAddingNewProperty();
@@ -627,15 +613,7 @@ export const PropertyListCard = () => {
         maxValue: 1,
         infinity: true,
       });
-      setFlashingProperties([...flashingProperties, propertyType.$id]);
-
-      clearTimeout(flashingTimeouts.current[propertyType.$id]);
-
-      flashingTimeouts.current[propertyType.$id] = setTimeout(() => {
-        setFlashingProperties((current) =>
-          current.filter((id) => id !== propertyType.$id),
-        );
-      }, FLASHING_ROW_MS);
+      flashRow(propertyType.$id);
     }
   };
 
@@ -705,7 +683,7 @@ export const PropertyListCard = () => {
         </EntityTypeTableHeaderRow>
       </TableHead>
       <TableBody>
-        {fields.map(({ property, field, index }) => (
+        {fields.map(({ row, field, index }) => (
           <PropertyTypeRow
             key={field.id}
             propertyIndex={index}
@@ -717,9 +695,9 @@ export const PropertyListCard = () => {
                 shouldDirty: true,
               });
             }}
-            property={property}
+            property={row}
             propertyId={field.$id}
-            flash={flashingProperties.includes(field.$id)}
+            flash={flashingRows.includes(field.$id)}
           />
         ))}
       </TableBody>
