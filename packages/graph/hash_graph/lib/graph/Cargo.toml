@@ -9,7 +9,7 @@ description = "HASH Graph API"
 interval-ops = { path = "../interval-ops" }
 
 async-trait = "0.1.60"
-axum = "0.6.1"
+axum = "0.6.3"
 bb8-postgres = "0.8.1"
 clap = { version = "4.0.30", features = ["derive", "env"], optional = true }
 chrono = { version = "0.4.23", features = ["serde"] }
