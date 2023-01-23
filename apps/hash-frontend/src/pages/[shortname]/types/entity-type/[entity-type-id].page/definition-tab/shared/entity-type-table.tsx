@@ -1,6 +1,7 @@
 import {
   ButtonBase,
   checkboxClasses,
+  keyframes,
   svgIconClasses,
   Table,
   tableBodyClasses,
@@ -11,6 +12,7 @@ import {
   TypographyProps,
 } from "@mui/material";
 import { Box, experimental_sx, styled } from "@mui/system";
+import { memoize } from "lodash";
 import { forwardRef, ReactNode } from "react";
 
 import { WhiteCard } from "../../../../../shared/white-card";
@@ -22,10 +24,22 @@ export const EntityTypeTableCenteredCell = styled(TableCell)(
   }),
 );
 
+const flashAnimation = memoize(
+  (color: string) => keyframes`
+  from, 83% {
+    background-color: ${color};
+  }
+  
+  to {
+    background-color: transparent;
+  } 
+`,
+);
+
 export const EntityTypeTableRow = forwardRef<
   HTMLTableRowElement,
-  { children: ReactNode }
->(({ children }, ref) => (
+  { children: ReactNode; flash?: boolean }
+>(({ children, flash = false }, ref) => (
   <TableRow
     ref={ref}
     sx={[
@@ -40,12 +54,17 @@ export const EntityTypeTableRow = forwardRef<
             borderBottomRightRadius: theme.borderRadii.md,
           },
         },
-      }),
-      (theme) => ({
         [`&:hover .${tableCellClasses.root}`]: {
           background: theme.palette.gray[10],
         },
       }),
+      flash &&
+        ((theme) => ({
+          [`.${tableCellClasses.root}`]: {
+            animation: `${flashAnimation(theme.palette.blue[20])} ease-in 3s`,
+            animationFillMode: "forwards",
+          },
+        })),
     ]}
   >
     {children}

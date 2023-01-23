@@ -207,6 +207,7 @@ const PropertyRow = ({
   requiredTableCell,
   menuTableCell,
   onUpdateVersion,
+  flash = false,
 }: {
   property: PropertyType;
   isArray: boolean;
@@ -218,6 +219,7 @@ const PropertyRow = ({
   requiredTableCell?: ReactNode;
   menuTableCell?: ReactNode;
   onUpdateVersion?: (nextId: VersionedUri) => void;
+  flash?: boolean;
 }) => {
   const [propertyTypes, propertyTypesSubgraph] = useLatestPropertyTypes();
   const { propertyTypes: entityTypePropertyTypes } = useEntityType();
@@ -305,6 +307,7 @@ const PropertyRow = ({
             handleResize();
           }
         }}
+        flash={flash}
       >
         <PropertyTitleCell
           property={property}
@@ -390,12 +393,14 @@ export const PropertyTypeRow = ({
   propertyId,
   onRemove,
   onUpdateVersion,
+  flash,
 }: {
   propertyIndex: number;
   property: PropertyType | undefined;
   propertyId: VersionedUri;
   onRemove: () => void;
   onUpdateVersion: (nextId: VersionedUri) => void;
+  flash: boolean;
 }) => {
   const { control } = useFormContext<EntityTypeEditorForm>();
 
@@ -485,6 +490,7 @@ export const PropertyTypeRow = ({
           />
         }
         onUpdateVersion={onUpdateVersion}
+        flash={flash}
       />
 
       <TypeFormModal
@@ -581,6 +587,16 @@ export const PropertyListCard = () => {
       }
       return a.property.title.localeCompare(b.property.title);
     });
+
+  const allProperties = fields.map((field) => field.field.$id);
+  const [knownProperties, setKnownProperties] = useState(allProperties);
+  const [flashingProperties, setFlashingProperties] = useState<string[]>([]);
+  if (JSON.stringify(allProperties) !== JSON.stringify(knownProperties)) {
+    setFlashingProperties(
+      allProperties.filter((id) => !knownProperties.includes(id)),
+    );
+    setKnownProperties(allProperties);
+  }
 
   const [addingNewProperty, setAddingNewProperty] = useStateCallback(false);
   const [searchText, setSearchText] = useState("");
@@ -698,6 +714,7 @@ export const PropertyListCard = () => {
             }}
             property={property}
             propertyId={field.$id}
+            flash={flashingProperties.includes(field.$id)}
           />
         ))}
       </TableBody>
