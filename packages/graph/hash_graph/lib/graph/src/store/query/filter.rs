@@ -3,15 +3,12 @@ use std::{borrow::Cow, fmt, str::FromStr};
 use derivative::Derivative;
 use error_stack::{bail, ensure, Context, IntoReport, Report, ResultExt};
 use serde::Deserialize;
+use serde_json::{Number, Value};
 use type_system::uri::{BaseUri, VersionedUri};
 use uuid::Uuid;
 
 use crate::{
-    identifier::{
-        knowledge::EntityId,
-        ontology::OntologyTypeEditionId,
-        time::{ProjectedTime, Timestamp},
-    },
+    identifier::{knowledge::EntityId, ontology::OntologyTypeEditionId},
     knowledge::{Entity, EntityQueryPath},
     store::{
         query::{OntologyQueryPath, ParameterType, QueryPath},
@@ -279,11 +276,11 @@ pub enum Parameter<'p> {
     Number(f64),
     Text(Cow<'p, str>),
     #[serde(skip)]
+    Any(Value),
+    #[serde(skip)]
     Uuid(Uuid),
     #[serde(skip)]
     SignedInteger(i64),
-    #[serde(skip)]
-    Timestamp(Timestamp<ProjectedTime>),
 }
 
 impl Parameter<'_> {
@@ -292,9 +289,9 @@ impl Parameter<'_> {
             Parameter::Boolean(bool) => Parameter::Boolean(*bool),
             Parameter::Number(number) => Parameter::Number(*number),
             Parameter::Text(text) => Parameter::Text(Cow::Owned(text.to_string())),
+            Parameter::Any(value) => Parameter::Any(value.clone()),
             Parameter::Uuid(uuid) => Parameter::Uuid(*uuid),
             Parameter::SignedInteger(integer) => Parameter::SignedInteger(*integer),
-            Parameter::Timestamp(timestamp) => Parameter::Timestamp(*timestamp),
         }
     }
 }
@@ -312,9 +309,9 @@ impl fmt::Display for ParameterConversionError {
             Parameter::Boolean(boolean) => boolean.to_string(),
             Parameter::Number(number) => number.to_string(),
             Parameter::Text(text) => text.to_string(),
+            Parameter::Any(_) => "JSON value".to_owned(),
             Parameter::Uuid(uuid) => uuid.to_string(),
             Parameter::SignedInteger(integer) => integer.to_string(),
-            Parameter::Timestamp(timestamp) => timestamp.to_string(),
         };
 
         write!(fmt, "could not convert {actual} to {}", self.expected)
@@ -329,11 +326,58 @@ impl Parameter<'_> {
         expected: ParameterType,
     ) -> Result<(), Report<ParameterConversionError>> {
         match (&mut *self, expected) {
-            (_, ParameterType::Any)
-            | (Parameter::Boolean(_), ParameterType::Boolean)
+            // identity
+            (Parameter::Boolean(_), ParameterType::Boolean)
             | (Parameter::Number(_), ParameterType::Number)
-            | (Parameter::Text(_), ParameterType::Text) => {
-                // no action needed, exact match
+            | (Parameter::Text(_), ParameterType::Text)
+            | (Parameter::Any(_), ParameterType::Any) => {}
+
+            // Boolean conversions
+            (Parameter::Boolean(bool), ParameterType::Any) => {
+                *self = Parameter::Any(Value::Bool(*bool))
+            }
+            (Parameter::Any(Value::Bool(bool)), ParameterType::Boolean) => {
+                *self = Parameter::Boolean(*bool)
+            }
+
+            // Number conversions
+            (Parameter::Number(number), ParameterType::Any) => {
+                *self = Parameter::Any(Value::Number(Number::from_f64(*number).ok_or_else(
+                    || {
+                        Report::new(ParameterConversionError {
+                            actual: self.to_owned(),
+                            expected,
+                        })
+                    },
+                )?))
+            }
+            (Parameter::Any(Value::Number(number)), ParameterType::Number) => {
+                *self = Parameter::Number(number.as_f64().ok_or_else(|| {
+                    Report::new(ParameterConversionError {
+                        actual: self.to_owned(),
+                        expected,
+                    })
+                })?)
+            }
+            (Parameter::Number(number), ParameterType::UnsignedInteger) => {
+                // Postgres cannot represent unsigned integer, so we use i64 instead
+                let number = number.round() as i64;
+                ensure!(!number.is_negative(), ParameterConversionError {
+                    actual: self.to_owned(),
+                    expected: ParameterType::UnsignedInteger
+                });
+                *self = Parameter::SignedInteger(number);
+            }
+            (Parameter::Text(text), ParameterType::UnsignedInteger) if text == "latest" => {
+                // Special case for checking `version == "latest"
+            }
+
+            // Text conversions
+            (Parameter::Text(text), ParameterType::Any) => {
+                *self = Parameter::Any(Value::String(text.to_string()))
+            }
+            (Parameter::Any(Value::String(string)), ParameterType::Text) => {
+                *self = Parameter::Text(Cow::Owned(string.clone()))
             }
             (Parameter::Text(_base_uri), ParameterType::BaseUri) => {
                 // TODO: validate base uri
@@ -351,18 +395,8 @@ impl Parameter<'_> {
                     },
                 )?);
             }
-            (Parameter::Number(number), ParameterType::UnsignedInteger) => {
-                // Postgres cannot represent unsigned integer, so we use i64 instead
-                let number = number.round() as i64;
-                ensure!(!number.is_negative(), ParameterConversionError {
-                    actual: self.to_owned(),
-                    expected: ParameterType::UnsignedInteger
-                });
-                *self = Parameter::SignedInteger(number);
-            }
-            (Parameter::Text(text), ParameterType::UnsignedInteger) if text == "latest" => {
-                // Special case for checking `version == "latest"
-            }
+
+            // Fallback
             (actual, expected) => {
                 bail!(ParameterConversionError {
                     actual: actual.to_owned(),
