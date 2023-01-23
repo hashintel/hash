@@ -386,21 +386,23 @@ const PropertyRow = ({
 
 export const PropertyTypeRow = ({
   propertyIndex,
+  property,
+  propertyId,
   onRemove,
   onUpdateVersion,
 }: {
   propertyIndex: number;
+  property: PropertyType | undefined;
+  propertyId: VersionedUri;
   onRemove: () => void;
   onUpdateVersion: (nextId: VersionedUri) => void;
 }) => {
   const { control } = useFormContext<EntityTypeEditorForm>();
 
-  const [$id, array] = useWatch({
+  // @todo move down
+  const array = useWatch({
     control,
-    name: [
-      `properties.${propertyIndex}.$id`,
-      `properties.${propertyIndex}.array`,
-    ],
+    name: `properties.${propertyIndex}.array`,
   });
 
   const editModalId = useId();
@@ -416,12 +418,10 @@ export const PropertyTypeRow = ({
     onUpdateVersionRef.current = onUpdateVersion;
   });
 
-  const [propertyTypes, propertyTypesSubgraph] = useLatestPropertyTypes();
-  const { propertyTypes: entityTypePropertyTypes } = useEntityType();
-  const property = entityTypePropertyTypes[$id] ?? propertyTypes?.[$id];
+  const propertyTypesSubgraph = useLatestPropertyTypes()[1];
 
   const [currentVersion, latestVersion] = usePropertyTypeVersions(
-    $id,
+    propertyId,
     propertyTypesSubgraph,
   );
 
@@ -442,12 +442,14 @@ export const PropertyTypeRow = ({
   }, [property]);
 
   if (!property) {
-    if (propertyTypes) {
+    if (propertyTypesSubgraph) {
       throw new Error("Missing property type");
     }
 
     return null;
   }
+
+  const $id = property.$id;
 
   return (
     <>
@@ -547,10 +549,32 @@ const InsertPropertyRow = (
 export const PropertyListCard = () => {
   const { control, getValues, setValue } =
     useFormContext<EntityTypeEditorForm>();
-  const { fields, append, remove } = useFieldArray({
+  const {
+    fields: unsortedFields,
+    append,
+    remove,
+  } = useFieldArray({
     control,
     name: "properties",
   });
+
+  const propertyTypes = useLatestPropertyTypes()[0];
+  const { propertyTypes: entityTypePropertyTypes } = useEntityType();
+
+  const fields = unsortedFields
+    .map((field, index) => {
+      const propertyId = field.$id;
+      const property =
+        entityTypePropertyTypes[propertyId] ?? propertyTypes?.[propertyId];
+
+      return { field, property, index };
+    })
+    .sort((a, b) => {
+      if (!a.property && !b.property) return 0;
+      if (!a.property) return 1;
+      if (!b.property) return -1;
+      return a.property.title.localeCompare(b.property.title);
+    });
 
   const [addingNewProperty, setAddingNewProperty] = useStateCallback(false);
   const [searchText, setSearchText] = useState("");
@@ -654,9 +678,9 @@ export const PropertyListCard = () => {
         </EntityTypeTableHeaderRow>
       </TableHead>
       <TableBody>
-        {fields.map((type, index) => (
+        {fields.map(({ property, field, index }) => (
           <PropertyTypeRow
-            key={type.id}
+            key={field.id}
             propertyIndex={index}
             onRemove={() => {
               remove(index);
@@ -666,6 +690,8 @@ export const PropertyListCard = () => {
                 shouldDirty: true,
               });
             }}
+            property={property}
+            propertyId={field.$id}
           />
         ))}
       </TableBody>
