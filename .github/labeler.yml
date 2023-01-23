@@ -1,13 +1,14 @@
 A-infra:
-  - ".github/*"
+  - ".*ignore"
+  - ".changeset/config.json"
   - ".github/.*"
-  - ".github/**/*"
+  - ".github/*"
   - ".github/**/.*"
+  - ".github/**/*"
+  - ".markdownlint*"
+  - "*.json"
   - "*.md"
   - "*.yml"
-  - "*.json"
-  - ".markdownlint*"
-  - ".*ignore"
 
 A-blocks:
   - "blocks/*"
