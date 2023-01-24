@@ -1,13 +1,13 @@
 import { useMutation } from "@apollo/client";
 import {
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@hashintel/hash-subgraph";
-import {
   EntityUuid,
   OwnedById,
   Uuid,
 } from "@local/hash-isomorphic-utils/types";
+import {
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@local/hash-subgraph";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
 

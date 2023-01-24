@@ -1,7 +1,7 @@
-import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { Button } from "@local/design-system";
 import { EntityId } from "@local/hash-isomorphic-utils/types";
+import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import { Drawer, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
@@ -116,6 +116,7 @@ export const EditEntityModal = ({
       </Typography>
 
       <EntityEditor
+        readonly={false}
         refetch={async () => {}}
         entitySubgraph={draftEntitySubgraph}
         setEntity={(entity) => {

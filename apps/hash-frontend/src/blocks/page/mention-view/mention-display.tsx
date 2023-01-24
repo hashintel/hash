@@ -1,9 +1,6 @@
-import {
-  EntityId,
-  extractEntityUuidFromEntityId,
-} from "@hashintel/hash-subgraph";
 import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
 import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
+import { EntityId, extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import ArticleIcon from "@mui/icons-material/Article";
 import { FunctionComponent, useMemo } from "react";
 

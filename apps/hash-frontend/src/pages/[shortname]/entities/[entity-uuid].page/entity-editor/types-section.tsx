@@ -1,8 +1,8 @@
 import { extractBaseUri, extractVersion } from "@blockprotocol/type-system";
-import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
-import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { EntityId } from "@local/hash-isomorphic-utils/types";
+import { versionedUriFromComponents } from "@local/hash-subgraph/src/shared/type-system-patch";
+import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
+import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import { Box } from "@mui/material";
 import { useEffect, useState } from "react";
 
@@ -14,7 +14,7 @@ import { EntityTypeUpdateModal } from "./types-section/entity-type-update-modal"
 import { TypeCard } from "./types-section/type-card";
 
 export const TypesSection = () => {
-  const { entitySubgraph, refetch } = useEntityEditor();
+  const { entitySubgraph, refetch, readonly } = useEntityEditor();
 
   const entity = getRoots(entitySubgraph)[0]!;
   const { updateEntity } = useBlockProtocolUpdateEntity();
@@ -58,8 +58,10 @@ export const TypesSection = () => {
       }
     };
 
-    void init();
-  }, [aggregateEntityTypes, entityTypeId]);
+    if (!readonly) {
+      void init();
+    }
+  }, [aggregateEntityTypes, entityTypeId, readonly]);
 
   const entityType = getEntityTypeById(entitySubgraph, entityTypeId);
   const entityTypeTitle = entityType?.schema.title ?? "";

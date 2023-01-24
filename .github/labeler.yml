@@ -50,10 +50,10 @@ A-deer:
   - "libs/deer/**/.*"
 
 A-backend:
-  - "packages/graph/*"
-  - "packages/graph/.*"
-  - "packages/graph/**/*"
-  - "packages/graph/**/.*"
+  - "apps/hash-graph/*"
+  - "apps/hash-graph/.*"
+  - "apps/hash-graph/**/*"
+  - "apps/hash-graph/**/.*"
 
 C-dependencies:
   - "**/Cargo.lock"
