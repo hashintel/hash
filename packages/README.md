@@ -5,12 +5,6 @@
 
 # Packages
 
-This directory's contents are in the process of being integrated into the `apps`, `libs` and `tests` folders in the project root. The `packages` folder will shortly cease to exist.
+This directory's content is currently being integrated into the top-level `libs` folder in the repository's root.
 
-## `hash`
-
-Our [HASH](https://hash.ai/platform/hash) codebase can be found in `hash`. HASH is a data-driven, schema-centric, all-in-one workspace built atop the [Block Protocol](https://blockprotocol.org/).
-
-## `libs`
-
-`libs` contains the source code for the `deer` and `error-stack` Rust crates which will be moved to the root `libs` directory shortly.
+Only `libs/error-stack` now remains within this directory. When it has been moved to the repository's root, the `packages` directory will be deleted.
