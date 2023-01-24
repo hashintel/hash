@@ -1,6 +1,6 @@
 [workspace]
 members = ["lib/*", "bin/*", "bench"]
-default-members = ["bin/hash-graph"]
+default-members = ["bin/cli"]
 
 [workspace.package]
 description = "The entity-graph query-layer for the HASH datastore"
