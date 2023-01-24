@@ -30,7 +30,7 @@ kratos_env_vars = [
 hash_graph_env_vars = [
   { name = "HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN", secret = false, value = "https://alpha.hash.ai/@(?P<shortname>[\\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type))/[\\w\\-_%]+/" },
   { name = "HASH_GRAPH_LOG_FORMAT", secret = false, value = "pretty" },
-  { name = "RUST_LOG", secret = false, value = "graph=info,hash_graph=info,tokio_postgres=info" },
+  { name = "RUST_LOG", secret = false, value = "graph=info,hash-graph=info,tokio_postgres=info" },
   { name = "RUST_BACKTRACE", secret = false, value = "1" }
 ]
 
