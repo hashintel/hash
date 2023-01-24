@@ -16,7 +16,6 @@ import {
 import { useBlockLoadedContext } from "../../blocks/on-block-loaded";
 import { useBlockContext } from "../../blocks/page/block-context";
 import { useFetchBlockSubgraph } from "../../blocks/use-fetch-block-subgraph";
-import { useIsReadonlyMode } from "../../shared/readonly-mode";
 import { useBlockProtocolAggregateEntities } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-aggregate-entities";
 import { useBlockProtocolFileUpload } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-file-upload";
 import { useBlockProtocolUpdateEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
@@ -30,6 +29,7 @@ type BlockLoaderProps = {
   editableRef: (node: HTMLElement | null) => void;
   onBlockLoaded: () => void;
   wrappingEntityId: string;
+  readonly: boolean;
   // shouldSandbox?: boolean;
 };
 
@@ -47,13 +47,14 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   onBlockLoaded,
   // shouldSandbox,
   wrappingEntityId,
+  readonly,
 }) => {
-  const { setBlockSubgraph, blockSubgraph } = useBlockContext();
-  const fetchBlockSubgraph = useFetchBlockSubgraph();
-  const isReadonlyMode = useIsReadonlyMode();
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
   const { updateEntity } = useBlockProtocolUpdateEntity();
-  const { uploadFile } = useBlockProtocolFileUpload(isReadonlyMode);
+  const { uploadFile } = useBlockProtocolFileUpload(readonly);
+
+  const { setBlockSubgraph, blockSubgraph } = useBlockContext();
+  const fetchBlockSubgraph = useFetchBlockSubgraph();
 
   useEffect(() => {
     void fetchBlockSubgraph(blockEntityTypeId, blockEntityId).then(
@@ -102,10 +103,10 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
 
   const graphProperties = useMemo<BlockGraphProperties["graph"]>(
     () => ({
-      readonly: isReadonlyMode,
+      readonly,
       blockEntitySubgraph: blockSubgraph,
     }),
-    [blockSubgraph, isReadonlyMode],
+    [blockSubgraph, readonly],
   );
 
   // The paragraph block needs updating to 0.3 and publishing – this ensures it doesn't crash

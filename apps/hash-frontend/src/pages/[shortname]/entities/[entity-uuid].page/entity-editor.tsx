@@ -11,6 +11,7 @@ export interface EntityEditorProps extends DraftLinkState {
   entitySubgraph: Subgraph<SubgraphRootTypes["entity"]>;
   setEntity: (entity: Entity) => void;
   refetch: () => Promise<void>;
+  readonly: boolean;
 }
 
 export const EntityEditor = (props: EntityEditorProps) => {

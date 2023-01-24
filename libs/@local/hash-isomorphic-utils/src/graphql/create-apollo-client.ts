@@ -1,6 +1,7 @@
 import {
   ApolloClient,
   ApolloLink,
+  DefaultOptions,
   HttpLink,
   InMemoryCache,
   NormalizedCacheObject,
@@ -38,6 +39,7 @@ const errorLink = onError(({ graphQLErrors, operation }) => {
 // @todo update references
 export const createApolloClient = (params?: {
   name?: string;
+  isBrowser: boolean;
   additionalHeaders?: { [key: string]: string | undefined };
 }): ApolloClient<NormalizedCacheObject> => {
   const ponyfilledFetch =
@@ -84,6 +86,21 @@ export const createApolloClient = (params?: {
 
   const entityKeyFields = { keyFields: ["entityId"] };
 
+  // When the client is running in the browser, we want to use the cache
+  // otherwise we want to disable the cache on the server to prevent sharing user data.
+  const defaultOptions: DefaultOptions | undefined = params?.isBrowser
+    ? undefined
+    : {
+        watchQuery: {
+          fetchPolicy: "no-cache",
+          errorPolicy: "ignore",
+        },
+        query: {
+          fetchPolicy: "no-cache",
+          errorPolicy: "all",
+        },
+      };
+
   return new ApolloClient({
     cache: new InMemoryCache({
       possibleTypes: possibleTypes.possibleTypes,
@@ -103,5 +120,6 @@ export const createApolloClient = (params?: {
     credentials: "include",
     link,
     name: params?.name,
+    defaultOptions,
   });
 };

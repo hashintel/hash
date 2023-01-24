@@ -9,6 +9,7 @@ export const drawChip = (
   left: number,
   chipWidth: number,
   bgColor?: string,
+  borderColor?: string,
 ) => {
   const { ctx, theme } = args;
   const yCenter = getYCenter(args);
@@ -20,4 +21,12 @@ export const drawChip = (
   ctx.beginPath();
   drawRoundRect(ctx, left, chipTop, chipWidth, height, height / 2);
   ctx.fill();
+
+  if (borderColor) {
+    ctx.beginPath();
+    drawRoundRect(ctx, left, chipTop, chipWidth, height, height / 2);
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
 };

@@ -4,6 +4,7 @@ import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
+  extractOwnedByIdFromEntityId,
   OwnedById,
 } from "@local/hash-isomorphic-utils/types";
 import produce from "immer";
@@ -19,6 +20,7 @@ import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../shared/layout";
+import { useIsReadonlyModeForResource } from "../../../shared/readonly-mode";
 import { useRouteNamespace } from "../shared/use-route-namespace";
 import { EditBar } from "../types/entity-type/[entity-type-id].page/shared/edit-bar";
 import { EntityEditorPage } from "./[entity-uuid].page/entity-editor-page";
@@ -41,6 +43,15 @@ const Page: NextPageWithLayout = () => {
     useState<Subgraph<SubgraphRootTypes["entity"]>>();
   const [draftEntitySubgraph, setDraftEntitySubgraph] =
     useState<Subgraph<SubgraphRootTypes["entity"]>>();
+
+  const entityFromDB =
+    entitySubgraphFromDB && getRoots(entitySubgraphFromDB)[0];
+
+  const entityOwnedById =
+    entityFromDB &&
+    extractOwnedByIdFromEntityId(entityFromDB.metadata.editionId.baseId);
+
+  const readonly = useIsReadonlyModeForResource(entityOwnedById);
 
   const [isDirty, setIsDirty] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -181,6 +192,7 @@ const Page: NextPageWithLayout = () => {
 
   return (
     <EntityEditorPage
+      readonly={readonly}
       refetch={refetch}
       editBar={
         <EditBar
@@ -199,9 +211,12 @@ const Page: NextPageWithLayout = () => {
       entitySubgraph={draftEntitySubgraph}
       entityUuid={entityUuid}
       owner={String(router.query.shortname)}
-      setEntity={(entity) => {
+      setEntity={(changedEntity) => {
         setIsDirty(true);
-        updateEntitySubgraphStateByEntity(entity, setDraftEntitySubgraph);
+        updateEntitySubgraphStateByEntity(
+          changedEntity,
+          setDraftEntitySubgraph,
+        );
       }}
       draftLinksToCreate={draftLinksToCreate}
       setDraftLinksToCreate={setDraftLinksToCreate}
