@@ -9,7 +9,7 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
-    if: github.repository == 'blockprotocol/blockprotocol'
+    if: github.repository == 'hashintel/hash'
 
     steps:
       - uses: actions/checkout@v3

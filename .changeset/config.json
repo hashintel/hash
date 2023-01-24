@@ -1,9 +1,6 @@
 {
   "$schema": "https://unpkg.com/@changesets/config@2.0.0/schema.json",
-  "changelog": [
-    "@changesets/changelog-github",
-    { "repo": "blockprotocol/blockprotocol" }
-  ],
+  "changelog": ["@changesets/changelog-github", { "repo": "hashintel/hash" }],
   "commit": false,
   "linked": [],
   "access": "public",
