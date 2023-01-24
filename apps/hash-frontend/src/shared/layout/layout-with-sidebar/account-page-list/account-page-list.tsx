@@ -17,7 +17,6 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { isEntityId } from "@hashintel/hash-subgraph";
 import {
   AccountId,
   EntityId,
@@ -25,6 +24,7 @@ import {
   extractEntityUuidFromEntityId,
   OwnedById,
 } from "@local/hash-isomorphic-utils/types";
+import { isEntityId } from "@local/hash-subgraph";
 import { Box, Collapse } from "@mui/material";
 import {
   FunctionComponent,

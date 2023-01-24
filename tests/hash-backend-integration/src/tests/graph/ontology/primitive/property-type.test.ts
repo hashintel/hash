@@ -13,12 +13,12 @@ import {
   PropertyType,
   TypeSystemInitializer,
 } from "@blockprotocol/type-system";
+import { Logger } from "@local/hash-backend-utils/logger";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
   DataTypeWithMetadata,
   PropertyTypeWithMetadata,
-} from "@hashintel/hash-subgraph";
-import { Logger } from "@local/hash-backend-utils/logger";
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
+} from "@local/hash-subgraph";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

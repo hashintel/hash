@@ -74,7 +74,7 @@ services:
         condition: service_healthy
     build:
       dockerfile: deployment/graph/Dockerfile
-      context: ../../packages/graph
+      context: ../../apps/hash-graph
       args:
         PROFILE: dev
     command: migrate
@@ -128,7 +128,7 @@ services:
         condition: service_healthy
     build:
       dockerfile: deployment/graph/Dockerfile
-      context: ../../packages/graph
+      context: ../../apps/hash-graph
       args:
         PROFILE: dev
     environment:

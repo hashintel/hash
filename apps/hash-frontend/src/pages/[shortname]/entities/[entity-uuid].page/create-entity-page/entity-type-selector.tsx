@@ -1,5 +1,5 @@
 import { EntityType } from "@blockprotocol/type-system";
-import { EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
+import { EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { FunctionComponent, useRef, useState } from "react";
 
 import { useEntityTypesOptional } from "../../../../../shared/entity-types-context/hooks";

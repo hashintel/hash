@@ -1,11 +1,11 @@
 import { Filter } from "@hashintel/hash-graph-client";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
   Entity,
   isEntityId,
   splitEntityId,
   Subgraph,
-} from "@hashintel/hash-subgraph";
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
+} from "@local/hash-subgraph";
 import { ForbiddenError, UserInputError } from "apollo-server-express";
 
 import {

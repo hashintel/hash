@@ -1,9 +1,5 @@
-import {
-  Entity,
-  EntityId,
-  EntityTypeWithMetadata,
-} from "@hashintel/hash-subgraph";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { Entity, EntityId, EntityTypeWithMetadata } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { GRID_CLICK_IGNORE_CLASS } from "../../../../../../../../../components/grid/utils";
