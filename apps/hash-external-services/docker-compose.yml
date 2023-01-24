@@ -73,7 +73,7 @@ services:
       telemetry-collector:
         condition: service_healthy
     build:
-      dockerfile: deployment/graph/Dockerfile
+      dockerfile: docker/Dockerfile
       context: ../../apps/hash-graph
       args:
         PROFILE: dev
@@ -127,7 +127,7 @@ services:
       telemetry-collector:
         condition: service_healthy
     build:
-      dockerfile: deployment/graph/Dockerfile
+      dockerfile: docker/Dockerfile
       context: ../../apps/hash-graph
       args:
         PROFILE: dev
