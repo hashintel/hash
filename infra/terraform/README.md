@@ -149,7 +149,7 @@ The build and push commands ran from the root of this ([`hashintel/hash`](../../
 **Building `hash-graph`**:
 
 ```console
-$ DOCKER_BUILDKIT=1 docker build ./apps/hash-graph -f ./apps/hash-graph/deployment/graph/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-graphecr:latest
+$ DOCKER_BUILDKIT=1 docker build ./apps/hash-graph -f ./apps/hash-graph/docker/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-graphecr:latest
 ..
 $ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-graphecr:latest
 ..
