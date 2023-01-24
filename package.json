@@ -4,8 +4,6 @@
   "workspaces": {
     "packages": [
       "apps/*",
-      "apps/hash-graph/clients",
-      "apps/hash-graph/clients/typescript",
       "blocks/*",
       "libs/*",
       "libs/@local/*",

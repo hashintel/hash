@@ -3,7 +3,7 @@ import {
   Edges as EdgesGraphApi,
   KnowledgeGraphOutwardEdges,
   OntologyOutwardEdges,
-} from "@hashintel/hash-graph-client";
+} from "@local/hash-graph-client";
 
 import {
   Edges,

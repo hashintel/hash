@@ -10,8 +10,8 @@
         "output": "#{cwd}/typescript",
         "inputSpec": "http://localhost:4000/api-doc/openapi.json",
         "additionalProperties": {
-          "npmName": "@hashintel/hash-graph-client",
-          "npmVersion": "0.0.0",
+          "npmName": "@local/hash-graph-client",
+          "npmVersion": "0.0.0-private",
           "supportsES6": "true",
           "withInterfaces": true,
           "disallowAdditionalPropertiesIfNotPresent": true,
