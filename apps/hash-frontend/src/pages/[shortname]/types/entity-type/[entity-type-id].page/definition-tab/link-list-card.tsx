@@ -1,4 +1,4 @@
-impoπrt { EntityType, VersionedUri } from "@blockprotocol/type-system";
+import { EntityType, VersionedUri } from "@blockprotocol/type-system";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
   EntityTypeWithMetadata,
