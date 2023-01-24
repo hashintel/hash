@@ -31,7 +31,7 @@ cargo run -- server
 ### Logging configuration
 
 Some of the libraries used are very talkative in `trace` logging configurations, especially `mio`, `hyper`, and `tokio_util`.
-If you're interested in just increasing the logs for the Graph, we recommend specifically targeting the crates with `RUST_LOG=graph=trace,hash_graph=trace`.
+If you're interested in just increasing the logs for the Graph, we recommend specifically targeting the crates with `RUST_LOG=graph=trace,hash-graph=trace`.
 
 ## Development
 
@@ -83,7 +83,7 @@ cargo make test-rest-api
 
 ## Migrations
 
-Migrations in the Graph are handled through [`refinery`](https://github.com/rust-db/refinery). The migrations are located at [./hash_graph/postgres_migrations](./hash_graph/postgres_migrations/) and can be manually added to.
+Migrations in the Graph are handled through [`refinery`](https://github.com/rust-db/refinery). The migrations are located at [./postgres_migrations](apps/hash-graph/postgres_migrations/) and can be manually added to.
 
 The `V` prefix **is significant** and must be set followed by an incrementing number. This number specifies the sequence migrations are applied in. the `V` refers to a versioned migration. The migration file format is `[V]{1}__{2}.sql` in our case, where `{1}` is the incrementing sequence number and `{2}` is a display name for the migration.
 
@@ -99,7 +99,7 @@ cargo run -- migrate
 
 ## Generate OpenAPI client
 
-The HASH Graph produces an OpenAPI Spec while running, which can be used to generate the `@hashintel/hash-graph-client` typescript client. In the `hash_graph` directory run:
+The HASH Graph produces an OpenAPI Spec while running, which can be used to generate the `@hashintel/hash-graph-client` typescript client. In the `/apps/hash-graph` directory run:
 
 ```shell
 cargo make generate-openapi-client
