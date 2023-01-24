@@ -162,9 +162,15 @@ OR REPLACE FUNCTION "update_entity_version_trigger" () RETURNS TRIGGER AS $pga$
       RETURN NEW;
     END$pga$ VOLATILE LANGUAGE plpgsql;
 
-CREATE
-OR REPLACE TRIGGER "update_entity_version_trigger" BEFORE
-UPDATE
-  ON "entity_versions" FOR EACH ROW
-EXECUTE
-  PROCEDURE "update_entity_version_trigger" ();
+SELECT
+  run_command_on_shards (
+    'entity_versions',
+    $cmd$
+      CREATE
+      OR REPLACE TRIGGER "update_entity_version_trigger" BEFORE
+      UPDATE
+        ON %s FOR EACH ROW
+      EXECUTE
+        PROCEDURE "update_entity_version_trigger" ();
+    $cmd$
+  );

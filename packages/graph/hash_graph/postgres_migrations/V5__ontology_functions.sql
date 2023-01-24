@@ -80,9 +80,15 @@ BEGIN
   RETURN OLD;
 END $update_type_ids_trigger$ VOLATILE LANGUAGE plpgsql;
 
-CREATE
-OR REPLACE TRIGGER "update_type_ids_trigger" BEFORE
-UPDATE
-  ON "type_ids" FOR EACH ROW
-EXECUTE
-  PROCEDURE "update_type_ids_trigger" ();
+SELECT
+  run_command_on_shards (
+    'type_ids',
+    $cmd$
+      CREATE
+      OR REPLACE TRIGGER "update_type_ids_trigger" BEFORE
+      UPDATE
+        ON %s FOR EACH ROW
+      EXECUTE
+        PROCEDURE "update_type_ids_trigger" ();
+    $cmd$
+  );
