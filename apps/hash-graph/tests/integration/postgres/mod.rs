@@ -4,9 +4,8 @@ mod entity_type;
 mod links;
 mod property_type;
 
-use std::{borrow::Cow, ops::Bound, str::FromStr, time::SystemTime};
+use std::{borrow::Cow, str::FromStr};
 
-use chrono::{DateTime, Days, Utc};
 use error_stack::Result;
 use graph::{
     identifier::{
@@ -36,6 +35,7 @@ use graph::{
     },
     subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
 };
+use time::{Duration, OffsetDateTime};
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{repr, uri::VersionedUri, DataType, EntityType, PropertyType};
 use uuid::Uuid;
@@ -154,8 +154,8 @@ fn generate_decision_time() -> Timestamp<DecisionTime> {
     // We cannot use `Timestamp::now` as the decision time must be before the transaction time. As
     // the transaction is started before the time was recorded, this will always fail.
     Timestamp::from_str(
-        &DateTime::<Utc>::from(SystemTime::now())
-            .checked_sub_days(Days::new(1))
+        &OffsetDateTime::now_utc()
+            .checked_sub(Duration::days(1))
             .expect("could not subtract a day from the current time")
             .to_string(),
     )
