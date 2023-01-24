@@ -13,7 +13,7 @@ import { FunctionComponent, useLayoutEffect, useRef } from "react";
 import { useLocalstorageState } from "rooks";
 
 import { PageThread } from "../../components/hooks/use-page-comments";
-import { useIsReadonlyMode } from "../../shared/readonly-mode";
+import { useIsReadonlyModeForResource } from "../../shared/readonly-mode";
 import { BlockLoadedProvider } from "../on-block-loaded";
 import { UserBlocksProvider } from "../user-blocks";
 import { usePortals } from "./block-portals";
@@ -68,7 +68,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
 
   const router = useRouter();
   const routeHash = router.asPath.split("#")[1] ?? "";
-  const isReadonlyMode = useIsReadonlyMode();
+  const isReadonlyMode = useIsReadonlyModeForResource(accountId);
 
   const { setEditorView, pageTitleRef } = usePageContext();
 
@@ -129,6 +129,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
         {isReadonlyMode ? null : (
           <PageSectionContainer
             pageComments={pageComments}
+            readonly={isReadonlyMode}
             sx={{
               position: "absolute",
               top: 0,

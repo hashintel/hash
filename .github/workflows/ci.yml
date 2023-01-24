@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - "trunk-merge/**"
 
 env:
   TURBO_FORCE: true ## Turbo caching is disabled to avoid issues false cache hits (https://app.asana.com/0/1203193968491715/1203429129383865/f)
@@ -15,7 +16,8 @@ env:
 jobs:
   linting:
     name: Linting
-    if: ${{ github.event_name == 'pull_request' }}
+    # Run only on push to `main` or `trunk_merge/**` or on pull requests
+    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -196,7 +198,8 @@ jobs:
 
   playwright-tests:
     name: Playwright tests
-    if: ${{ github.event_name == 'pull_request' }}
+    # Run only on push to `main` or `trunk_merge/**` or on pull requests
+    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3

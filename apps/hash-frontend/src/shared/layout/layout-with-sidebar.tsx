@@ -4,7 +4,7 @@ import { FunctionComponent, ReactNode, useState } from "react";
 
 import { EditBarScroller } from "../edit-bar-scroller";
 import { SidebarToggleIcon } from "../icons";
-import { useIsReadonlyMode } from "../readonly-mode";
+import { useIsReadonlyModeForApp } from "../readonly-mode";
 import { LayoutWithHeader } from "./layout-with-header";
 import { HEADER_HEIGHT } from "./layout-with-header/page-header";
 import {
@@ -36,7 +36,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
   fullWidth,
 }) => {
   const { openSidebar, sidebarOpen } = useSidebarContext();
-  const isReadonlyMode = useIsReadonlyMode();
+  const isReadonlyMode = useIsReadonlyModeForApp();
   const [main, setMain] = useState<HTMLElement | null>(null);
 
   return (

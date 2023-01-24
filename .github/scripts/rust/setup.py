@@ -34,7 +34,7 @@ PUBLISH_PATTERNS = ["packages/libs/error-stack**"]
 # "libs/deer**"
 
 # Build a docker container for these crates
-DOCKER_PATTERNS = ["packages/graph/hash_graph"]
+DOCKER_PATTERNS = ["apps/hash-graph"]
 
 # All jobs for all crates will run if any of these paths change
 SKIP_PRODUCTION_BUILD_PATTERNS = ["apps/engine**"]

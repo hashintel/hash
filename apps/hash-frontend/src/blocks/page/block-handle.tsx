@@ -10,7 +10,6 @@ import { bindTrigger } from "material-ui-popup-state";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { forwardRef, ForwardRefRenderFunction } from "react";
 
-import { useIsReadonlyMode } from "../../shared/readonly-mode";
 import { BlockConfigMenu } from "./block-config-menu/block-config-menu";
 import { useBlockContext } from "./block-context";
 import { BlockContextMenu } from "./block-context-menu/block-context-menu";
@@ -28,7 +27,6 @@ const BlockHandle: ForwardRefRenderFunction<
   HTMLDivElement,
   BlockHandleProps
 > = ({ deleteBlock, draftId, entityStore, onMouseDown, onClick }, ref) => {
-  const isReadonlyMode = useIsReadonlyMode();
   const contextMenuPopupState = usePopupState({
     variant: "popover",
     popupId: "block-context-menu",
@@ -69,7 +67,7 @@ const BlockHandle: ForwardRefRenderFunction<
 
   const blockContext = useBlockContext();
 
-  if (isReadonlyMode) {
+  if (blockView.readonly) {
     return null;
   }
 

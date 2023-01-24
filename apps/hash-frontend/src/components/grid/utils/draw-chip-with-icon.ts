@@ -20,6 +20,7 @@ export const drawChipWithIcon = ({
   left,
   textColor,
   bgColor,
+  borderColor,
 }: {
   args: DrawArgs<CustomCell>;
   text: string;
@@ -27,6 +28,7 @@ export const drawChipWithIcon = ({
   left: number;
   textColor?: string;
   bgColor?: string;
+  borderColor?: string;
 }) => {
   const { ctx, theme } = args;
   const yCenter = getYCenter(args);
@@ -42,7 +44,15 @@ export const drawChipWithIcon = ({
   const textWidth = ctx.measureText(text).width;
   const chipWidth = iconSize + gap + textWidth + 2 * paddingX;
 
-  drawChip(args, left, chipWidth, bgColor ?? theme.bgBubble);
+  const textColorInner = textColor ?? theme.textBubble;
+
+  drawChip(
+    args,
+    left,
+    chipWidth,
+    bgColor ?? theme.bgBubble,
+    borderColor ?? "white",
+  );
 
   args.spriteManager.drawSprite(
     icon,
@@ -51,10 +61,10 @@ export const drawChipWithIcon = ({
     iconLeft,
     yCenter - iconSize / 2,
     iconSize,
-    { ...theme, fgIconHeader: textColor ?? theme.textBubble },
+    { ...theme, fgIconHeader: textColorInner },
   );
 
-  ctx.fillStyle = textColor ?? theme.textBubble;
+  ctx.fillStyle = textColorInner;
   ctx.fillText(text, textLeft, yCenter);
 
   return chipWidth;

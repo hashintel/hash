@@ -1,9 +1,5 @@
-import {
-  Entity,
-  EntityId,
-  EntityTypeWithMetadata,
-} from "@hashintel/hash-subgraph";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { Entity, EntityId, EntityTypeWithMetadata } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useBlockProtocolAggregateEntities } from "../../../../../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-aggregate-entities";
@@ -115,9 +111,7 @@ export const EntitySelector = ({
         highlightedRef.current = value;
       }}
       onChange={(_, option) => {
-        if (option) {
-          onSelect(option);
-        }
+        onSelect(option);
       }}
       onKeyUp={(evt) => {
         if (evt.key === "Enter" && !highlightedRef.current) {

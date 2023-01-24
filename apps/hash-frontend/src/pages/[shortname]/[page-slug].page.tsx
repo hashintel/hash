@@ -1,5 +1,4 @@
 import { useQuery } from "@apollo/client";
-import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import {
   defaultBlockComponentIds,
   fetchBlock,
@@ -23,6 +22,7 @@ import {
   OwnedById,
 } from "@local/hash-isomorphic-utils/types";
 import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
+import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
 import { alpha, Box, Collapse } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetServerSideProps } from "next";
@@ -39,7 +39,10 @@ import {
   PageContextProvider,
   usePageContext,
 } from "../../blocks/page/page-context";
-import { PageSectionContainer } from "../../blocks/page/page-section-container";
+import {
+  PageSectionContainer,
+  PageSectionContainerProps,
+} from "../../blocks/page/page-section-container";
 import { PageTitle } from "../../blocks/page/page-title/page-title";
 import {
   AccountPagesInfo,
@@ -67,7 +70,7 @@ import {
 } from "../../lib/user-and-org";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
-import { useIsReadonlyMode } from "../../shared/readonly-mode";
+import { useIsReadonlyModeForResource } from "../../shared/readonly-mode";
 import { Button } from "../../shared/ui/button";
 import {
   TOP_CONTEXT_BAR_HEIGHT,
@@ -304,7 +307,7 @@ const Page: NextPageWithLayout<PageProps> = ({
   >(getPageQuery, { variables: { entityId: pageEntityId } });
 
   const pageHeaderRef = useRef<HTMLElement>();
-  const isReadonlyMode = useIsReadonlyMode();
+  const isReadonlyMode = useIsReadonlyModeForResource(pageOwnedById);
 
   // Collab position tracking is disabled.
   // const collabPositions = useCollabPositions(accountId, pageEntityId);
@@ -334,9 +337,14 @@ const Page: NextPageWithLayout<PageProps> = ({
 
   const { data: pageComments } = usePageComments(pageEntityId);
 
+  const pageSectionContainerProps: PageSectionContainerProps = {
+    pageComments,
+    readonly: isReadonlyMode,
+  };
+
   if (pageState === "transferring") {
     return (
-      <PageSectionContainer pageComments={pageComments}>
+      <PageSectionContainer {...pageSectionContainerProps}>
         <h1>Transferring you to the new page...</h1>
       </PageSectionContainer>
     );
@@ -344,7 +352,7 @@ const Page: NextPageWithLayout<PageProps> = ({
 
   if (loading) {
     return (
-      <PageSectionContainer pageComments={pageComments}>
+      <PageSectionContainer {...pageSectionContainerProps}>
         <PageLoadingState />
       </PageSectionContainer>
     );
@@ -352,7 +360,7 @@ const Page: NextPageWithLayout<PageProps> = ({
 
   if (error) {
     return (
-      <PageSectionContainer pageComments={pageComments}>
+      <PageSectionContainer {...pageSectionContainerProps}>
         <h1>Error: {error.message}</h1>
       </PageSectionContainer>
     );
@@ -360,7 +368,7 @@ const Page: NextPageWithLayout<PageProps> = ({
 
   if (!data) {
     return (
-      <PageSectionContainer pageComments={pageComments}>
+      <PageSectionContainer {...pageSectionContainerProps}>
         <h1>No data loaded.</h1>
       </PageSectionContainer>
     );
@@ -393,7 +401,7 @@ const Page: NextPageWithLayout<PageProps> = ({
 
       <PageContextProvider pageEntityId={pageEntityId}>
         <Box
-          sx={({ zIndex, palette }) => ({
+          sx={({ palette, zIndex }) => ({
             position: "sticky",
             top: 0,
             zIndex: zIndex.appBar,
@@ -411,7 +419,7 @@ const Page: NextPageWithLayout<PageProps> = ({
           <PageNotificationBanner />
         </Box>
 
-        <PageSectionContainer pageComments={pageComments}>
+        <PageSectionContainer {...pageSectionContainerProps}>
           <Box position="relative">
             <PageIconButton
               entityId={pageEntityId}
@@ -435,7 +443,11 @@ const Page: NextPageWithLayout<PageProps> = ({
                   pageIconVariantSizes.medium.container,
               }}
             >
-              <PageTitle value={title} pageEntityId={pageEntityId} />
+              <PageTitle
+                value={title}
+                pageEntityId={pageEntityId}
+                readonly={isReadonlyMode}
+              />
               {/*
             Commented out Version Dropdown and Transfer Page buttons.
             They will most likely be added back when new designs
