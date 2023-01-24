@@ -37,7 +37,7 @@ export const LinkedEntityListRow = ({
       }}
       onClick={onSelect}
     >
-      <ValueChip selected={selected} value={title} />
+      <ValueChip selected={selected} title={title} />
 
       <Box
         className="actions"

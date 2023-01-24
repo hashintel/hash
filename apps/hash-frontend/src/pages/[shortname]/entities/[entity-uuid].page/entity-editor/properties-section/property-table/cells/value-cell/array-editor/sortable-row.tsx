@@ -5,45 +5,19 @@ import {
   faClose,
   faPencil,
   faTrash,
-  IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
-import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Box, Divider, Typography } from "@mui/material";
 import { useState } from "react";
 
-import { fa100 } from "../../../../../../../../../../shared/icons/pro/fa-100";
-import { faSquareCheck } from "../../../../../../../../../../shared/icons/pro/fa-square-check";
-import { faText } from "../../../../../../../../../../shared/icons/pro/fa-text";
+import { editorSpecs } from "../editor-specs";
 import { BooleanInput } from "../inputs/boolean-input";
+import { JsonInput } from "../inputs/json-input";
 import { NumberOrTextInput } from "../inputs/number-or-text-input";
-import { EditorType } from "../types";
 import { guessEditorTypeFromValue } from "../utils";
 import { RowAction } from "./row-action";
 import { SortableItem } from "./types";
 import { ValueChip } from "./value-chip";
-
-export const editorSpecs: Record<
-  EditorType,
-  { icon: IconDefinition["icon"]; title: string; gridIcon: CustomIcon }
-> = {
-  boolean: {
-    icon: faSquareCheck,
-    title: types.dataType.boolean.title,
-    gridIcon: "bpTypeBoolean",
-  },
-  number: {
-    icon: fa100,
-    title: types.dataType.number.title,
-    gridIcon: "bpTypeNumber",
-  },
-  text: {
-    icon: faText,
-    title: types.dataType.text.title,
-    gridIcon: "bpTypeText",
-  },
-};
 
 interface SortableRowProps {
   item: SortableItem;
@@ -91,7 +65,8 @@ export const SortableRow = ({
 
   const editorSpec = editorSpecs[editorType];
 
-  const isBooleanEditor = editorType === "boolean";
+  const { arrayEditException } = editorSpec;
+
   const shouldShowActions =
     !isDragging && !isSorting && (hovered || selected || editing);
 
@@ -99,6 +74,64 @@ export const SortableRow = ({
     setPrevEditing(editing);
     setDraftValue(value);
   }
+
+  const renderEditor = () => {
+    if (editorType === "boolean") {
+      return (
+        <BooleanInput
+          showChange
+          value={!!draftValue}
+          onChange={setDraftValue}
+        />
+      );
+    }
+
+    if (editorType === "object") {
+      return (
+        <JsonInput
+          value={draftValue as any}
+          onChange={(newValue, isDiscarded) => {
+            if (isDiscarded) {
+              onDiscardChanges();
+            } else {
+              onSaveChanges(index, newValue);
+            }
+          }}
+        />
+      );
+    }
+
+    return (
+      <NumberOrTextInput
+        isNumber={editorType === "number"}
+        /** @todo is this casting ok? */
+        value={draftValue as number | string}
+        onChange={setDraftValue}
+        onEnterPressed={() => onSaveChanges(index, draftValue)}
+      />
+    );
+  };
+
+  const renderValue = () => {
+    if (editorType === "boolean") {
+      return (
+        <BooleanInput
+          showChange={shouldShowActions}
+          value={!!draftValue}
+          onChange={setDraftValue}
+        />
+      );
+    }
+
+    return (
+      <ValueChip
+        title={editorSpec.valueToString(value)}
+        selected={!!selected}
+        icon={{ icon: editorSpec.icon }}
+        tooltip={editorSpec.title}
+      />
+    );
+  };
 
   return (
     <Box
@@ -141,38 +174,9 @@ export const SortableRow = ({
         {index + 1}
       </Typography>
 
-      {editing ? (
-        isBooleanEditor ? (
-          <BooleanInput
-            showChange
-            value={!!draftValue}
-            onChange={setDraftValue}
-          />
-        ) : (
-          <NumberOrTextInput
-            isNumber={editorType === "number"}
-            /** @todo is this casting ok? */
-            value={draftValue as number | string}
-            onChange={setDraftValue}
-            onEnterPressed={() => onSaveChanges(index, draftValue)}
-          />
-        )
-      ) : isBooleanEditor ? (
-        <BooleanInput
-          showChange={shouldShowActions}
-          value={!!draftValue}
-          onChange={setDraftValue}
-        />
-      ) : (
-        <ValueChip
-          value={value}
-          selected={!!selected}
-          icon={{ icon: editorSpec.icon }}
-          tooltip={editorSpec.title}
-        />
-      )}
+      {editing ? renderEditor() : renderValue()}
 
-      {shouldShowActions && !isBooleanEditor && (
+      {shouldShowActions && (
         <Box
           display="flex"
           sx={[
@@ -190,27 +194,33 @@ export const SortableRow = ({
         >
           <Box sx={{ display: "flex", background: "white" }}>
             {editing ? (
-              <>
-                <RowAction
-                  tooltip="Save Changes"
-                  icon={faCheck}
-                  onClick={() => onSaveChanges(index, draftValue)}
-                />
-                <Divider orientation="vertical" />
-                <RowAction
-                  tooltip="Discard Changes"
-                  icon={faClose}
-                  onClick={() => onDiscardChanges()}
-                />
-              </>
+              arrayEditException !== "no-save-and-discard-buttons" && (
+                <>
+                  <RowAction
+                    tooltip="Save Changes"
+                    icon={faCheck}
+                    onClick={() => onSaveChanges(index, draftValue)}
+                  />
+                  <Divider orientation="vertical" />
+                  <RowAction
+                    tooltip="Discard Changes"
+                    icon={faClose}
+                    onClick={() => onDiscardChanges()}
+                  />
+                </>
+              )
             ) : (
               <>
-                <RowAction
-                  tooltip="Edit"
-                  icon={faPencil}
-                  onClick={() => onEditClicked?.(id)}
-                />
-                <Divider orientation="vertical" />
+                {arrayEditException !== "no-edit-mode" && (
+                  <>
+                    <RowAction
+                      tooltip="Edit"
+                      icon={faPencil}
+                      onClick={() => onEditClicked?.(id)}
+                    />
+                    <Divider orientation="vertical" />
+                  </>
+                )}
                 <RowAction
                   tooltip="Delete"
                   icon={faTrash}

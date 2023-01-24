@@ -3,12 +3,12 @@ import { Chip, FontAwesomeIcon } from "@local/design-system";
 import { Tooltip } from "@mui/material";
 
 export const ValueChip = ({
-  value,
+  title: value,
   selected,
   icon = faAsterisk,
   tooltip = "",
 }: {
-  value: unknown;
+  title: string;
   selected: boolean;
   icon?: Pick<IconDefinition, "icon">;
   tooltip?: string;
@@ -39,7 +39,7 @@ export const ValueChip = ({
           />
         </Tooltip>
       }
-      label={String(value)}
+      label={value}
     />
   );
 };

@@ -86,8 +86,7 @@ export const generatePropertyRowRecursively = ({
 
   const required = !!requiredPropertyTypes.includes(propertyTypeBaseUri);
 
-  const value =
-    get(entity.properties, propertyKeyChain) ?? (isArray ? [] : undefined);
+  const value = get(entity.properties, propertyKeyChain);
 
   const children: PropertyRow[] = [];
 

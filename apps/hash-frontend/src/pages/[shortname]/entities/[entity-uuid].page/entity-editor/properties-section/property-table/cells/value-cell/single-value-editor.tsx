@@ -1,10 +1,13 @@
+import { Chip } from "@local/design-system";
 import produce from "immer";
 import { useState } from "react";
 
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
 import { isValueEmpty } from "../../../is-value-empty";
+import { editorSpecs } from "./editor-specs";
 import { EditorTypePicker } from "./editor-type-picker";
 import { BooleanInput } from "./inputs/boolean-input";
+import { JsonInput } from "./inputs/json-input";
 import { NumberOrTextInput } from "./inputs/number-or-text-input";
 import { EditorType, ValueCellEditorComponent } from "./types";
 import {
@@ -13,7 +16,7 @@ import {
 } from "./utils";
 
 export const SingleValueEditor: ValueCellEditorComponent = (props) => {
-  const { value: cell, onChange } = props;
+  const { value: cell, onChange, onFinishedEditing } = props;
   const { expectedTypes, value } = cell.data.propertyRow;
 
   const [editorType, setEditorType] = useState<EditorType | null>(() => {
@@ -69,12 +72,55 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     );
   }
 
-  const isNumber = editorType === "number";
+  if (editorType === "object") {
+    return (
+      <GridEditorWrapper>
+        <JsonInput
+          value={value as any}
+          onChange={(newValue, isDiscarded) => {
+            if (isDiscarded) {
+              return onFinishedEditing(undefined);
+            }
+
+            const newCell = produce(cell, (draftCell) => {
+              draftCell.data.propertyRow.value = newValue;
+            });
+
+            onFinishedEditing(newCell);
+          }}
+        />
+      </GridEditorWrapper>
+    );
+  }
+
+  if (editorType === "null" || editorType === "emptyList") {
+    const spec = editorSpecs[editorType];
+    const title = spec.valueToString(value);
+
+    return (
+      <GridEditorWrapper sx={{ px: 2, alignItems: "flex-start" }}>
+        {value === undefined ? (
+          <Chip
+            onClick={() => {
+              const newCell = produce(cell, (draftCell) => {
+                draftCell.data.propertyRow.value = spec.defaultValue;
+              });
+
+              onFinishedEditing(newCell);
+            }}
+            label={title}
+          />
+        ) : (
+          title
+        )}
+      </GridEditorWrapper>
+    );
+  }
 
   return (
     <GridEditorWrapper sx={{ px: 2 }}>
       <NumberOrTextInput
-        isNumber={isNumber}
+        isNumber={editorType === "number"}
         value={(value as number | string | undefined) ?? ""}
         onChange={(newValue) => {
           const newCell = produce(cell, (draftCell) => {

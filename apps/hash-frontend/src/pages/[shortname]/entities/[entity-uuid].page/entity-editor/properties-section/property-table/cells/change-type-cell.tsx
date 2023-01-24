@@ -16,7 +16,7 @@ import { drawChipWithIcon } from "../../../../../../../../components/grid/utils/
 import { propertyGridIndexes } from "../constants";
 import { PropertyRow } from "../types";
 import { getChipColors } from "./chip-cell";
-import { editorSpecs } from "./value-cell/array-editor/sortable-row";
+import { editorSpecs } from "./value-cell/editor-specs";
 import { ValueCell } from "./value-cell/types";
 import { guessEditorTypeFromExpectedType } from "./value-cell/utils";
 

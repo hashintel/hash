@@ -13,7 +13,7 @@ import { ChangeTypeCell } from "./cells/change-type-cell";
 import { ChipCell } from "./cells/chip-cell";
 import { PropertyNameCell } from "./cells/property-name-cell";
 import { SummaryChipCell } from "./cells/summary-chip-cell";
-import { editorSpecs } from "./cells/value-cell/array-editor/sortable-row";
+import { editorSpecs } from "./cells/value-cell/editor-specs";
 import { ValueCell } from "./cells/value-cell/types";
 import {
   guessEditorTypeFromExpectedType,
