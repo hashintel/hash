@@ -2,8 +2,8 @@ FROM node:16.18.1-alpine AS builder
 
 WORKDIR /app
 
-COPY libs/@local/tsconfig libs/@local/tsconfig
 COPY apps/hash-task-executor apps/hash-task-executor
+COPY libs/@local/tsconfig libs/@local/tsconfig
 COPY package.json .
 COPY yarn.lock .
 
