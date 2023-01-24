@@ -4,11 +4,11 @@ use std::{
     time::SystemTime,
 };
 
-use chrono::{DateTime, Utc};
 use derivative::Derivative;
 use interval_ops::LowerBound;
 use postgres_types::{private::BytesMut, FromSql, ToSql, Type};
 use serde::{Deserialize, Serialize};
+use time::{format_description::well_known::Iso8601, serde::iso8601, OffsetDateTime};
 use utoipa::{openapi, ToSchema};
 
 /// Opaque structure to represent a single point in time.
@@ -32,7 +32,8 @@ use utoipa::{openapi, ToSchema};
 pub struct Timestamp<A> {
     #[serde(skip)]
     axis: PhantomData<A>,
-    time: DateTime<Utc>,
+    #[serde(with = "iso8601")]
+    time: OffsetDateTime,
 }
 
 impl<A> LowerBound<Self> for Timestamp<A> {
@@ -81,7 +82,7 @@ impl<A> Timestamp<A> {
     pub fn now() -> Self {
         Self {
             axis: PhantomData,
-            time: DateTime::from(SystemTime::now()),
+            time: OffsetDateTime::now_utc(),
         }
     }
 
@@ -103,12 +104,12 @@ impl<A> Timestamp<A> {
 }
 
 impl<A> FromStr for Timestamp<A> {
-    type Err = chrono::ParseError;
+    type Err = time::error::Parse;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self {
             axis: PhantomData,
-            time: DateTime::from_str(s)?,
+            time: OffsetDateTime::parse(s, &Iso8601::PARSING)?,
         })
     }
 }
@@ -117,7 +118,7 @@ impl<'a> FromSql<'a> for Timestamp<()> {
     fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
         Ok(Self {
             axis: PhantomData,
-            time: DateTime::from_sql(ty, raw)?,
+            time: OffsetDateTime::from_sql(ty, raw)?,
         })
     }
 
