@@ -78,7 +78,7 @@ run_task = { name = ["yarn-install-openapi", "graph-up", "test-rest-api", "graph
 [tasks.test-rest-api]
 # This is a temporary solution until we have e2e tests in place
 extend = "yarn"
-args = ["httpyac", "send", "--all", "${REPO_ROOT}/apps/hash-graph/hash_graph/tests/rest-test.http", "${@}"]
+args = ["httpyac", "send", "--all", "${REPO_ROOT}/apps/hash-graph/tests/rest-test.http", "${@}"]
 
 
 [tasks.yarn-install-openapi]
