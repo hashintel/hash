@@ -1,4 +1,4 @@
-extend = { path = "../Makefile.toml" }
+extend = { path = "../../.github/scripts/rust/Makefile.toml" }
 
 [env]
 CARGO_CLIPPY_HACK_FLAGS = "--workspace --feature-powerset --optional-deps clap"
@@ -12,6 +12,80 @@ RUST_LOG = "debug,hyper=warn"
 [env.production]
 CARGO_MAKE_CARGO_PROFILE = "production"
 
+[tasks.cargo]
+env_files = ["${REPO_ROOT}/.env"]
+env = { HASH_GRAPH_PG_DATABASE = "${HASH_GRAPH_PG_DEV_DATABASE}" }
+
+
+## Deployment
+##
+[tasks.deployment-up]
+run_task = { name = ["docker-compose-deployment-up", "migrate-db"] }
+
+[tasks.docker-compose-deployment-up]
+private = false
+category = "Deploy"
+description = "Spins up the deployment environment"
+extend = "yarn"
+args = ["external-services", "up", "postgres", "--wait"]
+cwd = "${REPO_ROOT}"
+
+[tasks.migrate-db]
+extend = "cargo"
+private = false
+category = "Deploy"
+description = "Run DB migrations using the Graph binary"
+args = ["run", "--", "migrate"]
+
+[tasks.migrate-db.env]
+HASH_GRAPH_PG_USER = "${POSTGRES_USER}"
+HASH_GRAPH_PG_PASSWORD = "${POSTGRES_PASSWORD}"
+HASH_GRAPH_PG_DATABASE = "${HASH_GRAPH_PG_DEV_DATABASE}"
+
+[tasks.deployment-down]
+private = false
+category = "Deploy"
+description = "Tears down the deployment environment"
+extend = "yarn"
+args = ["external-services", "down"]
+cwd = "${REPO_ROOT}"
+
+[tasks.build-docker]
+category = "Deploy"
+description = "Builds the Graph API's Docker container"
+extend = "yarn"
+args = ["external-services", "build", "graph", "${@}"]
+cwd = "${REPO_ROOT}"
+env = { DOCKER_BUILDKIT = 1 }
+
+[tasks.graph-up]
+category = "Deploy"
+description = "Spins up the Graph API as external service"
+extend = "yarn"
+args = ["external-services", "up", "--wait", "graph", "${@}"]
+cwd = "${REPO_ROOT}"
+
+[tasks.graph-down]
+category = "Deploy"
+description = "Tears down up the Graph API"
+extend = "yarn"
+args = ["external-services", "down"]
+cwd = "${REPO_ROOT}"
+
+[tasks.test-docker]
+run_task = { name = ["yarn-install-openapi", "graph-up", "test-rest-api", "graph-down"] }
+
+[tasks.test-rest-api]
+# This is a temporary solution until we have e2e tests in place
+extend = "yarn"
+args = ["httpyac", "send", "--all", "${REPO_ROOT}/apps/hash-graph/tests/rest-test.http", "${@}"]
+
+
+[tasks.yarn-install-openapi]
+description = "Installs the required yarn dependencies for generating the API client"
+extend = "yarn"
+cwd = "${REPO_ROOT}/apps/hash-graph/clients"
+
 [tasks.test]
 run_task = [
     { name = ["test-task", "yarn-install-openapi", "deployment-up", "test-integration", "generate-openapi-client", "deployment-down"], condition = { env_true = ["CARGO_MAKE_CI"] } },
@@ -21,16 +95,16 @@ run_task = [
 [tasks.test-task-doc]
 condition = { profiles = ["development"] }
 
-[tasks.miri]
-clear = true
-command = "echo"
-args = ["Miri is disabled as unsafe code is forbidden"]
-
 [tasks.test-integration]
 private = false
 extend = "cargo"
 args = ["nextest", "run", "--cargo-profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_TEST_FLAGS, )", "--workspace", "--test", "integration", "--profile", "integration", "${@}"]
 dependencies = ["install-cargo-nextest"]
+
+[tasks.miri]
+clear = true
+command = "echo"
+args = ["Miri is disabled as unsafe code is forbidden"]
 
 [tasks.coverage]
 run_task = [
@@ -52,6 +126,8 @@ args = ["llvm-cov", "report", "${@}"]
 # If this step fails, the OpenAPI spec is invalid.
 # When running in CI, a non-empty git diff will fail the pipeline.
 [tasks.generate-openapi-client]
+env_files = ["${REPO_ROOT}/.env"]
+env = { HASH_GRAPH_PG_DATABASE = "${HASH_GRAPH_PG_DEV_DATABASE}" }
 script = """
 #!/usr/bin/env bash
 

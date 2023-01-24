@@ -1,5 +1,5 @@
 import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
-import { Subgraph } from "@hashintel/hash-subgraph";
+import { Subgraph } from "@local/hash-subgraph";
 import { createContext, useContext } from "react";
 
 export type LatestPropertyTypesContextValues = {

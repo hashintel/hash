@@ -26,23 +26,35 @@ pub struct StoreWrapper {
 
 impl StoreWrapper {
     pub async fn new(bench_db_name: &str, fail_on_exists: bool, delete_on_drop: bool) -> Self {
+        let super_user = std::env::var("POSTGRES_USER").unwrap_or_else(|_| "postgres".to_string());
+        let super_password =
+            std::env::var("POSTGRES_PASSWORD").unwrap_or_else(|_| "postgres".to_string());
+
+        let user = std::env::var("HASH_GRAPH_PG_USER").unwrap_or_else(|_| "graph".to_string());
+        let password =
+            std::env::var("HASH_GRAPH_PG_PASSWORD").unwrap_or_else(|_| "graph".to_string());
+        let host = std::env::var("HASH_GRAPH_PG_HOST").unwrap_or_else(|_| "localhost".to_string());
+        let port = std::env::var("HASH_GRAPH_PG_PORT")
+            .map(|p| p.parse::<u16>().unwrap())
+            .unwrap_or(5432);
+        let database =
+            std::env::var("HASH_GRAPH_PG_DATABASE").unwrap_or_else(|_| "graph".to_string());
+
         let source_db_connection_info = DatabaseConnectionInfo::new(
-            // TODO - get these from env
-            //  https://app.asana.com/0/0/1203071961523005/f
             DatabaseType::Postgres,
-            "postgres".to_owned(), // super user as we need to create and delete tables
-            "postgres".to_owned(),
-            "localhost".to_owned(),
-            5432,
-            "graph".to_owned(),
+            super_user, // super user as we need to create and delete tables
+            super_password,
+            host.clone(),
+            port,
+            database,
         );
 
         let bench_db_connection_info = DatabaseConnectionInfo::new(
             DatabaseType::Postgres,
-            "graph".to_owned(),
-            "graph".to_owned(),
-            "localhost".to_owned(),
-            5432,
+            user,
+            password,
+            host,
+            port,
             bench_db_name.to_owned(),
         );
 

@@ -1,7 +1,7 @@
 import { VersionedUri } from "@blockprotocol/type-system";
-import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import { useRouter } from "next/router";
 import { useContext, useState } from "react";
 
@@ -94,6 +94,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
 
   return (
     <EntityEditorPage
+      readonly={false}
       refetch={async () => {}}
       editBar={
         <EditBar

@@ -4,10 +4,10 @@ import {
   PropertyType,
   VersionedUri,
 } from "@blockprotocol/type-system";
-import { PropertyObject } from "@hashintel/hash-subgraph";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import { typedEntries, typedKeys } from "@local/hash-isomorphic-utils/util";
+import { PropertyObject } from "@local/hash-subgraph";
 import { ApolloError } from "apollo-server-express";
 
 import { ImpureGraphContext } from "../../../graph";

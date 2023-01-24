@@ -1,6 +1,6 @@
 [workspace]
 members = ["lib/*", "bin/*", "bench"]
-default-members = ["bin/hash_graph"]
+default-members = ["bin/cli"]
 
 [workspace.package]
 description = "The entity-graph query-layer for the HASH datastore"
@@ -10,7 +10,7 @@ edition = "2021"
 authors = ["HASH"]
 license-file = "LICENSE.md"
 publish = false
-repository = "https://github.com/hashintel/hash/tree/main/packages/graph/hash_graph"
+repository = "https://github.com/hashintel/hash/tree/main/apps/hash-graph"
 
 [profile.production]
 inherits = "release"

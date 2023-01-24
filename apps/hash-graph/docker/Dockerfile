@@ -10,8 +10,8 @@ RUN apk add --no-cache gcc musl-dev && \
     rustup show
 
 FROM rust AS builder
-WORKDIR /usr/local/src/hash_graph
-COPY hash_graph .
+WORKDIR /usr/local/src/hash-graph
+COPY . .
 ARG PROFILE=production
 
 # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
@@ -19,8 +19,8 @@ RUN apk add --no-cache make protobuf-dev
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
-    --mount=type=cache,target=/usr/local/src/hash_graph/target \
-    cargo install --path bin/hash_graph --profile $PROFILE --all-features --locked
+    --mount=type=cache,target=/usr/local/src/hash-graph/target \
+    cargo install --path bin/cli --profile $PROFILE --all-features --locked
 
 # Replace with `FROM scratch` when a health check command was added to hash-graph
 FROM alpine:3.17 AS runtime
