@@ -35,7 +35,7 @@ use graph::{
     },
     subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
 };
-use time::{Duration, OffsetDateTime};
+use time::{format_description::well_known::Iso8601, Duration, OffsetDateTime};
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{repr, uri::VersionedUri, DataType, EntityType, PropertyType};
 use uuid::Uuid;
@@ -157,7 +157,8 @@ fn generate_decision_time() -> Timestamp<DecisionTime> {
         &OffsetDateTime::now_utc()
             .checked_sub(Duration::days(1))
             .expect("could not subtract a day from the current time")
-            .to_string(),
+            .format(&Iso8601::DEFAULT)
+            .expect("could not format date to ISO8601"),
     )
     .expect("could not parse timestamp")
 }
