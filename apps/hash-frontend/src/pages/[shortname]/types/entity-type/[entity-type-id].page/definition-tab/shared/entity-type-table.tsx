@@ -27,29 +27,41 @@ export const EntityTypeTableCenteredCell = styled(TableCell)(
   }),
 );
 
+/**
+ * The shape of data for properties/links is slightly different, but the sort logic is
+ * the same. This is a generic sort function which maps from a react hook form
+ * field array to an object preserving the original index and sorting by title
+ */
 export const sortRows = <V, R extends { $id: VersionedUri }>(
   rows: R[],
   resolveRow: ($id: VersionedUri) => V | undefined,
   resolveTitle: (row: V) => string,
-) => {
-  return rows
-    .map((field, index) => ({ field, row: resolveRow(field.$id), index }))
+) =>
+  rows
+    .map((field, index) => {
+      const row = resolveRow(field.$id);
+      return { field, row, index, title: row ? resolveTitle(row) : null };
+    })
     .sort((a, b) => {
-      if (!a.row && !b.row) {
+      if (a.title === null && b.title === null) {
         return 0;
       }
-      if (!a.row) {
+      if (a.title === null) {
         return 1;
       }
-      if (!b.row) {
+      if (b.title === null) {
         return -1;
       }
-      return resolveTitle(a.row).localeCompare(resolveTitle(b.row));
+      return a.title.localeCompare(b.title);
     });
-};
 
 const FLASHING_ROW_MS = 3_000;
 
+/**
+ * keyframes is part of emotion, not mui, so we can't access the theme, so instead
+ * we wrap it in a function to generate the keyframes where its used, where we do
+ * have the theme
+ */
 const flashAnimation = memoize(
   (color: string) => keyframes`
   from, 83% {
@@ -102,6 +114,10 @@ export const EntityTypeTableRow = forwardRef<
 
       const node = rowRef.current;
       if (node) {
+        /**
+         * This detects if the row is currently in view or not, and only triggers
+         * the scroll into view logic if it's not
+         */
         const observer = new IntersectionObserver(
           ([entry]) => {
             if (entry) {
@@ -119,6 +135,7 @@ export const EntityTypeTableRow = forwardRef<
             observer.disconnect();
           },
           {
+            // Ensure we don't consider a row underneath the edit bar as 'in view'
             rootMargin: `${EDIT_BAR_HEIGHT}px`,
           },
         );
