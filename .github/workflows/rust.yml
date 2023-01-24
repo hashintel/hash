@@ -288,6 +288,9 @@ jobs:
       - name: Test Docker container
         run: cargo make --profile ${{ matrix.profile }} test-docker
 
+      - name: Ensure empty git diff
+        run: git --no-pager diff --exit-code --color
+
   publish:
     name: publish
     needs: setup
