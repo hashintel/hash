@@ -13,7 +13,7 @@ module.exports = {
       "<rootDir>/../../libs/@local/hash-backend-utils/src$1",
     "@local/hash-isomorphic-utils(.*)":
       "<rootDir>/../../libs/@local/hash-isomorphic-utils/src$1",
-    "@hashintel/hash-subgraph(.*)": "<rootDir>/../../packages/hash/subgraph$1",
+    "@local/hash-subgraph(.*)": "<rootDir>/../../libs/@local/hash-subgraph$1",
     "@hashintel/hash-graph-client":
       "<rootDir>/../../packages/graph/clients/typescript",
   },

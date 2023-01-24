@@ -12,11 +12,6 @@ import {
   faLink,
   faRefresh,
 } from "@fortawesome/free-solid-svg-icons";
-import {
-  PropertyObject,
-  Subgraph,
-  SubgraphRootTypes,
-} from "@hashintel/hash-subgraph";
 import { FontAwesomeIcon } from "@local/design-system";
 import {
   areComponentsCompatible,
@@ -24,6 +19,11 @@ import {
 } from "@local/hash-isomorphic-utils/blocks";
 import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import { EntityId } from "@local/hash-isomorphic-utils/types";
+import {
+  PropertyObject,
+  Subgraph,
+  SubgraphRootTypes,
+} from "@local/hash-subgraph";
 import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import { PopupState } from "material-ui-popup-state/hooks";

@@ -1,6 +1,6 @@
 import { VersionedUri } from "@blockprotocol/type-system";
-import { Entity, PropertyObject } from "@hashintel/hash-subgraph";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { Entity, PropertyObject } from "@local/hash-subgraph";
 import { ApolloError, UserInputError } from "apollo-server-express";
 
 import { ImpureGraphContext } from "../../../../graph";

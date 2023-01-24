@@ -16,13 +16,13 @@ import {
   PropertyType,
   VersionedUri,
 } from "@blockprotocol/type-system";
+import { EmptyObject } from "@local/hash-isomorphic-utils/util";
 import {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
   Subgraph,
   SubgraphRootTypes,
-} from "@hashintel/hash-subgraph";
-import { EmptyObject } from "@local/hash-isomorphic-utils/util";
+} from "@local/hash-subgraph";
 
 export type OntologyCallbacks = {
   aggregateDataTypes: AggregateDataTypesMessageCallback;

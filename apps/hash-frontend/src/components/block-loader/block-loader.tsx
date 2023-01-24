@@ -1,9 +1,9 @@
 import { BlockGraphProperties } from "@blockprotocol/graph";
 import { VersionedUri } from "@blockprotocol/type-system/slim";
-import { Subgraph as LocalSubgraph } from "@hashintel/hash-subgraph";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { EntityId } from "@local/hash-isomorphic-utils/types";
+import { Subgraph as LocalSubgraph } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import {
   FunctionComponent,
   useCallback,
