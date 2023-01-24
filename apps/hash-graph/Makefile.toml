@@ -5,13 +5,6 @@ description = "Installs the required yarn dependencies for generating the API cl
 extend = "yarn"
 cwd = "${REPO_ROOT}/apps/hash-graph/clients"
 
-[tasks.migrate-up]
-category = "Deploy"
-description = "Runs all migrations"
-extend = "docker"
-args = ["compose", "--env-file", "${REPO_ROOT}/apps/hash-graph/.env", "up", "migrate", "--no-recreate"]
-cwd = "${REPO_ROOT}/apps/hash-graph/deployment"
-
 [tasks.deployment-up]
 run_task = { name = ["docker-compose-deployment-up", "migrate-db"] }
 
@@ -19,25 +12,25 @@ run_task = { name = ["docker-compose-deployment-up", "migrate-db"] }
 private = false
 category = "Deploy"
 description = "Spins up the deployment environment"
-extend = "docker"
-args = ["compose", "--env-file", "../.env", "up", "--wait", "--build"]
-cwd = "${REPO_ROOT}/apps/hash-graph/deployment"
+extend = "yarn"
+args = ["external-services", "up", "postgres", "--wait"]
+cwd = "${REPO_ROOT}"
 
 [tasks.migrate-db]
 private = false
 category = "Deploy"
-extend = "run-task"
 description = "Run DB migrations using the Graph binary"
-cwd = "${REPO_ROOT}/apps/hash-graph"
-args = ["run", "--manifest-path", "./hash_graph/Cargo.toml", "--", "migrate"]
+extend = "yarn"
+args = ["external-services", "up", "graph-migrate", "--build"]
+cwd = "${REPO_ROOT}"
 
 [tasks.deployment-down]
 private = false
 category = "Deploy"
 description = "Tears down the deployment environment"
-extend = "docker"
-args = ["compose", "--env-file", "../.env", "down"]
-cwd = "${REPO_ROOT}/apps/hash-graph/deployment"
+extend = "yarn"
+args = ["external-services", "down", "${@}"]
+cwd = "${REPO_ROOT}"
 
 [tasks.build-docker]
 category = "Deploy"
