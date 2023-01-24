@@ -3,10 +3,10 @@ import {
   extractEntityUuidFromEntityId,
   Subgraph,
   SubgraphRootTypes,
-} from "@hashintel/hash-subgraph";
-import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
-import { getPropertyTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+} from "@local/hash-subgraph";
+import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
+import { getPropertyTypesByBaseUri } from "@local/hash-subgraph/src/stdlib/element/property-type";
+import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 
 /**
  * Generate a display label for an entity

@@ -189,6 +189,7 @@ export const createEditorView = (
             renderPortal,
             manager,
             renderNode,
+            readonly,
           );
         },
         loading(currentNode, _currentView, _getPos) {
@@ -215,6 +216,7 @@ export const createEditorView = (
         renderPortal,
         block,
         manager,
+        readonly,
       );
     },
   );

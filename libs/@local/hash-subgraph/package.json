@@ -1,5 +1,5 @@
 {
-  "name": "@hashintel/hash-subgraph",
+  "name": "@local/hash-subgraph",
   "version": "0.0.0-private",
   "main": "./src/index.ts",
   "types": "./src/index.ts",

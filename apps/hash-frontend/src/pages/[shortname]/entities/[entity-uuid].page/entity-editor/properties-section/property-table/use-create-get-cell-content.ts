@@ -6,6 +6,7 @@ import {
   blankCell,
 } from "../../../../../../../components/grid/utils";
 import { UseGridTooltipResponse } from "../../../../../../../components/grid/utils/use-grid-tooltip/types";
+import { useEntityEditor } from "../../entity-editor-context";
 import { getPropertyCountSummary } from "../get-property-count-summary";
 import { isValueEmpty } from "../is-value-empty";
 import { ChangeTypeCell } from "./cells/change-type-cell";
@@ -26,6 +27,8 @@ export const useCreateGetCellContent = (
   showTooltip: UseGridTooltipResponse["showTooltip"],
   hideTooltip: UseGridTooltipResponse["hideTooltip"],
 ) => {
+  const { readonly } = useEntityEditor();
+
   const createGetCellContent = useCallback(
     (rows: PropertyRow[]) =>
       ([colIndex, rowIndex]: Item):
@@ -52,9 +55,9 @@ export const useCreateGetCellContent = (
         // create valueCell here, because it's used in two places below
         const valueCell: ValueCell = {
           kind: GridCellKind.Custom,
-          allowOverlay: true,
+          allowOverlay: !readonly,
           copyData: String(row.value),
-          cursor: "pointer",
+          cursor: readonly ? "default" : "pointer",
           data: {
             kind: "value-cell",
             tooltips: getTooltipsOfPropertyRow(row),
@@ -108,7 +111,8 @@ export const useCreateGetCellContent = (
             if (
               row.expectedTypes.length > 1 &&
               !row.isArray &&
-              !isValueEmpty(row.value)
+              !isValueEmpty(row.value) &&
+              !readonly
             ) {
               const currentType = guessEditorTypeFromValue(
                 row.value,
@@ -151,7 +155,7 @@ export const useCreateGetCellContent = (
             };
         }
       },
-    [showTooltip, hideTooltip],
+    [showTooltip, hideTooltip, readonly],
   );
 
   return createGetCellContent;

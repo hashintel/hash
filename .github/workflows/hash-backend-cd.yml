@@ -6,9 +6,11 @@ on:
       - main
     paths:
       - "apps/hash-api/**"
+      - "apps/hash-external-services/kratos/**"
       - "libs/@local/hash-backend-utils-utils/**"
       - "libs/@local/hash-isomorphic-utils/**"
-      - "packages/graph/**"
+      # TODO: remove/rewrite these as we remove the package directory.
+      - "apps/hash-graph/**"
       - "packages/hash/**"
 
 env:
@@ -52,8 +54,8 @@ jobs:
           IMAGE_NAME: ${{ env.HASH_GRAPH_RESOURCE_NAME }}
         with:
           SHORTNAME: "graph"
-          CONTEXT_PATH: ${{ github.workspace }}/packages/graph
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/packages/graph/deployment/graph/Dockerfile
+          CONTEXT_PATH: ${{ github.workspace }}/apps/hash-graph
+          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-graph/deployment/graph/Dockerfile
           AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ env.AWS_REGION }}

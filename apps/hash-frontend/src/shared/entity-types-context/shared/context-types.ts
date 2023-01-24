@@ -3,7 +3,7 @@ import {
   EntityTypeWithMetadata,
   Subgraph,
   SubgraphRootTypes,
-} from "@hashintel/hash-subgraph";
+} from "@local/hash-subgraph";
 
 export type EntityTypesSet = Record<VersionedUri, EntityTypeWithMetadata>;
 export type EntityTypesContextValue = {
