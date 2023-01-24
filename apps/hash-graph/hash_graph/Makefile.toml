@@ -28,6 +28,8 @@ args = ["Miri is disabled as unsafe code is forbidden"]
 
 [tasks.test-integration]
 private = false
+env_files = ["${REPO_ROOT}/.env"]
+env = { HASH_GRAPH_PG_DATABASE = "${HASH_GRAPH_PG_DEV_DATABASE}" }
 extend = "cargo"
 args = ["nextest", "run", "--cargo-profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_TEST_FLAGS, )", "--workspace", "--test", "integration", "--profile", "integration", "${@}"]
 dependencies = ["install-cargo-nextest"]
@@ -39,6 +41,8 @@ run_task = [
 ]
 
 [tasks.coverage-task]
+env_files = ["${REPO_ROOT}/.env"]
+env = { HASH_GRAPH_PG_DATABASE = "${HASH_GRAPH_PG_DEV_DATABASE}" }
 args = ["llvm-cov", "--no-report", "test", "--workspace", "--all-features", "--all-targets"]
 
 [tasks.coverage-integration]
@@ -52,6 +56,8 @@ args = ["llvm-cov", "report", "${@}"]
 # If this step fails, the OpenAPI spec is invalid.
 # When running in CI, a non-empty git diff will fail the pipeline.
 [tasks.generate-openapi-client]
+env_files = ["${REPO_ROOT}/.env"]
+env = { HASH_GRAPH_PG_DATABASE = "${HASH_GRAPH_PG_DEV_DATABASE}" }
 script = """
 #!/usr/bin/env bash
 
