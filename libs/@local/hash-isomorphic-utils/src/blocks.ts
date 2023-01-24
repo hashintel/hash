@@ -208,6 +208,8 @@ export const fetchBlock = async (
  * https://app.asana.com/0/1203358502199087/1203788113163116/f
  */
 export const blockProtocolHubOrigin =
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want empty strings either
+  process.env.BLOCK_PROTOCOL_HUB_ORIGIN ||
   "https://blockprotocol-git-03.stage.hash.ai";
 
 export const paragraphBlockComponentId = `${blockProtocolHubOrigin}/blocks/@hash/paragraph`;
