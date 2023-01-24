@@ -23,6 +23,12 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     // if there are multiple expected types
     if (expectedTypes.length > 1) {
       // show type picker if value is empty, guess editor type using value if it's not
+      const guessedEditorType = guessEditorTypeFromValue(value, expectedTypes);
+
+      if (guessedEditorType === "null" || guessedEditorType === "emptyList") {
+        return guessedEditorType;
+      }
+
       return isValueEmpty(value)
         ? null
         : guessEditorTypeFromValue(value, expectedTypes);
@@ -97,20 +103,20 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
 
     return (
       <GridEditorWrapper sx={{ px: 2, alignItems: "flex-start" }}>
-        {value === undefined ? (
-          <Chip
-            onClick={() => {
-              const newCell = produce(cell, (draftCell) => {
-                draftCell.data.propertyRow.value = spec.defaultValue;
-              });
+        <Chip
+          onClick={() => {
+            if (value !== undefined) {
+              return onFinishedEditing(undefined);
+            }
 
-              onFinishedEditing(newCell);
-            }}
-            label={title}
-          />
-        ) : (
-          title
-        )}
+            const newCell = produce(cell, (draftCell) => {
+              draftCell.data.propertyRow.value = spec.defaultValue;
+            });
+
+            onFinishedEditing(newCell);
+          }}
+          label={title}
+        />
       </GridEditorWrapper>
     );
   }

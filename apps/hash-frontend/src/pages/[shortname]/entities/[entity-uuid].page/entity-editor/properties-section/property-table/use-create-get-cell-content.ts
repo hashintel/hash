@@ -67,6 +67,22 @@ export const useCreateGetCellContent = (
           },
         };
 
+        const guessedType = guessEditorTypeFromValue(
+          row.value,
+          row.expectedTypes,
+        );
+
+        const isEmptyValue =
+          isValueEmpty(row.value) &&
+          guessedType !== "null" &&
+          guessedType !== "emptyList";
+
+        const shouldShowChangeTypeCell =
+          row.expectedTypes.length > 1 &&
+          !row.isArray &&
+          !isEmptyValue &&
+          !readonly;
+
         switch (columnKey) {
           case "title":
             return {
@@ -108,26 +124,16 @@ export const useCreateGetCellContent = (
               return blankCell;
             }
 
-            if (
-              row.expectedTypes.length > 1 &&
-              !row.isArray &&
-              !isValueEmpty(row.value) &&
-              !readonly
-            ) {
-              const currentType = guessEditorTypeFromValue(
-                row.value,
-                row.expectedTypes,
-              );
-
+            if (shouldShowChangeTypeCell) {
               return {
                 kind: GridCellKind.Custom,
                 allowOverlay: false,
                 readonly: true,
-                copyData: currentType,
+                copyData: guessedType,
                 cursor: "pointer",
                 data: {
                   kind: "change-type-cell",
-                  currentType: editorSpecs[currentType].title,
+                  currentType: editorSpecs[guessedType].title,
                   propertyRow: row,
                   valueCellOfThisRow: valueCell,
                 },

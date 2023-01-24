@@ -110,7 +110,7 @@ export const createRenderChangeTypeCell = (
       );
 
       const newContent = produce(valueCellOfThisRow, (draft) => {
-        draft.data.propertyRow.value = null;
+        draft.data.propertyRow.value = undefined;
       });
 
       /**
