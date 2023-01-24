@@ -9,7 +9,6 @@
       "blocks/*",
       "libs/*",
       "libs/@local/*",
-      "packages/hash/subgraph",
       "packages/libs/error-stack",
       "tests/*"
     ]
