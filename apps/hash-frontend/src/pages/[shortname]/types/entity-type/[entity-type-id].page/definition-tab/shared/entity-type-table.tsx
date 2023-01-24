@@ -56,6 +56,14 @@ export const sortRows = <V, R extends { $id: VersionedUri }>(
     });
 
 const FLASHING_ROW_MS = 3_000;
+// We want the flash to fade in / fade out at this speed, with the remaining
+// time of the animation spent in a 'flashed' state
+const FLASH_IN_OUT_MS = 500;
+
+// These are the % of the full animation time where the flash starts and ends to
+// enable the fade in / fade out to last as long as FLASH_IN_OUT_MS requires
+const FLASH_START = Math.round((FLASH_IN_OUT_MS / FLASHING_ROW_MS) * 100);
+const FLASH_END = 100 - FLASH_START;
 
 /**
  * keyframes is part of emotion, not mui, so we can't access the theme, so instead
@@ -64,11 +72,11 @@ const FLASHING_ROW_MS = 3_000;
  */
 const flashAnimation = memoize(
   (color: string) => keyframes`
-  from, 83% {
+  ${FLASH_START}%, ${FLASH_END}% {
     background-color: ${color};
   }
   
-  to {
+  from, to {
     background-color: transparent;
   } 
 `,
@@ -178,7 +186,6 @@ export const EntityTypeTableRow = forwardRef<
               animation: `${flashAnimation(theme.palette.blue[20])} ease-in ${
                 FLASHING_ROW_MS / 1000
               }s`,
-              animationFillMode: "forwards",
             },
           })),
       ]}
