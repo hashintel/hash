@@ -6,6 +6,9 @@ jobs:
   triage:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/labeler@v4
+      - uses: kachkaev/labeler@d89797c51d07680aec17049cc6790e9d323d9a93
+        ## @todo replace with actions/labeler@v3 (or newer) when this PR is merged
+        ## https://github.com/actions/labeler/pull/316
         with:
+          dot: true
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
