@@ -1,5 +1,5 @@
-import { linkEntityTypeUri } from "@hashintel/hash-subgraph";
-import { getEntityTypes } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
+import { linkEntityTypeUri } from "@local/hash-subgraph";
+import { getEntityTypes } from "@local/hash-subgraph/src/stdlib/element/entity-type";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { useBlockProtocolAggregateEntityTypes } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-entity-types";

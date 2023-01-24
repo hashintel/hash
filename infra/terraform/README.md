@@ -113,7 +113,7 @@ This will start an SSH tunnel making `localhost:5554` point to the remote RDS in
 To migrate the graph, you must first build the docker container that contains the migrations and run it with the graph credentials you put into the [`./hash/prod.secrets.tfvars`](./hash/prod.secrets.tfvars) file:
 
 ```console
-$ DOCKER_BUILDKIT=1 docker build ./packages/graph -f ./packages/graph/deployment/migrations/Dockerfile -t hash-graph-migrate:latest
+$ DOCKER_BUILDKIT=1 docker build ./apps/hash-graph -f ./apps/hash-graph/deployment/migrations/Dockerfile -t hash-graph-migrate:latest
 ..
 $ docker run --rm --network host -e 'HASH_GRAPH_PG_MIGRATION_URL=postgres://graph:changeme@localhost:5554/graph' hash-graph-migrate:latest
 ..
@@ -149,7 +149,7 @@ The build and push commands ran from the root of this ([`hashintel/hash`](../../
 **Building `hash-graph`**:
 
 ```console
-$ DOCKER_BUILDKIT=1 docker build ./packages/graph -f ./packages/graph/deployment/graph/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-graphecr:latest
+$ DOCKER_BUILDKIT=1 docker build ./apps/hash-graph -f ./apps/hash-graph/docker/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-graphecr:latest
 ..
 $ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-graphecr:latest
 ..

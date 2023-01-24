@@ -1,6 +1,13 @@
 import { BaseUri, VersionedUri } from "@blockprotocol/type-system";
 import { Filter, GraphResolveDepths } from "@hashintel/hash-graph-client";
 import {
+  AccountId,
+  EntityUuid,
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+  OwnedById,
+} from "@local/hash-isomorphic-utils/types";
+import {
   Entity,
   EntityId,
   EntityMetadata,
@@ -10,15 +17,8 @@ import {
   Subgraph,
   SubgraphRootTypes,
   TimeProjection,
-} from "@hashintel/hash-subgraph";
-import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
-import {
-  AccountId,
-  EntityUuid,
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-  OwnedById,
-} from "@local/hash-isomorphic-utils/types";
+} from "@local/hash-subgraph";
+import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
 import { ApolloError } from "apollo-server-errors";
 
 import {

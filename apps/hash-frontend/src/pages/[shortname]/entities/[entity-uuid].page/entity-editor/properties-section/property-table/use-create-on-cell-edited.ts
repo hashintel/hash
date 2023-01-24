@@ -3,7 +3,7 @@ import {
   GridCellKind,
   Item,
 } from "@glideapps/glide-data-grid";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import { cloneDeep, set } from "lodash";
 import { useCallback } from "react";
 

@@ -1,103 +1,57 @@
 A-infra:
-  - ".*ignore"
   - ".changeset/config.json"
-  - ".github/.*"
-  - ".github/*"
-  - ".github/**/.*"
-  - ".github/**/*"
+  - ".github/**"
+  - ".*ignore"
   - ".markdownlint*"
   - "*.json"
   - "*.md"
   - "*.yml"
 
 A-blocks:
-  - "blocks/*"
-  - "blocks/.*"
-  - "blocks/**/*"
-  - "blocks/**/.*"
+  - "blocks/**"
 
 A-hash:
-  - "packages/hash/*"
-  - "packages/hash/.*"
-  - "packages/hash/**/*"
-  - "packages/hash/**/.*"
+  - "apps/hash-*/**"
+  - "libs/@local/hash-*/**"
+  - "libs/hash-*/**"
 
 A-engine:
-  - "apps/engine/*"
-  - "apps/engine/.*"
-  - "apps/engine/**/*"
-  - "apps/engine/**/.*"
+  - "apps/engine/**"
 
 A-learn:
-  - "apps/hashdotai/docs/*"
-  - "apps/hashdotai/docs/.*"
-  - "apps/hashdotai/docs/**/*"
-  - "apps/hashdotai/docs/**/.*"
-  - "apps/hashdotai/glossary/*"
-  - "apps/hashdotai/glossary/.*"
-  - "apps/hashdotai/glossary/**/*"
-  - "apps/hashdotai/glossary/**/.*"
+  - "apps/hashdotai/docs/**"
+  - "apps/hashdotai/glossary/**"
 
 A-error-stack:
-  - "packages/libs/error-stack/*"
-  - "packages/libs/error-stack/.*"
-  - "packages/libs/error-stack/**/*"
-  - "packages/libs/error-stack/**/.*"
+  - "packages/libs/error-stack/**"
 
 A-deer:
-  - "libs/deer/*"
-  - "libs/deer/.*"
-  - "libs/deer/**/*"
-  - "libs/deer/**/.*"
+  - "libs/deer/**"
 
 A-backend:
-  - "packages/graph/*"
-  - "packages/graph/.*"
-  - "packages/graph/**/*"
-  - "packages/graph/**/.*"
+  - "apps/hash-graph/**"
 
 C-dependencies:
   - "**/Cargo.lock"
   - "**/yarn.lock"
 
 frontend:
-  - apps/hash-frontend/*
-  - apps/hash-frontend/.*
-  - apps/hash-frontend/**/*
-  - apps/hash-frontend/**/.*
+  - "apps/hash-frontend/**"
 
 api:
-  - apps/hash-api/*
-  - apps/hash-api/.*
-  - apps/hash-api/**/*
-  - apps/hash-api/**/.*
+  - "apps/hash-api/**"
 
 integration:
-  - tests/hash-backend-integration/*
-  - tests/hash-backend-integration/.*
-  - tests/hash-backend-integration/**/*
-  - tests/hash-backend-integration/**/.*
+  - "tests/hash-backend-integration/**"
 
 docker:
-  - infra/docker/*
-  - infra/docker/.*
-  - infra/docker/**/*
-  - infra/docker/**/.*
+  - "infra/docker/**"
 
 playwright:
-  - tests/hash-playwright/*
-  - tests/hash-playwright/.*
-  - tests/hash-playwright/**/*
-  - tests/hash-playwright/**/.*
+  - "tests/hash-playwright/**"
 
 realtime:
-  - apps/hash-realtime/*
-  - apps/hash-realtime/.*
-  - apps/hash-realtime/**/*
-  - apps/hash-realtime/**/.*
+  - "apps/hash-realtime/**"
 
 search-loader:
-  - apps/hash-search-realtime/*
-  - apps/hash-search-realtime/.*
-  - apps/hash-search-realtime/**/*
-  - apps/hash-search-realtime/**/.*
+  - "apps/hash-search-realtime/**"
