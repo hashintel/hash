@@ -27,13 +27,18 @@ pub struct StoreWrapper {
 impl StoreWrapper {
     pub async fn new(bench_db_name: &str, fail_on_exists: bool, delete_on_drop: bool) -> Self {
         let super_user = std::env::var("POSTGRES_USER").unwrap_or_else(|_| "postgres".to_string());
-        let super_password = std::env::var("POSTGRES_PASSWORD").unwrap_or_else(|_| "postgres".to_string());
+        let super_password =
+            std::env::var("POSTGRES_PASSWORD").unwrap_or_else(|_| "postgres".to_string());
 
         let user = std::env::var("HASH_GRAPH_PG_USER").unwrap_or_else(|_| "graph".to_string());
-        let password = std::env::var("HASH_GRAPH_PG_PASSWORD").unwrap_or_else(|_| "graph".to_string());
+        let password =
+            std::env::var("HASH_GRAPH_PG_PASSWORD").unwrap_or_else(|_| "graph".to_string());
         let host = std::env::var("HASH_GRAPH_PG_HOST").unwrap_or_else(|_| "localhost".to_string());
-        let port = std::env::var("HASH_GRAPH_PG_PORT").map(|p| p.parse::<u16>().unwrap()).unwrap_or(5432);
-        let database = std::env::var("HASH_GRAPH_PG_DATABASE").unwrap_or_else(|_| "graph".to_string());
+        let port = std::env::var("HASH_GRAPH_PG_PORT")
+            .map(|p| p.parse::<u16>().unwrap())
+            .unwrap_or(5432);
+        let database =
+            std::env::var("HASH_GRAPH_PG_DATABASE").unwrap_or_else(|_| "graph".to_string());
 
         let source_db_connection_info = DatabaseConnectionInfo::new(
             DatabaseType::Postgres,
