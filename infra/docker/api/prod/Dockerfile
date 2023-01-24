@@ -14,7 +14,7 @@ COPY libs/@local/hash-isomorphic-utils/package.json libs/@local/hash-isomorphic-
 COPY libs/@local/tsconfig/package.json libs/@local/tsconfig/
 COPY apps/hash-api/package.json apps/hash-api/
 COPY packages/hash/subgraph/package.json packages/hash/subgraph/
-COPY packages/graph/clients/typescript/package.json packages/graph/clients/typescript/
+COPY apps/hash-graph/clients/typescript/package.json apps/hash-graph/clients/typescript/
 RUN yarn workspace @apps/hash-api install --frozen-lockfile --ignore-scripts --prefer-offline
 
 COPY libs/@local/hash-isomorphic-utils/src/graphql libs/@local/hash-isomorphic-utils/src/graphql
@@ -32,7 +32,7 @@ COPY libs/@local/eslint-config libs/@local/eslint-config
 COPY libs/@local/hash-backend-utils libs/@local/hash-backend-utils
 COPY libs/@local/hash-isomorphic-utils libs/@local/hash-isomorphic-utils
 COPY libs/@local/tsconfig libs/@local/tsconfig
-COPY packages/graph/clients/typescript packages/graph/clients/typescript
+COPY apps/hash-graph/clients/typescript apps/hash-graph/clients/typescript
 COPY apps/hash-api apps/hash-api
 COPY packages/hash/subgraph packages/hash/subgraph
 RUN mkdir -p /app/var/uploads
