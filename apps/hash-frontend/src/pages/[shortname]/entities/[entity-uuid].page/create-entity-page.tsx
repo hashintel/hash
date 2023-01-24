@@ -94,6 +94,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
 
   return (
     <EntityEditorPage
+      readonly={false}
       refetch={async () => {}}
       editBar={
         <EditBar

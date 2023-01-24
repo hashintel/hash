@@ -4,10 +4,10 @@ import { Box, Popover, popoverClasses } from "@mui/material";
 import { FunctionComponent, useState } from "react";
 
 import { PlusBoxOutlineIcon } from "../../shared/icons/plus-box-outline-icon";
-import { useIsReadonlyMode } from "../../shared/readonly-mode";
 import { BlockSuggester } from "./create-suggester/block-suggester";
 
 type InsertBlockProps = {
+  readonly: boolean;
   onBlockSuggesterChange: (
     variant: BlockVariant,
     blockMeta: HashBlockMeta,
@@ -16,8 +16,8 @@ type InsertBlockProps = {
 
 export const InsertBlock: FunctionComponent<InsertBlockProps> = ({
   onBlockSuggesterChange,
+  readonly,
 }) => {
-  const isReadonlyMode = useIsReadonlyMode();
   const [contextMenuPosition, setContextMenuPosition] = useState<{
     left: number;
     top: number;
@@ -30,7 +30,7 @@ export const InsertBlock: FunctionComponent<InsertBlockProps> = ({
     onCloseSuggester();
   };
 
-  if (isReadonlyMode) {
+  if (readonly) {
     return null;
   }
 

@@ -9,7 +9,6 @@ import {
 } from "react";
 
 import { useUpdatePageTitle } from "../../../components/hooks/use-update-page-title";
-import { useIsReadonlyMode } from "../../../shared/readonly-mode";
 import { usePageContext } from "../page-context";
 import { cleanUpTitle, focusEditorBeginning } from "./utils";
 
@@ -43,6 +42,7 @@ const StyledTextarea = styled(TextareaAutosize)(({ theme }) =>
 type PageTitleProps = {
   pageEntityId: EntityId;
   value: string;
+  readonly: boolean;
 };
 
 export const PAGE_TITLE_PLACEHOLDER = "Untitled";
@@ -50,9 +50,9 @@ export const PAGE_TITLE_PLACEHOLDER = "Untitled";
 export const PageTitle: FunctionComponent<PageTitleProps> = ({
   pageEntityId,
   value,
+  readonly,
 }) => {
   // TODO: Display update error once expected UX is discussed
-  const isReadonlyMode = useIsReadonlyMode();
 
   const [updatePageTitle, { updatePageTitleLoading }] = useUpdatePageTitle();
 
@@ -105,7 +105,7 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
     <StyledTextarea
       ref={pageTitleRef}
       placeholder={PAGE_TITLE_PLACEHOLDER}
-      disabled={updatePageTitleLoading || isReadonlyMode}
+      disabled={updatePageTitleLoading || readonly}
       onChange={handleInputChange}
       onKeyDown={handleInputKeyDown}
       onBlur={handleInputBlur}
