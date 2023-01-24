@@ -1,20 +1,21 @@
-import { createKratosIdentity } from "@hashintel/hash-api/src/auth/ory-kratos";
+import { createKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
-} from "@hashintel/hash-api/src/graph";
-import { createOrg } from "@hashintel/hash-api/src/graph/knowledge/system-types/org";
+} from "@apps/hash-api/src/graph";
+import { createOrg } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import {
   createUser,
   updateUserShortname,
-} from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
-import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
-import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
-import { getRequiredEnv } from "@hashintel/hash-api/src/util";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
+} from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { ensureSystemTypesExist } from "@apps/hash-api/src/graph/system-types";
+import { systemUserAccountId } from "@apps/hash-api/src/graph/system-user";
+import { StorageType } from "@apps/hash-api/src/storage";
+import { getRequiredEnv } from "@apps/hash-api/src/util";
+import { Logger } from "@local/hash-backend-utils/logger";
 
-import { OrgSize, StorageType } from "../graphql/api-types.gen";
+import { OrgSize } from "../graphql/api-types.gen";
 
 const randomStringSuffix = () => {
   const alphabet = "abcdefghijklmnopqrstuvwxyz";
@@ -42,13 +43,19 @@ export const createTestImpureGraphContext = (): ImpureGraphContext => {
     graphApi,
     uploadProvider: {
       getFileEntityStorageKey: (_params: any) => {
-        throw new Error("File fetching not implemented in tests");
+        throw new Error(
+          "File fetching not implemented in tests. Override with mock to test.",
+        );
       },
       presignDownload: (_params: any) => {
-        throw new Error("File presign download not implemented in tests");
+        throw new Error(
+          "File presign download not implemented in tests. Override with mock to test.",
+        );
       },
       presignUpload: (_params: any) => {
-        throw new Error("File presign upload not implemented in tests");
+        throw new Error(
+          "File presign upload not implemented in tests. Override with mock to test.",
+        );
       },
       storageType: StorageType.LocalFileSystem,
     },

@@ -1,23 +1,23 @@
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
-} from "@hashintel/hash-api/src/graph";
-import { createEntity } from "@hashintel/hash-api/src/graph/knowledge/primitive/entity";
+} from "@apps/hash-api/src/graph";
+import { createEntity } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import {
   Block,
   createBlock,
   getBlockById,
   getBlockData,
   updateBlockDataEntity,
-} from "@hashintel/hash-api/src/graph/knowledge/system-types/block";
-import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
-import { createEntityType } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
-import { generateSystemEntityTypeSchema } from "@hashintel/hash-api/src/graph/util";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
-import { OwnedById } from "@hashintel/hash-shared/types";
-import { Entity, EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
+} from "@apps/hash-api/src/graph/knowledge/system-types/block";
+import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
+import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/util";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import { Logger } from "@local/hash-backend-utils/logger";
+import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
+import { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

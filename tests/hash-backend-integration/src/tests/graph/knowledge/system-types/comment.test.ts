@@ -1,23 +1,23 @@
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
-} from "@hashintel/hash-api/src/graph";
-import { createEntity } from "@hashintel/hash-api/src/graph/knowledge/primitive/entity";
+} from "@apps/hash-api/src/graph";
+import { createEntity } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import {
   Block,
   createBlock,
-} from "@hashintel/hash-api/src/graph/knowledge/system-types/block";
+} from "@apps/hash-api/src/graph/knowledge/system-types/block";
 import {
   createComment,
   getCommentAuthor,
   getCommentParent,
   getCommentText,
-} from "@hashintel/hash-api/src/graph/knowledge/system-types/comment";
-import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
-import { SYSTEM_TYPES } from "@hashintel/hash-api/src/graph/system-types";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { OwnedById } from "@hashintel/hash-shared/types";
+} from "@apps/hash-api/src/graph/knowledge/system-types/comment";
+import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import { Logger } from "@local/hash-backend-utils/logger";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

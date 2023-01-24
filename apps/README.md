@@ -15,4 +15,4 @@ This `apps` directory contains the source-code and/or content for a number of HA
 - [hash.ai](https://hash.ai/): our main website
 - [hash.dev](https://hash.dev/): our developer-focused website
 
-The source code for the Block Protocol website can be found in the `site` subdirectory of the [blockprotocol/blockprotocol repo](https://github.com/blockprotocol/blockprotocol/tree/main/site) on GitHub.
+The source code for the Block Protocol website can be found in the `apps/site` subdirectory of the [blockprotocol/blockprotocol repo](https://github.com/blockprotocol/blockprotocol/tree/main/apps/site) on GitHub.

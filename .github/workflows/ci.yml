@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - "trunk-merge/**"
 
 env:
   TURBO_FORCE: true ## Turbo caching is disabled to avoid issues false cache hits (https://app.asana.com/0/1203193968491715/1203429129383865/f)
@@ -15,7 +16,8 @@ env:
 jobs:
   linting:
     name: Linting
-    if: ${{ github.event_name == 'pull_request' }}
+    # Run only on push to `main` or `trunk_merge/**` or on pull requests
+    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -55,6 +57,21 @@ jobs:
             echo 'ℹ️ ℹ️ ℹ️'
             echo 'Try resetting yarn.lock to its previous state and then run `yarn install`.'
             echo 'If your `~/.npmrc` mentions a custom registry, you should remove this setting first.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
+      - name: Run yarn lint:license-in-workspaces
+        if: ${{ success() || failure() }}
+        env:
+          FORCE_COLOR: "1" ## https://www.npmjs.com/package/chalk#supportsColor
+        run: |
+          if ! yarn lint:license-in-workspaces; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Please fix the above errors locally for the check to pass.'
+            echo 'If you don’t see them, try merging target branch into yours.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
@@ -166,7 +183,7 @@ jobs:
       - name: Show external services logs
         if: ${{ success() || failure() }}
         run: |
-          docker-compose --file packages/hash/external-services/docker-compose.yml logs 2>&1 | tee var/logs/external-services.log
+          docker-compose --file apps/hash-external-services/docker-compose.yml logs 2>&1 | tee var/logs/hash-external-services.log
 
       - name: Upload artifact backend-integration-tests-var
         uses: actions/upload-artifact@v3
@@ -181,15 +198,16 @@ jobs:
 
   playwright-tests:
     name: Playwright tests
-    if: ${{ github.event_name == 'pull_request' }}
+    # Run only on push to `main` or `trunk_merge/**` or on pull requests
+    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
       - uses: actions/cache@v3
         with:
-          path: packages/hash/frontend/.next/cache
-          key: ${{ runner.os }}-frontend-next-cache-${{ hashFiles('yarn.lock') }}-${{ hashFiles('packages/hash/frontend/**') }}
+          path: apps/hash-frontend/.next/cache
+          key: ${{ runner.os }}-frontend-next-cache-${{ hashFiles('yarn.lock') }}-${{ hashFiles('apps/hash-frontend/**') }}
           restore-keys: |
             ${{ runner.os }}-frontend-next-cache-${{ hashFiles('yarn.lock') }}-
             ${{ runner.os }}-frontend-next-cache
@@ -221,8 +239,8 @@ jobs:
       - name: Build and launch frontend
         if: ${{ success() || failure() }}
         run: |
-          yarn workspace @hashintel/hash-frontend next build
-          yarn workspace @hashintel/hash-frontend start 2>&1 | tee var/logs/frontend.log & ## ampersand enables background mode
+          yarn workspace @apps/hash-frontend next build
+          yarn workspace @apps/hash-frontend start 2>&1 | tee var/logs/frontend.log & ## ampersand enables background mode
           yarn wait-on --timeout 30000 http://0.0.0.0:3000
 
       - name: Run Playwright tests
@@ -233,8 +251,8 @@ jobs:
       - name: Show external services logs
         if: ${{ success() || failure() }}
         run: |
-          docker-compose --file packages/hash/external-services/docker-compose.yml logs 2>&1 | tee var/logs/external-services.log
-          cat var/logs/external-services.log
+          docker-compose --file apps/hash-external-services/docker-compose.yml logs 2>&1 | tee var/logs/hash-external-services.log
+          cat var/logs/hash-external-services.log
 
       - name: Show backend logs
         if: ${{ success() || failure() }}
@@ -280,6 +298,6 @@ jobs:
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           fail_ci_if_error: true
-          files: packages/hash/api/coverage/lcov.info,packages/hash/backend-utils/coverage/lcov.info,packages/hash/frontend/coverage/lcov.info,packages/hash/shared/coverage/lcov.info,
+          files: apps/hash-api/coverage/lcov.info,apps/hash-frontend/coverage/lcov.info,libs/@local/hash-backend-utils/coverage/lcov.info,libs/@local/hash-isomorphic-utils/coverage/lcov.info,
           flags: unit-tests
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved

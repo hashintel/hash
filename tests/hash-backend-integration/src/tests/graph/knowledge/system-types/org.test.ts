@@ -1,16 +1,16 @@
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
-} from "@hashintel/hash-api/src/graph";
+} from "@apps/hash-api/src/graph";
 import {
   getOrgByShortname,
   Org,
   updateOrgName,
   updateOrgShortname,
-} from "@hashintel/hash-api/src/graph/knowledge/system-types/org";
-import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
+} from "@apps/hash-api/src/graph/knowledge/system-types/org";
+import { systemUserAccountId } from "@apps/hash-api/src/graph/system-user";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import { Logger } from "@local/hash-backend-utils/logger";
 
 import {
   createTestImpureGraphContext,

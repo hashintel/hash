@@ -1,25 +1,25 @@
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
   zeroedGraphResolveDepths,
-} from "@hashintel/hash-api/src/graph";
+} from "@apps/hash-api/src/graph";
 import {
   createEntity,
   createEntityWithLinks,
   getEntityOutgoingLinks,
   getLatestEntityById,
   updateEntity,
-} from "@hashintel/hash-api/src/graph/knowledge/primitive/entity";
-import { getLinkEntityRightEntity } from "@hashintel/hash-api/src/graph/knowledge/primitive/link-entity";
-import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
-import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
-import { createEntityType } from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
-import { createPropertyType } from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
-import { generateSystemEntityTypeSchema } from "@hashintel/hash-api/src/graph/util";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { generateTypeId } from "@hashintel/hash-shared/ontology-types";
-import { EntityId, OwnedById } from "@hashintel/hash-shared/types";
+} from "@apps/hash-api/src/graph/knowledge/primitive/entity";
+import { getLinkEntityRightEntity } from "@apps/hash-api/src/graph/knowledge/primitive/link-entity";
+import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { createDataType } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
+import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
+import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/util";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import { Logger } from "@local/hash-backend-utils/logger";
+import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import { EntityId, OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
   DataTypeWithMetadata,
   Entity,
@@ -29,8 +29,8 @@ import {
   PropertyTypeWithMetadata,
   Subgraph,
   SubgraphRootTypes,
-} from "@hashintel/hash-subgraph";
-import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+} from "@local/hash-subgraph";
+import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
@@ -203,9 +203,20 @@ describe("Entity CRU", () => {
     const allEntitys = await graphApi
       .getEntitiesByQuery({
         filter: {
-          all: [{ equal: [{ path: ["version"] }, { parameter: "latest" }] }],
+          all: [],
         },
         graphResolveDepths: zeroedGraphResolveDepths,
+        timeProjection: {
+          kernel: {
+            axis: "transaction",
+            timestamp: null,
+          },
+          image: {
+            axis: "decision",
+            start: null,
+            end: null,
+          },
+        },
       })
       .then(({ data }) =>
         getRootsAsEntities(

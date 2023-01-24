@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - dev/**
+      - "trunk-merge/**"
 
 defaults:
   run:
@@ -80,12 +81,12 @@ jobs:
         shell: bash
         run: |
           cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.35.15
-          cargo quickinstall cargo-hack --version 0.5.15
+          cargo quickinstall cargo-make --version 0.36.3
+          cargo quickinstall cargo-hack --version 0.5.26
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
-        if: matrix.directory == 'packages/graph/hash_graph'
+        if: matrix.directory == 'apps/hash-graph'
         uses: arduino/setup-protoc@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
@@ -146,13 +147,13 @@ jobs:
         shell: bash
         run: |
           cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.35.15
-          cargo quickinstall cargo-hack --version 0.5.15
-          cargo quickinstall cargo-nextest --version 0.9.28
+          cargo quickinstall cargo-make --version 0.36.3
+          cargo quickinstall cargo-hack --version 0.5.26
+          cargo quickinstall cargo-nextest --version 0.9.37
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
-        if: matrix.directory == 'packages/graph/hash_graph'
+        if: matrix.directory == 'apps/hash-graph'
         uses: arduino/setup-protoc@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
@@ -230,13 +231,13 @@ jobs:
         shell: bash
         run: |
           cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.35.15
-          cargo quickinstall cargo-nextest --version 0.9.28
-          cargo quickinstall cargo-llvm-cov --version 0.5.0
+          cargo quickinstall cargo-make --version 0.36.3
+          cargo quickinstall cargo-nextest --version 0.9.37
+          cargo quickinstall cargo-llvm-cov --version 0.5.9
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
-        if: matrix.directory == 'packages/graph/hash_graph'
+        if: matrix.directory == 'apps/hash-graph'
         uses: arduino/setup-protoc@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
@@ -279,7 +280,7 @@ jobs:
       - name: Install tools
         run: |
           cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.35.15
+          cargo quickinstall cargo-make --version 0.36.3
 
       - name: Build Docker container
         run: cargo make --profile ${{ matrix.profile }} build-docker
@@ -309,9 +310,9 @@ jobs:
         shell: bash
         run: |
           cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.35.15
-          cargo quickinstall cargo-hack --version 0.5.15
-          cargo quickinstall cargo-nextest --version 0.9.28
+          cargo quickinstall cargo-make --version 0.36.3
+          cargo quickinstall cargo-hack --version 0.5.26
+          cargo quickinstall cargo-nextest --version 0.9.37
 
       - name: Run lints
         if: github.event_name == 'pull_request'
