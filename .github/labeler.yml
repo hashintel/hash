@@ -35,22 +35,22 @@ C-dependencies:
   - "**/yarn.lock"
 
 frontend:
-  - apps/hash-frontend/**
+  - "apps/hash-frontend/**"
 
 api:
-  - apps/hash-api/**
+  - "apps/hash-api/**"
 
 integration:
-  - tests/hash-backend-integration/**
+  - "tests/hash-backend-integration/**"
 
 docker:
-  - infra/docker/**
+  - "infra/docker/**"
 
 playwright:
-  - tests/hash-playwright/**
+  - "tests/hash-playwright/**"
 
 realtime:
-  - apps/hash-realtime/**
+  - "apps/hash-realtime/**"
 
 search-loader:
-  - apps/hash-search-realtime/**
+  - "apps/hash-search-realtime/**"
