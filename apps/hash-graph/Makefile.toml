@@ -29,7 +29,7 @@ private = false
 category = "Deploy"
 description = "Tears down the deployment environment"
 extend = "yarn"
-args = ["external-services", "down", "${@}"]
+args = ["external-services", "down"]
 cwd = "${REPO_ROOT}"
 
 [tasks.build-docker]
@@ -51,7 +51,7 @@ cwd = "${REPO_ROOT}"
 category = "Deploy"
 description = "Tears down up the Graph API"
 extend = "yarn"
-args = ["external-services", "down", "${@}"]
+args = ["external-services", "down"]
 cwd = "${REPO_ROOT}"
 
 [tasks.test-docker]
