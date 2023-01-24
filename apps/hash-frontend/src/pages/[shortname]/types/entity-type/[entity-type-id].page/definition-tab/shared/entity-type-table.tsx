@@ -159,7 +159,7 @@ export const EntityTypeTableRow = forwardRef<
     return () => {
       observerRef.current?.disconnect();
     };
-  });
+  }, []);
 
   return (
     <TableRow
