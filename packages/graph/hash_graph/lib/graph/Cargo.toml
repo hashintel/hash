@@ -8,7 +8,7 @@ description = "HASH Graph API"
 [dependencies]
 interval-ops = { path = "../interval-ops" }
 
-async-trait = "0.1.60"
+async-trait = "0.1.63"
 axum = "0.6.3"
 bb8-postgres = "0.8.1"
 clap = { version = "4.0.30", features = ["derive", "env"], optional = true }
