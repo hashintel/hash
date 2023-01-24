@@ -5,7 +5,8 @@ volumes:
 
 services:
   postgres:
-    image: postgres:14-alpine
+    build:
+      context: ./postgres
     deploy:
       restart_policy:
         condition: on-failure
@@ -21,7 +22,7 @@ services:
     volumes:
       - hash-graph-data:/var/lib/postgresql/data
       - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-      - ./postgres/init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh
+      - ./postgres/init-user-db.sh:/docker-entrypoint-initdb.d/100-init-user-db.sh
     tmpfs:
       - /tmp
       - /run/postgresql
@@ -29,8 +30,3 @@ services:
     security_opt:
       - no-new-privileges:true
     read_only: true
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready --username ${POSTGRES_USER}"]
-      interval: 2s
-      timeout: 1s
-      retries: 5

@@ -36,7 +36,7 @@ private = false
 category = "Deploy"
 description = "Tears down the deployment environment"
 extend = "docker"
-args = ["compose", "--env-file", "../.env", "down"]
+args = ["compose", "--env-file", "../.env", "down", "-v"]
 cwd = "${REPO_ROOT}/packages/graph/deployment"
 
 [tasks.build-docker]
