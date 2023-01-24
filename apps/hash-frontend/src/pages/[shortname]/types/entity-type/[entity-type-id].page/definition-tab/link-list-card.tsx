@@ -1,7 +1,9 @@
-import { EntityTypeWithMetadata } from "@blockprotocol/graph";
-import { EntityType, VersionedUri } from "@blockprotocol/type-system";
+impoπrt { EntityType, VersionedUri } from "@blockprotocol/type-system";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import { linkEntityTypeUri } from "@hashintel/hash-subgraph";
+import {
+  EntityTypeWithMetadata,
+  linkEntityTypeUri,
+} from "@hashintel/hash-subgraph";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { Chip, FontAwesomeIcon } from "@local/design-system";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
@@ -41,9 +43,7 @@ import {
 } from "../../../../shared/popper-placement-modifier";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
 import { useRouteNamespace } from "../../../../shared/use-route-namespace";
-import { useEntityType } from "../shared/entity-type-context";
 import { EntityTypeEditorForm } from "../shared/form-types";
-import { useLatestPropertyTypes } from "../shared/latest-property-types-context";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
@@ -506,7 +506,7 @@ export const LinkListCard = () => {
               });
             }}
             link={row}
-            flash={flashingRows.includes(row.schema.$id)}
+            flash={row ? flashingRows.includes(row.schema.$id) : false}
           />
         ))}
       </TableBody>
