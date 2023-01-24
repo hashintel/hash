@@ -74,22 +74,20 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
 
   if (editorType === "object") {
     return (
-      <GridEditorWrapper>
-        <JsonInput
-          value={value as any}
-          onChange={(newValue, isDiscarded) => {
-            if (isDiscarded) {
-              return onFinishedEditing(undefined);
-            }
+      <JsonInput
+        value={value as any}
+        onChange={(newValue, isDiscarded) => {
+          if (isDiscarded) {
+            return onFinishedEditing(undefined);
+          }
 
-            const newCell = produce(cell, (draftCell) => {
-              draftCell.data.propertyRow.value = newValue;
-            });
+          const newCell = produce(cell, (draftCell) => {
+            draftCell.data.propertyRow.value = newValue;
+          });
 
-            onFinishedEditing(newCell);
-          }}
-        />
-      </GridEditorWrapper>
+          onFinishedEditing(newCell);
+        }}
+      />
     );
   }
 
