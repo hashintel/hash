@@ -5,10 +5,10 @@ import {
   VersionedUri,
 } from "@blockprotocol/type-system";
 import { faList } from "@fortawesome/free-solid-svg-icons";
-import { Subgraph } from "@hashintel/hash-subgraph";
-import { getPropertyTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 import { FontAwesomeIcon } from "@local/design-system";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
+import { Subgraph } from "@local/hash-subgraph";
+import { getPropertyTypesByBaseUri } from "@local/hash-subgraph/src/stdlib/element/property-type";
 import {
   Box,
   Checkbox,

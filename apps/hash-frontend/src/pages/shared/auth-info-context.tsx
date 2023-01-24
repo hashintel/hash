@@ -1,6 +1,6 @@
 import { useLazyQuery } from "@apollo/client";
-import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import {
   createContext,
   FunctionComponent,

@@ -1,6 +1,6 @@
-import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
-import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
+import { Entity, Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
+import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import {
