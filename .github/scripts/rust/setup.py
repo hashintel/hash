@@ -34,7 +34,7 @@ PUBLISH_PATTERNS = ["packages/libs/error-stack**"]
 # "libs/deer**"
 
 # Build a docker container for these crates
-DOCKER_PATTERNS = ["apps/hash-graph/hash_graph"]
+DOCKER_PATTERNS = ["apps/hash-graph"]
 
 # Build a coverage report for these crates
 COVERAGE_EXCLUDE_PATTERNS = ["apps/engine**"]
