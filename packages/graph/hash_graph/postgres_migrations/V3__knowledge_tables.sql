@@ -8,8 +8,10 @@ CREATE TABLE IF NOT EXISTS
     "right_entity_uuid" UUID,
     PRIMARY KEY ("owned_by_id", "entity_uuid"),
     -- Set in CITUS script instead.
-    -- FOREIGN KEY ("left_owned_by_id", "left_entity_uuid") REFERENCES "entity_ids",
-    -- FOREIGN KEY ("right_owned_by_id", "right_entity_uuid") REFERENCES "entity_ids",
+    -- THIS HAS CHANGED!
+    -- we no longer allow the left and right entity to have their own owned_by_ids
+    FOREIGN KEY ("owned_by_id", "left_entity_uuid") REFERENCES "entity_ids",
+    FOREIGN KEY ("owned_by_id", "right_entity_uuid") REFERENCES "entity_ids",
     CHECK (
       left_entity_uuid IS NULL
       AND right_entity_uuid IS NULL
@@ -26,7 +28,7 @@ CREATE TABLE IF NOT EXISTS
   "entity_editions" (
     "owned_by_id" UUID NOT NULL,
     "entity_record_id" BIGSERIAL NOT NULL,
-    "entity_type_version_id" UUID NOT NULL, -- REFERENCES "entity_types",
+    "entity_type_version_id" UUID NOT NULL REFERENCES "entity_types",
     "properties" JSONB NOT NULL,
     "left_to_right_order" INTEGER,
     "right_to_left_order" INTEGER,

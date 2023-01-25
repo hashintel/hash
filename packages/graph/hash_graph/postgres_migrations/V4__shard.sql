@@ -57,15 +57,3 @@ begin
 
   end if;
 end$$;
-
--- Add self-referential foreign keys
--- This is done after creating Citus distributed tables to avoid issues.
--- https://stackoverflow.com/questions/74658829/cannot-create-distributed-table-with-foreign-key-on-citus-11-1
--- ALTER TABLE
---   entity_ids
--- ADD
---   CONSTRAINT entity_ids_left_entity_uuid_fkey FOREIGN KEY (left_owned_by_id, left_entity_uuid) REFERENCES entity_ids;
--- ALTER TABLE
---   entity_ids
--- ADD
---   CONSTRAINT entity_ids_right_entity_uuid_fkey FOREIGN KEY (right_owned_by_id, right_entity_uuid) REFERENCES entity_ids;
