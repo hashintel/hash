@@ -1,4 +1,4 @@
-use std::{borrow::Cow, iter::once};
+use std::iter::once;
 
 use crate::{
     ontology::{EntityTypeQueryPath, EntityTypeWithMetadata},
@@ -40,27 +40,27 @@ impl PostgresQueryPath for EntityTypeQueryPath {
             Self::OwnedById => Column::EntityTypes(EntityTypes::OwnedById),
             Self::UpdatedById => Column::EntityTypes(EntityTypes::UpdatedById),
             Self::Schema => Column::EntityTypes(EntityTypes::Schema(None)),
-            Self::VersionedUri => Column::EntityTypes(EntityTypes::Schema(Some(JsonField::Text(
-                &Cow::Borrowed("$id"),
-            )))),
-            Self::Title => Column::EntityTypes(EntityTypes::Schema(Some(JsonField::Text(
-                &Cow::Borrowed("title"),
-            )))),
-            Self::Description => Column::EntityTypes(EntityTypes::Schema(Some(JsonField::Text(
-                &Cow::Borrowed("description"),
-            )))),
-            Self::Default => Column::EntityTypes(EntityTypes::Schema(Some(JsonField::Text(
-                &Cow::Borrowed("default"),
-            )))),
-            Self::Examples => Column::EntityTypes(EntityTypes::Schema(Some(JsonField::Text(
-                &Cow::Borrowed("examples"),
-            )))),
-            Self::Required => Column::EntityTypes(EntityTypes::Schema(Some(JsonField::Text(
-                &Cow::Borrowed("required"),
-            )))),
-            Self::RequiredLinks => Column::EntityTypes(EntityTypes::Schema(Some(JsonField::Text(
-                &Cow::Borrowed("requiredLinks"),
-            )))),
+            Self::VersionedUri => {
+                Column::EntityTypes(EntityTypes::Schema(Some(JsonField::StaticText("$id"))))
+            }
+            Self::Title => {
+                Column::EntityTypes(EntityTypes::Schema(Some(JsonField::StaticText("title"))))
+            }
+            Self::Description => Column::EntityTypes(EntityTypes::Schema(Some(
+                JsonField::StaticText("description"),
+            ))),
+            Self::Default => {
+                Column::EntityTypes(EntityTypes::Schema(Some(JsonField::StaticText("default"))))
+            }
+            Self::Examples => {
+                Column::EntityTypes(EntityTypes::Schema(Some(JsonField::StaticText("examples"))))
+            }
+            Self::Required => {
+                Column::EntityTypes(EntityTypes::Schema(Some(JsonField::StaticText("required"))))
+            }
+            Self::RequiredLinks => Column::EntityTypes(EntityTypes::Schema(Some(
+                JsonField::StaticText("requiredLinks"),
+            ))),
             Self::Links(path) | Self::InheritsFrom(path) => path.terminating_column(),
             Self::Properties(path) => path.terminating_column(),
         }
