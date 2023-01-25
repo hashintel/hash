@@ -53,12 +53,12 @@ export const expectedValuesOptions = {
   },
   [types.dataType.object.dataTypeId]: {
     title: types.dataType.object.title,
-    icon: faBracketsSquare,
+    icon: faBracketsCurly,
     colors: chipColors.blue,
   },
   [types.dataType.emptyList.dataTypeId]: {
     title: types.dataType.emptyList.title,
-    icon: faBracketsCurly,
+    icon: faBracketsSquare,
     colors: chipColors.blue,
   },
   [types.dataType.null.dataTypeId]: {
