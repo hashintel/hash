@@ -3,6 +3,7 @@ mod atomic;
 mod bool;
 mod bytes;
 mod cell;
+mod cmp;
 mod floating;
 mod integral;
 mod mem;
