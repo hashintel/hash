@@ -203,7 +203,7 @@ def crate_should_run_production_builds(crate):
     :return: whether the crate should run production builds
     """
     return not any(
-        fnmatch(str(crate), pattern) for pattern in SKIP_PRODUCTION_BUILD_PATTERNS
+        fnmatch(crate, pattern) for pattern in SKIP_PRODUCTION_BUILD_PATTERNS
     )
 
 
@@ -250,22 +250,15 @@ def output_matrix(name, github_output_file, crates, **kwargs):
     excluded_toolchain_combinations = set(available_toolchain_combinations).difference(
         *used_toolchain_combinations
     )
-    
-    exclude=[
-        dict(name=elem[0], toolchain=elem[1])
-        for elem in excluded_toolchain_combinations
-    ]
-    
-    if "profile" in kwargs and "production" in kwargs["profile"]:
-        for crate in crates:
-            if not crate_should_run_production_builds(crate):
-                exclude.append(dict(name=crate_names[crate], profile="production"))
 
     matrix = dict(
         name=[crate_names[crate] for crate in crates],
         toolchain=list(available_toolchains),
         **kwargs,
-        exclude=exclude,
+        exclude=[
+            dict(name=elem[0], toolchain=elem[1])
+            for elem in excluded_toolchain_combinations
+        ],
         include=[
             dict(name=crate_names[crate], directory=str(crate))
             for crate in crates
@@ -290,7 +283,10 @@ def main():
     github_output_file = open(os.environ["GITHUB_OUTPUT_FILE_PATH"], "w")
 
     output_matrix("lint", github_output_file, changed_parent_crates)
-    output_matrix("test", github_output_file, changed_parent_crates, profile=["development", "production"])
+    if crate_should_run_production_builds(changed_parent_crates):
+        output_matrix("build", github_output_file, changed_parent_crates, profile=["development", "production"])
+    else:
+        output_matrix("build", github_output_file, changed_parent_crates, profile=["development"])
     output_matrix("coverage", github_output_file, coverage_crates)
     output_matrix("docker", github_output_file, changed_docker_crates, profile=["production"])
     output_matrix(
