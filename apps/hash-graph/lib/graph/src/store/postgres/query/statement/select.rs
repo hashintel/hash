@@ -540,7 +540,7 @@ mod tests {
             FROM "entities" AS "entities_0_0_0"
             WHERE "entities_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
               AND "entities_0_0_0"."decision_time" && $3
-              AND "entities_0_0_0"."properties"->>$1 = $4
+              AND "entities_0_0_0"."properties"->$1 = $4
             "#,
             &[
                 &"https://blockprotocol.org/@alice/types/property-type/name/",
@@ -572,7 +572,7 @@ mod tests {
             FROM "entities" AS "entities_0_0_0"
             WHERE "entities_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
               AND "entities_0_0_0"."decision_time" && $3
-              AND "entities_0_0_0"."properties"->>$1 IS NULL
+              AND "entities_0_0_0"."properties"->$1 IS NULL
             "#,
             &[
                 &"https://blockprotocol.org/@alice/types/property-type/name/",
