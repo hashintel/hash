@@ -345,7 +345,6 @@ impl Modify for OperationGraphTagAddon {
 struct FilterSchemaAddon;
 
 impl Modify for FilterSchemaAddon {
-    #[expect(clippy::too_many_lines)]
     fn modify(&self, openapi: &mut openapi::OpenApi) {
         // This magically generates `any`, which is the closest representation we found working
         // with the OpenAPI generator.
