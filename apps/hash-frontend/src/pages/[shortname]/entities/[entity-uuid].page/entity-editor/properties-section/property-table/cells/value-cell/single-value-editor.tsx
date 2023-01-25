@@ -101,16 +101,17 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     const spec = editorSpecs[editorType];
     const title = spec.valueToString(value);
 
+    const shouldClearOnClick = value !== undefined;
+
     return (
       <GridEditorWrapper sx={{ px: 2, alignItems: "flex-start" }}>
         <Chip
+          color={shouldClearOnClick ? "red" : "gray"}
           onClick={() => {
-            if (value !== undefined) {
-              return onFinishedEditing(undefined);
-            }
-
             const newCell = produce(cell, (draftCell) => {
-              draftCell.data.propertyRow.value = spec.defaultValue;
+              draftCell.data.propertyRow.value = shouldClearOnClick
+                ? undefined
+                : spec.defaultValue;
             });
 
             onFinishedEditing(newCell);
