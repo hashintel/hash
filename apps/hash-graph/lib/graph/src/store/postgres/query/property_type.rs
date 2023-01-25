@@ -1,4 +1,4 @@
-use std::{borrow::Cow, iter::once};
+use std::iter::once;
 
 use crate::{
     ontology::{PropertyTypeQueryPath, PropertyTypeWithMetadata},
@@ -36,14 +36,14 @@ impl PostgresQueryPath for PropertyTypeQueryPath {
             Self::OwnedById => Column::PropertyTypes(PropertyTypes::OwnedById),
             Self::UpdatedById => Column::PropertyTypes(PropertyTypes::UpdatedById),
             Self::Schema => Column::PropertyTypes(PropertyTypes::Schema(None)),
-            Self::VersionedUri => Column::PropertyTypes(PropertyTypes::Schema(Some(
-                JsonField::Text(&Cow::Borrowed("$id")),
-            ))),
-            Self::Title => Column::PropertyTypes(PropertyTypes::Schema(Some(JsonField::Text(
-                &Cow::Borrowed("title"),
-            )))),
+            Self::VersionedUri => {
+                Column::PropertyTypes(PropertyTypes::Schema(Some(JsonField::StaticText("$id"))))
+            }
+            Self::Title => {
+                Column::PropertyTypes(PropertyTypes::Schema(Some(JsonField::StaticText("title"))))
+            }
             Self::Description => Column::PropertyTypes(PropertyTypes::Schema(Some(
-                JsonField::Text(&Cow::Borrowed("description")),
+                JsonField::StaticText("description"),
             ))),
             Self::DataTypes(path) => path.terminating_column(),
             Self::PropertyTypes(path) => path.terminating_column(),

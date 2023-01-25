@@ -70,7 +70,7 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             Self::Properties(path) => path
                 .as_ref()
                 .map_or(Column::Entities(Entities::Properties(None)), |path| {
-                    Column::Entities(Entities::Properties(Some(JsonField::Text(path))))
+                    Column::Entities(Entities::Properties(Some(JsonField::Json(path))))
                 }),
         }
     }
