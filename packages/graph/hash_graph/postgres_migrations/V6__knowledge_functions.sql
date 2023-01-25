@@ -41,6 +41,7 @@ OR REPLACE FUNCTION "create_entity" (
 
       -- insert the data of the entity
       INSERT INTO entity_editions (
+        owned_by_id,
         updated_by_id,
         archived,
         entity_type_version_id,
@@ -48,6 +49,7 @@ OR REPLACE FUNCTION "create_entity" (
         left_to_right_order,
         right_to_left_order
       ) VALUES (
+        _owned_by_id,
         _updated_by_id,
         _archived,
         _entity_type_version_id,
@@ -95,6 +97,7 @@ OR REPLACE FUNCTION "update_entity" (
       IF _decision_time IS NULL THEN _decision_time := now(); END IF;
 
       INSERT INTO entity_editions (
+        owned_by_id,
         updated_by_id,
         archived,
         entity_type_version_id,
@@ -102,6 +105,7 @@ OR REPLACE FUNCTION "update_entity" (
         left_to_right_order,
         right_to_left_order
       ) VALUES (
+        _owned_by_id,
         _updated_by_id,
         _archived,
         _entity_type_version_id,

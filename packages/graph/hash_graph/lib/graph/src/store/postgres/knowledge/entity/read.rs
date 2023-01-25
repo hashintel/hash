@@ -76,6 +76,12 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         let (statement, parameters) = compiler.compile();
 
         self.as_client()
+            .query("SET citus.enable_repartition_joins TO ON;", &[])
+            .await
+            .into_report()
+            .change_context(QueryError)?;
+
+        self.as_client()
             .query_raw(&statement, parameters.iter().copied())
             .await
             .into_report()
