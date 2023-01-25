@@ -391,14 +391,31 @@ mod tests {
         );
     }
 
-    fn test(
+    struct TestData<I, U, D> {
         lhs: IntervalBounds<u32>,
         rhs: IntervalBounds<u32>,
-        intersection: impl IntoIterator<Item = IntervalBounds<u32>>,
-        union: impl IntoIterator<Item = IntervalBounds<u32>>,
+        intersection: I,
+        union: U,
         merge: IntervalBounds<u32>,
-        difference: impl IntoIterator<Item = IntervalBounds<u32>>,
+        difference: D,
+    }
+
+    fn test(
+        test_data: TestData<
+            impl IntoIterator<Item = IntervalBounds<u32>>,
+            impl IntoIterator<Item = IntervalBounds<u32>>,
+            impl IntoIterator<Item = IntervalBounds<u32>>,
+        >,
     ) {
+        let TestData {
+            lhs,
+            rhs,
+            intersection,
+            union,
+            merge,
+            difference,
+        } = test_data;
+
         let intersection = intersection.into_iter().collect::<Vec<_>>();
         let union = union.into_iter().collect::<Vec<_>>();
         let difference = difference.into_iter().collect::<Vec<_>>();
@@ -502,22 +519,22 @@ mod tests {
         // union:        [-------] | [-------]
         // merge:        [-------] | [-------]
         // difference:   [-)       |       (-]
-        test(
-            included_included(0, 10),
-            included_included(5, 15),
-            [included_included(5, 10)],
-            [included_included(0, 15)],
-            included_included(0, 15),
-            [included_excluded(0, 5)],
-        );
-        test(
-            included_included(5, 15),
-            included_included(0, 10),
-            [included_included(5, 10)],
-            [included_included(0, 15)],
-            included_included(0, 15),
-            [excluded_included(10, 15)],
-        );
+        test(TestData {
+            lhs: included_included(0, 10),
+            rhs: included_included(5, 15),
+            intersection: [included_included(5, 10)],
+            union: [included_included(0, 15)],
+            merge: included_included(0, 15),
+            difference: [included_excluded(0, 5)],
+        });
+        test(TestData {
+            lhs: included_included(5, 15),
+            rhs: included_included(0, 10),
+            intersection: [included_included(5, 10)],
+            union: [included_included(0, 15)],
+            merge: included_included(0, 15),
+            difference: [excluded_included(10, 15)],
+        });
 
         // Range A:      [-----)   |   [-----]
         // Range B:        [-----] | [-----)
@@ -525,22 +542,22 @@ mod tests {
         // union:        [-------] | [-------]
         // merge:        [-------] | [-------]
         // difference:   [-)       |       [-]
-        test(
-            included_excluded(0, 10),
-            included_included(5, 15),
-            [included_excluded(5, 10)],
-            [included_included(0, 15)],
-            included_included(0, 15),
-            [included_excluded(0, 5)],
-        );
-        test(
-            included_included(5, 15),
-            included_excluded(0, 10),
-            [included_excluded(5, 10)],
-            [included_included(0, 15)],
-            included_included(0, 15),
-            [included_included(10, 15)],
-        );
+        test(TestData {
+            lhs: included_excluded(0, 10),
+            rhs: included_included(5, 15),
+            intersection: [included_excluded(5, 10)],
+            union: [included_included(0, 15)],
+            merge: included_included(0, 15),
+            difference: [included_excluded(0, 5)],
+        });
+        test(TestData {
+            lhs: included_included(5, 15),
+            rhs: included_excluded(0, 10),
+            intersection: [included_excluded(5, 10)],
+            union: [included_included(0, 15)],
+            merge: included_included(0, 15),
+            difference: [included_included(10, 15)],
+        });
 
         // Range A:      [-----]   |   [-----)
         // Range B:        [-----) | [-----]
@@ -548,22 +565,22 @@ mod tests {
         // union:        [-------) | [-------)
         // merge:        [-------) | [-------)
         // difference:   [-)       |       (-)
-        test(
-            included_included(0, 10),
-            included_excluded(5, 15),
-            [included_included(5, 10)],
-            [included_excluded(0, 15)],
-            included_excluded(0, 15),
-            [included_excluded(0, 5)],
-        );
-        test(
-            included_excluded(5, 15),
-            included_included(0, 10),
-            [included_included(5, 10)],
-            [included_excluded(0, 15)],
-            included_excluded(0, 15),
-            [excluded_excluded(10, 15)],
-        );
+        test(TestData {
+            lhs: included_included(0, 10),
+            rhs: included_excluded(5, 15),
+            intersection: [included_included(5, 10)],
+            union: [included_excluded(0, 15)],
+            merge: included_excluded(0, 15),
+            difference: [included_excluded(0, 5)],
+        });
+        test(TestData {
+            lhs: included_excluded(5, 15),
+            rhs: included_included(0, 10),
+            intersection: [included_included(5, 10)],
+            union: [included_excluded(0, 15)],
+            merge: included_excluded(0, 15),
+            difference: [excluded_excluded(10, 15)],
+        });
 
         // Range A:      [-----)   |   [-----)
         // Range B:        [-----) | [-----)
@@ -571,22 +588,22 @@ mod tests {
         // union:        [-------) | [-------)
         // merge:        [-------) | [-------)
         // difference:   [-)       |       [-)
-        test(
-            included_excluded(0, 10),
-            included_excluded(5, 15),
-            [included_excluded(5, 10)],
-            [included_excluded(0, 15)],
-            included_excluded(0, 15),
-            [included_excluded(0, 5)],
-        );
-        test(
-            included_excluded(5, 15),
-            included_excluded(0, 10),
-            [included_excluded(5, 10)],
-            [included_excluded(0, 15)],
-            included_excluded(0, 15),
-            [included_excluded(10, 15)],
-        );
+        test(TestData {
+            lhs: included_excluded(0, 10),
+            rhs: included_excluded(5, 15),
+            intersection: [included_excluded(5, 10)],
+            union: [included_excluded(0, 15)],
+            merge: included_excluded(0, 15),
+            difference: [included_excluded(0, 5)],
+        });
+        test(TestData {
+            lhs: included_excluded(5, 15),
+            rhs: included_excluded(0, 10),
+            intersection: [included_excluded(5, 10)],
+            union: [included_excluded(0, 15)],
+            merge: included_excluded(0, 15),
+            difference: [included_excluded(10, 15)],
+        });
 
         // Range A:      (-----]   |   [-----]
         // Range B:        [-----] | (-----]
@@ -594,22 +611,22 @@ mod tests {
         // union:        (-------] | (-------]
         // merge:        (-------] | (-------]
         // difference:   (-)       |       (-]
-        test(
-            excluded_included(0, 10),
-            included_included(5, 15),
-            [included_included(5, 10)],
-            [excluded_included(0, 15)],
-            excluded_included(0, 15),
-            [excluded_excluded(0, 5)],
-        );
-        test(
-            included_included(5, 15),
-            excluded_included(0, 10),
-            [included_included(5, 10)],
-            [excluded_included(0, 15)],
-            excluded_included(0, 15),
-            [excluded_included(10, 15)],
-        );
+        test(TestData {
+            lhs: excluded_included(0, 10),
+            rhs: included_included(5, 15),
+            intersection: [included_included(5, 10)],
+            union: [excluded_included(0, 15)],
+            merge: excluded_included(0, 15),
+            difference: [excluded_excluded(0, 5)],
+        });
+        test(TestData {
+            lhs: included_included(5, 15),
+            rhs: excluded_included(0, 10),
+            intersection: [included_included(5, 10)],
+            union: [excluded_included(0, 15)],
+            merge: excluded_included(0, 15),
+            difference: [excluded_included(10, 15)],
+        });
 
         // Range A:      (-----)   |   [-----]
         // Range B:        [-----] | (-----)
@@ -617,22 +634,22 @@ mod tests {
         // union:        (-------] | (-------]
         // merge:        (-------] | (-------]
         // difference:   (-)       |       [-]
-        test(
-            excluded_excluded(0, 10),
-            included_included(5, 15),
-            [included_excluded(5, 10)],
-            [excluded_included(0, 15)],
-            excluded_included(0, 15),
-            [excluded_excluded(0, 5)],
-        );
-        test(
-            included_included(5, 15),
-            excluded_excluded(0, 10),
-            [included_excluded(5, 10)],
-            [excluded_included(0, 15)],
-            excluded_included(0, 15),
-            [included_included(10, 15)],
-        );
+        test(TestData {
+            lhs: excluded_excluded(0, 10),
+            rhs: included_included(5, 15),
+            intersection: [included_excluded(5, 10)],
+            union: [excluded_included(0, 15)],
+            merge: excluded_included(0, 15),
+            difference: [excluded_excluded(0, 5)],
+        });
+        test(TestData {
+            lhs: included_included(5, 15),
+            rhs: excluded_excluded(0, 10),
+            intersection: [included_excluded(5, 10)],
+            union: [excluded_included(0, 15)],
+            merge: excluded_included(0, 15),
+            difference: [included_included(10, 15)],
+        });
 
         // Range A:      (-----]   |   [-----)
         // Range B:        [-----) | (-----]
@@ -640,22 +657,22 @@ mod tests {
         // union:        (-------) | (-------)
         // merge:        (-------) | (-------)
         // difference:   (-)       |       (-)
-        test(
-            excluded_included(0, 10),
-            included_excluded(5, 15),
-            [included_included(5, 10)],
-            [excluded_excluded(0, 15)],
-            excluded_excluded(0, 15),
-            [excluded_excluded(0, 5)],
-        );
-        test(
-            included_excluded(5, 15),
-            excluded_included(0, 10),
-            [included_included(5, 10)],
-            [excluded_excluded(0, 15)],
-            excluded_excluded(0, 15),
-            [excluded_excluded(10, 15)],
-        );
+        test(TestData {
+            lhs: excluded_included(0, 10),
+            rhs: included_excluded(5, 15),
+            intersection: [included_included(5, 10)],
+            union: [excluded_excluded(0, 15)],
+            merge: excluded_excluded(0, 15),
+            difference: [excluded_excluded(0, 5)],
+        });
+        test(TestData {
+            lhs: included_excluded(5, 15),
+            rhs: excluded_included(0, 10),
+            intersection: [included_included(5, 10)],
+            union: [excluded_excluded(0, 15)],
+            merge: excluded_excluded(0, 15),
+            difference: [excluded_excluded(10, 15)],
+        });
 
         // Range A:      (-----)   |   [-----)
         // Range B:        [-----) | (-----)
@@ -663,22 +680,22 @@ mod tests {
         // union:        (-------) | (-------)
         // merge:        (-------) | (-------)
         // difference:   (-)       |       [-)
-        test(
-            excluded_excluded(0, 10),
-            included_excluded(5, 15),
-            [included_excluded(5, 10)],
-            [excluded_excluded(0, 15)],
-            excluded_excluded(0, 15),
-            [excluded_excluded(0, 5)],
-        );
-        test(
-            included_excluded(5, 15),
-            excluded_excluded(0, 10),
-            [included_excluded(5, 10)],
-            [excluded_excluded(0, 15)],
-            excluded_excluded(0, 15),
-            [included_excluded(10, 15)],
-        );
+        test(TestData {
+            lhs: excluded_excluded(0, 10),
+            rhs: included_excluded(5, 15),
+            intersection: [included_excluded(5, 10)],
+            union: [excluded_excluded(0, 15)],
+            merge: excluded_excluded(0, 15),
+            difference: [excluded_excluded(0, 5)],
+        });
+        test(TestData {
+            lhs: included_excluded(5, 15),
+            rhs: excluded_excluded(0, 10),
+            intersection: [included_excluded(5, 10)],
+            union: [excluded_excluded(0, 15)],
+            merge: excluded_excluded(0, 15),
+            difference: [included_excluded(10, 15)],
+        });
 
         // Range A:      [-----]   |   (-----]
         // Range B:        (-----] | [-----]
@@ -686,22 +703,22 @@ mod tests {
         // union:        [-------] | [-------]
         // merge:        [-------] | [-------]
         // difference:   [-]       |       (-]
-        test(
-            included_included(0, 10),
-            excluded_included(5, 15),
-            [excluded_included(5, 10)],
-            [included_included(0, 15)],
-            included_included(0, 15),
-            [included_included(0, 5)],
-        );
-        test(
-            excluded_included(5, 15),
-            included_included(0, 10),
-            [excluded_included(5, 10)],
-            [included_included(0, 15)],
-            included_included(0, 15),
-            [excluded_included(10, 15)],
-        );
+        test(TestData {
+            lhs: included_included(0, 10),
+            rhs: excluded_included(5, 15),
+            intersection: [excluded_included(5, 10)],
+            union: [included_included(0, 15)],
+            merge: included_included(0, 15),
+            difference: [included_included(0, 5)],
+        });
+        test(TestData {
+            lhs: excluded_included(5, 15),
+            rhs: included_included(0, 10),
+            intersection: [excluded_included(5, 10)],
+            union: [included_included(0, 15)],
+            merge: included_included(0, 15),
+            difference: [excluded_included(10, 15)],
+        });
 
         // Range A:      [-----)   |   (-----]
         // Range B:        (-----] | [-----)
@@ -709,22 +726,22 @@ mod tests {
         // union:        [-------] | [-------]
         // merge:        [-------] | [-------]
         // difference:   [-]       |       [-]
-        test(
-            included_excluded(0, 10),
-            excluded_included(5, 15),
-            [excluded_excluded(5, 10)],
-            [included_included(0, 15)],
-            included_included(0, 15),
-            [included_included(0, 5)],
-        );
-        test(
-            excluded_included(5, 15),
-            included_excluded(0, 10),
-            [excluded_excluded(5, 10)],
-            [included_included(0, 15)],
-            included_included(0, 15),
-            [included_included(10, 15)],
-        );
+        test(TestData {
+            lhs: included_excluded(0, 10),
+            rhs: excluded_included(5, 15),
+            intersection: [excluded_excluded(5, 10)],
+            union: [included_included(0, 15)],
+            merge: included_included(0, 15),
+            difference: [included_included(0, 5)],
+        });
+        test(TestData {
+            lhs: excluded_included(5, 15),
+            rhs: included_excluded(0, 10),
+            intersection: [excluded_excluded(5, 10)],
+            union: [included_included(0, 15)],
+            merge: included_included(0, 15),
+            difference: [included_included(10, 15)],
+        });
 
         // Range A:      [-----]   |   (-----)
         // Range B:        (-----) | [-----]
@@ -732,22 +749,22 @@ mod tests {
         // union:        [-------) | [-------)
         // merge:        [-------) | [-------)
         // difference:   [-]       |       (-)
-        test(
-            included_included(0, 10),
-            excluded_excluded(5, 15),
-            [excluded_included(5, 10)],
-            [included_excluded(0, 15)],
-            included_excluded(0, 15),
-            [included_included(0, 5)],
-        );
-        test(
-            excluded_excluded(5, 15),
-            included_included(0, 10),
-            [excluded_included(5, 10)],
-            [included_excluded(0, 15)],
-            included_excluded(0, 15),
-            [excluded_excluded(10, 15)],
-        );
+        test(TestData {
+            lhs: included_included(0, 10),
+            rhs: excluded_excluded(5, 15),
+            intersection: [excluded_included(5, 10)],
+            union: [included_excluded(0, 15)],
+            merge: included_excluded(0, 15),
+            difference: [included_included(0, 5)],
+        });
+        test(TestData {
+            lhs: excluded_excluded(5, 15),
+            rhs: included_included(0, 10),
+            intersection: [excluded_included(5, 10)],
+            union: [included_excluded(0, 15)],
+            merge: included_excluded(0, 15),
+            difference: [excluded_excluded(10, 15)],
+        });
 
         // Range A:      [-----)   |   (-----)
         // Range B:        (-----) | [-----)
@@ -755,22 +772,22 @@ mod tests {
         // union:        [-------) | [-------)
         // merge:        [-------) | [-------)
         // difference:   [-]       |       [-)
-        test(
-            included_excluded(0, 10),
-            excluded_excluded(5, 15),
-            [excluded_excluded(5, 10)],
-            [included_excluded(0, 15)],
-            included_excluded(0, 15),
-            [included_included(0, 5)],
-        );
-        test(
-            excluded_excluded(5, 15),
-            included_excluded(0, 10),
-            [excluded_excluded(5, 10)],
-            [included_excluded(0, 15)],
-            included_excluded(0, 15),
-            [included_excluded(10, 15)],
-        );
+        test(TestData {
+            lhs: included_excluded(0, 10),
+            rhs: excluded_excluded(5, 15),
+            intersection: [excluded_excluded(5, 10)],
+            union: [included_excluded(0, 15)],
+            merge: included_excluded(0, 15),
+            difference: [included_included(0, 5)],
+        });
+        test(TestData {
+            lhs: excluded_excluded(5, 15),
+            rhs: included_excluded(0, 10),
+            intersection: [excluded_excluded(5, 10)],
+            union: [included_excluded(0, 15)],
+            merge: included_excluded(0, 15),
+            difference: [included_excluded(10, 15)],
+        });
 
         // Range A:      (-----]   |   (-----]
         // Range B:        (-----] | (-----]
@@ -778,22 +795,22 @@ mod tests {
         // union:        (-------] | (-------]
         // merge:        (-------] | (-------]
         // difference:   (-]       |       (-]
-        test(
-            excluded_included(0, 10),
-            excluded_included(5, 15),
-            [excluded_included(5, 10)],
-            [excluded_included(0, 15)],
-            excluded_included(0, 15),
-            [excluded_included(0, 5)],
-        );
-        test(
-            excluded_included(5, 15),
-            excluded_included(0, 10),
-            [excluded_included(5, 10)],
-            [excluded_included(0, 15)],
-            excluded_included(0, 15),
-            [excluded_included(10, 15)],
-        );
+        test(TestData {
+            lhs: excluded_included(0, 10),
+            rhs: excluded_included(5, 15),
+            intersection: [excluded_included(5, 10)],
+            union: [excluded_included(0, 15)],
+            merge: excluded_included(0, 15),
+            difference: [excluded_included(0, 5)],
+        });
+        test(TestData {
+            lhs: excluded_included(5, 15),
+            rhs: excluded_included(0, 10),
+            intersection: [excluded_included(5, 10)],
+            union: [excluded_included(0, 15)],
+            merge: excluded_included(0, 15),
+            difference: [excluded_included(10, 15)],
+        });
 
         // Range A:      (-----)   |   (-----]
         // Range B:        (-----] | (-----)
@@ -801,22 +818,22 @@ mod tests {
         // union:        (-------] | (-------]
         // merge:        (-------] | (-------]
         // difference:   (-]       |       [-]
-        test(
-            excluded_excluded(0, 10),
-            excluded_included(5, 15),
-            [excluded_excluded(5, 10)],
-            [excluded_included(0, 15)],
-            excluded_included(0, 15),
-            [excluded_included(0, 5)],
-        );
-        test(
-            excluded_included(5, 15),
-            excluded_excluded(0, 10),
-            [excluded_excluded(5, 10)],
-            [excluded_included(0, 15)],
-            excluded_included(0, 15),
-            [included_included(10, 15)],
-        );
+        test(TestData {
+            lhs: excluded_excluded(0, 10),
+            rhs: excluded_included(5, 15),
+            intersection: [excluded_excluded(5, 10)],
+            union: [excluded_included(0, 15)],
+            merge: excluded_included(0, 15),
+            difference: [excluded_included(0, 5)],
+        });
+        test(TestData {
+            lhs: excluded_included(5, 15),
+            rhs: excluded_excluded(0, 10),
+            intersection: [excluded_excluded(5, 10)],
+            union: [excluded_included(0, 15)],
+            merge: excluded_included(0, 15),
+            difference: [included_included(10, 15)],
+        });
 
         // Range A:      (-----]   |   (-----)
         // Range B:        (-----) | (-----]
@@ -824,22 +841,22 @@ mod tests {
         // union:        (-------) | (-------)
         // merge:        (-------) | (-------)
         // difference:   (-]       |       (-)
-        test(
-            excluded_included(0, 10),
-            excluded_excluded(5, 15),
-            [excluded_included(5, 10)],
-            [excluded_excluded(0, 15)],
-            excluded_excluded(0, 15),
-            [excluded_included(0, 5)],
-        );
-        test(
-            excluded_excluded(5, 15),
-            excluded_included(0, 10),
-            [excluded_included(5, 10)],
-            [excluded_excluded(0, 15)],
-            excluded_excluded(0, 15),
-            [excluded_excluded(10, 15)],
-        );
+        test(TestData {
+            lhs: excluded_included(0, 10),
+            rhs: excluded_excluded(5, 15),
+            intersection: [excluded_included(5, 10)],
+            union: [excluded_excluded(0, 15)],
+            merge: excluded_excluded(0, 15),
+            difference: [excluded_included(0, 5)],
+        });
+        test(TestData {
+            lhs: excluded_excluded(5, 15),
+            rhs: excluded_included(0, 10),
+            intersection: [excluded_included(5, 10)],
+            union: [excluded_excluded(0, 15)],
+            merge: excluded_excluded(0, 15),
+            difference: [excluded_excluded(10, 15)],
+        });
 
         // Range A:      (-----)   |   (-----)
         // Range B:        (-----) | (-----)
@@ -847,22 +864,22 @@ mod tests {
         // union:        (-------) | (-------)
         // merge:        (-------) | (-------)
         // difference:   (-]       |       [-)
-        test(
-            excluded_excluded(0, 10),
-            excluded_excluded(5, 15),
-            [excluded_excluded(5, 10)],
-            [excluded_excluded(0, 15)],
-            excluded_excluded(0, 15),
-            [excluded_included(0, 5)],
-        );
-        test(
-            excluded_excluded(5, 15),
-            excluded_excluded(0, 10),
-            [excluded_excluded(5, 10)],
-            [excluded_excluded(0, 15)],
-            excluded_excluded(0, 15),
-            [included_excluded(10, 15)],
-        );
+        test(TestData {
+            lhs: excluded_excluded(0, 10),
+            rhs: excluded_excluded(5, 15),
+            intersection: [excluded_excluded(5, 10)],
+            union: [excluded_excluded(0, 15)],
+            merge: excluded_excluded(0, 15),
+            difference: [excluded_included(0, 5)],
+        });
+        test(TestData {
+            lhs: excluded_excluded(5, 15),
+            rhs: excluded_excluded(0, 10),
+            intersection: [excluded_excluded(5, 10)],
+            union: [excluded_excluded(0, 15)],
+            merge: excluded_excluded(0, 15),
+            difference: [included_excluded(10, 15)],
+        });
 
         // Range A:      ------]   |   [------
         // Range B:        [------ | ------]
@@ -870,22 +887,22 @@ mod tests {
         // union:        --------- | ---------
         // merge:        --------- | ---------
         // difference:   --)       |       (--
-        test(
-            unbounded_included(10),
-            included_unbounded(5),
-            [included_included(5, 10)],
-            [unbounded_unbounded()],
-            unbounded_unbounded(),
-            [unbounded_excluded(5)],
-        );
-        test(
-            included_unbounded(5),
-            unbounded_included(10),
-            [included_included(5, 10)],
-            [unbounded_unbounded()],
-            unbounded_unbounded(),
-            [excluded_unbounded(10)],
-        );
+        test(TestData {
+            lhs: unbounded_included(10),
+            rhs: included_unbounded(5),
+            intersection: [included_included(5, 10)],
+            union: [unbounded_unbounded()],
+            merge: unbounded_unbounded(),
+            difference: [unbounded_excluded(5)],
+        });
+        test(TestData {
+            lhs: included_unbounded(5),
+            rhs: unbounded_included(10),
+            intersection: [included_included(5, 10)],
+            union: [unbounded_unbounded()],
+            merge: unbounded_unbounded(),
+            difference: [excluded_unbounded(10)],
+        });
 
         // Range A:      ------)   |   (------
         // Range B:        (------ | ------)
@@ -893,22 +910,22 @@ mod tests {
         // union:        --------- | ---------
         // merge:        --------- | ---------
         // difference:   --]       |       [--
-        test(
-            unbounded_excluded(10),
-            excluded_unbounded(5),
-            [excluded_excluded(5, 10)],
-            [unbounded_unbounded()],
-            unbounded_unbounded(),
-            [unbounded_included(5)],
-        );
-        test(
-            excluded_unbounded(5),
-            unbounded_excluded(10),
-            [excluded_excluded(5, 10)],
-            [unbounded_unbounded()],
-            unbounded_unbounded(),
-            [included_unbounded(10)],
-        );
+        test(TestData {
+            lhs: unbounded_excluded(10),
+            rhs: excluded_unbounded(5),
+            intersection: [excluded_excluded(5, 10)],
+            union: [unbounded_unbounded()],
+            merge: unbounded_unbounded(),
+            difference: [unbounded_included(5)],
+        });
+        test(TestData {
+            lhs: excluded_unbounded(5),
+            rhs: unbounded_excluded(10),
+            intersection: [excluded_excluded(5, 10)],
+            union: [unbounded_unbounded()],
+            merge: unbounded_unbounded(),
+            difference: [included_unbounded(10)],
+        });
     }
 
     #[test]
@@ -919,22 +936,22 @@ mod tests {
         // union:        [---] [---] | [---] [---]
         // merge:        [---------] | [---------]
         // difference:   [---]       |       [---]
-        test(
-            included_included(0, 5),
-            included_included(10, 15),
-            [],
-            [included_included(0, 5), included_included(10, 15)],
-            included_included(0, 15),
-            [included_included(0, 5)],
-        );
-        test(
-            included_included(10, 15),
-            included_included(0, 5),
-            [],
-            [included_included(0, 5), included_included(10, 15)],
-            included_included(0, 15),
-            [included_included(10, 15)],
-        );
+        test(TestData {
+            lhs: included_included(0, 5),
+            rhs: included_included(10, 15),
+            intersection: [],
+            union: [included_included(0, 5), included_included(10, 15)],
+            merge: included_included(0, 15),
+            difference: [included_included(0, 5)],
+        });
+        test(TestData {
+            lhs: included_included(10, 15),
+            rhs: included_included(0, 5),
+            intersection: [],
+            union: [included_included(0, 5), included_included(10, 15)],
+            merge: included_included(0, 15),
+            difference: [included_included(10, 15)],
+        });
 
         // Range A:      [---)       |       [---]
         // Range B:            [---] | [---)
@@ -942,22 +959,22 @@ mod tests {
         // union:        [---) [---] | [---) [---]
         // merge:        [---------] | [---------]
         // difference:   [---)       |       [---]
-        test(
-            included_excluded(0, 5),
-            included_included(10, 15),
-            [],
-            [included_excluded(0, 5), included_included(10, 15)],
-            included_included(0, 15),
-            [included_excluded(0, 5)],
-        );
-        test(
-            included_included(10, 15),
-            included_excluded(0, 5),
-            [],
-            [included_excluded(0, 5), included_included(10, 15)],
-            included_included(0, 15),
-            [included_included(10, 15)],
-        );
+        test(TestData {
+            lhs: included_excluded(0, 5),
+            rhs: included_included(10, 15),
+            intersection: [],
+            union: [included_excluded(0, 5), included_included(10, 15)],
+            merge: included_included(0, 15),
+            difference: [included_excluded(0, 5)],
+        });
+        test(TestData {
+            lhs: included_included(10, 15),
+            rhs: included_excluded(0, 5),
+            intersection: [],
+            union: [included_excluded(0, 5), included_included(10, 15)],
+            merge: included_included(0, 15),
+            difference: [included_included(10, 15)],
+        });
 
         // Range A:      [---]       |       [---)
         // Range B:            [---) | [---]
@@ -965,22 +982,22 @@ mod tests {
         // union:        [---] [---) | [---] [---)
         // merge:        [---------) | [---------)
         // difference:   [---]       |       [---)
-        test(
-            included_included(0, 5),
-            included_excluded(10, 15),
-            [],
-            [included_included(0, 5), included_excluded(10, 15)],
-            included_excluded(0, 15),
-            [included_included(0, 5)],
-        );
-        test(
-            included_excluded(10, 15),
-            included_included(0, 5),
-            [],
-            [included_included(0, 5), included_excluded(10, 15)],
-            included_excluded(0, 15),
-            [included_excluded(10, 15)],
-        );
+        test(TestData {
+            lhs: included_included(0, 5),
+            rhs: included_excluded(10, 15),
+            intersection: [],
+            union: [included_included(0, 5), included_excluded(10, 15)],
+            merge: included_excluded(0, 15),
+            difference: [included_included(0, 5)],
+        });
+        test(TestData {
+            lhs: included_excluded(10, 15),
+            rhs: included_included(0, 5),
+            intersection: [],
+            union: [included_included(0, 5), included_excluded(10, 15)],
+            merge: included_excluded(0, 15),
+            difference: [included_excluded(10, 15)],
+        });
 
         // Range A:      [---)       |       [---)
         // Range B:            [---) | [---)
@@ -988,22 +1005,22 @@ mod tests {
         // union:        [---) [---) | [---) [---)
         // merge:        [---------) | [---------)
         // difference:   [---)       |       [---)
-        test(
-            included_excluded(0, 5),
-            included_excluded(10, 15),
-            [],
-            [included_excluded(0, 5), included_excluded(10, 15)],
-            included_excluded(0, 15),
-            [included_excluded(0, 5)],
-        );
-        test(
-            included_excluded(10, 15),
-            included_excluded(0, 5),
-            [],
-            [included_excluded(0, 5), included_excluded(10, 15)],
-            included_excluded(0, 15),
-            [included_excluded(10, 15)],
-        );
+        test(TestData {
+            lhs: included_excluded(0, 5),
+            rhs: included_excluded(10, 15),
+            intersection: [],
+            union: [included_excluded(0, 5), included_excluded(10, 15)],
+            merge: included_excluded(0, 15),
+            difference: [included_excluded(0, 5)],
+        });
+        test(TestData {
+            lhs: included_excluded(10, 15),
+            rhs: included_excluded(0, 5),
+            intersection: [],
+            union: [included_excluded(0, 5), included_excluded(10, 15)],
+            merge: included_excluded(0, 15),
+            difference: [included_excluded(10, 15)],
+        });
 
         // Range A:      (---]       |       [---]
         // Range B:            [---] | (---]
@@ -1011,22 +1028,22 @@ mod tests {
         // union:        (---] [---] | (---] [---]
         // merge:        (---------] | (---------]
         // difference:   (---]       |       [---]
-        test(
-            excluded_included(0, 5),
-            included_included(10, 15),
-            [],
-            [excluded_included(0, 5), included_included(10, 15)],
-            excluded_included(0, 15),
-            [excluded_included(0, 5)],
-        );
-        test(
-            included_included(10, 15),
-            excluded_included(0, 5),
-            [],
-            [excluded_included(0, 5), included_included(10, 15)],
-            excluded_included(0, 15),
-            [included_included(10, 15)],
-        );
+        test(TestData {
+            lhs: excluded_included(0, 5),
+            rhs: included_included(10, 15),
+            intersection: [],
+            union: [excluded_included(0, 5), included_included(10, 15)],
+            merge: excluded_included(0, 15),
+            difference: [excluded_included(0, 5)],
+        });
+        test(TestData {
+            lhs: included_included(10, 15),
+            rhs: excluded_included(0, 5),
+            intersection: [],
+            union: [excluded_included(0, 5), included_included(10, 15)],
+            merge: excluded_included(0, 15),
+            difference: [included_included(10, 15)],
+        });
 
         // Range A:      (---)       |       [---]
         // Range B:            [---] | (---)
@@ -1034,22 +1051,22 @@ mod tests {
         // union:        (---) [---] | (---) [---]
         // merge:        (---------] | (---------]
         // difference:   (---)       |       [---]
-        test(
-            excluded_excluded(0, 5),
-            included_included(10, 15),
-            [],
-            [excluded_excluded(0, 5), included_included(10, 15)],
-            excluded_included(0, 15),
-            [excluded_excluded(0, 5)],
-        );
-        test(
-            included_included(10, 15),
-            excluded_excluded(0, 5),
-            [],
-            [excluded_excluded(0, 5), included_included(10, 15)],
-            excluded_included(0, 15),
-            [included_included(10, 15)],
-        );
+        test(TestData {
+            lhs: excluded_excluded(0, 5),
+            rhs: included_included(10, 15),
+            intersection: [],
+            union: [excluded_excluded(0, 5), included_included(10, 15)],
+            merge: excluded_included(0, 15),
+            difference: [excluded_excluded(0, 5)],
+        });
+        test(TestData {
+            lhs: included_included(10, 15),
+            rhs: excluded_excluded(0, 5),
+            intersection: [],
+            union: [excluded_excluded(0, 5), included_included(10, 15)],
+            merge: excluded_included(0, 15),
+            difference: [included_included(10, 15)],
+        });
 
         // Range A:      (---]       |       [---)
         // Range B:            [---) | (---]
@@ -1057,22 +1074,22 @@ mod tests {
         // union:        (---] [---) | (---] [---)
         // merge:        (---------) | (---------)
         // difference:   (---]       |       [---)
-        test(
-            excluded_included(0, 5),
-            included_excluded(10, 15),
-            [],
-            [excluded_included(0, 5), included_excluded(10, 15)],
-            excluded_excluded(0, 15),
-            [excluded_included(0, 5)],
-        );
-        test(
-            included_excluded(10, 15),
-            excluded_included(0, 5),
-            [],
-            [excluded_included(0, 5), included_excluded(10, 15)],
-            excluded_excluded(0, 15),
-            [included_excluded(10, 15)],
-        );
+        test(TestData {
+            lhs: excluded_included(0, 5),
+            rhs: included_excluded(10, 15),
+            intersection: [],
+            union: [excluded_included(0, 5), included_excluded(10, 15)],
+            merge: excluded_excluded(0, 15),
+            difference: [excluded_included(0, 5)],
+        });
+        test(TestData {
+            lhs: included_excluded(10, 15),
+            rhs: excluded_included(0, 5),
+            intersection: [],
+            union: [excluded_included(0, 5), included_excluded(10, 15)],
+            merge: excluded_excluded(0, 15),
+            difference: [included_excluded(10, 15)],
+        });
 
         // Range A:      (---)       |       [---)
         // Range B:            [---) | (---)
@@ -1080,22 +1097,22 @@ mod tests {
         // union:        (---) [---) | (---) [---)
         // merge:        (---------) | (---------)
         // difference:   (---)       |       [---)
-        test(
-            excluded_excluded(0, 5),
-            included_excluded(10, 15),
-            [],
-            [excluded_excluded(0, 5), included_excluded(10, 15)],
-            excluded_excluded(0, 15),
-            [excluded_excluded(0, 5)],
-        );
-        test(
-            included_excluded(10, 15),
-            excluded_excluded(0, 5),
-            [],
-            [excluded_excluded(0, 5), included_excluded(10, 15)],
-            excluded_excluded(0, 15),
-            [included_excluded(10, 15)],
-        );
+        test(TestData {
+            lhs: excluded_excluded(0, 5),
+            rhs: included_excluded(10, 15),
+            intersection: [],
+            union: [excluded_excluded(0, 5), included_excluded(10, 15)],
+            merge: excluded_excluded(0, 15),
+            difference: [excluded_excluded(0, 5)],
+        });
+        test(TestData {
+            lhs: included_excluded(10, 15),
+            rhs: excluded_excluded(0, 5),
+            intersection: [],
+            union: [excluded_excluded(0, 5), included_excluded(10, 15)],
+            merge: excluded_excluded(0, 15),
+            difference: [included_excluded(10, 15)],
+        });
 
         // Range A:      [---]       |       (---]
         // Range B:            (---] | [---]
@@ -1103,22 +1120,22 @@ mod tests {
         // union:        [---] (---] | [---] (---]
         // merge:        [---------] | [---------]
         // difference:   [---]       |       (---]
-        test(
-            included_included(0, 5),
-            excluded_included(10, 15),
-            [],
-            [included_included(0, 5), excluded_included(10, 15)],
-            included_included(0, 15),
-            [included_included(0, 5)],
-        );
-        test(
-            excluded_included(10, 15),
-            included_included(0, 5),
-            [],
-            [included_included(0, 5), excluded_included(10, 15)],
-            included_included(0, 15),
-            [excluded_included(10, 15)],
-        );
+        test(TestData {
+            lhs: included_included(0, 5),
+            rhs: excluded_included(10, 15),
+            intersection: [],
+            union: [included_included(0, 5), excluded_included(10, 15)],
+            merge: included_included(0, 15),
+            difference: [included_included(0, 5)],
+        });
+        test(TestData {
+            lhs: excluded_included(10, 15),
+            rhs: included_included(0, 5),
+            intersection: [],
+            union: [included_included(0, 5), excluded_included(10, 15)],
+            merge: included_included(0, 15),
+            difference: [excluded_included(10, 15)],
+        });
 
         // Range A:      [---)       |       (---]
         // Range B:            (---] | [---)
@@ -1126,22 +1143,22 @@ mod tests {
         // union:        [---) (---] | [---) (---]
         // merge:        [---------] | [---------]
         // difference:   [---)       |       (---]
-        test(
-            included_excluded(0, 5),
-            excluded_included(10, 15),
-            [],
-            [included_excluded(0, 5), excluded_included(10, 15)],
-            included_included(0, 15),
-            [included_excluded(0, 5)],
-        );
-        test(
-            excluded_included(10, 15),
-            included_excluded(0, 5),
-            [],
-            [included_excluded(0, 5), excluded_included(10, 15)],
-            included_included(0, 15),
-            [excluded_included(10, 15)],
-        );
+        test(TestData {
+            lhs: included_excluded(0, 5),
+            rhs: excluded_included(10, 15),
+            intersection: [],
+            union: [included_excluded(0, 5), excluded_included(10, 15)],
+            merge: included_included(0, 15),
+            difference: [included_excluded(0, 5)],
+        });
+        test(TestData {
+            lhs: excluded_included(10, 15),
+            rhs: included_excluded(0, 5),
+            intersection: [],
+            union: [included_excluded(0, 5), excluded_included(10, 15)],
+            merge: included_included(0, 15),
+            difference: [excluded_included(10, 15)],
+        });
 
         // Range A:      [---]       |       (---)
         // Range B:            (---) | [---]
@@ -1149,22 +1166,22 @@ mod tests {
         // union:        [---] (---) | [---] (---)
         // merge:        [---------) | [---------)
         // difference:   [---]       |       (---)
-        test(
-            included_included(0, 5),
-            excluded_excluded(10, 15),
-            [],
-            [included_included(0, 5), excluded_excluded(10, 15)],
-            included_excluded(0, 15),
-            [included_included(0, 5)],
-        );
-        test(
-            excluded_excluded(10, 15),
-            included_included(0, 5),
-            [],
-            [included_included(0, 5), excluded_excluded(10, 15)],
-            included_excluded(0, 15),
-            [excluded_excluded(10, 15)],
-        );
+        test(TestData {
+            lhs: included_included(0, 5),
+            rhs: excluded_excluded(10, 15),
+            intersection: [],
+            union: [included_included(0, 5), excluded_excluded(10, 15)],
+            merge: included_excluded(0, 15),
+            difference: [included_included(0, 5)],
+        });
+        test(TestData {
+            lhs: excluded_excluded(10, 15),
+            rhs: included_included(0, 5),
+            intersection: [],
+            union: [included_included(0, 5), excluded_excluded(10, 15)],
+            merge: included_excluded(0, 15),
+            difference: [excluded_excluded(10, 15)],
+        });
 
         // Range A:      [---)       |       (---)
         // Range B:            (---) | [---)
@@ -1172,22 +1189,22 @@ mod tests {
         // union:        [---) (---) | [---) (---)
         // merge:        [---------) | [---------)
         // difference:   [---)       |       (---)
-        test(
-            included_excluded(0, 5),
-            excluded_excluded(10, 15),
-            [],
-            [included_excluded(0, 5), excluded_excluded(10, 15)],
-            included_excluded(0, 15),
-            [included_excluded(0, 5)],
-        );
-        test(
-            excluded_excluded(10, 15),
-            included_excluded(0, 5),
-            [],
-            [included_excluded(0, 5), excluded_excluded(10, 15)],
-            included_excluded(0, 15),
-            [excluded_excluded(10, 15)],
-        );
+        test(TestData {
+            lhs: included_excluded(0, 5),
+            rhs: excluded_excluded(10, 15),
+            intersection: [],
+            union: [included_excluded(0, 5), excluded_excluded(10, 15)],
+            merge: included_excluded(0, 15),
+            difference: [included_excluded(0, 5)],
+        });
+        test(TestData {
+            lhs: excluded_excluded(10, 15),
+            rhs: included_excluded(0, 5),
+            intersection: [],
+            union: [included_excluded(0, 5), excluded_excluded(10, 15)],
+            merge: included_excluded(0, 15),
+            difference: [excluded_excluded(10, 15)],
+        });
 
         // Range A:      (---]       |       (---]
         // Range B:            (---] | (---]
@@ -1195,22 +1212,22 @@ mod tests {
         // union:        (---] (---] | (---] (---]
         // merge:        (---------] | (---------]
         // difference:   (---]       |       (---]
-        test(
-            excluded_included(0, 5),
-            excluded_included(10, 15),
-            [],
-            [excluded_included(0, 5), excluded_included(10, 15)],
-            excluded_included(0, 15),
-            [excluded_included(0, 5)],
-        );
-        test(
-            excluded_included(10, 15),
-            excluded_included(0, 5),
-            [],
-            [excluded_included(0, 5), excluded_included(10, 15)],
-            excluded_included(0, 15),
-            [excluded_included(10, 15)],
-        );
+        test(TestData {
+            lhs: excluded_included(0, 5),
+            rhs: excluded_included(10, 15),
+            intersection: [],
+            union: [excluded_included(0, 5), excluded_included(10, 15)],
+            merge: excluded_included(0, 15),
+            difference: [excluded_included(0, 5)],
+        });
+        test(TestData {
+            lhs: excluded_included(10, 15),
+            rhs: excluded_included(0, 5),
+            intersection: [],
+            union: [excluded_included(0, 5), excluded_included(10, 15)],
+            merge: excluded_included(0, 15),
+            difference: [excluded_included(10, 15)],
+        });
 
         // Range A:      (---)       |       (---]
         // Range B:            (---] | (---)
@@ -1218,22 +1235,22 @@ mod tests {
         // union:        (---) (---] | (---) (---]
         // merge:        (---------] | (---------]
         // difference:   (---)       |       (---]
-        test(
-            excluded_excluded(0, 5),
-            excluded_included(10, 15),
-            [],
-            [excluded_excluded(0, 5), excluded_included(10, 15)],
-            excluded_included(0, 15),
-            [excluded_excluded(0, 5)],
-        );
-        test(
-            excluded_included(10, 15),
-            excluded_excluded(0, 5),
-            [],
-            [excluded_excluded(0, 5), excluded_included(10, 15)],
-            excluded_included(0, 15),
-            [excluded_included(10, 15)],
-        );
+        test(TestData {
+            lhs: excluded_excluded(0, 5),
+            rhs: excluded_included(10, 15),
+            intersection: [],
+            union: [excluded_excluded(0, 5), excluded_included(10, 15)],
+            merge: excluded_included(0, 15),
+            difference: [excluded_excluded(0, 5)],
+        });
+        test(TestData {
+            lhs: excluded_included(10, 15),
+            rhs: excluded_excluded(0, 5),
+            intersection: [],
+            union: [excluded_excluded(0, 5), excluded_included(10, 15)],
+            merge: excluded_included(0, 15),
+            difference: [excluded_included(10, 15)],
+        });
 
         // Range A:      (---]       |       (---)
         // Range B:            (---) | (---]
@@ -1241,22 +1258,22 @@ mod tests {
         // union:        (---] (---) | (---] (---)
         // merge:        (---------) | (---------)
         // difference:   (---]       |       (---)
-        test(
-            excluded_included(0, 5),
-            excluded_excluded(10, 15),
-            [],
-            [excluded_included(0, 5), excluded_excluded(10, 15)],
-            excluded_excluded(0, 15),
-            [excluded_included(0, 5)],
-        );
-        test(
-            excluded_excluded(10, 15),
-            excluded_included(0, 5),
-            [],
-            [excluded_included(0, 5), excluded_excluded(10, 15)],
-            excluded_excluded(0, 15),
-            [excluded_excluded(10, 15)],
-        );
+        test(TestData {
+            lhs: excluded_included(0, 5),
+            rhs: excluded_excluded(10, 15),
+            intersection: [],
+            union: [excluded_included(0, 5), excluded_excluded(10, 15)],
+            merge: excluded_excluded(0, 15),
+            difference: [excluded_included(0, 5)],
+        });
+        test(TestData {
+            lhs: excluded_excluded(10, 15),
+            rhs: excluded_included(0, 5),
+            intersection: [],
+            union: [excluded_included(0, 5), excluded_excluded(10, 15)],
+            merge: excluded_excluded(0, 15),
+            difference: [excluded_excluded(10, 15)],
+        });
 
         // Range A:      (---)       |       (---)
         // Range B:            (---) | (---)
@@ -1264,22 +1281,22 @@ mod tests {
         // union:        (---) (---) | (---) (---)
         // merge:        (---------) | (---------)
         // difference:   (---)       |       (---)
-        test(
-            excluded_excluded(0, 5),
-            excluded_excluded(5, 15),
-            [],
-            [excluded_excluded(0, 5), excluded_excluded(5, 15)],
-            excluded_excluded(0, 15),
-            [excluded_excluded(0, 5)],
-        );
-        test(
-            excluded_excluded(5, 15),
-            excluded_excluded(0, 5),
-            [],
-            [excluded_excluded(0, 5), excluded_excluded(5, 15)],
-            excluded_excluded(0, 15),
-            [excluded_excluded(5, 15)],
-        );
+        test(TestData {
+            lhs: excluded_excluded(0, 5),
+            rhs: excluded_excluded(5, 15),
+            intersection: [],
+            union: [excluded_excluded(0, 5), excluded_excluded(5, 15)],
+            merge: excluded_excluded(0, 15),
+            difference: [excluded_excluded(0, 5)],
+        });
+        test(TestData {
+            lhs: excluded_excluded(5, 15),
+            rhs: excluded_excluded(0, 5),
+            intersection: [],
+            union: [excluded_excluded(0, 5), excluded_excluded(5, 15)],
+            merge: excluded_excluded(0, 15),
+            difference: [excluded_excluded(5, 15)],
+        });
     }
 
     #[test]
@@ -1290,91 +1307,91 @@ mod tests {
         // union:        [-------] | [-------]
         // merge:        [-------] | [-------]
         // difference:   [---)     |     (---]
-        test(
-            included_included(0, 5),
-            included_included(5, 10),
-            [included_included(5, 5)],
-            [included_included(0, 10)],
-            included_included(0, 10),
-            [included_excluded(0, 5)],
-        );
-        test(
-            included_included(5, 10),
-            included_included(0, 5),
-            [included_included(5, 5)],
-            [included_included(0, 10)],
-            included_included(0, 10),
-            [excluded_included(5, 10)],
-        );
+        test(TestData {
+            lhs: included_included(0, 5),
+            rhs: included_included(5, 10),
+            intersection: [included_included(5, 5)],
+            union: [included_included(0, 10)],
+            merge: included_included(0, 10),
+            difference: [included_excluded(0, 5)],
+        });
+        test(TestData {
+            lhs: included_included(5, 10),
+            rhs: included_included(0, 5),
+            intersection: [included_included(5, 5)],
+            union: [included_included(0, 10)],
+            merge: included_included(0, 10),
+            difference: [excluded_included(5, 10)],
+        });
 
         // Range A:      [---]     |     (---]
         // Range B:          (---] | [---]
-        // intersection:   empty  |   empty
+        // intersection:   empty   |   empty
         // union:        [-------] | [-------]
         // merge:        [-------] | [-------]
         // difference:   [---]     |     (---]
-        test(
-            included_included(0, 5),
-            excluded_included(5, 10),
-            [],
-            [included_included(0, 10)],
-            included_included(0, 10),
-            [included_included(0, 5)],
-        );
-        test(
-            excluded_included(5, 10),
-            included_included(0, 5),
-            [],
-            [included_included(0, 10)],
-            included_included(0, 10),
-            [excluded_included(5, 10)],
-        );
+        test(TestData {
+            lhs: included_included(0, 5),
+            rhs: excluded_included(5, 10),
+            intersection: [],
+            union: [included_included(0, 10)],
+            merge: included_included(0, 10),
+            difference: [included_included(0, 5)],
+        });
+        test(TestData {
+            lhs: excluded_included(5, 10),
+            rhs: included_included(0, 5),
+            intersection: [],
+            union: [included_included(0, 10)],
+            merge: included_included(0, 10),
+            difference: [excluded_included(5, 10)],
+        });
 
         // Range A:      [---)     |     [---]
         // Range B:          [---] | [---)
-        // intersection:   empty  |   empty
+        // intersection:   empty   |   empty
         // union:        [-------] | [-------]
         // merge:        [-------] | [-------]
         // difference:   [---)     |     [---]
-        test(
-            included_excluded(0, 5),
-            included_included(5, 10),
-            [],
-            [included_included(0, 10)],
-            included_included(0, 10),
-            [included_excluded(0, 5)],
-        );
-        test(
-            included_included(5, 10),
-            included_excluded(0, 5),
-            [],
-            [included_included(0, 10)],
-            included_included(0, 10),
-            [included_included(5, 10)],
-        );
+        test(TestData {
+            lhs: included_excluded(0, 5),
+            rhs: included_included(5, 10),
+            intersection: [],
+            union: [included_included(0, 10)],
+            merge: included_included(0, 10),
+            difference: [included_excluded(0, 5)],
+        });
+        test(TestData {
+            lhs: included_included(5, 10),
+            rhs: included_excluded(0, 5),
+            intersection: [],
+            union: [included_included(0, 10)],
+            merge: included_included(0, 10),
+            difference: [included_included(5, 10)],
+        });
 
         // Range A:      [---)     |     (---]
         // Range B:          (---] | [---)
-        // intersection:   empty  |   empty
+        // intersection:   empty   |   empty
         // union:        [---X---] | [---X---]
         // merge:        [-------] | [-------]
         // difference:   [---)     |     (---]
-        test(
-            included_excluded(0, 5),
-            excluded_included(5, 10),
-            [],
-            [included_excluded(0, 5), excluded_included(5, 10)],
-            included_included(0, 10),
-            [included_excluded(0, 5)],
-        );
-        test(
-            excluded_included(5, 10),
-            included_excluded(0, 5),
-            [],
-            [included_excluded(0, 5), excluded_included(5, 10)],
-            included_included(0, 10),
-            [excluded_included(5, 10)],
-        );
+        test(TestData {
+            lhs: included_excluded(0, 5),
+            rhs: excluded_included(5, 10),
+            intersection: [],
+            union: [included_excluded(0, 5), excluded_included(5, 10)],
+            merge: included_included(0, 10),
+            difference: [included_excluded(0, 5)],
+        });
+        test(TestData {
+            lhs: excluded_included(5, 10),
+            rhs: included_excluded(0, 5),
+            intersection: [],
+            union: [included_excluded(0, 5), excluded_included(5, 10)],
+            merge: included_included(0, 10),
+            difference: [excluded_included(5, 10)],
+        });
     }
 
     #[test]
@@ -1385,22 +1402,22 @@ mod tests {
         // union:        [-------] | [-------]
         // merge:        [-------] | [-------]
         // difference:   [-)   (-] |   empty
-        test(
-            included_included(0, 15),
-            included_included(5, 10),
-            [included_included(5, 10)],
-            [included_included(0, 15)],
-            included_included(0, 15),
-            [included_excluded(0, 5), excluded_included(10, 15)],
-        );
-        test(
-            included_included(5, 10),
-            included_included(0, 15),
-            [included_included(5, 10)],
-            [included_included(0, 15)],
-            included_included(0, 15),
-            [],
-        );
+        test(TestData {
+            lhs: included_included(0, 15),
+            rhs: included_included(5, 10),
+            intersection: [included_included(5, 10)],
+            union: [included_included(0, 15)],
+            merge: included_included(0, 15),
+            difference: [included_excluded(0, 5), excluded_included(10, 15)],
+        });
+        test(TestData {
+            lhs: included_included(5, 10),
+            rhs: included_included(0, 15),
+            intersection: [included_included(5, 10)],
+            union: [included_included(0, 15)],
+            merge: included_included(0, 15),
+            difference: [],
+        });
 
         // Range A:      [-------] |   (---)
         // Range B:        (---)   | [-------]
@@ -1408,22 +1425,22 @@ mod tests {
         // union:        [-------] | [-------]
         // merge:        [-------] | [-------]
         // difference:   [-]   [-] |   empty
-        test(
-            included_included(0, 15),
-            excluded_excluded(5, 10),
-            [excluded_excluded(5, 10)],
-            [included_included(0, 15)],
-            included_included(0, 15),
-            [included_included(0, 5), included_included(10, 15)],
-        );
-        test(
-            excluded_excluded(5, 10),
-            included_included(0, 15),
-            [excluded_excluded(5, 10)],
-            [included_included(0, 15)],
-            included_included(0, 15),
-            [],
-        );
+        test(TestData {
+            lhs: included_included(0, 15),
+            rhs: excluded_excluded(5, 10),
+            intersection: [excluded_excluded(5, 10)],
+            union: [included_included(0, 15)],
+            merge: included_included(0, 15),
+            difference: [included_included(0, 5), included_included(10, 15)],
+        });
+        test(TestData {
+            lhs: excluded_excluded(5, 10),
+            rhs: included_included(0, 15),
+            intersection: [excluded_excluded(5, 10)],
+            union: [included_included(0, 15)],
+            merge: included_included(0, 15),
+            difference: [],
+        });
 
         // Range A:      --------- |   (---)
         // Range B:        (---)   | ---------
@@ -1431,22 +1448,22 @@ mod tests {
         // union:        --------- | ---------
         // merge:        --------- | ---------
         // difference:   --]   [-- |   empty
-        test(
-            unbounded_unbounded(),
-            excluded_excluded(5, 10),
-            [excluded_excluded(5, 10)],
-            [unbounded_unbounded()],
-            unbounded_unbounded(),
-            [unbounded_included(5), included_unbounded(10)],
-        );
-        test(
-            excluded_excluded(5, 10),
-            unbounded_unbounded(),
-            [excluded_excluded(5, 10)],
-            [unbounded_unbounded()],
-            unbounded_unbounded(),
-            [],
-        );
+        test(TestData {
+            lhs: unbounded_unbounded(),
+            rhs: excluded_excluded(5, 10),
+            intersection: [excluded_excluded(5, 10)],
+            union: [unbounded_unbounded()],
+            merge: unbounded_unbounded(),
+            difference: [unbounded_included(5), included_unbounded(10)],
+        });
+        test(TestData {
+            lhs: excluded_excluded(5, 10),
+            rhs: unbounded_unbounded(),
+            intersection: [excluded_excluded(5, 10)],
+            union: [unbounded_unbounded()],
+            merge: unbounded_unbounded(),
+            difference: [],
+        });
 
         // Range A:      --------- |   [---]
         // Range B:        [---]   | ---------
@@ -1454,22 +1471,22 @@ mod tests {
         // union:        --------- | ---------
         // merge:        --------- | ---------
         // difference:   --)   (-- |   empty
-        test(
-            unbounded_unbounded(),
-            included_included(5, 10),
-            [included_included(5, 10)],
-            [unbounded_unbounded()],
-            unbounded_unbounded(),
-            [unbounded_excluded(5), excluded_unbounded(10)],
-        );
-        test(
-            included_included(5, 10),
-            unbounded_unbounded(),
-            [included_included(5, 10)],
-            [unbounded_unbounded()],
-            unbounded_unbounded(),
-            [],
-        );
+        test(TestData {
+            lhs: unbounded_unbounded(),
+            rhs: included_included(5, 10),
+            intersection: [included_included(5, 10)],
+            union: [unbounded_unbounded()],
+            merge: unbounded_unbounded(),
+            difference: [unbounded_excluded(5), excluded_unbounded(10)],
+        });
+        test(TestData {
+            lhs: included_included(5, 10),
+            rhs: unbounded_unbounded(),
+            intersection: [included_included(5, 10)],
+            union: [unbounded_unbounded()],
+            merge: unbounded_unbounded(),
+            difference: [],
+        });
     }
 
     #[test]
@@ -1485,7 +1502,14 @@ mod tests {
             unbounded_excluded(5),
             unbounded_unbounded(),
         ] {
-            test(interval, interval, [interval], [interval], interval, []);
+            test(TestData {
+                lhs: interval,
+                rhs: interval,
+                intersection: [interval],
+                union: [interval],
+                merge: interval,
+                difference: [],
+            });
         }
     }
 
