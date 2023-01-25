@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use crate::{
     ontology::{DataTypeQueryPath, DataTypeWithMetadata},
     store::postgres::query::{
@@ -32,17 +30,15 @@ impl PostgresQueryPath for DataTypeQueryPath {
             Self::OwnedById => Column::DataTypes(DataTypes::OwnedById),
             Self::UpdatedById => Column::DataTypes(DataTypes::UpdatedById),
             Self::Schema => Column::DataTypes(DataTypes::Schema(None)),
-            Self::VersionedUri => Column::DataTypes(DataTypes::Schema(Some(JsonField::Text(
-                &Cow::Borrowed("$id"),
-            )))),
-            Self::Title => Column::DataTypes(DataTypes::Schema(Some(JsonField::Text(
-                &Cow::Borrowed("title"),
-            )))),
-            Self::Type => Column::DataTypes(DataTypes::Schema(Some(JsonField::Text(
-                &Cow::Borrowed("type"),
-            )))),
-            Self::Description => Column::DataTypes(DataTypes::Schema(Some(JsonField::Text(
-                &Cow::Borrowed("description"),
+            Self::VersionedUri => {
+                Column::DataTypes(DataTypes::Schema(Some(JsonField::StaticText("$id"))))
+            }
+            Self::Title => {
+                Column::DataTypes(DataTypes::Schema(Some(JsonField::StaticText("title"))))
+            }
+            Self::Type => Column::DataTypes(DataTypes::Schema(Some(JsonField::StaticText("type")))),
+            Self::Description => Column::DataTypes(DataTypes::Schema(Some(JsonField::StaticText(
+                "description",
             )))),
         }
     }

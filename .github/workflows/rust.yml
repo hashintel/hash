@@ -343,7 +343,7 @@ jobs:
         run: cargo +${{ matrix.toolchain }} publish --all-features
 
   merging-enabled:
-    name: merging enabled
+    name: Merging enabled
     needs: [setup, lint, test, coverage, docker, publish]
     if: always()
     runs-on: ubuntu-latest
