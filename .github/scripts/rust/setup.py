@@ -274,7 +274,7 @@ def main():
     
     output_matrix("lint", github_output_file, changed_parent_crates)
     if IS_PUSH_EVENT:
-        output_matrix("build", github_output_file, changed_parent_crates, profile=["development", "production"])
+        output_matrix("test", github_output_file, changed_parent_crates, profile=["development", "production"])
     else:
         output_matrix("test", github_output_file, changed_parent_crates, profile=["development"])
     output_matrix("coverage", github_output_file, coverage_crates)
