@@ -1,0 +1,59 @@
+{
+  "name": "table-v2",
+  "version": "0.0.0",
+  "description": "table-v2 block",
+  "keywords": [
+    "blockprotocol",
+    "blocks"
+  ],
+  "license": "MIT",
+  "author": "Yusuf Kinatas",
+  "scripts": {
+    "build": "block-scripts build",
+    "codegen": "block-scripts codegen",
+    "dev": "block-scripts dev",
+    "format": "prettier --write --ignore-unknown .",
+    "lint:tsc": "tsc --noEmit",
+    "serve": "block-scripts serve"
+  },
+  "prettier": {
+    "printWidth": 80,
+    "trailingComma": "all"
+  },
+  "dependencies": {
+    "@blockprotocol/graph": "0.1.0-20230124234232",
+    "@blockprotocol/type-system": "0.0.4-20230124234232",
+    "@glideapps/glide-data-grid": "5.1.4"
+  },
+  "devDependencies": {
+    "@types/react-dom": "^18.0.9",
+    "block-scripts": "0.1.0-20230124234232",
+    "mock-block-dock": "0.1.0-20230124234232",
+    "prettier": "2.8.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "block-scripts": {
+    "port": 63212
+  },
+  "blockprotocol": {
+    "blockType": {
+      "entryPoint": "react"
+    },
+    "displayName": "table-v2",
+    "examples": [
+      {
+        "name": "World"
+      }
+    ],
+    "icon": "public/omega.svg",
+    "image": "public/block-preview.png",
+    "name": "table-v2",
+    "protocol": "0.3",
+    "schema": "https://alpha.hash.ai/@hash/types/entity-type/page/v/1"
+  }
+}
