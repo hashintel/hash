@@ -357,9 +357,9 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     pub fn compile_path_column(&mut self, path: &'p R::QueryPath<'_>) -> AliasedColumn<'c> {
         let column = path.terminating_column();
         let column =
-            if let Column::Entities(Entities::Properties(Some(JsonField::Text(field)))) = column {
+            if let Column::Entities(Entities::Properties(Some(JsonField::Json(field)))) = column {
                 self.artifacts.parameters.push(field);
-                Column::Entities(Entities::Properties(Some(JsonField::Parameter(
+                Column::Entities(Entities::Properties(Some(JsonField::JsonParameter(
                     self.artifacts.parameters.len(),
                 ))))
             } else {
@@ -399,9 +399,9 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                     Parameter::Number(number) => self.artifacts.parameters.push(number),
                     Parameter::Text(text) => self.artifacts.parameters.push(text),
                     Parameter::Boolean(bool) => self.artifacts.parameters.push(bool),
+                    Parameter::Any(json) => self.artifacts.parameters.push(json),
                     Parameter::Uuid(uuid) => self.artifacts.parameters.push(uuid),
                     Parameter::SignedInteger(integer) => self.artifacts.parameters.push(integer),
-                    Parameter::Timestamp(timestamp) => self.artifacts.parameters.push(timestamp),
                 }
                 Expression::Parameter(self.artifacts.parameters.len())
             }
@@ -426,9 +426,9 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                             ),
                             Expression::Constant(Constant::String("links")),
                             Expression::Column(
-                                Column::EntityTypes(EntityTypes::Schema(Some(JsonField::Text(
-                                    &Cow::Borrowed("$id"),
-                                ))))
+                                Column::EntityTypes(EntityTypes::Schema(Some(
+                                    JsonField::StaticText("$id"),
+                                )))
                                 .aliased(joined_table.alias),
                             ),
                         ]))),
@@ -442,9 +442,9 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                     .add_condition(Condition::NotEqual(
                         Some(Expression::Function(Function::JsonContains(
                             Box::new(Expression::Column(
-                                Column::EntityTypes(EntityTypes::Schema(Some(JsonField::Json(
-                                    &Cow::Borrowed("allOf"),
-                                ))))
+                                Column::EntityTypes(EntityTypes::Schema(Some(
+                                    JsonField::StaticJson("allOf"),
+                                )))
                                 .aliased(base_alias),
                             )),
                             Box::new(Expression::Function(Function::JsonBuildArray(vec![
@@ -452,7 +452,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                                     Expression::Constant(Constant::String("$ref")),
                                     Expression::Column(
                                         Column::EntityTypes(EntityTypes::Schema(Some(
-                                            JsonField::Text(&Cow::Borrowed("$id")),
+                                            JsonField::StaticText("$id"),
                                         )))
                                         .aliased(joined_table.alias),
                                     ),
