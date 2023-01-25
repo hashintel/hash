@@ -12,7 +12,7 @@ cargo install cargo-make
 
 > **CAUTION:** At the moment, the graph starts the services it depends on differently to the rest of the codebase.
 >
-> **Before running the following command, ensure you tear down any existing `external-services` that were started as outlined in the [README for the workspace](/packages/hash/README.md).** Similarly, **ensure you call `deployment-down` before trying to run the `external-services`.**
+> **Before running the following command, ensure you tear down any existing `external-services` that were started as outlined in the [README for the HASH application](/apps/hash/README.md).** Similarly, **ensure you call `deployment-down` before trying to run the `external-services`.**
 >
 > It is planned to address this by revisiting the way the services are orchestrated, while still allowing for local non-container-based development.
 
