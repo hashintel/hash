@@ -203,13 +203,21 @@ export const fetchBlock = async (
   return await promise;
 };
 
-export const paragraphBlockComponentId =
-  "https://blockprotocol.org/blocks/@hash/paragraph";
+/**
+ * @todo-0.3 replace this temporary domain with blockprotocol.org
+ * https://app.asana.com/0/1203358502199087/1203788113163116/f
+ */
+export const blockProtocolHubOrigin =
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want empty strings either
+  process.env.BLOCK_PROTOCOL_HUB_ORIGIN ||
+  "https://blockprotocol-git-03.stage.hash.ai";
+
+export const paragraphBlockComponentId = `${blockProtocolHubOrigin}/blocks/@hash/paragraph`;
 
 const textBlockComponentIds = new Set([
   paragraphBlockComponentId,
-  "https://blockprotocol.org/blocks/@hash/header",
-  "https://blockprotocol.org/blocks/@hash/callout",
+  `${blockProtocolHubOrigin}/blocks/@hash/header`,
+  `${blockProtocolHubOrigin}/blocks/@hash/callout`,
 ]);
 
 /**
@@ -222,13 +230,13 @@ const textBlockComponentIds = new Set([
  */
 export const defaultBlockComponentIds = [
   ...Array.from(textBlockComponentIds),
-  "https://blockprotocol.org/blocks/@hash/person",
-  "https://blockprotocol.org/blocks/@hash/image",
-  "https://blockprotocol.org/blocks/@hash/table",
-  "https://blockprotocol.org/blocks/@hash/divider",
-  "https://blockprotocol.org/blocks/@hash/embed",
-  "https://blockprotocol.org/blocks/@hash/code",
-  "https://blockprotocol.org/blocks/@hash/video",
+  `${blockProtocolHubOrigin}/blocks/@hash/person`,
+  `${blockProtocolHubOrigin}/blocks/@hash/image`,
+  `${blockProtocolHubOrigin}/blocks/@hash/table`,
+  `${blockProtocolHubOrigin}/blocks/@hash/divider`,
+  `${blockProtocolHubOrigin}/blocks/@hash/embed`,
+  `${blockProtocolHubOrigin}/blocks/@hash/code`,
+  `${blockProtocolHubOrigin}/blocks/@hash/video`,
 ];
 
 /**
