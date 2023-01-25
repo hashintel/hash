@@ -21,8 +21,10 @@ The license for a particular work is defined with following prioritized rules:
 As outlined by the license files in the respective directories:
 
 - Within `/blocks` all source code is made available under the MIT License and Apache License 2.0, at your option.
-- Within `/apps`, `/libs` and `/tests`, source code in sub-directories (and nested sub-directories) prefixed `hash-` is typically licensed under version 3 of the GNU Affero General Public License.
+- Within `/apps`, `/libs` and `/tests`, source code in sub-directories (including those which are nested) named `@local` or prefixed `hash-` are typically licensed under version 3 of the GNU Affero General Public License.
 - Within `/apps/engine` source code is licensed under the Elastic License 2.0, unless otherwise noted.
+
+These **quick reference** guidelines are provided as general heuristics only. In all cases, you should follow the above **license determination** rules to verify the actual terms under which code has been published.
 
 ## Questions
 
