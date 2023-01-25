@@ -90,7 +90,7 @@ services:
       # configure the OTLP endpoint for the Graph. For now we've disabled traces.
       # https://app.asana.com/0/1201095311341924/1203636955054323/f
       # HASH_GRAPH_OTLP_ENDPOINT: "http://telemetry-collector:4317"
-      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-graph=trace,hash_graph=trace,tokio_postgres=debug}"
+      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-graph=trace,hash-graph=trace,tokio_postgres=debug}"
       RUST_BACKTRACE: 1
 
   telemetry-collector:
@@ -142,7 +142,7 @@ services:
       # configure the OTLP endpoint for the Graph. For now we've disabled traces.
       # https://app.asana.com/0/1201095311341924/1203636955054323/f
       # HASH_GRAPH_OTLP_ENDPOINT: "http://telemetry-collector:4317"
-      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-graph=trace,hash_graph=trace,tokio_postgres=debug}"
+      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-graph=trace,hash-graph=trace,tokio_postgres=debug}"
       RUST_BACKTRACE: 1
     ports:
       - "${HASH_GRAPH_API_PORT}:4000"

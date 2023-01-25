@@ -45,7 +45,7 @@ services:
       postgres:
         condition: service_healthy
     build:
-      dockerfile: deployment/graph/Dockerfile
+      dockerfile: docker/Dockerfile
       context: ../../apps/hash-graph
     command: migrate
     environment:
@@ -63,7 +63,7 @@ services:
   hash-graph:
     init: true
     build:
-      dockerfile: deployment/graph/Dockerfile
+      dockerfile: docker/Dockerfile
       context: ../../apps/hash-graph
     depends_on:
       postgres:
