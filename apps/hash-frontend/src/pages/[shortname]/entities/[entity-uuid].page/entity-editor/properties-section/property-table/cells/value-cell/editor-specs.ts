@@ -1,9 +1,12 @@
-import { faAsterisk, IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 
 import { fa100 } from "../../../../../../../../../shared/icons/pro/fa-100";
-import { faCube } from "../../../../../../../../../shared/icons/pro/fa-cube";
+import { faAsterisk } from "../../../../../../../../../shared/icons/pro/fa-asterisk";
+import { faBracketsCurly } from "../../../../../../../../../shared/icons/pro/fa-brackets-curly";
+import { faBracketsSquare } from "../../../../../../../../../shared/icons/pro/fa-brackets-square";
+import { faEmptySet } from "../../../../../../../../../shared/icons/pro/fa-empty-set";
 import { faSquareCheck } from "../../../../../../../../../shared/icons/pro/fa-square-check";
 import { faText } from "../../../../../../../../../shared/icons/pro/fa-text";
 import { EditorType } from "./types";
@@ -39,30 +42,30 @@ export const editorSpecs: Record<EditorType, EditorSpec> = {
     valueToString: (value: string) => value,
   },
   object: {
-    icon: faCube,
+    icon: faBracketsCurly,
     title: types.dataType.object.title,
-    gridIcon: "bpCube",
+    gridIcon: "bpBracketsCurly",
     arrayEditException: "no-save-and-discard-buttons",
     valueToString: () => "Object",
   },
   emptyList: {
-    icon: faAsterisk.icon,
+    icon: faBracketsSquare,
     title: types.dataType.emptyList.title,
-    gridIcon: "bpAsterisk",
+    gridIcon: "bpBracketsSquare",
     defaultValue: [],
     arrayEditException: "no-edit-mode",
     valueToString: () => "Empty List",
   },
   null: {
-    icon: faAsterisk.icon,
+    icon: faEmptySet,
     title: types.dataType.null.title,
-    gridIcon: "bpAsterisk",
+    gridIcon: "bpEmptySet",
     defaultValue: null,
     arrayEditException: "no-edit-mode",
     valueToString: () => "Null",
   },
   unknown: {
-    icon: faAsterisk.icon,
+    icon: faAsterisk,
     title: "Unknown Type",
     gridIcon: "bpAsterisk",
     defaultValue: "",

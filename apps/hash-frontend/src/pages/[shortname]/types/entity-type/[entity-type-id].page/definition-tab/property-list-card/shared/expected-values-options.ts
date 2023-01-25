@@ -8,10 +8,10 @@ import { theme } from "@local/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 
 import { fa100 } from "../../../../../../../../shared/icons/pro/fa-100";
-import { faBrackets } from "../../../../../../../../shared/icons/pro/fa-brackers";
+import { faBracketsCurly } from "../../../../../../../../shared/icons/pro/fa-brackets-curly";
+import { faBracketsSquare } from "../../../../../../../../shared/icons/pro/fa-brackets-square";
 import { faCube } from "../../../../../../../../shared/icons/pro/fa-cube";
 import { faCubes } from "../../../../../../../../shared/icons/pro/fa-cubes";
-import { faCurlyBraces } from "../../../../../../../../shared/icons/pro/fa-curly-braces";
 import { faEmptySet } from "../../../../../../../../shared/icons/pro/fa-empty-set";
 import { faListTree } from "../../../../../../../../shared/icons/pro/fa-list-tree";
 import { faSquareCheck } from "../../../../../../../../shared/icons/pro/fa-square-check";
@@ -53,12 +53,12 @@ export const expectedValuesOptions = {
   },
   [types.dataType.object.dataTypeId]: {
     title: types.dataType.object.title,
-    icon: faCurlyBraces,
+    icon: faBracketsSquare,
     colors: chipColors.blue,
   },
   [types.dataType.emptyList.dataTypeId]: {
     title: types.dataType.emptyList.title,
-    icon: faBrackets,
+    icon: faBracketsCurly,
     colors: chipColors.blue,
   },
   [types.dataType.null.dataTypeId]: {
