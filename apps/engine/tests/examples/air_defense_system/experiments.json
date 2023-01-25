@@ -1,6 +1,6 @@
 {
   "radar_zone_arange": {
-    "steps": 100,
+    "steps": 10,
     "type": "arange",
     "field": "radarZone",
     "start": 5,
@@ -8,7 +8,7 @@
     "increment": 5
   },
   "missile_speed_arange": {
-    "steps": 600,
+    "steps": 10,
     "type": "arange",
     "field": "missileSpeed",
     "start": 1,
@@ -16,7 +16,7 @@
     "increment": 0.5
   },
   "radar_max_missiles_arange": {
-    "steps": 200,
+    "steps": 10,
     "type": "arange",
     "field": "radarMaxMissiles",
     "start": 1,
@@ -53,6 +53,6 @@
         [30, 32]
       ]
     ],
-    "steps": 100
+    "steps": 10
   }
 }
