@@ -38,7 +38,7 @@ pub struct DatabaseConnectionInfo {
     /// The port to connect to.
     #[cfg_attr(
         feature = "clap",
-        clap(long, default_value = "5432", env = "HASH_GRAPH_PG_PORT")
+        clap(long, default_value = "5433", env = "HASH_GRAPH_PG_PORT")
     )]
     port: u16,
 

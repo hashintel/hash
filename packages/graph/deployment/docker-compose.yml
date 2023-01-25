@@ -18,11 +18,17 @@ services:
       HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DATABASE}"
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "${POSTGRES_PORT}:5433"
     volumes:
       - hash-graph-data:/var/lib/postgresql/data
       - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
       - ./postgres/init-user-db.sh:/docker-entrypoint-initdb.d/100-init-user-db.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -p ${POSTGRES_PORT}"]
+      interval: 4s
+      retries: 5
+      timeout: 30s
+      start_period: 6s
     tmpfs:
       - /tmp
       - /run/postgresql

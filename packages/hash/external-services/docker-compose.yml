@@ -65,33 +65,33 @@ services:
       retries: 5
     command: -c 'config_file=/etc/postgresql/postgresql.conf'
 
-  graph-migrate:
-    init: true
-    depends_on:
-      postgres:
-        condition: service_healthy
-      telemetry-collector:
-        condition: service_healthy
-    build:
-      dockerfile: deployment/graph/Dockerfile
-      context: ../../graph
-      args:
-        PROFILE: dev
-    command: migrate
-    environment:
-      # Intentionaly use the POSTGRES user as it's the "superadmin" which has access to schema
-      HASH_GRAPH_PG_USER: "${POSTGRES_USER}"
-      HASH_GRAPH_PG_PASSWORD: "${POSTGRES_PASSWORD}"
-      HASH_GRAPH_PG_HOST: "postgres"
-      HASH_GRAPH_PG_PORT: "5432"
-      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
-      HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
-      # For unknown reasons, our error return values are consumed when we
-      # configure the OTLP endpoint for the Graph. For now we've disabled traces.
-      # https://app.asana.com/0/1201095311341924/1203636955054323/f
-      # HASH_GRAPH_OTLP_ENDPOINT: "http://telemetry-collector:4317"
-      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-graph=trace,hash_graph=trace,tokio_postgres=debug}"
-      RUST_BACKTRACE: 1
+  # graph-migrate:
+  #   init: true
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     telemetry-collector:
+  #       condition: service_healthy
+  #   build:
+  #     dockerfile: deployment/graph/Dockerfile
+  #     context: ../../graph
+  #     args:
+  #       PROFILE: dev
+  #   command: migrate
+  #   environment:
+  #     # Intentionaly use the POSTGRES user as it's the "superadmin" which has access to schema
+  #     HASH_GRAPH_PG_USER: "${POSTGRES_USER}"
+  #     HASH_GRAPH_PG_PASSWORD: "${POSTGRES_PASSWORD}"
+  #     HASH_GRAPH_PG_HOST: "postgres"
+  #     HASH_GRAPH_PG_PORT: "5432"
+  #     HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
+  #     HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
+  #     # For unknown reasons, our error return values are consumed when we
+  #     # configure the OTLP endpoint for the Graph. For now we've disabled traces.
+  #     # https://app.asana.com/0/1201095311341924/1203636955054323/f
+  #     # HASH_GRAPH_OTLP_ENDPOINT: "http://telemetry-collector:4317"
+  #     RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-graph=trace,hash_graph=trace,tokio_postgres=debug}"
+  #     RUST_BACKTRACE: 1
 
   telemetry-collector:
     image: jaegertracing/all-in-one:1.40
@@ -117,35 +117,35 @@ services:
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
 
-  graph:
-    init: true
-    depends_on:
-      postgres:
-        condition: service_healthy
-      graph-migrate:
-        condition: service_completed_successfully
-      telemetry-collector:
-        condition: service_healthy
-    build:
-      dockerfile: deployment/graph/Dockerfile
-      context: ../../graph
-      args:
-        PROFILE: dev
-    environment:
-      HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
-      HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
-      HASH_GRAPH_PG_HOST: "postgres"
-      HASH_GRAPH_PG_PORT: "5432"
-      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
-      HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
-      # For unknown reasons, our error return values are consumed when we
-      # configure the OTLP endpoint for the Graph. For now we've disabled traces.
-      # https://app.asana.com/0/1201095311341924/1203636955054323/f
-      # HASH_GRAPH_OTLP_ENDPOINT: "http://telemetry-collector:4317"
-      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-graph=trace,hash_graph=trace,tokio_postgres=debug}"
-      RUST_BACKTRACE: 1
-    ports:
-      - "${HASH_GRAPH_API_PORT}:4000"
+  # graph:
+  #   init: true
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     graph-migrate:
+  #       condition: service_completed_successfully
+  #     telemetry-collector:
+  #       condition: service_healthy
+  #   build:
+  #     dockerfile: deployment/graph/Dockerfile
+  #     context: ../../graph
+  #     args:
+  #       PROFILE: dev
+  #   environment:
+  #     HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
+  #     HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
+  #     HASH_GRAPH_PG_HOST: "postgres"
+  #     HASH_GRAPH_PG_PORT: "5432"
+  #     HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
+  #     HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
+  #     # For unknown reasons, our error return values are consumed when we
+  #     # configure the OTLP endpoint for the Graph. For now we've disabled traces.
+  #     # https://app.asana.com/0/1201095311341924/1203636955054323/f
+  #     # HASH_GRAPH_OTLP_ENDPOINT: "http://telemetry-collector:4317"
+  #     RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-graph=trace,hash_graph=trace,tokio_postgres=debug}"
+  #     RUST_BACKTRACE: 1
+  #   ports:
+  #     - "${HASH_GRAPH_API_PORT}:4000"
 
   hash-dev-redis:
     image: redis:6.2
