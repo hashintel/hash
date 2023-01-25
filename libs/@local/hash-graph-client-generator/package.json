@@ -1,5 +1,5 @@
 {
-  "name": "@hashintel/hash-graph-client-generator",
+  "name": "@local/hash-graph-client-generator",
   "version": "0.0.0-private",
   "private": true,
   "description": "OpenAPI client generator helper",
