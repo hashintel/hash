@@ -49,8 +49,9 @@ impl Transpile for Table {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum JsonField<'p> {
     Json(&'p Cow<'p, str>),
-    Text(&'p Cow<'p, str>),
-    Parameter(usize),
+    JsonParameter(usize),
+    StaticText(&'static str),
+    StaticJson(&'static str),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -102,17 +103,23 @@ macro_rules! impl_ontology_column {
                         Self::OwnedById => "owned_by_id",
                         Self::UpdatedById => "updated_by_id",
                         Self::Schema(None) => "schema",
-                        Self::Schema(Some(path)) => match path {
-                            JsonField::Json(field) => {
-                                return write!(fmt, r#"."schema"->'{}'"#, field);
-                            }
-                            JsonField::Text(field) => {
-                                return write!(fmt, r#"."schema"->>'{}'"#, field);
-                            }
-                            JsonField::Parameter(index) => {
-                                return write!(fmt, r#"."schema"->>${}"#, index);
-                            }
-                        },
+                        Self::Schema(Some(path)) => {
+                            return match path {
+                                JsonField::Json(field) => panic!(
+                                    "attempting to access JSON field `{field}` on schema column \
+                                     without preparing the value"
+                                ),
+                                JsonField::JsonParameter(index) => {
+                                    write!(fmt, r#"."schema"->${index}"#)
+                                }
+                                JsonField::StaticText(field) => {
+                                    write!(fmt, r#"."schema"->>'{field}'"#)
+                                }
+                                JsonField::StaticJson(field) => {
+                                    write!(fmt, r#"."schema"->'{field}'"#)
+                                }
+                            };
+                        }
                     };
                     write!(fmt, r#"."{}""#, column)
                 }
@@ -192,14 +199,18 @@ impl Transpile for Entities<'_> {
             Self::Properties(None) => "properties",
             Self::Properties(Some(path)) => {
                 return match path {
-                    JsonField::Json(field) => {
-                        write!(fmt, r#"."properties"->'{field}'"#)
+                    JsonField::Json(field) => panic!(
+                        "attempting to access JSON field `{field}` on properties column without \
+                         preparing the value"
+                    ),
+                    JsonField::JsonParameter(index) => {
+                        write!(fmt, r#"."properties"->${index}"#)
                     }
-                    JsonField::Text(field) => {
+                    JsonField::StaticText(field) => {
                         write!(fmt, r#"."properties"->>'{field}'"#)
                     }
-                    JsonField::Parameter(index) => {
-                        write!(fmt, r#"."properties"->>${index}"#)
+                    JsonField::StaticJson(field) => {
+                        write!(fmt, r#"."properties"->'{field}'"#)
                     }
                 };
             }
