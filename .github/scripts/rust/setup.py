@@ -36,9 +36,6 @@ PUBLISH_PATTERNS = ["packages/libs/error-stack**"]
 # Build a docker container for these crates
 DOCKER_PATTERNS = ["apps/hash-graph"]
 
-# All jobs for all crates will run if any of these paths change
-SKIP_PRODUCTION_BUILD_PATTERNS = ["apps/engine**"]
-
 # Build a coverage report for these crates
 COVERAGE_EXCLUDE_PATTERNS = ["apps/engine**"]
 
@@ -196,17 +193,6 @@ def filter_for_docker_crates(crates):
         if fnmatch(crate, pattern)
     ]
 
-def crate_should_run_production_builds(crate):
-    """
-    Returns whether the crate should run production builds
-    :param crate: the path to the crate
-    :return: whether the crate should run production builds
-    """
-    return not any(
-        fnmatch(crate, pattern) for pattern in SKIP_PRODUCTION_BUILD_PATTERNS
-    )
-
-
 
 def output_matrix(name, github_output_file, crates, **kwargs):
     """
@@ -283,10 +269,7 @@ def main():
     github_output_file = open(os.environ["GITHUB_OUTPUT_FILE_PATH"], "w")
 
     output_matrix("lint", github_output_file, changed_parent_crates)
-    if crate_should_run_production_builds(changed_parent_crates):
-        output_matrix("build", github_output_file, changed_parent_crates, profile=["development", "production"])
-    else:
-        output_matrix("build", github_output_file, changed_parent_crates, profile=["development"])
+    output_matrix("test", github_output_file, changed_parent_crates, profile=["development", "production"])
     output_matrix("coverage", github_output_file, coverage_crates)
     output_matrix("docker", github_output_file, changed_docker_crates, profile=["production"])
     output_matrix(
