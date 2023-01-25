@@ -7,3 +7,4 @@ mod non_zero;
 mod string;
 mod unit;
 mod bytes;
+mod cell;
