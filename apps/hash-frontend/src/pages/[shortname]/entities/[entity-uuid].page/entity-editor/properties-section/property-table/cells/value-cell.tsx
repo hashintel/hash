@@ -9,6 +9,7 @@ import {
   getCellHorizontalPadding,
   getYCenter,
 } from "../../../../../../../../components/grid/utils";
+import { drawChipWithText } from "../../../../../../../../components/grid/utils/draw-chip-with-text";
 import { drawTextWithIcon } from "../../../../../../../../components/grid/utils/draw-text-with-icon";
 import { InteractableManager } from "../../../../../../../../components/grid/utils/interactable-manager";
 import { drawInteractableTooltipIcons } from "../../../../../../../../components/grid/utils/use-grid-tooltip/draw-interactable-tooltip-icons";
@@ -37,12 +38,20 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     const editorType = guessEditorTypeFromValue(value, expectedTypes);
     const editorSpec = editorSpecs[editorType];
 
-    if (editorType === "emptyList" || editorType === "null") {
+    if (
+      editorType === "emptyList" ||
+      editorType === "null" ||
+      editorType === "object"
+    ) {
       /**
        * draw emptyList and null before checking for empty value,
        * because these are special types, not empty values
        */
-      ctx.fillText(editorSpec.valueToString(value), left, yCenter);
+      drawChipWithText({
+        args,
+        left,
+        text: editorSpec.valueToString(value),
+      });
     } else if (isValueEmpty(value)) {
       // draw empty value
       ctx.fillStyle = customColors.gray[50];
