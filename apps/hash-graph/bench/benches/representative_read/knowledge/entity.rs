@@ -62,16 +62,20 @@ pub fn bench_get_entities_by_property(
     graph_resolve_depths: GraphResolveDepths,
 ) {
     b.to_async(runtime).iter(|| async move {
+        let mut filter = Filter::Equal(
+            Some(FilterExpression::Path(EntityQueryPath::Properties(Some(
+                Cow::Borrowed("https://blockprotocol.org/@alice/types/property-type/name/"),
+            )))),
+            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                "Alice",
+            )))),
+        );
+        filter
+            .convert_parameters()
+            .expect("failed to convert parameters");
         let subgraph = store
             .get_entity(&StructuralQuery {
-                filter: Filter::Equal(
-                    Some(FilterExpression::Path(EntityQueryPath::Properties(Some(
-                        Cow::Borrowed("https://blockprotocol.org/@alice/types/property-type/name/"),
-                    )))),
-                    Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                        "Alice",
-                    )))),
-                ),
+                filter,
                 graph_resolve_depths,
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                     kernel: UnresolvedKernel::new(None),
@@ -94,18 +98,22 @@ pub fn bench_get_link_by_target_by_property(
     graph_resolve_depths: GraphResolveDepths,
 ) {
     b.to_async(runtime).iter(|| async move {
+        let mut filter = Filter::Equal(
+            Some(FilterExpression::Path(EntityQueryPath::RightEntity(
+                Box::new(EntityQueryPath::Properties(Some(Cow::Borrowed(
+                    "https://blockprotocol.org/@alice/types/property-type/name/",
+                )))),
+            ))),
+            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                "Alice",
+            )))),
+        );
+        filter
+            .convert_parameters()
+            .expect("failed to convert parameters");
         let subgraph = store
             .get_entity(&StructuralQuery {
-                filter: Filter::Equal(
-                    Some(FilterExpression::Path(EntityQueryPath::RightEntity(
-                        Box::new(EntityQueryPath::Properties(Some(Cow::Borrowed(
-                            "https://blockprotocol.org/@alice/types/property-type/name/",
-                        )))),
-                    ))),
-                    Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                        "Alice",
-                    )))),
-                ),
+                filter,
                 graph_resolve_depths,
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                     kernel: UnresolvedKernel::new(None),
