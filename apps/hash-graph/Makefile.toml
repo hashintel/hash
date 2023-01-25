@@ -1,10 +1,6 @@
 extend = { path = "../../.github/scripts/rust/Makefile.toml" }
 
 [env]
-CARGO_CLIPPY_HACK_FLAGS = "--workspace --feature-powerset --optional-deps clap"
-
-CARGO_TEST_HACK_FLAGS = "--workspace --feature-powerset --optional-deps clap"
-
 CARGO_RUSTDOC_HACK_FLAGS = "--workspace --exclude hash_graph_benches"
 
 RUST_LOG = "debug,hyper=warn"
