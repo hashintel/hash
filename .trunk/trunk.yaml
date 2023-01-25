@@ -16,7 +16,7 @@ merge:
     - Unit tests
     - Backend integration tests
     - Playwright tests
-    - merging enabled
+    - Merging enabled
     - Vercel – hash
 actions:
   enabled:
