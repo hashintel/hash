@@ -37,7 +37,7 @@
     "@storybook/react-webpack5": "7.0.0-beta.14",
     "@storybook/testing-library": "^0.0.14-next.1",
     "@types/react": "18.0.25",
-    "@types/react-dom": "18.0.8",
+    "@types/react-dom": "^18.0.9",
     "eslint": "8.32.0",
     "eslint-plugin-storybook": "0.6.10",
     "storybook": "7.0.0-beta.14",
