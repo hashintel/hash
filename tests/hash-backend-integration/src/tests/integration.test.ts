@@ -32,7 +32,10 @@ import {
   WayToUseHash,
   DeprecatedEntityType,
 } from "../graphql/api-types.gen";
-import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
+import {
+  blockProtocolHubOrigin,
+  paragraphBlockComponentId,
+} from "@local/hash-isomorphic-utils/blocks";
 
 const logger = new Logger({
   mode: "dev",
@@ -565,7 +568,7 @@ describe("logged in user ", () => {
           {
             insertBlock: {
               accountId: existingUser.accountId,
-              componentId: "https://blockprotocol.org/blocks/@hash/header",
+              componentId: `${blockProtocolHubOrigin}/blocks/@hash/header`,
               position: 0,
               entity: {
                 entityType: {
@@ -659,7 +662,7 @@ describe("logged in user ", () => {
     });
 
     // ComponentId doesn't exist in the database
-    const componentId = "https://blockprotocol.org/blocks/@hash/unknown";
+    const componentId = `${blockProtocolHubOrigin}/blocks/@hash/unknown`;
     let entityTypeComponentId: string;
     it("can add a block with unknown componentId", async () => {
       // No type argument given to insertBlock, only componentId
@@ -937,7 +940,7 @@ describe("logged in user ", () => {
           {
             insertBlock: {
               accountId: existingUser.accountId,
-              componentId: "https://blockprotocol.org/blocks/@hash/header",
+              componentId: `${blockProtocolHubOrigin}/blocks/@hash/header`,
               position: 0,
               entity: {
                 entityType: {
@@ -959,11 +962,11 @@ describe("logged in user ", () => {
           {
             insertBlock: {
               accountId: existingUser.accountId,
-              componentId: "https://blockprotocol.org/blocks/@hash/divider",
+              componentId: `${blockProtocolHubOrigin}/blocks/@hash/divider`,
               position: 1,
               entity: {
                 entityType: {
-                  componentId: "https://blockprotocol.org/blocks/@hash/divider",
+                  componentId: `${blockProtocolHubOrigin}/blocks/@hash/divider`,
                 },
                 entityProperties: {},
               },
@@ -1017,7 +1020,7 @@ describe("logged in user ", () => {
         accountId: existingUser.accountId,
         filter: {
           entityType: {
-            componentId: "https://blockprotocol.org/blocks/@hash/divider",
+            componentId: `${blockProtocolHubOrigin}/blocks/@hash/divider`,
           },
         },
       });
