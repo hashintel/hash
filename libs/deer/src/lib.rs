@@ -50,6 +50,7 @@ use crate::{
 
 mod context;
 pub mod error;
+mod ext;
 mod impls;
 mod number;
 mod schema;
