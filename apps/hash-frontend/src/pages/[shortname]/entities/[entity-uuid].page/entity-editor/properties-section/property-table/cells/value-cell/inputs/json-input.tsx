@@ -7,7 +7,11 @@ import { GRID_CLICK_IGNORE_CLASS } from "../../../../../../../../../../component
 import { JsonEditor } from "./json-input/json-editor";
 import { CellInputProps } from "./types";
 
-const isJsonString = (str: string) => {
+const isJsonObjectString = (str?: string) => {
+  if (!str || str.trim()[0] !== "{") {
+    return false;
+  }
+
   try {
     JSON.parse(str);
   } catch (err) {
@@ -23,7 +27,7 @@ export const JsonInput = ({ onChange, value }: CellInputProps<any>) => {
 
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
 
-  const isValid = isJsonString(innerValue);
+  const isValid = isJsonObjectString(innerValue);
 
   return (
     <>
@@ -63,7 +67,7 @@ export const JsonInput = ({ onChange, value }: CellInputProps<any>) => {
               variant="smallCaps"
               sx={{ color: "red.70", pl: 2, pb: 1 }}
             >
-              {!isValid && "Invalid JSON"}
+              {!isValid && "Invalid JSON Object"}
             </Typography>
 
             <Box
