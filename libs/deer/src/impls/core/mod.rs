@@ -6,6 +6,7 @@ mod cell;
 mod floating;
 mod integral;
 mod non_zero;
+mod phantom;
 mod string;
 mod tuples;
 mod unit;
