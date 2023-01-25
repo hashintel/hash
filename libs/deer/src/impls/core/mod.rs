@@ -1,10 +1,11 @@
 mod array;
 mod atomic;
 mod bool;
+mod bytes;
+mod cell;
 mod floating;
 mod integral;
 mod non_zero;
 mod string;
+mod tuples;
 mod unit;
-mod bytes;
-mod cell;
