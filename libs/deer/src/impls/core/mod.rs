@@ -9,5 +9,6 @@ mod integral;
 mod mem;
 mod num;
 mod string;
+mod sync;
 mod tuples;
 mod unit;

@@ -7,7 +7,8 @@
         integer_atomics,
         once_cell,
         sync_unsafe_cell,
-        saturating_int_impl
+        saturating_int_impl,
+        exclusive_wrapper
     )
 )]
 #![cfg_attr(not(feature = "std"), no_std)]
