@@ -1,12 +1,10 @@
-use alloc::{string::String, vec::Vec};
 use core::{marker::PhantomData, mem::ManuallyDrop};
 
 use error_stack::{Result, ResultExt};
 
 use crate::{
     error::{DeserializeError, VisitorError},
-    ArrayAccess, Deserialize, Deserializer, Document, Number, ObjectAccess, Reflection, Schema,
-    Visitor,
+    Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
 };
 
 struct PhantomDataVisitor<T: ?Sized>(PhantomData<T>);
@@ -45,18 +43,16 @@ impl<'de, T: ?Sized> Deserialize<'de> for PhantomData<T> {
     }
 }
 
-pub struct ManuallyDropVisitor<T: ?Sized>(PhantomData<T>);
-
-impl<'de, T: Deserialize<'de>> Visitor<'de> for ManuallyDropVisitor<T> {
-    type Value = ManuallyDrop<T>;
-
-    fn expecting(&self) -> Document {
-        todo!()
+impl<T: Reflection + ?Sized> Reflection for ManuallyDrop<T> {
+    fn schema(doc: &mut Document) -> Schema {
+        T::schema(doc)
     }
 }
 
-impl<T: Reflection> Reflection for ManuallyDrop<T> {
-    fn schema(doc: &mut Document) -> Schema {
-        T::schema(doc)
+impl<'de, T: Deserialize<'de>> Deserialize<'de> for ManuallyDrop<T> {
+    type Reflection = ManuallyDrop<T::Reflection>;
+
+    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
+        T::deserialize(de).map(Self::new)
     }
 }
