@@ -1,4 +1,7 @@
-import { BlockGraphProperties } from "@blockprotocol/graph";
+import {
+  BlockGraphProperties,
+  EmbedderGraphMessageCallbacks,
+} from "@blockprotocol/graph";
 import { VersionedUri } from "@blockprotocol/type-system/slim";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { EntityId } from "@local/hash-isomorphic-utils/types";
@@ -62,15 +65,39 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     );
   }, [fetchBlockSubgraph, blockEntityId, blockEntityTypeId, setBlockSubgraph]);
 
-  const functions = {
-    aggregateEntities,
-    /**
-     * @todo remove this when embed block no longer relies on server-side oEmbed calls
-     * @see https://app.asana.com/0/1200211978612931/1202509819279267/f
-     */
-    getEmbedBlock: fetchEmbedCode,
-    uploadFile,
-  };
+  const functions = useMemo(
+    () => ({
+      aggregateEntities,
+      /**
+       * @todo remove this when embed block no longer relies on server-side oEmbed calls
+       * @see https://app.asana.com/0/1200211978612931/1202509819279267/f
+       */
+      getEmbedBlock: fetchEmbedCode,
+      uploadFile,
+      updateEntity: async (
+        ...args: Parameters<EmbedderGraphMessageCallbacks["updateEntity"]>
+      ) => {
+        const res = await updateEntity(...args);
+
+        const newBlockSubgraph = await fetchBlockSubgraph(
+          blockEntityTypeId,
+          blockEntityId,
+        );
+        setBlockSubgraph(newBlockSubgraph);
+
+        return res;
+      },
+    }),
+    [
+      aggregateEntities,
+      setBlockSubgraph,
+      fetchBlockSubgraph,
+      updateEntity,
+      blockEntityId,
+      blockEntityTypeId,
+      uploadFile,
+    ],
+  );
 
   const onBlockLoadedFromContext = useBlockLoadedContext().onBlockLoaded;
   const onBlockLoadedRef = useRef(onBlockLoaded);
@@ -140,20 +167,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     <RemoteBlock
       blockMetadata={blockMetadata}
       editableRef={editableRef}
-      graphCallbacks={{
-        ...functions,
-        updateEntity: async (...args) => {
-          const res = await updateEntity(...args);
-
-          const newBlockSubgraph = await fetchBlockSubgraph(
-            blockEntityTypeId,
-            blockEntityId,
-          );
-          setBlockSubgraph(newBlockSubgraph);
-
-          return res;
-        },
-      }}
+      graphCallbacks={functions}
       graphProperties={temporaryBackwardsCompatibleProperties}
       onBlockLoaded={onRemoteBlockLoaded}
     />
