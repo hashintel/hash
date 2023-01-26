@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "0.1.0-canary-20230111084611",
-    "prismjs": "1.28.0"
+    "prismjs": "1.29.0"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",

@@ -2,6 +2,7 @@ import { Box, Typography } from "@mui/material";
 import clsx from "clsx";
 import { HTMLAttributes } from "react";
 
+import { GRID_CLICK_IGNORE_CLASS } from "../../../../components/grid/utils";
 import { OntologyChip, parseUriForOntologyChip } from "../ontology-chip";
 
 export const HashSelectorAutocompleteOption = ({
@@ -21,8 +22,8 @@ export const HashSelectorAutocompleteOption = ({
     <li
       {...liProps}
       data-testid="property-selector-option"
-      /** added "click-outside-ignore" to be able to use this selector with Grid component */
-      className={clsx(liProps.className, "click-outside-ignore")}
+      /** added GRID_CLICK_IGNORE_CLASS to be able to use this selector with Grid component */
+      className={clsx(liProps.className, GRID_CLICK_IGNORE_CLASS)}
     >
       <Box width="100%">
         <Box
