@@ -5,23 +5,36 @@ OR REPLACE FUNCTION create_ontology_id (
   "owned_by_id" UUID,
   "updated_by_id" UUID
 ) RETURNS TABLE (version_id UUID) AS $create_ontology_id$
+DECLARE
+  "_version_id" UUID;
 BEGIN
-  RETURN QUERY
+  _version_id := gen_random_uuid();
+
   INSERT INTO type_ids (
     "version_id",
     "base_uri",
     "version",
-    "owned_by_id",
-    "updated_by_id",
     "transaction_time"
   ) VALUES (
-    gen_random_uuid(),
+    _version_id,
     create_ontology_id.base_uri,
     create_ontology_id.version,
-    create_ontology_id.owned_by_id,
-    create_ontology_id.updated_by_id,
     tstzrange(now(), NULL, '[)')
-  ) RETURNING type_ids.version_id;
+  );
+  
+  INSERT INTO owned_ontology_metadata (
+    "version_id",
+    "owned_by_id",
+    "updated_by_id"    
+  ) VALUES (
+    _version_id,
+    create_ontology_id.owned_by_id,
+    create_ontology_id.updated_by_id
+  );
+
+  version_id := _version_id;
+  RETURN NEXT;
+  RETURN;
 END $create_ontology_id$ VOLATILE LANGUAGE plpgsql;
 
 CREATE
@@ -37,16 +50,25 @@ BEGIN
 
   _version_id := gen_random_uuid();
 
+  UPDATE owned_ontology_metadata as metadata
+  SET
+    "updated_by_id" = update_ontology_id.updated_by_id
+  FROM type_ids
+  WHERE type_ids.version_id = metadata.version_id
+    AND type_ids.base_uri = update_ontology_id.base_uri
+    AND type_ids.transaction_time @> now();
+
   RETURN QUERY
   UPDATE type_ids
   SET
     "version_id" = _version_id,
     "version" = update_ontology_id.version,
-    "updated_by_id" = update_ontology_id.updated_by_id,
     "transaction_time" = tstzrange(now(), NULL, '[)')
-  WHERE type_ids.base_uri = update_ontology_id.base_uri
+  FROM owned_ontology_metadata as metadata
+  WHERE type_ids.version_id = metadata.version_id
+    AND type_ids.base_uri = update_ontology_id.base_uri
     AND type_ids.transaction_time @> now()
-  RETURNING _version_id, type_ids.owned_by_id;
+  RETURNING _version_id, metadata.owned_by_id;
 
   SET CONSTRAINTS type_ids_overlapping IMMEDIATE;
 END $update_ontology_id$ VOLATILE LANGUAGE plpgsql;
@@ -63,17 +85,25 @@ BEGIN
     "version_id",
     "base_uri",
     "version",
-    "owned_by_id",
-    "updated_by_id",
     "transaction_time"
   ) VALUES (
     NEW.version_id,
     NEW.base_uri,
     NEW.version,
-    NEW.owned_by_id,
-    NEW.updated_by_id,
     NEW.transaction_time
   );
+
+  INSERT INTO
+    owned_ontology_metadata ("version_id", "owned_by_id", "updated_by_id")
+  SELECT
+    NEW.version_id,
+    metadata.owned_by_id,
+    metadata.updated_by_id
+  FROM
+    owned_ontology_metadata AS metadata
+  WHERE
+    metadata.version_id = OLD.version_id;
+
 
   OLD.transaction_time = tstzrange(lower(OLD.transaction_time), lower(NEW.transaction_time), '[)');
 
