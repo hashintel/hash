@@ -1,4 +1,4 @@
-import { TextField } from "@local/design-system";
+import { TextField } from "@hashintel/design-system";
 import { Box, Collapse, Container, Typography } from "@mui/material";
 import { RecoveryFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";

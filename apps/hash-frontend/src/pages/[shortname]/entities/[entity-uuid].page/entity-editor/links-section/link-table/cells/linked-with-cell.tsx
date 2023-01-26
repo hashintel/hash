@@ -3,7 +3,7 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
-import { customColors } from "@local/design-system/src/theme/palette";
+import { customColors } from "@hashintel/design-system/src/theme/palette";
 import { EntityId } from "@local/hash-isomorphic-utils/types";
 
 import {

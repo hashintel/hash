@@ -4,7 +4,7 @@ import {
   faListOl,
   faListUl,
 } from "@fortawesome/free-solid-svg-icons";
-import { theme } from "@local/design-system";
+import { theme } from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 
 import { fa100 } from "../../../../../../../../shared/icons/pro/fa-100";

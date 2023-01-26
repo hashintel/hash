@@ -1,4 +1,5 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
+import { useEntityType } from "@hashintel/type-editor/src/shared/entity-type-context";
 import { FontAwesomeIcon } from "@local/design-system";
 import { Box, Tabs, tabsClasses } from "@mui/material";
 import { useRouter } from "next/router";
@@ -7,7 +8,6 @@ import { useFormContext, useWatch } from "react-hook-form";
 
 import { useFontLoadedCallback } from "../../../../../components/hooks/use-font-loaded-callback";
 import { TabLink } from "./entity-type-tabs/tab-link";
-import { useEntityType } from "../../../../../../../../libs/@hashintel/type-editor/src/shared/entity-type-context";
 import { useEntityTypeEntities } from "./shared/entity-type-entities-context";
 import { EntityTypeEditorForm } from "./shared/form-types";
 import { getEntityTypeBaseUri } from "./shared/get-entity-type-base-uri";

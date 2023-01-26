@@ -1,4 +1,4 @@
-import { Chip, ChipProps } from "@local/design-system";
+import { Chip, ChipProps } from "@hashintel/design-system";
 import { styled } from "@mui/material";
 
 export const WhiteChip = styled(({ ...props }: ChipProps) => (

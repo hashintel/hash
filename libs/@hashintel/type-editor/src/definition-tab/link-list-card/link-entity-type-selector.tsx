@@ -1,5 +1,5 @@
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import { Chip, FontAwesomeIcon } from "@local/design-system";
+import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, PopperPlacementType, Stack } from "@mui/material";
 import { ReactNode, useRef, useState } from "react";
 import { flushSync } from "react-dom";
