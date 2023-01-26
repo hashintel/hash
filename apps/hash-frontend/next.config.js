@@ -67,7 +67,7 @@ module.exports = withSentryConfig(
                 {
                   type: "header",
                   key: "accept",
-                  value: "(application/json)",
+                  value: "application/json",
                 },
               ],
               headers: [
