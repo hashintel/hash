@@ -1,7 +1,7 @@
 import {
   GraphResolveDepths,
   OntologyTypeEditionId,
-} from "@hashintel/hash-graph-client";
+} from "@local/hash-graph-client";
 
 import { Edges } from "./edge";
 import {

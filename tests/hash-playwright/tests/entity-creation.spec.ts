@@ -1,3 +1,5 @@
+import { sleep } from "@local/hash-isomorphic-utils/sleep";
+
 import { loginUsingTempForm } from "./shared/login-using-temp-form";
 import { resetDb } from "./shared/reset-db";
 import { expect, Locator, Page, test } from "./shared/runtime";
@@ -9,6 +11,9 @@ const getCellText = async (
   /** zero-based (first row after header row -> 0) */
   rowIndex: number,
 ) => {
+  // wait until glide-grid updates the cell texts (on the invisible accessibility table)
+  await sleep(500);
+
   const text = await canvas
     .getByTestId(`glide-cell-${colIndex}-${rowIndex}`)
     .textContent();
@@ -65,10 +70,12 @@ test("user can update values on property table", async ({ page }) => {
   const canvas = page.locator(".dvn-underlay > canvas:first-of-type").first();
 
   await clickOnValueCell(page, canvas, 0);
+
   await page.keyboard.type("John");
   await page.keyboard.press("Enter");
 
   await clickOnValueCell(page, canvas, 1);
+
   await page.keyboard.type("Doe");
   await page.keyboard.press("Enter");
 

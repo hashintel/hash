@@ -1,3 +1,4 @@
+import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks";
 import fetch from "node-fetch";
 
 import { BlockProtocolBlock, ResolverFn } from "../../api-types.gen";
@@ -15,7 +16,7 @@ export const getBlockProtocolBlocksResolver: ResolverFn<
     throw new Error("BLOCK_PROTOCOL_API_KEY env variable is missing!");
   }
 
-  const res = await fetch("https://blockprotocol.org/api/blocks", {
+  const res = await fetch(`${blockProtocolHubOrigin}/api/blocks`, {
     headers: { "x-api-key": apiKey },
   });
 

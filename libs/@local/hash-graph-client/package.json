@@ -1,10 +1,10 @@
 {
-  "name": "@hashintel/hash-graph-client",
+  "name": "@local/hash-graph-client",
   "version": "0.0.0-private",
   "private": true,
   "description": "OpenAPI client for the HASH Graph API.",
   "license": "AGPL-3.0",
-  "main": "./index.ts",
+  "main": "index.ts",
   "scripts": {
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint ."

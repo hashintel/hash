@@ -29,7 +29,7 @@ const Page: NextPageWithLayout = () => {
           </strong>{" "}
           It is not secure or optimized and is missing key features. Please
           visit the{" "}
-          <Link href="https://github.com/hashintel/hash/tree/main/packages/hash">
+          <Link href="https://github.com/hashintel/hash/tree/main/apps/hash">
             GitHub repository
           </Link>{" "}
           for the latest updates, or learn about the long-term{" "}
