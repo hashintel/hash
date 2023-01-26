@@ -199,13 +199,13 @@ impl<A> fmt::Debug for TimeInterval<A> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.start {
             TimeIntervalBound::Unbounded => write!(fmt, "(-∞, ")?,
-            TimeIntervalBound::Included(start) => write!(fmt, "[{}, ", start)?,
-            TimeIntervalBound::Excluded(start) => write!(fmt, "({}, ", start)?,
+            TimeIntervalBound::Included(start) => write!(fmt, "[{start}, ")?,
+            TimeIntervalBound::Excluded(start) => write!(fmt, "({start}, ")?,
         }
         match self.end {
             TimeIntervalBound::Unbounded => write!(fmt, "+∞)")?,
-            TimeIntervalBound::Included(end) => write!(fmt, "{}]", end)?,
-            TimeIntervalBound::Excluded(end) => write!(fmt, "{})", end)?,
+            TimeIntervalBound::Included(end) => write!(fmt, "{end}]")?,
+            TimeIntervalBound::Excluded(end) => write!(fmt, "{end})")?,
         }
         Ok(())
     }

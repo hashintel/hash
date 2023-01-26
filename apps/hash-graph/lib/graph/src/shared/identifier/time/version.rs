@@ -18,7 +18,7 @@ impl<A> fmt::Debug for VersionInterval<A> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(fmt, "[{}, ", self.start)?;
         if let Some(end) = self.end {
-            write!(fmt, "{})", end)
+            write!(fmt, "{end})")
         } else {
             write!(fmt, "+∞)")
         }
