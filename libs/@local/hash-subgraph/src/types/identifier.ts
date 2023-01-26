@@ -2,7 +2,7 @@
 // directly here, and have to import as alias before re-exporting the type
 // if we don't, the `api` package is unable to use this library.
 import { VersionedUri as TVersionedUri } from "@blockprotocol/type-system";
-import { OntologyTypeEditionId } from "@hashintel/hash-graph-client";
+import { OntologyTypeEditionId } from "@local/hash-graph-client";
 import { validate as validateUuid } from "uuid";
 
 export type VersionedUri = TVersionedUri;

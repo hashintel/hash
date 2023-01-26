@@ -1,5 +1,5 @@
 import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
-import { UpdatePropertyTypeRequest } from "@hashintel/hash-graph-client";
+import { UpdatePropertyTypeRequest } from "@local/hash-graph-client";
 import { PropertyTypeWithoutId } from "@local/hash-isomorphic-utils/graphql/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";

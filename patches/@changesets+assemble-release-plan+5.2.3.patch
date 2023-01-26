@@ -1,0 +1,73 @@
+diff --git a/node_modules/@changesets/assemble-release-plan/dist/assemble-release-plan.cjs.dev.js b/node_modules/@changesets/assemble-release-plan/dist/assemble-release-plan.cjs.dev.js
+index 3a37c62..146db90 100644
+--- a/node_modules/@changesets/assemble-release-plan/dist/assemble-release-plan.cjs.dev.js
++++ b/node_modules/@changesets/assemble-release-plan/dist/assemble-release-plan.cjs.dev.js
+@@ -145,6 +145,7 @@ function determineDependents({
+           } else if ((!releases.has(dependent) || releases.get(dependent).type === "none") && (config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH.updateInternalDependents === "always" || !semver__default['default'].satisfies(incrementVersion(nextRelease, preInfo), versionRange))) {
+             switch (depType) {
+               case "dependencies":
++              case "devDependencies":
+               case "optionalDependencies":
+               case "peerDependencies":
+                 if (type !== "major" && type !== "minor") {
+@@ -152,14 +153,6 @@ function determineDependents({
+                 }
+ 
+                 break;
+-
+-              case "devDependencies":
+-                {
+-                  // We don't need a version bump if the package is only in the devDependencies of the dependent package
+-                  if (type !== "major" && type !== "minor" && type !== "patch") {
+-                    type = "none";
+-                  }
+-                }
+             }
+           }
+         }
+diff --git a/node_modules/@changesets/assemble-release-plan/dist/assemble-release-plan.cjs.prod.js b/node_modules/@changesets/assemble-release-plan/dist/assemble-release-plan.cjs.prod.js
+index 87b4c10..ad83a16 100644
+--- a/node_modules/@changesets/assemble-release-plan/dist/assemble-release-plan.cjs.prod.js
++++ b/node_modules/@changesets/assemble-release-plan/dist/assemble-release-plan.cjs.prod.js
+@@ -80,13 +80,11 @@ function determineDependents({releases: releases, packagesByName: packagesByName
+           onlyUpdatePeerDependentsWhenOutOfRange: config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH.onlyUpdatePeerDependentsWhenOutOfRange
+         })) type = "major"; else if (!(releases.has(dependent) && "none" !== releases.get(dependent).type || "always" !== config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH.updateInternalDependents && semver__default.default.satisfies(incrementVersion(nextRelease, preInfo), versionRange))) switch (depType) {
+          case "dependencies":
++         case "devDependencies":
+          case "optionalDependencies":
+          case "peerDependencies":
+           "major" !== type && "minor" !== type && (type = "patch");
+           break;
+-
+-         case "devDependencies":
+-          "major" !== type && "minor" !== type && "patch" !== type && (type = "none");
+         }
+       }
+       return releases.has(dependent) && releases.get(dependent).type === type && (type = void 0), 
+diff --git a/node_modules/@changesets/assemble-release-plan/dist/assemble-release-plan.esm.js b/node_modules/@changesets/assemble-release-plan/dist/assemble-release-plan.esm.js
+index c29c008..5632dfb 100644
+--- a/node_modules/@changesets/assemble-release-plan/dist/assemble-release-plan.esm.js
++++ b/node_modules/@changesets/assemble-release-plan/dist/assemble-release-plan.esm.js
+@@ -137,6 +137,7 @@ function determineDependents({
+           } else if ((!releases.has(dependent) || releases.get(dependent).type === "none") && (config.___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH.updateInternalDependents === "always" || !semver.satisfies(incrementVersion(nextRelease, preInfo), versionRange))) {
+             switch (depType) {
+               case "dependencies":
++              case "devDependencies":
+               case "optionalDependencies":
+               case "peerDependencies":
+                 if (type !== "major" && type !== "minor") {
+@@ -144,14 +145,6 @@ function determineDependents({
+                 }
+ 
+                 break;
+-
+-              case "devDependencies":
+-                {
+-                  // We don't need a version bump if the package is only in the devDependencies of the dependent package
+-                  if (type !== "major" && type !== "minor" && type !== "patch") {
+-                    type = "none";
+-                  }
+-                }
+             }
+           }
+         }

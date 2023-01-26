@@ -1,5 +1,5 @@
 import { BaseUri, VersionedUri } from "@blockprotocol/type-system";
-import { Filter, GraphResolveDepths } from "@hashintel/hash-graph-client";
+import { Filter, GraphResolveDepths } from "@local/hash-graph-client";
 import {
   AccountId,
   EntityUuid,

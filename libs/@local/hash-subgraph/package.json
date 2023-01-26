@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@blockprotocol/type-system": "0.0.3-canary-20230111084611",
-    "@hashintel/hash-graph-client": "0.0.0-private",
+    "@local/hash-graph-client": "0.0.0-private",
     "uuid": "8.3.2"
   },
   "devDependencies": {
