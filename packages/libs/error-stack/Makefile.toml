@@ -1,8 +1,9 @@
 extend = { path = "../../../.github/scripts/rust/Makefile.toml" }
 
 [env]
-CARGO_CLIPPY_HACK_FLAGS = "--optional-deps --feature-powerset --exclude-features default --group-features eyre,hooks --group-features anyhow,serde"
-CARGO_TEST_HACK_FLAGS = "--optional-deps --feature-powerset --exclude-features default --group-features eyre,hooks --group-features anyhow,serde"
+COMMON_HACK_FLAGS = "--optional-deps --feature-powerset --group-features eyre,hooks --group-features anyhow,serde"
+CARGO_CLIPPY_HACK_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "", mapping = { "push" = "${COMMON_HACK_FLAGS}" } }
+CARGO_TEST_HACK_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "", mapping = { "push" = "${COMMON_HACK_FLAGS}" } }
 CARGO_INSTA_TEST_FLAGS = "--no-fail-fast"
 CARGO_RUSTDOC_HACK_FLAGS = ""
 CARGO_DOC_HACK_FLAGS = ""
@@ -20,7 +21,7 @@ run_task = [
 ]
 
 [tasks.clippy-task-subcrate]
-env = { CARGO_CLIPPY_HACK_FLAGS = "--feature-powerset" }
+env = { CARGO_CLIPPY_HACK_FLAGS = "" }
 run_task = { name = ["clippy-task"] }
 
 
@@ -34,7 +35,7 @@ run_task = [
 ]
 
 [tasks.test-task-subcrate]
-env = { CARGO_TEST_HACK_FLAGS = "--feature-powerset" }
+env = { CARGO_TEST_HACK_FLAGS = "" }
 run_task = { name = ["test-task"] }
 
 [tasks.coverage]

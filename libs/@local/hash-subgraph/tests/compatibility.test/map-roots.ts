@@ -1,4 +1,4 @@
-import { Subgraph as SubgraphGraphApi } from "@hashintel/hash-graph-client";
+import { Subgraph as SubgraphGraphApi } from "@local/hash-graph-client";
 
 import { isEntityVertexId, isOntologyTypeEditionId, Subgraph } from "../../src";
 

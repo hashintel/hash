@@ -86,7 +86,7 @@ jobs:
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
-        if: matrix.directory == 'packages/graph/hash_graph'
+        if: matrix.directory == 'apps/hash-graph'
         uses: arduino/setup-protoc@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
@@ -153,7 +153,7 @@ jobs:
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
-        if: matrix.directory == 'packages/graph/hash_graph'
+        if: matrix.directory == 'apps/hash-graph'
         uses: arduino/setup-protoc@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
@@ -237,7 +237,7 @@ jobs:
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
-        if: matrix.directory == 'packages/graph/hash_graph'
+        if: matrix.directory == 'apps/hash-graph'
         uses: arduino/setup-protoc@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
@@ -287,6 +287,9 @@ jobs:
 
       - name: Test Docker container
         run: cargo make --profile ${{ matrix.profile }} test-docker
+
+      - name: Ensure empty git diff
+        run: git --no-pager diff --exit-code --color
 
   publish:
     name: publish
@@ -340,7 +343,7 @@ jobs:
         run: cargo +${{ matrix.toolchain }} publish --all-features
 
   merging-enabled:
-    name: merging enabled
+    name: Merging enabled
     needs: [setup, lint, test, coverage, docker, publish]
     if: always()
     runs-on: ubuntu-latest
