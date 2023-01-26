@@ -10,7 +10,7 @@ import styles from "./base.module.scss";
 import { Grid } from "./components/grid/grid";
 import { LocalColumnDefinition, LocalRowId, Row } from "./types";
 import { RootEntity, RootEntityLinkedEntities } from "./types.gen";
-import { TableTitle } from "./components/table-title";
+import { TableTitle } from "./components/table-title/table-title";
 
 const sampleColumnDefinitions: LocalColumnDefinition[] = [
   {

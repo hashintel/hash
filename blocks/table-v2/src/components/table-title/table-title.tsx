@@ -1,4 +1,5 @@
 import { useState } from "react";
+import styles from "./styles.module.scss";
 
 interface TableTitleProps {
   title: string;
@@ -31,11 +32,15 @@ export const TableTitle = ({ title, onChange }: TableTitleProps) => {
   }
 
   if (!title && !editing) {
-    return <button onClick={editTitle}>add title</button>;
+    return (
+      <div className={styles.wrapper}>
+        <button onClick={editTitle}>add title</button>
+      </div>
+    );
   }
 
   return (
-    <div style={{ display: "flex", gap: "1em" }}>
+    <div className={styles.wrapper}>
       {editing ? (
         <input
           autoFocus
