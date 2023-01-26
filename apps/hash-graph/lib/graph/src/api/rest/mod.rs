@@ -12,7 +12,7 @@ mod entity_type;
 mod property_type;
 mod utoipa_typedef;
 
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use axum::{
     extract::Path,
@@ -23,6 +23,7 @@ use axum::{
 };
 use error_stack::Report;
 use include_dir::{include_dir, Dir};
+use serde::Serialize;
 use utoipa::{
     openapi::{
         self, schema, ArrayBuilder, KnownFormat, ObjectBuilder, OneOfBuilder, Ref, RefOr,
@@ -344,8 +345,16 @@ impl Modify for OperationGraphTagAddon {
 struct FilterSchemaAddon;
 
 impl Modify for FilterSchemaAddon {
-    #[expect(clippy::too_many_lines)]
     fn modify(&self, openapi: &mut openapi::OpenApi) {
+        // This magically generates `any`, which is the closest representation we found working
+        // with the OpenAPI generator.
+        #[derive(Serialize, ToSchema)]
+        #[serde(untagged)]
+        #[expect(dead_code)]
+        enum Any {
+            Object(HashMap<String, Self>),
+        }
+
         if let Some(ref mut components) = openapi.components {
             components.schemas.insert(
                 "Filter".to_owned(),
@@ -430,19 +439,7 @@ impl Modify for FilterSchemaAddon {
                         .item(
                             ObjectBuilder::new()
                                 .title(Some("ParameterExpression"))
-                                .property(
-                                    "parameter",
-                                    OneOfBuilder::new()
-                                        .item(ObjectBuilder::new().schema_type(SchemaType::Boolean))
-                                        .item(
-                                            ObjectBuilder::new()
-                                                .schema_type(SchemaType::Number)
-                                                .format(Some(SchemaFormat::KnownFormat(
-                                                    KnownFormat::Float,
-                                                ))),
-                                        )
-                                        .item(ObjectBuilder::new().schema_type(SchemaType::String)),
-                                )
+                                .property("parameter", Any::schema())
                                 .required("parameter"),
                         )
                         .build(),

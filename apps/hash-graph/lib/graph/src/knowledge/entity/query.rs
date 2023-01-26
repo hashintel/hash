@@ -355,12 +355,7 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::Type => EntityQueryPath::Type(
                 EntityTypeQueryPathVisitor::new(self.position).visit_seq(seq)?,
             ),
-            EntityQueryToken::Properties => {
-                let property = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
-                EntityQueryPath::Properties(Some(property))
-            }
+            EntityQueryToken::Properties => EntityQueryPath::Properties(seq.next_element()?),
             EntityQueryToken::OutgoingLinks => {
                 EntityQueryPath::OutgoingLinks(Box::new(Self::new(self.position).visit_seq(seq)?))
             }
