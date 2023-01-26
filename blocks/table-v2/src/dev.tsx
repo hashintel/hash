@@ -18,8 +18,7 @@ const testEntity: RootEntity = {
     entityTypeId: packageJson.blockprotocol.schema as VersionedUri,
   },
   properties: {
-    "https://alpha.hash.ai/@hash/types/property-type/title/": "World",
-    "https://alpha.hash.ai/@hash/types/property-type/index/": "0",
+    "https://alpha.hash.ai/@yusuf/types/property-type/table-title/": "My Table",
   },
 } as const;
 
