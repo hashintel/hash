@@ -65,7 +65,7 @@ pub fn bench_get_entities_by_property(
         let mut filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::Properties(Some(
                 JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
-                    r#"$."https://blockprotocol.org/@alice/types/property-type/name/""#,
+                    "https://blockprotocol.org/@alice/types/property-type/name/",
                 ))]),
             )))),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
