@@ -1,4 +1,4 @@
-import { Filter } from "@hashintel/hash-graph-client";
+import { Filter } from "@local/hash-graph-client";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
   Entity,

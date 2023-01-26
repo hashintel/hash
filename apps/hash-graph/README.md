@@ -99,7 +99,7 @@ cargo run -- migrate
 
 ## Generate OpenAPI client
 
-The HASH Graph produces an OpenAPI Spec while running, which can be used to generate the `@hashintel/hash-graph-client` typescript client. In the `/apps/hash-graph` directory run:
+The HASH Graph produces an OpenAPI Spec while running, which can be used to generate the `@local/hash-graph-client` typescript client. In the `/apps/hash-graph` directory run:
 
 ```shell
 cargo make generate-openapi-client

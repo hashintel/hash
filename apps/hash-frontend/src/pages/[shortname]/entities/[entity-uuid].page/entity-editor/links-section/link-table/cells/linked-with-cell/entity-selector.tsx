@@ -2,6 +2,7 @@ import { Entity, EntityId, EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { GRID_CLICK_IGNORE_CLASS } from "../../../../../../../../../components/grid/utils";
 import { useBlockProtocolAggregateEntities } from "../../../../../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-aggregate-entities";
 import { generateEntityLabel } from "../../../../../../../../../lib/entities";
 import { HashSelectorAutocomplete } from "../../../../../../../shared/hash-selector-autocomplete";
@@ -80,12 +81,12 @@ export const EntitySelector = ({
 
   return (
     <HashSelectorAutocomplete
-      className="click-outside-ignore"
+      className={GRID_CLICK_IGNORE_CLASS}
       open
       dropdownProps={{
         query: search,
         createButtonProps: {
-          className: "click-outside-ignore",
+          className: GRID_CLICK_IGNORE_CLASS,
           onMouseDown: (evt) => {
             evt.preventDefault();
             evt.stopPropagation();
