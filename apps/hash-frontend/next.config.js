@@ -1,6 +1,6 @@
 const { config } = require("dotenv-flow");
 const withTM = require("next-transpile-modules")([
-  "@hashintel/hash-graph-client",
+  "@local/hash-graph-client",
   "@local/hash-subgraph",
   "@local/design-system",
   "@local/hash-isomorphic-utils",

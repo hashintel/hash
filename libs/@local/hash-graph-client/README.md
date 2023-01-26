@@ -1,4 +1,4 @@
-# @hashintel/hash-graph-client@0.0.0
+# @local/hash-graph-client@0.0.0
 
 This generator creates a TypeScript/JavaScript client that utilizes [axios](https://github.com/axios/axios).
 The generated Node module can be used in the following environments:

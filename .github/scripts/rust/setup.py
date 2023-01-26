@@ -39,6 +39,9 @@ DOCKER_PATTERNS = ["apps/hash-graph"]
 # Build a coverage report for these crates
 COVERAGE_EXCLUDE_PATTERNS = ["apps/engine**"]
 
+# We only run a subset of configurations for PRs, the rest will only be tested prior merging
+IS_PUSH_EVENT = "GITHUB_EVENT_NAME" in os.environ and os.environ["GITHUB_EVENT_NAME"] == "push"
+
 
 def generate_diffs():
     """
@@ -215,9 +218,10 @@ def output_matrix(name, github_output_file, crates, **kwargs):
     available_toolchains = set()
     for crate in crates:
         available_toolchains.add(find_toolchain(crate))
-        for pattern, additional_toolchains in TOOLCHAINS.items():
-            for additional_toolchain in additional_toolchains:
-                available_toolchains.add(additional_toolchain)
+        if IS_PUSH_EVENT:
+            for pattern, additional_toolchains in TOOLCHAINS.items():
+                for additional_toolchain in additional_toolchains:
+                    available_toolchains.add(additional_toolchain)
 
     used_toolchain_combinations = []
     for crate in crates:
@@ -267,11 +271,17 @@ def main():
     changed_docker_crates = filter_for_docker_crates(changed_parent_crates)
 
     github_output_file = open(os.environ["GITHUB_OUTPUT_FILE_PATH"], "w")
-
+    
     output_matrix("lint", github_output_file, changed_parent_crates)
-    output_matrix("test", github_output_file, changed_parent_crates, profile=["development", "production"])
+    if IS_PUSH_EVENT:
+        output_matrix("test", github_output_file, changed_parent_crates, profile=["development", "production"])
+    else:
+        output_matrix("test", github_output_file, changed_parent_crates, profile=["development"])
     output_matrix("coverage", github_output_file, coverage_crates)
-    output_matrix("docker", github_output_file, changed_docker_crates, profile=["production"])
+    if IS_PUSH_EVENT:
+        output_matrix("docker", github_output_file, changed_docker_crates, profile=["production"])
+    else:
+        output_matrix("docker", github_output_file, changed_docker_crates, profile=["development"])
     output_matrix(
         "publish",
         github_output_file,

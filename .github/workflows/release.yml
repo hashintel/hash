@@ -1,0 +1,27 @@
+## Using MACHINE_USER_TOKEN enables GitHub Workflows in ‘Version Packages’ PRs
+## https://github.com/peter-evans/create-pull-request/blob/main/docs/concepts-guidelines.md#triggering-further-workflow-runs
+
+name: Release
+on:
+  push:
+    branches:
+      - main
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: github.repository == 'hashintel/hash'
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.MACHINE_USER_TOKEN }}
+
+      - uses: ./.github/actions/warm-up-repo
+
+      - name: Create Release Pull Request or Publish to npm
+        uses: changesets/action@v1.4.1
+        with:
+          publish: yarn changeset publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.MACHINE_USER_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

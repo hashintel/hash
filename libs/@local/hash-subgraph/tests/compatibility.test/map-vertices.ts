@@ -15,7 +15,7 @@ import {
   OntologyVertex as OntologyVertexGraphApi,
   PropertyType as PropertyTypeGraphApi,
   Vertices as VerticesGraphApi,
-} from "@hashintel/hash-graph-client";
+} from "@local/hash-graph-client";
 
 import {
   EntityId,

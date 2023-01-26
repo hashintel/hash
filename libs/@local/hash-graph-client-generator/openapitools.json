@@ -7,11 +7,11 @@
       "ts": {
         "generateAliasAsModel": true,
         "generatorName": "typescript-axios",
-        "output": "#{cwd}/typescript",
+        "output": "#{cwd}/../hash-graph-client",
         "inputSpec": "http://localhost:4000/api-doc/openapi.json",
         "additionalProperties": {
-          "npmName": "@hashintel/hash-graph-client",
-          "npmVersion": "0.0.0",
+          "npmName": "@local/hash-graph-client",
+          "npmVersion": "0.0.0-private",
           "supportsES6": "true",
           "withInterfaces": true,
           "disallowAdditionalPropertiesIfNotPresent": true,
