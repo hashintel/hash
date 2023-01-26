@@ -162,7 +162,7 @@ where
     ///
     /// - if [`VersionedUri::base_uri`] did already exist in the database
     #[tracing::instrument(level = "debug", skip(self))]
-    async fn create_ontology_id(
+    async fn create_owned_ontology_id(
         &self,
         uri: &VersionedUri,
         owned_by_id: OwnedById,
@@ -173,7 +173,7 @@ where
                 r#"
                 SELECT
                     version_id
-                FROM create_ontology_id(
+                FROM create_owned_ontology_id(
                     base_uri := $1,
                     version := $2,
                     owned_by_id := $3,
@@ -277,7 +277,7 @@ where
         let uri = database_type.id().clone();
 
         let version_id = self
-            .create_ontology_id(&uri, owned_by_id, updated_by_id)
+            .create_owned_ontology_id(&uri, owned_by_id, updated_by_id)
             .await?;
 
         self.insert_with_id(version_id, database_type).await?;

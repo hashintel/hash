@@ -1,5 +1,6 @@
 use std::{borrow::Cow, iter::once};
 
+use super::table::OwnedOntologyMetadata;
 use crate::{
     ontology::{EntityTypeQueryPath, EntityTypeWithMetadata},
     store::postgres::query::{
@@ -18,8 +19,11 @@ impl PostgresQueryPath for EntityTypeQueryPath {
     /// Returns the relations that are required to access the path.
     fn relations(&self) -> Vec<Relation> {
         match self {
-            Self::BaseUri | Self::Version | Self::OwnedById | Self::UpdatedById => {
+            Self::BaseUri | Self::Version => {
                 vec![Relation::EntityTypeIds]
+            }
+            Self::OwnedById | Self::UpdatedById => {
+                vec![Relation::EntityTypeOwnedMetadata]
             }
             Self::Properties(path) => once(Relation::EntityTypePropertyTypeReferences)
                 .chain(path.relations())
@@ -38,8 +42,8 @@ impl PostgresQueryPath for EntityTypeQueryPath {
         match self {
             Self::BaseUri => Column::TypeIds(TypeIds::BaseUri),
             Self::Version => Column::TypeIds(TypeIds::Version),
-            Self::OwnedById => Column::TypeIds(TypeIds::OwnedById),
-            Self::UpdatedById => Column::TypeIds(TypeIds::UpdatedById),
+            Self::OwnedById => Column::OwnedOntologyMetadata(OwnedOntologyMetadata::OwnedById),
+            Self::UpdatedById => Column::OwnedOntologyMetadata(OwnedOntologyMetadata::UpdatedById),
             Self::VersionId => Column::EntityTypes(EntityTypes::VersionId),
             Self::Schema => Column::EntityTypes(EntityTypes::Schema(None)),
             Self::VersionedUri => Column::EntityTypes(EntityTypes::Schema(Some(JsonField::Text(

@@ -1,41 +1,55 @@
 CREATE
-OR REPLACE FUNCTION create_ontology_id (
+OR REPLACE FUNCTION create_type_id (
+  "version_id" UUID,
   "base_uri" TEXT,
-  "version" BIGINT,
-  "owned_by_id" UUID,
-  "updated_by_id" UUID
-) RETURNS TABLE (version_id UUID) AS $create_ontology_id$
-DECLARE
-  "_version_id" UUID;
+  "version" BIGINT
+) RETURNS TABLE (version_id_ UUID) AS $create_type_id$
 BEGIN
-  _version_id := gen_random_uuid();
 
+  RETURN QUERY
   INSERT INTO type_ids (
     "version_id",
     "base_uri",
     "version",
     "transaction_time"
   ) VALUES (
-    _version_id,
-    create_ontology_id.base_uri,
-    create_ontology_id.version,
+    create_type_id.version_id,
+    create_type_id.base_uri,
+    create_type_id.version,
     tstzrange(now(), NULL, '[)')
+  ) RETURNING type_ids.version_id;
+  
+END $create_type_id$ LANGUAGE plpgsql VOLATILE;
+
+CREATE
+OR REPLACE FUNCTION create_owned_ontology_id (
+  "base_uri" TEXT,
+  "version" BIGINT,
+  "owned_by_id" UUID,
+  "updated_by_id" UUID
+) RETURNS TABLE (version_id UUID) AS $create_owned_ontology_id$
+DECLARE
+  "_version_id" UUID;
+BEGIN
+  _version_id := gen_random_uuid();
+
+  PERFORM create_type_id(
+    version_id := _version_id,
+    base_uri := create_owned_ontology_id.base_uri,
+    version := create_owned_ontology_id.version
   );
   
+  RETURN QUERY
   INSERT INTO owned_ontology_metadata (
     "version_id",
     "owned_by_id",
     "updated_by_id"    
   ) VALUES (
     _version_id,
-    create_ontology_id.owned_by_id,
-    create_ontology_id.updated_by_id
-  );
-
-  version_id := _version_id;
-  RETURN NEXT;
-  RETURN;
-END $create_ontology_id$ VOLATILE LANGUAGE plpgsql;
+    create_owned_ontology_id.owned_by_id,
+    create_owned_ontology_id.updated_by_id
+  ) RETURNING owned_ontology_metadata.version_id;
+END $create_owned_ontology_id$ LANGUAGE plpgsql VOLATILE;
 
 CREATE
 OR REPLACE FUNCTION update_ontology_id (
@@ -71,7 +85,7 @@ BEGIN
   RETURNING _version_id, metadata.owned_by_id;
 
   SET CONSTRAINTS type_ids_overlapping IMMEDIATE;
-END $update_ontology_id$ VOLATILE LANGUAGE plpgsql;
+END $update_ontology_id$ LANGUAGE plpgsql VOLATILE;
 
 CREATE
 OR REPLACE FUNCTION "update_type_ids_trigger" () RETURNS TRIGGER AS $update_type_ids_trigger$
@@ -108,7 +122,7 @@ BEGIN
   OLD.transaction_time = tstzrange(lower(OLD.transaction_time), lower(NEW.transaction_time), '[)');
 
   RETURN OLD;
-END $update_type_ids_trigger$ VOLATILE LANGUAGE plpgsql;
+END $update_type_ids_trigger$ LANGUAGE plpgsql VOLATILE;
 
 CREATE
 OR REPLACE TRIGGER "update_type_ids_trigger" BEFORE
