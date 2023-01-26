@@ -1,4 +1,4 @@
-use std::{error::Error, ops::Bound};
+use std::{error::Error, fmt, ops::Bound};
 
 use derivative::Derivative;
 use interval_ops::{Interval, IntervalBounds, LowerBound, UpperBound};
@@ -169,7 +169,6 @@ impl<A> ToSchema for UnresolvedTimeInterval<A> {
 
 #[derive(Derivative, Serialize, Deserialize, ToSchema)]
 #[derivative(
-    Debug(bound = ""),
     Clone(bound = ""),
     PartialEq(bound = ""),
     Eq(bound = ""),
@@ -193,6 +192,22 @@ impl<A> TimeInterval<A> {
     #[must_use]
     pub fn into_interval_bounds(self) -> IntervalBounds<Timestamp<A>> {
         IntervalBounds::from_range((Bound::from(self.start), Bound::from(self.end)))
+    }
+}
+
+impl<A> fmt::Debug for TimeInterval<A> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.start {
+            TimeIntervalBound::Unbounded => write!(fmt, "(-∞, ")?,
+            TimeIntervalBound::Included(start) => write!(fmt, "[{}, ", start)?,
+            TimeIntervalBound::Excluded(start) => write!(fmt, "({}, ", start)?,
+        }
+        match self.end {
+            TimeIntervalBound::Unbounded => write!(fmt, "+∞)")?,
+            TimeIntervalBound::Included(end) => write!(fmt, "{}]", end)?,
+            TimeIntervalBound::Excluded(end) => write!(fmt, "{})", end)?,
+        }
+        Ok(())
     }
 }
 
