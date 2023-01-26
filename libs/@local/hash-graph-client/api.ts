@@ -1547,10 +1547,10 @@ export interface OutgoingEdgeResolveDepth {
 export interface ParameterExpression {
   /**
    *
-   * @type {boolean | number | string}
+   * @type {any}
    * @memberof ParameterExpression
    */
-  parameter: boolean | number | string;
+  parameter: any;
 }
 /**
  *
