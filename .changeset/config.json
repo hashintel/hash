@@ -6,7 +6,7 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["@apps/*", "@blocks/", "@local/*"],
+  "ignore": ["@apps/*", "@blocks/*", "@local/*"],
   "snapshot": {
     "useCalculatedVersion": true
   },
