@@ -227,7 +227,7 @@ impl Entities<'_> {
                         panic!("attempting to access JSON field `{field}` on properties as text")
                     }
                     JsonField::JsonParameter(index) => {
-                        write!(fmt, "${index})")
+                        write!(fmt, "${index}::text::jsonpath)")
                     }
                     JsonField::StaticJson(field) => {
                         write!(fmt, r#"'{field}::text::jsonpath')"#)

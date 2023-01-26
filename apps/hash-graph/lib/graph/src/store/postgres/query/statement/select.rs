@@ -543,7 +543,7 @@ mod tests {
             FROM "entities" AS "entities_0_0_0"
             WHERE "entities_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
               AND "entities_0_0_0"."decision_time" && $3
-              AND jsonb_path_query_first("entities_0_0_0"."properties", $1) = $4
+              AND jsonb_path_query_first("entities_0_0_0"."properties", $1::text::jsonpath) = $4
             "#,
             &[&json_path, &kernel, &time_projection.image(), &"Bob"],
         );
@@ -573,7 +573,7 @@ mod tests {
             FROM "entities" AS "entities_0_0_0"
             WHERE "entities_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
               AND "entities_0_0_0"."decision_time" && $3
-              AND jsonb_path_query_first("entities_0_0_0"."properties", $1) IS NULL
+              AND jsonb_path_query_first("entities_0_0_0"."properties", $1::text::jsonpath) IS NULL
             "#,
             &[&json_path, &kernel, &time_projection.image()],
         );
