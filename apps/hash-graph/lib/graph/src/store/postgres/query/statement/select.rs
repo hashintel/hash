@@ -92,7 +92,7 @@ mod tests {
                 test_helper::trim_whitespace, Distinctness, Ordering, PostgresRecord,
                 SelectCompiler,
             },
-            query::{Filter, FilterExpression, Parameter},
+            query::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
         },
     };
 
@@ -522,10 +522,13 @@ mod tests {
         let time_projection = UnresolvedTimeProjection::default().resolve();
         let kernel = time_projection.kernel().cast::<TransactionTime>();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
+        let json_path = JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
+            r#"$."https://blockprotocol.org/@alice/types/property-type/name/""#,
+        ))]);
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::Properties(Some(
-                Cow::Borrowed("https://blockprotocol.org/@alice/types/property-type/name/"),
+                json_path.clone(),
             )))),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "Bob",
@@ -540,14 +543,9 @@ mod tests {
             FROM "entities" AS "entities_0_0_0"
             WHERE "entities_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
               AND "entities_0_0_0"."decision_time" && $3
-              AND "entities_0_0_0"."properties"->$1 = $4
+              AND jsonb_path_query_first("entities_0_0_0"."properties", $1) = $4
             "#,
-            &[
-                &"https://blockprotocol.org/@alice/types/property-type/name/",
-                &kernel,
-                &time_projection.image(),
-                &"Bob",
-            ],
+            &[&json_path, &kernel, &time_projection.image(), &"Bob"],
         );
     }
 
@@ -556,10 +554,13 @@ mod tests {
         let time_projection = UnresolvedTimeProjection::default().resolve();
         let kernel = time_projection.kernel().cast::<TransactionTime>();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
+        let json_path = JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
+            r#"$."https://blockprotocol.org/@alice/types/property-type/name/""#,
+        ))]);
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::Properties(Some(
-                Cow::Borrowed("https://blockprotocol.org/@alice/types/property-type/name/"),
+                json_path.clone(),
             )))),
             None,
         );
@@ -572,13 +573,9 @@ mod tests {
             FROM "entities" AS "entities_0_0_0"
             WHERE "entities_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
               AND "entities_0_0_0"."decision_time" && $3
-              AND "entities_0_0_0"."properties"->$1 IS NULL
+              AND jsonb_path_query_first("entities_0_0_0"."properties", $1) IS NULL
             "#,
-            &[
-                &"https://blockprotocol.org/@alice/types/property-type/name/",
-                &kernel,
-                &time_projection.image(),
-            ],
+            &[&json_path, &kernel, &time_projection.image()],
         );
     }
 

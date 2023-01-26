@@ -8,7 +8,7 @@ use graph::{
     },
     knowledge::{EntityQueryPath, EntityUuid},
     store::{
-        query::{Filter, FilterExpression, Parameter},
+        query::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
         EntityStore,
     },
     subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
@@ -64,7 +64,9 @@ pub fn bench_get_entities_by_property(
     b.to_async(runtime).iter(|| async move {
         let mut filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::Properties(Some(
-                Cow::Borrowed("https://blockprotocol.org/@alice/types/property-type/name/"),
+                JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
+                    r#"$."https://blockprotocol.org/@alice/types/property-type/name/""#,
+                ))]),
             )))),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "Alice",
@@ -100,9 +102,11 @@ pub fn bench_get_link_by_target_by_property(
     b.to_async(runtime).iter(|| async move {
         let mut filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::RightEntity(
-                Box::new(EntityQueryPath::Properties(Some(Cow::Borrowed(
-                    "https://blockprotocol.org/@alice/types/property-type/name/",
-                )))),
+                Box::new(EntityQueryPath::Properties(Some(
+                    JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
+                        "https://blockprotocol.org/@alice/types/property-type/name/",
+                    ))]),
+                ))),
             ))),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "Alice",
