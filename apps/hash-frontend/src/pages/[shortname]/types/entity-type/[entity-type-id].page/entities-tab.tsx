@@ -32,7 +32,7 @@ import {
   TypeEntitiesRow,
   useEntitiesTable,
 } from "./entities-tab/use-entities-table";
-import { useEntityType } from "./shared/entity-type-context";
+import { useEntityType } from "../../../../../../../../libs/@hashintel/type-editor/src/shared/entity-type-context";
 import { useEntityTypeEntities } from "./shared/entity-type-entities-context";
 
 export const EntitiesTab: FunctionComponent = () => {

@@ -6,6 +6,7 @@ import {
   ValueOrArray,
 } from "@blockprotocol/type-system";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
+import { EntityTypeContext } from "@hashintel/type-editor/src/entity-type-context";
 import { FontAwesomeIcon } from "@local/design-system";
 import { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
@@ -25,11 +26,9 @@ import { TopContextBar } from "../../../shared/top-context-bar";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
-import { DefinitionTab } from "./[entity-type-id].page/definition-tab";
 import { EditBarTypeEditor } from "./[entity-type-id].page/edit-bar-type-editor";
 import { EntitiesTab } from "./[entity-type-id].page/entities-tab";
 import { EntityTypeTabs } from "./[entity-type-id].page/entity-type-tabs";
-import { EntityTypeContext } from "./[entity-type-id].page/shared/entity-type-context";
 import { EntityTypeEntitiesContext } from "./[entity-type-id].page/shared/entity-type-entities-context";
 import { EntityTypeEditorForm } from "./[entity-type-id].page/shared/form-types";
 import { getEntityTypeBaseUri } from "./[entity-type-id].page/shared/get-entity-type-base-uri";

@@ -19,7 +19,8 @@
     "theme-override.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "codegen.config.ts"
+    "codegen.config.ts",
+    "../../libs/@hashintel/type-editor/src/shared/entity-type-context.tsx"
   ],
   "exclude": ["node_modules", ".next"]
 }

@@ -1,0 +1,9 @@
+{
+  "name": "@hashintel/type-editor",
+  "version": "0.0.0",
+  "main": "src/main.ts",
+  "types": "src/main.ts",
+  "dependencies": {
+    "@mui/material": "5.10.6"
+  }
+}
