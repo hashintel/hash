@@ -1,11 +1,16 @@
-import { type BlockComponent } from "@blockprotocol/graph/react";
+import {
+  useEntitySubgraph,
+  type BlockComponent,
+  useGraphBlockService,
+} from "@blockprotocol/graph/react";
 import { useRef, useState } from "react";
 
 import { GridCellKind, GridColumn } from "@glideapps/glide-data-grid";
 import styles from "./base.module.scss";
 import { Grid } from "./components/grid/grid";
 import { LocalColumnDefinition, LocalRowId, Row } from "./types";
-import { RootEntity } from "./types.gen";
+import { RootEntity, RootEntityLinkedEntities } from "./types.gen";
+import { TableTitle } from "./components/table-title";
 
 const sampleColumnDefinitions: LocalColumnDefinition[] = [
   {
@@ -23,8 +28,31 @@ const sampleRows: Row[] = [
   { firstName: "Alfie", lastName: "Mountfield", role: "Platform Engineer" },
 ];
 
-export const App: BlockComponent<RootEntity> = () => {
+export const App: BlockComponent<RootEntity> = ({
+  graph: { blockEntitySubgraph },
+}) => {
+  if (!blockEntitySubgraph) {
+    throw new Error("No blockEntitySubgraph provided");
+  }
+
   const blockRootRef = useRef<HTMLDivElement>(null);
+  const { graphService } = useGraphBlockService(blockRootRef);
+
+  const { rootEntity: blockEntity, linkedEntities } = useEntitySubgraph<
+    RootEntity,
+    RootEntityLinkedEntities
+  >(blockEntitySubgraph);
+
+  const titleKey: keyof RootEntity["properties"] =
+    "https://alpha.hash.ai/@yusuf/types/property-type/table-title/";
+
+  const {
+    metadata: {
+      editionId: { baseId: blockEntityId },
+      entityTypeId: blockEntityTypeId,
+    },
+    properties: { [titleKey]: title },
+  } = blockEntity;
 
   const [rows, setRows] = useState(sampleRows);
   const [columns, setColumns] = useState<GridColumn[]>(
@@ -49,10 +77,19 @@ export const App: BlockComponent<RootEntity> = () => {
     setRows((prev) => [...prev, {}]);
   };
 
+  const setTitle = async (val: string) => {
+    await graphService?.updateEntity<RootEntity["properties"]>({
+      data: {
+        entityId: blockEntityId,
+        entityTypeId: blockEntityTypeId,
+        properties: { [titleKey]: val },
+      },
+    });
+  };
+
   return (
     <div className={styles.block} ref={blockRootRef}>
-      <h2>Block Table v2</h2>
-
+      <TableTitle onChange={setTitle} title={title ?? ""} />
       <Grid
         rows={rows.length}
         columns={columns}

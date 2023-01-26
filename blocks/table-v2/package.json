@@ -45,15 +45,11 @@
       "entryPoint": "react"
     },
     "displayName": "table-v2",
-    "examples": [
-      {
-        "name": "World"
-      }
-    ],
+    "examples": [],
     "icon": "public/omega.svg",
     "image": "public/block-preview.png",
     "name": "table-v2",
     "protocol": "0.3",
-    "schema": "https://alpha.hash.ai/@hash/types/entity-type/page/v/1"
+    "schema": "https://alpha.hash.ai/@yusuf/types/entity-type/table-block/v/1"
   }
 }
