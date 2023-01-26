@@ -208,7 +208,7 @@ where
     /// - if [`VersionedUri::base_uri`] did not already exist in the database
     /// - if [`VersionedUri`] did already exist in the database
     #[tracing::instrument(level = "debug", skip(self))]
-    async fn update_ontology_id(
+    async fn update_owned_ontology_id(
         &self,
         uri: &VersionedUri,
         updated_by_id: UpdatedById,
@@ -219,7 +219,7 @@ where
                 SELECT
                     version_id,
                     owned_by_id
-                FROM update_ontology_id(
+                FROM update_owned_ontology_id(
                     base_uri := $1,
                     version := $2,
                     updated_by_id := $3
@@ -315,7 +315,7 @@ where
         let edition_id = OntologyTypeEditionId::from(uri);
 
         let (version_id, owned_by_id) = self
-            .update_ontology_id(uri, updated_by_id)
+            .update_owned_ontology_id(uri, updated_by_id)
             .await
             .change_context(UpdateError)?;
         self.insert_with_id(version_id, database_type)

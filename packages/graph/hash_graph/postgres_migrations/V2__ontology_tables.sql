@@ -20,9 +20,11 @@ COMMENT
 
 CREATE TABLE IF NOT EXISTS
   "owned_ontology_metadata" (
-    "version_id" UUID PRIMARY KEY REFERENCES "type_ids",
+    "version_id" UUID NOT NULL,
     "owned_by_id" UUID NOT NULL REFERENCES "accounts",
-    "updated_by_id" UUID NOT NULL REFERENCES "accounts"
+    "updated_by_id" UUID NOT NULL REFERENCES "accounts",
+    CONSTRAINT owned_ontology_metadata_pk PRIMARY KEY ("version_id") DEFERRABLE INITIALLY IMMEDIATE,
+    CONSTRAINT owned_ontology_metadata_fk FOREIGN KEY ("version_id") REFERENCES "type_ids" DEFERRABLE INITIALLY IMMEDIATE
   );
 
 CREATE TABLE IF NOT EXISTS
