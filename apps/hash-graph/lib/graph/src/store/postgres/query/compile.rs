@@ -361,7 +361,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         )))) = column
         {
             self.artifacts.parameters.push(field);
-            Column::Entities(Entities::Properties(Some(JsonField::JsonParameter(
+            Column::Entities(Entities::Properties(Some(JsonField::JsonPathParameter(
                 self.artifacts.parameters.len(),
             ))))
         } else {

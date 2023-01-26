@@ -120,7 +120,7 @@ pub enum EntityQueryPath<'p> {
     /// [`Entity`]: crate::knowledge::Entity
     /// [`EntityMetadata`]: crate::knowledge::EntityMetadata
     /// [`EntityType`]: type_system::EntityType
-    Type(EntityTypeQueryPath),
+    Type(EntityTypeQueryPath<'p>),
     /// Represents an [`Entity`] linking to the [`Entity`].
     ///
     /// Deserializes from `["incomingLinks", ...]` where `...` is the path of the source

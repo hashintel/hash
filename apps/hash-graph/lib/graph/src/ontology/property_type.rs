@@ -8,14 +8,14 @@ use utoipa::ToSchema;
 
 use crate::{
     ontology::{data_type::DataTypeQueryPathVisitor, DataTypeQueryPath, Selector},
-    store::query::{OntologyQueryPath, ParameterType, QueryPath},
+    store::query::{JsonPath, OntologyQueryPath, ParameterType, PathToken, QueryPath},
 };
 
 /// A path to a [`PropertyType`] field.
 ///
 /// [`PropertyType`]: type_system::PropertyType
 #[derive(Debug, PartialEq, Eq)]
-pub enum PropertyTypeQueryPath {
+pub enum PropertyTypeQueryPath<'p> {
     /// The [`BaseUri`] of the [`PropertyType`].
     ///
     /// ```rust
@@ -141,7 +141,7 @@ pub enum PropertyTypeQueryPath {
     /// ```
     ///
     /// [`DataType`]: type_system::DataType
-    DataTypes(DataTypeQueryPath),
+    DataTypes(DataTypeQueryPath<'p>),
     /// Corresponds to [`PropertyType::property_type_references()`].
     ///
     /// As a [`PropertyType`] can have multiple nested [`PropertyType`]s, the deserialized path
@@ -167,10 +167,10 @@ pub enum PropertyTypeQueryPath {
     /// Only used internally and not available for deserialization.
     VersionId,
     /// Only used internally and not available for deserialization.
-    Schema,
+    Schema(Option<JsonPath<'p>>),
 }
 
-impl OntologyQueryPath for PropertyTypeQueryPath {
+impl OntologyQueryPath for PropertyTypeQueryPath<'_> {
     fn base_uri() -> Self {
         Self::BaseUri
     }
@@ -192,15 +192,15 @@ impl OntologyQueryPath for PropertyTypeQueryPath {
     }
 
     fn schema() -> Self {
-        Self::Schema
+        Self::Schema(None)
     }
 }
 
-impl QueryPath for PropertyTypeQueryPath {
+impl QueryPath for PropertyTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
             Self::VersionId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
-            Self::Schema => ParameterType::Any,
+            Self::Schema(_) => ParameterType::Any,
             Self::BaseUri => ParameterType::BaseUri,
             Self::VersionedUri => ParameterType::VersionedUri,
             Self::Version => ParameterType::UnsignedInteger,
@@ -211,7 +211,7 @@ impl QueryPath for PropertyTypeQueryPath {
     }
 }
 
-impl fmt::Display for PropertyTypeQueryPath {
+impl fmt::Display for PropertyTypeQueryPath<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::VersionId => fmt.write_str("versionId"),
@@ -220,7 +220,8 @@ impl fmt::Display for PropertyTypeQueryPath {
             Self::VersionedUri => fmt.write_str("versionedUri"),
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
-            Self::Schema => fmt.write_str("schema"),
+            Self::Schema(Some(path)) => write!(fmt, "schema{path}"),
+            Self::Schema(None) => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),
             Self::Description => fmt.write_str("description"),
             Self::DataTypes(path) => write!(fmt, "dataTypes.{path}"),
@@ -242,6 +243,8 @@ pub enum PropertyTypeQueryToken {
     Description,
     DataTypes,
     PropertyTypes,
+    #[serde(skip)]
+    Schema,
 }
 
 /// Deserializes a [`PropertyTypeQueryPath`] from a string sequence.
@@ -262,7 +265,7 @@ impl PropertyTypeQueryPathVisitor {
 }
 
 impl<'de> Visitor<'de> for PropertyTypeQueryPathVisitor {
-    type Value = PropertyTypeQueryPath;
+    type Value = PropertyTypeQueryPath<'de>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str(Self::EXPECTING)
@@ -304,11 +307,24 @@ impl<'de> Visitor<'de> for PropertyTypeQueryPathVisitor {
 
                 PropertyTypeQueryPath::PropertyTypes(Box::new(property_type_query_path))
             }
+            PropertyTypeQueryToken::Schema => {
+                let mut path_tokens = Vec::new();
+                while let Some(field) = seq.next_element::<PathToken<'de>>()? {
+                    path_tokens.push(field);
+                    self.position += 1;
+                }
+
+                if path_tokens.is_empty() {
+                    PropertyTypeQueryPath::Schema(None)
+                } else {
+                    PropertyTypeQueryPath::Schema(Some(JsonPath::from_path_tokens(path_tokens)))
+                }
+            }
         })
     }
 }
 
-impl<'de> Deserialize<'de> for PropertyTypeQueryPath {
+impl<'de: 'p, 'p> Deserialize<'de> for PropertyTypeQueryPath<'p> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -323,7 +339,7 @@ mod tests {
 
     use super::*;
 
-    fn deserialize<'p>(segments: impl IntoIterator<Item = &'p str>) -> PropertyTypeQueryPath {
+    fn deserialize<'p>(segments: impl IntoIterator<Item = &'p str>) -> PropertyTypeQueryPath<'p> {
         PropertyTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
             segments.into_iter(),
         ))

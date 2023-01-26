@@ -8,14 +8,14 @@ use utoipa::ToSchema;
 
 use crate::{
     ontology::{property_type::PropertyTypeQueryPathVisitor, PropertyTypeQueryPath, Selector},
-    store::query::{OntologyQueryPath, ParameterType, QueryPath},
+    store::query::{JsonPath, OntologyQueryPath, ParameterType, PathToken, QueryPath},
 };
 
 /// A path to a [`EntityType`] field.
 ///
 /// [`EntityType`]: type_system::EntityType
 #[derive(Debug, PartialEq, Eq)]
-pub enum EntityTypeQueryPath {
+pub enum EntityTypeQueryPath<'p> {
     /// The [`BaseUri`] of the [`EntityType`].
     ///
     /// ```rust
@@ -180,7 +180,7 @@ pub enum EntityTypeQueryPath {
     /// [`EntityType`]: type_system::EntityType
     /// [`EntityType::property_type_references()`]: type_system::EntityType::property_type_references
     /// [`PropertyType`]: type_system::PropertyType
-    Properties(PropertyTypeQueryPath),
+    Properties(PropertyTypeQueryPath<'p>),
     /// Corresponds to [`EntityType::required()`].
     ///
     /// ```rust
@@ -259,10 +259,10 @@ pub enum EntityTypeQueryPath {
     /// Only used internally and not available for deserialization.
     VersionId,
     /// Only used internally and not available for deserialization.
-    Schema,
+    Schema(Option<JsonPath<'p>>),
 }
 
-impl OntologyQueryPath for EntityTypeQueryPath {
+impl OntologyQueryPath for EntityTypeQueryPath<'_> {
     fn base_uri() -> Self {
         Self::BaseUri
     }
@@ -284,15 +284,15 @@ impl OntologyQueryPath for EntityTypeQueryPath {
     }
 
     fn schema() -> Self {
-        Self::Schema
+        Self::Schema(None)
     }
 }
 
-impl QueryPath for EntityTypeQueryPath {
+impl QueryPath for EntityTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
             Self::VersionId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
-            Self::Schema => ParameterType::Any,
+            Self::Schema(_) => ParameterType::Any,
             Self::BaseUri => ParameterType::BaseUri,
             Self::VersionedUri => ParameterType::VersionedUri,
             Self::Version => ParameterType::UnsignedInteger,
@@ -306,7 +306,7 @@ impl QueryPath for EntityTypeQueryPath {
     }
 }
 
-impl fmt::Display for EntityTypeQueryPath {
+impl fmt::Display for EntityTypeQueryPath<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::VersionId => fmt.write_str("versionId"),
@@ -315,7 +315,8 @@ impl fmt::Display for EntityTypeQueryPath {
             Self::VersionedUri => fmt.write_str("versionedUri"),
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
-            Self::Schema => fmt.write_str("schema"),
+            Self::Schema(Some(path)) => write!(fmt, "schema{path}"),
+            Self::Schema(None) => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),
             Self::Description => fmt.write_str("description"),
             Self::Default => fmt.write_str("default"),
@@ -347,6 +348,8 @@ pub enum EntityTypeQueryToken {
     Links,
     RequiredLinks,
     InheritsFrom,
+    #[serde(skip)]
+    Schema,
 }
 
 /// Deserializes an [`EntityTypeQueryPath`] from a string sequence.
@@ -368,7 +371,7 @@ impl EntityTypeQueryPathVisitor {
 }
 
 impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
-    type Value = EntityTypeQueryPath;
+    type Value = EntityTypeQueryPath<'de>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str(Self::EXPECTING)
@@ -420,11 +423,24 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
                     Self::new(self.position).visit_seq(seq)?,
                 ))
             }
+            EntityTypeQueryToken::Schema => {
+                let mut path_tokens = Vec::new();
+                while let Some(field) = seq.next_element::<PathToken<'de>>()? {
+                    path_tokens.push(field);
+                    self.position += 1;
+                }
+
+                if path_tokens.is_empty() {
+                    EntityTypeQueryPath::Schema(None)
+                } else {
+                    EntityTypeQueryPath::Schema(Some(JsonPath::from_path_tokens(path_tokens)))
+                }
+            }
         })
     }
 }
 
-impl<'de> Deserialize<'de> for EntityTypeQueryPath {
+impl<'de: 'p, 'p> Deserialize<'de> for EntityTypeQueryPath<'p> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -439,7 +455,7 @@ mod tests {
 
     use super::*;
 
-    fn deserialize<'p>(segments: impl IntoIterator<Item = &'p str>) -> EntityTypeQueryPath {
+    fn deserialize<'p>(segments: impl IntoIterator<Item = &'p str>) -> EntityTypeQueryPath<'p> {
         EntityTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
             segments.into_iter(),
         ))
