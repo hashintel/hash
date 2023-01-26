@@ -64,18 +64,18 @@ test("user can update values on property table", async ({ page }) => {
   // select property table
   const canvas = page.locator(".dvn-underlay > canvas:first-of-type").first();
 
-  await page.waitForTimeout(3000);
   await clickOnValueCell(page, canvas, 0);
-  await page.waitForTimeout(500);
+
   await page.keyboard.type("John");
   await page.keyboard.press("Enter");
-  await page.waitForTimeout(3000);
 
   await clickOnValueCell(page, canvas, 1);
-  await page.waitForTimeout(500);
+
   await page.keyboard.type("Doe");
   await page.keyboard.press("Enter");
-  await page.waitForTimeout(3000);
+
+  // wait until glide-grid updates the cell texts (on the invisible accessibility table)
+  await page.waitForTimeout(500);
 
   const cell1Text = await getCellText(canvas, 1, 0);
   const cell2Text = await getCellText(canvas, 1, 1);
