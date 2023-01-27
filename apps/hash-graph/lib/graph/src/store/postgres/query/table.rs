@@ -56,7 +56,7 @@ impl Transpile for Table {
 pub enum JsonField<'p> {
     Json(&'p Cow<'p, str>),
     JsonPath(&'p JsonPath<'p>),
-    JsonParameter(usize),
+    JsonPathParameter(usize),
     StaticText(&'static str),
     StaticJson(&'static str),
 }
@@ -86,14 +86,14 @@ macro_rules! impl_ontology_column {
     ($($name:ident),* $(,)?) => {
         $(
             #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-            pub enum $name {
+            pub enum $name<'p> {
                 VersionId,
                 OwnedById,
                 UpdatedById,
-                Schema(Option<JsonField<'static>>),
+                Schema(Option<JsonField<'p>>),
             }
 
-            impl $name {
+            impl $name<'_> {
                 pub const fn nullable(self) -> bool {
                     match self {
                         Self::VersionId
@@ -104,35 +104,36 @@ macro_rules! impl_ontology_column {
                 }
             }
 
-            impl $name {
+            impl $name<'_> {
                 fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
                     let column = match self {
                         Self::VersionId => "version_id",
                         Self::OwnedById => "owned_by_id",
                         Self::UpdatedById => "updated_by_id",
                         Self::Schema(None) => "schema",
-                        Self::Schema(Some(path)) => {
-                            table.transpile(fmt)?;
-                            return match path {
+                        Self::Schema(Some(path)) => return match path {
                                 JsonField::Json(field) => panic!(
-                                    "attempting to access JSON field `{field}` on schema column \
-                                     without preparing the value"
+                                    "attempting to access JSON field `{field}` on schema column without \
+                                     preparing the value"
                                 ),
                                 JsonField::JsonPath(path) => panic!(
-                                    "attempting to access JSON path `{path}` on schema column \
-                                     without preparing the value"
+                                    "attempting to access JSON path `{path}` on schema column without \
+                                     preparing the value"
                                 ),
-                                JsonField::JsonParameter(index) => {
-                                    write!(fmt, r#"."schema"->${index}"#)
+                                JsonField::JsonPathParameter(index) => {
+                                    write!(fmt, "jsonb_path_query_first(")?;
+                                    table.transpile(fmt)?;
+                                    write!(fmt, r#"."schema", ${index}::text::jsonpath)"#)
                                 }
                                 JsonField::StaticText(field) => {
+                                    table.transpile(fmt)?;
                                     write!(fmt, r#"."schema"->>'{field}'"#)
                                 }
                                 JsonField::StaticJson(field) => {
+                                    table.transpile(fmt)?;
                                     write!(fmt, r#"."schema"->'{field}'"#)
                                 }
-                            };
-                        }
+                        },
                     };
                     table.transpile(fmt)?;
                     write!(fmt, r#"."{}""#, column)
@@ -212,9 +213,6 @@ impl Entities<'_> {
             Self::EntityTypeVersionId => "entity_type_version_id",
             Self::Properties(None) => "properties",
             Self::Properties(Some(path)) => {
-                write!(fmt, "jsonb_path_query_first(")?;
-                table.transpile(fmt)?;
-                write!(fmt, r#"."properties", "#)?;
                 return match path {
                     JsonField::Json(field) => panic!(
                         "attempting to access JSON field `{field}` on properties column without \
@@ -224,14 +222,18 @@ impl Entities<'_> {
                         "attempting to access JSON path `{path}` on properties column without \
                          preparing the value"
                     ),
-                    JsonField::StaticText(field) => {
-                        panic!("attempting to access JSON field `{field}` on properties as text")
+                    JsonField::JsonPathParameter(index) => {
+                        write!(fmt, "jsonb_path_query_first(")?;
+                        table.transpile(fmt)?;
+                        write!(fmt, r#"."properties", ${index}::text::jsonpath)"#)
                     }
-                    JsonField::JsonParameter(index) => {
-                        write!(fmt, "${index}::text::jsonpath)")
+                    JsonField::StaticText(field) => {
+                        table.transpile(fmt)?;
+                        write!(fmt, r#"."properties"->>'{field}'"#)
                     }
                     JsonField::StaticJson(field) => {
-                        write!(fmt, r#"'{field}::text::jsonpath')"#)
+                        table.transpile(fmt)?;
+                        write!(fmt, r#"."properties"->'{field}'"#)
                     }
                 };
             }
@@ -314,9 +316,9 @@ impl EntityTypeEntityTypeReferences {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Column<'p> {
     TypeIds(TypeIds),
-    DataTypes(DataTypes),
-    PropertyTypes(PropertyTypes),
-    EntityTypes(EntityTypes),
+    DataTypes(DataTypes<'p>),
+    PropertyTypes(PropertyTypes<'p>),
+    EntityTypes(EntityTypes<'p>),
     Entities(Entities<'p>),
     PropertyTypeDataTypeReferences(PropertyTypeDataTypeReferences),
     PropertyTypePropertyTypeReferences(PropertyTypePropertyTypeReferences),
