@@ -45,13 +45,21 @@ export const App: BlockComponent<RootEntity> = ({
 
   const titleKey: keyof RootEntity["properties"] =
     "https://alpha.hash.ai/@yusuf/types/property-type/table-title/";
+  const columnsKey: keyof RootEntity["properties"] =
+    "https://alpha.hash.ai/@yusuf/types/property-type/local-columns/";
+  const rowsKey: keyof RootEntity["properties"] =
+    "https://alpha.hash.ai/@yusuf/types/property-type/local-rows/";
 
   const {
     metadata: {
       editionId: { baseId: blockEntityId },
       entityTypeId: blockEntityTypeId,
     },
-    properties: { [titleKey]: title },
+    properties: {
+      [titleKey]: title,
+      [columnsKey]: localColumns,
+      [rowsKey]: localRows,
+    },
   } = blockEntity;
 
   const [rows, setRows] = useState(sampleRows);
