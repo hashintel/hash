@@ -3,30 +3,32 @@ import {
   type BlockComponent,
   useGraphBlockService,
 } from "@blockprotocol/graph/react";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 
-import { GridCellKind, GridColumn } from "@glideapps/glide-data-grid";
+import {
+  GridCellKind,
+  GridColumn,
+  DataEditorProps,
+} from "@glideapps/glide-data-grid";
 import styles from "./base.module.scss";
 import { Grid } from "./components/grid/grid";
-import { LocalColumnDefinition, LocalRowId, Row } from "./types";
-import { RootEntity, RootEntityLinkedEntities } from "./types.gen";
+import {
+  LocalColumns,
+  RootEntity,
+  RootEntityLinkedEntities,
+} from "./types.gen";
 import { TableTitle } from "./components/table-title/table-title";
 
-const sampleColumnDefinitions: LocalColumnDefinition[] = [
-  {
-    id: "firstName",
-    title: "First Name",
-  },
-  { id: "lastName", title: "Last Name" },
-  { id: "role", title: "Role" },
-];
-
-const sampleRows: Row[] = [
-  { firstName: "David", lastName: "Wilkinson", role: "CEO" },
-  { firstName: "Ciaran", lastName: "Morinan", role: "Head of Engineering" },
-  { firstName: "Yusuf", lastName: "Kınataş", role: "Platform Engineer" },
-  { firstName: "Alfie", lastName: "Mountfield", role: "Platform Engineer" },
-];
+const titleKey: keyof RootEntity["properties"] =
+  "https://alpha.hash.ai/@yusuf/types/property-type/table-title/";
+const localColumnsKey: keyof RootEntity["properties"] =
+  "https://alpha.hash.ai/@yusuf/types/property-type/local-columns/";
+const localRowsKey: keyof RootEntity["properties"] =
+  "https://alpha.hash.ai/@yusuf/types/property-type/local-rows/";
+const columnTitleKey: keyof LocalColumns =
+  "https://alpha.hash.ai/@yusuf/types/property-type/column-title/";
+const columnIdKey: keyof LocalColumns =
+  "https://alpha.hash.ai/@yusuf/types/property-type/column-id/";
 
 export const App: BlockComponent<RootEntity> = ({
   graph: { blockEntitySubgraph, readonly },
@@ -43,61 +45,66 @@ export const App: BlockComponent<RootEntity> = ({
     RootEntityLinkedEntities
   >(blockEntitySubgraph);
 
-  const titleKey: keyof RootEntity["properties"] =
-    "https://alpha.hash.ai/@yusuf/types/property-type/table-title/";
-  const columnsKey: keyof RootEntity["properties"] =
-    "https://alpha.hash.ai/@yusuf/types/property-type/local-columns/";
-  const rowsKey: keyof RootEntity["properties"] =
-    "https://alpha.hash.ai/@yusuf/types/property-type/local-rows/";
-
   const {
     metadata: {
       editionId: { baseId: blockEntityId },
       entityTypeId: blockEntityTypeId,
     },
     properties: {
-      [titleKey]: title,
-      [columnsKey]: localColumns,
-      [rowsKey]: localRows,
+      [titleKey]: title = "",
+      [localColumnsKey]: localColumns = [],
+      [localRowsKey]: localRows = [],
     },
   } = blockEntity;
 
-  const [rows, setRows] = useState(sampleRows);
-  const [columns, setColumns] = useState<GridColumn[]>(
-    sampleColumnDefinitions.map((col) => ({
-      ...col,
-      width: 200,
-    })),
-  );
-
   const addNewColumn = () => {
-    setColumns((prev) => [
-      ...prev,
-      {
-        id: String(Date.now()),
-        width: 200,
-        title: `Column ${prev.length + 1}`,
-      },
-    ]);
+    return updateEntity({
+      [localColumnsKey]: [
+        ...localColumns,
+        {
+          [columnIdKey]: String(Date.now()),
+          [columnTitleKey]: `Column ${localColumns.length + 1}`,
+        },
+      ],
+    });
   };
 
-  const addNewRow = () => {
-    setRows((prev) => [...prev, {}]);
+  const addNewRow = async () => {
+    return updateEntity({ [localRowsKey]: [...localRows, {}] });
   };
+
+  const setValue = ({}: {
+    value: string;
+    columnId: string;
+    rowId: string;
+  }) => {};
 
   const setTitle = async (val: string) => {
-    await graphService?.updateEntity<RootEntity["properties"]>({
+    await updateEntity({ [titleKey]: val });
+  };
+
+  const updateEntity = async (
+    newProperties: Partial<RootEntity["properties"]>,
+  ) => {
+    await graphService?.updateEntity({
       data: {
         entityId: blockEntityId,
         entityTypeId: blockEntityTypeId,
-        properties: { [titleKey]: val },
+        properties: { ...blockEntity.properties, ...newProperties },
       },
     });
   };
 
+  const columns: GridColumn[] = localColumns!.map((col) => ({
+    id: col[columnIdKey],
+    title: col[columnTitleKey],
+    width: 200,
+  }));
+  const rows = localRows;
+
   return (
     <div className={styles.block} ref={blockRootRef}>
-      <TableTitle onChange={setTitle} title={title ?? ""} readonly={readonly} />
+      <TableTitle onChange={setTitle} title={title} readonly={readonly} />
       <Grid
         rows={rows.length}
         columns={columns}
@@ -114,11 +121,26 @@ export const App: BlockComponent<RootEntity> = ({
           sticky: true,
           tint: true,
         }}
-        onRowAppended={readonly ? undefined : addNewRow}
+        onRowAppended={
+          readonly
+            ? undefined
+            : () => {
+                /**
+                 * @todo this should be async, but making it async makes grid place the overlay with a weird offset
+                 * needs debugging
+                 */
+                addNewRow();
+              }
+        }
         rowMarkers="both"
         getCellContent={([colIndex, rowIndex]) => {
-          const key = columns[colIndex]?.id as LocalRowId;
-          const value = rows[rowIndex]?.[key] ?? "";
+          const key = columns[colIndex]?.id;
+
+          if (!key) {
+            throw new Error("key not found");
+          }
+
+          const value = rows[rowIndex][key] ?? "";
 
           return {
             kind: GridCellKind.Text,

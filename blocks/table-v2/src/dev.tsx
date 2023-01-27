@@ -19,6 +19,37 @@ const testEntity: RootEntity = {
   },
   properties: {
     "https://alpha.hash.ai/@yusuf/types/property-type/table-title/": "My Table",
+    "https://alpha.hash.ai/@yusuf/types/property-type/local-columns/": [
+      {
+        "https://alpha.hash.ai/@yusuf/types/property-type/column-title/":
+          "Full Name",
+        "https://alpha.hash.ai/@yusuf/types/property-type/column-id/":
+          "fullName",
+      },
+      {
+        "https://alpha.hash.ai/@yusuf/types/property-type/column-title/":
+          "Role",
+        "https://alpha.hash.ai/@yusuf/types/property-type/column-id/": "role",
+      },
+    ],
+    "https://alpha.hash.ai/@yusuf/types/property-type/local-rows/": [
+      {
+        fullName: "David Davidson",
+        role: "CEO",
+      },
+      {
+        fullName: "John Johnson",
+        role: "Head of Engineering",
+      },
+      {
+        fullName: "React Reactson",
+        role: "Frontend Developer",
+      },
+      {
+        fullName: "Node Nodeson",
+        role: "Backend Developer",
+      },
+    ],
   },
 } as const;
 
