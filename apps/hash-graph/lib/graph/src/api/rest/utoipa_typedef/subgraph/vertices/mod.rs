@@ -100,7 +100,7 @@ impl From<crate::subgraph::vertices::Vertices> for Vertices {
     }
 }
 
-// Utoipa generates `Edges` as an empty object if we don't manually do it, and we can't use
+// Utoipa generates `Vertices` as an empty object if we don't manually do it, and we can't use
 // allOf because the generator can't handle it
 impl ToSchema<'_> for Vertices {
     fn schema() -> (&'static str, RefOr<Schema>) {
@@ -110,8 +110,8 @@ impl ToSchema<'_> for Vertices {
                 .additional_properties(Some(Schema::from(
                     ObjectBuilder::new().additional_properties(Some(
                         OneOfBuilder::new()
-                            .item(Ref::from_schema_name("KnowledgeGraphVertex"))
-                            .item(Ref::from_schema_name("OntologyVertex")),
+                            .item(Ref::from_schema_name(KnowledgeGraphVertex::schema().0))
+                            .item(Ref::from_schema_name(OntologyVertex::schema().0)),
                     )),
                 )))
                 .into(),

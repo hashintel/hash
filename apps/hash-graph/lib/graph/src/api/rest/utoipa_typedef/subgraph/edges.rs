@@ -26,8 +26,7 @@ pub enum KnowledgeGraphOutwardEdges {
 }
 
 // WARNING: This MUST be kept up to date with the enum variants.
-//   We have to do this because utoipa doesn't understand serde untagged:
-//   https://github.com/juhaku/utoipa/issues/320
+//   We have to do this because utoipa does use `OutwardEdge` as the schema reference
 impl ToSchema<'_> for KnowledgeGraphOutwardEdges {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
@@ -164,8 +163,10 @@ impl ToSchema<'_> for Edges {
                 .additional_properties(Some(Schema::from(
                     ObjectBuilder::new().additional_properties(Some(Array::new(
                         OneOfBuilder::new()
-                            .item(Ref::from_schema_name("OntologyOutwardEdges"))
-                            .item(Ref::from_schema_name("KnowledgeGraphOutwardEdges")),
+                            .item(Ref::from_schema_name(OntologyOutwardEdges::schema().0))
+                            .item(Ref::from_schema_name(
+                                KnowledgeGraphOutwardEdges::schema().0,
+                            )),
                     ))),
                 )))
                 .into(),

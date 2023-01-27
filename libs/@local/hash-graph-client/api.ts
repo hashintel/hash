@@ -1077,13 +1077,13 @@ export type KnowledgeGraphVertex = KnowledgeGraphVertexOneOf;
 export interface KnowledgeGraphVertexOneOf {
   /**
    *
-   * @type {KnowledgeGraphVertexOneOfInner}
+   * @type {Entity}
    * @memberof KnowledgeGraphVertexOneOf
    */
-  inner: KnowledgeGraphVertexOneOfInner;
+  inner: Entity;
   /**
    *
-   * @type {object}
+   * @type {string}
    * @memberof KnowledgeGraphVertexOneOf
    */
   kind: KnowledgeGraphVertexOneOfKindEnum;
@@ -1096,31 +1096,6 @@ export const KnowledgeGraphVertexOneOfKindEnum = {
 export type KnowledgeGraphVertexOneOfKindEnum =
   (typeof KnowledgeGraphVertexOneOfKindEnum)[keyof typeof KnowledgeGraphVertexOneOfKindEnum];
 
-/**
- * A record of an [`Entity`] that has been persisted in the datastore, with its associated metadata.
- * @export
- * @interface KnowledgeGraphVertexOneOfInner
- */
-export interface KnowledgeGraphVertexOneOfInner {
-  /**
-   *
-   * @type {LinkData}
-   * @memberof KnowledgeGraphVertexOneOfInner
-   */
-  linkData?: LinkData;
-  /**
-   *
-   * @type {EntityMetadata}
-   * @memberof KnowledgeGraphVertexOneOfInner
-   */
-  metadata: EntityMetadata;
-  /**
-   *
-   * @type {object}
-   * @memberof KnowledgeGraphVertexOneOfInner
-   */
-  properties: object;
-}
 /**
  *
  * @export
@@ -1388,13 +1363,13 @@ export type OntologyVertex =
 export interface OntologyVertexOneOf {
   /**
    *
-   * @type {OntologyVertexOneOfInner}
+   * @type {DataTypeWithMetadata}
    * @memberof OntologyVertexOneOf
    */
-  inner: OntologyVertexOneOfInner;
+  inner: DataTypeWithMetadata;
   /**
    *
-   * @type {object}
+   * @type {string}
    * @memberof OntologyVertexOneOf
    */
   kind: OntologyVertexOneOfKindEnum;
@@ -1415,13 +1390,13 @@ export type OntologyVertexOneOfKindEnum =
 export interface OntologyVertexOneOf1 {
   /**
    *
-   * @type {OntologyVertexOneOf1Inner}
+   * @type {PropertyTypeWithMetadata}
    * @memberof OntologyVertexOneOf1
    */
-  inner: OntologyVertexOneOf1Inner;
+  inner: PropertyTypeWithMetadata;
   /**
    *
-   * @type {object}
+   * @type {string}
    * @memberof OntologyVertexOneOf1
    */
   kind: OntologyVertexOneOf1KindEnum;
@@ -1437,37 +1412,18 @@ export type OntologyVertexOneOf1KindEnum =
 /**
  *
  * @export
- * @interface OntologyVertexOneOf1Inner
- */
-export interface OntologyVertexOneOf1Inner {
-  /**
-   *
-   * @type {OntologyElementMetadata}
-   * @memberof OntologyVertexOneOf1Inner
-   */
-  metadata: OntologyElementMetadata;
-  /**
-   *
-   * @type {PropertyType}
-   * @memberof OntologyVertexOneOf1Inner
-   */
-  schema: PropertyType;
-}
-/**
- *
- * @export
  * @interface OntologyVertexOneOf2
  */
 export interface OntologyVertexOneOf2 {
   /**
    *
-   * @type {OntologyVertexOneOf2Inner}
+   * @type {EntityTypeWithMetadata}
    * @memberof OntologyVertexOneOf2
    */
-  inner: OntologyVertexOneOf2Inner;
+  inner: EntityTypeWithMetadata;
   /**
    *
-   * @type {object}
+   * @type {string}
    * @memberof OntologyVertexOneOf2
    */
   kind: OntologyVertexOneOf2KindEnum;
@@ -1480,44 +1436,6 @@ export const OntologyVertexOneOf2KindEnum = {
 export type OntologyVertexOneOf2KindEnum =
   (typeof OntologyVertexOneOf2KindEnum)[keyof typeof OntologyVertexOneOf2KindEnum];
 
-/**
- *
- * @export
- * @interface OntologyVertexOneOf2Inner
- */
-export interface OntologyVertexOneOf2Inner {
-  /**
-   *
-   * @type {OntologyElementMetadata}
-   * @memberof OntologyVertexOneOf2Inner
-   */
-  metadata: OntologyElementMetadata;
-  /**
-   *
-   * @type {EntityType}
-   * @memberof OntologyVertexOneOf2Inner
-   */
-  schema: EntityType;
-}
-/**
- *
- * @export
- * @interface OntologyVertexOneOfInner
- */
-export interface OntologyVertexOneOfInner {
-  /**
-   *
-   * @type {OntologyElementMetadata}
-   * @memberof OntologyVertexOneOfInner
-   */
-  metadata: OntologyElementMetadata;
-  /**
-   *
-   * @type {DataType}
-   * @memberof OntologyVertexOneOfInner
-   */
-  schema: DataType;
-}
 /**
  *
  * @export
@@ -1918,7 +1836,8 @@ export interface Subgraph {
  */
 export type TimeIntervalBound =
   | TimeIntervalBoundOneOf
-  | TimeIntervalBoundOneOf1;
+  | TimeIntervalBoundOneOf1
+  | TimeIntervalBoundOneOf2;
 
 /**
  *
@@ -1928,7 +1847,7 @@ export type TimeIntervalBound =
 export interface TimeIntervalBoundOneOf {
   /**
    *
-   * @type {object}
+   * @type {string}
    * @memberof TimeIntervalBoundOneOf
    */
   bound: TimeIntervalBoundOneOfBoundEnum;
@@ -1949,7 +1868,7 @@ export type TimeIntervalBoundOneOfBoundEnum =
 export interface TimeIntervalBoundOneOf1 {
   /**
    *
-   * @type {object}
+   * @type {string}
    * @memberof TimeIntervalBoundOneOf1
    */
   bound: TimeIntervalBoundOneOf1BoundEnum;
@@ -1963,11 +1882,37 @@ export interface TimeIntervalBoundOneOf1 {
 
 export const TimeIntervalBoundOneOf1BoundEnum = {
   Included: "included",
-  Excluded: "excluded",
 } as const;
 
 export type TimeIntervalBoundOneOf1BoundEnum =
   (typeof TimeIntervalBoundOneOf1BoundEnum)[keyof typeof TimeIntervalBoundOneOf1BoundEnum];
+
+/**
+ *
+ * @export
+ * @interface TimeIntervalBoundOneOf2
+ */
+export interface TimeIntervalBoundOneOf2 {
+  /**
+   *
+   * @type {string}
+   * @memberof TimeIntervalBoundOneOf2
+   */
+  bound: TimeIntervalBoundOneOf2BoundEnum;
+  /**
+   *
+   * @type {string}
+   * @memberof TimeIntervalBoundOneOf2
+   */
+  timestamp: string;
+}
+
+export const TimeIntervalBoundOneOf2BoundEnum = {
+  Excluded: "excluded",
+} as const;
+
+export type TimeIntervalBoundOneOf2BoundEnum =
+  (typeof TimeIntervalBoundOneOf2BoundEnum)[keyof typeof TimeIntervalBoundOneOf2BoundEnum];
 
 /**
  * @type TimeProjection

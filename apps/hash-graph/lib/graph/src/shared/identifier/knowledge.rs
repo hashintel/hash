@@ -91,32 +91,11 @@ impl ToSchema<'_> for EntityId {
     }
 }
 
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityVersion {
     decision_time: VersionInterval<DecisionTime>,
     transaction_time: VersionInterval<TransactionTime>,
-}
-
-impl ToSchema<'_> for EntityVersion {
-    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
-        (
-            "EntityVersion",
-            openapi::ObjectBuilder::new()
-                .property(
-                    "decisionTime",
-                    openapi::Ref::from_schema_name("VersionInterval"),
-                )
-                .required("decisionTime")
-                .property(
-                    "transactionTime",
-                    openapi::Ref::from_schema_name("VersionInterval"),
-                )
-                .required("transactionTime")
-                .build()
-                .into(),
-        )
-    }
 }
 
 impl EntityVersion {
