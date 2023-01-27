@@ -21,6 +21,7 @@ impl<'p> JsonPath<'p> {
     }
 
     fn write(&self, writer: &mut impl Write) -> Result<(), fmt::Error> {
+        writer.write_char('$')?;
         for token in &self.path {
             match token {
                 PathToken::Field(field) => {
@@ -69,7 +70,6 @@ impl ToSql for JsonPath<'_> {
     where
         Self: Sized,
     {
-        out.write_char('$')?;
         self.write(out)?;
         Ok(IsNull::No)
     }

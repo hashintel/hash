@@ -240,7 +240,7 @@ pub enum EntityQueryPath<'p> {
     /// ]))?;
     /// assert_eq!(
     ///     path.to_string(),
-    ///     r#"properties."https://blockprotocol.org/@blockprotocol/types/property-type/address/"[0]."street""#
+    ///     r#"properties.$."https://blockprotocol.org/@blockprotocol/types/property-type/address/"[0]."street""#
     /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
@@ -261,7 +261,7 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::TransactionTime => fmt.write_str("transactionTime"),
             Self::Archived => fmt.write_str("archived"),
             Self::Type(path) => write!(fmt, "type.{path}"),
-            Self::Properties(Some(property)) => write!(fmt, "properties{property}"),
+            Self::Properties(Some(property)) => write!(fmt, "properties.{property}"),
             Self::Properties(None) => fmt.write_str("properties"),
             Self::IncomingLinks(link) => write!(fmt, "incomingLinks.{link}"),
             Self::OutgoingLinks(link) => write!(fmt, "outgoingLinks.{link}"),
