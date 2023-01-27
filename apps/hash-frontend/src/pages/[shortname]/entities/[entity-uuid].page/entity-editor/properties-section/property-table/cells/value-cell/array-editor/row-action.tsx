@@ -2,6 +2,8 @@ import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Tooltip } from "@mui/material";
 
+import { GRID_CLICK_IGNORE_CLASS } from "../../../../../../../../../../components/grid/utils";
+
 interface RowActionProps {
   icon: IconDefinition;
   onClick: () => void;
@@ -15,7 +17,7 @@ export const RowAction = ({ icon, onClick, tooltip }: RowActionProps) => {
       placement="top"
       PopperProps={{
         // this className prevents editor overlay from closing
-        className: "click-outside-ignore",
+        className: GRID_CLICK_IGNORE_CLASS,
       }}
       disableInteractive
     >
