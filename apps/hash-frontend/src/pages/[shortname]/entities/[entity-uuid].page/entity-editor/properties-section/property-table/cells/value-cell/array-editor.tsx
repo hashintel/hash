@@ -216,7 +216,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
 
       {canAddMore && !isAddingDraft && (
         <AddAnotherButton
-          title="Add Another Value"
+          title={items.length ? "Add Another Value" : "Add Value"}
           onClick={handleAddAnotherClick}
         />
       )}
