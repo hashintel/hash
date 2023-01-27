@@ -356,15 +356,17 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
 
     pub fn compile_path_column(&mut self, path: &'p R::QueryPath<'_>) -> AliasedColumn<'c> {
         let column = path.terminating_column();
-        let column =
-            if let Column::Entities(Entities::Properties(Some(JsonField::Json(field)))) = column {
-                self.artifacts.parameters.push(field);
-                Column::Entities(Entities::Properties(Some(JsonField::JsonParameter(
-                    self.artifacts.parameters.len(),
-                ))))
-            } else {
-                column
-            };
+        let column = if let Column::Entities(Entities::Properties(Some(JsonField::JsonPath(
+            field,
+        )))) = column
+        {
+            self.artifacts.parameters.push(field);
+            Column::Entities(Entities::Properties(Some(JsonField::JsonParameter(
+                self.artifacts.parameters.len(),
+            ))))
+        } else {
+            column
+        };
 
         let alias = self.add_join_statements(path);
 
