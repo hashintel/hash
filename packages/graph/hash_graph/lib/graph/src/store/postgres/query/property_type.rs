@@ -1,5 +1,6 @@
 use std::{borrow::Cow, iter::once};
 
+use super::table::OwnedOntologyMetadata;
 use crate::{
     ontology::{PropertyTypeQueryPath, PropertyTypeWithMetadata},
     store::postgres::query::{
@@ -17,8 +18,11 @@ impl PostgresRecord for PropertyTypeWithMetadata {
 impl PostgresQueryPath for PropertyTypeQueryPath {
     fn relations(&self) -> Vec<Relation> {
         match self {
-            Self::BaseUri | Self::Version | Self::OwnedById | Self::UpdatedById => {
+            Self::BaseUri | Self::Version => {
                 vec![Relation::PropertyTypeIds]
+            }
+            Self::OwnedById | Self::UpdatedById => {
+                vec![Relation::PropertyTypeOwnedMetadata]
             }
             Self::DataTypes(path) => once(Relation::PropertyTypeDataTypeReferences)
                 .chain(path.relations())
@@ -34,8 +38,8 @@ impl PostgresQueryPath for PropertyTypeQueryPath {
         match self {
             Self::BaseUri => Column::TypeIds(TypeIds::BaseUri),
             Self::Version => Column::TypeIds(TypeIds::Version),
-            Self::OwnedById => Column::TypeIds(TypeIds::OwnedById),
-            Self::UpdatedById => Column::TypeIds(TypeIds::UpdatedById),
+            Self::OwnedById => Column::OwnedOntologyMetadata(OwnedOntologyMetadata::OwnedById),
+            Self::UpdatedById => Column::OwnedOntologyMetadata(OwnedOntologyMetadata::UpdatedById),
             Self::VersionId => Column::PropertyTypes(PropertyTypes::VersionId),
             Self::Schema => Column::PropertyTypes(PropertyTypes::Schema(None)),
             Self::VersionedUri => Column::PropertyTypes(PropertyTypes::Schema(Some(

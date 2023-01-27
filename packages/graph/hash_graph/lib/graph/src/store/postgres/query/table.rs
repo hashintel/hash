@@ -10,6 +10,7 @@ use crate::{identifier::time::TimeAxis, store::postgres::query::Transpile};
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Table {
     TypeIds,
+    OwnedOntologyMetadata,
     DataTypes,
     PropertyTypes,
     EntityTypes,
@@ -28,6 +29,7 @@ impl Table {
     const fn as_str(self) -> &'static str {
         match self {
             Self::TypeIds => "type_ids",
+            Self::OwnedOntologyMetadata => "owned_ontology_metadata",
             Self::DataTypes => "data_types",
             Self::PropertyTypes => "property_types",
             Self::EntityTypes => "entity_types",
@@ -59,8 +61,6 @@ pub enum TypeIds {
     BaseUri,
     Version,
     LatestVersion,
-    OwnedById,
-    UpdatedById,
 }
 
 impl Transpile for TypeIds {
@@ -70,6 +70,23 @@ impl Transpile for TypeIds {
             Self::BaseUri => "base_uri",
             Self::Version => "version",
             Self::LatestVersion => "latest_version",
+        };
+        write!(fmt, r#"."{column}""#)
+    }
+}
+
+#[expect(clippy::enum_variant_names)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum OwnedOntologyMetadata {
+    VersionId,
+    OwnedById,
+    UpdatedById,
+}
+
+impl Transpile for OwnedOntologyMetadata {
+    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let column = match self {
+            Self::VersionId => "version_id",
             Self::OwnedById => "owned_by_id",
             Self::UpdatedById => "updated_by_id",
         };
@@ -275,6 +292,7 @@ impl Transpile for EntityTypeEntityTypeReferences {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Column<'p> {
     TypeIds(TypeIds),
+    OwnedOntologyMetadata(OwnedOntologyMetadata),
     DataTypes(DataTypes),
     PropertyTypes(PropertyTypes),
     EntityTypes(EntityTypes),
@@ -289,6 +307,7 @@ impl<'p> Column<'p> {
     pub const fn table(self) -> Table {
         match self {
             Self::TypeIds(_) => Table::TypeIds,
+            Self::OwnedOntologyMetadata(_) => Table::OwnedOntologyMetadata,
             Self::DataTypes(_) => Table::DataTypes,
             Self::PropertyTypes(_) => Table::PropertyTypes,
             Self::EntityTypes(_) => Table::EntityTypes,
@@ -325,6 +344,7 @@ impl Transpile for Column<'_> {
         self.table().transpile(fmt)?;
         match self {
             Self::TypeIds(column) => column.transpile(fmt),
+            Self::OwnedOntologyMetadata(column) => column.transpile(fmt),
             Self::DataTypes(column) => column.transpile(fmt),
             Self::PropertyTypes(column) => column.transpile(fmt),
             Self::EntityTypes(column) => column.transpile(fmt),
@@ -410,6 +430,7 @@ impl Transpile for AliasedColumn<'_> {
         self.table().transpile(fmt)?;
         match self.column {
             Column::TypeIds(column) => column.transpile(fmt),
+            Column::OwnedOntologyMetadata(column) => column.transpile(fmt),
             Column::DataTypes(column) => column.transpile(fmt),
             Column::PropertyTypes(column) => column.transpile(fmt),
             Column::EntityTypes(column) => column.transpile(fmt),
@@ -427,6 +448,9 @@ pub enum Relation {
     DataTypeIds,
     PropertyTypeIds,
     EntityTypeIds,
+    DataTypeOwnedMetadata,
+    PropertyTypeOwnedMetadata,
+    EntityTypeOwnedMetadata,
     PropertyTypeDataTypeReferences,
     PropertyTypePropertyTypeReferences,
     EntityTypePropertyTypeReferences,
@@ -453,6 +477,18 @@ impl Relation {
             Self::EntityTypeIds => &[(
                 Column::EntityTypes(EntityTypes::VersionId),
                 Column::TypeIds(TypeIds::VersionId),
+            )],
+            Self::DataTypeOwnedMetadata => &[(
+                Column::DataTypes(DataTypes::VersionId),
+                Column::OwnedOntologyMetadata(OwnedOntologyMetadata::VersionId),
+            )],
+            Self::PropertyTypeOwnedMetadata => &[(
+                Column::PropertyTypes(PropertyTypes::VersionId),
+                Column::OwnedOntologyMetadata(OwnedOntologyMetadata::VersionId),
+            )],
+            Self::EntityTypeOwnedMetadata => &[(
+                Column::EntityTypes(EntityTypes::VersionId),
+                Column::OwnedOntologyMetadata(OwnedOntologyMetadata::VersionId),
             )],
             Self::PropertyTypeDataTypeReferences => &[
                 (

@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use super::table::OwnedOntologyMetadata;
 use crate::{
     ontology::{DataTypeQueryPath, DataTypeWithMetadata},
     store::postgres::query::{
@@ -17,8 +18,11 @@ impl PostgresRecord for DataTypeWithMetadata {
 impl PostgresQueryPath for DataTypeQueryPath {
     fn relations(&self) -> Vec<Relation> {
         match self {
-            Self::BaseUri | Self::Version | Self::OwnedById | Self::UpdatedById => {
+            Self::BaseUri | Self::Version => {
                 vec![Relation::DataTypeIds]
+            }
+            Self::OwnedById | Self::UpdatedById => {
+                vec![Relation::DataTypeOwnedMetadata]
             }
             _ => vec![],
         }
@@ -28,8 +32,8 @@ impl PostgresQueryPath for DataTypeQueryPath {
         match self {
             Self::BaseUri => Column::TypeIds(TypeIds::BaseUri),
             Self::Version => Column::TypeIds(TypeIds::Version),
-            Self::OwnedById => Column::TypeIds(TypeIds::OwnedById),
-            Self::UpdatedById => Column::TypeIds(TypeIds::UpdatedById),
+            Self::OwnedById => Column::OwnedOntologyMetadata(OwnedOntologyMetadata::OwnedById),
+            Self::UpdatedById => Column::OwnedOntologyMetadata(OwnedOntologyMetadata::UpdatedById),
             Self::VersionId => Column::DataTypes(DataTypes::VersionId),
             Self::Schema => Column::DataTypes(DataTypes::Schema(None)),
             Self::VersionedUri => Column::DataTypes(DataTypes::Schema(Some(JsonField::Text(

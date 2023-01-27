@@ -3,8 +3,6 @@ CREATE TABLE IF NOT EXISTS
     "version_id" UUID PRIMARY KEY,
     "base_uri" TEXT NOT NULL,
     "version" BIGINT NOT NULL,
-    "owned_by_id" UUID NOT NULL REFERENCES "accounts",
-    "updated_by_id" UUID NOT NULL REFERENCES "accounts",
     "transaction_time" tstzrange NOT NULL,
     UNIQUE ("base_uri", "version"),
     CONSTRAINT type_ids_overlapping EXCLUDE USING gist (
@@ -19,6 +17,15 @@ CREATE TABLE IF NOT EXISTS
 
 COMMENT
   ON TABLE "type_ids" IS $pga$ This table is a boundary to define the actual identification scheme for our kinds of types. Assume that we use the UUIDs on the types to look up more specific ID details. $pga$;
+
+CREATE TABLE IF NOT EXISTS
+  "owned_ontology_metadata" (
+    "version_id" UUID NOT NULL,
+    "owned_by_id" UUID NOT NULL REFERENCES "accounts",
+    "updated_by_id" UUID NOT NULL REFERENCES "accounts",
+    CONSTRAINT owned_ontology_metadata_pk PRIMARY KEY ("version_id") DEFERRABLE INITIALLY IMMEDIATE,
+    CONSTRAINT owned_ontology_metadata_fk FOREIGN KEY ("version_id") REFERENCES "type_ids" DEFERRABLE INITIALLY IMMEDIATE
+  );
 
 CREATE TABLE IF NOT EXISTS
   "data_types" (
