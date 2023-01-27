@@ -498,19 +498,17 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                 // entity_type_version_id = type_ids.version_id`. We, however, need to
                 // make sure, that we only alter a join statement with a table we don't require
                 // anymore.
-                if true {
-                    if let Some(last_join) = self.statement.joins.pop() {
-                        // Check if we are joining on the same column as the previous join
-                        if last_join.join == current_column
-                            && !self
-                                .artifacts
-                                .required_tables
-                                .contains(&last_join.join.table())
-                        {
-                            current_column = last_join.on;
-                        } else {
-                            self.statement.joins.push(last_join);
-                        }
+                if let Some(last_join) = self.statement.joins.pop() {
+                    // Check if we are joining on the same column as the previous join
+                    if last_join.join == current_column
+                        && !self
+                            .artifacts
+                            .required_tables
+                            .contains(&last_join.join.table())
+                    {
+                        current_column = last_join.on;
+                    } else {
+                        self.statement.joins.push(last_join);
                     }
                 }
 
