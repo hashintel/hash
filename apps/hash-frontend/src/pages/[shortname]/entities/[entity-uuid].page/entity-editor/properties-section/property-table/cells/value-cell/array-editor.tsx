@@ -24,8 +24,12 @@ import { DraftRow } from "./array-editor/draft-row";
 import { ItemLimitInfo } from "./array-editor/item-limit-info";
 import { SortableRow } from "./array-editor/sortable-row";
 import { SortableItem } from "./array-editor/types";
+import { editorSpecs } from "./editor-specs";
 import { ValueCellEditorComponent } from "./types";
-import { isBlankStringOrNullish } from "./utils";
+import {
+  guessEditorTypeFromExpectedType,
+  isBlankStringOrNullish,
+} from "./utils";
 
 export const DRAFT_ROW_KEY = "draft";
 
@@ -64,10 +68,22 @@ export const ArrayEditor: ValueCellEditorComponent = ({
   }, [propertyValue]);
 
   const [selectedRow, setSelectedRow] = useState("");
-  const [editingRow, setEditingRow] = useState(
+  const [editingRow, setEditingRow] = useState(() => {
     // if there is no item, start in add item state
-    items.length ? "" : DRAFT_ROW_KEY,
-  );
+    if (items.length) {
+      return "";
+    }
+
+    if (expectedTypes.length === 1) {
+      const expectedType = guessEditorTypeFromExpectedType(expectedTypes[0]!);
+
+      if (editorSpecs[expectedType].arrayEditException === "no-edit-mode") {
+        return "";
+      }
+    }
+
+    return DRAFT_ROW_KEY;
+  });
 
   const toggleSelectedRow = (id: string) => {
     setSelectedRow((prevId) => (id === prevId ? "" : id));
@@ -141,8 +157,20 @@ export const ArrayEditor: ValueCellEditorComponent = ({
   };
 
   const handleAddAnotherClick = () => {
-    setEditingRow(DRAFT_ROW_KEY);
     setSelectedRow("");
+
+    const onlyOneExpectedType = expectedTypes.length === 1;
+    const expectedType = expectedTypes[0]!;
+    const editorType = guessEditorTypeFromExpectedType(expectedType);
+    const editorSpec = editorSpecs[editorType];
+    const noEditMode = editorSpec.arrayEditException === "no-edit-mode";
+
+    // add the value on click instead of showing draftRow
+    if (onlyOneExpectedType && noEditMode) {
+      return addItem(editorSpec.defaultValue);
+    }
+
+    setEditingRow(DRAFT_ROW_KEY);
   };
 
   const handleSaveChanges = (index: number, value: unknown) => {
