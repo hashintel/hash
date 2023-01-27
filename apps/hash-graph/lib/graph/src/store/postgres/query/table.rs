@@ -51,6 +51,7 @@ impl Transpile for Table {
 
 // TODO: We should add another enum to only contain variants, which may be passed as parameters,
 //       so the lifetime of that struct will be `'static`.
+//   see https://app.asana.com/0/0/1203821263193164/f
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum JsonField<'p> {
     Json(&'p Cow<'p, str>),
