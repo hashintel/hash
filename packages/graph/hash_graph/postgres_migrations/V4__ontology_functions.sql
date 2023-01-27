@@ -5,7 +5,6 @@ OR REPLACE FUNCTION create_type_id (
   "version" BIGINT
 ) RETURNS TABLE (_version_id UUID) AS $create_type_id$
 BEGIN
-
   RETURN QUERY
   INSERT INTO type_ids (
     "version_id",
@@ -28,7 +27,6 @@ OR REPLACE FUNCTION update_type_id (
   "version" BIGINT
 ) RETURNS TABLE (_version_id UUID) AS $update_type_id$
 BEGIN
-
   RETURN QUERY
   UPDATE type_ids
   SET
