@@ -75,6 +75,7 @@ impl Transpile for TypeIds {
     }
 }
 
+#[expect(clippy::enum_variant_names)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum OwnedOntologyMetadata {
     VersionId,
