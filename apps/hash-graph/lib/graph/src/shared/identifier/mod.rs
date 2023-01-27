@@ -62,7 +62,7 @@ impl EntityVertexId {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
 #[serde(untagged)]
 pub enum GraphElementVertexId {
     Ontology(OntologyTypeEditionId),
@@ -78,20 +78,5 @@ impl From<OntologyTypeEditionId> for GraphElementVertexId {
 impl From<EntityVertexId> for GraphElementVertexId {
     fn from(id: EntityVertexId) -> Self {
         Self::KnowledgeGraph(id)
-    }
-}
-
-// WARNING: This MUST be kept up to date with the enum variants.
-//   We have to do this because utoipa doesn't understand serde untagged:
-//   https://github.com/juhaku/utoipa/issues/320
-impl ToSchema<'_> for GraphElementVertexId {
-    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
-        (
-            "GraphElementVertexId",
-            openapi::OneOfBuilder::new()
-                .item(openapi::Ref::from_schema_name("OntologyTypeEditionId"))
-                .item(openapi::Ref::from_schema_name("EntityVertexId"))
-                .into(),
-        )
     }
 }
