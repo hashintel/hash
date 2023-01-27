@@ -439,7 +439,7 @@ impl Modify for FilterSchemaAddon {
                         .item(
                             ObjectBuilder::new()
                                 .title(Some("ParameterExpression"))
-                                .property("parameter", Any::schema())
+                                .property("parameter", Any::schema().1)
                                 .required("parameter"),
                         )
                         .build(),
@@ -456,9 +456,10 @@ struct TimeSchemaAddon;
 impl Modify for TimeSchemaAddon {
     fn modify(&self, openapi: &mut openapi::OpenApi) {
         if let Some(ref mut components) = openapi.components {
-            components
-                .schemas
-                .insert("Timestamp".to_owned(), Timestamp::<()>::schema());
+            components.schemas.insert(
+                Timestamp::<()>::schema().0.to_owned(),
+                Timestamp::<()>::schema().1,
+            );
             components.schemas.insert(
                 "NullableTimestamp".to_owned(),
                 ObjectBuilder::new()
@@ -468,12 +469,12 @@ impl Modify for TimeSchemaAddon {
                     .into(),
             );
             components.schemas.insert(
-                "VersionInterval".to_owned(),
-                VersionInterval::<()>::schema(),
+                VersionInterval::<()>::schema().0.to_owned(),
+                VersionInterval::<()>::schema().1,
             );
             components.schemas.insert(
-                "TimeIntervalBound".to_owned(),
-                TimeIntervalBound::<()>::schema(),
+                TimeIntervalBound::<()>::schema().0.to_owned(),
+                TimeIntervalBound::<()>::schema().1,
             );
         }
     }

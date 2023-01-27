@@ -24,14 +24,17 @@ pub enum GraphElementId {
 // WARNING: This MUST be kept up to date with the enum variants.
 //   We have to do this because utoipa doesn't understand serde untagged:
 //   https://github.com/juhaku/utoipa/issues/320
-impl ToSchema for GraphElementId {
-    fn schema() -> openapi::RefOr<openapi::Schema> {
-        openapi::OneOfBuilder::new()
-            .item(openapi::Object::with_type(openapi::SchemaType::String))
-            .example(Some(serde_json::json!(
-                "6013145d-7392-4630-ab16-e99c59134cb6"
-            )))
-            .into()
+impl ToSchema<'_> for GraphElementId {
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "GraphElementId",
+            openapi::OneOfBuilder::new()
+                .item(openapi::Object::with_type(openapi::SchemaType::String))
+                .example(Some(serde_json::json!(
+                    "6013145d-7392-4630-ab16-e99c59134cb6"
+                )))
+                .into(),
+        )
     }
 }
 
@@ -81,11 +84,14 @@ impl From<EntityVertexId> for GraphElementVertexId {
 // WARNING: This MUST be kept up to date with the enum variants.
 //   We have to do this because utoipa doesn't understand serde untagged:
 //   https://github.com/juhaku/utoipa/issues/320
-impl ToSchema for GraphElementVertexId {
-    fn schema() -> openapi::RefOr<openapi::Schema> {
-        openapi::OneOfBuilder::new()
-            .item(openapi::Ref::from_schema_name("OntologyTypeEditionId"))
-            .item(openapi::Ref::from_schema_name("EntityVertexId"))
-            .into()
+impl ToSchema<'_> for GraphElementVertexId {
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "GraphElementVertexId",
+            openapi::OneOfBuilder::new()
+                .item(openapi::Ref::from_schema_name("OntologyTypeEditionId"))
+                .item(openapi::Ref::from_schema_name("EntityVertexId"))
+                .into(),
+        )
     }
 }

@@ -96,32 +96,35 @@ impl<A> UpperBound<Timestamp<A>> for TimeIntervalBound<A> {
     }
 }
 
-impl<A> ToSchema for TimeIntervalBound<A> {
-    fn schema() -> openapi::RefOr<openapi::Schema> {
-        openapi::Schema::OneOf(
-            openapi::OneOfBuilder::new()
-                .item(
-                    openapi::ObjectBuilder::new()
-                        .property(
-                            "bound",
-                            openapi::ObjectBuilder::new().enum_values(Some(["unbounded"])),
-                        )
-                        .required("bound"),
-                )
-                .item(
-                    openapi::ObjectBuilder::new()
-                        .property(
-                            "bound",
-                            openapi::ObjectBuilder::new()
-                                .enum_values(Some(["included", "excluded"])),
-                        )
-                        .required("bound")
-                        .property("timestamp", Timestamp::<A>::schema())
-                        .required("timestamp"),
-                )
-                .build(),
+impl<A> ToSchema<'_> for TimeIntervalBound<A> {
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "TimeIntervalBound",
+            openapi::Schema::OneOf(
+                openapi::OneOfBuilder::new()
+                    .item(
+                        openapi::ObjectBuilder::new()
+                            .property(
+                                "bound",
+                                openapi::ObjectBuilder::new().enum_values(Some(["unbounded"])),
+                            )
+                            .required("bound"),
+                    )
+                    .item(
+                        openapi::ObjectBuilder::new()
+                            .property(
+                                "bound",
+                                openapi::ObjectBuilder::new()
+                                    .enum_values(Some(["included", "excluded"])),
+                            )
+                            .required("bound")
+                            .property("timestamp", Timestamp::<A>::schema().1)
+                            .required("timestamp"),
+                    )
+                    .build(),
+            )
+            .into(),
         )
-        .into()
     }
 }
 
@@ -139,31 +142,38 @@ pub struct UnresolvedTimeInterval<A> {
     pub end: Option<TimeIntervalBound<A>>,
 }
 
-impl<A> ToSchema for UnresolvedTimeInterval<A> {
-    fn schema() -> openapi::RefOr<openapi::Schema> {
-        openapi::ObjectBuilder::new()
-            .property(
-                "start",
-                openapi::Schema::OneOf(
-                    openapi::OneOfBuilder::new()
-                        .item(openapi::Ref::from_schema_name("TimeIntervalBound"))
-                        .nullable(true)
-                        .build(),
-                ),
-            )
-            .required("start")
-            .property(
-                "end",
-                openapi::Schema::OneOf(
-                    openapi::OneOfBuilder::new()
-                        .item(openapi::Ref::from_schema_name("TimeIntervalBound"))
-                        .nullable(true)
-                        .build(),
-                ),
-            )
-            .required("end")
-            .build()
-            .into()
+impl<A> ToSchema<'_> for UnresolvedTimeInterval<A> {
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "UnresolvedTimeInterval",
+            openapi::ObjectBuilder::new()
+                .property(
+                    "start",
+                    openapi::Schema::OneOf(
+                        openapi::OneOfBuilder::new()
+                            .item(openapi::Ref::from_schema_name(
+                                TimeIntervalBound::<A>::schema().0,
+                            ))
+                            .nullable(true)
+                            .build(),
+                    ),
+                )
+                .required("start")
+                .property(
+                    "end",
+                    openapi::Schema::OneOf(
+                        openapi::OneOfBuilder::new()
+                            .item(openapi::Ref::from_schema_name(
+                                TimeIntervalBound::<A>::schema().0,
+                            ))
+                            .nullable(true)
+                            .build(),
+                    ),
+                )
+                .required("end")
+                .build()
+                .into(),
+        )
     }
 }
 

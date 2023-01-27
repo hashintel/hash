@@ -37,12 +37,12 @@ impl From<EntityTypeWithMetadata> for OntologyVertex {
 // WARNING: This MUST be kept up to date with the enum names and serde attribute, as utoipa does
 // not currently support adjacently tagged enums so we must roll our own:
 // https://github.com/juhaku/utoipa/issues/219
-impl ToSchema for OntologyVertex {
-    fn schema() -> openapi::RefOr<openapi::Schema> {
+impl ToSchema<'_> for OntologyVertex {
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
         let mut builder =
             openapi::OneOfBuilder::new().discriminator(Some(openapi::Discriminator::new("kind")));
 
-        for (kind, schema) in [
+        for (kind, (_, schema)) in [
             ("dataType", DataTypeWithMetadata::schema()),
             ("propertyType", PropertyTypeWithMetadata::schema()),
             ("entityType", EntityTypeWithMetadata::schema()),
@@ -62,8 +62,7 @@ impl ToSchema for OntologyVertex {
                     .required("inner"),
             );
         }
-
-        builder.into()
+        ("OntologyVertex", builder.into())
     }
 }
 
@@ -77,8 +76,8 @@ pub enum KnowledgeGraphVertex {
 // WARNING: This MUST be kept up to date with the enum names and serde attribute, as utoipa does
 // not currently support adjacently tagged enums so we must roll our own:
 // https://github.com/juhaku/utoipa/issues/219
-impl ToSchema for KnowledgeGraphVertex {
-    fn schema() -> openapi::RefOr<openapi::Schema> {
+impl ToSchema<'_> for KnowledgeGraphVertex {
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
         let builder = openapi::OneOfBuilder::new()
             .discriminator(Some(openapi::Discriminator::new("kind")))
             .item(
@@ -92,11 +91,11 @@ impl ToSchema for KnowledgeGraphVertex {
                         ),
                     )
                     .required("kind")
-                    .property("inner", Entity::schema())
+                    .property("inner", Entity::schema().1)
                     .required("inner"),
             );
 
-        builder.into()
+        ("KnowledgeGraphVertex", builder.into())
     }
 }
 
@@ -112,11 +111,14 @@ pub enum Vertex {
 // WARNING: This MUST be kept up to date with the enum variants.
 //   We have to do this because utoipa doesn't understand serde untagged:
 //   https://github.com/juhaku/utoipa/issues/320
-impl ToSchema for Vertex {
-    fn schema() -> openapi::RefOr<openapi::Schema> {
-        openapi::OneOfBuilder::new()
-            .item(openapi::Ref::from_schema_name("OntologyVertex"))
-            .item(openapi::Ref::from_schema_name("KnowledgeGraphVertex"))
-            .into()
+impl ToSchema<'_> for Vertex {
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "Vertex",
+            openapi::OneOfBuilder::new()
+                .item(openapi::Ref::from_schema_name("OntologyVertex"))
+                .item(openapi::Ref::from_schema_name("KnowledgeGraphVertex"))
+                .into(),
+        )
     }
 }
