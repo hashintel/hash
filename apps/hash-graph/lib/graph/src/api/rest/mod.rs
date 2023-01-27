@@ -155,7 +155,14 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
     tags(
         (name = "Graph", description = "HASH Graph API")
     ),
-    modifiers(&MergeAddon, &ExternalRefAddon, &OperationGraphTagAddon, &FilterSchemaAddon, &TimeSchemaAddon),
+    modifiers(
+        &MergeAddon,
+        &ExternalRefAddon,
+        &OperationGraphTagAddon,
+        &FilterSchemaAddon,
+        &TimeSchemaAddon,
+        &OntologyTypeSchemaAddon,
+    ),
     components(
         schemas(
             OwnedById,
@@ -475,6 +482,20 @@ impl Modify for TimeSchemaAddon {
             components.schemas.insert(
                 TimeIntervalBound::<()>::schema().0.to_owned(),
                 TimeIntervalBound::<()>::schema().1,
+            );
+        }
+    }
+}
+
+/// Adds time-related structs to the `OpenAPI` schema.
+struct OntologyTypeSchemaAddon;
+
+impl Modify for OntologyTypeSchemaAddon {
+    fn modify(&self, openapi: &mut openapi::OpenApi) {
+        if let Some(ref mut components) = openapi.components {
+            components.schemas.insert(
+                "BaseUri".to_owned(),
+                ObjectBuilder::new().schema_type(SchemaType::String).into(),
             );
         }
     }
