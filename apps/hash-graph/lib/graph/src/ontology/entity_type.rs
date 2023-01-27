@@ -315,7 +315,7 @@ impl fmt::Display for EntityTypeQueryPath<'_> {
             Self::VersionedUri => fmt.write_str("versionedUri"),
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
-            Self::Schema(Some(path)) => write!(fmt, "schema{path}"),
+            Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
             Self::Schema(None) => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),
             Self::Description => fmt.write_str("description"),
