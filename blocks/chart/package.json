@@ -1,6 +1,7 @@
 {
   "name": "@blocks/chart",
   "version": "0.1.0",
+  "private": true,
   "description": "A block for plotting entities in a 2D chart",
   "keywords": [
     "blockprotocol",
