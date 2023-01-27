@@ -477,10 +477,14 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     fn add_join_statements(&mut self, path: &R::QueryPath<'_>) -> Alias {
         let mut current_table = self.statement.from;
 
+        if current_table.table == Table::Entities {
+            self.pin_entity_table(current_table.alias);
+        }
+
         for relation in path.relations() {
             let current_alias = current_table.alias;
             for (current_column, join_column) in relation.joins() {
-                let current_column = current_column.aliased(current_table.alias);
+                let mut current_column = current_column.aliased(current_table.alias);
                 let mut join_column = join_column.aliased(Alias {
                     condition_index: self.artifacts.condition_index,
                     chain_depth: current_table.alias.chain_depth + 1,
@@ -494,27 +498,19 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                 // entity_type_version_id = type_ids.version_id`. We, however, need to
                 // make sure, that we only alter a join statement with a table we don't require
                 // anymore.
-                if let Some(last_join) = self.statement.joins.last_mut() {
-                    // Check if we are joining on the same column as the previous join
-                    if last_join.join == current_column
-                        && !self
-                            .artifacts
-                            .required_tables
-                            .contains(&last_join.join.table())
-                    {
-                        last_join.join.table().table = join_column.table().table;
-                        last_join.join.column = join_column.column;
-                        current_table = last_join.join.table();
-
-                        if let [.., previous_join, this_join] = self.statement.joins.as_slice() {
-                            // It's possible that we just duplicated the last two join statements,
-                            // so remove the last one.
-                            if previous_join == this_join {
-                                self.statement.joins.pop();
-                            }
+                if true {
+                    if let Some(last_join) = self.statement.joins.pop() {
+                        // Check if we are joining on the same column as the previous join
+                        if last_join.join == current_column
+                            && !self
+                                .artifacts
+                                .required_tables
+                                .contains(&last_join.join.table())
+                        {
+                            current_column = last_join.on;
+                        } else {
+                            self.statement.joins.push(last_join);
                         }
-
-                        continue;
                     }
                 }
 
@@ -540,8 +536,8 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                     current_table = join_expression.join.table();
                     self.statement.joins.push(join_expression);
 
-                    if matches!(current_column.column, Column::Entities(_)) {
-                        self.pin_entity_table(current_alias);
+                    if matches!(join_column.column, Column::Entities(_)) {
+                        self.pin_entity_table(current_table.alias);
                     }
                 }
             }
