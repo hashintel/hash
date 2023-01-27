@@ -4,9 +4,10 @@ import styles from "./styles.module.scss";
 interface TableTitleProps {
   title: string;
   onChange: (title: string) => Promise<void>;
+  readonly?: boolean;
 }
 
-export const TableTitle = ({ title, onChange }: TableTitleProps) => {
+export const TableTitle = ({ title, onChange, readonly }: TableTitleProps) => {
   const [prevTitle, setPrevTitle] = useState(title);
 
   const [editing, setEditing] = useState(false);
@@ -29,6 +30,16 @@ export const TableTitle = ({ title, onChange }: TableTitleProps) => {
     setPrevTitle(title);
     setEditing(false);
     setInputValue(title);
+  }
+
+  if (readonly) {
+    if (!title) return null;
+
+    return (
+      <div className={styles.wrapper}>
+        <h2>{title}</h2>
+      </div>
+    );
   }
 
   if (!title && !editing) {

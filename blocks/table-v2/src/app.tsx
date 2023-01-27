@@ -29,7 +29,7 @@ const sampleRows: Row[] = [
 ];
 
 export const App: BlockComponent<RootEntity> = ({
-  graph: { blockEntitySubgraph },
+  graph: { blockEntitySubgraph, readonly },
 }) => {
   if (!blockEntitySubgraph) {
     throw new Error("No blockEntitySubgraph provided");
@@ -89,14 +89,16 @@ export const App: BlockComponent<RootEntity> = ({
 
   return (
     <div className={styles.block} ref={blockRootRef}>
-      <TableTitle onChange={setTitle} title={title ?? ""} />
+      <TableTitle onChange={setTitle} title={title ?? ""} readonly={readonly} />
       <Grid
         rows={rows.length}
         columns={columns}
         rightElement={
-          <div className={styles.addColumnButton} onClick={addNewColumn}>
-            Add a Column +
-          </div>
+          readonly ? null : (
+            <div className={styles.addColumnButton} onClick={addNewColumn}>
+              Add a Column +
+            </div>
+          )
         }
         rightElementProps={{ fill: true }}
         trailingRowOptions={{
@@ -104,7 +106,7 @@ export const App: BlockComponent<RootEntity> = ({
           sticky: true,
           tint: true,
         }}
-        onRowAppended={addNewRow}
+        onRowAppended={readonly ? undefined : addNewRow}
         rowMarkers="both"
         getCellContent={([colIndex, rowIndex]) => {
           const key = columns[colIndex]?.id as LocalRowId;
@@ -114,7 +116,7 @@ export const App: BlockComponent<RootEntity> = ({
             kind: GridCellKind.Text,
             displayData: value,
             data: value,
-            allowOverlay: true,
+            allowOverlay: !readonly,
           };
         }}
       />
