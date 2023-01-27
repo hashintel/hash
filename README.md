@@ -48,7 +48,7 @@ _Coming soon_
 
 ## [![a](/.github/assets/gh_icon_roadmap_20px-base.svg)][gh-roadmap] &nbsp; Roadmap
 
-Browse the [HASH roadmap] at for more information about upcoming features and releases.
+Browse the [HASH roadmap] for more information about upcoming features and releases.
 
 ## [![a](/.github/assets/gh_icon_repo-structure_20px-base.svg)][gh-repo-structure] &nbsp; About this repository
 
@@ -63,7 +63,16 @@ This repository's contents is divided across four primary sections:
 
 ### Applications
 
+#### HASH
+
+- [`/apps/hash`](apps/hash): entrypoint for [HASH] - a data-driven, entity-centric, all-in-one workspace based on the Block Protocol
+
+#### HASH Simulations
+
 - [`/apps/engine`](apps/engine): codebase for our next-gen version of [HASH Engine] - a versatile agent-based simulation engine written in Rust
+
+#### Our websites
+
 - [`/apps/hashdotai`](apps/hashdotai): contains the [HASH user guide] and [glossary of terms] content
 - [`/apps/hashdotdev`](apps/hashdotdev): contains the [hash.dev] developer-education website content and code
 
@@ -77,7 +86,6 @@ This repository's contents is divided across four primary sections:
 
 ### Libraries
 
-- [`/packages/hash`](packages/hash): codebase for [HASH] - a data-driven, entity-centric, all-in-one workspace based on the Block Protocol
 - [`/packages/libs`](packages/libs): source code for our open-source developer libraries
 
 ## [![a](/.github/assets/gh_icon_contributing_20px-base.svg)][gh-contributing] &nbsp; Contributing

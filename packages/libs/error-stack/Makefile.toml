@@ -1,8 +1,9 @@
 extend = { path = "../../../.github/scripts/rust/Makefile.toml" }
 
 [env]
-CARGO_CLIPPY_HACK_FLAGS = "--workspace --optional-deps --feature-powerset --exclude-features default"
-CARGO_TEST_HACK_FLAGS = "--workspace --optional-deps --feature-powerset --exclude-features default"
+COMMON_HACK_FLAGS = "--optional-deps --feature-powerset --group-features eyre,hooks --group-features anyhow,serde"
+CARGO_CLIPPY_HACK_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "", mapping = { "push" = "${COMMON_HACK_FLAGS}" } }
+CARGO_TEST_HACK_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "", mapping = { "push" = "${COMMON_HACK_FLAGS}" } }
 CARGO_INSTA_TEST_FLAGS = "--no-fail-fast"
 CARGO_RUSTDOC_HACK_FLAGS = ""
 CARGO_DOC_HACK_FLAGS = ""
@@ -10,10 +11,32 @@ CARGO_DOC_HACK_FLAGS = ""
 # all others do not change the output
 CARGO_INSTA_TEST_HACK_FLAGS = "--keep-going --feature-powerset --include-features spantrace,pretty-print,std,hooks"
 
+# Workaround for https://github.com/taiki-e/cargo-hack/issues/161
+# instead, we should pass `--ignore-unknown-features` to `cargo hack`
+[tasks.clippy]
+workspace = true
+run_task = [
+    { name = ["clippy-task"], condition = { env_true = ["CARGO_MAKE_CRATE_IS_WORKSPACE"] } },
+    { name = ["clippy-task-subcrate"] },
+]
+
+[tasks.clippy-task-subcrate]
+env = { CARGO_CLIPPY_HACK_FLAGS = "" }
+run_task = { name = ["clippy-task"] }
+
 
 [tasks.test]
+workspace = true
 dependencies = ["install-rust-src"]
 env = { TRYBUILD = "overwrite" }
+run_task = [
+    { name = ["test-task"], condition = { env_true = ["CARGO_MAKE_CRATE_IS_WORKSPACE"] } },
+    { name = ["test-task-subcrate"] },
+]
+
+[tasks.test-task-subcrate]
+env = { CARGO_TEST_HACK_FLAGS = "" }
+run_task = { name = ["test-task"] }
 
 [tasks.coverage]
 dependencies = ["install-rust-src"]

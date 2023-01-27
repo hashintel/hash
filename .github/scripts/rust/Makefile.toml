@@ -15,8 +15,8 @@ CARGO_RUN_FLAGS = ""
 CARGO_FORMAT_FLAGS = ""
 CARGO_FORMAT_HACK_FLAGS = "--workspace"
 
-CARGO_CLIPPY_FLAGS = "--no-deps --all-targets"
-CARGO_CLIPPY_HACK_FLAGS = "--workspace --feature-powerset"
+CARGO_CLIPPY_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "--no-deps --all-targets --all-features", mapping = {"push" = "--no-deps --all-targets" } }
+CARGO_CLIPPY_HACK_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "--workspace", mapping = {"push" = "--workspace --optional-deps --feature-powerset" } }
 
 CARGO_DOC_FLAGS = "--no-deps --all-features -Zunstable-options -Zrustdoc-scrape-examples"
 CARGO_DOC_HACK_FLAGS = "--workspace"
@@ -24,8 +24,8 @@ CARGO_DOC_HACK_FLAGS = "--workspace"
 CARGO_RUSTDOC_FLAGS = "--all-features -Zunstable-options -Zrustdoc-scrape-examples -- -Zunstable-options"
 CARGO_RUSTDOC_HACK_FLAGS = "--workspace"
 
-CARGO_TEST_FLAGS = ""
-CARGO_TEST_HACK_FLAGS = "--workspace --feature-powerset"
+CARGO_TEST_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "--all-features", mapping = {"push" = "" } }
+CARGO_TEST_HACK_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "--workspace", mapping = {"push" = "--workspace --optional-deps --feature-powerset" } }
 
 CARGO_DOC_TEST_FLAGS = "--workspace --all-features"
 
@@ -183,11 +183,13 @@ description = "Runs miri tests suite"
 run_task = { name = ["miri-task-no-features", "miri-task", "miri-task-all-features"] }
 
 [tasks.miri-task-no-features]
+condition = { env = { "GITHUB_EVENT_NAME" = "push" }}
 extend = "cargo"
 args = ["hack", "@@split(CARGO_MIRI_HACK_FLAGS, )", "miri", "test", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_MIRI_FLAGS, )", "--no-default-features", "${@}"]
 dependencies = ["install-miri"]
 
 [tasks.miri-task]
+condition = { env = { "GITHUB_EVENT_NAME" = "push" }}
 extend = "cargo"
 args = ["hack", "@@split(CARGO_MIRI_HACK_FLAGS, )", "miri", "test", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_MIRI_FLAGS, )", "${@}"]
 dependencies = ["install-miri"]
@@ -233,8 +235,8 @@ install_crate = { rustup_component_name = "miri" }
 
 [tasks.install-cargo-hack]
 private = true
-install_crate = { crate_name = "cargo-hack", version = "0.5.15", binary = "cargo", test_arg = ["hack", "--version"] }
+install_crate = { crate_name = "cargo-hack", version = "0.5.26", binary = "cargo", test_arg = ["hack", "--version"] }
 
 [tasks.install-cargo-nextest]
 private = true
-install_crate = { crate_name = "cargo-nextest", version = "0.9.28", binary = "cargo", test_arg = ["nextest", "--version"] }
+install_crate = { crate_name = "cargo-nextest", version = "0.9.37", binary = "cargo", test_arg = ["nextest", "--version"] }

@@ -33,10 +33,10 @@ impl Variant for BoundedContractViolationError {
     const ID: Id = id!["internal", "access", "bounded"];
     const NAMESPACE: Namespace = NAMESPACE;
 
-    fn message<'a>(
+    fn message(
         &self,
         fmt: &mut Formatter,
-        _: &<Self::Properties as ErrorProperties>::Value<'a>,
+        _properties: &<Self::Properties as ErrorProperties>::Value<'_>,
     ) -> core::fmt::Result {
         Display::fmt(&self, fmt)
     }

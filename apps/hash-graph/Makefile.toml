@@ -1,0 +1,144 @@
+extend = { path = "../../.github/scripts/rust/Makefile.toml" }
+
+[env]
+CARGO_RUSTDOC_HACK_FLAGS = "--workspace --exclude hash_graph_benches"
+
+RUST_LOG = "debug,hyper=warn"
+
+[env.production]
+CARGO_MAKE_CARGO_PROFILE = "production"
+
+[tasks.cargo]
+env_files = ["${REPO_ROOT}/.env"]
+env = { HASH_GRAPH_PG_DATABASE = "${HASH_GRAPH_PG_DEV_DATABASE}" }
+
+## Deployment
+####################
+[tasks.deployment-up]
+run_task = { name = ["docker-compose-deployment-up", "migrate-db"] }
+
+[tasks.docker-compose-deployment-up]
+private = false
+category = "Deploy"
+description = "Spins up the deployment environment"
+extend = "yarn"
+args = ["external-services", "up", "postgres", "--wait"]
+cwd = "${REPO_ROOT}"
+
+[tasks.migrate-db]
+extend = "cargo"
+private = false
+category = "Deploy"
+description = "Run DB migrations using the Graph binary"
+args = ["run", "--", "migrate"]
+
+[tasks.migrate-db.env]
+HASH_GRAPH_PG_USER = "${POSTGRES_USER}"
+HASH_GRAPH_PG_PASSWORD = "${POSTGRES_PASSWORD}"
+HASH_GRAPH_PG_DATABASE = "${HASH_GRAPH_PG_DEV_DATABASE}"
+
+[tasks.deployment-down]
+private = false
+category = "Deploy"
+description = "Tears down the deployment environment"
+extend = "yarn"
+args = ["external-services", "down"]
+cwd = "${REPO_ROOT}"
+
+## Docker container
+####################
+[tasks.build-docker]
+category = "Deploy"
+description = "Builds the Graph API's Docker container"
+extend = "yarn"
+args = ["external-services", "build", "graph", "${@}"]
+cwd = "${REPO_ROOT}"
+env = { DOCKER_BUILDKIT = 1 }
+
+[tasks.graph-up]
+category = "Deploy"
+description = "Spins up the Graph API as external service"
+extend = "yarn"
+args = ["external-services", "up", "--wait", "graph", "${@}"]
+cwd = "${REPO_ROOT}"
+
+[tasks.graph-down]
+category = "Deploy"
+description = "Tears down up the Graph API"
+extend = "yarn"
+args = ["external-services", "down"]
+cwd = "${REPO_ROOT}"
+
+
+## Tests
+####################
+[tasks.test-docker]
+run_task = { name = ["yarn", "graph-up", "test-rest-api", "generate-openapi-client", "graph-down"] }
+
+[tasks.test-rest-api]
+# This is a temporary solution until we have e2e tests in place
+extend = "yarn"
+args = ["httpyac", "send", "--all", "${REPO_ROOT}/apps/hash-graph/tests/rest-test.http", "${@}"]
+
+[tasks.test]
+run_task = [
+    { name = ["test-task", "deployment-up", "test-integration", "deployment-down"], condition = { env_true = ["CARGO_MAKE_CI"] } },
+    { name = ["test-task"] }
+]
+
+[tasks.test-task-doc]
+condition = { profiles = ["development"] }
+
+[tasks.test-integration]
+private = false
+extend = "cargo"
+args = ["nextest", "run", "--cargo-profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_TEST_FLAGS, )", "--workspace", "--test", "integration", "--profile", "integration", "${@}"]
+dependencies = ["install-cargo-nextest"]
+
+[tasks.miri]
+clear = true
+command = "echo"
+args = ["Miri is disabled as unsafe code is forbidden"]
+
+
+## Coverage
+####################
+[tasks.coverage]
+run_task = [
+    { name = ["deployment-up", "coverage-task", "coverage-integration", "deployment-down", "coverage-report"], condition = { env_true = ["CARGO_MAKE_CI"] } },
+    { name = ["coverage-task", "coverage-integration", "coverage-report"] },
+]
+
+[tasks.coverage-task]
+args = ["llvm-cov", "--no-report", "test", "--workspace", "--all-features", "--all-targets"]
+
+[tasks.coverage-integration]
+extend = "coverage-task"
+args = ["llvm-cov", "--no-report", "nextest", "--workspace", "--all-features", "--test", "integration"]
+
+[tasks.coverage-report]
+extend = "coverage-task"
+args = ["llvm-cov", "report", "${@}"]
+
+
+## OpenAPI client
+####################
+
+# If this step fails, the OpenAPI spec is invalid.
+# When running in CI, a non-empty git diff will fail the pipeline.
+[tasks.generate-openapi-client]
+category = "Deploy"
+description = "Generates the OpenAPI client"
+run_task = { name = ["generate-openapi-client-generate", "generate-openapi-client-prettier", "generate-openapi-client-eslint"] }
+
+[tasks.generate-openapi-client-generate]
+extend = "yarn"
+args = ["workspace", "@local/hash-graph-client-generator", "generate"]
+
+[tasks.generate-openapi-client-prettier]
+extend = "yarn"
+args = ["workspace", "@local/hash-graph-client", "prettier", "--write", "."]
+
+[tasks.generate-openapi-client-eslint]
+extend = "yarn"
+args = ["workspace", "@local/hash-graph-client", "fix:eslint"]

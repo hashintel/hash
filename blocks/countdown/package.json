@@ -1,6 +1,7 @@
 {
   "name": "@blocks/countdown",
   "version": "0.2.0",
+  "private": true,
   "description": "Countdown to a time and date",
   "keywords": [
     "blockprotocol",
