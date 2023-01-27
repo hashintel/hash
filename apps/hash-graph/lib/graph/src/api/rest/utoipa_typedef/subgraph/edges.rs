@@ -26,7 +26,8 @@ pub enum KnowledgeGraphOutwardEdges {
 }
 
 // WARNING: This MUST be kept up to date with the enum variants.
-//   We have to do this because utoipa does use `OutwardEdge` as the schema reference
+//   Utoipa is not able to derive the correct schema for this as it has problems with generic
+//   parameters.
 impl ToSchema<'_> for KnowledgeGraphOutwardEdges {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
@@ -142,7 +143,7 @@ impl Edges {
                         Entry::Vacant(entry) => {
                             entry.insert(BTreeMap::from([(
                                 id.version(),
-                                edges
+                                edges,
                             )]));
                         }
                     }
