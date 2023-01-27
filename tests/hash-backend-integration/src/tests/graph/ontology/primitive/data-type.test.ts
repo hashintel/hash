@@ -1,17 +1,17 @@
-import { DataType, TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
-} from "@hashintel/hash-api/src/graph";
-import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
+} from "@apps/hash-api/src/graph";
+import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createDataType,
   getDataTypeById,
   updateDataType,
-} from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
-import { DataTypeWithMetadata } from "@hashintel/hash-subgraph";
+} from "@apps/hash-api/src/graph/ontology/primitive/data-type";
+import { DataType, TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
+import { DataTypeWithMetadata } from "@local/hash-subgraph";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

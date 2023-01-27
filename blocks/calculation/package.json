@@ -1,6 +1,7 @@
 {
   "name": "@blocks/calculation",
   "version": "0.2.0",
+  "private": true,
   "description": "Spreadsheet-like table for doing computation on entities",
   "keywords": [
     "blockprotocol",
