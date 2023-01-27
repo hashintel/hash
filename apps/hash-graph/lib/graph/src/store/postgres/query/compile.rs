@@ -357,8 +357,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     }
 
     pub fn compile_path_column(&mut self, path: &'p R::QueryPath<'_>) -> AliasedColumn<'c> {
-        let column = path.terminating_column();
-        let column = match column {
+        let column = match path.terminating_column() {
             Column::DataTypes(DataTypes::Schema(Some(JsonField::JsonPath(field)))) => {
                 self.artifacts.parameters.push(field);
                 Column::DataTypes(DataTypes::Schema(Some(JsonField::JsonPathParameter(
