@@ -4,7 +4,10 @@ use std::{
     hash::Hash,
 };
 
-use crate::{identifier::time::TimeAxis, store::postgres::query::Transpile};
+use crate::{
+    identifier::time::TimeAxis,
+    store::{postgres::query::Transpile, query::JsonPath},
+};
 
 /// The name of a [`Table`] in the Postgres database.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -46,9 +49,13 @@ impl Transpile for Table {
     }
 }
 
+// TODO: We should add another enum to only contain variants, which may be passed as parameters,
+//       so the lifetime of that struct will be `'static`.
+//   see https://app.asana.com/0/0/1203821263193164/f
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum JsonField<'p> {
     Json(&'p Cow<'p, str>),
+    JsonPath(&'p JsonPath<'p>),
     JsonParameter(usize),
     StaticText(&'static str),
     StaticJson(&'static str),
@@ -62,14 +69,15 @@ pub enum TypeIds {
     LatestVersion,
 }
 
-impl Transpile for TypeIds {
-    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+impl TypeIds {
+    fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
             Self::VersionId => "version_id",
             Self::BaseUri => "base_uri",
             Self::Version => "version",
             Self::LatestVersion => "latest_version",
         };
+        table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
     }
 }
@@ -96,17 +104,22 @@ macro_rules! impl_ontology_column {
                 }
             }
 
-            impl Transpile for $name {
-                fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+            impl $name {
+                fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
                     let column = match self {
                         Self::VersionId => "version_id",
                         Self::OwnedById => "owned_by_id",
                         Self::UpdatedById => "updated_by_id",
                         Self::Schema(None) => "schema",
                         Self::Schema(Some(path)) => {
+                            table.transpile(fmt)?;
                             return match path {
                                 JsonField::Json(field) => panic!(
                                     "attempting to access JSON field `{field}` on schema column \
+                                     without preparing the value"
+                                ),
+                                JsonField::JsonPath(path) => panic!(
+                                    "attempting to access JSON path `{path}` on schema column \
                                      without preparing the value"
                                 ),
                                 JsonField::JsonParameter(index) => {
@@ -121,6 +134,7 @@ macro_rules! impl_ontology_column {
                             };
                         }
                     };
+                    table.transpile(fmt)?;
                     write!(fmt, r#"."{}""#, column)
                 }
             }
@@ -184,8 +198,8 @@ impl Entities<'_> {
     }
 }
 
-impl Transpile for Entities<'_> {
-    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+impl Entities<'_> {
+    fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
             Self::EntityUuid => "entity_uuid",
             Self::RecordId => "entity_record_id",
@@ -198,19 +212,26 @@ impl Transpile for Entities<'_> {
             Self::EntityTypeVersionId => "entity_type_version_id",
             Self::Properties(None) => "properties",
             Self::Properties(Some(path)) => {
+                write!(fmt, "jsonb_path_query_first(")?;
+                table.transpile(fmt)?;
+                write!(fmt, r#"."properties", "#)?;
                 return match path {
                     JsonField::Json(field) => panic!(
                         "attempting to access JSON field `{field}` on properties column without \
                          preparing the value"
                     ),
-                    JsonField::JsonParameter(index) => {
-                        write!(fmt, r#"."properties"->${index}"#)
-                    }
+                    JsonField::JsonPath(path) => panic!(
+                        "attempting to access JSON path `{path}` on properties column without \
+                         preparing the value"
+                    ),
                     JsonField::StaticText(field) => {
-                        write!(fmt, r#"."properties"->>'{field}'"#)
+                        panic!("attempting to access JSON field `{field}` on properties as text")
+                    }
+                    JsonField::JsonParameter(index) => {
+                        write!(fmt, "${index}::text::jsonpath)")
                     }
                     JsonField::StaticJson(field) => {
-                        write!(fmt, r#"."properties"->'{field}'"#)
+                        write!(fmt, r#"'{field}::text::jsonpath')"#)
                     }
                 };
             }
@@ -221,6 +242,7 @@ impl Transpile for Entities<'_> {
             Self::LeftEntityOwnedById => "left_owned_by_id",
             Self::RightEntityOwnedById => "right_owned_by_id",
         };
+        table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
     }
 }
@@ -231,8 +253,9 @@ pub enum PropertyTypeDataTypeReferences {
     TargetDataTypeVersionId,
 }
 
-impl Transpile for PropertyTypeDataTypeReferences {
-    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+impl PropertyTypeDataTypeReferences {
+    fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        table.transpile(fmt)?;
         write!(fmt, r#"."{}""#, match self {
             Self::SourcePropertyTypeVersionId => "source_property_type_version_id",
             Self::TargetDataTypeVersionId => "target_data_type_version_id",
@@ -246,8 +269,9 @@ pub enum PropertyTypePropertyTypeReferences {
     TargetPropertyTypeVersionId,
 }
 
-impl Transpile for PropertyTypePropertyTypeReferences {
-    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+impl PropertyTypePropertyTypeReferences {
+    fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        table.transpile(fmt)?;
         write!(fmt, r#"."{}""#, match self {
             Self::SourcePropertyTypeVersionId => "source_property_type_version_id",
             Self::TargetPropertyTypeVersionId => "target_property_type_version_id",
@@ -261,8 +285,9 @@ pub enum EntityTypePropertyTypeReferences {
     TargetPropertyTypeVersionId,
 }
 
-impl Transpile for EntityTypePropertyTypeReferences {
-    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+impl EntityTypePropertyTypeReferences {
+    fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        table.transpile(fmt)?;
         write!(fmt, r#"."{}""#, match self {
             Self::SourceEntityTypeVersionId => "source_entity_type_version_id",
             Self::TargetPropertyTypeVersionId => "target_property_type_version_id",
@@ -276,8 +301,9 @@ pub enum EntityTypeEntityTypeReferences {
     TargetEntityTypeVersionId,
 }
 
-impl Transpile for EntityTypeEntityTypeReferences {
-    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+impl EntityTypeEntityTypeReferences {
+    fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        table.transpile(fmt)?;
         write!(fmt, r#"."{}""#, match self {
             Self::SourceEntityTypeVersionId => "source_entity_type_version_id",
             Self::TargetEntityTypeVersionId => "target_entity_type_version_id",
@@ -331,22 +357,25 @@ impl<'p> Column<'p> {
             alias,
         }
     }
+
+    fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::TypeIds(column) => column.transpile_column(table, fmt),
+            Self::DataTypes(column) => column.transpile_column(table, fmt),
+            Self::PropertyTypes(column) => column.transpile_column(table, fmt),
+            Self::EntityTypes(column) => column.transpile_column(table, fmt),
+            Self::Entities(column) => column.transpile_column(table, fmt),
+            Self::PropertyTypeDataTypeReferences(column) => column.transpile_column(table, fmt),
+            Self::PropertyTypePropertyTypeReferences(column) => column.transpile_column(table, fmt),
+            Self::EntityTypePropertyTypeReferences(column) => column.transpile_column(table, fmt),
+            Self::EntityTypeEntityTypeReferences(column) => column.transpile_column(table, fmt),
+        }
+    }
 }
 
 impl Transpile for Column<'_> {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        self.table().transpile(fmt)?;
-        match self {
-            Self::TypeIds(column) => column.transpile(fmt),
-            Self::DataTypes(column) => column.transpile(fmt),
-            Self::PropertyTypes(column) => column.transpile(fmt),
-            Self::EntityTypes(column) => column.transpile(fmt),
-            Self::Entities(column) => column.transpile(fmt),
-            Self::PropertyTypeDataTypeReferences(column) => column.transpile(fmt),
-            Self::PropertyTypePropertyTypeReferences(column) => column.transpile(fmt),
-            Self::EntityTypePropertyTypeReferences(column) => column.transpile(fmt),
-            Self::EntityTypeEntityTypeReferences(column) => column.transpile(fmt),
-        }
+        self.transpile_column(&self.table(), fmt)
     }
 }
 
@@ -420,18 +449,7 @@ impl AliasedColumn<'_> {
 
 impl Transpile for AliasedColumn<'_> {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        self.table().transpile(fmt)?;
-        match self.column {
-            Column::TypeIds(column) => column.transpile(fmt),
-            Column::DataTypes(column) => column.transpile(fmt),
-            Column::PropertyTypes(column) => column.transpile(fmt),
-            Column::EntityTypes(column) => column.transpile(fmt),
-            Column::Entities(column) => column.transpile(fmt),
-            Column::PropertyTypeDataTypeReferences(column) => column.transpile(fmt),
-            Column::PropertyTypePropertyTypeReferences(column) => column.transpile(fmt),
-            Column::EntityTypePropertyTypeReferences(column) => column.transpile(fmt),
-            Column::EntityTypeEntityTypeReferences(column) => column.transpile(fmt),
-        }
+        self.column.transpile_column(&self.table(), fmt)
     }
 }
 
