@@ -5,7 +5,6 @@ import {
   DataEditor,
   DataEditorProps,
   DataEditorRef,
-  GetRowThemeCallback,
   GridCell,
   GridColumn,
   GridMouseEventArgs,
@@ -135,7 +134,9 @@ export const Grid = <T extends Rows>({
     [palette],
   );
 
-  const getRowThemeOverride = useCallback<GetRowThemeCallback>(
+  const getRowThemeOverride = useCallback<
+    NonNullable<DataEditorProps["getRowThemeOverride"]>
+  >(
     (row) => {
       if (row === hoveredRow) {
         return {
