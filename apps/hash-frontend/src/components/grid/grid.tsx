@@ -237,6 +237,7 @@ export const Grid = <T extends Rows>({
       getCellContent={createGetCellContent(sortedRows)}
       onCellEdited={createOnCellEdited?.(sortedRows)}
       rows={sortedRows.length}
+      maxColumnWidth={1000}
       {...rest}
       /**
        * icons defined via `headerIcons` are available to be drawn using
