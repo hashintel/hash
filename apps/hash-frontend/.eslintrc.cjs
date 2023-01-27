@@ -53,6 +53,10 @@ module.exports = {
             group: ["@mui/material/*"],
             message: "Please import from @mui/material instead",
           },
+          {
+            group: ["@local/design-system/*"],
+            message: "Please import from @local/design-system instead",
+          },
         ],
       },
     ],
