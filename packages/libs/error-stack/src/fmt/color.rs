@@ -41,10 +41,10 @@ impl ColorPreference {
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum ColorMode {
     /// User preference to disable all colors
-    ///
-    /// If this is the variant is present, [`owo-colors`](https://docs.rs/owo-colors) color
-    /// support has been temporarily disabled and closures given to
-    /// [`OwoColorize::if_supports_color`] will not be executed.
+    // TODO: this is only true once https://github.com/jam1garner/owo-colors/pull/90 is merged
+    // If this is the variant is present, [`owo-colors`](https://docs.rs/owo-colors) color
+    // support has been temporarily disabled and closures given to
+    // [`OwoColorize::if_supports_color`] will not be executed.
     None,
 
     /// User preference to enable colors
