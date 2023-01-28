@@ -92,7 +92,7 @@ impl Report<()> {
     /// Report::install_debug_hook::<Suggestion>(|Suggestion(value), context| {
     ///     match context.charset() {
     ///         Charset::Utf8 => context.push_body(format!("📝 {value}")),
-    ///         Charset::Ascii => context.push_body(format!("suggestion: {body}"))
+    ///         Charset::Ascii => context.push_body(format!("suggestion: {value}"))
     ///     };
     /// });
     ///

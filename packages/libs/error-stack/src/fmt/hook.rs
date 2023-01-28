@@ -126,7 +126,7 @@ impl Format {
 ///     .attach(HttpResponseStatusCode(501))
 ///     .attach(Suggestion("try better next time!"));
 ///
-/// # owo_colors::set_override(true);
+/// # Report::set_color_mode(Some(error_stack::fmt::ColorMode::Color));
 /// # fn render(value: String) -> String {
 /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
 /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
@@ -206,7 +206,7 @@ impl Format {
 ///     .attach(Computation(2))
 ///     .attach(Computation(3));
 ///
-/// # owo_colors::set_override(true);
+/// # Report::set_color_mode(Some(error_stack::fmt::ColorMode::Color));
 /// # fn render(value: String) -> String {
 /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
 /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
@@ -289,7 +289,7 @@ impl<T> HookContext<T> {
     ///         reason: "bad request - server cannot or will not process request",
     ///     });
     ///
-    /// # owo_colors::set_override(true);
+    /// # Report::set_color_mode(Some(error_stack::fmt::ColorMode::Color));
     /// # fn render(value: String) -> String {
     /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
     /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
@@ -336,7 +336,7 @@ impl<T> HookContext<T> {
     /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
     ///     .attach(Suggestion("try better next time"));
     ///
-    /// # owo_colors::set_override(true);
+    /// # Report::set_color_mode(Some(error_stack::fmt::ColorMode::Color));
     /// # fn render(value: String) -> String {
     /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
     /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
@@ -521,7 +521,7 @@ mod default {
     }
 
     fn location(location: &Location<'static>, context: &mut HookContext<Location<'static>>) {
-        context.push_body(LocationDisplay::new(location, context.color()).to_string());
+        context.push_body(LocationDisplay::new(location, context.color_mode()).to_string());
     }
 
     #[cfg(all(feature = "std", rust_1_65))]

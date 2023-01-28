@@ -54,9 +54,9 @@ pub enum ColorMode {
     None,
 
     /// User preference to enable colors
-    ///
-    /// This will also temporarily set [`owo_colors::set_override`] to enable execution of
-    /// [`OwoColorize::if_supports_color`].
+    // TODO: this is only true once https://github.com/jam1garner/owo-colors/pull/90 is merged
+    // This will also temporarily set [`owo_colors::set_override`] to enable execution of
+    // [`OwoColorize::if_supports_color`].
     Color,
 
     /// User preference to enable styles, but discourage colors

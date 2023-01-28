@@ -32,6 +32,7 @@ impl<'a> Display for LocationDisplay<'a> {
             ColorMode::Emphasis => Display::fmt(&(*location).italic(), f),
         }?;
 
+        #[cfg(not(feature = "color"))]
         f.write_fmt(format_args!("at {location}"))?;
 
         Ok(())

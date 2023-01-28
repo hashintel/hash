@@ -99,7 +99,7 @@
 //!     .attach(Suggestion("try better next time!"))
 //!     .attach(Warning("unable to fetch resource"));
 //!
-//! # owo_colors::set_override(true);
+//! # Report::set_color_mode(Some(error_stack::fmt::ColorMode::Color));
 //! # fn render(value: String) -> String {
 //! #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
 //! #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
@@ -1006,7 +1006,7 @@ impl<C> Debug for Report<C> {
         // TODO: set temporary override!
 
         #[cfg(any(feature = "std", feature = "hooks"))]
-        let mut context = HookContext::new(Format::new(fmt.alternate(), mode, charset));
+        let mut context = HookContext::new(Format::new(fmt.alternate(), color, charset));
 
         #[cfg_attr(not(any(feature = "std", feature = "hooks")), allow(unused_mut))]
         let mut lines = self
