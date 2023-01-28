@@ -38,6 +38,8 @@ regex = "1.7.0"
 expect-test = "1.4.0"
 ansi-to-html = "0.1.2"
 once_cell = "1.16.0"
+supports-color = "2.0.0"
+supports-unicode = "1.0.2"
 
 [build-dependencies]
 rustc_version = "0.4"
@@ -69,6 +71,9 @@ required-features = ["std"]
 [[example]]
 name = "parse_config"
 required-features = ["std"]
+
+[[example]]
+name = "detect"
 
 
 [[test]]

@@ -164,17 +164,17 @@ impl Report<()> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// Report::format_color_mode_preference(Some(ColorMode::None));
+    /// Report::set_color_mode(Some(ColorMode::None));
     /// println!("{report:?}");
     /// # #[cfg(rust_1_65)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__preference_none.snap")].assert_eq(&render(format!("{report:?}")));
     ///
-    /// Report::format_color_mode_preference(Some(ColorMode::Emphasis));
+    /// Report::set_color_mode(Some(ColorMode::Emphasis));
     /// println!("{report:?}");
     /// # #[cfg(rust_1_65)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__preference_emphasis.snap")].assert_eq(&render(format!("{report:?}")));
     ///
-    /// Report::format_color_mode_preference(Some(ColorMode::Color));
+    /// Report::set_color_mode(Some(ColorMode::Color));
     /// println!("{report:?}");
     /// # #[cfg(rust_1_65)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__preference_color.snap")].assert_eq(&render(format!("{report:?}")));
@@ -194,7 +194,7 @@ impl Report<()> {
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__preference_color.snap"))]
     /// </pre>
     #[cfg(feature = "color")]
-    pub fn format_color_mode_preference(mode: Option<ColorMode>) {
+    pub fn set_color_mode(mode: Option<ColorMode>) {
         FMT_MODE.store(mode);
     }
 }

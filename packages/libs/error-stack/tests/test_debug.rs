@@ -42,7 +42,7 @@ fn setup_backtrace() {
 
 #[cfg(feature = "color")]
 fn setup_color() {
-    Report::format_color_mode_preference(Some(ColorMode::None));
+    Report::set_color_mode(Some(ColorMode::None));
 }
 
 fn setup() {
