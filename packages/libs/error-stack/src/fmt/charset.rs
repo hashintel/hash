@@ -66,11 +66,9 @@ impl Report<()> {
     /// Set the charset preference
     ///
     /// If the value is [`None`], a previously set preference will be unset, while with [`Some`] a
-    /// specific charset will be set. If `detect` is enabled, and no charset has been explicitly
-    /// set, the capabilities of the terminal are queried through [`supports_unicode`] to
-    /// determine if [`Charset::Utf8`] is supported.
+    /// specific charset will be set.
     ///
-    /// The value defaults to [`Charset::Utf8`] if the `detect` feature is **not** enabled.
+    /// The value defaults to [`Charset::Utf8`].
     ///
     /// # Example
     ///
