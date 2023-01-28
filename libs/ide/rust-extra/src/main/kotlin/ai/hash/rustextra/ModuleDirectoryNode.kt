@@ -3,14 +3,14 @@ package ai.hash.rustextra
 import com.intellij.ide.projectView.PresentationData
 import com.intellij.ide.projectView.ViewSettings
 import com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode
+import com.intellij.ide.projectView.impl.nodes.PsiFileSystemItemFilter
 import com.intellij.ide.util.treeView.AbstractTreeNode
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFile
-import java.awt.Color
 
-class ModuleDirectoryNode(project: Project, value: PsiDirectory, viewSettings: ViewSettings) : PsiDirectoryNode(project, value, viewSettings) {
+class ModuleDirectoryNode(project: Project, value: PsiDirectory, viewSettings: ViewSettings, filter: PsiFileSystemItemFilter?) : PsiDirectoryNode(project, value, viewSettings, filter) {
     private val prepend = ArrayList<AbstractTreeNode<*>>();
 
     fun addPrepend(element: AbstractTreeNode<*>) {
@@ -52,6 +52,6 @@ class ModuleDirectoryNode(project: Project, value: PsiDirectory, viewSettings: V
 
     companion object {
         fun fromPsiFileNode(node: PsiDirectoryNode) =
-                ModuleDirectoryNode(node.project, node.value, node.settings)
+                ModuleDirectoryNode(node.project, node.value, node.settings, node.filter)
     }
 }

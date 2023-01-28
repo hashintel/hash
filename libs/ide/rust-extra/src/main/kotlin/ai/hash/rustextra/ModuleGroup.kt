@@ -39,7 +39,9 @@ class ModuleGroup: TreeStructureProvider {
 
                 if (file != null && !file.isDirectory && file.fileType is LanguageFileType) {
                     // figure out if we currently handle a rust file
-                    if (file.fileType.name == "Rust") {
+
+                    // if (file.fileType.name == "Rust") {
+                    if (file.extension == "rs") {
                         // the file is a rust file, we now need to find out if that file has a corresponding directory
                         // we can attach it to
                         val directory = directories[file.nameWithoutExtension];
