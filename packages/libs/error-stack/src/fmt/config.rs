@@ -59,6 +59,9 @@ impl Config {
         Self::new(color_mode, charset, alternate)
     }
 
+    // This is here for parity to the hook counterpart, might be unused in some
+    // configurations (no `color` feature)
+    #[allow(unused)]
     pub(crate) const fn color_mode(&self) -> ColorMode {
         self.color_mode
     }

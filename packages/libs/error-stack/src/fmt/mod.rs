@@ -276,14 +276,18 @@ impl Symbol {
     }
 }
 
-struct SymbolDisplay {
-    inner: Symbol,
+struct SymbolDisplay<'a> {
+    inner: &'a [Symbol],
     charset: Charset,
 }
 
-impl Display for SymbolDisplay {
+impl Display for SymbolDisplay<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str(self.inner.to_str(self.charset))
+        for symbol in self.inner {
+            f.write_str(symbol.to_str(self.charset))?;
+        }
+
+        Ok(())
     }
 }
 
@@ -512,22 +516,20 @@ impl Display for InstructionDisplay<'_> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         match self.instruction.prepare() {
             PreparedInstruction::Symbols(symbols) => {
-                for symbol in symbols {
-                    let display = SymbolDisplay {
-                        inner: *symbol,
-                        charset: self.charset,
-                    };
+                let display = SymbolDisplay {
+                    inner: symbols,
+                    charset: self.charset,
+                };
 
-                    #[cfg(feature = "color")]
-                    match self.color {
-                        ColorMode::None => Display::fmt(&display, fmt)?,
-                        ColorMode::Color => Display::fmt(&display.red(), fmt)?,
-                        ColorMode::Emphasis => Display::fmt(&display.bold(), fmt)?,
-                    };
+                #[cfg(feature = "color")]
+                match self.color {
+                    ColorMode::None => Display::fmt(&display, fmt)?,
+                    ColorMode::Color => Display::fmt(&display.red(), fmt)?,
+                    ColorMode::Emphasis => Display::fmt(&display.bold(), fmt)?,
+                };
 
-                    #[cfg(not(feature = "color"))]
-                    Display::fmt(&display, fmt)?;
-                }
+                #[cfg(not(feature = "color"))]
+                Display::fmt(&display, fmt)?;
             }
             #[cfg(feature = "color")]
             PreparedInstruction::Content(value, &style) => style.apply(fmt, value, self.color)?,
@@ -975,6 +977,7 @@ impl<C> Debug for Report<C> {
 
         let mut config = Config::load(fmt.alternate());
 
+        #[cfg(feature = "color")]
         let color = config.color_mode();
         let charset = config.charset();
 
