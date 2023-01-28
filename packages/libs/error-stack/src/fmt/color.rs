@@ -22,12 +22,6 @@ impl ColorPreference {
         }
     }
 
-    pub(crate) fn load_derive(&self) -> ColorMode {
-        // The default is `ColorMode::Emphasis`, as colors are hard. ANSI colors are not
-        // standardized, and some colors may not show at all.
-        self.load().map_or(ColorMode::Emphasis, |mode| mode)
-    }
-
     pub(crate) fn store(&self, mode: Option<ColorMode>) {
         let mode = match mode {
             None => 0,
@@ -69,7 +63,9 @@ pub enum ColorMode {
 impl ColorMode {
     #[cfg(feature = "color")]
     pub(super) fn load() -> Self {
-        FMT_MODE.load_derive()
+        // The default is `ColorMode::Emphasis`, as colors are hard. ANSI colors are not
+        // standardized, and some colors may not show at all.
+        COLOR_OVERRIDE.load().map_or(Self::Emphasis, |mode| mode)
     }
 
     #[cfg(not(feature = "color"))]
@@ -79,7 +75,7 @@ impl ColorMode {
 }
 
 #[cfg(feature = "color")]
-static FMT_MODE: ColorPreference = ColorPreference::new();
+static COLOR_OVERRIDE: ColorPreference = ColorPreference::new();
 
 impl Report<()> {
     /// Set the color mode preference
@@ -157,6 +153,6 @@ impl Report<()> {
     /// </pre>
     #[cfg(feature = "color")]
     pub fn set_color_mode(mode: Option<ColorMode>) {
-        FMT_MODE.store(mode);
+        COLOR_OVERRIDE.store(mode);
     }
 }

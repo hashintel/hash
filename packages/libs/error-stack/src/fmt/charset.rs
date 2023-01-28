@@ -22,13 +22,11 @@ pub enum Charset {
 
 impl Charset {
     pub(super) fn load() -> Self {
-        if let Some(charset) = CHARSET_OVERRIDE.load() {
-            charset
-        } else {
-            // we assume that most fonts and terminals nowadays support Utf8, which is why this is
-            // the default
-            Charset::Utf8
-        }
+        // we assume that most fonts and terminals nowadays support Utf8, which is why this is
+        // the default
+        CHARSET_OVERRIDE
+            .load()
+            .map_or(Self::Utf8, |charset| charset)
     }
 }
 
@@ -119,6 +117,16 @@ impl Report<()> {
     /// # #[cfg(rust_1_65)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__charset_ascii.snap")].assert_eq(&render(format!("{report:?}")));
     /// ```
+    ///
+    /// Which will result in something like:
+    ///
+    /// <pre>
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__charset_utf8.snap"))]
+    /// </pre>
+    ///
+    /// <pre>
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__charset_ascii.snap"))]
+    /// </pre>
     pub fn set_charset(charset: Option<Charset>) {
         CHARSET_OVERRIDE.store(charset);
     }
