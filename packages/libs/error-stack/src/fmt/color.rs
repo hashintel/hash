@@ -37,7 +37,7 @@ impl ColorPreference {
 /// The available modes of color support
 ///
 /// Can be accessed through [`crate::fmt::HookContext::color_mode`], and set via
-/// [`Report::format_color_mode_preference`]
+/// [`Report::set_color_mode`]
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum ColorMode {
     /// User preference to disable all colors

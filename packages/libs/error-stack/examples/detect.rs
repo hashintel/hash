@@ -14,8 +14,6 @@ use error_stack::{
     fmt::{Charset, ColorMode},
     Report, Result,
 };
-use supports_color;
-use supports_unicode;
 
 type Config = String;
 

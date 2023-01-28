@@ -11,13 +11,21 @@ use crate::fmt::ColorMode;
 
 pub(super) struct LocationDisplay<'a> {
     location: &'a Location<'static>,
+    #[cfg(feature = "color")]
     mode: ColorMode,
 }
 
 impl<'a> LocationDisplay<'a> {
+    // rust is likely to just remove this anyway, but as this is an internal only API having the
+    // color mode always present makes it easier to work with.
+    #[allow(unused)]
     #[must_use]
     pub(super) const fn new(location: &'a Location<'static>, mode: ColorMode) -> Self {
-        Self { location, mode }
+        Self {
+            location,
+            #[cfg(feature = "color")]
+            mode,
+        }
     }
 }
 

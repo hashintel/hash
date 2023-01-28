@@ -10,13 +10,10 @@ use crate::Report;
 pub enum Charset {
     /// Terminal of the user supports utf-8
     ///
-    /// This is the default if no charset has been explicitly set and the `detect` was not enabled.
+    /// This is the default if no charset has been explicitly set.
     Utf8,
 
     /// Terminal of the user supports ASCII
-    ///
-    /// This needs to be set explicitly if the `detect` feature is not enabled, otherwise
-    /// `error-stack` tries to determine the support via the [`supports_unicode`] crate.
     Ascii,
 }
 
