@@ -411,19 +411,25 @@
 //!
 //! [`Future`]: core::future::Future
 //!
+//! ### Colored output and charset selection
+//!
+//! You can override the color support by using the [`Report::set_color_mode`]. To override the
+//! charset used, you can use [`Report::set_charset`]. The default color mode is emphasis (if the
+//! `color` feature is enabled). The default charset is `UTF-8`.
+//!
+//! To automatically detect support if your target output supports unicode and colors you can check
+//! out the `detect.rs` example.
+//!
 //! ### Feature Flags
 //!
 //!  Feature       | Description                                                        | default
 //! ---------------|--------------------------------------------------------------------|----------
 //! `std`          | Enables support for [`Error`], and, on Rust 1.65+, [`Backtrace`]   | enabled
-//! `pretty-print` | Provide color[^color] and use of unicode in [`Debug`] output       | enabled
+//! `color`        | Provide support for color in [`Debug`] output                      | disabled
 //! `spantrace`    | Enables automatic capturing of [`SpanTrace`]s                      | disabled
 //! `hooks`        | Enables hooks on `no-std` platforms using spin locks               | disabled
 //! `anyhow`       | Provides `into_report` to convert [`anyhow::Error`] to [`Report`]  | disabled
 //! `eyre`         | Provides `into_report` to convert [`eyre::Report`] to [`Report`]   | disabled
-//!
-//! [^color]: error-stack supports the [`NO_COLOR`](http://no-color.org/)
-//!     and `FORCE_COLOR` environment variables through the [owo-colors crate](https://crates.io/crates/owo-colors)
 //!
 //!
 //! [`set_debug_hook`]: Report::set_debug_hook

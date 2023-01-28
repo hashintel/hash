@@ -23,6 +23,8 @@ impl ColorPreference {
     }
 
     pub(crate) fn load_derive(&self) -> ColorMode {
+        // The default is `ColorMode::Emphasis`, as colors are hard. ANSI colors are not
+        // standardized, and some colors may not show at all.
         self.load().map_or(ColorMode::Emphasis, |mode| mode)
     }
 
