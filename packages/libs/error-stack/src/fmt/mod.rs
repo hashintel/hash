@@ -144,6 +144,7 @@
 
 mod charset;
 mod color;
+mod config;
 #[cfg(any(feature = "std", feature = "hooks"))]
 mod hook;
 mod location;
@@ -173,14 +174,7 @@ use location::LocationDisplay;
 #[cfg(feature = "color")]
 use owo_colors::{OwoColorize, Style as OwOStyle};
 
-use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
-
-#[cfg(not(any(feature = "std", feature = "hooks")))]
-#[derive(Debug, Copy, Clone)]
-struct Config {
-    charset: Charset,
-    color: ColorMode,
-}
+use crate::{fmt::config::Config, AttachmentKind, Context, Frame, FrameKind, Report};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum Symbol {
@@ -725,10 +719,12 @@ impl Opaque {
 
 fn debug_attachments_invoke<'a>(
     frames: impl IntoIterator<Item = &'a Frame>,
-    #[cfg(not(any(feature = "std", feature = "hooks")))] config: Config,
-    #[cfg(any(feature = "std", feature = "hooks"))] context: &mut HookContext<Frame>,
+    config: &mut Config,
 ) -> (Opaque, Vec<String>) {
     let mut opaque = Opaque::new();
+
+    #[cfg(any(feature = "std", feature = "hooks"))]
+    let context = config.context();
 
     let body = frames
         .into_iter()
@@ -759,7 +755,9 @@ fn debug_attachments_invoke<'a>(
             #[cfg(not(any(feature = "std", feature = "hooks")))]
             FrameKind::Attachment(AttachmentKind::Opaque(_)) => frame
                 .downcast_ref::<core::panic::Location<'static>>()
-                .map(|location| vec![LocationDisplay::new(location, config.color).to_string()]),
+                .map(|location| {
+                    vec![LocationDisplay::new(location, config.color_mode()).to_string()]
+                }),
         })
         .flat_map(|body| {
             body.unwrap_or_else(|| {
@@ -777,18 +775,11 @@ fn debug_attachments_invoke<'a>(
 fn debug_attachments<'a>(
     position: Position,
     frames: impl IntoIterator<Item = &'a Frame>,
-    #[cfg(not(any(feature = "std", feature = "hooks")))] config: Config,
-    #[cfg(any(feature = "std", feature = "hooks"))] context: &mut HookContext<Frame>,
+    config: &mut Config,
 ) -> Lines {
     let last = matches!(position, Position::Final);
 
-    let (opaque, entries) = debug_attachments_invoke(
-        frames,
-        #[cfg(not(any(feature = "std", feature = "hooks")))]
-        config,
-        #[cfg(any(feature = "std", feature = "hooks"))]
-        context,
-    );
+    let (opaque, entries) = debug_attachments_invoke(frames, config);
     let opaque = opaque.render();
 
     // Calculate the expected end length, by adding all values that have would contribute to the
@@ -909,12 +900,7 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
         .collect()
 }
 
-fn debug_frame(
-    root: &Frame,
-    prefix: &[&Frame],
-    #[cfg(not(any(feature = "std", feature = "hooks")))] config: Config,
-    #[cfg(any(feature = "std", feature = "hooks"))] context: &mut HookContext<Frame>,
-) -> Vec<Lines> {
+fn debug_frame(root: &Frame, prefix: &[&Frame], config: &mut Config) -> Vec<Lines> {
     let (stack, sources) = collect(root, prefix);
     let (stack, prefix) = partition(&stack);
 
@@ -954,10 +940,7 @@ fn debug_frame(
                     Position::Inner
                 },
                 once(head).chain(body),
-                #[cfg(not(any(feature = "std", feature = "hooks")))]
                 config,
-                #[cfg(any(feature = "std", feature = "hooks"))]
-                context,
             );
             head_context.then(body)
         })
@@ -968,16 +951,7 @@ fn debug_frame(
         .flat_map(
             // if the group is "transparent" (has no context), it will return all it's parents
             // rendered this is why we must first flat_map.
-            |source| {
-                debug_frame(
-                    source,
-                    &prefix,
-                    #[cfg(not(any(feature = "std", feature = "hooks")))]
-                    config,
-                    #[cfg(any(feature = "std", feature = "hooks"))]
-                    context,
-                )
-            },
+            |source| debug_frame(source, &prefix, config),
         )
         .collect::<Vec<_>>();
 
@@ -997,31 +971,18 @@ fn debug_frame(
 
 impl<C> Debug for Report<C> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        let color = ColorMode::load();
-        let charset = Charset::load();
-
-        #[cfg(not(any(feature = "std", feature = "hooks")))]
-        let config = Config { charset, color };
-
         // TODO: set temporary override!
 
-        #[cfg(any(feature = "std", feature = "hooks"))]
-        let mut context = HookContext::new(Format::new(fmt.alternate(), color, charset));
+        let mut config = Config::load(fmt.alternate());
+
+        let color = config.color_mode();
+        let charset = config.charset();
 
         #[cfg_attr(not(any(feature = "std", feature = "hooks")), allow(unused_mut))]
         let mut lines = self
             .current_frames()
             .iter()
-            .flat_map(|frame| {
-                debug_frame(
-                    frame,
-                    &[],
-                    #[cfg(not(any(feature = "std", feature = "hooks")))]
-                    config,
-                    #[cfg(any(feature = "std", feature = "hooks"))]
-                    context.cast(),
-                )
-            })
+            .flat_map(|frame| debug_frame(frame, &[], &mut config))
             .enumerate()
             .flat_map(|(idx, lines)| {
                 if idx == 0 {
@@ -1049,7 +1010,8 @@ impl<C> Debug for Report<C> {
 
         #[cfg(any(feature = "std", feature = "hooks"))]
         {
-            let appendix = context
+            let appendix = config
+                .context::<Frame>()
                 .appendix()
                 .iter()
                 .map(
