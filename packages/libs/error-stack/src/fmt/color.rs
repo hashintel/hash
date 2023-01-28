@@ -1,44 +1,7 @@
-use core::fmt::Write;
-#[cfg(all(feature = "std", feature = "color"))]
-use core::sync::atomic::AtomicBool;
 #[cfg(feature = "color")]
 use core::sync::atomic::{AtomicU8, Ordering};
 
-#[cfg(all(feature = "std", feature = "color"))]
-use owo_colors::{OwoColorize, Stream};
-
 use crate::Report;
-
-struct VoidWriter;
-impl Write for VoidWriter {
-    fn write_str(&mut self, _: &str) -> core::fmt::Result {
-        Ok(())
-    }
-}
-
-// TODO: temporary until https://github.com/jam1garner/owo-colors/issues/87 is resolved
-#[cfg(feature = "detect")]
-fn has_stdout_color_support() -> ColorMode {
-    let supported = AtomicBool::new(false);
-    let display = "".if_supports_color(Stream::Stdout, |x| {
-        supported.store(true, Ordering::Relaxed);
-        x
-    });
-    // this will never fail, because the void writer cannot fail
-    // force the if_supports_color to be executed
-    core::write!(VoidWriter, "{display}").expect("should be infallible");
-
-    if supported.load(Ordering::Relaxed) {
-        ColorMode::Emphasis
-    } else {
-        ColorMode::None
-    }
-}
-
-#[cfg(not(feature = "detect"))]
-const fn has_stdout_color_support() -> ColorMode {
-    ColorMode::None
-}
 
 #[cfg(feature = "color")]
 pub(crate) struct ColorPreference(AtomicU8);
@@ -60,8 +23,7 @@ impl ColorPreference {
     }
 
     pub(crate) fn load_derive(&self) -> ColorMode {
-        self.load()
-            .map_or_else(has_stdout_color_support, |mode| mode)
+        self.load().map_or(ColorMode::Emphasis, |mode| mode)
     }
 
     pub(crate) fn store(&self, mode: Option<ColorMode>) {
@@ -81,8 +43,6 @@ impl ColorPreference {
 /// Can be accessed through [`crate::fmt::HookContext::color_mode`], and set via
 /// [`Report::format_color_mode_preference`]
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-// This is for ease of use, if color is enabled this will be visible
-#[allow(unreachable_pub)]
 pub enum ColorMode {
     /// User preference to disable all colors
     ///
@@ -112,7 +72,7 @@ impl ColorMode {
 
     #[cfg(not(feature = "color"))]
     pub(super) const fn load() -> Self {
-        has_stdout_color_support()
+        ColorMode::None
     }
 }
 

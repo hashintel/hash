@@ -163,9 +163,6 @@ use core::{
 };
 
 pub use charset::Charset;
-#[cfg(not(feature = "color"))]
-use color::ColorMode;
-#[cfg(feature = "color")]
 pub use color::ColorMode;
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub use hook::HookContext;
