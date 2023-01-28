@@ -6,6 +6,7 @@
 mod common;
 
 use common::*;
+use error_stack::fmt::Charset;
 #[cfg(feature = "color")]
 use error_stack::fmt::ColorMode;
 #[allow(unused_imports)]
@@ -50,6 +51,7 @@ fn setup() {
     setup_backtrace();
     #[cfg(feature = "color")]
     setup_color();
+    Report::set_charset(Some(Charset::Utf8));
 }
 
 fn snap_suffix() -> String {
@@ -64,11 +66,6 @@ fn snap_suffix() -> String {
     #[cfg(all(rust_1_65, feature = "std"))]
     if supports_backtrace() {
         suffix.push("backtrace");
-    }
-
-    #[cfg(feature = "color")]
-    {
-        suffix.push("pretty-print");
     }
 
     suffix.join("-")
@@ -606,6 +603,36 @@ mod full {
             context.push_body(format!("&'static str: {value}"));
         });
 
+        assert_snapshot!(format!("{report:?}"));
+    }
+
+    #[test]
+    fn charset_ascii() {
+        let _guard = prepare(false);
+
+        Report::set_charset(Some(Charset::Ascii));
+
+        let report = create_report();
+        assert_snapshot!(format!("{report:?}"));
+    }
+
+    #[test]
+    fn color_mode_emphasis() {
+        let _guard = prepare(false);
+
+        Report::set_color_mode(Some(ColorMode::Emphasis));
+
+        let report = create_report();
+        assert_snapshot!(format!("{report:?}"));
+    }
+
+    #[test]
+    fn color_mode_color() {
+        let _guard = prepare(false);
+
+        Report::set_color_mode(Some(ColorMode::Color));
+
+        let report = create_report();
         assert_snapshot!(format!("{report:?}"));
     }
 }
