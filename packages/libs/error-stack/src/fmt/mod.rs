@@ -148,6 +148,7 @@ mod config;
 #[cfg(any(feature = "std", feature = "hooks"))]
 mod hook;
 mod location;
+mod r#override;
 
 use alloc::{
     borrow::ToOwned,

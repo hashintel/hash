@@ -1,38 +1,6 @@
 #[cfg(feature = "color")]
-use core::sync::atomic::{AtomicU8, Ordering};
-
+use crate::fmt::r#override::{AtomicOverride, AtomicPreference};
 use crate::Report;
-
-#[cfg(feature = "color")]
-pub(crate) struct ColorPreference(AtomicU8);
-
-#[cfg(feature = "color")]
-impl ColorPreference {
-    pub(crate) const fn new() -> Self {
-        Self(AtomicU8::new(0))
-    }
-
-    pub(crate) fn load(&self) -> Option<ColorMode> {
-        match self.0.load(Ordering::Relaxed) {
-            0 => None,
-            1 => Some(ColorMode::None),
-            2 => Some(ColorMode::Color),
-            3 => Some(ColorMode::Emphasis),
-            _ => unreachable!(),
-        }
-    }
-
-    pub(crate) fn store(&self, mode: Option<ColorMode>) {
-        let mode = match mode {
-            None => 0,
-            Some(ColorMode::None) => 1,
-            Some(ColorMode::Color) => 2,
-            Some(ColorMode::Emphasis) => 3,
-        };
-
-        self.0.store(mode, Ordering::Relaxed);
-    }
-}
 
 /// The available modes of color support
 ///
@@ -74,8 +42,35 @@ impl ColorMode {
     }
 }
 
+/// Value layout:
+/// `0x00`: `ColorMode::None`
+/// `0x01`: `ColorMode::Color`
+/// `0x02`: `ColorMode::Emphasis`
+///
+/// all others: unset/none
 #[cfg(feature = "color")]
-static COLOR_OVERRIDE: ColorPreference = ColorPreference::new();
+impl AtomicPreference for ColorMode {
+    fn load(value: u8) -> Option<Self> {
+        match value {
+            0x00 => Some(Self::None),
+            0x01 => Some(Self::Color),
+            0x02 => Some(Self::Emphasis),
+            _ => None,
+        }
+    }
+
+    fn store(value: Option<Self>) -> u8 {
+        match value {
+            None => 0xFF,
+            Some(Self::None) => 0x00,
+            Some(Self::Color) => 0x01,
+            Some(Self::Emphasis) => 0x02,
+        }
+    }
+}
+
+#[cfg(feature = "color")]
+static COLOR_OVERRIDE: AtomicOverride<ColorMode> = AtomicOverride::new();
 
 impl Report<()> {
     /// Set the color mode preference

@@ -1,6 +1,9 @@
 use core::sync::atomic::{AtomicU8, Ordering};
 
-use crate::Report;
+use crate::{
+    fmt::r#override::{AtomicOverride, AtomicPreference},
+    Report,
+};
 
 /// The available supported charsets
 ///
@@ -32,35 +35,25 @@ impl Charset {
 /// `0x01`: `Charset::Utf8`
 ///
 /// all others: unset/none
-struct AtomicOverride(AtomicU8);
-
-impl AtomicOverride {
-    const fn new() -> Self {
-        Self(AtomicU8::new(0xFF))
-    }
-
-    fn store(&self, value: Option<Charset>) {
-        let inner = match value {
-            None => 0xFF,
-            Some(Charset::Ascii) => 0x00,
-            Some(Charset::Utf8) => 0x01,
-        };
-
-        self.0.store(inner, Ordering::Relaxed);
-    }
-
-    fn load(&self) -> Option<Charset> {
-        let inner = self.0.load(Ordering::Relaxed);
-
-        match inner {
-            0x00 => Some(Charset::Ascii),
-            0x01 => Some(Charset::Utf8),
+impl AtomicPreference for Charset {
+    fn load(value: u8) -> Option<Self> {
+        match value {
+            0x00 => Some(Self::Ascii),
+            0x01 => Some(Self::Utf8),
             _ => None,
+        }
+    }
+
+    fn store(value: Option<Self>) -> u8 {
+        match value {
+            None => 0xFF,
+            Some(Self::Ascii) => 0x00,
+            Some(Self::Utf8) => 0x01,
         }
     }
 }
 
-static CHARSET_OVERRIDE: AtomicOverride = AtomicOverride::new();
+static CHARSET_OVERRIDE: AtomicOverride<Charset> = AtomicOverride::new();
 
 impl Report<()> {
     /// Set the charset preference
