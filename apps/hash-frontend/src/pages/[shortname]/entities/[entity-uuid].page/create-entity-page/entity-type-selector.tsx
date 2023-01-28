@@ -1,5 +1,5 @@
 import { EntityType } from "@blockprotocol/type-system";
-import { EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
+import { EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { FunctionComponent, useRef, useState } from "react";
 
 import { useEntityTypesOptional } from "../../../../../shared/entity-types-context/hooks";
@@ -50,9 +50,7 @@ export const EntityTypeSelector: FunctionComponent<{
         highlightedRef.current = value;
       }}
       onChange={(_, option) => {
-        if (option) {
-          onSelect(option.schema);
-        }
+        onSelect(option.schema);
       }}
       onKeyUp={(evt) => {
         if (evt.key === "Enter" && !highlightedRef.current) {

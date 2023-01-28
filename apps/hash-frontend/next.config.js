@@ -1,7 +1,7 @@
 const { config } = require("dotenv-flow");
 const withTM = require("next-transpile-modules")([
-  "@hashintel/hash-graph-client",
-  "@hashintel/hash-subgraph",
+  "@local/hash-graph-client",
+  "@local/hash-subgraph",
   "@local/design-system",
   "@local/hash-isomorphic-utils",
 ]); // pass the modules you would like to see transpiled
@@ -55,6 +55,30 @@ module.exports = withSentryConfig(
     withTM(
       /** @type {import('next').NextConfig} */
       {
+        async headers() {
+          return [
+            {
+              /**
+               * allow fetching types as JSON from anywhere
+               * @see ./src/middleware.page.ts for middleware which serves the JSON
+               */
+              source: "/:shortname/types/:path*",
+              has: [
+                {
+                  type: "header",
+                  key: "accept",
+                  value: "(.*application/json.*)",
+                },
+              ],
+              headers: [
+                {
+                  key: "access-control-allow-origin",
+                  value: "*",
+                },
+              ],
+            },
+          ];
+        },
         pageExtensions: [
           "page.tsx",
           "page.ts",

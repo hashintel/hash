@@ -11,15 +11,12 @@ import {
   ValueOrArray,
   VersionedUri,
 } from "@blockprotocol/type-system";
-import {
-  GraphApi,
-  OntologyElementMetadata,
-} from "@hashintel/hash-graph-client";
-import { PropertyObject } from "@hashintel/hash-subgraph";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { GraphApi, OntologyElementMetadata } from "@local/hash-graph-client";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import { typedEntries } from "@local/hash-isomorphic-utils/util";
+import { PropertyObject } from "@local/hash-subgraph";
 import { camelCase, isEqual, upperFirst } from "lodash";
 import { singular } from "pluralize";
 

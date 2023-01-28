@@ -1,4 +1,4 @@
-import { Entity } from "@hashintel/hash-subgraph";
+import { Entity } from "@local/hash-subgraph";
 
 import { getHashInstance } from "../../../../graph/knowledge/system-types/hash-instance";
 import { ResolverFn } from "../../../api-types.gen";

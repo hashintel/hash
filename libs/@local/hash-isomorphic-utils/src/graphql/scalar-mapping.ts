@@ -5,32 +5,32 @@ export const scalars = {
     "@local/hash-isomorphic-utils/graphql/types#UnknownEntityProperties",
   TextToken: "@local/hash-isomorphic-utils/graphql/types#TextToken",
 
-  VersionedUri: "@hashintel/hash-subgraph#VersionedUri",
+  VersionedUri: "@local/hash-subgraph#VersionedUri",
 
-  DataTypeWithMetadata: "@hashintel/hash-subgraph#DataTypeWithMetadata",
+  DataTypeWithMetadata: "@local/hash-subgraph#DataTypeWithMetadata",
   DataTypeWithoutId:
     "@local/hash-isomorphic-utils/graphql/types#DataTypeWithoutId",
 
-  EntityTypeWithMetadata: "@hashintel/hash-subgraph#EntityTypeWithMetadata",
+  EntityTypeWithMetadata: "@local/hash-subgraph#EntityTypeWithMetadata",
   EntityTypeWithoutId:
     "@local/hash-isomorphic-utils/graphql/types#EntityTypeWithoutId",
 
-  PropertyTypeWithMetadata: "@hashintel/hash-subgraph#PropertyTypeWithMetadata",
+  PropertyTypeWithMetadata: "@local/hash-subgraph#PropertyTypeWithMetadata",
   PropertyTypeWithoutId:
     "@local/hash-isomorphic-utils/graphql/types#PropertyTypeWithoutId",
 
-  Entity: "@hashintel/hash-subgraph#Entity",
-  EntityEditionId: "@hashintel/hash-subgraph#EntityEditionId",
-  EntityMetadata: "@hashintel/hash-subgraph#EntityMetadata",
-  EntityVersion: "@hashintel/hash-subgraph/#EntityVersion",
-  PropertyObject: "@hashintel/hash-subgraph#PropertyObject",
+  Entity: "@local/hash-subgraph#Entity",
+  EntityEditionId: "@local/hash-subgraph#EntityEditionId",
+  EntityMetadata: "@local/hash-subgraph#EntityMetadata",
+  EntityVersion: "@local/hash-subgraph/#EntityVersion",
+  PropertyObject: "@local/hash-subgraph#PropertyObject",
 
-  GraphElementVertexId: "@hashintel/hash-subgraph#GraphElementVertexId",
-  Edges: "@hashintel/hash-subgraph#Edges",
-  Vertices: "@hashintel/hash-subgraph#Vertices",
-  LinkData: "@hashintel/hash-subgraph#LinkData",
-  TimeProjection: "@hashintel/hash-subgraph#TimeProjection",
-  ResolvedTimeProjection: "@hashintel/hash-subgraph#ResolvedTimeProjection",
+  GraphElementVertexId: "@local/hash-subgraph#GraphElementVertexId",
+  Edges: "@local/hash-subgraph#Edges",
+  Vertices: "@local/hash-subgraph#Vertices",
+  LinkData: "@local/hash-subgraph#LinkData",
+  TimeProjection: "@local/hash-subgraph#TimeProjection",
+  ResolvedTimeProjection: "@local/hash-subgraph#ResolvedTimeProjection",
 
   OwnedById: "@local/hash-isomorphic-utils/types#OwnedById",
   UpdatedById: "@local/hash-isomorphic-utils/types#UpdatedById",

@@ -1,15 +1,12 @@
 import {
   BlockGraphProperties,
-  EntityEditionId,
-  GraphResolveDepths,
-  Subgraph,
-  SubgraphRootTypes,
+  EmbedderGraphMessageCallbacks,
 } from "@blockprotocol/graph";
 import { VersionedUri } from "@blockprotocol/type-system/slim";
-import { Subgraph as LocalSubgraph } from "@hashintel/hash-subgraph";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { EntityId } from "@local/hash-isomorphic-utils/types";
+import { Subgraph as LocalSubgraph } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import {
   FunctionComponent,
   useCallback,
@@ -17,14 +14,13 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
-  useState,
 } from "react";
 
 import { useBlockLoadedContext } from "../../blocks/on-block-loaded";
-import { useIsReadonlyMode } from "../../shared/readonly-mode";
+import { useBlockContext } from "../../blocks/page/block-context";
+import { useFetchBlockSubgraph } from "../../blocks/use-fetch-block-subgraph";
 import { useBlockProtocolAggregateEntities } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-aggregate-entities";
 import { useBlockProtocolFileUpload } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-file-upload";
-import { useBlockProtocolGetEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
 import { useBlockProtocolUpdateEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { RemoteBlock } from "../remote-block/remote-block";
 import { fetchEmbedCode } from "./fetch-embed-code";
@@ -36,6 +32,7 @@ type BlockLoaderProps = {
   editableRef: (node: HTMLElement | null) => void;
   onBlockLoaded: () => void;
   wrappingEntityId: string;
+  readonly: boolean;
   // shouldSandbox?: boolean;
 };
 
@@ -53,110 +50,54 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   onBlockLoaded,
   // shouldSandbox,
   wrappingEntityId,
+  readonly,
 }) => {
-  const isReadonlyMode = useIsReadonlyMode();
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
   const { updateEntity } = useBlockProtocolUpdateEntity();
-  const { uploadFile } = useBlockProtocolFileUpload(isReadonlyMode);
-  const [graphProperties, setGraphProperties] = useState<Required<
-    BlockGraphProperties["graph"]
-  > | null>(null);
+  const { uploadFile } = useBlockProtocolFileUpload(readonly);
 
-  const { getEntity } = useBlockProtocolGetEntity();
+  const { setBlockSubgraph, blockSubgraph } = useBlockContext();
+  const fetchBlockSubgraph = useFetchBlockSubgraph();
 
   useEffect(() => {
-    const depths: GraphResolveDepths = {
-      hasRightEntity: {
-        incoming: 2,
-        outgoing: 2,
+    void fetchBlockSubgraph(blockEntityTypeId, blockEntityId).then(
+      (newBlockSubgraph) => setBlockSubgraph(newBlockSubgraph),
+    );
+  }, [fetchBlockSubgraph, blockEntityId, blockEntityTypeId, setBlockSubgraph]);
+
+  const functions = useMemo(
+    () => ({
+      aggregateEntities,
+      /**
+       * @todo remove this when embed block no longer relies on server-side oEmbed calls
+       * @see https://app.asana.com/0/1200211978612931/1202509819279267/f
+       */
+      getEmbedBlock: fetchEmbedCode,
+      uploadFile,
+      updateEntity: async (
+        ...args: Parameters<EmbedderGraphMessageCallbacks["updateEntity"]>
+      ) => {
+        const res = await updateEntity(...args);
+
+        const newBlockSubgraph = await fetchBlockSubgraph(
+          blockEntityTypeId,
+          blockEntityId,
+        );
+        setBlockSubgraph(newBlockSubgraph);
+
+        return res;
       },
-      hasLeftEntity: {
-        incoming: 2,
-        outgoing: 2,
-      },
-    };
-
-    if (!blockEntityId) {
-      // when inserting a block in the frontend we don't yet have an entity associated with it
-      // there's a delay while the request to the API to insert it is processed
-      // @todo some better way of handling this – probably affected by revamped collab.
-      //    or could simply not load a new block until the entity is created?
-      const now: string = new Date().toISOString();
-      const placeholderEntity = {
-        metadata: {
-          editionId: {
-            baseId: "placeholder-account%entity-id-not-set",
-            version: now, // @todo-0.3 check this against types in @blockprotocol/graph when mismatches fixed
-            versionId: now,
-          },
-          entityTypeId: blockEntityTypeId,
-        },
-
-        properties: {},
-      };
-      const blockEntitySubgraph = {
-        depths,
-        edges: {},
-        roots: [placeholderEntity.metadata.editionId as any as EntityEditionId], // @todo-0.3 fix when type mismatches fixed
-        vertices: {
-          [placeholderEntity.metadata.editionId.baseId]: {
-            [now]: {
-              kind: "entity",
-              inner: placeholderEntity,
-            },
-          },
-        } as unknown as Subgraph["vertices"], // @todo-0.3 do something about this
-      };
-      setGraphProperties({
-        blockEntitySubgraph,
-        readonly: isReadonlyMode,
-      });
-      return;
-    }
-
-    getEntity({
-      data: { entityId: blockEntityId },
-    })
-      .then(({ data, errors }) => {
-        if (!data) {
-          throw new Error(
-            `Could not get entity ${blockEntityId} ${
-              errors ? JSON.stringify(errors, null, 2) : ""
-            }`,
-          );
-        }
-
-        setGraphProperties({
-          blockEntitySubgraph: {
-            ...(data as unknown as Subgraph<SubgraphRootTypes["entity"]>), // @todo-0.3 do something about this,
-            roots: [
-              // @todo-0.3 remove this when edition ids match between HASH and BP
-              {
-                ...data.roots[0]!,
-                versionId: data.roots[0]!.version,
-              },
-            ],
-          },
-          readonly: isReadonlyMode,
-        });
-      })
-      .catch((err) => {
-        // eslint-disable-next-line no-console -- intentional debug log until we have better user-facing errors
-        console.error(err);
-        throw err;
-      });
-  }, [blockEntityId, blockEntityTypeId, getEntity, isReadonlyMode]);
-
-  const functions = {
-    aggregateEntities,
-    /**
-     * @todo remove this when embed block no longer relies on server-side oEmbed calls
-     * @see https://app.asana.com/0/1200211978612931/1202509819279267/f
-     */
-    getEmbedBlock: fetchEmbedCode,
-    updateEntity,
-    uploadFile,
-  };
+    }),
+    [
+      aggregateEntities,
+      setBlockSubgraph,
+      fetchBlockSubgraph,
+      updateEntity,
+      blockEntityId,
+      blockEntityTypeId,
+      uploadFile,
+    ],
+  );
 
   const onBlockLoadedFromContext = useBlockLoadedContext().onBlockLoaded;
   const onBlockLoadedRef = useRef(onBlockLoaded);
@@ -186,10 +127,18 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   //   );
   // }
 
+  const graphProperties = useMemo<BlockGraphProperties["graph"]>(
+    () => ({
+      readonly,
+      blockEntitySubgraph: blockSubgraph,
+    }),
+    [blockSubgraph, readonly],
+  );
+
   // The paragraph block needs updating to 0.3 and publishing – this ensures it doesn't crash
   // @todo-0.3 remove this when the paragraph block is updated to 0.3
   const temporaryBackwardsCompatibleProperties = useMemo(() => {
-    if (!graphProperties) {
+    if (!graphProperties.blockEntitySubgraph) {
       return null;
     }
     // @todo.0-3 fix this to import from @blockprotocol/graph when key mismatches are fixed
@@ -202,7 +151,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     }
 
     return {
-      ...graphProperties,
+      ...(graphProperties as Required<BlockGraphProperties["graph"]>),
       blockEntity: {
         entityId: rootEntity.metadata.editionId.baseId,
         properties: (rootEntity as any).properties, // @todo-0.3 fix this

@@ -1,5 +1,8 @@
 import { ApolloClient } from "@apollo/client";
-import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
+import {
+  HashBlock,
+  paragraphBlockComponentId,
+} from "@local/hash-isomorphic-utils/blocks";
 import { createProseMirrorState } from "@local/hash-isomorphic-utils/create-prose-mirror-state";
 import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import {
@@ -189,6 +192,7 @@ export const createEditorView = (
             renderPortal,
             manager,
             renderNode,
+            readonly,
           );
         },
         loading(currentNode, _currentView, _getPos) {
@@ -215,6 +219,7 @@ export const createEditorView = (
         renderPortal,
         block,
         manager,
+        readonly,
       );
     },
   );
@@ -249,9 +254,7 @@ export const createEditorView = (
   const blocksArray = Object.values(blocks);
 
   const paragraphBlock = blocksArray.find(
-    (block) =>
-      block.meta.componentId ===
-      "https://blockprotocol.org/blocks/@hash/paragraph",
+    (block) => block.meta.componentId === paragraphBlockComponentId,
   );
 
   if (!paragraphBlock) {

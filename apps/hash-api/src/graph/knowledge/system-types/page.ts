@@ -1,16 +1,17 @@
+import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
+import {
+  AccountId,
+  extractOwnedByIdFromEntityId,
+  OwnedById,
+} from "@local/hash-isomorphic-utils/types";
 import {
   Entity,
   EntityId,
   PropertyObject,
   Subgraph,
   SubgraphRootTypes,
-} from "@hashintel/hash-subgraph";
-import { getEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
-import {
-  AccountId,
-  extractOwnedByIdFromEntityId,
-  OwnedById,
-} from "@local/hash-isomorphic-utils/types";
+} from "@local/hash-subgraph";
+import { getEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 
@@ -163,7 +164,7 @@ export const createPage: ImpureGraphFunction<
       : [
           await createBlock(ctx, {
             ownedById,
-            componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
+            componentId: paragraphBlockComponentId,
             blockData: await createEntity(ctx, {
               ownedById,
               properties: {

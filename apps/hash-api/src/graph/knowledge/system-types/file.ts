@@ -1,5 +1,5 @@
-import { Entity, PropertyObject } from "@hashintel/hash-subgraph";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
+import { Entity, PropertyObject } from "@local/hash-subgraph";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { PresignedPostUpload } from "../../../storage";

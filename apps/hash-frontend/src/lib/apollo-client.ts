@@ -1,3 +1,5 @@
 import { createApolloClient } from "@local/hash-isomorphic-utils/graphql/create-apollo-client";
 
-export const apolloClient = createApolloClient();
+import { isBrowser } from "./config";
+
+export const apolloClient = createApolloClient({ isBrowser });

@@ -21,6 +21,7 @@ import { sortLinkAndTargetEntities } from "./sort-link-and-target-entities";
 export interface LinkedWithCellProps {
   readonly kind: "linked-with-cell";
   linkRow: LinkRow;
+  readonly: boolean;
 }
 
 export type LinkedWithCell = CustomCell<LinkedWithCellProps>;
@@ -32,12 +33,13 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     (cell.data as any).kind === "linked-with-cell",
   draw: (args, cell) => {
     const { rect, ctx, theme, spriteManager, hoverAmount, highlighted } = args;
+    const { linkRow, readonly } = cell.data;
     const {
       linkAndTargetEntities,
       entitySubgraph,
       markLinkAsArchived,
-      maxItems,
-    } = cell.data.linkRow;
+      isList,
+    } = linkRow;
 
     ctx.fillStyle = theme.textHeader;
     ctx.font = theme.baseFontStyle;
@@ -51,7 +53,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       ctx.fillStyle = customColors.gray[50];
       ctx.font = "italic 14px Inter";
 
-      const emptyText = maxItems === 1 ? "No entity" : "No entities";
+      const emptyText = isList ? "No entities" : "No entity";
       ctx.fillText(emptyText, left, yCenter);
 
       // before returning, set interactables to empty array to clear any stale interactables saved on previous draw
@@ -78,7 +80,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     }
 
     // do not draw delete button if multiple links are allowed
-    if (maxItems > 1) {
+    if (isList) {
       const overflowed = accumulatedLeft > rect.x + rect.width;
 
       if (!overflowed) {
@@ -95,6 +97,11 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       ctx.fillText(text, rect.x + rect.width - textWidth - 10, yCenter);
 
       return;
+    }
+
+    // do not draw delete button if readonly
+    if (readonly) {
+      return drawCellFadeOutGradient(args);
     }
 
     // draw delete button

@@ -3,8 +3,8 @@ import {
   PropertyTypeReference,
   ValueOrArray,
 } from "@blockprotocol/type-system";
-import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
-import { getPropertyTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
+import { Entity, Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
+import { getPropertyTypesByBaseUri } from "@local/hash-subgraph/src/stdlib/element/property-type";
 import { get } from "lodash";
 
 import {
@@ -86,8 +86,7 @@ export const generatePropertyRowRecursively = ({
 
   const required = !!requiredPropertyTypes.includes(propertyTypeBaseUri);
 
-  const value =
-    get(entity.properties, propertyKeyChain) ?? (isArray ? [] : undefined);
+  const value = get(entity.properties, propertyKeyChain);
 
   const children: PropertyRow[] = [];
 

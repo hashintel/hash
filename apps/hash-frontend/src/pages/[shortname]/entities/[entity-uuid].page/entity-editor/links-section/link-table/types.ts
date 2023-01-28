@@ -1,12 +1,12 @@
 import { VersionedUri } from "@blockprotocol/type-system";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
+import { EntityId } from "@local/hash-isomorphic-utils/types";
 import {
   Entity,
   EntityTypeWithMetadata,
   Subgraph,
   SubgraphRootTypes,
-} from "@hashintel/hash-subgraph";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
+} from "@local/hash-subgraph";
 
 export type LinkAndTargetEntity = { rightEntity: Entity; linkEntity: Entity };
 
@@ -14,7 +14,8 @@ export type LinkRow = {
   rowId: string;
   linkEntityTypeId: VersionedUri;
   linkTitle: string;
-  maxItems: number;
+  maxItems?: number;
+  isList: boolean;
   expectedEntityTypes: EntityTypeWithMetadata[];
   expectedEntityTypeTitles: string[];
   linkAndTargetEntities: LinkAndTargetEntity[];

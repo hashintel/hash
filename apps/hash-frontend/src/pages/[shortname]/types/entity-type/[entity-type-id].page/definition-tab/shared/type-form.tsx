@@ -1,6 +1,5 @@
 import { BaseUri } from "@blockprotocol/type-system";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
-import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import {
   Button,
   ButtonProps,
@@ -13,6 +12,7 @@ import {
   generateBaseTypeId,
   SchemaKind,
 } from "@local/hash-isomorphic-utils/ontology-types";
+import { versionedUriFromComponents } from "@local/hash-subgraph/src/shared/type-system-patch";
 import {
   Box,
   Divider,
