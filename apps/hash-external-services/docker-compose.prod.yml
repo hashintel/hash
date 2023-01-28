@@ -45,8 +45,8 @@ services:
       postgres:
         condition: service_healthy
     build:
-      dockerfile: deployment/graph/Dockerfile
-      context: ../../packages/graph
+      dockerfile: docker/Dockerfile
+      context: ../../apps/hash-graph
     command: migrate
     environment:
       # Intentionaly use the POSTGRES user as it's the "superadmin" which has access to schema
@@ -63,8 +63,8 @@ services:
   hash-graph:
     init: true
     build:
-      dockerfile: deployment/graph/Dockerfile
-      context: ../../packages/graph
+      dockerfile: docker/Dockerfile
+      context: ../../apps/hash-graph
     depends_on:
       postgres:
         condition: service_healthy

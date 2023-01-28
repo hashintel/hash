@@ -1,9 +1,14 @@
-import { createContext, useContext } from "react";
+import { Subgraph, SubgraphRootTypes } from "@blockprotocol/graph";
+import { createContext, Dispatch, SetStateAction, useContext } from "react";
 
-type BlockContextType = {
+export type BlockContextType = {
   id: string;
   error: boolean;
   setError: (error: boolean) => void;
+  blockSubgraph: Subgraph<SubgraphRootTypes["entity"]> | undefined;
+  setBlockSubgraph: Dispatch<
+    SetStateAction<Subgraph<SubgraphRootTypes["entity"]> | undefined>
+  >;
 };
 
 export const BlockContext = createContext<BlockContextType | null>(null);

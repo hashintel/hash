@@ -59,9 +59,7 @@ export const TypeSelector = <T extends TypeSelectorType>({
         highlightedRef.current = value;
       }}
       onChange={(_, option) => {
-        if (option) {
-          onAdd(option);
-        }
+        onAdd(option);
       }}
       // Using onKeyUp to prevent a new line character being inputted into inputs in the modal
       onKeyUp={(evt) => {

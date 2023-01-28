@@ -1,23 +1,23 @@
 import { extractBaseUri } from "@blockprotocol/type-system";
-import {
-  Entity,
-  EntityEditionId,
-  EntityEditionIdString,
-  entityEditionIdToString,
-  Subgraph,
-} from "@hashintel/hash-subgraph";
-import {
-  getIncomingLinksForEntityAtMoment,
-  getLeftEntityForLinkEntityAtMoment,
-  getOutgoingLinksForEntityAtMoment,
-  getRightEntityForLinkEntityAtMoment,
-} from "@hashintel/hash-subgraph/src/stdlib/edge/link";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountEntityId,
   AccountId,
   extractAccountId,
 } from "@local/hash-isomorphic-utils/types";
+import {
+  Entity,
+  EntityEditionId,
+  EntityEditionIdString,
+  entityEditionIdToString,
+  Subgraph,
+} from "@local/hash-subgraph";
+import {
+  getIncomingLinksForEntityAtMoment,
+  getLeftEntityForLinkEntityAtMoment,
+  getOutgoingLinksForEntityAtMoment,
+  getRightEntityForLinkEntityAtMoment,
+} from "@local/hash-subgraph/src/stdlib/edge/link";
 import { Session } from "@ory/client";
 
 export type MinimalUser = {

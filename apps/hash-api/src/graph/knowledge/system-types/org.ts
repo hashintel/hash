@@ -1,18 +1,18 @@
 import {
-  Entity,
-  EntityId,
-  PropertyObject,
-  Subgraph,
-  SubgraphRootTypes,
-} from "@hashintel/hash-subgraph";
-import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
-import {
   AccountId,
   EntityUuid,
   extractEntityUuidFromEntityId,
   OwnedById,
   Uuid,
 } from "@local/hash-isomorphic-utils/types";
+import {
+  Entity,
+  EntityId,
+  PropertyObject,
+  Subgraph,
+  SubgraphRootTypes,
+} from "@local/hash-subgraph";
+import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import {

@@ -6,13 +6,14 @@ import {
   blankCell,
 } from "../../../../../../../components/grid/utils";
 import { UseGridTooltipResponse } from "../../../../../../../components/grid/utils/use-grid-tooltip/types";
+import { useEntityEditor } from "../../entity-editor-context";
 import { getPropertyCountSummary } from "../get-property-count-summary";
 import { isValueEmpty } from "../is-value-empty";
 import { ChangeTypeCell } from "./cells/change-type-cell";
 import { ChipCell } from "./cells/chip-cell";
 import { PropertyNameCell } from "./cells/property-name-cell";
 import { SummaryChipCell } from "./cells/summary-chip-cell";
-import { editorSpecs } from "./cells/value-cell/array-editor/sortable-row";
+import { editorSpecs } from "./cells/value-cell/editor-specs";
 import { ValueCell } from "./cells/value-cell/types";
 import {
   guessEditorTypeFromExpectedType,
@@ -26,6 +27,8 @@ export const useCreateGetCellContent = (
   showTooltip: UseGridTooltipResponse["showTooltip"],
   hideTooltip: UseGridTooltipResponse["hideTooltip"],
 ) => {
+  const { readonly } = useEntityEditor();
+
   const createGetCellContent = useCallback(
     (rows: PropertyRow[]) =>
       ([colIndex, rowIndex]: Item):
@@ -52,9 +55,9 @@ export const useCreateGetCellContent = (
         // create valueCell here, because it's used in two places below
         const valueCell: ValueCell = {
           kind: GridCellKind.Custom,
-          allowOverlay: true,
+          allowOverlay: !readonly,
           copyData: String(row.value),
-          cursor: "pointer",
+          cursor: readonly ? "default" : "pointer",
           data: {
             kind: "value-cell",
             tooltips: getTooltipsOfPropertyRow(row),
@@ -63,6 +66,22 @@ export const useCreateGetCellContent = (
             propertyRow: row,
           },
         };
+
+        const guessedType = guessEditorTypeFromValue(
+          row.value,
+          row.expectedTypes,
+        );
+
+        const isEmptyValue =
+          isValueEmpty(row.value) &&
+          guessedType !== "null" &&
+          guessedType !== "emptyList";
+
+        const shouldShowChangeTypeCell =
+          row.expectedTypes.length > 1 &&
+          !row.isArray &&
+          !isEmptyValue &&
+          !readonly;
 
         switch (columnKey) {
           case "title":
@@ -105,25 +124,16 @@ export const useCreateGetCellContent = (
               return blankCell;
             }
 
-            if (
-              row.expectedTypes.length > 1 &&
-              !row.isArray &&
-              !isValueEmpty(row.value)
-            ) {
-              const currentType = guessEditorTypeFromValue(
-                row.value,
-                row.expectedTypes,
-              );
-
+            if (shouldShowChangeTypeCell) {
               return {
                 kind: GridCellKind.Custom,
                 allowOverlay: false,
                 readonly: true,
-                copyData: currentType,
+                copyData: guessedType,
                 cursor: "pointer",
                 data: {
                   kind: "change-type-cell",
-                  currentType: editorSpecs[currentType].title,
+                  currentType: editorSpecs[guessedType].title,
                   propertyRow: row,
                   valueCellOfThisRow: valueCell,
                 },
@@ -151,7 +161,7 @@ export const useCreateGetCellContent = (
             };
         }
       },
-    [showTooltip, hideTooltip],
+    [showTooltip, hideTooltip, readonly],
   );
 
   return createGetCellContent;

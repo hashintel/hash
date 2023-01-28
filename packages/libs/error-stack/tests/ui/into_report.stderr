@@ -1,9 +1,9 @@
-error[E0599]: the method `into_report` exists for enum `Result<(), error_stack::Report<RootError>>`, but its trait bounds were not satisfied
+error[E0599]: the method `into_report` exists for enum `Result<(), Report<RootError>>`, but its trait bounds were not satisfied
     |
    ::: src/report.rs
     |
     | pub struct Report<C> {
-    | -------------------- doesn't satisfy `_: From<error_stack::Report<RootError>>`
+    | -------------------- doesn't satisfy `_: From<Report<RootError>>`
     |
    ::: $RUST/core/src/result.rs
     |

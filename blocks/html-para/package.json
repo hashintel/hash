@@ -1,6 +1,7 @@
 {
   "name": "@blocks/html-para",
   "version": "0.1.0",
+  "private": true,
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git#main",

@@ -1,4 +1,4 @@
-import { Subgraph } from "@hashintel/hash-subgraph";
+import { Subgraph } from "@local/hash-subgraph";
 
 import {
   QueryGetAllLatestDataTypesArgs,

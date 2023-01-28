@@ -1,11 +1,12 @@
-import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
+  extractOwnedByIdFromEntityId,
   OwnedById,
 } from "@local/hash-isomorphic-utils/types";
+import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import produce from "immer";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -19,6 +20,7 @@ import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../shared/layout";
+import { useIsReadonlyModeForResource } from "../../../shared/readonly-mode";
 import { useRouteNamespace } from "../shared/use-route-namespace";
 import { EditBar } from "../types/entity-type/[entity-type-id].page/edit-bar";
 import { EntityEditorPage } from "./[entity-uuid].page/entity-editor-page";
@@ -37,10 +39,19 @@ const Page: NextPageWithLayout = () => {
 
   const applyDraftLinkEntityChanges = useApplyDraftLinkEntityChanges();
 
-  const [entitySubgraphFromDB, setEntitySubgraphFromDB] =
+  const [entitySubgraphFromDb, setEntitySubgraphFromDb] =
     useState<Subgraph<SubgraphRootTypes["entity"]>>();
   const [draftEntitySubgraph, setDraftEntitySubgraph] =
     useState<Subgraph<SubgraphRootTypes["entity"]>>();
+
+  const entityFromDb =
+    entitySubgraphFromDb && getRoots(entitySubgraphFromDb)[0];
+
+  const entityOwnedById =
+    entityFromDb &&
+    extractOwnedByIdFromEntityId(entityFromDb.metadata.editionId.baseId);
+
+  const readonly = useIsReadonlyModeForResource(entityOwnedById);
 
   const [isDirty, setIsDirty] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -67,10 +78,10 @@ const Page: NextPageWithLayout = () => {
 
           if (subgraph) {
             try {
-              setEntitySubgraphFromDB(subgraph);
+              setEntitySubgraphFromDb(subgraph);
               setDraftEntitySubgraph(subgraph);
             } catch {
-              setEntitySubgraphFromDB(undefined);
+              setEntitySubgraphFromDb(undefined);
               setDraftEntitySubgraph(undefined);
             }
           }
@@ -113,7 +124,7 @@ const Page: NextPageWithLayout = () => {
       }
     });
 
-    setEntitySubgraphFromDB(subgraph);
+    setEntitySubgraphFromDb(subgraph);
     setDraftEntitySubgraph(newDraftEntitySubgraph);
   };
 
@@ -125,12 +136,12 @@ const Page: NextPageWithLayout = () => {
 
   const discardChanges = () => {
     resetDraftState();
-    setDraftEntitySubgraph(entitySubgraphFromDB);
+    setDraftEntitySubgraph(entitySubgraphFromDb);
   };
 
   const [savingChanges, setSavingChanges] = useState(false);
   const handleSaveChanges = async () => {
-    if (!entitySubgraphFromDB || !draftEntitySubgraph) {
+    if (!entitySubgraphFromDb || !draftEntitySubgraph) {
       return;
     }
 
@@ -144,7 +155,7 @@ const Page: NextPageWithLayout = () => {
       setSavingChanges(true);
 
       await applyDraftLinkEntityChanges(
-        getRoots(entitySubgraphFromDB)[0]?.metadata.editionId
+        getRoots(entitySubgraphFromDb)[0]?.metadata.editionId
           .baseId as EntityId,
         draftLinksToCreate,
         draftLinksToArchive,
@@ -181,6 +192,7 @@ const Page: NextPageWithLayout = () => {
 
   return (
     <EntityEditorPage
+      readonly={readonly}
       refetch={refetch}
       editBar={
         <EditBar
@@ -199,9 +211,12 @@ const Page: NextPageWithLayout = () => {
       entitySubgraph={draftEntitySubgraph}
       entityUuid={entityUuid}
       owner={String(router.query.shortname)}
-      setEntity={(entity) => {
+      setEntity={(changedEntity) => {
         setIsDirty(true);
-        updateEntitySubgraphStateByEntity(entity, setDraftEntitySubgraph);
+        updateEntitySubgraphStateByEntity(
+          changedEntity,
+          setDraftEntitySubgraph,
+        );
       }}
       draftLinksToCreate={draftLinksToCreate}
       setDraftLinksToCreate={setDraftLinksToCreate}
