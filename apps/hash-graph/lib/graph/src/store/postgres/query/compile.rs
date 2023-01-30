@@ -8,7 +8,7 @@ use crate::{
     store::{
         postgres::query::{
             expression::Constant,
-            table::{Entities, EntityTypes, JsonField, Relation, TypeIds},
+            table::{Entities, EntityTypes, JsonField, OntologyIds, Relation},
             Alias, AliasedColumn, AliasedTable, Column, Condition, Distinctness, EqualityOperator,
             Expression, Function, JoinExpression, OrderByExpression, Ordering, PostgresQueryPath,
             PostgresRecord, SelectExpression, SelectStatement, Table, Transpile, WhereExpression,
@@ -223,15 +223,15 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     }
 
     /// Compiles the `path` to a condition, which is searching for the latest version.
-    // Warning: This adds a CTE to the statement, which is overwriting the `type_ids` table. When
-    //          more CTEs are needed, a test should be added to cover both CTEs in one statement to
-    //          ensure compatibility
+    // Warning: This adds a CTE to the statement, which is overwriting the `ontology_ids` table.
+    // When          more CTEs are needed, a test should be added to cover both CTEs in one
+    // statement to          ensure compatibility
     fn compile_latest_ontology_version_filter(
         &mut self,
         path: &R::QueryPath<'_>,
         operator: EqualityOperator,
     ) -> Condition<'c> {
-        let version_column = Column::TypeIds(TypeIds::Version).aliased(Alias {
+        let version_column = Column::OntologyIds(OntologyIds::Version).aliased(Alias {
             condition_index: 0,
             chain_depth: 0,
             number: 0,
@@ -240,7 +240,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         // Add a WITH expression selecting the partitioned version
         self.statement
             .with
-            .add_statement(Table::TypeIds, SelectStatement {
+            .add_statement(Table::OntologyIds, SelectStatement {
                 with: WithExpression::default(),
                 distinct: Vec::new(),
                 selects: vec![
@@ -251,7 +251,8 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                                 Expression::Column(version_column),
                             )))),
                             WindowStatement::partition_by(
-                                Column::TypeIds(TypeIds::BaseUri).aliased(version_column.alias),
+                                Column::OntologyIds(OntologyIds::BaseUri)
+                                    .aliased(version_column.alias),
                             ),
                         ),
                         Some(Cow::Borrowed("latest_version")),
@@ -266,7 +267,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         let alias = self.add_join_statements(path);
         // Join the table of `path` and compare the version to the latest version
         let latest_version_expression = Some(Expression::Column(
-            Column::TypeIds(TypeIds::LatestVersion).aliased(alias),
+            Column::OntologyIds(OntologyIds::LatestVersion).aliased(alias),
         ));
         let version_expression = Some(Expression::Column(version_column.column.aliased(alias)));
 
@@ -309,7 +310,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     /// condition if any.
     ///
     /// The following [`Filter`]s will be special cased:
-    /// - Comparing the `"version"` field on [`Table::TypeIds`] with `"latest"` for equality.
+    /// - Comparing the `"version"` field on [`Table::OntologyIds`] with `"latest"` for equality.
     fn compile_special_filter<'f: 'p>(&mut self, filter: &Filter<'f, R>) -> Option<Condition<'c>> {
         match filter {
             Filter::Equal(lhs, rhs) | Filter::NotEqual(lhs, rhs) => match (lhs, rhs) {
@@ -321,10 +322,15 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                     Some(FilterExpression::Parameter(Parameter::Text(parameter))),
                     Some(FilterExpression::Path(path)),
                 ) => match (path.terminating_column(), filter, parameter.as_ref()) {
-                    (Column::TypeIds(TypeIds::Version), Filter::Equal(..), "latest") => Some(
-                        self.compile_latest_ontology_version_filter(path, EqualityOperator::Equal),
-                    ),
-                    (Column::TypeIds(TypeIds::Version), Filter::NotEqual(..), "latest") => {
+                    (Column::OntologyIds(OntologyIds::Version), Filter::Equal(..), "latest") => {
+                        Some(
+                            self.compile_latest_ontology_version_filter(
+                                path,
+                                EqualityOperator::Equal,
+                            ),
+                        )
+                    }
+                    (Column::OntologyIds(OntologyIds::Version), Filter::NotEqual(..), "latest") => {
                         Some(self.compile_latest_ontology_version_filter(
                             path,
                             EqualityOperator::NotEqual,
@@ -486,10 +492,10 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                 });
 
                 // If we join on the same column as the previous join, we can reuse the that join.
-                // For example, if we join on `entities.entity_type_version_id =
-                // entity_type.version_id` and then on `entity_type.version_id =
-                // type_ids.version_id`, we can merge the two joins into `entities.
-                // entity_type_version_id = type_ids.version_id`. We, however, need to
+                // For example, if we join on `entities.entity_type_ontology_id =
+                // entity_type.ontology_id` and then on `entity_type.ontology_id =
+                // ontology_ids.ontology_id`, we can merge the two joins into `entities.
+                // entity_type_ontology_id = ontology_ids.ontology_id`. We, however, need to
                 // make sure, that we only alter a join statement with a table we don't require
                 // anymore.
                 if let Some(last_join) = self.statement.joins.last_mut() {

@@ -1,59 +1,59 @@
 CREATE
-OR REPLACE FUNCTION create_type_id (
-  "version_id" UUID,
+OR REPLACE FUNCTION create_ontology_id (
+  "ontology_id" UUID,
   "base_uri" TEXT,
   "version" BIGINT
-) RETURNS TABLE (_version_id UUID) AS $create_type_id$
+) RETURNS TABLE (_ontology_id UUID) AS $create_ontology_id$
 BEGIN
   RETURN QUERY
-  INSERT INTO type_ids (
-    "version_id",
+  INSERT INTO ontology_ids (
+    "ontology_id",
     "base_uri",
     "version",
     "transaction_time"
   ) VALUES (
-    create_type_id.version_id,
-    create_type_id.base_uri,
-    create_type_id.version,
+    create_ontology_id.ontology_id,
+    create_ontology_id.base_uri,
+    create_ontology_id.version,
     tstzrange(now(), NULL, '[)')
-  ) RETURNING type_ids.version_id;
+  ) RETURNING ontology_ids.ontology_id;
   
-END $create_type_id$ LANGUAGE plpgsql VOLATILE;
+END $create_ontology_id$ LANGUAGE plpgsql VOLATILE;
 
 CREATE
-OR REPLACE FUNCTION update_type_id (
-  "version_id" UUID,
+OR REPLACE FUNCTION update_ontology_id (
+  "ontology_id" UUID,
   "base_uri" TEXT,
   "version" BIGINT
-) RETURNS TABLE (_version_id UUID) AS $update_type_id$
+) RETURNS TABLE (_ontology_id UUID) AS $update_ontology_id$
 BEGIN
   RETURN QUERY
-  UPDATE type_ids
+  UPDATE ontology_ids
   SET
-    "version_id" = update_type_id.version_id,
-    "version" = update_type_id.version,
+    "ontology_id" = update_ontology_id.ontology_id,
+    "version" = update_ontology_id.version,
     "transaction_time" = tstzrange(now(), NULL, '[)')
-  WHERE type_ids.base_uri = update_type_id.base_uri
-    AND type_ids.transaction_time @> now()
-  RETURNING update_type_id.version_id;
+  WHERE ontology_ids.base_uri = update_ontology_id.base_uri
+    AND ontology_ids.transaction_time @> now()
+  RETURNING update_ontology_id.ontology_id;
   
-END $update_type_id$ LANGUAGE plpgsql VOLATILE;
+END $update_ontology_id$ LANGUAGE plpgsql VOLATILE;
 
 CREATE
-OR REPLACE FUNCTION "update_type_ids_trigger" () RETURNS TRIGGER AS $update_type_ids_trigger$
+OR REPLACE FUNCTION "update_ontology_ids_trigger" () RETURNS TRIGGER AS $update_ontology_ids_trigger$
 BEGIN
   IF (OLD.version != NEW.version - 1) THEN
     RAISE EXCEPTION 'Not updating the latest id: % -> %', OLD.version, NEW.version
     USING ERRCODE = 'invalid_parameter_value';
   END IF;
 
-  INSERT INTO type_ids (
-    "version_id",
+  INSERT INTO ontology_ids (
+    "ontology_id",
     "base_uri",
     "version",
     "transaction_time"
   ) VALUES (
-    NEW.version_id,
+    NEW.ontology_id,
     NEW.base_uri,
     NEW.version,
     NEW.transaction_time
@@ -62,11 +62,11 @@ BEGIN
   OLD.transaction_time = tstzrange(lower(OLD.transaction_time), lower(NEW.transaction_time), '[)');
 
   RETURN OLD;
-END $update_type_ids_trigger$ LANGUAGE plpgsql VOLATILE;
+END $update_ontology_ids_trigger$ LANGUAGE plpgsql VOLATILE;
 
 CREATE
-OR REPLACE TRIGGER "update_type_ids_trigger" BEFORE
+OR REPLACE TRIGGER "update_ontology_ids_trigger" BEFORE
 UPDATE
-  ON "type_ids" FOR EACH ROW
+  ON "ontology_ids" FOR EACH ROW
 EXECUTE
-  PROCEDURE "update_type_ids_trigger" ();
+  PROCEDURE "update_ontology_ids_trigger" ();

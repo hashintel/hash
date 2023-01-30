@@ -2,7 +2,7 @@ use super::table::OwnedOntologyMetadata;
 use crate::{
     ontology::{DataTypeQueryPath, DataTypeWithMetadata},
     store::postgres::query::{
-        table::{Column, DataTypes, JsonField, Relation, TypeIds},
+        table::{Column, DataTypes, JsonField, OntologyIds, Relation},
         PostgresQueryPath, PostgresRecord, Table,
     },
 };
@@ -28,11 +28,11 @@ impl PostgresQueryPath for DataTypeQueryPath {
 
     fn terminating_column(&self) -> Column<'static> {
         match self {
-            Self::BaseUri => Column::TypeIds(TypeIds::BaseUri),
-            Self::Version => Column::TypeIds(TypeIds::Version),
+            Self::BaseUri => Column::OntologyIds(OntologyIds::BaseUri),
+            Self::Version => Column::OntologyIds(OntologyIds::Version),
             Self::OwnedById => Column::OwnedOntologyMetadata(OwnedOntologyMetadata::OwnedById),
             Self::UpdatedById => Column::OwnedOntologyMetadata(OwnedOntologyMetadata::UpdatedById),
-            Self::VersionId => Column::DataTypes(DataTypes::VersionId),
+            Self::OntologyId => Column::DataTypes(DataTypes::OntologyId),
             Self::Schema => Column::DataTypes(DataTypes::Schema(None)),
             Self::VersionedUri => {
                 Column::DataTypes(DataTypes::Schema(Some(JsonField::StaticText("$id"))))

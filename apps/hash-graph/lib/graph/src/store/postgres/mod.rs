@@ -4,7 +4,6 @@ mod ontology;
 mod migration;
 mod pool;
 mod query;
-mod version_id;
 
 use std::{
     collections::{hash_map::RawEntryMut, HashMap},
@@ -35,7 +34,7 @@ use crate::{
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         error::{VersionedUriAlreadyExists, WrongOntologyVersion},
-        postgres::{ontology::OntologyDatabaseType, version_id::VersionId},
+        postgres::ontology::{OntologyDatabaseType, OntologyId},
         AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, Store,
         StoreError, Transaction, UpdateError,
     },
@@ -265,7 +264,7 @@ where
         Self { client }
     }
 
-    /// Creates a new [`VersionId`] from the provided [`VersionedUri`].
+    /// Creates a new [`OntologyId`] from the provided [`VersionedUri`].
     ///
     /// # Errors
     ///
@@ -276,12 +275,12 @@ where
         uri: &VersionedUri,
         owned_by_id: OwnedById,
         updated_by_id: UpdatedById,
-    ) -> Result<VersionId, InsertionError> {
+    ) -> Result<OntologyId, InsertionError> {
         self.as_client()
             .query_one(
                 r#"
                 SELECT
-                    version_id
+                    ontology_id
                 FROM create_owned_ontology_id(
                     base_uri := $1,
                     version := $2,
@@ -309,8 +308,8 @@ where
             })
     }
 
-    /// Updates the latest version of [`VersionedUri::base_uri`] and creates a new [`VersionId`] for
-    /// it.
+    /// Updates the latest version of [`VersionedUri::base_uri`] and creates a new [`OntologyId`]
+    /// for it.
     ///
     /// # Errors
     ///
@@ -321,12 +320,12 @@ where
         &self,
         uri: &VersionedUri,
         updated_by_id: UpdatedById,
-    ) -> Result<(VersionId, OwnedById), UpdateError> {
+    ) -> Result<(OntologyId, OwnedById), UpdateError> {
         self.as_client()
             .query_opt(
                 r#"
                 SELECT
-                    version_id,
+                    ontology_id,
                     owned_by_id
                 FROM update_owned_ontology_id(
                     base_uri := $1,
@@ -365,7 +364,7 @@ where
     /// Inserts the specified [`OntologyDatabaseType`].
     ///
     /// This first extracts the [`BaseUri`] from the [`VersionedUri`] and attempts to insert it into
-    /// the database. It will create a new [`VersionId`] for this [`VersionedUri`] and then finally
+    /// the database. It will create a new [`OntologyId`] for this [`VersionedUri`] and then finally
     /// inserts the entry.
     ///
     /// # Errors
@@ -379,20 +378,20 @@ where
         database_type: T,
         owned_by_id: OwnedById,
         updated_by_id: UpdatedById,
-    ) -> Result<(VersionId, OntologyElementMetadata), InsertionError>
+    ) -> Result<(OntologyId, OntologyElementMetadata), InsertionError>
     where
         T: OntologyDatabaseType,
     {
         let uri = database_type.id().clone();
 
-        let version_id = self
+        let ontology_id = self
             .create_owned_ontology_id(&uri, owned_by_id, updated_by_id)
             .await?;
 
-        self.insert_with_id(version_id, database_type).await?;
+        self.insert_with_id(ontology_id, database_type).await?;
 
         Ok((
-            version_id,
+            ontology_id,
             OntologyElementMetadata::new(
                 OntologyTypeEditionId::from(&uri),
                 ProvenanceMetadata::new(updated_by_id),
@@ -404,7 +403,7 @@ where
     /// Updates the specified [`OntologyDatabaseType`].
     ///
     /// First this ensures the [`BaseUri`] of the type already exists. It then creates a
-    /// new [`VersionId`] from the contained [`VersionedUri`] and inserts the type.
+    /// new [`OntologyId`] from the contained [`VersionedUri`] and inserts the type.
     ///
     /// # Errors
     ///
@@ -416,23 +415,23 @@ where
         &self,
         database_type: T,
         updated_by_id: UpdatedById,
-    ) -> Result<(VersionId, OntologyElementMetadata), UpdateError>
+    ) -> Result<(OntologyId, OntologyElementMetadata), UpdateError>
     where
         T: OntologyDatabaseType,
     {
         let uri = database_type.id();
         let edition_id = OntologyTypeEditionId::from(uri);
 
-        let (version_id, owned_by_id) = self
+        let (ontology_id, owned_by_id) = self
             .update_owned_ontology_id(uri, updated_by_id)
             .await
             .change_context(UpdateError)?;
-        self.insert_with_id(version_id, database_type)
+        self.insert_with_id(ontology_id, database_type)
             .await
             .change_context(UpdateError)?;
 
         Ok((
-            version_id,
+            ontology_id,
             OntologyElementMetadata::new(
                 edition_id,
                 ProvenanceMetadata::new(updated_by_id),
@@ -441,7 +440,7 @@ where
         ))
     }
 
-    /// Inserts an [`OntologyDatabaseType`] identified by [`VersionId`], and associated with an
+    /// Inserts an [`OntologyDatabaseType`] identified by [`OntologyId`], and associated with an
     /// [`OwnedById`] and [`UpdatedById`], into the database.
     ///
     /// # Errors
@@ -450,7 +449,7 @@ where
     #[tracing::instrument(level = "debug", skip(self, database_type))]
     async fn insert_with_id<T>(
         &self,
-        version_id: VersionId,
+        ontology_id: OntologyId,
         database_type: T,
     ) -> Result<(), InsertionError>
     where
@@ -467,13 +466,13 @@ where
             .query_one(
                 &format!(
                     r#"
-                        INSERT INTO {} (version_id, schema)
+                        INSERT INTO {} (ontology_id, schema)
                         VALUES ($1, $2)
-                        RETURNING version_id;
+                        RETURNING ontology_id;
                     "#,
                     T::table()
                 ),
-                &[&version_id, &value],
+                &[&ontology_id, &value],
             )
             .await
             .into_report()
@@ -486,7 +485,7 @@ where
     async fn insert_property_type_references(
         &self,
         property_type: &PropertyType,
-        version_id: VersionId,
+        ontology_id: OntologyId,
     ) -> Result<(), InsertionError> {
         let property_type_ids = self
             .property_type_reference_ids(property_type.property_type_references())
@@ -497,11 +496,11 @@ where
         for target_id in property_type_ids {
             self.as_client().query_one(
                 r#"
-                        INSERT INTO property_type_property_type_references (source_property_type_version_id, target_property_type_version_id)
+                        INSERT INTO property_type_property_type_references (source_property_type_ontology_id, target_property_type_ontology_id)
                         VALUES ($1, $2)
-                        RETURNING source_property_type_version_id;
+                        RETURNING source_property_type_ontology_id;
                     "#,
-                &[&version_id, &target_id],
+                &[&ontology_id, &target_id],
             )
                 .await
                 .into_report()
@@ -517,11 +516,11 @@ where
         for target_id in data_type_ids {
             self.as_client().query_one(
                 r#"
-                        INSERT INTO property_type_data_type_references (source_property_type_version_id, target_data_type_version_id)
+                        INSERT INTO property_type_data_type_references (source_property_type_ontology_id, target_data_type_ontology_id)
                         VALUES ($1, $2)
-                        RETURNING source_property_type_version_id;
+                        RETURNING source_property_type_ontology_id;
                     "#,
-                &[&version_id, &target_id],
+                &[&ontology_id, &target_id],
             )
                 .await
                 .into_report()
@@ -535,7 +534,7 @@ where
     async fn insert_entity_type_references(
         &self,
         entity_type: &EntityType,
-        version_id: VersionId,
+        ontology_id: OntologyId,
     ) -> Result<(), InsertionError> {
         let property_type_ids = self
             .property_type_reference_ids(entity_type.property_type_references())
@@ -546,11 +545,11 @@ where
         for target_id in property_type_ids {
             self.as_client().query_one(
                 r#"
-                        INSERT INTO entity_type_property_type_references (source_entity_type_version_id, target_property_type_version_id)
+                        INSERT INTO entity_type_property_type_references (source_entity_type_ontology_id, target_property_type_ontology_id)
                         VALUES ($1, $2)
-                        RETURNING source_entity_type_version_id;
+                        RETURNING source_entity_type_ontology_id;
                     "#,
-                &[&version_id, &target_id],
+                &[&ontology_id, &target_id],
             )
                 .await
                 .into_report()
@@ -585,13 +584,13 @@ where
                 .query_one(
                     r#"
                         INSERT INTO entity_type_entity_type_references (
-                            source_entity_type_version_id,
-                            target_entity_type_version_id
+                            source_entity_type_ontology_id,
+                            target_entity_type_ontology_id
                         )
                         VALUES ($1, $2)
-                        RETURNING source_entity_type_version_id;
+                        RETURNING source_entity_type_ontology_id;
                     "#,
-                    &[&version_id, &target_id],
+                    &[&ontology_id, &target_id],
                 )
                 .await
                 .into_report()
@@ -606,7 +605,7 @@ where
     async fn entity_type_reference_ids<'p, I>(
         &self,
         referenced_entity_types: I,
-    ) -> Result<Vec<VersionId>, QueryError>
+    ) -> Result<Vec<OntologyId>, QueryError>
     where
         I: IntoIterator<Item = &'p EntityTypeReference> + Send,
         I::IntoIter: Send,
@@ -614,7 +613,7 @@ where
         let referenced_entity_types = referenced_entity_types.into_iter();
         let mut ids = Vec::with_capacity(referenced_entity_types.size_hint().0);
         for reference in referenced_entity_types {
-            ids.push(self.version_id_by_uri(reference.uri()).await?);
+            ids.push(self.ontology_id_by_uri(reference.uri()).await?);
         }
         Ok(ids)
     }
@@ -623,7 +622,7 @@ where
     async fn property_type_reference_ids<'p, I>(
         &self,
         referenced_property_types: I,
-    ) -> Result<Vec<VersionId>, QueryError>
+    ) -> Result<Vec<OntologyId>, QueryError>
     where
         I: IntoIterator<Item = &'p PropertyTypeReference> + Send,
         I::IntoIter: Send,
@@ -631,7 +630,7 @@ where
         let referenced_property_types = referenced_property_types.into_iter();
         let mut ids = Vec::with_capacity(referenced_property_types.size_hint().0);
         for reference in referenced_property_types {
-            ids.push(self.version_id_by_uri(reference.uri()).await?);
+            ids.push(self.ontology_id_by_uri(reference.uri()).await?);
         }
         Ok(ids)
     }
@@ -640,7 +639,7 @@ where
     async fn data_type_reference_ids<'p, I>(
         &self,
         referenced_data_types: I,
-    ) -> Result<Vec<VersionId>, QueryError>
+    ) -> Result<Vec<OntologyId>, QueryError>
     where
         I: IntoIterator<Item = &'p DataTypeReference> + Send,
         I::IntoIter: Send,
@@ -648,26 +647,26 @@ where
         let referenced_data_types = referenced_data_types.into_iter();
         let mut ids = Vec::with_capacity(referenced_data_types.size_hint().0);
         for reference in referenced_data_types {
-            ids.push(self.version_id_by_uri(reference.uri()).await?);
+            ids.push(self.ontology_id_by_uri(reference.uri()).await?);
         }
         Ok(ids)
     }
 
-    /// Fetches the [`VersionId`] of the specified [`VersionedUri`].
+    /// Fetches the [`OntologyId`] of the specified [`VersionedUri`].
     ///
     /// # Errors:
     ///
     /// - if the entry referred to by `uri` does not exist.
     #[tracing::instrument(level = "debug", skip(self))]
-    async fn version_id_by_uri(&self, uri: &VersionedUri) -> Result<VersionId, QueryError> {
+    async fn ontology_id_by_uri(&self, uri: &VersionedUri) -> Result<OntologyId, QueryError> {
         let version = i64::from(uri.version());
         Ok(self
             .client
             .as_client()
             .query_one(
                 r#"
-                SELECT version_id
-                FROM type_ids
+                SELECT ontology_id
+                FROM ontology_ids
                 WHERE base_uri = $1 AND version = $2;
                 "#,
                 &[&uri.base_uri().as_str(), &version],
@@ -747,7 +746,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             Item = (EntityProperties, Option<LinkOrder>, Option<LinkOrder>),
             IntoIter: Send,
         > + Send,
-        entity_type_version_id: VersionId,
+        entity_type_ontology_id: OntologyId,
         actor_id: UpdatedById,
     ) -> Result<Vec<EntityRecordId>, InsertionError> {
         self.client
@@ -755,7 +754,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 "CREATE TEMPORARY TABLE entity_editions_temp (
                     updated_by_id UUID NOT NULL,
                     archived BOOLEAN NOT NULL,
-                    entity_type_version_id UUID NOT NULL,
+                    entity_type_ontology_id UUID NOT NULL,
                     properties JSONB NOT NULL,
                     left_to_right_order INT,
                     right_to_left_order INT
@@ -771,7 +770,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 "COPY entity_editions_temp (
                     updated_by_id,
                     archived,
-                    entity_type_version_id,
+                    entity_type_ontology_id,
                     properties,
                     left_to_right_order,
                     right_to_left_order
@@ -799,7 +798,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 .write(&[
                     &actor_id,
                     &false,
-                    &entity_type_version_id,
+                    &entity_type_ontology_id,
                     &properties,
                     &left_to_right_order,
                     &right_to_left_order,
@@ -821,7 +820,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 "INSERT INTO entity_editions (
                     updated_by_id,
                     archived,
-                    entity_type_version_id,
+                    entity_type_ontology_id,
                     properties,
                     left_to_right_order,
                     right_to_left_order
@@ -829,7 +828,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 SELECT
                     updated_by_id,
                     archived,
-                    entity_type_version_id,
+                    entity_type_ontology_id,
                     properties,
                     left_to_right_order,
                     right_to_left_order

@@ -5,7 +5,7 @@ OR REPLACE FUNCTION "create_entity" (
   "_decision_time" TIMESTAMP WITH TIME ZONE,
   "_updated_by_id" UUID,
   "_archived" BOOLEAN,
-  "_entity_type_version_id" UUID,
+  "_entity_type_ontology_id" UUID,
   "_properties" JSONB,
   "_left_owned_by_id" UUID,
   "_left_entity_uuid" UUID,
@@ -43,14 +43,14 @@ OR REPLACE FUNCTION "create_entity" (
       INSERT INTO entity_editions (
         updated_by_id,
         archived,
-        entity_type_version_id,
+        entity_type_ontology_id,
         properties,
         left_to_right_order,
         right_to_left_order
       ) VALUES (
         _updated_by_id,
         _archived,
-        _entity_type_version_id,
+        _entity_type_ontology_id,
         _properties,
         _left_to_right_order,
         _right_to_left_order
@@ -80,7 +80,7 @@ OR REPLACE FUNCTION "update_entity" (
   "_decision_time" TIMESTAMP WITH TIME ZONE,
   "_updated_by_id" UUID,
   "_archived" BOOLEAN,
-  "_entity_type_version_id" UUID,
+  "_entity_type_ontology_id" UUID,
   "_properties" JSONB,
   "_left_to_right_order" INTEGER,
   "_right_to_left_order" INTEGER
@@ -97,14 +97,14 @@ OR REPLACE FUNCTION "update_entity" (
       INSERT INTO entity_editions (
         updated_by_id,
         archived,
-        entity_type_version_id,
+        entity_type_ontology_id,
         properties,
         left_to_right_order,
         right_to_left_order
       ) VALUES (
         _updated_by_id,
         _archived,
-        _entity_type_version_id,
+        _entity_type_ontology_id,
         _properties,
         _left_to_right_order,
         _right_to_left_order
