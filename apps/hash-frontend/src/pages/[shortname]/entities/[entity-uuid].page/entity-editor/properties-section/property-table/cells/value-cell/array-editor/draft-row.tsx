@@ -58,7 +58,7 @@ export const DraftRow = ({
       item={{
         id: DRAFT_ROW_KEY,
         index: existingItemCount,
-        value: null,
+        value: undefined,
         overriddenEditorType: editorType,
       }}
       onSaveChanges={(_, value) => {
