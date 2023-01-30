@@ -1,40 +1,48 @@
-use alloc::string::{String, ToString};
-use core::panic::Location;
+use core::{
+    fmt,
+    fmt::{Display, Formatter},
+    panic::Location,
+};
 
-use owo_colors::{OwoColorize, Stream};
+#[cfg(feature = "color")]
+use owo_colors::OwoColorize;
+
+use crate::fmt::ColorMode;
 
 pub(super) struct LocationDisplay<'a> {
     location: &'a Location<'static>,
-    supports_color: bool,
+    #[cfg(feature = "color")]
+    mode: ColorMode,
 }
 
 impl<'a> LocationDisplay<'a> {
+    // rust is likely to just remove this anyway, but as this is an internal only API having the
+    // color mode always present makes it easier to work with.
+    #[allow(unused)]
     #[must_use]
-    pub(super) const fn new(location: &'a Location<'static>) -> Self {
+    pub(super) const fn new(location: &'a Location<'static>, mode: ColorMode) -> Self {
         Self {
             location,
-            supports_color: false,
+            #[cfg(feature = "color")]
+            mode,
         }
-    }
-
-    pub(super) fn render(self) -> String {
-        let body = self.if_supports_color(Stream::Stdout, |value| LocationDisplay {
-            location: value.location,
-            supports_color: true,
-        });
-
-        body.to_string()
     }
 }
 
-impl<'a> core::fmt::Display for LocationDisplay<'a> {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+impl<'a> Display for LocationDisplay<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let location = self.location;
 
-        if self.supports_color {
-            core::fmt::Display::fmt(&OwoColorize::bright_black(location), f)
-        } else {
-            f.write_fmt(format_args!("at {location}"))
-        }
+        #[cfg(feature = "color")]
+        match self.mode {
+            ColorMode::None => f.write_fmt(format_args!("at {location}")),
+            ColorMode::Color => Display::fmt(&(*location).bright_black(), f),
+            ColorMode::Emphasis => Display::fmt(&(*location).italic(), f),
+        }?;
+
+        #[cfg(not(feature = "color"))]
+        f.write_fmt(format_args!("at {location}"))?;
+
+        Ok(())
     }
 }

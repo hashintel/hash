@@ -12,19 +12,26 @@ use core::{any::TypeId, mem};
 
 pub(crate) use default::install_builtin_hooks;
 
-use crate::fmt::Frame;
+use crate::fmt::{charset::Charset, ColorMode, Frame};
 
 pub struct Format {
     alternate: bool,
+
+    color: ColorMode,
+    charset: Charset,
 
     body: Vec<String>,
     appendix: Vec<String>,
 }
 
 impl Format {
-    pub(crate) const fn new(alternate: bool) -> Self {
+    pub(crate) const fn new(alternate: bool, color: ColorMode, charset: Charset) -> Self {
         Self {
             alternate,
+
+            color,
+            charset,
+
             body: Vec::new(),
             appendix: Vec::new(),
         }
@@ -119,7 +126,7 @@ impl Format {
 ///     .attach(HttpResponseStatusCode(501))
 ///     .attach(Suggestion("try better next time!"));
 ///
-/// # owo_colors::set_override(true);
+/// # Report::set_color_mode(error_stack::fmt::ColorMode::Color);
 /// # fn render(value: String) -> String {
 /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
 /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
@@ -199,7 +206,7 @@ impl Format {
 ///     .attach(Computation(2))
 ///     .attach(Computation(3));
 ///
-/// # owo_colors::set_override(true);
+/// # Report::set_color_mode(error_stack::fmt::ColorMode::Color);
 /// # fn render(value: String) -> String {
 /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
 /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
@@ -226,6 +233,22 @@ pub type HookContext<T> = crate::hook::context::HookContext<Format, T>;
 impl<T> HookContext<T> {
     pub(crate) fn appendix(&self) -> &[String] {
         self.inner().extra().appendix()
+    }
+
+    /// The requested [`ColorMode`] for this invocation of hooks.
+    ///
+    /// Hooks can be invoked in different color modes, which represent the preferences of an
+    /// end-user.
+    pub const fn color_mode(&self) -> ColorMode {
+        self.inner().extra().color
+    }
+
+    /// The requested [`Charset`] for this invocation of hooks
+    ///
+    /// Hooks can be invoked in using different charsets, which reflect the capabilities of the
+    /// terminal.
+    pub const fn charset(&self) -> Charset {
+        self.inner().extra().charset
     }
 
     /// The contents of the appendix are going to be displayed after the body in the order they have
@@ -266,7 +289,7 @@ impl<T> HookContext<T> {
     ///         reason: "bad request - server cannot or will not process request",
     ///     });
     ///
-    /// # owo_colors::set_override(true);
+    /// # Report::set_color_mode(error_stack::fmt::ColorMode::Color);
     /// # fn render(value: String) -> String {
     /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
     /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
@@ -313,7 +336,7 @@ impl<T> HookContext<T> {
     /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
     ///     .attach(Suggestion("try better next time"));
     ///
-    /// # owo_colors::set_override(true);
+    /// # Report::set_color_mode(error_stack::fmt::ColorMode::Color);
     /// # fn render(value: String) -> String {
     /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
     /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
@@ -435,9 +458,7 @@ impl Hooks {
 mod default {
     #![allow(unused_imports)]
 
-    #[cfg(feature = "pretty-print")]
-    use alloc::string::ToString;
-    use alloc::{format, vec, vec::Vec};
+    use alloc::{format, string::ToString, vec, vec::Vec};
     use core::{
         any::TypeId,
         fmt::Write,
@@ -449,17 +470,19 @@ mod default {
     #[cfg(feature = "std")]
     use std::sync::Once;
 
-    #[cfg(feature = "pretty-print")]
-    use owo_colors::{OwoColorize, Stream};
+    #[cfg(feature = "color")]
+    use owo_colors::OwoColorize;
     #[cfg(all(not(feature = "std"), feature = "hooks"))]
     use spin::once::Once;
     #[cfg(feature = "spantrace")]
     use tracing_error::SpanTrace;
 
-    #[cfg(feature = "pretty-print")]
-    use crate::fmt::location::LocationDisplay;
     use crate::{
-        fmt::hook::{into_boxed_hook, BoxedHook, HookContext},
+        fmt::{
+            hook::{into_boxed_hook, BoxedHook, HookContext},
+            location::LocationDisplay,
+            ColorMode,
+        },
         Frame, Report,
     };
 
@@ -498,11 +521,7 @@ mod default {
     }
 
     fn location(location: &Location<'static>, context: &mut HookContext<Location<'static>>) {
-        #[cfg(feature = "pretty-print")]
-        context.push_body(LocationDisplay::new(location).render());
-
-        #[cfg(not(feature = "pretty-print"))]
-        context.push_body(format!("at {location}"));
+        context.push_body(LocationDisplay::new(location, context.color_mode()).to_string());
     }
 
     #[cfg(all(feature = "std", rust_1_65))]

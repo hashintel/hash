@@ -7,9 +7,9 @@ CARGO_TEST_HACK_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "${CO
 CARGO_INSTA_TEST_FLAGS = "--no-fail-fast"
 CARGO_RUSTDOC_HACK_FLAGS = ""
 CARGO_DOC_HACK_FLAGS = ""
-# The only features that are of relevance are: spantrace, pretty-print, std, hooks
+# The only features that are of relevance are: spantrace, color, std, hooks
 # all others do not change the output
-CARGO_INSTA_TEST_HACK_FLAGS = "--keep-going --feature-powerset --include-features spantrace,pretty-print,std,hooks"
+CARGO_INSTA_TEST_HACK_FLAGS = "--keep-going --feature-powerset --include-features spantrace,color,std,hooks"
 
 # Workaround for https://github.com/taiki-e/cargo-hack/issues/161
 # instead, we should pass `--ignore-unknown-features` to `cargo hack`
@@ -97,7 +97,7 @@ run_task = { name = ['update-snapshots-task-lib-fmt', 'update-snapshots-task-lib
 
 [tasks.update-snapshots-task-lib-fmt]
 extend = "cargo"
-args = ["hack", "@@split(CARGO_INSTA_TEST_HACK_FLAGS, )", "nextest", "run", "--cargo-profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_TEST_FLAGS, )", "@@split(CARGO_INSTA_TEST_FLAGS, )", "${@}"]
+args = ["hack", "@@split(CARGO_INSTA_TEST_HACK_FLAGS, )", "nextest", "run", "--cargo-profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_INSTA_TEST_FLAGS, )", "${@}"]
 env = { "INSTA_FORCE_PASS" = "1", "RUST_BACKTRACE" = "1", "INSTA_UPDATE" = "new" }
 
 [tasks.update-snapshots-task-lib-ser]
