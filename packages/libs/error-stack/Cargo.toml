@@ -21,7 +21,6 @@ categories = ["rust-patterns", "no-std"]
 tracing-error = { version = "0.2", optional = true, default_features = false }
 anyhow = { version = "1.0.65", default-features = false, optional = true }
 eyre = { version = "0.6", default-features = false, optional = true }
-owo-colors = { version = "3", default-features = false, optional = true }
 serde = { version = "1", default-features = false, optional = true }
 spin = { version = "0.9", default-features = false, optional = true, features = ['rwlock', 'once'] }
 
@@ -39,6 +38,7 @@ ansi-to-html = "0.1.2"
 once_cell = "1.17.0"
 supports-color = "2.0.0"
 supports-unicode = "1.0.2"
+owo-colors = "3"
 
 [build-dependencies]
 rustc_version = "0.4"
@@ -46,7 +46,6 @@ rustc_version = "0.4"
 [features]
 default = ["std"]
 
-color = ["dep:owo-colors"]
 spantrace = ["dep:tracing-error", "std"]
 std = ["anyhow?/std"]
 eyre = ["dep:eyre", "std"]

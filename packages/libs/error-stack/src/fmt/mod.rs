@@ -172,10 +172,14 @@ pub use hook::HookContext;
 pub(crate) use hook::{install_builtin_hooks, Format, Hooks};
 #[cfg(not(any(feature = "std", feature = "hooks")))]
 use location::LocationDisplay;
-#[cfg(feature = "color")]
-use owo_colors::{OwoColorize, Style as OwOStyle};
 
-use crate::{fmt::config::Config, AttachmentKind, Context, Frame, FrameKind, Report};
+use crate::{
+    fmt::{
+        color::{Color, DisplayStyle, Style},
+        config::Config,
+    },
+    AttachmentKind, Context, Frame, FrameKind, Report,
+};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum Symbol {
@@ -289,46 +293,6 @@ impl Display for SymbolDisplay<'_> {
         }
 
         Ok(())
-    }
-}
-
-/// Small compatability layer between owocolors regardless if we use pretty-print or not
-#[derive(Debug, Copy, Clone)]
-struct Style {
-    bold: bool,
-}
-
-impl Style {
-    #[cfg(feature = "color")]
-    pub(crate) fn apply(self, fmt: &mut Formatter, value: &str, mode: ColorMode) -> fmt::Result {
-        match mode {
-            ColorMode::None => Display::fmt(value, fmt),
-            ColorMode::Color | ColorMode::Emphasis => Display::fmt(&value.style(self.into()), fmt),
-        }
-    }
-}
-
-impl Style {
-    const fn new() -> Self {
-        Self { bold: false }
-    }
-
-    const fn bold(mut self) -> Self {
-        self.bold = true;
-        self
-    }
-}
-
-#[cfg(feature = "color")]
-impl From<Style> for OwOStyle {
-    fn from(value: Style) -> Self {
-        let mut this = Self::new();
-
-        if value.bold {
-            this = this.bold();
-        }
-
-        this
     }
 }
 
@@ -506,7 +470,6 @@ impl Instruction {
 }
 
 struct InstructionDisplay<'a> {
-    #[cfg(feature = "color")]
     color: ColorMode,
     charset: Charset,
 
@@ -522,20 +485,17 @@ impl Display for InstructionDisplay<'_> {
                     charset: self.charset,
                 };
 
-                #[cfg(feature = "color")]
+                let mut style = Style::new();
+
                 match self.color {
-                    ColorMode::None => Display::fmt(&display, fmt)?,
-                    ColorMode::Color => Display::fmt(&display.red(), fmt)?,
-                    ColorMode::Emphasis => Display::fmt(&display.bold(), fmt)?,
+                    ColorMode::Color => style.set_foreground(Color::Red, false),
+                    ColorMode::Emphasis => style.set_display(DisplayStyle::new().with_bold(true)),
+                    ColorMode::None => {}
                 };
 
-                #[cfg(not(feature = "color"))]
-                Display::fmt(&display, fmt)?;
+                Display::fmt(&style.apply(&display), fmt)?;
             }
-            #[cfg(feature = "color")]
-            PreparedInstruction::Content(value, &style) => style.apply(fmt, value, self.color)?,
-            #[cfg(not(feature = "color"))]
-            PreparedInstruction::Content(value, _) => Display::fmt(value, fmt)?,
+            PreparedInstruction::Content(value, &style) => Display::fmt(&style.apply(&value), fmt)?,
         }
 
         Ok(())
@@ -561,7 +521,6 @@ impl Line {
 }
 
 struct LineDisplay<'a> {
-    #[cfg(feature = "color")]
     color: ColorMode,
     charset: Charset,
 
@@ -573,7 +532,6 @@ impl Display for LineDisplay<'_> {
         for instruction in self.line.0.iter().rev() {
             Display::fmt(
                 &InstructionDisplay {
-                    #[cfg(feature = "color")]
                     color: self.color,
                     charset: self.charset,
                     instruction,
@@ -682,7 +640,7 @@ fn debug_context(context: &dyn Context) -> Lines {
             if idx == 0 {
                 Line::new().push(Instruction::Value {
                     value,
-                    style: Style::new().bold(),
+                    style: Style::new().with_display(DisplayStyle::new().with_bold(true)),
                 })
             } else {
                 Line::new().push(Instruction::Value {
@@ -974,11 +932,8 @@ fn debug_frame(root: &Frame, prefix: &[&Frame], config: &mut Config) -> Vec<Line
 
 impl<C> Debug for Report<C> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        // TODO: set temporary override!
-
         let mut config = Config::load(fmt.alternate());
 
-        #[cfg(feature = "color")]
         let color = config.color_mode();
         let charset = config.charset();
 
@@ -1002,7 +957,6 @@ impl<C> Debug for Report<C> {
             })
             .map(|line| {
                 LineDisplay {
-                    #[cfg(feature = "color")]
                     color,
                     charset,
                     line: &line,

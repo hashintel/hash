@@ -54,9 +54,6 @@ static CHARSET_OVERRIDE: AtomicOverride<Charset> = AtomicOverride::new();
 impl Report<()> {
     /// Set the charset preference
     ///
-    /// If the value is [`None`], a previously set preference will be unset, while with [`Some`] a
-    /// specific charset will be set.
-    ///
     /// The value defaults to [`Charset::Utf8`].
     ///
     /// # Example

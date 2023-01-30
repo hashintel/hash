@@ -15,16 +15,9 @@ use crate::{
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Default)]
 pub enum ColorMode {
     /// User preference to disable all colors
-    // TODO: this is only true once https://github.com/jam1garner/owo-colors/pull/90 is merged
-    // If this is the variant is present, [`owo-colors`](https://docs.rs/owo-colors) color
-    // support has been temporarily disabled and closures given to
-    // [`OwoColorize::if_supports_color`] will not be executed.
     None,
 
     /// User preference to enable colors
-    // TODO: this is only true once https://github.com/jam1garner/owo-colors/pull/90 is merged
-    // This will also temporarily set [`owo_colors::set_override`] to enable execution of
-    // [`OwoColorize::if_supports_color`].
     Color,
 
     /// User preference to enable styles, but discourage colors
@@ -73,12 +66,7 @@ static COLOR_OVERRIDE: AtomicOverride<ColorMode> = AtomicOverride::new();
 impl Report<()> {
     /// Set the color mode preference
     ///
-    /// If the value is [`None`], a previously set preference will be unset, while with [`Some`] a
-    /// specific color mode will be set, this mode will be used, otherwise if `detect` is enabled
-    /// the capabilities of the terminal are queried through [`owo_colors`].
-    ///
-    /// The value defaults to [`ColorMode::Emphasis`] (if the terminal supports it), otherwise
-    /// [`ColorMode::None`].
+    /// The value defaults to [`ColorMode::Emphasis`], otherwise [`ColorMode::None`].
     ///
     /// # Example
     ///
@@ -150,7 +138,7 @@ impl Report<()> {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum Color {
+pub(crate) enum Color {
     Black,
     Red,
     Green,
@@ -177,7 +165,7 @@ impl Color {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct Foreground {
+pub(crate) struct Foreground {
     color: Color,
     bright: bool,
 }
@@ -199,7 +187,7 @@ impl Foreground {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct Background {
+pub(crate) struct Background {
     color: Color,
     bright: bool,
 }
@@ -269,13 +257,80 @@ impl ControlSequence<'_, '_> {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-struct DisplayStyle {
+pub(crate) struct DisplayStyle {
     bold: bool,
     faint: bool,
     italic: bool,
     underline: bool,
     blink: bool,
     strikethrough: bool,
+}
+
+impl DisplayStyle {
+    pub(crate) const fn new() -> Self {
+        Self {
+            bold: false,
+            faint: false,
+            italic: false,
+            underline: false,
+            blink: false,
+            strikethrough: false,
+        }
+    }
+
+    pub(crate) fn set_bold(&mut self, value: bool) {
+        self.bold = value;
+    }
+
+    pub(crate) fn with_bold(mut self, value: bool) -> Self {
+        self.set_bold(value);
+        self
+    }
+
+    pub(crate) fn set_faint(&mut self, value: bool) {
+        self.faint = value;
+    }
+
+    pub(crate) fn with_faint(mut self, value: bool) -> Self {
+        self.set_faint(value);
+        self
+    }
+
+    pub(crate) fn set_italic(&mut self, value: bool) {
+        self.italic = value;
+    }
+
+    pub(crate) fn with_italic(mut self, value: bool) -> Self {
+        self.set_italic(value);
+        self
+    }
+
+    pub(crate) fn set_underline(&mut self, value: bool) {
+        self.underline = value;
+    }
+
+    pub(crate) fn with_underline(mut self, value: bool) -> Self {
+        self.set_underline(value);
+        self
+    }
+
+    pub(crate) fn set_blink(&mut self, value: bool) {
+        self.blink = value;
+    }
+
+    pub(crate) fn with_blink(mut self, value: bool) -> Self {
+        self.set_blink(value);
+        self
+    }
+
+    pub(crate) fn set_strikethrough(&mut self, value: bool) {
+        self.strikethrough = value;
+    }
+
+    pub(crate) fn with_strikethrough(mut self, value: bool) -> Self {
+        self.set_strikethrough(value);
+        self
+    }
 }
 
 impl DisplayStyle {
@@ -336,13 +391,55 @@ impl DisplayStyle {
     }
 }
 
-struct Style {
+#[derive(Default, Debug, Copy, Clone, Eq, PartialEq)]
+pub(crate) struct Style {
     display: Option<DisplayStyle>,
     foreground: Option<Foreground>,
     background: Option<Background>,
 }
 
-struct StyleDisplay<'a, T: Display> {
+impl Style {
+    pub(crate) const fn new() -> Self {
+        Self {
+            display: None,
+            foreground: None,
+            background: None,
+        }
+    }
+
+    pub(crate) const fn apply<T: Display>(self, value: &T) -> StyleDisplay<T> {
+        StyleDisplay { style: self, value }
+    }
+
+    pub(crate) fn set_foreground(&mut self, color: Color, bright: bool) {
+        self.foreground = Some(Foreground { color, bright });
+    }
+
+    pub(crate) fn with_foreground(mut self, color: Color, bright: bool) -> Self {
+        self.set_foreground(color, bright);
+        self
+    }
+
+    pub(crate) fn set_background(&mut self, color: Color, bright: bool) {
+        self.background = Some(Background { color, bright });
+    }
+
+    pub(crate) fn with_background(mut self, color: Color, bright: bool) -> Self {
+        self.set_background(color, bright);
+        self
+    }
+
+    pub(crate) fn set_display(&mut self, style: DisplayStyle) {
+        self.display = Some(style);
+    }
+
+    pub(crate) fn with_display(mut self, style: DisplayStyle) -> Self {
+        self.set_display(style);
+        self
+    }
+}
+
+pub(crate) struct StyleDisplay<'a, T: Display> {
     style: Style,
     value: &'a T,
 }
