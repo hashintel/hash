@@ -42,6 +42,18 @@ impl ColorMode {
     }
 }
 
+impl Default for ColorMode {
+    #[cfg(feature = "color")]
+    fn default() -> Self {
+        Self::Emphasis
+    }
+
+    #[cfg(not(feature = "color"))]
+    fn default() -> Self {
+        Self::None
+    }
+}
+
 /// Value layout:
 /// `0x00`: `ColorMode::None`
 /// `0x01`: `ColorMode::Color`

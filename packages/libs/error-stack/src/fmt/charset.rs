@@ -30,6 +30,12 @@ impl Charset {
     }
 }
 
+impl Default for Charset {
+    fn default() -> Self {
+        Self::Utf8
+    }
+}
+
 /// Value layout:
 /// `0x00`: `Charset::Ascii`
 /// `0x01`: `Charset::Utf8`
