@@ -1,19 +1,23 @@
 import {
   useEntitySubgraph,
-  type BlockComponent,
   useGraphBlockService,
+  type BlockComponent,
 } from "@blockprotocol/graph/react";
 import { useRef } from "react";
 
-import { GridCellKind, GridColumn } from "@glideapps/glide-data-grid";
+import {
+  DataEditorProps,
+  GridCellKind,
+  GridColumn,
+} from "@glideapps/glide-data-grid";
 import styles from "./base.module.scss";
 import { Grid } from "./components/grid/grid";
+import { TableTitle } from "./components/table-title/table-title";
 import {
   LocalColumns,
   RootEntity,
   RootEntityLinkedEntities,
 } from "./types.gen";
-import { TableTitle } from "./components/table-title/table-title";
 
 const titleKey: keyof RootEntity["properties"] =
   "https://alpha.hash.ai/@yusuf/types/property-type/table-title/";
@@ -36,7 +40,7 @@ export const App: BlockComponent<RootEntity> = ({
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphService } = useGraphBlockService(blockRootRef);
 
-  const { rootEntity: blockEntity, linkedEntities } = useEntitySubgraph<
+  const { rootEntity: blockEntity } = useEntitySubgraph<
     RootEntity,
     RootEntityLinkedEntities
   >(blockEntitySubgraph);
@@ -69,11 +73,24 @@ export const App: BlockComponent<RootEntity> = ({
     return updateEntity({ [localRowsKey]: [...localRows, {}] });
   };
 
-  const setValue = ({}: {
-    value: string;
-    columnId: string;
-    rowId: string;
-  }) => {};
+  const handleCellEdited: DataEditorProps["onCellEdited"] = (
+    [colIndex, rowIndex],
+    newValue,
+  ) => {
+    const columnId = columns[colIndex]?.id;
+
+    if (!columnId) {
+      throw new Error("columnId not found");
+    }
+
+    const editedRow = rows[rowIndex];
+
+    const newRows = [...rows];
+    const newCellValue = newValue.data;
+    newRows[rowIndex] = { ...editedRow, [columnId]: newCellValue };
+
+    updateEntity({ [localRowsKey]: newRows });
+  };
 
   const setTitle = async (val: string) => {
     await updateEntity({ [titleKey]: val });
@@ -91,7 +108,7 @@ export const App: BlockComponent<RootEntity> = ({
     });
   };
 
-  const columns: GridColumn[] = localColumns!.map((col) => ({
+  const columns: GridColumn[] = localColumns.map((col) => ({
     id: col[columnIdKey],
     title: col[columnTitleKey],
     width: 200,
@@ -102,7 +119,7 @@ export const App: BlockComponent<RootEntity> = ({
     <div className={styles.block} ref={blockRootRef}>
       <TableTitle onChange={setTitle} title={title} readonly={readonly} />
       <Grid
-        rows={rows.length}
+        rows={Math.max(rows.length, 13)}
         columns={columns}
         rightElement={
           readonly ? null : (
@@ -111,6 +128,7 @@ export const App: BlockComponent<RootEntity> = ({
             </div>
           )
         }
+        onCellEdited={handleCellEdited}
         rightElementProps={{ fill: true }}
         trailingRowOptions={{
           hint: "New row...",
@@ -136,7 +154,7 @@ export const App: BlockComponent<RootEntity> = ({
             throw new Error("key not found");
           }
 
-          const value = rows[rowIndex][key] ?? "";
+          const value = rows[rowIndex]?.[key] ?? "";
 
           return {
             kind: GridCellKind.Text,
