@@ -92,7 +92,7 @@ mod tests {
                 test_helper::trim_whitespace, Distinctness, Ordering, PostgresRecord,
                 SelectCompiler,
             },
-            query::{Filter, FilterExpression, Parameter},
+            query::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
         },
     };
 
@@ -296,10 +296,10 @@ mod tests {
               ON "data_types_0_2_0"."ontology_id" = "property_type_data_type_references_0_1_0"."target_data_type_ontology_id"
             INNER JOIN "property_type_data_type_references" AS "property_type_data_type_references_1_1_0"
               ON "property_type_data_type_references_1_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
-            INNER JOIN "ontology_ids" AS "ontology_ids_1_2_0"
-              ON "ontology_ids_1_2_0"."ontology_id" = "property_type_data_type_references_1_1_0"."target_data_type_ontology_id"
+            INNER JOIN "ontology_ids" AS "ontology_ids_1_3_0"
+              ON "ontology_ids_1_3_0"."ontology_id" = "property_type_data_type_references_1_1_0"."target_data_type_ontology_id"
             WHERE "data_types_0_2_0"."schema"->>'title' = $1
-              AND ("ontology_ids_1_2_0"."base_uri" = $2) AND ("ontology_ids_1_2_0"."version" = $3)
+              AND ("ontology_ids_1_3_0"."base_uri" = $2) AND ("ontology_ids_1_3_0"."version" = $3)
             "#,
             &[
                 &"Text",
@@ -522,10 +522,13 @@ mod tests {
         let time_projection = UnresolvedTimeProjection::default().resolve();
         let kernel = time_projection.kernel().cast::<TransactionTime>();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
+        let json_path = JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
+            r#"$."https://blockprotocol.org/@alice/types/property-type/name/""#,
+        ))]);
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::Properties(Some(
-                Cow::Borrowed("https://blockprotocol.org/@alice/types/property-type/name/"),
+                json_path.clone(),
             )))),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "Bob",
@@ -540,14 +543,9 @@ mod tests {
             FROM "entities" AS "entities_0_0_0"
             WHERE "entities_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
               AND "entities_0_0_0"."decision_time" && $3
-              AND "entities_0_0_0"."properties"->$1 = $4
+              AND jsonb_path_query_first("entities_0_0_0"."properties", $1::text::jsonpath) = $4
             "#,
-            &[
-                &"https://blockprotocol.org/@alice/types/property-type/name/",
-                &kernel,
-                &time_projection.image(),
-                &"Bob",
-            ],
+            &[&json_path, &kernel, &time_projection.image(), &"Bob"],
         );
     }
 
@@ -556,10 +554,13 @@ mod tests {
         let time_projection = UnresolvedTimeProjection::default().resolve();
         let kernel = time_projection.kernel().cast::<TransactionTime>();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
+        let json_path = JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
+            r#"$."https://blockprotocol.org/@alice/types/property-type/name/""#,
+        ))]);
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::Properties(Some(
-                Cow::Borrowed("https://blockprotocol.org/@alice/types/property-type/name/"),
+                json_path.clone(),
             )))),
             None,
         );
@@ -572,13 +573,9 @@ mod tests {
             FROM "entities" AS "entities_0_0_0"
             WHERE "entities_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
               AND "entities_0_0_0"."decision_time" && $3
-              AND "entities_0_0_0"."properties"->$1 IS NULL
+              AND jsonb_path_query_first("entities_0_0_0"."properties", $1::text::jsonpath) IS NULL
             "#,
-            &[
-                &"https://blockprotocol.org/@alice/types/property-type/name/",
-                &kernel,
-                &time_projection.image(),
-            ],
+            &[&json_path, &kernel, &time_projection.image()],
         );
     }
 
@@ -709,6 +706,56 @@ mod tests {
                 &Uuid::nil(),
                 &Uuid::nil(),
                 &Uuid::nil(),
+            ],
+        );
+    }
+
+    #[test]
+    fn filter_left_and_right() {
+        let time_projection = UnresolvedTimeProjection::default().resolve();
+        let kernel = time_projection.kernel().cast::<TransactionTime>();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
+
+        let filter = Filter::All(vec![
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
+                    Box::new(EntityQueryPath::Type(EntityTypeQueryPath::BaseUri)),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    "https://example.com/@example-org/types/entity-type/address",
+                )))),
+            ),
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::RightEntity(
+                    Box::new(EntityQueryPath::Type(EntityTypeQueryPath::BaseUri)),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    "https://example.com/@example-org/types/entity-type/name",
+                )))),
+            ),
+        ]);
+        compiler.add_filter(&filter);
+
+        test_compilation(
+            &compiler,
+            r#"
+             SELECT *
+             FROM "entities" AS "entities_0_0_0"
+             RIGHT OUTER JOIN "entities" AS "entities_0_1_0" ON "entities_0_1_0"."entity_uuid" = "entities_0_0_0"."left_entity_uuid"
+             INNER JOIN "ontology_ids" AS "ontology_ids_0_3_0" ON "ontology_ids_0_3_0"."ontology_id" = "entities_0_1_0"."entity_type_ontology_id"
+             RIGHT OUTER JOIN "entities" AS "entities_0_1_1" ON "entities_0_1_1"."entity_uuid" = "entities_0_0_0"."right_entity_uuid"
+             INNER JOIN "ontology_ids" AS "ontology_ids_0_3_1" ON "ontology_ids_0_3_1"."ontology_id" = "entities_0_1_1"."entity_type_ontology_id"
+             WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ AND "entities_0_0_0"."decision_time" && $2
+               AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ AND "entities_0_1_0"."decision_time" && $2
+               AND "entities_0_1_1"."transaction_time" @> $1::TIMESTAMPTZ AND "entities_0_1_1"."decision_time" && $2
+               AND ("ontology_ids_0_3_0"."base_uri" = $3)
+               AND ("ontology_ids_0_3_1"."base_uri" = $4)
+            "#,
+            &[
+                &kernel,
+                &time_projection.image(),
+                &"https://example.com/@example-org/types/entity-type/address",
+                &"https://example.com/@example-org/types/entity-type/name",
             ],
         );
     }

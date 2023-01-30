@@ -8,7 +8,9 @@ use crate::{
     store::{
         postgres::query::{
             expression::Constant,
-            table::{Entities, EntityTypes, JsonField, OntologyIds, Relation},
+            table::{
+                DataTypes, Entities, EntityTypes, JsonField, OntologyIds, PropertyTypes, Relation,
+            },
             Alias, AliasedColumn, AliasedTable, Column, Condition, Distinctness, EqualityOperator,
             Expression, Function, JoinExpression, OrderByExpression, Ordering, PostgresQueryPath,
             PostgresRecord, SelectExpression, SelectStatement, Table, Transpile, WhereExpression,
@@ -361,16 +363,33 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     }
 
     pub fn compile_path_column(&mut self, path: &'p R::QueryPath<'_>) -> AliasedColumn<'c> {
-        let column = path.terminating_column();
-        let column =
-            if let Column::Entities(Entities::Properties(Some(JsonField::Json(field)))) = column {
+        let column = match path.terminating_column() {
+            Column::DataTypes(DataTypes::Schema(Some(JsonField::JsonPath(field)))) => {
                 self.artifacts.parameters.push(field);
-                Column::Entities(Entities::Properties(Some(JsonField::JsonParameter(
+                Column::DataTypes(DataTypes::Schema(Some(JsonField::JsonPathParameter(
                     self.artifacts.parameters.len(),
                 ))))
-            } else {
-                column
-            };
+            }
+            Column::PropertyTypes(PropertyTypes::Schema(Some(JsonField::JsonPath(field)))) => {
+                self.artifacts.parameters.push(field);
+                Column::PropertyTypes(PropertyTypes::Schema(Some(JsonField::JsonPathParameter(
+                    self.artifacts.parameters.len(),
+                ))))
+            }
+            Column::EntityTypes(EntityTypes::Schema(Some(JsonField::JsonPath(field)))) => {
+                self.artifacts.parameters.push(field);
+                Column::EntityTypes(EntityTypes::Schema(Some(JsonField::JsonPathParameter(
+                    self.artifacts.parameters.len(),
+                ))))
+            }
+            Column::Entities(Entities::Properties(Some(JsonField::JsonPath(field)))) => {
+                self.artifacts.parameters.push(field);
+                Column::Entities(Entities::Properties(Some(JsonField::JsonPathParameter(
+                    self.artifacts.parameters.len(),
+                ))))
+            }
+            column => column,
+        };
 
         let alias = self.add_join_statements(path);
 
@@ -481,10 +500,14 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     fn add_join_statements(&mut self, path: &R::QueryPath<'_>) -> Alias {
         let mut current_table = self.statement.from;
 
+        if current_table.table == Table::Entities {
+            self.pin_entity_table(current_table.alias);
+        }
+
         for relation in path.relations() {
             let current_alias = current_table.alias;
             for (current_column, join_column) in relation.joins() {
-                let current_column = current_column.aliased(current_table.alias);
+                let mut current_column = current_column.aliased(current_table.alias);
                 let mut join_column = join_column.aliased(Alias {
                     condition_index: self.artifacts.condition_index,
                     chain_depth: current_table.alias.chain_depth + 1,
@@ -498,7 +521,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                 // entity_type_ontology_id = ontology_ids.ontology_id`. We, however, need to
                 // make sure, that we only alter a join statement with a table we don't require
                 // anymore.
-                if let Some(last_join) = self.statement.joins.last_mut() {
+                if let Some(last_join) = self.statement.joins.pop() {
                     // Check if we are joining on the same column as the previous join
                     if last_join.join == current_column
                         && !self
@@ -506,19 +529,9 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                             .required_tables
                             .contains(&last_join.join.table())
                     {
-                        last_join.join.table().table = join_column.table().table;
-                        last_join.join.column = join_column.column;
-                        current_table = last_join.join.table();
-
-                        if let [.., previous_join, this_join] = self.statement.joins.as_slice() {
-                            // It's possible that we just duplicated the last two join statements,
-                            // so remove the last one.
-                            if previous_join == this_join {
-                                self.statement.joins.pop();
-                            }
-                        }
-
-                        continue;
+                        current_column = last_join.on;
+                    } else {
+                        self.statement.joins.push(last_join);
                     }
                 }
 
@@ -544,8 +557,8 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                     current_table = join_expression.join.table();
                     self.statement.joins.push(join_expression);
 
-                    if matches!(current_column.column, Column::Entities(_)) {
-                        self.pin_entity_table(current_alias);
+                    if matches!(join_column.column, Column::Entities(_)) {
+                        self.pin_entity_table(current_table.alias);
                     }
                 }
             }

@@ -6,7 +6,7 @@ use serde::{
 };
 use utoipa::ToSchema;
 
-use crate::store::query::{OntologyQueryPath, ParameterType, QueryPath};
+use crate::store::query::{JsonPath, OntologyQueryPath, ParameterType, PathToken, QueryPath};
 
 /// A path to a [`DataType`] field.
 ///
@@ -18,7 +18,7 @@ use crate::store::query::{OntologyQueryPath, ParameterType, QueryPath};
 // TODO: Adjust enum and docs when adding non-primitive data types
 //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
 #[derive(Debug, PartialEq, Eq)]
-pub enum DataTypeQueryPath {
+pub enum DataTypeQueryPath<'p> {
     /// The [`BaseUri`] of the [`DataType`].
     ///
     /// ```rust
@@ -151,10 +151,10 @@ pub enum DataTypeQueryPath {
     /// Only used internally and not available for deserialization.
     OntologyId,
     /// Only used internally and not available for deserialization.
-    Schema,
+    Schema(Option<JsonPath<'p>>),
 }
 
-impl OntologyQueryPath for DataTypeQueryPath {
+impl OntologyQueryPath for DataTypeQueryPath<'_> {
     fn base_uri() -> Self {
         Self::BaseUri
     }
@@ -176,15 +176,15 @@ impl OntologyQueryPath for DataTypeQueryPath {
     }
 
     fn schema() -> Self {
-        Self::Schema
+        Self::Schema(None)
     }
 }
 
-impl QueryPath for DataTypeQueryPath {
+impl QueryPath for DataTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
             Self::OntologyId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
-            Self::Schema => ParameterType::Any,
+            Self::Schema(_) => ParameterType::Any,
             Self::BaseUri => ParameterType::BaseUri,
             Self::VersionedUri => ParameterType::VersionedUri,
             Self::Version => ParameterType::UnsignedInteger,
@@ -193,7 +193,7 @@ impl QueryPath for DataTypeQueryPath {
     }
 }
 
-impl fmt::Display for DataTypeQueryPath {
+impl fmt::Display for DataTypeQueryPath<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::OntologyId => fmt.write_str("ontologyId"),
@@ -202,7 +202,8 @@ impl fmt::Display for DataTypeQueryPath {
             Self::VersionedUri => fmt.write_str("versionedUri"),
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
-            Self::Schema => fmt.write_str("schema"),
+            Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
+            Self::Schema(None) => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),
             Self::Description => fmt.write_str("description"),
             Self::Type => fmt.write_str("type"),
@@ -222,6 +223,8 @@ pub enum DataTypeQueryToken {
     Title,
     Description,
     Type,
+    #[serde(skip)]
+    Schema,
 }
 
 /// Deserializes a [`DataTypeQueryPath`] from a string sequence.
@@ -242,7 +245,7 @@ impl DataTypeQueryPathVisitor {
 }
 
 impl<'de> Visitor<'de> for DataTypeQueryPathVisitor {
-    type Value = DataTypeQueryPath;
+    type Value = DataTypeQueryPath<'de>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str(Self::EXPECTING)
@@ -266,11 +269,24 @@ impl<'de> Visitor<'de> for DataTypeQueryPathVisitor {
             DataTypeQueryToken::Title => DataTypeQueryPath::Title,
             DataTypeQueryToken::Description => DataTypeQueryPath::Description,
             DataTypeQueryToken::Type => DataTypeQueryPath::Type,
+            DataTypeQueryToken::Schema => {
+                let mut path_tokens = Vec::new();
+                while let Some(field) = seq.next_element::<PathToken<'de>>()? {
+                    path_tokens.push(field);
+                    self.position += 1;
+                }
+
+                if path_tokens.is_empty() {
+                    DataTypeQueryPath::Schema(None)
+                } else {
+                    DataTypeQueryPath::Schema(Some(JsonPath::from_path_tokens(path_tokens)))
+                }
+            }
         })
     }
 }
 
-impl<'de> Deserialize<'de> for DataTypeQueryPath {
+impl<'de: 'p, 'p> Deserialize<'de> for DataTypeQueryPath<'p> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -285,7 +301,7 @@ mod tests {
 
     use super::*;
 
-    fn deserialize<'p>(segments: impl IntoIterator<Item = &'p str>) -> DataTypeQueryPath {
+    fn deserialize<'p>(segments: impl IntoIterator<Item = &'p str>) -> DataTypeQueryPath<'p> {
         DataTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
             segments.into_iter(),
         ))

@@ -1,6 +1,8 @@
+import { VersionedUri } from "@blockprotocol/type-system";
 import {
   ButtonBase,
   checkboxClasses,
+  keyframes,
   svgIconClasses,
   Table,
   tableBodyClasses,
@@ -9,11 +11,14 @@ import {
   TableRow,
   Typography,
   TypographyProps,
+  useForkRef,
 } from "@mui/material";
 import { Box, experimental_sx, styled } from "@mui/system";
-import { forwardRef, ReactNode } from "react";
+import { memoize } from "lodash";
+import { forwardRef, ReactNode, useEffect, useRef, useState } from "react";
 
 import { WhiteCard } from "../../../../../shared/white-card";
+import { EDIT_BAR_HEIGHT } from "../../shared/edit-bar";
 
 export const EntityTypeTableCenteredCell = styled(TableCell)(
   experimental_sx({
@@ -22,35 +27,173 @@ export const EntityTypeTableCenteredCell = styled(TableCell)(
   }),
 );
 
+/**
+ * The shape of data for properties/links is slightly different, but the sort logic is
+ * the same. This is a generic sort function which maps from a react hook form
+ * field array to an object preserving the original index and sorting by title
+ */
+export const sortRows = <V, R extends { $id: VersionedUri }>(
+  rows: R[],
+  resolveRow: ($id: VersionedUri) => V | undefined,
+  resolveTitle: (row: V) => string,
+) =>
+  rows
+    .map((field, index) => {
+      const row = resolveRow(field.$id);
+      return { field, row, index, title: row ? resolveTitle(row) : null };
+    })
+    .sort((a, b) => {
+      if (a.title === null && b.title === null) {
+        return 0;
+      }
+      if (a.title === null) {
+        return 1;
+      }
+      if (b.title === null) {
+        return -1;
+      }
+      return a.title.localeCompare(b.title);
+    });
+
+const FLASHING_ROW_MS = 3_000;
+// We want the flash to fade in / fade out at this speed, with the remaining
+// time of the animation spent in a 'flashed' state
+const FLASH_IN_OUT_MS = 500;
+
+// These are the % of the full animation time where the flash starts and ends to
+// enable the fade in / fade out to last as long as FLASH_IN_OUT_MS requires
+const FLASH_START = Math.round((FLASH_IN_OUT_MS / FLASHING_ROW_MS) * 100);
+const FLASH_END = 100 - FLASH_START;
+
+/**
+ * keyframes is part of emotion, not mui, so we can't access the theme, so instead
+ * we wrap it in a function to generate the keyframes where its used, where we do
+ * have the theme
+ */
+const flashAnimation = memoize(
+  (color: string) => keyframes`
+  ${FLASH_START}%, ${FLASH_END}% {
+    background-color: ${color};
+  }
+  
+  from, to {
+    background-color: transparent;
+  } 
+`,
+);
+
+export const useFlashRow = () => {
+  const [flashingRows, setFlashingRows] = useState<string[]>([]);
+  const flashingTimeouts = useRef<
+    Record<string, ReturnType<typeof setTimeout>>
+  >({});
+
+  const flashRow = (row: string) => {
+    setFlashingRows([...flashingRows, row]);
+
+    clearTimeout(flashingTimeouts.current[row]);
+
+    flashingTimeouts.current[row] = setTimeout(() => {
+      setFlashingRows((current) => current.filter((id) => id !== row));
+    }, FLASHING_ROW_MS);
+  };
+
+  return [flashingRows, flashRow] as const;
+};
+
 export const EntityTypeTableRow = forwardRef<
   HTMLTableRowElement,
-  { children: ReactNode }
->(({ children }, ref) => (
-  <TableRow
-    ref={ref}
-    sx={[
-      (theme) => ({
-        [`.${tableCellClasses.root}`]: {
-          "&:first-of-type": {
-            borderTopLeftRadius: theme.borderRadii.md,
-            borderBottomLeftRadius: theme.borderRadii.md,
+  { children: ReactNode; flash?: boolean }
+>(({ children, flash = false }, ref) => {
+  const [flashed, setFlashed] = useState(false);
+  const rowRef = useRef<HTMLElement>(null);
+
+  const combinedRef = useForkRef(ref, rowRef);
+
+  if (flashed && !flash) {
+    setFlashed(false);
+  }
+
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  useEffect(() => {
+    if (flash && !flashed) {
+      setFlashed(true);
+
+      const node = rowRef.current;
+      if (node) {
+        /**
+         * This detects if the row is currently in view or not, and only triggers
+         * the scroll into view logic if it's not
+         */
+        const observer = new IntersectionObserver(
+          ([entry]) => {
+            if (entry) {
+              const ratio = entry.intersectionRatio;
+              if (ratio < 1) {
+                const place: ScrollLogicalPosition =
+                  ratio <= 0 ? "center" : "nearest";
+                node.scrollIntoView({
+                  block: place,
+                  inline: place,
+                  behavior: "smooth",
+                });
+              }
+            }
+            observer.disconnect();
           },
-          "&:last-of-type": {
-            borderTopRightRadius: theme.borderRadii.md,
-            borderBottomRightRadius: theme.borderRadii.md,
+          {
+            // Ensure we don't consider a row underneath the edit bar as 'in view'
+            rootMargin: `${EDIT_BAR_HEIGHT}px`,
           },
-        },
-      }),
-      (theme) => ({
-        [`&:hover .${tableCellClasses.root}`]: {
-          background: theme.palette.gray[10],
-        },
-      }),
-    ]}
-  >
-    {children}
-  </TableRow>
-));
+        );
+
+        observer.observe(node);
+        observerRef.current?.disconnect();
+        observerRef.current = observer;
+      }
+    }
+  }, [flashed, flash]);
+
+  useEffect(() => {
+    return () => {
+      observerRef.current?.disconnect();
+    };
+  }, []);
+
+  return (
+    <TableRow
+      ref={combinedRef}
+      sx={[
+        (theme) => ({
+          [`.${tableCellClasses.root}`]: {
+            "&:first-of-type": {
+              borderTopLeftRadius: theme.borderRadii.md,
+              borderBottomLeftRadius: theme.borderRadii.md,
+            },
+            "&:last-of-type": {
+              borderTopRightRadius: theme.borderRadii.md,
+              borderBottomRightRadius: theme.borderRadii.md,
+            },
+          },
+          [`&:hover .${tableCellClasses.root}`]: {
+            background: theme.palette.gray[10],
+          },
+        }),
+        flash &&
+          ((theme) => ({
+            [`.${tableCellClasses.root}`]: {
+              animation: `${flashAnimation(theme.palette.blue[20])} ease-in ${
+                FLASHING_ROW_MS / 1000
+              }s`,
+            },
+          })),
+      ]}
+    >
+      {children}
+    </TableRow>
+  );
+});
 
 export const EntityTypeTableTitleCellText = ({
   children,

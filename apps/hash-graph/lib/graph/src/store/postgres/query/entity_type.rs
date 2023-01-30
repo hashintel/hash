@@ -15,7 +15,7 @@ impl PostgresRecord for EntityTypeWithMetadata {
     }
 }
 
-impl PostgresQueryPath for EntityTypeQueryPath {
+impl PostgresQueryPath for EntityTypeQueryPath<'_> {
     /// Returns the relations that are required to access the path.
     fn relations(&self) -> Vec<Relation> {
         match self {
@@ -45,7 +45,11 @@ impl PostgresQueryPath for EntityTypeQueryPath {
             Self::OwnedById => Column::OwnedOntologyMetadata(OwnedOntologyMetadata::OwnedById),
             Self::UpdatedById => Column::OwnedOntologyMetadata(OwnedOntologyMetadata::UpdatedById),
             Self::OntologyId => Column::EntityTypes(EntityTypes::OntologyId),
-            Self::Schema => Column::EntityTypes(EntityTypes::Schema(None)),
+            Self::Schema(path) => path
+                .as_ref()
+                .map_or(Column::EntityTypes(EntityTypes::Schema(None)), |path| {
+                    Column::EntityTypes(EntityTypes::Schema(Some(JsonField::JsonPath(path))))
+                }),
             Self::VersionedUri => {
                 Column::EntityTypes(EntityTypes::Schema(Some(JsonField::StaticText("$id"))))
             }

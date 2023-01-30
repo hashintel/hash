@@ -1,50 +1,40 @@
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/index.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/index.js
-index 83737f9..e3ccfdd 100644
+index 44bb7a8..7faa7a7 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/cjs/index.js
 +++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/index.js
-@@ -9825,6 +9825,7 @@ var DataEditorImpl = (p, forwardedRef) => {
-       var _a2;
-       return (_a2 = gridRef.current) == null ? void 0 : _a2.focus();
-     },
-+    setOverlaySimple,
-     emit: async (e) => {
-       switch (e) {
-         case "delete":
-@@ -9881,7 +9882,7 @@ var DataEditorImpl = (p, forwardedRef) => {
+@@ -10011,8 +10011,9 @@ var DataEditorImpl = (p, forwardedRef) => {
+           break;
        }
      },
-     scrollTo
+-    scrollTo
 -  }), [appendRow, onCopy, onKeyDown, onPasteInternal, rowMarkerOffset, scrollTo]);
-+  }), [appendRow, onCopy, onKeyDown, onPasteInternal, rowMarkerOffset, scrollTo,setOverlaySimple]);
++    scrollTo,
++    setOverlaySimple
++  }), [appendRow, onCopy, onKeyDown, onPasteInternal, rowMarkerOffset, scrollTo, setOverlaySimple]);
    const [selCol, selRow] = currentCell != null ? currentCell : [];
    const onCellFocused = React36.useCallback((cell) => {
      const [col, row] = cell;
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/js/index.js b/node_modules/@glideapps/glide-data-grid/dist/js/index.js
-index 918bcd2..c01efac 100644
+index 58fcf67..90a728d 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/js/index.js
 +++ b/node_modules/@glideapps/glide-data-grid/dist/js/index.js
-@@ -9486,6 +9486,7 @@ var DataEditorImpl = (p, forwardedRef) => {
-   }, [onGroupHeaderRenamed, renameGroup]);
-   const mangledFreezeColumns = Math.min(mangledCols.length, freezeColumns + (hasRowMarkers ? 1 : 0));
-   React34.useImperativeHandle(forwardedRef, () => ({
-+    setOverlaySimple,
-     appendRow: (col) => appendRow(col + rowMarkerOffset),
-     updateCells: (damageList) => {
-       var _a2;
-@@ -9558,7 +9559,7 @@ var DataEditorImpl = (p, forwardedRef) => {
+@@ -9687,8 +9687,9 @@ var DataEditorImpl = (p, forwardedRef) => {
+           break;
        }
      },
-     scrollTo
+-    scrollTo
 -  }), [appendRow, onCopy, onKeyDown, onPasteInternal, rowMarkerOffset, scrollTo]);
-+  }), [appendRow, onCopy, onKeyDown, onPasteInternal, rowMarkerOffset, scrollTo,setOverlaySimple]);
++    scrollTo,
++    setOverlaySimple
++  }), [appendRow, onCopy, onKeyDown, onPasteInternal, rowMarkerOffset, scrollTo, setOverlaySimple]);
    const [selCol, selRow] = currentCell != null ? currentCell : [];
    const onCellFocused = React34.useCallback((cell) => {
      const [col, row] = cell;
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/ts/data-editor/data-editor.d.ts b/node_modules/@glideapps/glide-data-grid/dist/ts/data-editor/data-editor.d.ts
-index 26c76d3..abb3fc7 100644
+index 22f180d..3dfe70a 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/ts/data-editor/data-editor.d.ts
 +++ b/node_modules/@glideapps/glide-data-grid/dist/ts/data-editor/data-editor.d.ts
-@@ -423,6 +423,14 @@ export interface DataEditorRef {
+@@ -434,6 +434,14 @@ export interface DataEditorRef {
       * Scrolls to the desired cell or location in the grid.
       */
      scrollTo: ScrollToFn;
@@ -60,25 +50,26 @@ index 26c76d3..abb3fc7 100644
  /**
   * The primary component of Glide Data Grid.
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types.d.ts b/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types.d.ts
-index ba1b224..3a3c15b 100644
+index ba1b224..3105602 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types.d.ts
 +++ b/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types.d.ts
-@@ -18,6 +18,7 @@ export interface BaseDrawArgs {
- }
+@@ -19,6 +19,7 @@ export interface BaseDrawArgs {
  /** @category Drawing */
  export interface DrawArgs<T extends InnerGridCell> extends BaseDrawArgs {
-+    tableId: string;
      cell: T;
++    tableId: string;
  }
  /** @category Drawing */
+ export interface PrepResult {
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites.d.ts b/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites.d.ts
-index f13ff02..605119b 100644
+index f13ff02..6cfe200 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites.d.ts
 +++ b/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites.d.ts
-@@ -1,6 +1,25 @@
- import type { Theme } from "../common/styles";
- import { HeaderIconMap } from "./sprites";
- declare type HeaderIcon = keyof HeaderIconMap;
+@@ -6,6 +6,27 @@ declare type Sprite = HeaderIconMap["headerArray"];
+ export declare type SpriteMap = Record<string | HeaderIcon, Sprite>;
+ /** @category Columns */
+ export declare type SpriteVariant = "normal" | "selected" | "special";
++
 +export declare type CustomIcon =
 +  | "bpLabel"
 +  | "bpError"
@@ -98,10 +89,11 @@ index f13ff02..605119b 100644
 +  | "bpBracketsSquare"
 +  | "bpEmptySet"
 +  | "bpChevronDown";
- declare type Sprite = HeaderIconMap["headerArray"];
++
  /** @category Columns */
- export declare type SpriteMap = Record<string | HeaderIcon, Sprite>;
-@@ -13,7 +32,7 @@ export declare class SpriteManager {
+ export declare class SpriteManager {
+     private onSettled;
+@@ -13,7 +34,7 @@ export declare class SpriteManager {
      private headerIcons;
      private inFlight;
      constructor(headerIcons: SpriteMap | undefined, onSettled: () => void);
@@ -112,10 +104,10 @@ index f13ff02..605119b 100644
  //# sourceMappingURL=data-grid-sprites.d.ts.map
 \ No newline at end of file
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-types.d.ts b/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-types.d.ts
-index ac3954b..bda979b 100644
+index 8ead3e1..5763081 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-types.d.ts
 +++ b/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-types.d.ts
-@@ -224,7 +224,7 @@ export declare function isSizedGridColumn(c: GridColumn): c is SizedGridColumn;
+@@ -225,7 +225,7 @@ export declare function isSizedGridColumn(c: GridColumn): c is SizedGridColumn;
  /** @category Columns */
  export interface SizedGridColumn extends BaseGridColumn {
      readonly width: number;
@@ -124,15 +116,3 @@ index ac3954b..bda979b 100644
  }
  /** @category Columns */
  export interface AutoGridColumn extends BaseGridColumn {
-diff --git a/node_modules/@glideapps/glide-data-grid/dist/ts/index.d.ts b/node_modules/@glideapps/glide-data-grid/dist/ts/index.d.ts
-index 8758cad..af65974 100644
---- a/node_modules/@glideapps/glide-data-grid/dist/ts/index.d.ts
-+++ b/node_modules/@glideapps/glide-data-grid/dist/ts/index.d.ts
-@@ -15,6 +15,7 @@ export { measureTextCached, getMiddleCenterBias, drawTextCellExternal as drawTex
- export { getDataEditorTheme as getDefaultTheme, useTheme } from "./common/styles";
- export { useColumnSizer } from "./data-editor/use-column-sizer";
- export { useCustomCells } from "./data-editor/use-custom-cells";
-+export { GetRowThemeCallback } from "./data-grid/data-grid-render";
- /**
-  * @category DataEditor
-  * @hidden

@@ -72,17 +72,17 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
 
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: ${{ matrix.directory }}
-
       - name: Install tools
         shell: bash
         run: |
           cargo install cargo-quickinstall
           cargo quickinstall cargo-make --version 0.36.3
           cargo quickinstall cargo-hack --version 0.5.26
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ matrix.directory }}
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
@@ -137,12 +137,6 @@ jobs:
             **/node_modules
           key: ${{ hashFiles('**/yarn.lock') }}
 
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: ${{ matrix.directory }}
-          key: ${{ matrix.profile }}
-
       - name: Install tools
         shell: bash
         run: |
@@ -150,6 +144,12 @@ jobs:
           cargo quickinstall cargo-make --version 0.36.3
           cargo quickinstall cargo-hack --version 0.5.26
           cargo quickinstall cargo-nextest --version 0.9.37
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ matrix.directory }}
+          key: ${{ matrix.profile }}
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
@@ -221,12 +221,6 @@ jobs:
             **/node_modules
           key: ${{ hashFiles('**/yarn.lock') }}
 
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: ${{ matrix.directory }}
-          key: ${{ matrix.profile }}
-
       - name: Install tools
         shell: bash
         run: |
@@ -234,6 +228,12 @@ jobs:
           cargo quickinstall cargo-make --version 0.36.3
           cargo quickinstall cargo-nextest --version 0.9.37
           cargo quickinstall cargo-llvm-cov --version 0.5.9
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ matrix.directory }}
+          key: ${{ matrix.profile }}
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc

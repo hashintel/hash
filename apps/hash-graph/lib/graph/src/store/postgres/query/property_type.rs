@@ -15,7 +15,7 @@ impl PostgresRecord for PropertyTypeWithMetadata {
     }
 }
 
-impl PostgresQueryPath for PropertyTypeQueryPath {
+impl PostgresQueryPath for PropertyTypeQueryPath<'_> {
     fn relations(&self) -> Vec<Relation> {
         match self {
             Self::BaseUri | Self::Version => {
@@ -41,7 +41,14 @@ impl PostgresQueryPath for PropertyTypeQueryPath {
             Self::OwnedById => Column::OwnedOntologyMetadata(OwnedOntologyMetadata::OwnedById),
             Self::UpdatedById => Column::OwnedOntologyMetadata(OwnedOntologyMetadata::UpdatedById),
             Self::OntologyId => Column::PropertyTypes(PropertyTypes::OntologyId),
-            Self::Schema => Column::PropertyTypes(PropertyTypes::Schema(None)),
+            Self::Schema(path) => {
+                path.as_ref()
+                    .map_or(Column::PropertyTypes(PropertyTypes::Schema(None)), |path| {
+                        Column::PropertyTypes(PropertyTypes::Schema(Some(JsonField::JsonPath(
+                            path,
+                        ))))
+                    })
+            }
             Self::VersionedUri => {
                 Column::PropertyTypes(PropertyTypes::Schema(Some(JsonField::StaticText("$id"))))
             }
