@@ -241,14 +241,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
 }
 
 pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
-    let log_args = args.log_config.clone();
-    let _log_guard = init_logger(
-        log_args.log_format,
-        log_args.log_folder,
-        log_args.log_level,
-        &log_args.log_file_prefix,
-        args.log_config.otlp_endpoint.as_deref(),
-    );
+    let _log_guard = init_logger(&args.log_config);
 
     let pool = PostgresStorePool::new(&args.db_info, NoTls)
         .await
