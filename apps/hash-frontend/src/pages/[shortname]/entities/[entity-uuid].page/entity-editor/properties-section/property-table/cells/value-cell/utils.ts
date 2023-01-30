@@ -1,6 +1,10 @@
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { isPlainObject } from "lodash";
 
+import { editorSpecs } from "./editor-specs";
 import { EditorType } from "./types";
+
+const isEmptyArray = (value: unknown) => Array.isArray(value) && !value.length;
 
 export const guessEditorTypeFromValue = (
   value: unknown,
@@ -27,23 +31,38 @@ export const guessEditorTypeFromValue = (
     return "number";
   }
 
-  return "text";
+  if (
+    isPlainObject(value) &&
+    expectedTypes.includes(types.dataType.object.title)
+  ) {
+    return "object";
+  }
+
+  if (value === null && expectedTypes.includes(types.dataType.null.title)) {
+    return "null";
+  }
+
+  if (
+    isEmptyArray(value) &&
+    expectedTypes.includes(types.dataType.emptyList.title)
+  ) {
+    return "emptyList";
+  }
+
+  return "unknown";
 };
 
 export const guessEditorTypeFromExpectedType = (type: string): EditorType => {
-  if (type === types.dataType.text.title) {
-    return "text";
+  const editorSpecEntries = Object.entries(editorSpecs);
+
+  const foundEntry = editorSpecEntries.find(([_, val]) => val.title === type);
+
+  if (foundEntry) {
+    const editorSpecsKey = foundEntry[0];
+    return editorSpecsKey as EditorType;
   }
 
-  if (type === types.dataType.boolean.title) {
-    return "boolean";
-  }
-
-  if (type === types.dataType.number.title) {
-    return "number";
-  }
-
-  return "text";
+  return "unknown";
 };
 
 export const findDataTypeDefinitionByTitle = (title: string) => {

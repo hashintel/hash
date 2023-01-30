@@ -31,7 +31,7 @@
     "next-mdx-remote": "4.0.3",
     "next-seo": "5.14.1",
     "nextjs-progressbar": "0.0.16",
-    "prismjs": "1.28.0",
+    "prismjs": "1.29.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "remark-mdx": "2.1.2",
@@ -49,7 +49,7 @@
     "@types/node": "18.11.9",
     "@types/react": "18.0.25",
     "babel-loader": "^9.1.0",
-    "eslint": "8.32.0",
+    "eslint": "8.33.0",
     "typescript": "4.9.4"
   }
 }
