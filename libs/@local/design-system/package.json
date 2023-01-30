@@ -4,8 +4,9 @@
   "private": true,
   "description": "HASH Design System",
   "license": "AGPL-3.0",
-  "main": "./src/ui.ts",
-  "types": "./src/ui.ts",
+  "sideEffects": false,
+  "main": "./src/main.ts",
+  "types": "./src/main.ts",
   "scripts": {
     "build-storybook": "storybook build",
     "fix:eslint": "eslint --fix .",
