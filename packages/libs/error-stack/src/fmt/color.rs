@@ -38,6 +38,8 @@ impl ColorMode {
 impl Default for ColorMode {
     #[cfg(feature = "color")]
     fn default() -> Self {
+        // The default is `ColorMode::Emphasis`, because colors are hard. ANSI colors are not
+        // standardized, and some colors may not show at all.
         Self::Emphasis
     }
 
@@ -52,21 +54,14 @@ impl Default for ColorMode {
 /// `0x01`: `ColorMode::Color`
 /// `0x02`: `ColorMode::Emphasis`
 ///
-/// all others: [`Self::DEFAULT`]
+/// all others: [`Self::default`]
 impl AtomicPreference for ColorMode {
-    // The default is `ColorMode::Emphasis`, because colors are hard. ANSI colors are not
-    // standardized, and some colors may not show at all.
-    #[cfg(feature = "color")]
-    const DEFAULT: Self = Self::Emphasis;
-    #[cfg(not(feature = "color"))]
-    const DEFAULT: Self = Self::None;
-
     fn from_u8(value: u8) -> Self {
         match value {
             0x00 => Self::None,
             0x01 => Self::Color,
             0x02 => Self::Emphasis,
-            _ => Self::DEFAULT,
+            _ => Self::default(),
         }
     }
 

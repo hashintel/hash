@@ -28,7 +28,9 @@ impl Charset {
 
 impl Default for Charset {
     fn default() -> Self {
-        Self::DEFAULT
+        // we assume that most fonts and terminals nowadays support Utf8, which is why this is
+        // the default
+        Self::Utf8
     }
 }
 
@@ -36,17 +38,13 @@ impl Default for Charset {
 /// `0x00`: `Charset::Ascii`
 /// `0x01`: `Charset::Utf8`
 ///
-/// all others: default to `Default::default`
+/// all others: default to [`Self::default`]
 impl AtomicPreference for Charset {
-    // we assume that most fonts and terminals nowadays support Utf8, which is why this is
-    // the default
-    const DEFAULT: Self = Self::Utf8;
-
     fn from_u8(value: u8) -> Self {
         match value {
             0x00 => Self::Ascii,
             0x01 => Self::Utf8,
-            _ => Self::DEFAULT,
+            _ => Self::default(),
         }
     }
 
