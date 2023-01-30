@@ -1030,12 +1030,9 @@ impl<C> Debug for Report<C> {
                 lines.reserve(44 + appendix.len());
 
                 lines.push_str("\n\n");
-                #[cfg(feature = "color")]
-                {
+                if charset == Charset::Utf8 {
                     lines.push_str(&"━".repeat(40));
-                }
-                #[cfg(not(feature = "color"))]
-                {
+                } else {
                     lines.push_str(&"=".repeat(40));
                 }
 
