@@ -8,9 +8,9 @@ import {
 } from "@mui/material";
 import { ReactNode, useEffect, useRef } from "react";
 
-import { useEditBarContext } from "../../../../../shared/edit-bar-scroller";
-import { PencilSimpleLine } from "../../../../../shared/icons/svg";
-import { Button, ButtonProps } from "../../../../../shared/ui/button";
+import { useEditBarContext } from "../../../../../../shared/edit-bar-scroller";
+import { PencilSimpleLine } from "../../../../../../shared/icons/svg";
+import { Button, ButtonProps } from "../../../../../../shared/ui/button";
 
 export const EditBarContents = ({
   icon,
@@ -71,7 +71,7 @@ export const EditBarContents = ({
   );
 };
 
-const EDIT_BAR_HEIGHT = 66;
+export const EDIT_BAR_HEIGHT = 66;
 
 /**
  * The edit bar transitions its height in and out which can cause the contents
