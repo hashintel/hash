@@ -26,6 +26,8 @@ impl Config {
         self.context.cast()
     }
 
+    // Not used in all configurations, only some (w/ `color`)
+    #[allow(unused)]
     pub(crate) const fn color_mode(&self) -> ColorMode {
         self.context.color_mode()
     }
@@ -59,8 +61,7 @@ impl Config {
         Self::new(color_mode, charset, alternate)
     }
 
-    // This is here for parity to the hook counterpart, might be unused in some
-    // configurations (no `color` feature)
+    // Not used in all configurations, only some (w/ `color`)
     #[allow(unused)]
     pub(crate) const fn color_mode(&self) -> ColorMode {
         self.color_mode
