@@ -1,5 +1,3 @@
-use core::sync::atomic::{AtomicU8, Ordering};
-
 use crate::{
     fmt::r#override::{AtomicOverride, AtomicPreference},
     Report,
