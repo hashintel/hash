@@ -43,7 +43,7 @@ fn setup_backtrace() {
 
 #[cfg(feature = "color")]
 fn setup_color() {
-    Report::set_color_mode(Some(ColorMode::None));
+    Report::set_color_mode(ColorMode::None);
 }
 
 fn setup() {
@@ -51,7 +51,7 @@ fn setup() {
     setup_backtrace();
     #[cfg(feature = "color")]
     setup_color();
-    Report::set_charset(Some(Charset::Utf8));
+    Report::set_charset(Charset::Utf8);
 }
 
 fn snap_suffix() -> String {
@@ -610,7 +610,7 @@ mod full {
     fn charset_ascii() {
         let _guard = prepare(false);
 
-        Report::set_charset(Some(Charset::Ascii));
+        Report::set_charset(Charset::Ascii);
 
         let report = create_report();
         assert_snapshot!(format!("{report:?}"));
@@ -620,7 +620,7 @@ mod full {
     fn color_mode_emphasis() {
         let _guard = prepare(false);
 
-        Report::set_color_mode(Some(ColorMode::Emphasis));
+        Report::set_color_mode(ColorMode::Emphasis);
 
         let report = create_report();
         assert_snapshot!(format!("{report:?}"));
@@ -630,7 +630,7 @@ mod full {
     fn color_mode_color() {
         let _guard = prepare(false);
 
-        Report::set_color_mode(Some(ColorMode::Color));
+        Report::set_color_mode(ColorMode::Color);
 
         let report = create_report();
         assert_snapshot!(format!("{report:?}"));
