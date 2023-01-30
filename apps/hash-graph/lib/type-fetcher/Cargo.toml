@@ -1,0 +1,17 @@
+[package]
+name = "type-fetcher"
+version = "0.0.0"
+edition = "2021"
+publish = false
+description = "External type fetcher"
+
+[dependencies]
+error-stack = { version = "0.2.4", features = ["spantrace"] }
+type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "2ea406f" }
+
+serde = { version = "1.0.152", features = ["derive"] }
+serde_json = "1.0.91"
+
+futures = "0.3"
+tarpc = { version = "0.31", features = ["tokio1"] }
+tokio = { version = "1.23.1", features = ["rt-multi-thread", "macros"] }
