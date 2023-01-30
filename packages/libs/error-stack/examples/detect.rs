@@ -58,8 +58,8 @@ fn main() {
         Charset::Ascii
     };
 
-    Report::set_color_mode(Some(color_mode));
-    Report::set_charset(Some(charset));
+    Report::set_color_mode(color_mode);
+    Report::set_charset(charset);
 
     if let Err(err) = parse_config("config.json") {
         // if you would use `eprintln!` instead, you should check support on `Stream::Stderr`
