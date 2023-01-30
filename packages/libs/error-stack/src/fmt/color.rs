@@ -363,11 +363,7 @@ impl DisplayStyle {
     }
 
     fn end_ansi(self, sequence: &mut ControlSequence) -> fmt::Result {
-        if self.bold {
-            sequence.push_control("21")?;
-        }
-
-        if self.faint {
+        if self.faint || self.bold {
             sequence.push_control("22")?;
         }
 

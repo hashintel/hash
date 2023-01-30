@@ -630,7 +630,7 @@ fn partition<'a>(stack: &'a [&'a Frame]) -> (Vec<(&'a Frame, Vec<&'a Frame>)>, V
     (result, queue)
 }
 
-fn debug_context(context: &dyn Context) -> Lines {
+fn debug_context(context: &dyn Context, mode: ColorMode) -> Lines {
     context
         .to_string()
         .lines()
@@ -638,10 +638,13 @@ fn debug_context(context: &dyn Context) -> Lines {
         .enumerate()
         .map(|(idx, value)| {
             if idx == 0 {
-                Line::new().push(Instruction::Value {
-                    value,
-                    style: Style::new().with_display(DisplayStyle::new().with_bold(true)),
-                })
+                let mut style = Style::new();
+
+                if mode == ColorMode::Color || mode == ColorMode::Emphasis {
+                    style.set_display(DisplayStyle::new().with_bold(true));
+                }
+
+                Line::new().push(Instruction::Value { value, style })
             } else {
                 Line::new().push(Instruction::Value {
                     value,
