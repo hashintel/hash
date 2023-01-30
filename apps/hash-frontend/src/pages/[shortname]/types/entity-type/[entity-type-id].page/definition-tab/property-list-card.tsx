@@ -406,7 +406,6 @@ export const PropertyTypeRow = ({
 }) => {
   const { control } = useFormContext<EntityTypeEditorForm>();
 
-  // @todo move down
   const array = useWatch({
     control,
     name: `properties.${propertyIndex}.array`,
