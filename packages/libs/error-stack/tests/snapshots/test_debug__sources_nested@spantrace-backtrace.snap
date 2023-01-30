@@ -3,12 +3,12 @@ source: tests/test_debug.rs
 expression: "format!(\"{report:?}\")"
 ---
 context A
-├╴ at tests/test_debug.rs:211:10
+├╴ at tests/test_debug.rs:207:10
 ├╴ 2
 ├╴ 1
 │
 ╰┬▶ context A
- │  ├╴ at tests/test_debug.rs:205:10
+ │  ├╴ at tests/test_debug.rs:201:10
  │  ├╴ 4
  │  ├╴ 3
  │  │
@@ -19,16 +19,16 @@ context A
  │      ╰╴ 6
  │
  ╰▶ context A
-    ├╴ at tests/test_debug.rs:200:10
+    ├╴ at tests/test_debug.rs:196:10
     ├╴ 5
     ├╴ 3
     │
     ├─▶ context A
-    │   ├╴ at tests/test_debug.rs:198:10
+    │   ├╴ at tests/test_debug.rs:194:10
     │   ╰╴ 7
     │
     ╰┬▶ context A
-     │  ├╴ at tests/test_debug.rs:189:34
+     │  ├╴ at tests/test_debug.rs:185:34
      │  ├╴ 9
      │  ├╴ 8
      │  │
@@ -38,7 +38,7 @@ context A
      │      ╰╴ span trace with 2 frames (2)
      │
      ├▶ context A
-     │  ├╴ at tests/test_debug.rs:183:10
+     │  ├╴ at tests/test_debug.rs:179:10
      │  ├╴ 13
      │  ├╴ 10
      │  ├╴ 16
@@ -51,7 +51,7 @@ context A
      │      ╰╴ span trace with 2 frames (3)
      │
      ├▶ context A
-     │  ├╴ at tests/test_debug.rs:169:10
+     │  ├╴ at tests/test_debug.rs:165:10
      │  ├╴ 15
      │  ├╴ 14
      │  ├╴ 10
@@ -65,7 +65,7 @@ context A
      │      ╰╴ span trace with 2 frames (4)
      │
      ├▶ context A
-     │  ├╴ at tests/test_debug.rs:179:10
+     │  ├╴ at tests/test_debug.rs:175:10
      │  ├╴ 11
      │  ├╴ 9
      │  ├╴ 8
@@ -76,13 +76,13 @@ context A
      │      ╰╴ span trace with 2 frames (5)
      │
      ╰▶ context A
-        ├╴ at tests/test_debug.rs:175:10
+        ├╴ at tests/test_debug.rs:171:10
         ├╴ 12
         ├╴ 9
         ├╴ 8
         │
         ├─▶ context A
-        │   ╰╴ at tests/test_debug.rs:174:10
+        │   ╰╴ at tests/test_debug.rs:170:10
         │
         ╰─▶ root error
             ├╴ at tests/common.rs:4:5

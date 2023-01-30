@@ -71,7 +71,7 @@ required-features = ["std"]
 
 [[example]]
 name = "detect"
-required-features = ['std', 'color']
+required-features = ['std']
 
 
 [[test]]
