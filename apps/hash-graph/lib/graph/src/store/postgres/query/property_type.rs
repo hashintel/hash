@@ -4,7 +4,7 @@ use super::table::OwnedOntologyMetadata;
 use crate::{
     ontology::{PropertyTypeQueryPath, PropertyTypeWithMetadata},
     store::postgres::query::{
-        table::{Column, JsonField, PropertyTypes, Relation, TypeIds},
+        table::{Column, JsonField, OntologyIds, PropertyTypes, Relation},
         PostgresQueryPath, PostgresRecord, Table,
     },
 };
@@ -36,11 +36,11 @@ impl PostgresQueryPath for PropertyTypeQueryPath {
 
     fn terminating_column(&self) -> Column {
         match self {
-            Self::BaseUri => Column::TypeIds(TypeIds::BaseUri),
-            Self::Version => Column::TypeIds(TypeIds::Version),
+            Self::BaseUri => Column::OntologyIds(OntologyIds::BaseUri),
+            Self::Version => Column::OntologyIds(OntologyIds::Version),
             Self::OwnedById => Column::OwnedOntologyMetadata(OwnedOntologyMetadata::OwnedById),
             Self::UpdatedById => Column::OwnedOntologyMetadata(OwnedOntologyMetadata::UpdatedById),
-            Self::VersionId => Column::PropertyTypes(PropertyTypes::VersionId),
+            Self::OntologyId => Column::PropertyTypes(PropertyTypes::OntologyId),
             Self::Schema => Column::PropertyTypes(PropertyTypes::Schema(None)),
             Self::VersionedUri => {
                 Column::PropertyTypes(PropertyTypes::Schema(Some(JsonField::StaticText("$id"))))

@@ -257,7 +257,7 @@ pub enum EntityTypeQueryPath {
     /// [`EntityType::inherits_from()`]: type_system::EntityType::inherits_from
     InheritsFrom(Box<Self>),
     /// Only used internally and not available for deserialization.
-    VersionId,
+    OntologyId,
     /// Only used internally and not available for deserialization.
     Schema,
 }
@@ -291,7 +291,7 @@ impl OntologyQueryPath for EntityTypeQueryPath {
 impl QueryPath for EntityTypeQueryPath {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::VersionId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
+            Self::OntologyId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
             Self::Schema => ParameterType::Any,
             Self::BaseUri => ParameterType::BaseUri,
             Self::VersionedUri => ParameterType::VersionedUri,
@@ -309,7 +309,7 @@ impl QueryPath for EntityTypeQueryPath {
 impl fmt::Display for EntityTypeQueryPath {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::VersionId => fmt.write_str("versionId"),
+            Self::OntologyId => fmt.write_str("ontologyId"),
             Self::BaseUri => fmt.write_str("baseUri"),
             Self::Version => fmt.write_str("version"),
             Self::VersionedUri => fmt.write_str("versionedUri"),
@@ -478,7 +478,7 @@ mod tests {
 
         assert_eq!(
             EntityTypeQueryPath::deserialize(
-                de::value::SeqDeserializer::<_, de::value::Error>::new(once("version_id"))
+                de::value::SeqDeserializer::<_, de::value::Error>::new(once("ontology_id"))
             )
             .expect_err(
                 "managed to convert entity type query path with hidden token when it should have \
@@ -486,7 +486,7 @@ mod tests {
             )
             .to_string(),
             format!(
-                "unknown variant `version_id`, expected {}",
+                "unknown variant `ontology_id`, expected {}",
                 EntityTypeQueryPathVisitor::EXPECTING
             )
         );

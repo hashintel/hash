@@ -1,10 +1,12 @@
 mod data_type;
 mod entity_type;
+mod ontology_id;
 mod property_type;
 mod read;
 
 use type_system::{DataType, EntityType, PropertyType};
 
+pub use self::ontology_id::OntologyId;
 use crate::{ontology::OntologyType, store::postgres::query::PostgresRecord};
 
 /// Provides an abstraction over elements of the Type System stored in the Database.

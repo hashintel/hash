@@ -175,9 +175,9 @@ mod tests {
             r#"
             SELECT *
             FROM "data_types" AS "data_types_0_0_0"
-            INNER JOIN "type_ids" AS "type_ids_0_1_0"
-              ON "type_ids_0_1_0"."version_id" = "data_types_0_0_0"."version_id"
-            WHERE ("type_ids_0_1_0"."base_uri" = $1) AND ("type_ids_0_1_0"."version" = $2)
+            INNER JOIN "ontology_ids" AS "ontology_ids_0_1_0"
+              ON "ontology_ids_0_1_0"."ontology_id" = "data_types_0_0_0"."ontology_id"
+            WHERE ("ontology_ids_0_1_0"."base_uri" = $1) AND ("ontology_ids_0_1_0"."version" = $2)
             "#,
             &[
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
@@ -201,12 +201,12 @@ mod tests {
         test_compilation(
             &compiler,
             r#"
-            WITH "type_ids" AS (SELECT *, MAX("type_ids_0_0_0"."version") OVER (PARTITION BY "type_ids_0_0_0"."base_uri") AS "latest_version" FROM "type_ids" AS "type_ids_0_0_0")
+            WITH "ontology_ids" AS (SELECT *, MAX("ontology_ids_0_0_0"."version") OVER (PARTITION BY "ontology_ids_0_0_0"."base_uri") AS "latest_version" FROM "ontology_ids" AS "ontology_ids_0_0_0")
             SELECT *
             FROM "data_types" AS "data_types_0_0_0"
-            INNER JOIN "type_ids" AS "type_ids_0_1_0"
-              ON "type_ids_0_1_0"."version_id" = "data_types_0_0_0"."version_id"
-            WHERE "type_ids_0_1_0"."version" = "type_ids_0_1_0"."latest_version"
+            INNER JOIN "ontology_ids" AS "ontology_ids_0_1_0"
+              ON "ontology_ids_0_1_0"."ontology_id" = "data_types_0_0_0"."ontology_id"
+            WHERE "ontology_ids_0_1_0"."version" = "ontology_ids_0_1_0"."latest_version"
             "#,
             &[],
         );
@@ -227,12 +227,12 @@ mod tests {
         test_compilation(
             &compiler,
             r#"
-            WITH "type_ids" AS (SELECT *, MAX("type_ids_0_0_0"."version") OVER (PARTITION BY "type_ids_0_0_0"."base_uri") AS "latest_version" FROM "type_ids" AS "type_ids_0_0_0")
+            WITH "ontology_ids" AS (SELECT *, MAX("ontology_ids_0_0_0"."version") OVER (PARTITION BY "ontology_ids_0_0_0"."base_uri") AS "latest_version" FROM "ontology_ids" AS "ontology_ids_0_0_0")
             SELECT *
             FROM "data_types" AS "data_types_0_0_0"
-            INNER JOIN "type_ids" AS "type_ids_0_1_0"
-              ON "type_ids_0_1_0"."version_id" = "data_types_0_0_0"."version_id"
-            WHERE "type_ids_0_1_0"."version" != "type_ids_0_1_0"."latest_version"
+            INNER JOIN "ontology_ids" AS "ontology_ids_0_1_0"
+              ON "ontology_ids_0_1_0"."ontology_id" = "data_types_0_0_0"."ontology_id"
+            WHERE "ontology_ids_0_1_0"."version" != "ontology_ids_0_1_0"."latest_version"
             "#,
             &[],
         );
@@ -259,9 +259,9 @@ mod tests {
             SELECT *
             FROM "property_types" AS "property_types_0_0_0"
             INNER JOIN "property_type_data_type_references" AS "property_type_data_type_references_0_1_0"
-              ON "property_type_data_type_references_0_1_0"."source_property_type_version_id" = "property_types_0_0_0"."version_id"
+              ON "property_type_data_type_references_0_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
             INNER JOIN "data_types" AS "data_types_0_2_0"
-              ON "data_types_0_2_0"."version_id" = "property_type_data_type_references_0_1_0"."target_data_type_version_id"
+              ON "data_types_0_2_0"."ontology_id" = "property_type_data_type_references_0_1_0"."target_data_type_ontology_id"
             WHERE "data_types_0_2_0"."schema"->>'title' = $1
             "#,
             &[&"Text"],
@@ -291,15 +291,15 @@ mod tests {
             SELECT *
             FROM "property_types" AS "property_types_0_0_0"
             INNER JOIN "property_type_data_type_references" AS "property_type_data_type_references_0_1_0"
-              ON "property_type_data_type_references_0_1_0"."source_property_type_version_id" = "property_types_0_0_0"."version_id"
+              ON "property_type_data_type_references_0_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
             INNER JOIN "data_types" AS "data_types_0_2_0"
-              ON "data_types_0_2_0"."version_id" = "property_type_data_type_references_0_1_0"."target_data_type_version_id"
+              ON "data_types_0_2_0"."ontology_id" = "property_type_data_type_references_0_1_0"."target_data_type_ontology_id"
             INNER JOIN "property_type_data_type_references" AS "property_type_data_type_references_1_1_0"
-              ON "property_type_data_type_references_1_1_0"."source_property_type_version_id" = "property_types_0_0_0"."version_id"
-            INNER JOIN "type_ids" AS "type_ids_1_2_0"
-              ON "type_ids_1_2_0"."version_id" = "property_type_data_type_references_1_1_0"."target_data_type_version_id"
+              ON "property_type_data_type_references_1_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
+            INNER JOIN "ontology_ids" AS "ontology_ids_1_2_0"
+              ON "ontology_ids_1_2_0"."ontology_id" = "property_type_data_type_references_1_1_0"."target_data_type_ontology_id"
             WHERE "data_types_0_2_0"."schema"->>'title' = $1
-              AND ("type_ids_1_2_0"."base_uri" = $2) AND ("type_ids_1_2_0"."version" = $3)
+              AND ("ontology_ids_1_2_0"."base_uri" = $2) AND ("ontology_ids_1_2_0"."version" = $3)
             "#,
             &[
                 &"Text",
@@ -331,9 +331,9 @@ mod tests {
             SELECT *
             FROM "property_types" AS "property_types_0_0_0"
             INNER JOIN "property_type_property_type_references" AS "property_type_property_type_references_0_1_0"
-              ON "property_type_property_type_references_0_1_0"."source_property_type_version_id" = "property_types_0_0_0"."version_id"
+              ON "property_type_property_type_references_0_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
             INNER JOIN "property_types" AS "property_types_0_2_0"
-              ON "property_types_0_2_0"."version_id" = "property_type_property_type_references_0_1_0"."target_property_type_version_id"
+              ON "property_types_0_2_0"."ontology_id" = "property_type_property_type_references_0_1_0"."target_property_type_ontology_id"
             WHERE "property_types_0_2_0"."schema"->>'title' = $1
             "#,
             &[&"Text"],
@@ -362,9 +362,9 @@ mod tests {
             SELECT *
             FROM "entity_types" AS "entity_types_0_0_0"
             INNER JOIN "entity_type_property_type_references" AS "entity_type_property_type_references_0_1_0"
-              ON "entity_type_property_type_references_0_1_0"."source_entity_type_version_id" = "entity_types_0_0_0"."version_id"
+              ON "entity_type_property_type_references_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
             INNER JOIN "property_types" AS "property_types_0_2_0"
-              ON "property_types_0_2_0"."version_id" = "entity_type_property_type_references_0_1_0"."target_property_type_version_id"
+              ON "property_types_0_2_0"."ontology_id" = "entity_type_property_type_references_0_1_0"."target_property_type_ontology_id"
             WHERE "property_types_0_2_0"."schema"->>'title' = $1
             "#,
             &[&"Name"],
@@ -395,13 +395,13 @@ mod tests {
             SELECT *
             FROM "entity_types" AS "entity_types_0_0_0"
             INNER JOIN "entity_type_entity_type_references" AS "entity_type_entity_type_references_0_1_0"
-              ON "entity_type_entity_type_references_0_1_0"."source_entity_type_version_id" = "entity_types_0_0_0"."version_id"
+              ON "entity_type_entity_type_references_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
             INNER JOIN "entity_types" AS "entity_types_0_2_0"
-              ON "entity_types_0_2_0"."version_id" = "entity_type_entity_type_references_0_1_0"."target_entity_type_version_id"
+              ON "entity_types_0_2_0"."ontology_id" = "entity_type_entity_type_references_0_1_0"."target_entity_type_ontology_id"
             INNER JOIN "entity_type_entity_type_references" AS "entity_type_entity_type_references_0_3_0"
-              ON "entity_type_entity_type_references_0_3_0"."source_entity_type_version_id" = "entity_types_0_2_0"."version_id"
+              ON "entity_type_entity_type_references_0_3_0"."source_entity_type_ontology_id" = "entity_types_0_2_0"."ontology_id"
             INNER JOIN "entity_types" AS "entity_types_0_4_0"
-              ON "entity_types_0_4_0"."version_id" = "entity_type_entity_type_references_0_3_0"."target_entity_type_version_id"
+              ON "entity_types_0_4_0"."ontology_id" = "entity_type_entity_type_references_0_3_0"."target_entity_type_ontology_id"
             WHERE jsonb_extract_path("entity_types_0_0_0"."schema", 'links', "entity_types_0_2_0"."schema"->>'$id') IS NOT NULL
               AND jsonb_extract_path("entity_types_0_2_0"."schema", 'links', "entity_types_0_4_0"."schema"->>'$id') IS NOT NULL
               AND "entity_types_0_4_0"."schema"->>'title' = $1
@@ -432,13 +432,13 @@ mod tests {
             SELECT *
             FROM "entity_types" AS "entity_types_0_0_0"
             INNER JOIN "entity_type_entity_type_references" AS "entity_type_entity_type_references_0_1_0"
-              ON "entity_type_entity_type_references_0_1_0"."source_entity_type_version_id" = "entity_types_0_0_0"."version_id"
+              ON "entity_type_entity_type_references_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
             INNER JOIN "entity_types" AS "entity_types_0_2_0"
-              ON "entity_types_0_2_0"."version_id" = "entity_type_entity_type_references_0_1_0"."target_entity_type_version_id"
-            INNER JOIN "type_ids" AS "type_ids_0_3_0"
-              ON "type_ids_0_3_0"."version_id" = "entity_types_0_2_0"."version_id"
+              ON "entity_types_0_2_0"."ontology_id" = "entity_type_entity_type_references_0_1_0"."target_entity_type_ontology_id"
+            INNER JOIN "ontology_ids" AS "ontology_ids_0_3_0"
+              ON "ontology_ids_0_3_0"."ontology_id" = "entity_types_0_2_0"."ontology_id"
             WHERE jsonb_contains("entity_types_0_0_0"."schema"->'allOf', jsonb_build_array(jsonb_build_object('$ref', "entity_types_0_2_0"."schema"->>'$id'))) IS NOT NULL
-              AND "type_ids_0_3_0"."base_uri" = $1
+              AND "ontology_ids_0_3_0"."base_uri" = $1
             "#,
             &[&"https://blockprotocol.org/@blockprotocol/types/entity-type/link/"],
         );
@@ -749,9 +749,9 @@ mod tests {
                 r#"
                 SELECT *
                 FROM "data_types" AS "data_types_0_0_0"
-                INNER JOIN "type_ids" AS "type_ids_0_1_0"
-                  ON "type_ids_0_1_0"."version_id" = "data_types_0_0_0"."version_id"
-                WHERE ("type_ids_0_1_0"."base_uri" = $1) AND ("type_ids_0_1_0"."version" = $2)
+                INNER JOIN "ontology_ids" AS "ontology_ids_0_1_0"
+                  ON "ontology_ids_0_1_0"."ontology_id" = "data_types_0_0_0"."ontology_id"
+                WHERE ("ontology_ids_0_1_0"."base_uri" = $1) AND ("ontology_ids_0_1_0"."version" = $2)
                 "#,
                 &[&uri.base_uri().as_str(), &i64::from(uri.version())],
             );
@@ -779,9 +779,9 @@ mod tests {
                 r#"
                 SELECT *
                 FROM "data_types" AS "data_types_0_0_0"
-                INNER JOIN "type_ids" AS "type_ids_0_1_0"
-                  ON "type_ids_0_1_0"."version_id" = "data_types_0_0_0"."version_id"
-                WHERE ("type_ids_0_1_0"."base_uri" = $1) AND ("type_ids_0_1_0"."version" = $2)
+                INNER JOIN "ontology_ids" AS "ontology_ids_0_1_0"
+                  ON "ontology_ids_0_1_0"."ontology_id" = "data_types_0_0_0"."ontology_id"
+                WHERE ("ontology_ids_0_1_0"."base_uri" = $1) AND ("ontology_ids_0_1_0"."version" = $2)
                 "#,
                 &[&uri.base_id().as_str(), &i64::from(uri.version().inner())],
             );
