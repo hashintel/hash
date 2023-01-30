@@ -13,7 +13,7 @@ module.exports = {
   // The chosen default give a lot of room to the integration test.
   testTimeout: 60000,
   moduleNameMapper: {
-    "@hashintel/hash-graph-client": "<rootDir>/../../graph/clients/typescript",
+    "@local/hash-graph-client": "<rootDir>/../hash-graph-client",
   },
   testMatch: ["<rootDir>/tests/**/*.test.ts"],
 };

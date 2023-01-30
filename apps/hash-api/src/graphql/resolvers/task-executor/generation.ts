@@ -11,11 +11,8 @@ import {
   ValueOrArray,
   VersionedUri,
 } from "@blockprotocol/type-system";
-import {
-  GraphApi,
-  OntologyElementMetadata,
-} from "@hashintel/hash-graph-client";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { GraphApi, OntologyElementMetadata } from "@local/hash-graph-client";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import { typedEntries } from "@local/hash-isomorphic-utils/util";
