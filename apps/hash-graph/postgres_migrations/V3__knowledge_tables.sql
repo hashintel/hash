@@ -79,4 +79,4 @@ FROM
   entity_revisions
   JOIN entity_records ON entity_revisions.entity_edition_id = entity_records.entity_edition_id
   JOIN entity_ids ON entity_revisions.owned_by_id = entity_ids.owned_by_id
-                 AND entity_revisions.entity_uuid = entity_ids.entity_uuid;
+  AND entity_revisions.entity_uuid = entity_ids.entity_uuid;
