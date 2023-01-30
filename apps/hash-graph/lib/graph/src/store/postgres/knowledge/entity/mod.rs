@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 use crate::{
     identifier::{
-        knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
+        knowledge::{EntityEditionId, EntityId, EntityRevisionId, EntityVersion},
         ontology::OntologyTypeEditionId,
         time::{DecisionTime, TimeProjection, Timestamp, VersionInterval},
         EntityVertexId,
@@ -324,7 +324,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .query_one(
                 r#"
                 SELECT
-                    entity_record_id,
+                    entity_revision_id,
                     decision_time,
                     transaction_time
                 FROM
@@ -373,7 +373,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .change_context(InsertionError)?;
 
         Ok(EntityMetadata::new(
-            EntityEditionId::new(entity_id, EntityRecordId::new(row.get(0))),
+            EntityEditionId::new(entity_id, EntityRevisionId::new(row.get(0))),
             EntityVersion::new(
                 VersionInterval::from_anonymous(row.get(1)),
                 VersionInterval::from_anonymous(row.get(2)),
@@ -560,7 +560,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .query_opt(
                 r#"
                 SELECT
-                    entity_record_id,
+                    entity_revision_id,
                     decision_time,
                     transaction_time
                 FROM
@@ -601,7 +601,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         transaction.commit().await.change_context(UpdateError)?;
 
         Ok(EntityMetadata::new(
-            EntityEditionId::new(entity_id, EntityRecordId::new(row.get(0))),
+            EntityEditionId::new(entity_id, EntityRevisionId::new(row.get(0))),
             EntityVersion::new(
                 VersionInterval::from_anonymous(row.get(1)),
                 VersionInterval::from_anonymous(row.get(2)),

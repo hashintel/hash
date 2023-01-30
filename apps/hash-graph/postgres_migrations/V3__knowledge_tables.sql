@@ -22,8 +22,8 @@ CREATE TABLE IF NOT EXISTS
   );
 
 CREATE TABLE IF NOT EXISTS
-  "entity_editions" (
-    "entity_record_id" BIGINT PRIMARY KEY NOT NULL GENERATED ALWAYS AS IDENTITY,
+  "entity_revisions" (
+    "entity_revision_id" BIGINT PRIMARY KEY NOT NULL GENERATED ALWAYS AS IDENTITY,
     "entity_type_ontology_id" UUID NOT NULL REFERENCES "entity_types",
     "properties" JSONB NOT NULL,
     "left_to_right_order" INTEGER,
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS
   "entity_versions" (
     "owned_by_id" UUID NOT NULL,
     "entity_uuid" UUID NOT NULL,
-    "entity_record_id" BIGINT NOT NULL REFERENCES "entity_editions",
+    "entity_revision_id" BIGINT NOT NULL REFERENCES "entity_revisions",
     "decision_time" tstzrange NOT NULL,
     "transaction_time" tstzrange NOT NULL,
     FOREIGN KEY ("owned_by_id", "entity_uuid") REFERENCES "entity_ids",
@@ -60,23 +60,23 @@ CREATE TABLE IF NOT EXISTS
 CREATE VIEW
   "entities" AS
 SELECT
-  entity_versions.entity_record_id,
+  entity_versions.entity_revision_id,
   entity_versions.owned_by_id,
   entity_versions.entity_uuid,
   entity_versions.decision_time,
   entity_versions.transaction_time,
-  entity_editions.entity_type_ontology_id,
-  entity_editions.updated_by_id,
-  entity_editions.properties,
-  entity_editions.archived,
+  entity_revisions.entity_type_ontology_id,
+  entity_revisions.updated_by_id,
+  entity_revisions.properties,
+  entity_revisions.archived,
   entity_ids.left_owned_by_id,
   entity_ids.left_entity_uuid,
-  entity_editions.left_to_right_order,
+  entity_revisions.left_to_right_order,
   entity_ids.right_owned_by_id,
   entity_ids.right_entity_uuid,
-  entity_editions.right_to_left_order
+  entity_revisions.right_to_left_order
 FROM
   entity_versions
-  JOIN entity_editions ON entity_versions.entity_record_id = entity_editions.entity_record_id
+  JOIN entity_revisions ON entity_versions.entity_revision_id = entity_revisions.entity_revision_id
   JOIN entity_ids ON entity_versions.owned_by_id = entity_ids.owned_by_id
-  AND entity_versions.entity_uuid = entity_ids.entity_uuid;
+                 AND entity_versions.entity_uuid = entity_ids.entity_uuid;

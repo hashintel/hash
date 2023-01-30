@@ -55,7 +55,7 @@ pub enum EntityQueryPath<'p> {
     /// ```
     ///
     /// [`EntityEditionId`]: crate::identifier::knowledge::EntityEditionId
-    /// [`EntityRecordId`]: crate::identifier::knowledge::EntityRecordId
+    /// [`EntityRevisionId`]: crate::identifier::knowledge::EntityRevisionId
     /// [`Entity`]: crate::knowledge::Entity
     RecordId,
     /// The decision time axis of the [`EntityVersion`] belonging to the [`Entity`].

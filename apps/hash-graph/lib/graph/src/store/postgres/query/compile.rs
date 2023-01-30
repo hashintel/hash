@@ -283,31 +283,6 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         }
     }
 
-    fn compile_latest_entity_version_filter(
-        &mut self,
-        path: &R::QueryPath<'_>,
-        operator: EqualityOperator,
-    ) -> Condition<'c> {
-        let alias = self.add_join_statements(path);
-        self.pin_entity_table(alias);
-        // Adds the image timestamp condition, so we use the same time axis as specified in the
-        // projection.
-        let condition = Condition::TimeIntervalContainsTimestamp(
-            Expression::Column(
-                Column::Entities(Entities::from_time_axis(
-                    self.time_projection.image_time_axis(),
-                ))
-                .aliased(alias),
-            ),
-            Expression::Function(Function::Now),
-        );
-
-        match operator {
-            EqualityOperator::Equal => condition,
-            EqualityOperator::NotEqual => Condition::Not(Box::new(condition)),
-        }
-    }
-
     /// Searches for [`Filter`]s, which requires special treatment and returns the corresponding
     /// condition if any.
     ///
@@ -337,22 +312,6 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                             path,
                             EqualityOperator::NotEqual,
                         ))
-                    }
-                    (Column::Entities(Entities::ProjectedTime), Filter::Equal(..), "latest") => {
-                        Some(
-                            self.compile_latest_entity_version_filter(
-                                path,
-                                EqualityOperator::Equal,
-                            ),
-                        )
-                    }
-                    (Column::Entities(Entities::ProjectedTime), Filter::NotEqual(..), "latest") => {
-                        Some(
-                            self.compile_latest_entity_version_filter(
-                                path,
-                                EqualityOperator::NotEqual,
-                            ),
-                        )
                     }
                     _ => None,
                 },
@@ -404,21 +363,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         expression: &'p FilterExpression<'f, R>,
     ) -> Expression<'c> {
         match expression {
-            FilterExpression::Path(path) => {
-                let column = self.compile_path_column(path);
-                // TODO: Remove special casing when correctly resolving time intervals in subgraphs.
-                //   see https://app.asana.com/0/0/1203701389454316/f
-                if column.column == Column::Entities(Entities::ProjectedTime) {
-                    Expression::Function(Function::Lower(Box::new(Expression::Column(
-                        Column::Entities(Entities::from_time_axis(
-                            self.time_projection.image_time_axis(),
-                        ))
-                        .aliased(column.alias),
-                    ))))
-                } else {
-                    Expression::Column(column)
-                }
-            }
+            FilterExpression::Path(path) => Expression::Column(self.compile_path_column(path)),
             FilterExpression::Parameter(parameter) => {
                 match parameter {
                     Parameter::Number(number) => self.artifacts.parameters.push(number),

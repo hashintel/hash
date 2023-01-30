@@ -165,15 +165,12 @@ impl_ontology_column!(EntityTypes);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Entities<'p> {
+    OwnedById,
     EntityUuid,
-    RecordId,
+    RevisionId,
     DecisionTime,
     TransactionTime,
-    // TODO: Remove when correctly resolving time intervals in subgraphs.
-    //   see https://app.asana.com/0/0/1203701389454316/f
-    ProjectedTime,
     Archived,
-    OwnedById,
     UpdatedById,
     EntityTypeOntologyId,
     Properties(Option<JsonField<'p>>),
@@ -188,13 +185,12 @@ pub enum Entities<'p> {
 impl Entities<'_> {
     pub const fn nullable(self) -> bool {
         match self {
-            Self::EntityUuid
-            | Self::RecordId
+            Self::OwnedById
+            | Self::EntityUuid
+            | Self::RevisionId
             | Self::DecisionTime
             | Self::TransactionTime
-            | Self::ProjectedTime
             | Self::Archived
-            | Self::OwnedById
             | Self::UpdatedById
             | Self::EntityTypeOntologyId => false,
             Self::Properties(_)
@@ -218,13 +214,12 @@ impl Entities<'_> {
 impl Entities<'_> {
     fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
+            Self::OwnedById => "owned_by_id",
             Self::EntityUuid => "entity_uuid",
-            Self::RecordId => "entity_record_id",
+            Self::RevisionId => "entity_revision_id",
             Self::DecisionTime => "decision_time",
             Self::TransactionTime => "transaction_time",
-            Self::ProjectedTime => unreachable!("projected time is not a column"),
             Self::Archived => "archived",
-            Self::OwnedById => "owned_by_id",
             Self::UpdatedById => "updated_by_id",
             Self::EntityTypeOntologyId => "entity_type_ontology_id",
             Self::Properties(None) => "properties",

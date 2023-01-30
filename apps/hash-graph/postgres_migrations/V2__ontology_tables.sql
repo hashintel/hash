@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS
   ontology_ids (
-    ontology_id UUID PRIMARY KEY,
+    "ontology_id" UUID PRIMARY KEY,
     "base_uri" TEXT NOT NULL,
     "version" BIGINT NOT NULL,
     "transaction_time" tstzrange NOT NULL,

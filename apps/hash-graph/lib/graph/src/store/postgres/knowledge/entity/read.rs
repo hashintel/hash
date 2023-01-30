@@ -10,7 +10,7 @@ use uuid::Uuid;
 use crate::{
     identifier::{
         account::AccountId,
-        knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
+        knowledge::{EntityEditionId, EntityId, EntityRevisionId, EntityVersion},
         time::{TimeProjection, VersionInterval},
     },
     knowledge::{Entity, EntityProperties, EntityQueryPath, EntityUuid, LinkData},
@@ -137,7 +137,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                     link_data,
                     EntityEditionId::new(
                         EntityId::new(owned_by_id, entity_uuid),
-                        EntityRecordId::new(row.get(record_id_index)),
+                        EntityRevisionId::new(row.get(record_id_index)),
                     ),
                     EntityVersion::new(
                         VersionInterval::from_anonymous(row.get(decision_time_index)),

@@ -14,12 +14,12 @@ OR REPLACE FUNCTION "create_entity" (
   "_left_to_right_order" INTEGER,
   "_right_to_left_order" INTEGER
 ) RETURNS TABLE (
-  entity_record_id BIGINT,
+  entity_revision_id BIGINT,
   decision_time tstzrange,
   transaction_time tstzrange
 ) AS $pga$
     DECLARE
-      _entity_record_id BIGINT;
+      _entity_revision_id BIGINT;
     BEGIN
       IF _decision_time IS NULL THEN _decision_time := now(); END IF;
 
@@ -40,7 +40,7 @@ OR REPLACE FUNCTION "create_entity" (
       );
 
       -- insert the data of the entity
-      INSERT INTO entity_editions (
+      INSERT INTO entity_revisions (
         updated_by_id,
         archived,
         entity_type_ontology_id,
@@ -54,22 +54,22 @@ OR REPLACE FUNCTION "create_entity" (
         _properties,
         _left_to_right_order,
         _right_to_left_order
-      ) RETURNING entity_editions.entity_record_id INTO _entity_record_id;
+      ) RETURNING entity_revisions.entity_revision_id INTO _entity_revision_id;
 
       RETURN QUERY
       INSERT INTO entity_versions (
         owned_by_id,
         entity_uuid,
-        entity_record_id,
+        entity_revision_id,
         decision_time,
         transaction_time
       ) VALUES (
         _owned_by_id,
         _entity_uuid,
-        _entity_record_id,
+        _entity_revision_id,
         tstzrange(_decision_time, NULL, '[)'),
         tstzrange(now(), NULL, '[)')
-      ) RETURNING entity_versions.entity_record_id, entity_versions.decision_time, entity_versions.transaction_time;
+      ) RETURNING entity_versions.entity_revision_id, entity_versions.decision_time, entity_versions.transaction_time;
     END
     $pga$ VOLATILE LANGUAGE plpgsql;
 
@@ -85,16 +85,16 @@ OR REPLACE FUNCTION "update_entity" (
   "_left_to_right_order" INTEGER,
   "_right_to_left_order" INTEGER
 ) RETURNS TABLE (
-  entity_record_id BIGINT,
+  entity_revision_id BIGINT,
   decision_time tstzrange,
   transaction_time tstzrange
 ) AS $pga$
     DECLARE
-      _new_entity_record_id BIGINT;
+      _new_entity_revision_id BIGINT;
     BEGIN
       IF _decision_time IS NULL THEN _decision_time := now(); END IF;
 
-      INSERT INTO entity_editions (
+      INSERT INTO entity_revisions (
         updated_by_id,
         archived,
         entity_type_ontology_id,
@@ -109,18 +109,18 @@ OR REPLACE FUNCTION "update_entity" (
         _left_to_right_order,
         _right_to_left_order
       )
-      RETURNING entity_editions.entity_record_id INTO _new_entity_record_id;
+      RETURNING entity_revisions.entity_revision_id INTO _new_entity_revision_id;
 
       RETURN QUERY
       UPDATE entity_versions
       SET decision_time = tstzrange(_decision_time, upper(entity_versions.decision_time), '[)'),
           transaction_time = tstzrange(now(), NULL, '[)'),
-          entity_record_id = _new_entity_record_id
+          entity_revision_id = _new_entity_revision_id
       WHERE entity_versions.owned_by_id = _owned_by_id
         AND entity_versions.entity_uuid = _entity_uuid
         AND entity_versions.decision_time @> _decision_time
         AND entity_versions.transaction_time @> now()
-      RETURNING entity_versions.entity_record_id, entity_versions.decision_time, entity_versions.transaction_time;
+      RETURNING entity_versions.entity_revision_id, entity_versions.decision_time, entity_versions.transaction_time;
     END
     $pga$ VOLATILE LANGUAGE plpgsql;
 
@@ -133,13 +133,13 @@ OR REPLACE FUNCTION "update_entity_version_trigger" () RETURNS TRIGGER AS $pga$
       INSERT INTO entity_versions (
         owned_by_id,
         entity_uuid,
-        entity_record_id,
+        entity_revision_id,
         decision_time,
         transaction_time
       ) VALUES (
         OLD.owned_by_id,
         OLD.entity_uuid,
-        OLD.entity_record_id,
+        OLD.entity_revision_id,
         OLD.decision_time,
         tstzrange(lower(OLD.transaction_time),lower(NEW.transaction_time), '[)')
       );
@@ -148,13 +148,13 @@ OR REPLACE FUNCTION "update_entity_version_trigger" () RETURNS TRIGGER AS $pga$
       INSERT INTO entity_versions (
         owned_by_id,
         entity_uuid,
-        entity_record_id,
+        entity_revision_id,
         decision_time,
         transaction_time
       ) VALUES (
         OLD.owned_by_id,
         OLD.entity_uuid,
-        OLD.entity_record_id,
+        OLD.entity_revision_id,
         tstzrange(lower(OLD.decision_time), lower(NEW.decision_time), '[)'),
         NEW.transaction_time
       );
