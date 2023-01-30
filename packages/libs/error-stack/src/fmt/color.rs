@@ -1,3 +1,8 @@
+use core::{
+    fmt,
+    fmt::{Display, Formatter},
+};
+
 use crate::{
     fmt::r#override::{AtomicOverride, AtomicPreference},
     Report,
@@ -141,5 +146,243 @@ impl Report<()> {
     /// </pre>
     pub fn set_color_mode(mode: ColorMode) {
         COLOR_OVERRIDE.store(mode);
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum Color {
+    Black,
+    Red,
+    Green,
+    Yellow,
+    Blue,
+    Magenta,
+    Cyan,
+    White,
+}
+
+impl Color {
+    const fn digit(self) -> u8 {
+        match self {
+            Self::Black => b'0',
+            Self::Red => b'1',
+            Self::Green => b'2',
+            Self::Yellow => b'3',
+            Self::Blue => b'4',
+            Self::Magenta => b'5',
+            Self::Cyan => b'6',
+            Self::White => b'7',
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct Foreground {
+    color: Color,
+    bright: bool,
+}
+
+impl Foreground {
+    fn start_ansi(self, sequence: &mut ControlSequence) -> fmt::Result {
+        let Self { color, bright } = self;
+
+        let buffer = &[if bright { b'9' } else { b'3' }, color.digit()];
+        // This should never fail because both are valid ASCII
+        let control = core::str::from_utf8(buffer).unwrap();
+
+        sequence.push_control(control)
+    }
+
+    fn end_ansi(sequence: &mut ControlSequence) -> fmt::Result {
+        sequence.push_control("39")
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct Background {
+    color: Color,
+    bright: bool,
+}
+
+impl Background {
+    fn start_ansi(self, sequence: &mut ControlSequence) -> fmt::Result {
+        let Self { color, bright } = self;
+        let mut buffer = [0u8; 3];
+
+        let length = if bright {
+            buffer[0] = b'1';
+            buffer[1] = b'0';
+            buffer[2] = color.digit();
+
+            3
+        } else {
+            buffer[0] = b'4';
+            buffer[1] = color.digit();
+
+            2
+        };
+
+        // This should never fail because both are valid ASCII
+        let control = core::str::from_utf8(&buffer[..length]).unwrap();
+
+        sequence.push_control(control)
+    }
+
+    fn end_ansi(sequence: &mut ControlSequence) -> fmt::Result {
+        sequence.push_control("49")
+    }
+}
+
+struct ControlSequence<'a, 'b> {
+    fmt: &'a mut Formatter<'b>,
+    empty: bool,
+}
+
+impl<'a, 'b> ControlSequence<'a, 'b> {
+    fn new(fmt: &'a mut Formatter<'b>) -> Self {
+        Self { fmt, empty: true }
+    }
+
+    fn finish(self) -> Result<&'a mut Formatter<'b>, fmt::Error> {
+        if !self.empty {
+            // we wrote a specific formatting character, therefore we need to end
+            self.fmt.write_str("m")?;
+        }
+
+        Ok(self.fmt)
+    }
+}
+
+impl ControlSequence<'_, '_> {
+    fn push_control(&mut self, control: &str) -> fmt::Result {
+        if self.empty {
+            self.fmt.write_str("\u{1b}[")?;
+        } else {
+            self.fmt.write_str(";")?;
+        }
+
+        self.fmt.write_str(control)?;
+        self.empty = false;
+
+        Ok(())
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+struct DisplayStyle {
+    bold: bool,
+    faint: bool,
+    italic: bool,
+    underline: bool,
+    blink: bool,
+    strikethrough: bool,
+}
+
+impl DisplayStyle {
+    fn start_ansi(self, sequence: &mut ControlSequence) -> fmt::Result {
+        if self.bold {
+            sequence.push_control("1")?;
+        }
+
+        if self.faint {
+            sequence.push_control("2")?;
+        }
+
+        if self.italic {
+            sequence.push_control("3")?;
+        }
+
+        if self.underline {
+            sequence.push_control("4")?;
+        }
+
+        if self.blink {
+            sequence.push_control("5")?;
+        }
+
+        if self.strikethrough {
+            sequence.push_control("9")?;
+        }
+
+        Ok(())
+    }
+
+    fn end_ansi(self, sequence: &mut ControlSequence) -> fmt::Result {
+        if self.bold {
+            sequence.push_control("21")?;
+        }
+
+        if self.faint {
+            sequence.push_control("22")?;
+        }
+
+        if self.italic {
+            sequence.push_control("23")?;
+        }
+
+        if self.underline {
+            sequence.push_control("24")?;
+        }
+
+        if self.blink {
+            sequence.push_control("25")?;
+        }
+
+        if self.strikethrough {
+            sequence.push_control("29")?;
+        }
+
+        Ok(())
+    }
+}
+
+struct Style {
+    display: Option<DisplayStyle>,
+    foreground: Option<Foreground>,
+    background: Option<Background>,
+}
+
+struct StyleDisplay<'a, T: Display> {
+    style: Style,
+    value: &'a T,
+}
+
+impl<'a, T: Display> Display for StyleDisplay<'a, T> {
+    fn fmt(&self, mut f: &mut Formatter<'_>) -> fmt::Result {
+        let mut sequence = ControlSequence::new(f);
+
+        if let Some(display) = self.style.display {
+            display.start_ansi(&mut sequence)?;
+        }
+
+        if let Some(foreground) = self.style.foreground {
+            foreground.start_ansi(&mut sequence)?;
+        }
+
+        if let Some(background) = self.style.background {
+            background.start_ansi(&mut sequence)?;
+        }
+
+        f = sequence.finish()?;
+
+        Display::fmt(&self.value, f)?;
+
+        let mut sequence = ControlSequence::new(f);
+
+        if let Some(display) = self.style.display {
+            display.end_ansi(&mut sequence)?;
+        }
+
+        if self.style.foreground.is_some() {
+            Foreground::end_ansi(&mut sequence)?;
+        }
+
+        if self.style.background.is_some() {
+            Background::end_ansi(&mut sequence)?;
+        }
+
+        f = sequence.finish()?;
+
+        Ok(())
     }
 }
