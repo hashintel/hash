@@ -5,11 +5,7 @@ import {
 } from "@blockprotocol/graph/react";
 import { useRef } from "react";
 
-import {
-  GridCellKind,
-  GridColumn,
-  DataEditorProps,
-} from "@glideapps/glide-data-grid";
+import { GridCellKind, GridColumn } from "@glideapps/glide-data-grid";
 import styles from "./base.module.scss";
 import { Grid } from "./components/grid/grid";
 import {
