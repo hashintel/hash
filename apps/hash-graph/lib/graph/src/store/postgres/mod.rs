@@ -818,6 +818,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .client
             .query(
                 "INSERT INTO entity_records (
+                    entity_edition_id,
                     updated_by_id,
                     archived,
                     entity_type_ontology_id,
@@ -826,6 +827,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     right_to_left_order
                 )
                 SELECT
+                    gen_random_uuid(),
                     updated_by_id,
                     archived,
                     entity_type_ontology_id,
@@ -840,7 +842,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .into_report()
             .change_context(InsertionError)?
             .into_iter()
-            .map(|row| EntityEditionId::new(row.get::<_, i64>(0)))
+            .map(|row| EntityEditionId::new(row.get(0)))
             .collect();
 
         self.client
@@ -866,7 +868,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 "CREATE TEMPORARY TABLE entity_revisions_temp (
                     owned_by_id UUID NOT NULL,
                     entity_uuid UUID NOT NULL,
-                    entity_edition_id BIGINT NOT NULL,
+                    entity_edition_id UUID NOT NULL,
                     decision_time TIMESTAMP WITH TIME ZONE
                 );",
             )
@@ -890,7 +892,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         let writer = BinaryCopyInWriter::new(sink, &[
             Type::UUID,
             Type::UUID,
-            Type::INT8,
+            Type::UUID,
             Type::TIMESTAMPTZ,
         ]);
         futures::pin_mut!(writer);

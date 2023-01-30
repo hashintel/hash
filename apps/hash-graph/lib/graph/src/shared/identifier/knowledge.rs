@@ -6,6 +6,7 @@ use std::{
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use tokio_postgres::types::ToSql;
 use utoipa::{openapi, ToSchema};
+use uuid::Uuid;
 
 use crate::{
     identifier::{
@@ -147,16 +148,16 @@ impl EntityRevision {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, ToSql, ToSchema)]
 #[postgres(transparent)]
 #[repr(transparent)]
-pub struct EntityEditionId(i64);
+pub struct EntityEditionId(Uuid);
 
 impl EntityEditionId {
     #[must_use]
-    pub const fn new(id: i64) -> Self {
+    pub const fn new(id: Uuid) -> Self {
         Self(id)
     }
 
     #[must_use]
-    pub const fn as_i64(&self) -> i64 {
+    pub const fn as_uuid(&self) -> Uuid {
         self.0
     }
 }

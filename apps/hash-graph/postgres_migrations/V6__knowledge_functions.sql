@@ -14,12 +14,12 @@ OR REPLACE FUNCTION "create_entity" (
   "_left_to_right_order" INTEGER,
   "_right_to_left_order" INTEGER
 ) RETURNS TABLE (
-  entity_edition_id BIGINT,
+  entity_edition_id UUID,
   decision_time tstzrange,
   transaction_time tstzrange
 ) AS $pga$
     DECLARE
-      _entity_edition_id BIGINT;
+      _entity_edition_id UUID;
     BEGIN
       IF _decision_time IS NULL THEN _decision_time := now(); END IF;
 
@@ -41,6 +41,7 @@ OR REPLACE FUNCTION "create_entity" (
 
       -- insert the data of the entity
       INSERT INTO entity_records (
+        entity_edition_id,
         updated_by_id,
         archived,
         entity_type_ontology_id,
@@ -48,6 +49,7 @@ OR REPLACE FUNCTION "create_entity" (
         left_to_right_order,
         right_to_left_order
       ) VALUES (
+        gen_random_uuid(),
         _updated_by_id,
         _archived,
         _entity_type_ontology_id,
@@ -85,16 +87,17 @@ OR REPLACE FUNCTION "update_entity" (
   "_left_to_right_order" INTEGER,
   "_right_to_left_order" INTEGER
 ) RETURNS TABLE (
-  entity_edition_id BIGINT,
+  entity_edition_id UUID,
   decision_time tstzrange,
   transaction_time tstzrange
 ) AS $pga$
     DECLARE
-      _new_entity_edition_id BIGINT;
+      _new_entity_edition_id UUID;
     BEGIN
       IF _decision_time IS NULL THEN _decision_time := now(); END IF;
 
       INSERT INTO entity_records (
+        entity_edition_id,
         updated_by_id,
         archived,
         entity_type_ontology_id,
@@ -102,6 +105,7 @@ OR REPLACE FUNCTION "update_entity" (
         left_to_right_order,
         right_to_left_order
       ) VALUES (
+        gen_random_uuid(),
         _updated_by_id,
         _archived,
         _entity_type_ontology_id,

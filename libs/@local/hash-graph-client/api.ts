@@ -606,10 +606,10 @@ export interface EntityRecordId {
   baseId: string;
   /**
    *
-   * @type {number}
+   * @type {string}
    * @memberof EntityRecordId
    */
-  recordId: number;
+  recordId: string;
 }
 /**
  *

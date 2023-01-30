@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS
 
 CREATE TABLE IF NOT EXISTS
   "entity_records" (
-    "entity_edition_id" BIGINT PRIMARY KEY NOT NULL GENERATED ALWAYS AS IDENTITY,
+    "entity_edition_id" UUID NOT NULL PRIMARY KEY,
     "entity_type_ontology_id" UUID NOT NULL REFERENCES "entity_types",
     "properties" JSONB NOT NULL,
     "left_to_right_order" INTEGER,
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS
   "entity_revisions" (
     "owned_by_id" UUID NOT NULL,
     "entity_uuid" UUID NOT NULL,
-    "entity_edition_id" BIGINT NOT NULL REFERENCES "entity_records",
+    "entity_edition_id" UUID NOT NULL REFERENCES "entity_records",
     "decision_time" tstzrange NOT NULL,
     "transaction_time" tstzrange NOT NULL,
     FOREIGN KEY ("owned_by_id", "entity_uuid") REFERENCES "entity_ids",
