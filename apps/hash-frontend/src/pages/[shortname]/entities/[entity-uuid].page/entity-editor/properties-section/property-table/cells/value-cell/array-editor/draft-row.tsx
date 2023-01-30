@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { DRAFT_ROW_KEY } from "../array-editor";
+import { editorSpecs } from "../editor-specs";
 import { EditorTypePicker } from "../editor-type-picker";
 import { EditorType } from "../types";
 import {
@@ -39,9 +40,10 @@ export const DraftRow = ({
       <EditorTypePicker
         expectedTypes={expectedTypes}
         onTypeChange={(type) => {
-          // for boolean type, we don't need the "save changes" flow, so we directly create a "true" value here
-          if (type === "boolean") {
-            onDraftSaved(true);
+          const editorSpec = editorSpecs[type];
+
+          if (editorSpec.arrayEditException === "no-edit-mode") {
+            onDraftSaved(editorSpec.defaultValue);
           }
 
           setEditorType(type);

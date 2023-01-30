@@ -21,7 +21,7 @@
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "eslint": "8.32.0",
+    "eslint": "8.33.0",
     "nodemon": "2.0.20"
   }
 }

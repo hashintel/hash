@@ -1,8 +1,12 @@
 mod filter;
+mod path;
 
 use std::fmt;
 
-pub use self::filter::{Filter, FilterExpression, Parameter, ParameterConversionError};
+pub use self::{
+    filter::{Filter, FilterExpression, Parameter, ParameterConversionError},
+    path::{JsonPath, PathToken},
+};
 
 pub trait QueryPath {
     /// Returns what type this resolved `Path` has.
