@@ -147,7 +147,7 @@ const LinkTypeRow = ({
           </EntityTypeTableTitleCellText>
         </TableCell>
         <TableCell sx={{ py: "0 !important" }}>
-          <LinkEntityTypeSelector link={link} linkIndex={linkIndex} />
+          <LinkEntityTypeSelector linkIndex={linkIndex} />
         </TableCell>
         <MultipleValuesCell index={linkIndex} variant="link" />
         <TypeMenuCell

@@ -1,5 +1,4 @@
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import { EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
 import { Chip, FontAwesomeIcon } from "@local/design-system";
 import { Box, PopperPlacementType, Stack } from "@mui/material";
 import { ReactNode, useRef, useState } from "react";
@@ -7,10 +6,7 @@ import { flushSync } from "react-dom";
 import { useFormContext, useWatch } from "react-hook-form";
 import { useResizeObserverRef } from "rooks";
 
-import {
-  useEntityTypes,
-  useLinkEntityTypes,
-} from "../../../../../../../shared/entity-types-context/hooks";
+import { useEntityTypes } from "../../../../../../../shared/entity-types-context/hooks";
 import {
   HashSelectorAutocomplete,
   TYPE_SELECTOR_HEIGHT,
@@ -40,10 +36,8 @@ const linkEntityTypeSelectorDropdownProps = {
 };
 
 export const LinkEntityTypeSelector = ({
-  link,
   linkIndex,
 }: {
-  link: EntityTypeWithMetadata;
   linkIndex: number;
 }) => {
   const { control, setValue } = useFormContext<EntityTypeEditorForm>();
