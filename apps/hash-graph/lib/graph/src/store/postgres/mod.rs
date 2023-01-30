@@ -740,7 +740,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
 
     #[doc(hidden)]
     #[cfg(feature = "__internal_bench")]
-    async fn insert_entity_records(
+    async fn insert_entity_revisions(
         &self,
         entities: impl IntoIterator<
             Item = (EntityProperties, Option<LinkOrder>, Option<LinkOrder>),
@@ -751,7 +751,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     ) -> Result<Vec<EntityRevisionId>, InsertionError> {
         self.client
             .simple_query(
-                "CREATE TEMPORARY TABLE entity_editions_temp (
+                "CREATE TEMPORARY TABLE entity_revisions_temp (
                     updated_by_id UUID NOT NULL,
                     archived BOOLEAN NOT NULL,
                     entity_type_ontology_id UUID NOT NULL,
@@ -767,7 +767,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         let sink = self
             .client
             .copy_in(
-                "COPY entity_editions_temp (
+                "COPY entity_revisions_temp (
                     updated_by_id,
                     archived,
                     entity_type_ontology_id,
@@ -814,10 +814,10 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .into_report()
             .change_context(InsertionError)?;
 
-        let entity_record_ids = self
+        let entity_revision_ids = self
             .client
             .query(
-                "INSERT INTO entity_editions (
+                "INSERT INTO entity_revisions (
                     updated_by_id,
                     archived,
                     entity_type_ontology_id,
@@ -832,8 +832,8 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     properties,
                     left_to_right_order,
                     right_to_left_order
-                FROM entity_editions_temp
-                RETURNING entity_record_id;",
+                FROM entity_revisions_temp
+                RETURNING entity_revision_id;",
                 &[],
             )
             .await
@@ -844,12 +844,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .collect();
 
         self.client
-            .simple_query("DROP TABLE entity_editions_temp;")
+            .simple_query("DROP TABLE entity_revisions_temp;")
             .await
             .into_report()
             .change_context(InsertionError)?;
 
-        Ok(entity_record_ids)
+        Ok(entity_revision_ids)
     }
 
     #[doc(hidden)]
@@ -866,7 +866,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 "CREATE TEMPORARY TABLE entity_versions_temp (
                     owned_by_id UUID NOT NULL,
                     entity_uuid UUID NOT NULL,
-                    entity_record_id BIGINT NOT NULL,
+                    entity_revision_id BIGINT NOT NULL,
                     decision_time TIMESTAMP WITH TIME ZONE
                 );",
             )
@@ -880,7 +880,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 "COPY entity_versions_temp (
                     owned_by_id,
                     entity_uuid,
-                    entity_record_id,
+                    entity_revision_id,
                     decision_time
                 ) FROM STDIN BINARY",
             )
@@ -894,13 +894,13 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             Type::TIMESTAMPTZ,
         ]);
         futures::pin_mut!(writer);
-        for (entity_id, entity_record_id, decision_time) in entities {
+        for (entity_id, entity_revision_id, decision_time) in entities {
             writer
                 .as_mut()
                 .write(&[
                     &entity_id.owned_by_id(),
                     &entity_id.entity_uuid(),
-                    &entity_record_id,
+                    &entity_revision_id,
                     &decision_time,
                 ])
                 .await
@@ -920,13 +920,13 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 "INSERT INTO entity_versions (
                     owned_by_id,
                     entity_uuid,
-                    entity_record_id,
+                    entity_revision_id,
                     decision_time,
                     transaction_time
                 ) SELECT
                     owned_by_id,
                     entity_uuid,
-                    entity_record_id,
+                    entity_revision_id,
                     tstzrange(
                         CASE WHEN decision_time IS NULL THEN now() ELSE decision_time END,
                         NULL,

@@ -405,7 +405,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         let entities = entities.into_iter();
         let mut entity_ids = Vec::with_capacity(entities.size_hint().0);
-        let mut entity_editions = Vec::with_capacity(entities.size_hint().0);
+        let mut entity_revisions = Vec::with_capacity(entities.size_hint().0);
         let mut entity_versions = Vec::with_capacity(entities.size_hint().0);
         for (owned_by_id, entity_uuid, properties, link_data, decision_time) in entities {
             entity_ids.push((
@@ -416,7 +416,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 link_data.as_ref().map(LinkData::left_entity_id),
                 link_data.as_ref().map(LinkData::right_entity_id),
             ));
-            entity_editions.push((
+            entity_revisions.push((
                 properties,
                 link_data.as_ref().and_then(LinkData::left_to_right_order),
                 link_data.as_ref().and_then(LinkData::right_to_left_order),
@@ -438,8 +438,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .await
             .change_context(InsertionError)?;
 
-        let entity_record_ids = transaction
-            .insert_entity_records(entity_editions, entity_type_ontology_id, actor_id)
+        let entity_revision_ids = transaction
+            .insert_entity_revisions(entity_revisions, entity_type_ontology_id, actor_id)
             .await?;
 
         let entity_versions = transaction
@@ -447,7 +447,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_ids
                     .iter()
                     .copied()
-                    .zip(entity_record_ids.iter().copied())
+                    .zip(entity_revision_ids.iter().copied())
                     .zip(entity_versions)
                     .map(|(((entity_id, ..), entity_edition_id), decision_time)| {
                         (entity_id, entity_edition_id, decision_time)
@@ -460,10 +460,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(entity_ids
             .into_iter()
             .zip(entity_versions)
-            .zip(entity_record_ids)
-            .map(|(((entity_id, ..), entity_version), entity_record_id)| {
+            .zip(entity_revision_ids)
+            .map(|(((entity_id, ..), entity_version), entity_revision_id)| {
                 EntityMetadata::new(
-                    EntityEditionId::new(entity_id, entity_record_id),
+                    EntityEditionId::new(entity_id, entity_revision_id),
                     entity_version,
                     entity_type_id.clone(),
                     ProvenanceMetadata::new(actor_id),
