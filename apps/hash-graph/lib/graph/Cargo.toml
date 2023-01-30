@@ -11,7 +11,7 @@ interval-ops = { path = "../interval-ops" }
 async-trait = "0.1.63"
 axum = "0.6.3"
 bb8-postgres = "0.8.1"
-clap = { version = "4.1.3", features = ["derive", "env"], optional = true }
+clap = { version = "4.1.4", features = ["derive", "env"], optional = true }
 time = { version = "0.3.17", features = ['serde', 'serde-well-known'] }
 derivative = "2.2.0"
 error-stack = { version = "0.2.4", features = ["spantrace"] }
@@ -40,7 +40,7 @@ include_dir = "0.7.3"
 refinery = { version = "0.8", features = ["tokio-postgres"] }
 
 [dev-dependencies]
-tokio = { version = "1.23.1", features = ["rt-multi-thread", "macros", "tracing"] }
+tokio = { version = "1.24.2", features = ["rt-multi-thread", "macros", "tracing"] }
 graph-test-data = { path = "../../tests/test_data" }
 criterion = "0.4.0"
 

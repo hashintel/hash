@@ -5,8 +5,12 @@ import {
   GridCellKind,
 } from "@glideapps/glide-data-grid";
 import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
-import { Chip, ChipProps, FontAwesomeIcon } from "@hashintel/design-system";
-import { customColors } from "@hashintel/design-system/src/theme/palette";
+import {
+  Chip,
+  ChipProps,
+  customColors,
+  FontAwesomeIcon,
+} from "@hashintel/design-system";
 import { Box } from "@mui/material";
 
 import { drawCellFadeOutGradient } from "../../../../../../../../components/grid/utils/draw-cell-fade-out-gradient";

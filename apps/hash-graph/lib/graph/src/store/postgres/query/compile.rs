@@ -8,7 +8,9 @@ use crate::{
     store::{
         postgres::query::{
             expression::Constant,
-            table::{Entities, EntityTypes, JsonField, Relation, TypeIds},
+            table::{
+                DataTypes, Entities, EntityTypes, JsonField, PropertyTypes, Relation, TypeIds,
+            },
             Alias, AliasedColumn, AliasedTable, Column, Condition, Distinctness, EqualityOperator,
             Expression, Function, JoinExpression, OrderByExpression, Ordering, PostgresQueryPath,
             PostgresRecord, SelectExpression, SelectStatement, Table, Transpile, WhereExpression,
@@ -355,16 +357,33 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     }
 
     pub fn compile_path_column(&mut self, path: &'p R::QueryPath<'_>) -> AliasedColumn<'c> {
-        let column = path.terminating_column();
-        let column =
-            if let Column::Entities(Entities::Properties(Some(JsonField::Json(field)))) = column {
+        let column = match path.terminating_column() {
+            Column::DataTypes(DataTypes::Schema(Some(JsonField::JsonPath(field)))) => {
                 self.artifacts.parameters.push(field);
-                Column::Entities(Entities::Properties(Some(JsonField::JsonParameter(
+                Column::DataTypes(DataTypes::Schema(Some(JsonField::JsonPathParameter(
                     self.artifacts.parameters.len(),
                 ))))
-            } else {
-                column
-            };
+            }
+            Column::PropertyTypes(PropertyTypes::Schema(Some(JsonField::JsonPath(field)))) => {
+                self.artifacts.parameters.push(field);
+                Column::PropertyTypes(PropertyTypes::Schema(Some(JsonField::JsonPathParameter(
+                    self.artifacts.parameters.len(),
+                ))))
+            }
+            Column::EntityTypes(EntityTypes::Schema(Some(JsonField::JsonPath(field)))) => {
+                self.artifacts.parameters.push(field);
+                Column::EntityTypes(EntityTypes::Schema(Some(JsonField::JsonPathParameter(
+                    self.artifacts.parameters.len(),
+                ))))
+            }
+            Column::Entities(Entities::Properties(Some(JsonField::JsonPath(field)))) => {
+                self.artifacts.parameters.push(field);
+                Column::Entities(Entities::Properties(Some(JsonField::JsonPathParameter(
+                    self.artifacts.parameters.len(),
+                ))))
+            }
+            column => column,
+        };
 
         let alias = self.add_join_statements(path);
 
