@@ -66,6 +66,8 @@ import {
   EntityTypeTableCenteredCell,
   EntityTypeTableHeaderRow,
   EntityTypeTableRow,
+  sortRows,
+  useFlashRow,
 } from "./shared/entity-type-table";
 import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
 import {
@@ -207,6 +209,7 @@ const PropertyRow = ({
   requiredTableCell,
   menuTableCell,
   onUpdateVersion,
+  flash = false,
 }: {
   property: PropertyType;
   isArray: boolean;
@@ -218,6 +221,7 @@ const PropertyRow = ({
   requiredTableCell?: ReactNode;
   menuTableCell?: ReactNode;
   onUpdateVersion?: (nextId: VersionedUri) => void;
+  flash?: boolean;
 }) => {
   const [propertyTypes, propertyTypesSubgraph] = useLatestPropertyTypes();
   const { propertyTypes: entityTypePropertyTypes } = useEntityType();
@@ -305,6 +309,7 @@ const PropertyRow = ({
             handleResize();
           }
         }}
+        flash={flash}
       >
         <PropertyTitleCell
           property={property}
@@ -386,21 +391,24 @@ const PropertyRow = ({
 
 export const PropertyTypeRow = ({
   propertyIndex,
+  property,
+  propertyId,
   onRemove,
   onUpdateVersion,
+  flash,
 }: {
   propertyIndex: number;
+  property: PropertyType | undefined;
+  propertyId: VersionedUri;
   onRemove: () => void;
   onUpdateVersion: (nextId: VersionedUri) => void;
+  flash: boolean;
 }) => {
   const { control } = useFormContext<EntityTypeEditorForm>();
 
-  const [$id, array] = useWatch({
+  const array = useWatch({
     control,
-    name: [
-      `properties.${propertyIndex}.$id`,
-      `properties.${propertyIndex}.array`,
-    ],
+    name: `properties.${propertyIndex}.array`,
   });
 
   const editModalId = useId();
@@ -416,12 +424,10 @@ export const PropertyTypeRow = ({
     onUpdateVersionRef.current = onUpdateVersion;
   });
 
-  const [propertyTypes, propertyTypesSubgraph] = useLatestPropertyTypes();
-  const { propertyTypes: entityTypePropertyTypes } = useEntityType();
-  const property = entityTypePropertyTypes[$id] ?? propertyTypes?.[$id];
+  const propertyTypesSubgraph = useLatestPropertyTypes()[1];
 
   const [currentVersion, latestVersion] = usePropertyTypeVersions(
-    $id,
+    propertyId,
     propertyTypesSubgraph,
   );
 
@@ -442,12 +448,14 @@ export const PropertyTypeRow = ({
   }, [property]);
 
   if (!property) {
-    if (propertyTypes) {
+    if (propertyTypesSubgraph) {
       throw new Error("Missing property type");
     }
 
     return null;
   }
+
+  const $id = property.$id;
 
   return (
     <>
@@ -483,6 +491,7 @@ export const PropertyTypeRow = ({
           />
         }
         onUpdateVersion={onUpdateVersion}
+        flash={flash}
       />
 
       <TypeFormModal
@@ -547,10 +556,27 @@ const InsertPropertyRow = (
 export const PropertyListCard = () => {
   const { control, getValues, setValue } =
     useFormContext<EntityTypeEditorForm>();
-  const { fields, append, remove } = useFieldArray({
+  const {
+    fields: unsortedFields,
+    append,
+    remove,
+  } = useFieldArray({
     control,
     name: "properties",
   });
+  const propertyTypes = useLatestPropertyTypes()[0];
+  const { propertyTypes: entityTypePropertyTypes } = useEntityType();
+
+  const fields = useMemo(
+    () =>
+      sortRows(
+        unsortedFields,
+        (propertyId) =>
+          entityTypePropertyTypes[propertyId] ?? propertyTypes?.[propertyId],
+        (row) => row.title,
+      ),
+    [entityTypePropertyTypes, propertyTypes, unsortedFields],
+  );
 
   const [addingNewProperty, setAddingNewProperty] = useStateCallback(false);
   const [searchText, setSearchText] = useState("");
@@ -573,6 +599,7 @@ export const PropertyListCard = () => {
     variant: "popover",
     popupId: `createProperty-${modalTooltipId}`,
   });
+  const [flashingRows, flashRow] = useFlashRow();
 
   const handleAddPropertyType = (propertyType: PropertyType) => {
     cancelAddingNewProperty();
@@ -585,6 +612,7 @@ export const PropertyListCard = () => {
         maxValue: 1,
         infinity: true,
       });
+      flashRow(propertyType.$id);
     }
   };
 
@@ -654,9 +682,9 @@ export const PropertyListCard = () => {
         </EntityTypeTableHeaderRow>
       </TableHead>
       <TableBody>
-        {fields.map((type, index) => (
+        {fields.map(({ row, field, index }) => (
           <PropertyTypeRow
-            key={type.id}
+            key={field.id}
             propertyIndex={index}
             onRemove={() => {
               remove(index);
@@ -666,6 +694,9 @@ export const PropertyListCard = () => {
                 shouldDirty: true,
               });
             }}
+            property={row}
+            propertyId={field.$id}
+            flash={flashingRows.includes(field.$id)}
           />
         ))}
       </TableBody>

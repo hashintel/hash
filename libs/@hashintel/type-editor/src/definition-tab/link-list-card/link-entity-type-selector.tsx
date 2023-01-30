@@ -6,10 +6,7 @@ import { flushSync } from "react-dom";
 import { useFormContext, useWatch } from "react-hook-form";
 import { useResizeObserverRef } from "rooks";
 
-import {
-  useEntityTypes,
-  useLinkEntityTypes,
-} from "../../../../../../../shared/entity-types-context/hooks";
+import { useEntityTypes } from "../../../../../../../shared/entity-types-context/hooks";
 import {
   HashSelectorAutocomplete,
   TYPE_SELECTOR_HEIGHT,
@@ -61,23 +58,12 @@ export const LinkEntityTypeSelector = ({
     }
   });
 
-  const linkTypes = useLinkEntityTypes();
   const entityTypes = useEntityTypes();
-  const linkId = useWatch({
-    control,
-    name: `links.${linkIndex}.$id`,
-  });
 
   const chosenEntityTypeIds = useWatch({
     control,
     name: `links.${linkIndex}.entityTypes`,
   });
-
-  const link = linkTypes[linkId];
-
-  if (!link) {
-    throw new Error("Missing link");
-  }
 
   const entityTypesArray = Object.values(entityTypes);
   const chosenEntityTypes = entityTypesArray.filter((type) =>

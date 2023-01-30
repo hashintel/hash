@@ -1,4 +1,4 @@
-import { Chip } from "@local/design-system";
+import { Chip } from "@hashintel/design-system";
 import produce from "immer";
 import { useState } from "react";
 
