@@ -5,7 +5,6 @@ import {
   DataEditor,
   DataEditorProps,
   DataEditorRef,
-  GetRowThemeCallback,
   GridCell,
   GridColumn,
   GridMouseEventArgs,
@@ -135,7 +134,9 @@ export const Grid = <T extends Rows>({
     [palette],
   );
 
-  const getRowThemeOverride = useCallback<GetRowThemeCallback>(
+  const getRowThemeOverride = useCallback<
+    NonNullable<DataEditorProps["getRowThemeOverride"]>
+  >(
     (row) => {
       if (row === hoveredRow) {
         return {
@@ -236,6 +237,7 @@ export const Grid = <T extends Rows>({
       getCellContent={createGetCellContent(sortedRows)}
       onCellEdited={createOnCellEdited?.(sortedRows)}
       rows={sortedRows.length}
+      maxColumnWidth={1000}
       {...rest}
       /**
        * icons defined via `headerIcons` are available to be drawn using
