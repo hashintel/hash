@@ -10,7 +10,7 @@ use uuid::Uuid;
 use crate::{
     identifier::{
         account::AccountId,
-        knowledge::{EntityEditionId, EntityId, EntityRevisionId, EntityVersion},
+        knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityRevision},
         time::{TimeProjection, VersionInterval},
     },
     knowledge::{Entity, EntityProperties, EntityQueryPath, EntityUuid, LinkData},
@@ -44,8 +44,8 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
 
         let owned_by_id_index = compiler.add_selection_path(&EntityQueryPath::OwnedById);
         let entity_uuid_index = compiler.add_selection_path(&EntityQueryPath::Uuid);
-        let record_id_index = compiler.add_distinct_selection_with_ordering(
-            &EntityQueryPath::RecordId,
+        let edition_id_index = compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::EditionId,
             Distinctness::Distinct,
             None,
         );
@@ -135,11 +135,11 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                 Ok(Entity::new(
                     properties,
                     link_data,
-                    EntityEditionId::new(
+                    EntityRecordId::new(
                         EntityId::new(owned_by_id, entity_uuid),
-                        EntityRevisionId::new(row.get(record_id_index)),
+                        EntityEditionId::new(row.get(edition_id_index)),
                     ),
-                    EntityVersion::new(
+                    EntityRevision::new(
                         VersionInterval::from_anonymous(row.get(decision_time_index)),
                         VersionInterval::from_anonymous(row.get(transaction_time_index)),
                     ),

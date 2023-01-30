@@ -117,7 +117,7 @@ impl Edges {
                                 }
                                     .expect("entity must exist in subgraph")
                                     .vertex_id(time_axis)
-                                    .version();
+                                    .revision_id();
 
                                 KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
                                     kind: edge.kind,
@@ -133,13 +133,13 @@ impl Edges {
                     match map.entry(id.base_id()) {
                         Entry::Occupied(entry) => {
                             entry.into_mut().insert(
-                                id.version(),
+                                id.revision_id(),
                                 edges
                             );
                         }
                         Entry::Vacant(entry) => {
                             entry.insert(BTreeMap::from([(
-                                id.version(),
+                                id.revision_id(),
                                 edges
                             )]));
                         }

@@ -43,37 +43,37 @@ pub enum EntityQueryPath<'p> {
     /// [`EntityId`]: crate::identifier::knowledge::EntityId
     /// [`Entity`]: crate::knowledge::Entity
     OwnedById,
-    /// The [`EntityRevisionid`] of the [`EntityRevisionid`] belonging to the [`Entity`].
+    /// The [`EntityEditionId`] of the [`EntityRecordId`] belonging to the [`Entity`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::knowledge::EntityQueryPath;
     /// let path = EntityQueryPath::deserialize(json!(["recordId"]))?;
-    /// assert_eq!(path, EntityQueryPath::RecordId);
+    /// assert_eq!(path, EntityQueryPath::EditionId);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
     /// [`EntityEditionId`]: crate::identifier::knowledge::EntityEditionId
-    /// [`EntityRevisionId`]: crate::identifier::knowledge::EntityRevisionId
+    /// [`EntityRecordId`]: crate::identifier::knowledge::EntityRecordId
     /// [`Entity`]: crate::knowledge::Entity
-    RecordId,
-    /// The decision time axis of the [`EntityVersion`] belonging to the [`Entity`].
+    EditionId,
+    /// The decision time axis of the [`EntityRevision`] belonging to the [`Entity`].
     ///
-    /// To query for an [`EntityVersion`] the time projection is specified on the
+    /// To query for an [`EntityRevision`] the time projection is specified on the
     /// [`StructuralQuery`].
     ///
     /// [`StructuralQuery`]: crate::shared::subgraph::query::StructuralQuery
-    /// [`EntityVersion`]: crate::identifier::knowledge::EntityVersion
+    /// [`EntityRevision`]: crate::identifier::knowledge::EntityRevision
     /// [`Entity`]: crate::knowledge::Entity
     DecisionTime,
-    /// The transaction time axis of the [`EntityVersion`] belonging to the [`Entity`].
+    /// The transaction time axis of the [`EntityRevision`] belonging to the [`Entity`].
     ///
-    /// To query for an [`EntityVersion`] the time projection is specified on the
+    /// To query for an [`EntityRevision`] the time projection is specified on the
     /// [`StructuralQuery`].
     ///
     /// [`StructuralQuery`]: crate::shared::subgraph::query::StructuralQuery
-    /// [`EntityVersion`]: crate::identifier::knowledge::EntityVersion
+    /// [`EntityRevision`]: crate::identifier::knowledge::EntityRevision
     /// [`Entity`]: crate::knowledge::Entity
     TransactionTime,
     /// Whether or not the [`Entity`] is archived.
@@ -256,7 +256,7 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::Uuid => fmt.write_str("uuid"),
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
-            Self::RecordId => fmt.write_str("recordId"),
+            Self::EditionId => fmt.write_str("editionId"),
             Self::DecisionTime => fmt.write_str("decisionTime"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
             Self::Archived => fmt.write_str("archived"),
@@ -277,7 +277,7 @@ impl QueryPath for EntityQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
             Self::Uuid | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
-            Self::RecordId => ParameterType::UnsignedInteger,
+            Self::EditionId => ParameterType::UnsignedInteger,
             Self::LeftEntity(path)
             | Self::RightEntity(path)
             | Self::IncomingLinks(path)
@@ -347,7 +347,7 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
 
         Ok(match token {
             EntityQueryToken::Uuid => EntityQueryPath::Uuid,
-            EntityQueryToken::RecordId => EntityQueryPath::RecordId,
+            EntityQueryToken::RecordId => EntityQueryPath::EditionId,
             EntityQueryToken::OwnedById => EntityQueryPath::OwnedById,
             EntityQueryToken::UpdatedById => EntityQueryPath::UpdatedById,
             EntityQueryToken::Archived => EntityQueryPath::Archived,

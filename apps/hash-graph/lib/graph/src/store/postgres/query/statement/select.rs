@@ -588,7 +588,7 @@ mod tests {
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
                 Box::new(EntityQueryPath::RightEntity(Box::new(
-                    EntityQueryPath::RecordId,
+                    EntityQueryPath::EditionId,
                 ))),
             ))),
             Some(FilterExpression::Parameter(Parameter::Number(10.0))),
@@ -610,7 +610,7 @@ mod tests {
               AND "entities_0_1_0"."decision_time" && $2
               AND "entities_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entities_0_2_0"."decision_time" && $2
-              AND "entities_0_2_0"."entity_revision_id" = $3
+              AND "entities_0_2_0"."entity_edition_id" = $3
             "#,
             &[&kernel, &time_projection.image(), &10.0],
         );
@@ -625,7 +625,7 @@ mod tests {
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
                 Box::new(EntityQueryPath::LeftEntity(Box::new(
-                    EntityQueryPath::RecordId,
+                    EntityQueryPath::EditionId,
                 ))),
             ))),
             Some(FilterExpression::Parameter(Parameter::Number(10.0))),
@@ -647,7 +647,7 @@ mod tests {
               AND "entities_0_1_0"."decision_time" && $2
               AND "entities_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entities_0_2_0"."decision_time" && $2
-              AND "entities_0_2_0"."entity_revision_id" = $3
+              AND "entities_0_2_0"."entity_edition_id" = $3
             "#,
             &[&kernel, &time_projection.image(), &10.0],
         );

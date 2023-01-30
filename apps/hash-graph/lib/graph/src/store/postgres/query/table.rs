@@ -167,7 +167,7 @@ impl_ontology_column!(EntityTypes);
 pub enum Entities<'p> {
     OwnedById,
     EntityUuid,
-    RevisionId,
+    EditionId,
     DecisionTime,
     TransactionTime,
     Archived,
@@ -187,7 +187,7 @@ impl Entities<'_> {
         match self {
             Self::OwnedById
             | Self::EntityUuid
-            | Self::RevisionId
+            | Self::EditionId
             | Self::DecisionTime
             | Self::TransactionTime
             | Self::Archived
@@ -216,7 +216,7 @@ impl Entities<'_> {
         let column = match self {
             Self::OwnedById => "owned_by_id",
             Self::EntityUuid => "entity_uuid",
-            Self::RevisionId => "entity_revision_id",
+            Self::EditionId => "entity_edition_id",
             Self::DecisionTime => "decision_time",
             Self::TransactionTime => "transaction_time",
             Self::Archived => "archived",

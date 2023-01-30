@@ -43,7 +43,7 @@ use crate::{
 #[cfg(feature = "__internal_bench")]
 use crate::{
     identifier::{
-        knowledge::{EntityId, EntityRevisionId, EntityVersion},
+        knowledge::{EntityEditionId, EntityId, EntityRevision},
         time::{DecisionTime, Timestamp, VersionInterval},
     },
     knowledge::{EntityProperties, LinkOrder},
@@ -740,7 +740,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
 
     #[doc(hidden)]
     #[cfg(feature = "__internal_bench")]
-    async fn insert_entity_revisions(
+    async fn insert_entity_records(
         &self,
         entities: impl IntoIterator<
             Item = (EntityProperties, Option<LinkOrder>, Option<LinkOrder>),
@@ -748,10 +748,10 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         > + Send,
         entity_type_ontology_id: OntologyId,
         actor_id: UpdatedById,
-    ) -> Result<Vec<EntityRevisionId>, InsertionError> {
+    ) -> Result<Vec<EntityEditionId>, InsertionError> {
         self.client
             .simple_query(
-                "CREATE TEMPORARY TABLE entity_revisions_temp (
+                "CREATE TEMPORARY TABLE entity_records_temp (
                     updated_by_id UUID NOT NULL,
                     archived BOOLEAN NOT NULL,
                     entity_type_ontology_id UUID NOT NULL,
@@ -767,7 +767,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         let sink = self
             .client
             .copy_in(
-                "COPY entity_revisions_temp (
+                "COPY entity_records_temp (
                     updated_by_id,
                     archived,
                     entity_type_ontology_id,
@@ -817,7 +817,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         let entity_revision_ids = self
             .client
             .query(
-                "INSERT INTO entity_revisions (
+                "INSERT INTO entity_records (
                     updated_by_id,
                     archived,
                     entity_type_ontology_id,
@@ -832,19 +832,19 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     properties,
                     left_to_right_order,
                     right_to_left_order
-                FROM entity_revisions_temp
-                RETURNING entity_revision_id;",
+                FROM entity_records_temp
+                RETURNING entity_edition_id;",
                 &[],
             )
             .await
             .into_report()
             .change_context(InsertionError)?
             .into_iter()
-            .map(|row| EntityRevisionId::new(row.get::<_, i64>(0)))
+            .map(|row| EntityEditionId::new(row.get::<_, i64>(0)))
             .collect();
 
         self.client
-            .simple_query("DROP TABLE entity_revisions_temp;")
+            .simple_query("DROP TABLE entity_records_temp;")
             .await
             .into_report()
             .change_context(InsertionError)?;
@@ -857,16 +857,16 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     async fn insert_entity_versions(
         &self,
         entities: impl IntoIterator<
-            Item = (EntityId, EntityRevisionId, Option<Timestamp<DecisionTime>>),
+            Item = (EntityId, EntityEditionId, Option<Timestamp<DecisionTime>>),
             IntoIter: Send,
         > + Send,
-    ) -> Result<Vec<EntityVersion>, InsertionError> {
+    ) -> Result<Vec<EntityRevision>, InsertionError> {
         self.client
             .simple_query(
-                "CREATE TEMPORARY TABLE entity_versions_temp (
+                "CREATE TEMPORARY TABLE entity_revisions_temp (
                     owned_by_id UUID NOT NULL,
                     entity_uuid UUID NOT NULL,
-                    entity_revision_id BIGINT NOT NULL,
+                    entity_edition_id BIGINT NOT NULL,
                     decision_time TIMESTAMP WITH TIME ZONE
                 );",
             )
@@ -877,10 +877,10 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         let sink = self
             .client
             .copy_in(
-                "COPY entity_versions_temp (
+                "COPY entity_revisions_temp (
                     owned_by_id,
                     entity_uuid,
-                    entity_revision_id,
+                    entity_edition_id,
                     decision_time
                 ) FROM STDIN BINARY",
             )
@@ -917,23 +917,23 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         let entity_versions = self
             .client
             .query(
-                "INSERT INTO entity_versions (
+                "INSERT INTO entity_revisions (
                     owned_by_id,
                     entity_uuid,
-                    entity_revision_id,
+                    entity_edition_id,
                     decision_time,
                     transaction_time
                 ) SELECT
                     owned_by_id,
                     entity_uuid,
-                    entity_revision_id,
+                    entity_edition_id,
                     tstzrange(
                         CASE WHEN decision_time IS NULL THEN now() ELSE decision_time END,
                         NULL,
                         '[)'
                     ),
                     tstzrange(now(), NULL, '[)')
-                FROM entity_versions_temp
+                FROM entity_revisions_temp
                 RETURNING decision_time, transaction_time;",
                 &[],
             )
@@ -942,7 +942,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .change_context(InsertionError)?
             .into_iter()
             .map(|row| {
-                EntityVersion::new(
+                EntityRevision::new(
                     VersionInterval::from_anonymous(row.get(0)),
                     VersionInterval::from_anonymous(row.get(1)),
                 )
@@ -950,7 +950,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .collect();
 
         self.client
-            .simple_query("DROP TABLE entity_versions_temp;")
+            .simple_query("DROP TABLE entity_revisions_temp;")
             .await
             .into_report()
             .change_context(InsertionError)?;

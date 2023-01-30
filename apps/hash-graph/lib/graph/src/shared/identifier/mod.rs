@@ -39,13 +39,17 @@ impl ToSchema for GraphElementId {
 #[serde(rename_all = "camelCase")]
 pub struct EntityVertexId {
     base_id: EntityId,
-    version: Timestamp<ProjectedTime>,
+    #[serde(rename = "version")]
+    revision_id: Timestamp<ProjectedTime>,
 }
 
 impl EntityVertexId {
     #[must_use]
-    pub const fn new(base_id: EntityId, version: Timestamp<ProjectedTime>) -> Self {
-        Self { base_id, version }
+    pub const fn new(base_id: EntityId, revision_id: Timestamp<ProjectedTime>) -> Self {
+        Self {
+            base_id,
+            revision_id,
+        }
     }
 
     #[must_use]
@@ -54,8 +58,8 @@ impl EntityVertexId {
     }
 
     #[must_use]
-    pub const fn version(&self) -> Timestamp<ProjectedTime> {
-        self.version
+    pub const fn revision_id(&self) -> Timestamp<ProjectedTime> {
+        self.revision_id
     }
 }
 

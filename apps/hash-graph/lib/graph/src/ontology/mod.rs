@@ -197,16 +197,11 @@ pub struct DataTypeWithMetadata {
 }
 
 impl Record for DataTypeWithMetadata {
-    type EditionId = OntologyTypeEditionId;
     type QueryPath<'p> = DataTypeQueryPath<'p>;
-    type VertexId = Self::EditionId;
-
-    fn edition_id(&self) -> &Self::EditionId {
-        self.metadata().edition_id()
-    }
+    type VertexId = OntologyTypeEditionId;
 
     fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
-        self.edition_id().clone()
+        self.metadata().edition_id().clone()
     }
 
     fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
@@ -242,16 +237,11 @@ pub struct PropertyTypeWithMetadata {
 }
 
 impl Record for PropertyTypeWithMetadata {
-    type EditionId = OntologyTypeEditionId;
     type QueryPath<'p> = PropertyTypeQueryPath<'p>;
-    type VertexId = Self::EditionId;
-
-    fn edition_id(&self) -> &Self::EditionId {
-        self.metadata().edition_id()
-    }
+    type VertexId = OntologyTypeEditionId;
 
     fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
-        self.edition_id().clone()
+        self.metadata().edition_id().clone()
     }
 
     fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
@@ -287,16 +277,11 @@ pub struct EntityTypeWithMetadata {
 }
 
 impl Record for EntityTypeWithMetadata {
-    type EditionId = OntologyTypeEditionId;
     type QueryPath<'p> = EntityTypeQueryPath<'p>;
-    type VertexId = Self::EditionId;
-
-    fn edition_id(&self) -> &Self::EditionId {
-        self.metadata().edition_id()
-    }
+    type VertexId = OntologyTypeEditionId;
 
     fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
-        self.edition_id().clone()
+        self.metadata().edition_id().clone()
     }
 
     fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {

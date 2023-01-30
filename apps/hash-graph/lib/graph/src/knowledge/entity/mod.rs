@@ -11,7 +11,7 @@ use uuid::Uuid;
 pub use self::query::{EntityQueryPath, EntityQueryPathVisitor, EntityQueryToken};
 use crate::{
     identifier::{
-        knowledge::{EntityEditionId, EntityId, EntityVersion},
+        knowledge::{EntityId, EntityRecordId, EntityRevision},
         time::TimeAxis,
         EntityVertexId,
     },
@@ -173,8 +173,10 @@ impl LinkData {
 // TODO: deny_unknown_fields on other structs
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityMetadata {
-    edition_id: EntityEditionId,
-    version: EntityVersion,
+    #[serde(rename = "editionId")]
+    record_id: EntityRecordId,
+    #[serde(rename = "version")]
+    revision: EntityRevision,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
     #[serde(rename = "provenance")]
@@ -185,15 +187,15 @@ pub struct EntityMetadata {
 impl EntityMetadata {
     #[must_use]
     pub const fn new(
-        edition_id: EntityEditionId,
-        version: EntityVersion,
+        record_id: EntityRecordId,
+        revision: EntityRevision,
         entity_type_id: VersionedUri,
         provenance_metadata: ProvenanceMetadata,
         archived: bool,
     ) -> Self {
         Self {
-            edition_id,
-            version,
+            record_id,
+            revision,
             entity_type_id,
             provenance_metadata,
             archived,
@@ -201,13 +203,13 @@ impl EntityMetadata {
     }
 
     #[must_use]
-    pub const fn edition_id(&self) -> EntityEditionId {
-        self.edition_id
+    pub const fn record_id(&self) -> EntityRecordId {
+        self.record_id
     }
 
     #[must_use]
-    pub const fn version(&self) -> &EntityVersion {
-        &self.version
+    pub const fn revision(&self) -> &EntityRevision {
+        &self.revision
     }
 
     #[must_use]
@@ -242,8 +244,8 @@ impl Entity {
     pub const fn new(
         properties: EntityProperties,
         link_data: Option<LinkData>,
-        identifier: EntityEditionId,
-        version: EntityVersion,
+        record_id: EntityRecordId,
+        revision: EntityRevision,
         entity_type_id: VersionedUri,
         provenance_metadata: ProvenanceMetadata,
         archived: bool,
@@ -252,8 +254,8 @@ impl Entity {
             properties,
             link_data,
             metadata: EntityMetadata::new(
-                identifier,
-                version,
+                record_id,
+                revision,
                 entity_type_id,
                 provenance_metadata,
                 archived,
@@ -278,20 +280,15 @@ impl Entity {
 }
 
 impl Record for Entity {
-    type EditionId = EntityEditionId;
     type QueryPath<'p> = EntityQueryPath<'p>;
     type VertexId = EntityVertexId;
 
-    fn edition_id(&self) -> &Self::EditionId {
-        &self.metadata.edition_id
-    }
-
     fn vertex_id(&self, time_axis: TimeAxis) -> Self::VertexId {
-        let timestamp = match time_axis {
-            TimeAxis::DecisionTime => self.metadata().version().decision_time().start.cast(),
-            TimeAxis::TransactionTime => self.metadata().version().transaction_time().start.cast(),
+        let revision_id = match time_axis {
+            TimeAxis::DecisionTime => self.metadata().revision().decision_time().start.cast(),
+            TimeAxis::TransactionTime => self.metadata().revision().transaction_time().start.cast(),
         };
-        EntityVertexId::new(self.edition_id().base_id(), timestamp)
+        EntityVertexId::new(self.metadata().record_id().entity_id(), revision_id)
     }
 
     fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
