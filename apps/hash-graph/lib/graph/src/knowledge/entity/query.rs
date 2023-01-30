@@ -43,7 +43,7 @@ pub enum EntityQueryPath<'p> {
     /// [`EntityId`]: crate::identifier::knowledge::EntityId
     /// [`Entity`]: crate::knowledge::Entity
     OwnedById,
-    /// The [`EntityRecordId`] of the [`EntityRecordId`] belonging to the [`Entity`].
+    /// The [`EntityRevisionid`] of the [`EntityRevisionid`] belonging to the [`Entity`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
