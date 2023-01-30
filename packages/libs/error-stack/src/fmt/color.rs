@@ -1,6 +1,7 @@
-#[cfg(feature = "color")]
-use crate::fmt::r#override::{AtomicOverride, AtomicPreference};
-use crate::Report;
+use crate::{
+    fmt::r#override::{AtomicOverride, AtomicPreference},
+    Report,
+};
 
 /// The available modes of color support
 ///
@@ -29,16 +30,8 @@ pub enum ColorMode {
 }
 
 impl ColorMode {
-    #[cfg(feature = "color")]
     pub(super) fn load() -> Self {
-        // The default is `ColorMode::Emphasis`, as colors are hard. ANSI colors are not
-        // standardized, and some colors may not show at all.
-        COLOR_OVERRIDE.load().map_or(Self::Emphasis, |mode| mode)
-    }
-
-    #[cfg(not(feature = "color"))]
-    pub(super) const fn load() -> Self {
-        ColorMode::None
+        COLOR_OVERRIDE.load()
     }
 }
 
@@ -59,29 +52,33 @@ impl Default for ColorMode {
 /// `0x01`: `ColorMode::Color`
 /// `0x02`: `ColorMode::Emphasis`
 ///
-/// all others: unset/none
-#[cfg(feature = "color")]
+/// all others: [`Self::DEFAULT`]
 impl AtomicPreference for ColorMode {
-    fn load(value: u8) -> Option<Self> {
+    // The default is `ColorMode::Emphasis`, because colors are hard. ANSI colors are not
+    // standardized, and some colors may not show at all.
+    #[cfg(feature = "color")]
+    const DEFAULT: Self = Self::Emphasis;
+    #[cfg(not(feature = "color"))]
+    const DEFAULT: Self = Self::None;
+
+    fn from_u8(value: u8) -> Self {
         match value {
-            0x00 => Some(Self::None),
-            0x01 => Some(Self::Color),
-            0x02 => Some(Self::Emphasis),
-            _ => None,
+            0x00 => Self::None,
+            0x01 => Self::Color,
+            0x02 => Self::Emphasis,
+            _ => Self::DEFAULT,
         }
     }
 
-    fn store(value: Option<Self>) -> u8 {
-        match value {
-            None => 0xFF,
-            Some(Self::None) => 0x00,
-            Some(Self::Color) => 0x01,
-            Some(Self::Emphasis) => 0x02,
+    fn into_u8(self) -> u8 {
+        match self {
+            Self::None => 0x00,
+            Self::Color => 0x01,
+            Self::Emphasis => 0x02,
         }
     }
 }
 
-#[cfg(feature = "color")]
 static COLOR_OVERRIDE: AtomicOverride<ColorMode> = AtomicOverride::new();
 
 impl Report<()> {
@@ -129,17 +126,17 @@ impl Report<()> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// Report::set_color_mode(Some(ColorMode::None));
+    /// Report::set_color_mode(ColorMode::None);
     /// println!("{report:?}");
     /// # #[cfg(rust_1_65)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__preference_none.snap")].assert_eq(&render(format!("{report:?}")));
     ///
-    /// Report::set_color_mode(Some(ColorMode::Emphasis));
+    /// Report::set_color_mode(ColorMode::Emphasis);
     /// println!("{report:?}");
     /// # #[cfg(rust_1_65)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__preference_emphasis.snap")].assert_eq(&render(format!("{report:?}")));
     ///
-    /// Report::set_color_mode(Some(ColorMode::Color));
+    /// Report::set_color_mode(ColorMode::Color);
     /// println!("{report:?}");
     /// # #[cfg(rust_1_65)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__preference_color.snap")].assert_eq(&render(format!("{report:?}")));
@@ -158,8 +155,7 @@ impl Report<()> {
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__preference_color.snap"))]
     /// </pre>
-    #[cfg(feature = "color")]
-    pub fn set_color_mode(mode: Option<ColorMode>) {
+    pub fn set_color_mode(mode: ColorMode) {
         COLOR_OVERRIDE.store(mode);
     }
 }

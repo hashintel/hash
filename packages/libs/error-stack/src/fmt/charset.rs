@@ -22,17 +22,13 @@ pub enum Charset {
 
 impl Charset {
     pub(super) fn load() -> Self {
-        // we assume that most fonts and terminals nowadays support Utf8, which is why this is
-        // the default
-        CHARSET_OVERRIDE
-            .load()
-            .map_or(Self::Utf8, |charset| charset)
+        CHARSET_OVERRIDE.load()
     }
 }
 
 impl Default for Charset {
     fn default() -> Self {
-        Self::Utf8
+        Self::DEFAULT
     }
 }
 
@@ -40,21 +36,24 @@ impl Default for Charset {
 /// `0x00`: `Charset::Ascii`
 /// `0x01`: `Charset::Utf8`
 ///
-/// all others: unset/none
+/// all others: default to `Default::default`
 impl AtomicPreference for Charset {
-    fn load(value: u8) -> Option<Self> {
+    // we assume that most fonts and terminals nowadays support Utf8, which is why this is
+    // the default
+    const DEFAULT: Self = Self::Utf8;
+
+    fn from_u8(value: u8) -> Self {
         match value {
-            0x00 => Some(Self::Ascii),
-            0x01 => Some(Self::Utf8),
-            _ => None,
+            0x00 => Self::Ascii,
+            0x01 => Self::Utf8,
+            _ => Self::DEFAULT,
         }
     }
 
-    fn store(value: Option<Self>) -> u8 {
-        match value {
-            None => 0xFF,
-            Some(Self::Ascii) => 0x00,
-            Some(Self::Utf8) => 0x01,
+    fn into_u8(self) -> u8 {
+        match self {
+            Self::Ascii => 0x00,
+            Self::Utf8 => 0x01,
         }
     }
 }
@@ -101,12 +100,12 @@ impl Report<()> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// Report::set_charset(Some(Charset::Utf8));
+    /// Report::set_charset(Charset::Utf8);
     /// println!("{report:?}");
     /// # #[cfg(rust_1_65)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__charset_utf8.snap")].assert_eq(&render(format!("{report:?}")));
     ///
-    /// Report::set_charset(Some(Charset::Ascii));
+    /// Report::set_charset(Charset::Ascii);
     /// println!("{report:?}");
     /// # #[cfg(rust_1_65)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__charset_ascii.snap")].assert_eq(&render(format!("{report:?}")));
@@ -121,7 +120,7 @@ impl Report<()> {
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__charset_ascii.snap"))]
     /// </pre>
-    pub fn set_charset(charset: Option<Charset>) {
+    pub fn set_charset(charset: Charset) {
         CHARSET_OVERRIDE.store(charset);
     }
 }

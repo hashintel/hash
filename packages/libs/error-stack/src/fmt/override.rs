@@ -3,11 +3,11 @@ use core::{
     sync::atomic::{AtomicU8, Ordering},
 };
 
-pub(super) trait AtomicPreference: Sized {
-    const NONE: u8 = 0xFF;
+pub(super) trait AtomicPreference {
+    const DEFAULT: Self;
 
-    fn load(value: u8) -> Option<Self>;
-    fn store(value: Option<Self>) -> u8;
+    fn from_u8(value: u8) -> Self;
+    fn into_u8(self) -> u8;
 }
 
 pub(super) struct AtomicOverride<T: AtomicPreference> {
@@ -18,18 +18,18 @@ pub(super) struct AtomicOverride<T: AtomicPreference> {
 impl<T: AtomicPreference> AtomicOverride<T> {
     pub(super) const fn new() -> Self {
         Self {
-            inner: AtomicU8::new(T::NONE),
+            inner: AtomicU8::new(T::DEFAULT.store()),
             _marker: PhantomData,
         }
     }
 
-    pub(super) fn store(&self, value: Option<T>) {
-        self.inner.store(T::store(value), Ordering::Relaxed);
+    pub(super) fn store(&self, value: T) {
+        self.inner.store(value.into_u8(), Ordering::Relaxed);
     }
 
-    pub(super) fn load(&self) -> Option<T> {
+    pub(super) fn load(&self) -> T {
         let inner = self.inner.load(Ordering::Relaxed);
 
-        T::load(inner)
+        T::from_u8(inner)
     }
 }
