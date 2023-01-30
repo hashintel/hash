@@ -146,7 +146,7 @@ impl<Extra, T> HookContext<Extra, T> {
     ///     .attach(Warning("disk nearly full"))
     ///     .attach(Error("cannot resolve example.com: unknown host"));
     ///
-    /// # Report::set_color_mode(Some(error_stack::fmt::ColorMode::Color));
+    /// # Report::set_color_mode(error_stack::fmt::ColorMode::Color);
     /// # fn render(value: String) -> String {
     /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
     /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
@@ -255,7 +255,7 @@ impl<I, T: 'static> HookContext<I, T> {
     ///     .attach(Suggestion("use a file you can read next time!"))
     ///     .attach(Suggestion("don't press any random keys!"));
     ///
-    /// # Report::set_color_mode(Some(error_stack::fmt::ColorMode::Color));
+    /// # Report::set_color_mode(error_stack::fmt::ColorMode::Color);
     /// # fn render(value: String) -> String {
     /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
     /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
@@ -322,7 +322,7 @@ impl<I, T: 'static> HookContext<I, T> {
     ///     .attach(Suggestion("use a file you can read next time!"))
     ///     .attach(Suggestion("don't press any random keys!"));
     ///
-    /// # Report::set_color_mode(Some(error_stack::fmt::ColorMode::Color));
+    /// # Report::set_color_mode(error_stack::fmt::ColorMode::Color);
     /// # fn render(value: String) -> String {
     /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
     /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
