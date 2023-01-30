@@ -10,7 +10,7 @@ import {
   EditBarContainer,
   EditBarContents,
   useFreezeScrollWhileTransitioning,
-} from "./edit-bar";
+} from "./shared/edit-bar";
 import { EntityTypeEditorForm } from "./shared/form-types";
 
 const useFrozenValue = <T extends any>(value: T): T => {

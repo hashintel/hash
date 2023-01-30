@@ -15,7 +15,7 @@ error-stack = { version = "0.2.4", features = ["spantrace"] }
 graph = { path = "../../lib/graph", features = ["clap"] }
 regex = "1.7.1"
 serde_json = "1.0.91"
-tokio = { version = "1.23.1", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.24.2", features = ["rt-multi-thread", "macros"] }
 tokio-postgres = { version = "0.7.7", default-features = false }
 tracing = "0.1.37"
 type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "2ea406f" }

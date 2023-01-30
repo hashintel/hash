@@ -18,6 +18,7 @@ interface EditorSpec {
   defaultValue?: unknown;
   arrayEditException?: "no-edit-mode" | "no-save-and-discard-buttons";
   valueToString: (value: any) => string;
+  shouldBeDrawnAsAChip?: boolean;
 }
 
 export const editorSpecs: Record<EditorType, EditorSpec> = {
@@ -47,6 +48,7 @@ export const editorSpecs: Record<EditorType, EditorSpec> = {
     gridIcon: "bpBracketsCurly",
     arrayEditException: "no-save-and-discard-buttons",
     valueToString: () => "Object",
+    shouldBeDrawnAsAChip: true,
   },
   emptyList: {
     icon: faBracketsSquare,
@@ -55,6 +57,7 @@ export const editorSpecs: Record<EditorType, EditorSpec> = {
     defaultValue: [],
     arrayEditException: "no-edit-mode",
     valueToString: () => "Empty List",
+    shouldBeDrawnAsAChip: true,
   },
   null: {
     icon: faEmptySet,
@@ -63,6 +66,7 @@ export const editorSpecs: Record<EditorType, EditorSpec> = {
     defaultValue: null,
     arrayEditException: "no-edit-mode",
     valueToString: () => "Null",
+    shouldBeDrawnAsAChip: true,
   },
   unknown: {
     icon: faAsterisk,
