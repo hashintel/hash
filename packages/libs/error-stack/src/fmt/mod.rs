@@ -877,10 +877,13 @@ fn debug_frame(root: &Frame, prefix: &[&Frame], config: &mut Config) -> Vec<Line
             // each "paket" on the stack is made up of a head (guaranteed to be a `Context`) and
             // `n` attachments.
             // The attachments are rendered as direct descendants of the parent context
-            let head_context = debug_context(match head.kind() {
-                FrameKind::Context(c) => c,
-                FrameKind::Attachment(_) => unreachable!(),
-            });
+            let head_context = debug_context(
+                match head.kind() {
+                    FrameKind::Context(c) => c,
+                    FrameKind::Attachment(_) => unreachable!(),
+                },
+                config.color_mode(),
+            );
 
             // reverse all attachments, to make it more logical relative to the attachment order
             body.reverse();
