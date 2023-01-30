@@ -7,7 +7,7 @@ use crate::{
 ///
 /// Can be accessed through [`crate::fmt::HookContext::color_mode`], and set via
 /// [`Report::set_color_mode`]
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Default)]
 pub enum ColorMode {
     /// User preference to disable all colors
     // TODO: this is only true once https://github.com/jam1garner/owo-colors/pull/90 is merged
@@ -26,26 +26,15 @@ pub enum ColorMode {
     ///
     /// This is the same as [`ColorMode::Color`], but signals to the user that while colors are
     /// supported, the user prefers instead the use of emphasis, like bold and italic text.
+    // The default is `ColorMode::Emphasis`, because colors are hard. ANSI colors are not
+    // standardized, and some colors may not show at all.
+    #[default]
     Emphasis,
 }
 
 impl ColorMode {
     pub(super) fn load() -> Self {
         COLOR_OVERRIDE.load()
-    }
-}
-
-impl Default for ColorMode {
-    #[cfg(feature = "color")]
-    fn default() -> Self {
-        // The default is `ColorMode::Emphasis`, because colors are hard. ANSI colors are not
-        // standardized, and some colors may not show at all.
-        Self::Emphasis
-    }
-
-    #[cfg(not(feature = "color"))]
-    fn default() -> Self {
-        Self::None
     }
 }
 

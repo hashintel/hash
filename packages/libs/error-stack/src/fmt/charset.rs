@@ -7,11 +7,14 @@ use crate::{
 ///
 /// Can be accessed through [`crate::fmt::HookContext::charset`], and set via
 /// [`Report::set_charset`].
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Default)]
 pub enum Charset {
     /// Terminal of the user supports utf-8
     ///
     /// This is the default if no charset has been explicitly set.
+    // we assume that most fonts and terminals nowadays support Utf8, which is why this is
+    // the default
+    #[default]
     Utf8,
 
     /// Terminal of the user supports ASCII
@@ -21,14 +24,6 @@ pub enum Charset {
 impl Charset {
     pub(super) fn load() -> Self {
         CHARSET_OVERRIDE.load()
-    }
-}
-
-impl Default for Charset {
-    fn default() -> Self {
-        // we assume that most fonts and terminals nowadays support Utf8, which is why this is
-        // the default
-        Self::Utf8
     }
 }
 
