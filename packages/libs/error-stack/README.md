@@ -96,29 +96,14 @@ fn main() -> Result<(), ExperimentError> {
 This will most likely result in an error and print
 
 <pre>
-Error: <b>experiment error: could not run experiment</b><span style="font-weight:normal;text-decoration:none;font-style:normal">
-&#x251C;&#x2574;at <i>examples/demo.rs:73:18</i>
-&#x251C;&#x2574;unable to set up experiments
+<b>Could not parse configuration file</b><span style="font-weight:normal;text-decoration:none;font-style:normal">
+&#x251C;&#x2574;at <i>examples/parse_config.rs:34:10</i>
+&#x251C;&#x2574;could not read file &quot;config.json&quot;
+&#x251C;&#x2574;1 additional opaque attachment
 &#x2502;
-&#x251C;&#x2500;&#x25B6; <b>invalid experiment description</b><span style="font-weight:normal;text-decoration:none;font-style:normal">
-&#x2502;   &#x251C;&#x2574;at <i>examples/demo.rs:43:10</i>
-&#x2502;   &#x2570;&#x2574;experiment 2 could not be parsed
-&#x2502;
-&#x2570;&#x252C;&#x25B6; <b>invalid digit found in string</b><span style="font-weight:normal;text-decoration:none;font-style:normal">
- &#x2502;  &#x251C;&#x2574;at <i>examples/demo.rs:25:18</i>
- &#x2502;  &#x251C;&#x2574;backtrace with 25 frames (1)
- &#x2502;  &#x2570;&#x2574;&quot;3o&quot; could not be parsed as experiment
- &#x2502;
- &#x2570;&#x25B6; <b>invalid digit found in string</b><span style="font-weight:normal;text-decoration:none;font-style:normal">
-    &#x251C;&#x2574;at <i>examples/demo.rs:25:18</i>
-    &#x251C;&#x2574;backtrace with 25 frames (2)
-    &#x2570;&#x2574;&quot;4a&quot; could not be parsed as experiment
-
-<b>experiment error: could not run experiment</b><span style="font-weight:normal;text-decoration:none;font-style:normal">
-&#x251C;&#x2574;at <i>examples/demo.rs:67:17</i>
-&#x251C;&#x2574;backtrace with 19 frames (3)
-&#x251C;&#x2574;experiment 3 has no valid description
-&#x2570;&#x2574;unable to set up experiments
+&#x2570;&#x2500;&#x25B6; <b>No such file or directory (os error 2)</b><span style="font-weight:normal;text-decoration:none;font-style:normal">
+    &#x251C;&#x2574;at <i>examples/parse_config.rs:33:10</i>
+    &#x2570;&#x2574;backtrace with 15 frames (1)
 
 &#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;
 
@@ -141,14 +126,9 @@ backtrace no. 1
              at ./src/context.rs:83:9
    8: &lt;core::result::Result&lt;T,E&gt; as error_stack::result::IntoReport&gt;::into_report
              at ./src/result.rs:203:31
-   (<b>For this example only:</b> Remaining frames have been removed)
-
-backtrace no. 2
-   (<b>For this example only:</b> Frames have been removed)
-
-backtrace no. 3
-   (<b>For this example only:</b> Frames have been removed)
-</span></span></span></span></span>
+   (<b>For this example:</b> additional frames have been removed)
+Suggestion: use a file you can read next time!
+</span></span>
 </pre>
 
 [//]: # (![]&#40;https://github.com/hashintel/hash/blob/8ed55bd73045fba83a7ea2e199b31d5b829537b9/packages/libs/error-stack/assets/full.png?raw=true&#41;)
