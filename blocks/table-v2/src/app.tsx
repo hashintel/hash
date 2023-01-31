@@ -86,8 +86,8 @@ export const App: BlockComponent<RootEntity> = ({
     const editedRow = rows[rowIndex];
 
     const newRows = [...rows];
-    const newCellValue = newValue.data;
-    newRows[rowIndex] = { ...editedRow, [columnId]: newCellValue };
+
+    newRows[rowIndex] = { ...editedRow, [columnId]: newValue.data! };
 
     updateEntity({ [localRowsKey]: newRows });
   };
@@ -158,8 +158,8 @@ export const App: BlockComponent<RootEntity> = ({
 
           return {
             kind: GridCellKind.Text,
-            displayData: value,
-            data: value,
+            displayData: String(value),
+            data: String(value),
             allowOverlay: !readonly,
           };
         }}
