@@ -414,8 +414,8 @@
 //! ### Colored output and charset selection
 //!
 //! You can override the color support by using the [`Report::set_color_mode`]. To override the
-//! charset used, you can use [`Report::set_charset`]. The default color mode is emphasis (if the
-//! `color` feature is enabled). The default charset is `UTF-8`.
+//! charset used, you can use [`Report::set_charset`]. The default color mode is emphasis.
+//! The default charset is `UTF-8`.
 //!
 //! To automatically detect support if your target output supports unicode and colors you can check
 //! out the `detect.rs` example.
@@ -425,7 +425,6 @@
 //!  Feature       | Description                                                        | default
 //! ---------------|--------------------------------------------------------------------|----------
 //! `std`          | Enables support for [`Error`], and, on Rust 1.65+, [`Backtrace`]   | enabled
-//! `color`        | Provide support for color in [`Debug`] output                      | disabled
 //! `spantrace`    | Enables automatic capturing of [`SpanTrace`]s                      | disabled
 //! `hooks`        | Enables hooks on `no-std` platforms using spin locks               | disabled
 //! `anyhow`       | Provides `into_report` to convert [`anyhow::Error`] to [`Report`]  | disabled
