@@ -38,7 +38,7 @@ ansi-to-html = "0.1.2"
 once_cell = "1.17.0"
 supports-color = "2.0.0"
 supports-unicode = "1.0.2"
-owo-colors = "3"
+owo-colors = "3.5.0"
 
 [build-dependencies]
 rustc_version = "0.4"
