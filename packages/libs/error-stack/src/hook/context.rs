@@ -4,7 +4,7 @@ use core::{
     marker::PhantomData,
 };
 
-type Storage = BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>;
+pub(crate) type Storage = BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>;
 
 /// Private struct which is used to hold the information about the current count for every type.
 /// This is used so that others cannot interfere with the counter and ensure that there's no
@@ -61,50 +61,48 @@ impl<T> Inner<T> {
     }
 }
 
-/// Internal [`HookContext`]
-///
-/// This is an implementation detail and cannot be used directly. This is only exposed for
-/// documentation purposes and cannot be directly imported.
-///
-/// Instead use [`crate::fmt::HookContext`] for [`Debug`] hooks.
+macro_rules! impl_hook_context {
+    ($(#[$meta:meta])* $vis:vis struct HookContext<$extra:ident> {..}) => {
+
 // TODO: add link to serde hooks once implemented
 // TODO: ideally we would want to make `HookContextInner` private, as it is an implementation
 //  detail, but "attribute privacy" as outlined in https://github.com/rust-lang/rust/pull/61969
 //  is currently not implemented for repr(transparent).
+$(#[$meta])*
 #[cfg_attr(not(doc), repr(transparent))]
-pub struct HookContext<Extra, T> {
-    inner: Inner<Extra>,
-    _marker: PhantomData<fn(&T)>,
+$vis struct HookContext<T> {
+    inner: $crate::hook::context::Inner<$extra>,
+    _marker: core::marker::PhantomData<fn(&T)>,
 }
 
-impl<T> HookContext<T, ()> {
-    pub(crate) fn new(extra: T) -> Self {
+impl HookContext<()> {
+    pub(crate) fn new(extra: $extra) -> Self {
         Self {
-            inner: Inner::new(extra),
-            _marker: PhantomData,
+            inner: $crate::hook::context::Inner::new(extra),
+            _marker: core::marker::PhantomData,
         }
     }
 }
 
-impl<Extra, T> HookContext<Extra, T> {
-    pub(crate) const fn inner(&self) -> &Inner<Extra> {
+impl<T> HookContext<T> {
+    pub(crate) const fn inner(&self) -> &$crate::hook::context::Inner<$extra> {
         &self.inner
     }
 
-    pub(crate) fn inner_mut(&mut self) -> &mut Inner<Extra> {
+    pub(crate) fn inner_mut(&mut self) -> &mut $crate::hook::context::Inner<$extra> {
         &mut self.inner
     }
 
-    fn storage(&self) -> &Storage {
+    fn storage(&self) -> &$crate::hook::context::Storage {
         self.inner().storage()
     }
 
-    fn storage_mut(&mut self) -> &mut Storage {
+    fn storage_mut(&mut self) -> &mut $crate::hook::context::Storage {
         self.inner_mut().storage_mut()
     }
 }
 
-impl<Extra, T> HookContext<Extra, T> {
+impl<T> HookContext<T> {
     /// Cast the [`HookContext`] to a new type `U`.
     ///
     /// The storage of [`HookContext`] is partitioned, meaning that if `T` and `U` are different
@@ -167,14 +165,14 @@ impl<Extra, T> HookContext<Extra, T> {
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_cast.snap"))]
     /// </pre>
     #[must_use]
-    pub fn cast<U>(&mut self) -> &mut HookContext<Extra, U> {
+    pub fn cast<U>(&mut self) -> &mut HookContext<U> {
         // SAFETY: `HookContext` is marked as repr(transparent) and the changed generic is only used
         // inside of the `PhantomData`
         unsafe { &mut *(self as *mut Self).cast::<HookContext<Extra, U>>() }
     }
 }
 
-impl<I, T: 'static> HookContext<I, T> {
+impl<T: 'static> HookContext<T> {
     /// Return a reference to a value of type `U`, if a value of that type exists.
     ///
     /// Values returned are isolated and "bound" to `T`, this means that [`HookContext<_, Warning>`]
@@ -364,3 +362,7 @@ impl<I, T: 'static> HookContext<I, T> {
         }
     }
 }
+    };
+}
+
+pub(crate) use impl_hook_context;
