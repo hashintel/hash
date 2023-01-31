@@ -1,11 +1,14 @@
 import { useState } from "react";
 import styles from "./styles.module.scss";
+import clsx from "clsx";
 
 interface TableTitleProps {
   title: string;
   onChange: (title: string) => Promise<void>;
   readonly?: boolean;
 }
+
+const TITLE_PLACEHOLDER = "Untitled Table";
 
 export const TableTitle = ({ title, onChange, readonly }: TableTitleProps) => {
   const [prevTitle, setPrevTitle] = useState(title);
@@ -32,29 +35,13 @@ export const TableTitle = ({ title, onChange, readonly }: TableTitleProps) => {
     setInputValue(title);
   }
 
-  if (readonly) {
-    if (!title) return null;
-
-    return (
-      <div className={styles.wrapper}>
-        <h2>{title}</h2>
-      </div>
-    );
-  }
-
-  if (!title && !editing) {
-    return (
-      <div className={styles.wrapper}>
-        <button onClick={editTitle}>add title</button>
-      </div>
-    );
-  }
-
   return (
     <div className={styles.wrapper}>
       {editing ? (
         <input
+          className={clsx(styles.title, styles.titleInput)}
           autoFocus
+          placeholder={TITLE_PLACEHOLDER}
           defaultValue={title}
           onChange={(event) => setInputValue(event.target.value)}
           onKeyDown={(event) => {
@@ -67,14 +54,28 @@ export const TableTitle = ({ title, onChange, readonly }: TableTitleProps) => {
           }}
         />
       ) : (
-        <h2>{title}</h2>
+        <div className={clsx(styles.title, !title.length && styles.empty)}>
+          {title || TITLE_PLACEHOLDER}
+        </div>
       )}
 
-      {!editing && <button onClick={editTitle}>edit</button>}
+      {!editing && !readonly && (
+        <div
+          onClick={editTitle}
+          className={clsx(styles.iconButton, styles.edit)}
+        />
+      )}
+
       {editing && (
         <>
-          <button onClick={discardTitle}>cancel</button>
-          <button onClick={saveTitle}>save</button>
+          <div
+            className={clsx(styles.iconButton, styles.cancel)}
+            onClick={discardTitle}
+          />
+          <div
+            className={clsx(styles.iconButton, styles.save)}
+            onClick={saveTitle}
+          />
         </>
       )}
     </div>
