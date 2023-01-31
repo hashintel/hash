@@ -7,9 +7,9 @@ CARGO_TEST_HACK_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "${CO
 CARGO_INSTA_TEST_FLAGS = "--no-fail-fast"
 CARGO_RUSTDOC_HACK_FLAGS = ""
 CARGO_DOC_HACK_FLAGS = ""
-# The only features that are of relevance are: spantrace, color, std, hooks
+# The only features that are of relevance are: spantrace, std, hooks
 # all others do not change the output
-CARGO_INSTA_TEST_HACK_FLAGS = "--keep-going --feature-powerset --include-features spantrace,color,std,hooks"
+CARGO_INSTA_TEST_HACK_FLAGS = "--keep-going --feature-powerset --include-features spantrace,std,hooks"
 
 # Workaround for https://github.com/taiki-e/cargo-hack/issues/161
 # instead, we should pass `--ignore-unknown-features` to `cargo hack`
