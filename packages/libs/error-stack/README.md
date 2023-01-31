@@ -96,15 +96,15 @@ fn main() -> Result<(), ExperimentError> {
 This will most likely result in an error and print
 
 <pre>
-Error: <b>experiment error: could not run experiment</b><span style="font-weight:normal;text-decoration:none;font-style:normal">
+Error: <b>experiment error: could not run experiment</b>
 &#x251C;&#x2574;at <i>examples/demo.rs:51:18</i>
 &#x251C;&#x2574;unable to set up experiments
 &#x2502;
-&#x251C;&#x2500;&#x25B6; <b>invalid experiment description</b><span style="font-weight:normal;text-decoration:none;font-style:normal">
+&#x251C;&#x2500;&#x25B6; <b>invalid experiment description</b>
 &#x2502;   &#x251C;&#x2574;at <i>examples/demo.rs:21:10</i>
 &#x2502;   &#x2570;&#x2574;experiment 2 could not be parsed
 &#x2502;
-&#x2570;&#x2500;&#x25B6; <b>invalid digit found in string</b><span style="font-weight:normal;text-decoration:none;font-style:normal">
+&#x2570;&#x2500;&#x25B6; <b>invalid digit found in string</b>
     &#x251C;&#x2574;at <i>examples/demo.rs:19:10</i>
     &#x251C;&#x2574;backtrace with 31 frames (1)
     &#x2570;&#x2574;&quot;3o&quot; could not be parsed as experiment
@@ -131,7 +131,6 @@ backtrace no. 1
    8: &lt;core::result::Result&lt;T,E&gt; as error_stack::result::IntoReport&gt;::into_report
              at ./src/result.rs:203:31
    (<b>For this example:</b> additional frames have been removed)
-</span></span></span>
 </pre>
 
 [//]: # (![]&#40;https://github.com/hashintel/hash/blob/8ed55bd73045fba83a7ea2e199b31d5b829537b9/packages/libs/error-stack/assets/full.png?raw=true&#41;)
