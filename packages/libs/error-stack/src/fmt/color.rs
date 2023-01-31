@@ -1,3 +1,5 @@
+use core::fmt::{self, Display, Formatter};
+
 use crate::{
     fmt::r#override::{AtomicOverride, AtomicPreference},
     Report,
@@ -10,16 +12,9 @@ use crate::{
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Default)]
 pub enum ColorMode {
     /// User preference to disable all colors
-    // TODO: this is only true once https://github.com/jam1garner/owo-colors/pull/90 is merged
-    // If this is the variant is present, [`owo-colors`](https://docs.rs/owo-colors) color
-    // support has been temporarily disabled and closures given to
-    // [`OwoColorize::if_supports_color`] will not be executed.
     None,
 
     /// User preference to enable colors
-    // TODO: this is only true once https://github.com/jam1garner/owo-colors/pull/90 is merged
-    // This will also temporarily set [`owo_colors::set_override`] to enable execution of
-    // [`OwoColorize::if_supports_color`].
     Color,
 
     /// User preference to enable styles, but discourage colors
@@ -68,12 +63,7 @@ static COLOR_OVERRIDE: AtomicOverride<ColorMode> = AtomicOverride::new();
 impl Report<()> {
     /// Set the color mode preference
     ///
-    /// If the value is [`None`], a previously set preference will be unset, while with [`Some`] a
-    /// specific color mode will be set, this mode will be used, otherwise if `detect` is enabled
-    /// the capabilities of the terminal are queried through [`owo_colors`].
-    ///
-    /// The value defaults to [`ColorMode::Emphasis`] (if the terminal supports it), otherwise
-    /// [`ColorMode::None`].
+    /// If no [`ColorMode`] is set, it defaults to [`ColorMode::Emphasis`].
     ///
     /// # Example
     ///
@@ -141,5 +131,200 @@ impl Report<()> {
     /// </pre>
     pub fn set_color_mode(mode: ColorMode) {
         COLOR_OVERRIDE.store(mode);
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub(crate) enum Color {
+    Black,
+    Red,
+}
+
+impl Color {
+    const fn digit(self) -> u8 {
+        match self {
+            Self::Black => b'0',
+            Self::Red => b'1',
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub(crate) struct Foreground {
+    color: Color,
+    bright: bool,
+}
+
+impl Foreground {
+    fn start_ansi(self, sequence: &mut ControlSequence) -> fmt::Result {
+        let Self { color, bright } = self;
+
+        let buffer = &[if bright { b'9' } else { b'3' }, color.digit()];
+        // This should never fail because both are valid ASCII
+        let control = core::str::from_utf8(buffer).unwrap();
+
+        sequence.push_control(control)
+    }
+
+    fn end_ansi(sequence: &mut ControlSequence) -> fmt::Result {
+        sequence.push_control("39")
+    }
+}
+
+struct ControlSequence<'a, 'b> {
+    fmt: &'a mut Formatter<'b>,
+    empty: bool,
+}
+
+impl<'a, 'b> ControlSequence<'a, 'b> {
+    fn new(fmt: &'a mut Formatter<'b>) -> Self {
+        Self { fmt, empty: true }
+    }
+
+    fn finish(self) -> Result<&'a mut Formatter<'b>, fmt::Error> {
+        if !self.empty {
+            // we wrote a specific formatting character, therefore we need to end
+            self.fmt.write_str("m")?;
+        }
+
+        Ok(self.fmt)
+    }
+}
+
+impl ControlSequence<'_, '_> {
+    fn push_control(&mut self, control: &str) -> fmt::Result {
+        if self.empty {
+            self.fmt.write_str("\u{1b}[")?;
+        } else {
+            self.fmt.write_str(";")?;
+        }
+
+        self.fmt.write_str(control)?;
+        self.empty = false;
+
+        Ok(())
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub(crate) struct DisplayStyle {
+    bold: bool,
+    italic: bool,
+}
+
+impl DisplayStyle {
+    pub(crate) const fn new() -> Self {
+        Self {
+            bold: false,
+            italic: false,
+        }
+    }
+
+    pub(crate) fn set_bold(&mut self, value: bool) {
+        self.bold = value;
+    }
+
+    pub(crate) fn with_bold(mut self, value: bool) -> Self {
+        self.set_bold(value);
+        self
+    }
+
+    pub(crate) fn set_italic(&mut self, value: bool) {
+        self.italic = value;
+    }
+
+    pub(crate) fn with_italic(mut self, value: bool) -> Self {
+        self.set_italic(value);
+        self
+    }
+}
+
+impl DisplayStyle {
+    fn start_ansi(self, sequence: &mut ControlSequence) -> fmt::Result {
+        if self.bold {
+            sequence.push_control("1")?;
+        }
+
+        if self.italic {
+            sequence.push_control("3")?;
+        }
+
+        Ok(())
+    }
+
+    fn end_ansi(self, sequence: &mut ControlSequence) -> fmt::Result {
+        if self.bold {
+            sequence.push_control("22")?;
+        }
+
+        if self.italic {
+            sequence.push_control("23")?;
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Default, Debug, Copy, Clone, Eq, PartialEq)]
+pub(crate) struct Style {
+    display: Option<DisplayStyle>,
+    foreground: Option<Foreground>,
+}
+
+impl Style {
+    pub(crate) const fn new() -> Self {
+        Self {
+            display: None,
+            foreground: None,
+        }
+    }
+
+    pub(crate) const fn apply<T: Display>(self, value: &T) -> StyleDisplay<T> {
+        StyleDisplay { style: self, value }
+    }
+
+    pub(crate) fn set_foreground(&mut self, color: Color, bright: bool) {
+        self.foreground = Some(Foreground { color, bright });
+    }
+
+    pub(crate) fn set_display(&mut self, style: DisplayStyle) {
+        self.display = Some(style);
+    }
+}
+
+pub(crate) struct StyleDisplay<'a, T: Display> {
+    style: Style,
+    value: &'a T,
+}
+
+impl<'a, T: Display> Display for StyleDisplay<'a, T> {
+    fn fmt(&self, mut f: &mut Formatter<'_>) -> fmt::Result {
+        let mut sequence = ControlSequence::new(f);
+
+        if let Some(display) = self.style.display {
+            display.start_ansi(&mut sequence)?;
+        }
+
+        if let Some(foreground) = self.style.foreground {
+            foreground.start_ansi(&mut sequence)?;
+        }
+
+        f = sequence.finish()?;
+
+        Display::fmt(&self.value, f)?;
+
+        let mut sequence = ControlSequence::new(f);
+
+        if let Some(display) = self.style.display {
+            display.end_ansi(&mut sequence)?;
+        }
+
+        if self.style.foreground.is_some() {
+            Foreground::end_ansi(&mut sequence)?;
+        }
+
+        sequence.finish()?;
+
+        Ok(())
     }
 }

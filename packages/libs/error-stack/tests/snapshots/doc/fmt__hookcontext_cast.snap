@@ -1,9 +1,9 @@
 <b>invalid input parameter</b>
-<span style='color:#a00'>├╴ </span><span style='color:#555'>src/hook/context.rs:27:14</span>
-<span style='color:#a00'>├╴ </span>backtrace (1)
-<span style='color:#a00'>├╴ </span>[1] [ERROR] unable to reach remote host
-<span style='color:#a00'>├╴ </span>[2] [WARN] disk nearly full
-<span style='color:#a00'>╰╴ </span>[3] [ERROR] cannot resolve example.com: unknown host
+<span style='color:#a00'>├╴</span>at <span style='color:#555'>src/hook/context.rs:27:14</span>
+<span style='color:#a00'>├╴</span>backtrace (1)
+<span style='color:#a00'>├╴</span>[1] [ERROR] unable to reach remote host
+<span style='color:#a00'>├╴</span>[2] [WARN] disk nearly full
+<span style='color:#a00'>╰╴</span>[3] [ERROR] cannot resolve example.com: unknown host
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
