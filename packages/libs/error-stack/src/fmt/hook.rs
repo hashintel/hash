@@ -13,9 +13,9 @@ use core::mem;
 pub(crate) use default::install_builtin_hooks;
 
 #[cfg(any(feature = "std", feature = "hooks"))]
-use crate::fmt::Frame;
-use crate::fmt::{charset::Charset, ColorMode};
+use crate::fmt::{charset::Charset, ColorMode, Frame};
 
+#[cfg(any(feature = "std", feature = "hooks"))]
 pub(crate) struct Format {
     alternate: bool,
 
@@ -26,6 +26,7 @@ pub(crate) struct Format {
     appendix: Vec<String>,
 }
 
+#[cfg(any(feature = "std", feature = "hooks"))]
 impl Format {
     pub(crate) const fn new(alternate: bool, color: ColorMode, charset: Charset) -> Self {
         Self {
@@ -461,12 +462,10 @@ impl Hooks {
 }
 
 mod default {
-    #![allow(unused_imports)]
-
-    use alloc::{format, string::ToString, vec, vec::Vec};
+    #[cfg(any(all(feature = "std", rust_1_65), feature = "spantrace"))]
+    use alloc::format;
+    use alloc::string::ToString;
     use core::{
-        any::TypeId,
-        fmt::Write,
         panic::Location,
         sync::atomic::{AtomicBool, Ordering},
     };
@@ -475,20 +474,14 @@ mod default {
     #[cfg(feature = "std")]
     use std::sync::Once;
 
-    #[cfg(feature = "color")]
-    use owo_colors::OwoColorize;
     #[cfg(all(not(feature = "std"), feature = "hooks"))]
     use spin::once::Once;
     #[cfg(feature = "spantrace")]
     use tracing_error::SpanTrace;
 
     use crate::{
-        fmt::{
-            hook::{into_boxed_hook, BoxedHook, HookContext},
-            location::LocationDisplay,
-            ColorMode,
-        },
-        Frame, Report,
+        fmt::{hook::HookContext, location::LocationDisplay},
+        Report,
     };
 
     pub(crate) fn install_builtin_hooks() {
