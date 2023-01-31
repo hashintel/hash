@@ -45,6 +45,6 @@ CREATE TABLE IF NOT EXISTS
 
 COMMENT
   ON TABLE "entity_types_to_closed_entity_types" IS $pga$ 
-    This table represents the mapping from entity types  to their closure. 
+    This table represents the mapping from entity types to their closure. 
     This allows for an entity type to find its ancestor entity types. 
 $pga$;
