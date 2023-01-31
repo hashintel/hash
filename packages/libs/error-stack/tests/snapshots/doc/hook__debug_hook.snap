@@ -1,5 +1,5 @@
 <b>invalid input parameter</b>
-<span style='color:#a00'>├╴</span>at <span style='color:#555'>src/hook/mod.rs:19:5</span>
+<span style='color:#a00'>├╴</span>at <span style='color:#555'>src/hook.rs:19:5</span>
 <span style='color:#a00'>├╴</span>backtrace (1)
 <span style='color:#a00'>╰╴</span>suggestion: oh no, try again
 
