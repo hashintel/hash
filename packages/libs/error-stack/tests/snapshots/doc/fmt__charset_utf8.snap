@@ -1,7 +1,7 @@
 <b>invalid input parameter</b>
-<b>├╴ </b><i>src/fmt/charset.rs:21:5</i>
-<b>├╴ </b>backtrace (1)
-<b>╰╴ </b>📝 oh no, try again
+├╴at <i>src/fmt/charset.rs:21:5</i>
+├╴backtrace (1)
+╰╴📝 oh no, try again
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

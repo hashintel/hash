@@ -6,9 +6,7 @@
 mod common;
 
 use common::*;
-use error_stack::fmt::Charset;
-#[cfg(feature = "color")]
-use error_stack::fmt::ColorMode;
+use error_stack::fmt::{Charset, ColorMode};
 #[allow(unused_imports)]
 use error_stack::Report;
 use insta::assert_snapshot;
@@ -41,7 +39,6 @@ fn setup_backtrace() {
     std::env::set_var("RUST_LIB_BACKTRACE", "1");
 }
 
-#[cfg(feature = "color")]
 fn setup_color() {
     Report::set_color_mode(ColorMode::None);
 }
@@ -49,7 +46,6 @@ fn setup_color() {
 fn setup() {
     setup_tracing();
     setup_backtrace();
-    #[cfg(feature = "color")]
     setup_color();
     Report::set_charset(Charset::Utf8);
 }
@@ -236,8 +232,7 @@ fn sources_nested_alternate() {
 #[cfg(all(
     rust_1_65,
     any(feature = "std", feature = "hooks"),
-    feature = "spantrace",
-    feature = "color"
+    feature = "spantrace"
 ))]
 mod full {
     //! Why so many cfg guards?

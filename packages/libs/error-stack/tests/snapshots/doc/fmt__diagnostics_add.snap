@@ -1,8 +1,8 @@
 <b>invalid input parameter</b>
-<span style='color:#a00'>├╴ </span><span style='color:#555'>src/fmt/hook.rs:19:14</span>
-<span style='color:#a00'>├╴ </span>backtrace (1)
-<span style='color:#a00'>├╴ </span>suggestion: try better next time
-<span style='color:#a00'>╰╴ </span>sorry for the inconvenience!
+<span style='color:#a00'>├╴</span>at <span style='color:#555'>src/fmt/hook.rs:19:14</span>
+<span style='color:#a00'>├╴</span>backtrace (1)
+<span style='color:#a00'>├╴</span>suggestion: try better next time
+<span style='color:#a00'>╰╴</span>sorry for the inconvenience!
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
