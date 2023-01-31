@@ -489,8 +489,16 @@ mod hook;
 #[cfg(feature = "serde")]
 mod serde;
 
-#[cfg(all(doc, any(feature = "std", feature = "hooks")))]
-pub use hook::context::HookContext;
+#[cfg(doc)]
+pub mod docs {
+    //! Documentation of unreachable public types
+    //!
+    //! These types are considered to be an implementation detail, but due to limitations of
+    //! rustdoc, `error-stack` is unable to render them inline.
+
+    #[cfg(any(feature = "std", feature = "hooks"))]
+    pub use crate::hook::context::HookContext;
+}
 
 pub use self::{
     compat::IntoReportCompat,
