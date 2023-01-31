@@ -14,17 +14,20 @@ pub struct VersionInterval<A> {
     pub end: Option<Timestamp<A>>,
 }
 
-impl<A> ToSchema for VersionInterval<A> {
-    fn schema() -> openapi::RefOr<openapi::Schema> {
-        openapi::Schema::Object(
-            openapi::ObjectBuilder::new()
-                .property("start", Timestamp::<A>::schema())
-                .required("start")
-                .property("end", openapi::Ref::from_schema_name("NullableTimestamp"))
-                .required("end")
-                .build(),
+impl<A> ToSchema<'_> for VersionInterval<A> {
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "VersionInterval",
+            openapi::Schema::Object(
+                openapi::ObjectBuilder::new()
+                    .property("start", Timestamp::<A>::schema().1)
+                    .required("start")
+                    .property("end", openapi::Ref::from_schema_name("NullableTimestamp"))
+                    .required("end")
+                    .build(),
+            )
+            .into(),
         )
-        .into()
     }
 }
 
