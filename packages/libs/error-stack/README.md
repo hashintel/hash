@@ -133,8 +133,6 @@ backtrace no. 1
    (<b>For this example:</b> additional frames have been removed)
 </pre>
 
-[//]: # (![]&#40;https://github.com/hashintel/hash/blob/8ed55bd73045fba83a7ea2e199b31d5b829537b9/packages/libs/error-stack/assets/full.png?raw=true&#41;)
-
 ## Usage
 
 Please see the [documentation].
