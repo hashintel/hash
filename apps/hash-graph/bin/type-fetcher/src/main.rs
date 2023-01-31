@@ -16,6 +16,10 @@ use type_fetcher::fetcher::Fetcher;
 #[derive(Debug, Parser)]
 #[clap(version, author, about, long_about = None)]
 pub struct Args {
+    /// The port the REST client is listening at.
+    #[clap(long, default_value_t = 4444, env = "HASH_GRAPH_TYPE_FETCHER_PORT")]
+    pub fetcher_port: u16,
+
     #[clap(flatten)]
     pub log_config: LoggingArgs,
 }
@@ -36,7 +40,7 @@ async fn main() -> Result<(), FetcherServerError> {
 
     let _log_guard = init_logger(&args.log_config);
 
-    let server_addr = (IpAddr::V4(Ipv4Addr::UNSPECIFIED), 4444);
+    let server_addr = (IpAddr::V4(Ipv4Addr::UNSPECIFIED), args.fetcher_port);
 
     let mut listener = tarpc::serde_transport::tcp::listen(&server_addr, MessagePack::default)
         .await
