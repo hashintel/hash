@@ -96,25 +96,25 @@ fn main() -> Result<(), ExperimentError> {
 This will most likely result in an error and print
 
 <pre>
-Error: <b>experiment error: could not run experiment<span style="font-weight:normal;text-decoration:none;font-style:normal">
+Error: <b>experiment error: could not run experiment</b><span style="font-weight:normal;text-decoration:none;font-style:normal">
 &#x251C;&#x2574;at <i>examples/demo.rs:73:18</i>
 &#x251C;&#x2574;unable to set up experiments
 &#x2502;
-&#x251C;&#x2500;&#x25B6; <b>invalid experiment description<span style="font-weight:normal;text-decoration:none;font-style:normal">
+&#x251C;&#x2500;&#x25B6; <b>invalid experiment description</b><span style="font-weight:normal;text-decoration:none;font-style:normal">
 &#x2502;   &#x251C;&#x2574;at <i>examples/demo.rs:43:10</i>
 &#x2502;   &#x2570;&#x2574;experiment 2 could not be parsed
 &#x2502;
-&#x2570;&#x252C;&#x25B6; <b>invalid digit found in string<span style="font-weight:normal;text-decoration:none;font-style:normal">
+&#x2570;&#x252C;&#x25B6; <b>invalid digit found in string</b><span style="font-weight:normal;text-decoration:none;font-style:normal">
  &#x2502;  &#x251C;&#x2574;at <i>examples/demo.rs:25:18</i>
  &#x2502;  &#x251C;&#x2574;backtrace with 25 frames (1)
  &#x2502;  &#x2570;&#x2574;&quot;3o&quot; could not be parsed as experiment
  &#x2502;
- &#x2570;&#x25B6; <b>invalid digit found in string<span style="font-weight:normal;text-decoration:none;font-style:normal">
+ &#x2570;&#x25B6; <b>invalid digit found in string</b><span style="font-weight:normal;text-decoration:none;font-style:normal">
     &#x251C;&#x2574;at <i>examples/demo.rs:25:18</i>
     &#x251C;&#x2574;backtrace with 25 frames (2)
     &#x2570;&#x2574;&quot;4a&quot; could not be parsed as experiment
 
-<b>experiment error: could not run experiment<span style="font-weight:normal;text-decoration:none;font-style:normal">
+<b>experiment error: could not run experiment</b><span style="font-weight:normal;text-decoration:none;font-style:normal">
 &#x251C;&#x2574;at <i>examples/demo.rs:67:17</i>
 &#x251C;&#x2574;backtrace with 19 frames (3)
 &#x251C;&#x2574;experiment 3 has no valid description
@@ -148,7 +148,7 @@ backtrace no. 2
 
 backtrace no. 3
    (<b>For this example only:</b> Frames have been removed)
-</span></b></span></b></span></b></span></b></span></b>
+</span></span></span></span></span>
 </pre>
 
 [//]: # (![]&#40;https://github.com/hashintel/hash/blob/8ed55bd73045fba83a7ea2e199b31d5b829537b9/packages/libs/error-stack/assets/full.png?raw=true&#41;)
