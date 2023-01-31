@@ -3,9 +3,9 @@ source: tests/test_debug.rs
 expression: "format!(\"{report:?}\")"
 ---
 [1mroot error[22m
-[1m├╴ [22mat [3mtests/common.rs:4:5[23m
-[1m├╴ [22mbacktrace (1)
-[1m╰╴ [22mspan trace with 2 frames (1)
+├╴ at [3mtests/common.rs:4:5[23m
+├╴ backtrace (1)
+╰╴ span trace with 2 frames (1)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
