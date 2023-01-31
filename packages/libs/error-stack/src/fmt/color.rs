@@ -141,12 +141,6 @@ impl Report<()> {
 pub(crate) enum Color {
     Black,
     Red,
-    Green,
-    Yellow,
-    Blue,
-    Magenta,
-    Cyan,
-    White,
 }
 
 impl Color {
@@ -154,12 +148,6 @@ impl Color {
         match self {
             Self::Black => b'0',
             Self::Red => b'1',
-            Self::Green => b'2',
-            Self::Yellow => b'3',
-            Self::Blue => b'4',
-            Self::Magenta => b'5',
-            Self::Cyan => b'6',
-            Self::White => b'7',
         }
     }
 }
@@ -183,41 +171,6 @@ impl Foreground {
 
     fn end_ansi(sequence: &mut ControlSequence) -> fmt::Result {
         sequence.push_control("39")
-    }
-}
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub(crate) struct Background {
-    color: Color,
-    bright: bool,
-}
-
-impl Background {
-    fn start_ansi(self, sequence: &mut ControlSequence) -> fmt::Result {
-        let Self { color, bright } = self;
-        let mut buffer = [0u8; 3];
-
-        let length = if bright {
-            buffer[0] = b'1';
-            buffer[1] = b'0';
-            buffer[2] = color.digit();
-
-            3
-        } else {
-            buffer[0] = b'4';
-            buffer[1] = color.digit();
-
-            2
-        };
-
-        // This should never fail because both are valid ASCII
-        let control = core::str::from_utf8(&buffer[..length]).unwrap();
-
-        sequence.push_control(control)
-    }
-
-    fn end_ansi(sequence: &mut ControlSequence) -> fmt::Result {
-        sequence.push_control("49")
     }
 }
 
@@ -259,22 +212,14 @@ impl ControlSequence<'_, '_> {
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub(crate) struct DisplayStyle {
     bold: bool,
-    faint: bool,
     italic: bool,
-    underline: bool,
-    blink: bool,
-    strikethrough: bool,
 }
 
 impl DisplayStyle {
     pub(crate) const fn new() -> Self {
         Self {
             bold: false,
-            faint: false,
             italic: false,
-            underline: false,
-            blink: false,
-            strikethrough: false,
         }
     }
 
@@ -287,48 +232,12 @@ impl DisplayStyle {
         self
     }
 
-    pub(crate) fn set_faint(&mut self, value: bool) {
-        self.faint = value;
-    }
-
-    pub(crate) fn with_faint(mut self, value: bool) -> Self {
-        self.set_faint(value);
-        self
-    }
-
     pub(crate) fn set_italic(&mut self, value: bool) {
         self.italic = value;
     }
 
     pub(crate) fn with_italic(mut self, value: bool) -> Self {
         self.set_italic(value);
-        self
-    }
-
-    pub(crate) fn set_underline(&mut self, value: bool) {
-        self.underline = value;
-    }
-
-    pub(crate) fn with_underline(mut self, value: bool) -> Self {
-        self.set_underline(value);
-        self
-    }
-
-    pub(crate) fn set_blink(&mut self, value: bool) {
-        self.blink = value;
-    }
-
-    pub(crate) fn with_blink(mut self, value: bool) -> Self {
-        self.set_blink(value);
-        self
-    }
-
-    pub(crate) fn set_strikethrough(&mut self, value: bool) {
-        self.strikethrough = value;
-    }
-
-    pub(crate) fn with_strikethrough(mut self, value: bool) -> Self {
-        self.set_strikethrough(value);
         self
     }
 }
@@ -339,48 +248,20 @@ impl DisplayStyle {
             sequence.push_control("1")?;
         }
 
-        if self.faint {
-            sequence.push_control("2")?;
-        }
-
         if self.italic {
             sequence.push_control("3")?;
-        }
-
-        if self.underline {
-            sequence.push_control("4")?;
-        }
-
-        if self.blink {
-            sequence.push_control("5")?;
-        }
-
-        if self.strikethrough {
-            sequence.push_control("9")?;
         }
 
         Ok(())
     }
 
     fn end_ansi(self, sequence: &mut ControlSequence) -> fmt::Result {
-        if self.faint || self.bold {
+        if self.bold {
             sequence.push_control("22")?;
         }
 
         if self.italic {
             sequence.push_control("23")?;
-        }
-
-        if self.underline {
-            sequence.push_control("24")?;
-        }
-
-        if self.blink {
-            sequence.push_control("25")?;
-        }
-
-        if self.strikethrough {
-            sequence.push_control("29")?;
         }
 
         Ok(())
@@ -391,7 +272,6 @@ impl DisplayStyle {
 pub(crate) struct Style {
     display: Option<DisplayStyle>,
     foreground: Option<Foreground>,
-    background: Option<Background>,
 }
 
 impl Style {
@@ -399,7 +279,6 @@ impl Style {
         Self {
             display: None,
             foreground: None,
-            background: None,
         }
     }
 
@@ -411,27 +290,8 @@ impl Style {
         self.foreground = Some(Foreground { color, bright });
     }
 
-    pub(crate) fn with_foreground(mut self, color: Color, bright: bool) -> Self {
-        self.set_foreground(color, bright);
-        self
-    }
-
-    pub(crate) fn set_background(&mut self, color: Color, bright: bool) {
-        self.background = Some(Background { color, bright });
-    }
-
-    pub(crate) fn with_background(mut self, color: Color, bright: bool) -> Self {
-        self.set_background(color, bright);
-        self
-    }
-
     pub(crate) fn set_display(&mut self, style: DisplayStyle) {
         self.display = Some(style);
-    }
-
-    pub(crate) fn with_display(mut self, style: DisplayStyle) -> Self {
-        self.set_display(style);
-        self
     }
 }
 
@@ -452,10 +312,6 @@ impl<'a, T: Display> Display for StyleDisplay<'a, T> {
             foreground.start_ansi(&mut sequence)?;
         }
 
-        if let Some(background) = self.style.background {
-            background.start_ansi(&mut sequence)?;
-        }
-
         f = sequence.finish()?;
 
         Display::fmt(&self.value, f)?;
@@ -470,11 +326,7 @@ impl<'a, T: Display> Display for StyleDisplay<'a, T> {
             Foreground::end_ansi(&mut sequence)?;
         }
 
-        if self.style.background.is_some() {
-            Background::end_ansi(&mut sequence)?;
-        }
-
-        f = sequence.finish()?;
+        sequence.finish()?;
 
         Ok(())
     }
