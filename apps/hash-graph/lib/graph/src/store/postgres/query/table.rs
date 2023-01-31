@@ -220,7 +220,7 @@ impl Entities<'_> {
             Self::DecisionTime => "decision_time",
             Self::TransactionTime => "transaction_time",
             Self::Archived => "archived",
-            Self::UpdatedById => "updated_by_id",
+            Self::UpdatedById => "record_created_by_id",
             Self::EntityTypeOntologyId => "entity_type_ontology_id",
             Self::Properties(None) => "properties",
             Self::Properties(Some(path)) => {

@@ -3,7 +3,7 @@ OR REPLACE FUNCTION "create_entity" (
   "_owned_by_id" UUID,
   "_entity_uuid" UUID,
   "_decision_time" TIMESTAMP WITH TIME ZONE,
-  "_updated_by_id" UUID,
+  "_record_created_by_id" UUID,
   "_archived" BOOLEAN,
   "_entity_type_ontology_id" UUID,
   "_properties" JSONB,
@@ -41,14 +41,14 @@ OR REPLACE FUNCTION "create_entity" (
 
       -- insert the data of the entity
       INSERT INTO entity_records (
-        updated_by_id,
+        record_created_by_id,
         archived,
         entity_type_ontology_id,
         properties,
         left_to_right_order,
         right_to_left_order
       ) VALUES (
-        _updated_by_id,
+        _record_created_by_id,
         _archived,
         _entity_type_ontology_id,
         _properties,
@@ -78,7 +78,7 @@ OR REPLACE FUNCTION "update_entity" (
   "_owned_by_id" UUID,
   "_entity_uuid" UUID,
   "_decision_time" TIMESTAMP WITH TIME ZONE,
-  "_updated_by_id" UUID,
+  "_record_created_by_id" UUID,
   "_archived" BOOLEAN,
   "_entity_type_ontology_id" UUID,
   "_properties" JSONB,
@@ -95,14 +95,14 @@ OR REPLACE FUNCTION "update_entity" (
       IF _decision_time IS NULL THEN _decision_time := now(); END IF;
 
       INSERT INTO entity_records (
-        updated_by_id,
+        record_created_by_id,
         archived,
         entity_type_ontology_id,
         properties,
         left_to_right_order,
         right_to_left_order
       ) VALUES (
-        _updated_by_id,
+        _record_created_by_id,
         _archived,
         _entity_type_ontology_id,
         _properties,

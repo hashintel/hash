@@ -509,7 +509,7 @@ mod tests {
             FROM "entities" AS "entities_0_0_0"
             WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entities_0_0_0"."decision_time" && $2
-              AND "entities_0_0_0"."updated_by_id" = $3
+              AND "entities_0_0_0"."record_created_by_id" = $3
             ORDER BY "entities_0_0_0"."entity_uuid" ASC,
                      "entities_0_0_0"."decision_time" DESC
             "#,

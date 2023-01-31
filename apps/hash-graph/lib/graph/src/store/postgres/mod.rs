@@ -752,7 +752,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         self.client
             .simple_query(
                 "CREATE TEMPORARY TABLE entity_records_temp (
-                    updated_by_id UUID NOT NULL,
+                    record_created_by_id UUID NOT NULL,
                     archived BOOLEAN NOT NULL,
                     entity_type_ontology_id UUID NOT NULL,
                     properties JSONB NOT NULL,
@@ -768,7 +768,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .client
             .copy_in(
                 "COPY entity_records_temp (
-                    updated_by_id,
+                    record_created_by_id,
                     archived,
                     entity_type_ontology_id,
                     properties,
@@ -818,7 +818,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .client
             .query(
                 "INSERT INTO entity_records (
-                    updated_by_id,
+                    record_created_by_id,
                     archived,
                     entity_type_ontology_id,
                     properties,
@@ -826,7 +826,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     right_to_left_order
                 )
                 SELECT
-                    updated_by_id,
+                    record_created_by_id,
                     archived,
                     entity_type_ontology_id,
                     properties,

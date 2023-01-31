@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS
     "properties" JSONB NOT NULL,
     "left_to_right_order" INTEGER,
     "right_to_left_order" INTEGER,
-    "updated_by_id" UUID NOT NULL REFERENCES "accounts",
+    "record_created_by_id" UUID NOT NULL REFERENCES "accounts",
     "archived" BOOLEAN NOT NULL
   );
 
@@ -66,7 +66,7 @@ SELECT
   entity_revisions.decision_time,
   entity_revisions.transaction_time,
   entity_records.entity_type_ontology_id,
-  entity_records.updated_by_id,
+  entity_records.record_created_by_id,
   entity_records.properties,
   entity_records.archived,
   entity_ids.left_owned_by_id,
