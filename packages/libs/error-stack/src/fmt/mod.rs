@@ -487,11 +487,9 @@ impl Display for InstructionDisplay<'_> {
 
                 let mut style = Style::new();
 
-                match self.color {
-                    ColorMode::Color => style.set_foreground(Color::Red, false),
-                    ColorMode::Emphasis => style.set_display(DisplayStyle::new().with_bold(true)),
-                    ColorMode::None => {}
-                };
+                if self.color == ColorMode::Color {
+                    style.set_foreground(Color::Red, false);
+                }
 
                 Display::fmt(&style.apply(&display), fmt)?;
             }
