@@ -1,5 +1,5 @@
 <b>invalid input parameter</b>
-├╴at <i>src/fmt/mod.rs:57:14</i>
+├╴at <i>src/fmt.rs:57:14</i>
 ├╴backtrace (1)
 ├╴error (404)
 ├╴suggestion 1: try to be connected to the internet.
