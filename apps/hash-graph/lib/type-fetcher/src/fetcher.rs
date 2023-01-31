@@ -7,7 +7,8 @@ use type_system::repr::{DataType, EntityType, PropertyType};
 #[derive(Debug, Serialize, Deserialize)]
 pub enum FetcherError {
     NetworkError,
-    SerializationError,
+    SerializationError(String),
+    TypeParsingError,
 }
 impl Context for FetcherError {}
 
@@ -17,7 +18,7 @@ impl fmt::Display for FetcherError {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum FetchedOntologyType {
     EntityType(EntityType),

@@ -1,4 +1,3 @@
-pub mod fetcher_server;
 use std::{
     fmt,
     net::{IpAddr, Ipv4Addr},
@@ -6,12 +5,11 @@ use std::{
 
 use clap::Parser;
 use error_stack::{Context, IntoReport, Result, ResultExt};
-use fetcher_server::FetchServer;
 use futures::{future, StreamExt};
 use graph::logging::{init_logger, LoggingArgs};
 use tarpc::server::{self, Channel};
 use tokio_serde::formats::MessagePack;
-use type_fetcher::fetcher::Fetcher;
+use type_fetcher::{fetcher::Fetcher, fetcher_server::FetchServer};
 
 #[derive(Debug, Parser)]
 #[clap(version, author, about, long_about = None)]
