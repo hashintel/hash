@@ -51,7 +51,7 @@ const testEntity: RootEntity = {
       },
     ],
   },
-} as const;
+};
 
 /**
  * This is an embedding application for local development and debugging.
