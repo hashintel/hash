@@ -562,10 +562,10 @@ export interface EntityMetadata {
   provenance: ProvenanceMetadata;
   /**
    *
-   * @type {EntityRevision}
+   * @type {EntityRevisionVersion}
    * @memberof EntityMetadata
    */
-  version: EntityRevision;
+  version: EntityRevisionVersion;
 }
 /**
  * A single token in an [`EntityQueryPath`].
@@ -614,19 +614,19 @@ export interface EntityRecordId {
 /**
  *
  * @export
- * @interface EntityRevision
+ * @interface EntityRevisionVersion
  */
 export interface EntityRevision {
   /**
    *
    * @type {VersionInterval}
-   * @memberof EntityRevision
+   * @memberof EntityRevisionVersion
    */
   decisionTime: VersionInterval;
   /**
    *
    * @type {VersionInterval}
-   * @memberof EntityRevision
+   * @memberof EntityRevisionVersion
    */
   transactionTime: VersionInterval;
 }

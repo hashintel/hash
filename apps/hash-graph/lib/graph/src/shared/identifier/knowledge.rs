@@ -90,12 +90,12 @@ impl ToSchema for EntityId {
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct EntityRevision {
+pub struct EntityRevisionVersion {
     decision_time: VersionInterval<DecisionTime>,
     transaction_time: VersionInterval<TransactionTime>,
 }
 
-impl ToSchema for EntityRevision {
+impl ToSchema for EntityRevisionVersion {
     fn schema() -> openapi::RefOr<openapi::Schema> {
         openapi::ObjectBuilder::new()
             .property(
@@ -113,7 +113,7 @@ impl ToSchema for EntityRevision {
     }
 }
 
-impl EntityRevision {
+impl EntityRevisionVersion {
     #[must_use]
     pub const fn new(
         decision_time: VersionInterval<DecisionTime>,

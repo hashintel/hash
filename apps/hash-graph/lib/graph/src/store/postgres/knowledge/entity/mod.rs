@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 use crate::{
     identifier::{
-        knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityRevision},
+        knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityRevisionVersion},
         ontology::OntologyTypeEditionId,
         time::{DecisionTime, TimeProjection, Timestamp, VersionInterval},
         EntityVertexId,
@@ -374,7 +374,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         Ok(EntityMetadata::new(
             EntityRecordId::new(entity_id, EntityEditionId::new(row.get(0))),
-            EntityRevision::new(
+            EntityRevisionVersion::new(
                 VersionInterval::from_anonymous(row.get(1)),
                 VersionInterval::from_anonymous(row.get(2)),
             ),
@@ -602,7 +602,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         Ok(EntityMetadata::new(
             EntityRecordId::new(entity_id, EntityEditionId::new(row.get(0))),
-            EntityRevision::new(
+            EntityRevisionVersion::new(
                 VersionInterval::from_anonymous(row.get(1)),
                 VersionInterval::from_anonymous(row.get(2)),
             ),

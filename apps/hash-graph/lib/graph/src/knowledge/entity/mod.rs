@@ -11,7 +11,7 @@ use uuid::Uuid;
 pub use self::query::{EntityQueryPath, EntityQueryPathVisitor, EntityQueryToken};
 use crate::{
     identifier::{
-        knowledge::{EntityId, EntityRecordId, EntityRevision},
+        knowledge::{EntityId, EntityRecordId, EntityRevisionVersion},
         time::TimeAxis,
         EntityVertexId,
     },
@@ -176,7 +176,7 @@ pub struct EntityMetadata {
     #[serde(rename = "editionId")]
     record_id: EntityRecordId,
     #[serde(rename = "version")]
-    revision: EntityRevision,
+    revision: EntityRevisionVersion,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
     #[serde(rename = "provenance")]
@@ -188,7 +188,7 @@ impl EntityMetadata {
     #[must_use]
     pub const fn new(
         record_id: EntityRecordId,
-        revision: EntityRevision,
+        revision: EntityRevisionVersion,
         entity_type_id: VersionedUri,
         provenance_metadata: ProvenanceMetadata,
         archived: bool,
@@ -208,7 +208,7 @@ impl EntityMetadata {
     }
 
     #[must_use]
-    pub const fn revision(&self) -> &EntityRevision {
+    pub const fn revision(&self) -> &EntityRevisionVersion {
         &self.revision
     }
 
@@ -245,7 +245,7 @@ impl Entity {
         properties: EntityProperties,
         link_data: Option<LinkData>,
         record_id: EntityRecordId,
-        revision: EntityRevision,
+        revision: EntityRevisionVersion,
         entity_type_id: VersionedUri,
         provenance_metadata: ProvenanceMetadata,
         archived: bool,

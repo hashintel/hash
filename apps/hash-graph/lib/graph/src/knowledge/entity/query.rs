@@ -58,22 +58,22 @@ pub enum EntityQueryPath<'p> {
     /// [`EntityRecordId`]: crate::identifier::knowledge::EntityRecordId
     /// [`Entity`]: crate::knowledge::Entity
     EditionId,
-    /// The decision time axis of the [`EntityRevision`] belonging to the [`Entity`].
+    /// The decision time axis of the [`EntityRevisionVersion`] belonging to the [`Entity`].
     ///
-    /// To query for an [`EntityRevision`] the time projection is specified on the
+    /// To query for an [`EntityRevisionVersion`] the time projection is specified on the
     /// [`StructuralQuery`].
     ///
     /// [`StructuralQuery`]: crate::shared::subgraph::query::StructuralQuery
-    /// [`EntityRevision`]: crate::identifier::knowledge::EntityRevision
+    /// [`EntityRevisionVersion`]: crate::identifier::knowledge::EntityRevisionVersion
     /// [`Entity`]: crate::knowledge::Entity
     DecisionTime,
-    /// The transaction time axis of the [`EntityRevision`] belonging to the [`Entity`].
+    /// The transaction time axis of the [`EntityRevisionVersion`] belonging to the [`Entity`].
     ///
-    /// To query for an [`EntityRevision`] the time projection is specified on the
+    /// To query for an [`EntityRevisionVersion`] the time projection is specified on the
     /// [`StructuralQuery`].
     ///
     /// [`StructuralQuery`]: crate::shared::subgraph::query::StructuralQuery
-    /// [`EntityRevision`]: crate::identifier::knowledge::EntityRevision
+    /// [`EntityRevisionVersion`]: crate::identifier::knowledge::EntityRevisionVersion
     /// [`Entity`]: crate::knowledge::Entity
     TransactionTime,
     /// Whether or not the [`Entity`] is archived.

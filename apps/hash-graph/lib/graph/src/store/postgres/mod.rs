@@ -43,7 +43,7 @@ use crate::{
 #[cfg(feature = "__internal_bench")]
 use crate::{
     identifier::{
-        knowledge::{EntityEditionId, EntityId, EntityRevision},
+        knowledge::{EntityEditionId, EntityId, EntityRevisionVersion},
         time::{DecisionTime, Timestamp, VersionInterval},
     },
     knowledge::{EntityProperties, LinkOrder},
@@ -860,7 +860,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             Item = (EntityId, EntityEditionId, Option<Timestamp<DecisionTime>>),
             IntoIter: Send,
         > + Send,
-    ) -> Result<Vec<EntityRevision>, InsertionError> {
+    ) -> Result<Vec<EntityRevisionVersion>, InsertionError> {
         self.client
             .simple_query(
                 "CREATE TEMPORARY TABLE entity_revisions_temp (
@@ -942,7 +942,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .change_context(InsertionError)?
             .into_iter()
             .map(|row| {
-                EntityRevision::new(
+                EntityRevisionVersion::new(
                     VersionInterval::from_anonymous(row.get(0)),
                     VersionInterval::from_anonymous(row.get(1)),
                 )
