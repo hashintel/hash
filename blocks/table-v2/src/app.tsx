@@ -30,6 +30,8 @@ const columnTitleKey: keyof LocalColumns =
 const columnIdKey: keyof LocalColumns =
   "https://alpha.hash.ai/@yusuf/types/property-type/column-id/";
 
+const minRowCount = 13;
+
 export const App: BlockComponent<RootEntity> = ({
   graph: { blockEntitySubgraph, readonly },
 }) => {
@@ -70,7 +72,20 @@ export const App: BlockComponent<RootEntity> = ({
   };
 
   const addNewRow = async () => {
-    return updateEntity({ [localRowsKey]: [...localRows, {}] });
+    const newLocalRows = [...localRows];
+
+    if (localRows.length < minRowCount) {
+      /**
+       * instead of pushing into array, set the item to the index
+       * otherwise row count does not increase, since rows with items are already visible
+       * because of `minRowCount`
+       */
+      newLocalRows[minRowCount] = {};
+    } else {
+      newLocalRows.push({});
+    }
+
+    return updateEntity({ [localRowsKey]: newLocalRows });
   };
 
   const handleCellEdited: DataEditorProps["onCellEdited"] = (
@@ -119,7 +134,7 @@ export const App: BlockComponent<RootEntity> = ({
     <div className={styles.block} ref={blockRootRef}>
       <TableTitle onChange={setTitle} title={title} readonly={readonly} />
       <Grid
-        rows={Math.max(rows.length, 13)}
+        rows={Math.max(rows.length, minRowCount)}
         columns={columns}
         rightElement={
           readonly ? null : (
