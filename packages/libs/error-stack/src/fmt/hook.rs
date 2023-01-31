@@ -3,19 +3,13 @@
 // implementation: `pub(crate)` and `pub`.
 #![cfg_attr(not(feature = "std"), allow(unreachable_pub))]
 
-#[cfg(any(feature = "std", feature = "hooks"))]
-use alloc::boxed::Box;
-use alloc::{string::String, vec::Vec};
-#[cfg(any(feature = "std", feature = "hooks"))]
-use core::any::TypeId;
-use core::mem;
+use alloc::{boxed::Box, string::String, vec::Vec};
+use core::{any::TypeId, mem};
 
 pub(crate) use default::install_builtin_hooks;
 
-#[cfg(any(feature = "std", feature = "hooks"))]
 use crate::fmt::{charset::Charset, ColorMode, Frame};
 
-#[cfg(any(feature = "std", feature = "hooks"))]
 pub(crate) struct Format {
     alternate: bool,
 
@@ -26,7 +20,6 @@ pub(crate) struct Format {
     appendix: Vec<String>,
 }
 
-#[cfg(any(feature = "std", feature = "hooks"))]
 impl Format {
     pub(crate) const fn new(alternate: bool, color: ColorMode, charset: Charset) -> Self {
         Self {
@@ -231,7 +224,6 @@ crate::hook::context::impl_hook_context! {
     pub struct HookContext<Format> { .. }
 }
 
-#[cfg(any(feature = "std", feature = "hooks"))]
 impl<T> HookContext<T> {
     pub(crate) fn appendix(&self) -> &[String] {
         self.inner().extra().appendix()
@@ -377,10 +369,8 @@ impl<T> HookContext<T> {
     }
 }
 
-#[cfg(any(feature = "std", feature = "hooks"))]
 type BoxedHook = Box<dyn Fn(&Frame, &mut HookContext<Frame>) -> bool + Send + Sync>;
 
-#[cfg(any(feature = "std", feature = "hooks"))]
 fn into_boxed_hook<T: Send + Sync + 'static>(
     hook: impl Fn(&T, &mut HookContext<T>) + Send + Sync + 'static,
 ) -> BoxedHook {
@@ -429,14 +419,12 @@ fn into_boxed_hook<T: Send + Sync + 'static>(
 /// [`Display`]: core::fmt::Display
 /// [`Debug`]: core::fmt::Debug
 /// [`.insert()`]: Hooks::insert
-#[cfg(any(feature = "std", feature = "hooks"))]
 pub(crate) struct Hooks {
     // We use `Vec`, instead of `HashMap` or `BTreeMap`, so that ordering is consistent with the
     // insertion order of types.
     pub(crate) inner: Vec<(TypeId, BoxedHook)>,
 }
 
-#[cfg(any(feature = "std", feature = "hooks"))]
 impl Hooks {
     pub(crate) fn insert<T: Send + Sync + 'static>(
         &mut self,

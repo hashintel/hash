@@ -67,13 +67,11 @@ macro_rules! impl_hook_context {
 //  is currently not implemented for repr(transparent).
 $(#[$meta])*
 #[cfg_attr(not(doc), repr(transparent))]
-#[cfg(any(feature = "std", feature = "hooks"))]
 $vis struct HookContext<T> {
     inner: $crate::hook::context::Inner<$extra>,
     _marker: core::marker::PhantomData<fn(&T)>,
 }
 
-#[cfg(any(feature = "std", feature = "hooks"))]
 impl HookContext<()> {
     pub(crate) fn new(extra: $extra) -> Self {
         Self {
@@ -83,7 +81,6 @@ impl HookContext<()> {
     }
 }
 
-#[cfg(any(feature = "std", feature = "hooks"))]
 impl<T> HookContext<T> {
     pub(crate) const fn inner(&self) -> &$crate::hook::context::Inner<$extra> {
         &self.inner
