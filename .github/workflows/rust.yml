@@ -316,6 +316,7 @@ jobs:
           cargo quickinstall cargo-make --version 0.36.3
           cargo quickinstall cargo-hack --version 0.5.26
           cargo quickinstall cargo-nextest --version 0.9.37
+          cargo quickinstall cargo-semver-checks --version 0.17.0
 
       - name: Run lints
         if: github.event_name == 'pull_request'
@@ -331,6 +332,11 @@ jobs:
         run: |
           [[ -n "${{ secrets.CARGO_REGISTRY_TOKEN }}" ]]
           cargo login "${{ secrets.CARGO_REGISTRY_TOKEN }}"
+
+      - name: SemVer check
+        if: github.event_name == 'pull_request'
+        working-directory: ${{ matrix.directory }}
+        run: cargo +${{ matrix.toolchain }} semver-checks check-release
 
       - name: Publish (dry run)
         if: github.event_name == 'pull_request'
