@@ -1,7 +1,4 @@
-use core::{
-    fmt,
-    fmt::{Display, Formatter},
-};
+use core::fmt::{self, Display, Formatter};
 
 use crate::{
     fmt::r#override::{AtomicOverride, AtomicPreference},
@@ -66,7 +63,7 @@ static COLOR_OVERRIDE: AtomicOverride<ColorMode> = AtomicOverride::new();
 impl Report<()> {
     /// Set the color mode preference
     ///
-    /// The value defaults to [`ColorMode::Emphasis`].
+    /// If no [`ColorMode`] is set, it defaults to [`Emphasis`].
     ///
     /// # Example
     ///
