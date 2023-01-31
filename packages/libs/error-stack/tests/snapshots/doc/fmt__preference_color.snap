@@ -1,7 +1,7 @@
 <b>invalid input parameter</b>
-<span style='color:#a00'>├╴ </span><span style='color:#555'>src/hook/mod.rs:19:5</span>
+<span style='color:#a00'>├╴ </span><span style='color:#555'>src/fmt/color.rs:24:5</span>
 <span style='color:#a00'>├╴ </span>backtrace (1)
-<span style='color:#a00'>╰╴ </span>suggestion: oh no, try again
+<span style='color:#a00'>╰╴ </span><span style='color:#0a0'>suggestion: oh no, try again</span>
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

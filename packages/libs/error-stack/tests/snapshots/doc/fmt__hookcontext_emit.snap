@@ -1,8 +1,8 @@
 <b>invalid input parameter</b>
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#a00'> </span><span style='color:#555'>src/fmt/hook.rs:24:14</span>
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#a00'> </span>backtrace (1)
-<span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#a00'> </span>error 404
-<span style='color:#a00'>╰</span><span style='color:#a00'>╴</span><span style='color:#a00'> </span>error 405
+<span style='color:#a00'>├╴ </span><span style='color:#555'>src/fmt/hook.rs:24:14</span>
+<span style='color:#a00'>├╴ </span>backtrace (1)
+<span style='color:#a00'>├╴ </span>error 404
+<span style='color:#a00'>╰╴ </span>error 405
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
