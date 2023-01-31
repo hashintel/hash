@@ -209,10 +209,6 @@ enum Symbol {
 /// ])
 /// ```
 macro_rules! sym {
-    (#char '@') => {
-        Symbol::Location
-    };
-
     (#char '│') => {
         Symbol::Vertical
     };
@@ -458,9 +454,9 @@ impl Instruction {
             },
 
             Self::Attachment { position } => match position {
-                Position::First => PreparedInstruction::Symbols(sym!('├', '╴', ' ')),
-                Position::Inner => PreparedInstruction::Symbols(sym!('├', '╴', ' ')),
-                Position::Final => PreparedInstruction::Symbols(sym!('╰', '╴', ' ')),
+                Position::First => PreparedInstruction::Symbols(sym!('├', '╴')),
+                Position::Inner => PreparedInstruction::Symbols(sym!('├', '╴')),
+                Position::Final => PreparedInstruction::Symbols(sym!('╰', '╴')),
             },
 
             // Indentation (like `|   ` or ` |  `)

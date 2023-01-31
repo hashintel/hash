@@ -1,7 +1,7 @@
 <b>invalid input parameter</b>
-├╴ at <i>src/fmt/color.rs:24:5</i>
-├╴ backtrace (1)
-╰╴ <i>suggestion: oh no, try again</i>
+├╴at <i>src/fmt/color.rs:24:5</i>
+├╴backtrace (1)
+╰╴<i>suggestion: oh no, try again</i>
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
