@@ -616,7 +616,7 @@ export interface EntityRecordId {
  * @export
  * @interface EntityRevisionVersion
  */
-export interface EntityRevision {
+export interface EntityRevisionVersion {
   /**
    *
    * @type {VersionInterval}
