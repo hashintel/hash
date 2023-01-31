@@ -1,20 +1,22 @@
-// We allow dead-code here, because some of the functions are only exposed when `feature = "std"`
-// we could do cfg for everything, but that gets very messy, instead we only use a subset
-// and enable deadcode on `feature = "std"`.
-#![cfg_attr(not(feature = "std"), allow(dead_code))]
 // We allow `unreachable_pub` on no-std, because in that case we do not export (`pub`) the
 // structures contained in here, but still use them, otherwise we would need to have two redundant
 // implementation: `pub(crate)` and `pub`.
 #![cfg_attr(not(feature = "std"), allow(unreachable_pub))]
 
-use alloc::{boxed::Box, string::String, vec::Vec};
-use core::{any::TypeId, mem};
+#[cfg(any(feature = "std", feature = "hooks"))]
+use alloc::boxed::Box;
+use alloc::{string::String, vec::Vec};
+#[cfg(any(feature = "std", feature = "hooks"))]
+use core::any::TypeId;
+use core::mem;
 
 pub(crate) use default::install_builtin_hooks;
 
-use crate::fmt::{charset::Charset, ColorMode, Frame};
+#[cfg(any(feature = "std", feature = "hooks"))]
+use crate::fmt::Frame;
+use crate::fmt::{charset::Charset, ColorMode};
 
-pub struct Format {
+pub(crate) struct Format {
     alternate: bool,
 
     color: ColorMode,
@@ -37,11 +39,7 @@ impl Format {
         }
     }
 
-    pub fn body(&self) -> &[String] {
-        &self.body
-    }
-
-    pub fn appendix(&self) -> &[String] {
+    fn appendix(&self) -> &[String] {
         &self.appendix
     }
 
@@ -232,6 +230,7 @@ crate::hook::context::impl_hook_context! {
     pub struct HookContext<Format> { .. }
 }
 
+#[cfg(any(feature = "std", feature = "hooks"))]
 impl<T> HookContext<T> {
     pub(crate) fn appendix(&self) -> &[String] {
         self.inner().extra().appendix()
@@ -241,6 +240,7 @@ impl<T> HookContext<T> {
     ///
     /// Hooks can be invoked in different color modes, which represent the preferences of an
     /// end-user.
+    #[must_use]
     pub const fn color_mode(&self) -> ColorMode {
         self.inner().extra().color
     }
@@ -249,6 +249,7 @@ impl<T> HookContext<T> {
     ///
     /// Hooks can be invoked in using different charsets, which reflect the capabilities of the
     /// terminal.
+    #[must_use]
     pub const fn charset(&self) -> Charset {
         self.inner().extra().charset
     }
@@ -375,8 +376,10 @@ impl<T> HookContext<T> {
     }
 }
 
+#[cfg(any(feature = "std", feature = "hooks"))]
 type BoxedHook = Box<dyn Fn(&Frame, &mut HookContext<Frame>) -> bool + Send + Sync>;
 
+#[cfg(any(feature = "std", feature = "hooks"))]
 fn into_boxed_hook<T: Send + Sync + 'static>(
     hook: impl Fn(&T, &mut HookContext<T>) + Send + Sync + 'static,
 ) -> BoxedHook {

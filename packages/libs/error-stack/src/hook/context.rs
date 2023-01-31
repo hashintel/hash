@@ -1,30 +1,27 @@
 use alloc::{boxed::Box, collections::BTreeMap};
-use core::{
-    any::{Any, TypeId},
-    marker::PhantomData,
-};
+use core::any::{Any, TypeId};
 
 pub(crate) type Storage = BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>;
 
 /// Private struct which is used to hold the information about the current count for every type.
 /// This is used so that others cannot interfere with the counter and ensure that there's no
 /// unexpected behavior.
-struct Counter(isize);
+pub(crate) struct Counter(isize);
 
 impl Counter {
-    const fn new(value: isize) -> Self {
+    pub(crate) const fn new(value: isize) -> Self {
         Self(value)
     }
 
-    const fn as_inner(&self) -> isize {
+    pub(crate) const fn as_inner(&self) -> isize {
         self.0
     }
 
-    fn increment(&mut self) {
+    pub(crate) fn increment(&mut self) {
         self.0 += 1;
     }
 
-    fn decrement(&mut self) {
+    pub(crate) fn decrement(&mut self) {
         self.0 -= 1;
     }
 }
@@ -70,11 +67,13 @@ macro_rules! impl_hook_context {
 //  is currently not implemented for repr(transparent).
 $(#[$meta])*
 #[cfg_attr(not(doc), repr(transparent))]
+#[cfg(any(feature = "std", feature = "hooks"))]
 $vis struct HookContext<T> {
     inner: $crate::hook::context::Inner<$extra>,
     _marker: core::marker::PhantomData<fn(&T)>,
 }
 
+#[cfg(any(feature = "std", feature = "hooks"))]
 impl HookContext<()> {
     pub(crate) fn new(extra: $extra) -> Self {
         Self {
@@ -84,6 +83,7 @@ impl HookContext<()> {
     }
 }
 
+#[cfg(any(feature = "std", feature = "hooks"))]
 impl<T> HookContext<T> {
     pub(crate) const fn inner(&self) -> &$crate::hook::context::Inner<$extra> {
         &self.inner
@@ -102,6 +102,7 @@ impl<T> HookContext<T> {
     }
 }
 
+#[cfg(any(feature = "std", feature = "hooks"))]
 impl<T> HookContext<T> {
     /// Cast the [`HookContext`] to a new type `U`.
     ///
@@ -168,10 +169,11 @@ impl<T> HookContext<T> {
     pub fn cast<U>(&mut self) -> &mut HookContext<U> {
         // SAFETY: `HookContext` is marked as repr(transparent) and the changed generic is only used
         // inside of the `PhantomData`
-        unsafe { &mut *(self as *mut Self).cast::<HookContext<Extra, U>>() }
+        unsafe { &mut *(self as *mut Self).cast::<HookContext<U>>() }
     }
 }
 
+#[cfg(any(feature = "std", feature = "hooks"))]
 impl<T: 'static> HookContext<T> {
     /// Return a reference to a value of type `U`, if a value of that type exists.
     ///
@@ -276,14 +278,14 @@ impl<T: 'static> HookContext<T> {
     ///
     /// [`Debug`]: core::fmt::Debug
     pub fn increment_counter(&mut self) -> isize {
-        let counter = self.get_mut::<Counter>();
+        let counter = self.get_mut::<$crate::hook::context::Counter>();
 
         // reason: This would fail as we cannot move out of `self` because it is borrowed
         #[allow(clippy::option_if_let_else)]
         match counter {
             None => {
                 // if the counter hasn't been set yet, default to `0`
-                self.insert(Counter::new(0));
+                self.insert($crate::hook::context::Counter::new(0));
 
                 0
             }
@@ -341,7 +343,7 @@ impl<T: 'static> HookContext<T> {
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_decrement.snap"))]
     /// </pre>
     pub fn decrement_counter(&mut self) -> isize {
-        let counter = self.get_mut::<Counter>();
+        let counter = self.get_mut::<$crate::hook::context::Counter>();
 
         // reason: This would fail as we cannot move out of `self` because it is borrowed
         #[allow(clippy::option_if_let_else)]
@@ -350,7 +352,7 @@ impl<T: 'static> HookContext<T> {
                 // given that increment starts with `0` (which is therefore the implicit default
                 // value) decrementing the default value results in `-1`,
                 // which is why we output that value.
-                self.insert(Counter::new(-1));
+                self.insert($crate::hook::context::Counter::new(-1));
 
                 -1
             }
