@@ -63,7 +63,7 @@ static COLOR_OVERRIDE: AtomicOverride<ColorMode> = AtomicOverride::new();
 impl Report<()> {
     /// Set the color mode preference
     ///
-    /// If no [`ColorMode`] is set, it defaults to [`Emphasis`].
+    /// If no [`ColorMode`] is set, it defaults to [`ColorMode::Emphasis`].
     ///
     /// # Example
     ///
