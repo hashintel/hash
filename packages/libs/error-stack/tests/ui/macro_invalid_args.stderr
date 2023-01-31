@@ -95,7 +95,7 @@ error[E0308]: mismatched types
    |             arguments to this function are incorrect
    |
 note: associated function defined here
-  --> $RUST/core/src/convert/mod.rs
+  --> $RUST/core/src/convert.rs
    |
    |     fn from(value: T) -> Self;
    |        ^^^^
