@@ -3,21 +3,21 @@ source: tests/test_debug.rs
 expression: "format!(\"{report:#?}\")"
 ---
 context B
-├╴ at tests/test_debug.rs:329:14
-├╴ printable C
+├╴at tests/test_debug.rs:321:14
+├╴printable C
 │
 ├─▶ A multiline
 │   context that might have
 │   a bit more info
-│   ├╴ at tests/test_debug.rs:326:14
-│   ├╴ printable B
-│   ╰╴ 1 additional opaque attachment
+│   ├╴at tests/test_debug.rs:318:14
+│   ├╴printable B
+│   ╰╴1 additional opaque attachment
 │
 ╰─▶ A multiline
     context that might have
     a bit more info
-    ├╴ at tests/test_debug.rs:325:22
-    ╰╴ backtrace (1)
+    ├╴at tests/test_debug.rs:317:22
+    ╰╴backtrace (1)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

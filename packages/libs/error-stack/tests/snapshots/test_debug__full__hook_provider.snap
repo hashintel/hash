@@ -3,14 +3,14 @@ source: tests/test_debug.rs
 expression: "format!(\"{report:?}\")"
 ---
 context D
-├╴ usize: 420
-├╴ &'static str: Invalid User Input
-├╴ at tests/test_debug.rs:597:38
+├╴usize: 420
+├╴&'static str: Invalid User Input
+├╴at tests/test_debug.rs:589:38
 │
 ╰─▶ root error
-    ├╴ at tests/common.rs:4:5
-    ├╴ backtrace (1)
-    ╰╴ span trace with 2 frames (1)
+    ├╴at tests/common.rs:4:5
+    ├╴backtrace (1)
+    ╰╴span trace with 2 frames (1)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

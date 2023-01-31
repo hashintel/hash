@@ -30,6 +30,7 @@ jobs:
         run: git pull --force --no-tags origin main:main
 
       - uses: ./.github/actions/warm-up-repo
+        if: ${{ success() || failure() }}
 
       - name: Run yarn lint:changeset
         if: ${{ (success() || failure()) && github.event.pull_request.title != 'Version Packages' }}

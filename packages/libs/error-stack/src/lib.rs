@@ -2,7 +2,7 @@
 //!
 //! [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 //! [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.63.0/nightly-2023-01-23&color=blue)][rust-version]
+//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.63.0/nightly-2023-01-30&color=blue)][rust-version]
 //! [![discord](https://img.shields.io/discord/840573247803097118)][discord]
 //!
 //! [crates.io]: https://crates.io/crates/error-stack
@@ -187,7 +187,7 @@
 //! # assert_eq!(report.request_ref::<String>().next().unwrap(), "could not read file \"test.txt\"");
 //! # assert!(report.contains::<ParseConfigError>());
 //! #
-//! # owo_colors::set_override(true);
+//! # Report::set_color_mode(error_stack::fmt::ColorMode::Color);
 //! # fn render(value: String) -> String {
 //! #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
 //! #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
@@ -411,19 +411,24 @@
 //!
 //! [`Future`]: core::future::Future
 //!
+//! ### Colored output and charset selection
+//!
+//! You can override the color support by using the [`Report::set_color_mode`]. To override the
+//! charset used, you can use [`Report::set_charset`]. The default color mode is emphasis.
+//! The default charset is `UTF-8`.
+//!
+//! To automatically detect support if your target output supports unicode and colors you can check
+//! out the `detect.rs` example.
+//!
 //! ### Feature Flags
 //!
 //!  Feature       | Description                                                        | default
 //! ---------------|--------------------------------------------------------------------|----------
 //! `std`          | Enables support for [`Error`], and, on Rust 1.65+, [`Backtrace`]   | enabled
-//! `pretty-print` | Provide color[^color] and use of unicode in [`Debug`] output       | enabled
 //! `spantrace`    | Enables automatic capturing of [`SpanTrace`]s                      | disabled
 //! `hooks`        | Enables hooks on `no-std` platforms using spin locks               | disabled
 //! `anyhow`       | Provides `into_report` to convert [`anyhow::Error`] to [`Report`]  | disabled
 //! `eyre`         | Provides `into_report` to convert [`eyre::Report`] to [`Report`]   | disabled
-//!
-//! [^color]: error-stack supports the [`NO_COLOR`](http://no-color.org/)
-//!     and `FORCE_COLOR` environment variables through the [owo-colors crate](https://crates.io/crates/owo-colors)
 //!
 //!
 //! [`set_debug_hook`]: Report::set_debug_hook
@@ -477,10 +482,7 @@ mod result;
 mod context;
 #[cfg(any(nightly, feature = "std"))]
 mod error;
-#[cfg(any(feature = "std", feature = "hooks"))]
 pub mod fmt;
-#[cfg(not(any(feature = "std", feature = "hooks")))]
-mod fmt;
 #[cfg(any(feature = "std", feature = "hooks"))]
 mod hook;
 #[cfg(feature = "serde")]

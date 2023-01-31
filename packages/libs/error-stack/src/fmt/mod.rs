@@ -99,7 +99,7 @@
 //!     .attach(Suggestion("try better next time!"))
 //!     .attach(Warning("unable to fetch resource"));
 //!
-//! # owo_colors::set_override(true);
+//! # Report::set_color_mode(error_stack::fmt::ColorMode::Color);
 //! # fn render(value: String) -> String {
 //! #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
 //! #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
@@ -142,10 +142,13 @@
 //! [`atomic`]: std::sync::atomic
 //! [`Error::provide`]: core::error::Error::provide
 
+mod charset;
+mod color;
+mod config;
 #[cfg(any(feature = "std", feature = "hooks"))]
 mod hook;
-#[cfg(feature = "pretty-print")]
 mod location;
+mod r#override;
 
 use alloc::{
     borrow::ToOwned,
@@ -161,16 +164,22 @@ use core::{
     mem,
 };
 
+pub use charset::Charset;
+pub use color::ColorMode;
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub use hook::HookContext;
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub(crate) use hook::{install_builtin_hooks, Format, Hooks};
-#[cfg(all(not(any(feature = "std", feature = "hooks")), feature = "pretty-print"))]
+#[cfg(not(any(feature = "std", feature = "hooks")))]
 use location::LocationDisplay;
-#[cfg(feature = "pretty-print")]
-use owo_colors::{OwoColorize, Stream, Style as OwOStyle};
 
-use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
+use crate::{
+    fmt::{
+        color::{Color, DisplayStyle, Style},
+        config::Config,
+    },
+    AttachmentKind, Context, Frame, FrameKind, Report,
+};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum Symbol {
@@ -200,10 +209,6 @@ enum Symbol {
 /// ])
 /// ```
 macro_rules! sym {
-    (#char '@') => {
-        Symbol::Location
-    };
-
     (#char '│') => {
         Symbol::Vertical
     };
@@ -241,61 +246,49 @@ macro_rules! sym {
     };
 }
 
-#[cfg(feature = "pretty-print")]
-impl Display for Symbol {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+impl Symbol {
+    const fn to_str_utf8(self) -> &'static str {
         match self {
-            Self::Vertical => f.write_str("│"),
-            Self::VerticalRight => f.write_str("├"),
-            Self::Horizontal => f.write_str("─"),
-            Self::HorizontalLeft => f.write_str("╴"),
-            Self::HorizontalDown => f.write_str("┬"),
-            Self::ArrowRight => f.write_str("▶"),
-            Self::CurveRight => f.write_str("╰"),
-            Self::Space => f.write_str(" "),
+            Self::Vertical => "│",
+            Self::VerticalRight => "├",
+            Self::Horizontal => "─",
+            Self::HorizontalLeft => "╴",
+            Self::HorizontalDown => "┬",
+            Self::ArrowRight => "▶",
+            Self::CurveRight => "╰",
+            Self::Space => " ",
         }
     }
-}
 
-#[cfg(not(feature = "pretty-print"))]
-impl Display for Symbol {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    const fn to_str_ascii(self) -> &'static str {
         match self {
-            Self::Vertical | Self::VerticalRight | Self::CurveRight => f.write_str("|"),
-            Self::Horizontal | Self::HorizontalDown | Self::HorizontalLeft => f.write_str("-"),
-            Self::ArrowRight => f.write_str(">"),
-            Self::Space => f.write_str(" "),
+            Self::Vertical | Self::VerticalRight | Self::CurveRight => "|",
+            Self::Horizontal | Self::HorizontalDown | Self::HorizontalLeft => "-",
+            Self::ArrowRight => ">",
+            Self::Space => " ",
+        }
+    }
+
+    const fn to_str(self, charset: Charset) -> &'static str {
+        match charset {
+            Charset::Utf8 => self.to_str_utf8(),
+            Charset::Ascii => self.to_str_ascii(),
         }
     }
 }
 
-/// Small compatability layer between owocolors regardless if we use pretty-print or not
-#[derive(Debug, Copy, Clone)]
-struct Style {
-    bold: bool,
+struct SymbolDisplay<'a> {
+    inner: &'a [Symbol],
+    charset: Charset,
 }
 
-impl Style {
-    const fn new() -> Self {
-        Self { bold: false }
-    }
-
-    const fn bold(mut self) -> Self {
-        self.bold = true;
-        self
-    }
-}
-
-#[cfg(feature = "pretty-print")]
-impl From<Style> for OwOStyle {
-    fn from(value: Style) -> Self {
-        let mut this = Self::new();
-
-        if value.bold {
-            this = this.bold();
+impl Display for SymbolDisplay<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        for symbol in self.inner {
+            f.write_str(symbol.to_str(self.charset))?;
         }
 
-        this
+        Ok(())
     }
 }
 
@@ -461,9 +454,9 @@ impl Instruction {
             },
 
             Self::Attachment { position } => match position {
-                Position::First => PreparedInstruction::Symbols(sym!('├', '╴', ' ')),
-                Position::Inner => PreparedInstruction::Symbols(sym!('├', '╴', ' ')),
-                Position::Final => PreparedInstruction::Symbols(sym!('╰', '╴', ' ')),
+                Position::First => PreparedInstruction::Symbols(sym!('├', '╴')),
+                Position::Inner => PreparedInstruction::Symbols(sym!('├', '╴')),
+                Position::Final => PreparedInstruction::Symbols(sym!('╰', '╴')),
             },
 
             // Indentation (like `|   ` or ` |  `)
@@ -472,38 +465,31 @@ impl Instruction {
     }
 }
 
-#[cfg(feature = "pretty-print")]
-impl Display for Instruction {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        match self.prepare() {
-            PreparedInstruction::Symbols(symbols) => {
-                for symbol in symbols {
-                    Display::fmt(
-                        &symbol.if_supports_color(Stream::Stdout, OwoColorize::red),
-                        fmt,
-                    )?;
-                }
-            }
-            PreparedInstruction::Content(value, &style) => Display::fmt(
-                &value.if_supports_color(Stream::Stdout, |value| value.style(style.into())),
-                fmt,
-            )?,
-        }
+struct InstructionDisplay<'a> {
+    color: ColorMode,
+    charset: Charset,
 
-        Ok(())
-    }
+    instruction: &'a Instruction,
 }
 
-#[cfg(not(feature = "pretty-print"))]
-impl Display for Instruction {
+impl Display for InstructionDisplay<'_> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        match self.prepare() {
+        match self.instruction.prepare() {
             PreparedInstruction::Symbols(symbols) => {
-                for symbol in symbols {
-                    Display::fmt(symbol, fmt)?;
+                let display = SymbolDisplay {
+                    inner: symbols,
+                    charset: self.charset,
+                };
+
+                let mut style = Style::new();
+
+                if self.color == ColorMode::Color {
+                    style.set_foreground(Color::Red, false);
                 }
+
+                Display::fmt(&style.apply(&display), fmt)?;
             }
-            PreparedInstruction::Content(value, _) => fmt.write_str(value)?,
+            PreparedInstruction::Content(value, &style) => Display::fmt(&style.apply(&value), fmt)?,
         }
 
         Ok(())
@@ -528,10 +514,24 @@ impl Line {
     }
 }
 
-impl Display for Line {
+struct LineDisplay<'a> {
+    color: ColorMode,
+    charset: Charset,
+
+    line: &'a Line,
+}
+
+impl Display for LineDisplay<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        for instruction in self.0.iter().rev() {
-            Display::fmt(instruction, f)?;
+        for instruction in self.line.0.iter().rev() {
+            Display::fmt(
+                &InstructionDisplay {
+                    color: self.color,
+                    charset: self.charset,
+                    instruction,
+                },
+                f,
+            )?;
         }
 
         Ok(())
@@ -624,7 +624,7 @@ fn partition<'a>(stack: &'a [&'a Frame]) -> (Vec<(&'a Frame, Vec<&'a Frame>)>, V
     (result, queue)
 }
 
-fn debug_context(context: &dyn Context) -> Lines {
+fn debug_context(context: &dyn Context, mode: ColorMode) -> Lines {
     context
         .to_string()
         .lines()
@@ -632,10 +632,13 @@ fn debug_context(context: &dyn Context) -> Lines {
         .enumerate()
         .map(|(idx, value)| {
             if idx == 0 {
-                Line::new().push(Instruction::Value {
-                    value,
-                    style: Style::new().bold(),
-                })
+                let mut style = Style::new();
+
+                if mode == ColorMode::Color || mode == ColorMode::Emphasis {
+                    style.set_display(DisplayStyle::new().with_bold(true));
+                }
+
+                Line::new().push(Instruction::Value { value, style })
             } else {
                 Line::new().push(Instruction::Value {
                     value,
@@ -674,9 +677,12 @@ impl Opaque {
 
 fn debug_attachments_invoke<'a>(
     frames: impl IntoIterator<Item = &'a Frame>,
-    #[cfg(any(feature = "std", feature = "hooks"))] context: &mut HookContext<Frame>,
+    config: &mut Config,
 ) -> (Opaque, Vec<String>) {
     let mut opaque = Opaque::new();
+
+    #[cfg(any(feature = "std", feature = "hooks"))]
+    let context = config.context();
 
     let body = frames
         .into_iter()
@@ -704,17 +710,12 @@ fn debug_attachments_invoke<'a>(
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
                 Some(vec![attachment.to_string()])
             }
-            #[cfg(all(not(any(feature = "std", feature = "hooks")), feature = "pretty-print"))]
+            #[cfg(not(any(feature = "std", feature = "hooks")))]
             FrameKind::Attachment(AttachmentKind::Opaque(_)) => frame
                 .downcast_ref::<core::panic::Location<'static>>()
-                .map(|location| vec![LocationDisplay::new(location).render()]),
-            #[cfg(all(
-                not(any(feature = "std", feature = "hooks")),
-                not(feature = "pretty-print")
-            ))]
-            FrameKind::Attachment(AttachmentKind::Opaque(_)) => frame
-                .downcast_ref::<core::panic::Location>()
-                .map(|location| vec![format!("at {location}")]),
+                .map(|location| {
+                    vec![LocationDisplay::new(location, config.color_mode()).to_string()]
+                }),
         })
         .flat_map(|body| {
             body.unwrap_or_else(|| {
@@ -732,15 +733,11 @@ fn debug_attachments_invoke<'a>(
 fn debug_attachments<'a>(
     position: Position,
     frames: impl IntoIterator<Item = &'a Frame>,
-    #[cfg(any(feature = "std", feature = "hooks"))] context: &mut HookContext<Frame>,
+    config: &mut Config,
 ) -> Lines {
     let last = matches!(position, Position::Final);
 
-    let (opaque, entries) = debug_attachments_invoke(
-        frames,
-        #[cfg(any(feature = "std", feature = "hooks"))]
-        context,
-    );
+    let (opaque, entries) = debug_attachments_invoke(frames, config);
     let opaque = opaque.render();
 
     // Calculate the expected end length, by adding all values that have would contribute to the
@@ -861,11 +858,7 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
         .collect()
 }
 
-fn debug_frame(
-    root: &Frame,
-    prefix: &[&Frame],
-    #[cfg(any(feature = "std", feature = "hooks"))] context: &mut HookContext<Frame>,
-) -> Vec<Lines> {
+fn debug_frame(root: &Frame, prefix: &[&Frame], config: &mut Config) -> Vec<Lines> {
     let (stack, sources) = collect(root, prefix);
     let (stack, prefix) = partition(&stack);
 
@@ -878,10 +871,13 @@ fn debug_frame(
             // each "paket" on the stack is made up of a head (guaranteed to be a `Context`) and
             // `n` attachments.
             // The attachments are rendered as direct descendants of the parent context
-            let head_context = debug_context(match head.kind() {
-                FrameKind::Context(c) => c,
-                FrameKind::Attachment(_) => unreachable!(),
-            });
+            let head_context = debug_context(
+                match head.kind() {
+                    FrameKind::Context(c) => c,
+                    FrameKind::Attachment(_) => unreachable!(),
+                },
+                config.color_mode(),
+            );
 
             // reverse all attachments, to make it more logical relative to the attachment order
             body.reverse();
@@ -905,8 +901,7 @@ fn debug_frame(
                     Position::Inner
                 },
                 once(head).chain(body),
-                #[cfg(any(feature = "std", feature = "hooks"))]
-                context,
+                config,
             );
             head_context.then(body)
         })
@@ -917,14 +912,7 @@ fn debug_frame(
         .flat_map(
             // if the group is "transparent" (has no context), it will return all it's parents
             // rendered this is why we must first flat_map.
-            |source| {
-                debug_frame(
-                    source,
-                    &prefix,
-                    #[cfg(any(feature = "std", feature = "hooks"))]
-                    context,
-                )
-            },
+            |source| debug_frame(source, &prefix, config),
         )
         .collect::<Vec<_>>();
 
@@ -944,21 +932,16 @@ fn debug_frame(
 
 impl<C> Debug for Report<C> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(any(feature = "std", feature = "hooks"))]
-        let mut context = HookContext::new(Format::new(fmt.alternate()));
+        let mut config = Config::load(fmt.alternate());
+
+        let color = config.color_mode();
+        let charset = config.charset();
 
         #[cfg_attr(not(any(feature = "std", feature = "hooks")), allow(unused_mut))]
         let mut lines = self
             .current_frames()
             .iter()
-            .flat_map(|frame| {
-                debug_frame(
-                    frame,
-                    &[],
-                    #[cfg(any(feature = "std", feature = "hooks"))]
-                    context.cast(),
-                )
-            })
+            .flat_map(|frame| debug_frame(frame, &[], &mut config))
             .enumerate()
             .flat_map(|(idx, lines)| {
                 if idx == 0 {
@@ -972,13 +955,21 @@ impl<C> Debug for Report<C> {
                         .into_vec()
                 }
             })
-            .map(|line| line.to_string())
+            .map(|line| {
+                LineDisplay {
+                    color,
+                    charset,
+                    line: &line,
+                }
+                .to_string()
+            })
             .collect::<Vec<_>>()
             .join("\n");
 
         #[cfg(any(feature = "std", feature = "hooks"))]
         {
-            let appendix = context
+            let appendix = config
+                .context::<Frame>()
                 .appendix()
                 .iter()
                 .map(
@@ -993,12 +984,9 @@ impl<C> Debug for Report<C> {
                 lines.reserve(44 + appendix.len());
 
                 lines.push_str("\n\n");
-                #[cfg(feature = "pretty-print")]
-                {
+                if charset == Charset::Utf8 {
                     lines.push_str(&"━".repeat(40));
-                }
-                #[cfg(not(feature = "pretty-print"))]
-                {
+                } else {
                     lines.push_str(&"=".repeat(40));
                 }
 

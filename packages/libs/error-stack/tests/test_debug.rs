@@ -3,9 +3,10 @@
 // unsafe code.
 #![cfg(not(miri))]
 #![cfg_attr(all(nightly, feature = "std"), feature(error_generic_member_access))]
-
 mod common;
+
 use common::*;
+use error_stack::fmt::{Charset, ColorMode};
 #[allow(unused_imports)]
 use error_stack::Report;
 use insta::assert_snapshot;
@@ -38,18 +39,15 @@ fn setup_backtrace() {
     std::env::set_var("RUST_LIB_BACKTRACE", "1");
 }
 
-#[cfg(feature = "pretty-print")]
 fn setup_color() {
-    owo_colors::set_override(false);
+    Report::set_color_mode(ColorMode::None);
 }
-
-#[cfg(not(feature = "pretty-print"))]
-fn setup_color() {}
 
 fn setup() {
     setup_tracing();
     setup_backtrace();
     setup_color();
+    Report::set_charset(Charset::Utf8);
 }
 
 fn snap_suffix() -> String {
@@ -64,11 +62,6 @@ fn snap_suffix() -> String {
     #[cfg(all(rust_1_65, feature = "std"))]
     if supports_backtrace() {
         suffix.push("backtrace");
-    }
-
-    #[cfg(feature = "pretty-print")]
-    {
-        suffix.push("pretty-print");
     }
 
     suffix.join("-")
@@ -239,8 +232,7 @@ fn sources_nested_alternate() {
 #[cfg(all(
     rust_1_65,
     any(feature = "std", feature = "hooks"),
-    feature = "spantrace",
-    feature = "pretty-print"
+    feature = "spantrace"
 ))]
 mod full {
     //! Why so many cfg guards?
@@ -606,6 +598,36 @@ mod full {
             context.push_body(format!("&'static str: {value}"));
         });
 
+        assert_snapshot!(format!("{report:?}"));
+    }
+
+    #[test]
+    fn charset_ascii() {
+        let _guard = prepare(false);
+
+        Report::set_charset(Charset::Ascii);
+
+        let report = create_report();
+        assert_snapshot!(format!("{report:?}"));
+    }
+
+    #[test]
+    fn color_mode_emphasis() {
+        let _guard = prepare(false);
+
+        Report::set_color_mode(ColorMode::Emphasis);
+
+        let report = create_report();
+        assert_snapshot!(format!("{report:?}"));
+    }
+
+    #[test]
+    fn color_mode_color() {
+        let _guard = prepare(false);
+
+        Report::set_color_mode(ColorMode::Color);
+
+        let report = create_report();
         assert_snapshot!(format!("{report:?}"));
     }
 }

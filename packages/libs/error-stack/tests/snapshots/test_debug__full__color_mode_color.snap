@@ -2,13 +2,10 @@
 source: tests/test_debug.rs
 expression: "format!(\"{report:?}\")"
 ---
-root error
-├╴at tests/common.rs:4:5
-├╴backtrace (1)
-├╴span trace with 2 frames (1)
-├╴-1
-├╴-2
-╰╴-3
+[1mroot error[22m
+[31m├╴[39mat [90mtests/common.rs:4:5[39m
+[31m├╴[39mbacktrace (1)
+[31m╰╴[39mspan trace with 2 frames (1)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
