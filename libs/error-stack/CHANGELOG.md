@@ -6,7 +6,7 @@ All notable changes to `error-stack` will be documented in this file.
 
 - Support for [`defmt`](https://defmt.ferrous-systems.com)
 
-## [0.3.0](https://github.com/hashintel/hash/tree/error-stack%400.3.0/libs/error-stack) - 2023-31-01
+## [0.3.0](https://github.com/hashintel/hash/tree/error-stack%400.3.0/libs/error-stack) - 2023-02-01
 
 ### Breaking Changes
 
