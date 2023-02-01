@@ -11,7 +11,7 @@ date: "2022-10-03"
 
 Back in June [we announced the initial public release](https://hash.dev/blog/announcing-error-stack) of `error-stack`, our context-aware Rust error library. We developed this to help address a lot of challenges we encountered when implementing error handling in our [simulation engine]. In the time since then we’ve started using it in our entity-graph query layer that we’re building as a datastore for [HASH]. Across that development we’ve learned a lot of lessons, and in joint efforts with open-source contributors we’re ready to release a new version of the library.
 
-- [View the crate on GitHub >](https://github.com/hashintel/hash/tree/main/packages/libs/error-stack)
+- [View the crate on GitHub >](https://github.com/hashintel/hash/tree/main/libs/error-stack)
 
 Since our last release we’ve been fixing user-reported bugs, reviewing open-source contributor’s pull requests, and adding new features. [Version 0.2](https://crates.io/crates/error-stack) is available now and includes important changes from `std`, a completely redesigned output with new customization options, support for related errors and multiple error sources, compatibility with `anyhow` and `eyre`, and a number of other improvements.
 
@@ -144,7 +144,7 @@ Again, a huge thanks to Bilal Mahmoud ([@indietyp](https://github.com/indietyp))
 
 We’ve made a few other improvements too:
 
-- The `error-stack` documentation has been greatly improved and we’re always open to more feedback ([create an Issue](https://github.com/hashintel/hash/tree/main/packages/libs/error-stack) or [join us in Discord](https://discord.com/invite/BPMrGAhjPh)).
+- The `error-stack` documentation has been greatly improved and we’re always open to more feedback ([create an Issue](https://github.com/hashintel/hash/tree/main/libs/error-stack) or [join us in Discord](https://discord.com/invite/BPMrGAhjPh)).
 - `Termination` has been implemented for `Report`s: it will return the `ExitCode` provided by any `Context` if present, or `ExitCode::FAILURE` will be returned.
 - Compatibility for `anyhow` and `eyre` has been added to convert their types into `Report`.
 
@@ -193,10 +193,10 @@ We’ll also be using many of the new features of `error-stack` v0.2 in our own 
 
 ## Get involved
 
-HASH, the company behind `error-stack`, is 100% committed to [open source](https://hash.dev/blog/open-source) and we’d love to work with you. Ask a question, file an issue, or open a PR on the [error-stack repo](https://github.com/hashintel/hash/tree/main/packages/libs/error-stack), or any of our other projects. Also check out the [Block Protocol](https://github.com/blockprotocol/blockprotocol), a new standard for building composable interfaces and interoperable types for a more linked and open semantic web.
+HASH, the company behind `error-stack`, is 100% committed to [open source](https://hash.dev/blog/open-source) and we’d love to work with you. Ask a question, file an issue, or open a PR on the [error-stack repo](https://github.com/hashintel/hash/tree/main/libs/error-stack), or any of our other projects. Also check out the [Block Protocol](https://github.com/blockprotocol/blockprotocol), a new standard for building composable interfaces and interoperable types for a more linked and open semantic web.
 
 ### **License**
 
 This crate is published under the MIT License.
 
-[**View and star `error-stack` on GitHub >**](https://github.com/hashintel/hash/tree/main/packages/libs/error-stack)
+[**View and star `error-stack` on GitHub >**](https://github.com/hashintel/hash/tree/main/libs/error-stack)
