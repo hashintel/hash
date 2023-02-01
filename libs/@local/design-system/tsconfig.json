@@ -3,7 +3,8 @@
   "compilerOptions": {
     "jsx": "preserve",
     "lib": ["dom", "dom.iterable", "esnext"],
-    "noEmit": true
+    "noEmit": true,
+    "outDir": "dist"
   },
   "include": ["assets.d.ts", "./src/"]
 }
