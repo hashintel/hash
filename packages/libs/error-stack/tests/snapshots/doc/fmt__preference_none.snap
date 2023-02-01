@@ -1,9 +1,0 @@
-invalid input parameter
-├╴ at src/fmt/color.rs:24:5
-├╴ backtrace (1)
-╰╴ suggestion: oh no, try again
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-backtrace no. 1
-  [redacted]

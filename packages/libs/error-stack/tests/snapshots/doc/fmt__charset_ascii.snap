@@ -1,9 +1,0 @@
-<b>invalid input parameter</b>
-<b>|- </b><i>src/fmt/charset.rs:21:5</i>
-<b>|- </b>backtrace (1)
-<b>|- </b>suggestion: oh no, try again
-
-========================================
-
-backtrace no. 1
-  [redacted]

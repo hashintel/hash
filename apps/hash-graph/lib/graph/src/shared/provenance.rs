@@ -39,9 +39,9 @@ macro_rules! define_provenance_id {
             }
         }
 
-        impl ToSchema for $name {
-            fn schema() -> openapi::RefOr<openapi::Schema> {
-                AccountId::schema()
+        impl ToSchema<'_> for $name {
+            fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+                (stringify!($name), AccountId::schema().1)
             }
         }
     };

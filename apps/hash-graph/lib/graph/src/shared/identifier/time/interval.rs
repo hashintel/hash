@@ -1,4 +1,4 @@
-use std::{error::Error, ops::Bound};
+use std::{error::Error, fmt, ops::Bound};
 
 use derivative::Derivative;
 use interval_ops::{Interval, IntervalBounds, LowerBound, UpperBound};
@@ -9,7 +9,7 @@ use utoipa::{openapi, ToSchema};
 
 use crate::identifier::time::Timestamp;
 
-#[derive(Derivative, Serialize, Deserialize)]
+#[derive(Derivative, Serialize, Deserialize, ToSchema)]
 #[derivative(
     Debug(bound = ""),
     Clone(bound = ""),
@@ -96,35 +96,6 @@ impl<A> UpperBound<Timestamp<A>> for TimeIntervalBound<A> {
     }
 }
 
-impl<A> ToSchema for TimeIntervalBound<A> {
-    fn schema() -> openapi::RefOr<openapi::Schema> {
-        openapi::Schema::OneOf(
-            openapi::OneOfBuilder::new()
-                .item(
-                    openapi::ObjectBuilder::new()
-                        .property(
-                            "bound",
-                            openapi::ObjectBuilder::new().enum_values(Some(["unbounded"])),
-                        )
-                        .required("bound"),
-                )
-                .item(
-                    openapi::ObjectBuilder::new()
-                        .property(
-                            "bound",
-                            openapi::ObjectBuilder::new()
-                                .enum_values(Some(["included", "excluded"])),
-                        )
-                        .required("bound")
-                        .property("timestamp", Timestamp::<A>::schema())
-                        .required("timestamp"),
-                )
-                .build(),
-        )
-        .into()
-    }
-}
-
 #[derive(Derivative, Serialize, Deserialize)]
 #[derivative(
     Debug(bound = ""),
@@ -139,37 +110,45 @@ pub struct UnresolvedTimeInterval<A> {
     pub end: Option<TimeIntervalBound<A>>,
 }
 
-impl<A> ToSchema for UnresolvedTimeInterval<A> {
-    fn schema() -> openapi::RefOr<openapi::Schema> {
-        openapi::ObjectBuilder::new()
-            .property(
-                "start",
-                openapi::Schema::OneOf(
-                    openapi::OneOfBuilder::new()
-                        .item(openapi::Ref::from_schema_name("TimeIntervalBound"))
-                        .nullable(true)
-                        .build(),
-                ),
-            )
-            .required("start")
-            .property(
-                "end",
-                openapi::Schema::OneOf(
-                    openapi::OneOfBuilder::new()
-                        .item(openapi::Ref::from_schema_name("TimeIntervalBound"))
-                        .nullable(true)
-                        .build(),
-                ),
-            )
-            .required("end")
-            .build()
-            .into()
+// Utoipa is able to generate this schema automatically, but instead of using `.nullable(true)` it
+// left the `start` and `end` properties out of the `required` list.
+impl<A> ToSchema<'_> for UnresolvedTimeInterval<A> {
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "UnresolvedTimeInterval",
+            openapi::ObjectBuilder::new()
+                .property(
+                    "start",
+                    openapi::Schema::OneOf(
+                        openapi::OneOfBuilder::new()
+                            .item(openapi::Ref::from_schema_name(
+                                TimeIntervalBound::<A>::schema().0,
+                            ))
+                            .nullable(true)
+                            .build(),
+                    ),
+                )
+                .required("start")
+                .property(
+                    "end",
+                    openapi::Schema::OneOf(
+                        openapi::OneOfBuilder::new()
+                            .item(openapi::Ref::from_schema_name(
+                                TimeIntervalBound::<A>::schema().0,
+                            ))
+                            .nullable(true)
+                            .build(),
+                    ),
+                )
+                .required("end")
+                .build()
+                .into(),
+        )
     }
 }
 
 #[derive(Derivative, Serialize, Deserialize, ToSchema)]
 #[derivative(
-    Debug(bound = ""),
     Clone(bound = ""),
     PartialEq(bound = ""),
     Eq(bound = ""),
@@ -193,6 +172,22 @@ impl<A> TimeInterval<A> {
     #[must_use]
     pub fn into_interval_bounds(self) -> IntervalBounds<Timestamp<A>> {
         IntervalBounds::from_range((Bound::from(self.start), Bound::from(self.end)))
+    }
+}
+
+impl<A> fmt::Debug for TimeInterval<A> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.start {
+            TimeIntervalBound::Unbounded => write!(fmt, "(-∞, ")?,
+            TimeIntervalBound::Included(start) => write!(fmt, "[{start}, ")?,
+            TimeIntervalBound::Excluded(start) => write!(fmt, "({start}, ")?,
+        }
+        match self.end {
+            TimeIntervalBound::Unbounded => write!(fmt, "+∞)")?,
+            TimeIntervalBound::Included(end) => write!(fmt, "{end}]")?,
+            TimeIntervalBound::Excluded(end) => write!(fmt, "{end})")?,
+        }
+        Ok(())
     }
 }
 

@@ -80,38 +80,23 @@ impl<'de> Deserialize<'de> for EntityId {
     }
 }
 
-impl ToSchema for EntityId {
-    fn schema() -> openapi::RefOr<openapi::Schema> {
-        openapi::Schema::Object(openapi::schema::Object::with_type(
-            openapi::SchemaType::String,
-        ))
-        .into()
+impl ToSchema<'_> for EntityId {
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "EntityId",
+            openapi::Schema::Object(openapi::schema::Object::with_type(
+                openapi::SchemaType::String,
+            ))
+            .into(),
+        )
     }
 }
 
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityVersion {
     decision_time: VersionInterval<DecisionTime>,
     transaction_time: VersionInterval<TransactionTime>,
-}
-
-impl ToSchema for EntityVersion {
-    fn schema() -> openapi::RefOr<openapi::Schema> {
-        openapi::ObjectBuilder::new()
-            .property(
-                "decisionTime",
-                openapi::Ref::from_schema_name("VersionInterval"),
-            )
-            .required("decisionTime")
-            .property(
-                "transactionTime",
-                openapi::Ref::from_schema_name("VersionInterval"),
-            )
-            .required("transactionTime")
-            .build()
-            .into()
-    }
 }
 
 impl EntityVersion {

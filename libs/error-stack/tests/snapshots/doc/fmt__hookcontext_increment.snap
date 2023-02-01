@@ -1,0 +1,10 @@
+<b>invalid input parameter</b>
+├╴at <i>src/fmt/hook.rs:17:14</i>
+├╴backtrace (1)
+├╴suggestion 0: use a file you can read next time!
+╰╴suggestion 1: don&#39;t press any random keys!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+backtrace no. 1
+  [redacted]
