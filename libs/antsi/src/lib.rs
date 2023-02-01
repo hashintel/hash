@@ -64,6 +64,13 @@ pub enum BasicColor {
     White,
 }
 
+impl BasicColor {
+    #[must_use]
+    pub const fn bright(self) -> BrightColor {
+        BrightColor(self)
+    }
+}
+
 /// Bright color variants
 ///
 /// ## History
@@ -102,8 +109,9 @@ pub struct BrightColor(BasicColor);
 
 /// Extended color support
 ///
-/// 0 - 7 correspond to the [`BasicColor`] variants, while 8 - 15 correspond to their
-/// [`BrightColor`] counterpart.
+/// Usually `0` - `7` correspond to the [`BasicColor`] variants, `8` - `15` correspond to their
+/// [`BrightColor`] counterpart, `232` - `255` are a grayscale from black to white while all others
+/// map a color cube.
 ///
 /// ## Support
 ///
@@ -144,6 +152,36 @@ pub struct BrightColor(BasicColor);
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct IndexedColor(u8);
 
+impl From<BasicColor> for IndexedColor {
+    fn from(value: BasicColor) -> Self {
+        match value {
+            BasicColor::Black => Self(0),
+            BasicColor::Red => Self(1),
+            BasicColor::Green => Self(2),
+            BasicColor::Yellow => Self(3),
+            BasicColor::Blue => Self(4),
+            BasicColor::Magenta => Self(5),
+            BasicColor::Cyan => Self(6),
+            BasicColor::White => Self(7),
+        }
+    }
+}
+
+impl From<BrightColor> for IndexedColor {
+    fn from(value: BrightColor) -> Self {
+        match value {
+            BrightColor(BasicColor::Black) => Self(8),
+            BrightColor(BasicColor::Red) => Self(9),
+            BrightColor(BasicColor::Green) => Self(10),
+            BrightColor(BasicColor::Yellow) => Self(11),
+            BrightColor(BasicColor::Blue) => Self(12),
+            BrightColor(BasicColor::Magenta) => Self(13),
+            BrightColor(BasicColor::Cyan) => Self(14),
+            BrightColor(BasicColor::White) => Self(15),
+        }
+    }
+}
+
 /// Truecolor 24-bit RGB support
 ///
 /// Allows to set the background and foreground color to any arbitrary color selected
@@ -179,14 +217,45 @@ pub struct RgbColor {
     b: u8,
 }
 
+impl RgbColor {
+    #[must_use]
+    pub const fn new(r: u8, g: u8, b: u8) -> Self {
+        Self { r, g, b }
+    }
+}
+
 // TODO: Default
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Color {
     Basic(BasicColor),
     Bright(BrightColor),
-    XTerm(IndexedColor),
-    Truecolor(RgbColor),
+    Indexed(IndexedColor),
+    Rgb(RgbColor),
+}
+
+impl From<BasicColor> for Color {
+    fn from(value: BasicColor) -> Self {
+        Self::Basic(value)
+    }
+}
+
+impl From<BrightColor> for Color {
+    fn from(value: BrightColor) -> Self {
+        Self::Bright(value)
+    }
+}
+
+impl From<IndexedColor> for Color {
+    fn from(value: IndexedColor) -> Self {
+        Self::Indexed(value)
+    }
+}
+
+impl From<RgbColor> for Color {
+    fn from(value: RgbColor) -> Self {
+        Self::Rgb(value)
+    }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -203,23 +272,229 @@ pub enum FontFamily {
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct Font {
-    weight: FontWeight,
+pub enum Underline {
+    Single,
+    Double,
+}
 
-    // Value layout: `XXIU_BRHS`
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum Blinking {
+    Slow,
+    Fast,
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Default)]
+pub struct Font {
+    weight: Option<FontWeight>,
+    family: Option<FontFamily>,
+
+    // Value layout: `XXXX_IRHS`
     //
     // * `I`: `italic`
-    // * `U`: `underline`
-    // * `B`: `blinking`
     // * `R`: `inverse/reverse`
     // * `H`: `hidden/invisible`
     // * `S`: `strikethrough`
     style: u8,
 
-    family: FontFamily,
+    underline: Option<Underline>,
+    blinking: Option<Blinking>,
+}
+
+impl Font {
+    #[must_use]
+    pub const fn new() -> Self {
+        Self {
+            weight: None,
+            family: None,
+            style: 0x00,
+            underline: None,
+            blinking: None,
+        }
+    }
+
+    pub fn set_weight(&mut self, weight: FontWeight) -> &mut Self {
+        self.weight = Some(weight);
+
+        self
+    }
+
+    #[must_use]
+    pub const fn with_weight(mut self, weight: FontWeight) -> Self {
+        self.weight = Some(weight);
+
+        self
+    }
+
+    pub fn set_family(&mut self, family: FontFamily) -> &mut Self {
+        self.family = Some(family);
+
+        self
+    }
+
+    #[must_use]
+    pub const fn with_family(mut self, family: FontFamily) -> Self {
+        self.family = Some(family);
+
+        self
+    }
+
+    pub fn set_underline(&mut self, underline: Underline) -> &mut Self {
+        self.underline = Some(underline);
+
+        self
+    }
+
+    #[must_use]
+    pub const fn with_underline(mut self, underline: Underline) -> Self {
+        self.underline = Some(underline);
+
+        self
+    }
+
+    pub fn set_blinking(&mut self, blinking: Blinking) -> &mut Self {
+        self.blinking = Some(blinking);
+
+        self
+    }
+
+    #[must_use]
+    pub const fn with_blinking(mut self, blinking: Blinking) -> Self {
+        self.blinking = Some(blinking);
+
+        self
+    }
+
+    pub fn set_strikethrough(&mut self) -> &mut Self {
+        self.style |= 1 << 0;
+
+        self
+    }
+
+    #[must_use]
+    pub const fn with_strikethrough(mut self) -> Self {
+        self.style |= 1 << 0;
+
+        self
+    }
+
+    pub fn set_inverse(&mut self) -> &mut Self {
+        self.style |= 1 << 1;
+
+        self
+    }
+
+    #[must_use]
+    pub const fn with_inverse(mut self) -> Self {
+        self.style |= 1 << 1;
+
+        self
+    }
+
+    pub fn set_hidden(&mut self) -> &mut Self {
+        self.style |= 1 << 2;
+
+        self
+    }
+
+    #[must_use]
+    pub const fn with_hidden(mut self) -> Self {
+        self.style |= 1 << 2;
+
+        self
+    }
+
+    pub fn set_italic(&mut self) -> &mut Self {
+        self.style |= 1 << 3;
+
+        self
+    }
+
+    #[must_use]
+    pub const fn with_italic(mut self) -> Self {
+        self.style |= 1 << 3;
+
+        self
+    }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub struct Foreground(Color);
+
+impl Foreground {
+    #[must_use]
+    pub const fn new(color: Color) -> Self {
+        Self(color)
+    }
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub struct Background(Color);
+
+impl Background {
+    #[must_use]
+    pub const fn new(color: Color) -> Self {
+        Self(color)
+    }
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Default)]
 pub struct Style {
     font: Font,
+
+    foreground: Option<Foreground>,
+    background: Option<Background>,
+}
+
+impl Style {
+    #[must_use]
+    pub const fn new() -> Self {
+        Self {
+            font: Font::new(),
+            foreground: None,
+            background: None,
+        }
+    }
+
+    pub fn font_mut(&mut self) -> &mut Font {
+        &mut self.font
+    }
+
+    #[must_use]
+    pub const fn with_font(mut self, font: Font) -> Self {
+        self.font = font;
+
+        self
+    }
+
+    pub fn set_font(&mut self, font: Font) -> &mut Self {
+        self.font = font;
+
+        self
+    }
+
+    #[must_use]
+    pub const fn with_foreground(mut self, color: Color) -> Self {
+        self.foreground = Some(Foreground::new(color));
+
+        self
+    }
+
+    pub fn set_foreground(&mut self, color: Color) -> &mut Self {
+        self.foreground = Some(Foreground::new(color));
+
+        self
+    }
+
+    #[must_use]
+    pub const fn with_background(mut self, color: Color) -> Self {
+        self.background = Some(Background::new(color));
+
+        self
+    }
+
+    pub fn set_background(&mut self, color: Color) -> &mut Self {
+        self.background = Some(Background::new(color));
+
+        self
+    }
 }
