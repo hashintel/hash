@@ -4,29 +4,23 @@ import com.intellij.ide.projectView.PresentationData
 import com.intellij.ide.projectView.ViewSettings
 import com.intellij.ide.projectView.impl.nodes.PsiFileNode
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiFile
 import com.intellij.ui.JBColor
+import com.intellij.ui.SimpleTextAttributes
 import java.awt.Color
+
+val UserDataKey = Key.create<Boolean>("ai.hash.rustextra.projectView.moduleFileNode");
 
 class ModuleFileNode(project: Project, value: PsiFile, viewSettings: ViewSettings?) : PsiFileNode(project, value, viewSettings) {
 
     override fun createPresentation(): PresentationData {
-        println("HI!");
         val previous =  super.createPresentation()
         previous.forcedTextForeground = JBColor.GRAY
-        previous.background = JBColor.YELLOW;
-        previous.presentableText = "../" + previous.presentableText;
+        previous.addText("../${value.name}", SimpleTextAttributes.REGULAR_ATTRIBUTES);
+        previous.background = JBColor.PanelBackground.brighter()
 
         return previous
-    }
-
-    override fun getHighlightColor(): Color {
-        return JBColor.YELLOW
-    }
-
-    override fun getTitle(): String? {
-        println("I am getting executed")
-        return super.getTitle()
     }
 
     override fun getWeight(): Int {
@@ -38,7 +32,9 @@ class ModuleFileNode(project: Project, value: PsiFile, viewSettings: ViewSetting
     }
 
     companion object {
-        fun fromPsiFileNode(node: PsiFileNode, settings: ViewSettings?) =
-                ModuleFileNode(node.project, node.value, settings)
+        fun fromPsiFileNode(node: PsiFileNode, settings: ViewSettings?): ModuleFileNode {
+            node.value.putUserData(UserDataKey, true);
+            return ModuleFileNode(node.project, node.value, settings)
+        }
     }
 }
