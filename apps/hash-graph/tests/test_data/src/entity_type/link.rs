@@ -1,0 +1,9 @@
+pub const ACQUAINTANCE_OF_V1: &str = include_str!("link/acquaintance_of.json");
+pub const CONTAINS_V1: &str = include_str!("link/contains.json");
+pub const FRIEND_OF_V1: &str = include_str!("link/friend_of.json");
+pub const LOCATED_AT_V1: &str = include_str!("link/located_at.json");
+pub const OWNS_V1: &str = include_str!("link/owns_v1.json");
+pub const OWNS_V2: &str = include_str!("link/owns_v2.json");
+pub const SUBMITTED_BY_V1: &str = include_str!("link/submitted_by.json");
+pub const TENANT_V1: &str = include_str!("link/tenant.json");
+pub const WRITTEN_BY_V1: &str = include_str!("link/written_by.json");
