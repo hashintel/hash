@@ -350,7 +350,7 @@ jobs:
 
   merging-enabled:
     name: Merging enabled
-    needs: [setup, lint, test, coverage, docker, publish]
+    needs: [setup, lint, test, coverage, docker]
     if: always()
     runs-on: ubuntu-latest
     steps:
