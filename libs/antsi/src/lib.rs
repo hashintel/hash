@@ -1,3 +1,4 @@
+// Good reference to begin with: https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
 #![no_std]
 #![cfg_attr(
     nightly,
@@ -83,6 +84,18 @@ pub struct Bright(Color);
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct XTerm(u8);
 
+/// True color support aka 24-bit RGB
+///
+/// Allows to set the background and foreground color to any arbitrary color selected
+///
+/// ## Support
+///
+/// More modern terminals like [alacritty](https://alacritty.org/) or [kitty](https://sw.kovidgoyal.net/kitty/)
+/// support RGB colors, this support is often not very well documented, but one can often use the
+/// `COLORTERM` environment variable to inspect if truecolor is supported. (the value of the
+/// variable will be `truecolor`). Other terminals like `xterm` do **not** support true-color.
+/// To programmatically check for support it is advised to use a crate
+/// similar to [`supports-color`](https://lib.rs/crates/supports-color)
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Truecolor {
     r: u8,
