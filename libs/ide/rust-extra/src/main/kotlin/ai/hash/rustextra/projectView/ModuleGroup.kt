@@ -1,15 +1,11 @@
-package ai.hash.rustextra
+package ai.hash.rustextra.projectView
 
-import com.intellij.ide.projectView.PresentationData
 import com.intellij.ide.projectView.TreeStructureProvider
 import com.intellij.ide.projectView.ViewSettings
 import com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode
 import com.intellij.ide.projectView.impl.nodes.PsiFileNode
 import com.intellij.ide.util.treeView.AbstractTreeNode
 import com.intellij.openapi.fileTypes.LanguageFileType
-import com.intellij.psi.PsiDirectory
-import com.intellij.psi.PsiFile
-import java.awt.Color
 
 class ModuleGroup: TreeStructureProvider {
     override fun modify(parent: AbstractTreeNode<*>, children: MutableCollection<AbstractTreeNode<*>>, settings: ViewSettings?): MutableCollection<AbstractTreeNode<*>> {

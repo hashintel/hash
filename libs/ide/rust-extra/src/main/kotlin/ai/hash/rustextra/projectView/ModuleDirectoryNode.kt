@@ -1,4 +1,4 @@
-package ai.hash.rustextra
+package ai.hash.rustextra.projectView
 
 import com.intellij.ide.projectView.PresentationData
 import com.intellij.ide.projectView.ViewSettings
