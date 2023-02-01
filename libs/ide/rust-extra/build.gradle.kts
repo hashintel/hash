@@ -1,3 +1,5 @@
+import org.gradle.api.JavaVersion.VERSION_17
+
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "1.7.20"
@@ -14,25 +16,31 @@ repositories {
 // Configure Gradle IntelliJ Plugin
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
 intellij {
-    version.set("2022.1.4")
-    type.set("IC") // Target IDE Platform
+    version.set("2022.3.2")
+    type.set("CL") // Target IDE Platform
 
-    plugins.set(listOf(/* Plugin Dependencies */))
+    plugins.set(listOf("org.rust.lang:0.4.187.5175-223"))
+}
+
+configure<JavaPluginExtension> {
+    sourceCompatibility = VERSION_17
+    targetCompatibility = VERSION_17
 }
 
 tasks {
-    // Set the JVM compatibility versions
-    withType<JavaCompile> {
-        sourceCompatibility = "11"
-        targetCompatibility = "11"
-    }
     withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-        kotlinOptions.jvmTarget = "11"
+        kotlinOptions {
+            jvmTarget = VERSION_17.toString()
+            languageVersion = "1.8"
+            // see https://plugins.jetbrains.com/docs/intellij/using-kotlin.html#kotlin-standard-library
+            apiVersion = "1.7"
+            freeCompilerArgs = listOf("-Xjvm-default=all")
+        }
     }
 
     patchPluginXml {
-        sinceBuild.set("221")
-        untilBuild.set("231.*")
+        sinceBuild.set("223.7126")
+        untilBuild.set("223.*")
     }
 
     signPlugin {

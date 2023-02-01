@@ -21,10 +21,11 @@
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
+    <depends>org.rust.lang</depends>
 
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
-        <treeStructureProvider implementation="ai.hash.rustextra.projectView.ModuleGroup"/>
+        <treeStructureProvider implementation="ai.hash.rustextra.projectView.ModuleGroup" order="last, after org.rust.lang"/>
     </extensions>
 </idea-plugin>
