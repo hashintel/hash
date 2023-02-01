@@ -168,7 +168,7 @@ use crate::{
 ///     # let report = fake_main().unwrap_err();
 ///     # assert!(report.contains::<ConfigError>());
 ///     # assert_eq!(report.downcast_ref::<RuntimeError>(), Some(&RuntimeError::InvalidConfig(PathBuf::from("./path/to/config.file"))));
-///     # Report::set_color_mode(error_stack::fmt::ColorMode::Color);
+///     # Report::set_color_mode(error_stack::fmt::ColorMode::Emphasis);
 ///     # #[cfg(rust_1_65)]
 ///     # fn render(value: String) -> String {
 ///     #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();

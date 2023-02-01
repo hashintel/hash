@@ -95,7 +95,43 @@ fn main() -> Result<(), ExperimentError> {
 
 This will most likely result in an error and print
 
-![](https://github.com/hashintel/hash/blob/8ed55bd73045fba83a7ea2e199b31d5b829537b9/packages/libs/error-stack/assets/full.png?raw=true)
+<pre>
+Error: <b>experiment error: could not run experiment</b>
+&#x251C;&#x2574;at <i>examples/demo.rs:51:18</i>
+&#x251C;&#x2574;unable to set up experiments
+&#x2502;
+&#x251C;&#x2500;&#x25B6; <b>invalid experiment description</b>
+&#x2502;   &#x251C;&#x2574;at <i>examples/demo.rs:21:10</i>
+&#x2502;   &#x2570;&#x2574;experiment 2 could not be parsed
+&#x2502;
+&#x2570;&#x2500;&#x25B6; <b>invalid digit found in string</b>
+    &#x251C;&#x2574;at <i>examples/demo.rs:19:10</i>
+    &#x251C;&#x2574;backtrace with 31 frames (1)
+    &#x2570;&#x2574;&quot;3o&quot; could not be parsed as experiment
+
+&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;
+
+backtrace no. 1
+   0: std::backtrace_rs::backtrace::libunwind::trace
+             at /rustc/e972bc8083d5228536dfd42913c8778b6bb04c8e/library/std/src/../../backtrace/src/backtrace/libunwind.rs:93:5
+   1: std::backtrace_rs::backtrace::trace_unsynchronized
+             at /rustc/e972bc8083d5228536dfd42913c8778b6bb04c8e/library/std/src/../../backtrace/src/backtrace/mod.rs:66:5
+   2: std::backtrace::Backtrace::create
+             at /rustc/e972bc8083d5228536dfd42913c8778b6bb04c8e/library/std/src/backtrace.rs:332:13
+   3: core::ops::function::FnOnce::call_once
+             at /rustc/e972bc8083d5228536dfd42913c8778b6bb04c8e/library/core/src/ops/function.rs:250:5
+   4: core::bool::&lt;impl bool&gt;::then
+             at /rustc/e972bc8083d5228536dfd42913c8778b6bb04c8e/library/core/src/bool.rs:71:24
+   5: error_stack::report::Report&lt;C&gt;::from_frame
+             at ./src/report.rs:288:25
+   6: error_stack::report::Report&lt;C&gt;::new
+             at ./src/report.rs:274:9
+   7: error_stack::context::&lt;impl core::convert::From&lt;C&gt; for error_stack::report::Report&lt;C&gt;&gt;::from
+             at ./src/context.rs:83:9
+   8: &lt;core::result::Result&lt;T,E&gt; as error_stack::result::IntoReport&gt;::into_report
+             at ./src/result.rs:203:31
+   (<b>For this example:</b> additional frames have been removed)
+</pre>
 
 ## Usage
 

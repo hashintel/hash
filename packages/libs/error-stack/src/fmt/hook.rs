@@ -119,7 +119,7 @@ crate::hook::context::impl_hook_context! {
     ///     .attach(HttpResponseStatusCode(501))
     ///     .attach(Suggestion("try better next time!"));
     ///
-    /// # Report::set_color_mode(error_stack::fmt::ColorMode::Color);
+    /// # Report::set_color_mode(error_stack::fmt::ColorMode::Emphasis);
     /// # fn render(value: String) -> String {
     /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
     /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
@@ -199,7 +199,7 @@ crate::hook::context::impl_hook_context! {
     ///     .attach(Computation(2))
     ///     .attach(Computation(3));
     ///
-    /// # Report::set_color_mode(error_stack::fmt::ColorMode::Color);
+    /// # Report::set_color_mode(error_stack::fmt::ColorMode::Emphasis);
     /// # fn render(value: String) -> String {
     /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
     /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
@@ -285,7 +285,7 @@ impl<T> HookContext<T> {
     ///         reason: "bad request - server cannot or will not process request",
     ///     });
     ///
-    /// # Report::set_color_mode(error_stack::fmt::ColorMode::Color);
+    /// # Report::set_color_mode(error_stack::fmt::ColorMode::Emphasis);
     /// # fn render(value: String) -> String {
     /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
     /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
@@ -332,7 +332,7 @@ impl<T> HookContext<T> {
     /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
     ///     .attach(Suggestion("try better next time"));
     ///
-    /// # Report::set_color_mode(error_stack::fmt::ColorMode::Color);
+    /// # Report::set_color_mode(error_stack::fmt::ColorMode::Emphasis);
     /// # fn render(value: String) -> String {
     /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
     /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();

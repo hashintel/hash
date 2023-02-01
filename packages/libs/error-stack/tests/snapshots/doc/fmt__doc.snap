@@ -1,10 +1,10 @@
 <b>invalid input parameter</b>
-<span style='color:#a00'>├╴</span>at <span style='color:#555'>src/fmt.rs:57:14</span>
-<span style='color:#a00'>├╴</span>backtrace (1)
-<span style='color:#a00'>├╴</span>error (404)
-<span style='color:#a00'>├╴</span>suggestion 1: try to be connected to the internet.
-<span style='color:#a00'>├╴</span>suggestion 2: try better next time!
-<span style='color:#a00'>╰╴</span>warning (1) occurred
+├╴at <i>src/fmt.rs:57:14</i>
+├╴backtrace (1)
+├╴error (404)
+├╴suggestion 1: try to be connected to the internet.
+├╴suggestion 2: try better next time!
+╰╴warning (1) occurred
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
