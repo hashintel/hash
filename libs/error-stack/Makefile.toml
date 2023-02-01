@@ -1,4 +1,4 @@
-extend = { path = "../../../.github/scripts/rust/Makefile.toml" }
+extend = { path = "../../.github/scripts/rust/Makefile.toml" }
 
 [env]
 COMMON_HACK_FLAGS = "--optional-deps --feature-powerset --group-features eyre,hooks --group-features anyhow,serde"
