@@ -1,3 +1,4 @@
+import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import {
   AccountId,
   extractOwnedByIdFromEntityId,
@@ -163,7 +164,7 @@ export const createPage: ImpureGraphFunction<
       : [
           await createBlock(ctx, {
             ownedById,
-            componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
+            componentId: paragraphBlockComponentId,
             blockData: await createEntity(ctx, {
               ownedById,
               properties: {

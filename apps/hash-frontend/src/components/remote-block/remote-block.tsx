@@ -80,6 +80,12 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
     ...graphProperties,
   });
 
+  useEffect(() => {
+    if (graphService) {
+      graphService.registerCallbacks(graphCallbacks);
+    }
+  }, [graphCallbacks, graphService]);
+
   useHookEmbedderService(wrapperRef, {
     callbacks: {
       // eslint-disable-next-line @typescript-eslint/require-await -- async is required upstream

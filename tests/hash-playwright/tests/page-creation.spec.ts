@@ -1,3 +1,4 @@
+import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
 import { loginUsingTempForm } from "./shared/login-using-temp-form";
@@ -110,7 +111,7 @@ test("user can create page", async ({ page }) => {
 
   await blockContextMenu
     .locator('[placeholder="Load block from URL..."]')
-    .fill("https://blockprotocol.org/blocks/@hash/code");
+    .fill(`${blockProtocolHubOrigin}/blocks/@hash/code`);
 
   /**
    * This is creating a new block above the current one, instead of switching

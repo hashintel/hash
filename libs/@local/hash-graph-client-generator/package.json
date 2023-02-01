@@ -1,0 +1,14 @@
+{
+  "name": "@local/hash-graph-client-generator",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "OpenAPI client generator helper",
+  "scripts": {
+    "generate": "openapi-generator-cli generate",
+    "validate": "openapi-generator-cli validate"
+  },
+  "devDependencies": {
+    "@openapitools/openapi-generator-cli": "2.5.2",
+    "httpyac": "5.8.2"
+  }
+}

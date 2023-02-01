@@ -7,7 +7,7 @@ use std::{
 use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Serialize};
 use type_system::uri::{BaseUri, VersionedUri};
-use utoipa::{openapi, ToSchema};
+use utoipa::ToSchema;
 
 use crate::{
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
@@ -15,7 +15,19 @@ use crate::{
 };
 
 #[derive(
-    Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, FromSql, ToSql,
+    Debug,
+    Clone,
+    Copy,
+    Hash,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    FromSql,
+    ToSql,
+    ToSchema,
 )]
 #[repr(transparent)]
 #[postgres(transparent)]
@@ -30,15 +42,6 @@ impl OntologyTypeVersion {
     #[must_use]
     pub const fn inner(&self) -> u32 {
         self.0
-    }
-}
-
-impl ToSchema for OntologyTypeVersion {
-    fn schema() -> openapi::RefOr<openapi::Schema> {
-        openapi::Schema::Object(openapi::schema::Object::with_type(
-            openapi::SchemaType::String,
-        ))
-        .into()
     }
 }
 

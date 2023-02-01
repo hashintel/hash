@@ -198,7 +198,7 @@ pub struct DataTypeWithMetadata {
 
 impl Record for DataTypeWithMetadata {
     type EditionId = OntologyTypeEditionId;
-    type QueryPath<'p> = DataTypeQueryPath;
+    type QueryPath<'p> = DataTypeQueryPath<'p>;
     type VertexId = Self::EditionId;
 
     fn edition_id(&self) -> &Self::EditionId {
@@ -243,7 +243,7 @@ pub struct PropertyTypeWithMetadata {
 
 impl Record for PropertyTypeWithMetadata {
     type EditionId = OntologyTypeEditionId;
-    type QueryPath<'p> = PropertyTypeQueryPath;
+    type QueryPath<'p> = PropertyTypeQueryPath<'p>;
     type VertexId = Self::EditionId;
 
     fn edition_id(&self) -> &Self::EditionId {
@@ -288,7 +288,7 @@ pub struct EntityTypeWithMetadata {
 
 impl Record for EntityTypeWithMetadata {
     type EditionId = OntologyTypeEditionId;
-    type QueryPath<'p> = EntityTypeQueryPath;
+    type QueryPath<'p> = EntityTypeQueryPath<'p>;
     type VertexId = Self::EditionId;
 
     fn edition_id(&self) -> &Self::EditionId {

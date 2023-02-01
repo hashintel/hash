@@ -1,6 +1,7 @@
 {
   "name": "@blocks/timer",
   "version": "0.2.0",
+  "private": true,
   "description": "Set a countdown timer to remind you when a certain amount of time has elapsed",
   "keywords": [
     "blockprotocol",
@@ -25,7 +26,7 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "block-scripts": "0.0.14",
-    "eslint": "8.32.0",
+    "eslint": "8.33.0",
     "mock-block-dock": "0.0.38",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
