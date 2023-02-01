@@ -197,14 +197,14 @@ impl From<BrightColor> for IndexedColor {
 /// ## Specification
 ///
 /// This mode was initially specified in 1994, together with [`IndexedColor`], but most terminals do
-/// not support the format outlined in [ISO 8613-6], notably, it is a lot more complete than the now
-/// used format of `ESC[38;2;{r};{g};{b}m`. The specification also featured optional color space
-/// id, tolerance and color space associated with the color space parameters.
+/// not support the format outlined in [ISO 8613-6], The standard is a lot more complete than the
+/// now used format of `ESC[38;2;{r};{g};{b}m` and featured optional color space id, tolerance and
+/// color space associated with the tolerance parameters.
 ///
 /// Only `xterm` supports this scheme, where the color space id and tolerance parameters are
 /// ignored. The specification also uses `:` as a separator instead of `;`. `xterm` was the first
 /// terminal with wide-spread adoption that implemented RGB support in 2012, and all other terminals
-/// copied their implementation. For a reason why there's a descrepency between the standard and
+/// copied their implementation. For the reason why there's a discrepancy between the standard and
 /// implementation a detailed reasoning is provided in the [xterm repo](https://github.com/ThomasDickey/xterm-snapshots/blob/8d625aa49d5fdaa055a9f26d514121f032c7b771/charproc.c#L1957-L2028)
 ///
 /// [ISO 8613-6] also specified multiple additional modes, like transparent, CMK, and CMYK support.
