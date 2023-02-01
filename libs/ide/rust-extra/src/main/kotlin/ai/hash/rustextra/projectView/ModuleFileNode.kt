@@ -8,7 +8,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.ui.JBColor
 import java.awt.Color
 
-class ModuleFileNode(project: Project, value: PsiFile, viewSettings: ViewSettings) : PsiFileNode(project, value, viewSettings) {
+class ModuleFileNode(project: Project, value: PsiFile, viewSettings: ViewSettings?) : PsiFileNode(project, value, viewSettings) {
 
     override fun createPresentation(): PresentationData {
         println("HI!");
@@ -33,8 +33,12 @@ class ModuleFileNode(project: Project, value: PsiFile, viewSettings: ViewSetting
         return 0
     }
 
+    override fun getSortKey(): Comparable<Nothing> {
+        return -2
+    }
+
     companion object {
-        fun fromPsiFileNode(node: PsiFileNode) =
-                ModuleFileNode(node.project, node.value, node.settings)
+        fun fromPsiFileNode(node: PsiFileNode, settings: ViewSettings?) =
+                ModuleFileNode(node.project, node.value, settings)
     }
 }

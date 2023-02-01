@@ -6,9 +6,10 @@ import com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode
 import com.intellij.ide.projectView.impl.nodes.PsiFileNode
 import com.intellij.ide.util.treeView.AbstractTreeNode
 import com.intellij.openapi.fileTypes.LanguageFileType
+import com.intellij.openapi.project.DumbAware
 import org.rust.lang.core.psi.RsFile
 
-class ModuleGroup : TreeStructureProvider {
+class ModuleGroup : TreeStructureProvider, DumbAware {
     override fun modify(
         parent: AbstractTreeNode<*>,
         children: MutableCollection<AbstractTreeNode<*>>,
@@ -40,7 +41,7 @@ class ModuleGroup : TreeStructureProvider {
                 val directory = directories[value.virtualFile.nameWithoutExtension];
                 if (directory != null) {
                     // highlight the file
-                    directory.addPrepend(ModuleFileNode.fromPsiFileNode(child));
+                    directory.addPrepend(ModuleFileNode.fromPsiFileNode(child, settings));
 
                     continue
                 }
