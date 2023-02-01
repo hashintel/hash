@@ -72,17 +72,17 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
 
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: ${{ matrix.directory }}
-
       - name: Install tools
         shell: bash
         run: |
           cargo install cargo-quickinstall
           cargo quickinstall cargo-make --version 0.36.3
           cargo quickinstall cargo-hack --version 0.5.26
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ matrix.directory }}
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
@@ -137,12 +137,6 @@ jobs:
             **/node_modules
           key: ${{ hashFiles('**/yarn.lock') }}
 
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: ${{ matrix.directory }}
-          key: ${{ matrix.profile }}
-
       - name: Install tools
         shell: bash
         run: |
@@ -150,6 +144,12 @@ jobs:
           cargo quickinstall cargo-make --version 0.36.3
           cargo quickinstall cargo-hack --version 0.5.26
           cargo quickinstall cargo-nextest --version 0.9.37
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ matrix.directory }}
+          key: ${{ matrix.profile }}
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
@@ -221,12 +221,6 @@ jobs:
             **/node_modules
           key: ${{ hashFiles('**/yarn.lock') }}
 
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: ${{ matrix.directory }}
-          key: ${{ matrix.profile }}
-
       - name: Install tools
         shell: bash
         run: |
@@ -234,6 +228,12 @@ jobs:
           cargo quickinstall cargo-make --version 0.36.3
           cargo quickinstall cargo-nextest --version 0.9.37
           cargo quickinstall cargo-llvm-cov --version 0.5.9
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ matrix.directory }}
+          key: ${{ matrix.profile }}
 
       # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
       - name: Install Protoc
@@ -291,60 +291,66 @@ jobs:
       - name: Ensure empty git diff
         run: git --no-pager diff --exit-code --color
 
-  publish:
-    name: publish
-    needs: setup
-    if: needs.setup.outputs.publish != '{}'
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.setup.outputs.publish) }}
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v3
-
-      - name: Install Rust toolchain
-        uses: ./.github/actions/install-rust-toolchain
-        with:
-          toolchain: ${{ matrix.toolchain }}
-
-      - name: Install tools
-        if: github.event_name == 'pull_request'
-        shell: bash
-        run: |
-          cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.36.3
-          cargo quickinstall cargo-hack --version 0.5.26
-          cargo quickinstall cargo-nextest --version 0.9.37
-
-      - name: Run lints
-        if: github.event_name == 'pull_request'
-        working-directory: ${{ matrix.directory }}
-        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} lint
-
-      - name: Run tests
-        if: github.event_name == 'pull_request'
-        working-directory: ${{ matrix.directory }}
-        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} test --no-fail-fast
-
-      - name: Login
-        run: |
-          [[ -n "${{ secrets.CARGO_REGISTRY_TOKEN }}" ]]
-          cargo login "${{ secrets.CARGO_REGISTRY_TOKEN }}"
-
-      - name: Publish (dry run)
-        if: github.event_name == 'pull_request'
-        working-directory: ${{ matrix.directory }}
-        run: cargo +${{ matrix.toolchain }} publish --all-features --dry-run
-
-      - name: Publish
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-        working-directory: ${{ matrix.directory }}
-        run: cargo +${{ matrix.toolchain }} publish --all-features
+  #  publish:
+  #    name: publish
+  #    needs: setup
+  #    if: needs.setup.outputs.publish != '{}'
+  #    runs-on: ubuntu-latest
+  #    strategy:
+  #      fail-fast: false
+  #      matrix: ${{ fromJSON(needs.setup.outputs.publish) }}
+  #    steps:
+  #      - name: Checkout source code
+  #        uses: actions/checkout@v3
+  #
+  #      - name: Install Rust toolchain
+  #        uses: ./.github/actions/install-rust-toolchain
+  #        with:
+  #          toolchain: ${{ matrix.toolchain }}
+  #
+  #      - name: Install tools
+  #        if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' }}
+  #        shell: bash
+  #        run: |
+  #          cargo install cargo-quickinstall
+  #          cargo quickinstall cargo-make --version 0.36.3
+  #          cargo quickinstall cargo-hack --version 0.5.26
+  #          cargo quickinstall cargo-nextest --version 0.9.37
+  #          cargo quickinstall cargo-semver-checks --version 0.17.0
+  #
+  #      - name: Run lints
+  #        if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' }}
+  #        working-directory: ${{ matrix.directory }}
+  #        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} lint
+  #
+  #      - name: Run tests
+  #        if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' }}
+  #        working-directory: ${{ matrix.directory }}
+  #        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} test --no-fail-fast
+  #
+  #      - name: Login
+  #        run: |
+  #          [[ -n "${{ secrets.CARGO_REGISTRY_TOKEN }}" ]]
+  #          cargo login "${{ secrets.CARGO_REGISTRY_TOKEN }}"
+  #
+  #      - name: SemVer check
+  #        if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' }}
+  #        working-directory: ${{ matrix.directory }}
+  #        run: cargo +${{ matrix.toolchain }} semver-checks check-release
+  #
+  #      - name: Publish (dry run)
+  #        if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' }}
+  #        working-directory: ${{ matrix.directory }}
+  #        run: cargo +${{ matrix.toolchain }} publish --all-features --dry-run
+  #
+  #      - name: Publish
+  #        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+  #        working-directory: ${{ matrix.directory }}
+  #        run: cargo +${{ matrix.toolchain }} publish --all-features
 
   merging-enabled:
     name: Merging enabled
-    needs: [setup, lint, test, coverage, docker, publish]
+    needs: [setup, lint, test, coverage, docker]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -363,6 +369,7 @@ jobs:
       - name: check docker
         run: |
           [[ ${{ needs.docker.result }} =~ success|skipped ]]
-      - name: check publish
-        run: |
-          [[ ${{ needs.publish.result }} =~ success|skipped ]]
+
+#      - name: check publish
+#        run: |
+#          [[ ${{ needs.publish.result }} =~ success|skipped ]]

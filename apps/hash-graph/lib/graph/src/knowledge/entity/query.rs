@@ -1,4 +1,4 @@
-use std::{borrow::Cow, fmt};
+use std::fmt;
 
 use serde::{
     de::{self, SeqAccess, Visitor},
@@ -8,7 +8,7 @@ use utoipa::ToSchema;
 
 use crate::{
     ontology::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
-    store::query::{ParameterType, QueryPath},
+    store::query::{JsonPath, ParameterType, PathToken, QueryPath},
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -120,7 +120,7 @@ pub enum EntityQueryPath<'p> {
     /// [`Entity`]: crate::knowledge::Entity
     /// [`EntityMetadata`]: crate::knowledge::EntityMetadata
     /// [`EntityType`]: type_system::EntityType
-    Type(EntityTypeQueryPath),
+    Type(EntityTypeQueryPath<'p>),
     /// Represents an [`Entity`] linking to the [`Entity`].
     ///
     /// Deserializes from `["incomingLinks", ...]` where `...` is the path of the source
@@ -229,26 +229,25 @@ pub enum EntityQueryPath<'p> {
     /// [`Entity`].
     ///
     /// ```rust
-    /// # use std::borrow::Cow;
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::knowledge::EntityQueryPath;
     /// let path = EntityQueryPath::deserialize(json!([
     ///     "properties",
-    ///     "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
+    ///     "https://blockprotocol.org/@blockprotocol/types/property-type/address/",
+    ///     0,
+    ///     "street"
     /// ]))?;
     /// assert_eq!(
-    ///     path,
-    ///     EntityQueryPath::Properties(Some(Cow::Borrowed(
-    ///         "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
-    ///     )))
+    ///     path.to_string(),
+    ///     r#"properties.$."https://blockprotocol.org/@blockprotocol/types/property-type/address/"[0]."street""#
     /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
     /// [`Entity`]: crate::knowledge::Entity
     /// [`Entity::properties()`]: crate::knowledge::Entity::properties
-    Properties(Option<Cow<'p, str>>),
+    Properties(Option<JsonPath<'p>>),
 }
 
 impl fmt::Display for EntityQueryPath<'_> {
@@ -355,7 +354,19 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::Type => EntityQueryPath::Type(
                 EntityTypeQueryPathVisitor::new(self.position).visit_seq(seq)?,
             ),
-            EntityQueryToken::Properties => EntityQueryPath::Properties(seq.next_element()?),
+            EntityQueryToken::Properties => {
+                let mut path_tokens = Vec::new();
+                while let Some(property) = seq.next_element::<PathToken<'de>>()? {
+                    path_tokens.push(property);
+                    self.position += 1;
+                }
+
+                if path_tokens.is_empty() {
+                    EntityQueryPath::Properties(None)
+                } else {
+                    EntityQueryPath::Properties(Some(JsonPath::from_path_tokens(path_tokens)))
+                }
+            }
             EntityQueryToken::OutgoingLinks => {
                 EntityQueryPath::OutgoingLinks(Box::new(Self::new(self.position).visit_seq(seq)?))
             }
@@ -385,7 +396,7 @@ impl<'de: 'p, 'p> Deserialize<'de> for EntityQueryPath<'p> {
 
 #[cfg(test)]
 mod tests {
-    use std::iter::once;
+    use std::{borrow::Cow, iter::once};
 
     use super::*;
 
@@ -408,9 +419,9 @@ mod tests {
                 "properties",
                 "https://blockprotocol.org/@alice/types/property-type/name/"
             ]),
-            EntityQueryPath::Properties(Some(Cow::Borrowed(
-                "https://blockprotocol.org/@alice/types/property-type/name/"
-            )))
+            EntityQueryPath::Properties(Some(JsonPath::from_path_tokens(vec![PathToken::Field(
+                Cow::Borrowed("https://blockprotocol.org/@alice/types/property-type/name/")
+            )])))
         );
         assert_eq!(
             deserialize(["leftEntity", "uuid"]),

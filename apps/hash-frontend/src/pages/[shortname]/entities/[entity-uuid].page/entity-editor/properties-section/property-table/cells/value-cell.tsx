@@ -3,7 +3,7 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
-import { customColors } from "@local/design-system/src/theme/palette";
+import { customColors } from "@local/design-system";
 
 import {
   getCellHorizontalPadding,
@@ -38,15 +38,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     const editorType = guessEditorTypeFromValue(value, expectedTypes);
     const editorSpec = editorSpecs[editorType];
 
-    if (
-      editorType === "emptyList" ||
-      editorType === "null" ||
-      editorType === "object"
-    ) {
-      /**
-       * draw emptyList and null before checking for empty value,
-       * because these are special types, not empty values
-       */
+    if (!isArray && editorSpec.shouldBeDrawnAsAChip) {
       drawChipWithText({
         args,
         left,
