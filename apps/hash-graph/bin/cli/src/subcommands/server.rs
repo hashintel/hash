@@ -22,12 +22,7 @@ use type_system::{
 };
 use uuid::Uuid;
 #[cfg(feature = "type-fetcher")]
-use {
-    std::net::{IpAddr, Ipv4Addr},
-    tarpc::client,
-    tokio_serde::formats::MessagePack,
-    type_fetcher::fetcher::FetcherClient,
-};
+use {tarpc::client, tokio_serde::formats::MessagePack, type_fetcher::fetcher::FetcherClient};
 
 use crate::error::GraphError;
 
@@ -47,6 +42,14 @@ pub struct ServerArgs {
     /// The port the REST client is listening at.
     #[clap(long, default_value_t = 4000, env = "HASH_GRAPH_API_PORT")]
     pub api_port: u16,
+
+    /// The host the type fetcher RPC server is listening at.
+    #[clap(
+        long,
+        default_value = "127.0.0.1",
+        env = "HASH_GRAPH_TYPE_FETCHER_HOST"
+    )]
+    pub type_fetcher_host: String,
 
     /// The port the type fetcher RPC server is listening at.
     #[clap(long, default_value_t = 4444, env = "HASH_GRAPH_TYPE_FETCHER_PORT")]
@@ -266,9 +269,17 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
 
     #[cfg(feature = "type-fetcher")]
     let type_fetcher = {
-        let server_addr = (IpAddr::V4(Ipv4Addr::UNSPECIFIED), args.type_fetcher_port);
+        let type_fetcher_address = format!("{}:{}", args.type_fetcher_host, args.type_fetcher_port);
 
-        let transport = tarpc::serde_transport::tcp::connect(&server_addr, MessagePack::default);
+        let type_fetcher_address: SocketAddr = type_fetcher_address
+            .parse()
+            .into_report()
+            .change_context(GraphError)
+            .attach_printable_lazy(|| type_fetcher_address.clone())?;
+
+        let transport =
+            tarpc::serde_transport::tcp::connect(&type_fetcher_address, MessagePack::default);
+
         FetcherClient::new(
             client::Config::default(),
             transport.await.into_report().change_context(GraphError)?,
@@ -282,15 +293,16 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
         #[cfg(feature = "type-fetcher")]
         type_fetcher,
     });
+
     let api_address = format!("{}:{}", args.api_host, args.api_port);
-    let addr: SocketAddr = api_address
+    let api_address: SocketAddr = api_address
         .parse()
         .into_report()
         .change_context(GraphError)
         .attach_printable_lazy(|| api_address.clone())?;
 
     tracing::info!("Listening on {api_address}");
-    axum::Server::bind(&addr)
+    axum::Server::bind(&api_address)
         .serve(rest_router.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .expect("failed to start server");
