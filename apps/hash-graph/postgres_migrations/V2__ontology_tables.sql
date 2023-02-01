@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS
   ontology_ids (
-    ontology_id UUID PRIMARY KEY,
+    "ontology_id" UUID PRIMARY KEY,
     "base_uri" TEXT NOT NULL,
     "version" BIGINT NOT NULL,
     "transaction_time" tstzrange NOT NULL,
@@ -19,12 +19,12 @@ COMMENT
   ON TABLE ontology_ids IS $pga$ This table is a boundary to define the actual identification scheme for our kinds of types. Assume that we use the UUIDs on the types to look up more specific ID details. $pga$;
 
 CREATE TABLE IF NOT EXISTS
-  "owned_ontology_metadata" (
+  "ontology_owned_metadata" (
     "ontology_id" UUID NOT NULL,
     "owned_by_id" UUID NOT NULL REFERENCES "accounts",
-    "updated_by_id" UUID NOT NULL REFERENCES "accounts",
-    CONSTRAINT owned_ontology_metadata_pk PRIMARY KEY ("ontology_id") DEFERRABLE INITIALLY IMMEDIATE,
-    CONSTRAINT owned_ontology_metadata_fk FOREIGN KEY ("ontology_id") REFERENCES ontology_ids DEFERRABLE INITIALLY IMMEDIATE
+    "record_created_by_id" UUID NOT NULL REFERENCES "accounts",
+    CONSTRAINT ontology_owned_metadata_pk PRIMARY KEY ("ontology_id") DEFERRABLE INITIALLY IMMEDIATE,
+    CONSTRAINT ontology_owned_metadata_fk FOREIGN KEY ("ontology_id") REFERENCES ontology_ids DEFERRABLE INITIALLY IMMEDIATE
   );
 
 CREATE TABLE IF NOT EXISTS
