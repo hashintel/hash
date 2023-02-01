@@ -17,7 +17,7 @@ jobs:
   linting:
     name: Linting
     # Run only on push to `main` or `trunk_merge/**` or on pull requests
-    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' }}
+    if: ${{ (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/trunk-merge/'))) || github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -30,6 +30,7 @@ jobs:
         run: git pull --force --no-tags origin main:main
 
       - uses: ./.github/actions/warm-up-repo
+        if: ${{ success() || failure() }}
 
       - name: Run yarn lint:changeset
         if: ${{ (success() || failure()) && github.event.pull_request.title != 'Version Packages' }}
@@ -219,7 +220,7 @@ jobs:
   playwright-tests:
     name: Playwright tests
     # Run only on push to `main` or `trunk_merge/**` or on pull requests
-    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' }}
+    if: ${{ (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/trunk-merge/'))) || github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3

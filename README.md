@@ -86,7 +86,7 @@ This repository's contents is divided across four primary sections:
 
 ### Libraries
 
-- [`/packages/libs`](packages/libs): source code for our open-source developer libraries
+- [`/libs`](libs): source code for our open-source developer libraries
 
 ## [![a](/.github/assets/gh_icon_contributing_20px-base.svg)][gh-contributing] &nbsp; Contributing
 

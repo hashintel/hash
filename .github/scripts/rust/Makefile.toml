@@ -15,8 +15,8 @@ CARGO_RUN_FLAGS = ""
 CARGO_FORMAT_FLAGS = ""
 CARGO_FORMAT_HACK_FLAGS = "--workspace"
 
-CARGO_CLIPPY_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "--no-deps --all-targets --all-features", mapping = {"push" = "--no-deps --all-targets" } }
-CARGO_CLIPPY_HACK_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "--workspace", mapping = {"push" = "--workspace --optional-deps --feature-powerset" } }
+CARGO_CLIPPY_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "--no-deps --all-targets", mapping = {"pull_request" = "--no-deps --all-targets --all-features" } }
+CARGO_CLIPPY_HACK_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "--workspace --optional-deps --feature-powerset", mapping = {"pull_request" = "--workspace" } }
 
 CARGO_DOC_FLAGS = "--no-deps --all-features -Zunstable-options -Zrustdoc-scrape-examples"
 CARGO_DOC_HACK_FLAGS = "--workspace"
@@ -24,8 +24,8 @@ CARGO_DOC_HACK_FLAGS = "--workspace"
 CARGO_RUSTDOC_FLAGS = "--all-features -Zunstable-options -Zrustdoc-scrape-examples -- -Zunstable-options"
 CARGO_RUSTDOC_HACK_FLAGS = "--workspace"
 
-CARGO_TEST_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "--all-features", mapping = {"push" = "" } }
-CARGO_TEST_HACK_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "--workspace", mapping = {"push" = "--workspace --optional-deps --feature-powerset" } }
+CARGO_TEST_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "", mapping = {"pull_request" = "--all-features" } }
+CARGO_TEST_HACK_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "--workspace --optional-deps --feature-powerset", mapping = {"pull_request" = "--workspace" } }
 
 CARGO_DOC_TEST_FLAGS = "--workspace --all-features"
 

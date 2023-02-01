@@ -1,0 +1,10 @@
+<b>invalid input parameter</b>
+├╴at <i>src/fmt/hook.rs:19:14</i>
+├╴backtrace (1)
+├╴suggestion: try better next time
+╰╴sorry for the inconvenience!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+backtrace no. 1
+  [redacted]
