@@ -51,7 +51,6 @@ use crate::{
             EntityProperties,
             EntityRecordId,
             EntityVersion,
-            EntityStructuralQuery,
             EntityQueryToken,
             LinkData,
             LinkOrder,

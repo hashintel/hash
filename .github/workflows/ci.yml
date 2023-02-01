@@ -17,12 +17,33 @@ jobs:
   linting:
     name: Linting
     # Run only on push to `main` or `trunk_merge/**` or on pull requests
-    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' }}
+    if: ${{ (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/trunk-merge/'))) || github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 ## Needed for Changesets to find `main` branch
+
+        ## https://github.com/changesets/changesets/issues/517
+      - name: Create git reference to main branch (for Changesets)
+        if: ${{ github.event.pull_request.title != 'Version Packages' }}
+        run: git pull --force --no-tags origin main:main
 
       - uses: ./.github/actions/warm-up-repo
+        if: ${{ success() || failure() }}
+
+      - name: Run yarn lint:changeset
+        if: ${{ (success() || failure()) && github.event.pull_request.title != 'Version Packages' }}
+        run: |
+          if ! yarn lint:changeset; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Please fix the above errors locally for the check to pass.'
+            echo 'If you don’t see them, try merging target branch into yours.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
 
       - name: Run yarn lint:dependency-version-consistency
         if: ${{ success() || failure() }}
@@ -199,7 +220,7 @@ jobs:
   playwright-tests:
     name: Playwright tests
     # Run only on push to `main` or `trunk_merge/**` or on pull requests
-    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' }}
+    if: ${{ (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/trunk-merge/'))) || github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3

@@ -8,7 +8,7 @@
  * be used everywhere.
  */
 
-import { Subgraph as SubgraphGraphApi } from "@hashintel/hash-graph-client";
+import { Subgraph as SubgraphGraphApi } from "@local/hash-graph-client";
 
 import { Subgraph } from "../src";
 import { mapEdges } from "./compatibility.test/map-edges";

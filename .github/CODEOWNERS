@@ -1,6 +1,6 @@
 # Libs teams
 /libs/deer/ @hashintel/deer
-/packages/libs/error-stack/ @hashintel/error-stack
+/libs/error-stack/ @hashintel/error-stack
 
 # Legal team
 LICENSE @hashintel/legal

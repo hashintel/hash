@@ -181,6 +181,12 @@ module.exports = {
               "Please use the custom src/components/Button component instead.",
           },
         ],
+        patterns: [
+          {
+            group: ["@local/design-system/*"],
+            message: "Please import from @local/design-system instead.",
+          },
+        ],
       },
     ],
     "react/require-default-props": "off",

@@ -1,0 +1,10 @@
+<b>invalid user input</b>
+├╴suggestion: try better next time!
+├╴error code: 420
+├╴at <i>src/hook.rs:49:14</i>
+╰╴backtrace (1)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+backtrace no. 1
+  [redacted]

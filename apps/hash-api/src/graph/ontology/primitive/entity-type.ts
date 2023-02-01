@@ -1,5 +1,5 @@
 import { EntityType, VersionedUri } from "@blockprotocol/type-system";
-import { UpdateEntityTypeRequest } from "@hashintel/hash-graph-client";
+import { UpdateEntityTypeRequest } from "@local/hash-graph-client";
 import { EntityTypeWithoutId } from "@local/hash-isomorphic-utils/graphql/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";

@@ -10,7 +10,7 @@ import {
   EntityTypeWithMetadata as EntityTypeWithMetadataGraphApi,
   PropertyTypeWithMetadata as PropertyTypeWithMetadataGraphApi,
   ProvenanceMetadata as ProvenanceMetadataGraphApi,
-} from "@hashintel/hash-graph-client";
+} from "@local/hash-graph-client";
 
 import { EntityEditionId, EntityId, EntityVersion } from "./identifier";
 
@@ -32,7 +32,7 @@ export type EntityTypeWithMetadata = Omit<
   "schema"
 > & { schema: EntityType };
 
-export type { OntologyElementMetadata } from "@hashintel/hash-graph-client";
+export type { OntologyElementMetadata } from "@local/hash-graph-client";
 
 /** Plain JSON value and object definitions */
 type JsonValue = null | string | number | boolean | JsonObject | JsonValue[];
