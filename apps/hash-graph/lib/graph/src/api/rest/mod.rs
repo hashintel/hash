@@ -155,7 +155,14 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
     tags(
         (name = "Graph", description = "HASH Graph API")
     ),
-    modifiers(&MergeAddon, &ExternalRefAddon, &OperationGraphTagAddon, &FilterSchemaAddon, &TimeSchemaAddon),
+    modifiers(
+        &MergeAddon,
+        &ExternalRefAddon,
+        &OperationGraphTagAddon,
+        &FilterSchemaAddon,
+        &TimeSchemaAddon,
+        &OntologyTypeSchemaAddon,
+    ),
     components(
         schemas(
             OwnedById,
@@ -439,7 +446,7 @@ impl Modify for FilterSchemaAddon {
                         .item(
                             ObjectBuilder::new()
                                 .title(Some("ParameterExpression"))
-                                .property("parameter", Any::schema())
+                                .property("parameter", Any::schema().1)
                                 .required("parameter"),
                         )
                         .build(),
@@ -456,9 +463,10 @@ struct TimeSchemaAddon;
 impl Modify for TimeSchemaAddon {
     fn modify(&self, openapi: &mut openapi::OpenApi) {
         if let Some(ref mut components) = openapi.components {
-            components
-                .schemas
-                .insert("Timestamp".to_owned(), Timestamp::<()>::schema());
+            components.schemas.insert(
+                Timestamp::<()>::schema().0.to_owned(),
+                Timestamp::<()>::schema().1,
+            );
             components.schemas.insert(
                 "NullableTimestamp".to_owned(),
                 ObjectBuilder::new()
@@ -468,12 +476,26 @@ impl Modify for TimeSchemaAddon {
                     .into(),
             );
             components.schemas.insert(
-                "VersionInterval".to_owned(),
-                VersionInterval::<()>::schema(),
+                VersionInterval::<()>::schema().0.to_owned(),
+                VersionInterval::<()>::schema().1,
             );
             components.schemas.insert(
-                "TimeIntervalBound".to_owned(),
-                TimeIntervalBound::<()>::schema(),
+                TimeIntervalBound::<()>::schema().0.to_owned(),
+                TimeIntervalBound::<()>::schema().1,
+            );
+        }
+    }
+}
+
+/// Adds time-related structs to the `OpenAPI` schema.
+struct OntologyTypeSchemaAddon;
+
+impl Modify for OntologyTypeSchemaAddon {
+    fn modify(&self, openapi: &mut openapi::OpenApi) {
+        if let Some(ref mut components) = openapi.components {
+            components.schemas.insert(
+                "BaseUri".to_owned(),
+                ObjectBuilder::new().schema_type(SchemaType::String).into(),
             );
         }
     }
