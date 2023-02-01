@@ -25,6 +25,7 @@ ALWAYS_RUN_PATTERNS = [".github/**"]
 # rust-toolchain.toml
 TOOLCHAINS = {
     "libs/deer": ["1.65"],
+    "libs/antsi": ["1.63", "1.65"],
     "packages/libs/error-stack": ["1.63", "1.65"]
 }
 
@@ -79,7 +80,7 @@ def find_toolchain(crate):
     """
     directory = crate
     root = Path(directory.root)
-    
+
     while directory != root:
         toolchain_file = directory / "rust-toolchain.toml"
         if toolchain_file.exists():
@@ -87,9 +88,9 @@ def find_toolchain(crate):
             if toolchain:
                 return toolchain
         directory = directory.parent
-        
+
     raise Exception("No rust-toolchain.toml with a `toolchain.channel` attribute found")
-    
+
 
 
 def filter_parent_crates(crates):
@@ -254,7 +255,7 @@ def output_matrix(name, github_output_file, crates, **kwargs):
             for crate in crates
         ],
     )
-            
+
     if len(matrix["name"]) == 0:
         matrix = {}
 
@@ -271,7 +272,7 @@ def main():
     changed_docker_crates = filter_for_docker_crates(changed_parent_crates)
 
     github_output_file = open(os.environ["GITHUB_OUTPUT_FILE_PATH"], "w")
-    
+
     output_matrix("lint", github_output_file, changed_parent_crates)
     if IS_PULL_REQUEST_EVENT:
         output_matrix("test", github_output_file, changed_parent_crates, profile=["development"])

@@ -1,5 +1,6 @@
 # Libs teams
 /libs/deer/ @hashintel/deer
+/libs/antsi/ @hashintel/antsi
 /packages/libs/error-stack/ @hashintel/error-stack
 
 # Legal team
