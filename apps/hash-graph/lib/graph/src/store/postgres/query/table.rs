@@ -32,7 +32,7 @@ impl Table {
     const fn as_str(self) -> &'static str {
         match self {
             Self::OntologyIds => "ontology_ids",
-            Self::OwnedOntologyMetadata => "owned_ontology_metadata",
+            Self::OwnedOntologyMetadata => "ontology_owned_metadata",
             Self::DataTypes => "data_types",
             Self::PropertyTypes => "property_types",
             Self::EntityTypes => "entity_types",
@@ -97,7 +97,7 @@ impl OwnedOntologyMetadata {
         let column = match self {
             Self::OntologyId => "ontology_id",
             Self::OwnedById => "owned_by_id",
-            Self::UpdatedById => "updated_by_id",
+            Self::UpdatedById => "record_created_by_id",
         };
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
@@ -219,13 +219,13 @@ impl Entities<'_> {
     fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
             Self::EntityUuid => "entity_uuid",
-            Self::RecordId => "entity_record_id",
+            Self::RecordId => "entity_edition_id",
             Self::DecisionTime => "decision_time",
             Self::TransactionTime => "transaction_time",
             Self::ProjectedTime => unreachable!("projected time is not a column"),
             Self::Archived => "archived",
             Self::OwnedById => "owned_by_id",
-            Self::UpdatedById => "updated_by_id",
+            Self::UpdatedById => "record_created_by_id",
             Self::EntityTypeOntologyId => "entity_type_ontology_id",
             Self::Properties(None) => "properties",
             Self::Properties(Some(path)) => {

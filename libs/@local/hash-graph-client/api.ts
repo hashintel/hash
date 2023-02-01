@@ -506,10 +506,10 @@ export interface EntityEditionId {
   baseId: string;
   /**
    *
-   * @type {number}
+   * @type {string}
    * @memberof EntityEditionId
    */
-  recordId: number;
+  recordId: string;
 }
 /**
  *

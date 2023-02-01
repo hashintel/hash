@@ -285,7 +285,7 @@ where
                     base_uri := $1,
                     version := $2,
                     owned_by_id := $3,
-                    updated_by_id := $4
+                    record_created_by_id := $4
                 );"#,
                 &[
                     &uri.base_uri().as_str(),
@@ -330,7 +330,7 @@ where
                 FROM update_owned_ontology_id(
                     base_uri := $1,
                     version := $2,
-                    updated_by_id := $3
+                    record_created_by_id := $3
                 );"#,
                 &[
                     &uri.base_uri().as_str(),
@@ -752,7 +752,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         self.client
             .simple_query(
                 "CREATE TEMPORARY TABLE entity_editions_temp (
-                    updated_by_id UUID NOT NULL,
+                    record_created_by_id UUID NOT NULL,
                     archived BOOLEAN NOT NULL,
                     entity_type_ontology_id UUID NOT NULL,
                     properties JSONB NOT NULL,
@@ -768,7 +768,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .client
             .copy_in(
                 "COPY entity_editions_temp (
-                    updated_by_id,
+                    record_created_by_id,
                     archived,
                     entity_type_ontology_id,
                     properties,
@@ -818,7 +818,8 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .client
             .query(
                 "INSERT INTO entity_editions (
-                    updated_by_id,
+                    entity_edition_id,
+                    record_created_by_id,
                     archived,
                     entity_type_ontology_id,
                     properties,
@@ -826,21 +827,22 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     right_to_left_order
                 )
                 SELECT
-                    updated_by_id,
+                    gen_random_uuid(),
+                    record_created_by_id,
                     archived,
                     entity_type_ontology_id,
                     properties,
                     left_to_right_order,
                     right_to_left_order
                 FROM entity_editions_temp
-                RETURNING entity_record_id;",
+                RETURNING entity_edition_id;",
                 &[],
             )
             .await
             .into_report()
             .change_context(InsertionError)?
             .into_iter()
-            .map(|row| EntityRecordId::new(row.get::<_, i64>(0)))
+            .map(|row| EntityRecordId::new(row.get(0)))
             .collect();
 
         self.client
@@ -863,10 +865,10 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     ) -> Result<Vec<EntityVersion>, InsertionError> {
         self.client
             .simple_query(
-                "CREATE TEMPORARY TABLE entity_versions_temp (
+                "CREATE TEMPORARY TABLE entity_temporal_metadata_temp (
                     owned_by_id UUID NOT NULL,
                     entity_uuid UUID NOT NULL,
-                    entity_record_id BIGINT NOT NULL,
+                    entity_edition_id UUID NOT NULL,
                     decision_time TIMESTAMP WITH TIME ZONE
                 );",
             )
@@ -877,10 +879,10 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         let sink = self
             .client
             .copy_in(
-                "COPY entity_versions_temp (
+                "COPY entity_temporal_metadata_temp (
                     owned_by_id,
                     entity_uuid,
-                    entity_record_id,
+                    entity_edition_id,
                     decision_time
                 ) FROM STDIN BINARY",
             )
@@ -890,7 +892,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         let writer = BinaryCopyInWriter::new(sink, &[
             Type::UUID,
             Type::UUID,
-            Type::INT8,
+            Type::UUID,
             Type::TIMESTAMPTZ,
         ]);
         futures::pin_mut!(writer);
@@ -917,23 +919,23 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         let entity_versions = self
             .client
             .query(
-                "INSERT INTO entity_versions (
+                "INSERT INTO entity_temporal_metadata (
                     owned_by_id,
                     entity_uuid,
-                    entity_record_id,
+                    entity_edition_id,
                     decision_time,
                     transaction_time
                 ) SELECT
                     owned_by_id,
                     entity_uuid,
-                    entity_record_id,
+                    entity_edition_id,
                     tstzrange(
                         CASE WHEN decision_time IS NULL THEN now() ELSE decision_time END,
                         NULL,
                         '[)'
                     ),
                     tstzrange(now(), NULL, '[)')
-                FROM entity_versions_temp
+                FROM entity_temporal_metadata_temp
                 RETURNING decision_time, transaction_time;",
                 &[],
             )
@@ -950,7 +952,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .collect();
 
         self.client
-            .simple_query("DROP TABLE entity_versions_temp;")
+            .simple_query("DROP TABLE entity_temporal_metadata_temp;")
             .await
             .into_report()
             .change_context(InsertionError)?;

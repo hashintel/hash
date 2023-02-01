@@ -45,7 +45,7 @@ export type EntityVersion = {
   transactionTime: VersionInterval;
 };
 
-export type EntityRecordId = number;
+export type EntityRecordId = string;
 
 /**
  * An identifier of a specific edition of an `Entity` at a given `EntityRecordId`

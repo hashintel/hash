@@ -509,7 +509,7 @@ mod tests {
             FROM "entities" AS "entities_0_0_0"
             WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entities_0_0_0"."decision_time" && $2
-              AND "entities_0_0_0"."updated_by_id" = $3
+              AND "entities_0_0_0"."record_created_by_id" = $3
             ORDER BY "entities_0_0_0"."entity_uuid" ASC,
                      "entities_0_0_0"."decision_time" DESC
             "#,
@@ -610,7 +610,7 @@ mod tests {
               AND "entities_0_1_0"."decision_time" && $2
               AND "entities_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entities_0_2_0"."decision_time" && $2
-              AND "entities_0_2_0"."entity_record_id" = $3
+              AND "entities_0_2_0"."entity_edition_id" = $3
             "#,
             &[&kernel, &time_projection.image(), &10.0],
         );
@@ -647,7 +647,7 @@ mod tests {
               AND "entities_0_1_0"."decision_time" && $2
               AND "entities_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entities_0_2_0"."decision_time" && $2
-              AND "entities_0_2_0"."entity_record_id" = $3
+              AND "entities_0_2_0"."entity_edition_id" = $3
             "#,
             &[&kernel, &time_projection.image(), &10.0],
         );

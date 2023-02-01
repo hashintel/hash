@@ -324,7 +324,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .query_one(
                 r#"
                 SELECT
-                    entity_record_id,
+                    entity_edition_id,
                     decision_time,
                     transaction_time
                 FROM
@@ -332,7 +332,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         _owned_by_id := $1,
                         _entity_uuid := $2,
                         _decision_time := $3,
-                        _updated_by_id := $4,
+                        _record_created_by_id := $4,
                         _archived := $5,
                         _entity_type_ontology_id := $6,
                         _properties := $7,
@@ -560,7 +560,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .query_opt(
                 r#"
                 SELECT
-                    entity_record_id,
+                    entity_edition_id,
                     decision_time,
                     transaction_time
                 FROM
@@ -568,7 +568,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         _owned_by_id := $1,
                         _entity_uuid := $2,
                         _decision_time := $3,
-                        _updated_by_id := $4,
+                        _record_created_by_id := $4,
                         _archived := $5,
                         _entity_type_ontology_id := $6,
                         _properties := $7,
