@@ -4,7 +4,7 @@ version = "0.0.0"
 edition = "2021"
 authors = ["HASH"]
 publish = false
-description = "A RPC service to fetch BP external types"
+description = "A RPC service to fetch external BP types"
 
 
 [dependencies]
