@@ -15,7 +15,7 @@ COPY . .
 ARG PROFILE=production
 
 # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
-RUN apk add --no-cache make protobuf-dev
+RUN apk add --no-cache make openssl-dev protobuf-dev
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
