@@ -43,17 +43,17 @@
 ///
 /// | Color              | Foreground | Background |
 /// |--------------------|------------|------------|
-/// | [`Color::Black`]   | `ESC[30m`  | `ESC[40m`  |
-/// | [`Color::Red`]     | `ESC[31m`  | `ESC[41m`  |
-/// | [`Color::Green`]   | `ESC[32m`  | `ESC[42m`  |
-/// | [`Color::Yellow`]  | `ESC[33m`  | `ESC[43m`  |
-/// | [`Color::Blue`]    | `ESC[34m`  | `ESC[44m`  |
-/// | [`Color::Magenta`] | `ESC[35m`  | `ESC[45m`  |
-/// | [`Color::Cyan`]    | `ESC[36m`  | `ESC[46m`  |
-/// | [`Color::White`]   | `ESC[37m`  | `ESC[47m`  |
+/// | [`BasicColor::Black`]   | `ESC[30m`  | `ESC[40m`  |
+/// | [`BasicColor::Red`]     | `ESC[31m`  | `ESC[41m`  |
+/// | [`BasicColor::Green`]   | `ESC[32m`  | `ESC[42m`  |
+/// | [`BasicColor::Yellow`]  | `ESC[33m`  | `ESC[43m`  |
+/// | [`BasicColor::Blue`]    | `ESC[34m`  | `ESC[44m`  |
+/// | [`BasicColor::Magenta`] | `ESC[35m`  | `ESC[45m`  |
+/// | [`BasicColor::Cyan`]    | `ESC[36m`  | `ESC[46m`  |
+/// | [`BasicColor::White`]   | `ESC[37m`  | `ESC[47m`  |
 /// | Reset              | `ESC[39m`  | `ESC[49m`  |
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum Color {
+pub enum BasicColor {
     Black,
     Red,
     Green,
@@ -88,22 +88,22 @@ pub enum Color {
 ///
 /// | Color              | Foreground | Background |
 /// |--------------------|------------|------------|
-/// | [`Color::Black`]   | `ESC[90m`  | `ESC[100m`  |
-/// | [`Color::Red`]     | `ESC[91m`  | `ESC[101m`  |
-/// | [`Color::Green`]   | `ESC[92m`  | `ESC[102m`  |
-/// | [`Color::Yellow`]  | `ESC[93m`  | `ESC[103m`  |
-/// | [`Color::Blue`]    | `ESC[94m`  | `ESC[104m`  |
-/// | [`Color::Magenta`] | `ESC[95m`  | `ESC[105m`  |
-/// | [`Color::Cyan`]    | `ESC[96m`  | `ESC[106m`  |
-/// | [`Color::White`]   | `ESC[97m`  | `ESC[107m`  |
+/// | [`BasicColor::Black`]   | `ESC[90m`  | `ESC[100m`  |
+/// | [`BasicColor::Red`]     | `ESC[91m`  | `ESC[101m`  |
+/// | [`BasicColor::Green`]   | `ESC[92m`  | `ESC[102m`  |
+/// | [`BasicColor::Yellow`]  | `ESC[93m`  | `ESC[103m`  |
+/// | [`BasicColor::Blue`]    | `ESC[94m`  | `ESC[104m`  |
+/// | [`BasicColor::Magenta`] | `ESC[95m`  | `ESC[105m`  |
+/// | [`BasicColor::Cyan`]    | `ESC[96m`  | `ESC[106m`  |
+/// | [`BasicColor::White`]   | `ESC[97m`  | `ESC[107m`  |
 /// | Reset              | `ESC[99m`  | `ESC[109m`  |
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct BrightColor(Color);
+pub struct BrightColor(BasicColor);
 
 /// Extended color support
 ///
-/// 0 - 7 correspond to the [`Color`] variants, while 8 - 15 correspond to their [`BrightColor`]
-/// counterpart.
+/// 0 - 7 correspond to the [`BasicColor`] variants, while 8 - 15 correspond to their
+/// [`BrightColor`] counterpart.
 ///
 /// ## Support
 ///
@@ -144,7 +144,7 @@ pub struct BrightColor(Color);
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct IndexedColor(u8);
 
-/// Truecolor 24bit RGB support
+/// Truecolor 24-bit RGB support
 ///
 /// Allows to set the background and foreground color to any arbitrary color selected
 ///
@@ -160,8 +160,8 @@ pub struct IndexedColor(u8);
 ///
 /// This mode was initially specified in 1994, together with [`IndexedColor`], but most terminals do
 /// not support the format outlined in [ISO 8613-6], notably, it is a lot more complete than the now
-/// used format of `ESC[38;2;{r};{g};{b}m`. The specification also an optional color space id,
-/// tolerance and color space associated with the color space.
+/// used format of `ESC[38;2;{r};{g};{b}m`. The specification also featured optional color space
+/// id, tolerance and color space associated with the color space parameters.
 ///
 /// Only `xterm` supports this scheme, where the color space id and tolerance parameters are
 /// ignored. The specification also uses `:` as a separator instead of `;`. `xterm` was the first
@@ -182,8 +182,8 @@ pub struct RgbColor {
 // TODO: Default
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum Ansi {
-    Color(Color),
+pub enum Color {
+    Basic(BasicColor),
     Bright(BrightColor),
     XTerm(IndexedColor),
     Truecolor(RgbColor),
