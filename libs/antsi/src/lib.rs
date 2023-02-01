@@ -28,7 +28,10 @@
 
 /// Basic colors variants
 ///
-/// These colors are the only ones that are required for terminals that support [ISO/IEC 6429](https://www.iso.org/standard/12782.html)
+/// ## Support
+///
+/// Terminals that implement ANSI escape sequences, e.g. the target for the crate, are guaranteed to
+/// implement at least these colors.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Color {
     Black,
@@ -43,12 +46,40 @@ pub enum Color {
 
 /// Bright color variants
 ///
-/// These are only supported on terminals that implement the [aixterm specification](https://sites.ualberta.ca/dept/chemeng/AIX-43/share/man/info/C/a_doc_lib/cmds/aixcmds1/aixterm.htm).
+/// ## History
 ///
-/// Pretty much every terminal nowadays supports this specification.
+/// Nowadays every terminal emulator supports these colors. To programmatically check for
+/// support it is advised to use a crate similar to [`supports-color`](https://lib.rs/crates/supports-color)
+///
+/// ## Support
+///
+/// Support for bright colors was not part of [ISO/IEC 6429](https://www.iso.org/standard/12782.html)
+/// the specification, which introduced and standardized ANSI escape sequences.
+/// [aixterm specification](https://sites.ualberta.ca/dept/chemeng/AIX-43/share/man/info/C/a_doc_lib/cmds/aixcmds1/aixterm.htm)
+/// introduced these additional escape sequences, terminal (-emulators) began to implement them.
+/// It is pretty save to say that every terminal (-emulators) created after 1997 has support for
+/// these sequences.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Bright(Color);
 
+/// Extended color support
+///
+/// 0 - 7 correspond to the [`Color`] variants, while 8 - 15 correspond to their [`Bright`]
+/// counterpart.
+///
+/// ## Support
+///
+/// Nowadays every modern terminal emulator supports xterm colors, this can be easily checked by
+/// executing `echo $TERM`, if the name is prefixed with `xterm-` the terminal is likely able to
+/// support this color-scheme, the dedicated crate [`supports-color`](https://lib.rs/crates/supports-color)
+/// can be used to detect this (and many other) indicators for xterm color scheme support.
+///
+/// ## History
+///
+/// The name xterm color comes from the xterm terminal, the standard terminal emulator that is
+/// shipped with the [X Window System]. Since 1999, support for a new (unstandardized) color mode
+/// was added that brought 256 colors, instead of the previously available 16 colors to the
+/// terminal.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct XTerm(u8);
 
