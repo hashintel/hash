@@ -1,0 +1,12 @@
+pub const ADDRESS_V1: &str = include_str!("entity/address.json");
+pub const BLOCK_V1: &str = include_str!("entity/block.json");
+pub const BOOK_V1: &str = include_str!("entity/book.json");
+pub const BUILDING_V1: &str = include_str!("entity/building.json");
+pub const ORGANIZATION_V1: &str = include_str!("entity/organization.json");
+pub const PAGE_V1: &str = include_str!("entity/page_v1.json");
+pub const PAGE_V2: &str = include_str!("entity/page_v2.json");
+pub const PERSON_A_V1: &str = include_str!("entity/person_a.json");
+pub const PERSON_B_V1: &str = include_str!("entity/person_b.json");
+pub const PERSON_C_V1: &str = include_str!("entity/person_c.json");
+pub const PLAYLIST_V1: &str = include_str!("entity/playlist.json");
+pub const SONG_V1: &str = include_str!("entity/song.json");
