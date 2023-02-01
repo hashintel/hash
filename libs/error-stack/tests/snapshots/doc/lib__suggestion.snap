@@ -1,0 +1,13 @@
+<b>could not parse configuration file</b>
+├╴at <i>src/lib.rs:25:10</i>
+├╴could not read file &quot;test.txt&quot;
+├╴1 additional opaque attachment
+│
+╰─▶ <b>No such file or directory (os error 2)</b>
+    ├╴at <i>src/lib.rs:24:10</i>
+    ╰╴backtrace (1)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+backtrace no. 1
+  [redacted]

@@ -1,0 +1,12 @@
+<b>invalid input parameter</b>
+├╴at <i>src/fmt.rs:57:14</i>
+├╴backtrace (1)
+├╴error (404)
+├╴suggestion 1: try to be connected to the internet.
+├╴suggestion 2: try better next time!
+╰╴warning (1) occurred
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+backtrace no. 1
+  [redacted]

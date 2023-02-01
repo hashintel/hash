@@ -25,11 +25,11 @@ ALWAYS_RUN_PATTERNS = [".github/**"]
 # rust-toolchain.toml
 TOOLCHAINS = {
     "libs/deer": ["1.65"],
-    "packages/libs/error-stack": ["1.63", "1.65"]
+    "libs/error-stack": ["1.63", "1.65"]
 }
 
 # Try and publish these crates when their version is changed in Cargo.toml
-PUBLISH_PATTERNS = ["packages/libs/error-stack**"]
+PUBLISH_PATTERNS = ["libs/error-stack**"]
 # deer is disabled for now because we don't want to publish it just yet
 # "libs/deer**"
 

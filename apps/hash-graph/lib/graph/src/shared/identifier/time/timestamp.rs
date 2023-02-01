@@ -1,8 +1,5 @@
 use core::fmt;
-use std::{
-    any::type_name, collections::Bound, error::Error, marker::PhantomData, str::FromStr,
-    time::SystemTime,
-};
+use std::{collections::Bound, error::Error, marker::PhantomData, str::FromStr, time::SystemTime};
 
 use derivative::Derivative;
 use interval_ops::LowerBound;
@@ -64,10 +61,7 @@ impl<A> LowerBound<Self> for Timestamp<A> {
 
 impl<A> fmt::Debug for Timestamp<A> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.debug_struct("timestamp")
-            .field("axis", &type_name::<A>())
-            .field("time", &self.time)
-            .finish()
+        fmt::Debug::fmt(&self.time, fmt)
     }
 }
 
@@ -149,13 +143,16 @@ impl<A> ToSql for Timestamp<A> {
     }
 }
 
-impl<A> ToSchema for Timestamp<A> {
-    fn schema() -> openapi::RefOr<openapi::Schema> {
-        openapi::schema::ObjectBuilder::new()
-            .schema_type(openapi::SchemaType::String)
-            .format(Some(openapi::SchemaFormat::KnownFormat(
-                openapi::KnownFormat::DateTime,
-            )))
-            .into()
+impl<A> ToSchema<'_> for Timestamp<A> {
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "Timestamp",
+            openapi::schema::ObjectBuilder::new()
+                .schema_type(openapi::SchemaType::String)
+                .format(Some(openapi::SchemaFormat::KnownFormat(
+                    openapi::KnownFormat::DateTime,
+                )))
+                .into(),
+        )
     }
 }
