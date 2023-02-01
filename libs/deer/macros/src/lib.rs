@@ -5,7 +5,8 @@
     unreachable_pub,
     clippy::pedantic,
     clippy::nursery,
-    clippy::undocumented_unsafe_blocks
+    clippy::undocumented_unsafe_blocks,
+    clippy::mod_module_files
 )]
 #![allow(clippy::redundant_pub_crate)]
 #![allow(clippy::module_name_repetitions)]
