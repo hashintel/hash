@@ -1,14 +1,12 @@
 use std::collections::{HashSet, VecDeque};
 
-use futures::{stream, StreamExt, TryStreamExt};
+use futures::{stream, TryStreamExt};
 use reqwest::{
     header::{ACCEPT, USER_AGENT},
     Client,
 };
-use serde::de::DeserializeOwned;
 use tarpc::context::Context;
-use tracing::info;
-use type_system::{repr, DataType, EntityType, PropertyType, PropertyTypeReference};
+use type_system::{DataType, EntityType, PropertyType};
 
 use crate::fetcher::{FetchedOntologyType, Fetcher, FetcherError, TypeFetchResponse};
 
@@ -119,10 +117,14 @@ pub async fn fetch_ontology_type(
         .header(USER_AGENT, "HASH Graph")
         .send()
         .await
-        .map_err(|_| FetcherError::NetworkError)?
+        .map_err(|err| {
+            tracing::error!(error=?err, url=&url, "Could not fetch ontology type");
+            FetcherError::NetworkError
+        })?
         .json::<FetchedOntologyType>()
         .await
         .map_err(|err| {
+            tracing::error!(error=?err, url=&url, "Could not deserialize response");
             FetcherError::SerializationError(format!("Error deserializing {url}: {err:#?}"))
         })?;
 

@@ -3,7 +3,7 @@ use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 use clap::Parser;
 use error_stack::{IntoReport, Result, ResultExt};
 use graph::{
-    api::rest::rest_api_router,
+    api::rest::{rest_api_router, RestRouterDependencies},
     identifier::account::AccountId,
     logging::{init_logger, LoggingArgs},
     ontology::domain_validator::DomainValidator,
@@ -21,6 +21,13 @@ use type_system::{
     AllOf, DataType, EntityType, Links, Object,
 };
 use uuid::Uuid;
+#[cfg(feature = "type-fetcher")]
+use {
+    std::net::{IpAddr, Ipv4Addr},
+    tarpc::client,
+    tokio_serde::formats::MessagePack,
+    type_fetcher::fetcher::FetcherClient,
+};
 
 use crate::error::GraphError;
 
@@ -40,6 +47,10 @@ pub struct ServerArgs {
     /// The port the REST client is listening at.
     #[clap(long, default_value_t = 4000, env = "HASH_GRAPH_API_PORT")]
     pub api_port: u16,
+
+    /// The port the type fetcher RPC server is listening at.
+    #[clap(long, default_value_t = 4444, env = "HASH_GRAPH_TYPE_FETCHER_PORT")]
+    pub type_fetcher_port: u16,
 
     /// A regex which *new* Type System URLs are checked against. Trying to create new Types with
     /// a domain that doesn't satisfy the pattern will error.
@@ -253,10 +264,24 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
 
     stop_gap_setup(&pool).await?;
 
-    let rest_router = rest_api_router(
-        Arc::new(pool),
-        DomainValidator::new(args.allowed_url_domain),
-    );
+    #[cfg(feature = "type-fetcher")]
+    let type_fetcher = {
+        let server_addr = (IpAddr::V4(Ipv4Addr::UNSPECIFIED), args.type_fetcher_port);
+
+        let transport = tarpc::serde_transport::tcp::connect(&server_addr, MessagePack::default);
+        FetcherClient::new(
+            client::Config::default(),
+            transport.await.into_report().change_context(GraphError)?,
+        )
+        .spawn()
+    };
+
+    let rest_router = rest_api_router(RestRouterDependencies {
+        store: Arc::new(pool),
+        domain_regex: DomainValidator::new(args.allowed_url_domain),
+        #[cfg(feature = "type-fetcher")]
+        type_fetcher,
+    });
     let api_address = format!("{}:{}", args.api_host, args.api_port);
     let addr: SocketAddr = api_address
         .parse()
