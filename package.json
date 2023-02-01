@@ -7,7 +7,6 @@
       "blocks/*",
       "libs/*",
       "libs/@local/*",
-      "packages/libs/error-stack",
       "tests/*"
     ]
   },
