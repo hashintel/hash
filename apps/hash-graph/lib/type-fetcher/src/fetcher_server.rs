@@ -3,7 +3,7 @@ use std::collections::{HashSet, VecDeque};
 use futures::{stream, TryStreamExt};
 use reqwest::{
     header::{ACCEPT, USER_AGENT},
-    Client, IntoUrl,
+    Client,
 };
 use tarpc::context::Context;
 use type_system::{
