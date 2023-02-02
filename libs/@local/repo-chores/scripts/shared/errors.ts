@@ -9,6 +9,7 @@ if (typeof process !== "undefined") {
   process.on("uncaughtException", (error) => {
     if (error instanceof UserFriendlyError) {
       if (error.message) {
+        console.log();
         console.log(chalk.red(error.message));
       }
     } else {

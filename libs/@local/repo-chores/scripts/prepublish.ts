@@ -29,6 +29,26 @@ const script = async () => {
     path.join(packageInfo.path, "package.json"),
     (packageJson) => {
       /* eslint-disable @typescript-eslint/no-unsafe-member-access,no-param-reassign -- see comment on updateJson() for potential improvement */
+      if (packageJson.main !== "src/main.ts") {
+        throw new UserFriendlyError(
+          "Unexpected value for field `main` in `package.json`. Please align this package with other publishable packages for consistency",
+        );
+      }
+      packageJson.main = "dist/main.js";
+
+      if (packageJson.types !== "src/main.ts") {
+        throw new UserFriendlyError(
+          "Unexpected value for field `types` in `package.json`. Please align this package with other publishable packages for consistency",
+        );
+      }
+      packageJson.types = "dist/main.d.js";
+
+      if (packageJson.exports) {
+        throw new UserFriendlyError(
+          "Please replace `exports` in `package.json` with `main` and `types` for consistency",
+        );
+      }
+
       delete packageJson.devDependencies;
       /* eslint-enable @typescript-eslint/no-unsafe-member-access,no-param-reassign */
     },
