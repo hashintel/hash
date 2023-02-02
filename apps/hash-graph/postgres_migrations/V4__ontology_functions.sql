@@ -43,7 +43,7 @@ BEGIN
   RETURNING update_ontology_id.ontology_id;
 
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'Trying to update an ontology type without specifying metadata', update_ontology_id.base_uri
+    RAISE EXCEPTION 'Trying to update an ontology type without specifying metadata'
     USING ERRCODE = 'restrict_violation';
   END IF;
   
