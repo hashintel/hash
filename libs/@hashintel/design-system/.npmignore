@@ -1,6 +1,7 @@
-# Ignore all files (but still allow sub-folder scanning)
+## Ignore all files (but still allow sub-folder scanning)
 *
 !*/
 
+## Allow-list for files and folders
 !dist/**
 !assets.d.ts
