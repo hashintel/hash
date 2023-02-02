@@ -2,7 +2,8 @@ CREATE
 OR REPLACE FUNCTION create_ontology_id (
   "ontology_id" UUID,
   "base_uri" TEXT,
-  "version" BIGINT
+  "version" BIGINT,
+  "record_created_by_id" UUID
 ) RETURNS TABLE (_ontology_id UUID) AS $create_ontology_id$
 BEGIN
   RETURN QUERY
@@ -10,11 +11,13 @@ BEGIN
     "ontology_id",
     "base_uri",
     "version",
+    "record_created_by_id",
     "transaction_time"
   ) VALUES (
     create_ontology_id.ontology_id,
     create_ontology_id.base_uri,
     create_ontology_id.version,
+    create_ontology_id.record_created_by_id,
     tstzrange(now(), NULL, '[)')
   ) RETURNING ontology_ids.ontology_id;
   
@@ -24,7 +27,8 @@ CREATE
 OR REPLACE FUNCTION update_ontology_id (
   "ontology_id" UUID,
   "base_uri" TEXT,
-  "version" BIGINT
+  "version" BIGINT,
+  "record_created_by_id" UUID
 ) RETURNS TABLE (_ontology_id UUID) AS $update_ontology_id$
 BEGIN
   RETURN QUERY
@@ -32,10 +36,16 @@ BEGIN
   SET
     "ontology_id" = update_ontology_id.ontology_id,
     "version" = update_ontology_id.version,
+    "record_created_by_id" = update_ontology_id.record_created_by_id,
     "transaction_time" = tstzrange(now(), NULL, '[)')
   WHERE ontology_ids.base_uri = update_ontology_id.base_uri
     AND ontology_ids.transaction_time @> now()
   RETURNING update_ontology_id.ontology_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Trying to update an ontology type without specifying metadata', update_ontology_id.base_uri
+    USING ERRCODE = 'restrict_violation';
+  END IF;
   
 END $update_ontology_id$ LANGUAGE plpgsql VOLATILE;
 
@@ -51,11 +61,13 @@ BEGIN
     "ontology_id",
     "base_uri",
     "version",
+    "record_created_by_id",
     "transaction_time"
   ) VALUES (
     NEW.ontology_id,
     NEW.base_uri,
     NEW.version,
+    NEW.record_created_by_id,
     NEW.transaction_time
   );
 
