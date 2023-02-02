@@ -12,7 +12,7 @@ export interface PackageInfo {
 
 const packageParentFolders = [
   path.resolve(monorepoRoot, "libs"),
-  path.resolve(monorepoRoot, "libs/@local"), // @todo replace with "libs/@hashintel"
+  path.resolve(monorepoRoot, "libs/@hashintel"),
 ];
 
 export const listPublishablePackages = async (): Promise<PackageInfo[]> => {
