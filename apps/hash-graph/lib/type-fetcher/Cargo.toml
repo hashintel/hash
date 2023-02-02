@@ -6,7 +6,7 @@ publish = false
 description = "RPC service definition to fetch external BP types"
 
 [dependencies]
-error-stack = { version = "0.2.4", features = ["spantrace"] }
+error-stack = { version = "0.3.0", features = ["spantrace"] }
 type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "2ea406f" }
 
 serde = { version = "1.0.152", features = ["derive"] }

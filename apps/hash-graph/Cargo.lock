@@ -861,16 +861,11 @@ dependencies = [
  "error-stack",
  "futures",
  "graph",
- "regex",
- "reqwest",
- "serde",
- "serde_json",
  "tarpc",
  "tokio",
  "tokio-serde",
  "tracing",
  "type-fetcher",
- "type-system",
 ]
 
 [[package]]
