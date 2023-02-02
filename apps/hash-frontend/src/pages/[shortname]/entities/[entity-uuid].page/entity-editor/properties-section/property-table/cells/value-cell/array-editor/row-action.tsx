@@ -1,5 +1,5 @@
 import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@local/design-system";
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Tooltip } from "@mui/material";
 
 import { GRID_CLICK_IGNORE_CLASS } from "../../../../../../../../../../components/grid/utils";

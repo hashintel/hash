@@ -1,4 +1,4 @@
-import { Button } from "@local/design-system";
+import { Button } from "@hashintel/design-system";
 import { EntityId } from "@local/hash-isomorphic-utils/types";
 import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";

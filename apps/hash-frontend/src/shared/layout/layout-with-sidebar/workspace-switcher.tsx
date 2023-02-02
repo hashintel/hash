@@ -1,5 +1,5 @@
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
-import { Avatar, FontAwesomeIcon } from "@local/design-system";
+import { Avatar, FontAwesomeIcon } from "@hashintel/design-system";
 import {
   Box,
   Divider,

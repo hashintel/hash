@@ -1,4 +1,4 @@
-import { Avatar } from "@local/design-system";
+import { Avatar } from "@hashintel/design-system";
 import { Box, Container, Grid, Skeleton, Typography } from "@mui/material";
 import { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import { useRouter } from "next/router";
