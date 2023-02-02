@@ -22,16 +22,17 @@ We will be developing HASH into a production-grade application which can be self
 
 This folder contains only the _HASH_ project README. The application itself consists of several different module which can be found in colocated directories:
 
-- [hash-api](../hash-api)
-- [hash-external-services](../hash-external-services) (pending possible deprecation)
-- [hash-frontend](../hash-frontend)
-- [hash-graph](../hash-graph)
-- [hash-realtime](../hash-realtime)
-- [hash-search-loader](../hash-search-loader)
-- [hash-task-executor](../hash-task-executor)
-
+- [hash-api](../hash-api): application backend API
+- [hash-external-services](../hash-external-services): houses various self-contained external services _(pending refactoring)
+- [hash-frontend](../hash-frontend): application frontend
+- [hash-graph](../hash-graph): application graph query layer
+- [hash-realtime](../hash-realtime): provides realtime updates on entities to a collection of subscribers
+- [hash-search-loader](../hash-search-loader): loads the change-stream published by the realtime service into a search index
+- [hash-task-executor](../hash-task-executor): supports the triggered execution of scripts _(temporary solution)_
 
 ## Getting started
+
+### Running HASH locally
 
 To run HASH locally, please follow these steps:
 
@@ -99,7 +100,7 @@ To run HASH locally, please follow these steps:
 
     See `package.json` → `scripts` for details and more options.
 
-### External services test mode
+#### External services test mode
 
 The external services of the system can be started in 'test mode' to prevent polluting the development database.
 This is useful for situations where the database is used for tests that modify the database without cleaning up afterwards.
@@ -109,6 +110,10 @@ To make use of this test mode, the external services can be started as follows:
 ```sh
 yarn external-services-test up
 ```
+
+### Deploying HASH
+
+To deploy HASH in the cloud, follow the instructions contained in the root [`/infra` directory](https://github.com/hashintel/hash/tree/main/infra).
 
 ## User authentication
 
