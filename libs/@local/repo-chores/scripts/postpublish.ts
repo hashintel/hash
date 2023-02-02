@@ -4,20 +4,19 @@ import chalk from "chalk";
 import execa from "execa";
 import fs from "fs-extra";
 
-import { derivePackageInfoFromEnv } from "./shared/derive-package-info-from-env";
 import { UserFriendlyError } from "./shared/errors";
 import { checkIfDirHasUncommittedChanges } from "./shared/git";
 import { monorepoRoot } from "./shared/monorepo-root";
+import {
+  derivePackageInfoFromEnv,
+  outputPackageInfo,
+} from "./shared/package-infos";
 
 const script = async () => {
   console.log(chalk.bold("Cleaning up after publishing..."));
 
   const packageInfo = await derivePackageInfoFromEnv();
-
-  console.log("");
-  console.log(`Package name: ${packageInfo.name}`);
-  console.log(`Package path: ${packageInfo.path}`);
-  console.log("");
+  outputPackageInfo(packageInfo);
 
   if (!(await checkIfDirHasUncommittedChanges(packageInfo.path))) {
     console.log(

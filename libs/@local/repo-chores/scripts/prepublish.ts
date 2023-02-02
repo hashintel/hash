@@ -4,20 +4,19 @@ import chalk from "chalk";
 import execa from "execa";
 import fs from "fs-extra";
 
-import { derivePackageInfoFromEnv } from "./shared/derive-package-info-from-env";
 import { UserFriendlyError } from "./shared/errors";
 import { checkIfDirHasUncommittedChanges } from "./shared/git";
+import {
+  derivePackageInfoFromEnv,
+  outputPackageInfo,
+} from "./shared/package-infos";
 import { updateJson } from "./shared/update-json";
 
 const script = async () => {
   console.log(chalk.bold("Cleaning up before publishing..."));
 
   const packageInfo = await derivePackageInfoFromEnv();
-
-  console.log("");
-  console.log(`Package name: ${packageInfo.name}`);
-  console.log(`Package path: ${packageInfo.path}`);
-  console.log("");
+  outputPackageInfo(packageInfo);
 
   if (await checkIfDirHasUncommittedChanges(packageInfo.path)) {
     throw new UserFriendlyError(
