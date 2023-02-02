@@ -1,5 +1,5 @@
 import { faPlus, faSearch } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, TextField } from "@local/design-system";
+import { FontAwesomeIcon, TextField } from "@hashintel/design-system";
 import {
   Autocomplete,
   autocompleteClasses,

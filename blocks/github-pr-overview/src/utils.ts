@@ -1,4 +1,4 @@
-import { theme } from "@local/design-system";
+import { theme } from "@hashintel/design-system";
 import { startCase } from "lodash";
 
 const NODE_COLORS = {

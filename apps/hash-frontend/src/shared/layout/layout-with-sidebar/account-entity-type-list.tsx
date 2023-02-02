@@ -1,5 +1,9 @@
 import { faArrowUpAZ, faSearch } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton, TextField } from "@local/design-system";
+import {
+  FontAwesomeIcon,
+  IconButton,
+  TextField,
+} from "@hashintel/design-system";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import {
   Box,

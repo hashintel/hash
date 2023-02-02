@@ -3,7 +3,7 @@ import {
   extractBaseUri,
   ValueOrArray,
 } from "@blockprotocol/type-system";
-import { Button } from "@local/design-system";
+import { Button } from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { EntityId, OwnedById } from "@local/hash-isomorphic-utils/types";
 import { Entity, Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
