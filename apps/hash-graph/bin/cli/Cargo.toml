@@ -27,5 +27,4 @@ uuid = "1.2.2"
 
 
 [features]
-default = []
 type-fetcher = ["dep:type-fetcher", "dep:tarpc", "dep:tokio-serde", "graph/type-fetcher"]
