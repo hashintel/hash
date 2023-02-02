@@ -111,7 +111,6 @@ pub fn init_logger(log_args: &LoggingArgs) -> Result<impl Drop, TryInitError> {
         log_level,
         log_file_prefix,
         otlp_endpoint,
-        ..
     } = log_args;
 
     let filter = log_level.map_or_else(
