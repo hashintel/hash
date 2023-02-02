@@ -13,7 +13,7 @@ import { GlobalStyles } from "@mui/system";
 import { Buffer } from "buffer/";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 
 import { PageErrorState } from "../../../../components/page-error-state";
@@ -188,6 +188,8 @@ const Page: NextPageWithLayout = () => {
       });
     },
   );
+
+  console.log({ loadingRemoteEntityType });
 
   const entityType =
     remoteEntityTypeAndPropertyTypes?.entityType ?? draftEntityType;

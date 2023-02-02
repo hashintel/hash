@@ -564,6 +564,7 @@ export const PropertyListCard = () => {
     control,
     name: "properties",
   });
+  console.log({ unsortedFields }, getValues("properties"));
   const propertyTypes = useLatestPropertyTypes()[0];
   const { propertyTypes: entityTypePropertyTypes } = useEntityType();
 

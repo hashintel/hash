@@ -139,7 +139,7 @@ export const useEntityTypeValue = (
 
   const completedRef = useRef<EntityTypeAndPropertyTypes | null>(null);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (
       completedRef.current !== rememberedEntityTypeAndPropertyTypes &&
       rememberedEntityTypeAndPropertyTypes
