@@ -1,7 +1,4 @@
-use std::{
-    fmt,
-    net::{IpAddr, Ipv4Addr},
-};
+use std::{fmt, net::SocketAddr};
 
 use clap::Parser;
 use error_stack::{Context, IntoReport, Result, ResultExt};
@@ -46,12 +43,19 @@ async fn main() -> Result<(), FetcherServerError> {
 
     let _log_guard = init_logger(&args.log_config);
 
-    let server_addr = (IpAddr::V4(Ipv4Addr::UNSPECIFIED), args.type_fetcher_port);
+    let type_fetcher_address = format!("{}:{}", args.type_fetcher_host, args.type_fetcher_port);
 
-    let mut listener = tarpc::serde_transport::tcp::listen(&server_addr, MessagePack::default)
-        .await
+    let type_fetcher_address: SocketAddr = type_fetcher_address
+        .parse()
         .into_report()
-        .change_context(FetcherServerError)?;
+        .change_context(FetcherServerError)
+        .attach_printable_lazy(|| type_fetcher_address.clone())?;
+
+    let mut listener =
+        tarpc::serde_transport::tcp::listen(&type_fetcher_address, MessagePack::default)
+            .await
+            .into_report()
+            .change_context(FetcherServerError)?;
 
     tracing::info!("Listening on port {}", listener.local_addr().port());
 
