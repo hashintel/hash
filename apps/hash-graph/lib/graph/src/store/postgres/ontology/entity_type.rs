@@ -257,12 +257,12 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         // This clone is currently necessary because we extract the references as we insert them.
         // We can only insert them after the type has been created, and so we currently extract them
         // after as well. See `insert_entity_type_references` taking `&entity_type`
-        let (version_id, metadata) = transaction
+        let (ontology_id, metadata) = transaction
             .create(entity_type.clone(), owned_by_id, updated_by_id)
             .await?;
 
         transaction
-            .insert_entity_type_references(&entity_type, version_id)
+            .insert_entity_type_references(&entity_type, ontology_id)
             .await
             .change_context(InsertionError)
             .attach_printable_lazy(|| {
@@ -332,12 +332,12 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         // This clone is currently necessary because we extract the references as we insert them.
         // We can only insert them after the type has been created, and so we currently extract them
         // after as well. See `insert_entity_type_references` taking `&entity_type`
-        let (version_id, metadata) = transaction
+        let (ontology_id, metadata) = transaction
             .update::<EntityType>(entity_type.clone(), updated_by)
             .await?;
 
         transaction
-            .insert_entity_type_references(&entity_type, version_id)
+            .insert_entity_type_references(&entity_type, ontology_id)
             .await
             .change_context(UpdateError)
             .attach_printable_lazy(|| {

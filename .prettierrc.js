@@ -16,6 +16,7 @@ module.exports = {
       files: "*.sql",
       options: {
         language: "postgresql",
+        keywordCase: "upper",
       },
     },
   ],
