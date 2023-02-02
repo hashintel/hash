@@ -15,7 +15,7 @@ bb8-postgres = "0.8.1"
 clap = { version = "4.1.4", features = ["derive", "env"], optional = true }
 time = { version = "0.3.17", features = ['serde', 'serde-well-known'] }
 derivative = "2.2.0"
-error-stack = { version = "0.2.4", features = ["spantrace"] }
+error-stack = { version = "0.3.0", features = ["spantrace"] }
 futures = "0.3.25"
 hyper = "0.14.23"
 postgres-types = { version = "0.2.4", default-features = false, features = ["derive", "with-uuid-1", "with-serde_json-1", "with-time-0_3"] }
@@ -36,7 +36,7 @@ opentelemetry-otlp = "0.11.0"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter", "json"] }
 type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "2ea406f" }
 uuid = { version = "1.2.2", features = ["v4", "serde"] }
-utoipa = { version = "3.0.0", features = ["uuid"] }
+utoipa = { version = "3.0.1", features = ["uuid"] }
 include_dir = "0.7.3"
 refinery = { version = "0.8", features = ["tokio-postgres"] }
 
