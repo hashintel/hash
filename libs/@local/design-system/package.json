@@ -8,13 +8,12 @@
   "main": "./src/main.ts",
   "types": "./src/main.ts",
   "scripts": {
-    "build": "rimraf dist; tsc --project tsconfig.build.json",
     "build-storybook": "storybook build",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "prepublishOnly": "yarn build; replace-in-file \"//src//\" \"/dist/\" package.json",
-    "postpublish": "replace-in-file \"//dist//\" \"/src/\" package.json",
+    "prepublishOnly": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/prepublish.ts",
+    "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts",
     "storybook": "storybook dev -p 6006",
     "test": "jest"
   },
