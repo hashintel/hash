@@ -18,6 +18,19 @@ We will be developing HASH into a production-grade application which can be self
 > The repository is currently in a state of flux while some large improvements are being implemented.
 > As such, portions of this README may prove outdated in the interim, this could include guides on how to load blocks, references to various services, broken tests, features, etc.
 
+## About this directory
+
+This folder contains only the _HASH_ project README. The application itself consists of several different module which can be found in colocated directories:
+
+- [hash-api](../hash-api)
+- [hash-external-services](../hash-external-services) (pending possible deprecation)
+- [hash-frontend](../hash-frontend)
+- [hash-graph](../hash-graph)
+- [hash-realtime](../hash-realtime)
+- [hash-search-loader](../hash-search-loader)
+- [hash-task-executor](../hash-task-executor)
+
+
 ## Getting started
 
 To run HASH locally, please follow these steps:
