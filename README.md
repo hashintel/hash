@@ -8,6 +8,7 @@
 [glossary of terms]: https://hash.ai/glossary?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [block protocol]: https://github.com/blockprotocol/blockprotocol
 [hiring]: https://hash.ai/careers?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[awesome hash]: https://github.com/hashintel/awesome-hash
 
 <!-- markdownlint-disable link-fragments -->
 
@@ -44,7 +45,7 @@ HASH does this by combining various different powerful tools together into one s
 
 ## [![a](/.github/assets/gh_icon_examples_20px-base.svg)][gh-examples] &nbsp; Examples
 
-_Coming soon_
+**Coming soon:** we'll be collecting examples in the _[Awesome HASH]_ repository.
 
 ## [![a](/.github/assets/gh_icon_roadmap_20px-base.svg)][gh-roadmap] &nbsp; Roadmap
 
