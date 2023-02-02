@@ -110,6 +110,18 @@ impl fmt::Display for VersionedUriAlreadyExists {
 impl Context for VersionedUriAlreadyExists {}
 
 #[derive(Debug)]
+#[must_use]
+pub struct WrongOntologyVersion;
+
+impl fmt::Display for WrongOntologyVersion {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("tried to update an ontology type with a different version")
+    }
+}
+
+impl Context for WrongOntologyVersion {}
+
+#[derive(Debug)]
 pub struct MigrationError;
 
 impl Context for MigrationError {}
