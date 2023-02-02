@@ -64,14 +64,18 @@ async fn fetch_entity_type_exhaustive(
                 FetchedOntologyType::EntityType(schema) => {
                     let entity_type: EntityType = schema.try_into().map_err(|error| {
                         tracing::error!(error=?error, "Couldn't convert schema to Entity Type");
-                        FetcherError::TypeParsingError
+                        FetcherError::TypeParsingError(format!(
+                            "Error parsing ontology type: {error:?}"
+                        ))
                     })?;
                     traverse_entity_type_references(&entity_type)
                 }
                 FetchedOntologyType::PropertyType(schema) => {
                     let property_type: PropertyType = schema.try_into().map_err(|error| {
                         tracing::error!(error=?error, "Couldn't convert schema to Property Type");
-                        FetcherError::TypeParsingError
+                        FetcherError::TypeParsingError(format!(
+                            "Error parsing ontology type: {error:?}"
+                        ))
                     })?;
 
                     traverse_property_type_references(&property_type)
@@ -79,7 +83,9 @@ async fn fetch_entity_type_exhaustive(
                 FetchedOntologyType::DataType(schema) => {
                     let data_type: DataType = schema.try_into().map_err(|error| {
                         tracing::error!(error=?error, "Couldn't convert schema to Data Type");
-                        FetcherError::TypeParsingError
+                        FetcherError::TypeParsingError(format!(
+                            "Error parsing ontology type: {error:?}"
+                        ))
                     })?;
 
                     traverse_data_type_references(&data_type)
@@ -119,13 +125,13 @@ pub async fn fetch_ontology_type(
         .await
         .map_err(|err| {
             tracing::error!(error=?err, url=&url, "Could not fetch ontology type");
-            FetcherError::NetworkError
+            FetcherError::NetworkError(format!("Error fetching {url}: {err:?}"))
         })?
         .json::<FetchedOntologyType>()
         .await
         .map_err(|err| {
             tracing::error!(error=?err, url=&url, "Could not deserialize response");
-            FetcherError::SerializationError(format!("Error deserializing {url}: {err:#?}"))
+            FetcherError::SerializationError(format!("Error deserializing {url}: {err:?}"))
         })?;
 
     Ok(resp)

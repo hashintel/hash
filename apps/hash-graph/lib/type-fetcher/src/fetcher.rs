@@ -4,17 +4,25 @@ use error_stack::Context;
 use serde::{Deserialize, Serialize};
 use type_system::repr::{DataType, EntityType, PropertyType};
 
+// We would really like to use error-stack for this. It's not possible because
+// we need Serialize and Deserialize for `Report`
 #[derive(Debug, Serialize, Deserialize)]
 pub enum FetcherError {
-    NetworkError,
+    NetworkError(String),
     SerializationError(String),
-    TypeParsingError,
+    TypeParsingError(String),
 }
 impl Context for FetcherError {}
 
 impl fmt::Display for FetcherError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("the type fetcher encountered an error during execution")
+        fmt.write_str("the type fetcher encountered an error during execution: ")?;
+
+        match self {
+            FetcherError::NetworkError(message)
+            | FetcherError::SerializationError(message)
+            | FetcherError::TypeParsingError(message) => fmt.write_str(message),
+        }
     }
 }
 
