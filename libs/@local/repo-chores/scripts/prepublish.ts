@@ -47,10 +47,9 @@ const script = async () => {
       
       "--declaration", "true",
       "--jsx", "react-jsx",
-      "--module", "es2022",
       "--noEmit", "false",
       "--outDir", "dist",
-      "--target", "es2022",
+      "--target", "es2020",
     ],
     {
       cwd: packageInfo.path,
