@@ -3,10 +3,13 @@ use std::collections::{HashSet, VecDeque};
 use futures::{stream, TryStreamExt};
 use reqwest::{
     header::{ACCEPT, USER_AGENT},
-    Client,
+    Client, IntoUrl,
 };
 use tarpc::context::Context;
-use type_system::{DataType, EntityType, PropertyType};
+use type_system::{
+    DataType, DataTypeReference, EntityType, EntityTypeReference, PropertyType,
+    PropertyTypeReference,
+};
 
 use crate::fetcher::{FetchedOntologyType, Fetcher, FetcherError, TypeFetchResponse};
 
@@ -60,7 +63,7 @@ async fn fetch_entity_type_exhaustive(
             let Some(url) = next_url else { return Ok(None) };
             let response = fetch_ontology_type(client, url).await?;
 
-            let uris = match response.clone() {
+            let uris: Vec<String> = match response.clone() {
                 FetchedOntologyType::EntityType(schema) => {
                     let entity_type: EntityType = schema.try_into().map_err(|error| {
                         tracing::error!(error=?error, "Couldn't convert schema to Entity Type");
@@ -68,7 +71,7 @@ async fn fetch_entity_type_exhaustive(
                             "Error parsing ontology type: {error:?}"
                         ))
                     })?;
-                    traverse_entity_type_references(&entity_type)
+                    traverse_entity_type_references(&entity_type).collect()
                 }
                 FetchedOntologyType::PropertyType(schema) => {
                     let property_type: PropertyType = schema.try_into().map_err(|error| {
@@ -78,7 +81,7 @@ async fn fetch_entity_type_exhaustive(
                         ))
                     })?;
 
-                    traverse_property_type_references(&property_type)
+                    traverse_property_type_references(&property_type).collect()
                 }
                 FetchedOntologyType::DataType(schema) => {
                     let data_type: DataType = schema.try_into().map_err(|error| {
@@ -88,7 +91,7 @@ async fn fetch_entity_type_exhaustive(
                         ))
                     })?;
 
-                    traverse_data_type_references(&data_type)
+                    traverse_data_type_references(&data_type).collect()
                 }
             };
 
@@ -137,54 +140,70 @@ pub async fn fetch_ontology_type(
     Ok(resp)
 }
 
-fn traverse_entity_type_references(entity_type: &EntityType) -> Vec<String> {
-    let mut property_type_references = entity_type.property_type_references();
+#[allow(clippy::enum_variant_names)]
+enum OntologyTypeReference<'a> {
+    EntityTypeReference(&'a EntityTypeReference),
+    PropertyTypeReference(&'a PropertyTypeReference),
+    DataTypeReference(&'a DataTypeReference),
+}
 
-    property_type_references
-        .drain()
-        .map(|property_type| property_type.uri().to_string())
+impl<'a> From<OntologyTypeReference<'a>> for String {
+    fn from(val: OntologyTypeReference<'a>) -> Self {
+        match val {
+            OntologyTypeReference::EntityTypeReference(r) => r.uri(),
+            OntologyTypeReference::PropertyTypeReference(r) => r.uri(),
+            OntologyTypeReference::DataTypeReference(r) => r.uri(),
+        }
+        .to_string()
+    }
+}
+
+fn traverse_entity_type_references(entity_type: &EntityType) -> impl Iterator<Item = String> + '_ {
+    entity_type
+        .property_type_references()
+        .into_iter()
+        .map(OntologyTypeReference::PropertyTypeReference)
         .chain(
             entity_type
                 .inherits_from()
                 .all_of()
                 .iter()
-                .map(|entity_type| entity_type.uri().to_string()),
+                .map(OntologyTypeReference::EntityTypeReference),
         )
         .chain(entity_type.link_mappings().into_iter().flat_map(
             |(link_entity_type, destination_entity_type_constraint)| {
                 let mut references = Vec::new();
-                references.push(link_entity_type.uri().to_string());
+                references.push(OntologyTypeReference::EntityTypeReference(link_entity_type));
 
                 if let Some(entity_type_constraint) = destination_entity_type_constraint {
-                    references.extend(
-                        entity_type_constraint
-                            .iter()
-                            .map(|entity_type| entity_type.uri().to_string()),
-                    );
+                    references.extend(entity_type_constraint.iter().map(|entity_type| {
+                        OntologyTypeReference::EntityTypeReference(entity_type)
+                    }));
                 }
 
                 references
             },
         ))
-        .collect()
+        .map(Into::<String>::into)
 }
 
-fn traverse_property_type_references(property_type: &PropertyType) -> Vec<String> {
-    let mut property_type_references = property_type.property_type_references();
-
-    property_type_references
-        .drain()
-        .map(|property_type| property_type.uri().to_string())
+fn traverse_property_type_references(
+    property_type: &PropertyType,
+) -> impl Iterator<Item = String> + '_ {
+    property_type
+        .property_type_references()
+        .into_iter()
+        .map(OntologyTypeReference::PropertyTypeReference)
         .chain(
             property_type
                 .data_type_references()
-                .iter()
-                .map(|entity_type| entity_type.uri().to_string()),
+                .into_iter()
+                .map(OntologyTypeReference::DataTypeReference),
         )
-        .collect()
+        .map(Into::<String>::into)
 }
 
-fn traverse_data_type_references(_data_type: &DataType) -> Vec<String> {
+fn traverse_data_type_references(_data_type: &DataType) -> impl Iterator<Item = String> + '_ {
     // Doesn't currently have other references.
-    Vec::new()
+    std::iter::empty()
 }
