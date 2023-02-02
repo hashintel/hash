@@ -32,9 +32,9 @@ const script = async () => {
   );
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
-  if (!packageJson.main.includes("/dist/")) {
+  if (!packageJson.main.startsWith("dist/")) {
     throw new UserFriendlyError(
-      'Expected `package.json` "main" field to contain "/dist/". Exiting to avoid loss of uncommitted changes. Did you forget to run the prepublish script?',
+      'Expected `package.json` "main" field to start with "dist/". Exiting script to avoid loss of uncommitted changes. Did you forget to run the prepublish script?',
     );
   }
 
