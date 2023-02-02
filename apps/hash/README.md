@@ -28,13 +28,15 @@ We will be developing HASH into a production-grade application which can be self
 
 This folder contains only the _HASH_ project README. The application is split across several different modules which can be found colocated alongside this directory:
 
-- [hash-api](../hash-api): application backend API
-- [hash-external-services](../hash-external-services): houses various self-contained external services _(pending refactoring)
-- [hash-frontend](../hash-frontend): application frontend
+- [hash-api](../hash-api): API for accessing HASH
+- [hash-external-services](../hash-external-services): houses various self-contained external services _(pending refactoring)_
+- [hash-frontend](../hash-frontend): GUI for accessing HASH
 - [hash-graph](../hash-graph): application graph query layer
 - [hash-realtime](../hash-realtime): provides realtime updates on entities to a collection of subscribers
 - [hash-search-loader](../hash-search-loader): loads the change-stream published by the realtime service into a search index
 - [hash-task-executor](../hash-task-executor): supports the triggered execution of scripts _(temporary solution)_
+
+<!-- It would be nice to add a dependency graph here showing which services rely on one another -->
 
 ## [![a](/.github/assets/gh_icon_getting-started_20px-base.svg)][gh-getting-started] &nbsp; Getting started
 
