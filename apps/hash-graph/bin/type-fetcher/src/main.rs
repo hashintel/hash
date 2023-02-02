@@ -60,18 +60,18 @@ async fn main() -> Result<(), FetcherServerError> {
     tracing::info!("Listening on port {}", listener.local_addr().port());
 
     listener.config_mut().max_frame_length(usize::MAX);
+    // Allow listeneer to accept up to 255 connections at a time.
+    //
+    // The pipeline must be invoked, we do this with `for_each` because it doesn't contain any
+    // useful information we would like to store or report on.
     listener
-        // Ignore accept errors.
         .filter_map(|r| future::ready(r.ok()))
         .map(server::BaseChannel::with_defaults)
         .map(|channel| {
             let server = FetchServer;
             channel.execute(server.serve())
         })
-        // Max 255 channels.
         .buffer_unordered(255)
-        // The above pipeline must be invoked, we do this with `for_each` because it doesn't contain 
-        // any useful information we would like to store or report on.
         .for_each(|_| async {})
         .await;
 
