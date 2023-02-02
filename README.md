@@ -86,7 +86,8 @@ This repository's contents is divided across four primary sections:
 
 ### Libraries
 
-- [`/libs`](libs): source code for our open-source developer libraries
+- [`/libs/deer`](libs/deer): fail-slow deserialization framework for Rust, featuring meaningful error messages and context (utilizing `error-stack`)
+- [`/libs/error-stack`](libs/error-stack): context-aware error-handling library for Rust which supports attaching arbitrary user data
 
 ## [![a](/.github/assets/gh_icon_contributing_20px-base.svg)][gh-contributing] &nbsp; Contributing
 
