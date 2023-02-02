@@ -2,7 +2,7 @@ use std::fmt;
 
 use error_stack::Context;
 use serde::{Deserialize, Serialize};
-use type_system::repr::{DataType, EntityType, PropertyType};
+use type_system::repr;
 
 // We would really like to use error-stack for this. It's not possible because
 // we need Serialize and Deserialize for `Report`
@@ -29,9 +29,9 @@ impl fmt::Display for FetcherError {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum FetchedOntologyType {
-    EntityType(EntityType),
-    PropertyType(PropertyType),
-    DataType(DataType),
+    EntityType(repr::EntityType),
+    PropertyType(repr::PropertyType),
+    DataType(repr::DataType),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
