@@ -49,10 +49,12 @@ pub struct ServerArgs {
         default_value = "127.0.0.1",
         env = "HASH_GRAPH_TYPE_FETCHER_HOST"
     )]
+    #[cfg(feature = "type-fetcher")]
     pub type_fetcher_host: String,
 
     /// The port the type fetcher RPC server is listening at.
     #[clap(long, default_value_t = 4444, env = "HASH_GRAPH_TYPE_FETCHER_PORT")]
+    #[cfg(feature = "type-fetcher")]
     pub type_fetcher_port: u16,
 
     /// A regex which *new* Type System URLs are checked against. Trying to create new Types with
