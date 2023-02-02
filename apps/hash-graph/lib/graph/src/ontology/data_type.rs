@@ -149,7 +149,7 @@ pub enum DataTypeQueryPath<'p> {
     /// [`DataType::json_type()`]: type_system::DataType::json_type
     Type,
     /// Only used internally and not available for deserialization.
-    VersionId,
+    OntologyId,
     /// Only used internally and not available for deserialization.
     Schema(Option<JsonPath<'p>>),
 }
@@ -183,7 +183,7 @@ impl OntologyQueryPath for DataTypeQueryPath<'_> {
 impl QueryPath for DataTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::VersionId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
+            Self::OntologyId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
             Self::Schema(_) => ParameterType::Any,
             Self::BaseUri => ParameterType::BaseUri,
             Self::VersionedUri => ParameterType::VersionedUri,
@@ -196,7 +196,7 @@ impl QueryPath for DataTypeQueryPath<'_> {
 impl fmt::Display for DataTypeQueryPath<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::VersionId => fmt.write_str("versionId"),
+            Self::OntologyId => fmt.write_str("ontologyId"),
             Self::BaseUri => fmt.write_str("baseUri"),
             Self::Version => fmt.write_str("version"),
             Self::VersionedUri => fmt.write_str("versionedUri"),
@@ -323,7 +323,7 @@ mod tests {
 
         assert_eq!(
             DataTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
-                once("version_id")
+                once("ontology_id")
             ))
             .expect_err(
                 "managed to convert data type query path with hidden token when it should have \
@@ -331,7 +331,7 @@ mod tests {
             )
             .to_string(),
             format!(
-                "unknown variant `version_id`, expected {}",
+                "unknown variant `ontology_id`, expected {}",
                 DataTypeQueryPathVisitor::EXPECTING
             )
         );
