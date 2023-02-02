@@ -3,7 +3,7 @@
 
 <!-- markdownlint-disable link-fragments -->
 
-[gh-about-directory]: #--about-this-directory
+[gh-about-directory]: #--about-the-hash-application
 [gh-getting-started]: #--getting-started
 
 <p align="center">
@@ -24,9 +24,9 @@ We will be developing HASH into a production-grade application which can be self
 > The repository is currently in a state of flux while some large improvements are being implemented.
 > As such, portions of this README may prove outdated in the interim, this could include guides on how to load blocks, references to various services, broken tests, features, etc.
 
-## [![a](/.github/assets/gh_icon_what-is-hash_20px-base.svg)][gh-about-directory] &nbsp; About this directory
+## [![a](/.github/assets/gh_icon_what-is-hash_20px-base.svg)][gh-about-directory] &nbsp; About the HASH application
 
-This folder contains only the _HASH_ project README. The application itself consists of several different module which can be found in colocated directories:
+This folder contains only the _HASH_ project README. The application is split across several different modules which can be found colocated alongside this directory:
 
 - [hash-api](../hash-api): application backend API
 - [hash-external-services](../hash-external-services): houses various self-contained external services _(pending refactoring)
