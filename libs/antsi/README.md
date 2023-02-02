@@ -6,9 +6,9 @@
 
 The name is a play on words and encapsulates the three goals of the crate:
 
-* ant: small, productive and extremely useful (🐜)
-* ansi: implementation of ANSI escape sequences
-* antsy: restless as in fast, with near to no overhead (🏎️💨)
+- ant: small, productive and extremely useful (🐜)
+- ansi: implementation of ANSI escape sequences
+- antsy: restless as in fast, with near to no overhead (🏎️💨)
 
 The crate tries to be as correct as possible, with the goal of being not only a crate, but also a comprehensive reference about terminal support and related specifications.
 
@@ -43,6 +43,6 @@ fn main() {
 
 ## License
 
- `antsi` is available under a number of different open-source licenses. Please see the [LICENSE] file to review your options.
+`antsi` is available under a number of different open-source licenses. Please see the [LICENSE] file to review your options.
 
 [^1]: SGR stands for Select Graphic Rendition
