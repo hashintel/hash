@@ -310,8 +310,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             entity_uuid.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
         );
 
-        let entity_type_version_id = self
-            .version_id_by_uri(&entity_type_id)
+        let entity_type_ontology_id = self
+            .ontology_id_by_uri(&entity_type_id)
             .await
             .change_context(InsertionError)?;
 
@@ -324,7 +324,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .query_one(
                 r#"
                 SELECT
-                    entity_record_id,
+                    entity_edition_id,
                     decision_time,
                     transaction_time
                 FROM
@@ -332,9 +332,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         _owned_by_id := $1,
                         _entity_uuid := $2,
                         _decision_time := $3,
-                        _updated_by_id := $4,
+                        _record_created_by_id := $4,
                         _archived := $5,
-                        _entity_type_version_id := $6,
+                        _entity_type_ontology_id := $6,
                         _properties := $7,
                         _left_owned_by_id := $8,
                         _left_entity_uuid := $9,
@@ -350,7 +350,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     &decision_time,
                     &updated_by_id,
                     &archived,
-                    &entity_type_version_id,
+                    &entity_type_ontology_id,
                     &properties,
                     &link_data
                         .as_ref()
@@ -433,13 +433,13 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         // Using one entity type per entity would result in more lookups, which results in a more
         // complex logic and/or be inefficient.
         // Please see the documentation for this function on the trait for more information.
-        let entity_type_version_id = transaction
-            .version_id_by_uri(entity_type_id)
+        let entity_type_ontology_id = transaction
+            .ontology_id_by_uri(entity_type_id)
             .await
             .change_context(InsertionError)?;
 
         let entity_record_ids = transaction
-            .insert_entity_records(entity_editions, entity_type_version_id, actor_id)
+            .insert_entity_records(entity_editions, entity_type_ontology_id, actor_id)
             .await?;
 
         let entity_versions = transaction
@@ -522,8 +522,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         properties: EntityProperties,
         link_order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError> {
-        let entity_type_version_id = self
-            .version_id_by_uri(&entity_type_id)
+        let entity_type_ontology_id = self
+            .ontology_id_by_uri(&entity_type_id)
             .await
             .change_context(UpdateError)?;
 
@@ -560,7 +560,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .query_opt(
                 r#"
                 SELECT
-                    entity_record_id,
+                    entity_edition_id,
                     decision_time,
                     transaction_time
                 FROM
@@ -568,9 +568,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         _owned_by_id := $1,
                         _entity_uuid := $2,
                         _decision_time := $3,
-                        _updated_by_id := $4,
+                        _record_created_by_id := $4,
                         _archived := $5,
-                        _entity_type_version_id := $6,
+                        _entity_type_ontology_id := $6,
                         _properties := $7,
                         _left_to_right_order := $8,
                         _right_to_left_order := $9
@@ -582,7 +582,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     &decision_time,
                     &updated_by_id,
                     &archived,
-                    &entity_type_version_id,
+                    &entity_type_ontology_id,
                     &properties,
                     &link_order.left_to_right(),
                     &link_order.right_to_left(),
