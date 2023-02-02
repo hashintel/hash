@@ -7,6 +7,7 @@ description = "HASH Graph API"
 
 [dependencies]
 interval-ops = { path = "../interval-ops" }
+type-fetcher = { path = "../type-fetcher", optional = true }
 
 async-trait = "0.1.63"
 axum = "0.6.3"
@@ -49,6 +50,7 @@ criterion = "0.4.0"
 #          compile code for externally written benchmarks to avoid exposing internals of the data store
 __internal_bench = []
 clap = ["dep:clap"]
+type-fetcher = ["dep:type-fetcher"]
 
 [[test]]
 test = false
