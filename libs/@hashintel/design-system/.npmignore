@@ -1,0 +1,6 @@
+# Ignore all files (but still allow sub-folder scanning)
+*
+!*/
+
+!dist/**
+!assets.d.ts

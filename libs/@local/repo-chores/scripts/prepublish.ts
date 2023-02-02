@@ -1,6 +1,7 @@
 import path from "node:path";
 
 import chalk from "chalk";
+import fs from "fs-extra";
 
 import { derivePackageInfoFromEnv } from "./shared/derive-package-info-from-env";
 import { UserFriendlyError } from "./shared/errors";
@@ -20,6 +21,12 @@ const script = async () => {
   if (await checkIfDirHasUncommittedChanges(packageInfo.path)) {
     throw new UserFriendlyError(
       `Please commit or revert changes in ${packageInfo.path} before running this script`,
+    );
+  }
+
+  if (!(await fs.pathExists(path.resolve(packageInfo.path, ".npmignore")))) {
+    throw new UserFriendlyError(
+      `Please create .npmignore in ${packageInfo.path} before running this script`,
     );
   }
 

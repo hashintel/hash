@@ -2,6 +2,11 @@
   "name": "@hashintel/design-system",
   "version": "0.0.0",
   "description": "HASH Design System",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git",
+    "directory": "libs/@hashintel/design-system"
+  },
   "license": "AGPL-3.0",
   "sideEffects": false,
   "main": "src/main.ts",
