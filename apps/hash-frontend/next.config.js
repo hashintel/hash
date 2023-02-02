@@ -1,9 +1,9 @@
 const { config } = require("dotenv-flow");
 const withTM = require("next-transpile-modules")([
-  "@local/hash-graph-client",
-  "@local/hash-subgraph",
   "@hashintel/design-system",
+  "@local/hash-graph-client",
   "@local/hash-isomorphic-utils",
+  "@local/hash-subgraph",
 ]); // pass the modules you would like to see transpiled
 const withBundleAnalyzer = require("@next/bundle-analyzer")({
   enabled: process.env.ANALYZE === "true",
