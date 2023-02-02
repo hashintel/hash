@@ -1,6 +1,7 @@
 import path from "node:path";
 
 import chalk from "chalk";
+import execa from "execa";
 import fs from "fs-extra";
 
 import { derivePackageInfoFromEnv } from "./shared/derive-package-info-from-env";
@@ -30,10 +31,40 @@ const script = async () => {
     );
   }
 
+  process.stdout.write(`Removing dist...`);
+
+  await fs.remove(path.resolve(packageInfo.path, "dist"));
+
+  process.stdout.write(" Done\n");
+  process.stdout.write(`Building...`);
+
+  // tsconfig.json is supposed to configured for local development and linting.
+  // We need to override some options to generate a build that is ready for publishing.
+  await execa(
+    "tsc",
+    // prettier-ignore
+    [
+      "--project", "tsconfig.json",
+      
+      "--declaration", "true",
+      "--jsx", "react-jsx",
+      "--module", "es2022",
+      "--noEmit", "false",
+      "--outDir", "dist",
+      "--target", "es2022",
+    ],
+    {
+      cwd: packageInfo.path,
+      stdout: "inherit",
+    },
+  );
+
+  process.stdout.write(" Done\n");
+
   process.stdout.write(`Updating package.json...`);
 
   await updateJson(
-    path.join(packageInfo.path, "package.json"),
+    path.resolve(packageInfo.path, "package.json"),
     (packageJson) => {
       /* eslint-disable @typescript-eslint/no-unsafe-member-access,no-param-reassign -- see comment on updateJson() for potential improvement */
       if (packageJson.main !== "src/main.ts") {
