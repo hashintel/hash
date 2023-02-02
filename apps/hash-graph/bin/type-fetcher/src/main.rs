@@ -70,6 +70,8 @@ async fn main() -> Result<(), FetcherServerError> {
         })
         // Max 255 channels.
         .buffer_unordered(255)
+        // The above pipeline must be invoked, we do this with `for_each` because it doesn't contain 
+        // any useful information we would like to store or report on.
         .for_each(|_| async {})
         .await;
 
