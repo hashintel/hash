@@ -10,7 +10,7 @@ import {
   ChipProps,
   customColors,
   FontAwesomeIcon,
-} from "@local/design-system";
+} from "@hashintel/design-system";
 import { Box } from "@mui/material";
 
 import { drawCellFadeOutGradient } from "../../../../../../../../components/grid/utils/draw-cell-fade-out-gradient";

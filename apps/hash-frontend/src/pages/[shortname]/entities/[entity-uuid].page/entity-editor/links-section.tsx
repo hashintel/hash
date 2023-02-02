@@ -1,5 +1,5 @@
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
-import { Chip, FontAwesomeIcon, IconButton } from "@local/design-system";
+import { Chip, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { getOutgoingLinksForEntityAtMoment } from "@local/hash-subgraph/src/stdlib/edge/link";
 import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
