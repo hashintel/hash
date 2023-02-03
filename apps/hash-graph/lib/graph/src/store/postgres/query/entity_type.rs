@@ -1,9 +1,10 @@
 use std::iter::once;
 
+use super::table::OwnedOntologyMetadata;
 use crate::{
     ontology::{EntityTypeQueryPath, EntityTypeWithMetadata},
     store::postgres::query::{
-        table::{Column, EntityTypes, JsonField, Relation, TypeIds},
+        table::{Column, EntityTypes, JsonField, OntologyIds, Relation},
         PostgresQueryPath, PostgresRecord, Table,
     },
 };
@@ -14,11 +15,16 @@ impl PostgresRecord for EntityTypeWithMetadata {
     }
 }
 
-impl PostgresQueryPath for EntityTypeQueryPath {
+impl PostgresQueryPath for EntityTypeQueryPath<'_> {
     /// Returns the relations that are required to access the path.
     fn relations(&self) -> Vec<Relation> {
         match self {
-            Self::BaseUri | Self::Version => vec![Relation::EntityTypeIds],
+            Self::BaseUri | Self::Version => {
+                vec![Relation::EntityTypeIds]
+            }
+            Self::OwnedById | Self::UpdatedById => {
+                vec![Relation::EntityTypeOwnedMetadata]
+            }
             Self::Properties(path) => once(Relation::EntityTypePropertyTypeReferences)
                 .chain(path.relations())
                 .collect(),
@@ -34,12 +40,16 @@ impl PostgresQueryPath for EntityTypeQueryPath {
 
     fn terminating_column(&self) -> Column {
         match self {
-            Self::BaseUri => Column::TypeIds(TypeIds::BaseUri),
-            Self::Version => Column::TypeIds(TypeIds::Version),
-            Self::VersionId => Column::EntityTypes(EntityTypes::VersionId),
-            Self::OwnedById => Column::EntityTypes(EntityTypes::OwnedById),
-            Self::UpdatedById => Column::EntityTypes(EntityTypes::UpdatedById),
-            Self::Schema => Column::EntityTypes(EntityTypes::Schema(None)),
+            Self::BaseUri => Column::OntologyIds(OntologyIds::BaseUri),
+            Self::Version => Column::OntologyIds(OntologyIds::Version),
+            Self::OwnedById => Column::OwnedOntologyMetadata(OwnedOntologyMetadata::OwnedById),
+            Self::UpdatedById => Column::OntologyIds(OntologyIds::UpdatedById),
+            Self::OntologyId => Column::EntityTypes(EntityTypes::OntologyId),
+            Self::Schema(path) => path
+                .as_ref()
+                .map_or(Column::EntityTypes(EntityTypes::Schema(None)), |path| {
+                    Column::EntityTypes(EntityTypes::Schema(Some(JsonField::JsonPath(path))))
+                }),
             Self::VersionedUri => {
                 Column::EntityTypes(EntityTypes::Schema(Some(JsonField::StaticText("$id"))))
             }

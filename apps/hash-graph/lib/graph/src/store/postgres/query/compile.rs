@@ -8,7 +8,9 @@ use crate::{
     store::{
         postgres::query::{
             expression::Constant,
-            table::{Entities, EntityTypes, JsonField, Relation, TypeIds},
+            table::{
+                DataTypes, Entities, EntityTypes, JsonField, OntologyIds, PropertyTypes, Relation,
+            },
             Alias, AliasedColumn, AliasedTable, Column, Condition, Distinctness, EqualityOperator,
             Expression, Function, JoinExpression, OrderByExpression, Ordering, PostgresQueryPath,
             PostgresRecord, SelectExpression, SelectStatement, Table, Transpile, WhereExpression,
@@ -223,15 +225,15 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     }
 
     /// Compiles the `path` to a condition, which is searching for the latest version.
-    // Warning: This adds a CTE to the statement, which is overwriting the `type_ids` table. When
-    //          more CTEs are needed, a test should be added to cover both CTEs in one statement to
-    //          ensure compatibility
+    // Warning: This adds a CTE to the statement, which is overwriting the `ontology_ids` table.
+    // When          more CTEs are needed, a test should be added to cover both CTEs in one
+    // statement to          ensure compatibility
     fn compile_latest_ontology_version_filter(
         &mut self,
         path: &R::QueryPath<'_>,
         operator: EqualityOperator,
     ) -> Condition<'c> {
-        let version_column = Column::TypeIds(TypeIds::Version).aliased(Alias {
+        let version_column = Column::OntologyIds(OntologyIds::Version).aliased(Alias {
             condition_index: 0,
             chain_depth: 0,
             number: 0,
@@ -240,7 +242,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         // Add a WITH expression selecting the partitioned version
         self.statement
             .with
-            .add_statement(Table::TypeIds, SelectStatement {
+            .add_statement(Table::OntologyIds, SelectStatement {
                 with: WithExpression::default(),
                 distinct: Vec::new(),
                 selects: vec![
@@ -251,7 +253,8 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                                 Expression::Column(version_column),
                             )))),
                             WindowStatement::partition_by(
-                                Column::TypeIds(TypeIds::BaseUri).aliased(version_column.alias),
+                                Column::OntologyIds(OntologyIds::BaseUri)
+                                    .aliased(version_column.alias),
                             ),
                         ),
                         Some(Cow::Borrowed("latest_version")),
@@ -266,7 +269,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         let alias = self.add_join_statements(path);
         // Join the table of `path` and compare the version to the latest version
         let latest_version_expression = Some(Expression::Column(
-            Column::TypeIds(TypeIds::LatestVersion).aliased(alias),
+            Column::OntologyIds(OntologyIds::LatestVersion).aliased(alias),
         ));
         let version_expression = Some(Expression::Column(version_column.column.aliased(alias)));
 
@@ -309,7 +312,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     /// condition if any.
     ///
     /// The following [`Filter`]s will be special cased:
-    /// - Comparing the `"version"` field on [`Table::TypeIds`] with `"latest"` for equality.
+    /// - Comparing the `"version"` field on [`Table::OntologyIds`] with `"latest"` for equality.
     fn compile_special_filter<'f: 'p>(&mut self, filter: &Filter<'f, R>) -> Option<Condition<'c>> {
         match filter {
             Filter::Equal(lhs, rhs) | Filter::NotEqual(lhs, rhs) => match (lhs, rhs) {
@@ -321,10 +324,15 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                     Some(FilterExpression::Parameter(Parameter::Text(parameter))),
                     Some(FilterExpression::Path(path)),
                 ) => match (path.terminating_column(), filter, parameter.as_ref()) {
-                    (Column::TypeIds(TypeIds::Version), Filter::Equal(..), "latest") => Some(
-                        self.compile_latest_ontology_version_filter(path, EqualityOperator::Equal),
-                    ),
-                    (Column::TypeIds(TypeIds::Version), Filter::NotEqual(..), "latest") => {
+                    (Column::OntologyIds(OntologyIds::Version), Filter::Equal(..), "latest") => {
+                        Some(
+                            self.compile_latest_ontology_version_filter(
+                                path,
+                                EqualityOperator::Equal,
+                            ),
+                        )
+                    }
+                    (Column::OntologyIds(OntologyIds::Version), Filter::NotEqual(..), "latest") => {
                         Some(self.compile_latest_ontology_version_filter(
                             path,
                             EqualityOperator::NotEqual,
@@ -355,16 +363,33 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     }
 
     pub fn compile_path_column(&mut self, path: &'p R::QueryPath<'_>) -> AliasedColumn<'c> {
-        let column = path.terminating_column();
-        let column =
-            if let Column::Entities(Entities::Properties(Some(JsonField::Json(field)))) = column {
+        let column = match path.terminating_column() {
+            Column::DataTypes(DataTypes::Schema(Some(JsonField::JsonPath(field)))) => {
                 self.artifacts.parameters.push(field);
-                Column::Entities(Entities::Properties(Some(JsonField::JsonParameter(
+                Column::DataTypes(DataTypes::Schema(Some(JsonField::JsonPathParameter(
                     self.artifacts.parameters.len(),
                 ))))
-            } else {
-                column
-            };
+            }
+            Column::PropertyTypes(PropertyTypes::Schema(Some(JsonField::JsonPath(field)))) => {
+                self.artifacts.parameters.push(field);
+                Column::PropertyTypes(PropertyTypes::Schema(Some(JsonField::JsonPathParameter(
+                    self.artifacts.parameters.len(),
+                ))))
+            }
+            Column::EntityTypes(EntityTypes::Schema(Some(JsonField::JsonPath(field)))) => {
+                self.artifacts.parameters.push(field);
+                Column::EntityTypes(EntityTypes::Schema(Some(JsonField::JsonPathParameter(
+                    self.artifacts.parameters.len(),
+                ))))
+            }
+            Column::Entities(Entities::Properties(Some(JsonField::JsonPath(field)))) => {
+                self.artifacts.parameters.push(field);
+                Column::Entities(Entities::Properties(Some(JsonField::JsonPathParameter(
+                    self.artifacts.parameters.len(),
+                ))))
+            }
+            column => column,
+        };
 
         let alias = self.add_join_statements(path);
 
@@ -475,10 +500,14 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     fn add_join_statements(&mut self, path: &R::QueryPath<'_>) -> Alias {
         let mut current_table = self.statement.from;
 
+        if current_table.table == Table::Entities {
+            self.pin_entity_table(current_table.alias);
+        }
+
         for relation in path.relations() {
             let current_alias = current_table.alias;
             for (current_column, join_column) in relation.joins() {
-                let current_column = current_column.aliased(current_table.alias);
+                let mut current_column = current_column.aliased(current_table.alias);
                 let mut join_column = join_column.aliased(Alias {
                     condition_index: self.artifacts.condition_index,
                     chain_depth: current_table.alias.chain_depth + 1,
@@ -486,13 +515,13 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                 });
 
                 // If we join on the same column as the previous join, we can reuse the that join.
-                // For example, if we join on `entities.entity_type_version_id =
-                // entity_type.version_id` and then on `entity_type.version_id =
-                // type_ids.version_id`, we can merge the two joins into `entities.
-                // entity_type_version_id = type_ids.version_id`. We, however, need to
+                // For example, if we join on `entities.entity_type_ontology_id =
+                // entity_type.ontology_id` and then on `entity_type.ontology_id =
+                // ontology_ids.ontology_id`, we can merge the two joins into `entities.
+                // entity_type_ontology_id = ontology_ids.ontology_id`. We, however, need to
                 // make sure, that we only alter a join statement with a table we don't require
                 // anymore.
-                if let Some(last_join) = self.statement.joins.last_mut() {
+                if let Some(last_join) = self.statement.joins.pop() {
                     // Check if we are joining on the same column as the previous join
                     if last_join.join == current_column
                         && !self
@@ -500,19 +529,9 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                             .required_tables
                             .contains(&last_join.join.table())
                     {
-                        last_join.join.table().table = join_column.table().table;
-                        last_join.join.column = join_column.column;
-                        current_table = last_join.join.table();
-
-                        if let [.., previous_join, this_join] = self.statement.joins.as_slice() {
-                            // It's possible that we just duplicated the last two join statements,
-                            // so remove the last one.
-                            if previous_join == this_join {
-                                self.statement.joins.pop();
-                            }
-                        }
-
-                        continue;
+                        current_column = last_join.on;
+                    } else {
+                        self.statement.joins.push(last_join);
                     }
                 }
 
@@ -538,8 +557,8 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                     current_table = join_expression.join.table();
                     self.statement.joins.push(join_expression);
 
-                    if matches!(current_column.column, Column::Entities(_)) {
-                        self.pin_entity_table(current_alias);
+                    if matches!(join_column.column, Column::Entities(_)) {
+                        self.pin_entity_table(current_table.alias);
                     }
                 }
             }

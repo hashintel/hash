@@ -14,9 +14,9 @@ RUN yarn install --frozen-lockfile --prefer-offline --force --build-from-source
 
 # Also ensure that frontend node modules can be cached
 COPY apps/hash-frontend/package.json apps/hash-frontend/
-COPY apps/hash-graph/clients/typescript/package.json apps/hash-graph/clients/typescript/
-COPY libs/@local/design-system/package.json libs/@local/design-system/
+COPY libs/@hashintel/design-system/package.json libs/@hashintel/design-system/
 COPY libs/@local/eslint-config/package.json libs/@local/eslint-config/
+COPY libs/@local/hash-graph-client/package.json libs/@local/hash-graph-client/
 COPY libs/@local/hash-isomorphic-utils/package.json libs/@local/hash-isomorphic-utils/
 COPY libs/@local/hash-subgraph/package.json libs/@local/hash-subgraph/
 COPY libs/@local/tsconfig/package.json libs/@local/tsconfig/
@@ -36,9 +36,9 @@ COPY libs/@local/hash-isomorphic-utils/codegen.config.ts libs/@local/hash-isomor
 RUN yarn workspace @local/hash-isomorphic-utils codegen
 
 COPY apps/hash-frontend apps/hash-frontend
-COPY apps/hash-graph/clients/typescript apps/hash-graph/clients/typescript
-COPY libs/@local/design-system libs/@local/design-system
+COPY libs/@hashintel/design-system libs/@hashintel/design-system
 COPY libs/@local/eslint-config libs/@local/eslint-config
+COPY libs/@local/hash-graph-client libs/@local/hash-graph-client
 COPY libs/@local/hash-isomorphic-utils libs/@local/hash-isomorphic-utils
 COPY libs/@local/hash-subgraph libs/@local/hash-subgraph
 COPY libs/@local/tsconfig libs/@local/tsconfig

@@ -9,7 +9,7 @@ import { useBlockProtocolCreateEntity } from "../../../../components/hooks/block
 import { PageErrorState } from "../../../../components/page-error-state";
 import { generateEntityLabel } from "../../../../lib/entities";
 import { WorkspaceContext } from "../../../shared/workspace-context";
-import { EditBar } from "../../types/entity-type/[entity-type-id].page/edit-bar";
+import { EditBar } from "../../types/entity-type/[entity-type-id].page/shared/edit-bar";
 import { EntityEditorPage } from "./entity-editor-page";
 import { EntityPageLoadingState } from "./entity-page-loading-state";
 import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";

@@ -275,7 +275,6 @@ pub enum Parameter<'p> {
     Boolean(bool),
     Number(f64),
     Text(Cow<'p, str>),
-    #[serde(skip)]
     Any(Value),
     #[serde(skip)]
     Uuid(Uuid),

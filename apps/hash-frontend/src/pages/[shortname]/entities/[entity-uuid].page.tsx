@@ -22,7 +22,7 @@ import {
 } from "../../../shared/layout";
 import { useIsReadonlyModeForResource } from "../../../shared/readonly-mode";
 import { useRouteNamespace } from "../shared/use-route-namespace";
-import { EditBar } from "../types/entity-type/[entity-type-id].page/edit-bar";
+import { EditBar } from "../types/entity-type/[entity-type-id].page/shared/edit-bar";
 import { EntityEditorPage } from "./[entity-uuid].page/entity-editor-page";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
 import { updateEntitySubgraphStateByEntity } from "./[entity-uuid].page/shared/update-entity-subgraph-state-by-entity";
@@ -39,17 +39,17 @@ const Page: NextPageWithLayout = () => {
 
   const applyDraftLinkEntityChanges = useApplyDraftLinkEntityChanges();
 
-  const [entitySubgraphFromDB, setEntitySubgraphFromDB] =
+  const [entitySubgraphFromDb, setEntitySubgraphFromDb] =
     useState<Subgraph<SubgraphRootTypes["entity"]>>();
   const [draftEntitySubgraph, setDraftEntitySubgraph] =
     useState<Subgraph<SubgraphRootTypes["entity"]>>();
 
-  const entityFromDB =
-    entitySubgraphFromDB && getRoots(entitySubgraphFromDB)[0];
+  const entityFromDb =
+    entitySubgraphFromDb && getRoots(entitySubgraphFromDb)[0];
 
   const entityOwnedById =
-    entityFromDB &&
-    extractOwnedByIdFromEntityId(entityFromDB.metadata.editionId.baseId);
+    entityFromDb &&
+    extractOwnedByIdFromEntityId(entityFromDb.metadata.editionId.baseId);
 
   const readonly = useIsReadonlyModeForResource(entityOwnedById);
 
@@ -78,10 +78,10 @@ const Page: NextPageWithLayout = () => {
 
           if (subgraph) {
             try {
-              setEntitySubgraphFromDB(subgraph);
+              setEntitySubgraphFromDb(subgraph);
               setDraftEntitySubgraph(subgraph);
             } catch {
-              setEntitySubgraphFromDB(undefined);
+              setEntitySubgraphFromDb(undefined);
               setDraftEntitySubgraph(undefined);
             }
           }
@@ -124,7 +124,7 @@ const Page: NextPageWithLayout = () => {
       }
     });
 
-    setEntitySubgraphFromDB(subgraph);
+    setEntitySubgraphFromDb(subgraph);
     setDraftEntitySubgraph(newDraftEntitySubgraph);
   };
 
@@ -136,12 +136,12 @@ const Page: NextPageWithLayout = () => {
 
   const discardChanges = () => {
     resetDraftState();
-    setDraftEntitySubgraph(entitySubgraphFromDB);
+    setDraftEntitySubgraph(entitySubgraphFromDb);
   };
 
   const [savingChanges, setSavingChanges] = useState(false);
   const handleSaveChanges = async () => {
-    if (!entitySubgraphFromDB || !draftEntitySubgraph) {
+    if (!entitySubgraphFromDb || !draftEntitySubgraph) {
       return;
     }
 
@@ -155,7 +155,7 @@ const Page: NextPageWithLayout = () => {
       setSavingChanges(true);
 
       await applyDraftLinkEntityChanges(
-        getRoots(entitySubgraphFromDB)[0]?.metadata.editionId
+        getRoots(entitySubgraphFromDb)[0]?.metadata.editionId
           .baseId as EntityId,
         draftLinksToCreate,
         draftLinksToArchive,

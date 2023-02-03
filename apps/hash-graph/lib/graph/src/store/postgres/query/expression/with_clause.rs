@@ -67,7 +67,7 @@ mod tests {
         let mut with_clause = WithExpression::default();
         assert_eq!(with_clause.transpile_to_string(), "");
 
-        with_clause.add_statement(Table::TypeIds, SelectStatement {
+        with_clause.add_statement(Table::OntologyIds, SelectStatement {
             with: WithExpression::default(),
             distinct: Vec::new(),
             selects: vec![
@@ -77,7 +77,7 @@ mod tests {
                     Some(Cow::Borrowed("latest_version")),
                 ),
             ],
-            from: Table::TypeIds.aliased(Alias {
+            from: Table::OntologyIds.aliased(Alias {
                 condition_index: 0,
                 chain_depth: 0,
                 number: 0,
@@ -91,7 +91,7 @@ mod tests {
             trim_whitespace(with_clause.transpile_to_string()),
             trim_whitespace(
                 r#"
-                WITH "type_ids" AS (SELECT *, MAX("type_ids_0_0_0"."version") OVER (PARTITION BY "type_ids_0_0_0"."base_uri") AS "latest_version" FROM "type_ids" AS "type_ids_0_0_0")"#
+                WITH "ontology_ids" AS (SELECT *, MAX("ontology_ids_0_0_0"."version") OVER (PARTITION BY "ontology_ids_0_0_0"."base_uri") AS "latest_version" FROM "ontology_ids" AS "ontology_ids_0_0_0")"#
             )
         );
 
@@ -113,7 +113,7 @@ mod tests {
             trim_whitespace(with_clause.transpile_to_string()),
             trim_whitespace(
                 r#"
-                WITH "type_ids" AS (SELECT *, MAX("type_ids_0_0_0"."version") OVER (PARTITION BY "type_ids_0_0_0"."base_uri") AS "latest_version" FROM "type_ids" AS "type_ids_0_0_0"),
+                WITH "ontology_ids" AS (SELECT *, MAX("ontology_ids_0_0_0"."version") OVER (PARTITION BY "ontology_ids_0_0_0"."base_uri") AS "latest_version" FROM "ontology_ids" AS "ontology_ids_0_0_0"),
                      "data_types" AS (SELECT * FROM "data_types" AS "data_types_3_4_5")"#
             )
         );

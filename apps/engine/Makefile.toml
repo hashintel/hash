@@ -1,8 +1,6 @@
 extend = { path = "../../.github/scripts/rust/Makefile.toml" }
 
 [env]
-CARGO_CLIPPY_HACK_FLAGS = "--workspace --features clap --ignore-unknown-features"
-CARGO_TEST_HACK_FLAGS = "--workspace --features clap --ignore-unknown-features"
 CARGO_MIRI_HACK_FLAGS = "--workspace"
 CARGO_RUSTDOC_FLAGS = "--all-features -Zunstable-options -Zrustdoc-scrape-examples=examples -- -Zunstable-options"
 

@@ -3,7 +3,7 @@ use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 use clap::Parser;
 use error_stack::{IntoReport, Result, ResultExt};
 use graph::{
-    api::rest::rest_api_router,
+    api::rest::{rest_api_router, RestRouterDependencies},
     identifier::account::AccountId,
     logging::{init_logger, LoggingArgs},
     ontology::domain_validator::DomainValidator,
@@ -21,6 +21,8 @@ use type_system::{
     AllOf, DataType, EntityType, Links, Object,
 };
 use uuid::Uuid;
+#[cfg(feature = "type-fetcher")]
+use {tarpc::client, tokio_serde::formats::MessagePack, type_fetcher::fetcher::FetcherClient};
 
 use crate::error::GraphError;
 
@@ -40,6 +42,20 @@ pub struct ServerArgs {
     /// The port the REST client is listening at.
     #[clap(long, default_value_t = 4000, env = "HASH_GRAPH_API_PORT")]
     pub api_port: u16,
+
+    /// The host the type fetcher RPC server is listening at.
+    #[clap(
+        long,
+        default_value = "127.0.0.1",
+        env = "HASH_GRAPH_TYPE_FETCHER_HOST"
+    )]
+    #[cfg(feature = "type-fetcher")]
+    pub type_fetcher_host: String,
+
+    /// The port the type fetcher RPC server is listening at.
+    #[clap(long, default_value_t = 4444, env = "HASH_GRAPH_TYPE_FETCHER_PORT")]
+    #[cfg(feature = "type-fetcher")]
+    pub type_fetcher_port: u16,
 
     /// A regex which *new* Type System URLs are checked against. Trying to create new Types with
     /// a domain that doesn't satisfy the pattern will error.
@@ -241,14 +257,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
 }
 
 pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
-    let log_args = args.log_config.clone();
-    let _log_guard = init_logger(
-        log_args.log_format,
-        log_args.log_folder,
-        log_args.log_level,
-        &log_args.log_file_prefix,
-        args.log_config.otlp_endpoint.as_deref(),
-    );
+    let _log_guard = init_logger(&args.log_config);
 
     let pool = PostgresStorePool::new(&args.db_info, NoTls)
         .await
@@ -260,19 +269,42 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
 
     stop_gap_setup(&pool).await?;
 
-    let rest_router = rest_api_router(
-        Arc::new(pool),
-        DomainValidator::new(args.allowed_url_domain),
-    );
+    #[cfg(feature = "type-fetcher")]
+    let type_fetcher = {
+        let type_fetcher_address = format!("{}:{}", args.type_fetcher_host, args.type_fetcher_port);
+
+        let type_fetcher_address: SocketAddr = type_fetcher_address
+            .parse()
+            .into_report()
+            .change_context(GraphError)
+            .attach_printable_lazy(|| type_fetcher_address.clone())?;
+
+        let transport =
+            tarpc::serde_transport::tcp::connect(&type_fetcher_address, MessagePack::default);
+
+        FetcherClient::new(
+            client::Config::default(),
+            transport.await.into_report().change_context(GraphError)?,
+        )
+        .spawn()
+    };
+
+    let rest_router = rest_api_router(RestRouterDependencies {
+        store: Arc::new(pool),
+        domain_regex: DomainValidator::new(args.allowed_url_domain),
+        #[cfg(feature = "type-fetcher")]
+        type_fetcher,
+    });
+
     let api_address = format!("{}:{}", args.api_host, args.api_port);
-    let addr: SocketAddr = api_address
+    let api_address: SocketAddr = api_address
         .parse()
         .into_report()
         .change_context(GraphError)
         .attach_printable_lazy(|| api_address.clone())?;
 
     tracing::info!("Listening on {api_address}");
-    axum::Server::bind(&addr)
+    axum::Server::bind(&api_address)
         .serve(rest_router.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .expect("failed to start server");

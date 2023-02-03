@@ -1,5 +1,5 @@
 import { faSmile } from "@fortawesome/free-regular-svg-icons";
-import { FontAwesomeIcon } from "@local/design-system";
+import { FontAwesomeIcon } from "@hashintel/design-system";
 import { useState } from "react";
 import { useFormState } from "react-hook-form";
 
@@ -10,7 +10,7 @@ import {
   EditBarContainer,
   EditBarContents,
   useFreezeScrollWhileTransitioning,
-} from "./edit-bar";
+} from "./shared/edit-bar";
 import { EntityTypeEditorForm } from "./shared/form-types";
 
 const useFrozenValue = <T extends any>(value: T): T => {

@@ -12,7 +12,7 @@ import {
   faLink,
   faRefresh,
 } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@local/design-system";
+import { FontAwesomeIcon } from "@hashintel/design-system";
 import {
   areComponentsCompatible,
   isHashTextBlock,

@@ -1,14 +1,14 @@
 import { faAsterisk, IconDefinition } from "@fortawesome/free-solid-svg-icons";
-import { Chip, FontAwesomeIcon } from "@local/design-system";
+import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
 import { Tooltip } from "@mui/material";
 
 export const ValueChip = ({
-  value,
+  title,
   selected,
   icon = faAsterisk,
   tooltip = "",
 }: {
-  value: unknown;
+  title: string;
   selected: boolean;
   icon?: Pick<IconDefinition, "icon">;
   tooltip?: string;
@@ -39,7 +39,7 @@ export const ValueChip = ({
           />
         </Tooltip>
       }
-      label={String(value)}
+      label={title}
     />
   );
 };

@@ -3,17 +3,20 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
-import { customColors } from "@local/design-system/src/theme/palette";
+import { customColors } from "@hashintel/design-system";
 
 import {
   getCellHorizontalPadding,
   getYCenter,
 } from "../../../../../../../../components/grid/utils";
+import { drawChipWithText } from "../../../../../../../../components/grid/utils/draw-chip-with-text";
 import { drawTextWithIcon } from "../../../../../../../../components/grid/utils/draw-text-with-icon";
 import { InteractableManager } from "../../../../../../../../components/grid/utils/interactable-manager";
 import { drawInteractableTooltipIcons } from "../../../../../../../../components/grid/utils/use-grid-tooltip/draw-interactable-tooltip-icons";
 import { isValueEmpty } from "../../is-value-empty";
 import { ArrayEditor } from "./value-cell/array-editor";
+import { arrayValueToString } from "./value-cell/array-value-to-string";
+import { editorSpecs } from "./value-cell/editor-specs";
 import { SingleValueEditor } from "./value-cell/single-value-editor";
 import { ValueCell } from "./value-cell/types";
 import { guessEditorTypeFromValue } from "./value-cell/utils";
@@ -32,20 +35,26 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     const yCenter = getYCenter(args);
     const left = rect.x + getCellHorizontalPadding();
 
-    const isBoolean =
-      guessEditorTypeFromValue(value, expectedTypes) === "boolean";
+    const editorType = guessEditorTypeFromValue(value, expectedTypes);
+    const editorSpec = editorSpecs[editorType];
 
-    if (isValueEmpty(value)) {
+    if (!isArray && editorSpec.shouldBeDrawnAsAChip) {
+      drawChipWithText({
+        args,
+        left,
+        text: editorSpec.valueToString(value),
+      });
+    } else if (isValueEmpty(value)) {
       // draw empty value
       ctx.fillStyle = customColors.gray[50];
       ctx.font = "italic 14px Inter";
       const emptyText = isArray ? "No values" : "No value";
       ctx.fillText(emptyText, left, yCenter);
-    } else if (isBoolean) {
+    } else if (editorType === "boolean") {
       // draw boolean
       drawTextWithIcon({
         args,
-        text: value ? "True" : "False",
+        text: editorSpec.valueToString(value),
         icon: value ? "bpCheck" : "bpCross",
         left,
         iconColor: customColors.gray[50],
@@ -54,12 +63,8 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     } else {
       // draw plain text
       const text = Array.isArray(value)
-        ? value
-            .map((val) =>
-              typeof val === "boolean" ? (val ? "True" : "False") : val,
-            )
-            .join(", ")
-        : String(value);
+        ? arrayValueToString(value)
+        : editorSpec.valueToString(value);
       ctx.fillText(text, left, yCenter);
     }
 
