@@ -583,7 +583,7 @@ mod tests {
     fn transpile_table() {
         assert_eq!(
             Table::OntologyIds.transpile_to_string(),
-            r#""ontology_ids""#
+            r#""ontology_id_with_metadata""#
         );
         assert_eq!(Table::DataTypes.transpile_to_string(), r#""data_types""#);
     }
@@ -598,7 +598,7 @@ mod tests {
                     number: 3,
                 })
                 .transpile_to_string(),
-            r#""ontology_ids_1_2_3""#
+            r#""ontology_id_with_metadata_1_2_3""#
         );
     }
 

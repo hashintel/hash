@@ -70,7 +70,7 @@ mod tests {
 
         assert_eq!(
             where_clause.transpile_to_string(),
-            r#"WHERE "ontology_ids_0_1_0"."version" = "ontology_ids_0_1_0"."latest_version""#
+            r#"WHERE "ontology_id_with_metadata_0_1_0"."version" = "ontology_id_with_metadata_0_1_0"."latest_version""#
         );
 
         let filter_b = Filter::All(vec![
@@ -91,8 +91,8 @@ mod tests {
             trim_whitespace(where_clause.transpile_to_string()),
             trim_whitespace(
                 r#"
-                WHERE "ontology_ids_0_1_0"."version" = "ontology_ids_0_1_0"."latest_version"
-                  AND ("ontology_ids_0_1_0"."base_uri" = $1) AND ("ontology_ids_0_1_0"."version" = $2)"#
+                WHERE "ontology_id_with_metadata_0_1_0"."version" = "ontology_id_with_metadata_0_1_0"."latest_version"
+                  AND ("ontology_id_with_metadata_0_1_0"."base_uri" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)"#
             )
         );
 
@@ -106,8 +106,8 @@ mod tests {
             trim_whitespace(where_clause.transpile_to_string()),
             trim_whitespace(
                 r#"
-                WHERE "ontology_ids_0_1_0"."version" = "ontology_ids_0_1_0"."latest_version"
-                  AND ("ontology_ids_0_1_0"."base_uri" = $1) AND ("ontology_ids_0_1_0"."version" = $2)
+                WHERE "ontology_id_with_metadata_0_1_0"."version" = "ontology_id_with_metadata_0_1_0"."latest_version"
+                  AND ("ontology_id_with_metadata_0_1_0"."base_uri" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
                   AND "data_types_0_0_0"."schema"->>'description' IS NOT NULL"#
             )
         );
@@ -132,8 +132,8 @@ mod tests {
             trim_whitespace(where_clause.transpile_to_string()),
             trim_whitespace(
                 r#"
-                WHERE "ontology_ids_0_1_0"."version" = "ontology_ids_0_1_0"."latest_version"
-                  AND ("ontology_ids_0_1_0"."base_uri" = $1) AND ("ontology_ids_0_1_0"."version" = $2)
+                WHERE "ontology_id_with_metadata_0_1_0"."version" = "ontology_id_with_metadata_0_1_0"."latest_version"
+                  AND ("ontology_id_with_metadata_0_1_0"."base_uri" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
                   AND "data_types_0_0_0"."schema"->>'description' IS NOT NULL
                   AND (("data_types_0_0_0"."schema"->>'title' = $3) OR ("data_types_0_0_0"."schema"->>'description' = $4))"#
             )

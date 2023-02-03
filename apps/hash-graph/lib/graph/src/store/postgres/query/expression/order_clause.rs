@@ -68,7 +68,7 @@ mod tests {
         );
         assert_eq!(
             order_by_expression.transpile_to_string(),
-            r#"ORDER BY "ontology_ids_1_2_3"."version" ASC"#
+            r#"ORDER BY "ontology_id_with_metadata_1_2_3"."version" ASC"#
         );
     }
 
@@ -97,7 +97,7 @@ mod tests {
         assert_eq!(
             trim_whitespace(order_by_expression.transpile_to_string()),
             trim_whitespace(
-                r#"ORDER BY "ontology_ids_1_2_3"."base_uri" ASC,
+                r#"ORDER BY "ontology_id_with_metadata_1_2_3"."base_uri" ASC,
                 "data_types_4_5_6"."schema"->>'type' DESC"#
             )
         );
