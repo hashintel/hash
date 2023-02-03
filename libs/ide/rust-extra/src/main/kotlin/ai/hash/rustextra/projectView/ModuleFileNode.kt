@@ -4,13 +4,10 @@ import com.intellij.ide.projectView.PresentationData
 import com.intellij.ide.projectView.ViewSettings
 import com.intellij.ide.projectView.impl.nodes.PsiFileNode
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiFile
 import com.intellij.ui.JBColor
 import com.intellij.ui.SimpleTextAttributes
-import java.awt.Color
 
-val UserDataKey = Key.create<Boolean>("ai.hash.rustextra.projectView.moduleFileNode");
 
 class ModuleFileNode(project: Project, value: PsiFile, viewSettings: ViewSettings?) : PsiFileNode(project, value, viewSettings) {
 
@@ -33,7 +30,7 @@ class ModuleFileNode(project: Project, value: PsiFile, viewSettings: ViewSetting
 
     companion object {
         fun fromPsiFileNode(node: PsiFileNode, settings: ViewSettings?): ModuleFileNode {
-            node.value.putUserData(UserDataKey, true);
+            node.value.putUserData(ModuleFileNodeMarker, true);
             return ModuleFileNode(node.project, node.value, settings)
         }
     }

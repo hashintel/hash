@@ -39,10 +39,10 @@ class ModuleGroupTreeStructureProvider : TreeStructureProvider, DumbAware {
 
             val value = child.value;
             if (child is PsiFileNode && value is RsFile) {
-                if (value.getUserData(UserDataKey) == true) {
+                if (value.getUserData(ModuleFileNodeMarker) == true) {
                     // we already processed the file, wrap in a proper node and continue
                     nodes.add(ModuleFileNode.fromPsiFileNode(child, settings));
-                    value.putUserData(UserDataKey, false);
+                    value.putUserData(ModuleFileNodeMarker, false);
 
                     continue
                 }
