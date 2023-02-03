@@ -2,6 +2,27 @@
 [github_star]: https://github.com/hashintel/hash/tree/main/blocks#
 [discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_blocks
 
+[calculation]: calculation
+[callout]: callout
+[chart]: chart
+[code]: code
+[countdown]: countdown
+[divider]: divider
+[drawing]: drawing
+[embed]: embed
+[github-pr-overview]: github-pr-overview
+[header]: header
+[html-para]: html-para
+[image]: image
+[paragraph]: paragraph
+[person]: person
+[shuffle]: shuffle
+[stopwatch]: stopwatch
+[table]: table 
+[timer]: timer
+[toggle-item]: toggle-item
+[video]: video
+
 [![github_banner](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/5a38c5f3-6474-4b6c-71e6-ecf01914f000/github)][github_banner]
 
 [![discord](https://img.shields.io/discord/840573247803097118)][discord] [![github_star](https://img.shields.io/github/stars/hashintel/hash?label=Star%20on%20GitHub&style=social)][github_star]
@@ -11,6 +32,29 @@
 This directory contains the source code for all of the public [Block Protocol](https://blockprotocol.org/) blocks published by HASH.
 
 You can view rich previews of each of these on the [`@hash` page](https://blockprotocol.org/@hash) in the [Þ Hub](https://blockprotocol.org/hub).
+
+| Directory            	| Spec Target 	| Status         	| Publication URL                                                                                	| Description 	|
+|----------------------	|-------------	|----------------	|------------------------------------------------------------------------------------------------	|-------------	|
+| [calculation]        	| 0.2         	| Unmaintained   	| [@thehabbos007/blocks/calculation](https://blockprotocol.org/@thehabbos007/blocks/calculation) 	|             	|
+| [callout]            	| 0.3         	| Maintained     	|                                                                                                	|             	|
+| [chart]              	| 0.X         	| Pending Update 	|                                                                                                	|             	|
+| [code]               	| 0.3         	| Maintained     	|                                                                                                	|             	|
+| [countdown]          	| 0.X         	| Maintained     	|                                                                                                	|             	|
+| [divider]            	| 0.X         	| Maintained     	|                                                                                                	|             	|
+| [drawing]            	| 0.X         	| Maintained     	|                                                                                                	|             	|
+| [embed]              	| 0.X         	| Pending Update 	|                                                                                                	|             	|
+| [github-pr-overview] 	| 0.X         	| Maintained     	|                                                                                                	|             	|
+| [header]             	| 0.X         	| Maintained     	|                                                                                                	|             	|
+| [html-para]          	| 0.X         	| TBC            	|                                                                                                	|             	|
+| [image]              	| 0.X         	| Maintained     	|                                                                                                	|             	|
+| [paragraph]          	| 0.X         	| Maintained     	|                                                                                                	|             	|
+| [person]             	| 0.X         	| Maintained     	|                                                                                                	|             	|
+| [shuffle]            	| 0.X         	| Maintained     	|                                                                                                	|             	|
+| [stopwatch]          	| 0.X         	| Maintained     	|                                                                                                	|             	|
+| [table]              	| 0.X         	| Unmaintained   	|                                                                                                	|             	|
+| [timer]              	| 0.X         	| Maintained     	|                                                                                                	|             	|
+| [toggle-item]        	| 0.X         	| Maintained     	|                                                                                                	|             	|
+| [video]              	| 0.X         	| Maintained     	|                                                                                                	|             	|
 
 ## Running these blocks
 
