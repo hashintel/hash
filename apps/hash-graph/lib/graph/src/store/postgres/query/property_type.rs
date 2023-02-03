@@ -22,7 +22,7 @@ impl PostgresQueryPath for PropertyTypeQueryPath<'_> {
             | Self::UpdatedById
             | Self::OwnedById
             | Self::AdditionalMetadata(_) => {
-                vec![Relation::DataTypeIds]
+                vec![Relation::PropertyTypeIds]
             }
             Self::DataTypes(path) => once(Relation::PropertyTypeDataTypeReferences)
                 .chain(path.relations())
