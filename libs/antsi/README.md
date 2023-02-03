@@ -10,7 +10,7 @@ The name is a play on words and encapsulates the three goals of the crate:
 - ansi: implementation of ANSI escape sequences
 - antsy: restless as in fast, with near to no overhead (🏎️💨)
 
-The crate tries to be as correct as possible, with the goal of being not only a crate, but also a comprehensive reference about terminal support and related specifications.
+The crate tries to be as correct as possible, acting both as a library and as an up-to-date reference guide regarding terminal support and related specifications (correct as of the time of publication).
 
 ## Example
 
@@ -39,7 +39,7 @@ fn main() {
 
 ## Contributors
 
-`antsi` was created by [Bilal Mahmoud](https://github.com/indietyp). It is being developed in conjunction with [HASH](https://hash.dev/). As an open-source project, we gratefully accept external contributions and have published a [contributing guide](https://github.com/hashintel/hash/blob/main/CONTRIBUTING.md) that outlines the process. If you have questions, please reach out to us on our [Discord server](https://hash.ai/discord). You can also report bugs [directly on the GitHub repo](https://github.com/hashintel/hash/issues/new?assignees=Alfred-Mountfield%2CTimDiekmann%2Cindietyp&labels=A-antsi%2CC-bug&template=bug-report-antsi.yml).
+`antsi` was created by [Bilal Mahmoud](https://github.com/indietyp) for use in [`error-stack`](https://github.com/hashintel/hash/tree/main/libs/error-stack). It is being developed in conjunction with [HASH](https://hash.dev/) as an open-source project. We gratefully accept external contributions and have published a [contributing guide](https://github.com/hashintel/hash/blob/main/CONTRIBUTING.md) that outlines the process. If you have questions, please reach out to us on our [Discord server](https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_libs-antsi-readme). You can also report bugs [directly on the GitHub repo](https://github.com/hashintel/hash/issues/new?assignees=Alfred-Mountfield%2CTimDiekmann%2Cindietyp&labels=A-antsi%2CC-bug&template=bug-report-antsi.yml).
 
 ## License
 
