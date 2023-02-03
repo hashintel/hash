@@ -35,7 +35,7 @@ impl<'de> Deserializer<'de> for BytesDeserializer<'_, '_> {
     );
 
     fn context(&self) -> &Context {
-        &self.context
+        self.context
     }
 
     fn deserialize_any<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
@@ -86,7 +86,7 @@ impl<'de> Deserializer<'de> for BorrowedBytesDeserializer<'_, 'de> {
     );
 
     fn context(&self) -> &Context {
-        &self.context
+        self.context
     }
 
     fn deserialize_any<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
