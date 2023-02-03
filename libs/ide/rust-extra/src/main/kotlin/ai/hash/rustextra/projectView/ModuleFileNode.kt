@@ -14,7 +14,7 @@ class ModuleFileNode(project: Project, value: PsiFile, viewSettings: ViewSetting
     PsiFileNode(project, value, viewSettings) {
     override fun update(data: PresentationData) {
         super.update(data)
-        presentation.background = UIUtil.getTreeSelectionBackground(false)
+        presentation.background = UIUtil.getTreeBackground().brighter();
         presentation.presentableText = "../${value.name}"
     }
 

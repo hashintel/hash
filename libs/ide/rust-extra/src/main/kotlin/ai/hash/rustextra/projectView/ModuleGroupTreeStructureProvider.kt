@@ -43,7 +43,7 @@ class ModuleGroupTreeStructureProvider : TreeStructureProvider, DumbAware {
 
             val value = child.value;
 
-            if (child is PsiFileNode && value is PsiFile && value.getUserData(ModuleFileNodeMarker) == true && child !is ModuleFileNode) {
+            if (child !is ModuleFileNode && child is PsiFileNode && value is PsiFile && value.getUserData(ModuleFileNodeMarker) == true) {
                 // always ensures that the file is actually ours
                 child = ModuleFileNode.wrap(child, settings);
             }
