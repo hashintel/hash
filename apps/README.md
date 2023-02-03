@@ -13,7 +13,7 @@
 
 This `apps` directory contains the source-code and/or content for a number of HASH's projects and websites.
 
-| **Directory**            	| **Description**                                                                                                                                                                            	|
+| Directory                	| Description                                                                                                                                                                                	|
 |--------------------------	|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------	|
 | [`engine`](engine)       	| Codebase of our next-generation version of [HASH Engine], a versatile agent-based simulation engine written in Rust                                                                       	|
 | [`hash`](hash)           	| Entrypoint for [HASH](https://hash.ai/platform/hash), a block-based, data-centric, all-in-one workspace                                                                                   	|
