@@ -1,13 +1,14 @@
-use std::str::FromStr;
-
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 use futures::{StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
-use type_system::uri::VersionedUri;
+use type_system::uri::BaseUri;
 
 use crate::{
-    identifier::{ontology::OntologyTypeEditionId, time::TimeProjection},
+    identifier::{
+        ontology::{OntologyTypeEditionId, OntologyTypeVersion},
+        time::TimeProjection,
+    },
     ontology::{OntologyElementMetadata, OntologyType, OntologyTypeWithMetadata},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
@@ -30,15 +31,21 @@ where
         filter: &Filter<T>,
         time_projection: &TimeProjection,
     ) -> Result<Vec<T>, QueryError> {
-        let versioned_uri_path = <T::QueryPath<'static> as OntologyQueryPath>::versioned_uri();
+        let base_uri_path = <T::QueryPath<'static> as OntologyQueryPath>::base_uri();
+        let version_path = <T::QueryPath<'static> as OntologyQueryPath>::version();
         let schema_path = <T::QueryPath<'static> as OntologyQueryPath>::schema();
         let owned_by_id_path = <T::QueryPath<'static> as OntologyQueryPath>::owned_by_id();
         let updated_by_id_path = <T::QueryPath<'static> as OntologyQueryPath>::updated_by_id();
 
         let mut compiler = SelectCompiler::new(time_projection);
 
-        let versioned_uri_index = compiler.add_distinct_selection_with_ordering(
-            &versioned_uri_path,
+        let base_uri_index = compiler.add_distinct_selection_with_ordering(
+            &base_uri_path,
+            Distinctness::Distinct,
+            None,
+        );
+        let version_index = compiler.add_distinct_selection_with_ordering(
+            &version_path,
             Distinctness::Distinct,
             None,
         );
@@ -56,9 +63,14 @@ where
             .change_context(QueryError)?
             .map(|row| row.into_report().change_context(QueryError))
             .and_then(|row| async move {
-                let versioned_uri = VersionedUri::from_str(row.get(versioned_uri_index))
+                let base_uri = BaseUri::new(row.get(base_uri_index))
                     .into_report()
                     .change_context(QueryError)?;
+                let version: i64 = row.get(version_index);
+                let version = OntologyTypeVersion::new(version as u32);
+                let owned_by_id = OwnedById::new(row.get(owned_by_id_index));
+                let updated_by_id = UpdatedById::new(row.get(updated_by_id_path_index));
+
                 let record_repr: <T::OntologyType as OntologyType>::Representation =
                     serde_json::from_value(row.get(schema_index))
                         .into_report()
@@ -66,13 +78,11 @@ where
                 let record = T::OntologyType::try_from(record_repr)
                     .into_report()
                     .change_context(QueryError)?;
-                let owned_by_id = OwnedById::new(row.get(owned_by_id_index));
-                let updated_by_id = UpdatedById::new(row.get(updated_by_id_path_index));
 
                 Ok(T::new(
                     record,
                     OntologyElementMetadata::new(
-                        OntologyTypeEditionId::from(&versioned_uri),
+                        OntologyTypeEditionId::new(base_uri, version),
                         ProvenanceMetadata::new(updated_by_id),
                         owned_by_id,
                     ),

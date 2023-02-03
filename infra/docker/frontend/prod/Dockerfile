@@ -15,7 +15,7 @@ RUN yarn install --frozen-lockfile --prefer-offline --force --build-from-source
 # Also ensure that frontend node modules can be cached
 COPY apps/hash-frontend/package.json apps/hash-frontend/
 COPY libs/@hashintel/design-system/package.json libs/@hashintel/design-system/
-COPY libs/@hashintel/hash-type-editor/package.json libs/@hashintel/hash-type-editor/
+COPY libs/@hashintel/type-editor/package.json libs/@hashintel/type-editor/
 COPY libs/@local/eslint-config/package.json libs/@local/eslint-config/
 COPY libs/@local/hash-graph-client/package.json libs/@local/hash-graph-client/
 COPY libs/@local/hash-isomorphic-utils/package.json libs/@local/hash-isomorphic-utils/
@@ -38,7 +38,7 @@ RUN yarn workspace @local/hash-isomorphic-utils codegen
 
 COPY apps/hash-frontend apps/hash-frontend
 COPY libs/@hashintel/design-system libs/@hashintel/design-system
-COPY libs/@hashintel/hash-type-editor/package.json libs/@hashintel/hash-type-editor/
+COPY libs/@hashintel/type-editor/package.json libs/@hashintel/type-editor/
 COPY libs/@local/eslint-config libs/@local/eslint-config
 COPY libs/@local/hash-graph-client libs/@local/hash-graph-client
 COPY libs/@local/hash-isomorphic-utils libs/@local/hash-isomorphic-utils

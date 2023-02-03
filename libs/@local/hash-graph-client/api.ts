@@ -282,7 +282,7 @@ export interface DataTypeReferenceUpdate {
   $ref: string;
 }
 /**
- * Structural queries are the main entry point to read data from the Graph.  They are used to query the graph for a set of vertices and edges that match a set of filters. Alongside the filters, the query can specify the depth of the query, which determines how many edges the query will follow from the root vertices. The root vertices are determined by the filters. For example, if the query is for all entities of a certain type, the root vertices will be the entities of that type.  # Filters  [`Filter`]s are used to specify which root vertices to include in the query. They consist of a variety of different types of filters, which are described in the [`Filter`] documentation. At the leaf level, filters are composed of [`RecordPath`]s and [`Parameter`]s, which identify the root vertices to include in the query.  Each [`RecordPath`] is a sequence of tokens, which are used to traverse the graph. For example, a `StructuralQuery<Entity>` with the path `[\"type\", \"version\"]` will traverse the graph from an entity to its type to the version. When associating the above path with a [`Parameter`] with the value `1` in an equality filter, the query will return all entities whose type has version `1` as a root vertex.  Depending on the type of the [`StructuralQuery`], different [`RecordPath`]s are valid. Please see the documentation on the implementation of [`Record::QueryPath`] for the valid paths for each type.  # Depth  The depth of a query determines how many edges the query will follow from the root vertices. For an in-depth explanation of the depth of a query, please see the documentation on [`GraphResolveDepths`].  # Examples  Typically, a structural will be deserialized from a JSON request. The following examples assume, that the type of the request body is `StructuralQuery<Entity>`.  This will return all entities with the latest version of the `foo` type:  ```json { \"filter\": { \"all\": [ { \"equal\": [ { \"path\": [\"type\", \"baseUri\"] }, { \"parameter\": \"foo\" } ] }, { \"equal\": [ { \"path\": [\"type\", \"version\"] }, { \"parameter\": \"latest\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } ```  This query will return any entity, which was either created by or is owned by the account `12345678-90ab-cdef-1234-567890abcdef`:  ```json { \"filter\": { \"any\": [ { \"equal\": [ { \"path\": [\"updatedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] }, { \"equal\": [ { \"path\": [\"ownedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } } ```  [`RecordPath`]: crate::store::query::QueryPath [`Parameter`]: crate::store::query::Parameter
+ *
  * @export
  * @interface DataTypeStructuralQuery
  */
@@ -506,10 +506,10 @@ export interface EntityEditionId {
   baseId: string;
   /**
    *
-   * @type {number}
+   * @type {string}
    * @memberof EntityEditionId
    */
-  recordId: number;
+  recordId: string;
 }
 /**
  *
@@ -612,7 +612,7 @@ export type EntityQueryToken =
   (typeof EntityQueryToken)[keyof typeof EntityQueryToken];
 
 /**
- * Structural queries are the main entry point to read data from the Graph.  They are used to query the graph for a set of vertices and edges that match a set of filters. Alongside the filters, the query can specify the depth of the query, which determines how many edges the query will follow from the root vertices. The root vertices are determined by the filters. For example, if the query is for all entities of a certain type, the root vertices will be the entities of that type.  # Filters  [`Filter`]s are used to specify which root vertices to include in the query. They consist of a variety of different types of filters, which are described in the [`Filter`] documentation. At the leaf level, filters are composed of [`RecordPath`]s and [`Parameter`]s, which identify the root vertices to include in the query.  Each [`RecordPath`] is a sequence of tokens, which are used to traverse the graph. For example, a `StructuralQuery<Entity>` with the path `[\"type\", \"version\"]` will traverse the graph from an entity to its type to the version. When associating the above path with a [`Parameter`] with the value `1` in an equality filter, the query will return all entities whose type has version `1` as a root vertex.  Depending on the type of the [`StructuralQuery`], different [`RecordPath`]s are valid. Please see the documentation on the implementation of [`Record::QueryPath`] for the valid paths for each type.  # Depth  The depth of a query determines how many edges the query will follow from the root vertices. For an in-depth explanation of the depth of a query, please see the documentation on [`GraphResolveDepths`].  # Examples  Typically, a structural will be deserialized from a JSON request. The following examples assume, that the type of the request body is `StructuralQuery<Entity>`.  This will return all entities with the latest version of the `foo` type:  ```json { \"filter\": { \"all\": [ { \"equal\": [ { \"path\": [\"type\", \"baseUri\"] }, { \"parameter\": \"foo\" } ] }, { \"equal\": [ { \"path\": [\"type\", \"version\"] }, { \"parameter\": \"latest\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } ```  This query will return any entity, which was either created by or is owned by the account `12345678-90ab-cdef-1234-567890abcdef`:  ```json { \"filter\": { \"any\": [ { \"equal\": [ { \"path\": [\"updatedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] }, { \"equal\": [ { \"path\": [\"ownedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } } ```  [`RecordPath`]: crate::store::query::QueryPath [`Parameter`]: crate::store::query::Parameter
+ *
  * @export
  * @interface EntityStructuralQuery
  */
@@ -750,7 +750,7 @@ export type EntityTypeQueryToken =
   (typeof EntityTypeQueryToken)[keyof typeof EntityTypeQueryToken];
 
 /**
- * Structural queries are the main entry point to read data from the Graph.  They are used to query the graph for a set of vertices and edges that match a set of filters. Alongside the filters, the query can specify the depth of the query, which determines how many edges the query will follow from the root vertices. The root vertices are determined by the filters. For example, if the query is for all entities of a certain type, the root vertices will be the entities of that type.  # Filters  [`Filter`]s are used to specify which root vertices to include in the query. They consist of a variety of different types of filters, which are described in the [`Filter`] documentation. At the leaf level, filters are composed of [`RecordPath`]s and [`Parameter`]s, which identify the root vertices to include in the query.  Each [`RecordPath`] is a sequence of tokens, which are used to traverse the graph. For example, a `StructuralQuery<Entity>` with the path `[\"type\", \"version\"]` will traverse the graph from an entity to its type to the version. When associating the above path with a [`Parameter`] with the value `1` in an equality filter, the query will return all entities whose type has version `1` as a root vertex.  Depending on the type of the [`StructuralQuery`], different [`RecordPath`]s are valid. Please see the documentation on the implementation of [`Record::QueryPath`] for the valid paths for each type.  # Depth  The depth of a query determines how many edges the query will follow from the root vertices. For an in-depth explanation of the depth of a query, please see the documentation on [`GraphResolveDepths`].  # Examples  Typically, a structural will be deserialized from a JSON request. The following examples assume, that the type of the request body is `StructuralQuery<Entity>`.  This will return all entities with the latest version of the `foo` type:  ```json { \"filter\": { \"all\": [ { \"equal\": [ { \"path\": [\"type\", \"baseUri\"] }, { \"parameter\": \"foo\" } ] }, { \"equal\": [ { \"path\": [\"type\", \"version\"] }, { \"parameter\": \"latest\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } ```  This query will return any entity, which was either created by or is owned by the account `12345678-90ab-cdef-1234-567890abcdef`:  ```json { \"filter\": { \"any\": [ { \"equal\": [ { \"path\": [\"updatedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] }, { \"equal\": [ { \"path\": [\"ownedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } } ```  [`RecordPath`]: crate::store::query::QueryPath [`Parameter`]: crate::store::query::Parameter
+ *
  * @export
  * @interface EntityTypeStructuralQuery
  */
@@ -1077,13 +1077,13 @@ export type KnowledgeGraphVertex = KnowledgeGraphVertexOneOf;
 export interface KnowledgeGraphVertexOneOf {
   /**
    *
-   * @type {KnowledgeGraphVertexOneOfInner}
+   * @type {Entity}
    * @memberof KnowledgeGraphVertexOneOf
    */
-  inner: KnowledgeGraphVertexOneOfInner;
+  inner: Entity;
   /**
    *
-   * @type {object}
+   * @type {string}
    * @memberof KnowledgeGraphVertexOneOf
    */
   kind: KnowledgeGraphVertexOneOfKindEnum;
@@ -1096,31 +1096,6 @@ export const KnowledgeGraphVertexOneOfKindEnum = {
 export type KnowledgeGraphVertexOneOfKindEnum =
   (typeof KnowledgeGraphVertexOneOfKindEnum)[keyof typeof KnowledgeGraphVertexOneOfKindEnum];
 
-/**
- * A record of an [`Entity`] that has been persisted in the datastore, with its associated metadata.
- * @export
- * @interface KnowledgeGraphVertexOneOfInner
- */
-export interface KnowledgeGraphVertexOneOfInner {
-  /**
-   *
-   * @type {LinkData}
-   * @memberof KnowledgeGraphVertexOneOfInner
-   */
-  linkData?: LinkData;
-  /**
-   *
-   * @type {EntityMetadata}
-   * @memberof KnowledgeGraphVertexOneOfInner
-   */
-  metadata: EntityMetadata;
-  /**
-   *
-   * @type {object}
-   * @memberof KnowledgeGraphVertexOneOfInner
-   */
-  properties: object;
-}
 /**
  *
  * @export
@@ -1388,13 +1363,13 @@ export type OntologyVertex =
 export interface OntologyVertexOneOf {
   /**
    *
-   * @type {OntologyVertexOneOfInner}
+   * @type {DataTypeWithMetadata}
    * @memberof OntologyVertexOneOf
    */
-  inner: OntologyVertexOneOfInner;
+  inner: DataTypeWithMetadata;
   /**
    *
-   * @type {object}
+   * @type {string}
    * @memberof OntologyVertexOneOf
    */
   kind: OntologyVertexOneOfKindEnum;
@@ -1415,13 +1390,13 @@ export type OntologyVertexOneOfKindEnum =
 export interface OntologyVertexOneOf1 {
   /**
    *
-   * @type {OntologyVertexOneOf1Inner}
+   * @type {PropertyTypeWithMetadata}
    * @memberof OntologyVertexOneOf1
    */
-  inner: OntologyVertexOneOf1Inner;
+  inner: PropertyTypeWithMetadata;
   /**
    *
-   * @type {object}
+   * @type {string}
    * @memberof OntologyVertexOneOf1
    */
   kind: OntologyVertexOneOf1KindEnum;
@@ -1437,37 +1412,18 @@ export type OntologyVertexOneOf1KindEnum =
 /**
  *
  * @export
- * @interface OntologyVertexOneOf1Inner
- */
-export interface OntologyVertexOneOf1Inner {
-  /**
-   *
-   * @type {OntologyElementMetadata}
-   * @memberof OntologyVertexOneOf1Inner
-   */
-  metadata: OntologyElementMetadata;
-  /**
-   *
-   * @type {PropertyType}
-   * @memberof OntologyVertexOneOf1Inner
-   */
-  schema: PropertyType;
-}
-/**
- *
- * @export
  * @interface OntologyVertexOneOf2
  */
 export interface OntologyVertexOneOf2 {
   /**
    *
-   * @type {OntologyVertexOneOf2Inner}
+   * @type {EntityTypeWithMetadata}
    * @memberof OntologyVertexOneOf2
    */
-  inner: OntologyVertexOneOf2Inner;
+  inner: EntityTypeWithMetadata;
   /**
    *
-   * @type {object}
+   * @type {string}
    * @memberof OntologyVertexOneOf2
    */
   kind: OntologyVertexOneOf2KindEnum;
@@ -1480,44 +1436,6 @@ export const OntologyVertexOneOf2KindEnum = {
 export type OntologyVertexOneOf2KindEnum =
   (typeof OntologyVertexOneOf2KindEnum)[keyof typeof OntologyVertexOneOf2KindEnum];
 
-/**
- *
- * @export
- * @interface OntologyVertexOneOf2Inner
- */
-export interface OntologyVertexOneOf2Inner {
-  /**
-   *
-   * @type {OntologyElementMetadata}
-   * @memberof OntologyVertexOneOf2Inner
-   */
-  metadata: OntologyElementMetadata;
-  /**
-   *
-   * @type {EntityType}
-   * @memberof OntologyVertexOneOf2Inner
-   */
-  schema: EntityType;
-}
-/**
- *
- * @export
- * @interface OntologyVertexOneOfInner
- */
-export interface OntologyVertexOneOfInner {
-  /**
-   *
-   * @type {OntologyElementMetadata}
-   * @memberof OntologyVertexOneOfInner
-   */
-  metadata: OntologyElementMetadata;
-  /**
-   *
-   * @type {DataType}
-   * @memberof OntologyVertexOneOfInner
-   */
-  schema: DataType;
-}
 /**
  *
  * @export
@@ -1770,7 +1688,7 @@ export type PropertyTypeQueryToken =
   (typeof PropertyTypeQueryToken)[keyof typeof PropertyTypeQueryToken];
 
 /**
- * Structural queries are the main entry point to read data from the Graph.  They are used to query the graph for a set of vertices and edges that match a set of filters. Alongside the filters, the query can specify the depth of the query, which determines how many edges the query will follow from the root vertices. The root vertices are determined by the filters. For example, if the query is for all entities of a certain type, the root vertices will be the entities of that type.  # Filters  [`Filter`]s are used to specify which root vertices to include in the query. They consist of a variety of different types of filters, which are described in the [`Filter`] documentation. At the leaf level, filters are composed of [`RecordPath`]s and [`Parameter`]s, which identify the root vertices to include in the query.  Each [`RecordPath`] is a sequence of tokens, which are used to traverse the graph. For example, a `StructuralQuery<Entity>` with the path `[\"type\", \"version\"]` will traverse the graph from an entity to its type to the version. When associating the above path with a [`Parameter`] with the value `1` in an equality filter, the query will return all entities whose type has version `1` as a root vertex.  Depending on the type of the [`StructuralQuery`], different [`RecordPath`]s are valid. Please see the documentation on the implementation of [`Record::QueryPath`] for the valid paths for each type.  # Depth  The depth of a query determines how many edges the query will follow from the root vertices. For an in-depth explanation of the depth of a query, please see the documentation on [`GraphResolveDepths`].  # Examples  Typically, a structural will be deserialized from a JSON request. The following examples assume, that the type of the request body is `StructuralQuery<Entity>`.  This will return all entities with the latest version of the `foo` type:  ```json { \"filter\": { \"all\": [ { \"equal\": [ { \"path\": [\"type\", \"baseUri\"] }, { \"parameter\": \"foo\" } ] }, { \"equal\": [ { \"path\": [\"type\", \"version\"] }, { \"parameter\": \"latest\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } ```  This query will return any entity, which was either created by or is owned by the account `12345678-90ab-cdef-1234-567890abcdef`:  ```json { \"filter\": { \"any\": [ { \"equal\": [ { \"path\": [\"updatedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] }, { \"equal\": [ { \"path\": [\"ownedById\"] }, { \"parameter\": \"12345678-90ab-cdef-1234-567890abcdef\" } ] } ] }, \"graphResolveDepths\": { \"inheritsFrom\": { \"outgoing\": 0 }, \"constrainsValuesOn\": { \"outgoing\": 0 }, \"constrainsPropertiesOn\": { \"outgoing\": 0 }, \"constrainsLinksOn\": { \"outgoing\": 0 }, \"constrainsLinkDestinationsOn\": { \"outgoing\": 0 }, \"isOfType\": { \"outgoing\": 0 }, \"hasLeftEntity\": { \"incoming\": 2, \"outgoing\": 2 }, \"hasRightEntity\": { \"incoming\": 2, \"outgoing\": 2 } } } ```  [`RecordPath`]: crate::store::query::QueryPath [`Parameter`]: crate::store::query::Parameter
+ *
  * @export
  * @interface PropertyTypeStructuralQuery
  */
@@ -1918,7 +1836,8 @@ export interface Subgraph {
  */
 export type TimeIntervalBound =
   | TimeIntervalBoundOneOf
-  | TimeIntervalBoundOneOf1;
+  | TimeIntervalBoundOneOf1
+  | TimeIntervalBoundOneOf2;
 
 /**
  *
@@ -1928,7 +1847,7 @@ export type TimeIntervalBound =
 export interface TimeIntervalBoundOneOf {
   /**
    *
-   * @type {object}
+   * @type {string}
    * @memberof TimeIntervalBoundOneOf
    */
   bound: TimeIntervalBoundOneOfBoundEnum;
@@ -1949,7 +1868,7 @@ export type TimeIntervalBoundOneOfBoundEnum =
 export interface TimeIntervalBoundOneOf1 {
   /**
    *
-   * @type {object}
+   * @type {string}
    * @memberof TimeIntervalBoundOneOf1
    */
   bound: TimeIntervalBoundOneOf1BoundEnum;
@@ -1963,11 +1882,37 @@ export interface TimeIntervalBoundOneOf1 {
 
 export const TimeIntervalBoundOneOf1BoundEnum = {
   Included: "included",
-  Excluded: "excluded",
 } as const;
 
 export type TimeIntervalBoundOneOf1BoundEnum =
   (typeof TimeIntervalBoundOneOf1BoundEnum)[keyof typeof TimeIntervalBoundOneOf1BoundEnum];
+
+/**
+ *
+ * @export
+ * @interface TimeIntervalBoundOneOf2
+ */
+export interface TimeIntervalBoundOneOf2 {
+  /**
+   *
+   * @type {string}
+   * @memberof TimeIntervalBoundOneOf2
+   */
+  bound: TimeIntervalBoundOneOf2BoundEnum;
+  /**
+   *
+   * @type {string}
+   * @memberof TimeIntervalBoundOneOf2
+   */
+  timestamp: string;
+}
+
+export const TimeIntervalBoundOneOf2BoundEnum = {
+  Excluded: "excluded",
+} as const;
+
+export type TimeIntervalBoundOneOf2BoundEnum =
+  (typeof TimeIntervalBoundOneOf2BoundEnum)[keyof typeof TimeIntervalBoundOneOf2BoundEnum];
 
 /**
  * @type TimeProjection

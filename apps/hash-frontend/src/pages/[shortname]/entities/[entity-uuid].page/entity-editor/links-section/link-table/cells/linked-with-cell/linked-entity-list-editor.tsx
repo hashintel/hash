@@ -32,7 +32,7 @@ export const createDraftLinkEntity = ({
     linkData: { rightEntityId, leftEntityId },
     metadata: {
       archived: false,
-      editionId: { recordId: 1, baseId: `draft%${Date.now()}` },
+      editionId: { recordId: "", baseId: `draft%${Date.now()}` },
       entityTypeId: linkEntityTypeId,
       provenance: { updatedById: "" },
       version: {

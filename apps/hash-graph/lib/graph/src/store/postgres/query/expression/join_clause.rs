@@ -39,7 +39,7 @@ impl Transpile for JoinExpression<'_> {
 mod tests {
     use super::*;
     use crate::store::postgres::query::{
-        table::{Column, DataTypes, TypeIds},
+        table::{Column, DataTypes, OntologyIds},
         Alias,
     };
 
@@ -47,19 +47,19 @@ mod tests {
     fn transpile_join_expression() {
         assert_eq!(
             JoinExpression::new(
-                Column::TypeIds(TypeIds::VersionId).aliased(Alias {
+                Column::OntologyIds(OntologyIds::OntologyId).aliased(Alias {
                     condition_index: 0,
                     chain_depth: 1,
                     number: 2,
                 }),
-                Column::DataTypes(DataTypes::VersionId).aliased(Alias {
+                Column::DataTypes(DataTypes::OntologyId).aliased(Alias {
                     condition_index: 1,
                     chain_depth: 2,
                     number: 3,
                 }),
             )
             .transpile_to_string(),
-            r#"INNER JOIN "type_ids" AS "type_ids_0_1_2" ON "type_ids_0_1_2"."version_id" = "data_types_1_2_3"."version_id""#
+            r#"INNER JOIN "ontology_ids" AS "ontology_ids_0_1_2" ON "ontology_ids_0_1_2"."ontology_id" = "data_types_1_2_3"."ontology_id""#
         );
     }
 }
