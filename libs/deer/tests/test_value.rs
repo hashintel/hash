@@ -3,11 +3,11 @@ use deer::{
     value::{
         BoolDeserializer, BorrowedStrDeserializer, BytesDeserializer, CharDeserializer,
         F32Deserializer, F64Deserializer, I128Deserializer, I16Deserializer, I32Deserializer,
-        I64Deserializer, I8Deserializer, IsizeDeserializer, NumberDeserializer, StrDeserializer,
-        U128Deserializer, U16Deserializer, U32Deserializer, U64Deserializer, U8Deserializer,
-        UsizeDeserializer,
+        I64Deserializer, I8Deserializer, IsizeDeserializer, NullDeserializer, NumberDeserializer,
+        StrDeserializer, StringDeserializer, U128Deserializer, U16Deserializer, U32Deserializer,
+        U64Deserializer, U8Deserializer, UsizeDeserializer,
     },
-    Context, Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
+    Context, Deserialize, Deserializer, Document, Number, Reflection, Schema, Visitor,
 };
 use error_stack::{Report, Result, ResultExt};
 use proptest::prelude::*;
@@ -112,6 +112,37 @@ impl<'de> Deserialize<'de> for Choice {
     }
 }
 
+struct Null;
+
+impl Reflection for Null {
+    fn schema(_: &mut Document) -> Schema {
+        Schema::new("null")
+    }
+}
+
+struct NullVisitor;
+
+impl<'de> Visitor<'de> for NullVisitor {
+    type Value = Null;
+
+    fn expecting(&self) -> Document {
+        Self::Value::document()
+    }
+
+    fn visit_null(self) -> Result<Self::Value, VisitorError> {
+        Ok(Null)
+    }
+}
+
+impl<'de> Deserialize<'de> for Null {
+    type Reflection = Self;
+
+    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
+        de.deserialize_null(NullVisitor)
+            .change_context(DeserializeError)
+    }
+}
+
 prop_compose! {
     fn choice_strategy()(base in any::<bool>()) -> Choice {
         if base {Choice::Yes} else {Choice::No}
@@ -162,7 +193,67 @@ proptest! {
 
         assert!(result.is_err());
     }
+
+    // TODO: deserialize no yet implemented for alloc
+    // #[test]
+    // fn string_ok(expected in any::<String>()) {
+    //     let context = Context::new();
+    //
+    //     let de = StringDeserializer::new(expected, &context);
+    //     let received = String::deserialize(de).expect("able to deserialize");
+    //
+    //     assert_eq!(expected, received);
+    // }
+    //
+    // #[test]
+    // fn string_err(expected in any::<String>()) {
+    //     let context = Context::new();
+    //
+    //     let de = StringDeserializer::new(expected, &context);
+    //     let result = u8::deserialize(de);
+    //
+    //     assert!(result.is_err());
+    // }
+
+    #[test]
+    fn number_ok(expected in any::<u8>()) {
+        let context = Context::new();
+        let value = Number::from(expected);
+
+        let de = NumberDeserializer::new(value.clone(), &context);
+        let received = Number::deserialize(de).expect("able to deserialize");
+
+        assert_eq!(value, received);
+    }
+
+    #[test]
+    fn number_err(expected in any::<u8>()) {
+        let context = Context::new();
+        let value = Number::from(expected);
+
+        let de = NumberDeserializer::new(value, &context);
+        let result = <&str>::deserialize(de);
+
+        assert!(result.is_err());
+    }
 }
 
-// TODO: None, Null, number, bytes, bytes_buffer, borrowed_bytes, ArrayAccess,
-//  ObjectAccess
+#[test]
+fn null_ok() {
+    let context = Context::new();
+
+    let de = NullDeserializer::new(&context);
+    let _ = Null::deserialize(de).expect("able to deserializer");
+}
+
+#[test]
+fn null_err() {
+    let context = Context::new();
+
+    let de = NullDeserializer::new(&context);
+    let result = u8::deserialize(de);
+
+    assert!(result.is_err());
+}
+
+// TODO: None, bytes, bytes_buffer, borrowed_bytes, ArrayAccess, ObjectAccess
