@@ -2,8 +2,13 @@ use alloc::vec::Vec;
 
 use error_stack::ResultExt;
 
-use crate::{error::DeserializerError, value::impl_owned, Context, Deserializer, Visitor};
+use crate::{
+    error::DeserializerError,
+    value::{impl_owned, IntoDeserializer},
+    Context, Deserializer, Visitor,
+};
 
+#[derive(Debug, Copy, Clone)]
 pub struct BytesDeserializer<'a, 'b> {
     context: &'a Context,
     value: &'b [u8],
@@ -43,6 +48,15 @@ impl<'de> Deserializer<'de> for BytesDeserializer<'_, '_> {
     }
 }
 
+impl<'de, 'a, 'b> IntoDeserializer<'de> for &'b [u8] {
+    type Deserializer = BytesDeserializer<'a, 'b>;
+
+    fn into_deserializer(self, context: &'a Context) -> Self::Deserializer {
+        BytesDeserializer::new(context, self)
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
 pub struct BorrowedBytesDeserializer<'a, 'de> {
     context: &'a Context,
     value: &'de [u8],

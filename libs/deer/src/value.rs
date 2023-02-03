@@ -1,13 +1,15 @@
-// Number, Char, Str, BorrowedStr, String, Bytes, BorrowedBytes, BytesBuffer,
-// Array, Object
-
+mod array;
 mod bytes;
+mod object;
 mod string;
 
+pub use array::ArrayAccessDeserializer;
+pub use bytes::{BorrowedBytesDeserializer, BytesBufferDeserializer, BytesDeserializer};
 use error_stack::ResultExt;
+pub use object::ObjectAccessDeserializer;
 pub use string::{BorrowedStrDeserializer, StrDeserializer, StringDeserializer};
 
-use crate::{error::DeserializerError, Context, Deserializer, Number, Visitor};
+use crate::{error::DeserializerError, Context, Deserializer, Visitor};
 
 macro_rules! impl_owned {
     (@INTERNAL COPY, $ty:ty, $name:ident, $method:ident) => {
@@ -58,6 +60,14 @@ macro_rules! impl_owned {
                 visitor.$method(self.value).change_context(DeserializerError)
             }
         }
+
+        impl<'a, 'de> IntoDeserializer<'de> for $ty {
+            type Deserializer = $name<'a>;
+
+            fn into_deserializer(self, context: &'a Context) -> Self::Deserializer {
+                $name::new(context, self)
+            }
+        }
     }
 
     (copy: $ty:ty, $name:ident, $method:ident) => {
@@ -76,6 +86,12 @@ macro_rules! impl_owned {
 }
 
 use impl_owned;
+
+pub trait IntoDeserializer<'de> {
+    type Deserializer: Deserializer<'de>;
+
+    fn into_deserializer(self, context: &Context) -> Self::Deserializer;
+}
 
 #[derive(Debug, Copy, Clone)]
 pub struct NoneDeserializer<'a> {
@@ -171,7 +187,3 @@ impl_owned!(f64, F64Deserializer, visit_f64);
 impl_owned!(!copy: Number, NumberDeserializer, visit_number);
 
 // TODO: test
-// bytes borrowed bytes
-// bytes_buffer
-// array arrayVisitor
-// object

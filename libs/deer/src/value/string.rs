@@ -2,8 +2,13 @@ use alloc::string::String;
 
 use error_stack::ResultExt;
 
-use crate::{error::DeserializerError, value::impl_owned, Context, Deserializer, Visitor};
+use crate::{
+    error::DeserializerError,
+    value::{impl_owned, IntoDeserializer},
+    Context, Deserializer, Visitor,
+};
 
+#[derive(Debug, Copy, Clone)]
 pub struct StrDeserializer<'a, 'b> {
     context: &'a Context,
     value: &'b str,
@@ -43,6 +48,15 @@ impl<'de> Deserializer<'de> for StrDeserializer<'_, '_> {
     }
 }
 
+impl<'de, 'a, 'b> IntoDeserializer<'de> for &'b str {
+    type Deserializer = StrDeserializer<'a, 'b>;
+
+    fn into_deserializer(self, context: &'a Context) -> Self::Deserializer {
+        StrDeserializer::new(context, self)
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
 pub struct BorrowedStrDeserializer<'a, 'de> {
     context: &'a Context,
     value: &'de str,
