@@ -1,5 +1,5 @@
 import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
-import { Button, FontAwesomeIcon } from "@local/design-system";
+import { Button, FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Stack, Typography } from "@mui/material";
 
 import { Modal } from "../../../../../../components/modals/modal";

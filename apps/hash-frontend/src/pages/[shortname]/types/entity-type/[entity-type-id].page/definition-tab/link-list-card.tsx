@@ -1,10 +1,13 @@
 import { EntityType, VersionedUri } from "@blockprotocol/type-system";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
-import { linkEntityTypeUri } from "@local/hash-subgraph";
+import {
+  EntityTypeWithMetadata,
+  linkEntityTypeUri,
+} from "@local/hash-subgraph";
 import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
 import { TableBody, TableCell, TableFooter, TableHead } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import { useId, useLayoutEffect, useRef, useState } from "react";
+import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 
 import { useBlockProtocolCreateEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
@@ -28,6 +31,8 @@ import {
   EntityTypeTableHeaderRow,
   EntityTypeTableRow,
   EntityTypeTableTitleCellText,
+  sortRows,
+  useFlashRow,
 } from "./shared/entity-type-table";
 import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
 import { MultipleValuesCell } from "./shared/multiple-values-cell";
@@ -86,20 +91,20 @@ export const LinkTypeForm = (props: TypeFormProps) => {
 
 const LinkTypeRow = ({
   linkIndex,
+  link,
   onRemove,
   onUpdateVersion,
+  flash,
 }: {
   linkIndex: number;
+  link: EntityTypeWithMetadata | undefined;
   onRemove: () => void;
   onUpdateVersion: (nextId: VersionedUri) => void;
+  flash: boolean;
 }) => {
-  const { control } = useFormContext<EntityTypeEditorForm>();
-
-  const linkTypes = useLinkEntityTypes();
-  const linkId = useWatch({
-    control,
-    name: `links.${linkIndex}.$id`,
-  });
+  if (!link) {
+    throw new Error("Missing link");
+  }
 
   const editModalPopupId = useId();
   const editModalPopupState = usePopupState({
@@ -117,7 +122,7 @@ const LinkTypeRow = ({
   const handleSubmit = async (data: TypeFormDefaults) => {
     const res = await updateEntityType({
       data: {
-        entityTypeId: linkId,
+        entityTypeId: link.schema.$id,
         entityType: formDataToEntityType(data),
       },
     });
@@ -133,15 +138,9 @@ const LinkTypeRow = ({
     editModalPopupState.close();
   };
 
-  const link = linkTypes[linkId];
-
-  if (!link) {
-    throw new Error("Missing link");
-  }
-
   return (
     <>
-      <EntityTypeTableRow>
+      <EntityTypeTableRow flash={flash}>
         <TableCell>
           <EntityTypeTableTitleCellText>
             {link.schema.title}
@@ -152,7 +151,7 @@ const LinkTypeRow = ({
         </TableCell>
         <MultipleValuesCell index={linkIndex} variant="link" />
         <TypeMenuCell
-          typeId={linkId}
+          typeId={link.schema.$id}
           editButtonProps={bindTrigger(editModalPopupState)}
           variant="link"
           onRemove={onRemove}
@@ -199,7 +198,25 @@ const InsertLinkRow = (
 
 export const LinkListCard = () => {
   const { control, setValue } = useFormContext<EntityTypeEditorForm>();
-  const { fields, append, remove } = useFieldArray({ control, name: "links" });
+  const {
+    fields: unsortedFields,
+    append,
+    remove,
+  } = useFieldArray({ control, name: "links" });
+  const linkTypes = useLinkEntityTypes();
+
+  const fields = useMemo(
+    () =>
+      sortRows(
+        unsortedFields,
+        (linkId) => linkTypes[linkId],
+        (row) => row.schema.title,
+      ),
+    [linkTypes, unsortedFields],
+  );
+
+  const [flashingRows, flashRow] = useFlashRow();
+
   const linkEntityTypes = useLinkEntityTypesOptional();
   const [addingNewLink, setAddingNewLink] = useStateCallback(false);
   const addingNewLinkRef = useRef<HTMLInputElement>(null);
@@ -234,6 +251,7 @@ export const LinkListCard = () => {
       },
       { shouldFocus: false },
     );
+    flashRow(link.$id);
   };
 
   const handleSubmit = async (data: TypeFormDefaults) => {
@@ -302,9 +320,9 @@ export const LinkListCard = () => {
         </EntityTypeTableHeaderRow>
       </TableHead>
       <TableBody>
-        {fields.map((type, index) => (
+        {fields.map(({ field, row, index }) => (
           <LinkTypeRow
-            key={type.id}
+            key={field.id}
             linkIndex={index}
             onRemove={() => {
               remove(index);
@@ -314,6 +332,8 @@ export const LinkListCard = () => {
                 shouldDirty: true,
               });
             }}
+            link={row}
+            flash={row ? flashingRows.includes(row.schema.$id) : false}
           />
         ))}
       </TableBody>

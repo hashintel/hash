@@ -15,12 +15,12 @@ COPY . .
 ARG PROFILE=production
 
 # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
-RUN apk add --no-cache make protobuf-dev
+RUN apk add --no-cache make openssl-dev protobuf-dev
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=/usr/local/src/hash-graph/target \
-    cargo install --path bin/cli --profile $PROFILE --all-features --locked
+    cargo install --path bin/cli --profile $PROFILE --locked
 
 # Replace with `FROM scratch` when a health check command was added to hash-graph
 FROM alpine:3.17 AS runtime

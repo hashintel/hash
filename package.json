@@ -6,8 +6,8 @@
       "apps/*",
       "blocks/*",
       "libs/*",
+      "libs/@hashintel/*",
       "libs/@local/*",
-      "packages/libs/error-stack",
       "tests/*"
     ]
   },

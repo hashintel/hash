@@ -18,23 +18,26 @@ pub struct OutwardEdge<K, E> {
 
 // Utoipa doesn't seem to be able to generate sensible interfaces for this, it gets confused by
 // the generic
-impl<K, E> ToSchema for OutwardEdge<K, E>
+impl<'s, K, E> ToSchema<'s> for OutwardEdge<K, E>
 where
-    K: ToSchema,
-    E: ToSchema,
+    K: ToSchema<'s>,
+    E: ToSchema<'s>,
 {
-    fn schema() -> openapi::RefOr<openapi::Schema> {
-        openapi::ObjectBuilder::new()
-            .property("kind", K::schema())
-            .required("kind")
-            .property(
-                "reversed",
-                openapi::Object::with_type(openapi::SchemaType::Boolean),
-            )
-            .required("reversed")
-            .property("rightEndpoint", E::schema())
-            .required("rightEndpoint")
-            .into()
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "OutwardEdge",
+            openapi::ObjectBuilder::new()
+                .property("kind", K::schema().1)
+                .required("kind")
+                .property(
+                    "reversed",
+                    openapi::Object::with_type(openapi::SchemaType::Boolean),
+                )
+                .required("reversed")
+                .property("rightEndpoint", E::schema().1)
+                .required("rightEndpoint")
+                .into(),
+        )
     }
 }
 
@@ -48,12 +51,15 @@ pub enum OntologyOutwardEdges {
 // WARNING: This MUST be kept up to date with the enum variants.
 //   We have to do this because utoipa doesn't understand serde untagged:
 //   https://github.com/juhaku/utoipa/issues/320
-impl ToSchema for OntologyOutwardEdges {
-    fn schema() -> openapi::RefOr<openapi::Schema> {
-        openapi::OneOfBuilder::new()
-            .item(<OutwardEdge<OntologyEdgeKind, OntologyTypeEditionId>>::schema())
-            .item(<OutwardEdge<SharedEdgeKind, EntityVertexId>>::schema())
-            .into()
+impl ToSchema<'_> for OntologyOutwardEdges {
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "OntologyOutwardEdges",
+            openapi::OneOfBuilder::new()
+                .item(<OutwardEdge<OntologyEdgeKind, OntologyTypeEditionId>>::schema().1)
+                .item(<OutwardEdge<SharedEdgeKind, EntityVertexId>>::schema().1)
+                .into(),
+        )
     }
 }
 

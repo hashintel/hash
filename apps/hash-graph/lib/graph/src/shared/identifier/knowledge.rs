@@ -6,6 +6,7 @@ use std::{
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use tokio_postgres::types::ToSql;
 use utoipa::{openapi, ToSchema};
+use uuid::Uuid;
 
 use crate::{
     identifier::{
@@ -79,38 +80,23 @@ impl<'de> Deserialize<'de> for EntityId {
     }
 }
 
-impl ToSchema for EntityId {
-    fn schema() -> openapi::RefOr<openapi::Schema> {
-        openapi::Schema::Object(openapi::schema::Object::with_type(
-            openapi::SchemaType::String,
-        ))
-        .into()
+impl ToSchema<'_> for EntityId {
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "EntityId",
+            openapi::Schema::Object(openapi::schema::Object::with_type(
+                openapi::SchemaType::String,
+            ))
+            .into(),
+        )
     }
 }
 
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityVersion {
     decision_time: VersionInterval<DecisionTime>,
     transaction_time: VersionInterval<TransactionTime>,
-}
-
-impl ToSchema for EntityVersion {
-    fn schema() -> openapi::RefOr<openapi::Schema> {
-        openapi::ObjectBuilder::new()
-            .property(
-                "decisionTime",
-                openapi::Ref::from_schema_name("VersionInterval"),
-            )
-            .required("decisionTime")
-            .property(
-                "transactionTime",
-                openapi::Ref::from_schema_name("VersionInterval"),
-            )
-            .required("transactionTime")
-            .build()
-            .into()
-    }
 }
 
 impl EntityVersion {
@@ -147,16 +133,16 @@ impl EntityVersion {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, ToSql, ToSchema)]
 #[postgres(transparent)]
 #[repr(transparent)]
-pub struct EntityRecordId(i64);
+pub struct EntityRecordId(Uuid);
 
 impl EntityRecordId {
     #[must_use]
-    pub const fn new(id: i64) -> Self {
+    pub const fn new(id: Uuid) -> Self {
         Self(id)
     }
 
     #[must_use]
-    pub const fn as_i64(&self) -> i64 {
+    pub const fn as_uuid(&self) -> Uuid {
         self.0
     }
 }

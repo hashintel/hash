@@ -1,7 +1,8 @@
+use super::table::OwnedOntologyMetadata;
 use crate::{
     ontology::{DataTypeQueryPath, DataTypeWithMetadata},
     store::postgres::query::{
-        table::{Column, DataTypes, JsonField, Relation, TypeIds},
+        table::{Column, DataTypes, JsonField, OntologyIds, Relation},
         PostgresQueryPath, PostgresRecord, Table,
     },
 };
@@ -18,17 +19,20 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
             Self::BaseUri | Self::Version => {
                 vec![Relation::DataTypeIds]
             }
+            Self::OwnedById | Self::UpdatedById => {
+                vec![Relation::DataTypeOwnedMetadata]
+            }
             _ => vec![],
         }
     }
 
     fn terminating_column(&self) -> Column {
         match self {
-            Self::BaseUri => Column::TypeIds(TypeIds::BaseUri),
-            Self::Version => Column::TypeIds(TypeIds::Version),
-            Self::VersionId => Column::DataTypes(DataTypes::VersionId),
-            Self::OwnedById => Column::DataTypes(DataTypes::OwnedById),
-            Self::UpdatedById => Column::DataTypes(DataTypes::UpdatedById),
+            Self::BaseUri => Column::OntologyIds(OntologyIds::BaseUri),
+            Self::Version => Column::OntologyIds(OntologyIds::Version),
+            Self::OwnedById => Column::OwnedOntologyMetadata(OwnedOntologyMetadata::OwnedById),
+            Self::UpdatedById => Column::OntologyIds(OntologyIds::UpdatedById),
+            Self::OntologyId => Column::DataTypes(DataTypes::OntologyId),
             Self::Schema(path) => path
                 .as_ref()
                 .map_or(Column::DataTypes(DataTypes::Schema(None)), |path| {

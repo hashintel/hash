@@ -1,0 +1,28 @@
+<b>invalid input parameter</b>
+├╴at <i>src/fmt/hook.rs:49:14</i>
+├╴backtrace (1)
+├╴error code: 404
+├╴suggestion 0:
+│    do you have a connection to the internet?
+├╴suggestion (0)
+├╴error code: 405
+├╴abnormal program execution detected
+├╴warning: unable to determine environment
+├╴suggestion 1:
+│    execute the program from the fish shell
+├╴suggestion (1)
+├╴error code: 501
+├╴suggestion 2:
+│    try better next time!
+╰╴suggestion (2)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+backtrace no. 1
+  [redacted]
+
+error 404: client error
+
+error 405: client error
+
+error 501: server error

@@ -25,11 +25,11 @@ ALWAYS_RUN_PATTERNS = [".github/**"]
 # rust-toolchain.toml
 TOOLCHAINS = {
     "libs/deer": ["1.65"],
-    "packages/libs/error-stack": ["1.63", "1.65"]
+    "libs/error-stack": ["1.63", "1.65"]
 }
 
 # Try and publish these crates when their version is changed in Cargo.toml
-PUBLISH_PATTERNS = ["packages/libs/error-stack**"]
+PUBLISH_PATTERNS = ["libs/error-stack**"]
 # deer is disabled for now because we don't want to publish it just yet
 # "libs/deer**"
 
@@ -40,7 +40,7 @@ DOCKER_PATTERNS = ["apps/hash-graph"]
 COVERAGE_EXCLUDE_PATTERNS = ["apps/engine**"]
 
 # We only run a subset of configurations for PRs, the rest will only be tested prior merging
-IS_PUSH_EVENT = "GITHUB_EVENT_NAME" in os.environ and os.environ["GITHUB_EVENT_NAME"] == "push"
+IS_PULL_REQUEST_EVENT = "GITHUB_EVENT_NAME" in os.environ and os.environ["GITHUB_EVENT_NAME"] == "pull_request"
 
 
 def generate_diffs():
@@ -218,7 +218,7 @@ def output_matrix(name, github_output_file, crates, **kwargs):
     available_toolchains = set()
     for crate in crates:
         available_toolchains.add(find_toolchain(crate))
-        if IS_PUSH_EVENT:
+        if not IS_PULL_REQUEST_EVENT:
             for pattern, additional_toolchains in TOOLCHAINS.items():
                 for additional_toolchain in additional_toolchains:
                     available_toolchains.add(additional_toolchain)
@@ -273,15 +273,15 @@ def main():
     github_output_file = open(os.environ["GITHUB_OUTPUT_FILE_PATH"], "w")
     
     output_matrix("lint", github_output_file, changed_parent_crates)
-    if IS_PUSH_EVENT:
-        output_matrix("test", github_output_file, changed_parent_crates, profile=["development", "production"])
-    else:
+    if IS_PULL_REQUEST_EVENT:
         output_matrix("test", github_output_file, changed_parent_crates, profile=["development"])
-    output_matrix("coverage", github_output_file, coverage_crates)
-    if IS_PUSH_EVENT:
-        output_matrix("docker", github_output_file, changed_docker_crates, profile=["production"])
     else:
+        output_matrix("test", github_output_file, changed_parent_crates, profile=["development", "production"])
+    output_matrix("coverage", github_output_file, coverage_crates)
+    if IS_PULL_REQUEST_EVENT:
         output_matrix("docker", github_output_file, changed_docker_crates, profile=["development"])
+    else:
+        output_matrix("docker", github_output_file, changed_docker_crates, profile=["production"])
     output_matrix(
         "publish",
         github_output_file,

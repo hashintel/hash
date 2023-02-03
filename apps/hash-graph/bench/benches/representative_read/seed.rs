@@ -260,9 +260,9 @@ async fn get_samples(account_id: AccountId, store_wrapper: &mut StoreWrapper) ->
                 r#"
                 -- Very naive and slow sampling, we can replace when this becomes a bottleneck
                 SELECT entity_uuid FROM entities
-                INNER JOIN type_ids
-                ON type_ids.version_id = entities.entity_type_version_id
-                WHERE type_ids.base_uri = $1 AND type_ids.version = $2
+                INNER JOIN ontology_ids
+                ON ontology_ids.ontology_id = entities.entity_type_ontology_id
+                WHERE ontology_ids.base_uri = $1 AND ontology_ids.version = $2
                 ORDER BY RANDOM()
                 LIMIT 50
                 "#,

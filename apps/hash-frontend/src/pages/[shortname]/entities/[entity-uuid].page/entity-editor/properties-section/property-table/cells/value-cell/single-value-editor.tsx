@@ -1,4 +1,4 @@
-import { Chip } from "@local/design-system";
+import { Chip } from "@hashintel/design-system";
 import produce from "immer";
 import { useState } from "react";
 
@@ -54,7 +54,20 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
       <GridEditorWrapper>
         <EditorTypePicker
           expectedTypes={expectedTypes}
-          onTypeChange={setEditorType}
+          onTypeChange={(type) => {
+            const editorSpec = editorSpecs[type];
+
+            // if no edit mode supported for selected type, set the default value and close the editor
+            if (editorSpec.arrayEditException === "no-edit-mode") {
+              const newCell = produce(cell, (draftCell) => {
+                draftCell.data.propertyRow.value = editorSpec.defaultValue;
+              });
+
+              return onFinishedEditing(newCell);
+            }
+
+            setEditorType(type);
+          }}
         />
       </GridEditorWrapper>
     );
