@@ -27,11 +27,11 @@
 
 [![discord](https://img.shields.io/discord/840573247803097118)][discord] [![github_star](https://img.shields.io/github/stars/hashintel/hash?label=Star%20on%20GitHub&style=social)][github_star]
 
-# HASH Blocks
+# Blocks
 
-This directory contains the source code for all of the public [Block Protocol](https://blockprotocol.org/) blocks published by HASH.
+This directory contains the source code for all HASH-developed public [Block Protocol](https://blockprotocol.org/) blocks.
 
-You can view rich previews of each of these on the [`@hash` page](https://blockprotocol.org/@hash) in the [Þ Hub](https://blockprotocol.org/hub).
+You can live preview most of these on the [`@hash`](https://blockprotocol.org/@hash/blocks) page in the [Þ Hub](https://blockprotocol.org/hub), and direct links are provided below.
 
 | Directory            	| Spec Target 	| Status         	| Publication URL                                                                                	| Description 	|
 |----------------------	|-------------	|----------------	|------------------------------------------------------------------------------------------------	|-------------	|
