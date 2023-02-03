@@ -3,7 +3,7 @@ import org.gradle.api.JavaVersion.VERSION_17
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "1.7.20"
-    id("org.jetbrains.intellij") version "1.10.1"
+    id("org.jetbrains.intellij") version "1.12.0"
 }
 
 group = "ai.hash"
