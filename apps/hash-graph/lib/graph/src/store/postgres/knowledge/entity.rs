@@ -5,7 +5,7 @@ use std::{collections::hash_map::RawEntryMut, future::Future, pin::Pin};
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use futures::FutureExt;
-use tokio_postgres::GenericClient;
+use tokio_postgres::{error::SqlState, GenericClient};
 use type_system::uri::VersionedUri;
 use uuid::Uuid;
 
@@ -557,7 +557,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         let row = transaction
             .as_client()
-            .query_opt(
+            .query_one(
                 r#"
                 SELECT
                     entity_edition_id,
@@ -590,13 +590,13 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             )
             .await
             .into_report()
-            .change_context(UpdateError)?;
-
-        let Some(row) = row else {
-            return Err(Report::new(RaceConditionOnUpdate)
-                .attach(entity_id)
-                .change_context(UpdateError));
-        };
+            .map_err(|report| match report.current_context().code() {
+                Some(&SqlState::RESTRICT_VIOLATION) => report
+                    .change_context(RaceConditionOnUpdate)
+                    .attach(entity_id)
+                    .change_context(UpdateError),
+                _ => report.change_context(UpdateError).attach(entity_id),
+            })?;
 
         transaction.commit().await.change_context(UpdateError)?;
 

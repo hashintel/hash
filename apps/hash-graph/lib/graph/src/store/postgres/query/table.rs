@@ -68,6 +68,7 @@ pub enum OntologyIds {
     OntologyId,
     BaseUri,
     Version,
+    UpdatedById,
     LatestVersion,
 }
 
@@ -78,18 +79,17 @@ impl OntologyIds {
             Self::BaseUri => "base_uri",
             Self::Version => "version",
             Self::LatestVersion => "latest_version",
+            Self::UpdatedById => "record_created_by_id",
         };
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
     }
 }
 
-#[expect(clippy::enum_variant_names)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum OwnedOntologyMetadata {
     OntologyId,
     OwnedById,
-    UpdatedById,
 }
 
 impl OwnedOntologyMetadata {
@@ -97,7 +97,6 @@ impl OwnedOntologyMetadata {
         let column = match self {
             Self::OntologyId => "ontology_id",
             Self::OwnedById => "owned_by_id",
-            Self::UpdatedById => "record_created_by_id",
         };
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
