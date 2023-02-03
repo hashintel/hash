@@ -8,15 +8,23 @@ description = "The entity-graph query-layer for the HASH datastore"
 
 
 [dependencies]
+type-fetcher = { path = "../../lib/type-fetcher", optional = true }
+
 axum = "0.6.3"
 clap = { version = "4.1.4", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete = "4.1.1"
-error-stack = { version = "0.2.4", features = ["spantrace"] }
+error-stack = { version = "0.3.0", features = ["spantrace"] }
 graph = { path = "../../lib/graph", features = ["clap"] }
 regex = "1.7.1"
 serde_json = "1.0.91"
+tarpc = { version = "0.31", features = ["serde1", "tokio1", "serde-transport", "tcp"], optional = true }
 tokio = { version = "1.24.2", features = ["rt-multi-thread", "macros"] }
 tokio-postgres = { version = "0.7.7", default-features = false }
+tokio-serde = { version = "0.8", features = ["messagepack"], optional = true }
 tracing = "0.1.37"
 type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "2ea406f" }
 uuid = "1.2.2"
+
+
+[features]
+type-fetcher = ["dep:type-fetcher", "dep:tarpc", "dep:tokio-serde", "graph/type-fetcher"]

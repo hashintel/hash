@@ -1,4 +1,4 @@
-use std::{io, path::Path, time::Duration};
+use std::{io, time::Duration};
 
 use opentelemetry::{
     global,
@@ -28,7 +28,7 @@ use tracing_subscriber::{
     EnvFilter, Registry,
 };
 
-use crate::logging::args::{LogFormat, LogLevel};
+use crate::logging::args::{LogFormat, LoggingArgs};
 
 const OPENTELEMETRY_TIMEOUT_DURATION: Duration = Duration::from_secs(5);
 
@@ -104,14 +104,14 @@ fn configure_opentelemetry_layer(
 /// # Errors
 ///
 /// - [`TryInitError`], if initializing the [`tracing_subscriber::Registry`] fails.
-pub fn init_logger<P: AsRef<Path>>(
-    log_format: LogFormat,
-    log_folder: P,
-    log_level: Option<LogLevel>,
-    log_file_name: &str,
-    otlp_endpoint: Option<&str>,
-) -> Result<impl Drop, TryInitError> {
-    let log_folder = log_folder.as_ref();
+pub fn init_logger(log_args: &LoggingArgs) -> Result<impl Drop, TryInitError> {
+    let LoggingArgs {
+        log_format,
+        log_folder,
+        log_level,
+        log_file_prefix,
+        otlp_endpoint,
+    } = log_args;
 
     let filter = log_level.map_or_else(
         || {
@@ -168,7 +168,7 @@ pub fn init_logger<P: AsRef<Path>>(
     };
 
     let json_file_appender =
-        tracing_appender::rolling::never(log_folder, format!("{log_file_name}.jsonl"));
+        tracing_appender::rolling::never(log_folder, format!("{log_file_prefix}.jsonl"));
     let (non_blocking, json_file_guard) = tracing_appender::non_blocking(json_file_appender);
 
     let json_file_layer = fmt::layer()
@@ -176,7 +176,7 @@ pub fn init_logger<P: AsRef<Path>>(
         .fmt_fields(JsonFields::new())
         .with_writer(non_blocking);
 
-    let opentelemetry_layer = otlp_endpoint.map(configure_opentelemetry_layer);
+    let opentelemetry_layer = otlp_endpoint.as_deref().map(configure_opentelemetry_layer);
 
     tracing_subscriber::registry()
         .with(filter)

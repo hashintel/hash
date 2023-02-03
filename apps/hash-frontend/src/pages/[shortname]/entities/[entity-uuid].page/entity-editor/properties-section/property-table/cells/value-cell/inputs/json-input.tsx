@@ -1,5 +1,5 @@
 import { faCheck, faClose } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@local/design-system";
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Box, Popper, Tooltip, Typography } from "@mui/material";
 import { useState } from "react";
 

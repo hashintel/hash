@@ -1,5 +1,5 @@
 import { Entity, EntityType, GraphBlockHandler } from "@blockprotocol/graph/.";
-import { Button } from "@local/design-system";
+import { Button } from "@hashintel/design-system";
 import {
   Checkbox,
   Dialog,

@@ -1,5 +1,5 @@
 import { JsonObject, JsonValue } from "@blockprotocol/core";
-import { TextField } from "@local/design-system";
+import { TextField } from "@hashintel/design-system";
 import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import { JsonSchema } from "@local/hash-isomorphic-utils/json-utils";
 import {

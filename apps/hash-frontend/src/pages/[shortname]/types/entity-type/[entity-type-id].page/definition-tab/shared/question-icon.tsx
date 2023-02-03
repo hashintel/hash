@@ -1,5 +1,5 @@
 import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
-import { FontAwesomeIcon } from "@local/design-system";
+import { FontAwesomeIcon } from "@hashintel/design-system";
 import {
   Box,
   BoxProps,

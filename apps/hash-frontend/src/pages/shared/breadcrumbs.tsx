@@ -1,5 +1,5 @@
 import { faAngleRight } from "@fortawesome/free-solid-svg-icons";
-import { Button, FontAwesomeIcon, IconButton } from "@local/design-system";
+import { Button, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import {
   Box,
   Breadcrumbs as MuiBreadcrumbs,
