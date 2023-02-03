@@ -19,7 +19,7 @@ intellij {
     version.set("2022.3.2")
     type.set("CL") // Target IDE Platform
 
-    plugins.set(listOf("org.rust.lang:0.4.187.5175-223"))
+    plugins.set(listOf())
 }
 
 configure<JavaPluginExtension> {
@@ -40,7 +40,7 @@ tasks {
 
     patchPluginXml {
         sinceBuild.set("223.7126")
-        untilBuild.set("223.*")
+//        untilBuild.set("223.*")
     }
 
     signPlugin {

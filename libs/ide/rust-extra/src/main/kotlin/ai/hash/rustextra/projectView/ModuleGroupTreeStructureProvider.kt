@@ -6,7 +6,9 @@ import com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode
 import com.intellij.ide.projectView.impl.nodes.PsiFileNode
 import com.intellij.ide.util.treeView.AbstractTreeNode
 import com.intellij.openapi.project.DumbAware
-import org.rust.lang.core.psi.RsFile
+import com.intellij.psi.PsiFile
+
+//import org.rust.lang.core.psi.RsFile
 
 // The problem is, that we're getting _fucked_ in the second iteration, to not do that we need to have an opaque type (?)
 // that is converted at a later date to the correct one
@@ -38,7 +40,8 @@ class ModuleGroupTreeStructureProvider : TreeStructureProvider, DumbAware {
             }
 
             val value = child.value;
-            if (child is PsiFileNode && value is RsFile) {
+
+            if (child is PsiFileNode && value is PsiFile && !value.isDirectory && value.fileType.name == "Rust") {
                 if (value.getUserData(ModuleFileNodeMarker) == true) {
                     // we already processed the file, wrap in a proper node and continue
                     nodes.add(ModuleFileNode.fromPsiFileNode(child, settings));
