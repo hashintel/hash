@@ -9,7 +9,7 @@ use error_stack::ResultExt;
 pub use object::ObjectAccessDeserializer;
 pub use string::{BorrowedStrDeserializer, StrDeserializer, StringDeserializer};
 
-use crate::{error::DeserializerError, Context, Deserializer, Visitor};
+use crate::{error::DeserializerError, Context, Deserializer, Number, Visitor};
 
 macro_rules! impl_owned {
     (@INTERNAL COPY, $ty:ty, $name:ident, $method:ident) => {
@@ -18,7 +18,7 @@ macro_rules! impl_owned {
             context: &'a Context,
             value: $ty
         }
-    }
+    };
 
     (@INTERNAL CLONE, $ty:ty, $name:ident, $method:ident) => {
         #[derive(Debug, Clone)]
@@ -26,7 +26,7 @@ macro_rules! impl_owned {
             context: &'a Context,
             value: $ty
         }
-    }
+    };
 
     (@INTERNAL IMPL, $ty:ty, $name:ident, $method:ident) => {
         impl<'a> $name<'a> {
@@ -61,14 +61,16 @@ macro_rules! impl_owned {
             }
         }
 
-        impl<'a, 'de> IntoDeserializer<'de> for $ty {
-            type Deserializer = $name<'a>;
+        impl<'de> IntoDeserializer<'de> for $ty {
+            type Deserializer<'a> = $name<'a> where Self: 'a;
 
-            fn into_deserializer(self, context: &'a Context) -> Self::Deserializer {
-                $name::new(context, self)
+            fn into_deserializer<'a>(self, context: &'a Context) -> Self::Deserializer<'a>
+            where
+                Self: 'a {
+                $name::new(self, context)
             }
         }
-    }
+    };
 
     (copy: $ty:ty, $name:ident, $method:ident) => {
         impl_owned!(@INTERNAL COPY, $ty, $name, $method);
@@ -88,9 +90,13 @@ macro_rules! impl_owned {
 use impl_owned;
 
 pub trait IntoDeserializer<'de> {
-    type Deserializer: Deserializer<'de>;
+    type Deserializer<'a>: Deserializer<'de>
+    where
+        Self: 'a;
 
-    fn into_deserializer(self, context: &Context) -> Self::Deserializer;
+    fn into_deserializer<'a>(self, context: &'a Context) -> Self::Deserializer<'a>
+    where
+        Self: 'a;
 }
 
 #[derive(Debug, Copy, Clone)]

@@ -1,8 +1,6 @@
 use error_stack::{Result, ResultExt};
 
-use crate::{
-    error::DeserializerError, value::IntoDeserializer, ArrayAccess, Context, Deserializer, Visitor,
-};
+use crate::{error::DeserializerError, ArrayAccess, Context, Deserializer, Visitor};
 
 // TODO: SliceDeserializer/IteratorDeserializer
 

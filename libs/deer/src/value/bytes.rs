@@ -16,7 +16,7 @@ pub struct BytesDeserializer<'a, 'b> {
 
 impl<'a, 'b> BytesDeserializer<'a, 'b> {
     #[must_use]
-    pub const fn new(context: &'a Context, value: &'b [u8]) -> Self {
+    pub const fn new(value: &'b [u8], context: &'a Context) -> Self {
         Self { context, value }
     }
 }
@@ -48,11 +48,14 @@ impl<'de> Deserializer<'de> for BytesDeserializer<'_, '_> {
     }
 }
 
-impl<'de, 'a, 'b> IntoDeserializer<'de> for &'b [u8] {
-    type Deserializer = BytesDeserializer<'a, 'b>;
+impl<'de, 'b> IntoDeserializer<'de> for &'b [u8] {
+    type Deserializer<'a> = BytesDeserializer<'a, 'b> where Self: 'a;
 
-    fn into_deserializer(self, context: &'a Context) -> Self::Deserializer {
-        BytesDeserializer::new(context, self)
+    fn into_deserializer<'a>(self, context: &'a Context) -> Self::Deserializer<'a>
+    where
+        Self: 'a,
+    {
+        BytesDeserializer::new(self, context)
     }
 }
 
@@ -64,7 +67,7 @@ pub struct BorrowedBytesDeserializer<'a, 'de> {
 
 impl<'a, 'de> BorrowedBytesDeserializer<'a, 'de> {
     #[must_use]
-    pub const fn new(context: &'a Context, value: &'de [u8]) -> Self {
+    pub const fn new(value: &'de [u8], context: &'a Context) -> Self {
         Self { context, value }
     }
 }

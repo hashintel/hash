@@ -16,7 +16,7 @@ pub struct StrDeserializer<'a, 'b> {
 
 impl<'a, 'b> StrDeserializer<'a, 'b> {
     #[must_use]
-    pub const fn new(context: &'a Context, value: &'b str) -> Self {
+    pub const fn new(value: &'b str, context: &'a Context) -> Self {
         Self { context, value }
     }
 }
@@ -48,11 +48,14 @@ impl<'de> Deserializer<'de> for StrDeserializer<'_, '_> {
     }
 }
 
-impl<'de, 'a, 'b> IntoDeserializer<'de> for &'b str {
-    type Deserializer = StrDeserializer<'a, 'b>;
+impl<'de, 'b> IntoDeserializer<'de> for &'b str {
+    type Deserializer<'a> = StrDeserializer<'a, 'b> where Self: 'a;
 
-    fn into_deserializer(self, context: &'a Context) -> Self::Deserializer {
-        StrDeserializer::new(context, self)
+    fn into_deserializer<'a>(self, context: &'a Context) -> Self::Deserializer<'a>
+    where
+        Self: 'a,
+    {
+        StrDeserializer::new(self, context)
     }
 }
 
@@ -64,7 +67,7 @@ pub struct BorrowedStrDeserializer<'a, 'de> {
 
 impl<'a, 'de> BorrowedStrDeserializer<'a, 'de> {
     #[must_use]
-    pub const fn new(context: &'a Context, value: &'de str) -> Self {
+    pub const fn new(value: &'de str, context: &'a Context) -> Self {
         Self { context, value }
     }
 }
