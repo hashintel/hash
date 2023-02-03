@@ -858,10 +858,10 @@ export interface ExternalOntologyElementMetadata {
   editionId: OntologyTypeEditionId;
   /**
    *
-   * @type {OffsetDateTime}
+   * @type {string}
    * @memberof ExternalOntologyElementMetadata
    */
-  fetchedAt: OffsetDateTime;
+  fetchedAt: string;
   /**
    *
    * @type {ProvenanceMetadata}

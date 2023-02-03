@@ -213,6 +213,7 @@ pub struct ExternalOntologyElementMetadata {
     edition_id: OntologyTypeEditionId,
     #[serde(rename = "provenance")]
     provenance_metadata: ProvenanceMetadata,
+    #[schema(value_type = String)]
     fetched_at: OffsetDateTime,
 }
 
