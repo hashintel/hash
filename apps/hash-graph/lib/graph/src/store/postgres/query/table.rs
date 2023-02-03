@@ -13,7 +13,6 @@ use crate::{
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Table {
     OntologyIds,
-    OwnedOntologyMetadata,
     DataTypes,
     PropertyTypes,
     EntityTypes,
@@ -31,8 +30,7 @@ impl Table {
 
     const fn as_str(self) -> &'static str {
         match self {
-            Self::OntologyIds => "ontology_ids",
-            Self::OwnedOntologyMetadata => "ontology_owned_metadata",
+            Self::OntologyIds => "ontology_id_with_metadata",
             Self::DataTypes => "data_types",
             Self::PropertyTypes => "property_types",
             Self::EntityTypes => "entity_types",
@@ -64,15 +62,47 @@ pub enum JsonField<'p> {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum OntologyIds {
+pub enum OntologyIds<'p> {
     OntologyId,
     BaseUri,
     Version,
     UpdatedById,
     LatestVersion,
+    AdditionalMetadata(Option<JsonField<'p>>),
 }
 
-impl OntologyIds {
+fn transpile_json_field(
+    path: &JsonField,
+    name: &'static str,
+    table: &impl Transpile,
+    fmt: &mut fmt::Formatter,
+) -> fmt::Result {
+    match path {
+        JsonField::Json(field) => panic!(
+            "attempting to access JSON field `{field}` on `{name}` column without preparing the \
+             value"
+        ),
+        JsonField::JsonPath(path) => panic!(
+            "attempting to access JSON path `{path}` on `{name}` column without preparing the \
+             value"
+        ),
+        JsonField::JsonPathParameter(index) => {
+            write!(fmt, "jsonb_path_query_first(")?;
+            table.transpile(fmt)?;
+            write!(fmt, r#"."{name}", ${index}::text::jsonpath)"#)
+        }
+        JsonField::StaticText(field) => {
+            table.transpile(fmt)?;
+            write!(fmt, r#"."{name}"->>'{field}'"#)
+        }
+        JsonField::StaticJson(field) => {
+            table.transpile(fmt)?;
+            write!(fmt, r#"."{name}"->'{field}'"#)
+        }
+    }
+}
+
+impl OntologyIds<'_> {
     fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
             Self::OntologyId => "ontology_id",
@@ -80,6 +110,10 @@ impl OntologyIds {
             Self::Version => "version",
             Self::LatestVersion => "latest_version",
             Self::UpdatedById => "record_created_by_id",
+            Self::AdditionalMetadata(None) => "additional_metadata",
+            Self::AdditionalMetadata(Some(path)) => {
+                return transpile_json_field(path, "additional_metadata", table, fmt);
+            }
         };
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
@@ -126,29 +160,9 @@ macro_rules! impl_ontology_column {
                     let column = match self {
                         Self::OntologyId => "ontology_id",
                         Self::Schema(None) => "schema",
-                        Self::Schema(Some(path)) => return match path {
-                                JsonField::Json(field) => panic!(
-                                    "attempting to access JSON field `{field}` on schema column without \
-                                     preparing the value"
-                                ),
-                                JsonField::JsonPath(path) => panic!(
-                                    "attempting to access JSON path `{path}` on schema column without \
-                                     preparing the value"
-                                ),
-                                JsonField::JsonPathParameter(index) => {
-                                    write!(fmt, "jsonb_path_query_first(")?;
-                                    table.transpile(fmt)?;
-                                    write!(fmt, r#"."schema", ${index}::text::jsonpath)"#)
-                                }
-                                JsonField::StaticText(field) => {
-                                    table.transpile(fmt)?;
-                                    write!(fmt, r#"."schema"->>'{field}'"#)
-                                }
-                                JsonField::StaticJson(field) => {
-                                    table.transpile(fmt)?;
-                                    write!(fmt, r#"."schema"->'{field}'"#)
-                                }
-                        },
+                        Self::Schema(Some(path)) => {
+                            return transpile_json_field(path, "schema", table, fmt);
+                        }
                     };
                     table.transpile(fmt)?;
                     write!(fmt, r#"."{}""#, column)
@@ -228,29 +242,7 @@ impl Entities<'_> {
             Self::EntityTypeOntologyId => "entity_type_ontology_id",
             Self::Properties(None) => "properties",
             Self::Properties(Some(path)) => {
-                return match path {
-                    JsonField::Json(field) => panic!(
-                        "attempting to access JSON field `{field}` on properties column without \
-                         preparing the value"
-                    ),
-                    JsonField::JsonPath(path) => panic!(
-                        "attempting to access JSON path `{path}` on properties column without \
-                         preparing the value"
-                    ),
-                    JsonField::JsonPathParameter(index) => {
-                        write!(fmt, "jsonb_path_query_first(")?;
-                        table.transpile(fmt)?;
-                        write!(fmt, r#"."properties", ${index}::text::jsonpath)"#)
-                    }
-                    JsonField::StaticText(field) => {
-                        table.transpile(fmt)?;
-                        write!(fmt, r#"."properties"->>'{field}'"#)
-                    }
-                    JsonField::StaticJson(field) => {
-                        table.transpile(fmt)?;
-                        write!(fmt, r#"."properties"->'{field}'"#)
-                    }
-                };
+                return transpile_json_field(path, "properties", table, fmt);
             }
             Self::LeftToRightOrder => "left_to_right_order",
             Self::RightToLeftOrder => "right_to_left_order",
@@ -330,8 +322,7 @@ impl EntityTypeEntityTypeReferences {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Column<'p> {
-    OntologyIds(OntologyIds),
-    OwnedOntologyMetadata(OwnedOntologyMetadata),
+    OntologyIds(OntologyIds<'p>),
     DataTypes(DataTypes<'p>),
     PropertyTypes(PropertyTypes<'p>),
     EntityTypes(EntityTypes<'p>),
@@ -346,7 +337,6 @@ impl<'p> Column<'p> {
     pub const fn table(self) -> Table {
         match self {
             Self::OntologyIds(_) => Table::OntologyIds,
-            Self::OwnedOntologyMetadata(_) => Table::OwnedOntologyMetadata,
             Self::DataTypes(_) => Table::DataTypes,
             Self::PropertyTypes(_) => Table::PropertyTypes,
             Self::EntityTypes(_) => Table::EntityTypes,
@@ -380,7 +370,6 @@ impl<'p> Column<'p> {
     fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::OntologyIds(column) => column.transpile_column(table, fmt),
-            Self::OwnedOntologyMetadata(column) => column.transpile_column(table, fmt),
             Self::DataTypes(column) => column.transpile_column(table, fmt),
             Self::PropertyTypes(column) => column.transpile_column(table, fmt),
             Self::EntityTypes(column) => column.transpile_column(table, fmt),
@@ -478,9 +467,6 @@ pub enum Relation {
     DataTypeIds,
     PropertyTypeIds,
     EntityTypeIds,
-    DataTypeOwnedMetadata,
-    PropertyTypeOwnedMetadata,
-    EntityTypeOwnedMetadata,
     PropertyTypeDataTypeReferences,
     PropertyTypePropertyTypeReferences,
     EntityTypePropertyTypeReferences,
@@ -507,18 +493,6 @@ impl Relation {
             Self::EntityTypeIds => &[(
                 Column::EntityTypes(EntityTypes::OntologyId),
                 Column::OntologyIds(OntologyIds::OntologyId),
-            )],
-            Self::DataTypeOwnedMetadata => &[(
-                Column::DataTypes(DataTypes::OntologyId),
-                Column::OwnedOntologyMetadata(OwnedOntologyMetadata::OntologyId),
-            )],
-            Self::PropertyTypeOwnedMetadata => &[(
-                Column::PropertyTypes(PropertyTypes::OntologyId),
-                Column::OwnedOntologyMetadata(OwnedOntologyMetadata::OntologyId),
-            )],
-            Self::EntityTypeOwnedMetadata => &[(
-                Column::EntityTypes(EntityTypes::OntologyId),
-                Column::OwnedOntologyMetadata(OwnedOntologyMetadata::OntologyId),
             )],
             Self::PropertyTypeDataTypeReferences => &[
                 (
