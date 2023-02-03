@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS
     "base_uri" TEXT NOT NULL,
     "version" BIGINT NOT NULL,
     "transaction_time" tstzrange NOT NULL,
+    "record_created_by_id" UUID NOT NULL REFERENCES "accounts",
     UNIQUE ("base_uri", "version"),
     CONSTRAINT ontology_ids_overlapping EXCLUDE USING gist (
       base_uri
@@ -22,10 +23,47 @@ CREATE TABLE IF NOT EXISTS
   "ontology_owned_metadata" (
     "ontology_id" UUID NOT NULL,
     "owned_by_id" UUID NOT NULL REFERENCES "accounts",
-    "record_created_by_id" UUID NOT NULL REFERENCES "accounts",
     CONSTRAINT ontology_owned_metadata_pk PRIMARY KEY ("ontology_id") DEFERRABLE INITIALLY IMMEDIATE,
     CONSTRAINT ontology_owned_metadata_fk FOREIGN KEY ("ontology_id") REFERENCES ontology_ids DEFERRABLE INITIALLY IMMEDIATE
   );
+
+CREATE TABLE IF NOT EXISTS
+  "ontology_external_metadata" (
+    "ontology_id" UUID NOT NULL,
+    "fetched_at" TIMESTAMP WITH TIME ZONE NOT NULL,
+    CONSTRAINT ontology_external_metadata_pk PRIMARY KEY ("ontology_id") DEFERRABLE INITIALLY IMMEDIATE,
+    CONSTRAINT ontology_external_metadata_fk FOREIGN KEY ("ontology_id") REFERENCES "ontology_ids" DEFERRABLE INITIALLY IMMEDIATE
+  );
+
+CREATE VIEW
+  "ontology_id_with_metadata" AS
+SELECT
+  "ontology_id",
+  "base_uri",
+  "version",
+  "record_created_by_id",
+  "transaction_time",
+  JSONB_BUILD_OBJECT(
+    'owned_by_id',
+    ontology_owned_metadata.owned_by_id
+  ) AS "additional_metadata"
+FROM
+  ontology_ids
+  NATURAL JOIN ontology_owned_metadata
+UNION ALL
+SELECT
+  "ontology_id",
+  "base_uri",
+  "version",
+  "record_created_by_id",
+  "transaction_time",
+  JSONB_BUILD_OBJECT(
+    'fetched_at',
+    ontology_external_metadata.fetched_at
+  ) AS "additional_metadata"
+FROM
+  ontology_ids
+  NATURAL JOIN ontology_external_metadata;
 
 CREATE TABLE IF NOT EXISTS
   "data_types" (

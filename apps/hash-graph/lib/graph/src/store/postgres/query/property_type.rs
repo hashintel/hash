@@ -39,7 +39,7 @@ impl PostgresQueryPath for PropertyTypeQueryPath<'_> {
             Self::BaseUri => Column::OntologyIds(OntologyIds::BaseUri),
             Self::Version => Column::OntologyIds(OntologyIds::Version),
             Self::OwnedById => Column::OwnedOntologyMetadata(OwnedOntologyMetadata::OwnedById),
-            Self::UpdatedById => Column::OwnedOntologyMetadata(OwnedOntologyMetadata::UpdatedById),
+            Self::UpdatedById => Column::OntologyIds(OntologyIds::UpdatedById),
             Self::OntologyId => Column::PropertyTypes(PropertyTypes::OntologyId),
             Self::Schema(path) => {
                 path.as_ref()

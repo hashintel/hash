@@ -1,4 +1,4 @@
-import { Avatar } from "@local/design-system";
+import { Avatar } from "@hashintel/design-system";
 import {
   Box,
   Divider,

@@ -6,6 +6,7 @@
       "apps/*",
       "blocks/*",
       "libs/*",
+      "libs/@hashintel/*",
       "libs/@local/*",
       "tests/*"
     ]

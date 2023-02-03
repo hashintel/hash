@@ -1,4 +1,4 @@
-import { Chip, FontAwesomeIcon } from "@local/design-system";
+import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { uniqueId } from "lodash";
 import { usePopupState } from "material-ui-popup-state/hooks";

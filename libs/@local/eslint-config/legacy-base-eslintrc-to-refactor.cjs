@@ -183,8 +183,8 @@ module.exports = {
         ],
         patterns: [
           {
-            group: ["@local/design-system/*"],
-            message: "Please import from @local/design-system instead.",
+            group: ["@hashintel/design-system/*"],
+            message: "Please import from @hashintel/design-system instead.",
           },
         ],
       },

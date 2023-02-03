@@ -1,5 +1,5 @@
 import { faWarning } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@local/design-system";
+import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Container, Typography } from "@mui/material";
 
 import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
