@@ -1,9 +1,81 @@
 // Number, Char, Str, BorrowedStr, String, Bytes, BorrowedBytes, BytesBuffer,
 // Array, Object
 
-use error_stack::ResultExt;
+mod bytes;
+mod string;
 
-use crate::{error::DeserializerError, Context, Deserializer, Visitor};
+use error_stack::ResultExt;
+pub use string::{BorrowedStrDeserializer, StrDeserializer, StringDeserializer};
+
+use crate::{error::DeserializerError, Context, Deserializer, Number, Visitor};
+
+macro_rules! impl_owned {
+    (@INTERNAL COPY, $ty:ty, $name:ident, $method:ident) => {
+        #[derive(Debug, Copy, Clone)]
+        pub struct $name<'a> {
+            context: &'a Context,
+            value: $ty
+        }
+    }
+
+    (@INTERNAL CLONE, $ty:ty, $name:ident, $method:ident) => {
+        #[derive(Debug, Clone)]
+        pub struct $name<'a> {
+            context: &'a Context,
+            value: $ty
+        }
+    }
+
+    (@INTERNAL IMPL, $ty:ty, $name:ident, $method:ident) => {
+        impl<'a> $name<'a> {
+            #[must_use]
+            pub const fn new(value: $ty, context: &'a Context) -> Self {
+                Self { value, context }
+            }
+        }
+
+        impl<'de, 'a> Deserializer<'de> for $name<'a> {
+            forward_to_deserialize_any!(
+                null
+                bool
+                number
+                i8 i16 i32 i64 i128 isize
+                u8 u16 u32 u64 u128 usize
+                f32 f64
+                char str string
+                bytes bytes_buffer
+                array object
+            );
+
+            fn context(&self) -> &Context {
+                self.context
+            }
+
+            fn deserialize_any<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+            where
+                V: Visitor<'de>,
+            {
+                visitor.$method(self.value).change_context(DeserializerError)
+            }
+        }
+    }
+
+    (copy: $ty:ty, $name:ident, $method:ident) => {
+        impl_owned!(@INTERNAL COPY, $ty, $name, $method);
+        impl_owned!(@INTERNAL IMPL, $ty, $name, $method);
+    };
+
+    (!copy: $ty:ty, $name:ident, $method:ident) => {
+        impl_owned!(@INTERNAL CLONE, $ty, $name, $method);
+        impl_owned!(@INTERNAL IMPL, $ty, $name, $method);
+    };
+
+    ($ty:ty, $name:ident, $method:ident) => {
+        impl_owned!(copy: $ty, $name, $method);
+    };
+}
+
+use impl_owned;
 
 #[derive(Debug, Copy, Clone)]
 pub struct NoneDeserializer<'a> {
@@ -79,64 +151,27 @@ impl<'de> Deserializer<'de> for NullDeserializer<'_> {
     }
 }
 
-macro_rules! impl_primitive {
-    ($ty:ty, $name:ident, $method:ident) => {
-        #[derive(Debug, Copy, Clone)]
-        pub struct $name<'a> {
-            context: &'a Context,
-            value: $ty
-        }
+impl_owned!(bool, BoolDeserializer, visit_bool);
+impl_owned!(char, CharDeserializer, visit_char);
+impl_owned!(u8, U8Deserializer, visit_u8);
+impl_owned!(u16, U16Deserializer, visit_u16);
+impl_owned!(u32, U32Deserializer, visit_u32);
+impl_owned!(u64, U64Deserializer, visit_u64);
+impl_owned!(u128, U128Deserializer, visit_u128);
+impl_owned!(usize, UsizeDeserializer, visit_usize);
+impl_owned!(i8, I8Deserializer, visit_i8);
+impl_owned!(i16, I16Deserializer, visit_i16);
+impl_owned!(i32, I32Deserializer, visit_i32);
+impl_owned!(i64, I64Deserializer, visit_i64);
+impl_owned!(i128, I128Deserializer, visit_i128);
+impl_owned!(isize, IsizeDeserializer, visit_isize);
+impl_owned!(f32, F32Deserializer, visit_f32);
+impl_owned!(f64, F64Deserializer, visit_f64);
 
-        impl<'a> $name<'a> {
-            #[must_use]
-            pub const fn new(value: $ty, context: &'a Context) -> Self {
-                Self { value, context }
-            }
-        }
-
-        impl<'de, 'a> Deserializer<'de> for $name<'a> {
-            forward_to_deserialize_any!(
-                null
-                bool
-                number
-                i8 i16 i32 i64 i128 isize
-                u8 u16 u32 u64 u128 usize
-                f32 f64
-                char str string
-                bytes bytes_buffer
-                array object
-            );
-
-            fn context(&self) -> &Context {
-                self.context
-            }
-
-            fn deserialize_any<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
-            where
-                V: Visitor<'de>,
-            {
-                visitor.$method(self.value).change_context(DeserializerError)
-            }
-        }
-    };
-}
-
-impl_primitive!(bool, BoolDeserializer, visit_bool);
-impl_primitive!(char, CharDeserializer, visit_char);
-impl_primitive!(u8, U8Deserializer, visit_u8);
-impl_primitive!(u16, U16Deserializer, visit_u16);
-impl_primitive!(u32, U32Deserializer, visit_u32);
-impl_primitive!(u64, U64Deserializer, visit_u64);
-impl_primitive!(u128, U128Deserializer, visit_u128);
-impl_primitive!(usize, UsizeDeserializer, visit_usize);
-impl_primitive!(i8, I8Deserializer, visit_i8);
-impl_primitive!(i16, I16Deserializer, visit_i16);
-impl_primitive!(i32, I32Deserializer, visit_i32);
-impl_primitive!(i64, I64Deserializer, visit_i64);
-impl_primitive!(i128, I128Deserializer, visit_i128);
-impl_primitive!(isize, IsizeDeserializer, visit_isize);
-impl_primitive!(f32, F32Deserializer, visit_f32);
-impl_primitive!(f64, F64Deserializer, visit_f64);
+impl_owned!(!copy: Number, NumberDeserializer, visit_number);
 
 // TODO: test
-// TODO: branch out into different PR
+// bytes borrowed bytes
+// bytes_buffer
+// array arrayVisitor
+// object
