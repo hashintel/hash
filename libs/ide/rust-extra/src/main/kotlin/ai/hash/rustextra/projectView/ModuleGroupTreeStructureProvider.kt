@@ -32,7 +32,9 @@ class ModuleGroupTreeStructureProvider : TreeStructureProvider, DumbAware {
             }
         }
 
-        for (child in children) {
+        for (childRef in children) {
+            var child = childRef;
+
             if (child is ModuleFileNode) {
                 // the file has already been processed, therefore to not recurse endlessly we end prematurely
                 nodes.add(child);
@@ -41,11 +43,16 @@ class ModuleGroupTreeStructureProvider : TreeStructureProvider, DumbAware {
 
             val value = child.value;
 
+            if (child is PsiFileNode && value is PsiFile && value.getUserData(ModuleFileNodeMarker) == true && child !is ModuleFileNode) {
+                // always ensures that the file is actually ours
+                child = ModuleFileNode.wrap(child, settings);
+            }
+
             if (child is PsiFileNode && value is PsiFile && !value.isDirectory && value.fileType.name == "Rust") {
-                if (value.getUserData(ModuleFileNodeMarker) == true) {
+                if (value.getUserData(ModuleFileNodeRecursionMarker) == true) {
                     // we already processed the file, wrap in a proper node and continue
-                    nodes.add(ModuleFileNode.fromPsiFileNode(child, settings));
-                    value.putUserData(ModuleFileNodeMarker, false);
+                    nodes.add(child);
+                    value.putUserData(ModuleFileNodeRecursionMarker, false);
 
                     continue
                 }
