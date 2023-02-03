@@ -15,7 +15,7 @@ use type_system::{repr, DataType, EntityType, PropertyType};
 type Pool = PostgresStorePool<NoTls>;
 pub type Store = <Pool as StorePool>::Store<'static>;
 
-// TODO - deduplicate with integration/postgres/mod.rs
+// TODO - deduplicate with integration/postgres.rs
 pub struct StoreWrapper {
     delete_on_drop: bool,
     pub bench_db_name: String,

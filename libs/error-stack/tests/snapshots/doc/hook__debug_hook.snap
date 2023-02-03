@@ -1,0 +1,9 @@
+<b>invalid input parameter</b>
+├╴at <i>src/hook.rs:19:5</i>
+├╴backtrace (1)
+╰╴suggestion: oh no, try again
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+backtrace no. 1
+  [redacted]

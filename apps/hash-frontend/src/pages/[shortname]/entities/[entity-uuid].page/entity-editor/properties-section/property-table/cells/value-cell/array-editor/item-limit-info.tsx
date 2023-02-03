@@ -1,4 +1,4 @@
-import { Button } from "@local/design-system";
+import { Button } from "@hashintel/design-system";
 import { Box, experimental_sx as sx, styled } from "@mui/material";
 import { isNumber } from "lodash";
 

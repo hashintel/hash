@@ -4,18 +4,18 @@ export const propertyGridColumns: PropertyColumn[] = [
   {
     title: "Property",
     id: "title",
-    width: 250,
+    width: 280,
   },
   {
     title: "Value",
     id: "value",
-    grow: 1,
-    width: 300,
+    width: 450,
   },
   {
     title: "Expected type",
     id: "expectedTypes",
     width: 250,
+    grow: 1,
   },
 ];
 

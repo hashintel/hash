@@ -39,7 +39,7 @@ module.exports = {
               "MenuItem",
             ],
             message:
-              "Please use the custom wrapper component from src/shared/ui for Link, Button and MenuItem and from '@local/design-system' for every other component.",
+              "Please use the custom wrapper component from src/shared/ui for Link, Button and MenuItem and from '@hashintel/design-system' for every other component.",
           },
           {
             name: "notistack",
@@ -52,6 +52,10 @@ module.exports = {
           {
             group: ["@mui/material/*"],
             message: "Please import from @mui/material instead",
+          },
+          {
+            group: ["@hashintel/design-system/*"],
+            message: "Please import from @hashintel/design-system instead",
           },
         ],
       },

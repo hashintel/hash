@@ -1,4 +1,4 @@
-use std::{collections::Bound, error::Error, ops::RangeBounds};
+use std::{collections::Bound, error::Error, fmt, ops::RangeBounds};
 
 use interval_ops::{Interval, LowerBound, UpperBound};
 use postgres_protocol::types::timestamp_from_sql;
@@ -8,23 +8,37 @@ use utoipa::{openapi, ToSchema};
 
 use crate::identifier::time::{timestamp::Timestamp, TimeInterval, TimeIntervalBound};
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct VersionInterval<A> {
     pub start: Timestamp<A>,
     pub end: Option<Timestamp<A>>,
 }
 
-impl<A> ToSchema for VersionInterval<A> {
-    fn schema() -> openapi::RefOr<openapi::Schema> {
-        openapi::Schema::Object(
-            openapi::ObjectBuilder::new()
-                .property("start", Timestamp::<A>::schema())
-                .required("start")
-                .property("end", openapi::Ref::from_schema_name("NullableTimestamp"))
-                .required("end")
-                .build(),
+impl<A> fmt::Debug for VersionInterval<A> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "[{}, ", self.start)?;
+        if let Some(end) = self.end {
+            write!(fmt, "{end})")
+        } else {
+            write!(fmt, "+∞)")
+        }
+    }
+}
+
+impl<A> ToSchema<'_> for VersionInterval<A> {
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "VersionInterval",
+            openapi::Schema::Object(
+                openapi::ObjectBuilder::new()
+                    .property("start", Timestamp::<A>::schema().1)
+                    .required("start")
+                    .property("end", openapi::Ref::from_schema_name("NullableTimestamp"))
+                    .required("end")
+                    .build(),
+            )
+            .into(),
         )
-        .into()
     }
 }
 

@@ -60,6 +60,7 @@ rustflags = [
     "-Wclippy::match_wild_err_arm",
     "-Wclippy::match_wildcard_for_single_variants",
     "-Wclippy::mem_forget",
+    "-Wclippy::mod_module_files",
     "-Wclippy::mismatched_target_os",
     "-Wclippy::missing_enforced_import_renames",
     "-Wclippy::mut_mut",

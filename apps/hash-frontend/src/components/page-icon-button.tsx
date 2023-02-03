@@ -1,4 +1,4 @@
-import { fontAwesomeIconClasses, IconButton } from "@local/design-system";
+import { fontAwesomeIconClasses, IconButton } from "@hashintel/design-system";
 import { EntityId } from "@local/hash-isomorphic-utils/types";
 import { iconButtonClasses, SxProps, Theme, Tooltip } from "@mui/material";
 import { SystemStyleObject } from "@mui/system";

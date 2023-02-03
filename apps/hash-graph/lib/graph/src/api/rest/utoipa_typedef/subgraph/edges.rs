@@ -26,14 +26,17 @@ pub enum KnowledgeGraphOutwardEdges {
 }
 
 // WARNING: This MUST be kept up to date with the enum variants.
-//   We have to do this because utoipa doesn't understand serde untagged:
-//   https://github.com/juhaku/utoipa/issues/320
-impl ToSchema for KnowledgeGraphOutwardEdges {
-    fn schema() -> RefOr<Schema> {
-        OneOfBuilder::new()
-            .item(<OutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>>::schema())
-            .item(<OutwardEdge<SharedEdgeKind, OntologyTypeEditionId>>::schema())
-            .into()
+//   Utoipa is not able to derive the correct schema for this as it has problems with generic
+//   parameters.
+impl ToSchema<'_> for KnowledgeGraphOutwardEdges {
+    fn schema() -> (&'static str, RefOr<Schema>) {
+        (
+            "KnowledgeGraphOutwardEdges",
+            OneOfBuilder::new()
+                .item(<OutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>>::schema().1)
+                .item(<OutwardEdge<SharedEdgeKind, OntologyTypeEditionId>>::schema().1)
+                .into(),
+        )
     }
 }
 
@@ -134,13 +137,13 @@ impl Edges {
                         Entry::Occupied(entry) => {
                             entry.into_mut().insert(
                                 id.version(),
-                                edges
+                                edges,
                             );
                         }
                         Entry::Vacant(entry) => {
                             entry.insert(BTreeMap::from([(
                                 id.version(),
-                                edges
+                                edges,
                             )]));
                         }
                     }
@@ -153,16 +156,21 @@ impl Edges {
 
 // Utoipa generates `Edges` as an empty object if we don't manually do it, and we can't use
 // allOf because the generator can't handle it
-impl ToSchema for Edges {
-    fn schema() -> RefOr<Schema> {
-        ObjectBuilder::new()
-            .additional_properties(Some(Schema::from(
-                ObjectBuilder::new().additional_properties(Some(Array::new(
-                    OneOfBuilder::new()
-                        .item(Ref::from_schema_name("OntologyOutwardEdges"))
-                        .item(Ref::from_schema_name("KnowledgeGraphOutwardEdges")),
-                ))),
-            )))
-            .into()
+impl ToSchema<'_> for Edges {
+    fn schema() -> (&'static str, RefOr<Schema>) {
+        (
+            "Edges",
+            ObjectBuilder::new()
+                .additional_properties(Some(Schema::from(
+                    ObjectBuilder::new().additional_properties(Some(Array::new(
+                        OneOfBuilder::new()
+                            .item(Ref::from_schema_name(OntologyOutwardEdges::schema().0))
+                            .item(Ref::from_schema_name(
+                                KnowledgeGraphOutwardEdges::schema().0,
+                            )),
+                    ))),
+                )))
+                .into(),
+        )
     }
 }
