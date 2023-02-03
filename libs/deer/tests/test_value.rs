@@ -1,11 +1,12 @@
 use deer::{
     error::{DeserializeError, ExpectedType, ReceivedValue, ValueError, Variant, VisitorError},
     value::{
-        BoolDeserializer, BorrowedStrDeserializer, BytesDeserializer, CharDeserializer,
-        F32Deserializer, F64Deserializer, I128Deserializer, I16Deserializer, I32Deserializer,
-        I64Deserializer, I8Deserializer, IsizeDeserializer, NullDeserializer, NumberDeserializer,
-        StrDeserializer, StringDeserializer, U128Deserializer, U16Deserializer, U32Deserializer,
-        U64Deserializer, U8Deserializer, UsizeDeserializer,
+        BoolDeserializer, BorrowedBytesDeserializer, BorrowedStrDeserializer,
+        BytesBufferDeserializer, BytesDeserializer, CharDeserializer, F32Deserializer,
+        F64Deserializer, I128Deserializer, I16Deserializer, I32Deserializer, I64Deserializer,
+        I8Deserializer, IsizeDeserializer, NullDeserializer, NumberDeserializer, StrDeserializer,
+        U128Deserializer, U16Deserializer, U32Deserializer, U64Deserializer, U8Deserializer,
+        UsizeDeserializer,
     },
     Context, Deserialize, Deserializer, Document, Number, Reflection, Schema, Visitor,
 };
@@ -256,4 +257,166 @@ fn null_err() {
     assert!(result.is_err());
 }
 
-// TODO: None, bytes, bytes_buffer, borrowed_bytes, ArrayAccess, ObjectAccess
+struct Bytes<'a>(&'a [u8]);
+
+impl Reflection for Bytes<'static> {
+    fn schema(_: &mut Document) -> Schema {
+        Schema::new("binary")
+    }
+}
+
+struct BytesVisitor;
+
+impl<'de> Visitor<'de> for BytesVisitor {
+    type Value = Bytes<'de>;
+
+    fn expecting(&self) -> Document {
+        Bytes::document()
+    }
+
+    fn visit_borrowed_bytes(self, v: &'de [u8]) -> Result<Self::Value, VisitorError> {
+        Ok(Bytes(v))
+    }
+}
+
+impl<'de: 'a, 'a> Deserialize<'de> for Bytes<'a> {
+    type Reflection = Bytes<'static>;
+
+    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
+        de.deserialize_bytes(BytesVisitor)
+            .change_context(DeserializeError)
+    }
+}
+
+struct BytesLength(usize);
+
+impl Reflection for BytesLength {
+    fn schema(doc: &mut Document) -> Schema {
+        usize::schema(doc)
+    }
+}
+
+struct BytesLengthVisitor;
+
+impl<'de> Visitor<'de> for BytesLengthVisitor {
+    type Value = BytesLength;
+
+    fn expecting(&self) -> Document {
+        Self::Value::document()
+    }
+
+    fn visit_bytes(self, v: &[u8]) -> Result<Self::Value, VisitorError> {
+        Ok(BytesLength(v.len()))
+    }
+}
+
+impl<'de> Deserialize<'de> for BytesLength {
+    type Reflection = Self;
+
+    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
+        de.deserialize_bytes(BytesLengthVisitor)
+            .change_context(DeserializeError)
+    }
+}
+
+struct ByteBuffer(Vec<u8>);
+
+impl Reflection for ByteBuffer {
+    fn schema(_: &mut Document) -> Schema {
+        Schema::new("binary")
+    }
+}
+
+struct ByteBufferVisitor;
+
+impl<'de> Visitor<'de> for ByteBufferVisitor {
+    type Value = ByteBuffer;
+
+    fn expecting(&self) -> Document {
+        Self::Value::document()
+    }
+
+    fn visit_bytes_buffer(self, v: Vec<u8>) -> Result<Self::Value, VisitorError> {
+        Ok(ByteBuffer(v))
+    }
+}
+
+impl<'de> Deserialize<'de> for ByteBuffer {
+    type Reflection = Self;
+
+    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
+        de.deserialize_bytes_buffer(ByteBufferVisitor)
+            .change_context(DeserializeError)
+    }
+}
+
+proptest! {
+    #[test]
+    fn borrowed_bytes_ok(expected in any::<Vec<u8>>()) {
+        let context = Context::new();
+        let value = expected.as_slice();
+
+        let de = BorrowedBytesDeserializer::new(value, &context);
+        let received = Bytes::deserialize(de).expect("should be able to deserialize");
+
+        assert_eq!(value, received.0);
+    }
+
+    #[test]
+    fn borrowed_bytes_err(expected in any::<Vec<u8>>()) {
+        let context = Context::new();
+        let value = expected.as_slice();
+
+        let de = BorrowedBytesDeserializer::new(value, &context);
+        let result = u8::deserialize(de);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn bytes_ok(expected in any::<Vec<u8>>()) {
+        let context = Context::new();
+        let value = expected.as_slice();
+
+        let de = BytesDeserializer::new(value, &context);
+        let received = BytesLength::deserialize(de).expect("should be able to deserialize");
+
+        assert_eq!(value.len(), received.0);
+    }
+
+    #[test]
+    fn bytes_err(expected in any::<Vec<u8>>()) {
+        let context = Context::new();
+        let value = expected.as_slice();
+
+        let de = BytesDeserializer::new(value, &context);
+        let result = u8::deserialize(de);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn byte_buffer_ok(expected in any::<Vec<u8>>()) {
+        let context = Context::new();
+
+        let de = BytesBufferDeserializer::new(expected.clone(), &context);
+        let received = ByteBuffer::deserialize(de).expect("should be able to deserialize");
+
+        assert_eq!(expected, received.0);
+    }
+
+    #[test]
+    fn byte_buffer_err(expected in any::<Vec<u8>>()) {
+        let context = Context::new();
+
+        let de = BytesBufferDeserializer::new(expected, &context);
+        let result = u8::deserialize(de);
+
+        assert!(result.is_err());
+    }
+}
+
+// These are so trivial that we don't need to test them right now: ArrayAccess, ObjectAccess
+//  (would be nice tho)
+// TODO: none requires a HashMap<> impl first
+// TODO: string requires a String impl first
