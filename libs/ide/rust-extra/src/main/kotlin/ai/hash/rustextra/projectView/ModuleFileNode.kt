@@ -13,11 +13,15 @@ class ModuleFileNode(project: Project, value: PsiFile, viewSettings: ViewSetting
 
     override fun createPresentation(): PresentationData {
         val previous =  super.createPresentation()
-        previous.forcedTextForeground = JBColor.GRAY
-        previous.addText("../${value.name}", SimpleTextAttributes.REGULAR_ATTRIBUTES);
-        previous.background = JBColor.PanelBackground.brighter()
+//        previous.addText("../${value.name}", SimpleTextAttributes.REGULAR_ATTRIBUTES);
+        previous.background = JBColor.yellow
 
         return previous
+    }
+
+    override fun update(data: PresentationData) {
+        super.update(data)
+        presentation.presentableText = "../${value.name}"
     }
 
     override fun getWeight(): Int {
