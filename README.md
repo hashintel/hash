@@ -60,7 +60,7 @@ This repository's contents is divided across four primary sections:
 - [**`/apps`**](/apps) contains the primary code powering our runnable [applications](#applications)
 - [**`/blocks`**](/blocks) contains our public _Block Protocol_ [blocks](#blocks)
 - [**`/infra`**](/infra) houses deployment scripts, utilities and other [infrastructure](#infrastructure) useful in running our apps
-- [**`/libs`**](/libraries) contains all of our public [libraries](#libraries), including npm packages and Rust crates
+- [**`/libs`**](/libs) contains all of our public [libraries](#libraries), including npm packages and Rust crates
 
 Key projects within are summarized below.
 
