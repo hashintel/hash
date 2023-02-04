@@ -57,27 +57,27 @@ Browse the [HASH roadmap] for more information about upcoming features and relea
 
 This repository's contents is divided across four primary sections:
 
-- [`/apps` - applications](#apps-applications): the primary code behind our runnable applications
-- [`/blocks` - blocks](#blocks-blocks): our public [Block Protocol] blocks
-- [`/infra`- infrastructure](#infra-infrastructure): deployment scripts and other tools used to run our apps
-- [`/libs` - libraries](#libs-libraries): includes npm packages and Rust crates
+- [**`/apps`**](/apps) contains the primary code powering our runnable [applications](#applications)
+- [**`/blocks`**](/blocks) contains our public _Block Protocol_ [blocks](#blocks)
+- [**`/infra`**](/infra) houses deployment scripts, utilities and other [infrastructure](#infrastructure) useful in running our apps
+- [**`/libs`**](/libraries) contains all of our public [libraries](#libraries), including npm packages and Rust crates
 
-Only key projects are summarized below.
+Key projects within are summarized below.
 
-### [`/apps`](apps): Applications
+### Applications
 
 - [`hash`](apps/hash): entry-point for **[HASH]**, a data-driven, entity-centric, all-in-one workspace based on the [Block Protocol]
 - [`engine`](apps/engine): experimental version of **[HASH Engine]**, a versatile agent-based simulation engine written in Rust
 
-### [`/blocks`](blocks): Blocks
+### Blocks
 
 - Various directories containing the source code for all of HASH's open-source [Block Protocol] blocks
 
-### [`/infra`](infra): Infrastructure
+### Infrastructure
 
 - [`terraform`](infra/terraform): Terraform modules for deploying HASH on AWS
 
-### [`/libs`](libs): Libraries
+### Libraries
 
 - [`deer`](libs/deer): fail-slow deserialization framework for Rust, featuring meaningful error messages and context
 - [`error-stack`](libs/error-stack): context-aware error-handling library for Rust which supports attaching arbitrary user data
