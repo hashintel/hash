@@ -24,7 +24,7 @@ const DevApp = () => {
       blockEntity={{
         // This is the 'blockEntity' which your block will receive as part of the properties sent to it
         entityId: "my-entity-1",
-        properties: { name: "World" },
+        properties: {},
       }}
       blockInfo={packageJSON.blockprotocol}
       debug // remove this to start with the debug UI minimised. You can also toggle it in the UI
