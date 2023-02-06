@@ -125,6 +125,11 @@ OR REPLACE FUNCTION "update_entity" (
         AND entity_temporal_metadata.decision_time @> _decision_time
         AND entity_temporal_metadata.transaction_time @> now()
       RETURNING entity_temporal_metadata.entity_edition_id, entity_temporal_metadata.decision_time, entity_temporal_metadata.transaction_time;
+
+      IF NOT FOUND THEN
+        RAISE EXCEPTION 'No entity found for the owner ID `%` and entity ID `%`', _owned_by_id, _entity_uuid
+        USING ERRCODE = 'restrict_violation';
+      END IF;
     END
     $pga$ VOLATILE LANGUAGE plpgsql;
 

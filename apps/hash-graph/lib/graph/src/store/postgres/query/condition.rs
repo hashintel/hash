@@ -208,7 +208,7 @@ mod tests {
                     Some(FilterExpression::Parameter(Parameter::Number(1.0))),
                 ),
             ]),
-            r#"("ontology_ids_0_1_0"."base_uri" = $1) AND ("ontology_ids_0_1_0"."version" = $2)"#,
+            r#"("ontology_id_with_metadata_0_1_0"."base_uri" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)"#,
             &[
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                 &1.0,
@@ -242,7 +242,7 @@ mod tests {
                     Some(FilterExpression::Parameter(Parameter::Number(1.0))),
                 ),
             ]),
-            r#"(("ontology_ids_0_1_0"."base_uri" = $1) OR ("ontology_ids_0_1_0"."version" = $2))"#,
+            r#"(("ontology_id_with_metadata_0_1_0"."base_uri" = $1) OR ("ontology_id_with_metadata_0_1_0"."version" = $2))"#,
             &[
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                 &1.0,
