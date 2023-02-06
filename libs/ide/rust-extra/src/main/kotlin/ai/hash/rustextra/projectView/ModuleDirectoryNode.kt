@@ -11,10 +11,10 @@ import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFile
 
 class ModuleDirectoryNode(project: Project, value: PsiDirectory, viewSettings: ViewSettings, filter: PsiFileSystemItemFilter?) : PsiDirectoryNode(project, value, viewSettings, filter) {
-    private val prepend = ArrayList<AbstractTreeNode<*>>();
+    private val prepend = ArrayList<AbstractTreeNode<*>>()
 
     fun addPrepend(element: AbstractTreeNode<*>) {
-        prepend.add(element);
+        prepend.add(element)
     }
 
     override fun getChildrenImpl(): MutableCollection<AbstractTreeNode<*>> {
@@ -37,7 +37,7 @@ class ModuleDirectoryNode(project: Project, value: PsiDirectory, viewSettings: V
             } else {
                 false
             }
-        };
+        }
 
         if (additional) {
             return true
@@ -52,6 +52,6 @@ class ModuleDirectoryNode(project: Project, value: PsiDirectory, viewSettings: V
 
     companion object {
         fun fromPsiFileNode(node: PsiDirectoryNode) =
-                ModuleDirectoryNode(node.project, node.value, node.settings, node.filter)
+            ModuleDirectoryNode(node.project, node.value, node.settings, node.filter)
     }
 }

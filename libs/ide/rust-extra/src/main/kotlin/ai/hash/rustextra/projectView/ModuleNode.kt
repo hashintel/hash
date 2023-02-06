@@ -3,7 +3,6 @@ package ai.hash.rustextra.projectView
 import com.intellij.ide.projectView.NodeSortOrder
 import com.intellij.ide.projectView.NodeSortSettings
 import com.intellij.ide.projectView.ViewSettings
-import com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode
 import com.intellij.ide.projectView.impl.nodes.PsiFileNode
 import com.intellij.ide.util.treeView.AbstractTreeNode
 import com.intellij.openapi.project.Project
@@ -14,7 +13,7 @@ class ModuleNode(
     project: Project,
     value: PsiFile,
     viewSettings: ViewSettings?,
-    private val children: Collection<AbstractTreeNode<*>>
+    private val children: Collection<AbstractTreeNode<*>>,
 ) :
     PsiFileNode(project, value, viewSettings) {
 
@@ -27,7 +26,7 @@ class ModuleNode(
     override fun getChildrenImpl(): Collection<AbstractTreeNode<*>> = children
 
     override fun contains(file: VirtualFile): Boolean = children.any { child ->
-        val value = child.value;
+        val value = child.value
 
         if (value is PsiFile) {
             value.virtualFile.equals(file)

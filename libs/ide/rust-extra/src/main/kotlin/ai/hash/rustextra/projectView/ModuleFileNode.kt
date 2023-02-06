@@ -9,12 +9,11 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.util.ui.UIUtil
 
-
 class ModuleFileNode(project: Project, value: PsiFile, viewSettings: ViewSettings?) :
     PsiFileNode(project, value, viewSettings) {
     override fun update(data: PresentationData) {
         super.update(data)
-        presentation.background = UIUtil.getTreeBackground().brighter();
+        presentation.background = UIUtil.getTreeBackground().brighter()
         presentation.presentableText = "../${value.name}"
     }
 
@@ -28,14 +27,13 @@ class ModuleFileNode(project: Project, value: PsiFile, viewSettings: ViewSetting
 //        return -2
 //    }
 
-
     companion object {
         fun fromPsiFileNode(node: PsiFileNode, settings: ViewSettings?): ModuleFileNode {
-            node.value.putUserData(ModuleFileNodeMarker, true);
-            node.value.putUserData(ModuleFileNodeRecursionMarker, true);
+            node.value.putUserData(ModuleFileNodeMarker, true)
+            node.value.putUserData(ModuleFileNodeRecursionMarker, true)
             return ModuleFileNode(node.project, node.value, settings)
         }
 
-        fun wrap(node: PsiFileNode, settings: ViewSettings?) = ModuleFileNode(node.project, node.value, settings);
+        fun wrap(node: PsiFileNode, settings: ViewSettings?) = ModuleFileNode(node.project, node.value, settings)
     }
 }
