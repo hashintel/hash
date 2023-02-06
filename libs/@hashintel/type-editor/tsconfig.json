@@ -1,3 +1,9 @@
 {
-  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json"
+  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "noEmit": true
+  },
+  "include": ["./src/"]
 }
