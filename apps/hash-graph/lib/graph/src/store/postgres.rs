@@ -12,7 +12,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Report, Result, ResultExt};
+use error_stack::{IntoReport, Result, ResultExt};
 use interval_ops::Interval;
 #[cfg(feature = "__internal_bench")]
 use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
@@ -30,7 +30,7 @@ use crate::{
         time::{ProjectedTime, TimeInterval},
         EntityVertexId,
     },
-    ontology::OntologyElementMetadata,
+    ontology::{OntologyElementMetadata, OwnedOntologyElementMetadata},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         error::{VersionedUriAlreadyExists, WrongOntologyVersion},
@@ -321,8 +321,9 @@ where
         uri: &VersionedUri,
         updated_by_id: UpdatedById,
     ) -> Result<(OntologyId, OwnedById), UpdateError> {
-        self.as_client()
-            .query_opt(
+        let row = self
+            .as_client()
+            .query_one(
                 r#"
                 SELECT
                     ontology_id,
@@ -349,16 +350,16 @@ where
                     .change_context(WrongOntologyVersion)
                     .attach_printable(uri.clone())
                     .change_context(UpdateError),
+                Some(&SqlState::RESTRICT_VIOLATION) => report
+                    .change_context(BaseUriDoesNotExist)
+                    .attach_printable(uri.base_uri().clone())
+                    .change_context(UpdateError),
                 _ => report
                     .change_context(UpdateError)
                     .attach_printable(uri.clone()),
-            })?
-            .map(|row| (row.get(0), OwnedById::new(row.get(1))))
-            .ok_or_else(|| {
-                Report::new(BaseUriDoesNotExist)
-                    .attach_printable(uri.base_uri().clone())
-                    .change_context(UpdateError)
-            })
+            })?;
+
+        Ok((row.get(0), OwnedById::new(row.get(1))))
     }
 
     /// Inserts the specified [`OntologyDatabaseType`].
@@ -392,11 +393,11 @@ where
 
         Ok((
             ontology_id,
-            OntologyElementMetadata::new(
+            OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
                 OntologyTypeEditionId::from(&uri),
                 ProvenanceMetadata::new(updated_by_id),
                 owned_by_id,
-            ),
+            )),
         ))
     }
 
@@ -432,11 +433,11 @@ where
 
         Ok((
             ontology_id,
-            OntologyElementMetadata::new(
+            OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
                 edition_id,
                 ProvenanceMetadata::new(updated_by_id),
                 owned_by_id,
-            ),
+            )),
         ))
     }
 

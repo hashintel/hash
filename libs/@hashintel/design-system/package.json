@@ -1,17 +1,23 @@
 {
-  "name": "@local/design-system",
-  "version": "0.0.0-private",
-  "private": true,
+  "name": "@hashintel/design-system",
+  "version": "0.0.1",
   "description": "HASH Design System",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git",
+    "directory": "libs/@hashintel/design-system"
+  },
   "license": "AGPL-3.0",
   "sideEffects": false,
-  "main": "./src/main.ts",
-  "types": "./src/main.ts",
+  "main": "src/main.ts",
+  "types": "src/main.ts",
   "scripts": {
     "build-storybook": "storybook build",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
+    "prepublishOnly": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/prepublish.ts",
+    "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts",
     "storybook": "storybook dev -p 6006",
     "test": "jest"
   },

@@ -3,7 +3,7 @@ import {
   isObjectEditorCallbackResult,
   Item,
 } from "@glideapps/glide-data-grid";
-import { useScrollLock } from "@local/design-system";
+import { useScrollLock } from "@hashintel/design-system";
 import { MutableRefObject, PropsWithChildren } from "react";
 
 import { useEditBarContext } from "../../../shared/edit-bar-scroller";

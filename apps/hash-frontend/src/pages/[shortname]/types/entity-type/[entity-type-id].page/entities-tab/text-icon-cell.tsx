@@ -4,7 +4,7 @@ import {
   GridCellKind,
 } from "@glideapps/glide-data-grid";
 import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
-import { customColors } from "@local/design-system";
+import { customColors } from "@hashintel/design-system";
 
 import { getCellHorizontalPadding } from "../../../../../../components/grid/utils";
 import { drawTextWithIcon } from "../../../../../../components/grid/utils/draw-text-with-icon";

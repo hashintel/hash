@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "0.0.18",
-    "@local/design-system": "0.0.0-private",
+    "@hashintel/design-system": "0.0.1",
     "@mui/icons-material": "5.10.6",
     "@mui/lab": "5.0.0-alpha.100",
     "@mui/material": "5.10.6",

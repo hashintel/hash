@@ -2,7 +2,11 @@ import {
   faEnvelope,
   faQuestionCircle,
 } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, FormInline, TextField } from "@local/design-system";
+import {
+  FontAwesomeIcon,
+  FormInline,
+  TextField,
+} from "@hashintel/design-system";
 import {
   Box,
   Checkbox,

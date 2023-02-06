@@ -845,6 +845,31 @@ export interface EqualFilter {
   equal: Array<FilterExpression>;
 }
 /**
+ *
+ * @export
+ * @interface ExternalOntologyElementMetadata
+ */
+export interface ExternalOntologyElementMetadata {
+  /**
+   *
+   * @type {OntologyTypeEditionId}
+   * @memberof ExternalOntologyElementMetadata
+   */
+  editionId: OntologyTypeEditionId;
+  /**
+   *
+   * @type {string}
+   * @memberof ExternalOntologyElementMetadata
+   */
+  fetchedAt: string;
+  /**
+   *
+   * @type {ProvenanceMetadata}
+   * @memberof ExternalOntologyElementMetadata
+   */
+  provenance: ProvenanceMetadata;
+}
+/**
  * @type Filter
  * @export
  */
@@ -1198,30 +1223,11 @@ export type OntologyEdgeKind =
   (typeof OntologyEdgeKind)[keyof typeof OntologyEdgeKind];
 
 /**
- *
+ * @type OntologyElementMetadata
  * @export
- * @interface OntologyElementMetadata
  */
-export interface OntologyElementMetadata {
-  /**
-   *
-   * @type {OntologyTypeEditionId}
-   * @memberof OntologyElementMetadata
-   */
-  editionId: OntologyTypeEditionId;
-  /**
-   *
-   * @type {string}
-   * @memberof OntologyElementMetadata
-   */
-  ownedById: string;
-  /**
-   *
-   * @type {ProvenanceMetadata}
-   * @memberof OntologyElementMetadata
-   */
-  provenance: ProvenanceMetadata;
-}
+export type OntologyElementMetadata = OwnedOntologyElementMetadata;
+
 /**
  * @type OntologyOutwardEdges
  * @export
@@ -1456,6 +1462,31 @@ export interface OutgoingEdgeResolveDepth {
    * @memberof OutgoingEdgeResolveDepth
    */
   outgoing: number;
+}
+/**
+ *
+ * @export
+ * @interface OwnedOntologyElementMetadata
+ */
+export interface OwnedOntologyElementMetadata {
+  /**
+   *
+   * @type {OntologyTypeEditionId}
+   * @memberof OwnedOntologyElementMetadata
+   */
+  editionId: OntologyTypeEditionId;
+  /**
+   *
+   * @type {string}
+   * @memberof OwnedOntologyElementMetadata
+   */
+  ownedById: string;
+  /**
+   *
+   * @type {ProvenanceMetadata}
+   * @memberof OwnedOntologyElementMetadata
+   */
+  provenance: ProvenanceMetadata;
 }
 /**
  *
