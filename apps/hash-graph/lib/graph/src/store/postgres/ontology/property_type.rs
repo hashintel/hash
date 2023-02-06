@@ -8,7 +8,7 @@ use type_system::{DataTypeReference, PropertyType, PropertyTypeReference};
 use crate::{
     identifier::{ontology::OntologyTypeEditionId, time::TimeProjection},
     ontology::{OntologyElementMetadata, OntologyTypeWithMetadata, PropertyTypeWithMetadata},
-    provenance::{OwnedById, UpdatedById},
+    provenance::UpdatedById,
     store::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
@@ -151,37 +151,31 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, property_type))]
+    #[tracing::instrument(level = "info", skip(self, schema))]
     async fn create_property_type(
         &mut self,
-        property_type: PropertyType,
-        owned_by_id: OwnedById,
-        updated_by_id: UpdatedById,
-    ) -> Result<OntologyElementMetadata, InsertionError> {
+        schema: PropertyType,
+        metadata: &OntologyElementMetadata,
+    ) -> Result<(), InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
-        // This clone is currently necessary because we extract the references as we insert them.
-        // We can only insert them after the type has been created, and so we currently extract them
-        // after as well. See `insert_property_type_references` taking `&property_type`
-        let (ontology_id, metadata) = transaction
-            .create(property_type.clone(), owned_by_id, updated_by_id)
-            .await?;
+        let ontology_id = transaction.create(schema.clone(), metadata).await?;
 
         transaction
-            .insert_property_type_references(&property_type, ontology_id)
+            .insert_property_type_references(&schema, ontology_id)
             .await
             .change_context(InsertionError)
             .attach_printable_lazy(|| {
                 format!(
                     "could not insert references for property type: {}",
-                    property_type.id()
+                    schema.id()
                 )
             })
-            .attach_lazy(|| property_type.clone())?;
+            .attach_lazy(|| schema.clone())?;
 
         transaction.commit().await.change_context(InsertionError)?;
 
-        Ok(metadata)
+        Ok(())
     }
 
     #[tracing::instrument(level = "info", skip(self))]

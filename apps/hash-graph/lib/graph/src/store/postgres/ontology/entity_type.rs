@@ -8,7 +8,7 @@ use type_system::{EntityType, EntityTypeReference, PropertyTypeReference};
 use crate::{
     identifier::{ontology::OntologyTypeEditionId, time::TimeProjection},
     ontology::{EntityTypeWithMetadata, OntologyElementMetadata, OntologyTypeWithMetadata},
-    provenance::{OwnedById, UpdatedById},
+    provenance::UpdatedById,
     store::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
@@ -245,37 +245,31 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, entity_type))]
+    #[tracing::instrument(level = "info", skip(self, schema))]
     async fn create_entity_type(
         &mut self,
-        entity_type: EntityType,
-        owned_by_id: OwnedById,
-        updated_by_id: UpdatedById,
-    ) -> Result<OntologyElementMetadata, InsertionError> {
+        schema: EntityType,
+        metadata: &OntologyElementMetadata,
+    ) -> Result<(), InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
-        // This clone is currently necessary because we extract the references as we insert them.
-        // We can only insert them after the type has been created, and so we currently extract them
-        // after as well. See `insert_entity_type_references` taking `&entity_type`
-        let (ontology_id, metadata) = transaction
-            .create(entity_type.clone(), owned_by_id, updated_by_id)
-            .await?;
+        let ontology_id = transaction.create(schema.clone(), metadata).await?;
 
         transaction
-            .insert_entity_type_references(&entity_type, ontology_id)
+            .insert_entity_type_references(&schema, ontology_id)
             .await
             .change_context(InsertionError)
             .attach_printable_lazy(|| {
                 format!(
                     "could not insert references for entity type: {}",
-                    entity_type.id()
+                    schema.id()
                 )
             })
-            .attach_lazy(|| entity_type.clone())?;
+            .attach_lazy(|| schema.clone())?;
 
         transaction.commit().await.change_context(InsertionError)?;
 
-        Ok(metadata)
+        Ok(())
     }
 
     #[tracing::instrument(level = "info", skip(self))]

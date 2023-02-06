@@ -5,7 +5,7 @@ use type_system::DataType;
 use crate::{
     identifier::{ontology::OntologyTypeEditionId, time::TimeProjection},
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
-    provenance::{OwnedById, UpdatedById},
+    provenance::UpdatedById,
     store::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
@@ -58,22 +58,15 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> DataTypeStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, data_type))]
+    #[tracing::instrument(level = "info", skip(self, schema))]
     async fn create_data_type(
         &mut self,
-        data_type: DataType,
-        owned_by_id: OwnedById,
-        updated_by_id: UpdatedById,
-    ) -> Result<OntologyElementMetadata, InsertionError> {
-        let transaction = self.transaction().await.change_context(InsertionError)?;
+        schema: DataType,
+        metadata: &OntologyElementMetadata,
+    ) -> Result<(), InsertionError> {
+        self.create(schema, metadata).await?;
 
-        let (_, metadata) = transaction
-            .create(data_type, owned_by_id, updated_by_id)
-            .await?;
-
-        transaction.commit().await.change_context(InsertionError)?;
-
-        Ok(metadata)
+        Ok(())
     }
 
     #[tracing::instrument(level = "info", skip(self))]

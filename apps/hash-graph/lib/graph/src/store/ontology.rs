@@ -7,7 +7,7 @@ use crate::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
         PropertyTypeWithMetadata,
     },
-    provenance::{OwnedById, UpdatedById},
+    provenance::UpdatedById,
     store::{crud, InsertionError, QueryError, UpdateError},
     subgraph::{query::StructuralQuery, Subgraph},
 };
@@ -25,10 +25,9 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
     /// [`BaseUri`]: type_system::uri::BaseUri
     async fn create_data_type(
         &mut self,
-        data_type: DataType,
-        owned_by_id: OwnedById,
-        actor_id: UpdatedById,
-    ) -> Result<OntologyElementMetadata, InsertionError>;
+        schema: DataType,
+        metadata: &OntologyElementMetadata,
+    ) -> Result<(), InsertionError>;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
     ///
@@ -65,10 +64,9 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
     /// [`BaseUri`]: type_system::uri::BaseUri
     async fn create_property_type(
         &mut self,
-        property_type: PropertyType,
-        owned_by_id: OwnedById,
-        actor_id: UpdatedById,
-    ) -> Result<OntologyElementMetadata, InsertionError>;
+        schema: PropertyType,
+        metadata: &OntologyElementMetadata,
+    ) -> Result<(), InsertionError>;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
     ///
@@ -105,10 +103,9 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
     /// [`BaseUri`]: type_system::uri::BaseUri
     async fn create_entity_type(
         &mut self,
-        entity_type: EntityType,
-        owned_by_id: OwnedById,
-        actor_id: UpdatedById,
-    ) -> Result<OntologyElementMetadata, InsertionError>;
+        schema: EntityType,
+        metadata: &OntologyElementMetadata,
+    ) -> Result<(), InsertionError>;
 
     /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
     ///

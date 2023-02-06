@@ -272,9 +272,7 @@ where
     #[tracing::instrument(level = "debug", skip(self))]
     async fn create_owned_ontology_id(
         &self,
-        uri: &VersionedUri,
-        owned_by_id: OwnedById,
-        updated_by_id: UpdatedById,
+        metadata: &OwnedOntologyElementMetadata,
     ) -> Result<OntologyId, InsertionError> {
         self.as_client()
             .query_one(
@@ -288,10 +286,10 @@ where
                     record_created_by_id := $4
                 );"#,
                 &[
-                    &uri.base_uri().as_str(),
-                    &i64::from(uri.version()),
-                    &owned_by_id,
-                    &updated_by_id,
+                    &metadata.edition_id().base_id().as_str(),
+                    &metadata.edition_id().version(),
+                    &metadata.owned_by_id(),
+                    &metadata.provenance_metadata().updated_by_id(),
                 ],
             )
             .await
@@ -300,11 +298,11 @@ where
             .map_err(|report| match report.current_context().code() {
                 Some(&SqlState::EXCLUSION_VIOLATION | &SqlState::UNIQUE_VIOLATION) => report
                     .change_context(BaseUriAlreadyExists)
-                    .attach_printable(uri.base_uri().clone())
+                    .attach_printable(metadata.edition_id().base_id().clone())
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)
-                    .attach_printable(uri.clone()),
+                    .attach_printable(VersionedUri::from(metadata.edition_id())),
             })
     }
 
@@ -377,28 +375,23 @@ where
     async fn create<T>(
         &self,
         database_type: T,
-        owned_by_id: OwnedById,
-        updated_by_id: UpdatedById,
-    ) -> Result<(OntologyId, OntologyElementMetadata), InsertionError>
+        metadata: &OntologyElementMetadata,
+    ) -> Result<OntologyId, InsertionError>
     where
         T: OntologyDatabaseType,
     {
-        let uri = database_type.id().clone();
-
-        let ontology_id = self
-            .create_owned_ontology_id(&uri, owned_by_id, updated_by_id)
-            .await?;
+        let ontology_id = match metadata {
+            OntologyElementMetadata::Owned(metadata) => {
+                self.create_owned_ontology_id(metadata).await?
+            }
+            OntologyElementMetadata::External(_metadata) => {
+                todo!()
+            }
+        };
 
         self.insert_with_id(ontology_id, database_type).await?;
 
-        Ok((
-            ontology_id,
-            OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                OntologyTypeEditionId::from(&uri),
-                ProvenanceMetadata::new(updated_by_id),
-                owned_by_id,
-            )),
-        ))
+        Ok(ontology_id)
     }
 
     /// Updates the specified [`OntologyDatabaseType`].
