@@ -1,6 +1,6 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { useEntityType } from "@hashintel/type-editor/src/shared/entity-type-context";
+import { useEntityType } from "@hashintel/type-editor";
 import { Box, Tabs, tabsClasses } from "@mui/material";
 import { useRouter } from "next/router";
 import { useState } from "react";
