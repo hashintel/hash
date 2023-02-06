@@ -1,3 +1,21 @@
+diff --git a/node_modules/react-hook-form/dist/index.esm.mjs b/node_modules/react-hook-form/dist/index.esm.mjs
+index f27670f..34dd8d9 100644
+--- a/node_modules/react-hook-form/dist/index.esm.mjs
++++ b/node_modules/react-hook-form/dist/index.esm.mjs
+@@ -991,6 +991,13 @@ function useFieldArray(props) {
+         callback,
+         subject: control._subjects.array,
+     });
++    const _callback = React.useRef(callback);
++    _callback.current = callback;
++    const _control = React.useRef(control);
++    _control.current = control;
++    React.useEffect(() => {
++        _callback.current({ values: _control.current._formValues })
++    }, []);
+     const updateValues = React.useCallback((updatedFieldArrayValues) => {
+         _actioned.current = true;
+         control._updateFieldArray(name, updatedFieldArrayValues);
 diff --git a/node_modules/react-hook-form/dist/types/path/common.d.ts b/node_modules/react-hook-form/dist/types/path/common.d.ts
 index 874f54e..0844b93 100644
 --- a/node_modules/react-hook-form/dist/types/path/common.d.ts
