@@ -350,6 +350,7 @@ impl<'de> Deserialize<'de> for ByteBuffer {
     }
 }
 
+#[cfg(not(miri))]
 proptest! {
     #[test]
     fn borrowed_bytes_ok(expected in any::<Vec<u8>>()) {
