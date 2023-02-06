@@ -61,32 +61,34 @@ const script = async () => {
 
   process.stdout.write(`Updating package.json...`);
 
+  const expectedMainName = "src/main.ts";
+
   await updateJson(
     path.resolve(packageInfo.path, "package.json"),
     (packageJson) => {
-      /* eslint-disable @typescript-eslint/no-unsafe-member-access,no-param-reassign -- see comment on updateJson() for potential improvement */
+      /* eslint-disable @typescript-eslint/no-unsafe-member-access,@typescript-eslint/restrict-template-expressions,no-param-reassign -- see comment on updateJson() for potential improvement */
       if (packageJson.main !== "src/main.ts") {
         throw new UserFriendlyError(
-          "Unexpected value for field `main` in `package.json`. Please align this package with other publishable packages for consistency",
+          `Unexpected value for field "main" in package.json. Please align this package with other publishable packages for consistency. Expected: "${expectedMainName}". Got: "${packageJson.main}"`,
         );
       }
       packageJson.main = "dist/main.js";
 
       if (packageJson.types !== "src/main.ts") {
         throw new UserFriendlyError(
-          "Unexpected value for field `types` in `package.json`. Please align this package with other publishable packages for consistency",
+          `Unexpected value for field "types" in package.json. Please align this package with other publishable packages for consistency. Expected: "${expectedMainName}". Got: "${packageJson.types}"`,
         );
       }
       packageJson.types = "dist/main.d.js";
 
       if (packageJson.exports) {
         throw new UserFriendlyError(
-          "Please replace `exports` in `package.json` with `main` and `types` for consistency",
+          "Please replace `exports` in `package.json` with `main` and `types` for consistency. If different `exports` paths are unavoidable, the prepublish script must be updated to accommodate them.",
         );
       }
 
       delete packageJson.devDependencies;
-      /* eslint-enable @typescript-eslint/no-unsafe-member-access,no-param-reassign */
+      /* eslint-enable @typescript-eslint/no-unsafe-member-access,@typescript-eslint/restrict-template-expressions,no-param-reassign */
     },
   );
 
