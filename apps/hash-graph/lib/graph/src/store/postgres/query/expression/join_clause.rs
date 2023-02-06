@@ -59,7 +59,7 @@ mod tests {
                 }),
             )
             .transpile_to_string(),
-            r#"INNER JOIN "ontology_ids" AS "ontology_ids_0_1_2" ON "ontology_ids_0_1_2"."ontology_id" = "data_types_1_2_3"."ontology_id""#
+            r#"INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_1_2" ON "ontology_id_with_metadata_0_1_2"."ontology_id" = "data_types_1_2_3"."ontology_id""#
         );
     }
 }

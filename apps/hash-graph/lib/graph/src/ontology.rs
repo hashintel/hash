@@ -10,6 +10,7 @@ use core::fmt;
 use error_stack::{Context, IntoReport, Result, ResultExt};
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json;
+use time::OffsetDateTime;
 use type_system::{
     repr, uri::VersionedUri, DataType, EntityType, ParseDataTypeError, ParseEntityTypeError,
     ParsePropertyTypeError, PropertyType,
@@ -149,16 +150,34 @@ pub trait OntologyTypeWithMetadata: Record {
     fn metadata(&self) -> &OntologyElementMetadata;
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(untagged)]
+pub enum OntologyElementMetadata {
+    Owned(OwnedOntologyElementMetadata),
+    #[serde(skip_serializing)]
+    External(ExternalOntologyElementMetadata),
+}
+
+impl OntologyElementMetadata {
+    #[must_use]
+    pub const fn edition_id(&self) -> &OntologyTypeEditionId {
+        match self {
+            Self::Owned(owned) => owned.edition_id(),
+            Self::External(external) => external.edition_id(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct OntologyElementMetadata {
+pub struct OwnedOntologyElementMetadata {
     edition_id: OntologyTypeEditionId,
     #[serde(rename = "provenance")]
     provenance_metadata: ProvenanceMetadata,
     owned_by_id: OwnedById,
 }
 
-impl OntologyElementMetadata {
+impl OwnedOntologyElementMetadata {
     #[must_use]
     pub const fn new(
         edition_id: OntologyTypeEditionId,
@@ -173,8 +192,43 @@ impl OntologyElementMetadata {
     }
 
     #[must_use]
+    pub const fn edition_id(&self) -> &OntologyTypeEditionId {
+        &self.edition_id
+    }
+
+    #[must_use]
+    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
+        self.provenance_metadata
+    }
+
+    #[must_use]
     pub const fn owned_by_id(&self) -> OwnedById {
         self.owned_by_id
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ExternalOntologyElementMetadata {
+    edition_id: OntologyTypeEditionId,
+    #[serde(rename = "provenance")]
+    provenance_metadata: ProvenanceMetadata,
+    #[schema(value_type = String)]
+    fetched_at: OffsetDateTime,
+}
+
+impl ExternalOntologyElementMetadata {
+    #[must_use]
+    pub const fn new(
+        edition_id: OntologyTypeEditionId,
+        provenance_metadata: ProvenanceMetadata,
+        fetched_at: OffsetDateTime,
+    ) -> Self {
+        Self {
+            edition_id,
+            provenance_metadata,
+            fetched_at,
+        }
     }
 
     #[must_use]
@@ -185,6 +239,11 @@ impl OntologyElementMetadata {
     #[must_use]
     pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
         self.provenance_metadata
+    }
+
+    #[must_use]
+    pub const fn fetched_at(&self) -> OffsetDateTime {
+        self.fetched_at
     }
 }
 
