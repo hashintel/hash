@@ -29,7 +29,7 @@
     "@fortawesome/free-regular-svg-icons": "6.0.0",
     "@fortawesome/free-solid-svg-icons": "6.0.0",
     "@glideapps/glide-data-grid": "5.2.1",
-    "@hashintel/design-system": "0.0.0-private",
+    "@hashintel/design-system": "0.0.1",
     "@lit-labs/react": "1.0.6",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
