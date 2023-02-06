@@ -1,4 +1,4 @@
-use std::{future::Future, pin::Pin};
+use std::{borrow::Borrow, future::Future, pin::Pin};
 
 use async_trait::async_trait;
 use error_stack::{Result, ResultExt};
@@ -248,15 +248,22 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
     #[tracing::instrument(level = "info", skip(self, entity_types))]
     async fn create_entity_types(
         &mut self,
-        entity_types: impl IntoIterator<Item = (EntityType, &OntologyElementMetadata), IntoIter: Send>
-        + Send,
+        entity_types: impl IntoIterator<
+            Item = (
+                EntityType,
+                impl Borrow<OntologyElementMetadata> + Send + Sync,
+            ),
+            IntoIter: Send,
+        > + Send,
     ) -> Result<(), InsertionError> {
         let entity_types = entity_types.into_iter();
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
         let mut inserted_entity_types = Vec::with_capacity(entity_types.size_hint().0);
         for (schema, metadata) in entity_types {
-            let ontology_id = transaction.create(schema.clone(), metadata).await?;
+            let ontology_id = transaction
+                .create(schema.clone(), metadata.borrow())
+                .await?;
             inserted_entity_types.push((ontology_id, schema));
         }
 

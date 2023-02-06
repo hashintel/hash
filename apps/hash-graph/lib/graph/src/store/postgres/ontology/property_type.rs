@@ -1,4 +1,4 @@
-use std::{future::Future, pin::Pin};
+use std::{borrow::Borrow, future::Future, pin::Pin};
 
 use async_trait::async_trait;
 use error_stack::{Result, ResultExt};
@@ -155,7 +155,10 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
     async fn create_property_types(
         &mut self,
         property_types: impl IntoIterator<
-            Item = (PropertyType, &OntologyElementMetadata),
+            Item = (
+                PropertyType,
+                impl Borrow<OntologyElementMetadata> + Send + Sync,
+            ),
             IntoIter: Send,
         > + Send,
     ) -> Result<(), InsertionError> {
@@ -164,7 +167,9 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
 
         let mut inserted_property_types = Vec::with_capacity(property_types.size_hint().0);
         for (schema, metadata) in property_types {
-            let ontology_id = transaction.create(schema.clone(), metadata).await?;
+            let ontology_id = transaction
+                .create(schema.clone(), metadata.borrow())
+                .await?;
             inserted_property_types.push((ontology_id, schema));
         }
 

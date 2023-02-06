@@ -1,4 +1,4 @@
-use std::iter;
+use std::{borrow::Borrow, iter};
 
 use async_trait::async_trait;
 use error_stack::Result;
@@ -43,8 +43,10 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
     /// [`BaseUri`]: type_system::uri::BaseUri
     async fn create_data_types(
         &mut self,
-        property_types: impl IntoIterator<Item = (DataType, &OntologyElementMetadata), IntoIter: Send>
-        + Send,
+        property_types: impl IntoIterator<
+            Item = (DataType, impl Borrow<OntologyElementMetadata> + Send + Sync),
+            IntoIter: Send,
+        > + Send,
     ) -> Result<(), InsertionError>;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
@@ -100,7 +102,10 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
     async fn create_property_types(
         &mut self,
         property_types: impl IntoIterator<
-            Item = (PropertyType, &OntologyElementMetadata),
+            Item = (
+                PropertyType,
+                impl Borrow<OntologyElementMetadata> + Send + Sync,
+            ),
             IntoIter: Send,
         > + Send,
     ) -> Result<(), InsertionError>;
@@ -157,8 +162,13 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
     /// [`BaseUri`]: type_system::uri::BaseUri
     async fn create_entity_types(
         &mut self,
-        property_types: impl IntoIterator<Item = (EntityType, &OntologyElementMetadata), IntoIter: Send>
-        + Send,
+        property_types: impl IntoIterator<
+            Item = (
+                EntityType,
+                impl Borrow<OntologyElementMetadata> + Send + Sync,
+            ),
+            IntoIter: Send,
+        > + Send,
     ) -> Result<(), InsertionError>;
 
     /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].

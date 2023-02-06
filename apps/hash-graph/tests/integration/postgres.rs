@@ -88,14 +88,14 @@ impl DatabaseTestWrapper {
 
     pub async fn seed<D, P, E>(
         &mut self,
-        data_types: D,
+        propertys: D,
         property_types: P,
         entity_types: E,
     ) -> Result<DatabaseApi<'_>, InsertionError>
     where
-        D: IntoIterator<Item = &'static str>,
-        P: IntoIterator<Item = &'static str>,
-        E: IntoIterator<Item = &'static str>,
+        D: IntoIterator<Item = &'static str, IntoIter: Send> + Send,
+        P: IntoIterator<Item = &'static str, IntoIter: Send> + Send,
+        E: IntoIterator<Item = &'static str, IntoIter: Send> + Send,
     {
         let mut store = self
             .connection
@@ -109,7 +109,7 @@ impl DatabaseTestWrapper {
             .await
             .expect("could not insert account id");
 
-        for data_type_str in data_types {
+        let data_types_iter = propertys.into_iter().map(|data_type_str| {
             let data_type_repr: repr::DataType = serde_json::from_str(data_type_str)
                 .expect("could not parse data type representation");
             let data_type = DataType::try_from(data_type_repr).expect("could not parse data type");
@@ -120,10 +120,11 @@ impl DatabaseTestWrapper {
                 OwnedById::new(account_id),
             ));
 
-            store.create_data_type(data_type, &metadata).await?;
-        }
+            (data_type, metadata)
+        });
+        store.create_data_types(data_types_iter).await?;
 
-        for property_type_str in property_types {
+        let property_types_iter = property_types.into_iter().map(|property_type_str| {
             let property_type_repr: repr::PropertyType = serde_json::from_str(property_type_str)
                 .expect("could not parse property type representation");
             let property_type =
@@ -135,10 +136,11 @@ impl DatabaseTestWrapper {
                 OwnedById::new(account_id),
             ));
 
-            store.create_property_type(property_type, &metadata).await?;
-        }
+            (property_type, metadata)
+        });
+        store.create_property_types(property_types_iter).await?;
 
-        for entity_type_str in entity_types {
+        let entity_types_iter = entity_types.into_iter().map(|entity_type_str| {
             let entity_type_repr: repr::EntityType = serde_json::from_str(entity_type_str)
                 .expect("could not parse entity type representation");
             let entity_type =
@@ -150,8 +152,9 @@ impl DatabaseTestWrapper {
                 OwnedById::new(account_id),
             ));
 
-            store.create_entity_type(entity_type, &metadata).await?;
-        }
+            (entity_type, metadata)
+        });
+        store.create_entity_types(entity_types_iter).await?;
 
         Ok(DatabaseApi { store, account_id })
     }
