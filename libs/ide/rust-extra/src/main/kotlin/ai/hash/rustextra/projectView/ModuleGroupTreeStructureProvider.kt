@@ -6,12 +6,9 @@ import com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode
 import com.intellij.ide.projectView.impl.nodes.PsiFileNode
 import com.intellij.ide.util.treeView.AbstractTreeNode
 import com.intellij.openapi.project.DumbAware
+import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiFile
 
-//import org.rust.lang.core.psi.RsFile
-
-// The problem is, that we're getting _fucked_ in the second iteration, to not do that we need to have an opaque type (?)
-// that is converted at a later date to the correct one
 class ModuleGroupTreeStructureProvider : TreeStructureProvider, DumbAware {
     override fun modify(
         parent: AbstractTreeNode<*>,
@@ -20,63 +17,59 @@ class ModuleGroupTreeStructureProvider : TreeStructureProvider, DumbAware {
     ): MutableCollection<AbstractTreeNode<*>> {
         val nodes = ArrayList<AbstractTreeNode<*>>();
 
-        val directories = HashMap<String, ModuleDirectoryNode>();
+        val directories = HashMap<String, AbstractTreeNode<PsiDirectory>>();
+        val files = HashMap<String, AbstractTreeNode<PsiFile>>();
 
+        // To merge all `module` with their corresponding `module.rs` file we need to do two iterations
+        // ... first collect all directories and files via lookup tables
         for (child in children) {
-            if (child is PsiDirectoryNode) {
-                val file = child.virtualFile;
+            val value = child.value
 
-                if (file != null && file.isDirectory) {
-                    directories[file.name] = ModuleDirectoryNode.fromPsiFileNode(child);
-                }
+            if (value is PsiDirectory) {
+                // Statement above checks that this is the case
+                @Suppress("UNCHECKED_CAST")
+                directories[value.name] = child as AbstractTreeNode<PsiDirectory>
+            }
+
+            // all rust files need to end with `.rs`, therefore it is safe to just look for `*.rs` files
+            // this way we do not need to require an implicit dependency on the `Rust` plugin to provide us
+            // with the correct `value.virtualFile.fileType` value
+            // another possibility would be to use `value is RsFile`, but that would require the `Rust` plugin
+            // as a direct dependency, this is bad, because that'd mean we would need to update our plugin
+            // everytime the rust plugin is updated, with multiple versions etc.
+            if (value is PsiFile && value.virtualFile.extension == "rs") {
+                // Statement above checks that this is the case
+                @Suppress("UNCHECKED_CAST")
+                files[value.virtualFile.nameWithoutExtension] = child as AbstractTreeNode<PsiFile>;
             }
         }
 
-        for (childRef in children) {
-            var child = childRef;
+        // ... then only retain directories that have corresponding files
+        val modules = directories
+            .filter { (key, _) ->
+                files.contains(key)
+            }
+            .mapValues { (key, value) ->
+                Pair(files[key]!!, value)
+            };
 
-            if (child is ModuleFileNode) {
-                // the file has already been processed, therefore to not recurse endlessly we end prematurely
-                nodes.add(child);
+        for (child in children) {
+            val value = child.value;
+
+            if (value is PsiDirectory && modules.containsKey(value.name)) {
                 continue;
             }
 
-            val value = child.value;
+            if (value is PsiFile && modules.containsKey(value.virtualFile.nameWithoutExtension)) {
+                // we need to add our "special" wrapping `.rs` folder node
+                // TODO: add a custom icon
+                // TODO: add a custom context menu
+                val (file, directory) = modules[value.virtualFile.nameWithoutExtension]!!;
 
-            if (child !is ModuleFileNode && child is PsiFileNode && value is PsiFile && value.getUserData(ModuleFileNodeMarker) == true) {
-                // always ensures that the file is actually ours
-                child = ModuleFileNode.wrap(child, settings);
-            }
+                nodes.add(ModuleNode.fromPsiFileNode(file, settings, directory.children));
 
-            if (child is PsiFileNode && value is PsiFile && !value.isDirectory && value.fileType.name == "Rust") {
-                if (value.getUserData(ModuleFileNodeRecursionMarker) == true) {
-                    // we already processed the file, wrap in a proper node and continue
-                    nodes.add(child);
-                    value.putUserData(ModuleFileNodeRecursionMarker, false);
+                continue;
 
-                    continue
-                }
-
-                val directory = directories[value.virtualFile.nameWithoutExtension];
-                if (directory != null) {
-                    // highlight the file
-                    directory.addPrepend(ModuleFileNode.fromPsiFileNode(child, settings));
-
-                    continue
-                }
-            }
-
-            if (child is PsiDirectoryNode) {
-                val file = child.virtualFile;
-
-                if (file != null && file.isDirectory) {
-                    val directory = directories[file.name];
-                    if (directory != null) {
-                        nodes.add(directory)
-                    };
-                }
-
-                continue
             }
 
             nodes.add(child);
