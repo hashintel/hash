@@ -30,7 +30,9 @@ use crate::{
         time::{ProjectedTime, TimeInterval},
         EntityVertexId,
     },
-    ontology::{OntologyElementMetadata, OwnedOntologyElementMetadata},
+    ontology::{
+        ExternalOntologyElementMetadata, OntologyElementMetadata, OwnedOntologyElementMetadata,
+    },
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         error::{VersionedUriAlreadyExists, WrongOntologyVersion},
@@ -264,7 +266,7 @@ where
         Self { client }
     }
 
-    /// Creates a new [`OntologyId`] from the provided [`VersionedUri`].
+    /// Creates a new owned [`OntologyId`] from the provided [`VersionedUri`].
     ///
     /// # Errors
     ///
@@ -289,6 +291,48 @@ where
                     &metadata.edition_id().base_id().as_str(),
                     &metadata.edition_id().version(),
                     &metadata.owned_by_id(),
+                    &metadata.provenance_metadata().updated_by_id(),
+                ],
+            )
+            .await
+            .into_report()
+            .map(|row| row.get(0))
+            .map_err(|report| match report.current_context().code() {
+                Some(&SqlState::EXCLUSION_VIOLATION | &SqlState::UNIQUE_VIOLATION) => report
+                    .change_context(BaseUriAlreadyExists)
+                    .attach_printable(metadata.edition_id().base_id().clone())
+                    .change_context(InsertionError),
+                _ => report
+                    .change_context(InsertionError)
+                    .attach_printable(VersionedUri::from(metadata.edition_id())),
+            })
+    }
+
+    /// Creates a new external [`OntologyId`] from the provided [`VersionedUri`].
+    ///
+    /// # Errors
+    ///
+    /// - if [`VersionedUri::base_uri`] did already exist in the database
+    #[tracing::instrument(level = "debug", skip(self))]
+    async fn create_external_ontology_id(
+        &self,
+        metadata: &ExternalOntologyElementMetadata,
+    ) -> Result<OntologyId, InsertionError> {
+        self.as_client()
+            .query_one(
+                r#"
+                SELECT
+                    ontology_id
+                FROM create_external_ontology_id(
+                    base_uri := $1,
+                    version := $2,
+                    fetched_at := $3,
+                    record_created_by_id := $4
+                );"#,
+                &[
+                    &metadata.edition_id().base_id().as_str(),
+                    &metadata.edition_id().version(),
+                    &metadata.fetched_at(),
                     &metadata.provenance_metadata().updated_by_id(),
                 ],
             )
@@ -384,8 +428,8 @@ where
             OntologyElementMetadata::Owned(metadata) => {
                 self.create_owned_ontology_id(metadata).await?
             }
-            OntologyElementMetadata::External(_metadata) => {
-                todo!()
+            OntologyElementMetadata::External(metadata) => {
+                self.create_external_ontology_id(metadata).await?
             }
         };
 
