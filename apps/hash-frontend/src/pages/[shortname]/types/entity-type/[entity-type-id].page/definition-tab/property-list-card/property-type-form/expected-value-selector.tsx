@@ -84,10 +84,11 @@ const ExpectedValueSelectorDropdown = ({ children, ...props }: PaperProps) => {
   );
 };
 
-const ExpectedValueSelector: ForwardRefRenderFunction<
-  HTMLInputElement,
-  { propertyTypeBaseUri?: BaseUri }
-> = ({ propertyTypeBaseUri }) => {
+export const ExpectedValueSelector = ({
+  propertyTypeBaseUri,
+}: {
+  propertyTypeBaseUri?: BaseUri;
+}) => {
   const propertyTypeFormMethods = useFormContext<PropertyTypeFormValues>();
 
   const expectedValueSelectorFormMethods =
@@ -357,7 +358,3 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
     </CustomExpectedValueBuilderContext.Provider>
   );
 };
-
-const ExpectedValueSelectorForwardedRef = forwardRef(ExpectedValueSelector);
-
-export { ExpectedValueSelectorForwardedRef as ExpectedValueSelector };
