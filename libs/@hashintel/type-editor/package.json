@@ -4,6 +4,6 @@
   "main": "src/main.ts",
   "types": "src/main.ts",
   "dependencies": {
-    "@mui/material": "5.10.6"
+    "@hashintel/design-system": "0.0.1"
   }
 }
