@@ -151,27 +151,36 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, schema))]
-    async fn create_property_type(
+    #[tracing::instrument(level = "info", skip(self, property_types))]
+    async fn create_property_types(
         &mut self,
-        schema: PropertyType,
-        metadata: &OntologyElementMetadata,
+        property_types: impl IntoIterator<
+            Item = (PropertyType, &OntologyElementMetadata),
+            IntoIter: Send,
+        > + Send,
     ) -> Result<(), InsertionError> {
+        let property_types = property_types.into_iter();
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
-        let ontology_id = transaction.create(schema.clone(), metadata).await?;
+        let mut inserted_property_types = Vec::with_capacity(property_types.size_hint().0);
+        for (schema, metadata) in property_types {
+            let ontology_id = transaction.create(schema.clone(), metadata).await?;
+            inserted_property_types.push((ontology_id, schema));
+        }
 
-        transaction
-            .insert_property_type_references(&schema, ontology_id)
-            .await
-            .change_context(InsertionError)
-            .attach_printable_lazy(|| {
-                format!(
-                    "could not insert references for property type: {}",
-                    schema.id()
-                )
-            })
-            .attach_lazy(|| schema.clone())?;
+        for (ontology_id, schema) in inserted_property_types {
+            transaction
+                .insert_property_type_references(&schema, ontology_id)
+                .await
+                .change_context(InsertionError)
+                .attach_printable_lazy(|| {
+                    format!(
+                        "could not insert references for property type: {}",
+                        schema.id()
+                    )
+                })
+                .attach_lazy(|| schema.clone())?;
+        }
 
         transaction.commit().await.change_context(InsertionError)?;
 

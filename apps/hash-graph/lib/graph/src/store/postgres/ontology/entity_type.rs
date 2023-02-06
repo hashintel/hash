@@ -245,27 +245,34 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, schema))]
-    async fn create_entity_type(
+    #[tracing::instrument(level = "info", skip(self, entity_types))]
+    async fn create_entity_types(
         &mut self,
-        schema: EntityType,
-        metadata: &OntologyElementMetadata,
+        entity_types: impl IntoIterator<Item = (EntityType, &OntologyElementMetadata), IntoIter: Send>
+        + Send,
     ) -> Result<(), InsertionError> {
+        let entity_types = entity_types.into_iter();
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
-        let ontology_id = transaction.create(schema.clone(), metadata).await?;
+        let mut inserted_entity_types = Vec::with_capacity(entity_types.size_hint().0);
+        for (schema, metadata) in entity_types {
+            let ontology_id = transaction.create(schema.clone(), metadata).await?;
+            inserted_entity_types.push((ontology_id, schema));
+        }
 
-        transaction
-            .insert_entity_type_references(&schema, ontology_id)
-            .await
-            .change_context(InsertionError)
-            .attach_printable_lazy(|| {
-                format!(
-                    "could not insert references for entity type: {}",
-                    schema.id()
-                )
-            })
-            .attach_lazy(|| schema.clone())?;
+        for (ontology_id, schema) in inserted_entity_types {
+            transaction
+                .insert_entity_type_references(&schema, ontology_id)
+                .await
+                .change_context(InsertionError)
+                .attach_printable_lazy(|| {
+                    format!(
+                        "could not insert references for entity type: {}",
+                        schema.id()
+                    )
+                })
+                .attach_lazy(|| schema.clone())?;
+        }
 
         transaction.commit().await.change_context(InsertionError)?;
 

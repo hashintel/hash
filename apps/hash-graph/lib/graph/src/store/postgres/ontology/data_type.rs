@@ -58,13 +58,19 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> DataTypeStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, schema))]
-    async fn create_data_type(
+    #[tracing::instrument(level = "info", skip(self, data_types))]
+    async fn create_data_types(
         &mut self,
-        schema: DataType,
-        metadata: &OntologyElementMetadata,
+        data_types: impl IntoIterator<Item = (DataType, &OntologyElementMetadata), IntoIter: Send>
+        + Send,
     ) -> Result<(), InsertionError> {
-        self.create(schema, metadata).await?;
+        let transaction = self.transaction().await.change_context(InsertionError)?;
+
+        for (schema, metadata) in data_types {
+            transaction.create(schema.clone(), metadata).await?;
+        }
+
+        transaction.commit().await.change_context(InsertionError)?;
 
         Ok(())
     }

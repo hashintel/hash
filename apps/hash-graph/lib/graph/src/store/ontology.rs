@@ -1,3 +1,5 @@
+use std::iter;
+
 use async_trait::async_trait;
 use error_stack::Result;
 use type_system::{DataType, EntityType, PropertyType};
@@ -19,14 +21,30 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
     ///
     /// # Errors:
     ///
-    /// - if the account referred to by `owned_by_id` does not exist.
-    /// - if the [`BaseUri`] of the `data_type` already exist.
+    /// - if any account referred to by `metadata` does not exist.
+    /// - if the [`BaseUri`] of the `data_type` already exists.
     ///
     /// [`BaseUri`]: type_system::uri::BaseUri
     async fn create_data_type(
         &mut self,
         schema: DataType,
         metadata: &OntologyElementMetadata,
+    ) -> Result<(), InsertionError> {
+        self.create_data_types(iter::once((schema, metadata))).await
+    }
+
+    /// Creates the provided [`DataType`]s.
+    ///
+    /// # Errors:
+    ///
+    /// - if any account referred to by the metadata does not exist.
+    /// - if any [`BaseUri`] of the data type already exists.
+    ///
+    /// [`BaseUri`]: type_system::uri::BaseUri
+    async fn create_data_types(
+        &mut self,
+        property_types: impl IntoIterator<Item = (DataType, &OntologyElementMetadata), IntoIter: Send>
+        + Send,
     ) -> Result<(), InsertionError>;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
@@ -58,7 +76,7 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
     ///
     /// # Errors:
     ///
-    /// - if the account referred to by `owned_by_id` does not exist.
+    /// - if any account referred to by `metadata` does not exist.
     /// - if the [`BaseUri`] of the `property_type` already exists.
     ///
     /// [`BaseUri`]: type_system::uri::BaseUri
@@ -66,6 +84,25 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
         &mut self,
         schema: PropertyType,
         metadata: &OntologyElementMetadata,
+    ) -> Result<(), InsertionError> {
+        self.create_property_types(iter::once((schema, metadata)))
+            .await
+    }
+
+    /// Creates the provided [`PropertyType`]s.
+    ///
+    /// # Errors:
+    ///
+    /// - if any account referred to by the metadata does not exist.
+    /// - if any [`BaseUri`] of the property type already exists.
+    ///
+    /// [`BaseUri`]: type_system::uri::BaseUri
+    async fn create_property_types(
+        &mut self,
+        property_types: impl IntoIterator<
+            Item = (PropertyType, &OntologyElementMetadata),
+            IntoIter: Send,
+        > + Send,
     ) -> Result<(), InsertionError>;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
@@ -97,14 +134,31 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
     ///
     /// # Errors:
     ///
-    /// - if the account referred to by `owned_by_id` does not exist.
-    /// - if the [`BaseUri`] of the `entity_type` already exist.
+    /// - if any account referred to by `metadata` does not exist.
+    /// - if the [`BaseUri`] of the `entity_type` already exists.
     ///
     /// [`BaseUri`]: type_system::uri::BaseUri
     async fn create_entity_type(
         &mut self,
         schema: EntityType,
         metadata: &OntologyElementMetadata,
+    ) -> Result<(), InsertionError> {
+        self.create_entity_types(iter::once((schema, metadata)))
+            .await
+    }
+
+    /// Creates the provided [`EntityType`]s.
+    ///
+    /// # Errors:
+    ///
+    /// - if any account referred to by the metadata does not exist.
+    /// - if any [`BaseUri`] of the entity type already exists.
+    ///
+    /// [`BaseUri`]: type_system::uri::BaseUri
+    async fn create_entity_types(
+        &mut self,
+        property_types: impl IntoIterator<Item = (EntityType, &OntologyElementMetadata), IntoIter: Send>
+        + Send,
     ) -> Result<(), InsertionError>;
 
     /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
