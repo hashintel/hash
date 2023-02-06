@@ -1,7 +1,16 @@
 diff --git a/node_modules/react-hook-form/dist/index.esm.mjs b/node_modules/react-hook-form/dist/index.esm.mjs
-index f27670f..34dd8d9 100644
+index f27670f..74a9686 100644
 --- a/node_modules/react-hook-form/dist/index.esm.mjs
 +++ b/node_modules/react-hook-form/dist/index.esm.mjs
+@@ -170,7 +170,7 @@ var shouldSubscribeByName = (name, signalName, exact) => exact && signalName
+ function useSubscribe(props) {
+     const _props = React.useRef(props);
+     _props.current = props;
+-    React.useEffect(() => {
++    React.useLayoutEffect(() => {
+         const subscription = !props.disabled &&
+             _props.current.subject.subscribe({
+                 next: _props.current.callback,
 @@ -991,6 +991,13 @@ function useFieldArray(props) {
          callback,
          subject: control._subjects.array,
