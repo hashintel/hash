@@ -4,9 +4,9 @@ use deer::{
         BoolDeserializer, BorrowedBytesDeserializer, BorrowedStrDeserializer,
         BytesBufferDeserializer, BytesDeserializer, CharDeserializer, F32Deserializer,
         F64Deserializer, I128Deserializer, I16Deserializer, I32Deserializer, I64Deserializer,
-        I8Deserializer, IsizeDeserializer, NullDeserializer, NumberDeserializer, StrDeserializer,
-        U128Deserializer, U16Deserializer, U32Deserializer, U64Deserializer, U8Deserializer,
-        UsizeDeserializer,
+        I8Deserializer, IntoDeserializer, IsizeDeserializer, NullDeserializer, NumberDeserializer,
+        StrDeserializer, U128Deserializer, U16Deserializer, U32Deserializer, U64Deserializer,
+        U8Deserializer, UsizeDeserializer,
     },
     Context, Deserialize, Deserializer, Document, Number, Reflection, Schema, Visitor,
 };
@@ -23,6 +23,19 @@ macro_rules! generate_proptest {
 
                 proptest!(move |(expected in any::<$ty>())| {
                     let de = [< $ty:camel Deserializer >]::new(expected, &context);
+                    let received = <$ty>::deserialize(de).expect("able to deserialize");
+
+                    assert_eq!(expected, received);
+                });
+            }
+
+            #[test]
+            #[cfg(not(miri))]
+            fn [< $ty _into_deserializer_ok >]() {
+                let context = Context::new();
+
+                proptest!(move |(expected in any::<$ty>())| {
+                    let de = expected.into_deserializer(&context);
                     let received = <$ty>::deserialize(de).expect("able to deserialize");
 
                     assert_eq!(expected, received);
@@ -158,6 +171,17 @@ proptest! {
 
 
         let de = StrDeserializer::new(expected.into_str(), &context);
+        let received = Choice::deserialize(de).expect("able to deserialize");
+
+        assert_eq!(expected, received);
+    }
+
+    #[test]
+    fn str_into_deserializer_ok(expected in choice_strategy()) {
+        let context = Context::new();
+
+
+        let de = expected.into_str().into_deserializer(&context);
         let received = Choice::deserialize(de).expect("able to deserialize");
 
         assert_eq!(expected, received);
@@ -380,6 +404,17 @@ proptest! {
         let value = expected.as_slice();
 
         let de = BytesDeserializer::new(value, &context);
+        let received = BytesLength::deserialize(de).expect("should be able to deserialize");
+
+        assert_eq!(value.len(), received.0);
+    }
+
+    #[test]
+    fn bytes_into_deserializer_ok(expected in any::<Vec<u8>>()) {
+        let context = Context::new();
+        let value = expected.as_slice();
+
+        let de = value.into_deserializer(&context);
         let received = BytesLength::deserialize(de).expect("should be able to deserialize");
 
         assert_eq!(value.len(), received.0);
