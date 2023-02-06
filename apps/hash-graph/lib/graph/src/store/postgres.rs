@@ -30,7 +30,7 @@ use crate::{
         time::{ProjectedTime, TimeInterval},
         EntityVertexId,
     },
-    ontology::OntologyElementMetadata,
+    ontology::{OntologyElementMetadata, OwnedOntologyElementMetadata},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         error::{VersionedUriAlreadyExists, WrongOntologyVersion},
@@ -393,11 +393,11 @@ where
 
         Ok((
             ontology_id,
-            OntologyElementMetadata::new(
+            OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
                 OntologyTypeEditionId::from(&uri),
                 ProvenanceMetadata::new(updated_by_id),
                 owned_by_id,
-            ),
+            )),
         ))
     }
 
@@ -433,11 +433,11 @@ where
 
         Ok((
             ontology_id,
-            OntologyElementMetadata::new(
+            OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
                 edition_id,
                 ProvenanceMetadata::new(updated_by_id),
                 owned_by_id,
-            ),
+            )),
         ))
     }
 

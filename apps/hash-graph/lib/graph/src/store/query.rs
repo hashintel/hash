@@ -58,11 +58,6 @@ pub trait OntologyQueryPath {
     /// [`OntologyTypeVersion`]: crate::identifier::ontology::OntologyTypeVersion
     fn version() -> Self;
 
-    /// Returns the path identifying the [`OwnedById`].
-    ///
-    /// [`OwnedById`]: crate::provenance::OwnedById
-    fn owned_by_id() -> Self;
-
     /// Returns the path identifying the [`UpdatedById`].
     ///
     /// [`UpdatedById`]: crate::provenance::UpdatedById
@@ -70,4 +65,7 @@ pub trait OntologyQueryPath {
 
     /// Returns the path identifying the schema.
     fn schema() -> Self;
+
+    /// Returns the path identifying the metadata
+    fn additional_metadata() -> Self;
 }
