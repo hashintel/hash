@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use async_trait::async_trait;
 use error_stack::{Result, ResultExt};
 use type_system::DataType;
@@ -5,7 +7,7 @@ use type_system::DataType;
 use crate::{
     identifier::{ontology::OntologyTypeEditionId, time::TimeProjection},
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
-    provenance::{OwnedById, UpdatedById},
+    provenance::UpdatedById,
     store::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
@@ -58,22 +60,25 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> DataTypeStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, data_type))]
-    async fn create_data_type(
+    #[tracing::instrument(level = "info", skip(self, data_types))]
+    async fn create_data_types(
         &mut self,
-        data_type: DataType,
-        owned_by_id: OwnedById,
-        updated_by_id: UpdatedById,
-    ) -> Result<OntologyElementMetadata, InsertionError> {
+        data_types: impl IntoIterator<
+            Item = (DataType, impl Borrow<OntologyElementMetadata> + Send + Sync),
+            IntoIter: Send,
+        > + Send,
+    ) -> Result<(), InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
-        let (_, metadata) = transaction
-            .create(data_type, owned_by_id, updated_by_id)
-            .await?;
+        for (schema, metadata) in data_types {
+            transaction
+                .create(schema.clone(), metadata.borrow())
+                .await?;
+        }
 
         transaction.commit().await.change_context(InsertionError)?;
 
-        Ok(metadata)
+        Ok(())
     }
 
     #[tracing::instrument(level = "info", skip(self))]
