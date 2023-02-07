@@ -1,5 +1,9 @@
 import { useQuery } from "@apollo/client";
 import {
+  getPageInfoQuery,
+  getPageQuery,
+} from "@local/hash-graphql-shared/queries/page.queries";
+import {
   defaultBlockComponentIds,
   fetchBlock,
   HashBlock,
@@ -9,10 +13,6 @@ import {
   GetPageQueryVariables,
 } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import {
-  getPageInfoQuery,
-  getPageQuery,
-} from "@local/hash-isomorphic-utils/queries/page.queries";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,

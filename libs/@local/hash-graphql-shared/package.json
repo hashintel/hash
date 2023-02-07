@@ -1,8 +1,8 @@
 {
-  "name": "@local/hash-isomorphic-utils",
+  "name": "@local/hash-graphql-shared",
   "version": "0.0.0-private",
   "private": true,
-  "description": "Temporary catchall place for shared code",
+  "description": "Shared GraphQL definitions",
   "license": "AGPL-3.0",
   "exports": {
     "./*": "./src/*.ts"
@@ -15,38 +15,28 @@
     }
   },
   "scripts": {
+    "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
-    "lint:tsc": "tsc --noEmit",
-    "test": "jest"
+    "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {
+    "@apollo/client": "3.6.9",
     "@blockprotocol/core": "0.0.12",
     "@local/hash-graph-client": "0.0.0-private",
-    "@sentry/browser": "7.30.0",
-    "immer": "9.0.6",
-    "jsonschema": "1.4.0",
-    "lodash": "4.17.21",
-    "node-fetch": "^2.6.7",
-    "prosemirror-commands": "1.3.1",
-    "prosemirror-dropcursor": "1.6.1",
-    "prosemirror-keymap": "1.2.0",
-    "prosemirror-model": "1.18.2",
-    "prosemirror-state": "1.4.2",
-    "prosemirror-transform": "1.7.0",
-    "prosemirror-view": "1.29.1",
-    "slugify": "1.6.5",
-    "uuid": "8.3.2"
+    "@local/hash-subgraph": "0.0.0-private"
   },
   "devDependencies": {
     "@blockprotocol/type-system": "0.0.3-canary-20230111084611",
+    "@graphql-codegen/cli": "2.16.4",
+    "@graphql-codegen/fragment-matcher": "3.3.3",
+    "@graphql-codegen/typescript": "2.8.7",
+    "@graphql-codegen/typescript-operations": "2.5.12",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/lodash": "4.14.188",
     "@types/node": "18.11.9",
     "@types/node-fetch": "^2.6.2",
     "eslint": "8.33.0",
-    "react": "^18.2.0",
     "rimraf": "^3.0.2",
     "typescript": "4.9.4"
   }
