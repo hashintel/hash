@@ -45,15 +45,15 @@ You can live preview most of these on the [`@hash`](https://blockprotocol.org/@h
 | [`embed`]              	| 0.X         	| Pending Update 	|                                                                                                	|             	|
 | [`github-pr-overview`] 	| 0.X         	| Maintained     	|                                                                                                	|             	|
 | [`header`]             	| 0.X         	| Maintained     	|                                                                                                	|             	|
-| [`html-para`]          	| 0.X         	| TBC            	|                                                                                                	|             	|
+| [`html-para`]          	| 0.X         	| Unmaintained   	|                                                                                                	|             	|
 | [`image`]              	| 0.X         	| Maintained     	|                                                                                                	|             	|
 | [`paragraph`]          	| 0.X         	| Maintained     	|                                                                                                	|             	|
 | [`person`]             	| 0.X         	| Maintained     	|                                                                                                	|             	|
 | [`shuffle`]            	| 0.X         	| Maintained     	|                                                                                                	|             	|
 | [`stopwatch`]          	| 0.X         	| Maintained     	|                                                                                                	|             	|
-| [`table`]              	| 0.X         	| Unmaintained   	|                                                                                                	|             	|
+| [`table`]              	| 0.X         	| Maintained     	|                                                                                                	|             	|
 | [`timer`]              	| 0.X         	| Maintained     	|                                                                                                	|             	|
-| [`toggle-item`]        	| 0.X         	| Maintained     	|                                                                                                	|             	|
+| [`toggle-item`]        	| 0.X         	| Unmaintained     	|                                                                                                	|             	|
 | [`video`]              	| 0.X         	| Maintained     	|                                                                                                	|             	|
 
 ## Running these blocks
