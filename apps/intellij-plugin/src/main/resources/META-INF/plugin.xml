@@ -27,4 +27,7 @@
     <extensions defaultExtensionNs="com.intellij">
         <treeStructureProvider implementation="ai.hash.rustextra.projectView.ModuleGroupTreeStructureProvider" order="last, after org.rust.lang"/>
     </extensions>
+    <projectListeners>
+        <listener class="MyToolWindowListener" topic="com.intellij.openapi.wm.ex.ToolWindowManagerListener" />
+    </projectListeners>
 </idea-plugin>
