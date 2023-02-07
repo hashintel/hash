@@ -1,3 +1,4 @@
+import CloseIcon from "@mui/icons-material/Close";
 import {
   Box,
   Button,
@@ -10,10 +11,10 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { GoogleIcon } from "./icons/google-icon";
-import { AppleIcon } from "./icons/apple-icon";
-import CloseIcon from "@mui/icons-material/Close";
+import { useMemo } from "react";
 import { EditableField } from "./editable-field";
+import { AppleIcon } from "./icons/apple-icon";
+import { GoogleIcon } from "./icons/google-icon";
 
 const MapButton = ({ children, href, sx, ...props }: ButtonProps) => {
   return (
@@ -48,8 +49,10 @@ const MapButton = ({ children, href, sx, ...props }: ButtonProps) => {
 };
 
 type AddressCardProps = {
-  label: string;
-  address: Address;
+  title?: string;
+  description?: string;
+  fullAddress: string;
+  mapUrl?: string;
   hovered: boolean;
   onClose: () => void;
   updateTitle: (title: string) => void;
@@ -57,12 +60,23 @@ type AddressCardProps = {
 };
 
 export const AddressCard = ({
-  address,
+  title,
+  fullAddress,
+  description,
+  mapUrl,
   hovered,
   onClose,
   updateTitle,
   updateDescription,
 }: AddressCardProps) => {
+  const [googleMapsUrl, appleMapsUrl] = useMemo(
+    () => [
+      `https://www.google.com/maps?q=${encodeURI(fullAddress)}`,
+      `http://maps.apple.com/?q=${encodeURI(fullAddress)}`,
+    ],
+    [fullAddress],
+  );
+
   return (
     <Card
       sx={{
@@ -84,7 +98,7 @@ export const AddressCard = ({
       >
         <Stack gap={1.5}>
           <EditableField
-            defaultValue={address.label}
+            defaultValue={title}
             onBlur={(event) => updateTitle(event.target.value)}
             inputProps={{
               sx: {
@@ -109,31 +123,25 @@ export const AddressCard = ({
               maxWidth: "100%",
             }}
           >
-            {address.fullAddress}
+            {fullAddress}
           </Typography>
         </Stack>
 
         <Box>
-          <MapButton
-            href={`https://www.google.com/maps?q=${encodeURI(
-              address.fullAddress,
-            )}`}
-            sx={{ mb: 1.5 }}
-          >
+          <MapButton href={googleMapsUrl} sx={{ mb: 1.5 }}>
             <GoogleIcon sx={{ fontSize: 18, mr: 1 }} />
             Open in Google Maps
           </MapButton>
-          <MapButton
-            href={`http://maps.apple.com/?q=${encodeURI(address.fullAddress)}`}
-          >
+          <MapButton href={appleMapsUrl}>
             <AppleIcon sx={{ fontSize: 18, mr: 1 }} />
             Open in Apple Maps
           </MapButton>
         </Box>
 
         <EditableField
-          defaultValue={address.description}
+          defaultValue={description}
           onBlur={(event) => updateDescription(event.target.value)}
+          placeholder="Description here"
           inputProps={{
             sx: {
               fontFamily: "Inter",
@@ -159,12 +167,12 @@ export const AddressCard = ({
           position: "relative",
         }}
       >
-        {address.mapUrl ? (
+        {mapUrl ? (
           <Box
             sx={{
               width: 1,
               height: 1,
-              background: `url(${address.mapUrl}) no-repeat`,
+              background: `url(${mapUrl}) no-repeat`,
               backgroundSize: "cover",
             }}
           />

@@ -1,17 +1,28 @@
-import { useEffect, useMemo, useState } from "react";
 import {
-  SessionToken,
+  AutofillFeatureSuggestion,
+  AutofillRetrieveResponse,
   AutofillSuggestion,
   AutofillSuggestionResponse,
-  AutofillRetrieveResponse,
-  AutofillFeatureSuggestion,
+  SessionToken,
 } from "@mapbox/search-js-core";
 import axios from "axios";
 import debounce from "lodash.debounce";
+import { useEffect, useMemo, useState } from "react";
 import { useSessionstorageState } from "rooks";
-import { Address } from "./types.gen";
 
 const MAPBOX_API_URL = "https://api.mapbox.com";
+
+export type Address = {
+  postalCode: string;
+  streetAddress: string;
+  addressLocality: string;
+  addressRegion: string;
+  addressCountry: string;
+  fullAddress: string;
+  featureName: string;
+  file: File | null;
+  mapUrl: string | null;
+};
 
 export const useMapbox = (accessToken: string) => {
   const [sessionToken, setSessionToken] =
@@ -24,8 +35,6 @@ export const useMapbox = (accessToken: string) => {
 
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [suggestionsError, setSuggestionsError] = useState(false);
-
-  const [mapLoading, setMapLoading] = useState("");
 
   useEffect(() => {
     if (!sessionToken) {
@@ -58,7 +67,10 @@ export const useMapbox = (accessToken: string) => {
           `${MAPBOX_API_URL}/autofill/v1/retrieve/${addressId}?access_token=${accessToken}&session_token=${sessionToken?.id}`,
         )
         .then(({ data }) => {
-          setSelectedAddress(data.features[0]);
+          const address = data.features[0];
+          if (address) {
+            setSelectedAddress(address);
+          }
         });
     } else {
       setSelectedAddress(null);
@@ -87,16 +99,21 @@ export const useMapbox = (accessToken: string) => {
     }
   }, [selectedAddress]);
 
+  console.log(selectedAddress);
+
   const address: Address | null = useMemo(
     () =>
       selectedAddress
         ? {
-            label: selectedAddress.properties.feature_name,
-            fullAddress: selectedAddress.properties.full_address!,
-            description: "Enter your description here",
-            mapUrl,
+            featureName: selectedAddress.properties.feature_name,
+            postalCode: selectedAddress.properties.postcode ?? "",
+            streetAddress: selectedAddress.properties.address_line1 ?? "",
+            addressLocality: selectedAddress.properties.address_level2 ?? "",
+            addressRegion: selectedAddress.properties.address_level1 ?? "",
+            addressCountry: selectedAddress.properties.country ?? "",
+            fullAddress: selectedAddress.properties.full_address ?? "",
             file: mapFile,
-            coordinates: selectedAddress.geometry.coordinates,
+            mapUrl,
           }
         : null,
     [selectedAddress, mapUrl],
