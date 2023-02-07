@@ -29,7 +29,7 @@ class ModuleNode(
         }
     }
 
-    override fun expandOnDoubleClick(): Boolean = false
+    override fun expandOnDoubleClick(): Boolean = true
 
     companion object {
         fun fromPsiFileNode(node: AbstractTreeNode<PsiFile>, settings: ViewSettings?, children: Collection<AbstractTreeNode<*>>) =
