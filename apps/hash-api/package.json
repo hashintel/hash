@@ -26,6 +26,7 @@
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
+    "@local/hash-types": "0.0.0-private",
     "@opentelemetry/api": "1.3",
     "@opentelemetry/core": "1.0",
     "@opentelemetry/exporter-trace-otlp-grpc": "0.34.0",
