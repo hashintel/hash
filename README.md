@@ -77,6 +77,7 @@ Key projects within are summarized below.
 
 ### Libraries
 
+- [`antsi`](libs/antsi): Rust crate supporting Select Graphic Rendition (as defined in ISO 6429) without external dependencies
 - [`deer`](libs/deer): fail-slow deserialization framework for Rust, featuring meaningful error messages and context
 - [`error-stack`](libs/error-stack): context-aware error-handling library for Rust which supports attaching arbitrary user data
 
