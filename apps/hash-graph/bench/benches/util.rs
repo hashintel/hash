@@ -2,7 +2,8 @@ use std::mem::ManuallyDrop;
 
 use graph::{
     identifier::account::AccountId,
-    provenance::{OwnedById, UpdatedById},
+    ontology::{OntologyElementMetadata, OwnedOntologyElementMetadata},
+    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         AsClient, BaseUriAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
         EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore, StorePool,
@@ -196,8 +197,11 @@ pub async fn seed<D, P, E, C>(
         match store
             .create_data_type(
                 data_type.clone(),
-                OwnedById::new(account_id),
-                UpdatedById::new(account_id),
+                &OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
+                    data_type.id().into(),
+                    ProvenanceMetadata::new(UpdatedById::new(account_id)),
+                    OwnedById::new(account_id),
+                )),
             )
             .await
         {
@@ -224,8 +228,11 @@ pub async fn seed<D, P, E, C>(
         match store
             .create_property_type(
                 property_type.clone(),
-                OwnedById::new(account_id),
-                UpdatedById::new(account_id),
+                &OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
+                    property_type.id().into(),
+                    ProvenanceMetadata::new(UpdatedById::new(account_id)),
+                    OwnedById::new(account_id),
+                )),
             )
             .await
         {
@@ -252,8 +259,11 @@ pub async fn seed<D, P, E, C>(
         match store
             .create_entity_type(
                 entity_type.clone(),
-                OwnedById::new(account_id),
-                UpdatedById::new(account_id),
+                &OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
+                    entity_type.id().into(),
+                    ProvenanceMetadata::new(UpdatedById::new(account_id)),
+                    OwnedById::new(account_id),
+                )),
             )
             .await
         {

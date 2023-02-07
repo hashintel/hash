@@ -260,6 +260,8 @@ pub enum EntityTypeQueryPath<'p> {
     OntologyId,
     /// Only used internally and not available for deserialization.
     Schema(Option<JsonPath<'p>>),
+    /// Only used internally and not available for deserialization.
+    AdditionalMetadata(Option<JsonPath<'p>>),
 }
 
 impl OntologyQueryPath for EntityTypeQueryPath<'_> {
@@ -275,10 +277,6 @@ impl OntologyQueryPath for EntityTypeQueryPath<'_> {
         Self::Version
     }
 
-    fn owned_by_id() -> Self {
-        Self::OwnedById
-    }
-
     fn updated_by_id() -> Self {
         Self::UpdatedById
     }
@@ -286,13 +284,17 @@ impl OntologyQueryPath for EntityTypeQueryPath<'_> {
     fn schema() -> Self {
         Self::Schema(None)
     }
+
+    fn additional_metadata() -> Self {
+        Self::AdditionalMetadata(None)
+    }
 }
 
 impl QueryPath for EntityTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
             Self::OntologyId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
-            Self::Schema(_) => ParameterType::Any,
+            Self::Schema(_) | Self::AdditionalMetadata(_) => ParameterType::Any,
             Self::BaseUri => ParameterType::BaseUri,
             Self::VersionedUri => ParameterType::VersionedUri,
             Self::Version => ParameterType::UnsignedInteger,
@@ -326,6 +328,8 @@ impl fmt::Display for EntityTypeQueryPath<'_> {
             Self::Links(path) => write!(fmt, "links.{path}"),
             Self::RequiredLinks => fmt.write_str("requiredLinks"),
             Self::InheritsFrom(path) => write!(fmt, "inheritsFrom.{path}"),
+            Self::AdditionalMetadata(Some(path)) => write!(fmt, "additionalMetadata.{path}"),
+            Self::AdditionalMetadata(None) => fmt.write_str("additionalMetadata"),
         }
     }
 }

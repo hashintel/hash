@@ -1,10 +1,11 @@
 use std::{
     collections::hash_map::{RandomState, RawEntryMut},
+    error::Error,
     fmt,
     fmt::Display,
 };
 
-use postgres_types::{FromSql, ToSql};
+use postgres_types::{private::BytesMut, FromSql, IsNull, ToSql, Type};
 use serde::{Deserialize, Serialize};
 use type_system::uri::{BaseUri, VersionedUri};
 use utoipa::ToSchema;
@@ -15,22 +16,9 @@ use crate::{
 };
 
 #[derive(
-    Debug,
-    Clone,
-    Copy,
-    Hash,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Serialize,
-    Deserialize,
-    FromSql,
-    ToSql,
-    ToSchema,
+    Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, ToSchema,
 )]
 #[repr(transparent)]
-#[postgres(transparent)]
 pub struct OntologyTypeVersion(u32);
 
 impl OntologyTypeVersion {
@@ -42,6 +30,27 @@ impl OntologyTypeVersion {
     #[must_use]
     pub const fn inner(&self) -> u32 {
         self.0
+    }
+}
+
+impl ToSql for OntologyTypeVersion {
+    postgres_types::accepts!(INT8);
+
+    postgres_types::to_sql_checked!();
+
+    fn to_sql(&self, _: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>
+    where
+        Self: Sized,
+    {
+        i64::from(self.0).to_sql(&Type::INT8, out)
+    }
+}
+
+impl<'a> FromSql<'a> for OntologyTypeVersion {
+    postgres_types::accepts!(INT8);
+
+    fn from_sql(_: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
+        Ok(Self::new(i64::from_sql(&Type::INT8, raw)? as u32))
     }
 }
 

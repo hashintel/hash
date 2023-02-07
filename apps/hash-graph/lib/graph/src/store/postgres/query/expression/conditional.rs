@@ -150,7 +150,7 @@ mod tests {
     fn transpile_window_expression() {
         assert_eq!(
             max_version_expression().transpile_to_string(),
-            r#"MAX("ontology_ids_0_0_0"."version") OVER (PARTITION BY "ontology_ids_0_0_0"."base_uri")"#
+            r#"MAX("ontology_id_with_metadata_0_0_0"."version") OVER (PARTITION BY "ontology_id_with_metadata_0_0_0"."base_uri")"#
         );
     }
 
@@ -167,7 +167,7 @@ mod tests {
                     })
             ))))
             .transpile_to_string(),
-            r#"MIN("ontology_ids_1_2_3"."version")"#
+            r#"MIN("ontology_id_with_metadata_1_2_3"."version")"#
         );
     }
 }
