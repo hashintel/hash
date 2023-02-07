@@ -1,41 +1,19 @@
-import "mapbox-gl/dist/mapbox-gl.css";
-import Box from "@mui/material/Box";
 import {
+  Box,
   Button,
   ButtonProps,
   Card,
   CircularProgress,
+  Fade,
+  IconButton,
   Link,
   Stack,
-  styled,
   Typography,
 } from "@mui/material";
-import { Address } from "./useMapbox";
-import { PenToSquareIcon } from "./icons/pen-to-square-icon";
-import IconButton from "@mui/material/IconButton";
-import { useRef, useState } from "react";
-import Fade from "@mui/material/Fade";
 import { GoogleIcon } from "./icons/google-icon";
 import { AppleIcon } from "./icons/apple-icon";
 import CloseIcon from "@mui/icons-material/Close";
-
-const HeadingTypography = styled(Typography)(() => ({
-  fontFamily: "Inter",
-  fontWeight: 700,
-  fontSize: 21,
-  lineHeight: 1,
-  letterSpacing: "-0.02em",
-  color: "#000000",
-}));
-const BodyTypography = styled(Typography)(() => ({
-  fontFamily: "Inter",
-  fontWeight: 500,
-  fontSize: 16,
-  lineHeight: 1.3,
-  letterSpacing: "-0.02em",
-  color: "#37434F",
-  maxWidth: "100%",
-}));
+import { EditableField } from "./editable-field";
 
 const MapButton = ({ children, href, sx, ...props }: ButtonProps) => {
   return (
@@ -74,18 +52,17 @@ type AddressCardProps = {
   address: Address;
   hovered: boolean;
   onClose: () => void;
+  updateTitle: (title: string) => void;
+  updateDescription: (description: string) => void;
 };
 
 export const AddressCard = ({
   address,
   hovered,
   onClose,
+  updateTitle,
+  updateDescription,
 }: AddressCardProps) => {
-  const [labelHovered, setLabelHovered] = useState(false);
-  const [editingLabel, setEditingLabel] = useState(false);
-
-  const labelRef = useRef<HTMLSpanElement | null>(null);
-
   return (
     <Card
       sx={{
@@ -106,63 +83,34 @@ export const AddressCard = ({
         }}
       >
         <Stack gap={1.5}>
-          {/* <TextField
-            value={address.properties.feature_name}
-            InputProps={{
-              endAdornment: (
-                <IconButton onClick={() => setEditingLabel(!editingLabel)}>
-                  <PenToSquareIcon />
-                </IconButton>
-              ),
-              readOnly: !editingLabel,
+          <EditableField
+            defaultValue={address.label}
+            onBlur={(event) => updateTitle(event.target.value)}
+            inputProps={{
               sx: {
-                ...(!editingLabel
-                  ? {
-                      [`.${outlinedInputClasses.notchedOutline}`]: {
-                        borderWidth: "0 !important",
-                      },
-                    }
-                  : {}),
+                fontFamily: "Inter",
+                fontWeight: 700,
+                fontSize: 21,
+                lineHeight: 1,
+                letterSpacing: "-0.02em",
+                color: "#000",
               },
             }}
-            sx={{}}
-          /> */}
+          />
 
-          <Box
-            onMouseEnter={() => setLabelHovered(true)}
-            onMouseLeave={() => setLabelHovered(false)}
+          <Typography
             sx={{
-              display: "flex",
+              fontFamily: "Inter",
+              fontWeight: 500,
+              fontSize: 16,
+              lineHeight: 1.3,
+              letterSpacing: "-0.02em",
+              color: "#37434F",
+              maxWidth: "100%",
             }}
           >
-            <HeadingTypography
-              contentEditable={editingLabel}
-              sx={{ maxWidth: "calc(100% - 37px)" }}
-              ref={labelRef}
-            >
-              {address.label}
-            </HeadingTypography>
-            <Fade in={labelHovered}>
-              <Box sx={{ position: "relative" }}>
-                <IconButton
-                  onClick={() => {
-                    setEditingLabel(!editingLabel);
-                    labelRef.current?.focus();
-                  }}
-                  sx={{
-                    position: "absolute",
-                    top: -4,
-                    ml: 1,
-                    padding: 0.5,
-                  }}
-                >
-                  <PenToSquareIcon sx={{ fontSize: 21 }} />
-                </IconButton>
-              </Box>
-            </Fade>
-          </Box>
-
-          <BodyTypography>{address.fullAddress}</BodyTypography>
+            {address.fullAddress}
+          </Typography>
         </Stack>
 
         <Box>
@@ -183,7 +131,20 @@ export const AddressCard = ({
           </MapButton>
         </Box>
 
-        <BodyTypography sx={{ fontSize: 14 }}>description here</BodyTypography>
+        <EditableField
+          defaultValue={address.description}
+          onBlur={(event) => updateDescription(event.target.value)}
+          inputProps={{
+            sx: {
+              fontFamily: "Inter",
+              fontWeight: 500,
+              fontSize: 16,
+              lineHeight: 1.3,
+              letterSpacing: "-0.02em",
+              color: "#37434F",
+            },
+          }}
+        />
       </Stack>
 
       <Box

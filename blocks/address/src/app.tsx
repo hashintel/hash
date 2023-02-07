@@ -129,11 +129,15 @@ const getOptionLabel = (option: AutofillSuggestion | string) =>
 export function Component({
   address,
   updateAddress,
+  updateTitle,
+  updateDescription,
 }: {
   title?: string;
   description?: string;
   address?: Address;
   updateAddress: (address?: Address) => void;
+  updateTitle: (title: string) => void;
+  updateDescription: (description: string) => void;
 }) {
   const {
     suggestions,
@@ -357,6 +361,8 @@ export function Component({
                 selectAddress();
               }, 300);
             }}
+            updateTitle={updateTitle}
+            updateDescription={updateDescription}
           />
         ) : null}
       </Collapse>
@@ -411,18 +417,31 @@ export const App: BlockComponent<RootEntity> = ({
   // // const [draftAddress, setDraftAddress] = useState<Address>(properties);
   // // const [prevProperties, setPrevProperties] = useState(properties);
 
-  // const updateTitle = () => {
-  //   await graphService?.updateEntity({
-  //     data: {
-  //       entityId,
-  //       entityTypeId,
-  //       properties: {
-  //         [titleKey]: address.title,
-  //         [descriptionKey]: address.description,
-  //       },
-  //     },
-  //   });
-  // };
+  const updateTitle = async (title: string) => {
+    await graphService?.updateEntity({
+      data: {
+        entityId,
+        entityTypeId,
+        properties: {
+          ...properties,
+          [titleKey]: title,
+        },
+      },
+    });
+  };
+
+  const updateDescription = async (description: string) => {
+    await graphService?.updateEntity({
+      data: {
+        entityId,
+        entityTypeId,
+        properties: {
+          ...properties,
+          [descriptionKey]: description,
+        },
+      },
+    });
+  };
 
   const updateAddress = async (address?: Address) => {
     // if (address.file) {
@@ -438,35 +457,33 @@ export const App: BlockComponent<RootEntity> = ({
       return;
     }
 
-    console.log("CREATIN");
+    //   const createAddressEntityResponse = await graphService?.createEntity({
+    //     data: {
+    //       entityTypeId: addressTypeId,
+    //       properties: {
+    //         [localityKey]: "1",
+    //         [regionKey]: "2",
+    //         [postalCodeKey]: "3",
+    //         [streetKey]: "4",
+    //       },
+    //     },
+    //   });
 
-    const createAddressEntityResponse = await graphService?.createEntity({
-      data: {
-        entityTypeId: addressTypeId,
-        properties: {
-          [localityKey]: "1",
-          [regionKey]: "2",
-          [postalCodeKey]: "3",
-          [streetKey]: "4",
-        },
-      },
-    });
-
-    const addressEntityId =
-      createAddressEntityResponse?.data?.metadata.editionId.baseId;
-    if (addressEntityId) {
-      const createLinkResponse = await graphService?.createEntity({
-        data: {
-          entityTypeId:
-            "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
-          properties: {},
-          linkData: {
-            leftEntityId: entityId,
-            rightEntityId: addressEntityId,
-          },
-        },
-      });
-    }
+    //   const addressEntityId =
+    //     createAddressEntityResponse?.data?.metadata.editionId.baseId;
+    //   if (addressEntityId) {
+    //     const createLinkResponse = await graphService?.createEntity({
+    //       data: {
+    //         entityTypeId:
+    //           "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+    //         properties: {},
+    //         linkData: {
+    //           leftEntityId: entityId,
+    //           rightEntityId: addressEntityId,
+    //         },
+    //       },
+    //     });
+    //   }
   };
 
   // //   useEffect(() =>   {
@@ -508,7 +525,12 @@ export const App: BlockComponent<RootEntity> = ({
 
   return (
     <div className={styles.block} ref={blockRootRef}>
-      <Component address={address} updateAddress={updateAddress} />
+      <Component
+        address={address}
+        updateAddress={updateAddress}
+        updateTitle={updateTitle}
+        updateDescription={updateDescription}
+      />
     </div>
   );
 };
