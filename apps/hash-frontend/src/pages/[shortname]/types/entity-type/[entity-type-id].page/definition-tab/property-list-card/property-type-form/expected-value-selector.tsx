@@ -6,13 +6,7 @@ import {
   TextField,
 } from "@hashintel/design-system";
 import { Autocomplete, Box, PaperProps, Typography } from "@mui/material";
-import {
-  forwardRef,
-  ForwardRefRenderFunction,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   FormProvider,
   useController,
