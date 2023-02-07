@@ -3127,6 +3127,15 @@
     es-module-lexer "^0.10.5"
     uuid "^8.3.2"
 
+"@blockprotocol/core@0.0.14-canary-20230207085507":
+  version "0.0.14-canary-20230207085507"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.0.14-canary-20230207085507.tgz#147ca921fbff59e4804a13b8d29c678c6ad370bf"
+  integrity sha512-/+ThfTvHVXbGmXR8BaHZ88lNKjSkR8Poqb5kW7HhgqyJNAqCOLaM9eMrRbLqVzgLOLYl4WhGdZVSm34Mi7XObQ==
+  dependencies:
+    "@blockprotocol/type-system" "0.0.4-canary-20230207085507"
+    es-module-lexer "^0.10.5"
+    uuid "^8.3.2"
+
 "@blockprotocol/core@0.0.2":
   version "0.0.2"
   resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.0.2.tgz#f9ef68143981e5aadfe14556f0afa8931c6a472d"
@@ -3171,6 +3180,19 @@
     lit "^2.4.1"
     node-fetch "^3.3.0"
 
+"@blockprotocol/graph@0.1.0-canary-20230207085507":
+  version "0.1.0-canary-20230207085507"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.1.0-canary-20230207085507.tgz#7481d9e6e2fe14cb520db2b5f5d8bc4cbdbcd6e1"
+  integrity sha512-1gFs5bt+Oxd3SsVqrvSuoo6eKGbALtdvM0Ho9T8QL3YYLmEFgNcas81lj9cTbVkEihjDQJYiEXiD+T/GuPC1pQ==
+  dependencies:
+    "@blockprotocol/core" "0.0.14-canary-20230207085507"
+    "@blockprotocol/type-system" "0.0.4-canary-20230207085507"
+    ajv "^8.11.2"
+    ajv-formats "^2.1.1"
+    json-schema-to-typescript "^11.0.2"
+    lit "^2.4.1"
+    node-fetch "^3.3.0"
+
 "@blockprotocol/hook@0.0.8":
   version "0.0.8"
   resolved "https://registry.yarnpkg.com/@blockprotocol/hook/-/hook-0.0.8.tgz#4e14843e0e589e8fd2c850605f0f93625afcfed5"
@@ -3190,6 +3212,11 @@
   version "0.0.3-canary-20230111084611"
   resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.0.3-canary-20230111084611.tgz#c8269e2b99645c2f92885c2cbd2c36fea2f953a9"
   integrity sha512-1TWmUGnFKxP9ag8IyjlQmHludY5AYX3BJ0eqDgt/dtSVzzLJZ5I9xzzZyyoOgRf5BsZHhIE5aDUH1HKAWZXgcw==
+
+"@blockprotocol/type-system@0.0.4-canary-20230207085507":
+  version "0.0.4-canary-20230207085507"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.0.4-canary-20230207085507.tgz#53752ca127f7c49875693c9b12f8d58bd40edd31"
+  integrity sha512-Hfyk/n+pmdEwQsDbH4DCSg7jwTyvpv1NCQKmplqvIXTAQQA4P6PfE92IU6dah7mqqiINsC6FUj44vyFI/ryFig==
 
 "@changesets/apply-release-plan@^6.1.3":
   version "6.1.3"
