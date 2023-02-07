@@ -78,9 +78,9 @@ pub struct ServerArgs {
     ///   being hosted (data-type, property-type, entity-type, link-type), e.g.
     ///   `(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))`
     #[clap(
-    long,
-    default_value_t = Regex::new(r"http://localhost:3000/@(?P<shortname>[\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))/[\w\-_%]+/").unwrap(),
-    env = "HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN",
+        long,
+        default_value_t = Regex::new(r"http://localhost:3000/@(?P<shortname>[\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))/[\w\-_%]+/").unwrap(),
+        env = "HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN",
     )]
     pub allowed_url_domain: Regex,
 
