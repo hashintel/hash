@@ -17,12 +17,6 @@ class ModuleNode(
 ) :
     PsiFileNode(project, value, viewSettings) {
 
-    override fun getSortOrder(settings: NodeSortSettings): NodeSortOrder = if (settings.isFoldersAlwaysOnTop) {
-        NodeSortOrder.FOLDER
-    } else {
-        super.getSortOrder(settings)
-    }
-
     override fun getChildrenImpl(): Collection<AbstractTreeNode<*>> = children
 
     override fun contains(file: VirtualFile): Boolean = children.any { child ->
