@@ -327,7 +327,7 @@ async fn stop_gap_setup_type_fetcher<A: tokio::net::ToSocketAddrs + Send + Sync 
 
     for ontology_type in ontology_types {
         let fetched_ontology_types = type_fetcher
-            .fetch_entity_type_exhaustive(context::current(), ontology_type.to_owned())
+            .fetch_ontology_type_exhaustive(context::current(), ontology_type.to_owned())
             .await
             .into_report()
             .change_context(GraphError)?
