@@ -24,9 +24,9 @@ use graph::{
     },
     ontology::{
         DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata, OntologyElementMetadata,
-        PropertyTypeWithMetadata,
+        OwnedOntologyElementMetadata, PropertyTypeWithMetadata,
     },
-    provenance::{OwnedById, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         query::{Filter, FilterExpression, Parameter},
         AccountStore, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityStore,
@@ -88,14 +88,14 @@ impl DatabaseTestWrapper {
 
     pub async fn seed<D, P, E>(
         &mut self,
-        data_types: D,
+        propertys: D,
         property_types: P,
         entity_types: E,
     ) -> Result<DatabaseApi<'_>, InsertionError>
     where
-        D: IntoIterator<Item = &'static str>,
-        P: IntoIterator<Item = &'static str>,
-        E: IntoIterator<Item = &'static str>,
+        D: IntoIterator<Item = &'static str, IntoIter: Send> + Send,
+        P: IntoIterator<Item = &'static str, IntoIter: Send> + Send,
+        E: IntoIterator<Item = &'static str, IntoIter: Send> + Send,
     {
         let mut store = self
             .connection
@@ -109,42 +109,52 @@ impl DatabaseTestWrapper {
             .await
             .expect("could not insert account id");
 
-        for data_type_str in data_types {
+        let data_types_iter = propertys.into_iter().map(|data_type_str| {
             let data_type_repr: repr::DataType = serde_json::from_str(data_type_str)
                 .expect("could not parse data type representation");
-            store
-                .create_data_type(
-                    DataType::try_from(data_type_repr).expect("could not parse data type"),
-                    OwnedById::new(account_id),
-                    UpdatedById::new(account_id),
-                )
-                .await?;
-        }
+            let data_type = DataType::try_from(data_type_repr).expect("could not parse data type");
 
-        for property_type_str in property_types {
+            let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
+                data_type.id().into(),
+                ProvenanceMetadata::new(UpdatedById::new(account_id)),
+                OwnedById::new(account_id),
+            ));
+
+            (data_type, metadata)
+        });
+        store.create_data_types(data_types_iter).await?;
+
+        let property_types_iter = property_types.into_iter().map(|property_type_str| {
             let property_type_repr: repr::PropertyType = serde_json::from_str(property_type_str)
                 .expect("could not parse property type representation");
-            store
-                .create_property_type(
-                    PropertyType::try_from(property_type_repr)
-                        .expect("could not parse property type"),
-                    OwnedById::new(account_id),
-                    UpdatedById::new(account_id),
-                )
-                .await?;
-        }
+            let property_type =
+                PropertyType::try_from(property_type_repr).expect("could not parse property type");
 
-        for entity_type_str in entity_types {
+            let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
+                property_type.id().into(),
+                ProvenanceMetadata::new(UpdatedById::new(account_id)),
+                OwnedById::new(account_id),
+            ));
+
+            (property_type, metadata)
+        });
+        store.create_property_types(property_types_iter).await?;
+
+        let entity_types_iter = entity_types.into_iter().map(|entity_type_str| {
             let entity_type_repr: repr::EntityType = serde_json::from_str(entity_type_str)
                 .expect("could not parse entity type representation");
-            store
-                .create_entity_type(
-                    EntityType::try_from(entity_type_repr).expect("could not parse entity type"),
-                    OwnedById::new(account_id),
-                    UpdatedById::new(account_id),
-                )
-                .await?;
-        }
+            let entity_type =
+                EntityType::try_from(entity_type_repr).expect("could not parse entity type");
+
+            let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
+                entity_type.id().into(),
+                ProvenanceMetadata::new(UpdatedById::new(account_id)),
+                OwnedById::new(account_id),
+            ));
+
+            (entity_type, metadata)
+        });
+        store.create_entity_types(entity_types_iter).await?;
 
         Ok(DatabaseApi { store, account_id })
     }
@@ -169,13 +179,15 @@ impl DatabaseApi<'_> {
         &mut self,
         data_type: DataType,
     ) -> Result<OntologyElementMetadata, InsertionError> {
-        self.store
-            .create_data_type(
-                data_type,
-                OwnedById::new(self.account_id),
-                UpdatedById::new(self.account_id),
-            )
-            .await
+        let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
+            data_type.id().into(),
+            ProvenanceMetadata::new(UpdatedById::new(self.account_id)),
+            OwnedById::new(self.account_id),
+        ));
+
+        self.store.create_data_type(data_type, &metadata).await?;
+
+        Ok(metadata)
     }
 
     pub async fn get_data_type(
@@ -215,13 +227,17 @@ impl DatabaseApi<'_> {
         &mut self,
         property_type: PropertyType,
     ) -> Result<OntologyElementMetadata, InsertionError> {
+        let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
+            property_type.id().into(),
+            ProvenanceMetadata::new(UpdatedById::new(self.account_id)),
+            OwnedById::new(self.account_id),
+        ));
+
         self.store
-            .create_property_type(
-                property_type,
-                OwnedById::new(self.account_id),
-                UpdatedById::new(self.account_id),
-            )
-            .await
+            .create_property_type(property_type, &metadata)
+            .await?;
+
+        Ok(metadata)
     }
 
     pub async fn get_property_type(
@@ -261,13 +277,17 @@ impl DatabaseApi<'_> {
         &mut self,
         entity_type: EntityType,
     ) -> Result<OntologyElementMetadata, InsertionError> {
+        let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
+            entity_type.id().into(),
+            ProvenanceMetadata::new(UpdatedById::new(self.account_id)),
+            OwnedById::new(self.account_id),
+        ));
+
         self.store
-            .create_entity_type(
-                entity_type,
-                OwnedById::new(self.account_id),
-                UpdatedById::new(self.account_id),
-            )
-            .await
+            .create_entity_type(entity_type, &metadata)
+            .await?;
+
+        Ok(metadata)
     }
 
     pub async fn get_entity_type(
