@@ -1,6 +1,7 @@
 import {
   type BlockComponent,
   useGraphBlockService,
+  useEntitySubgraph,
 } from "@blockprotocol/graph/react";
 import { useEffect, useRef, useState } from "react";
 import TextField from "@mui/material/TextField";
@@ -8,7 +9,7 @@ import styles from "./base.module.scss";
 
 import Autocomplete, { autocompleteClasses } from "@mui/material/Autocomplete";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { Address, useMapbox } from "./useMapbox";
+import { useMapbox } from "./useMapbox";
 import SearchIcon from "@mui/icons-material/Search";
 import Tooltip from "@mui/material/Tooltip";
 import Box from "@mui/material/Box";
@@ -26,6 +27,26 @@ import Stack from "@mui/material/Stack";
 import Paper, { paperClasses } from "@mui/material/Paper";
 import { AddressCard } from "./address-card";
 import Fade from "@mui/material/Fade";
+import isEqual from "lodash.isequal";
+import { Address, RootEntity } from "./types.gen";
+
+const addressTypeId =
+  "https://alpha.hash.ai/@luisbett/types/entity-type/address/v/1";
+const linkTypeId =
+  "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
+
+const titleKey = "https://alpha.hash.ai/@hash/types/property-type/title/";
+const descriptionKey =
+  "https://alpha.hash.ai/@luisbett/types/property-type/description/";
+
+const localityKey =
+  "https://alpha.hash.ai/@luisbett/types/property-type/addresslocality/";
+const regionKey =
+  "https://alpha.hash.ai/@luisbett/types/property-type/addressregion/";
+const postalCodeKey =
+  "https://alpha.hash.ai/@luisbett/types/property-type/postalcode/";
+const streetKey =
+  "https://alpha.hash.ai/@luisbett/types/property-type/streetaddress/";
 
 const popperPositionDataAttribute = "data-popper-placement";
 
@@ -99,7 +120,8 @@ type BlockEntityProperties = {
   description: string;
 };
 
-const accessToken = "";
+const accessToken =
+  "pk.eyJ1IjoibHVpc2JldHRlbmNvdXJ0IiwiYSI6ImNsZGl2ZXdvODBuY2YzcW1lb3N5bng4NTQifQ.HW1cG865jlptDTbJBNwhQw";
 
 const getOptionLabel = (option: AutofillSuggestion | string) =>
   typeof option === "string" ? option : option.place_name ?? "";
@@ -108,6 +130,8 @@ export function Component({
   address,
   updateAddress,
 }: {
+  title?: string;
+  description?: string;
   address?: Address;
   updateAddress: (address?: Address) => void;
 }) {
@@ -353,93 +377,134 @@ export function Component({
   );
 }
 
-export const App: BlockComponent<BlockEntityProperties> = ({
-  graph: {
-    blockEntity: { entityId, properties },
-    blockGraph,
-    readonly,
-  },
+export const App: BlockComponent<RootEntity> = ({
+  graph: { blockEntitySubgraph, readonly },
 }) => {
+  if (!blockEntitySubgraph) {
+    throw new Error("No blockEntitySubgraph provided");
+  }
+
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphService } = useGraphBlockService(blockRootRef);
+  const { rootEntity: blockEntity, linkedEntities } =
+    useEntitySubgraph(blockEntitySubgraph);
+
+  const {
+    metadata: {
+      editionId: { baseId: entityId },
+      entityTypeId,
+    },
+    properties,
+    // : {
+    //   [captionKey]: caption,
+    //   [contentKey]: content,
+    //   [languageKey]: language,
+    // },
+  } = blockEntity;
+
+  console.log(blockEntity);
+  console.log(linkedEntities);
+  console.log(entityId);
+
+  // // console.log(rootEntity);
+
+  // // const [draftAddress, setDraftAddress] = useState<Address>(properties);
+  // // const [prevProperties, setPrevProperties] = useState(properties);
+
+  // const updateTitle = () => {
+  //   await graphService?.updateEntity({
+  //     data: {
+  //       entityId,
+  //       entityTypeId,
+  //       properties: {
+  //         [titleKey]: address.title,
+  //         [descriptionKey]: address.description,
+  //       },
+  //     },
+  //   });
+  // };
 
   const updateAddress = async (address?: Address) => {
-    if (readonly) {
+    // if (address.file) {
+    //   graphService
+    //     ?.uploadFile({
+    //       data: { file: address.file, mediaType: "image" },
+    //     })
+    //     .then(async (res) => {
+    //       console.log(res);
+    // });
+    // }
+    if (readonly || !address) {
       return;
     }
 
-    if (address) {
-      if (address.file) {
-        graphService
-          ?.uploadFile({
-            data: { file: address.file, mediaType: "image" },
-          })
-          .then(async (res) => {
-            await graphService?.updateEntity({
-              data: {
-                entityId,
-                properties: {
-                  ["http://localhost:3000/@system-user/types/property-type/label/"]:
-                    address.label,
-                  ["http://localhost:3000/@system-user/types/property-type/fullAddress/"]:
-                    address.fullAddress,
-                  ["http://localhost:3000/@system-user/types/property-type/description/"]:
-                    address.description,
-                  ["http://localhost:3000/@system-user/types/property-type/mapUrl/"]:
-                    res.data.url,
-                  ["http://localhost:3000/@system-user/types/property-type/coordinates/"]:
-                    address.coordinates,
-                },
-              },
-            });
-          });
-      }
-    } else {
-      // await graphService?.deleteEntity({
-      //   data: {
-      //     entityId,
-      //   },
-      // });
-      await graphService?.updateEntity({
+    console.log("CREATIN");
+
+    const createAddressEntityResponse = await graphService?.createEntity({
+      data: {
+        entityTypeId: addressTypeId,
+        properties: {
+          [localityKey]: "1",
+          [regionKey]: "2",
+          [postalCodeKey]: "3",
+          [streetKey]: "4",
+        },
+      },
+    });
+
+    const addressEntityId =
+      createAddressEntityResponse?.data?.metadata.editionId.baseId;
+    if (addressEntityId) {
+      const createLinkResponse = await graphService?.createEntity({
         data: {
-          entityId,
-          properties: {
-            ["http://localhost:3000/@system-user/types/property-type/label/"]:
-              "",
-            ["http://localhost:3000/@system-user/types/property-type/fullAddress/"]:
-              "",
-            ["http://localhost:3000/@system-user/types/property-type/description/"]:
-              "",
-            ["http://localhost:3000/@system-user/types/property-type/mapUrl/"]:
-              "",
+          entityTypeId:
+            "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+          properties: {},
+          linkData: {
+            leftEntityId: entityId,
+            rightEntityId: addressEntityId,
           },
         },
       });
     }
   };
 
-  const address = {
-    label:
-      properties[
-        "http://localhost:3000/@system-user/types/property-type/label/"
-      ],
-    fullAddress:
-      properties[
-        "http://localhost:3000/@system-user/types/property-type/fullAddress/"
-      ],
-    description:
-      properties[
-        "http://localhost:3000/@system-user/types/property-type/description/"
-      ],
-    mapUrl:
-      properties[
-        "http://localhost:3000/@system-user/types/property-type/mapUrl/"
-      ],
-    coordinates:
-      properties[
-        "http://localhost:3000/@system-user/types/property-type/coordinates/"
-      ],
-  };
+  // //   useEffect(() =>   {
+  // //     if (properties !== prevProperties) {
+  // //     setPrevProperties(properties);
+
+  // //     if (!isEqual(properties, draftProperties)) {
+  // //       setDraftAddress(items);
+  // //     }
+  // //   }
+  // // }, [])
+
+  // const address = {
+  //   label:
+  //     properties[
+  //       "http://localhost:3000/@system-user/types/property-type/label/"
+  //     ],
+  //   fullAddress:
+  //     properties[
+  //       "http://localhost:3000/@system-user/types/property-type/fullAddress/"
+  //     ],
+  //   description:
+  //     properties[
+  //       "http://localhost:3000/@system-user/types/property-type/description/"
+  //     ],
+  //   mapUrl:
+  //     properties[
+  //       "http://localhost:3000/@system-user/types/property-type/mapUrl/"
+  //     ],
+  //   coordinates:
+  //     properties[
+  //       "http://localhost:3000/@system-user/types/property-type/coordinates/"
+  //     ],
+  // }
+
+  const address = {};
+
+  // const updateAddress = () => {};
 
   return (
     <div className={styles.block} ref={blockRootRef}>

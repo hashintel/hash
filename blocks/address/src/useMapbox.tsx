@@ -9,15 +9,7 @@ import {
 import axios from "axios";
 import debounce from "lodash.debounce";
 import { useSessionstorageState } from "rooks";
-
-export interface Address {
-  label: string;
-  fullAddress: string;
-  description: string;
-  mapUrl: string | null;
-  file: File | null;
-  coordinates: [number, number];
-}
+import { Address } from "./types.gen";
 
 const MAPBOX_API_URL = "https://api.mapbox.com";
 
