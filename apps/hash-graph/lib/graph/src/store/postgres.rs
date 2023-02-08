@@ -56,7 +56,7 @@ use crate::{
 /// This is used to determine whether a traversal should continue or stop. If a traversal is
 /// resolved for a sufficient depths and a large enough interval, [`DependencyStatus::Resolved`]
 /// will be returned from [`DependencyMap::update`], otherwise [`DependencyStatus::Unresolved`] will
-/// be returned with the [`GraphResolveDepths`] and [`TemporalInterval`] that the traversal should
+/// be returned with the [`GraphResolveDepths`] and [`Interval`] that the traversal should
 /// continue with.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DependencyStatus {

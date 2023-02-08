@@ -400,7 +400,7 @@ pub struct Projection<K, I> {
 }
 
 impl<K, I> Projection<K, I> {
-    /// Intersects the image of the projection with the provided [`TemporalInterval`].
+    /// Intersects the image of the projection with the provided [`Interval`].
     ///
     /// If the two intervals do not overlap, [`None`] is returned.
     pub fn intersect_image(
@@ -527,7 +527,7 @@ impl TimeProjection {
         }
     }
 
-    /// Intersects the image of the projection with the provided [`TemporalInterval`].
+    /// Intersects the image of the projection with the provided [`Interval`].
     ///
     /// If the two intervals do not overlap, [`None`] is returned.
     pub fn intersect_image(
