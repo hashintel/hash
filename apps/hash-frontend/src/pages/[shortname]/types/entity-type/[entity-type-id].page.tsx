@@ -1,13 +1,16 @@
-import {
-  EntityType,
-  extractBaseUri,
-  extractVersion,
-  PropertyTypeReference,
-  ValueOrArray,
-} from "@blockprotocol/type-system";
+import { extractVersion } from "@blockprotocol/type-system";
+import { EntityType } from "@blockprotocol/type-system/slim";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
-import { DefinitionTab, EntityTypeContext } from "@hashintel/type-editor";
+import {
+  FontAwesomeIcon,
+  OntologyChip,
+  OntologyIcon,
+} from "@hashintel/design-system";
+import {
+  EntityTypeEditorForm,
+  getSchemaFromFormData,
+} from "@hashintel/type-editor";
+import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 // eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
@@ -23,85 +26,18 @@ import {
   NextPageWithLayout,
 } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
-import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
-import { OntologyChip } from "../../shared/ontology-chip";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
+import { DefinitionTab } from "./[entity-type-id].page/definition-tab";
 import { EditBarTypeEditor } from "./[entity-type-id].page/edit-bar-type-editor";
 import { EntitiesTab } from "./[entity-type-id].page/entities-tab";
 import { EntityTypeTabs } from "./[entity-type-id].page/entity-type-tabs";
+import { LatestPropertyTypesContextProvider } from "./[entity-type-id].page/latest-property-types-context";
+import { EntityTypeContext } from "./[entity-type-id].page/shared/entity-type-context";
 import { EntityTypeEntitiesContext } from "./[entity-type-id].page/shared/entity-type-entities-context";
-import { EntityTypeEditorForm } from "./[entity-type-id].page/shared/form-types";
 import { getEntityTypeBaseUri } from "./[entity-type-id].page/shared/get-entity-type-base-uri";
-import { LatestPropertyTypesContext } from "./[entity-type-id].page/shared/latest-property-types-context";
 import { useCurrentTab } from "./[entity-type-id].page/shared/tabs";
-import { useLatestPropertyTypesContextValue } from "./[entity-type-id].page/shared/use-latest-property-types-context-value";
 import { useEntityTypeEntitiesContextValue } from "./[entity-type-id].page/use-entity-type-entities-context-value";
 import { useEntityTypeValue } from "./[entity-type-id].page/use-entity-type-value";
-
-const getSchemaFromEditorForm = (
-  data: EntityTypeEditorForm,
-): Partial<EntityType> => {
-  const properties = data.properties;
-
-  const schemaProperties: Record<
-    string,
-    ValueOrArray<PropertyTypeReference>
-  > = {};
-  const required = [];
-
-  for (const property of properties) {
-    const propertyKey = extractBaseUri(property.$id);
-
-    if (
-      typeof property.minValue === "string" ||
-      typeof property.maxValue === "string"
-    ) {
-      throw new Error("Invalid property constraint");
-    }
-
-    const prop: ValueOrArray<PropertyTypeReference> = property.array
-      ? {
-          type: "array",
-          minItems: property.minValue,
-          items: { $ref: property.$id },
-          ...(property.infinity ? {} : { maxItems: property.maxValue }),
-        }
-      : { $ref: property.$id };
-
-    schemaProperties[propertyKey] = prop;
-
-    if (property.required) {
-      required.push(extractBaseUri(property.$id));
-    }
-  }
-
-  const links: NonNullable<EntityType["links"]> = {};
-
-  for (const link of data.links) {
-    if (
-      typeof link.minValue === "string" ||
-      typeof link.maxValue === "string"
-    ) {
-      throw new Error("Invalid property constraint");
-    }
-
-    links[link.$id] = {
-      type: "array",
-      minItems: link.minValue,
-      ...(link.infinity ? {} : { maxItems: link.maxValue }),
-      ordered: false,
-      items: link.entityTypes.length
-        ? { oneOf: link.entityTypes.map((id) => ({ $ref: id })) }
-        : {},
-    };
-  }
-
-  return {
-    properties: schemaProperties,
-    links,
-    required,
-  };
-};
 
 type Entries<T> = {
   [K in keyof T]: [K, T[K]];
@@ -121,8 +57,6 @@ const Page: NextPageWithLayout = () => {
 
   const entityTypeEntitiesValue =
     useEntityTypeEntitiesContextValue(baseEntityTypeUri);
-
-  const propertyTypes = useLatestPropertyTypesContextValue();
 
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
@@ -204,7 +138,7 @@ const Page: NextPageWithLayout = () => {
   );
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
-    const entityTypeSchema = getSchemaFromEditorForm(data);
+    const entityTypeSchema = getSchemaFromFormData(data);
 
     if (isDraft) {
       if (!draftEntityType) {
@@ -255,10 +189,10 @@ const Page: NextPageWithLayout = () => {
         <title>{entityType.title} | Entity Type | HASH</title>
       </Head>
       <FormProvider {...formMethods}>
-        <LatestPropertyTypesContext.Provider value={propertyTypes}>
-          <EntityTypeContext.Provider value={entityTypeAndPropertyTypes}>
+        <Box display="contents" component="form" onSubmit={handleSubmit}>
+          <EntityTypeContext.Provider value={entityType}>
             <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
-              <Box display="contents" component="form" onSubmit={handleSubmit}>
+              <LatestPropertyTypesContextProvider>
                 <TopContextBar
                   defaultCrumbIcon={null}
                   crumbs={[
@@ -309,7 +243,7 @@ const Page: NextPageWithLayout = () => {
                 >
                   <Container>
                     <OntologyChip
-                      icon={<HashOntologyIcon />}
+                      icon={<OntologyIcon />}
                       domain="hash.ai"
                       path={
                         <>
@@ -355,14 +289,25 @@ const Page: NextPageWithLayout = () => {
 
                 <Box py={5}>
                   <Container>
-                    {currentTab === "definition" ? <DefinitionTab /> : null}
+                    {currentTab === "definition" ? (
+                      entityTypeAndPropertyTypes ? (
+                        <DefinitionTab
+                          entityTypeAndPropertyTypes={
+                            entityTypeAndPropertyTypes
+                          }
+                          ownedById={routeNamespace.accountId as OwnedById}
+                        />
+                      ) : (
+                        "Loading..."
+                      )
+                    ) : null}
                     {currentTab === "entities" ? <EntitiesTab /> : null}
                   </Container>
                 </Box>
-              </Box>
+              </LatestPropertyTypesContextProvider>
             </EntityTypeEntitiesContext.Provider>
           </EntityTypeContext.Provider>
-        </LatestPropertyTypesContext.Provider>
+        </Box>
       </FormProvider>
       <GlobalStyles<Theme>
         styles={(theme) => ({

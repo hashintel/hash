@@ -4,7 +4,6 @@ import {
   IconButton,
   TextField,
 } from "@hashintel/design-system";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import {
   Box,
   Collapse,
@@ -24,7 +23,7 @@ import {
 } from "react";
 import { TransitionGroup } from "react-transition-group";
 
-import { useEntityTypesSubgraphOptional } from "../../entity-types-context/hooks";
+import { useEntityTypesOptional } from "../../entity-types-context/hooks";
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
 import {
   SortActionsDropdown,
@@ -142,11 +141,7 @@ export const AccountEntityTypeList: FunctionComponent<
     }
   }, [searchVisible]);
 
-  const entityTypesSubgraph = useEntityTypesSubgraphOptional();
-  const allEntityTypes = useMemo(
-    () => (entityTypesSubgraph ? getRoots(entityTypesSubgraph) : null),
-    [entityTypesSubgraph],
-  );
+  const allEntityTypes = useEntityTypesOptional();
 
   const accountEntityTypes = useMemo(() => {
     if (allEntityTypes) {

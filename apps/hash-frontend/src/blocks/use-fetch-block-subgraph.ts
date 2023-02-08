@@ -1,8 +1,8 @@
 import {
-  EntityEditionId,
+  EntityRootType,
+  EntityVertexId,
   GraphResolveDepths,
   Subgraph,
-  SubgraphRootTypes,
 } from "@blockprotocol/graph";
 import { VersionedUri } from "@blockprotocol/type-system/slim";
 import { EntityId } from "@local/hash-isomorphic-utils/types";
@@ -15,7 +15,7 @@ export const useFetchBlockSubgraph = () => {
 
   const fetchBlockSubgraph = useCallback(
     async (blockEntityTypeId: VersionedUri, blockEntityId?: EntityId) => {
-      const depths: GraphResolveDepths = {
+      const depths: Partial<GraphResolveDepths> = {
         hasRightEntity: {
           incoming: 2,
           outgoing: 2,
@@ -48,7 +48,7 @@ export const useFetchBlockSubgraph = () => {
           depths,
           edges: {},
           roots: [
-            placeholderEntity.metadata.editionId as any as EntityEditionId,
+            placeholderEntity.metadata.editionId as any as EntityVertexId,
           ], // @todo-0.3 fix when type mismatches fixed
           vertices: {
             [placeholderEntity.metadata.editionId.baseId]: {
@@ -57,7 +57,7 @@ export const useFetchBlockSubgraph = () => {
                 inner: placeholderEntity,
               },
             },
-          } as unknown as Subgraph["vertices"], // @todo-0.3 do something about this
+          } as unknown as Subgraph<true>["vertices"], // @todo-0.3 do something about this
         };
 
         return blockEntitySubgraph;
@@ -76,7 +76,7 @@ export const useFetchBlockSubgraph = () => {
           }
 
           return {
-            ...(data as unknown as Subgraph<SubgraphRootTypes["entity"]>), // @todo-0.3 do something about this,
+            ...(data as unknown as Subgraph<true, EntityRootType<true>>), // @todo-0.3 do something about this,
             roots: [
               // @todo-0.3 remove this when edition ids match between HASH and BP
               {

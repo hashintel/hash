@@ -51,6 +51,6 @@
     "typescript": "4.9.4"
   },
   "peerDependencies": {
-    "@mui/material": "^5.8.1"
+    "@mui/material": "5.10.6"
   }
 }

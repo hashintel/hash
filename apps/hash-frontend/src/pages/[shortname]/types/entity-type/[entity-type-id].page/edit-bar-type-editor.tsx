@@ -1,5 +1,6 @@
 import { faSmile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
+import { EntityTypeEditorForm } from "@hashintel/type-editor/src/shared/form-types";
 import { useState } from "react";
 import { useFormState } from "react-hook-form";
 
@@ -11,7 +12,6 @@ import {
   EditBarContents,
   useFreezeScrollWhileTransitioning,
 } from "./shared/edit-bar";
-import { EntityTypeEditorForm } from "./shared/form-types";
 
 const useFrozenValue = <T extends any>(value: T): T => {
   const { isDirty } = useFormState<EntityTypeEditorForm>();

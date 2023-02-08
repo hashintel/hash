@@ -5,7 +5,6 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { GridCellKind, Item, TextCell } from "@glideapps/glide-data-grid";
 import { Chip, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
-import { useEntityType } from "@hashintel/type-editor";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { Box, Paper, Stack } from "@mui/material";
 import { useRouter } from "next/router";
@@ -33,11 +32,12 @@ import {
   TypeEntitiesRow,
   useEntitiesTable,
 } from "./entities-tab/use-entities-table";
+import { useEntityType } from "./shared/entity-type-context";
 import { useEntityTypeEntities } from "./shared/entity-type-entities-context";
 
 export const EntitiesTab: FunctionComponent = () => {
   const router = useRouter();
-  const { entityType } = useEntityType();
+
   const { entities, entityTypes, propertyTypes, subgraph } =
     useEntityTypeEntities();
 
@@ -48,6 +48,8 @@ export const EntitiesTab: FunctionComponent = () => {
 
   const { columns, rows } =
     useEntitiesTable(entities, entityTypes, propertyTypes, subgraph) ?? {};
+
+  const entityType = useEntityType();
 
   const entitiesCount = useMemo(() => {
     const namespaceEntities =

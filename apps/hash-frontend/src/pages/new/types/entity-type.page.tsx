@@ -1,5 +1,10 @@
 import { EntityType } from "@blockprotocol/type-system";
-import { Button, TextField } from "@hashintel/design-system";
+import {
+  Button,
+  OntologyChip,
+  OntologyIcon,
+  TextField,
+} from "@hashintel/design-system";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { generateBaseTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { versionedUriFromComponents } from "@local/hash-subgraph/src/shared/type-system-patch";
@@ -25,8 +30,6 @@ import {
   NextPageWithLayout,
 } from "../../../shared/layout";
 import { Link } from "../../../shared/ui/link";
-import { HashOntologyIcon } from "../../[shortname]/shared/hash-ontology-icon";
-import { OntologyChip } from "../../[shortname]/shared/ontology-chip";
 import { TopContextBar } from "../../shared/top-context-bar";
 import { WorkspaceContext } from "../../shared/workspace-context";
 
@@ -141,7 +144,7 @@ const Page: NextPageWithLayout = () => {
         <Box py={3.75}>
           <Container>
             <OntologyChip
-              icon={<HashOntologyIcon />}
+              icon={<OntologyIcon />}
               domain="hash.ai"
               path={
                 <Typography color={(theme) => theme.palette.blue[70]}>

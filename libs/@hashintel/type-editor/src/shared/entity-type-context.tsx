@@ -3,7 +3,7 @@ import { createContext, useContext } from "react";
 
 export const EntityTypeContext = createContext<null | {
   entityType: EntityType;
-  propertyTypes: Record<string, PropertyType>;
+  latestPropertyTypes: Record<string, PropertyType>;
 }>(null);
 
 export const useEntityType = () => {

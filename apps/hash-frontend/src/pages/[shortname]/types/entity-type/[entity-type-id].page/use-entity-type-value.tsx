@@ -1,8 +1,6 @@
-import {
-  EntityType,
-  extractBaseUri,
-  PropertyType,
-} from "@blockprotocol/type-system";
+import { PropertyType } from "@blockprotocol/graph";
+import { EntityType, extractBaseUri } from "@blockprotocol/type-system";
+import { VersionedUri } from "@blockprotocol/type-system/slim";
 import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
 import { Subgraph } from "@local/hash-subgraph";
 import { getEntityTypesByBaseUri } from "@local/hash-subgraph/src/stdlib/element/entity-type";
@@ -27,7 +25,7 @@ import {
 
 interface EntityTypeAndPropertyTypes {
   entityType: EntityType;
-  propertyTypes: Record<string, PropertyType>;
+  propertyTypes: Record<VersionedUri, PropertyType>;
 }
 
 const getPropertyTypes = (
@@ -113,7 +111,7 @@ export const useEntityTypeValue = (
     rememberedEntityTypeAndPropertyTypes,
     setRememberedEntityTypeAndPropertyTypes,
   ] = useState<EntityTypeAndPropertyTypes | null>(
-    availableEntityTypeAndPropertyTypes,
+    availableEntityTypeAndPropertyTypes as any, // @todo-0.3 fix this when types consistent
   );
 
   if (
@@ -125,7 +123,7 @@ export const useEntityTypeValue = (
           entityTypeBaseUri))
   ) {
     setRememberedEntityTypeAndPropertyTypes(
-      availableEntityTypeAndPropertyTypes,
+      availableEntityTypeAndPropertyTypes as any, // @todo-0.3 fix this when types consistent,
     );
   }
 
