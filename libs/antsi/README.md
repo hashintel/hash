@@ -36,6 +36,10 @@ fn main() {
 }
 ```
 
+<pre>
+O no! <span style="color: red;">mainframe breach <s>(from an unknown user)</s> has been <strong>detected</strong></span>
+</pre>
+
 ## Contributors
 
 `antsi` was created by [Bilal Mahmoud](https://github.com/indietyp) for use in [`error-stack`](https://github.com/hashintel/hash/tree/main/libs/error-stack). It is being developed in conjunction with [HASH](https://hash.dev/) as an open-source project. We gratefully accept external contributions and have published a [contributing guide](https://github.com/hashintel/hash/blob/main/CONTRIBUTING.md) that outlines the process. If you have questions, please reach out to us on our [Discord server](https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_libs-antsi-readme). You can also report bugs [directly on the GitHub repo](https://github.com/hashintel/hash/issues/new?assignees=Alfred-Mountfield%2CTimDiekmann%2Cindietyp&labels=A-antsi%2CC-bug&template=bug-report-antsi.yml).
