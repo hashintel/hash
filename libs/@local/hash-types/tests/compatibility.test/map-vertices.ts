@@ -116,13 +116,13 @@ const mapKnowledgeGraphVertex = (
       properties: vertex.inner.properties as PropertyObject,
       linkData: {
         ...vertex.inner.linkData,
-        leftEntityId: vertex.inner.linkData?.leftEntityId as EntityId,
-        rightEntityId: vertex.inner.linkData?.rightEntityId as EntityId,
+        leftEntityId: vertex.inner.linkData?.leftentityId,
+        rightEntityId: vertex.inner.linkData?.rightentityId,
       },
       metadata: {
         ...vertex.inner.metadata,
         editionId: {
-          baseId: vertex.inner.metadata.editionId.baseId as EntityId,
+          baseId: vertex.inner.metadata.recordId.entityId,
           recordId: vertex.inner.metadata.editionId.recordId,
         },
         version: vertex.inner.metadata.version as EntityVersion,

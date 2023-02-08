@@ -2,8 +2,21 @@
   "name": "@local/hash-types",
   "version": "0.0.0-private",
   "private": true,
-  "main": "src/main.ts",
-  "types": "src/main.ts",
+  "exports": {
+    ".": "./src/main.ts",
+    "./stdlib": "./src/stdlib.ts"
+  },
+  "types": "./src/main.ts",
+  "typesVersions": {
+    "*": {
+      ".": [
+        "./src/main.ts"
+      ],
+      "stdlib": [
+        "./src/stdlib.ts"
+      ]
+    }
+  },
   "scripts": {
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",

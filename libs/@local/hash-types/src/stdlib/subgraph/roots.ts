@@ -52,7 +52,8 @@ export const isDataTypeRootedSubgraph = (
  */
 export const isPropertyTypeRootedSubgraph = (
   subgraph: Subgraph,
-): subgraph is Subgraph<PropertyTypeRootType> => isPropertyTypeRootedSubgraphBp(subgraph);
+): subgraph is Subgraph<PropertyTypeRootType> =>
+  isPropertyTypeRootedSubgraphBp(subgraph);
 
 /**
  * A type-guard that can be used to constrain the generic parameter of `Subgraph` to `EntityTypeWithMetadata`.
@@ -64,7 +65,8 @@ export const isPropertyTypeRootedSubgraph = (
  */
 export const isEntityTypeRootedSubgraph = (
   subgraph: Subgraph,
-): subgraph is Subgraph<EntityTypeRootType> => isEntityTypeRootedSubgraphBp(subgraph);
+): subgraph is Subgraph<EntityTypeRootType> =>
+  isEntityTypeRootedSubgraphBp(subgraph);
 
 /**
  * A type-guard that can be used to constrain the generic parameter of `Subgraph` to `Entity`.
@@ -76,4 +78,4 @@ export const isEntityTypeRootedSubgraph = (
  */
 export const isEntityRootedSubgraph = (
   subgraph: Subgraph,
-): isEntityRootedSubgraphBp(subgraph);
+): subgraph is Subgraph<EntityRootType> => isEntityRootedSubgraphBp(subgraph);
