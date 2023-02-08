@@ -75,9 +75,9 @@ jobs:
       - name: Install tools
         shell: bash
         run: |
-          cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.36.3
-          cargo quickinstall cargo-hack --version 0.5.26
+          cargo install cargo-binstall
+          cargo binstall --no-confirm cargo-make --version 0.36.3
+          cargo binstall --no-confirm cargo-hack --version 0.5.26
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -140,10 +140,10 @@ jobs:
       - name: Install tools
         shell: bash
         run: |
-          cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.36.3
-          cargo quickinstall cargo-hack --version 0.5.26
-          cargo quickinstall cargo-nextest --version 0.9.37
+          cargo install cargo-binstall
+          cargo binstall --no-confirm cargo-make --version 0.36.3
+          cargo binstall --no-confirm cargo-hack --version 0.5.26
+          cargo binstall --no-confirm cargo-nextest --version 0.9.37
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -224,10 +224,10 @@ jobs:
       - name: Install tools
         shell: bash
         run: |
-          cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.36.3
-          cargo quickinstall cargo-nextest --version 0.9.37
-          cargo quickinstall cargo-llvm-cov --version 0.5.9
+          cargo install cargo-binstall
+          cargo binstall --no-confirm cargo-make --version 0.36.3
+          cargo binstall --no-confirm cargo-nextest --version 0.9.37
+          cargo binstall --no-confirm cargo-llvm-cov --version 0.5.9
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -279,8 +279,8 @@ jobs:
 
       - name: Install tools
         run: |
-          cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.36.3
+          cargo install cargo-binstall
+          cargo binstall --no-confirm cargo-make --version 0.36.3
 
       - name: Build Docker container
         run: cargo make --profile ${{ matrix.profile }} build-docker
@@ -312,11 +312,11 @@ jobs:
         if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' }}
         shell: bash
         run: |
-          cargo install cargo-quickinstall
-          cargo quickinstall cargo-make --version 0.36.3
-          cargo quickinstall cargo-hack --version 0.5.26
-          cargo quickinstall cargo-nextest --version 0.9.37
-          cargo quickinstall cargo-semver-checks --version 0.17.0
+          cargo install cargo-binstall
+          cargo binstall --no-confirm cargo-make --version 0.36.3
+          cargo binstall --no-confirm cargo-hack --version 0.5.26
+          cargo binstall --no-confirm cargo-nextest --version 0.9.37
+          cargo binstall --no-confirm cargo-semver-checks --version 0.17.0
 
       - name: Run lints
         if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' }}
