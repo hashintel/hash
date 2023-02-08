@@ -43,10 +43,10 @@
     "port": 63210
   },
   "blockprotocol": {
-    "name": "@thehabbos007/calculation",
     "blockType": {
       "entryPoint": "react"
     },
+    "name": "@thehabbos007/calculation",
     "displayName": "Calculation",
     "examples": [
       {

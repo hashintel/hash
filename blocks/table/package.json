@@ -48,10 +48,10 @@
     "servePort": 62678
   },
   "blockprotocol": {
-    "name": "@hash/table",
     "blockType": {
       "entryPoint": "react"
     },
+    "name": "@hash/table",
     "displayName": "Table",
     "icon": "public/table.svg",
     "image": "public/preview.svg",

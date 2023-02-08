@@ -41,10 +41,10 @@
     "servePort": 63212
   },
   "blockprotocol": {
-    "name": "@hash/callout",
     "blockType": {
       "entryPoint": "react"
     },
+    "name": "@hash/callout",
     "displayName": "Callout",
     "icon": "public/bullhorn-variant-outline.svg",
     "image": "public/preview.svg",

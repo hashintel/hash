@@ -48,10 +48,10 @@
     "servePort": 62722
   },
   "blockprotocol": {
-    "name": "@tldraw/drawing",
     "blockType": {
       "entryPoint": "react"
     },
+    "name": "@tldraw/drawing",
     "displayName": "Drawing",
     "examples": [
       {

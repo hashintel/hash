@@ -41,10 +41,10 @@
     "servePort": 63282
   },
   "blockprotocol": {
-    "name": "@hash/heading",
     "blockType": {
       "entryPoint": "react"
     },
+    "name": "@hash/heading",
     "displayName": "Heading",
     "icon": "public/h1.svg",
     "image": "public/preview.svg",

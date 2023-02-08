@@ -47,10 +47,10 @@
     "servePort": 63215
   },
   "blockprotocol": {
-    "name": "@timdiekmann/countdown",
     "blockType": {
       "entryPoint": "react"
     },
+    "name": "@timdiekmann/countdown",
     "displayName": "Countdown",
     "examples": [
       {

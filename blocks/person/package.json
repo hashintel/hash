@@ -42,10 +42,10 @@
     "servePort": 62692
   },
   "blockprotocol": {
-    "name": "@hash/person",
     "blockType": {
       "entryPoint": "react"
     },
+    "name": "@hash/person",
     "displayName": "Person",
     "icon": "public/account-circle.svg",
     "image": "public/preview.svg",
