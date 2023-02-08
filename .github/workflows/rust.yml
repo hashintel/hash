@@ -72,12 +72,14 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
 
+      - name: Install binstall
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-binstall
+
       - name: Install tools
         shell: bash
         run: |
-          wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
-          tar -xzf cargo-binstall-x86_64-unknown-linux-musl.tgz
-          mv cargo-binstall $HOME/.cargo/bin/
           cargo binstall --no-confirm cargo-make --version 0.36.3
           cargo binstall --no-confirm cargo-hack --version 0.5.26
 
@@ -139,12 +141,14 @@ jobs:
             **/node_modules
           key: ${{ hashFiles('**/yarn.lock') }}
 
+      - name: Install binstall
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-binstall
+
       - name: Install tools
         shell: bash
         run: |
-          wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
-          tar -xzf cargo-binstall-x86_64-unknown-linux-musl.tgz
-          mv cargo-binstall $HOME/.cargo/bin/
           cargo binstall --no-confirm cargo-make --version 0.36.3
           cargo binstall --no-confirm cargo-hack --version 0.5.26
           cargo binstall --no-confirm cargo-nextest --version 0.9.37
@@ -225,12 +229,14 @@ jobs:
             **/node_modules
           key: ${{ hashFiles('**/yarn.lock') }}
 
+      - name: Install binstall
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-binstall
+
       - name: Install tools
         shell: bash
         run: |
-          wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
-          tar -xzf cargo-binstall-x86_64-unknown-linux-musl.tgz
-          mv cargo-binstall $HOME/.cargo/bin/
           cargo binstall --no-confirm cargo-make --version 0.36.3
           cargo binstall --no-confirm cargo-nextest --version 0.9.37
           cargo binstall --no-confirm cargo-llvm-cov --version 0.5.9
@@ -283,11 +289,14 @@ jobs:
             **/node_modules
           key: ${{ hashFiles('**/yarn.lock') }}
 
+      - name: Install binstall
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-binstall
+
       - name: Install tools
+        shell: bash
         run: |
-          wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
-          tar -xzf cargo-binstall-x86_64-unknown-linux-musl.tgz
-          mv cargo-binstall $HOME/.cargo/bin/
           cargo binstall --no-confirm cargo-make --version 0.36.3
 
       - name: Build Docker container
@@ -315,6 +324,12 @@ jobs:
         uses: ./.github/actions/install-rust-toolchain
         with:
           toolchain: ${{ matrix.toolchain }}
+
+      - name: Install binstall
+        if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' }}
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-binstall
 
       - name: Install tools
         if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' }}
