@@ -15,15 +15,18 @@
     }
   },
   "scripts": {
+    "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "test": "jest"
   },
   "dependencies": {
+    "@apollo/client": "3.6.9",
     "@blockprotocol/core": "0.0.12",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-graphql-shared": "0.0.0-private",
+    "@local/hash-types": "0.0.0-private",
     "@sentry/browser": "7.30.0",
     "immer": "9.0.6",
     "jsonschema": "1.4.0",
@@ -41,6 +44,10 @@
   },
   "devDependencies": {
     "@blockprotocol/type-system": "0.0.4-canary-20230208150010",
+    "@graphql-codegen/cli": "2.16.4",
+    "@graphql-codegen/fragment-matcher": "3.3.3",
+    "@graphql-codegen/typescript": "2.8.7",
+    "@graphql-codegen/typescript-operations": "2.5.12",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash": "4.14.188",

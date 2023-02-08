@@ -1,4 +1,9 @@
 import { ApolloClient } from "@apollo/client";
+import { VersionedUri } from "@blockprotocol/type-system/slim";
+import {
+  getPageQuery,
+  updatePageContents,
+} from "@local/hash-graphql-shared/queries/page.queries";
 import { EntityId, OwnedById } from "@local/hash-types";
 import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
@@ -12,19 +17,16 @@ import {
   isDraftBlockEntity,
   TEXT_ENTITY_TYPE_ID,
 } from "./entity-store";
+import {
+  GetPageQuery,
+  GetPageQueryVariables,
+  UpdatePageAction,
+  UpdatePageContentsMutation,
+  UpdatePageContentsMutationVariables,
+  UpdatePageContentsResultPlaceholder,
+} from "./graphql/api-types.gen";
 import { isEntityNode } from "./prosemirror";
-/**
- * @todo - how to handle this
- *  import {
- *    GetPageQuery,
- *    GetPageQueryVariables,
- *    UpdatePageAction,
- *    UpdatePageContentsMutation,
- *    UpdatePageContentsMutationVariables,
- *    UpdatePageContentsResultPlaceholder,
- *  } from "./graphql/api-types.gen";
- *  import { getPageQuery, updatePageContents } from "./queries/page.queries";
- */
+
 const generatePlaceholderId = () => `placeholder-${uuid()}`;
 
 const flipMap = <K, V>(map: Map<K, V>): Map<V, K> =>
@@ -58,9 +60,9 @@ const calculateSaveActions = async (
       continue;
     }
 
-    if (draftEntity.metadata.editionId.baseId) {
+    if (draftEntity.metadata.recordId.entityId) {
       // This means the entity already exists, but may need updating
-      const savedEntity = store.saved[draftEntity.metadata.editionId.baseId];
+      const savedEntity = store.saved[draftEntity.metadata.recordId.entityId];
 
       /**
        * This can happen if the saved entity this draft entity belonged to has
@@ -90,7 +92,7 @@ const calculateSaveActions = async (
 
       actions.push({
         updateEntity: {
-          entityId: draftEntity.metadata.editionId.baseId,
+          entityId: draftEntity.metadata.recordId.entityId,
           properties: nextProperties,
         },
       });
@@ -182,7 +184,7 @@ const calculateSaveActions = async (
   const beforeBlockDraftIds = blocks.map((block) => {
     const draftEntity = getDraftEntityByEntityId(
       store.draft,
-      block.metadata.editionId.baseId,
+      block.metadata.recordId.entityId,
     );
     if (!draftEntity) {
       throw new Error("Draft entity missing");
@@ -246,14 +248,14 @@ const calculateSaveActions = async (
         throw new Error("missing draft block entity");
       }
 
-      if (!draftEntity.metadata.editionId.baseId) {
+      if (!draftEntity.metadata.recordId.entityId) {
         // The block has not yet been saved to the database, and therefore there is no saved block to compare it with
         // It's probably been inserted as part of this loop and spliced into the before ids – no further action required
         position += 1;
         continue;
       }
 
-      const savedEntity = store.saved[draftEntity.metadata.editionId.baseId];
+      const savedEntity = store.saved[draftEntity.metadata.recordId.entityId];
       if (!savedEntity) {
         throw new Error("missing saved block entity");
       }
@@ -267,10 +269,10 @@ const calculateSaveActions = async (
       const oldChildEntityForBlock = savedEntity.blockChildEntity;
 
       if (
-        oldChildEntityForBlock.metadata.editionId.baseId !==
-        newChildEntityForBlock?.metadata.editionId.baseId
+        oldChildEntityForBlock.metadata.recordId.entityId !==
+        newChildEntityForBlock?.metadata.recordId.entityId
       ) {
-        if (!newChildEntityForBlock?.metadata.editionId.baseId) {
+        if (!newChildEntityForBlock?.metadata.recordId.entityId) {
           // this should never happen because users select new child entities from API-provided entities.
           // if this errors in future, it's because users are choosing locally-created but not yet db-persisted entities
           throw new Error("New child entity for block has not yet been saved");
@@ -278,9 +280,9 @@ const calculateSaveActions = async (
 
         actions.push({
           swapBlockData: {
-            entityId: savedEntity.metadata.editionId.baseId as EntityId,
-            newEntityEntityId: newChildEntityForBlock.metadata.editionId
-              .baseId as EntityId,
+            entityId: savedEntity.metadata.recordId.entityId,
+            newEntityEntityId: newChildEntityForBlock.metadata.recordId
+              .entityId as EntityId,
           },
         });
       }
@@ -307,8 +309,8 @@ const calculateSaveActions = async (
 
       const blockData = draftEntity.blockChildEntity;
       const blockChildEntityId =
-        blockData?.metadata.editionId.baseId ??
-        draftIdToPlaceholderId.get(blockData!.draftId!);
+        blockData?.metadata.recordId.entityId ??
+        draftIdToPlaceholderId.get(blockData.draftId!);
 
       if (!blockChildEntityId) {
         throw new Error("Block data entity id missing");
@@ -316,7 +318,7 @@ const calculateSaveActions = async (
 
       const blockPlaceholderId = generatePlaceholderId();
 
-      if (!draftEntity.metadata.editionId.baseId) {
+      if (!draftEntity.metadata.recordId.entityId) {
         draftIdToPlaceholderId.set(draftEntity.draftId, blockPlaceholderId);
       }
 
@@ -327,11 +329,11 @@ const calculateSaveActions = async (
           entity: {
             // This cast is technically incorrect as the blockChildEntityId could be a placeholder.
             // In that case, we rely on the EntityId to be swapped out in the GQL resolver.
-            existingEntityId: blockChildEntityId as EntityId,
+            existingEntityId: blockChildEntityId,
           },
-          ...(draftEntity.metadata.editionId.baseId
+          ...(draftEntity.metadata.recordId.entityId
             ? {
-                existingBlockEntityId: draftEntity.metadata.editionId.baseId,
+                existingBlockEntityId: draftEntity.metadata.recordId.entityId,
               }
             : {
                 blockPlaceholderId,
