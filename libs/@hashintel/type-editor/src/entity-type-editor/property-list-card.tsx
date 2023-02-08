@@ -519,9 +519,9 @@ const InsertPropertyRow = (
       extractBaseUri(includedProperty.$id),
     );
 
-    return propertyTypes
-      .filter((type) => !propertyBaseUris.includes(extractBaseUri(type.$id)))
-      .map((type) => type);
+    return propertyTypes.filter(
+      (type) => !propertyBaseUris.includes(extractBaseUri(type.$id)),
+    );
   }, [properties, propertyTypes]);
 
   return (

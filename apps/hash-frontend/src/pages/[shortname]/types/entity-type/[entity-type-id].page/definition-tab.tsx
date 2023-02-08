@@ -28,7 +28,7 @@ export const DefinitionTab = ({
   const propertyTypeOptions = useMemo(() => {
     return {
       ...possiblyIncompletePropertyTypeOptions,
-      ...entityTypeAndPropertyTypes,
+      ...entityTypeAndPropertyTypes.propertyTypes,
     };
   }, [entityTypeAndPropertyTypes, possiblyIncompletePropertyTypeOptions]);
 
