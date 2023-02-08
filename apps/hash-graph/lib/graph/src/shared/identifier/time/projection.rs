@@ -1,10 +1,12 @@
-use interval_ops::Interval;
 use serde::{Deserialize, Serialize};
 use utoipa::{openapi, ToSchema};
 
-use crate::identifier::time::{
-    DecisionTime, ProjectedTime, TimeAxis, TimeInterval, TimeIntervalBound, Timestamp,
-    TransactionTime, UnresolvedTimeInterval,
+use crate::{
+    identifier::time::{
+        DecisionTime, ProjectedTime, TimeAxis, TimeInterval, TimeIntervalBound, Timestamp,
+        TransactionTime, UnresolvedTimeInterval,
+    },
+    interval::Interval,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

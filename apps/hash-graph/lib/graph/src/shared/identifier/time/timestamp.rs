@@ -2,11 +2,12 @@ use core::fmt;
 use std::{collections::Bound, error::Error, marker::PhantomData, str::FromStr, time::SystemTime};
 
 use derivative::Derivative;
-use interval_ops::LowerBound;
 use postgres_types::{private::BytesMut, FromSql, ToSql, Type};
 use serde::{Deserialize, Serialize};
 use time::{format_description::well_known::Iso8601, serde::iso8601, OffsetDateTime};
 use utoipa::{openapi, ToSchema};
+
+use crate::interval::LowerBound;
 
 /// Opaque structure to represent a single point in time.
 ///
