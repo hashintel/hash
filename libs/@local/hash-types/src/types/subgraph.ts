@@ -4,6 +4,7 @@ import {
   type EntityTypeRootType as EntityTypeRootTypeBp,
   type PropertyTypeRootType as PropertyTypeRootTypeBp,
   type SubgraphRootType as SubgraphRootTypeBp,
+  isTemporalSubgraph as isTemporalSubgraphBp,
 } from "@blockprotocol/graph";
 import { Subtype } from "@local/advanced-types/subtype";
 
@@ -80,3 +81,9 @@ export type Subgraph<RootType extends SubgraphRootType = SubgraphRootType> = {
   depths: GraphResolveDepths;
   temporalAxes: SubgraphTemporalAxes;
 };
+
+export const isTemporalSubgraph = <
+  RootType extends SubgraphRootType = SubgraphRootType,
+>(
+  subgraph: Subgraph<RootType>,
+): subgraph is Subgraph<RootType> => isTemporalSubgraphBp(subgraph);
