@@ -2,9 +2,9 @@
 
 Thanks for taking the time to contribute! 🎉 We've established a set of [community guidelines](https://hash.ai/legal/community) to enable as many people as possible to contribute to and benefit from HASH. Please follow these when interacting with this repo.
 
-We have a community [Discord server](https://hash.ai/discord) where you can ask questions about contributing, and obtain helpful advice.
-
 If you'd like to make a significant change or re-architecture to this repository or any project within, please first open a [discussion](https://github.com/hashintel/hash/discussions) or create an [issue](https://github.com/hashintel/hash/issues) to get feedback before spending too much time.
+
+We also have a community [Discord server](https://hash.ai/discord) where you can ask questions about contributing, and obtain helpful advice.
 
 ## About this repo
 
