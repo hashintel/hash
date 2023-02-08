@@ -44,6 +44,7 @@
     "blockType": {
       "entryPoint": "react"
     },
+    "name": "@hash/paragraph",
     "displayName": "Paragraph",
     "icon": "public/paragraph.svg",
     "image": "public/preview.svg",
