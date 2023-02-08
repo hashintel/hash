@@ -40,6 +40,7 @@
     "servePort": 62679
   },
   "blockprotocol": {
+    "name": "@hash/divider",
     "displayName": "Divider",
     "icon": "public/divider.svg",
     "image": "public/preview.svg",

@@ -44,6 +44,7 @@
     "blockType": {
       "entryPoint": "react"
     },
+    "name": "@hash/video",
     "displayName": "Video",
     "icon": "public/play-box-outline.svg",
     "image": "public/preview.svg",
