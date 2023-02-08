@@ -1,4 +1,5 @@
-import ai.hash.rustextra.projectView.ModuleNode
+package ai.hash.rustextra.projectView
+
 import com.intellij.codeInsight.navigation.NavigationUtil
 import com.intellij.openapi.application.invokeLater
 import com.intellij.util.ui.tree.TreeUtil
@@ -6,6 +7,7 @@ import javax.swing.JTree
 import javax.swing.event.TreeExpansionEvent
 import javax.swing.event.TreeExpansionListener
 
+// https://intellij-support.jetbrains.com/hc/en-us/community/posts/360004324499-How-to-hook-into-click-select-event-of-the-project-view-
 class ModuleNodeTreeExpansionListener: TreeExpansionListener {
     override fun treeExpanded(event: TreeExpansionEvent?) {
         if (event != null && event.source is JTree) {
