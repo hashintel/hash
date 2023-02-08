@@ -801,16 +801,35 @@ export interface EntityTypeWithMetadata {
 export interface EntityVersion {
   /**
    *
-   * @type {VersionInterval}
+   * @type {EntityVersionDecisionTime}
    * @memberof EntityVersion
    */
-  decisionTime: VersionInterval;
+  decisionTime: EntityVersionDecisionTime;
   /**
    *
-   * @type {VersionInterval}
+   * @type {EntityVersionDecisionTime}
    * @memberof EntityVersion
    */
-  transactionTime: VersionInterval;
+  transactionTime: EntityVersionDecisionTime;
+}
+/**
+ *
+ * @export
+ * @interface EntityVersionDecisionTime
+ */
+export interface EntityVersionDecisionTime {
+  /**
+   *
+   * @type {string}
+   * @memberof EntityVersionDecisionTime
+   */
+  end: string | null;
+  /**
+   *
+   * @type {string}
+   * @memberof EntityVersionDecisionTime
+   */
+  start: string;
 }
 /**
  *
@@ -2514,25 +2533,6 @@ export interface UpdatePropertyTypeRequest {
    * @memberof UpdatePropertyTypeRequest
    */
   typeToUpdate: string;
-}
-/**
- *
- * @export
- * @interface VersionInterval
- */
-export interface VersionInterval {
-  /**
-   *
-   * @type {string}
-   * @memberof VersionInterval
-   */
-  end: string | null;
-  /**
-   *
-   * @type {string}
-   * @memberof VersionInterval
-   */
-  start: string;
 }
 /**
  * @type Vertex

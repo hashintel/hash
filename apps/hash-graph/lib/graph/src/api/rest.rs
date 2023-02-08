@@ -46,11 +46,13 @@ use crate::{
         ontology::OntologyTypeEditionId,
         time::{
             DecisionTime, DecisionTimeImage, DecisionTimeKernel, DecisionTimeProjection,
-            TimeIntervalBound, TimeProjection, Timestamp, TransactionTime, TransactionTimeImage,
-            TransactionTimeKernel, TransactionTimeProjection, UnresolvedDecisionTimeImage,
-            UnresolvedDecisionTimeKernel, UnresolvedDecisionTimeProjection,
-            UnresolvedTimeProjection, UnresolvedTransactionTimeImage,
-            UnresolvedTransactionTimeKernel, UnresolvedTransactionTimeProjection, VersionInterval,
+            IncludedTimeIntervalBound, TimeIntervalBound, TimeProjection, Timestamp,
+            TransactionTime, TransactionTimeImage, TransactionTimeKernel,
+            TransactionTimeProjection, UnboundedOrExcludedTimeIntervalBound,
+            UnresolvedDecisionTimeImage, UnresolvedDecisionTimeKernel,
+            UnresolvedDecisionTimeProjection, UnresolvedTimeProjection,
+            UnresolvedTransactionTimeImage, UnresolvedTransactionTimeKernel,
+            UnresolvedTransactionTimeProjection,
         },
         EntityVertexId, GraphElementId, GraphElementVertexId,
     },
@@ -493,8 +495,14 @@ impl Modify for TimeSchemaAddon {
                     .into(),
             );
             components.schemas.insert(
-                VersionInterval::<()>::schema().0.to_owned(),
-                VersionInterval::<()>::schema().1,
+                UnboundedOrExcludedTimeIntervalBound::<()>::schema()
+                    .0
+                    .to_owned(),
+                UnboundedOrExcludedTimeIntervalBound::<()>::schema().1,
+            );
+            components.schemas.insert(
+                IncludedTimeIntervalBound::<()>::schema().0.to_owned(),
+                IncludedTimeIntervalBound::<()>::schema().1,
             );
             components.schemas.insert(
                 TimeIntervalBound::<()>::schema().0.to_owned(),

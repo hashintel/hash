@@ -3,8 +3,9 @@ use utoipa::{openapi, ToSchema};
 
 use crate::{
     identifier::time::{
-        DecisionTime, ProjectedTime, TimeAxis, TimeInterval, TimeIntervalBound, Timestamp,
-        TransactionTime, UnresolvedTimeInterval,
+        axis::TemporalTagged, bound::TimeIntervalBound, DecisionTime, IncludedTimeIntervalBound,
+        ProjectedTime, TimeAxis, Timestamp, TransactionTime, UnboundedOrExcludedTimeIntervalBound,
+        UnresolvedTimeInterval,
     },
     interval::Interval,
 };
@@ -158,14 +159,14 @@ impl<K, I> UnresolvedProjection<K, I> {
             },
             image: Image {
                 axis: self.image.axis,
-                interval: TimeInterval {
-                    start: self.image.interval.start.unwrap_or_else(|| {
+                interval: Interval::new(
+                    self.image.interval.start.unwrap_or_else(|| {
                         TimeIntervalBound::Included(Timestamp::from_anonymous(now))
                     }),
-                    end: self.image.interval.end.unwrap_or_else(|| {
+                    self.image.interval.end.unwrap_or_else(|| {
                         TimeIntervalBound::Included(Timestamp::from_anonymous(now))
                     }),
-                },
+                ),
             },
         }
     }
@@ -326,7 +327,7 @@ impl ToSchema<'_> for Kernel<TransactionTime> {
 pub struct Image<A> {
     pub axis: A,
     #[serde(flatten)]
-    pub interval: TimeInterval<A>,
+    pub interval: Interval<Timestamp<A>, TimeIntervalBound<A>, TimeIntervalBound<A>>,
 }
 
 pub type DecisionTimeImage = Image<DecisionTime>;
@@ -345,7 +346,14 @@ impl ToSchema<'_> for Image<DecisionTime> {
                             )
                             .required("axis"),
                     )
-                    .item(TimeInterval::<DecisionTime>::schema().1)
+                    .item(
+                        Interval::<
+                            Timestamp<DecisionTime>,
+                            TimeIntervalBound<DecisionTime>,
+                            TimeIntervalBound<DecisionTime>,
+                        >::schema()
+                        .1,
+                    )
                     .build(),
             )
             .into(),
@@ -369,7 +377,14 @@ impl ToSchema<'_> for Image<TransactionTime> {
                             )
                             .required("axis"),
                     )
-                    .item(TimeInterval::<TransactionTime>::schema().1)
+                    .item(
+                        Interval::<
+                            Timestamp<TransactionTime>,
+                            TimeIntervalBound<TransactionTime>,
+                            TimeIntervalBound<TransactionTime>,
+                        >::schema()
+                        .1,
+                    )
                     .build(),
             )
             .into(),
@@ -385,13 +400,20 @@ pub struct Projection<K, I> {
 }
 
 impl<K, I> Projection<K, I> {
-    /// Intersects the image of the projection with the provided [`TimeInterval`].
+    /// Intersects the image of the projection with the provided [`TemporalInterval`].
     ///
     /// If the two intervals do not overlap, [`None`] is returned.
-    pub fn intersect_image(self, interval: TimeInterval<I>) -> Option<Self> {
+    pub fn intersect_image(
+        self,
+        interval: Interval<
+            Timestamp<I>,
+            IncludedTimeIntervalBound<I>,
+            UnboundedOrExcludedTimeIntervalBound<I>,
+        >,
+    ) -> Option<Self> {
         self.image
             .interval
-            .intersect(interval)
+            .intersect(interval.convert())
             .map(|interval| Self {
                 kernel: self.kernel,
                 image: Image {
@@ -455,10 +477,10 @@ impl ToSchema<'_> for Projection<DecisionTime, TransactionTime> {
 ///
 /// In order to query data from the Graph, only one of the two time axes can be used. This is
 /// achieved by using a `TimeProjection`. The `TimeProjection` pins one axis to a specified
-/// [`Timestamp`], while the other axis can be a [`TimeInterval`]. The pinned axis is called the
+/// [`Timestamp`], while the other axis can be a [`Interval`]. The pinned axis is called the
 /// [`Kernel`] and the other axis is called the [`Image`] of a projection. The returned data will
-/// then only contain temporal data that is contained in the [`TimeInterval`] of the [`Image`], the
-/// [`ProjectedTime`], for the given [`Timestamp`] of the [`Kernel`].
+/// then only contain temporal data that is contained in the [`Interval`] of the [`Image`],
+/// the [`ProjectedTime`], for the given [`Timestamp`] of the [`Kernel`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum TimeProjection {
@@ -484,7 +506,7 @@ impl TimeProjection {
     }
 
     #[must_use]
-    pub const fn kernel(&self) -> Timestamp<()> {
+    pub fn kernel(&self) -> Timestamp<()> {
         match self {
             Self::DecisionTime(projection) => projection.kernel.timestamp.cast(),
             Self::TransactionTime(projection) => projection.kernel.timestamp.cast(),
@@ -492,17 +514,30 @@ impl TimeProjection {
     }
 
     #[must_use]
-    pub const fn image(&self) -> TimeInterval<ProjectedTime> {
+    pub fn image(
+        &self,
+    ) -> Interval<
+        Timestamp<ProjectedTime>,
+        TimeIntervalBound<ProjectedTime>,
+        TimeIntervalBound<ProjectedTime>,
+    > {
         match self {
             Self::DecisionTime(projection) => projection.image.interval.cast(),
             Self::TransactionTime(projection) => projection.image.interval.cast(),
         }
     }
 
-    /// Intersects the image of the projection with the provided [`TimeInterval`].
+    /// Intersects the image of the projection with the provided [`TemporalInterval`].
     ///
     /// If the two intervals do not overlap, [`None`] is returned.
-    pub fn intersect_image(self, version_interval: TimeInterval<ProjectedTime>) -> Option<Self> {
+    pub fn intersect_image(
+        self,
+        version_interval: Interval<
+            Timestamp<ProjectedTime>,
+            IncludedTimeIntervalBound<ProjectedTime>,
+            UnboundedOrExcludedTimeIntervalBound<ProjectedTime>,
+        >,
+    ) -> Option<Self> {
         match self {
             Self::DecisionTime(projection) => projection
                 .intersect_image(version_interval.cast())
@@ -513,7 +548,14 @@ impl TimeProjection {
         }
     }
 
-    pub fn set_image(&mut self, interval: TimeInterval<ProjectedTime>) {
+    pub fn set_image(
+        &mut self,
+        interval: Interval<
+            Timestamp<ProjectedTime>,
+            TimeIntervalBound<ProjectedTime>,
+            TimeIntervalBound<ProjectedTime>,
+        >,
+    ) {
         match self {
             Self::DecisionTime(projection) => projection.image.interval = interval.cast(),
             Self::TransactionTime(projection) => projection.image.interval = interval.cast(),
