@@ -1,6 +1,7 @@
 [package]
 name = "antsi"
 version = "0.0.0-reserved"
+authors = ["HASH"]
 edition = "2021"
 rust-version = "1.63.0"
 license = "MIT OR Apache-2.0"
