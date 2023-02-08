@@ -1,6 +1,5 @@
 import { ApolloClient } from "@apollo/client";
-import { EntityId, OwnedById } from "@local/hash-isomorphic-utils/types";
-import { VersionedUri } from "@local/hash-subgraph";
+import { EntityId, OwnedById } from "@local/hash-types";
 import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
@@ -13,17 +12,19 @@ import {
   isDraftBlockEntity,
   TEXT_ENTITY_TYPE_ID,
 } from "./entity-store";
-import {
-  GetPageQuery,
-  GetPageQueryVariables,
-  UpdatePageAction,
-  UpdatePageContentsMutation,
-  UpdatePageContentsMutationVariables,
-  UpdatePageContentsResultPlaceholder,
-} from "./graphql/api-types.gen";
 import { isEntityNode } from "./prosemirror";
-import { getPageQuery, updatePageContents } from "./queries/page.queries";
-
+/**
+ * @todo - how to handle this
+ *  import {
+ *    GetPageQuery,
+ *    GetPageQueryVariables,
+ *    UpdatePageAction,
+ *    UpdatePageContentsMutation,
+ *    UpdatePageContentsMutationVariables,
+ *    UpdatePageContentsResultPlaceholder,
+ *  } from "./graphql/api-types.gen";
+ *  import { getPageQuery, updatePageContents } from "./queries/page.queries";
+ */
 const generatePlaceholderId = () => `placeholder-${uuid()}`;
 
 const flipMap = <K, V>(map: Map<K, V>): Map<V, K> =>
@@ -89,7 +90,7 @@ const calculateSaveActions = async (
 
       actions.push({
         updateEntity: {
-          entityId: draftEntity.metadata.editionId.baseId as EntityId,
+          entityId: draftEntity.metadata.editionId.baseId,
           properties: nextProperties,
         },
       });
@@ -330,8 +331,7 @@ const calculateSaveActions = async (
           },
           ...(draftEntity.metadata.editionId.baseId
             ? {
-                existingBlockEntityId: draftEntity.metadata.editionId
-                  .baseId as EntityId,
+                existingBlockEntityId: draftEntity.metadata.editionId.baseId,
               }
             : {
                 blockPlaceholderId,

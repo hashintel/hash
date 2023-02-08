@@ -1,4 +1,4 @@
-import { EntityId, PropertyObject } from "@local/hash-subgraph";
+import { EntityId, EntityPropertiesObject } from "@local/hash-types";
 import { Draft, produce } from "immer";
 import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
@@ -187,7 +187,7 @@ const setBlockChildEntity = (
 ) => {
   let targetDraftEntity = getDraftEntityByEntityId(
     draftEntityStore,
-    targetEntity.metadata.editionId.baseId,
+    targetEntity.metadata.recordId.entityId,
   );
 
   // Add target entity to draft store if it is not
@@ -195,12 +195,12 @@ const setBlockChildEntity = (
   // @todo consider moving this to ProseMirrorSchemaManager.updateBlockData
   if (!targetDraftEntity) {
     const targetEntityDraftId = generateDraftIdForEntity(
-      targetEntity.metadata.editionId.baseId,
+      targetEntity.metadata.recordId.entityId,
     );
     targetDraftEntity = {
       metadata: {
-        editionId: {
-          baseId: targetEntity.metadata.editionId.baseId,
+        recordId: {
+          entityId: targetEntity.metadata.recordId.entityId,
         },
       },
       draftId: targetEntityDraftId,
@@ -286,7 +286,7 @@ const entityStoreReducer = (
                 );
               } else {
                 draftEntity.properties = action.payload
-                  .properties as PropertyObject;
+                  .properties as EntityPropertiesObject;
               }
             }
           },
@@ -331,8 +331,8 @@ const entityStoreReducer = (
 
         draftState.store.draft[action.payload.draftId] = {
           metadata: {
-            editionId: {
-              baseId: action.payload.entityId,
+            recordId: {
+              entityId: action.payload.entityId,
             },
           },
           draftId: action.payload.draftId,
@@ -598,7 +598,7 @@ class ProsemirrorStateChangeHandler {
     const draftEntityStore = this.getDraftEntityStoreFromTransaction();
 
     const entityId = node.attrs.draftId
-      ? draftEntityStore[node.attrs.draftId]?.metadata.editionId.baseId
+      ? draftEntityStore[node.attrs.draftId]?.metadata.recordId.entityId
       : null;
 
     const draftId = entityId

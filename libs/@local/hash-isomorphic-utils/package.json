@@ -23,6 +23,7 @@
   "dependencies": {
     "@blockprotocol/core": "0.0.12",
     "@local/hash-graph-client": "0.0.0-private",
+    "@local/hash-graphql-shared": "0.0.0-private",
     "@sentry/browser": "7.30.0",
     "immer": "9.0.6",
     "jsonschema": "1.4.0",
