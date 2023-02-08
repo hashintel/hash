@@ -13,7 +13,6 @@ use std::{
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
-use interval_ops::Interval;
 #[cfg(feature = "__internal_bench")]
 use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
 use tokio_postgres::{error::SqlState, GenericClient};
@@ -30,6 +29,7 @@ use crate::{
         time::{ProjectedTime, TimeInterval},
         EntityVertexId,
     },
+    interval::Interval,
     ontology::{
         ExternalOntologyElementMetadata, OntologyElementMetadata, OwnedOntologyElementMetadata,
     },

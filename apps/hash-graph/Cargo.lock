@@ -776,7 +776,6 @@ dependencies = [
  "graph-test-data",
  "hyper",
  "include_dir",
- "interval-ops",
  "opentelemetry 0.18.0",
  "opentelemetry-otlp",
  "postgres-protocol",
@@ -1075,10 +1074,6 @@ checksum = "7a5bbe824c507c5da5956355e86a746d82e0e1464f65d862cc5e71da70e94b2c"
 dependencies = [
  "cfg-if",
 ]
-
-[[package]]
-name = "interval-ops"
-version = "0.0.0"
 
 [[package]]
 name = "io-lifetimes"
