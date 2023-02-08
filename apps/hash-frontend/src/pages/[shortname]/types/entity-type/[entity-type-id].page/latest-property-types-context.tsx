@@ -14,7 +14,6 @@ import {
 } from "react";
 
 import { useBlockProtocolAggregatePropertyTypes } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-property-types";
-import { EntityTypesContext } from "../../../../../shared/entity-types-context/shared/context";
 
 export type LatestPropertyTypesContextValues = {
   propertyTypes: PropertyTypeWithMetadata[] | null;
@@ -28,22 +27,18 @@ export const useLatestPropertyTypes = () => {
   return useContext(LatestPropertyTypesContext)?.propertyTypes;
 };
 
-export const useEntityTypesContextRequired = () => {
-  const context = useContext(EntityTypesContext);
+export const usePropertyTypesContextRequired = () => {
+  const context = useContext(LatestPropertyTypesContext);
 
   if (!context) {
     throw new Error("Context missing");
   }
 
-  useEffect(() => {
-    context.ensureFetched();
-  });
-
   return context;
 };
 
 export const useFetchLatestPropertyTypes = () => {
-  return useEntityTypesContextRequired().refetch;
+  return usePropertyTypesContextRequired().refetch;
 };
 
 export const useLatestPropertyTypesContextValue = () => {
