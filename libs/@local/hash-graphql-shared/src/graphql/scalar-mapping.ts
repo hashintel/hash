@@ -1,36 +1,38 @@
+import { EntityPropertiesObject } from "@local/hash-types/types/knowledge/entity";
+
 export const scalars = {
   Date: "string",
   JSONObject: "@blockprotocol/core#JsonObject",
   UnknownEntityProperties:
-    "@local/hash-isomorphic-utils/graphql/types#UnknownEntityProperties",
-  TextToken: "@local/hash-isomorphic-utils/graphql/types#TextToken",
+    "@local/hash-graphql-shared/graphql/types#UnknownEntityProperties",
+  TextToken: "@local/hash-graphql-shared/graphql/types#TextToken",
 
-  VersionedUri: "@local/hash-subgraph#VersionedUri",
+  VersionedUri: "@local/hash-types#VersionedUri",
 
-  DataTypeWithMetadata: "@local/hash-subgraph#DataTypeWithMetadata",
+  DataTypeWithMetadata: "@local/hash-types#DataTypeWithMetadata",
   DataTypeWithoutId:
-    "@local/hash-isomorphic-utils/graphql/types#DataTypeWithoutId",
+    "@local/hash-graphql-shared/graphql/types#DataTypeWithoutId",
 
-  EntityTypeWithMetadata: "@local/hash-subgraph#EntityTypeWithMetadata",
+  EntityTypeWithMetadata: "@local/hash-types#EntityTypeWithMetadata",
   EntityTypeWithoutId:
-    "@local/hash-isomorphic-utils/graphql/types#EntityTypeWithoutId",
+    "@local/hash-graphql-shared/graphql/types#EntityTypeWithoutId",
 
-  PropertyTypeWithMetadata: "@local/hash-subgraph#PropertyTypeWithMetadata",
+  PropertyTypeWithMetadata: "@local/hash-types#PropertyTypeWithMetadata",
   PropertyTypeWithoutId:
-    "@local/hash-isomorphic-utils/graphql/types#PropertyTypeWithoutId",
+    "@local/hash-graphql-shared/graphql/types#PropertyTypeWithoutId",
 
-  Entity: "@local/hash-subgraph#Entity",
-  EntityEditionId: "@local/hash-subgraph#EntityEditionId",
-  EntityMetadata: "@local/hash-subgraph#EntityMetadata",
-  EntityVersion: "@local/hash-subgraph/#EntityVersion",
-  PropertyObject: "@local/hash-subgraph#PropertyObject",
+  Entity: "@local/hash-types#Entity",
+  EntityEditionId: "@local/hash-types#EntityEditionId",
+  EntityMetadata: "@local/hash-types#EntityMetadata",
+  EntityVersion: "@local/hash-types/#EntityVersion",
+  EntityPropertiesObject: "@local/hash-types#EntityPropertiesObject",
 
-  GraphElementVertexId: "@local/hash-subgraph#GraphElementVertexId",
-  Edges: "@local/hash-subgraph#Edges",
-  Vertices: "@local/hash-subgraph#Vertices",
-  LinkData: "@local/hash-subgraph#LinkData",
-  TimeProjection: "@local/hash-subgraph#TimeProjection",
-  ResolvedTimeProjection: "@local/hash-subgraph#ResolvedTimeProjection",
+  GraphElementVertexId: "@local/hash-types#GraphElementVertexId",
+  Edges: "@local/hash-types#Edges",
+  Vertices: "@local/hash-types#Vertices",
+  LinkData: "@local/hash-types#LinkData",
+  TimeProjection: "@local/hash-types#TimeProjection",
+  ResolvedTimeProjection: "@local/hash-types#ResolvedTimeProjection",
 
   OwnedById: "@local/hash-isomorphic-utils/types#OwnedById",
   UpdatedById: "@local/hash-isomorphic-utils/types#UpdatedById",
