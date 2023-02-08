@@ -42,6 +42,7 @@
     "servePort": 62677
   },
   "blockprotocol": {
+    "name": "@hash/image",
     "blockType": {
       "entryPoint": "react"
     },

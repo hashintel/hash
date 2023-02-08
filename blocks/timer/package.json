@@ -41,6 +41,7 @@
     "servePort": 63213
   },
   "blockprotocol": {
+    "name": "@timdiekmann/timer",
     "blockType": {
       "entryPoint": "react"
     },

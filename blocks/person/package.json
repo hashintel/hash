@@ -42,6 +42,7 @@
     "servePort": 62692
   },
   "blockprotocol": {
+    "name": "@hash/person",
     "blockType": {
       "entryPoint": "react"
     },

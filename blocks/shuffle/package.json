@@ -53,6 +53,7 @@
     "port": 63212
   },
   "blockprotocol": {
+    "name": "@hash/shuffle",
     "blockType": {
       "entryPoint": "react"
     },

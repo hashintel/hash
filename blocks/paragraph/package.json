@@ -41,6 +41,7 @@
     "servePort": 62682
   },
   "blockprotocol": {
+    "name": "@hash/paragraph",
     "blockType": {
       "entryPoint": "react"
     },

@@ -41,6 +41,7 @@
     "servePort": 62683
   },
   "blockprotocol": {
+    "name": "@hash/video",
     "blockType": {
       "entryPoint": "react"
     },

@@ -53,6 +53,7 @@
     "servePort": 63222
   },
   "blockprotocol": {
+    "name": "@alfie/github-pr-overview",
     "blockType": {
       "entryPoint": "react"
     },

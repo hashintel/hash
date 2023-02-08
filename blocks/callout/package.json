@@ -41,6 +41,7 @@
     "servePort": 63212
   },
   "blockprotocol": {
+    "name": "@hash/callout",
     "blockType": {
       "entryPoint": "react"
     },
