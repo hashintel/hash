@@ -1,13 +1,15 @@
 use std::{error::Error, fmt, ops::Bound};
 
 use derivative::Derivative;
-use interval_ops::{Interval, IntervalBounds, LowerBound, UpperBound};
 use postgres_protocol::types::RangeBound;
 use postgres_types::{private::BytesMut, ToSql};
 use serde::{Deserialize, Serialize};
 use utoipa::{openapi, ToSchema};
 
-use crate::identifier::time::Timestamp;
+use crate::{
+    identifier::time::Timestamp,
+    interval::{Interval, IntervalBounds, LowerBound, UpperBound},
+};
 
 #[derive(Derivative, Serialize, Deserialize, ToSchema)]
 #[derivative(
