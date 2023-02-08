@@ -29,7 +29,10 @@ TOOLCHAINS = {
 }
 
 # Try and publish these crates when their version is changed in Cargo.toml
-PUBLISH_PATTERNS = ["libs/error-stack**"]
+PUBLISH_PATTERNS = [
+    "libs/error-stack**",
+    "libs/antsi**",
+]
 # deer is disabled for now because we don't want to publish it just yet
 # "libs/deer**"
 
