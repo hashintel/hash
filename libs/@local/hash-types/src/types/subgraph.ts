@@ -5,7 +5,7 @@ import {
   type PropertyTypeRootType as PropertyTypeRootTypeBp,
   type SubgraphRootType as SubgraphRootTypeBp,
 } from "@blockprotocol/graph";
-import { Subtype } from "@local/hash-isomorphic-utils/util";
+import { Subtype } from "@local/advanced-types/subtype";
 
 import { Entity } from "./knowledge/entity";
 import { DataTypeWithMetadata } from "./ontology/data-type";

@@ -4,7 +4,7 @@ import {
   type OntologyRootedEdges as OntologyRootedEdgesBp,
 } from "@blockprotocol/graph";
 import { BaseUri } from "@blockprotocol/type-system/slim";
-import { Subtype } from "@local/hash-isomorphic-utils/util";
+import { Subtype } from "@local/advanced-types/subtype";
 
 import { EntityId } from "../../branded";
 import { OntologyTypeRevisionId } from "../ontology";

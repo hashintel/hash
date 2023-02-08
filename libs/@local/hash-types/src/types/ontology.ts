@@ -1,4 +1,4 @@
-import { Brand } from "@local/hash-isomorphic-utils/types";
+import { Brand } from "@local/advanced-types/brand";
 
 export * from "./ontology/data-type";
 export * from "./ontology/entity-type";

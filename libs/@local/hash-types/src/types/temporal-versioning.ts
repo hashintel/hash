@@ -10,28 +10,25 @@ import {
   type PinnedTemporalAxis as PinnedTemporalAxisBp,
   type PinnedTemporalAxisUnresolved as PinnedTemporalAxisUnresolvedBp,
   /** @todo - temporalAxes will be renamed upstream */
-  type TemporalAxes as TemporalAxis,
+  type TemporalAxis as TemporalAxisBp,
   type TemporalBound as TemporalBoundBp,
   type TimeInterval as TimeIntervalBp,
   type TimeIntervalUnresolved as TimeIntervalUnresolvedBp,
   type Timestamp as TimestampBp,
-  type Unbounded,
+  type Unbounded as UnboundedBp,
   type VariableTemporalAxis as VariableTemporalAxisBp,
   type VariableTemporalAxisUnresolved as VariableTemporalAxisUnresolvedBp,
 } from "@blockprotocol/graph";
-import { Brand } from "@local/hash-isomorphic-utils/types";
-import { Subtype } from "@local/hash-isomorphic-utils/util";
+import { Brand } from "@local/advanced-types/brand";
+import { Subtype } from "@local/advanced-types/subtype";
 
 /**
  * An ISO 8601 formatted timestamp string
  */
 export type Timestamp = Brand<TimestampBp, "Timestamp">;
 
-/** @todo - temporalAxes will be renamed upstream */
-export {
-  type TemporalAxes as TemporalAxis,
-  type Unbounded,
-} from "@blockprotocol/graph";
+export type TemporalAxis = TemporalAxisBp;
+export type Unbounded = UnboundedBp;
 
 /**
  * The bound of a time-interval that is either exclusively or inclusively limited by a `Timestamp`

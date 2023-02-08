@@ -5,7 +5,7 @@ import {
   isKnowledgeGraphOutwardEdge as isKnowledgeGraphOutwardEdgeBp,
   isOntologyOutwardEdge as isOntologyOutwardEdgeBp,
 } from "@blockprotocol/graph";
-import { Subtype } from "@local/hash-isomorphic-utils/util";
+import { Subtype } from "@local/advanced-types/subtype";
 
 import { EntityId } from "../../../branded";
 import {

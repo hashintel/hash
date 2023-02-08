@@ -2,7 +2,7 @@ import {
   type EdgeResolveDepths as EdgeResolveDepthsBp,
   type GraphResolveDepths as GraphResolveDepthsBp,
 } from "@blockprotocol/graph";
-import { Subtype } from "@local/hash-isomorphic-utils/util";
+import { Subtype } from "@local/advanced-types/subtype";
 
 export type OutgoingEdgeResolveDepth = {
   outgoing: number;

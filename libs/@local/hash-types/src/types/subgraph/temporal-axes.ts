@@ -3,7 +3,7 @@ import {
   type QueryTemporalAxesUnresolved as QueryTemporalAxesUnresolvedBp,
   type SubgraphTemporalAxes as SubgraphTemporalAxesBp,
 } from "@blockprotocol/graph";
-import { Subtype } from "@local/hash-isomorphic-utils/util";
+import { Subtype } from "@local/advanced-types/subtype";
 
 import {
   PinnedTemporalAxis,

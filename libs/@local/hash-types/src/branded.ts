@@ -1,4 +1,4 @@
-import { Brand } from "@local/hash-isomorphic-utils/types";
+import { Brand } from "@local/advanced-types/brand";
 import { validate as validateUuid } from "uuid";
 
 /** Valid Uuids of the system */
@@ -35,7 +35,7 @@ export const entityIdFromOwnedByIdAndEntityUuid = (
 
 export const splitEntityId = (entityId: EntityId): [OwnedById, EntityUuid] => {
   const [ownedById, entityUuid] = entityId.split("%");
-  return [ownedById! as OwnedById, entityUuid! as EntityUuid];
+  return [ownedById as OwnedById, entityUuid as EntityUuid];
 };
 
 export const extractOwnedByIdFromEntityId = (entityId: EntityId): string => {

@@ -1,6 +1,6 @@
 import { EntityTypeWithMetadata as EntityTypeWithMetadataBp } from "@blockprotocol/graph";
 import { EntityType } from "@blockprotocol/type-system/slim";
-import { Subtype } from "@local/hash-isomorphic-utils/util";
+import { Subtype } from "@local/advanced-types/subtype";
 
 import { OntologyElementMetadata } from "./metadata";
 

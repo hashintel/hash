@@ -11,10 +11,10 @@
     "test": "jest"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.1.0-canary-20230207085507",
-    "@blockprotocol/type-system": "0.0.4-canary-20230207085507",
+    "@blockprotocol/graph": "0.1.0-canary-20230208150010",
+    "@blockprotocol/type-system": "0.0.4-canary-20230208150010",
+    "@local/advanced-types": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
-    "@local/hash-isomorphic-utils": "0.0.0-private",
     "uuid": "8.3.2"
   },
   "devDependencies": {

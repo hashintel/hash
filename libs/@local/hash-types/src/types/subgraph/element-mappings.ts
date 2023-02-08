@@ -1,4 +1,10 @@
+import {
+  type GraphElementForIdentifier as GraphElementForIdentifierBp,
+  type GraphElementIdentifiers as GraphElementIdentifiersBp,
+  type IdentifierForGraphElement as IdentifierForGraphElementBp,
+} from "@blockprotocol/graph";
 import { BaseUri, VersionedUri } from "@blockprotocol/type-system/slim";
+import { Subtype } from "@local/advanced-types/subtype";
 
 import { EntityId } from "../../branded";
 import { Entity, EntityRecordId } from "../knowledge";
@@ -25,13 +31,8 @@ import {
  *
  * Helpful when creating generic functions that operate over a {@link Subgraph}
  */
-/** @todo all of these should be exported from the graph service package */
-/*
-import { type GraphElementIdentifiers as GraphElementIdentifiersBp } from "@blockprotocol/graph";
 export type GraphElementIdentifiers = Subtype<
-  GraphElementIdentifiersBp,
-*/
-export type GraphElementIdentifiers =
+  GraphElementIdentifiersBp<true>,
   | {
       identifier: VersionedUri | OntologyTypeVertexId | OntologyTypeRecordId;
       element:
@@ -57,7 +58,8 @@ export type GraphElementIdentifiers =
       identifier: EntityId | EntityIdWithInterval;
       element: Entity[];
       vertex: EntityVertex[];
-    };
+    }
+>;
 
 /**
  * A helper type that takes a type `T` and a type `U`, and tries to select subtypes of `T` that match the given type
@@ -84,9 +86,11 @@ type RecursiveSelect<T, U, Reversed extends boolean = false> = T extends U
  * Helper type which returns the potential ways of identifying a given element of the graph by looking up the associated
  * mapping in {@link GraphElementIdentifiers}.
  */
-/*
+/* @todo - unsure why this doesn't work
 import { type IdentifierForGraphElement as IdentifierForGraphElementBp } from "@blockprotocol/graph";
-export type IdentifierForGraphElement = Subtype<
+export type IdentifierForGraphElement<
+  Element extends GraphElementIdentifiers["element"],
+> = Subtype<
   IdentifierForGraphElementBp,
 */
 export type IdentifierForGraphElement<
@@ -111,9 +115,11 @@ export type IdentifierForGraphElement<
  * Helper type which returns the elements of the graph identified by the given identifier type, by looking up the
  * associated mapping in {@link GraphElementIdentifiers}.
  */
-/*
+/* @todo - unsure why this doesn't work
 import { type GraphElementForIdentifier as GraphElementForIdentifierBp } from "@blockprotocol/graph";
-export type GraphElementForIdentifier = Subtype<
+export type GraphElementForIdentifier<
+  Identifier extends GraphElementIdentifiers["identifier"],
+> = Subtype<
   GraphElementForIdentifierBp,
 */
 export type GraphElementForIdentifier<

@@ -11,8 +11,8 @@ import {
   isEntityRecordId as isEntityRecordIdBp,
 } from "@blockprotocol/graph";
 import { BaseUri, VersionedUri } from "@blockprotocol/type-system/slim";
-import { Brand } from "@local/hash-isomorphic-utils/types";
-import { Subtype } from "@local/hash-isomorphic-utils/util";
+import { Brand } from "@local/advanced-types/brand";
+import { Subtype } from "@local/advanced-types/subtype";
 
 import { EntityId, isEntityId } from "../../branded";
 import { ProvenanceMetadata } from "../shared";

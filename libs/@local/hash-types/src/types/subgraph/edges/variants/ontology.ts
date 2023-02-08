@@ -23,7 +23,7 @@ import {
   isPropertiesConstrainedByEdge as isPropertiesConstrainedByEdgeBp,
   isValuesConstrainedByEdge as isValuesConstrainedByEdgeBp,
 } from "@blockprotocol/graph";
-import { Subtype } from "@local/hash-isomorphic-utils/util";
+import { Subtype } from "@local/advanced-types/subtype";
 
 import { OntologyTypeVertexId } from "../../vertices";
 import { GenericOutwardEdge } from "../generic-outward-edge";
