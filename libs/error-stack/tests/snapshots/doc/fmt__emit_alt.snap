@@ -3,17 +3,17 @@
 ├╴backtrace (1)
 ├╴error code: 404
 ├╴suggestion 0:
-│    do you have a connection to the internet?
+│   do you have a connection to the internet?
 ├╴suggestion (0)
 ├╴error code: 405
 ├╴abnormal program execution detected
 ├╴warning: unable to determine environment
 ├╴suggestion 1:
-│    execute the program from the fish shell
+│   execute the program from the fish shell
 ├╴suggestion (1)
 ├╴error code: 501
 ├╴suggestion 2:
-│    try better next time!
+│   try better next time!
 ╰╴suggestion (2)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

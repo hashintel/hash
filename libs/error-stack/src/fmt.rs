@@ -366,7 +366,7 @@ impl Indent {
                 group: false,
                 visible: true,
                 spacing: Some(Spacing::Minimal),
-            } => sym!('│', ' ', ' '),
+            } => sym!('│', ' '),
             Self {
                 group: false,
                 visible: true,
@@ -381,7 +381,7 @@ impl Indent {
                 visible: false,
                 spacing: Some(Spacing::Minimal),
                 ..
-            } => sym!(' ', ' ', ' '),
+            } => sym!(' ', ' '),
             Self {
                 visible: false,
                 spacing: None,
