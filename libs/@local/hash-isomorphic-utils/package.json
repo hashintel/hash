@@ -39,7 +39,7 @@
     "uuid": "8.3.2"
   },
   "devDependencies": {
-    "@blockprotocol/type-system": "0.0.3-canary-20230111084611",
+    "@blockprotocol/type-system": "0.0.4-canary-20230208150010",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash": "4.14.188",
