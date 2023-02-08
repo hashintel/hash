@@ -2,3 +2,6 @@
 name = "antsi"
 version = "0.0.0-reserved"
 edition = "2021"
+rust-version = "1.63"
+keywords = ["no_std", "ansi", "color", "term", "terminal"]
+categories = ["no-std", "command-line-interface", "no-std::no-alloc"]
