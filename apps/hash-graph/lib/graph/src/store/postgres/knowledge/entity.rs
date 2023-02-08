@@ -374,8 +374,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(EntityMetadata::new(
             EntityEditionId::new(entity_id, EntityRecordId::new(row.get(0))),
             EntityVersion {
-                decision_time: row.get(0),
-                transaction_time: row.get(1),
+                decision_time: row.get(1),
+                transaction_time: row.get(2),
             },
             entity_type_id,
             ProvenanceMetadata::new(updated_by_id),
@@ -602,8 +602,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(EntityMetadata::new(
             EntityEditionId::new(entity_id, EntityRecordId::new(row.get(0))),
             EntityVersion {
-                decision_time: row.get(0),
-                transaction_time: row.get(1),
+                decision_time: row.get(1),
+                transaction_time: row.get(2),
             },
             entity_type_id,
             ProvenanceMetadata::new(updated_by_id),
