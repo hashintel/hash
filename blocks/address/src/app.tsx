@@ -38,8 +38,7 @@ const postalCodeKey =
 const streetKey =
   "https://alpha.hash.ai/@luisbett/types/property-type/streetaddress/";
 
-const accessToken =
-  "pk.eyJ1IjoibHVpc2JldHRlbmNvdXJ0IiwiYSI6ImNsZGl2ZXdvODBuY2YzcW1lb3N5bng4NTQifQ.HW1cG865jlptDTbJBNwhQw";
+const accessToken = "";
 
 const getOptionLabel = (option: AutofillSuggestion | string) =>
   typeof option === "string" ? option : option.place_name ?? "";
