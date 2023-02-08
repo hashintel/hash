@@ -8,6 +8,7 @@ import javax.swing.event.TreeExpansionEvent
 import javax.swing.event.TreeExpansionListener
 
 // https://intellij-support.jetbrains.com/hc/en-us/community/posts/360004324499-How-to-hook-into-click-select-event-of-the-project-view-
+// TODO: we might want to add this as a setting instead
 class ModuleNodeTreeExpansionListener: TreeExpansionListener {
     override fun treeExpanded(event: TreeExpansionEvent?) {
         if (event != null && event.source is JTree) {
