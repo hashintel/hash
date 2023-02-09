@@ -8,6 +8,9 @@ import {
 import {
   DataTypeWithMetadata as DataTypeWithMetadataGraphApi,
   EntityTypeWithMetadata as EntityTypeWithMetadataGraphApi,
+  ExternalOntologyElementMetadata,
+  OntologyElementMetadata,
+  OwnedOntologyElementMetadata,
   PropertyTypeWithMetadata as PropertyTypeWithMetadataGraphApi,
   ProvenanceMetadata as ProvenanceMetadataGraphApi,
 } from "@local/hash-graph-client";
@@ -37,6 +40,17 @@ export type {
   OntologyElementMetadata,
   OwnedOntologyElementMetadata,
 } from "@local/hash-graph-client";
+
+export const isExternalOntologyElementMetadata = (
+  metadata: OntologyElementMetadata,
+): metadata is ExternalOntologyElementMetadata => {
+  return (metadata as ExternalOntologyElementMetadata).fetchedAt !== undefined;
+};
+export const isOwnedOntologyElementMetadata = (
+  metadata: OntologyElementMetadata,
+): metadata is OwnedOntologyElementMetadata => {
+  return (metadata as OwnedOntologyElementMetadata).ownedById !== undefined;
+};
 
 /** Plain JSON value and object definitions */
 type JsonValue = null | string | number | boolean | JsonObject | JsonValue[];

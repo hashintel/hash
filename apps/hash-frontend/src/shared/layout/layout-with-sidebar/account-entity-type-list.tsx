@@ -5,7 +5,7 @@ import {
   TextField,
 } from "@hashintel/design-system";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
-import { OwnedOntologyElementMetadata } from "@local/hash-subgraph/src/types/element";
+import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph/src/types/element";
 import {
   Box,
   Collapse,
@@ -153,8 +153,8 @@ export const AccountEntityTypeList: FunctionComponent<
     if (allEntityTypes) {
       return allEntityTypes.filter(
         (root) =>
-          (root.metadata as OwnedOntologyElementMetadata).ownedById ===
-          ownedById,
+          isOwnedOntologyElementMetadata(root.metadata) &&
+          root.metadata.ownedById === ownedById,
       );
     }
 
