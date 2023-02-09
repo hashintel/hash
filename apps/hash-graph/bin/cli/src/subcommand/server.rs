@@ -280,16 +280,10 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
 
     #[cfg(feature = "type-fetcher")]
     let type_fetcher = {
-        let type_fetcher_address = format!("{}:{}", args.type_fetcher_host, args.type_fetcher_port);
-
-        let type_fetcher_address: SocketAddr = type_fetcher_address
-            .parse()
-            .into_report()
-            .change_context(GraphError)
-            .attach_printable_lazy(|| type_fetcher_address.clone())?;
-
-        let transport =
-            tarpc::serde_transport::tcp::connect(&type_fetcher_address, MessagePack::default);
+        let transport = tarpc::serde_transport::tcp::connect(
+            (args.type_fetcher_host, args.type_fetcher_port),
+            MessagePack::default,
+        );
 
         FetcherClient::new(
             client::Config::default(),
