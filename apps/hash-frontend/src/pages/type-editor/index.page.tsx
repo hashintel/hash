@@ -1,5 +1,5 @@
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
+import { AccountId, OwnedById } from "@local/hash-types";
 import { Box, Container } from "@mui/material";
 import { ChangeEvent, useCallback, useState } from "react";
 

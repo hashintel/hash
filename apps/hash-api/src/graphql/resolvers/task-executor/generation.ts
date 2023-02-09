@@ -14,9 +14,8 @@ import {
 import { Logger } from "@local/hash-backend-utils/logger";
 import { GraphApi, OntologyElementMetadata } from "@local/hash-graph-client";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import { typedEntries } from "@local/hash-isomorphic-utils/util";
-import { PropertyObject } from "@local/hash-subgraph";
+import { EntityPropertiesObject, OwnedById } from "@local/hash-types";
 import { camelCase, isEqual, upperFirst } from "lodash";
 import { singular } from "pluralize";
 
@@ -524,7 +523,7 @@ export const rewriteEntityPropertiesInTypeSystem = (
   streamName: string,
   integration: string,
   namespace: string,
-): { entityProperties: PropertyObject; entityType: EntityType } => {
+): { entityProperties: EntityPropertiesObject; entityType: EntityType } => {
   const title = streamNameToEntityTypeName(integration, streamName);
 
   const entityType: EntityType = existingEntityType ?? {

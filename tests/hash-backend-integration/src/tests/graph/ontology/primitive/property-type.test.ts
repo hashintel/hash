@@ -14,11 +14,11 @@ import {
   TypeSystemInitializer,
 } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
   DataTypeWithMetadata,
+  OwnedById,
   PropertyTypeWithMetadata,
-} from "@local/hash-subgraph";
+} from "@local/hash-types";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

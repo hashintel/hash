@@ -19,14 +19,14 @@ export const commentHasTextResolver: ResolverFn<
   const context = dataSourcesToImpureGraphContext(dataSources);
 
   const comment = await getCommentById(context, {
-    entityId: metadata.editionId.baseId,
+    entityId: metadata.recordId.entityId,
   });
   const textEntity = await getCommentText(context, { comment });
 
   // @todo implement `Text` class so that a `Text.getTokens()` method can be used here
   return (
     (textEntity.properties[
-      SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId
+      SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUri
     ] as TextToken[] | undefined) ?? []
   );
 };

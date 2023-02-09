@@ -1,7 +1,6 @@
 import { Button } from "@hashintel/design-system";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
-import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { EntityId, Subgraph } from "@local/hash-types";
 import { Drawer, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
@@ -15,7 +14,7 @@ interface EditEntityModalProps {
   open: boolean;
   onClose: () => void;
   onSubmit: () => void;
-  entitySubgraph: Subgraph<SubgraphRootTypes["entity"]>;
+  entitySubgraph: Subgraph<EntityRootType>;
 }
 
 export const EditEntityModal = ({
@@ -25,7 +24,7 @@ export const EditEntityModal = ({
   entitySubgraph,
 }: EditEntityModalProps) => {
   const [draftEntitySubgraph, setDraftEntitySubgraph] = useState<
-    Subgraph<SubgraphRootTypes["entity"]> | undefined
+    Subgraph<EntityRootType> | undefined
   >(entitySubgraph);
   const [savingChanges, setSavingChanges] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
@@ -67,7 +66,7 @@ export const EditEntityModal = ({
       setSavingChanges(true);
 
       await applyDraftLinkEntityChanges(
-        draftEntity.metadata.editionId.baseId as EntityId,
+        draftEntity.metadata.recordId.entityId,
         draftLinksToCreate,
         draftLinksToArchive,
       );
@@ -75,7 +74,7 @@ export const EditEntityModal = ({
       /** @todo add validation here */
       const updateEntityResponse = await updateEntity({
         data: {
-          entityId: draftEntity.metadata.editionId.baseId as EntityId,
+          entityId: draftEntity.metadata.recordId.entityId,
           properties: draftEntity.properties,
           entityTypeId: draftEntity.metadata.entityTypeId,
         },

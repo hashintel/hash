@@ -2,14 +2,14 @@ import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
 import { UpdatePropertyTypeRequest } from "@local/hash-graph-client";
 import { PropertyTypeWithoutId } from "@local/hash-isomorphic-utils/graphql/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
-import {
-  PropertyTypeWithMetadata,
-  Subgraph,
-  SubgraphRootTypes,
-} from "@local/hash-subgraph";
 import { versionedUriFromComponents } from "@local/hash-subgraph/src/shared/type-system-patch";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import {
+  AccountId,
+  OwnedById,
+  PropertyTypeWithMetadata,
+  Subgraph,
+} from "@local/hash-types";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
@@ -85,7 +85,7 @@ export const getPropertyTypeById: ImpureGraphFunction<
         },
       },
     })
-    .then(({ data }) => data as Subgraph<SubgraphRootTypes["propertyType"]>);
+    .then(({ data }) => data as Subgraph<PropertyTypeRootType>);
 
   const [propertyType] = getRoots(propertyTypeSubgraph);
 
@@ -126,7 +126,7 @@ export const updatePropertyType: ImpureGraphFunction<
     schema: {
       ...schema,
       $id: versionedUriFromComponents(
-        metadata.editionId.baseId,
+        metadata.recordId.entityId,
         metadata.editionId.version,
       ),
     },

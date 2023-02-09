@@ -3,7 +3,7 @@ import {
   EntityUuid,
   OwnedById,
   Uuid,
-} from "@local/hash-isomorphic-utils/types";
+} from "@local/hash-types";
 
 import { getOrgById } from "../../../../graph/knowledge/system-types/org";
 import {
@@ -78,7 +78,7 @@ export const parentPageResolver: ResolverFn<
   const context = dataSourcesToImpureGraphContext(dataSources);
 
   const page = await getPageById(context, {
-    entityId: pageGql.metadata.editionId.baseId,
+    entityId: pageGql.metadata.recordId.entityId,
   });
   const parentPage = await getPageParentPage(context, { page });
 

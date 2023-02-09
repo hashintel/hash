@@ -15,7 +15,6 @@ export {
   intervalUnionWithInterval,
   unionOfIntervals,
 } from "./stdlib/interval";
-export { buildSubgraph } from "./stdlib/subgraph/builder";
 export { getPropertyTypesReferencedByEntityType } from "./stdlib/subgraph/edge/entity-type";
 export {
   getIncomingLinksForEntity,

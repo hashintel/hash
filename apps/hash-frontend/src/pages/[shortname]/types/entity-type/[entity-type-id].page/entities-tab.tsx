@@ -5,7 +5,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { GridCellKind, Item, TextCell } from "@glideapps/glide-data-grid";
 import { Chip, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import { extractOwnedByIdFromEntityId } from "@local/hash-types";
 import { Box, Paper, Stack } from "@mui/material";
 import { useRouter } from "next/router";
 import {
@@ -53,7 +53,7 @@ export const EntitiesTab: FunctionComponent = () => {
     const namespaceEntities =
       entities?.filter(
         (entity) =>
-          extractOwnedByIdFromEntityId(entity.metadata.editionId.baseId) ===
+          extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId) ===
           activeWorkspaceAccountId,
       ) ?? [];
 

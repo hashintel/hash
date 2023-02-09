@@ -1,5 +1,5 @@
-import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
-import { Entity, PropertyObject } from "@local/hash-subgraph";
+import { apiOrigin } from "@local/hash-graphql-shared/environment";
+import { Entity, EntityPropertiesObject } from "@local/hash-types";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { PresignedPostUpload } from "../../../storage";
@@ -34,37 +34,37 @@ export const getFileFromEntity: PureGraphFunction<{ entity: Entity }, File> = ({
     entity.metadata.entityTypeId !== SYSTEM_TYPES.entityType.file.schema.$id
   ) {
     throw new EntityTypeMismatchError(
-      entity.metadata.editionId.baseId,
+      entity.metadata.recordId.entityId,
       SYSTEM_TYPES.entityType.block.schema.$id,
       entity.metadata.entityTypeId,
     );
   }
 
   const fileUrl = entity.properties[
-    SYSTEM_TYPES.propertyType.fileUrl.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.fileUrl.metadata.recordId.baseUri
   ] as string;
 
   const fileMediaType = entity.properties[
-    SYSTEM_TYPES.propertyType.fileMediaType.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.fileMediaType.metadata.recordId.baseUri
   ] as string;
 
   const fileKeyObject = entity.properties[
-    SYSTEM_TYPES.propertyType.fileKey.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.fileKey.metadata.recordId.baseUri
   ] as Record<string, any>;
 
   const fileKey: FileKey =
-    SYSTEM_TYPES.propertyType.externalFileUrl.metadata.editionId.baseId in
+    SYSTEM_TYPES.propertyType.externalFileUrl.metadata.recordId.baseUri in
     fileKeyObject
       ? {
           type: "ExternalFileLink",
           externalFileLink: fileKeyObject[
-            SYSTEM_TYPES.propertyType.externalFileUrl.metadata.editionId.baseId
+            SYSTEM_TYPES.propertyType.externalFileUrl.metadata.recordId.baseUri
           ] as string,
         }
       : {
           type: "ObjectStoreKey",
           objectStoreKey: fileKeyObject[
-            SYSTEM_TYPES.propertyType.objectStoreKey.metadata.editionId.baseId
+            SYSTEM_TYPES.propertyType.objectStoreKey.metadata.recordId.baseUri
           ] as string,
         };
 
@@ -100,13 +100,13 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   });
 
   try {
-    const properties: PropertyObject = {
-      [SYSTEM_TYPES.propertyType.fileUrl.metadata.editionId.baseId]:
+    const properties: EntityPropertiesObject = {
+      [SYSTEM_TYPES.propertyType.fileUrl.metadata.recordId.baseUri]:
         formatUrl(key),
-      [SYSTEM_TYPES.propertyType.fileMediaType.metadata.editionId.baseId]:
+      [SYSTEM_TYPES.propertyType.fileMediaType.metadata.recordId.baseUri]:
         mediaType,
-      [SYSTEM_TYPES.propertyType.fileKey.metadata.editionId.baseId]: {
-        [SYSTEM_TYPES.propertyType.objectStoreKey.metadata.editionId.baseId]:
+      [SYSTEM_TYPES.propertyType.fileKey.metadata.recordId.baseUri]: {
+        [SYSTEM_TYPES.propertyType.objectStoreKey.metadata.recordId.baseUri]:
           key,
       },
     };
@@ -145,13 +145,13 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
   const key = url;
 
   try {
-    const properties: PropertyObject = {
+    const properties: EntityPropertiesObject = {
       // When a file is an external link, we simply use the key as the fileUrl.
-      [SYSTEM_TYPES.propertyType.fileUrl.metadata.editionId.baseId]: key,
-      [SYSTEM_TYPES.propertyType.fileMediaType.metadata.editionId.baseId]:
+      [SYSTEM_TYPES.propertyType.fileUrl.metadata.recordId.baseUri]: key,
+      [SYSTEM_TYPES.propertyType.fileMediaType.metadata.recordId.baseUri]:
         mediaType,
-      [SYSTEM_TYPES.propertyType.fileKey.metadata.editionId.baseId]: {
-        [SYSTEM_TYPES.propertyType.externalFileUrl.metadata.editionId.baseId]:
+      [SYSTEM_TYPES.propertyType.fileKey.metadata.recordId.baseUri]: {
+        [SYSTEM_TYPES.propertyType.externalFileUrl.metadata.recordId.baseUri]:
           key,
       },
     };

@@ -1,5 +1,8 @@
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
-import { PropertyTypeWithMetadata, Subgraph } from "@local/hash-subgraph";
+import {
+  OwnedById,
+  PropertyTypeWithMetadata,
+  Subgraph,
+} from "@local/hash-types";
 
 import {
   createPropertyType,

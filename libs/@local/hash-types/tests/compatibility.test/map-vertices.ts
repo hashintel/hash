@@ -19,11 +19,11 @@ import {
 
 import {
   EntityId,
+  EntityPropertiesObject,
   EntityVersion,
   isEntityId,
   KnowledgeGraphVertex,
   OntologyVertex,
-  PropertyObject,
   Vertices,
 } from "../../src";
 
@@ -113,7 +113,7 @@ const mapKnowledgeGraphVertex = (
     ...vertex,
     inner: {
       ...vertex.inner,
-      properties: vertex.inner.properties as PropertyObject,
+      properties: vertex.inner.properties as EntityPropertiesObject,
       linkData: {
         ...vertex.inner.linkData,
         leftEntityId: vertex.inner.linkData?.leftentityId,

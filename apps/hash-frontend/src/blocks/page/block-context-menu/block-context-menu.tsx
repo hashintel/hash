@@ -18,12 +18,11 @@ import {
   isHashTextBlock,
 } from "@local/hash-isomorphic-utils/blocks";
 import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
 import {
-  PropertyObject,
+  EntityPropertiesObject,
+  EntityRootType,
   Subgraph,
-  SubgraphRootTypes,
-} from "@local/hash-subgraph";
+} from "@local/hash-types";
 import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import { PopupState } from "material-ui-popup-state/hooks";
@@ -80,16 +79,18 @@ const BlockContextMenu: ForwardRefRenderFunction<
     );
   }, [currentComponentId, userBlocks]);
 
-  const entityId = blockEntity?.metadata.editionId.baseId ?? null;
+  const entityId = blockEntity?.metadata.recordId.entityId ?? null;
 
   const menuItems = useMemo(() => {
     /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
     const hasChildEntity =
       !!blockEntity?.properties.entity &&
       Object.keys(
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-        (blockEntity.properties.entity as { properties: PropertyObject })
-          .properties ?? {},
+        (
+          blockEntity.properties.entity as {
+            properties: EntityPropertiesObject;
+          }
+        ).properties ?? {},
       ).length > 0;
     const items = [
       ...(currentComponentId && !isHashTextBlock(currentComponentId)
@@ -202,10 +203,10 @@ const BlockContextMenu: ForwardRefRenderFunction<
       return;
     }
 
-    const { editionId, entityTypeId } = blockEntity.blockChildEntity.metadata;
+    const { recordId, entityTypeId } = blockEntity.blockChildEntity.metadata;
     const newBlockSubgraph = await fetchBlockSubgraph(
       entityTypeId,
-      editionId.baseId as EntityId,
+      recordId.entityId,
     );
 
     setBlockSubgraph(newBlockSubgraph);
@@ -220,7 +221,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
           onClose={() => setEntityEditorOpen(false)}
           entitySubgraph={
             /** @todo add timeProjection & resolvedTimeProjection properly */
-            blockSubgraph as unknown as Subgraph<SubgraphRootTypes["entity"]>
+            blockSubgraph as unknown as Subgraph<EntityRootType>
           }
           onSubmit={handleEntityModalSubmit}
         />

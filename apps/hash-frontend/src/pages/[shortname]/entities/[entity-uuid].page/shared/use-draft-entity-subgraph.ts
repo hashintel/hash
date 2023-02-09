@@ -1,9 +1,5 @@
 import { VersionedUri } from "@blockprotocol/type-system";
-import {
-  EntityVertexId,
-  Subgraph,
-  SubgraphRootTypes,
-} from "@local/hash-subgraph";
+import { EntityVertexId, Subgraph } from "@local/hash-types";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
 import { useBlockProtocolGetEntityType } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
@@ -11,13 +7,13 @@ import { useBlockProtocolGetEntityType } from "../../../../../components/hooks/b
 export const useDraftEntitySubgraph = (
   entityTypeId: VersionedUri,
 ): [
-  Subgraph<SubgraphRootTypes["entity"]> | undefined,
-  Dispatch<SetStateAction<Subgraph<SubgraphRootTypes["entity"]> | undefined>>,
+  Subgraph<EntityRootType> | undefined,
+  Dispatch<SetStateAction<Subgraph<EntityRootType> | undefined>>,
   boolean,
 ] => {
   const [loading, setLoading] = useState(false);
   const [draftEntitySubgraph, setDraftEntitySubgraph] =
-    useState<Subgraph<SubgraphRootTypes["entity"]>>();
+    useState<Subgraph<EntityRootType>>();
 
   const { getEntityType } = useBlockProtocolGetEntityType();
 
@@ -71,7 +67,7 @@ export const useDraftEntitySubgraph = (
               },
             },
           },
-        } as Subgraph<SubgraphRootTypes["entity"]>);
+        } as Subgraph<EntityRootType>);
       } finally {
         setLoading(false);
       }

@@ -1,12 +1,11 @@
 import { VersionedUri } from "@blockprotocol/type-system";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
 import {
   Entity,
+  EntityId,
   EntityTypeWithMetadata,
   Subgraph,
-  SubgraphRootTypes,
-} from "@local/hash-subgraph";
+} from "@local/hash-types";
 
 export type LinkAndTargetEntity = { rightEntity: Entity; linkEntity: Entity };
 
@@ -19,7 +18,7 @@ export type LinkRow = {
   expectedEntityTypes: EntityTypeWithMetadata[];
   expectedEntityTypeTitles: string[];
   linkAndTargetEntities: LinkAndTargetEntity[];
-  entitySubgraph: Subgraph<SubgraphRootTypes["entity"]>;
+  entitySubgraph: Subgraph<EntityRootType>;
   markLinkAsArchived: (linkEntityId: EntityId) => void;
 };
 

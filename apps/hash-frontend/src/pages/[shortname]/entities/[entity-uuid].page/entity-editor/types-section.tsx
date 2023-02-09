@@ -1,8 +1,6 @@
 import { extractBaseUri, extractVersion } from "@blockprotocol/type-system";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
-import { versionedUriFromComponents } from "@local/hash-subgraph/src/shared/type-system-patch";
-import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { versionedUriFromComponents } from "@local/hash-types";
+import { getEntityTypeById, getRoots } from "@local/hash-types/stdlib";
 import { Box } from "@mui/material";
 import { useEffect, useState } from "react";
 
@@ -19,7 +17,7 @@ export const TypesSection = () => {
   const entity = getRoots(entitySubgraph)[0]!;
   const { updateEntity } = useBlockProtocolUpdateEntity();
   const {
-    metadata: { editionId, entityTypeId },
+    metadata: { recordId, entityTypeId },
     properties,
   } = entity;
 
@@ -81,7 +79,7 @@ export const TypesSection = () => {
             entityTypeBaseUri,
             newVersion,
           ),
-          entityId: editionId.baseId as EntityId,
+          entityId: recordId.entityId,
           properties,
         },
       });

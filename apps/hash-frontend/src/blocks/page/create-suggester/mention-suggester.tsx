@@ -1,5 +1,4 @@
-import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
-import { EntityId } from "@local/hash-subgraph";
+import { AccountId, EntityId, OwnedById } from "@local/hash-types";
 import ArticleIcon from "@mui/icons-material/Article";
 import { FunctionComponent, useContext, useMemo } from "react";
 
@@ -42,7 +41,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
       users?.map((user) => ({
         shortname: user.shortname,
         name: user.preferredName ?? user.shortname ?? "User",
-        entityId: user.entityEditionId.baseId,
+        entityId: user.entity.recordId.entityId,
         mentionType: "user",
         isActiveOrgMember: user.memberOf.some(
           ({ accountId: userAccountId }) =>

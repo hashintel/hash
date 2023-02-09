@@ -13,6 +13,8 @@ import {
   GetPageQueryVariables,
 } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
+import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
@@ -20,9 +22,7 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   OwnedById,
-} from "@local/hash-isomorphic-utils/types";
-import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
-import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
+} from "@local/hash-types";
 import { alpha, Box, Collapse } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetServerSideProps } from "next";
@@ -236,7 +236,6 @@ export const PageNotificationBanner: FunctionComponent = () => {
               background: alpha(palette.gray[90], 0.08),
             },
           })}
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
           onClick={() => pageEntityId && archivePage(false, pageEntityId)}
         >
           Restore
@@ -411,7 +410,7 @@ const Page: NextPageWithLayout<PageProps> = ({
           <TopContextBar
             crumbs={generateCrumbsFromPages({
               pages: accountPages,
-              pageEntityId: data.page.metadata.editionId.baseId as EntityId,
+              pageEntityId: data.page.metadata.recordId.entityId,
               ownerShortname: pageWorkspace.shortname!,
             })}
             scrollToTop={scrollToTop}

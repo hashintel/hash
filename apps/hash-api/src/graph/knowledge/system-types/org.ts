@@ -1,18 +1,15 @@
+import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
 import {
   AccountId,
+  Entity,
+  EntityId,
+  EntityPropertiesObject,
   EntityUuid,
   extractEntityUuidFromEntityId,
   OwnedById,
-  Uuid,
-} from "@local/hash-isomorphic-utils/types";
-import {
-  Entity,
-  EntityId,
-  PropertyObject,
   Subgraph,
-  SubgraphRootTypes,
-} from "@local/hash-subgraph";
-import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
+  Uuid,
+} from "@local/hash-types";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import {
@@ -62,23 +59,23 @@ export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
 }) => {
   if (entity.metadata.entityTypeId !== SYSTEM_TYPES.entityType.org.schema.$id) {
     throw new EntityTypeMismatchError(
-      entity.metadata.editionId.baseId,
+      entity.metadata.recordId.entityId,
       SYSTEM_TYPES.entityType.user.schema.$id,
       entity.metadata.entityTypeId,
     );
   }
 
   const orgName = entity.properties[
-    SYSTEM_TYPES.propertyType.orgName.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.orgName.metadata.recordId.baseUri
   ] as string;
 
   const shortname = entity.properties[
-    SYSTEM_TYPES.propertyType.shortName.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUri
   ] as string;
 
   return {
     accountId: extractEntityUuidFromEntityId(
-      entity.metadata.editionId.baseId,
+      entity.metadata.recordId.entityId,
     ) as Uuid as AccountId,
     shortname,
     orgName,
@@ -123,14 +120,14 @@ export const createOrg: ImpureGraphFunction<
   const orgAccountId =
     params.orgAccountId ?? (await graphApi.createAccountId()).data;
 
-  const properties: PropertyObject = {
-    [SYSTEM_TYPES.propertyType.shortName.metadata.editionId.baseId]: shortname,
-    [SYSTEM_TYPES.propertyType.orgName.metadata.editionId.baseId]: name,
+  const properties: EntityPropertiesObject = {
+    [SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUri]: shortname,
+    [SYSTEM_TYPES.propertyType.orgName.metadata.recordId.baseUri]: name,
     ...(providedInfo
       ? {
-          [SYSTEM_TYPES.propertyType.orgProvidedInfo.metadata.editionId.baseId]:
+          [SYSTEM_TYPES.propertyType.orgProvidedInfo.metadata.recordId.baseUri]:
             {
-              [SYSTEM_TYPES.propertyType.orgSize.metadata.editionId.baseId]:
+              [SYSTEM_TYPES.propertyType.orgSize.metadata.recordId.baseUri]:
                 providedInfo.orgSize,
             },
         }
@@ -188,7 +185,7 @@ export const getOrgByShortname: ImpureGraphFunction<
               {
                 path: [
                   "properties",
-                  SYSTEM_TYPES.propertyType.shortName.metadata.editionId.baseId,
+                  SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUri,
                 ],
               },
               { parameter: params.shortname },
@@ -210,9 +207,7 @@ export const getOrgByShortname: ImpureGraphFunction<
       },
     })
     .then(({ data: userEntitiesSubgraph }) =>
-      getRootsAsEntities(
-        userEntitiesSubgraph as Subgraph<SubgraphRootTypes["entity"]>,
-      ),
+      getRootsAsEntities(userEntitiesSubgraph as Subgraph<EntityRootType>),
     );
 
   if (unexpectedEntities.length > 0) {
@@ -253,7 +248,7 @@ export const updateOrgShortname: ImpureGraphFunction<
   const updatedOrg = await updateEntityProperty(ctx, {
     entity: org.entity,
     propertyTypeBaseUri:
-      SYSTEM_TYPES.propertyType.shortName.metadata.editionId.baseId,
+      SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUri,
     value: updatedShortname,
     actorId,
   }).then((updatedEntity) => getOrgFromEntity({ entity: updatedEntity }));
@@ -293,7 +288,7 @@ export const updateOrgName: ImpureGraphFunction<
   const updatedEntity = await updateEntityProperty(ctx, {
     entity: org.entity,
     propertyTypeBaseUri:
-      SYSTEM_TYPES.propertyType.orgName.metadata.editionId.baseId,
+      SYSTEM_TYPES.propertyType.orgName.metadata.recordId.baseUri,
     value: updatedOrgName,
     actorId,
   });

@@ -3,8 +3,8 @@ import {
   PropertyTypeReference,
   ValueOrArray,
 } from "@blockprotocol/type-system";
-import { Entity, Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
 import { getPropertyTypesByBaseUri } from "@local/hash-subgraph/src/stdlib/element/property-type";
+import { Entity, Subgraph } from "@local/hash-types";
 import { get } from "lodash";
 
 import {
@@ -56,7 +56,7 @@ export const generatePropertyRowRecursively = ({
   propertyTypeBaseUri: BaseUri;
   propertyKeyChain: BaseUri[];
   entity: Entity;
-  entitySubgraph: Subgraph<SubgraphRootTypes["entity"]>;
+  entitySubgraph: Subgraph<EntityRootType>;
   requiredPropertyTypes: BaseUri[];
   depth?: number;
 
@@ -67,7 +67,6 @@ export const generatePropertyRowRecursively = ({
     propertyTypeBaseUri,
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
   if (!propertyTypeVersions) {
     throw new Error(
       `propertyType not found for base URI: ${propertyTypeBaseUri}`,

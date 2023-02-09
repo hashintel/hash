@@ -2,15 +2,15 @@ import { EntityType, VersionedUri } from "@blockprotocol/type-system";
 import { UpdateEntityTypeRequest } from "@local/hash-graph-client";
 import { EntityTypeWithoutId } from "@local/hash-isomorphic-utils/graphql/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
+import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import {
+  AccountId,
   EntityTypeWithMetadata,
   linkEntityTypeUri,
   ontologyTypeEditionIdToVersionedUri,
+  OwnedById,
   Subgraph,
-  SubgraphRootTypes,
-} from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+} from "@local/hash-types";
 
 import { NotFoundError } from "../../../lib/error";
 import {
@@ -90,7 +90,7 @@ export const getEntityTypeById: ImpureGraphFunction<
         },
       },
     })
-    .then(({ data }) => data as Subgraph<SubgraphRootTypes["entityType"]>);
+    .then(({ data }) => data as Subgraph<EntityTypeRootType>);
 
   const [entityType] = getRoots(entityTypeSubgraph);
 

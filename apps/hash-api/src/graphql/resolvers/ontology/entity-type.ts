@@ -1,5 +1,4 @@
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
-import { EntityTypeWithMetadata, Subgraph } from "@local/hash-subgraph";
+import { EntityTypeWithMetadata, OwnedById, Subgraph } from "@local/hash-types";
 
 import {
   createEntityType,

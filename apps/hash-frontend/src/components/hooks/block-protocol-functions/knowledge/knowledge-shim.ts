@@ -11,15 +11,15 @@ import {
   CreateResourceError,
   ReadOrModifyResourceError,
 } from "@blockprotocol/graph";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
+import { VersionedUri } from "@blockprotocol/type-system";
 import {
   Entity,
+  EntityId,
+  EntityPropertiesObject,
+  EntityRootType,
   LinkData,
-  PropertyObject,
   Subgraph,
-  SubgraphRootTypes,
-  VersionedUri,
-} from "@local/hash-subgraph";
+} from "@local/hash-types";
 
 export type KnowledgeCallbacks = {
   getEntity: GetEntityMessageCallback;
@@ -37,7 +37,7 @@ export type GetEntityRequest = {
 export type GetEntityMessageCallback = MessageCallback<
   GetEntityRequest,
   null,
-  Subgraph<SubgraphRootTypes["entity"]>,
+  Subgraph<EntityRootType>,
   ReadOrModifyResourceError
 >;
 
@@ -70,13 +70,13 @@ export type AggregateEntitiesRequest = {
 export type AggregateEntitiesMessageCallback = MessageCallback<
   AggregateEntitiesRequest,
   null,
-  Subgraph<SubgraphRootTypes["entity"]>,
+  Subgraph<EntityRootType>,
   ReadOrModifyResourceError
 >;
 
 export type CreateEntityRequest = {
   entityTypeId: VersionedUri;
-  properties: PropertyObject;
+  properties: EntityPropertiesObject;
   linkData?: LinkData;
 };
 

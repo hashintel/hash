@@ -1,5 +1,3 @@
-import { EntityPropertiesObject } from "@local/hash-types/types/knowledge/entity";
-
 export const scalars = {
   Date: "string",
   JSONObject: "@blockprotocol/core#JsonObject",

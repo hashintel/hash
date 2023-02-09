@@ -45,7 +45,7 @@ export const commentTypedef = gql`
     """
     Properties of entity.
     """
-    properties: PropertyObject!
+    properties: EntityPropertiesObject!
   }
 
   extend type Mutation {

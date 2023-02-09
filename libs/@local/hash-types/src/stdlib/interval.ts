@@ -169,7 +169,10 @@ export const intervalMergeWithInterval = <
   intervalMergeWithIntervalBp<LeftInterval, RightInterval>(
     left,
     right,
-  ) as MergeReturn<LeftInterval, RightInterval>;
+  ) as unknown as MergeReturn<
+    LeftInterval,
+    RightInterval
+  >; /** @todo fix this unknown cast */
 
 type UnionReturn<
   LeftInterval extends TimeInterval,

@@ -1,4 +1,4 @@
-import { Entity } from "@local/hash-subgraph";
+import { Entity } from "@local/hash-types";
 
 import {
   getBlockById,
@@ -18,7 +18,7 @@ export const blockChildEntityResolver: ResolverFn<
   const context = dataSourcesToImpureGraphContext(dataSources);
 
   const block = await getBlockById(context, {
-    entityId: metadata.editionId.baseId,
+    entityId: metadata.recordId.entityId,
   });
 
   return mapEntityToGQL(await getBlockData(context, { block }));

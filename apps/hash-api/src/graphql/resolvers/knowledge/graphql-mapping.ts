@@ -1,4 +1,4 @@
-import { Entity } from "@local/hash-subgraph";
+import { Entity } from "@local/hash-types";
 
 import { Block } from "../../../graph/knowledge/system-types/block";
 import { Comment } from "../../../graph/knowledge/system-types/comment";

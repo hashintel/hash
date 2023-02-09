@@ -1,4 +1,4 @@
-import { Subgraph, SubgraphRootTypes } from "@blockprotocol/graph";
+import { EntityRootType, Subgraph } from "@local/hash-types";
 import { Fragment, ReactNode, useCallback, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { v4 as uuid } from "uuid";
@@ -19,7 +19,7 @@ export interface PortalProps {
 export const BlockPortals = ({ draftId, portals }: PortalProps) => {
   const [error, setError] = useState(false);
   const [blockSubgraph, setBlockSubgraph] = useState<
-    Subgraph<SubgraphRootTypes["entity"]> | undefined
+    Subgraph<EntityRootType> | undefined
   >();
 
   const context = useMemo<BlockContextType>(
@@ -28,9 +28,7 @@ export const BlockPortals = ({ draftId, portals }: PortalProps) => {
       error,
       setError,
       /** @todo-0.3 fix type mismatch between HASH and blockprotocol */
-      blockSubgraph: blockSubgraph as unknown as Subgraph<
-        SubgraphRootTypes["entity"]
-      >,
+      blockSubgraph: blockSubgraph as unknown as Subgraph<EntityRootType>,
       setBlockSubgraph,
     }),
     [draftId, error, setError, blockSubgraph, setBlockSubgraph],

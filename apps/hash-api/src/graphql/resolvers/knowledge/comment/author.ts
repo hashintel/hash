@@ -1,4 +1,4 @@
-import { Entity } from "@local/hash-subgraph";
+import { Entity } from "@local/hash-types";
 
 import {
   getCommentAuthor,
@@ -18,7 +18,7 @@ export const commentAuthorResolver: ResolverFn<
   const context = dataSourcesToImpureGraphContext(dataSources);
 
   const comment = await getCommentById(context, {
-    entityId: metadata.editionId.baseId,
+    entityId: metadata.recordId.entityId,
   });
   const author = await getCommentAuthor(context, { comment });
 

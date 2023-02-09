@@ -22,9 +22,9 @@ import {
   EntityId,
   EntityUuid,
   extractEntityUuidFromEntityId,
+  isEntityId,
   OwnedById,
-} from "@local/hash-isomorphic-utils/types";
-import { isEntityId } from "@local/hash-subgraph";
+} from "@local/hash-types";
 import { Box, Collapse } from "@mui/material";
 import {
   FunctionComponent,
@@ -240,7 +240,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
 
         setTreeItems(sortedItems);
         reorderPage(
-          active.id as EntityId,
+          active.id,
           parentPageEntityId,
           beforeIndex,
           afterIndex,

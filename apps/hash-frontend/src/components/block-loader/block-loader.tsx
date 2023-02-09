@@ -4,9 +4,8 @@ import {
 } from "@blockprotocol/graph";
 import { VersionedUri } from "@blockprotocol/type-system/slim";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
-import { Subgraph as LocalSubgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { EntityId, Subgraph as LocalSubgraph } from "@local/hash-types";
 import {
   FunctionComponent,
   useCallback,
@@ -151,10 +150,10 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     }
 
     return {
-      ...(graphProperties as Required<BlockGraphProperties["graph"]>),
+      ...graphProperties,
       blockEntity: {
-        entityId: rootEntity.metadata.editionId.baseId,
-        properties: (rootEntity as any).properties, // @todo-0.3 fix this
+        entityId: rootEntity.metadata.recordId.entityId,
+        properties: rootEntity.properties, // @todo-0.3 fix this
       },
     };
   }, [graphProperties]);

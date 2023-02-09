@@ -503,7 +503,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
   ).map((linkEntity) => {
     if (!isEntityLinkEntity(linkEntity)) {
       throw new Error(
-        `Entity with ID ${linkEntity.metadata.editionId.baseId} is not a link entity.`,
+        `Entity with ID ${linkEntity.metadata.recordId.entityId} is not a link entity.`,
       );
     }
     return linkEntity;

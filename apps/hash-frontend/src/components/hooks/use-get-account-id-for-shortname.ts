@@ -2,7 +2,7 @@ import {
   AccountEntityId,
   AccountId,
   extractAccountId,
-} from "@local/hash-isomorphic-utils/types";
+} from "@local/hash-types";
 import { useMemo } from "react";
 
 import { useOrgs } from "./use-orgs";
@@ -17,7 +17,7 @@ export const useGetAccountIdForShortname = (
   const accountId = useMemo(() => {
     /** @todo - don't do extract anymore */
     const userBaseId = users?.find((user) => user.shortname === shortname)
-      ?.entityEditionId.baseId;
+      ?.entity.recordId.entityId;
     const userAccountId = userBaseId
       ? extractAccountId(userBaseId as AccountEntityId)
       : undefined;
@@ -26,8 +26,8 @@ export const useGetAccountIdForShortname = (
       return userAccountId;
     }
 
-    const orgBaseId = orgs?.find((org) => org.shortname === shortname)
-      ?.entityEditionId.baseId;
+    const orgBaseId = orgs?.find((org) => org.shortname === shortname)?.entity
+      .recordId.entityId;
     const orgAccountId = orgBaseId
       ? extractAccountId(orgBaseId as AccountEntityId)
       : undefined;

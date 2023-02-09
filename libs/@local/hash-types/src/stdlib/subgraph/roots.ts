@@ -8,6 +8,7 @@ import {
 
 import {
   DataTypeRootType,
+  EntityRootType,
   EntityTypeRootType,
   PropertyTypeRootType,
   Subgraph,

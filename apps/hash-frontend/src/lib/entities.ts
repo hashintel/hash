@@ -1,12 +1,14 @@
 import {
   Entity,
+  EntityRootType,
   extractEntityUuidFromEntityId,
   Subgraph,
-  SubgraphRootTypes,
-} from "@local/hash-subgraph";
-import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
-import { getPropertyTypesByBaseUri } from "@local/hash-subgraph/src/stdlib/element/property-type";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+} from "@local/hash-types";
+import {
+  getEntityTypeById,
+  getPropertyTypesByBaseUri,
+  getRoots,
+} from "@local/hash-types/stdlib";
 
 /**
  * Generate a display label for an entity
@@ -15,7 +17,7 @@ import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
  */
 export const generateEntityLabel = (
   entitySubgraph:
-    | Subgraph<SubgraphRootTypes["entity"]>
+    | Subgraph<EntityRootType>
     | Partial<{ entityId: string; properties: any }>,
   entity?: Entity,
 ): string => {
@@ -31,7 +33,7 @@ export const generateEntityLabel = (
 
   const getFallbackLabel = () => {
     // fallback to the entity type and a few characters of the entityUuid
-    const entityId = entityToLabel.metadata.editionId.baseId;
+    const entityId = entityToLabel.metadata.recordId.entityId;
 
     const entityType = getEntityTypeById(
       entitySubgraph,

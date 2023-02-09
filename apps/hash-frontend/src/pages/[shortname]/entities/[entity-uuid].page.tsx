@@ -1,12 +1,12 @@
+import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
   extractOwnedByIdFromEntityId,
   OwnedById,
-} from "@local/hash-isomorphic-utils/types";
-import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+  Subgraph,
+} from "@local/hash-types";
 import produce from "immer";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -40,16 +40,16 @@ const Page: NextPageWithLayout = () => {
   const applyDraftLinkEntityChanges = useApplyDraftLinkEntityChanges();
 
   const [entitySubgraphFromDb, setEntitySubgraphFromDb] =
-    useState<Subgraph<SubgraphRootTypes["entity"]>>();
+    useState<Subgraph<EntityRootType>>();
   const [draftEntitySubgraph, setDraftEntitySubgraph] =
-    useState<Subgraph<SubgraphRootTypes["entity"]>>();
+    useState<Subgraph<EntityRootType>>();
 
   const entityFromDb =
     entitySubgraphFromDb && getRoots(entitySubgraphFromDb)[0];
 
   const entityOwnedById =
     entityFromDb &&
-    extractOwnedByIdFromEntityId(entityFromDb.metadata.editionId.baseId);
+    extractOwnedByIdFromEntityId(entityFromDb.metadata.recordId.entityId);
 
   const readonly = useIsReadonlyModeForResource(entityOwnedById);
 
@@ -164,7 +164,7 @@ const Page: NextPageWithLayout = () => {
       /** @todo add validation here */
       await updateEntity({
         data: {
-          entityId: draftEntity.metadata.editionId.baseId,
+          entityId: draftEntity.metadata.recordId.entityId,
           entityTypeId: draftEntity.metadata.entityTypeId,
           properties: draftEntity.properties,
         },

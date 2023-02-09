@@ -1,4 +1,4 @@
-import { Entity } from "@local/hash-subgraph";
+import { Entity } from "@local/hash-types";
 import { ApolloError } from "apollo-server-errors";
 
 import {
@@ -18,7 +18,7 @@ export const pageContents: ResolverFn<
 > = async ({ metadata }, _, { dataSources }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const entityId = metadata.editionId.baseId;
+  const entityId = metadata.recordId.entityId;
   const page = await getPageById(context, { entityId });
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment

@@ -7,7 +7,7 @@ import {
   EntityId,
   extractEntityUuidFromEntityId,
   Uuid,
-} from "@local/hash-isomorphic-utils/types";
+} from "@local/hash-types";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Box, buttonClasses, Collapse } from "@mui/material";
@@ -53,10 +53,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
 
   const handleReplySubmit = async () => {
     if (!loading && inputValue.length) {
-      await createReply(
-        comment.metadata.editionId.baseId as EntityId,
-        inputValue,
-      );
+      await createReply(comment.metadata.recordId.entityId, inputValue);
       setInputValue([]);
     }
   };
@@ -85,7 +82,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
   const authorId = useMemo(
     () =>
       extractEntityUuidFromEntityId(
-        comment.author.metadata.editionId.baseId,
+        comment.author.metadata.recordId.entityId,
       ) as Uuid as AccountId,
     [comment.author],
   );
@@ -106,7 +103,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
       })}
     >
       <CommentBlock
-        key={comment.metadata.editionId.baseId}
+        key={comment.metadata.recordId.entityId}
         pageId={pageId}
         comment={comment}
         resolvable={
@@ -147,7 +144,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
           <Collapse in={expanded}>
             {collapsedReplies.map((reply) => (
               <CommentBlock
-                key={reply.metadata.editionId.baseId}
+                key={reply.metadata.recordId.entityId}
                 pageId={pageId}
                 comment={reply}
               />
@@ -158,7 +155,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
 
       {uncollapsibleReplies.map((reply) => (
         <CommentBlock
-          key={reply.metadata.editionId.baseId}
+          key={reply.metadata.recordId.entityId}
           pageId={pageId}
           comment={reply}
         />

@@ -5,9 +5,8 @@ import {
   VersionedUri,
 } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import { typedEntries, typedKeys } from "@local/hash-isomorphic-utils/util";
-import { PropertyObject } from "@local/hash-subgraph";
+import { EntityPropertiesObject, OwnedById } from "@local/hash-types";
 import { ApolloError } from "apollo-server-express";
 
 import { ImpureGraphContext } from "../../../graph";
@@ -76,8 +75,10 @@ export const readFromAirbyte = async ({
     Record<string, PropertyType>
   > = {};
   const streamToEntityTypes: Record<string, EntityType> = {};
-  const entityTypeIdToEntityProperties: Record<VersionedUri, PropertyObject[]> =
-    {};
+  const entityTypeIdToEntityProperties: Record<
+    VersionedUri,
+    EntityPropertiesObject[]
+  > = {};
 
   for (const record of airbyteRecords) {
     const streamName = record.stream;

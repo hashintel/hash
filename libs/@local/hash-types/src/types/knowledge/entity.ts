@@ -40,6 +40,17 @@ export type EntityRecordId = Subtype<
   }
 >;
 
+/**
+ * A string representation of an `EntityRecordId`.
+ * Can be useful for storing in keys of objects and other similar string-focused situations.
+ */
+export type EntityRecordIdString = `${EntityId}/v/${string}`;
+
+export const entityRecordIdToString = (
+  entityRecordId: EntityRecordId,
+): EntityRecordIdString =>
+  `${entityRecordId.entityId}/v/${entityRecordId.editionId}`;
+
 export const isEntityRecordId: typeof isEntityRecordIdBp = (
   recordId: unknown,
 ): recordId is EntityRecordId => {

@@ -12,11 +12,7 @@ import {
 // import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { save } from "@local/hash-isomorphic-utils/save";
-import {
-  AccountId,
-  EntityId,
-  OwnedById,
-} from "@local/hash-isomorphic-utils/types";
+import { AccountId, EntityId, OwnedById } from "@local/hash-types";
 import { debounce } from "lodash";
 // import applyDevTools from "prosemirror-dev-tools";
 import { Plugin } from "prosemirror-state";

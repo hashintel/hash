@@ -23,7 +23,7 @@ export const LinksSection = () => {
 
   const outgoingLinks = getOutgoingLinksForEntityAtMoment(
     entitySubgraph,
-    entity.metadata.editionId.baseId,
+    entity.metadata.recordId.entityId,
     /** @todo - We probably want to use entity endTime - https://app.asana.com/0/1201095311341924/1203331904553375/f */
     new Date(),
   );

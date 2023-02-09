@@ -1,5 +1,5 @@
-import { Entity, EntityId, EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { Entity, EntityId, EntityTypeWithMetadata } from "@local/hash-types";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { GRID_CLICK_IGNORE_CLASS } from "../../../../../../../../../components/grid/utils";
@@ -56,7 +56,7 @@ export const EntitySelector = ({
     return [...entities]
       .filter(
         (entity) =>
-          !entityIdsToFilterOut?.includes(entity.metadata.editionId.baseId),
+          !entityIdsToFilterOut?.includes(entity.metadata.recordId.entityId),
       )
       .sort((a, b) =>
         a.metadata.version.decisionTime.start.localeCompare(

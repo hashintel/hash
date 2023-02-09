@@ -1,7 +1,6 @@
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
-import { Entity, VersionedUri } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { Entity, EntityId, VersionedUri } from "@local/hash-types";
 import { Box } from "@mui/material";
 import produce from "immer";
 import { useMemo, useState } from "react";
@@ -65,8 +64,8 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
   const onSelect = (selectedEntity: Entity) => {
     const alreadyLinked = linkAndTargetEntities.find(
       ({ rightEntity }) =>
-        rightEntity.metadata.editionId.baseId ===
-        selectedEntity.metadata.editionId.baseId,
+        rightEntity.metadata.recordId.entityId ===
+        selectedEntity.metadata.recordId.entityId,
     );
 
     // if same entity is already linked, do nothing
@@ -76,7 +75,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
 
     const leftEntityId = getRoots(entitySubgraph)[0]?.metadata.editionId
       .baseId as EntityId;
-    const rightEntityId = selectedEntity.metadata.editionId.baseId as EntityId;
+    const rightEntityId = selectedEntity.metadata.recordId.entityId;
 
     const linkEntity = createDraftLinkEntity({
       leftEntityId,
@@ -118,7 +117,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
   const linkedEntityIds = useMemo(
     () =>
       linkAndTargetEntities.map(
-        ({ rightEntity }) => rightEntity.metadata.editionId.baseId,
+        ({ rightEntity }) => rightEntity.metadata.recordId.entityId,
       ),
     [linkAndTargetEntities],
   );
@@ -127,7 +126,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
     <GridEditorWrapper>
       <Box sx={{ maxHeight: 300, overflowY: "auto" }}>
         {sortedLinkAndTargetEntities.map(({ rightEntity, linkEntity }) => {
-          const linkEntityId = linkEntity.metadata.editionId.baseId;
+          const linkEntityId = linkEntity.metadata.recordId.entityId;
           const selected = selectedLinkEntityId === linkEntityId;
           return (
             <LinkedEntityListRow
@@ -138,14 +137,14 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
                   draftCell.data.linkRow.linkAndTargetEntities =
                     draftCell.data.linkRow.linkAndTargetEntities.filter(
                       (item) =>
-                        item.linkEntity.metadata.editionId.baseId !==
+                        item.linkEntity.metadata.recordId.entityId !==
                         linkEntityId,
                     );
                 });
 
                 onChange(newCell);
 
-                markLinkEntityToArchive(linkEntityId as EntityId);
+                markLinkEntityToArchive(linkentityId);
               }}
               selected={selected}
               onSelect={() =>

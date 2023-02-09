@@ -1,23 +1,19 @@
 import { extractBaseUri } from "@blockprotocol/type-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
-  AccountEntityId,
-  AccountId,
-  extractAccountId,
-} from "@local/hash-isomorphic-utils/types";
-import {
-  Entity,
-  EntityEditionId,
-  EntityEditionIdString,
-  entityEditionIdToString,
-  Subgraph,
-} from "@local/hash-subgraph";
-import {
   getIncomingLinksForEntityAtMoment,
   getLeftEntityForLinkEntityAtMoment,
   getOutgoingLinksForEntityAtMoment,
   getRightEntityForLinkEntityAtMoment,
 } from "@local/hash-subgraph/src/stdlib/edge/link";
+import {
+  AccountEntityId,
+  AccountId,
+  Entity,
+  EntityRecordId,
+  extractAccountId,
+  Subgraph,
+} from "@local/hash-types";
 import { Session } from "@ory/client";
 
 export type MinimalUser = {
@@ -49,7 +45,7 @@ export const constructMinimalUser = (params: {
     entityEditionId: userEntity.metadata.editionId,
     // Cast reason: The EntityUuid of a User's baseId is an AccountId
     accountId: extractAccountId(
-      userEntity.metadata.editionId.baseId as AccountEntityId,
+      userEntity.metadata.recordId.entityId as AccountEntityId,
     ),
     shortname,
     preferredName,
@@ -74,7 +70,7 @@ export const constructUser = (params: {
 
   const orgMemberships = getOutgoingLinksForEntityAtMoment(
     subgraph,
-    userEntity.metadata.editionId.baseId,
+    userEntity.metadata.recordId.entityId,
     new Date(),
   ).filter(
     (linkEntity) =>
@@ -98,7 +94,7 @@ export const constructUser = (params: {
     }
     const orgEntity = getRightEntityForLinkEntityAtMoment(
       subgraph,
-      metadata.editionId.baseId,
+      metadata.recordId.entityId,
       new Date(),
     );
 
@@ -198,7 +194,7 @@ export const constructMinimalOrg = (params: {
     kind: "org",
     entityEditionId: orgEntity.metadata.editionId,
     accountId: extractAccountId(
-      orgEntity.metadata.editionId.baseId as AccountEntityId,
+      orgEntity.metadata.recordId.entityId as AccountEntityId,
     ),
     shortname,
     name,
@@ -222,7 +218,7 @@ export const constructOrg = (params: {
 
   const orgMemberships = getIncomingLinksForEntityAtMoment(
     subgraph,
-    orgEntity.metadata.editionId.baseId,
+    orgEntity.metadata.recordId.entityId,
     new Date(),
   ).filter(
     (linkEntity) =>
@@ -248,7 +244,7 @@ export const constructOrg = (params: {
     }
     const userEntity = getLeftEntityForLinkEntityAtMoment(
       subgraph,
-      metadata.editionId.baseId,
+      metadata.recordId.entityId,
       new Date(),
     );
 

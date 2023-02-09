@@ -1,5 +1,5 @@
-import { Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { Subgraph } from "@local/hash-types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useBlockProtocolAggregatePropertyTypes } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-property-types";

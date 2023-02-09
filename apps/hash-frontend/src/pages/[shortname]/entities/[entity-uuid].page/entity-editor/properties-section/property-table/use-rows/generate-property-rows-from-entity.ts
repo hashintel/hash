@@ -1,12 +1,12 @@
-import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
 import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { Subgraph } from "@local/hash-types";
 
 import { PropertyRow } from "../types";
 import { generatePropertyRowRecursively } from "./generate-property-rows-from-entity/generate-property-row-recursively";
 
 export const generatePropertyRowsFromEntity = (
-  entitySubgraph: Subgraph<SubgraphRootTypes["entity"]>,
+  entitySubgraph: Subgraph<EntityRootType>,
 ): PropertyRow[] => {
   const entity = getRoots(entitySubgraph)[0]!;
 

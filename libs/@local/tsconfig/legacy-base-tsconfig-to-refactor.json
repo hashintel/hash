@@ -15,7 +15,9 @@
     "baseUrl": ".",
     "paths": {
       "@local/hash-isomorphic-utils/*": ["../hash-isomorphic-utils/src/*"],
-      "@local/hash-backend-utils/*": ["../hash-backend-utils/src/*"]
+      "@local/hash-backend-utils/*": ["../hash-backend-utils/src/*"],
+      "@local/hash-graphql-shared/*": ["../hash-graphql-utils/src/*"],
+      "@local/hash-types/*": ["../hash-types/src/*"]
     }
   },
   "ts-node": {

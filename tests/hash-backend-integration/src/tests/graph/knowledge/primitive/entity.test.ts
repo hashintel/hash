@@ -19,18 +19,18 @@ import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { EntityId, OwnedById } from "@local/hash-isomorphic-utils/types";
+import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
 import {
   DataTypeWithMetadata,
   Entity,
+  EntityId,
   EntityTypeWithMetadata,
   extractOwnedByIdFromEntityId,
   linkEntityTypeUri,
+  OwnedById,
   PropertyTypeWithMetadata,
   Subgraph,
-  SubgraphRootTypes,
-} from "@local/hash-subgraph";
-import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
+} from "@local/hash-types";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
@@ -157,8 +157,8 @@ describe("Entity CRU", () => {
     createdEntity = await createEntity(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       properties: {
-        [namePropertyType.metadata.editionId.baseId]: "Bob",
-        [favoriteBookPropertyType.metadata.editionId.baseId]: "some text",
+        [namePropertyType.metadata.recordId.baseUri]: "Bob",
+        [favoriteBookPropertyType.metadata.recordId.baseUri]: "some text",
       },
       entityTypeId: entityType.schema.$id,
       actorId: testUser.accountId,
@@ -167,11 +167,11 @@ describe("Entity CRU", () => {
 
   it("can read an entity", async () => {
     const fetchedEntity = await getLatestEntityById(graphContext, {
-      entityId: createdEntity.metadata.editionId.baseId,
+      entityId: createdEntity.metadata.recordId.entityId,
     });
 
-    expect(fetchedEntity.metadata.editionId.baseId).toEqual(
-      createdEntity.metadata.editionId.baseId,
+    expect(fetchedEntity.metadata.recordId.entityId).toEqual(
+      createdEntity.metadata.recordId.entityId,
     );
     expect(fetchedEntity.metadata.editionId.recordId).toEqual(
       createdEntity.metadata.editionId.recordId,
@@ -187,8 +187,8 @@ describe("Entity CRU", () => {
     updatedEntity = await updateEntity(graphContext, {
       entity: createdEntity,
       properties: {
-        [namePropertyType.metadata.editionId.baseId]: "Updated Bob",
-        [favoriteBookPropertyType.metadata.editionId.baseId]:
+        [namePropertyType.metadata.recordId.baseUri]: "Updated Bob",
+        [favoriteBookPropertyType.metadata.recordId.baseUri]:
           "Even more text than before",
       },
       actorId: testUser2.accountId,
@@ -219,19 +219,17 @@ describe("Entity CRU", () => {
         },
       })
       .then(({ data }) =>
-        getRootsAsEntities(
-          data as Subgraph<SubgraphRootTypes["entity"]>,
-        ).filter(
+        getRootsAsEntities(data as Subgraph<EntityRootType>).filter(
           (entity) =>
-            extractOwnedByIdFromEntityId(entity.metadata.editionId.baseId) ===
+            extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId) ===
             testUser.accountId,
         ),
       );
 
     const newlyUpdated = allEntitys.find(
       (ent) =>
-        ent.metadata.editionId.baseId ===
-        updatedEntity.metadata.editionId.baseId,
+        ent.metadata.recordId.entityId ===
+        updatedEntity.metadata.recordId.entityId,
     );
 
     // Even though we've inserted two entities, they're the different versions
@@ -245,9 +243,9 @@ describe("Entity CRU", () => {
       updatedEntity.metadata.editionId.recordId,
     );
     expect(
-      newlyUpdated?.properties[namePropertyType.metadata.editionId.baseId],
+      newlyUpdated?.properties[namePropertyType.metadata.recordId.baseUri],
     ).toEqual(
-      updatedEntity.properties[namePropertyType.metadata.editionId.baseId],
+      updatedEntity.properties[namePropertyType.metadata.recordId.baseUri],
     );
   });
 
@@ -257,8 +255,8 @@ describe("Entity CRU", () => {
       // First create a new entity given the following definition
       entityTypeId: entityType.schema.$id,
       properties: {
-        [namePropertyType.metadata.editionId.baseId]: "Alice",
-        [favoriteBookPropertyType.metadata.editionId.baseId]: "some text",
+        [namePropertyType.metadata.recordId.baseUri]: "Alice",
+        [favoriteBookPropertyType.metadata.recordId.baseUri]: "some text",
       },
       linkedEntities: [
         {

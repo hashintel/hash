@@ -1,14 +1,14 @@
 import { DataType } from "@blockprotocol/type-system";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
-import {
-  DataTypeWithMetadata,
-  Subgraph,
-  SubgraphRootTypes,
-  VersionedUri,
-} from "@local/hash-subgraph";
 import { versionedUriFromComponents } from "@local/hash-subgraph/src/shared/type-system-patch";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import {
+  AccountId,
+  DataTypeWithMetadata,
+  OwnedById,
+  Subgraph,
+  VersionedUri,
+} from "@local/hash-types";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
@@ -93,7 +93,7 @@ export const getDataTypeById: ImpureGraphFunction<
         },
       },
     })
-    .then(({ data }) => data as Subgraph<SubgraphRootTypes["dataType"]>);
+    .then(({ data }) => data as Subgraph<DataTypeRootType>);
 
   const [dataType] = getRoots(dataTypeSubgraph);
 
@@ -142,7 +142,7 @@ export const updateDataType: ImpureGraphFunction<
   return {
     schema: {
       ...schema,
-      $id: versionedUriFromComponents(editionId.baseId, editionId.version),
+      $id: versionedUriFromComponents(recordId.baseUri, editionId.version),
     },
     metadata,
   };

@@ -4,10 +4,10 @@ import {
   extractBaseUri,
   PropertyType,
 } from "@blockprotocol/type-system";
-import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
 import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
 import { getPropertyTypeById } from "@local/hash-subgraph/src/stdlib/element/property-type";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { Subgraph } from "@local/hash-types";
 import { useEffect, useMemo, useState } from "react";
 
 import { useBlockProtocolAggregateEntities } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-aggregate-entities";
@@ -16,8 +16,7 @@ import { EntityTypeEntitiesContextValue } from "./shared/entity-type-entities-co
 export const useEntityTypeEntitiesContextValue = (
   typeBaseUri: BaseUri | null,
 ): EntityTypeEntitiesContextValue => {
-  const [subgraph, setSubgraph] =
-    useState<Subgraph<SubgraphRootTypes["entity"]>>();
+  const [subgraph, setSubgraph] = useState<Subgraph<EntityRootType>>();
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
 
   useEffect(() => {

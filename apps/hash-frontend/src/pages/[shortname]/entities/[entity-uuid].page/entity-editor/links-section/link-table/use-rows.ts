@@ -1,7 +1,5 @@
-import { EntityTypeWithMetadata, VersionedUri } from "@local/hash-subgraph";
-import { getOutgoingLinkAndTargetEntitiesAtMoment } from "@local/hash-subgraph/src/stdlib/edge/link";
-import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { EntityTypeWithMetadata } from "@local/hash-types";
+import { getRoots } from "@local/hash-types/stdlib";
 import { useMemo } from "react";
 
 import { useMarkLinkEntityToArchive } from "../../../shared/use-mark-link-entity-to-archive";
@@ -24,7 +22,7 @@ export const useRows = () => {
     const outgoingLinkAndTargetEntitiesAtMoment =
       getOutgoingLinkAndTargetEntitiesAtMoment(
         entitySubgraph,
-        entity.metadata.editionId.baseId,
+        entity.metadata.recordId.entityId,
         /** @todo - We probably want to use entity endTime - https://app.asana.com/0/1201095311341924/1203331904553375/f */
         new Date(),
       );
@@ -64,11 +62,11 @@ export const useRows = () => {
 
       const linkAndTargetEntities =
         outgoingLinkAndTargetEntitiesAtMoment.filter((entities) => {
-          const { entityTypeId, editionId } = entities.linkEntity.metadata;
+          const { entityTypeId, recordId } = entities.linkEntity.metadata;
 
           const isMatching = entityTypeId === linkEntityTypeId;
           const isMarkedToArchive = draftLinksToArchive.some(
-            (markedLinkId) => markedLinkId === editionId.baseId,
+            (markedLinkId) => markedLinkId === recordId.entityId,
           );
 
           return isMatching && !isMarkedToArchive;

@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
 import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
+import { EntityId } from "@local/hash-types";
 import { useCallback } from "react";
 
 import {
@@ -58,7 +58,7 @@ export const useBlockProtocolUpdateEntity = (
 
         const { data: updateEntityResponseData } = await updateFn({
           variables: {
-            entityId: entityId as EntityId, // @todo-0.3 consider validating that this matches the id format,
+            entityId, // @todo-0.3 consider validating that this matches the id format,
             entityTypeId,
             updatedProperties: properties,
             leftToRightOrder,
