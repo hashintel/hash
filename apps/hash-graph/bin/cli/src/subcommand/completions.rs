@@ -8,7 +8,7 @@ use crate::{args::Args, error::GraphError};
 #[clap(version, author, about, long_about = None)]
 pub struct CompletionsArgs {
     /// The target shell syntax.
-    #[clap(long, value_enum, exclusive = true)]
+    #[clap(value_enum, exclusive = true)]
     pub shell: Shell,
 }
 

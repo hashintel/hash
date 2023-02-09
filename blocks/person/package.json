@@ -45,6 +45,7 @@
     "blockType": {
       "entryPoint": "react"
     },
+    "name": "@hash/person",
     "displayName": "Person",
     "icon": "public/account-circle.svg",
     "image": "public/preview.svg",

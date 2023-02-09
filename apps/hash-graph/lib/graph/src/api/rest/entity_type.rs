@@ -16,8 +16,9 @@ use crate::{
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, EntityTypeQueryToken, EntityTypeWithMetadata, OntologyElementMetadata,
+        OwnedOntologyElementMetadata,
     },
-    provenance::{OwnedById, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
         EntityTypeStore, StorePool,
@@ -117,8 +118,14 @@ async fn create_entity_type<P: StorePool + Send>(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
+        entity_type.id().into(),
+        ProvenanceMetadata::new(actor_id),
+        owned_by_id,
+    ));
+
     store
-        .create_entity_type(entity_type, owned_by_id, actor_id)
+        .create_entity_type(entity_type, &metadata)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create entity type");
@@ -129,8 +136,9 @@ async fn create_entity_type<P: StorePool + Send>(
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
-        })
-        .map(Json)
+        })?;
+
+    Ok(Json(metadata))
 }
 
 #[utoipa::path(

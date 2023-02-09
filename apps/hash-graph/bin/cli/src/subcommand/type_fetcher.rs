@@ -1,16 +1,16 @@
-use std::{fmt, net::SocketAddr};
-
 use clap::Parser;
-use error_stack::{Context, IntoReport, Result, ResultExt};
+use error_stack::{IntoReport, Result, ResultExt};
 use futures::{future, StreamExt};
 use graph::logging::{init_logger, LoggingArgs};
 use tarpc::server::{self, Channel};
 use tokio_serde::formats::MessagePack;
 use type_fetcher::{fetcher::Fetcher, fetcher_server::FetchServer};
 
+use crate::error::GraphError;
+
 #[derive(Debug, Parser)]
 #[clap(version, author, about, long_about = None)]
-pub struct Args {
+pub struct TypeFetcherArgs {
     /// The host the type fetcher RPC server is listening at.
     #[clap(
         long,
@@ -27,35 +27,16 @@ pub struct Args {
     pub log_config: LoggingArgs,
 }
 
-#[derive(Debug)]
-pub struct FetcherServerError;
-impl Context for FetcherServerError {}
-
-impl fmt::Display for FetcherServerError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("the type fetcher server encountered an error during execution")
-    }
-}
-
-#[tokio::main]
-async fn main() -> Result<(), FetcherServerError> {
-    let args = Args::parse();
-
+pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), GraphError> {
     let _log_guard = init_logger(&args.log_config);
 
-    let type_fetcher_address = format!("{}:{}", args.type_fetcher_host, args.type_fetcher_port);
-
-    let type_fetcher_address: SocketAddr = type_fetcher_address
-        .parse()
-        .into_report()
-        .change_context(FetcherServerError)
-        .attach_printable_lazy(|| type_fetcher_address.clone())?;
-
-    let mut listener =
-        tarpc::serde_transport::tcp::listen(&type_fetcher_address, MessagePack::default)
-            .await
-            .into_report()
-            .change_context(FetcherServerError)?;
+    let mut listener = tarpc::serde_transport::tcp::listen(
+        (args.type_fetcher_host, args.type_fetcher_port),
+        MessagePack::default,
+    )
+    .await
+    .into_report()
+    .change_context(GraphError)?;
 
     tracing::info!("Listening on port {}", listener.local_addr().port());
 

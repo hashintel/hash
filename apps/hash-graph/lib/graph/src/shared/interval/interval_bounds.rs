@@ -4,7 +4,7 @@ use core::{
     ops::{Bound, RangeBounds},
 };
 
-use crate::{bounds::LowerBoundHelper, invalid_bounds, Interval};
+use super::{bounds::LowerBoundHelper, invalid_bounds, Interval};
 
 #[derive(Copy, Clone)]
 pub struct IntervalBounds<T> {

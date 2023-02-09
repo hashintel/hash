@@ -6,8 +6,10 @@ use graph::{
     api::rest::{rest_api_router, RestRouterDependencies},
     identifier::account::AccountId,
     logging::{init_logger, LoggingArgs},
-    ontology::domain_validator::DomainValidator,
-    provenance::{OwnedById, UpdatedById},
+    ontology::{
+        domain_validator::DomainValidator, OntologyElementMetadata, OwnedOntologyElementMetadata,
+    },
+    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         AccountStore, BaseUriAlreadyExists, DataTypeStore, DatabaseConnectionInfo, EntityTypeStore,
         PostgresStorePool, StorePool,
@@ -215,33 +217,40 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     // Seed the primitive data types if they don't already exist
     for data_type in [text, number, boolean, empty_list, object, null] {
         let title = data_type.title().to_owned();
+
+        let data_type_metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
+            data_type.id().into(),
+            ProvenanceMetadata::new(UpdatedById::new(root_account_id)),
+            OwnedById::new(root_account_id),
+        ));
+
         if let Err(error) = connection
-            .create_data_type(
-                data_type,
-                OwnedById::new(root_account_id),
-                UpdatedById::new(root_account_id),
-            )
+            .create_data_type(data_type, &data_type_metadata)
             .await
             .change_context(GraphError)
         {
             if error.contains::<BaseUriAlreadyExists>() {
-                tracing::info!(%root_account_id, "tried to insert primitive {} data type, but it already exists", title);
+                tracing::info!(%root_account_id, "tried to insert primitive {title} data type, but it already exists");
             } else {
                 return Err(error.change_context(GraphError));
             }
         } else {
-            tracing::info!(%root_account_id, "inserted the primitive {} data type", title);
+            tracing::info!(%root_account_id, "inserted the primitive {title} data type");
         }
     }
 
     // Seed the entity types if they don't already exist
     let title = link_entity_type.title().to_owned();
-    if let Err(error) = connection
-        .create_entity_type(
-            link_entity_type,
+
+    let link_entity_type_metadata =
+        OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
+            link_entity_type.id().into(),
+            ProvenanceMetadata::new(UpdatedById::new(root_account_id)),
             OwnedById::new(root_account_id),
-            UpdatedById::new(root_account_id),
-        )
+        ));
+
+    if let Err(error) = connection
+        .create_entity_type(link_entity_type, &link_entity_type_metadata)
         .await
     {
         if error.contains::<BaseUriAlreadyExists>() {
@@ -271,16 +280,10 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
 
     #[cfg(feature = "type-fetcher")]
     let type_fetcher = {
-        let type_fetcher_address = format!("{}:{}", args.type_fetcher_host, args.type_fetcher_port);
-
-        let type_fetcher_address: SocketAddr = type_fetcher_address
-            .parse()
-            .into_report()
-            .change_context(GraphError)
-            .attach_printable_lazy(|| type_fetcher_address.clone())?;
-
-        let transport =
-            tarpc::serde_transport::tcp::connect(&type_fetcher_address, MessagePack::default);
+        let transport = tarpc::serde_transport::tcp::connect(
+            (args.type_fetcher_host, args.type_fetcher_port),
+            MessagePack::default,
+        );
 
         FetcherClient::new(
             client::Config::default(),

@@ -15,8 +15,9 @@ use crate::{
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, DataTypeQueryToken, DataTypeWithMetadata, OntologyElementMetadata,
+        OwnedOntologyElementMetadata,
     },
-    provenance::{OwnedById, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool},
     subgraph::query::{DataTypeStructuralQuery, StructuralQuery},
 };
@@ -109,8 +110,14 @@ async fn create_data_type<P: StorePool + Send>(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
+        data_type.id().into(),
+        ProvenanceMetadata::new(actor_id),
+        owned_by_id,
+    ));
+
     store
-        .create_data_type(data_type, owned_by_id, actor_id)
+        .create_data_type(data_type, &metadata)
         .await
         .map_err(|report| {
             // TODO: consider adding the data type, or at least its URI in the trace
@@ -122,8 +129,9 @@ async fn create_data_type<P: StorePool + Send>(
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
-        })
-        .map(Json)
+        })?;
+
+    Ok(Json(metadata))
 }
 
 #[utoipa::path(

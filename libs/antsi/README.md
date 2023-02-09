@@ -28,14 +28,16 @@ fn knows_user() -> bool {
 fn main() {
     // dynamic style support
     let mut style = Style::new();
-
     if knows_user() {
         style = style.font_mut().set_strikethrough();
     }
-
     eprintln!("O no! {}", PANIC_STYLE.apply(format_args!("mainframe breach {} has been {}", style.apply("(from an unknown user)"), BOLD_STYLE.apply("detected"))))
 }
 ```
+
+<pre>
+O no! <span style="color: red;">mainframe breach <s>(from an unknown user)</s> has been <strong>detected</strong></span>
+</pre>
 
 ## Contributors
 

@@ -1,20 +1,17 @@
+mod bounds;
+mod interval_bounds;
+
 use core::{
     cmp::Ordering,
     iter::{once, Chain, Once},
     ops::Bound,
 };
 
-use crate::bounds::{
-    compare_bounds, BoundType, LowerBound, LowerBoundHelper, UpperBound, UpperBoundHelper,
+use self::bounds::{compare_bounds, BoundType, LowerBoundHelper, UpperBoundHelper};
+pub use self::{
+    bounds::{LowerBound, UpperBound},
+    interval_bounds::IntervalBounds,
 };
-
-pub trait IntervalBounds<T> {
-    fn lower_bound(&self) -> Bound<&T>;
-    fn upper_bound(&self) -> Bound<&T>;
-
-    fn into_lower_bound(self) -> Bound<T>;
-    fn into_upper_bound(self) -> Bound<T>;
-}
 
 enum Return<T> {
     None,
@@ -353,17 +350,16 @@ pub trait Interval<T>: Sized {
     }
 }
 
+#[inline(never)]
+fn invalid_bounds() -> ! {
+    panic!("interval lower bound must be less than or equal to its upper bound")
+}
+
 #[cfg(test)]
 mod tests {
-    extern crate alloc;
-
-    use alloc::vec::Vec;
     use core::ops::Bound;
 
-    use crate::{
-        bounds::{LowerBound, UpperBound},
-        Interval, IntervalBounds,
-    };
+    use super::*;
 
     fn assert_equality(
         actual: impl IntoIterator<Item = impl Interval<u32>>,
