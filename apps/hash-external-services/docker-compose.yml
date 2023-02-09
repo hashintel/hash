@@ -2,6 +2,9 @@ version: "3.9"
 
 volumes:
   hash-postgres-data:
+  hash-graph-log:
+  hash-migration-log:
+  hash-type-fetcher-log:
 
 services:
   hash-dev-opensearch:
@@ -77,6 +80,8 @@ services:
       context: ../../apps/hash-graph
       args:
         PROFILE: dev
+    volumes:
+      - hash-migration-log:/log
     command: migrate
     environment:
       # Intentionaly use the POSTGRES user as it's the "superadmin" which has access to schema
@@ -130,6 +135,8 @@ services:
       HASH_GRAPH_TYPE_FETCHER_PORT: 4444
       RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-info,hash_type_fetcher=trace,reqwest=debug}"
       RUST_BACKTRACE: 1
+    volumes:
+      - hash-type-fetcher-log:/log
     command: type-fetcher
     healthcheck:
       test: ["CMD", "/hash-graph", "type-fetcher", "--healthcheck"]
@@ -172,6 +179,8 @@ services:
       # HASH_GRAPH_OTLP_ENDPOINT: "http://telemetry-collector:4317"
       RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-info,graph=trace,hash-graph=trace,tokio_postgres=debug}"
       RUST_BACKTRACE: 1
+    volumes:
+      - hash-graph-log:/log
     command: server
     healthcheck:
       test: ["CMD", "/hash-graph", "server", "--healthcheck"]
