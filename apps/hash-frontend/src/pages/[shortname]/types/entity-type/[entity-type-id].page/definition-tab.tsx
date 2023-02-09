@@ -1,12 +1,12 @@
 import { EntityType } from "@blockprotocol/graph";
 import { PropertyType, VersionedUri } from "@blockprotocol/type-system/slim";
 import { EntityTypeEditor } from "@hashintel/type-editor";
-import { useEntityTypesOptions } from "@hashintel/type-editor/src/shared/entity-types-options-context";
-import { usePropertyTypesOptions } from "@hashintel/type-editor/src/shared/property-types-options-context";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import { useMemo } from "react";
 
+import { useEntityTypesContextRequired } from "../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { useEditorOntologyFunctions } from "./definition-tab/use-editor-ontology-functions";
+import { useLatestPropertyTypes } from "./latest-property-types-context";
 
 type DefinitionTabProps = {
   ownedById?: OwnedById;
@@ -22,8 +22,8 @@ export const DefinitionTab = ({
 }: DefinitionTabProps) => {
   const ontologyFunctions = useEditorOntologyFunctions(ownedById ?? null);
 
-  const entityTypeOptions = useEntityTypesOptions();
-  const possiblyIncompletePropertyTypeOptions = usePropertyTypesOptions();
+  const entityTypesContext = useEntityTypesContextRequired();
+  const possiblyIncompletePropertyTypeOptions = useLatestPropertyTypes();
 
   const propertyTypeOptions = useMemo(() => {
     return {
@@ -31,6 +31,15 @@ export const DefinitionTab = ({
       ...entityTypeAndPropertyTypes.propertyTypes,
     };
   }, [entityTypeAndPropertyTypes, possiblyIncompletePropertyTypeOptions]);
+
+  const entityTypeOptions = useMemo<Record<VersionedUri, EntityType>>(() => {
+    return Object.fromEntries(
+      (entityTypesContext.entityTypes ?? []).map((entityType) => [
+        entityType.schema.$id,
+        entityType.schema,
+      ]),
+    );
+  }, [entityTypesContext.entityTypes]);
 
   return (
     <EntityTypeEditor

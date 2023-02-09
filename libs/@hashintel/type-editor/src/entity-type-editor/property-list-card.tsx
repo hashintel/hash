@@ -40,7 +40,6 @@ import {
 } from "react-hook-form";
 
 import { StyledPlusCircleIcon } from "@hashintel/design-system";
-import { useEntityType } from "../shared/entity-type-context";
 import { EntityTypeEditorForm } from "../shared/form-types";
 import {
   PropertyTypesByVersionedUri,

@@ -189,10 +189,12 @@ const Page: NextPageWithLayout = () => {
         <title>{entityType.title} | Entity Type | HASH</title>
       </Head>
       <FormProvider {...formMethods}>
-        <Box display="contents" component="form" onSubmit={handleSubmit}>
+        <LatestPropertyTypesContextProvider>
           <EntityTypeContext.Provider value={entityType}>
-            <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
-              <LatestPropertyTypesContextProvider>
+            <Box display="contents" component="form" onSubmit={handleSubmit}>
+              <EntityTypeEntitiesContext.Provider
+                value={entityTypeEntitiesValue}
+              >
                 <TopContextBar
                   defaultCrumbIcon={null}
                   crumbs={[
@@ -304,10 +306,10 @@ const Page: NextPageWithLayout = () => {
                     {currentTab === "entities" ? <EntitiesTab /> : null}
                   </Container>
                 </Box>
-              </LatestPropertyTypesContextProvider>
-            </EntityTypeEntitiesContext.Provider>
+              </EntityTypeEntitiesContext.Provider>
+            </Box>
           </EntityTypeContext.Provider>
-        </Box>
+        </LatestPropertyTypesContextProvider>
       </FormProvider>
       <GlobalStyles<Theme>
         styles={(theme) => ({

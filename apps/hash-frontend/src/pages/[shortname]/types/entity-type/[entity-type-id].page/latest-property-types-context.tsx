@@ -1,8 +1,7 @@
-import {
-  PropertyTypeRootType,
-  PropertyTypeWithMetadata,
-} from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
+import { PropertyType } from "@blockprotocol/graph";
+import { VersionedUri } from "@blockprotocol/type-system/slim";
+import { SubgraphRootTypes } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import {
   createContext,
   PropsWithChildren,
@@ -16,7 +15,7 @@ import {
 import { useBlockProtocolAggregatePropertyTypes } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-property-types";
 
 export type LatestPropertyTypesContextValues = {
-  propertyTypes: PropertyTypeWithMetadata[] | null;
+  propertyTypes: Record<VersionedUri, PropertyType> | null;
   refetch: () => Promise<void>;
 };
 
@@ -51,12 +50,16 @@ export const useLatestPropertyTypesContextValue = () => {
     await aggregatePropertyTypes({ data: {} }).then(
       ({ data: propertyTypesSubgraph }) => {
         if (propertyTypesSubgraph) {
-          setPropertyTypes((existingPropertyTypes) => [
-            ...(existingPropertyTypes ?? []),
-            ...getRoots<false, PropertyTypeRootType>(
-              propertyTypesSubgraph as any,
+          setPropertyTypes((existingPropertyTypes) => ({
+            ...(existingPropertyTypes ?? {}),
+            ...Object.fromEntries(
+              getRoots<SubgraphRootTypes["propertyType"]>(
+                propertyTypesSubgraph as any, // @todo-0.3 fix this
+              ).map((propertyType) => {
+                return [propertyType.schema.$id, propertyType.schema];
+              }),
             ),
-          ]);
+          }));
         }
       },
     );

@@ -168,7 +168,7 @@ const InsertLinkRow = (
 
   const { linkTypes: linkTypeOptions } = useEntityTypesOptions();
 
-  const linkTypes = Object.values(linkTypeOptions).map((link) => link);
+  const linkTypes = Object.values(linkTypeOptions);
 
   // @todo make more efficient
   const filteredLinkTypes = linkTypes.filter(
@@ -218,6 +218,7 @@ export const LinkListCard = () => {
   };
 
   const handleAddEntityType = (link: EntityType) => {
+    console.log({ link });
     cancelAddingNewLink();
     append(
       {
