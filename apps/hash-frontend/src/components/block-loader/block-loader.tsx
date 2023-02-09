@@ -151,7 +151,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     }
 
     return {
-      ...(graphProperties as Required<BlockGraphProperties["graph"]>),
+      ...graphProperties,
       blockEntity: {
         entityId: rootEntity.metadata.editionId.baseId,
         properties: (rootEntity as any).properties, // @todo-0.3 fix this

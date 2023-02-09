@@ -191,10 +191,8 @@ const Page: NextPageWithLayout = () => {
       <FormProvider {...formMethods}>
         <LatestPropertyTypesContextProvider>
           <EntityTypeContext.Provider value={entityType}>
-            <Box display="contents" component="form" onSubmit={handleSubmit}>
-              <EntityTypeEntitiesContext.Provider
-                value={entityTypeEntitiesValue}
-              >
+            <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
+              <Box display="contents" component="form" onSubmit={handleSubmit}>
                 <TopContextBar
                   defaultCrumbIcon={null}
                   crumbs={[
@@ -306,8 +304,8 @@ const Page: NextPageWithLayout = () => {
                     {currentTab === "entities" ? <EntitiesTab /> : null}
                   </Container>
                 </Box>
-              </EntityTypeEntitiesContext.Provider>
-            </Box>
+              </Box>
+            </EntityTypeEntitiesContext.Provider>
           </EntityTypeContext.Provider>
         </LatestPropertyTypesContextProvider>
       </FormProvider>
