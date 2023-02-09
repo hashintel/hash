@@ -1,0 +1,54 @@
+on:
+  pull_request: ## TODO: 🚨🚨🚨 remove before merging (testing only)
+  workflow_dispatch:
+    inputs:
+      BLOCK_DIR_NAME_FILTER:
+        default: .*
+        description: Regex to filter block dir names
+        required: false
+
+name: Publish blocks to production
+
+jobs:
+  pick-blocks:
+    name: Pick blocks
+    runs-on: ubuntu-20.04
+    outputs:
+      block-dir-names: ${{ steps.list-block-dir-names.outputs.block-dir-names }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: ./.github/actions/warm-up-repo
+
+      - name: List block dir names
+        id: list-block-dir-names
+        run: |
+          echo "block-dir-names=$(yarn workspace @local/repo-chores exe scripts/list-blocks.ts)" >> $GITHUB_OUTPUT
+        env:
+          OUTPUT_FORMAT: json
+          # BLOCK_DIR_NAME_FILTER: ${{ github.event.inputs.BLOCK_DIR_NAME_FILTER }}
+          BLOCK_DIR_NAME_FILTER: e ## TODO: 🚨🚨🚨 remove before merging (testing only)
+
+  process:
+    name: Publish
+    runs-on: ubuntu-20.04
+    needs:
+      - pick-blocks
+    strategy:
+      fail-fast: false
+      matrix:
+        block-dir-name: ${{ fromJSON(needs.pick-collections.outputs.block-dir-names) }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: ./.github/actions/warm-up-repo
+
+      - name: Build block
+        run: yarn build
+        working-directory: blocks/${{ matrix.block-dir-name }}
+
+      - name: Publish block
+        # run: npx blockprotocol@latest publish --yes
+        run: npx blockprotocol@latest publish --yes --dry-run ## TODO: 🚨🚨🚨 remove before merging (testing only)
+        working-directory: blocks/${{ matrix.block-dir-name }}
