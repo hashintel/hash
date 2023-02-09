@@ -32,7 +32,11 @@ export type EntityTypeWithMetadata = Omit<
   "schema"
 > & { schema: EntityType };
 
-export type { OntologyElementMetadata } from "@local/hash-graph-client";
+export type {
+  ExternalOntologyElementMetadata,
+  OntologyElementMetadata,
+  OwnedOntologyElementMetadata,
+} from "@local/hash-graph-client";
 
 /** Plain JSON value and object definitions */
 type JsonValue = null | string | number | boolean | JsonObject | JsonValue[];

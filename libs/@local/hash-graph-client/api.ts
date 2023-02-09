@@ -1226,7 +1226,9 @@ export type OntologyEdgeKind =
  * @type OntologyElementMetadata
  * @export
  */
-export type OntologyElementMetadata = OwnedOntologyElementMetadata;
+export type OntologyElementMetadata =
+  | ExternalOntologyElementMetadata
+  | OwnedOntologyElementMetadata;
 
 /**
  * @type OntologyOutwardEdges
