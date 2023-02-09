@@ -14,10 +14,10 @@ import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import { useEffect, useRef, useState } from "react";
 import { AddressCard } from "./address-card";
-import styles from "./base.module.scss";
 import { CircleQuestionIcon } from "./icons/circle-question-icon";
 import { MapboxIcon } from "./icons/mapbox-icon";
 import { RootEntity } from "./types.gen";
+import { Address } from "./useMapbox";
 import { useMapbox } from "./useMapbox";
 
 const addressTypeId =
@@ -67,13 +67,29 @@ export const App: BlockComponent<RootEntity> = ({
   const { rootEntity: blockEntity, linkedEntities } =
     useEntitySubgraph(blockEntitySubgraph);
 
+  const test = useEntitySubgraph(blockEntitySubgraph);
+
   const {
     metadata: {
-      editionId: { baseId: entityId },
+      recordId: { entityId },
       entityTypeId,
     },
     properties,
   } = blockEntity;
+
+  const {
+    suggestions,
+    suggestionsLoading,
+    suggestionsError,
+    fetchSuggestions,
+    selectAddress,
+    selectedAddress,
+  } = useMapbox(accessToken);
+
+  const [autocompleteFocused, setAutocompleteFocused] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [animatingIn, setAnimatingIn] = useState(false);
+  const [animatingOut, setAnimatingOut] = useState(false);
 
   const { [titleKey]: title, [descriptionKey]: description } = properties;
 
@@ -103,73 +119,64 @@ export const App: BlockComponent<RootEntity> = ({
     });
   };
 
-  // const updateAddress = async (address?: Address) => {
-  // if (address.file) {
-  //   graphService
-  //     ?.uploadFile({
-  //       data: { file: address.file, mediaType: "image" },
-  //     })
-  //     .then(async (res) => {
-  //       console.log(res);
-  // });
-  // }
-  // if (readonly || !address) {
-  //   return;
-  // }
+  const updateAddress = async (address?: Address) => {
+    if (readonly || !address) {
+      return;
+    }
 
-  //   const createAddressEntityResponse = await graphService?.createEntity({
-  //     data: {
-  //       entityTypeId: addressTypeId,
-  //       properties: {
-  //         [localityKey]: "1",
-  //         [regionKey]: "2",
-  //         [postalCodeKey]: "3",
-  //         [streetKey]: "4",
-  //       },
-  //     },
-  //   });
+    // if (address.file) {
+    //   graphService
+    //     ?.uploadFile({
+    //       data: { file: address.file, mediaType: "image" },
+    //       // data: { url: address.mapUrl },
+    //     })
+    //     .then(async (res) => {
+    //       console.log(res);
+    //     });
+    // }
 
-  //   const addressEntityId =
-  //     createAddressEntityResponse?.data?.metadata.editionId.baseId;
-  //   if (addressEntityId) {
-  //     const createLinkResponse = await graphService?.createEntity({
-  //       data: {
-  //         entityTypeId:
-  //           "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
-  //         properties: {},
-  //         linkData: {
-  //           leftEntityId: entityId,
-  //           rightEntityId: addressEntityId,
-  //         },
-  //       },
-  //     });
-  //   }
-  // };
+    const createAddressEntityResponse = await graphService?.createEntity({
+      data: {
+        entityTypeId: addressTypeId,
+        properties: {
+          [localityKey]: "1",
+          [regionKey]: "2",
+          [postalCodeKey]: "3",
+          [streetKey]: "4",
+        },
+      },
+    });
 
-  // useEffect(() => {
-  //   if (selectedAddress) {
-  //     updateAddress(selectedAddress);
-  //   } else {
-  //     updateAddress();
-  //   }
-  // }, [selectedAddress]);
+    const addressEntityId =
+      createAddressEntityResponse?.data?.metadata.recordId.entityId;
+    if (addressEntityId) {
+      const createLinkResponse = await graphService?.createEntity({
+        data: {
+          entityTypeId:
+            "https://alpha.hash.ai/@luisbett/types/entity-type/address-link/v/1",
+          properties: {},
+          linkData: {
+            leftEntityId: entityId,
+            rightEntityId: addressEntityId,
+          },
+        },
+      });
 
-  const {
-    suggestions,
-    suggestionsLoading,
-    suggestionsError,
-    fetchSuggestions,
-    selectAddress,
-    selectedAddress,
-  } = useMapbox(accessToken);
+      console.log(createLinkResponse);
+    }
+  };
 
-  const [autocompleteFocused, setAutocompleteFocused] = useState(false);
-  const [hovered, setHovered] = useState(false);
-  const [animatingIn, setAnimatingIn] = useState(false);
-  const [animatingOut, setAnimatingOut] = useState(false);
+  useEffect(() => {
+    if (selectedAddress && selectedAddress.mapUrl) {
+      console.log("updating address");
+      updateAddress(selectedAddress);
+    } else {
+      updateAddress();
+    }
+  }, [selectedAddress]);
 
   return (
-    <div className={styles.block} ref={blockRootRef}>
+    <Box ref={blockRootRef}>
       <Box
         sx={{ fontFamily: "Inter" }}
         onMouseEnter={() => setHovered(true)}
@@ -370,6 +377,6 @@ export const App: BlockComponent<RootEntity> = ({
           ) : null}
         </Collapse>
       </Box>
-    </div>
+    </Box>
   );
 };
