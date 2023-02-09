@@ -30,9 +30,17 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
       cargo install --path bin/cli --profile $PROFILE --locked;  \
     fi
 
+RUN mkdir -p /out/etc/ \
+ && echo 'nobody:x:65534:65534:nobody:/:' > /out/etc/passwd \
+ && echo 'nobody:x:65534:' > /out/etc/group \
+ && install -d -m 0755 -o nobody -g nobody /out/log \
+ && cp /usr/local/cargo/bin/hash-graph /out/hash-graph
+
 
 FROM scratch AS runtime
 
-COPY --from=builder /usr/local/cargo/bin/hash-graph /
+COPY --from=builder /out/ /
+
+USER nobody:nobody
 
 ENTRYPOINT ["/hash-graph"]
