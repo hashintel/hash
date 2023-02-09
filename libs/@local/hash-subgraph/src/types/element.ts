@@ -43,14 +43,15 @@ export type {
 
 export const isExternalOntologyElementMetadata = (
   metadata: OntologyElementMetadata,
-): metadata is ExternalOntologyElementMetadata => {
-  return (metadata as ExternalOntologyElementMetadata).fetchedAt !== undefined;
-};
+): metadata is ExternalOntologyElementMetadata =>
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- this can be undefined if the cast is wrong
+  (metadata as ExternalOntologyElementMetadata).fetchedAt !== undefined;
+
 export const isOwnedOntologyElementMetadata = (
   metadata: OntologyElementMetadata,
-): metadata is OwnedOntologyElementMetadata => {
-  return (metadata as OwnedOntologyElementMetadata).ownedById !== undefined;
-};
+): metadata is OwnedOntologyElementMetadata =>
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- this can be undefined if the cast is wrong
+  (metadata as OwnedOntologyElementMetadata).ownedById !== undefined;
 
 /** Plain JSON value and object definitions */
 type JsonValue = null | string | number | boolean | JsonObject | JsonValue[];
