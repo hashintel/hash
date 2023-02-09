@@ -62,12 +62,15 @@ export const App: BlockComponent<RootEntity> = ({
     throw new Error("No blockEntitySubgraph provided");
   }
 
+  console.log(blockEntitySubgraph);
+
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphService } = useGraphBlockService(blockRootRef);
   const { rootEntity: blockEntity, linkedEntities } =
     useEntitySubgraph(blockEntitySubgraph);
 
   const test = useEntitySubgraph(blockEntitySubgraph);
+  console.log(test);
 
   const {
     metadata: {
