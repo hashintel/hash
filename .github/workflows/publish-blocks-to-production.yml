@@ -52,3 +52,6 @@ jobs:
         # run: npx blockprotocol@latest publish --yes
         run: npx blockprotocol@latest publish --yes --dry-run ## TODO: 🚨🚨🚨 remove before merging (testing only)
         working-directory: blocks/${{ matrix.block-dir-name }}
+        env:
+          # BLOCK_PROTOCOL_API_KEY_HASH: ${{ secrets.BLOCK_PROTOCOL_API_KEY_HASH }}
+          BLOCK_PROTOCOL_API_KEY_HASH: "42" ## TODO: 🚨🚨🚨 remove before merging (testing only)
