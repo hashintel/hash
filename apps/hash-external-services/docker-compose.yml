@@ -2,9 +2,7 @@ version: "3.9"
 
 volumes:
   hash-postgres-data:
-  hash-graph-log:
-  hash-migration-log:
-  hash-type-fetcher-log:
+  log:
 
 services:
   hash-dev-opensearch:
@@ -81,7 +79,7 @@ services:
       args:
         PROFILE: dev
     volumes:
-      - hash-migration-log:/log
+      - log:/log
     command: migrate
     environment:
       # Intentionaly use the POSTGRES user as it's the "superadmin" which has access to schema
@@ -91,6 +89,7 @@ services:
       HASH_GRAPH_PG_PORT: "5432"
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
       HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
+      HASH_GRAPH_LOG_FOLDER: "/log/graph-migrations"
       # For unknown reasons, our error return values are consumed when we
       # configure the OTLP endpoint for the Graph. For now, we've disabled traces.
       # https://app.asana.com/0/1201095311341924/1203636955054323/f
@@ -131,12 +130,13 @@ services:
         PROFILE: dev
     environment:
       HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
+      HASH_GRAPH_LOG_FOLDER: "/log/graph-type-fetcher"
       HASH_GRAPH_TYPE_FETCHER_HOST: "0.0.0.0"
       HASH_GRAPH_TYPE_FETCHER_PORT: 4444
       RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-info,hash_type_fetcher=trace,reqwest=debug}"
       RUST_BACKTRACE: 1
     volumes:
-      - hash-type-fetcher-log:/log
+      - log:/log
     command: type-fetcher
     healthcheck:
       test: ["CMD", "/hash-graph", "type-fetcher", "--healthcheck"]
@@ -169,6 +169,7 @@ services:
       HASH_GRAPH_PG_PORT: "5432"
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
       HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
+      HASH_GRAPH_LOG_FOLDER: "/log/graph-service"
       HASH_GRAPH_TYPE_FETCHER_HOST: "type-fetcher"
       HASH_GRAPH_TYPE_FETCHER_PORT: "${HASH_GRAPH_TYPE_FETCHER_PORT}"
       HASH_GRAPH_API_HOST: "0.0.0.0"
@@ -180,7 +181,7 @@ services:
       RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-info,graph=trace,hash-graph=trace,tokio_postgres=debug}"
       RUST_BACKTRACE: 1
     volumes:
-      - hash-graph-log:/log
+      - log:/log
     command: server
     healthcheck:
       test: ["CMD", "/hash-graph", "server", "--healthcheck"]
