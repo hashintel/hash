@@ -67,7 +67,7 @@ export const EditEntityModal = ({
       setSavingChanges(true);
 
       await applyDraftLinkEntityChanges(
-        draftEntity.metadata.editionId.baseId as EntityId,
+        draftEntity.metadata.recordId.entityId as EntityId,
         draftLinksToCreate,
         draftLinksToArchive,
       );
@@ -75,7 +75,7 @@ export const EditEntityModal = ({
       /** @todo add validation here */
       const updateEntityResponse = await updateEntity({
         data: {
-          entityId: draftEntity.metadata.editionId.baseId as EntityId,
+          entityId: draftEntity.metadata.recordId.entityId as EntityId,
           properties: draftEntity.properties,
           entityTypeId: draftEntity.metadata.entityTypeId,
         },

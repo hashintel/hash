@@ -67,13 +67,13 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       }
 
       await applyDraftLinkEntityChanges(
-        entity.metadata.editionId.baseId,
+        entity.metadata.recordId.entityId,
         draftLinksToCreate,
         draftLinksToArchive,
       );
 
       const entityId = extractEntityUuidFromEntityId(
-        entity.metadata.editionId.baseId,
+        entity.metadata.recordId.entityId,
       );
 
       void router.push(`/@${activeWorkspace.shortname}/entities/${entityId}`);

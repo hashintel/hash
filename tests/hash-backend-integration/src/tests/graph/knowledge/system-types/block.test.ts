@@ -86,7 +86,7 @@ describe("Block", () => {
 
   it("can get a block by its entity id", async () => {
     const fetchedBlock = await getBlockById(graphContext, {
-      entityId: testBlock.entity.metadata.editionId.baseId,
+      entityId: testBlock.entity.metadata.recordId.entityId,
     });
 
     expect(fetchedBlock).not.toBeNull();

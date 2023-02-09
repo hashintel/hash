@@ -105,7 +105,7 @@ describe("Page", () => {
 
   it("can get a page by its entity id", async () => {
     const fetchedPage = await getPageById(graphContext, {
-      entityId: testPage.entity.metadata.editionId.baseId,
+      entityId: testPage.entity.metadata.recordId.entityId,
     });
 
     expect(fetchedPage).toEqual(testPage);
@@ -118,14 +118,14 @@ describe("Page", () => {
 
     expect(
       allPages.sort((a, b) =>
-        a.entity.metadata.editionId.baseId.localeCompare(
-          b.entity.metadata.editionId.baseId,
+        a.entity.metadata.recordId.entityId.localeCompare(
+          b.entity.metadata.recordId.entityId,
         ),
       ),
     ).toEqual(
       [testPage, testPage2].sort((a, b) =>
-        a.entity.metadata.editionId.baseId.localeCompare(
-          b.entity.metadata.editionId.baseId,
+        a.entity.metadata.recordId.entityId.localeCompare(
+          b.entity.metadata.recordId.entityId,
         ),
       ),
     );

@@ -32,8 +32,8 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
       linkAndTargetEntities[0] ?? {};
 
     const sameEntity =
-      currentLinkedEntity?.metadata.editionId.baseId ===
-      selectedEntity.metadata.editionId.baseId;
+      currentLinkedEntity?.metadata.recordId.entityId ===
+      selectedEntity.metadata.recordId.entityId;
 
     // if clicked on the same entity, do nothing
     if (sameEntity) {
@@ -43,16 +43,16 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
     // if there is an existing link, archive it
     if (currentLink) {
       markLinkEntityToArchive(
-        currentLink.metadata.editionId.baseId as EntityId,
+        currentLink.metadata.recordId.entityId as EntityId,
       );
     }
 
     // create new link
     const linkEntity = createDraftLinkEntity({
       linkEntityTypeId,
-      leftEntityId: getRoots(entitySubgraph)[0]?.metadata.editionId
-        .baseId as EntityId,
-      rightEntityId: selectedEntity.metadata.editionId.baseId as EntityId,
+      leftEntityId: getRoots(entitySubgraph)[0]?.metadata.recordId
+        .entityId as EntityId,
+      rightEntityId: selectedEntity.metadata.recordId.entityId as EntityId,
     });
 
     const newLinkAndTargetEntity: LinkAndTargetEntity = {
@@ -72,7 +72,7 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
   // if there could be one linked entity, just render the entity selector
   if (maxItems === 1) {
     const linkedEntityId =
-      linkAndTargetEntities[0]?.rightEntity.metadata.editionId.baseId;
+      linkAndTargetEntities[0]?.rightEntity.metadata.recordId.entityId;
 
     return (
       <EntitySelector

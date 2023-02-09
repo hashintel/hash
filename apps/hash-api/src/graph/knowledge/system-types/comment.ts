@@ -43,7 +43,7 @@ export const getCommentFromEntity: PureGraphFunction<
     entity.metadata.entityTypeId !== SYSTEM_TYPES.entityType.comment.schema.$id
   ) {
     throw new EntityTypeMismatchError(
-      entity.metadata.editionId.baseId,
+      entity.metadata.recordId.entityId,
       SYSTEM_TYPES.entityType.block.schema.$id,
       entity.metadata.entityTypeId,
     );
@@ -98,13 +98,13 @@ export const getCommentText: ImpureGraphFunction<
 
   if (unexpectedHasTextLinks.length > 0) {
     throw new Error(
-      `Critical: Comment with entityId ${comment.entity.metadata.editionId.baseId} has more than one linked text entities`,
+      `Critical: Comment with entityId ${comment.entity.metadata.recordId.entityId} has more than one linked text entities`,
     );
   }
 
   if (!hasTextLink) {
     throw new Error(
-      `Critical: Comment with entityId ${comment.entity.metadata.editionId.baseId} doesn't have any linked text entities`,
+      `Critical: Comment with entityId ${comment.entity.metadata.recordId.entityId} doesn't have any linked text entities`,
     );
   }
 
@@ -148,24 +148,24 @@ export const createComment: ImpureGraphFunction<
 
   await createLinkEntity(ctx, {
     linkEntityType: SYSTEM_TYPES.linkEntityType.hasText,
-    leftEntityId: entity.metadata.editionId.baseId,
-    rightEntityId: textEntity.metadata.editionId.baseId,
+    leftEntityId: entity.metadata.recordId.entityId,
+    rightEntityId: textEntity.metadata.recordId.entityId,
     ownedById,
     actorId,
   });
 
   await createLinkEntity(ctx, {
     linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
-    leftEntityId: entity.metadata.editionId.baseId,
-    rightEntityId: parent.metadata.editionId.baseId,
+    leftEntityId: entity.metadata.recordId.entityId,
+    rightEntityId: parent.metadata.recordId.entityId,
     ownedById,
     actorId,
   });
 
   await createLinkEntity(ctx, {
     linkEntityType: SYSTEM_TYPES.linkEntityType.author,
-    leftEntityId: entity.metadata.editionId.baseId,
-    rightEntityId: author.entity.metadata.editionId.baseId,
+    leftEntityId: entity.metadata.recordId.entityId,
+    rightEntityId: author.entity.metadata.recordId.entityId,
     ownedById,
     actorId,
   });
@@ -190,9 +190,9 @@ export const updateCommentText: ImpureGraphFunction<
 > = async (ctx, params) => {
   const { comment, actorId, tokens } = params;
 
-  if (actorId !== comment.entity.metadata.editionId.baseId) {
+  if (actorId !== comment.entity.metadata.recordId.entityId) {
     throw new Error(
-      `Critical: account ${actorId} does not have permission to edit the comment with entityId ${comment.entity.metadata.editionId.baseId}`,
+      `Critical: account ${actorId} does not have permission to edit the comment with entityId ${comment.entity.metadata.recordId.entityId}`,
     );
   }
 
@@ -223,9 +223,9 @@ export const deleteComment: ImpureGraphFunction<
   const { comment, actorId } = params;
 
   // Throw error if the user trying to delete the comment is not the comment's author
-  if (actorId !== comment.entity.metadata.editionId.baseId) {
+  if (actorId !== comment.entity.metadata.recordId.entityId) {
     throw new Error(
-      `Critical: account ${actorId} does not have permission to delete the comment with entityId ${comment.entity.metadata.editionId}`,
+      `Critical: account ${actorId} does not have permission to delete the comment with entityId ${comment.entity.metadata.recordId}`,
     );
   }
 
@@ -262,13 +262,13 @@ export const getCommentParent: ImpureGraphFunction<
 
   if (!parentLink) {
     throw new Error(
-      `Critical: comment with entityId ${comment.entity.metadata.editionId.baseId} has no linked parent entity`,
+      `Critical: comment with entityId ${comment.entity.metadata.recordId.entityId} has no linked parent entity`,
     );
   }
 
   if (unexpectedParentLinks.length > 0) {
     throw new Error(
-      `Critical: Comment with entityId ${comment.entity.metadata.editionId.baseId} has more than one linked parent entity`,
+      `Critical: Comment with entityId ${comment.entity.metadata.recordId.entityId} has more than one linked parent entity`,
     );
   }
 
@@ -293,13 +293,13 @@ export const getCommentAuthor: ImpureGraphFunction<
 
   if (!authorLink) {
     throw new Error(
-      `Critical: comment with entityId ${comment.entity.metadata.editionId.baseId} has no linked author entity`,
+      `Critical: comment with entityId ${comment.entity.metadata.recordId.entityId} has no linked author entity`,
     );
   }
 
   if (unexpectedAuthorLinks.length > 0) {
     throw new Error(
-      `Critical: Comment with entityId ${comment.entity.metadata.editionId.baseId} has more than one linked author entity`,
+      `Critical: Comment with entityId ${comment.entity.metadata.recordId.entityId} has more than one linked author entity`,
     );
   }
 
@@ -354,12 +354,12 @@ export const resolveComment: ImpureGraphFunction<
   // Throw error if the user trying to resolve the comment is not the comment's author
   // or the author of the block the comment is attached to
   if (
-    actorId !== author.entity.metadata.editionId.baseId &&
+    actorId !== author.entity.metadata.recordId.entityId &&
     parent.metadata.entityTypeId === SYSTEM_TYPES.entityType.block.schema.$id &&
-    actorId !== extractOwnedByIdFromEntityId(parent.metadata.editionId.baseId)
+    actorId !== extractOwnedByIdFromEntityId(parent.metadata.recordId.entityId)
   ) {
     throw new Error(
-      `Critical: account ${actorId} does not have permission to resolve the comment with entityId ${comment.entity.metadata.editionId.baseId}`,
+      `Critical: account ${actorId} does not have permission to resolve the comment with entityId ${comment.entity.metadata.recordId.entityId}`,
     );
   }
 

@@ -34,7 +34,7 @@ export const getFileFromEntity: PureGraphFunction<{ entity: Entity }, File> = ({
     entity.metadata.entityTypeId !== SYSTEM_TYPES.entityType.file.schema.$id
   ) {
     throw new EntityTypeMismatchError(
-      entity.metadata.editionId.baseId,
+      entity.metadata.recordId.entityId,
       SYSTEM_TYPES.entityType.block.schema.$id,
       entity.metadata.entityTypeId,
     );

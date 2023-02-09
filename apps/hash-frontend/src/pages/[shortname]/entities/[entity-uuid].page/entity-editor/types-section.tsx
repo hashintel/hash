@@ -19,7 +19,7 @@ export const TypesSection = () => {
   const entity = getRoots(entitySubgraph)[0]!;
   const { updateEntity } = useBlockProtocolUpdateEntity();
   const {
-    metadata: { editionId, entityTypeId },
+    metadata: { recordId, entityTypeId },
     properties,
   } = entity;
 
@@ -81,7 +81,7 @@ export const TypesSection = () => {
             entityTypeBaseUri,
             newVersion,
           ),
-          entityId: editionId.baseId as EntityId,
+          entityId: recordId.entityId as EntityId,
           properties,
         },
       });

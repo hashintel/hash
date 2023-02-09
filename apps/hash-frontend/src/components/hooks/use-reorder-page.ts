@@ -25,7 +25,7 @@ export const useReorderPage = () => {
               query: getAccountPagesTree,
               variables: {
                 ownedById: extractOwnedByIdFromEntityId(
-                  data.setParentPage.metadata.editionId.baseId,
+                  data.setParentPage.metadata.recordId.entityId,
                 ),
               },
             },

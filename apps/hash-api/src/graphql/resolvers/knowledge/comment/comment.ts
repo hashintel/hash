@@ -21,7 +21,7 @@ export const createCommentResolver: ResolverFn<
 
   const comment = await createComment(context, {
     tokens,
-    ownedById: extractOwnedByIdFromEntityId(parent.metadata.editionId.baseId),
+    ownedById: extractOwnedByIdFromEntityId(parent.metadata.recordId.entityId),
     parent,
     author: user,
     actorId: user.accountId,

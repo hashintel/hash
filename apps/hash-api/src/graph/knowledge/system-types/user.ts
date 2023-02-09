@@ -65,7 +65,7 @@ export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
     entity.metadata.entityTypeId !== SYSTEM_TYPES.entityType.user.schema.$id
   ) {
     throw new EntityTypeMismatchError(
-      entity.metadata.editionId.baseId,
+      entity.metadata.recordId.entityId,
       SYSTEM_TYPES.entityType.user.schema.$id,
       entity.metadata.entityTypeId,
     );
@@ -91,7 +91,7 @@ export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
 
   return {
     accountId: extractEntityUuidFromEntityId(
-      entity.metadata.editionId.baseId,
+      entity.metadata.recordId.entityId,
     ) as Uuid as AccountId,
     shortname,
     preferredName,
@@ -539,7 +539,7 @@ export const isUserMemberOfOrg: ImpureGraphFunction<
 
   return !!orgs.find(
     (org) =>
-      extractEntityUuidFromEntityId(org.entity.metadata.editionId.baseId) ===
+      extractEntityUuidFromEntityId(org.entity.metadata.recordId.entityId) ===
       params.orgEntityUuid,
   );
 };

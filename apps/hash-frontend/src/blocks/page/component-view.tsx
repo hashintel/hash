@@ -157,7 +157,7 @@ export class ComponentView implements NodeView {
       const blockDraftId = entity.draftId;
 
       // @todo handle entity id not being defined
-      const entityId = entity.metadata.editionId.baseId ?? "";
+      const entityId = entity.metadata.recordId.entityId ?? "";
 
       /** used by collaborative editing feature `FocusTracker` */
       this.target.setAttribute("data-entity-id", entityId);
@@ -194,7 +194,9 @@ export class ComponentView implements NodeView {
               <BlockLoader
                 key={entityId} // reset the component state when the entity changes
                 blockEntityId={
-                  childEntity?.metadata.editionId.baseId as EntityId | undefined
+                  childEntity?.metadata.recordId.entityId as
+                    | EntityId
+                    | undefined
                 } // @todo make this always defined
                 blockEntityTypeId={this.block.meta.schema as VersionedUri} // @todo-0.3 remove when @blockprotocol/core types updated
                 blockMetadata={this.block.meta}

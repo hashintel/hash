@@ -5,7 +5,7 @@ import {
 import { VersionedUri } from "@blockprotocol/type-system/slim";
 import { EntityId } from "@local/hash-graphql-shared/types";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
-import { Subgraph as LocalSubgraph } from "@local/hash-subgraph";
+import { Entity, Subgraph as LocalSubgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import {
   FunctionComponent,
@@ -144,7 +144,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     // @todo.0-3 fix this to import from @blockprotocol/graph when key mismatches are fixed
     const rootEntity = getRoots(
       graphProperties.blockEntitySubgraph as unknown as LocalSubgraph,
-    )[0];
+    )[0] as Entity | undefined;
 
     if (!rootEntity) {
       throw new Error("Root entity not present in blockEntitySubgraph");
@@ -153,8 +153,8 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     return {
       ...(graphProperties as Required<BlockGraphProperties["graph"]>),
       blockEntity: {
-        entityId: rootEntity.metadata.editionId.baseId,
-        properties: (rootEntity as any).properties, // @todo-0.3 fix this
+        entityId: rootEntity.metadata.recordId.entityId,
+        properties: rootEntity.properties,
       },
     };
   }, [graphProperties]);

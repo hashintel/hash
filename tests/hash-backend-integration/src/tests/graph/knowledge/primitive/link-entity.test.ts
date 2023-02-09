@@ -160,17 +160,17 @@ describe("Link entity", () => {
   it("can link entities", async () => {
     linkEntityFriend = await createLinkEntity(graphContext, {
       ownedById: testUser.accountId as OwnedById,
-      leftEntityId: leftEntity.metadata.editionId.baseId,
+      leftEntityId: leftEntity.metadata.recordId.entityId,
       linkEntityType: friendLinkEntityType,
-      rightEntityId: friendRightEntity.metadata.editionId.baseId,
+      rightEntityId: friendRightEntity.metadata.recordId.entityId,
       actorId: testUser.accountId,
     });
 
     linkEntityAcquaintance = await createLinkEntity(graphContext, {
       ownedById: testUser.accountId as OwnedById,
-      leftEntityId: leftEntity.metadata.editionId.baseId,
+      leftEntityId: leftEntity.metadata.recordId.entityId,
       linkEntityType: acquaintanceLinkEntityType,
-      rightEntityId: acquaintanceRightEntity.metadata.editionId.baseId,
+      rightEntityId: acquaintanceRightEntity.metadata.recordId.entityId,
       actorId: testUser.accountId,
     });
   });

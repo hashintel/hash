@@ -167,14 +167,14 @@ describe("Entity CRU", () => {
 
   it("can read an entity", async () => {
     const fetchedEntity = await getLatestEntityById(graphContext, {
-      entityId: createdEntity.metadata.editionId.baseId,
+      entityId: createdEntity.metadata.recordId.entityId,
     });
 
-    expect(fetchedEntity.metadata.editionId.baseId).toEqual(
-      createdEntity.metadata.editionId.baseId,
+    expect(fetchedEntity.metadata.recordId.entityId).toEqual(
+      createdEntity.metadata.recordId.entityId,
     );
-    expect(fetchedEntity.metadata.editionId.recordId).toEqual(
-      createdEntity.metadata.editionId.recordId,
+    expect(fetchedEntity.metadata.recordId.editionId).toEqual(
+      createdEntity.metadata.recordId.editionId,
     );
   });
 
@@ -223,15 +223,15 @@ describe("Entity CRU", () => {
           data as Subgraph<SubgraphRootTypes["entity"]>,
         ).filter(
           (entity) =>
-            extractOwnedByIdFromEntityId(entity.metadata.editionId.baseId) ===
+            extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId) ===
             testUser.accountId,
         ),
       );
 
     const newlyUpdated = allEntitys.find(
       (ent) =>
-        ent.metadata.editionId.baseId ===
-        updatedEntity.metadata.editionId.baseId,
+        ent.metadata.recordId.entityId ===
+        updatedEntity.metadata.recordId.entityId,
     );
 
     // Even though we've inserted two entities, they're the different versions
@@ -241,8 +241,8 @@ describe("Entity CRU", () => {
     expect(allEntitys.length).toBeGreaterThanOrEqual(1);
     expect(newlyUpdated).toBeDefined();
 
-    expect(newlyUpdated?.metadata.editionId.recordId).toEqual(
-      updatedEntity.metadata.editionId.recordId,
+    expect(newlyUpdated?.metadata.recordId.editionId).toEqual(
+      updatedEntity.metadata.recordId.editionId,
     );
     expect(
       newlyUpdated?.properties[namePropertyType.metadata.editionId.baseId],
@@ -267,8 +267,8 @@ describe("Entity CRU", () => {
           linkEntityTypeId: linkEntityTypeFriend.schema.$id,
           entity: {
             // The "new" entity is in fact just an existing entity, so only a link will be created.
-            existingEntityId: updatedEntity.metadata.editionId
-              .baseId as EntityId,
+            existingEntityId: updatedEntity.metadata.recordId
+              .entityId as EntityId,
           },
         },
       ],

@@ -66,7 +66,7 @@ export const createEntity: ImpureGraphFunction<
     entityUuid: overrideEntityUuid,
   } = params;
 
-  const { data: metadata } = await graphApi.createEntity({
+  const { data: createdEntityMetadata } = await graphApi.createEntity({
     ownedById,
     entityTypeId,
     properties,
@@ -74,9 +74,18 @@ export const createEntity: ImpureGraphFunction<
     actorId,
   });
 
+  /** @todo - Remove this when we rename components in the Graph API */
+  const metadata: EntityMetadata = {
+    ...createdEntityMetadata,
+    entityTypeId: createdEntityMetadata.entityTypeId as VersionedUri,
+    recordId: {
+      entityId: createdEntityMetadata.editionId.baseId as EntityId,
+      editionId: createdEntityMetadata.editionId.recordId,
+    },
+  };
   return {
     properties,
-    metadata: metadata as EntityMetadata,
+    metadata,
   };
 };
 
@@ -293,8 +302,8 @@ export const createEntityWithLinks: ImpureGraphFunction<
         // links are created as an outgoing link from the parent entity to the children.
         await createLinkEntity(context, {
           linkEntityType,
-          leftEntityId: parentEntity.entity.metadata.editionId.baseId,
-          rightEntityId: entity.metadata.editionId.baseId,
+          leftEntityId: parentEntity.entity.metadata.recordId.entityId,
+          rightEntityId: entity.metadata.recordId.entityId,
           leftToRightOrder: link.meta.index ?? undefined,
           ownedById,
           actorId,
@@ -324,9 +333,9 @@ export const updateEntity: ImpureGraphFunction<
 > = async ({ graphApi }, params) => {
   const { entity, properties, actorId, entityTypeId } = params;
 
-  const { data: metadata } = await graphApi.updateEntity({
+  const { data: createdEntityMetadata } = await graphApi.updateEntity({
     actorId,
-    entityId: entity.metadata.editionId.baseId,
+    entityId: entity.metadata.recordId.entityId,
     /**
      * @todo: this field could be optional when updating an entity
      *
@@ -337,7 +346,17 @@ export const updateEntity: ImpureGraphFunction<
     properties,
   });
 
-  return { ...entity, metadata: metadata as EntityMetadata, properties };
+  /** @todo - Remove this when we rename components in the Graph API */
+  const metadata: EntityMetadata = {
+    ...createdEntityMetadata,
+    entityTypeId: createdEntityMetadata.entityTypeId as VersionedUri,
+    recordId: {
+      entityId: createdEntityMetadata.editionId.baseId as EntityId,
+      editionId: createdEntityMetadata.editionId.recordId,
+    },
+  };
+
+  return { ...entity, metadata, properties };
 };
 
 export const archiveEntity: ImpureGraphFunction<
@@ -349,7 +368,7 @@ export const archiveEntity: ImpureGraphFunction<
 > = async ({ graphApi }, params) => {
   const { entity, actorId } = params;
   await graphApi.updateEntity({
-    entityId: entity.metadata.editionId.baseId,
+    entityId: entity.metadata.recordId.entityId,
     archived: true,
     actorId,
     /**
@@ -445,7 +464,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
           { path: ["rightEntity", "uuid"] },
           {
             parameter: extractEntityUuidFromEntityId(
-              entity.metadata.editionId.baseId,
+              entity.metadata.recordId.entityId,
             ),
           },
         ],
@@ -455,7 +474,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
           { path: ["rightEntity", "ownedById"] },
           {
             parameter: extractOwnedByIdFromEntityId(
-              entity.metadata.editionId.baseId,
+              entity.metadata.recordId.entityId,
             ),
           },
         ],
@@ -502,7 +521,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
   ).map((linkEntity) => {
     if (!isEntityLinkEntity(linkEntity)) {
       throw new Error(
-        `Entity with ID ${linkEntity.metadata.editionId.baseId} is not a link entity.`,
+        `Entity with ID ${linkEntity.metadata.recordId.entityId} is not a link entity.`,
       );
     }
     return linkEntity;
@@ -533,7 +552,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
           { path: ["leftEntity", "uuid"] },
           {
             parameter: extractEntityUuidFromEntityId(
-              entity.metadata.editionId.baseId,
+              entity.metadata.recordId.entityId,
             ),
           },
         ],
@@ -543,7 +562,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
           { path: ["leftEntity", "ownedById"] },
           {
             parameter: extractOwnedByIdFromEntityId(
-              entity.metadata.editionId.baseId,
+              entity.metadata.recordId.entityId,
             ),
           },
         ],
@@ -572,7 +591,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
           { path: ["rightEntity", "uuid"] },
           {
             parameter: extractEntityUuidFromEntityId(
-              params.rightEntity.metadata.editionId.baseId,
+              params.rightEntity.metadata.recordId.entityId,
             ),
           },
         ],
@@ -582,7 +601,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
           { path: ["rightEntity", "ownedById"] },
           {
             parameter: extractOwnedByIdFromEntityId(
-              params.rightEntity.metadata.editionId.baseId,
+              params.rightEntity.metadata.recordId.entityId,
             ),
           },
         ],
@@ -615,7 +634,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
   ).map((linkEntity) => {
     if (!isEntityLinkEntity(linkEntity)) {
       throw new Error(
-        `Entity with ID ${linkEntity.metadata.editionId.baseId} is not a link entity.`,
+        `Entity with ID ${linkEntity.metadata.recordId.entityId} is not a link entity.`,
       );
     }
     return linkEntity;
@@ -644,7 +663,7 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
             { path: ["uuid"] },
             {
               parameter: extractEntityUuidFromEntityId(
-                entity.metadata.editionId.baseId,
+                entity.metadata.recordId.entityId,
               ),
             },
           ],
@@ -654,7 +673,7 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
             { path: ["ownedById"] },
             {
               parameter: extractOwnedByIdFromEntityId(
-                entity.metadata.editionId.baseId,
+                entity.metadata.recordId.entityId,
               ),
             },
           ],

@@ -37,7 +37,7 @@ export const useApplyDraftLinkEntityChanges = () => {
             properties: {},
             linkData: {
               leftEntityId,
-              rightEntityId: rightEntity.metadata.editionId.baseId,
+              rightEntityId: rightEntity.metadata.recordId.entityId,
             },
           },
         }),

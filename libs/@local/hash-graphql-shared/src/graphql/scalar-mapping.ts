@@ -20,7 +20,7 @@ export const scalars = {
     "@local/hash-graphql-shared/graphql/types#PropertyTypeWithoutId",
 
   Entity: "@local/hash-subgraph#Entity",
-  EntityEditionId: "@local/hash-subgraph#EntityEditionId",
+  EntityRecordId: "@local/hash-subgraph#EntityRecordId",
   EntityMetadata: "@local/hash-subgraph#EntityMetadata",
   EntityVersion: "@local/hash-subgraph/#EntityVersion",
   PropertyObject: "@local/hash-subgraph#PropertyObject",

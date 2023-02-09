@@ -116,7 +116,7 @@ describe("User model class", () => {
     const testOrg = await createTestOrg(graphContext, "userModelTest", logger);
 
     const orgEntityUuid = extractEntityUuidFromEntityId(
-      testOrg.entity.metadata.editionId.baseId,
+      testOrg.entity.metadata.recordId.entityId,
     ) as EntityUuid;
 
     expect(

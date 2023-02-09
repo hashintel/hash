@@ -411,7 +411,7 @@ const Page: NextPageWithLayout<PageProps> = ({
           <TopContextBar
             crumbs={generateCrumbsFromPages({
               pages: accountPages,
-              pageEntityId: data.page.metadata.editionId.baseId as EntityId,
+              pageEntityId: data.page.metadata.recordId.entityId as EntityId,
               ownerShortname: pageWorkspace.shortname!,
             })}
             scrollToTop={scrollToTop}

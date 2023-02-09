@@ -56,7 +56,7 @@ export const EntitySelector = ({
     return [...entities]
       .filter(
         (entity) =>
-          !entityIdsToFilterOut?.includes(entity.metadata.editionId.baseId),
+          !entityIdsToFilterOut?.includes(entity.metadata.recordId.entityId),
       )
       .sort((a, b) =>
         a.metadata.version.decisionTime.start.localeCompare(

@@ -62,7 +62,7 @@ export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
 }) => {
   if (entity.metadata.entityTypeId !== SYSTEM_TYPES.entityType.org.schema.$id) {
     throw new EntityTypeMismatchError(
-      entity.metadata.editionId.baseId,
+      entity.metadata.recordId.entityId,
       SYSTEM_TYPES.entityType.user.schema.$id,
       entity.metadata.entityTypeId,
     );
@@ -78,7 +78,7 @@ export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
 
   return {
     accountId: extractEntityUuidFromEntityId(
-      entity.metadata.editionId.baseId,
+      entity.metadata.recordId.entityId,
     ) as Uuid as AccountId,
     shortname,
     orgName,

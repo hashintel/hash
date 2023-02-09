@@ -91,9 +91,9 @@ export const createEntityResolver: ResolverFn<
     ]);
 
     entity = await createLinkEntity(context, {
-      leftEntityId: leftEntity.metadata.editionId.baseId,
+      leftEntityId: leftEntity.metadata.recordId.entityId,
       leftToRightOrder: leftToRightOrder ?? undefined,
-      rightEntityId: rightEntity.metadata.editionId.baseId,
+      rightEntityId: rightEntity.metadata.recordId.entityId,
       rightToLeftOrder: rightToLeftOrder ?? undefined,
       properties,
       linkEntityType,
@@ -271,7 +271,7 @@ export const updateEntityResolver: ResolverFn<
 
   // The user needs to be signed up if they aren't updating their own user entity
   if (
-    entityId !== user.entity.metadata.editionId.baseId &&
+    entityId !== user.entity.metadata.recordId.entityId &&
     !user.isAccountSignupComplete
   ) {
     throw new ForbiddenError(
@@ -304,7 +304,7 @@ export const updateEntityResolver: ResolverFn<
   } else {
     if (leftToRightOrder || rightToLeftOrder) {
       throw new UserInputError(
-        `Cannot update the left to right order or right to left order of entity with ID ${entity.metadata.editionId.baseId} because it isn't a link.`,
+        `Cannot update the left to right order or right to left order of entity with ID ${entity.metadata.recordId.entityId} because it isn't a link.`,
       );
     }
 

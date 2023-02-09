@@ -35,7 +35,7 @@ export const getHashInstanceFromEntity: PureGraphFunction<
     SYSTEM_TYPES.entityType.hashInstance.schema.$id
   ) {
     throw new EntityTypeMismatchError(
-      entity.metadata.editionId.baseId,
+      entity.metadata.recordId.entityId,
       SYSTEM_TYPES.entityType.user.schema.$id,
       entity.metadata.entityTypeId,
     );
@@ -180,7 +180,7 @@ export const addHashInstanceAdmin: ImpureGraphFunction<
 
   if (isAlreadyHashInstanceAdmin) {
     throw new Error(
-      `User with entityId "${user.entity.metadata.editionId.baseId}" is already a hash instance admin.`,
+      `User with entityId "${user.entity.metadata.recordId.entityId}" is already a hash instance admin.`,
     );
   }
 
@@ -189,8 +189,8 @@ export const addHashInstanceAdmin: ImpureGraphFunction<
   await createLinkEntity(ctx, {
     ownedById: systemUserAccountId as OwnedById,
     linkEntityType: SYSTEM_TYPES.linkEntityType.admin,
-    leftEntityId: hashInstance.entity.metadata.editionId.baseId,
-    rightEntityId: user.entity.metadata.editionId.baseId,
+    leftEntityId: hashInstance.entity.metadata.recordId.entityId,
+    rightEntityId: user.entity.metadata.recordId.entityId,
     actorId,
   });
 };
@@ -224,7 +224,7 @@ export const removeHashInstanceAdmin: ImpureGraphFunction<
 
   if (!outgoingAdminLinkEntity) {
     throw new Error(
-      `The user with entity ID ${user.entity.metadata.editionId.baseId} is not a HASH instance admin.`,
+      `The user with entity ID ${user.entity.metadata.recordId.entityId} is not a HASH instance admin.`,
     );
   }
 

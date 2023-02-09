@@ -35,7 +35,7 @@ export const getBlockFromEntity: PureGraphFunction<
     entity.metadata.entityTypeId !== SYSTEM_TYPES.entityType.block.schema.$id
   ) {
     throw new EntityTypeMismatchError(
-      entity.metadata.editionId.baseId,
+      entity.metadata.recordId.entityId,
       SYSTEM_TYPES.entityType.block.schema.$id,
       entity.metadata.entityTypeId,
     );
@@ -96,8 +96,8 @@ export const createBlock: ImpureGraphFunction<
 
   await createLinkEntity(ctx, {
     linkEntityType: SYSTEM_TYPES.linkEntityType.blockData,
-    leftEntityId: entity.metadata.editionId.baseId,
-    rightEntityId: blockData.metadata.editionId.baseId,
+    leftEntityId: entity.metadata.recordId.entityId,
+    rightEntityId: blockData.metadata.recordId.entityId,
     ownedById,
     actorId,
   });
@@ -123,7 +123,7 @@ export const getBlockData: ImpureGraphFunction<
 
   if (!outgoingBlockDataLink) {
     throw new Error(
-      `Block with entityId ${block.entity.metadata.editionId.baseId} does not have an outgoing blockData link`,
+      `Block with entityId ${block.entity.metadata.recordId.entityId} does not have an outgoing blockData link`,
     );
   }
 
@@ -155,7 +155,7 @@ export const updateBlockDataEntity: ImpureGraphFunction<
 
   if (!outgoingBlockDataLink) {
     throw new Error(
-      `Block with entityId ${block.entity.metadata.editionId.baseId} does not have an outgoing block data link`,
+      `Block with entityId ${block.entity.metadata.recordId.entityId} does not have an outgoing block data link`,
     );
   }
 
@@ -164,11 +164,11 @@ export const updateBlockDataEntity: ImpureGraphFunction<
   });
 
   if (
-    existingBlockDataEntity.metadata.editionId.baseId ===
-    newBlockDataEntity.metadata.editionId.baseId
+    existingBlockDataEntity.metadata.recordId.entityId ===
+    newBlockDataEntity.metadata.recordId.entityId
   ) {
     throw new Error(
-      `The block with entity id ${existingBlockDataEntity.metadata.editionId.baseId} already has a linked block data entity with entity id ${newBlockDataEntity.metadata.editionId.baseId}`,
+      `The block with entity id ${existingBlockDataEntity.metadata.recordId.entityId} already has a linked block data entity with entity id ${newBlockDataEntity.metadata.recordId.entityId}`,
     );
   }
 
@@ -176,10 +176,10 @@ export const updateBlockDataEntity: ImpureGraphFunction<
 
   await createLinkEntity(ctx, {
     linkEntityType: SYSTEM_TYPES.linkEntityType.blockData,
-    leftEntityId: block.entity.metadata.editionId.baseId,
-    rightEntityId: newBlockDataEntity.metadata.editionId.baseId,
+    leftEntityId: block.entity.metadata.recordId.entityId,
+    rightEntityId: newBlockDataEntity.metadata.recordId.entityId,
     ownedById: extractOwnedByIdFromEntityId(
-      block.entity.metadata.editionId.baseId,
+      block.entity.metadata.recordId.entityId,
     ),
     actorId,
   });
