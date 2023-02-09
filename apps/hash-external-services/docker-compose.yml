@@ -87,7 +87,7 @@ services:
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
       HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
       # For unknown reasons, our error return values are consumed when we
-      # configure the OTLP endpoint for the Graph. For now we've disabled traces.
+      # configure the OTLP endpoint for the Graph. For now, we've disabled traces.
       # https://app.asana.com/0/1201095311341924/1203636955054323/f
       # HASH_GRAPH_OTLP_ENDPOINT: "http://telemetry-collector:4317"
       RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-graph=trace,hash-graph=trace,tokio_postgres=debug}"
@@ -117,6 +117,32 @@ services:
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
 
+  type-fetcher:
+    init: true
+    build:
+      dockerfile: docker/Dockerfile
+      context: ../../apps/hash-graph
+      args:
+        PROFILE: dev
+    environment:
+      HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
+      HASH_GRAPH_TYPE_FETCHER_HOST: "0.0.0.0"
+      HASH_GRAPH_TYPE_FETCHER_PORT: 4444
+      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-info,hash_type_fetcher=trace,reqwest=debug}"
+      RUST_BACKTRACE: 1
+    command: type-fetcher
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/hash-graph type-fetcher --healthcheck --type-fetcher-host localhost",
+        ]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+    ports:
+      - "${HASH_GRAPH_TYPE_FETCHER_PORT}:4444"
+
   graph:
     init: true
     depends_on:
@@ -125,6 +151,8 @@ services:
       graph-migrate:
         condition: service_completed_successfully
       telemetry-collector:
+        condition: service_healthy
+      type-fetcher:
         condition: service_healthy
     build:
       dockerfile: docker/Dockerfile
@@ -138,12 +166,22 @@ services:
       HASH_GRAPH_PG_PORT: "5432"
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
       HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
+      HASH_GRAPH_TYPE_FETCHER_HOST: "type-fetcher"
+      HASH_GRAPH_TYPE_FETCHER_PORT: "${HASH_GRAPH_TYPE_FETCHER_PORT}"
+      HASH_GRAPH_API_HOST: "0.0.0.0"
+      HASH_GRAPH_API_PORT: "4000"
       # For unknown reasons, our error return values are consumed when we
-      # configure the OTLP endpoint for the Graph. For now we've disabled traces.
+      # configure the OTLP endpoint for the Graph. For now, we've disabled traces.
       # https://app.asana.com/0/1201095311341924/1203636955054323/f
       # HASH_GRAPH_OTLP_ENDPOINT: "http://telemetry-collector:4317"
-      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-graph=trace,hash-graph=trace,tokio_postgres=debug}"
+      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-info,graph=trace,hash-graph=trace,tokio_postgres=debug}"
       RUST_BACKTRACE: 1
+    command: server
+    healthcheck:
+      test: /hash-graph server --healthcheck
+      interval: 2s
+      timeout: 2s
+      retries: 10
     ports:
       - "${HASH_GRAPH_API_PORT}:4000"
 
