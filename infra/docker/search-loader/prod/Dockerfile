@@ -11,6 +11,7 @@ RUN yarn install --frozen-lockfile --production --ignore-scripts --prefer-offlin
 COPY apps/hash-api/package.json apps/hash-api/
 COPY apps/hash-search-realtime/package.json apps/hash-search-realtime/
 COPY libs/@local/hash-backend-utils/package.json libs/@local/hash-backend-utils/
+COPY libs/@local/hash-graphql-shared/package.json libs/@local/hash-graphql-shared/
 COPY libs/@local/hash-isomorphic-utils/package.json libs/@local/hash-isomorphic-utils/
 COPY libs/@local/tsconfig/package.json libs/@local/tsconfig/
 RUN yarn workspace @apps/hash-search-loader install --frozen-lockfile --ignore-scripts --prefer-offline
@@ -26,6 +27,7 @@ RUN yarn workspace @apps/hash-api codegen
 COPY apps/hash-api apps/hash-api
 COPY apps/hash-search-realtime apps/hash-search-realtime
 COPY libs/@local/hash-backend-utils libs/@local/hash-backend-utils
+COPY libs/@local/hash-graphql-shared libs/@local/hash-graphql-shared
 COPY libs/@local/hash-isomorphic-utils libs/@local/hash-isomorphic-utils
 COPY libs/@local/tsconfig libs/@local/tsconfig
 
