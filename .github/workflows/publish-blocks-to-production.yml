@@ -23,7 +23,7 @@ jobs:
       - name: List block dir names
         id: list-block-dir-names
         run: |
-          echo "block-dir-names=$(yarn workspace @local/repo-chores exe scripts/list-blocks.ts)" >> $GITHUB_OUTPUT
+          echo "block-dir-names=$(yarn --silent workspace @local/repo-chores run --silent exe scripts/list-blocks.ts)" >> $GITHUB_OUTPUT
         env:
           OUTPUT_FORMAT: json
           # BLOCK_DIR_NAME_FILTER: ${{ github.event.inputs.BLOCK_DIR_NAME_FILTER }}
