@@ -132,11 +132,7 @@ services:
       RUST_BACKTRACE: 1
     command: type-fetcher
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "/hash-graph type-fetcher --healthcheck --type-fetcher-host localhost",
-        ]
+      test: /hash-graph type-fetcher --healthcheck
       interval: 2s
       timeout: 2s
       retries: 10
