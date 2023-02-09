@@ -78,6 +78,7 @@ services:
       context: ../../apps/hash-graph
       args:
         PROFILE: dev
+    image: hash-graph
     volumes:
       - log:/log
     command: migrate
@@ -128,6 +129,7 @@ services:
       context: ../../apps/hash-graph
       args:
         PROFILE: dev
+    image: hash-graph
     environment:
       HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
       HASH_GRAPH_LOG_FOLDER: "/log/graph-type-fetcher"
@@ -162,6 +164,7 @@ services:
       context: ../../apps/hash-graph
       args:
         PROFILE: dev
+    image: hash-graph
     environment:
       HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
       HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
