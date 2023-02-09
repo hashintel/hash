@@ -73,12 +73,15 @@ services:
         condition: service_healthy
       telemetry-collector:
         condition: service_healthy
-    build:
+    build: &graph-build
       dockerfile: docker/Dockerfile
       context: ../../apps/hash-graph
       args:
         PROFILE: dev
     image: hash-graph
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
     volumes:
       - log:/log
     command: migrate
@@ -124,12 +127,19 @@ services:
 
   type-fetcher:
     init: true
-    build:
-      dockerfile: docker/Dockerfile
-      context: ../../apps/hash-graph
-      args:
-        PROFILE: dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+      telemetry-collector:
+        condition: service_healthy
+    build: *graph-build
     image: hash-graph
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - log:/log
+    command: type-fetcher
     environment:
       HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
       HASH_GRAPH_LOG_FOLDER: "/log/graph-type-fetcher"
@@ -137,16 +147,13 @@ services:
       HASH_GRAPH_TYPE_FETCHER_PORT: 4444
       RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-info,hash_type_fetcher=trace,reqwest=debug}"
       RUST_BACKTRACE: 1
-    volumes:
-      - log:/log
-    command: type-fetcher
+    ports:
+      - "${HASH_GRAPH_TYPE_FETCHER_PORT}:4444"
     healthcheck:
       test: ["CMD", "/hash-graph", "type-fetcher", "--healthcheck"]
       interval: 2s
       timeout: 2s
       retries: 10
-    ports:
-      - "${HASH_GRAPH_TYPE_FETCHER_PORT}:4444"
 
   graph:
     init: true
@@ -159,12 +166,14 @@ services:
         condition: service_healthy
       type-fetcher:
         condition: service_healthy
-    build:
-      dockerfile: docker/Dockerfile
-      context: ../../apps/hash-graph
-      args:
-        PROFILE: dev
+    build: *graph-build
     image: hash-graph
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - log:/log
+    command: server
     environment:
       HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
       HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
@@ -183,16 +192,13 @@ services:
       # HASH_GRAPH_OTLP_ENDPOINT: "http://telemetry-collector:4317"
       RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-info,graph=trace,hash-graph=trace,tokio_postgres=debug}"
       RUST_BACKTRACE: 1
-    volumes:
-      - log:/log
-    command: server
+    ports:
+      - "${HASH_GRAPH_API_PORT}:4000"
     healthcheck:
       test: ["CMD", "/hash-graph", "server", "--healthcheck"]
       interval: 2s
       timeout: 2s
       retries: 10
-    ports:
-      - "${HASH_GRAPH_API_PORT}:4000"
 
   hash-dev-redis:
     image: redis:6.2
