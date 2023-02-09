@@ -11,6 +11,7 @@ RUN apk add --no-cache gcc musl-dev bash && \
 
 SHELL ["bash", "-c"]
 
+
 FROM rust AS builder
 WORKDIR /usr/local/src/hash-graph
 COPY . .
@@ -29,15 +30,9 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
       cargo install --path bin/cli --profile $PROFILE --locked;  \
     fi
 
-# Replace with `FROM scratch` when a health check command was added to hash-graph
-FROM alpine:3.17 AS runtime
 
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+FROM scratch AS runtime
 
-COPY --from=builder --chown=appgroup:appuser /usr/local/cargo/bin/hash-graph /
-
-RUN install -d -m 0755 -o appuser -g appgroup /log
-
-USER appuser
+COPY --from=builder /usr/local/cargo/bin/hash-graph /
 
 ENTRYPOINT ["/hash-graph"]
