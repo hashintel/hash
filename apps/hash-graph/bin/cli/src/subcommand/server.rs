@@ -9,9 +9,9 @@ use graph::{
     identifier::account::AccountId,
     logging::{init_logger, LoggingArgs},
     ontology::{
-        domain_validator::DomainValidator, OntologyElementMetadata, OwnedOntologyElementMetadata,
+        domain_validator::DomainValidator, ExternalOntologyElementMetadata, OntologyElementMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{ProvenanceMetadata, UpdatedById},
     store::{
         AccountStore, BaseUriAlreadyExists, DataTypeStore, DatabaseConnectionInfo, EntityTypeStore,
         PostgresStorePool,
@@ -21,10 +21,11 @@ use regex::Regex;
 use reqwest::Client;
 #[cfg(feature = "type-fetcher")]
 use tarpc::context;
+use time::OffsetDateTime;
 use tokio::time::timeout;
 use tokio_postgres::NoTls;
 #[cfg(feature = "type-fetcher")]
-use type_fetcher::fetcher::FetchedOntologyType;
+use type_fetcher::fetcher::OntologyType;
 use type_system::{
     uri::{BaseUri, VersionedUri},
     AllOf, DataType, EntityType, Links, Object,
@@ -110,10 +111,10 @@ async fn insert_link_entity_type(
     );
 
     let link_entity_type_metadata =
-        OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
+        OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
             link_entity_type.id().into(),
             ProvenanceMetadata::new(UpdatedById::new(account_id)),
-            OwnedById::new(account_id),
+            OffsetDateTime::now_utc(),
         ));
 
     let title = link_entity_type.title().to_owned();
@@ -259,11 +260,12 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     for data_type in [text, number, boolean, empty_list, object, null] {
         let title = data_type.title().to_owned();
 
-        let data_type_metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-            data_type.id().into(),
-            ProvenanceMetadata::new(UpdatedById::new(root_account_id)),
-            OwnedById::new(root_account_id),
-        ));
+        let data_type_metadata =
+            OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
+                data_type.id().into(),
+                ProvenanceMetadata::new(UpdatedById::new(root_account_id)),
+                OffsetDateTime::now_utc(),
+            ));
 
         if let Err(error) = connection
             .create_data_type(data_type, &data_type_metadata)
@@ -334,16 +336,16 @@ async fn stop_gap_setup_type_fetcher<A: tokio::net::ToSocketAddrs + Send + Sync 
             .change_context(GraphError)?;
 
         for fetched_ontology_type in fetched_ontology_types.results {
-            match fetched_ontology_type {
-                FetchedOntologyType::DataType(data_type) => {
+            match fetched_ontology_type.ontology_type {
+                OntologyType::DataType(data_type) => {
                     let data_type = DataType::try_from(data_type)
                         .into_report()
                         .change_context(GraphError)?;
                     let metadata =
-                        OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
+                        OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
                             data_type.id().into(),
                             ProvenanceMetadata::new(UpdatedById::new(root_account_id)),
-                            OwnedById::new(root_account_id),
+                            fetched_ontology_type.fetched_at,
                         ));
                     let title = data_type.title().to_owned();
 
@@ -362,7 +364,7 @@ async fn stop_gap_setup_type_fetcher<A: tokio::net::ToSocketAddrs + Send + Sync 
                     }
                 }
 
-                FetchedOntologyType::PropertyType(_) | FetchedOntologyType::EntityType(_) => {
+                OntologyType::PropertyType(_) | OntologyType::EntityType(_) => {
                     unimplemented!("Only data types are covered in the stop gap solution")
                 }
             }
