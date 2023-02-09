@@ -1,6 +1,6 @@
 use core::{cmp::Ordering, ops::Bound};
 
-use crate::invalid_bounds;
+use super::invalid_bounds;
 
 pub trait LowerBound<T> {
     fn as_bound(&self) -> Bound<&T>;

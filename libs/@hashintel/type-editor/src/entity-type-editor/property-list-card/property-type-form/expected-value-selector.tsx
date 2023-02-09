@@ -6,13 +6,7 @@ import {
   TextField,
 } from "@hashintel/design-system";
 import { Autocomplete, Box, PaperProps, Typography } from "@mui/material";
-import {
-  forwardRef,
-  ForwardRefRenderFunction,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   FormProvider,
   useController,
@@ -86,10 +80,11 @@ const ExpectedValueSelectorDropdown = ({ children, ...props }: PaperProps) => {
   );
 };
 
-const ExpectedValueSelector: ForwardRefRenderFunction<
-  HTMLInputElement,
-  { propertyTypeBaseUri?: BaseUri }
-> = ({ propertyTypeBaseUri }) => {
+export const ExpectedValueSelector = ({
+  propertyTypeBaseUri,
+}: {
+  propertyTypeBaseUri?: BaseUri;
+}) => {
   const propertyTypeFormMethods = useFormContext<PropertyTypeFormValues>();
 
   const expectedValueSelectorFormMethods =
@@ -359,7 +354,3 @@ const ExpectedValueSelector: ForwardRefRenderFunction<
     </CustomExpectedValueBuilderContext.Provider>
   );
 };
-
-const ExpectedValueSelectorForwardedRef = forwardRef(ExpectedValueSelector);
-
-export { ExpectedValueSelectorForwardedRef as ExpectedValueSelector };

@@ -39,7 +39,8 @@
     "servePort": 63214
   },
   "blockprotocol": {
-    "displayName": "timer",
+    "name": "@hash/stopwatch",
+    "displayName": "Stopwatch",
     "examples": [
       {}
     ],
