@@ -7,9 +7,8 @@ mod subcommand;
 
 use error::GraphError;
 use error_stack::Result;
-use subcommand::Subcommand;
 
-use crate::args::Args;
+use self::{args::Args, subcommand::Subcommand};
 
 #[tokio::main]
 async fn main() -> Result<(), GraphError> {
