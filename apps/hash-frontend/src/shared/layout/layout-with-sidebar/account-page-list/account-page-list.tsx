@@ -23,7 +23,7 @@ import {
   EntityUuid,
   extractEntityUuidFromEntityId,
   OwnedById,
-} from "@local/hash-isomorphic-utils/types";
+} from "@local/hash-graphql-shared/types";
 import { isEntityId } from "@local/hash-subgraph";
 import { Box, Collapse } from "@mui/material";
 import {

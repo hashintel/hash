@@ -6,7 +6,7 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   OwnedById,
-} from "@local/hash-isomorphic-utils/types";
+} from "@local/hash-graphql-shared/types";
 import {
   Entity,
   EntityId,

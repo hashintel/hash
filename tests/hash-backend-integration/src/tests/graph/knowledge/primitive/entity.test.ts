@@ -18,8 +18,8 @@ import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/
 import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { EntityId, OwnedById } from "@local/hash-graphql-shared/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { EntityId, OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
   DataTypeWithMetadata,
   Entity,

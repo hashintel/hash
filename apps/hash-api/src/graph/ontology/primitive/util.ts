@@ -1,5 +1,5 @@
+import { OwnedById } from "@local/hash-graphql-shared/types";
 import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import { entityIdFromOwnedByIdAndEntityUuid } from "@local/hash-subgraph";
 
 import { ImpureGraphFunction } from "../..";

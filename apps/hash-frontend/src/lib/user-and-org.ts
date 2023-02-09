@@ -1,10 +1,10 @@
 import { extractBaseUri } from "@blockprotocol/type-system";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountEntityId,
   AccountId,
   extractAccountId,
-} from "@local/hash-isomorphic-utils/types";
+} from "@local/hash-graphql-shared/types";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   Entity,
   EntityEditionId,

@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import { EntityId, OwnedById } from "@local/hash-isomorphic-utils/types";
+import { EntityId, OwnedById } from "@local/hash-graphql-shared/types";
 import { useMemo } from "react";
 
 import {

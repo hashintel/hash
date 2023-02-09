@@ -26,8 +26,8 @@ COPY apps/hash-api/codegen.config.ts apps/hash-api/codegen.config.ts
 COPY apps/hash-api/src/graphql/type-defs apps/hash-api/src/graphql/type-defs
 COPY apps/hash-frontend/codegen.config.ts apps/hash-frontend/codegen.config.ts
 COPY apps/hash-frontend/src/graphql/queries apps/hash-frontend/src/graphql/queries
-COPY libs/@local/hash-isomorphic-utils/src/graphql libs/@local/hash-isomorphic-utils/src/graphql
-COPY libs/@local/hash-isomorphic-utils/src/queries libs/@local/hash-isomorphic-utils/src/queries
+COPY libs/@local/hash-graphql-shared/src/graphql libs/@local/hash-graphql-shared/src/graphql
+COPY libs/@local/hash-graphql-shared/src/queries libs/@local/hash-graphql-shared/src/queries
 
 RUN yarn workspace @apps/hash-frontend codegen
 
@@ -72,4 +72,3 @@ USER appuser
 ENV NODE_ENV production
 
 CMD ["yarn", "workspace","@apps/hash-frontend", "start"]
-

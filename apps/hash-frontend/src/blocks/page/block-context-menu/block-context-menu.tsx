@@ -13,12 +13,12 @@ import {
   faRefresh,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
+import { EntityId } from "@local/hash-graphql-shared/types";
 import {
   areComponentsCompatible,
   isHashTextBlock,
 } from "@local/hash-isomorphic-utils/blocks";
 import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
 import {
   PropertyObject,
   Subgraph,

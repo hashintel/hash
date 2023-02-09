@@ -6,7 +6,7 @@ import {
 } from "@blockprotocol/type-system";
 import { faList } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
+import { OwnedById } from "@local/hash-graphql-shared/types";
 import { Subgraph } from "@local/hash-subgraph";
 import { getPropertyTypesByBaseUri } from "@local/hash-subgraph/src/stdlib/element/property-type";
 import {

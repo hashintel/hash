@@ -1,4 +1,4 @@
-import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
+import { apiOrigin } from "@local/hash-graphql-shared/environment";
 import { Entity, PropertyObject } from "@local/hash-subgraph";
 
 import { EntityTypeMismatchError } from "../../../lib/error";

@@ -1,4 +1,4 @@
-import { extractOwnedByIdFromEntityId } from "@local/hash-isomorphic-utils/types";
+import { extractOwnedByIdFromEntityId } from "@local/hash-graphql-shared/types";
 
 import { getLatestEntityById } from "../../../../graph/knowledge/primitive/entity";
 import { createComment } from "../../../../graph/knowledge/system-types/comment";

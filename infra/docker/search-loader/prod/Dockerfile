@@ -18,8 +18,8 @@ RUN yarn workspace @apps/hash-search-loader install --frozen-lockfile --ignore-s
 COPY apps/hash-api/codegen.config.ts apps/hash-api/codegen.config.ts
 COPY apps/hash-api/src/collab/graphql/queries apps/hash-api/src/collab/graphql/queries
 COPY apps/hash-api/src/graphql/type-defs apps/hash-api/src/graphql/type-defs
-COPY libs/@local/hash-isomorphic-utils/src/graphql libs/@local/hash-isomorphic-utils/src/graphql
-COPY libs/@local/hash-isomorphic-utils/src/queries libs/@local/hash-isomorphic-utils/src/queries
+COPY libs/@local/hash-graphql-shared/src/graphql libs/@local/hash-graphql-shared/src/graphql
+COPY libs/@local/hash-graphql-shared/src/queries libs/@local/hash-graphql-shared/src/queries
 
 RUN yarn workspace @apps/hash-api codegen
 
