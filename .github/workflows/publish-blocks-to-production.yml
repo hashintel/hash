@@ -37,7 +37,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        block-dir-name: ${{ fromJSON(needs.pick-collections.outputs.block-dir-names) }}
+        block-dir-name: ${{ fromJSON(needs.pick-blocks.outputs.block-dir-names) }}
 
     steps:
       - uses: actions/checkout@v3
