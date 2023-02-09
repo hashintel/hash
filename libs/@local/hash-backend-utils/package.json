@@ -21,7 +21,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@blockprotocol/core": "0.0.14-canary-20230208204713",
+    "@blockprotocol/core": "0.0.14-canary-20230208234343",
     "@opensearch-project/opensearch": "1.1.0",
     "apollo-datasource": "3.3.2",
     "dotenv-flow": "3.2.0",

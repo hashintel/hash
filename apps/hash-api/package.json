@@ -19,7 +19,7 @@
     "@aws-sdk/credential-provider-node": "3.41.0",
     "@aws-sdk/s3-presigned-post": "3.38.0",
     "@aws-sdk/s3-request-presigner": "3.38.0",
-    "@blockprotocol/core": "0.0.14-canary-20230208204713",
+    "@blockprotocol/core": "0.0.14-canary-20230208234343",
     "@blockprotocol/type-system": "0.0.3-canary-20230111084611",
     "@graphql-tools/schema": "8.5.0",
     "@local/hash-backend-utils": "0.0.0-private",
