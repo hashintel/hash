@@ -5,10 +5,9 @@ mod args;
 mod error;
 mod subcommand;
 
-use error::GraphError;
 use error_stack::Result;
 
-use self::{args::Args, subcommand::Subcommand};
+use self::{args::Args, error::GraphError, subcommand::Subcommand};
 
 #[tokio::main]
 async fn main() -> Result<(), GraphError> {
