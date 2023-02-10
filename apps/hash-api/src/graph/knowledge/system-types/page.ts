@@ -12,6 +12,7 @@ import {
   SubgraphRootTypes,
 } from "@local/hash-subgraph";
 import { getEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
+import { mapSubgraph } from "@local/hash-subgraph/src/temp";
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 
@@ -271,7 +272,9 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
       },
     })
     .then(({ data: subgraph }) =>
-      getEntities(subgraph as Subgraph<SubgraphRootTypes["entity"]>),
+      getEntities(
+        mapSubgraph(subgraph) as Subgraph<SubgraphRootTypes["entity"]>,
+      ),
     );
 
   const pages = pageEntities

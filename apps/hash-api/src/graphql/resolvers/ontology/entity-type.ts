@@ -1,5 +1,6 @@
 import { OwnedById } from "@local/hash-graphql-shared/types";
 import { EntityTypeWithMetadata, Subgraph } from "@local/hash-subgraph";
+import { mapSubgraph } from "@local/hash-subgraph/src/temp";
 
 import {
   createEntityType,
@@ -80,7 +81,7 @@ export const getAllLatestEntityTypesResolver: ResolverFn<
     },
   });
 
-  return entityTypeSubgraph as Subgraph;
+  return mapSubgraph(entityTypeSubgraph);
 };
 
 export const getEntityTypeResolver: ResolverFn<
@@ -129,7 +130,7 @@ export const getEntityTypeResolver: ResolverFn<
     },
   });
 
-  return entityTypeSubgraph as Subgraph;
+  return mapSubgraph(entityTypeSubgraph);
 };
 
 export const updateEntityTypeResolver: ResolverFn<

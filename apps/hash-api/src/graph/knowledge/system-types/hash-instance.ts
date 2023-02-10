@@ -1,6 +1,7 @@
 import { AccountId, OwnedById } from "@local/hash-graphql-shared/types";
 import { Entity, Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
 import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
+import { mapSubgraph } from "@local/hash-subgraph/src/temp";
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import {
@@ -95,7 +96,9 @@ export const getHashInstance: ImpureGraphFunction<
       },
     })
     .then(({ data: subgraph }) =>
-      getRootsAsEntities(subgraph as Subgraph<SubgraphRootTypes["entity"]>),
+      getRootsAsEntities(
+        mapSubgraph(subgraph) as Subgraph<SubgraphRootTypes["entity"]>,
+      ),
     );
 
   if (entities.length > 1) {

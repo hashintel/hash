@@ -13,6 +13,7 @@ import {
   SubgraphRootTypes,
 } from "@local/hash-subgraph";
 import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
+import { mapSubgraph } from "@local/hash-subgraph/src/temp";
 
 import {
   kratosIdentityApi,
@@ -163,7 +164,9 @@ export const getUserByShortname: ImpureGraphFunction<
     })
     .then(({ data: userEntitiesSubgraph }) =>
       getRootsAsEntities(
-        userEntitiesSubgraph as Subgraph<SubgraphRootTypes["entity"]>,
+        mapSubgraph(userEntitiesSubgraph) as Subgraph<
+          SubgraphRootTypes["entity"]
+        >,
       ),
     );
 
@@ -224,7 +227,9 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
     })
     .then(({ data: userEntitiesSubgraph }) =>
       getRootsAsEntities(
-        userEntitiesSubgraph as Subgraph<SubgraphRootTypes["entity"]>,
+        mapSubgraph(userEntitiesSubgraph) as Subgraph<
+          SubgraphRootTypes["entity"]
+        >,
       ),
     );
 

@@ -13,6 +13,7 @@ import {
   SubgraphRootTypes,
 } from "@local/hash-subgraph";
 import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
+import { mapSubgraph } from "@local/hash-subgraph/src/temp";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import {
@@ -211,7 +212,9 @@ export const getOrgByShortname: ImpureGraphFunction<
     })
     .then(({ data: userEntitiesSubgraph }) =>
       getRootsAsEntities(
-        userEntitiesSubgraph as Subgraph<SubgraphRootTypes["entity"]>,
+        mapSubgraph(userEntitiesSubgraph) as Subgraph<
+          SubgraphRootTypes["entity"]
+        >,
       ),
     );
 

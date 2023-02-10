@@ -142,9 +142,15 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       return null;
     }
     // @todo.0-3 fix this to import from @blockprotocol/graph when key mismatches are fixed
-    const rootEntity = getRoots(
-      graphProperties.blockEntitySubgraph as unknown as LocalSubgraph,
-    )[0] as Entity | undefined;
+    const rootEntity = getRoots({
+      ...graphProperties.blockEntitySubgraph,
+      roots: graphProperties.blockEntitySubgraph.roots.map(
+        (externalVertexId) => ({
+          baseId: externalVertexId.baseId,
+          version: externalVertexId.versionId,
+        }),
+      ),
+    } as unknown as LocalSubgraph)[0] as Entity | undefined;
 
     if (!rootEntity) {
       throw new Error("Root entity not present in blockEntitySubgraph");

@@ -1,13 +1,12 @@
-import { VersionedUri } from "@blockprotocol/type-system";
 import { AccountId, OwnedById } from "@local/hash-graphql-shared/types";
 import {
   Entity,
   EntityId,
-  EntityMetadata,
   EntityTypeWithMetadata,
   LinkData,
   PropertyObject,
 } from "@local/hash-subgraph";
+import { mapEntityMetadata } from "@local/hash-subgraph/src/temp/map-vertices";
 
 import { ImpureGraphFunction } from "../..";
 import { isEntityTypeLinkEntityType } from "../../ontology/primitive/entity-type";
@@ -78,18 +77,8 @@ export const createLinkEntity: ImpureGraphFunction<
     properties,
   });
 
-  /** @todo - Remove this when we rename components in the Graph API */
-  const metadata: EntityMetadata = {
-    ...linkEntityMetadata,
-    entityTypeId: linkEntityMetadata.entityTypeId as VersionedUri,
-    recordId: {
-      entityId: linkEntityMetadata.editionId.baseId as EntityId,
-      editionId: linkEntityMetadata.editionId.recordId,
-    },
-  };
-
   return {
-    metadata,
+    metadata: mapEntityMetadata(linkEntityMetadata),
     properties,
     linkData,
   };
@@ -128,18 +117,8 @@ export const updateLinkEntity: ImpureGraphFunction<
     rightToLeftOrder,
   });
 
-  /** @todo - Remove this when we rename components in the Graph API */
-  const metadata: EntityMetadata = {
-    ...linkEntityMetadata,
-    entityTypeId: linkEntityMetadata.entityTypeId as VersionedUri,
-    recordId: {
-      entityId: linkEntityMetadata.editionId.baseId as EntityId,
-      editionId: linkEntityMetadata.editionId.recordId,
-    },
-  };
-
   return {
-    metadata,
+    metadata: mapEntityMetadata(linkEntityMetadata),
     properties,
     linkData: {
       ...linkEntity.linkData,

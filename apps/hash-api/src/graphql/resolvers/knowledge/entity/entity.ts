@@ -6,6 +6,7 @@ import {
   splitEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
+import { mapSubgraph } from "@local/hash-subgraph/src/temp";
 import { ForbiddenError, UserInputError } from "apollo-server-express";
 
 import {
@@ -179,8 +180,9 @@ export const getAllLatestEntitiesResolver: ResolverFn<
     },
   });
 
-  removeNonLatestEntities(entitySubgraph as Subgraph);
-  return entitySubgraph as Subgraph;
+  const mappedSubgraph = mapSubgraph(entitySubgraph);
+  removeNonLatestEntities(mappedSubgraph);
+  return mappedSubgraph;
 };
 
 export const getEntityResolver: ResolverFn<
@@ -247,8 +249,9 @@ export const getEntityResolver: ResolverFn<
     },
   });
 
-  removeNonLatestEntities(entitySubgraph as Subgraph);
-  return entitySubgraph as Subgraph;
+  const mappedSubgraph = mapSubgraph(entitySubgraph);
+  removeNonLatestEntities(mappedSubgraph);
+  return mappedSubgraph;
 };
 
 export const updateEntityResolver: ResolverFn<

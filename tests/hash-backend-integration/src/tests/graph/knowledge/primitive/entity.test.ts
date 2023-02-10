@@ -31,6 +31,7 @@ import {
   SubgraphRootTypes,
 } from "@local/hash-subgraph";
 import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
+import { mapSubgraph } from "@local/hash-subgraph/src/temp";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
@@ -157,8 +158,8 @@ describe("Entity CRU", () => {
     createdEntity = await createEntity(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       properties: {
-        [namePropertyType.metadata.editionId.baseId]: "Bob",
-        [favoriteBookPropertyType.metadata.editionId.baseId]: "some text",
+        [namePropertyType.metadata.recordId.baseUri]: "Bob",
+        [favoriteBookPropertyType.metadata.recordId.baseUri]: "some text",
       },
       entityTypeId: entityType.schema.$id,
       actorId: testUser.accountId,
@@ -187,8 +188,8 @@ describe("Entity CRU", () => {
     updatedEntity = await updateEntity(graphContext, {
       entity: createdEntity,
       properties: {
-        [namePropertyType.metadata.editionId.baseId]: "Updated Bob",
-        [favoriteBookPropertyType.metadata.editionId.baseId]:
+        [namePropertyType.metadata.recordId.baseUri]: "Updated Bob",
+        [favoriteBookPropertyType.metadata.recordId.baseUri]:
           "Even more text than before",
       },
       actorId: testUser2.accountId,
@@ -220,7 +221,7 @@ describe("Entity CRU", () => {
       })
       .then(({ data }) =>
         getRootsAsEntities(
-          data as Subgraph<SubgraphRootTypes["entity"]>,
+          mapSubgraph(data) as Subgraph<SubgraphRootTypes["entity"]>,
         ).filter(
           (entity) =>
             extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId) ===
@@ -245,9 +246,9 @@ describe("Entity CRU", () => {
       updatedEntity.metadata.recordId.editionId,
     );
     expect(
-      newlyUpdated?.properties[namePropertyType.metadata.editionId.baseId],
+      newlyUpdated?.properties[namePropertyType.metadata.recordId.baseUri],
     ).toEqual(
-      updatedEntity.properties[namePropertyType.metadata.editionId.baseId],
+      updatedEntity.properties[namePropertyType.metadata.recordId.baseUri],
     );
   });
 
@@ -257,8 +258,8 @@ describe("Entity CRU", () => {
       // First create a new entity given the following definition
       entityTypeId: entityType.schema.$id,
       properties: {
-        [namePropertyType.metadata.editionId.baseId]: "Alice",
-        [favoriteBookPropertyType.metadata.editionId.baseId]: "some text",
+        [namePropertyType.metadata.recordId.baseUri]: "Alice",
+        [favoriteBookPropertyType.metadata.recordId.baseUri]: "some text",
       },
       linkedEntities: [
         {

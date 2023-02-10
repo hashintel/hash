@@ -9,6 +9,7 @@ import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
 import { getEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
+import { mapSubgraph } from "@local/hash-subgraph/src/temp";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { getRequiredEnv } from "../util";
@@ -66,7 +67,9 @@ export const ensureSystemUserAccountIdExists = async (params: {
     });
 
   const existingUserEntities = getEntities(
-    existingUserEntitiesSubgraph as Subgraph<SubgraphRootTypes["entity"]>,
+    mapSubgraph(existingUserEntitiesSubgraph) as Subgraph<
+      SubgraphRootTypes["entity"]
+    >,
   );
 
   const existingSystemUserEntity = existingUserEntities.find(

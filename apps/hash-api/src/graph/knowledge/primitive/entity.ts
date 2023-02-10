@@ -10,7 +10,6 @@ import {
 import {
   Entity,
   EntityId,
-  EntityMetadata,
   EntityTypeWithMetadata,
   PropertyObject,
   splitEntityId,
@@ -19,6 +18,8 @@ import {
   TimeProjection,
 } from "@local/hash-subgraph";
 import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
+import { mapSubgraph } from "@local/hash-subgraph/src/temp";
+import { mapEntityMetadata } from "@local/hash-subgraph/src/temp/map-vertices";
 import { ApolloError } from "apollo-server-errors";
 
 import {
@@ -74,18 +75,9 @@ export const createEntity: ImpureGraphFunction<
     actorId,
   });
 
-  /** @todo - Remove this when we rename components in the Graph API */
-  const metadata: EntityMetadata = {
-    ...createdEntityMetadata,
-    entityTypeId: createdEntityMetadata.entityTypeId as VersionedUri,
-    recordId: {
-      entityId: createdEntityMetadata.editionId.baseId as EntityId,
-      editionId: createdEntityMetadata.editionId.recordId,
-    },
-  };
   return {
     properties,
-    metadata,
+    metadata: mapEntityMetadata(createdEntityMetadata),
   };
 };
 
@@ -139,7 +131,7 @@ export const getLatestEntityById: ImpureGraphFunction<
         },
       },
     })
-    .then(({ data: subgraph }) => getRootsAsEntities(subgraph as Subgraph));
+    .then(({ data: subgraph }) => getRootsAsEntities(mapSubgraph(subgraph)));
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
@@ -346,17 +338,11 @@ export const updateEntity: ImpureGraphFunction<
     properties,
   });
 
-  /** @todo - Remove this when we rename components in the Graph API */
-  const metadata: EntityMetadata = {
-    ...createdEntityMetadata,
-    entityTypeId: createdEntityMetadata.entityTypeId as VersionedUri,
-    recordId: {
-      entityId: createdEntityMetadata.editionId.baseId as EntityId,
-      editionId: createdEntityMetadata.editionId.recordId,
-    },
+  return {
+    ...entity,
+    metadata: mapEntityMetadata(createdEntityMetadata),
+    properties,
   };
-
-  return { ...entity, metadata, properties };
 };
 
 export const archiveEntity: ImpureGraphFunction<
@@ -514,7 +500,9 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
       graphResolveDepths: zeroedGraphResolveDepths,
       timeProjection,
     })
-    .then(({ data }) => data as Subgraph<SubgraphRootTypes["entity"]>);
+    .then(
+      ({ data }) => mapSubgraph(data) as Subgraph<SubgraphRootTypes["entity"]>,
+    );
 
   const incomingLinkEntities = getRootsAsEntities(
     incomingLinkEntitiesSubgraph,
@@ -627,7 +615,9 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
       graphResolveDepths: zeroedGraphResolveDepths,
       timeProjection,
     })
-    .then(({ data }) => data as Subgraph<SubgraphRootTypes["entity"]>);
+    .then(
+      ({ data }) => mapSubgraph(data) as Subgraph<SubgraphRootTypes["entity"]>,
+    );
 
   const outgoingLinkEntities = getRootsAsEntities(
     outgoingLinkEntitiesSubgraph,
@@ -705,5 +695,5 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
     },
   });
 
-  return entitySubgraph as Subgraph<SubgraphRootTypes["entity"]>;
+  return mapSubgraph(entitySubgraph) as Subgraph<SubgraphRootTypes["entity"]>;
 };
