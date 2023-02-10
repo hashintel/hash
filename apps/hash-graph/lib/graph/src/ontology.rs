@@ -154,7 +154,6 @@ pub trait OntologyTypeWithMetadata: Record {
 #[serde(untagged)]
 pub enum OntologyElementMetadata {
     Owned(OwnedOntologyElementMetadata),
-    #[serde(skip_serializing)]
     External(ExternalOntologyElementMetadata),
 }
 

@@ -8,6 +8,9 @@ import {
 import {
   DataTypeWithMetadata as DataTypeWithMetadataGraphApi,
   EntityTypeWithMetadata as EntityTypeWithMetadataGraphApi,
+  ExternalOntologyElementMetadata,
+  OntologyElementMetadata,
+  OwnedOntologyElementMetadata,
   PropertyTypeWithMetadata as PropertyTypeWithMetadataGraphApi,
   ProvenanceMetadata as ProvenanceMetadataGraphApi,
 } from "@local/hash-graph-client";
@@ -32,7 +35,23 @@ export type EntityTypeWithMetadata = Omit<
   "schema"
 > & { schema: EntityType };
 
-export type { OntologyElementMetadata } from "@local/hash-graph-client";
+export type {
+  ExternalOntologyElementMetadata,
+  OntologyElementMetadata,
+  OwnedOntologyElementMetadata,
+} from "@local/hash-graph-client";
+
+export const isExternalOntologyElementMetadata = (
+  metadata: OntologyElementMetadata,
+): metadata is ExternalOntologyElementMetadata =>
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- this can be undefined if the cast is wrong
+  (metadata as ExternalOntologyElementMetadata).fetchedAt !== undefined;
+
+export const isOwnedOntologyElementMetadata = (
+  metadata: OntologyElementMetadata,
+): metadata is OwnedOntologyElementMetadata =>
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- this can be undefined if the cast is wrong
+  (metadata as OwnedOntologyElementMetadata).ownedById !== undefined;
 
 /** Plain JSON value and object definitions */
 type JsonValue = null | string | number | boolean | JsonObject | JsonValue[];
