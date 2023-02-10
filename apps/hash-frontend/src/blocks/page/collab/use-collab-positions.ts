@@ -1,5 +1,5 @@
+import { apiOrigin } from "@local/hash-graphql-shared/environment";
 import { CollabPosition } from "@local/hash-isomorphic-utils/collab";
-import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import { useEffect, useState } from "react";
 

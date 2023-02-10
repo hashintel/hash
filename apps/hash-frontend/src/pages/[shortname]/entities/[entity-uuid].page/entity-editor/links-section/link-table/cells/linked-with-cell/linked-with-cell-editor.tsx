@@ -1,5 +1,5 @@
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
+import { EntityId } from "@local/hash-graphql-shared/types";
 import { Entity } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 

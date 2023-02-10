@@ -1,4 +1,4 @@
-import { EntityUuid } from "@local/hash-isomorphic-utils/types";
+import { EntityUuid } from "@local/hash-graphql-shared/types";
 import { useRouter } from "next/router";
 import {
   createContext,

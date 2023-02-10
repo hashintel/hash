@@ -1,8 +1,8 @@
-import { TextToken } from "@local/hash-isomorphic-utils/graphql/types";
+import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import {
   AccountId,
   extractOwnedByIdFromEntityId,
-} from "@local/hash-isomorphic-utils/types";
+} from "@local/hash-graphql-shared/types";
 import { Entity, EntityId } from "@local/hash-subgraph";
 
 import { EntityTypeMismatchError } from "../../../lib/error";

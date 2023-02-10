@@ -1,4 +1,5 @@
 import { VersionedUri } from "@blockprotocol/type-system";
+import { EntityId } from "@local/hash-graphql-shared/types";
 import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import {
   BlockEntity,
@@ -22,7 +23,6 @@ import {
 } from "@local/hash-isomorphic-utils/prosemirror";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { textBlockNodeToEntityProperties } from "@local/hash-isomorphic-utils/text";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
 import * as Sentry from "@sentry/nextjs";
 import { Node } from "prosemirror-model";
 import { TextSelection, Transaction } from "prosemirror-state";

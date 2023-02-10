@@ -1,4 +1,4 @@
-import { AccountId } from "@local/hash-isomorphic-utils/types";
+import { AccountId } from "@local/hash-graphql-shared/types";
 import { Node } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
 

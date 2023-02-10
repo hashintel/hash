@@ -1,9 +1,9 @@
-import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import {
   AccountId,
   extractOwnedByIdFromEntityId,
   OwnedById,
-} from "@local/hash-isomorphic-utils/types";
+} from "@local/hash-graphql-shared/types";
+import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import {
   Entity,
   EntityId,

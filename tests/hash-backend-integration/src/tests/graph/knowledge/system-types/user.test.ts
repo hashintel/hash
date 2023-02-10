@@ -19,7 +19,7 @@ import {
 import { systemUserAccountId } from "@apps/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { EntityUuid } from "@local/hash-isomorphic-utils/types";
+import { EntityUuid } from "@local/hash-graphql-shared/types";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 
 import {

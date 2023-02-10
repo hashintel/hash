@@ -1,6 +1,6 @@
 import { DataType } from "@blockprotocol/type-system";
+import { AccountId, OwnedById } from "@local/hash-graphql-shared/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
   DataTypeWithMetadata,
   Subgraph,
