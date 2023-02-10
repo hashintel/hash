@@ -1,5 +1,6 @@
 import { VersionedUri } from "@blockprotocol/type-system";
 import {
+  EntityId,
   EntityVertexId,
   Subgraph,
   SubgraphRootTypes,
@@ -43,7 +44,7 @@ export const useDraftEntitySubgraph = (
         }
 
         const draftEntityVertexId: EntityVertexId = {
-          baseId: "draft%draft",
+          baseId: "draft%draft" as EntityId,
           version: new Date().toISOString(),
         };
 
