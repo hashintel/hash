@@ -25,6 +25,7 @@ locals {
     cpu         = 0 # let ECS divvy up the available CPU
     mountPoints = []
     volumesFrom = []
+    command     = ["server"]
     healthCheck = {
       command  = ["CMD", "/hash-graph", "server", "--healthcheck"]
       retries  = 5
