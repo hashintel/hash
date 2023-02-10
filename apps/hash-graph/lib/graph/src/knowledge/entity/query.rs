@@ -276,8 +276,7 @@ impl fmt::Display for EntityQueryPath<'_> {
 impl QueryPath for EntityQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::Uuid | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
-            Self::EditionId => ParameterType::UnsignedInteger,
+            Self::EditionId | Self::Uuid | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
             Self::LeftEntity(path)
             | Self::RightEntity(path)
             | Self::IncomingLinks(path)

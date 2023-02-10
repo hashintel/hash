@@ -766,9 +766,8 @@ mod tests {
         use super::*;
         use crate::{
             identifier::{
-                account::AccountId,
-                knowledge::EntityId,
-                ontology::{OntologyTypeRecordId, OntologyTypeVersion},
+                account::AccountId, knowledge::EntityId, ontology::OntologyTypeVersion,
+                OntologyTypeVertexId,
             },
             knowledge::EntityUuid,
             provenance::OwnedById,
@@ -800,13 +799,16 @@ mod tests {
                   ON "ontology_id_with_metadata_0_1_0"."ontology_id" = "data_types_0_0_0"."ontology_id"
                 WHERE ("ontology_id_with_metadata_0_1_0"."base_uri" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
                 "#,
-                &[&uri.base_uri().as_str(), &i64::from(uri.version())],
+                &[
+                    &uri.base_uri().as_str(),
+                    &OntologyTypeVersion::new(uri.version()),
+                ],
             );
         }
 
         #[test]
         fn for_ontology_type_record_id() {
-            let uri = OntologyTypeRecordId::new(
+            let uri = OntologyTypeVertexId::new(
                 BaseUri::new(
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
                 )
@@ -830,7 +832,7 @@ mod tests {
                   ON "ontology_id_with_metadata_0_1_0"."ontology_id" = "data_types_0_0_0"."ontology_id"
                 WHERE ("ontology_id_with_metadata_0_1_0"."base_uri" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
                 "#,
-                &[&uri.base_uri().as_str(), &i64::from(uri.version().inner())],
+                &[&uri.base_id().as_str(), &uri.version()],
             );
         }
 

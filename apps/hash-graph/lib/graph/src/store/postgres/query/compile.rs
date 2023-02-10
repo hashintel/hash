@@ -426,8 +426,8 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                     Parameter::Boolean(bool) => self.artifacts.parameters.push(bool),
                     Parameter::Any(json) => self.artifacts.parameters.push(json),
                     Parameter::Uuid(uuid) => self.artifacts.parameters.push(uuid),
-                    Parameter::OntologyTypeVersion(integer) => {
-                        self.artifacts.parameters.push(integer)
+                    Parameter::OntologyTypeVersion(version) => {
+                        self.artifacts.parameters.push(version)
                     }
                 }
                 Expression::Parameter(self.artifacts.parameters.len())

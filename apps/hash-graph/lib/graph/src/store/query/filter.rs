@@ -77,7 +77,7 @@ where
         Self::Equal(
             Some(FilterExpression::Path(<R::QueryPath<'p>>::version())),
             Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
-                version.into(),
+                version,
             ))),
         )
     }
@@ -362,19 +362,19 @@ impl Parameter<'_> {
                     })
                 })?)
             }
-            (Parameter::Number(number), ParameterType::UnsignedInteger) => {
+            (Parameter::Number(number), ParameterType::OntologyTypeVersion) => {
                 // Postgres cannot represent unsigned integer, so we use i64 instead
                 let number = number.round() as i64;
                 *self = Parameter::OntologyTypeVersion(OntologyTypeVersion::new(
                     number.try_into().into_report().change_context_lazy(|| {
                         ParameterConversionError {
                             actual: self.to_owned(),
-                            expected: ParameterType::UnsignedInteger,
+                            expected: ParameterType::OntologyTypeVersion,
                         }
                     })?,
                 ));
             }
-            (Parameter::Text(text), ParameterType::UnsignedInteger) if text == "latest" => {
+            (Parameter::Text(text), ParameterType::OntologyTypeVersion) if text == "latest" => {
                 // Special case for checking `version == "latest"
             }
 
@@ -468,8 +468,8 @@ mod tests {
     }
 
     #[test]
-    fn for_ontology_type_record_id() {
-        let uri = OntologyTypeRecordId::new(
+    fn for_ontology_type_version_id() {
+        let uri = OntologyTypeVertexId::new(
             BaseUri::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
             )
@@ -481,7 +481,7 @@ mod tests {
           "all": [
             { "equal": [
               { "path": ["baseUri"] },
-              { "parameter": uri.base_uri() }
+              { "parameter": uri.base_id() }
             ]},
             { "equal": [
               { "path": ["version"] },
