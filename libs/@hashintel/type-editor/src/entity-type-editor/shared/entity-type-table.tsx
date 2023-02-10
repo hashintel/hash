@@ -14,7 +14,7 @@ import {
   TypographyProps,
   useForkRef,
 } from "@mui/material";
-import { Box, experimental_sx, styled } from "@mui/system";
+import { Box, styled } from "@mui/system";
 import memoize from "lodash.memoize";
 import { forwardRef, ReactNode, useEffect, useRef, useState } from "react";
 
@@ -24,8 +24,8 @@ import { forwardRef, ReactNode, useEffect, useRef, useState } from "react";
  */
 const EDIT_BAR_HEIGHT = 66;
 
-export const EntityTypeTableCenteredCell = styled(TableCell)(
-  experimental_sx({
+export const EntityTypeTableCenteredCell = styled(TableCell)(({ theme }) =>
+  theme.unstable_sx({
     px: "0px !important",
     textAlign: "center",
   }),

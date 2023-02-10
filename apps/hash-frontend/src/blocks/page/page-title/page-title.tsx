@@ -1,5 +1,5 @@
 import { EntityId } from "@local/hash-isomorphic-utils/types";
-import { experimental_sx as sx, styled, TextareaAutosize } from "@mui/material";
+import { styled, TextareaAutosize } from "@mui/material";
 import {
   ChangeEventHandler,
   FocusEventHandler,
@@ -16,7 +16,7 @@ export const PAGE_TITLE_FONT_SIZE = "var(--step-4)";
 export const PAGE_TITLE_LINE_HEIGHT = 1.23;
 
 const StyledTextarea = styled(TextareaAutosize)(({ theme }) =>
-  sx({
+  theme.unstable_sx({
     width: "100%",
     outline: "none",
     border: "none",

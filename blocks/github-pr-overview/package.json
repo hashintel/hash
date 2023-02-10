@@ -27,9 +27,9 @@
   "dependencies": {
     "@blockprotocol/graph": "0.0.18",
     "@hashintel/design-system": "0.0.1",
-    "@mui/icons-material": "5.10.6",
+    "@mui/icons-material": "5.11.0",
     "@mui/lab": "5.0.0-alpha.100",
-    "@mui/material": "5.10.6",
+    "@mui/material": "5.11.8",
     "date-fns": "2.28.0",
     "lodash": "4.17.21",
     "react-transition-group": "4.4.2"
