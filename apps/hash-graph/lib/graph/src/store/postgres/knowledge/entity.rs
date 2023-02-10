@@ -12,9 +12,8 @@ use uuid::Uuid;
 use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
-        ontology::OntologyTypeRecordId,
         time::{DecisionTime, TimeProjection, Timestamp},
-        EntityVertexId,
+        EntityVertexId, OntologyTypeVertexId,
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
@@ -102,7 +101,7 @@ impl<C: AsClient> PostgresStore<C> {
 
             if current_resolve_depths.is_of_type.outgoing > 0 {
                 let entity_type_id =
-                    OntologyTypeRecordId::from(entity.metadata().entity_type_id());
+                    OntologyTypeVertexId::from(entity.metadata().entity_type_id());
                 subgraph.edges.insert(Edge::KnowledgeGraph {
                     vertex_id: entity_vertex_id,
                     outward_edge: KnowledgeGraphOutwardEdges::ToOntology(OutwardEdge {

@@ -5,7 +5,7 @@ use error_stack::{Result, ResultExt};
 use type_system::DataType;
 
 use crate::{
-    identifier::{ontology::OntologyTypeRecordId, time::TimeProjection},
+    identifier::{time::TimeProjection},
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
     provenance::UpdatedById,
     store::{
@@ -16,6 +16,7 @@ use crate::{
     },
     subgraph::{edges::GraphResolveDepths, query::StructuralQuery, Subgraph},
 };
+use crate::identifier::OntologyTypeVertexId;
 
 impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`DataTypeWithMetadata`] into a [`DependencyContext`].
@@ -24,7 +25,7 @@ impl<C: AsClient> PostgresStore<C> {
     #[tracing::instrument(level = "trace", skip(self, dependency_context, subgraph))]
     pub(crate) async fn traverse_data_type(
         &self,
-        data_type_id: &OntologyTypeRecordId,
+        data_type_id: &OntologyTypeVertexId,
         dependency_context: &mut DependencyContext,
         subgraph: &mut Subgraph,
         mut current_resolve_depths: GraphResolveDepths,

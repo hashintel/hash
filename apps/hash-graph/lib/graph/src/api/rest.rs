@@ -43,7 +43,7 @@ use crate::{
         },
     },
     identifier::{
-        ontology::OntologyTypeRecordId,
+        ontology::{OntologyTypeRecordId, OntologyTypeVersion},
         time::{
             DecisionTime, DecisionTimeImage, DecisionTimeKernel, DecisionTimeProjection,
             IncludedTimeIntervalBound, TimeIntervalBound, TimeProjection, Timestamp,
@@ -54,7 +54,7 @@ use crate::{
             UnresolvedTransactionTimeImage, UnresolvedTransactionTimeKernel,
             UnresolvedTransactionTimeProjection,
         },
-        EntityVertexId, GraphElementId, GraphElementVertexId,
+        EntityVertexId, GraphElementId, GraphElementVertexId, OntologyTypeVertexId,
     },
     ontology::{
         domain_validator::DomainValidator, ExternalOntologyElementMetadata,
@@ -182,6 +182,8 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             OwnedOntologyElementMetadata,
             ExternalOntologyElementMetadata,
             EntityVertexId,
+            OntologyTypeVertexId,
+            OntologyTypeVersion,
             Selector,
 
             GraphElementId,

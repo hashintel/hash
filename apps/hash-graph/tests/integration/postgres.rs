@@ -487,7 +487,7 @@ impl DatabaseApi<'_> {
                 Some(FilterExpression::Path(EntityQueryPath::Type(
                     EntityTypeQueryPath::Version,
                 ))),
-                Some(FilterExpression::Parameter(Parameter::SignedInteger(
+                Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
                     link_type_id.version().into(),
                 ))),
             ),

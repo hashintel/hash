@@ -818,7 +818,7 @@ mod tests {
             let mut compiler =
                 SelectCompiler::<DataTypeWithMetadata>::with_asterisk(&time_projection);
 
-            let filter = Filter::for_ontology_type_record_id(&uri);
+            let filter = Filter::for_ontology_type_vertex_id(&uri);
             compiler.add_filter(&filter);
 
             test_compilation(

@@ -11,6 +11,7 @@ use type_system::uri::{BaseUri, VersionedUri};
 use utoipa::ToSchema;
 
 use crate::{
+    identifier::OntologyTypeVertexId,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
     subgraph::{Subgraph, SubgraphIndex},
 };
@@ -106,7 +107,7 @@ impl From<&OntologyTypeRecordId> for VersionedUri {
     }
 }
 
-impl SubgraphIndex<DataTypeWithMetadata> for OntologyTypeRecordId {
+impl SubgraphIndex<DataTypeWithMetadata> for OntologyTypeVertexId {
     fn subgraph_vertex_entry<'a>(
         &self,
         subgraph: &'a mut Subgraph,
@@ -115,7 +116,7 @@ impl SubgraphIndex<DataTypeWithMetadata> for OntologyTypeRecordId {
     }
 }
 
-impl SubgraphIndex<PropertyTypeWithMetadata> for OntologyTypeRecordId {
+impl SubgraphIndex<PropertyTypeWithMetadata> for OntologyTypeVertexId {
     fn subgraph_vertex_entry<'a>(
         &self,
         subgraph: &'a mut Subgraph,
@@ -128,7 +129,7 @@ impl SubgraphIndex<PropertyTypeWithMetadata> for OntologyTypeRecordId {
     }
 }
 
-impl SubgraphIndex<EntityTypeWithMetadata> for OntologyTypeRecordId {
+impl SubgraphIndex<EntityTypeWithMetadata> for OntologyTypeVertexId {
     fn subgraph_vertex_entry<'a>(
         &self,
         subgraph: &'a mut Subgraph,

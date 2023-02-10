@@ -27,7 +27,7 @@ use crate::{
         account::AccountId,
         ontology::OntologyTypeRecordId,
         time::{ProjectedTime, TimeIntervalBound, Timestamp},
-        EntityVertexId,
+        EntityVertexId, OntologyTypeVertexId,
     },
     interval::Interval,
     ontology::{
@@ -226,7 +226,7 @@ where
 
 #[derive(Default)]
 pub struct DependencyContext {
-    pub ontology_dependency_map: DependencyMap<OntologyTypeRecordId>,
+    pub ontology_dependency_map: DependencyMap<OntologyTypeVertexId>,
     pub knowledge_dependency_map: DependencyMap<EntityVertexId>,
 }
 

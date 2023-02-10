@@ -575,7 +575,7 @@ export interface EntityMetadata {
 
 export const EntityQueryToken = {
   Uuid: "uuid",
-  RecordId: "recordId",
+  EditionId: "editionId",
   Archived: "archived",
   OwnedById: "ownedById",
   UpdatedById: "updatedById",
@@ -871,12 +871,6 @@ export interface EqualFilter {
 export interface ExternalOntologyElementMetadata {
   /**
    *
-   * @type {OntologyTypeEditionId}
-   * @memberof ExternalOntologyElementMetadata
-   */
-  editionId: OntologyTypeEditionId;
-  /**
-   *
    * @type {string}
    * @memberof ExternalOntologyElementMetadata
    */
@@ -887,6 +881,12 @@ export interface ExternalOntologyElementMetadata {
    * @memberof ExternalOntologyElementMetadata
    */
   provenance: ProvenanceMetadata;
+  /**
+   *
+   * @type {OntologyTypeRecordId}
+   * @memberof ExternalOntologyElementMetadata
+   */
+  recordId: OntologyTypeRecordId;
 }
 /**
  * @type Filter
@@ -915,7 +915,7 @@ export type GraphElementId = string;
  * @type GraphElementVertexId
  * @export
  */
-export type GraphElementVertexId = EntityVertexId | OntologyTypeEditionId;
+export type GraphElementVertexId = EntityVertexId | OntologyTypeVertexId;
 
 /**
  * TODO: DOC - <https://app.asana.com/0/0/1203438518991188/f>
@@ -1357,19 +1357,38 @@ export interface OntologyRootedEdges {
 /**
  *
  * @export
- * @interface OntologyTypeEditionId
+ * @interface OntologyTypeRecordId
  */
-export interface OntologyTypeEditionId {
+export interface OntologyTypeRecordId {
   /**
    *
    * @type {string}
-   * @memberof OntologyTypeEditionId
+   * @memberof OntologyTypeRecordId
+   */
+  baseUri: string;
+  /**
+   *
+   * @type {number}
+   * @memberof OntologyTypeRecordId
+   */
+  version: number;
+}
+/**
+ *
+ * @export
+ * @interface OntologyTypeVertexId
+ */
+export interface OntologyTypeVertexId {
+  /**
+   *
+   * @type {string}
+   * @memberof OntologyTypeVertexId
    */
   baseId: string;
   /**
    *
    * @type {number}
-   * @memberof OntologyTypeEditionId
+   * @memberof OntologyTypeVertexId
    */
   version: number;
 }
@@ -1492,12 +1511,6 @@ export interface OutgoingEdgeResolveDepth {
 export interface OwnedOntologyElementMetadata {
   /**
    *
-   * @type {OntologyTypeEditionId}
-   * @memberof OwnedOntologyElementMetadata
-   */
-  editionId: OntologyTypeEditionId;
-  /**
-   *
    * @type {string}
    * @memberof OwnedOntologyElementMetadata
    */
@@ -1508,6 +1521,12 @@ export interface OwnedOntologyElementMetadata {
    * @memberof OwnedOntologyElementMetadata
    */
   provenance: ProvenanceMetadata;
+  /**
+   *
+   * @type {OntologyTypeRecordId}
+   * @memberof OwnedOntologyElementMetadata
+   */
+  recordId: OntologyTypeRecordId;
 }
 /**
  *

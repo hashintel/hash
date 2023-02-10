@@ -6,7 +6,7 @@ use futures::FutureExt;
 use type_system::{DataTypeReference, PropertyType, PropertyTypeReference};
 
 use crate::{
-    identifier::{ontology::OntologyTypeRecordId, time::TimeProjection},
+    identifier::{time::TimeProjection, OntologyTypeVertexId},
     ontology::{OntologyElementMetadata, OntologyTypeWithMetadata, PropertyTypeWithMetadata},
     provenance::UpdatedById,
     store::{
@@ -32,7 +32,7 @@ impl<C: AsClient> PostgresStore<C> {
     #[tracing::instrument(level = "trace", skip(self, dependency_context, subgraph))]
     pub(crate) fn traverse_property_type<'a>(
         &'a self,
-        property_type_id: &'a OntologyTypeRecordId,
+        property_type_id: &'a OntologyTypeVertexId,
         dependency_context: &'a mut DependencyContext,
         subgraph: &'a mut Subgraph,
         mut current_resolve_depths: GraphResolveDepths,
@@ -93,12 +93,12 @@ impl<C: AsClient> PostgresStore<C> {
                         outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
                             kind: OntologyEdgeKind::ConstrainsValuesOn,
                             reversed: false,
-                            right_endpoint: OntologyTypeRecordId::from(&data_type_ref),
+                            right_endpoint: OntologyTypeVertexId::from(&data_type_ref),
                         }),
                     });
 
                     self.traverse_data_type(
-                        &OntologyTypeRecordId::from(&data_type_ref),
+                        &OntologyTypeVertexId::from(&data_type_ref),
                         dependency_context,
                         subgraph,
                         GraphResolveDepths {
@@ -121,12 +121,12 @@ impl<C: AsClient> PostgresStore<C> {
                         outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
                             kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                             reversed: false,
-                            right_endpoint: OntologyTypeRecordId::from(&property_type_ref_uri),
+                            right_endpoint: OntologyTypeVertexId::from(&property_type_ref_uri),
                         }),
                     });
 
                     self.traverse_property_type(
-                        &OntologyTypeRecordId::from(&property_type_ref_uri),
+                        &OntologyTypeVertexId::from(&property_type_ref_uri),
                         dependency_context,
                         subgraph,
                         GraphResolveDepths {

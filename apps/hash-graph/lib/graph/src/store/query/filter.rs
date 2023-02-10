@@ -1,14 +1,14 @@
 use std::{borrow::Cow, fmt, str::FromStr};
 
 use derivative::Derivative;
-use error_stack::{bail, ensure, Context, IntoReport, Report, ResultExt};
+use error_stack::{bail, Context, IntoReport, Report, ResultExt};
 use serde::Deserialize;
 use serde_json::{Number, Value};
 use type_system::uri::{BaseUri, VersionedUri};
 use uuid::Uuid;
 
 use crate::{
-    identifier::{knowledge::EntityId, ontology::OntologyTypeRecordId},
+    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion, OntologyTypeVertexId},
     knowledge::{Entity, EntityQueryPath},
     store::{
         query::{OntologyQueryPath, ParameterType, QueryPath},
@@ -73,10 +73,10 @@ where
 
     /// Creates a `Filter` to filter by a given version.
     #[must_use]
-    fn for_version(version: u32) -> Self {
+    fn for_version(version: OntologyTypeVersion) -> Self {
         Self::Equal(
             Some(FilterExpression::Path(<R::QueryPath<'p>>::version())),
-            Some(FilterExpression::Parameter(Parameter::SignedInteger(
+            Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
                 version.into(),
             ))),
         )
@@ -88,19 +88,17 @@ where
     pub fn for_versioned_uri(versioned_uri: &'p VersionedUri) -> Self {
         Self::All(vec![
             Self::for_base_uri(versioned_uri.base_uri()),
-            Self::for_version(versioned_uri.version()),
+            Self::for_version(OntologyTypeVersion::new(versioned_uri.version())),
         ])
     }
 
     /// Creates a `Filter` to search for a specific ontology type of kind `R`, identified by its
     /// [`OntologyTypeRecordId`].
     #[must_use]
-    pub fn for_ontology_type_record_id(
-        ontology_type_record_id: &'p OntologyTypeRecordId,
-    ) -> Self {
+    pub fn for_ontology_type_vertex_id(ontology_type_vertex_id: &'p OntologyTypeVertexId) -> Self {
         Self::All(vec![
-            Self::for_base_uri(ontology_type_record_id.base_uri()),
-            Self::for_version(ontology_type_record_id.version().inner()),
+            Self::for_base_uri(ontology_type_vertex_id.base_id()),
+            Self::for_version(ontology_type_vertex_id.version()),
         ])
     }
 }
@@ -279,7 +277,7 @@ pub enum Parameter<'p> {
     #[serde(skip)]
     Uuid(Uuid),
     #[serde(skip)]
-    SignedInteger(i64),
+    OntologyTypeVersion(OntologyTypeVersion),
 }
 
 impl Parameter<'_> {
@@ -290,7 +288,7 @@ impl Parameter<'_> {
             Parameter::Text(text) => Parameter::Text(Cow::Owned(text.to_string())),
             Parameter::Any(value) => Parameter::Any(value.clone()),
             Parameter::Uuid(uuid) => Parameter::Uuid(*uuid),
-            Parameter::SignedInteger(integer) => Parameter::SignedInteger(*integer),
+            Parameter::OntologyTypeVersion(version) => Parameter::OntologyTypeVersion(*version),
         }
     }
 }
@@ -314,7 +312,7 @@ impl fmt::Display for ParameterConversionError {
             Parameter::Text(text) => text.to_string(),
             Parameter::Any(Value::String(string)) => string.clone(),
             Parameter::Uuid(uuid) => uuid.to_string(),
-            Parameter::SignedInteger(integer) => integer.to_string(),
+            Parameter::OntologyTypeVersion(version) => version.inner().to_string(),
             Parameter::Any(Value::Object(_)) => "object".to_string(),
             Parameter::Any(Value::Array(_)) => "array".to_string(),
         };
@@ -367,11 +365,14 @@ impl Parameter<'_> {
             (Parameter::Number(number), ParameterType::UnsignedInteger) => {
                 // Postgres cannot represent unsigned integer, so we use i64 instead
                 let number = number.round() as i64;
-                ensure!(!number.is_negative(), ParameterConversionError {
-                    actual: self.to_owned(),
-                    expected: ParameterType::UnsignedInteger
-                });
-                *self = Parameter::SignedInteger(number);
+                *self = Parameter::OntologyTypeVersion(OntologyTypeVersion::new(
+                    number.try_into().into_report().change_context_lazy(|| {
+                        ParameterConversionError {
+                            actual: self.to_owned(),
+                            expected: ParameterType::UnsignedInteger,
+                        }
+                    })?,
+                ));
             }
             (Parameter::Text(text), ParameterType::UnsignedInteger) if text == "latest" => {
                 // Special case for checking `version == "latest"
@@ -490,7 +491,7 @@ mod tests {
         }};
 
         test_filter_representation(
-            &Filter::<DataTypeWithMetadata>::for_ontology_type_record_id(&uri),
+            &Filter::<DataTypeWithMetadata>::for_ontology_type_vertex_id(&uri),
             &expected,
         );
     }

@@ -23,7 +23,7 @@ pub use self::{
     property_type::{PropertyTypeQueryPath, PropertyTypeQueryPathVisitor, PropertyTypeQueryToken},
 };
 use crate::{
-    identifier::{ontology::OntologyTypeRecordId, time::TimeAxis},
+    identifier::{ontology::OntologyTypeRecordId, time::TimeAxis, OntologyTypeVertexId},
     provenance::{OwnedById, ProvenanceMetadata},
     store::{query::Filter, Record},
 };
@@ -256,14 +256,15 @@ pub struct DataTypeWithMetadata {
 
 impl Record for DataTypeWithMetadata {
     type QueryPath<'p> = DataTypeQueryPath<'p>;
-    type VertexId = OntologyTypeRecordId;
+    type VertexId = OntologyTypeVertexId;
 
     fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
-        self.metadata().record_id().clone()
+        let record_id = self.metadata().record_id();
+        OntologyTypeVertexId::new(record_id.base_uri().clone(), record_id.version())
     }
 
     fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
-        Filter::for_ontology_type_record_id(vertex_id)
+        Filter::for_ontology_type_vertex_id(vertex_id)
     }
 }
 
@@ -296,14 +297,15 @@ pub struct PropertyTypeWithMetadata {
 
 impl Record for PropertyTypeWithMetadata {
     type QueryPath<'p> = PropertyTypeQueryPath<'p>;
-    type VertexId = OntologyTypeRecordId;
+    type VertexId = OntologyTypeVertexId;
 
     fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
-        self.metadata().record_id().clone()
+        let record_id = self.metadata().record_id();
+        OntologyTypeVertexId::new(record_id.base_uri().clone(), record_id.version())
     }
 
     fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
-        Filter::for_ontology_type_record_id(vertex_id)
+        Filter::for_ontology_type_vertex_id(vertex_id)
     }
 }
 
@@ -336,14 +338,15 @@ pub struct EntityTypeWithMetadata {
 
 impl Record for EntityTypeWithMetadata {
     type QueryPath<'p> = EntityTypeQueryPath<'p>;
-    type VertexId = OntologyTypeRecordId;
+    type VertexId = OntologyTypeVertexId;
 
     fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
-        self.metadata().record_id().clone()
+        let record_id = self.metadata().record_id();
+        OntologyTypeVertexId::new(record_id.base_uri().clone(), record_id.version())
     }
 
     fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
-        Filter::for_ontology_type_record_id(vertex_id)
+        Filter::for_ontology_type_vertex_id(vertex_id)
     }
 }
 
