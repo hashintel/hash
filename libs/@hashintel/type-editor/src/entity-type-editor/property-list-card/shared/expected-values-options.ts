@@ -45,33 +45,46 @@ type ExpectedValueOptionMap = {
   };
 };
 
+export const textDataTypeId =
+  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1";
+export const numberDataTypeId =
+  "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1";
+export const booleanDataTypeId =
+  "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1";
+export const objectDataTypeId =
+  "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1";
+export const emptyListDataTypeId =
+  "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/v/1";
+export const nullDataTypeId =
+  "https://blockprotocol.org/@blockprotocol/types/data-type/null/v/1";
+
 export const expectedValuesOptions: ExpectedValueOptionMap = {
-  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1": {
+  [textDataTypeId]: {
     title: "Text",
     icon: faText,
     colors: chipColors.blue,
   },
-  "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1": {
+  [numberDataTypeId]: {
     title: "Number",
     icon: fa100,
     colors: chipColors.blue,
   },
-  "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1": {
+  [booleanDataTypeId]: {
     title: "Boolean",
     icon: faSquareCheck,
     colors: chipColors.blue,
   },
-  "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1": {
+  [objectDataTypeId]: {
     title: "Object",
     icon: faBracketsCurly,
     colors: chipColors.blue,
   },
-  "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/v/1": {
+  [emptyListDataTypeId]: {
     title: "Empty List",
     icon: faBracketsSquare,
     colors: chipColors.blue,
   },
-  "https://blockprotocol.org/@blockprotocol/types/data-type/null/v/1": {
+  [nullDataTypeId]: {
     title: "Null",
     icon: faEmptySet,
     colors: chipColors.blue,

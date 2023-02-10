@@ -1,12 +1,15 @@
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
-
 import {
   ArrayType,
   CustomExpectedValueTypeId,
   ExpectedValue,
   FlattenedCustomExpectedValueList,
 } from "./expected-value-types";
-import { dataTypeOptions } from "./expected-values-options";
+import {
+  booleanDataTypeId,
+  dataTypeOptions,
+  numberDataTypeId,
+  textDataTypeId,
+} from "./expected-values-options";
 
 export const getArrayExpectedValueType = (
   childrenTypeArray: CustomExpectedValueTypeId[],
@@ -26,15 +29,11 @@ export const getArrayExpectedValueType = (
   } else if (containsObject && !containsArray && !containsDataType) {
     return ArrayType.propertyObjectArray;
   } else if (containsDataType && !containsArray && !containsObject) {
-    const containsText = dataTypes.some(
-      (type) => type === types.dataType.text.dataTypeId,
-    );
+    const containsText = dataTypes.some((type) => type === textDataTypeId);
     const containsBoolean = dataTypes.some(
-      (type) => type === types.dataType.boolean.dataTypeId,
+      (type) => type === booleanDataTypeId,
     );
-    const containsNumber = dataTypes.some(
-      (type) => type === types.dataType.number.dataTypeId,
-    );
+    const containsNumber = dataTypes.some((type) => type === numberDataTypeId);
 
     if (containsText && !containsBoolean && !containsNumber) {
       return ArrayType.textArray;
