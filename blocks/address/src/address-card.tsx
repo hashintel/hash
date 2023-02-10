@@ -11,7 +11,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { EditableField } from "./editable-field";
 import { AppleIcon } from "./icons/apple-icon";
 import { GoogleIcon } from "./icons/google-icon";
@@ -69,6 +69,14 @@ export const AddressCard = ({
   updateTitle,
   updateDescription,
 }: AddressCardProps) => {
+  const [descriptionValue, setDescriptionValue] = useState(description);
+
+  useEffect(() => {
+    if (description !== descriptionValue) {
+      setDescriptionValue(description);
+    }
+  }, [description]);
+
   const [googleMapsUrl, appleMapsUrl] = useMemo(
     () => [
       `https://www.google.com/maps?q=${encodeURI(fullAddress)}`,
@@ -139,7 +147,8 @@ export const AddressCard = ({
         </Box>
 
         <EditableField
-          defaultValue={description}
+          value={descriptionValue}
+          onChange={(event) => setDescriptionValue(event.target.value)}
           onBlur={(event) => updateDescription(event.target.value)}
           placeholder="Description here"
           inputProps={{

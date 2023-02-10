@@ -3127,10 +3127,10 @@
     es-module-lexer "^0.10.5"
     uuid "^8.3.2"
 
-"@blockprotocol/core@0.0.14-canary-20230209191938":
-  version "0.0.14-canary-20230209191938"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.0.14-canary-20230209191938.tgz#ba36d4d743901cf6bd5f25c55cbcd9fad74fcb1d"
-  integrity sha512-kV1D97gw2Q1MWrgXEf8cwIVdk0uJnxDasZ+TIRHheQPZITkXdEPW31MP6lxdcpCubL0SyR5pVZ4PzZ853914pA==
+"@blockprotocol/core@0.0.14-canary-20230210130343":
+  version "0.0.14-canary-20230210130343"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.0.14-canary-20230210130343.tgz#e5487c4657ef880b265742de46f633c21641f106"
+  integrity sha512-Vds9Ja8NdYaZ54kfUNtwv0i7fJQYv8Tr3arUq7s7iHTi68EUB0Ehc+/YhOAIzMWBbuLGQ8jpujSe02S8ww+t+A==
   dependencies:
     es-module-lexer "^0.10.5"
     uuid "^8.3.2"
@@ -3179,13 +3179,13 @@
     lit "^2.4.1"
     node-fetch "^3.3.0"
 
-"@blockprotocol/graph@0.1.0-canary-20230209191938":
-  version "0.1.0-canary-20230209191938"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.1.0-canary-20230209191938.tgz#556ef70ea26a82d8ecf782588d9151c9075db42e"
-  integrity sha512-Y3RI9TA8LummpIJ7IXkGULIGi4FhOJzT1KOvg17pqO/R3jNscM37moWah/XA+HW2N1yhME4qgiV6KHFSBa0F5A==
+"@blockprotocol/graph@0.1.0-canary-20230210130343":
+  version "0.1.0-canary-20230210130343"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.1.0-canary-20230210130343.tgz#f285fd43827614460f3e859f8e09864d227962f8"
+  integrity sha512-kCPsHpNg9uWwTgmdEdCJ4POoQ/wlJMAvQeqR89kVQjLAEiDJEcyNsWiXlEdLUy5kKXiWAuqLxlBjPeQnnvQihQ==
   dependencies:
-    "@blockprotocol/core" "0.0.14-canary-20230209191938"
-    "@blockprotocol/type-system" "0.0.4-canary-20230209191938"
+    "@blockprotocol/core" "0.0.14-canary-20230210130343"
+    "@blockprotocol/type-system" "0.0.4-canary-20230210130343"
     ajv "^8.11.2"
     ajv-formats "^2.1.1"
     json-schema-to-typescript "^11.0.2"
@@ -3207,23 +3207,23 @@
     "@blockprotocol/core" "0.0.12"
     "@blockprotocol/graph" "0.1.0-canary-20230111084611"
 
-"@blockprotocol/hook@0.1.0-canary-20230209191938":
-  version "0.1.0-canary-20230209191938"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/hook/-/hook-0.1.0-canary-20230209191938.tgz#c013f1d2e3671e77b54ecb26385e0e2df37fdfdb"
-  integrity sha512-seVtkcPLigMfdrf4zFWemqxk8mzf+flH2W5ktZCLypFlSA7L8d+SZJ6LyIk7olnPD+aFFD6y4n0NedfEgyhOyw==
+"@blockprotocol/hook@0.1.0-canary-20230210130343":
+  version "0.1.0-canary-20230210130343"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/hook/-/hook-0.1.0-canary-20230210130343.tgz#f1293197d3b860d5f675f319a60afd35ff5a8252"
+  integrity sha512-C3Wia4DohO35gXUjzesdR9oXwnq5tS8I9FXI0Sct0yzKPqq0EKWiyFLXhooE8voqajoGwFC81M9qySO3UPQ29w==
   dependencies:
-    "@blockprotocol/core" "0.0.14-canary-20230209191938"
-    "@blockprotocol/graph" "0.1.0-canary-20230209191938"
+    "@blockprotocol/core" "0.0.14-canary-20230210130343"
+    "@blockprotocol/graph" "0.1.0-canary-20230210130343"
 
 "@blockprotocol/type-system@0.0.3-canary-20230111084611":
   version "0.0.3-canary-20230111084611"
   resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.0.3-canary-20230111084611.tgz#c8269e2b99645c2f92885c2cbd2c36fea2f953a9"
   integrity sha512-1TWmUGnFKxP9ag8IyjlQmHludY5AYX3BJ0eqDgt/dtSVzzLJZ5I9xzzZyyoOgRf5BsZHhIE5aDUH1HKAWZXgcw==
 
-"@blockprotocol/type-system@0.0.4-canary-20230209191938":
-  version "0.0.4-canary-20230209191938"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.0.4-canary-20230209191938.tgz#e0df2d188a457b0a196e80fcf6a7082845d5608c"
-  integrity sha512-kGMUeNcSR2DeYT99rZ/GeNuUSodDSkifgeNKtf6DpBIaaw0caP6sUqsDIqL2Qhsj4z+p4mTPREjUjaDW6tI50g==
+"@blockprotocol/type-system@0.0.4-canary-20230210130343":
+  version "0.0.4-canary-20230210130343"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.0.4-canary-20230210130343.tgz#fb77890ea27dba143cb7cfc22c73c0dd3f35325c"
+  integrity sha512-sWca6zKPajyiNlv6oavOhf74k0qrguBmz1UzjXcsdcNxJhGTUaxRKQNg12MJ6IM+sPD6nxuO9r3hMEPcoTU0/g==
 
 "@changesets/apply-release-plan@^6.1.3":
   version "6.1.3"
@@ -9559,10 +9559,10 @@ block-scripts@0.1.0-canary-20230111084611:
     webpack-dev-server "^4.11.1"
     yargs-parser "21.1.1"
 
-block-scripts@0.1.0-canary-20230209191938:
-  version "0.1.0-canary-20230209191938"
-  resolved "https://registry.yarnpkg.com/block-scripts/-/block-scripts-0.1.0-canary-20230209191938.tgz#860ac82cde76f656985cd89d27ae945dc7530e0d"
-  integrity sha512-rwkDBfmaLKl/4dwcWV0HRJ29Ya/P4/Qz7CIBuojx/VcgyYOqd8B6FRTji5temPeMv8/4en5ppAPAB6sz2Wy3ZA==
+block-scripts@0.1.0-canary-20230210130343:
+  version "0.1.0-canary-20230210130343"
+  resolved "https://registry.yarnpkg.com/block-scripts/-/block-scripts-0.1.0-canary-20230210130343.tgz#0e209594a73d63a233475732ad22ad8e0e1348e9"
+  integrity sha512-G6DVu69PJzHp2sYKWKOW6zstYgQeX9rFihgyUIZFcthFxC691Eh23btH3U08DgH/x7wA+zXHsuAzkCl/0AWpQg==
   dependencies:
     "@babel/core" "^7.20.5"
     "@babel/plugin-proposal-class-properties" "^7.18.6"
@@ -9572,8 +9572,8 @@ block-scripts@0.1.0-canary-20230209191938:
     "@babel/preset-react" "^7.18.6"
     "@babel/preset-typescript" "7.18.6"
     "@babel/runtime" "^7.20.6"
-    "@blockprotocol/graph" "0.1.0-canary-20230209191938"
-    "@blockprotocol/type-system" "0.0.4-canary-20230209191938"
+    "@blockprotocol/graph" "0.1.0-canary-20230210130343"
+    "@blockprotocol/type-system" "0.0.4-canary-20230210130343"
     babel-loader "^9.1.0"
     chalk "5.2.0"
     copy-webpack-plugin "10.2.4"
@@ -16892,15 +16892,15 @@ mock-block-dock@0.1.0-canary-20230111084611:
     use-local-storage-state "^18.1.1"
     uuid "^8.3.2"
 
-mock-block-dock@0.1.0-canary-20230209191938:
-  version "0.1.0-canary-20230209191938"
-  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.1.0-canary-20230209191938.tgz#90fc3c30f840a6b3e9c5db074c47dde17710462c"
-  integrity sha512-8r22LlSkEDSs1gBj7pEeCcJH5Jb+wNRvhgr1zv+AfEN+AHqNxb5E5f+sxxXzG6xAXhWH/L7/EpeITIMpbt6YcA==
+mock-block-dock@0.1.0-canary-20230210130343:
+  version "0.1.0-canary-20230210130343"
+  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.1.0-canary-20230210130343.tgz#a0db1a44d51ac4fffeff49b27b6f15426bf0f916"
+  integrity sha512-qFOtasI7FLoQwqmjy25nff+i3oHBKjIW7B6YLmg6r7cAmWFGLxfN8YUkOZLNSNCkYHJmI1uJj/Gptb7QffHaOw==
   dependencies:
-    "@blockprotocol/core" "0.0.14-canary-20230209191938"
-    "@blockprotocol/graph" "0.1.0-canary-20230209191938"
-    "@blockprotocol/hook" "0.1.0-canary-20230209191938"
-    "@blockprotocol/type-system" "0.0.4-canary-20230209191938"
+    "@blockprotocol/core" "0.0.14-canary-20230210130343"
+    "@blockprotocol/graph" "0.1.0-canary-20230210130343"
+    "@blockprotocol/hook" "0.1.0-canary-20230210130343"
+    "@blockprotocol/type-system" "0.0.4-canary-20230210130343"
     "@emotion/react" "^11.10.0"
     "@emotion/styled" "^11.10.0"
     "@lit-labs/react" "^1.0.4"

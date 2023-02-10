@@ -7,10 +7,10 @@ import {
   TextFieldProps,
   useTheme,
 } from "@mui/material";
-import { PenToSquareIcon } from "./icons/pen-to-square-icon";
 import { useRef, useState } from "react";
+import { PenToSquareIcon } from "./icons/pen-to-square-icon";
 
-export const EditableField = ({ sx, ...props }: TextFieldProps) => {
+export const EditableField = ({ sx, onBlur, ...props }: TextFieldProps) => {
   const { transitions } = useTheme();
 
   const [hovered, setHovered] = useState(false);
@@ -27,6 +27,15 @@ export const EditableField = ({ sx, ...props }: TextFieldProps) => {
     >
       <TextField
         {...props}
+        onBlur={(event) => {
+          setEditing(false);
+          onBlur?.(event);
+        }}
+        onKeyDown={({ code }) => {
+          if (code === "Enter") {
+            setEditing(false);
+          }
+        }}
         multiline
         inputRef={inputRef}
         inputProps={{
@@ -55,7 +64,7 @@ export const EditableField = ({ sx, ...props }: TextFieldProps) => {
         }}
       />
 
-      <Fade in={hovered || editing}>
+      <Fade in={hovered && !editing}>
         <Box sx={{ position: "relative" }}>
           <IconButton
             onClick={() => {

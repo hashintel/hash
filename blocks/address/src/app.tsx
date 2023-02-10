@@ -1,3 +1,4 @@
+import { LinkEntityAndRightEntity } from "@blockprotocol/graph/.";
 import {
   useEntitySubgraph,
   useGraphBlockService,
@@ -23,7 +24,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AddressCard } from "./address-card";
 import { CircleQuestionIcon } from "./icons/circle-question-icon";
 import { MapboxIcon } from "./icons/mapbox-icon";
-import { RootEntity } from "./types.gen";
+import {
+  Address as AddressEntity,
+  AddressLink,
+  File as FileEntity,
+  ImageLink,
+  RootEntity,
+} from "./types";
 import { Address, useMapbox } from "./useMapbox";
 
 const addressTypeId =
@@ -32,7 +39,7 @@ const addressLinkTypeId =
   "https://alpha.hash.ai/@luisbett/types/entity-type/address-link/v/1";
 
 const fileTypeId = "https://alpha.hash.ai/@luisbett/types/entity-type/file/v/1";
-const imageUrlKey = "https://alpha.hash.ai/@luisbett/types/property-type/url";
+const imageUrlKey = "https://alpha.hash.ai/@luisbett/types/property-type/url/";
 const imageLinkTypeId =
   "https://alpha.hash.ai/@luisbett/types/entity-type/image/v/1";
 
@@ -48,6 +55,10 @@ const postalCodeKey =
   "https://alpha.hash.ai/@luisbett/types/property-type/postalcode/";
 const streetKey =
   "https://alpha.hash.ai/@luisbett/types/property-type/streetaddress/";
+const countryKey =
+  "https://alpha.hash.ai/@luisbett/types/property-type/addresscountry/";
+const fullAddressKey =
+  "https://alpha.hash.ai/@luisbett/types/property-type/fulladdress/";
 
 const accessToken =
   "pk.eyJ1IjoibHVpc2JldHRlbmNvdXJ0IiwiYSI6ImNsZHZtYzNpbDAwbHgzbm56ZmJxcXc1OTAifQ.Kr3Y1xl_5OmS9ZenwXRiyA";
@@ -67,7 +78,7 @@ const TopBarTypography = styled(Typography)(() => ({
   whiteSpace: "nowrap",
 }));
 
-export const App: BlockComponent<false, RootEntity> = ({
+export const App: BlockComponent<true, RootEntity> = ({
   graph: { blockEntitySubgraph, readonly },
 }) => {
   if (!blockEntitySubgraph) {
@@ -103,47 +114,36 @@ export const App: BlockComponent<false, RootEntity> = ({
 
   const { [titleKey]: title, [descriptionKey]: description } = properties;
 
-  // const addressEntity = useMemo(() => {
-  //   const linkedEntity = linkedEntities.find(
-  //     ({
-  //       linkEntity: {
-  //         metadata: { entityTypeId: linkEntityTypeId },
-  //       },
-  //     }) => linkEntityTypeId === addressLinkTypeId,
-  //   );
-
-  //   if (linkedEntity) {
-  //     return linkedEntity.rightEntity;
-  //   }
-
-  //   return undefined;
-  // }, [linkedEntities]);
-
-  const addressLinkedEntity = useMemo(
+  const addressLinkedEntity: LinkEntityAndRightEntity<true> = useMemo(
     () =>
       linkedEntities.find(
         ({ linkEntity }) =>
           linkEntity[0]?.metadata.entityTypeId === addressLinkTypeId,
       ),
     [linkedEntities],
-  );
+  )!;
 
-  const addressEntity = addressLinkedEntity?.rightEntity[0];
-  const addressLinkEntity = addressLinkedEntity?.linkEntity[0];
+  const addressEntity: AddressEntity | undefined =
+    addressLinkedEntity?.rightEntity[0];
+  const addressLinkEntity: AddressLink | undefined =
+    addressLinkedEntity?.linkEntity[0];
 
-  const imageLinkedEntity = useMemo(
+  const fullAddress = addressEntity?.properties[fullAddressKey];
+
+  const imageLinkedEntity: LinkEntityAndRightEntity<true> = useMemo(
     () =>
       linkedEntities.find(
         ({ linkEntity }) =>
           linkEntity[0]?.metadata.entityTypeId === imageLinkTypeId,
       ),
     [linkedEntities],
-  );
+  )!;
 
-  const fileEntity = imageLinkedEntity?.rightEntity[0];
-  const imageLinkEntity = imageLinkedEntity?.linkEntity[0];
+  const fileEntity: FileEntity | undefined = imageLinkedEntity?.rightEntity[0];
+  const imageLinkEntity: ImageLink | undefined =
+    imageLinkedEntity?.linkEntity[0];
 
-  console.log(imageLinkedEntity);
+  const mapUrl = fileEntity?.properties[imageUrlKey];
 
   const updateTitle = async (title: string) => {
     await graphService?.updateEntity({
@@ -171,6 +171,60 @@ export const App: BlockComponent<false, RootEntity> = ({
     });
   };
 
+  const uploadMap = async (mapFile: File) => {
+    if (readonly || !mapFile) {
+      return;
+    }
+
+    graphService
+      ?.uploadFile({
+        data: { file: mapFile },
+      })
+      .then(async (uploadFileResponse) => {
+        const imageUrl =
+          uploadFileResponse.data?.properties[
+            "https://blockprotocol.org/@blockprotocol/types/property-type/url/"
+          ];
+
+        if (imageUrl) {
+          const fileProperties = {
+            [imageUrlKey]: imageUrl,
+          };
+
+          const createFileEntityResponse = await (!fileEntity
+            ? graphService?.createEntity({
+                data: {
+                  entityTypeId: fileTypeId,
+                  properties: fileProperties,
+                },
+              })
+            : graphService?.updateEntity({
+                data: {
+                  entityId: fileEntity.metadata.recordId.entityId,
+                  entityTypeId: fileEntity.metadata.entityTypeId,
+                  properties: fileProperties,
+                },
+              }));
+
+          const fileEntityId =
+            createFileEntityResponse?.data?.metadata.recordId.entityId;
+
+          if (!imageLinkEntity && fileEntityId) {
+            await graphService?.createEntity({
+              data: {
+                entityTypeId: imageLinkTypeId,
+                properties: {},
+                linkData: {
+                  leftEntityId: entityId,
+                  rightEntityId: fileEntityId,
+                },
+              },
+            });
+          }
+        }
+      });
+  };
+
   const updateAddress = async (address?: Address) => {
     if (readonly || !address) {
       return;
@@ -185,64 +239,13 @@ export const App: BlockComponent<false, RootEntity> = ({
       fullAddress,
     } = address;
 
-    if (address.file) {
-      graphService
-        ?.uploadFile({
-          data: { file: address.file },
-          // data: { url: address.mapUrl },
-        })
-        .then(async (uploadFileResponse) => {
-          const imageUrl =
-            uploadFileResponse.data?.properties[
-              "https://blockprotocol.org/@blockprotocol/types/property-type/url/"
-            ];
-
-          if (imageUrl) {
-            const fileProperties = {
-              [imageUrlKey]: imageUrl,
-            };
-
-            const createFileEntityResponse = await (!fileEntity
-              ? graphService?.createEntity({
-                  data: {
-                    entityTypeId: fileTypeId,
-                    properties: fileProperties,
-                  },
-                })
-              : graphService?.updateEntity({
-                  data: {
-                    entityId: fileEntity.metadata.recordId.entityId,
-                    entityTypeId: fileEntity.metadata.entityTypeId,
-                    properties: fileProperties,
-                  },
-                }));
-
-            const fileEntityId =
-              createFileEntityResponse?.data?.metadata.recordId.entityId;
-
-            if (!imageLinkEntity && fileEntityId) {
-              await graphService?.createEntity({
-                data: {
-                  entityTypeId: imageLinkTypeId,
-                  properties: {},
-                  linkData: {
-                    leftEntityId: entityId,
-                    rightEntityId: fileEntityId,
-                  },
-                },
-              });
-            }
-          }
-        });
-    }
-
     const addressProperties = {
       [localityKey]: addressLocality,
       [regionKey]: addressRegion,
       [postalCodeKey]: postalCode,
       [streetKey]: streetAddress,
-      // [countryKey]: addressCountry,
-      // [fullAddress]: fullAddress,
+      [countryKey]: addressCountry,
+      [fullAddressKey]: fullAddress,
     };
 
     const createAddressEntityResponse = await (!addressEntity
@@ -280,13 +283,45 @@ export const App: BlockComponent<false, RootEntity> = ({
     }
   };
 
+  const resetBlock = async () => {
+    selectAddress();
+    await graphService?.updateEntity({
+      data: {
+        entityId,
+        entityTypeId,
+        properties: {},
+      },
+    });
+    if (imageLinkEntity) {
+      await graphService?.deleteEntity({
+        data: {
+          entityId: imageLinkEntity.metadata.recordId.entityId,
+        },
+      });
+    }
+    if (addressLinkEntity) {
+      await graphService?.deleteEntity({
+        data: {
+          entityId: addressLinkEntity.metadata.recordId.entityId,
+        },
+      });
+    }
+  };
+
   useEffect(() => {
-    if (selectedAddress && selectedAddress.mapUrl) {
+    if (selectedAddress) {
       updateAddress(selectedAddress);
+      updateTitle(selectedAddress.featureName);
     } else {
-      updateAddress();
+      resetBlock();
     }
   }, [selectedAddress]);
+
+  useEffect(() => {
+    if (selectedAddress?.file) {
+      uploadMap(selectedAddress.file);
+    }
+  }, [selectedAddress?.file]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -475,10 +510,8 @@ export const App: BlockComponent<false, RootEntity> = ({
               <AddressCard
                 title={selectedAddress.featureName ?? title}
                 description={description}
-                fullAddress={selectedAddress.fullAddress}
-                mapUrl={
-                  selectedAddress.mapUrl ?? fileEntity?.properties[imageUrlKey]
-                }
+                fullAddress={selectedAddress.fullAddress ?? fullAddress}
+                mapUrl={selectedAddress.mapUrl ?? mapUrl}
                 hovered={hovered}
                 onClose={() => {
                   setAnimatingOut(true);

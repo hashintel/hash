@@ -6,12 +6,9 @@ import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
 
 import { VersionedUri } from "@blockprotocol/type-system/slim";
-import {
-  default as packageJSON,
-  default as packageJson,
-} from "../package.json";
+import { default as packageJson } from "../package.json";
 import Component from "./index";
-import { RootEntity } from "./types.gen";
+import { RootEntity } from "./types";
 
 const node = document.getElementById("app");
 

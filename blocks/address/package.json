@@ -21,7 +21,7 @@
     "trailingComma": "all"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.1.0-canary-20230209191938",
+    "@blockprotocol/graph": "0.1.0-canary-20230210130343",
     "@emotion/react": "11.10.5",
     "@local/design-system": "0.0.0-private",
     "@mapbox/search-js-react": "1.0.0-beta.14",
@@ -33,8 +33,8 @@
   },
   "devDependencies": {
     "@types/react-dom": "^18.0.9",
-    "block-scripts": "0.1.0-canary-20230209191938",
-    "mock-block-dock": "0.1.0-canary-20230209191938",
+    "block-scripts": "0.1.0-canary-20230210130343",
+    "mock-block-dock": "0.1.0-canary-20230210130343",
     "prettier": "2.8.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
@@ -60,6 +60,6 @@
     "image": "public/block-preview.png",
     "name": "address",
     "protocol": "0.3",
-    "schema": "https://alpha.hash.ai/@luisbett/types/entity-type/address-block/v/5"
+    "schema": "https://alpha.hash.ai/@luisbett/types/entity-type/address-block/v/7"
   }
 }
