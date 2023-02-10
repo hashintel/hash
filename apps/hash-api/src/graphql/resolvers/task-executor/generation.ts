@@ -11,10 +11,10 @@ import {
   ValueOrArray,
   VersionedUri,
 } from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { GraphApi, OntologyElementMetadata } from "@local/hash-graph-client";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { typedEntries } from "@local/hash-isomorphic-utils/util";
 import { PropertyObject } from "@local/hash-subgraph";
 import { OwnedById } from "@local/hash-subgraph/src/types";
 import { camelCase, isEqual, upperFirst } from "lodash";

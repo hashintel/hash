@@ -4,8 +4,8 @@ import {
   PropertyType,
   VersionedUri,
 } from "@blockprotocol/type-system";
+import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { typedEntries, typedKeys } from "@local/hash-isomorphic-utils/util";
 import { PropertyObject } from "@local/hash-subgraph";
 import { OwnedById } from "@local/hash-subgraph/src/types";
 import { ApolloError } from "apollo-server-express";
