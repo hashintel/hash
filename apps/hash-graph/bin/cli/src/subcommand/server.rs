@@ -1,4 +1,4 @@
-use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+use std::{collections::HashMap, net::SocketAddr, sync::Arc, time::Duration};
 
 use clap::Parser;
 use error_stack::{IntoReport, Result, ResultExt};
@@ -16,7 +16,9 @@ use graph::{
     },
 };
 use regex::Regex;
+use reqwest::Client;
 use serde_json::json;
+use tokio::time::timeout;
 use tokio_postgres::NoTls;
 use type_system::{
     uri::{BaseUri, VersionedUri},
@@ -26,17 +28,12 @@ use uuid::Uuid;
 #[cfg(feature = "type-fetcher")]
 use {tarpc::client, tokio_serde::formats::MessagePack, type_fetcher::fetcher::FetcherClient};
 
-use crate::error::GraphError;
+use crate::error::{GraphError, HealthcheckError};
+#[cfg(feature = "type-fetcher")]
+use crate::subcommand::type_fetcher::TypeFetcherAddress;
 
 #[derive(Debug, Parser)]
-#[clap(version, author, about, long_about = None)]
-pub struct ServerArgs {
-    #[clap(flatten)]
-    pub log_config: LoggingArgs,
-
-    #[clap(flatten)]
-    pub db_info: DatabaseConnectionInfo,
-
+pub struct ApiAddress {
     /// The host the REST client is listening at.
     #[clap(long, default_value = "127.0.0.1", env = "HASH_GRAPH_API_HOST")]
     pub api_host: String,
@@ -44,20 +41,24 @@ pub struct ServerArgs {
     /// The port the REST client is listening at.
     #[clap(long, default_value_t = 4000, env = "HASH_GRAPH_API_PORT")]
     pub api_port: u16,
+}
 
-    /// The host the type fetcher RPC server is listening at.
-    #[clap(
-        long,
-        default_value = "127.0.0.1",
-        env = "HASH_GRAPH_TYPE_FETCHER_HOST"
-    )]
-    #[cfg(feature = "type-fetcher")]
-    pub type_fetcher_host: String,
+#[derive(Debug, Parser)]
+pub struct ServerArgs {
+    #[clap(flatten)]
+    pub log_config: LoggingArgs,
 
-    /// The port the type fetcher RPC server is listening at.
-    #[clap(long, default_value_t = 4444, env = "HASH_GRAPH_TYPE_FETCHER_PORT")]
+    #[clap(flatten)]
+    pub db_info: DatabaseConnectionInfo,
+
+    /// The address the REST client is listening at.
+    #[clap(flatten)]
+    pub api_address: ApiAddress,
+
+    /// The address for the type fetcher RPC server is listening at.
     #[cfg(feature = "type-fetcher")]
-    pub type_fetcher_port: u16,
+    #[clap(flatten)]
+    pub type_fetcher_address: TypeFetcherAddress,
 
     /// A regex which *new* Type System URLs are checked against. Trying to create new Types with
     /// a domain that doesn't satisfy the pattern will error.
@@ -78,6 +79,10 @@ pub struct ServerArgs {
         env = "HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN",
     )]
     pub allowed_url_domain: Regex,
+
+    /// Runs the healthcheck for the REST Server.
+    #[clap(long, default_value_t = false)]
+    pub healthcheck: bool,
 }
 
 // TODO: Consider making this a refinery migration
@@ -254,12 +259,12 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         .await
     {
         if error.contains::<BaseUriAlreadyExists>() {
-            tracing::info!(%root_account_id, "tried to insert {} entity type, but it already exists", title);
+            tracing::info!(%root_account_id, "tried to insert {title} entity type, but it already exists");
         } else {
             return Err(error.change_context(GraphError));
         }
     } else {
-        tracing::info!(%root_account_id, "inserted the {} entity type", title);
+        tracing::info!(%root_account_id, "inserted the {title} entity type");
     }
 
     Ok(())
@@ -267,6 +272,12 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
 
 pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
     let _log_guard = init_logger(&args.log_config);
+
+    if args.healthcheck {
+        return healthcheck(args.api_address)
+            .await
+            .change_context(GraphError);
+    }
 
     let pool = PostgresStorePool::new(&args.db_info, NoTls)
         .await
@@ -281,7 +292,10 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
     #[cfg(feature = "type-fetcher")]
     let type_fetcher = {
         let transport = tarpc::serde_transport::tcp::connect(
-            (args.type_fetcher_host, args.type_fetcher_port),
+            (
+                args.type_fetcher_address.type_fetcher_host,
+                args.type_fetcher_address.type_fetcher_port,
+            ),
             MessagePack::default,
         );
 
@@ -299,7 +313,10 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
         type_fetcher,
     });
 
-    let api_address = format!("{}:{}", args.api_host, args.api_port);
+    let api_address = format!(
+        "{}:{}",
+        args.api_address.api_host, args.api_address.api_port
+    );
     let api_address: SocketAddr = api_address
         .parse()
         .into_report()
@@ -311,6 +328,25 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
         .serve(rest_router.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .expect("failed to start server");
+
+    Ok(())
+}
+
+pub async fn healthcheck(address: ApiAddress) -> Result<(), HealthcheckError> {
+    let request_url = format!(
+        "http://{}:{}/api-doc/openapi.json",
+        address.api_host, address.api_port
+    );
+
+    timeout(
+        Duration::from_secs(10),
+        Client::new().head(&request_url).send(),
+    )
+    .await
+    .into_report()
+    .change_context(HealthcheckError::Timeout)?
+    .into_report()
+    .change_context(HealthcheckError::NotHealthy)?;
 
     Ok(())
 }
