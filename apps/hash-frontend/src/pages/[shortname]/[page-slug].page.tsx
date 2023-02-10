@@ -1,18 +1,12 @@
 import { useQuery } from "@apollo/client";
 import {
-  defaultBlockComponentIds,
-  fetchBlock,
-  HashBlock,
-} from "@local/hash-isomorphic-utils/blocks";
-import {
   GetPageQuery,
   GetPageQueryVariables,
-} from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+} from "@local/hash-graphql-shared/graphql/api-types.gen";
 import {
   getPageInfoQuery,
   getPageQuery,
-} from "@local/hash-isomorphic-utils/queries/page.queries";
+} from "@local/hash-graphql-shared/queries/page.queries";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
@@ -20,7 +14,13 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   OwnedById,
-} from "@local/hash-isomorphic-utils/types";
+} from "@local/hash-graphql-shared/types";
+import {
+  defaultBlockComponentIds,
+  fetchBlock,
+  HashBlock,
+} from "@local/hash-isomorphic-utils/blocks";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
 import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
 import { alpha, Box, Collapse } from "@mui/material";

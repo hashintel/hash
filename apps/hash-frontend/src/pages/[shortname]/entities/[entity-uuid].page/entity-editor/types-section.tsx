@@ -1,5 +1,5 @@
 import { extractBaseUri, extractVersion } from "@blockprotocol/type-system";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
+import { EntityId } from "@local/hash-graphql-shared/types";
 import { versionedUriFromComponents } from "@local/hash-subgraph/src/shared/type-system-patch";
 import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";

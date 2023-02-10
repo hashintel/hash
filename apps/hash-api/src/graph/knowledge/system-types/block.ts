@@ -1,7 +1,7 @@
 import {
   AccountId,
   extractOwnedByIdFromEntityId,
-} from "@local/hash-isomorphic-utils/types";
+} from "@local/hash-graphql-shared/types";
 import { Entity, EntityId, PropertyObject } from "@local/hash-subgraph";
 
 import { EntityTypeMismatchError } from "../../../lib/error";

@@ -1,5 +1,5 @@
 import { Filter } from "@local/hash-graph-client";
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
+import { OwnedById } from "@local/hash-graphql-shared/types";
 import {
   Entity,
   isEntityId,

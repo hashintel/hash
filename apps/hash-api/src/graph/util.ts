@@ -10,11 +10,11 @@ import {
   ValueOrArray,
   VersionedUri,
 } from "@blockprotocol/type-system";
+import { OwnedById } from "@local/hash-graphql-shared/types";
 import {
   PrimitiveDataTypeKey,
   types,
 } from "@local/hash-isomorphic-utils/ontology-types";
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
   EntityTypeWithMetadata,
   linkEntityTypeUri,

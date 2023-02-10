@@ -1,4 +1,4 @@
-import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
+import { AccountId, OwnedById } from "@local/hash-graphql-shared/types";
 import {
   Entity,
   EntityId,

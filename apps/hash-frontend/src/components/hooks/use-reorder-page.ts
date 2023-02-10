@@ -2,7 +2,7 @@ import { useMutation } from "@apollo/client";
 import {
   EntityId,
   extractOwnedByIdFromEntityId,
-} from "@local/hash-isomorphic-utils/types";
+} from "@local/hash-graphql-shared/types";
 import { useCallback } from "react";
 
 import {

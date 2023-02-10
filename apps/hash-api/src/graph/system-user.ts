@@ -1,12 +1,12 @@
 import { extractBaseUri } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountEntityId,
   AccountId,
   extractAccountId,
-} from "@local/hash-isomorphic-utils/types";
+} from "@local/hash-graphql-shared/types";
+import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
 import { getEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
 

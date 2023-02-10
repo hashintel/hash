@@ -4,7 +4,7 @@ import {
   PropertyType,
   VersionedUri,
 } from "@blockprotocol/type-system";
-import { apiGraphQLEndpoint } from "@local/hash-isomorphic-utils/environment";
+import { apiGraphQLEndpoint } from "@local/hash-graphql-shared/environment";
 import type { ApolloError } from "apollo-server-express";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";

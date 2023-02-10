@@ -2,7 +2,7 @@ import {
   extractEntityUuidFromEntityId,
   OwnedById,
   Uuid,
-} from "@local/hash-isomorphic-utils/types";
+} from "@local/hash-graphql-shared/types";
 import { PropertyObject } from "@local/hash-subgraph";
 
 import { EntityTypeMismatchError } from "../../../lib/error";

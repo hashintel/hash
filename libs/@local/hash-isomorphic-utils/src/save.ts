@@ -1,5 +1,9 @@
 import { ApolloClient } from "@apollo/client";
-import { EntityId, OwnedById } from "@local/hash-isomorphic-utils/types";
+import {
+  getPageQuery,
+  updatePageContents,
+} from "@local/hash-graphql-shared/queries/page.queries";
+import { EntityId, OwnedById } from "@local/hash-graphql-shared/types";
 import { VersionedUri } from "@local/hash-subgraph";
 import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
@@ -22,7 +26,6 @@ import {
   UpdatePageContentsResultPlaceholder,
 } from "./graphql/api-types.gen";
 import { isEntityNode } from "./prosemirror";
-import { getPageQuery, updatePageContents } from "./queries/page.queries";
 
 const generatePlaceholderId = () => `placeholder-${uuid()}`;
 

@@ -3,7 +3,7 @@ import {
   AccountId,
   EntityId,
   OwnedById,
-} from "@local/hash-isomorphic-utils/types";
+} from "@local/hash-graphql-shared/types";
 import { Entity } from "@local/hash-subgraph";
 import { UserInputError } from "apollo-server-errors";
 import produce from "immer";

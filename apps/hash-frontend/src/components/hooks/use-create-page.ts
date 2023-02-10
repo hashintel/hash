@@ -1,9 +1,5 @@
 import { useMutation } from "@apollo/client";
-import {
-  EntityUuid,
-  OwnedById,
-  Uuid,
-} from "@local/hash-isomorphic-utils/types";
+import { EntityUuid, OwnedById, Uuid } from "@local/hash-graphql-shared/types";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,

@@ -1,4 +1,4 @@
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
+import { OwnedById } from "@local/hash-graphql-shared/types";
 import { EntityId } from "@local/hash-subgraph";
 import { useContext } from "react";
 
