@@ -6,7 +6,7 @@ import { useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { useEditorOntologyFunctions } from "./definition-tab/use-editor-ontology-functions";
-import { useLatestPropertyTypes } from "./latest-property-types-context";
+import { useLatestPropertyTypes } from "./shared/latest-property-types-context";
 
 type DefinitionTabProps = {
   ownedById?: OwnedById;

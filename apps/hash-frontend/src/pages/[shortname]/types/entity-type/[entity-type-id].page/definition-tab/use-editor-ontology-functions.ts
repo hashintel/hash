@@ -9,7 +9,7 @@ import { useBlockProtocolGetPropertyType } from "../../../../../../components/ho
 import { useBlockProtocolUpdateEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-entity-type";
 import { useBlockProtocolUpdatePropertyType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-property-type";
 import { useFetchEntityTypes } from "../../../../../../shared/entity-types-context/hooks";
-import { useFetchLatestPropertyTypes } from "../latest-property-types-context";
+import { useFetchLatestPropertyTypes } from "../shared/latest-property-types-context";
 
 type OntologyFunctions = EntityTypeEditorProps["ontologyFunctions"];
 

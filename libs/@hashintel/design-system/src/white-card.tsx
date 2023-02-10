@@ -1,5 +1,3 @@
-// @todo fix this – should this be separate routing / non-routing components?
-import { Link } from "@apps/hash-frontend/src/shared/ui/link";
 import {
   Card,
   CardActionArea,
@@ -10,16 +8,19 @@ import {
   SxProps,
   Theme,
 } from "@mui/material";
+import { ElementType } from "react";
 
 export const WhiteCard = ({
   onClick,
   href,
+  LinkComponent,
   children,
   actionSx = [],
   sx = [],
 }: {
   onClick?: CardActionAreaProps["onClick"];
   href?: string;
+  LinkComponent?: ElementType;
   children: CardContentProps["children"];
   actionSx?: SxProps<Theme>;
   sx?: SxProps<Theme>;
@@ -63,7 +64,7 @@ export const WhiteCard = ({
       {onClick || href ? (
         <CardActionArea
           {...(onClick ? { onClick } : { href })}
-          LinkComponent={Link}
+          LinkComponent={LinkComponent}
           disableRipple
           disableTouchRipple
           sx={[
