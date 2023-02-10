@@ -43,7 +43,7 @@ This folder contains only the _HASH_ project README. The application is split ac
 <details>
   <summary>Running HASH locally</summary>
   
-  ### Running HASH locally
+### Running HASH locally
 
 To run HASH locally, please follow these steps:
 
@@ -121,14 +121,16 @@ To make use of this test mode, the external services can be started as follows:
 ```sh
 yarn external-services-test up
 ```
+
 </details>
 
 <details>
   <summary>Deploying HASH to the cloud</summary>
   
-  ### Deploying HASH to the cloud
+### Deploying HASH to the cloud
 
-  To deploy HASH in the cloud, follow the instructions contained in the root [`/infra` directory](https://github.com/hashintel/hash/tree/main/infra).
+To deploy HASH in the cloud, follow the instructions contained in the root [`/infra` directory](https://github.com/hashintel/hash/tree/main/infra).
+
 </details>
 
 ## User authentication

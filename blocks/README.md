@@ -1,7 +1,6 @@
 [github_banner]: https://hash.dev/?utm_medium=organic&utm_source=github_readme_hash-repo_blocks
 [github_star]: https://github.com/hashintel/hash/tree/main/blocks#
 [discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_blocks
-
 [`calculation`]: calculation
 [`callout`]: callout
 [`chart`]: chart
@@ -18,7 +17,7 @@
 [`person`]: person
 [`shuffle`]: shuffle
 [`stopwatch`]: stopwatch
-[`table`]: table 
+[`table`]: table
 [`timer`]: timer
 [`toggle-item`]: toggle-item
 [`video`]: video
@@ -33,28 +32,28 @@ This directory contains the source code for all HASH-developed public [Block Pro
 
 You can live preview most of these on the [`@hash`](https://blockprotocol.org/@hash/blocks) page in the [Þ Hub](https://blockprotocol.org/hub), and direct links are provided below.
 
-| Directory            	| Spec Target 	| Status         	| Publication URL                                                                                	| Description 	|
-|----------------------	|-------------	|----------------	|------------------------------------------------------------------------------------------------	|-------------	|
-| [`calculation`]        	| 0.2         	| Unmaintained   	| [@thehabbos007/blocks/calculation](https://blockprotocol.org/@thehabbos007/blocks/calculation) 	|             	|
-| [`callout`]            	| 0.3         	| Maintained     	|                                                                                                	|             	|
-| [`chart`]              	| 0.X         	| Pending Update 	|                                                                                                	|             	|
-| [`code`]               	| 0.3         	| Maintained     	|                                                                                                	|             	|
-| [`countdown`]          	| 0.X         	| Maintained     	|                                                                                                	|             	|
-| [`divider`]            	| 0.X         	| Maintained     	|                                                                                                	|             	|
-| [`drawing`]            	| 0.X         	| Maintained     	|                                                                                                	|             	|
-| [`embed`]              	| 0.X         	| Pending Update 	|                                                                                                	|             	|
-| [`github-pr-overview`] 	| 0.X         	| Maintained     	|                                                                                                	|             	|
-| [`header`]             	| 0.X         	| Maintained     	|                                                                                                	|             	|
-| [`html-para`]          	| 0.X         	| Unmaintained   	|                                                                                                	|             	|
-| [`image`]              	| 0.X         	| Maintained     	|                                                                                                	|             	|
-| [`paragraph`]          	| 0.X         	| Maintained     	|                                                                                                	|             	|
-| [`person`]             	| 0.X         	| Maintained     	|                                                                                                	|             	|
-| [`shuffle`]            	| 0.X         	| Maintained     	|                                                                                                	|             	|
-| [`stopwatch`]          	| 0.X         	| Maintained     	|                                                                                                	|             	|
-| [`table`]              	| 0.X         	| Maintained     	|                                                                                                	|             	|
-| [`timer`]              	| 0.X         	| Maintained     	|                                                                                                	|             	|
-| [`toggle-item`]        	| 0.X         	| Unmaintained     	|                                                                                                	|             	|
-| [`video`]              	| 0.X         	| Maintained     	|                                                                                                	|             	|
+| Directory              | Spec Target | Status         | Publication URL                                                                                | Description |
+| ---------------------- | ----------- | -------------- | ---------------------------------------------------------------------------------------------- | ----------- |
+| [`calculation`]        | 0.2         | Unmaintained   | [@thehabbos007/blocks/calculation](https://blockprotocol.org/@thehabbos007/blocks/calculation) |             |
+| [`callout`]            | 0.3         | Maintained     |                                                                                                |             |
+| [`chart`]              | 0.X         | Pending Update |                                                                                                |             |
+| [`code`]               | 0.3         | Maintained     |                                                                                                |             |
+| [`countdown`]          | 0.X         | Maintained     |                                                                                                |             |
+| [`divider`]            | 0.X         | Maintained     |                                                                                                |             |
+| [`drawing`]            | 0.X         | Maintained     |                                                                                                |             |
+| [`embed`]              | 0.X         | Pending Update |                                                                                                |             |
+| [`github-pr-overview`] | 0.X         | Maintained     |                                                                                                |             |
+| [`header`]             | 0.X         | Maintained     |                                                                                                |             |
+| [`html-para`]          | 0.X         | Unmaintained   |                                                                                                |             |
+| [`image`]              | 0.X         | Maintained     |                                                                                                |             |
+| [`paragraph`]          | 0.X         | Maintained     |                                                                                                |             |
+| [`person`]             | 0.X         | Maintained     |                                                                                                |             |
+| [`shuffle`]            | 0.X         | Maintained     |                                                                                                |             |
+| [`stopwatch`]          | 0.X         | Maintained     |                                                                                                |             |
+| [`table`]              | 0.X         | Maintained     |                                                                                                |             |
+| [`timer`]              | 0.X         | Maintained     |                                                                                                |             |
+| [`toggle-item`]        | 0.X         | Unmaintained   |                                                                                                |             |
+| [`video`]              | 0.X         | Maintained     |                                                                                                |             |
 
 ## Running these blocks
 
