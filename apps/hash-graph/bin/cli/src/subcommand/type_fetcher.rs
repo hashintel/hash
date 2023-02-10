@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use clap::Parser;
 use error_stack::{IntoReport, Result, ResultExt};
 use futures::{future, StreamExt};
@@ -6,13 +8,14 @@ use tarpc::{
     serde_transport::Transport,
     server::{self, Channel},
 };
+use tokio::time::timeout;
 use tokio_serde::formats::MessagePack;
 use type_fetcher::{
     fetcher::{Fetcher, FetcherRequest, FetcherResponse},
     fetcher_server::FetchServer,
 };
 
-use crate::error::GraphError;
+use crate::error::{GraphError, HealthcheckError};
 
 #[derive(Debug, Parser)]
 pub struct TypeFetcherAddress {
@@ -46,7 +49,7 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), GraphError> {
     let _log_guard = init_logger(&args.log_config);
 
     if args.healthcheck {
-        return healthcheck(args.address).await;
+        return healthcheck(args.address).await.change_context(GraphError);
     }
 
     let mut listener = tarpc::serde_transport::tcp::listen(
@@ -81,14 +84,19 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), GraphError> {
     Ok(())
 }
 
-async fn healthcheck(address: TypeFetcherAddress) -> Result<(), GraphError> {
+async fn healthcheck(address: TypeFetcherAddress) -> Result<(), HealthcheckError> {
     let transport = tarpc::serde_transport::tcp::connect(
         (address.type_fetcher_host, address.type_fetcher_port),
         MessagePack::default,
     );
 
     let _: Transport<_, FetcherRequest, FetcherResponse, _> =
-        transport.await.into_report().change_context(GraphError)?;
+        timeout(Duration::from_secs(10), transport)
+            .await
+            .into_report()
+            .change_context(HealthcheckError::Timeout)?
+            .into_report()
+            .change_context(HealthcheckError::NotHealthy)?;
 
     Ok(())
 }

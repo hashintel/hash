@@ -18,6 +18,7 @@ use graph::{
 use regex::Regex;
 use reqwest::Client;
 use serde_json::json;
+use tokio::time::timeout;
 use tokio_postgres::NoTls;
 use type_system::{
     uri::{BaseUri, VersionedUri},
@@ -27,7 +28,7 @@ use uuid::Uuid;
 #[cfg(feature = "type-fetcher")]
 use {tarpc::client, tokio_serde::formats::MessagePack, type_fetcher::fetcher::FetcherClient};
 
-use crate::error::GraphError;
+use crate::error::{GraphError, HealthcheckError};
 #[cfg(feature = "type-fetcher")]
 use crate::subcommand::type_fetcher::TypeFetcherAddress;
 
@@ -273,7 +274,9 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
     let _log_guard = init_logger(&args.log_config);
 
     if args.healthcheck {
-        return healthcheck(args.api_address).await;
+        return healthcheck(args.api_address)
+            .await
+            .change_context(GraphError);
     }
 
     let pool = PostgresStorePool::new(&args.db_info, NoTls)
@@ -329,19 +332,21 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
     Ok(())
 }
 
-pub async fn healthcheck(address: ApiAddress) -> Result<(), GraphError> {
+pub async fn healthcheck(address: ApiAddress) -> Result<(), HealthcheckError> {
     let request_url = format!(
         "http://{}:{}/api-doc/openapi.json",
         address.api_host, address.api_port
     );
 
-    Client::new()
-        .head(&request_url)
-        .timeout(Duration::from_secs(5))
-        .send()
-        .await
-        .into_report()
-        .change_context(GraphError)?;
+    timeout(
+        Duration::from_secs(10),
+        Client::new().head(&request_url).send(),
+    )
+    .await
+    .into_report()
+    .change_context(HealthcheckError::Timeout)?
+    .into_report()
+    .change_context(HealthcheckError::NotHealthy)?;
 
     Ok(())
 }
