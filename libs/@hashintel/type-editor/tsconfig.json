@@ -5,5 +5,5 @@
     "lib": ["dom", "dom.iterable", "esnext"],
     "noEmit": true
   },
-  "include": ["./src/"]
+  "include": ["theme-override.d.ts", "./src/"]
 }
