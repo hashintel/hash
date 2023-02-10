@@ -5,7 +5,7 @@ use error_stack::{Result, ResultExt};
 use type_system::DataType;
 
 use crate::{
-    identifier::{time::TimeProjection},
+    identifier::{time::TimeProjection, OntologyTypeVertexId},
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
     provenance::UpdatedById,
     store::{
@@ -16,7 +16,6 @@ use crate::{
     },
     subgraph::{edges::GraphResolveDepths, query::StructuralQuery, Subgraph},
 };
-use crate::identifier::OntologyTypeVertexId;
 
 impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`DataTypeWithMetadata`] into a [`DependencyContext`].
