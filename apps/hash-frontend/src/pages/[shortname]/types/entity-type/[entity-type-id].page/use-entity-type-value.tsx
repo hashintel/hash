@@ -85,12 +85,22 @@ export const useEntityTypeValue = (
       entityTypeBaseUri,
     );
 
-    /** @todo - pick the latest version? */
-    // @todo handle adding any linked properties to known property types
-    const relevantEntityType =
-      relevantEntityTypes.length > 0 ? relevantEntityTypes[0]!.schema : null;
+    if (relevantEntityTypes.length > 0) {
+      const relevantVersions = relevantEntityTypes.map(
+        ({
+          metadata: {
+            editionId: { version },
+          },
+        }) => version,
+      );
+      const relevantVersionindex = relevantVersions.indexOf(
+        Math.max(...relevantVersions),
+      );
 
-    return relevantEntityType;
+      return relevantEntityTypes[relevantVersionindex]!.schema;
+    }
+
+    return null;
   }, [entityTypeBaseUri, entityTypesLoading, entityTypesSubgraph]);
 
   const [stateEntityType, setStateEntityType] = useState(contextEntityType);
