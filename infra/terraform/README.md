@@ -110,12 +110,21 @@ $ ./ssh_bastion.sh -N -L 5554:h-hash-dev-usea1-pg.*.us-east-1.rds.amazonaws.com:
 
 This will start an SSH tunnel making `localhost:5554` point to the remote RDS instance within the private subnet in AWS.
 
-To migrate the graph, you must first build the docker container that contains the migrations and run it with the graph credentials you put into the [`./hash/prod.secrets.tfvars`](./hash/prod.secrets.tfvars) file:
+To migrate the graph, you must first build the docker container that contains the graph and run it with the graph credentials and the you put into the [`./hash/prod.secrets.tfvars`](./hash/prod.secrets.tfvars) file using the `migrate` subcommand:
+
+Look at the next step and build `hash-graph`.
 
 ```console
-$ DOCKER_BUILDKIT=1 docker build ./apps/hash-graph -f ./apps/hash-graph/deployment/migrations/Dockerfile -t hash-graph-migrate:latest
-..
-$ docker run --rm --network host -e 'HASH_GRAPH_PG_MIGRATION_URL=postgres://graph:changeme@localhost:5554/graph' hash-graph-migrate:latest
+$ docker run --rm \
+  --network host \
+  -e HASH_GRAPH_PG_USER=graph \
+  -e HASH_GRAPH_PG_PASSWORD="changeme" \
+  -e HASH_GRAPH_PG_HOST=localhost \
+  -e HASH_GRAPH_PG_PORT=5554 \
+  -e HASH_GRAPH_PG_DATABASE=graph \
+  -e RUST_LOG=debug \
+  000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-graphecr:latest \
+  migrate
 ..
 ```
 
