@@ -13,6 +13,7 @@ import {
   EntityMetadata as EntityMetadataGraphApi,
   EntityType as EntityTypeGraphApi,
   KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
+  LinkData as LinkDataGraphApi,
   OntologyElementMetadata as OntologyElementMetadataGraphApi,
   OntologyVertex as OntologyVertexGraphApi,
   PropertyType as PropertyTypeGraphApi,
@@ -21,6 +22,7 @@ import {
 
 import {
   EntityMetadata,
+  LinkData,
   OntologyElementMetadata,
   PropertyObject,
 } from "../types/element";
@@ -139,6 +141,15 @@ export const mapEntityMetadata = (
   };
 };
 
+const mapLinkData = (linkData: LinkDataGraphApi): LinkData => {
+  return {
+    leftEntityId: linkData.leftEntityId as EntityId,
+    rightEntityId: linkData.rightEntityId as EntityId,
+    leftToRightOrder: linkData.leftToRightOrder,
+    rightToLeftOrder: linkData.rightToLeftOrder,
+  };
+};
+
 const mapKnowledgeGraphVertex = (
   vertex: KnowledgeGraphVertexGraphApi,
 ): KnowledgeGraphVertex => {
@@ -147,11 +158,9 @@ const mapKnowledgeGraphVertex = (
     inner: {
       ...vertex.inner,
       properties: vertex.inner.properties as PropertyObject,
-      linkData: {
-        ...vertex.inner.linkData,
-        leftEntityId: vertex.inner.linkData?.leftEntityId as EntityId,
-        rightEntityId: vertex.inner.linkData?.rightEntityId as EntityId,
-      },
+      ...(vertex.inner.linkData
+        ? { linkData: mapLinkData(vertex.inner.linkData) }
+        : ({} as { linkData: never })),
       metadata: mapEntityMetadata(vertex.inner.metadata),
     },
   };
