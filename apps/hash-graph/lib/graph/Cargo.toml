@@ -40,7 +40,7 @@ include_dir = "0.7.3"
 refinery = { version = "0.8", features = ["tokio-postgres"] }
 
 [dev-dependencies]
-tokio = { version = "1.24.2", features = ["rt-multi-thread", "macros", "tracing"] }
+tokio = { version = "1.25.0", features = ["rt-multi-thread", "macros", "tracing"] }
 graph-test-data = { path = "../../tests/test_data" }
 criterion = "0.4.0"
 
