@@ -41,8 +41,8 @@
 ///
 /// The escape sequences are:
 ///
-/// | Color              | Foreground | Background |
-/// |--------------------|------------|------------|
+/// | Color                   | Foreground | Background |
+/// |-------------------------|------------|------------|
 /// | [`BasicColor::Black`]   | `ESC[30m`  | `ESC[40m`  |
 /// | [`BasicColor::Red`]     | `ESC[31m`  | `ESC[41m`  |
 /// | [`BasicColor::Green`]   | `ESC[32m`  | `ESC[42m`  |
@@ -51,7 +51,7 @@
 /// | [`BasicColor::Magenta`] | `ESC[35m`  | `ESC[45m`  |
 /// | [`BasicColor::Cyan`]    | `ESC[36m`  | `ESC[46m`  |
 /// | [`BasicColor::White`]   | `ESC[37m`  | `ESC[47m`  |
-/// | Reset              | `ESC[39m`  | `ESC[49m`  |
+/// | Reset                   | `ESC[39m`  | `ESC[49m`  |
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum BasicColor {
     Black,
@@ -93,8 +93,8 @@ impl BasicColor {
 /// the following escape sequences:
 ///
 ///
-/// | Color              | Foreground | Background |
-/// |--------------------|------------|------------|
+/// | Color                   | Foreground | Background |
+/// |-------------------------|------------|------------|
 /// | [`BasicColor::Black`]   | `ESC[90m`  | `ESC[100m`  |
 /// | [`BasicColor::Red`]     | `ESC[91m`  | `ESC[101m`  |
 /// | [`BasicColor::Green`]   | `ESC[92m`  | `ESC[102m`  |
@@ -103,7 +103,7 @@ impl BasicColor {
 /// | [`BasicColor::Magenta`] | `ESC[95m`  | `ESC[105m`  |
 /// | [`BasicColor::Cyan`]    | `ESC[96m`  | `ESC[106m`  |
 /// | [`BasicColor::White`]   | `ESC[97m`  | `ESC[107m`  |
-/// | Reset              | `ESC[99m`  | `ESC[109m`  |
+/// | Reset                   | `ESC[99m`  | `ESC[109m`  |
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct BrightColor(BasicColor);
 

@@ -25,7 +25,7 @@ ALWAYS_RUN_PATTERNS = [".github/**"]
 # rust-toolchain.toml
 TOOLCHAINS = {
     "libs/deer": ["1.65"],
-    "libs/antsi": ["1.63", "1.65"],
+    "libs/antsi": ["1.63"],
     "libs/error-stack": ["1.63", "1.65"]
 }
 
