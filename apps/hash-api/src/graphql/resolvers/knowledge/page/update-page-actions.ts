@@ -155,7 +155,7 @@ export const handleCreateNewEntity = async (params: {
     placeholderResults.set(entityPlaceholderId, {
       entityId: (
         await createEntityWithPlaceholders(entityDefinition, entityOwnedById)
-      ).metadata.editionId.baseId as EntityId,
+      ).metadata.recordId.entityId as EntityId,
     });
   } catch (error) {
     if (error instanceof UserInputError) {
@@ -206,7 +206,7 @@ export const handleInsertNewBlock = async (
     );
 
     placeholderResults.set(entityPlaceholderId, {
-      entityId: blockData.metadata.editionId.baseId as EntityId,
+      entityId: blockData.metadata.recordId.entityId as EntityId,
     });
 
     let block: Block;
@@ -241,7 +241,7 @@ export const handleInsertNewBlock = async (
     }
 
     placeholderResults.set(blockPlaceholderId, {
-      entityId: block.entity.metadata.editionId.baseId as EntityId,
+      entityId: block.entity.metadata.recordId.entityId as EntityId,
     });
 
     return block;

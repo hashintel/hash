@@ -7,13 +7,15 @@ import {
 
 import {
   Edges,
-  isEntityId,
-  isEntityIdAndTimestamp,
   isKnowledgeGraphOutwardEdge,
   isOntologyOutwardEdge,
-  isOntologyTypeRecordId,
   OutwardEdge,
-} from "../../src";
+} from "../types/edge";
+import {
+  isEntityId,
+  isEntityIdAndTimestamp,
+  isOntologyTypeRecordId,
+} from "../types/identifier";
 
 export const mapOutwardEdge = (
   outwardEdge: OntologyOutwardEdges | KnowledgeGraphOutwardEdges,

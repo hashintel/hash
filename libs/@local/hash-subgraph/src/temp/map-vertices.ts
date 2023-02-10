@@ -10,8 +10,10 @@ import {
 } from "@blockprotocol/type-system";
 import {
   DataType as DataTypeGraphApi,
+  EntityMetadata as EntityMetadataGraphApi,
   EntityType as EntityTypeGraphApi,
   KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
+  LinkData as LinkDataGraphApi,
   OntologyElementMetadata as OntologyElementMetadataGraphApi,
   OntologyVertex as OntologyVertexGraphApi,
   PropertyType as PropertyTypeGraphApi,
@@ -19,15 +21,17 @@ import {
 } from "@local/hash-graph-client";
 
 import {
-  EntityId,
-  EntityVersion,
-  isEntityId,
-  KnowledgeGraphVertex,
+  EntityMetadata,
+  LinkData,
   OntologyElementMetadata,
-  OntologyVertex,
   PropertyObject,
+} from "../types/element";
+import { EntityId, EntityVersion, isEntityId } from "../types/identifier";
+import {
+  KnowledgeGraphVertex,
+  OntologyVertex,
   Vertices,
-} from "../../src";
+} from "../types/vertex";
 
 const mapDataType = (dataType: DataTypeGraphApi): DataType => {
   const idResult = validateVersionedUri(dataType.$id);
@@ -76,7 +80,7 @@ const mapEntityType = (entityType: EntityTypeGraphApi): EntityType => {
   return entityType as EntityType;
 };
 
-const mapOntologyMetadata = (
+export const mapOntologyMetadata = (
   metadata: OntologyElementMetadataGraphApi,
 ): OntologyElementMetadata => {
   return {
@@ -123,6 +127,29 @@ const mapOntologyVertex = (vertex: OntologyVertexGraphApi): OntologyVertex => {
   }
 };
 
+export const mapEntityMetadata = (
+  metadata: EntityMetadataGraphApi,
+): EntityMetadata => {
+  return {
+    ...metadata,
+    recordId: {
+      entityId: metadata.editionId.baseId as EntityId,
+      editionId: metadata.editionId.recordId,
+    },
+    version: metadata.version as EntityVersion,
+    entityTypeId: metadata.entityTypeId as VersionedUri,
+  };
+};
+
+const mapLinkData = (linkData: LinkDataGraphApi): LinkData => {
+  return {
+    leftEntityId: linkData.leftEntityId as EntityId,
+    rightEntityId: linkData.rightEntityId as EntityId,
+    leftToRightOrder: linkData.leftToRightOrder,
+    rightToLeftOrder: linkData.rightToLeftOrder,
+  };
+};
+
 const mapKnowledgeGraphVertex = (
   vertex: KnowledgeGraphVertexGraphApi,
 ): KnowledgeGraphVertex => {
@@ -131,20 +158,10 @@ const mapKnowledgeGraphVertex = (
     inner: {
       ...vertex.inner,
       properties: vertex.inner.properties as PropertyObject,
-      linkData: {
-        ...vertex.inner.linkData,
-        leftEntityId: vertex.inner.linkData?.leftEntityId as EntityId,
-        rightEntityId: vertex.inner.linkData?.rightEntityId as EntityId,
-      },
-      metadata: {
-        ...vertex.inner.metadata,
-        recordId: {
-          entityId: vertex.inner.metadata.editionId.baseId as EntityId,
-          editionId: vertex.inner.metadata.editionId.recordId,
-        },
-        version: vertex.inner.metadata.version as EntityVersion,
-        entityTypeId: vertex.inner.metadata.entityTypeId as VersionedUri,
-      },
+      ...(vertex.inner.linkData
+        ? { linkData: mapLinkData(vertex.inner.linkData) }
+        : ({} as { linkData: never })),
+      metadata: mapEntityMetadata(vertex.inner.metadata),
     },
   };
 };

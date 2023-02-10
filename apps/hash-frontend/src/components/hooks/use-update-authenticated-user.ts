@@ -72,7 +72,7 @@ export const useUpdateAuthenticatedUser = () => {
 
         const { errors } = await updateEntity({
           variables: {
-            entityId: latestUserEntity.metadata.editionId.baseId as EntityId,
+            entityId: latestUserEntity.metadata.recordId.entityId as EntityId,
             updatedProperties: {
               ...currentProperties,
               ...(params.shortname

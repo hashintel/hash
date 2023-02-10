@@ -48,8 +48,8 @@ export const useCreateSubPage = (ownedById: OwnedById) => {
       });
 
       if (response.data?.createPage) {
-        const pageEntityId = response.data.createPage.metadata.editionId
-          .baseId as EntityId;
+        const pageEntityId = response.data.createPage.metadata.recordId
+          .entityId as EntityId;
 
         await setParentPageFn({
           variables: {

@@ -44,7 +44,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
         } else {
           // Once the query loads, either display the found name, or display "Unknown User" if the user doesn't exist in the users array
           const matchingUser = users.find(
-            (user) => user.entityEditionId.baseId === entityId,
+            (user) => user.entityRecordId.entityId === entityId,
           );
 
           if (matchingUser) {

@@ -87,7 +87,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
 }) => {
   const {
     metadata: {
-      editionId: { baseId },
+      recordId: { entityId },
       // TODO: The provenance fields shouldn't be used for this
       //   see https://app.asana.com/0/1201095311341924/1203466351235289/f
       provenance: { updatedById: commentCreatedById },
@@ -97,7 +97,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
     textUpdatedAt,
   } = comment;
 
-  const commentEntityId = baseId as EntityId;
+  const commentEntityId = entityId as EntityId;
 
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [collapsed, setCollapsed] = useState(true);

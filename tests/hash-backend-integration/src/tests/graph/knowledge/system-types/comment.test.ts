@@ -46,7 +46,7 @@ describe("Comment", () => {
     const textEntity = await createEntity(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       properties: {
-        [SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId]: [],
+        [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUri]: [],
       },
       entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
       actorId: testUser.accountId,
@@ -72,7 +72,7 @@ describe("Comment", () => {
     const hasText = await getCommentText(graphContext, { comment });
     expect(
       hasText.properties[
-        SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId
+        SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUri
       ],
     ).toEqual([]);
 

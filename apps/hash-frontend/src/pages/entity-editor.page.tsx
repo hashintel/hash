@@ -45,7 +45,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
 
   useEffect(() => {
     // As an example entity, we are going to use the currently logged in user's entity ID
-    const entityId = authenticatedUser.entityEditionId.baseId as EntityId;
+    const entityId = authenticatedUser.entityRecordId.entityId as EntityId;
 
     void getEntity({ data: { entityId } }).then(({ data }) => {
       setUserSubgraph(data);
@@ -118,7 +118,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
       return;
     }
     await archiveEntity({
-      data: { entityId: createdEntity.metadata.editionId.baseId as EntityId },
+      data: { entityId: createdEntity.metadata.recordId.entityId as EntityId },
     }).then(() => setCreatedEntity(undefined));
   };
 

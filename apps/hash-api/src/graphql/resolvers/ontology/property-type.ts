@@ -1,5 +1,6 @@
 import { OwnedById } from "@local/hash-graphql-shared/types";
 import { PropertyTypeWithMetadata, Subgraph } from "@local/hash-subgraph";
+import { mapSubgraph } from "@local/hash-subgraph/src/temp";
 
 import {
   createPropertyType,
@@ -82,7 +83,7 @@ export const getAllLatestPropertyTypesResolver: ResolverFn<
       },
     },
   );
-  return propertyTypeSubgraph as Subgraph;
+  return mapSubgraph(propertyTypeSubgraph);
 };
 
 export const getPropertyTypeResolver: ResolverFn<
@@ -127,7 +128,7 @@ export const getPropertyTypeResolver: ResolverFn<
     },
   );
 
-  return propertyTypeSubgraph as Subgraph;
+  return mapSubgraph(propertyTypeSubgraph);
 };
 
 export const updatePropertyTypeResolver: ResolverFn<

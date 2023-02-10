@@ -17,6 +17,7 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { OwnedById } from "@local/hash-graphql-shared/types";
 import {
   DataTypeWithMetadata,
+  isOwnedOntologyElementMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 
@@ -87,11 +88,12 @@ describe("Property type CRU", () => {
   const updatedTitle = "New test!";
 
   it("can update a property type", async () => {
-    expect(createdPropertyType.metadata.provenance.updatedById).toBe(
-      testUser.accountId,
-    );
+    expect(
+      isOwnedOntologyElementMetadata(createdPropertyType.metadata) &&
+        createdPropertyType.metadata.provenance.updatedById,
+    ).toBe(testUser.accountId);
 
-    createdPropertyType = await updatePropertyType(graphContext, {
+    const updatedPropertyType = await updatePropertyType(graphContext, {
       propertyTypeId: createdPropertyType.schema.$id,
       schema: {
         ...propertyTypeSchema,
@@ -100,8 +102,9 @@ describe("Property type CRU", () => {
       actorId: testUser2.accountId,
     }).catch((err) => Promise.reject(err.data));
 
-    expect(createdPropertyType.metadata.provenance.updatedById).toBe(
-      testUser2.accountId,
-    );
+    expect(
+      isOwnedOntologyElementMetadata(updatedPropertyType.metadata) &&
+        updatedPropertyType.metadata.provenance.updatedById,
+    ).toBe(testUser2.accountId);
   });
 });
