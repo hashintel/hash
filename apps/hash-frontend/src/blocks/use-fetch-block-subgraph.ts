@@ -4,7 +4,7 @@ import {
   SubgraphRootTypes,
 } from "@blockprotocol/graph";
 import { VersionedUri } from "@blockprotocol/type-system/slim";
-import { EntityId } from "@local/hash-subgraph/src/types";
+import { EntityId } from "@local/hash-subgraph/main";
 import { useCallback } from "react";
 
 import { useBlockProtocolGetEntity } from "../components/hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";

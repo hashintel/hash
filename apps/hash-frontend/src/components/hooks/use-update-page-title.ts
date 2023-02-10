@@ -3,7 +3,7 @@ import { getPageInfoQuery } from "@local/hash-graphql-shared/queries/page.querie
 import {
   EntityId,
   extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph/src/types";
+} from "@local/hash-subgraph/main";
 import { useCallback } from "react";
 
 import {

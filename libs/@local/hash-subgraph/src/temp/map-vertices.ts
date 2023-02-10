@@ -20,13 +20,14 @@ import {
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
 
+import { EntityId, isEntityId } from "../types/branded";
 import {
   EntityMetadata,
   LinkData,
   OntologyElementMetadata,
   PropertyObject,
 } from "../types/element";
-import { EntityId, EntityVersion, isEntityId } from "../types/identifier";
+import { EntityVersion } from "../types/identifier";
 import {
   KnowledgeGraphVertex,
   OntologyVertex,

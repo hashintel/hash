@@ -1,9 +1,11 @@
 import { useMutation } from "@apollo/client";
 import {
+  EntityUuid,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
-import { EntityUuid, OwnedById, Uuid } from "@local/hash-subgraph/src/types";
+  OwnedById,
+  Uuid,
+} from "@local/hash-subgraph/main";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
 

@@ -1,5 +1,4 @@
-import { Entity } from "@local/hash-subgraph";
-import { OwnedById } from "@local/hash-subgraph/src/types";
+import { Entity, OwnedById } from "@local/hash-subgraph/main";
 
 import { createFileFromExternalUrl } from "../../../../graph/knowledge/system-types/file";
 import {

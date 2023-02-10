@@ -1,4 +1,4 @@
-import { EntityUuid } from "@local/hash-subgraph/src/types";
+import { EntityUuid } from "@local/hash-subgraph/main";
 import { useRouter } from "next/router";
 import {
   createContext,

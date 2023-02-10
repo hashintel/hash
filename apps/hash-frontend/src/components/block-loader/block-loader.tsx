@@ -4,9 +4,12 @@ import {
 } from "@blockprotocol/graph";
 import { VersionedUri } from "@blockprotocol/type-system/slim";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
-import { Entity, Subgraph as LocalSubgraph } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
-import { EntityId } from "@local/hash-subgraph/src/types";
+import {
+  Entity,
+  EntityId,
+  Subgraph as LocalSubgraph,
+} from "@local/hash-subgraph/main";
+import { getRoots } from "@local/hash-subgraph/stdlib/roots";
 import {
   FunctionComponent,
   useCallback,

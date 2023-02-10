@@ -17,14 +17,13 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { isEntityId } from "@local/hash-subgraph";
 import {
   AccountId,
-  EntityId,
   EntityUuid,
   extractEntityUuidFromEntityId,
+  isEntityId,
   OwnedById,
-} from "@local/hash-subgraph/src/types";
+} from "@local/hash-subgraph/main";
 import { Box, Collapse } from "@mui/material";
 import {
   FunctionComponent,
@@ -240,7 +239,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
 
         setTreeItems(sortedItems);
         reorderPage(
-          active.id as EntityId,
+          active.id,
           parentPageEntityId,
           beforeIndex,
           afterIndex,

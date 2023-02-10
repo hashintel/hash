@@ -1,8 +1,10 @@
-import { Entity, EntityId, PropertyObject } from "@local/hash-subgraph";
 import {
   AccountId,
+  Entity,
+  EntityId,
   extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph/src/types";
+  PropertyObject,
+} from "@local/hash-subgraph/main";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";

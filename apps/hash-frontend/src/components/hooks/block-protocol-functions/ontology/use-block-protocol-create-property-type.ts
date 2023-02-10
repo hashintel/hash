@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client";
-import { OwnedById } from "@local/hash-subgraph/src/types";
+import { OwnedById } from "@local/hash-subgraph/main";
 import { useCallback } from "react";
 
 import {

@@ -1,6 +1,8 @@
 import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
-import { entityIdFromOwnedByIdAndEntityUuid } from "@local/hash-subgraph";
-import { OwnedById } from "@local/hash-subgraph/src/types";
+import {
+  entityIdFromOwnedByIdAndEntityUuid,
+  OwnedById,
+} from "@local/hash-subgraph/main";
 
 import { ImpureGraphFunction } from "../..";
 import { getOrgById } from "../../knowledge/system-types/org";

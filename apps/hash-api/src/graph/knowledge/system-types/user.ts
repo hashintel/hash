@@ -1,19 +1,17 @@
 import {
+  AccountId,
   Entity,
   EntityId,
-  PropertyObject,
-  Subgraph,
-  SubgraphRootTypes,
-} from "@local/hash-subgraph";
-import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
-import { mapSubgraph } from "@local/hash-subgraph/src/temp";
-import {
-  AccountId,
   EntityUuid,
   extractEntityUuidFromEntityId,
   OwnedById,
+  PropertyObject,
+  Subgraph,
+  SubgraphRootTypes,
   Uuid,
-} from "@local/hash-subgraph/src/types";
+} from "@local/hash-subgraph/main";
+import { getRootsAsEntities } from "@local/hash-subgraph/stdlib/element/entity";
+import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import {
   kratosIdentityApi,

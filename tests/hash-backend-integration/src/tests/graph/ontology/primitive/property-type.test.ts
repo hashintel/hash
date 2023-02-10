@@ -17,9 +17,9 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import {
   DataTypeWithMetadata,
   isOwnedOntologyElementMetadata,
+  OwnedById,
   PropertyTypeWithMetadata,
-} from "@local/hash-subgraph";
-import { OwnedById } from "@local/hash-subgraph/src/types";
+} from "@local/hash-subgraph/main";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

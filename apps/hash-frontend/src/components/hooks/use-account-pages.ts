@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import { EntityId, OwnedById } from "@local/hash-subgraph/src/types";
+import { EntityId, OwnedById } from "@local/hash-subgraph/main";
 import { useMemo } from "react";
 
 import {
@@ -48,10 +48,9 @@ export const useAccountPages = (ownedById: OwnedById): AccountPagesInfo => {
         title,
         index,
       }): AccountPage => {
-        const pageEntityId = entityId as EntityId;
+        const pageEntityId = entityId;
         const parentPageEntityId =
-          (parentPage?.metadata.recordId.entityId as EntityId | undefined) ??
-          null;
+          parentPage?.metadata.recordId.entityId ?? null;
 
         return {
           entityId: pageEntityId,

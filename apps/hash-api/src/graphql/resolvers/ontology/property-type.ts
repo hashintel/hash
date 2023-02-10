@@ -1,6 +1,9 @@
-import { PropertyTypeWithMetadata, Subgraph } from "@local/hash-subgraph";
-import { mapSubgraph } from "@local/hash-subgraph/src/temp";
-import { OwnedById } from "@local/hash-subgraph/src/types";
+import {
+  OwnedById,
+  PropertyTypeWithMetadata,
+  Subgraph,
+} from "@local/hash-subgraph/main";
+import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import {
   createPropertyType,

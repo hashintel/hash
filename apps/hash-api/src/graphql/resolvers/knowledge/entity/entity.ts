@@ -2,11 +2,11 @@ import { Filter } from "@local/hash-graph-client";
 import {
   Entity,
   isEntityId,
+  OwnedById,
   splitEntityId,
   Subgraph,
-} from "@local/hash-subgraph";
-import { mapSubgraph } from "@local/hash-subgraph/src/temp";
-import { OwnedById } from "@local/hash-subgraph/src/types";
+} from "@local/hash-subgraph/main";
+import { mapSubgraph } from "@local/hash-subgraph/temp";
 import { ForbiddenError, UserInputError } from "apollo-server-express";
 
 import {

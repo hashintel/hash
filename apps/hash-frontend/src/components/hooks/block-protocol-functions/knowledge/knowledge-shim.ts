@@ -13,13 +13,13 @@ import {
 } from "@blockprotocol/graph";
 import {
   Entity,
+  EntityId,
   LinkData,
   PropertyObject,
   Subgraph,
   SubgraphRootTypes,
   VersionedUri,
-} from "@local/hash-subgraph";
-import { EntityId } from "@local/hash-subgraph/src/types";
+} from "@local/hash-subgraph/main";
 
 export type KnowledgeCallbacks = {
   getEntity: GetEntityMessageCallback;

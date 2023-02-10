@@ -1,4 +1,4 @@
-import { Subgraph } from "@local/hash-subgraph";
+import { Subgraph } from "@local/hash-subgraph/main";
 
 import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity";
 import { QueryMeArgs, ResolverFn } from "../../../api-types.gen";

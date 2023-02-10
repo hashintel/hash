@@ -4,10 +4,9 @@ import {
   PropertyType,
   VersionedUri,
 } from "@blockprotocol/type-system";
-import { Subgraph } from "@local/hash-subgraph";
-import { getEntityTypesByBaseUri } from "@local/hash-subgraph/src/stdlib/element/entity-type";
-import { getPropertyTypeById } from "@local/hash-subgraph/src/stdlib/element/property-type";
-import { AccountId, OwnedById } from "@local/hash-subgraph/src/types";
+import { AccountId, OwnedById, Subgraph } from "@local/hash-subgraph/main";
+import { getEntityTypesByBaseUri } from "@local/hash-subgraph/stdlib/element/entity-type";
+import { getPropertyTypeById } from "@local/hash-subgraph/stdlib/element/property-type";
 import { useRouter } from "next/router";
 import {
   useCallback,

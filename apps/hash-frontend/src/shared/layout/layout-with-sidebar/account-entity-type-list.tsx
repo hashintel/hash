@@ -4,8 +4,8 @@ import {
   IconButton,
   TextField,
 } from "@hashintel/design-system";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
-import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph/src/types/element";
+import { getRoots } from "@local/hash-subgraph/stdlib/roots";
+import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph/types/element";
 import {
   Box,
   Collapse,

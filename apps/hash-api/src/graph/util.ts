@@ -17,9 +17,9 @@ import {
 import {
   EntityTypeWithMetadata,
   linkEntityTypeUri,
+  OwnedById,
   PropertyTypeWithMetadata,
-} from "@local/hash-subgraph";
-import { OwnedById } from "@local/hash-subgraph/src/types";
+} from "@local/hash-subgraph/main";
 
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";

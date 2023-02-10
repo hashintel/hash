@@ -25,13 +25,13 @@ import {
   EntityTypeWithMetadata,
   extractOwnedByIdFromEntityId,
   linkEntityTypeUri,
+  OwnedById,
   PropertyTypeWithMetadata,
   Subgraph,
   SubgraphRootTypes,
-} from "@local/hash-subgraph";
-import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
-import { mapSubgraph } from "@local/hash-subgraph/src/temp";
-import { EntityId, OwnedById } from "@local/hash-subgraph/src/types";
+} from "@local/hash-subgraph/main";
+import { getRootsAsEntities } from "@local/hash-subgraph/stdlib/element/entity";
+import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
@@ -268,8 +268,7 @@ describe("Entity CRU", () => {
           linkEntityTypeId: linkEntityTypeFriend.schema.$id,
           entity: {
             // The "new" entity is in fact just an existing entity, so only a link will be created.
-            existingEntityId: updatedEntity.metadata.recordId
-              .entityId as EntityId,
+            existingEntityId: updatedEntity.metadata.recordId.entityId,
           },
         },
       ],

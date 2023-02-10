@@ -5,38 +5,39 @@ export const scalars = {
     "@local/hash-graphql-shared/graphql/types#UnknownEntityProperties",
   TextToken: "@local/hash-graphql-shared/graphql/types#TextToken",
 
-  VersionedUri: "@local/hash-subgraph#VersionedUri",
+  VersionedUri: "@local/hash-subgraph/main#VersionedUri",
 
-  DataTypeWithMetadata: "@local/hash-subgraph#DataTypeWithMetadata",
+  DataTypeWithMetadata: "@local/hash-subgraph/main#DataTypeWithMetadata",
   DataTypeWithoutId:
     "@local/hash-graphql-shared/graphql/types#DataTypeWithoutId",
 
-  EntityTypeWithMetadata: "@local/hash-subgraph#EntityTypeWithMetadata",
+  EntityTypeWithMetadata: "@local/hash-subgraph/main#EntityTypeWithMetadata",
   EntityTypeWithoutId:
     "@local/hash-graphql-shared/graphql/types#EntityTypeWithoutId",
 
-  PropertyTypeWithMetadata: "@local/hash-subgraph#PropertyTypeWithMetadata",
+  PropertyTypeWithMetadata:
+    "@local/hash-subgraph/main#PropertyTypeWithMetadata",
   PropertyTypeWithoutId:
     "@local/hash-graphql-shared/graphql/types#PropertyTypeWithoutId",
 
-  Entity: "@local/hash-subgraph#Entity",
-  EntityRecordId: "@local/hash-subgraph#EntityRecordId",
-  EntityMetadata: "@local/hash-subgraph#EntityMetadata",
-  EntityVersion: "@local/hash-subgraph/#EntityVersion",
-  PropertyObject: "@local/hash-subgraph#PropertyObject",
+  Entity: "@local/hash-subgraph/main#Entity",
+  EntityRecordId: "@local/hash-subgraph/main#EntityRecordId",
+  EntityMetadata: "@local/hash-subgraph/main#EntityMetadata",
+  EntityVersion: "@local/hash-subgraph/main#EntityVersion",
+  PropertyObject: "@local/hash-subgraph/main#PropertyObject",
 
-  GraphElementVertexId: "@local/hash-subgraph#GraphElementVertexId",
-  Edges: "@local/hash-subgraph#Edges",
-  Vertices: "@local/hash-subgraph#Vertices",
-  LinkData: "@local/hash-subgraph#LinkData",
-  TimeProjection: "@local/hash-subgraph#TimeProjection",
-  ResolvedTimeProjection: "@local/hash-subgraph#ResolvedTimeProjection",
+  GraphElementVertexId: "@local/hash-subgraph/main#GraphElementVertexId",
+  Edges: "@local/hash-subgraph/main#Edges",
+  Vertices: "@local/hash-subgraph/main#Vertices",
+  LinkData: "@local/hash-subgraph/main#LinkData",
+  TimeProjection: "@local/hash-subgraph/main#TimeProjection",
+  ResolvedTimeProjection: "@local/hash-subgraph/main#ResolvedTimeProjection",
 
-  OwnedById: "@local/hash-subgraph/types#OwnedById",
-  UpdatedById: "@local/hash-subgraph/types#UpdatedById",
-  AccountId: "@local/hash-subgraph/types#AccountId",
-  EntityId: "@local/hash-subgraph/types#EntityId",
+  OwnedById: "@local/hash-subgraph/main#OwnedById",
+  UpdatedById: "@local/hash-subgraph/main#UpdatedById",
+  AccountId: "@local/hash-subgraph/main#AccountId",
+  EntityId: "@local/hash-subgraph/main#EntityId",
 
-  EntityUuid: "@local/hash-subgraph/types#EntityUuid",
-  Uuid: "@local/hash-subgraph/types#Uuid",
+  EntityUuid: "@local/hash-subgraph/main#EntityUuid",
+  Uuid: "@local/hash-subgraph/main#Uuid",
 };

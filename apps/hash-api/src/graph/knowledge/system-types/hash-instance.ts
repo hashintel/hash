@@ -1,7 +1,12 @@
-import { Entity, Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
-import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
-import { mapSubgraph } from "@local/hash-subgraph/src/temp";
-import { AccountId, OwnedById } from "@local/hash-subgraph/src/types";
+import {
+  AccountId,
+  Entity,
+  OwnedById,
+  Subgraph,
+  SubgraphRootTypes,
+} from "@local/hash-subgraph/main";
+import { getRootsAsEntities } from "@local/hash-subgraph/stdlib/element/entity";
+import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import {

@@ -4,7 +4,7 @@
   "private": true,
   "exports": {
     ".": "./src/main.ts",
-    "./types": "./src/types.ts"
+    "./*": "./src/*.ts"
   },
   "types": "./src/main.ts",
   "typesVersions": {
@@ -12,8 +12,8 @@
       ".": [
         "./src/main.ts"
       ],
-      "types": [
-        "./src/types.ts"
+      "*": [
+        "./src/*.ts"
       ]
     }
   },

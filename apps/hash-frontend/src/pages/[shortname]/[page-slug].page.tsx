@@ -14,7 +14,6 @@ import {
 } from "@local/hash-isomorphic-utils/blocks";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
-import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
@@ -22,7 +21,8 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   OwnedById,
-} from "@local/hash-subgraph/src/types";
+} from "@local/hash-subgraph/main";
+import { getRootsAsEntities } from "@local/hash-subgraph/stdlib/element/entity";
 import { alpha, Box, Collapse } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetServerSideProps } from "next";
@@ -411,7 +411,7 @@ const Page: NextPageWithLayout<PageProps> = ({
           <TopContextBar
             crumbs={generateCrumbsFromPages({
               pages: accountPages,
-              pageEntityId: data.page.metadata.recordId.entityId as EntityId,
+              pageEntityId: data.page.metadata.recordId.entityId,
               ownerShortname: pageWorkspace.shortname!,
             })}
             scrollToTop={scrollToTop}

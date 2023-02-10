@@ -5,7 +5,7 @@ import {
   LinkData,
   PropertyObject,
   VersionedUri,
-} from "@local/hash-subgraph";
+} from "@local/hash-subgraph/main";
 import { Draft, produce } from "immer";
 
 import { BlockEntity } from "./entity";

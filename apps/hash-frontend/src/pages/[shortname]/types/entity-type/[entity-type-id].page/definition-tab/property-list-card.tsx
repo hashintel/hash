@@ -6,9 +6,8 @@ import {
 } from "@blockprotocol/type-system";
 import { faList } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { Subgraph } from "@local/hash-subgraph";
-import { getPropertyTypesByBaseUri } from "@local/hash-subgraph/src/stdlib/element/property-type";
-import { OwnedById } from "@local/hash-subgraph/src/types";
+import { OwnedById, Subgraph } from "@local/hash-subgraph/main";
+import { getPropertyTypesByBaseUri } from "@local/hash-subgraph/stdlib/element/property-type";
 import {
   Box,
   Checkbox,

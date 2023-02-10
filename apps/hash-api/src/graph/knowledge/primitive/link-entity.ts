@@ -1,12 +1,13 @@
 import {
+  AccountId,
   Entity,
   EntityId,
   EntityTypeWithMetadata,
   LinkData,
+  OwnedById,
   PropertyObject,
-} from "@local/hash-subgraph";
-import { mapEntityMetadata } from "@local/hash-subgraph/src/temp/map-vertices";
-import { AccountId, OwnedById } from "@local/hash-subgraph/src/types";
+} from "@local/hash-subgraph/main";
+import { mapEntityMetadata } from "@local/hash-subgraph/temp/map-vertices";
 
 import { ImpureGraphFunction } from "../..";
 import { isEntityTypeLinkEntityType } from "../../ontology/primitive/entity-type";

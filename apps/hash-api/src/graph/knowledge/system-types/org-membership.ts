@@ -1,9 +1,9 @@
-import { PropertyObject } from "@local/hash-subgraph";
 import {
   extractEntityUuidFromEntityId,
   OwnedById,
+  PropertyObject,
   Uuid,
-} from "@local/hash-subgraph/src/types";
+} from "@local/hash-subgraph/main";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";

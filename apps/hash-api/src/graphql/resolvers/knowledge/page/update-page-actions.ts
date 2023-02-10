@@ -1,6 +1,10 @@
 import { VersionedUri } from "@blockprotocol/type-system";
-import { Entity } from "@local/hash-subgraph";
-import { AccountId, EntityId, OwnedById } from "@local/hash-subgraph/src/types";
+import {
+  AccountId,
+  Entity,
+  EntityId,
+  OwnedById,
+} from "@local/hash-subgraph/main";
 import { UserInputError } from "apollo-server-errors";
 import produce from "immer";
 
@@ -151,7 +155,7 @@ export const handleCreateNewEntity = async (params: {
     placeholderResults.set(entityPlaceholderId, {
       entityId: (
         await createEntityWithPlaceholders(entityDefinition, entityOwnedById)
-      ).metadata.recordId.entityId as EntityId,
+      ).metadata.recordId.entityId,
     });
   } catch (error) {
     if (error instanceof UserInputError) {
@@ -202,7 +206,7 @@ export const handleInsertNewBlock = async (
     );
 
     placeholderResults.set(entityPlaceholderId, {
-      entityId: blockData.metadata.recordId.entityId as EntityId,
+      entityId: blockData.metadata.recordId.entityId,
     });
 
     let block: Block;
@@ -237,7 +241,7 @@ export const handleInsertNewBlock = async (
     }
 
     placeholderResults.set(blockPlaceholderId, {
-      entityId: block.entity.metadata.recordId.entityId as EntityId,
+      entityId: block.entity.metadata.recordId.entityId,
     });
 
     return block;

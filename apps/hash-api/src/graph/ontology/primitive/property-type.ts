@@ -3,15 +3,16 @@ import { UpdatePropertyTypeRequest } from "@local/hash-graph-client";
 import { PropertyTypeWithoutId } from "@local/hash-graphql-shared/graphql/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
+  AccountId,
+  OwnedById,
   PropertyTypeWithMetadata,
   Subgraph,
   SubgraphRootTypes,
-} from "@local/hash-subgraph";
-import { versionedUriFromComponents } from "@local/hash-subgraph/src/shared/type-system-patch";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
-import { mapSubgraph } from "@local/hash-subgraph/src/temp";
-import { mapOntologyMetadata } from "@local/hash-subgraph/src/temp/map-vertices";
-import { AccountId, OwnedById } from "@local/hash-subgraph/src/types";
+} from "@local/hash-subgraph/main";
+import { versionedUriFromComponents } from "@local/hash-subgraph/shared/type-system-patch";
+import { getRoots } from "@local/hash-subgraph/stdlib/roots";
+import { mapSubgraph } from "@local/hash-subgraph/temp";
+import { mapOntologyMetadata } from "@local/hash-subgraph/temp/map-vertices";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
