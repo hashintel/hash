@@ -16,7 +16,7 @@ module.exports = {
     "@local/hash-isomorphic-utils(.*)":
       "<rootDir>/../../libs/@local/hash-isomorphic-utils/src$1",
     "@local/hash-graph-client": "<rootDir>/../../libs/@local/hash-graph-client",
-    "@local/hash-subgraph(.*)": "<rootDir>/../../libs/@local/hash-subgraph$1",
+    "@local/hash-subgraph(.*)": "<rootDir>/../../libs/@local/hash-subgraph/src$1",
   },
   setupFiles: ["@local/hash-backend-utils/environment"],
   testMatch: [
