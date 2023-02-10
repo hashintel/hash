@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/type-editor",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "A visual editor for Block Protocol types",
   "repository": {
     "type": "git",
@@ -28,12 +28,6 @@
     "lodash.uniqueid": "4.0.1",
     "material-ui-popup-state": "4.0.2",
     "rooks": "7.4.3"
-  },
-  "devDependencies": {
-    "@local/eslint-config": "0.0.0-private",
-    "@local/tsconfig": "0.0.0-private",
-    "@types/lodash.memoize": "4.1.7",
-    "@types/lodash.uniqueid": "4.0.7"
   },
   "peerDependencies": {
     "@mui/material": "^5.11.8",
