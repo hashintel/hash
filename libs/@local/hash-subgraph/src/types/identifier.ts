@@ -1,7 +1,10 @@
 // For strange behavior we haven't found the cause of, we are unable to export
 // directly here, and have to import as alias before re-exporting the type
 // if we don't, the `api` package is unable to use this library.
-import { VersionedUri as TVersionedUri } from "@blockprotocol/type-system";
+import {
+  validateBaseUri,
+  VersionedUri as TVersionedUri,
+} from "@blockprotocol/type-system";
 import { OntologyTypeEditionId } from "@local/hash-graph-client";
 import { validate as validateUuid } from "uuid";
 
@@ -120,7 +123,7 @@ export const isOntologyTypeEditionId = (
   return (
     "baseId" in editionId &&
     typeof editionId.baseId === "string" &&
-    isEntityId(editionId.baseId) &&
+    validateBaseUri(editionId.baseId).type !== "Err" &&
     "version" in editionId &&
     typeof editionId.version === "number" &&
     Number.isInteger(editionId.version)
