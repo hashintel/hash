@@ -11,12 +11,12 @@ use graph::{
     identifier::{
         account::AccountId,
         knowledge::EntityId,
-        ontology::OntologyTypeRecordId,
+        ontology::OntologyTypeVersion,
         time::{
             DecisionTime, TimeIntervalBound, Timestamp, UnresolvedImage, UnresolvedKernel,
             UnresolvedProjection, UnresolvedTimeProjection,
         },
-        GraphElementVertexId,
+        GraphElementVertexId, OntologyTypeVertexId,
     },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
@@ -210,7 +210,7 @@ impl DatabaseApi<'_> {
             .await?
             .vertices
             .data_types
-            .remove(&OntologyTypeRecordId::from(uri))
+            .remove(&OntologyTypeVertexId::from(uri))
             .expect("no data type found"))
     }
 
@@ -260,7 +260,7 @@ impl DatabaseApi<'_> {
             .await?
             .vertices
             .property_types
-            .remove(&OntologyTypeRecordId::from(uri))
+            .remove(&OntologyTypeVertexId::from(uri))
             .expect("no property type found"))
     }
 
@@ -310,7 +310,7 @@ impl DatabaseApi<'_> {
             .await?
             .vertices
             .entity_types
-            .remove(&OntologyTypeRecordId::from(uri))
+            .remove(&OntologyTypeVertexId::from(uri))
             .expect("no entity type found"))
     }
 
@@ -488,7 +488,7 @@ impl DatabaseApi<'_> {
                     EntityTypeQueryPath::Version,
                 ))),
                 Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
-                    link_type_id.version().into(),
+                    OntologyTypeVersion::new(link_type_id.version()),
                 ))),
             ),
         ]);
