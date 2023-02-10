@@ -99,8 +99,6 @@ export const useMapbox = (accessToken: string) => {
     }
   }, [selectedAddress]);
 
-  console.log(selectedAddress);
-
   const address: Address | null = useMemo(
     () =>
       selectedAddress

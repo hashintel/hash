@@ -12,6 +12,7 @@
     "build": "block-scripts build",
     "dev": "block-scripts dev",
     "format": "prettier --write --ignore-unknown .",
+    "generate-types": "block-scripts codegen",
     "lint:tsc": "tsc --noEmit",
     "serve": "block-scripts serve"
   },
@@ -20,8 +21,9 @@
     "trailingComma": "all"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.1.0-canary-20230209153829",
+    "@blockprotocol/graph": "0.1.0-canary-20230209191938",
     "@emotion/react": "11.10.5",
+    "@local/design-system": "0.0.0-private",
     "@mapbox/search-js-react": "1.0.0-beta.14",
     "@mui/material": "5.11.8",
     "axios": "1.3.2",
@@ -31,8 +33,8 @@
   },
   "devDependencies": {
     "@types/react-dom": "^18.0.9",
-    "block-scripts": "0.1.0-canary-20230209153829",
-    "mock-block-dock": "0.1.0-canary-20230209153829",
+    "block-scripts": "0.1.0-canary-20230209191938",
+    "mock-block-dock": "0.1.0-canary-20230209191938",
     "prettier": "2.8.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
@@ -58,6 +60,6 @@
     "image": "public/block-preview.png",
     "name": "address",
     "protocol": "0.3",
-    "schema": "https://alpha.hash.ai/@luisbett/types/entity-type/address-block/v/1"
+    "schema": "https://alpha.hash.ai/@luisbett/types/entity-type/address-block/v/5"
   }
 }
