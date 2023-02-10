@@ -1,5 +1,5 @@
-import { OwnedById } from "@local/hash-graphql-shared/types";
 import { EntityId } from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph/src/types";
 import { useContext } from "react";
 
 import { useBlockProtocolArchiveEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";

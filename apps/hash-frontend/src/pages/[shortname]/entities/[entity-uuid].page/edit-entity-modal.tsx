@@ -1,7 +1,7 @@
 import { Button } from "@hashintel/design-system";
-import { EntityId } from "@local/hash-graphql-shared/types";
 import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { EntityId } from "@local/hash-subgraph/src/types";
 import { Drawer, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 

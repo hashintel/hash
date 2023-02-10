@@ -1,8 +1,8 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
 import { extractBaseUri } from "@blockprotocol/type-system";
-import { EntityId } from "@local/hash-graphql-shared/types";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
+import { EntityId } from "@local/hash-subgraph/src/types";
 import { GraphQLError } from "graphql";
 import { useCallback, useState } from "react";
 

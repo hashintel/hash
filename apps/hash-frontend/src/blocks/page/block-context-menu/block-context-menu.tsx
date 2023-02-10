@@ -13,7 +13,6 @@ import {
   faRefresh,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { EntityId } from "@local/hash-graphql-shared/types";
 import {
   areComponentsCompatible,
   isHashTextBlock,
@@ -24,6 +23,7 @@ import {
   Subgraph,
   SubgraphRootTypes,
 } from "@local/hash-subgraph";
+import { EntityId } from "@local/hash-subgraph/src/types";
 import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import { PopupState } from "material-ui-popup-state/hooks";

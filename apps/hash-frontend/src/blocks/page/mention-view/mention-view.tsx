@@ -1,4 +1,4 @@
-import { AccountId } from "@local/hash-graphql-shared/types";
+import { AccountId } from "@local/hash-subgraph/src/types";
 import { Node } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
 

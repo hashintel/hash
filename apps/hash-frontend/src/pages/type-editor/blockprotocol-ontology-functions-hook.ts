@@ -7,7 +7,7 @@
  * relevant for the type editors.
  */
 import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
-import { OwnedById } from "@local/hash-graphql-shared/types";
+import { OwnedById } from "@local/hash-subgraph/src/types";
 
 import { KnowledgeCallbacks } from "../../components/hooks/block-protocol-functions/knowledge/knowledge-shim";
 import { useBlockProtocolAggregateEntities } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-aggregate-entities";

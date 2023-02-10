@@ -1,11 +1,4 @@
 import {
-  AccountId,
-  EntityUuid,
-  extractEntityUuidFromEntityId,
-  OwnedById,
-  Uuid,
-} from "@local/hash-graphql-shared/types";
-import {
   Entity,
   EntityId,
   PropertyObject,
@@ -14,6 +7,13 @@ import {
 } from "@local/hash-subgraph";
 import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
 import { mapSubgraph } from "@local/hash-subgraph/src/temp";
+import {
+  AccountId,
+  EntityUuid,
+  extractEntityUuidFromEntityId,
+  OwnedById,
+  Uuid,
+} from "@local/hash-subgraph/src/types";
 
 import {
   kratosIdentityApi,

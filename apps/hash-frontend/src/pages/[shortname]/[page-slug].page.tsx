@@ -8,14 +8,6 @@ import {
   getPageQuery,
 } from "@local/hash-graphql-shared/queries/page.queries";
 import {
-  EntityId,
-  entityIdFromOwnedByIdAndEntityUuid,
-  EntityUuid,
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-  OwnedById,
-} from "@local/hash-graphql-shared/types";
-import {
   defaultBlockComponentIds,
   fetchBlock,
   HashBlock,
@@ -23,6 +15,14 @@ import {
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
 import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
+import {
+  EntityId,
+  entityIdFromOwnedByIdAndEntityUuid,
+  EntityUuid,
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+  OwnedById,
+} from "@local/hash-subgraph/src/types";
 import { alpha, Box, Collapse } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetServerSideProps } from "next";

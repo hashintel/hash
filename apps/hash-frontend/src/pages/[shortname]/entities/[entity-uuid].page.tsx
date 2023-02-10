@@ -1,12 +1,12 @@
+import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
   extractOwnedByIdFromEntityId,
   OwnedById,
-} from "@local/hash-graphql-shared/types";
-import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+} from "@local/hash-subgraph/src/types";
 import produce from "immer";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";

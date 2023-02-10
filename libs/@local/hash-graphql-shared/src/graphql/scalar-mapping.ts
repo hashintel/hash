@@ -32,11 +32,11 @@ export const scalars = {
   TimeProjection: "@local/hash-subgraph#TimeProjection",
   ResolvedTimeProjection: "@local/hash-subgraph#ResolvedTimeProjection",
 
-  OwnedById: "@local/hash-graphql-shared/types#OwnedById",
-  UpdatedById: "@local/hash-graphql-shared/types#UpdatedById",
-  AccountId: "@local/hash-graphql-shared/types#AccountId",
-  EntityId: "@local/hash-graphql-shared/types#EntityId",
+  OwnedById: "@local/hash-subgraph/types#OwnedById",
+  UpdatedById: "@local/hash-subgraph/types#UpdatedById",
+  AccountId: "@local/hash-subgraph/types#AccountId",
+  EntityId: "@local/hash-subgraph/types#EntityId",
 
-  EntityUuid: "@local/hash-graphql-shared/types#EntityUuid",
-  Uuid: "@local/hash-graphql-shared/types#Uuid",
+  EntityUuid: "@local/hash-subgraph/types#EntityUuid",
+  Uuid: "@local/hash-subgraph/types#Uuid",
 };

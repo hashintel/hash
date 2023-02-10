@@ -12,7 +12,6 @@ import {
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { EntityType, TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { OwnedById } from "@local/hash-graphql-shared/types";
 import {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -20,6 +19,7 @@ import {
   linkEntityTypeUri,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph/src/types";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

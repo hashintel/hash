@@ -1,5 +1,4 @@
 import { DataType } from "@blockprotocol/type-system";
-import { AccountId, OwnedById } from "@local/hash-graphql-shared/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   DataTypeWithMetadata,
@@ -11,6 +10,7 @@ import { versionedUriFromComponents } from "@local/hash-subgraph/src/shared/type
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import { mapSubgraph } from "@local/hash-subgraph/src/temp";
 import { mapOntologyMetadata } from "@local/hash-subgraph/src/temp/map-vertices";
+import { AccountId, OwnedById } from "@local/hash-subgraph/src/types";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";

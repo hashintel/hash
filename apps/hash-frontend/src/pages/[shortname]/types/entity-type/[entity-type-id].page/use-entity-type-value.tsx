@@ -4,10 +4,10 @@ import {
   PropertyType,
   VersionedUri,
 } from "@blockprotocol/type-system";
-import { AccountId, OwnedById } from "@local/hash-graphql-shared/types";
 import { Subgraph } from "@local/hash-subgraph";
 import { getEntityTypesByBaseUri } from "@local/hash-subgraph/src/stdlib/element/entity-type";
 import { getPropertyTypeById } from "@local/hash-subgraph/src/stdlib/element/property-type";
+import { AccountId, OwnedById } from "@local/hash-subgraph/src/types";
 import { useRouter } from "next/router";
 import {
   useCallback,

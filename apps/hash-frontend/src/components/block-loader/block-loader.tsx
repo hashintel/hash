@@ -3,10 +3,10 @@ import {
   EmbedderGraphMessageCallbacks,
 } from "@blockprotocol/graph";
 import { VersionedUri } from "@blockprotocol/type-system/slim";
-import { EntityId } from "@local/hash-graphql-shared/types";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { Entity, Subgraph as LocalSubgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { EntityId } from "@local/hash-subgraph/src/types";
 import {
   FunctionComponent,
   useCallback,

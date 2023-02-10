@@ -1,8 +1,3 @@
-import {
-  AccountId,
-  extractOwnedByIdFromEntityId,
-  OwnedById,
-} from "@local/hash-graphql-shared/types";
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import {
   Entity,
@@ -13,6 +8,11 @@ import {
 } from "@local/hash-subgraph";
 import { getEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
 import { mapSubgraph } from "@local/hash-subgraph/src/temp";
+import {
+  AccountId,
+  extractOwnedByIdFromEntityId,
+  OwnedById,
+} from "@local/hash-subgraph/src/types";
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 

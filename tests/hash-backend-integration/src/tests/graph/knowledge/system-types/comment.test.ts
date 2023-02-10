@@ -17,7 +17,7 @@ import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { OwnedById } from "@local/hash-graphql-shared/types";
+import { OwnedById } from "@local/hash-subgraph/src/types";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

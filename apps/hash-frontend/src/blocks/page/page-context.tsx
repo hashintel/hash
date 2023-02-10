@@ -1,4 +1,4 @@
-import { EntityId } from "@local/hash-graphql-shared/types";
+import { EntityId } from "@local/hash-subgraph/src/types";
 import { EditorView } from "prosemirror-view";
 import {
   createContext,

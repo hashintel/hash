@@ -1,13 +1,6 @@
 import { BaseUri, VersionedUri } from "@blockprotocol/type-system";
 import { Filter, GraphResolveDepths } from "@local/hash-graph-client";
 import {
-  AccountId,
-  EntityUuid,
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-  OwnedById,
-} from "@local/hash-graphql-shared/types";
-import {
   Entity,
   EntityId,
   EntityTypeWithMetadata,
@@ -20,6 +13,13 @@ import {
 import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
 import { mapSubgraph } from "@local/hash-subgraph/src/temp";
 import { mapEntityMetadata } from "@local/hash-subgraph/src/temp/map-vertices";
+import {
+  AccountId,
+  EntityUuid,
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+  OwnedById,
+} from "@local/hash-subgraph/src/types";
 import { ApolloError } from "apollo-server-errors";
 
 import {

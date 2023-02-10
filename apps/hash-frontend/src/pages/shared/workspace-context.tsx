@@ -1,4 +1,4 @@
-import { AccountId } from "@local/hash-graphql-shared/types";
+import { AccountId } from "@local/hash-subgraph/src/types";
 import {
   createContext,
   FunctionComponent,

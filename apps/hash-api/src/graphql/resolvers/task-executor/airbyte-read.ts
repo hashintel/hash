@@ -5,9 +5,9 @@ import {
   VersionedUri,
 } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { OwnedById } from "@local/hash-graphql-shared/types";
 import { typedEntries, typedKeys } from "@local/hash-isomorphic-utils/util";
 import { PropertyObject } from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph/src/types";
 import { ApolloError } from "apollo-server-express";
 
 import { ImpureGraphContext } from "../../../graph";

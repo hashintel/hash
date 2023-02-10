@@ -11,7 +11,6 @@ import {
   CreateResourceError,
   ReadOrModifyResourceError,
 } from "@blockprotocol/graph";
-import { EntityId } from "@local/hash-graphql-shared/types";
 import {
   Entity,
   LinkData,
@@ -20,6 +19,7 @@ import {
   SubgraphRootTypes,
   VersionedUri,
 } from "@local/hash-subgraph";
+import { EntityId } from "@local/hash-subgraph/src/types";
 
 export type KnowledgeCallbacks = {
   getEntity: GetEntityMessageCallback;

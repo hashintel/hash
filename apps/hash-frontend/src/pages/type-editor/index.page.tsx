@@ -1,5 +1,5 @@
-import { AccountId, OwnedById } from "@local/hash-graphql-shared/types";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { AccountId, OwnedById } from "@local/hash-subgraph/src/types";
 import { Box, Container } from "@mui/material";
 import { ChangeEvent, useCallback, useState } from "react";
 

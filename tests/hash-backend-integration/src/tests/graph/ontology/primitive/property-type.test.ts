@@ -14,12 +14,12 @@ import {
   TypeSystemInitializer,
 } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { OwnedById } from "@local/hash-graphql-shared/types";
 import {
   DataTypeWithMetadata,
   isOwnedOntologyElementMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph/src/types";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

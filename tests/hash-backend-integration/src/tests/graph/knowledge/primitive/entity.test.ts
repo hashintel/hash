@@ -18,7 +18,6 @@ import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/
 import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { EntityId, OwnedById } from "@local/hash-graphql-shared/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   DataTypeWithMetadata,
@@ -32,6 +31,7 @@ import {
 } from "@local/hash-subgraph";
 import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
 import { mapSubgraph } from "@local/hash-subgraph/src/temp";
+import { EntityId, OwnedById } from "@local/hash-subgraph/src/types";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

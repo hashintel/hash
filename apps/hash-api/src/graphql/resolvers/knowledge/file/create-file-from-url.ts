@@ -1,5 +1,5 @@
-import { OwnedById } from "@local/hash-graphql-shared/types";
 import { Entity } from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph/src/types";
 
 import { createFileFromExternalUrl } from "../../../../graph/knowledge/system-types/file";
 import {

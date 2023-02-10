@@ -1,10 +1,6 @@
 import { VersionedUri } from "@blockprotocol/type-system";
-import {
-  AccountId,
-  EntityId,
-  OwnedById,
-} from "@local/hash-graphql-shared/types";
 import { Entity } from "@local/hash-subgraph";
+import { AccountId, EntityId, OwnedById } from "@local/hash-subgraph/src/types";
 import { UserInputError } from "apollo-server-errors";
 import produce from "immer";
 

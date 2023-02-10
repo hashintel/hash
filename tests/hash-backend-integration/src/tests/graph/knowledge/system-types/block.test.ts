@@ -15,9 +15,9 @@ import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/en
 import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { OwnedById } from "@local/hash-graphql-shared/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph/src/types";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

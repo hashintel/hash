@@ -5,7 +5,7 @@ import {
   extractEntityUuidFromEntityId,
   OwnedById,
   Uuid,
-} from "@local/hash-graphql-shared/types";
+} from "@local/hash-subgraph/src/types";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
 

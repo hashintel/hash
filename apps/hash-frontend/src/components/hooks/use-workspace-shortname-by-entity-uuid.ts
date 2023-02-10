@@ -1,12 +1,12 @@
 import { extractBaseUri } from "@blockprotocol/type-system";
+import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
 import {
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
   OwnedById,
-} from "@local/hash-graphql-shared/types";
-import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
+} from "@local/hash-subgraph/src/types";
 import { useEffect, useMemo, useState } from "react";
 
 import { useBlockProtocolGetEntity } from "./block-protocol-functions/knowledge/use-block-protocol-get-entity";

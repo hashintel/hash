@@ -2,7 +2,7 @@ import {
   AccountEntityId,
   AccountId,
   extractAccountId,
-} from "@local/hash-graphql-shared/types";
+} from "@local/hash-subgraph/src/types";
 import { useMemo } from "react";
 
 import { useOrgs } from "./use-orgs";

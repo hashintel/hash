@@ -4,12 +4,12 @@ import {
   ValueOrArray,
 } from "@blockprotocol/type-system";
 import { Button } from "@hashintel/design-system";
-import { EntityId, OwnedById } from "@local/hash-graphql-shared/types";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { Entity, Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
 import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
 import { getPropertyTypeById } from "@local/hash-subgraph/src/stdlib/element/property-type";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { EntityId, OwnedById } from "@local/hash-subgraph/src/types";
 import { Container, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 

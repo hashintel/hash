@@ -1,6 +1,6 @@
-import { OwnedById } from "@local/hash-graphql-shared/types";
 import { PropertyTypeWithMetadata, Subgraph } from "@local/hash-subgraph";
 import { mapSubgraph } from "@local/hash-subgraph/src/temp";
+import { OwnedById } from "@local/hash-subgraph/src/types";
 
 import {
   createPropertyType,
@@ -27,8 +27,7 @@ export const createPropertyTypeResolver: ResolverFn<
   const { ownedById, propertyType } = params;
 
   const createdPropertyType = await createPropertyType(context, {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-    ownedById: (ownedById as OwnedById) ?? user.accountId,
+    ownedById: (ownedById ?? user.accountId) as OwnedById,
     schema: propertyType,
     actorId: user.accountId,
   });
