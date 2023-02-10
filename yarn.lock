@@ -3194,6 +3194,11 @@
     "@blockprotocol/core" "0.0.14-canary-20230209084023"
     "@blockprotocol/graph" "0.1.0-canary-20230209084023"
 
+"@blockprotocol/type-system@0.0.3-canary-20230111084611":
+  version "0.0.3-canary-20230111084611"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.0.3-canary-20230111084611.tgz#c8269e2b99645c2f92885c2cbd2c36fea2f953a9"
+  integrity sha512-1TWmUGnFKxP9ag8IyjlQmHludY5AYX3BJ0eqDgt/dtSVzzLJZ5I9xzzZyyoOgRf5BsZHhIE5aDUH1HKAWZXgcw==
+
 "@blockprotocol/type-system@0.0.4-canary-20230209084023":
   version "0.0.4-canary-20230209084023"
   resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.0.4-canary-20230209084023.tgz#891f57b656a53fe225e878c0370db4b06bb8f14c"
@@ -4469,10 +4474,10 @@
   dependencies:
     "@hapi/hoek" "^9.0.0"
 
-"@hashintel/design-system@0.0.2":
-  version "0.0.2"
-  resolved "https://registry.yarnpkg.com/@hashintel/design-system/-/design-system-0.0.2.tgz#7a78523b45862db3a79ccf1d876afc6febb35bc0"
-  integrity sha512-7yGqgUII5qeBz7LujdYPCcSKxubMsVWlwjtBKvQCsxxmoBClqg76oceRKljKE4lCtOU6hXXlVlxeOjpgeYq3Qg==
+"@hashintel/design-system@0.0.1":
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/@hashintel/design-system/-/design-system-0.0.1.tgz#ecdc6f59b214bf5841bd8782b7c06296891bc343"
+  integrity sha512-sRLVmBCdp3zlROEa4ZpG3JRVUO2uWRBSUKTwhNYrgf32ak5+BrxXHtZfM65pYP+QfK8aDkjNMiyzaMDZM+dwdQ==
   dependencies:
     "@emotion/cache" "11.7.1"
     "@emotion/react" "11.9.0"
@@ -4482,26 +4487,6 @@
     clsx "1.2.1"
     react "^18.2.0"
     react-dom "^18.2.0"
-
-"@hashintel/type-editor@0.0.3":
-  version "0.0.3"
-  resolved "https://registry.yarnpkg.com/@hashintel/type-editor/-/type-editor-0.0.3.tgz#03300a68482b40ad8a3d25666a3b8d1d10508549"
-  integrity sha512-ymqqsgGWrVn2sAyZsCYwNufCKcO7+lTg7kRWL3egWK0W+HpJYotgMHYMjxkeY340QhQ1SQT/rfRBjogwc2JQkQ==
-  dependencies:
-    "@blockprotocol/graph" "0.1.0-canary-20230209084023"
-    "@blockprotocol/type-system" "0.0.4-canary-20230209084023"
-    "@fortawesome/free-regular-svg-icons" "6.0.0"
-    "@fortawesome/free-solid-svg-icons" "6.0.0"
-    "@hashintel/design-system" "0.0.2"
-    "@mui/material" "5.10.6"
-    "@mui/system" "5.10.6"
-    lodash.memoize "4.1.2"
-    lodash.uniqueid "4.0.1"
-    material-ui-popup-state "4.0.2"
-    react "^18.2.0"
-    react-dom "^18.2.0"
-    react-hook-form "7.37.0"
-    rooks "7.4.3"
 
 "@headlessui/react@1.4.1":
   version "1.4.1"
@@ -4990,24 +4975,6 @@
     prop-types "^15.8.1"
     react-is "^18.2.0"
 
-"@mui/material@5.10.6", "@mui/material@^5.0.0", "@mui/material@^5.10.4":
-  version "5.10.6"
-  resolved "https://registry.yarnpkg.com/@mui/material/-/material-5.10.6.tgz#46d04b5dd79fe83bdab5322301db1008e0d7c0e3"
-  integrity sha512-QilW5PAAGSQdN7Cpp4rwSQ1doJAt3ca1a2PHZtr8RLVlpHnXb+qQ8CeDo9+9V2fK5CDNdtTN1F+iJKO43aFBpQ==
-  dependencies:
-    "@babel/runtime" "^7.19.0"
-    "@mui/base" "5.0.0-alpha.98"
-    "@mui/core-downloads-tracker" "^5.10.6"
-    "@mui/system" "^5.10.6"
-    "@mui/types" "^7.2.0"
-    "@mui/utils" "^5.10.6"
-    "@types/react-transition-group" "^4.4.5"
-    clsx "^1.2.1"
-    csstype "^3.1.0"
-    prop-types "^15.8.1"
-    react-is "^18.2.0"
-    react-transition-group "^4.4.5"
-
 "@mui/material@5.11.8":
   version "5.11.8"
   resolved "https://registry.yarnpkg.com/@mui/material/-/material-5.11.8.tgz#6ee1b46209932dd9e86430db083bf8260d79b902"
@@ -5022,6 +4989,24 @@
     "@types/react-transition-group" "^4.4.5"
     clsx "^1.2.1"
     csstype "^3.1.1"
+    prop-types "^15.8.1"
+    react-is "^18.2.0"
+    react-transition-group "^4.4.5"
+
+"@mui/material@^5.0.0", "@mui/material@^5.10.4":
+  version "5.10.6"
+  resolved "https://registry.yarnpkg.com/@mui/material/-/material-5.10.6.tgz#46d04b5dd79fe83bdab5322301db1008e0d7c0e3"
+  integrity sha512-QilW5PAAGSQdN7Cpp4rwSQ1doJAt3ca1a2PHZtr8RLVlpHnXb+qQ8CeDo9+9V2fK5CDNdtTN1F+iJKO43aFBpQ==
+  dependencies:
+    "@babel/runtime" "^7.19.0"
+    "@mui/base" "5.0.0-alpha.98"
+    "@mui/core-downloads-tracker" "^5.10.6"
+    "@mui/system" "^5.10.6"
+    "@mui/types" "^7.2.0"
+    "@mui/utils" "^5.10.6"
+    "@types/react-transition-group" "^4.4.5"
+    clsx "^1.2.1"
+    csstype "^3.1.0"
     prop-types "^15.8.1"
     react-is "^18.2.0"
     react-transition-group "^4.4.5"
@@ -5064,20 +5049,6 @@
     csstype "^3.1.1"
     prop-types "^15.8.1"
 
-"@mui/system@5.10.6", "@mui/system@^5.10.6":
-  version "5.10.6"
-  resolved "https://registry.yarnpkg.com/@mui/system/-/system-5.10.6.tgz#ddeeb63830e325a06ba8a0cf33ec950c49a06a73"
-  integrity sha512-HfQVX7e2xpQ3jtdB/WwtkFVtozMOozyN575/63u8ILHkE8wGDhblmCieAsnyJPFbm7WBW5PCMyzmfr4QyKLaYg==
-  dependencies:
-    "@babel/runtime" "^7.19.0"
-    "@mui/private-theming" "^5.10.6"
-    "@mui/styled-engine" "^5.10.6"
-    "@mui/types" "^7.2.0"
-    "@mui/utils" "^5.10.6"
-    clsx "^1.2.1"
-    csstype "^3.1.0"
-    prop-types "^15.8.1"
-
 "@mui/system@5.11.8", "@mui/system@^5.11.8":
   version "5.11.8"
   resolved "https://registry.yarnpkg.com/@mui/system/-/system-5.11.8.tgz#3d9375a5af9f4a644165103fd64d42e4b58370cb"
@@ -5090,6 +5061,20 @@
     "@mui/utils" "^5.11.7"
     clsx "^1.2.1"
     csstype "^3.1.1"
+    prop-types "^15.8.1"
+
+"@mui/system@^5.10.6":
+  version "5.10.6"
+  resolved "https://registry.yarnpkg.com/@mui/system/-/system-5.10.6.tgz#ddeeb63830e325a06ba8a0cf33ec950c49a06a73"
+  integrity sha512-HfQVX7e2xpQ3jtdB/WwtkFVtozMOozyN575/63u8ILHkE8wGDhblmCieAsnyJPFbm7WBW5PCMyzmfr4QyKLaYg==
+  dependencies:
+    "@babel/runtime" "^7.19.0"
+    "@mui/private-theming" "^5.10.6"
+    "@mui/styled-engine" "^5.10.6"
+    "@mui/types" "^7.2.0"
+    "@mui/utils" "^5.10.6"
+    clsx "^1.2.1"
+    csstype "^3.1.0"
     prop-types "^15.8.1"
 
 "@mui/types@^7.2.0":
