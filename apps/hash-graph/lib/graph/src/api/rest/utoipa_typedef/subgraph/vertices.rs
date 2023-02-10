@@ -66,7 +66,7 @@ impl From<crate::subgraph::vertices::Vertices> for Vertices {
             ontology: OntologyVertices(data_types.chain(property_types).chain(entity_types).fold(
                 HashMap::new(),
                 |mut map, (id, vertex)| {
-                    match map.entry(id.base_id().clone()) {
+                    match map.entry(id.base_uri().clone()) {
                         Entry::Occupied(entry) => {
                             entry.into_mut().insert(id.version(), vertex);
                         }

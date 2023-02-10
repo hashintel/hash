@@ -90,7 +90,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("text_data_type_id", `${response.body.editionId.baseId}v/${response.body.editionId.version}`);
+    client.global.set("text_data_type_id", `${response.body.recordId.baseUri}v/${response.body.recordId.version}`);
 %}
 
 ### Get Text data type
@@ -208,7 +208,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_property_type_id", `${response.body.editionId.baseId}v/${response.body.editionId.version}`);
+    client.global.set("person_property_type_id", `${response.body.recordId.baseUri}v/${response.body.recordId.version}`);
 %}
 
 ### Get Name property type
@@ -394,7 +394,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("friendship_link_entity_type_id", `${response.body.editionId.baseId}v/${response.body.editionId.version}`);
+    client.global.set("friendship_link_entity_type_id", `${response.body.recordId.baseUri}v/${response.body.recordId.version}`);
 %}
 
 ### Get Friendship entity type
@@ -491,7 +491,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_entity_type_id", `${response.body.editionId.baseId}v/${response.body.editionId.version}`);
+    client.global.set("person_entity_type_id", `${response.body.recordId.baseUri}v/${response.body.recordId.version}`);
 %}
 
 ### Get Person entity type

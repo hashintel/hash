@@ -8,7 +8,7 @@ use type_system::uri::{BaseUri, VersionedUri};
 use uuid::Uuid;
 
 use crate::{
-    identifier::{knowledge::EntityId, ontology::OntologyTypeEditionId},
+    identifier::{knowledge::EntityId, ontology::OntologyTypeRecordId},
     knowledge::{Entity, EntityQueryPath},
     store::{
         query::{OntologyQueryPath, ParameterType, QueryPath},
@@ -93,14 +93,14 @@ where
     }
 
     /// Creates a `Filter` to search for a specific ontology type of kind `R`, identified by its
-    /// [`OntologyTypeEditionId`].
+    /// [`OntologyTypeRecordId`].
     #[must_use]
-    pub fn for_ontology_type_edition_id(
-        ontology_type_edition_id: &'p OntologyTypeEditionId,
+    pub fn for_ontology_type_record_id(
+        ontology_type_record_id: &'p OntologyTypeRecordId,
     ) -> Self {
         Self::All(vec![
-            Self::for_base_uri(ontology_type_edition_id.base_id()),
-            Self::for_version(ontology_type_edition_id.version().inner()),
+            Self::for_base_uri(ontology_type_record_id.base_uri()),
+            Self::for_version(ontology_type_record_id.version().inner()),
         ])
     }
 }
@@ -467,8 +467,8 @@ mod tests {
     }
 
     #[test]
-    fn for_ontology_type_edition_id() {
-        let uri = OntologyTypeEditionId::new(
+    fn for_ontology_type_record_id() {
+        let uri = OntologyTypeRecordId::new(
             BaseUri::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
             )
@@ -480,7 +480,7 @@ mod tests {
           "all": [
             { "equal": [
               { "path": ["baseUri"] },
-              { "parameter": uri.base_id() }
+              { "parameter": uri.base_uri() }
             ]},
             { "equal": [
               { "path": ["version"] },
@@ -490,7 +490,7 @@ mod tests {
         }};
 
         test_filter_representation(
-            &Filter::<DataTypeWithMetadata>::for_ontology_type_edition_id(&uri),
+            &Filter::<DataTypeWithMetadata>::for_ontology_type_record_id(&uri),
             &expected,
         );
     }

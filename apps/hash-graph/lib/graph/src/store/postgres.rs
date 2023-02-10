@@ -25,7 +25,7 @@ pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
     identifier::{
         account::AccountId,
-        ontology::OntologyTypeEditionId,
+        ontology::OntologyTypeRecordId,
         time::{ProjectedTime, TimeIntervalBound, Timestamp},
         EntityVertexId,
     },
@@ -226,7 +226,7 @@ where
 
 #[derive(Default)]
 pub struct DependencyContext {
-    pub ontology_dependency_map: DependencyMap<OntologyTypeEditionId>,
+    pub ontology_dependency_map: DependencyMap<OntologyTypeRecordId>,
     pub knowledge_dependency_map: DependencyMap<EntityVertexId>,
 }
 
@@ -304,8 +304,8 @@ where
                     record_created_by_id := $4
                 );"#,
                 &[
-                    &metadata.edition_id().base_id().as_str(),
-                    &metadata.edition_id().version(),
+                    &metadata.record_id().base_uri().as_str(),
+                    &metadata.record_id().version(),
                     &metadata.owned_by_id(),
                     &metadata.provenance_metadata().updated_by_id(),
                 ],
@@ -316,11 +316,11 @@ where
             .map_err(|report| match report.current_context().code() {
                 Some(&SqlState::EXCLUSION_VIOLATION | &SqlState::UNIQUE_VIOLATION) => report
                     .change_context(BaseUriAlreadyExists)
-                    .attach_printable(metadata.edition_id().base_id().clone())
+                    .attach_printable(metadata.record_id().base_uri().clone())
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)
-                    .attach_printable(VersionedUri::from(metadata.edition_id())),
+                    .attach_printable(VersionedUri::from(metadata.record_id())),
             })
     }
 
@@ -346,8 +346,8 @@ where
                     record_created_by_id := $4
                 );"#,
                 &[
-                    &metadata.edition_id().base_id().as_str(),
-                    &metadata.edition_id().version(),
+                    &metadata.record_id().base_uri().as_str(),
+                    &metadata.record_id().version(),
                     &metadata.fetched_at(),
                     &metadata.provenance_metadata().updated_by_id(),
                 ],
@@ -358,11 +358,11 @@ where
             .map_err(|report| match report.current_context().code() {
                 Some(&SqlState::EXCLUSION_VIOLATION | &SqlState::UNIQUE_VIOLATION) => report
                     .change_context(BaseUriAlreadyExists)
-                    .attach_printable(metadata.edition_id().base_id().clone())
+                    .attach_printable(metadata.record_id().base_uri().clone())
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)
-                    .attach_printable(VersionedUri::from(metadata.edition_id())),
+                    .attach_printable(VersionedUri::from(metadata.record_id())),
             })
     }
 
@@ -474,7 +474,7 @@ where
         T: OntologyDatabaseType,
     {
         let uri = database_type.id();
-        let edition_id = OntologyTypeEditionId::from(uri);
+        let record_id = OntologyTypeRecordId::from(uri);
 
         let (ontology_id, owned_by_id) = self
             .update_owned_ontology_id(uri, updated_by_id)
@@ -487,7 +487,7 @@ where
         Ok((
             ontology_id,
             OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                edition_id,
+                record_id,
                 ProvenanceMetadata::new(updated_by_id),
                 owned_by_id,
             )),

@@ -11,7 +11,7 @@ use crate::{
     api::rest::utoipa_typedef::{subgraph::Vertices, EntityIdAndTimestamp},
     identifier::{
         knowledge::EntityId,
-        ontology::{OntologyTypeEditionId, OntologyTypeVersion},
+        ontology::{OntologyTypeRecordId, OntologyTypeVersion},
         time::{ProjectedTime, TimeAxis, Timestamp},
     },
     store::Record,
@@ -22,7 +22,7 @@ use crate::{
 #[serde(untagged)]
 pub enum KnowledgeGraphOutwardEdges {
     ToKnowledgeGraph(OutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>),
-    ToOntology(OutwardEdge<SharedEdgeKind, OntologyTypeEditionId>),
+    ToOntology(OutwardEdge<SharedEdgeKind, OntologyTypeRecordId>),
 }
 
 // WARNING: This MUST be kept up to date with the enum variants.
@@ -34,7 +34,7 @@ impl ToSchema<'_> for KnowledgeGraphOutwardEdges {
             "KnowledgeGraphOutwardEdges",
             OneOfBuilder::new()
                 .item(<OutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>>::schema().1)
-                .item(<OutwardEdge<SharedEdgeKind, OntologyTypeEditionId>>::schema().1)
+                .item(<OutwardEdge<SharedEdgeKind, OntologyTypeRecordId>>::schema().1)
                 .into(),
         )
     }
@@ -71,7 +71,7 @@ impl Edges {
                 HashMap::new(),
                 |mut map, (id, edges)| {
                     let edges = edges.into_iter().collect();
-                    match map.entry(id.base_id().clone()) {
+                    match map.entry(id.base_uri().clone()) {
                         Entry::Occupied(entry) => {
                             entry.into_mut().insert(id.version(), edges);
                         }

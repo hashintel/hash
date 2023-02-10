@@ -11,7 +11,7 @@ use graph::{
     identifier::{
         account::AccountId,
         knowledge::EntityId,
-        ontology::OntologyTypeEditionId,
+        ontology::OntologyTypeRecordId,
         time::{
             DecisionTime, TimeIntervalBound, Timestamp, UnresolvedImage, UnresolvedKernel,
             UnresolvedProjection, UnresolvedTimeProjection,
@@ -210,7 +210,7 @@ impl DatabaseApi<'_> {
             .await?
             .vertices
             .data_types
-            .remove(&OntologyTypeEditionId::from(uri))
+            .remove(&OntologyTypeRecordId::from(uri))
             .expect("no data type found"))
     }
 
@@ -260,7 +260,7 @@ impl DatabaseApi<'_> {
             .await?
             .vertices
             .property_types
-            .remove(&OntologyTypeEditionId::from(uri))
+            .remove(&OntologyTypeRecordId::from(uri))
             .expect("no property type found"))
     }
 
@@ -310,7 +310,7 @@ impl DatabaseApi<'_> {
             .await?
             .vertices
             .entity_types
-            .remove(&OntologyTypeEditionId::from(uri))
+            .remove(&OntologyTypeRecordId::from(uri))
             .expect("no entity type found"))
     }
 

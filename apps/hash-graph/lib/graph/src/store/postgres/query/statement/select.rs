@@ -768,7 +768,7 @@ mod tests {
             identifier::{
                 account::AccountId,
                 knowledge::EntityId,
-                ontology::{OntologyTypeEditionId, OntologyTypeVersion},
+                ontology::{OntologyTypeRecordId, OntologyTypeVersion},
             },
             knowledge::EntityUuid,
             provenance::OwnedById,
@@ -805,8 +805,8 @@ mod tests {
         }
 
         #[test]
-        fn for_ontology_type_edition_id() {
-            let uri = OntologyTypeEditionId::new(
+        fn for_ontology_type_record_id() {
+            let uri = OntologyTypeRecordId::new(
                 BaseUri::new(
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
                 )
@@ -818,7 +818,7 @@ mod tests {
             let mut compiler =
                 SelectCompiler::<DataTypeWithMetadata>::with_asterisk(&time_projection);
 
-            let filter = Filter::for_ontology_type_edition_id(&uri);
+            let filter = Filter::for_ontology_type_record_id(&uri);
             compiler.add_filter(&filter);
 
             test_compilation(
@@ -830,7 +830,7 @@ mod tests {
                   ON "ontology_id_with_metadata_0_1_0"."ontology_id" = "data_types_0_0_0"."ontology_id"
                 WHERE ("ontology_id_with_metadata_0_1_0"."base_uri" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
                 "#,
-                &[&uri.base_id().as_str(), &i64::from(uri.version().inner())],
+                &[&uri.base_uri().as_str(), &i64::from(uri.version().inner())],
             );
         }
 

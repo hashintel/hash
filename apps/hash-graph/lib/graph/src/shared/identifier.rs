@@ -9,7 +9,7 @@ use utoipa::ToSchema;
 
 use crate::identifier::{
     knowledge::EntityId,
-    ontology::OntologyTypeEditionId,
+    ontology::OntologyTypeRecordId,
     time::{ProjectedTime, Timestamp},
 };
 
@@ -47,12 +47,12 @@ impl EntityVertexId {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
 #[serde(untagged)]
 pub enum GraphElementVertexId {
-    Ontology(OntologyTypeEditionId),
+    Ontology(OntologyTypeRecordId),
     KnowledgeGraph(EntityVertexId),
 }
 
-impl From<OntologyTypeEditionId> for GraphElementVertexId {
-    fn from(id: OntologyTypeEditionId) -> Self {
+impl From<OntologyTypeRecordId> for GraphElementVertexId {
+    fn from(id: OntologyTypeRecordId) -> Self {
         Self::Ontology(id)
     }
 }

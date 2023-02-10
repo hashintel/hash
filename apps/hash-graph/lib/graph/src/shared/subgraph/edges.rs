@@ -1,6 +1,6 @@
 use std::collections::{hash_map::Entry, HashMap, HashSet};
 
-use crate::identifier::{ontology::OntologyTypeEditionId, EntityVertexId};
+use crate::identifier::{ontology::OntologyTypeRecordId, EntityVertexId};
 
 mod edge;
 mod kind;
@@ -15,13 +15,13 @@ pub use self::{
 
 #[derive(Default, Debug)]
 pub struct Edges {
-    pub ontology: HashMap<OntologyTypeEditionId, HashSet<OntologyOutwardEdges>>,
+    pub ontology: HashMap<OntologyTypeRecordId, HashSet<OntologyOutwardEdges>>,
     pub knowledge_graph: HashMap<EntityVertexId, HashSet<KnowledgeGraphOutwardEdges>>,
 }
 
 pub enum Edge {
     Ontology {
-        vertex_id: OntologyTypeEditionId,
+        vertex_id: OntologyTypeRecordId,
         outward_edge: OntologyOutwardEdges,
     },
     KnowledgeGraph {

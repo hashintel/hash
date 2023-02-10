@@ -43,7 +43,7 @@ use crate::{
         },
     },
     identifier::{
-        ontology::OntologyTypeEditionId,
+        ontology::OntologyTypeRecordId,
         time::{
             DecisionTime, DecisionTimeImage, DecisionTimeKernel, DecisionTimeProjection,
             IncludedTimeIntervalBound, TimeIntervalBound, TimeProjection, Timestamp,
@@ -177,7 +177,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             OwnedById,
             UpdatedById,
             ProvenanceMetadata,
-            OntologyTypeEditionId,
+            OntologyTypeRecordId,
             OntologyElementMetadata,
             OwnedOntologyElementMetadata,
             ExternalOntologyElementMetadata,
