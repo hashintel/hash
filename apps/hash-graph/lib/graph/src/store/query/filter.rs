@@ -93,7 +93,7 @@ where
     }
 
     /// Creates a `Filter` to search for a specific ontology type of kind `R`, identified by its
-    /// [`OntologyTypeRecordId`].
+    /// [`OntologyTypeVertexId`].
     #[must_use]
     pub fn for_ontology_type_vertex_id(ontology_type_vertex_id: &'p OntologyTypeVertexId) -> Self {
         Self::All(vec![
