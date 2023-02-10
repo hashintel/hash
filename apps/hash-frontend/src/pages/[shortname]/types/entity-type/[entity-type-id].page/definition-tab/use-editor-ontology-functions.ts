@@ -1,5 +1,7 @@
 import { EntityTypeEditorProps } from "@hashintel/type-editor";
 import { OwnedById } from "@local/hash-isomorphic-utils/types";
+import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
+import { getPropertyTypeById } from "@local/hash-subgraph/src/stdlib/element/property-type";
 import { useCallback } from "react";
 
 import { useBlockProtocolCreateEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
@@ -9,6 +11,7 @@ import { useBlockProtocolGetPropertyType } from "../../../../../../components/ho
 import { useBlockProtocolUpdateEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-entity-type";
 import { useBlockProtocolUpdatePropertyType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-property-type";
 import { useFetchEntityTypes } from "../../../../../../shared/entity-types-context/hooks";
+import { useGenerateTypeUrisForUser } from "../../../../../shared/use-generate-type-uris-for-user";
 import { useFetchLatestPropertyTypes } from "../shared/latest-property-types-context";
 
 type OntologyFunctions = EntityTypeEditorProps["ontologyFunctions"];
@@ -75,6 +78,49 @@ export const useEditorOntologyFunctions = (
     [updatePropertyType, refetchPropertyTypes],
   );
 
+  const generateTypeUrisForUser = useGenerateTypeUrisForUser();
+
+  const validateTitle = useCallback<OntologyFunctions["validateTitle"]>(
+    async ({ kind, title }) => {
+      const { versionedUri } = generateTypeUrisForUser({
+        kind,
+        title,
+        version: 1,
+      });
+
+      const res = await (kind === "entity-type"
+        ? getEntityType({ data: { entityTypeId: versionedUri } })
+        : getPropertyType({ data: { propertyTypeId: versionedUri } }));
+
+      if (!res.data) {
+        return {
+          allowed: false,
+          message: "Error checking whether title exists",
+        };
+      }
+
+      const typeIsPresent =
+        kind === "entity-type"
+          ? getEntityTypeById(res.data, versionedUri)
+          : getPropertyTypeById(res.data, versionedUri);
+
+      if (typeIsPresent) {
+        return {
+          allowed: false,
+          message: `${
+            kind === "entity-type" ? "Entity" : "Property"
+          } title must be unique`,
+        };
+      }
+
+      return {
+        allowed: true,
+        message: "ok",
+      };
+    },
+    [generateTypeUrisForUser, getEntityType, getPropertyType],
+  );
+
   return {
     getEntityType: getEntityType as any,
     createEntityType: wrappedCreateEntityType,
@@ -82,5 +128,6 @@ export const useEditorOntologyFunctions = (
     getPropertyType: getPropertyType as any,
     createPropertyType: wrappedCreatePropertyType,
     updatePropertyType: wrappedUpdatePropertyType,
+    validateTitle,
   };
 };
