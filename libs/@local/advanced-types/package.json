@@ -3,7 +3,7 @@
   "version": "0.0.0-private",
   "private": true,
   "description": "A collection of helper types",
-  "license": "AGPL-3.0",
+  "license": "MIT",
   "exports": {
     "./*": "./src/*.ts"
   },
