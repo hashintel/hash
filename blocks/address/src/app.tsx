@@ -143,6 +143,8 @@ export const App: BlockComponent<false, RootEntity> = ({
   const fileEntity = imageLinkedEntity?.rightEntity[0];
   const imageLinkEntity = imageLinkedEntity?.linkEntity[0];
 
+  console.log(imageLinkedEntity);
+
   const updateTitle = async (title: string) => {
     await graphService?.updateEntity({
       data: {
@@ -200,7 +202,7 @@ export const App: BlockComponent<false, RootEntity> = ({
               [imageUrlKey]: imageUrl,
             };
 
-            const createFileEntityResponse = await (!imageEntity
+            const createFileEntityResponse = await (!fileEntity
               ? graphService?.createEntity({
                   data: {
                     entityTypeId: fileTypeId,
@@ -209,8 +211,8 @@ export const App: BlockComponent<false, RootEntity> = ({
                 })
               : graphService?.updateEntity({
                   data: {
-                    entityId: imageEntity.metadata.recordId.entityId,
-                    entityTypeId: imageEntity.metadata.entityTypeId,
+                    entityId: fileEntity.metadata.recordId.entityId,
+                    entityTypeId: fileEntity.metadata.entityTypeId,
                     properties: fileProperties,
                   },
                 }));
@@ -474,7 +476,9 @@ export const App: BlockComponent<false, RootEntity> = ({
                 title={selectedAddress.featureName ?? title}
                 description={description}
                 fullAddress={selectedAddress.fullAddress}
-                mapUrl={selectedAddress.mapUrl}
+                mapUrl={
+                  selectedAddress.mapUrl ?? fileEntity?.properties[imageUrlKey]
+                }
                 hovered={hovered}
                 onClose={() => {
                   setAnimatingOut(true);
