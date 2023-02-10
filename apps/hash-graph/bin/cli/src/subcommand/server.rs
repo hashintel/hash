@@ -19,7 +19,6 @@ use graph::{
 };
 use regex::Regex;
 use reqwest::Client;
-use serde_json::json;
 #[cfg(feature = "type-fetcher")]
 use tarpc::context;
 use tokio::time::timeout;
