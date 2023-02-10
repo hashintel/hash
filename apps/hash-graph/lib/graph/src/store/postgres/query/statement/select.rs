@@ -81,7 +81,7 @@ mod tests {
     use uuid::Uuid;
 
     use crate::{
-        identifier::time::{TransactionTime, UnresolvedTimeProjection},
+        identifier::time::{TemporalTagged, TransactionTime, UnresolvedTimeProjection},
         knowledge::{Entity, EntityQueryPath},
         ontology::{
             DataTypeQueryPath, DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata,
