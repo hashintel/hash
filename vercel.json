@@ -4,7 +4,7 @@
   },
   "git": {
     "deploymentEnabled": {
-      "trunk-merge-*": false
+      "trunk-merge/*": false
     }
   }
 }
