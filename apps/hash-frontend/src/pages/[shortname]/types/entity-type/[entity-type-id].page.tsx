@@ -78,14 +78,15 @@ const Page: NextPageWithLayout = () => {
   const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
 
   const [
-    remoteEntityTypeAndPropertyTypes,
+    remoteEntityType,
+    remotePropertyTypes,
     updateEntityType,
     publishDraft,
     { loading: loadingRemoteEntityType },
   ] = useEntityTypeValue(
     baseEntityTypeUri,
     routeNamespace?.accountId ?? null,
-    ({ entityType: fetchedEntityType }) => {
+    (fetchedEntityType) => {
       reset({
         properties: Object.entries(fetchedEntityType.properties).map(
           ([propertyId, ref]) => {
@@ -122,19 +123,17 @@ const Page: NextPageWithLayout = () => {
     },
   );
 
-  const entityType =
-    remoteEntityTypeAndPropertyTypes?.entityType ?? draftEntityType;
+  const entityType = remoteEntityType ?? draftEntityType;
 
   const entityTypeAndPropertyTypes = useMemo(
     () =>
       entityType
         ? {
             entityType,
-            propertyTypes:
-              remoteEntityTypeAndPropertyTypes?.propertyTypes ?? {},
+            propertyTypes: remotePropertyTypes ?? {},
           }
         : null,
-    [entityType, remoteEntityTypeAndPropertyTypes],
+    [entityType, remotePropertyTypes],
   );
 
   const handleSubmit = wrapHandleSubmit(async (data) => {

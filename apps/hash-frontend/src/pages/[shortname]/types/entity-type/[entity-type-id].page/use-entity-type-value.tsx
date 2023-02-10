@@ -1,6 +1,9 @@
-import { PropertyType } from "@blockprotocol/graph";
-import { EntityType, extractBaseUri } from "@blockprotocol/type-system";
-import { VersionedUri } from "@blockprotocol/type-system/slim";
+import {
+  EntityType,
+  extractBaseUri,
+  PropertyType,
+  VersionedUri,
+} from "@blockprotocol/type-system";
 import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
 import { Subgraph } from "@local/hash-subgraph";
 import { getEntityTypesByBaseUri } from "@local/hash-subgraph/src/stdlib/element/entity-type";
@@ -22,11 +25,6 @@ import {
   useEntityTypesSubgraphOptional,
   useFetchEntityTypes,
 } from "../../../../../shared/entity-types-context/hooks";
-
-interface EntityTypeAndPropertyTypes {
-  entityType: EntityType;
-  propertyTypes: Record<VersionedUri, PropertyType>;
-}
 
 const getPropertyTypes = (
   properties: any,
@@ -63,7 +61,7 @@ const getPropertyTypes = (
 export const useEntityTypeValue = (
   entityTypeBaseUri: string | null,
   accountId: AccountId | null,
-  onCompleted?: (entityType: EntityTypeAndPropertyTypes) => void,
+  onCompleted?: (entityType: EntityType) => void,
 ) => {
   const router = useRouter();
 
@@ -77,7 +75,7 @@ export const useEntityTypeValue = (
 
   const { updateEntityType } = useBlockProtocolUpdateEntityType();
 
-  const availableEntityTypeAndPropertyTypes = useMemo(() => {
+  const contextEntityType = useMemo(() => {
     if (entityTypesLoading || !entityTypeBaseUri || !entityTypesSubgraph) {
       return null;
     }
@@ -92,63 +90,48 @@ export const useEntityTypeValue = (
     const relevantEntityType =
       relevantEntityTypes.length > 0 ? relevantEntityTypes[0]!.schema : null;
 
-    if (!relevantEntityType) {
+    return relevantEntityType;
+  }, [entityTypeBaseUri, entityTypesLoading, entityTypesSubgraph]);
+
+  const [stateEntityType, setStateEntityType] = useState(contextEntityType);
+
+  if (
+    stateEntityType !== contextEntityType &&
+    (contextEntityType ||
+      (stateEntityType &&
+        extractBaseUri(stateEntityType.$id) !== entityTypeBaseUri))
+  ) {
+    setStateEntityType(contextEntityType);
+  }
+
+  const propertyTypes = useMemo(() => {
+    if (!stateEntityType || !entityTypesSubgraph) {
       return null;
     }
 
     const relevantPropertiesMap = getPropertyTypes(
-      Object.values(relevantEntityType.properties),
+      Object.values(stateEntityType.properties),
       entityTypesSubgraph,
     );
 
-    return {
-      entityType: relevantEntityType,
-      propertyTypes: Object.fromEntries(relevantPropertiesMap),
-    };
-  }, [entityTypeBaseUri, entityTypesSubgraph, entityTypesLoading]);
+    return Object.fromEntries(relevantPropertiesMap);
+  }, [stateEntityType, entityTypesSubgraph]);
 
-  const [
-    rememberedEntityTypeAndPropertyTypes,
-    setRememberedEntityTypeAndPropertyTypes,
-  ] = useState<EntityTypeAndPropertyTypes | null>(
-    availableEntityTypeAndPropertyTypes as any, // @todo-0.3 fix this when types consistent
-  );
-
-  if (
-    rememberedEntityTypeAndPropertyTypes !==
-      availableEntityTypeAndPropertyTypes &&
-    (availableEntityTypeAndPropertyTypes ||
-      (rememberedEntityTypeAndPropertyTypes &&
-        extractBaseUri(rememberedEntityTypeAndPropertyTypes.entityType.$id) !==
-          entityTypeBaseUri))
-  ) {
-    setRememberedEntityTypeAndPropertyTypes(
-      availableEntityTypeAndPropertyTypes as any, // @todo-0.3 fix this when types consistent,
-    );
-  }
-
-  const rememberedEntityTypeAndPropertyTypesRef = useRef(
-    rememberedEntityTypeAndPropertyTypes,
-  );
+  const stateEntityTypeRef = useRef(stateEntityType);
   useLayoutEffect(() => {
-    rememberedEntityTypeAndPropertyTypesRef.current =
-      rememberedEntityTypeAndPropertyTypes;
+    stateEntityTypeRef.current = stateEntityType;
   });
 
-  const completedRef = useRef<EntityTypeAndPropertyTypes | null>(null);
+  const completedRef = useRef<VersionedUri | null>(null);
 
   useLayoutEffect(() => {
-    if (
-      completedRef.current !== rememberedEntityTypeAndPropertyTypes &&
-      rememberedEntityTypeAndPropertyTypes
-    ) {
-      completedRef.current = rememberedEntityTypeAndPropertyTypes;
-      onCompleted?.(rememberedEntityTypeAndPropertyTypes);
+    if (stateEntityType && completedRef.current !== stateEntityType.$id) {
+      completedRef.current = stateEntityType.$id;
+      onCompleted?.(stateEntityType);
     }
   });
 
-  const entityTypeUnavailable =
-    entityTypesLoading && !rememberedEntityTypeAndPropertyTypes;
+  const entityTypeUnavailable = entityTypesLoading && !stateEntityType;
 
   const lastFetchedBaseUri = useRef(entityTypeBaseUri);
 
@@ -161,12 +144,11 @@ export const useEntityTypeValue = (
 
   const updateCallback = useCallback(
     async (partialEntityType: Partial<Omit<EntityType, "$id">>) => {
-      if (!rememberedEntityTypeAndPropertyTypesRef.current) {
+      if (!stateEntityTypeRef.current) {
         throw new Error("Cannot update yet");
       }
 
-      const currentEntity = rememberedEntityTypeAndPropertyTypesRef.current;
-      const { $id, ...restOfEntityType } = currentEntity.entityType;
+      const { $id, ...restOfEntityType } = stateEntityTypeRef.current;
 
       const res = await updateEntityType({
         data: {
@@ -209,7 +191,8 @@ export const useEntityTypeValue = (
   );
 
   return [
-    entityTypeUnavailable ? null : rememberedEntityTypeAndPropertyTypes,
+    entityTypeUnavailable ? null : stateEntityType,
+    propertyTypes,
     updateCallback,
     publishDraft,
     { loading: entityTypeUnavailable },
