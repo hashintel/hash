@@ -1,5 +1,3 @@
-/* eslint-disable canonical/filename-no-index */
-
 export * from "./types/edge";
 export * from "./types/element";
 export * from "./types/identifier";

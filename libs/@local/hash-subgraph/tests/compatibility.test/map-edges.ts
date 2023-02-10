@@ -13,7 +13,7 @@ import {
   isOntologyOutwardEdge,
   isOntologyTypeRecordId,
   OutwardEdge,
-} from "../../src";
+} from "../../src/main";
 
 export const mapOutwardEdge = (
   outwardEdge: OntologyOutwardEdges | KnowledgeGraphOutwardEdges,

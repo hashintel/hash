@@ -27,7 +27,7 @@ import {
   OntologyVertex,
   PropertyObject,
   Vertices,
-} from "../../src";
+} from "../../src/main";
 
 const mapDataType = (dataType: DataTypeGraphApi): DataType => {
   const idResult = validateVersionedUri(dataType.$id);
