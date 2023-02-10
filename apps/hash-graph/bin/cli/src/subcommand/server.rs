@@ -259,12 +259,12 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         .await
     {
         if error.contains::<BaseUriAlreadyExists>() {
-            tracing::info!(%root_account_id, "tried to insert {} entity type, but it already exists", title);
+            tracing::info!(%root_account_id, "tried to insert {title} entity type, but it already exists");
         } else {
             return Err(error.change_context(GraphError));
         }
     } else {
-        tracing::info!(%root_account_id, "inserted the {} entity type", title);
+        tracing::info!(%root_account_id, "inserted the {title} entity type");
     }
 
     Ok(())
