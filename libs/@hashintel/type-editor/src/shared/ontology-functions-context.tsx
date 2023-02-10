@@ -1,5 +1,13 @@
-import { createContext, useContext } from "react";
 import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
+import { createContext, useContext } from "react";
+
+export type TitleValidationFunction = (proposal: {
+  kind: "entity-type" | "property-type";
+  title: string;
+}) => Promise<{
+  allowed: boolean;
+  message: string;
+}>;
 
 export type EditorOntologyFunctions = Pick<
   EmbedderGraphMessageCallbacks<false>,
@@ -9,7 +17,7 @@ export type EditorOntologyFunctions = Pick<
   | "getEntityType"
   | "createEntityType"
   | "updateEntityType"
->;
+> & { validateTitle: TitleValidationFunction };
 
 export const OntologyFunctionsContext =
   createContext<EditorOntologyFunctions | null>(null);

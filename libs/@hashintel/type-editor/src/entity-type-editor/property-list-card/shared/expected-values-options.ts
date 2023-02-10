@@ -1,3 +1,4 @@
+import { validateVersionedUri, VersionedUri } from "@blockprotocol/type-system";
 import {
   faList,
   faListCheck,
@@ -16,7 +17,6 @@ import {
   faText,
   theme,
 } from "@hashintel/design-system";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
 
 const chipColors = {
   blue: {
@@ -36,34 +36,43 @@ const chipColors = {
   },
 };
 
-export const expectedValuesOptions = {
-  [types.dataType.text.dataTypeId]: {
-    title: types.dataType.text.title,
+type ExpectedValueOptionMap = {
+  [key: string]: {
+    title: string;
+    icon: typeof faText;
+    colors: typeof chipColors.blue;
+    allowMultiple?: boolean;
+  };
+};
+
+export const expectedValuesOptions: ExpectedValueOptionMap = {
+  "https://blockprotocol.org/types/data-type/text/v/1": {
+    title: "Text",
     icon: faText,
     colors: chipColors.blue,
   },
-  [types.dataType.number.dataTypeId]: {
-    title: types.dataType.number.title,
+  "https://blockprotocol.org/types/data-type/number/v/1": {
+    title: "Number",
     icon: fa100,
     colors: chipColors.blue,
   },
-  [types.dataType.boolean.dataTypeId]: {
-    title: types.dataType.boolean.title,
+  "https://blockprotocol.org/types/data-type/boolean/v/1": {
+    title: "Boolean",
     icon: faSquareCheck,
     colors: chipColors.blue,
   },
-  [types.dataType.object.dataTypeId]: {
-    title: types.dataType.object.title,
+  "https://blockprotocol.org/types/data-type/object/v/1": {
+    title: "Object",
     icon: faBracketsCurly,
     colors: chipColors.blue,
   },
-  [types.dataType.emptyList.dataTypeId]: {
-    title: types.dataType.emptyList.title,
+  "https://blockprotocol.org/types/data-type/empty-list/v/1": {
+    title: "Empty List",
     icon: faBracketsSquare,
     colors: chipColors.blue,
   },
-  [types.dataType.null.dataTypeId]: {
-    title: types.dataType.null.title,
+  "https://blockprotocol.org/types/data-type/null/v/1": {
+    title: "Null",
     icon: faEmptySet,
     colors: chipColors.blue,
   },
@@ -110,3 +119,7 @@ export const expectedValuesOptions = {
     colors: chipColors.turquoise,
   },
 };
+
+export const dataTypeOptions = Object.keys(expectedValuesOptions).filter(
+  (key) => validateVersionedUri(key).type === "Ok",
+) as VersionedUri[];

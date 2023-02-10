@@ -37,15 +37,13 @@ export const PropertyExpectedValues = ({
           expectedValueOption = expectedValuesOptions[arrayType];
         } else {
           const selected = selectedExpectedValueIndex === index;
-          const childrenTitles = propertyTypes
-            ? Object.values(dataType.properties)
-                .map((prop) => {
-                  const $ref = "items" in prop ? prop.items.$ref : prop.$ref;
+          const childrenTitles = Object.values(dataType.properties)
+            .map((prop) => {
+              const $ref = "items" in prop ? prop.items.$ref : prop.$ref;
 
-                  return propertyTypes[$ref]?.title;
-                })
-                .filter((title) => title !== undefined)
-            : [];
+              return propertyTypes[$ref]?.title;
+            })
+            .filter((title) => title !== undefined);
 
           return (
             <Tooltip

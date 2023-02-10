@@ -15,7 +15,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { uniqueId } from "lodash";
+import uniqueId from "lodash.uniqueid";
 import { FunctionComponent } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 

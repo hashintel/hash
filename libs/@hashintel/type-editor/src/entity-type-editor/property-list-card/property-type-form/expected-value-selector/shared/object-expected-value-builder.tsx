@@ -194,14 +194,11 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
 
   const options = useMemo(() => {
     const propertyTypeBaseUri = getValues(`propertyTypeBaseUri`);
-    return propertyTypes
-      ? Object.values(propertyTypes)
-          .map(({ $id }) => $id)
-          .filter(
-            (versionedUri) =>
-              extractBaseUri(versionedUri) !== propertyTypeBaseUri,
-          )
-      : [];
+    return Object.values(propertyTypes)
+      .map(({ $id }) => $id)
+      .filter(
+        (versionedUri) => extractBaseUri(versionedUri) !== propertyTypeBaseUri,
+      );
   }, [propertyTypes, getValues]);
 
   return (

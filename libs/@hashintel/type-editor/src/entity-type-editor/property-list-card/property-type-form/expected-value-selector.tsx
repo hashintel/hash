@@ -18,8 +18,10 @@ import {
 } from "react-hook-form";
 
 import { useStateCallback } from "../../shared/use-state-callback";
-import { dataTypeOptions } from "../shared/data-type-options";
-import { expectedValuesOptions } from "../shared/expected-values-options";
+import {
+  dataTypeOptions,
+  expectedValuesOptions,
+} from "../shared/expected-values-options";
 import { getExpectedValueDescriptor } from "../shared/get-expected-value-descriptor";
 import { PropertyTypeFormValues } from "../shared/property-type-form-values";
 import { CustomExpectedValueBuilder } from "./expected-value-selector/custom-expected-value-builder";
@@ -315,7 +317,9 @@ export const ExpectedValueSelector = ({
             return (
               <Box component="li" {...optProps} sx={{ py: 1.5, px: 2.25 }}>
                 <FontAwesomeIcon
-                  icon={{ icon: expectedValuesOptions[typeId]!.icon }}
+                  icon={{
+                    icon: expectedValuesOptions[typeId]!.icon,
+                  }}
                   sx={(theme) => ({ color: theme.palette.gray[50] })}
                 />
                 <Typography

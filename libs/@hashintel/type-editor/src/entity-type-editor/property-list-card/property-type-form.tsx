@@ -1,13 +1,7 @@
-import { getPropertyTypeById } from "@blockprotocol/graph/stdlib";
 import { BaseUri } from "@blockprotocol/type-system";
 
 import { useOntologyFunctions } from "../../shared/ontology-functions-context";
-import {
-  generateInitialTypeUri,
-  TypeForm,
-  TypeFormProps,
-  useGenerateTypeBaseUri,
-} from "../shared/type-form";
+import { TypeForm, TypeFormProps } from "../shared/type-form";
 import { ExpectedValueSelector } from "./property-type-form/expected-value-selector";
 import { PropertyTypeFormValues } from "./shared/property-type-form-values";
 
@@ -17,28 +11,16 @@ export const PropertyTypeForm = ({
 }: TypeFormProps<PropertyTypeFormValues> & {
   baseUri?: BaseUri;
 }) => {
-  const { getPropertyType } = useOntologyFunctions();
-  const generateTypeBaseUri = useGenerateTypeBaseUri("property-type");
+  const { validateTitle: remoteValidation } = useOntologyFunctions();
 
-  const nameExists = async (name: string) => {
-    const propertyTypeId = generateInitialTypeUri(generateTypeBaseUri(name));
-
-    const res = await getPropertyType({
-      data: {
-        propertyTypeId,
-      },
+  const validateTitle = async (title: string) =>
+    remoteValidation({
+      kind: "property-type",
+      title,
     });
 
-    if (!res.data) {
-      // @todo consider non-crash error handling
-      throw new Error("Unable to check whether name is available");
-    }
-
-    return !!getPropertyTypeById(res.data, propertyTypeId);
-  };
-
   return (
-    <TypeForm nameExists={nameExists} {...props}>
+    <TypeForm validateTitle={validateTitle} {...props}>
       <ExpectedValueSelector propertyTypeBaseUri={baseUri} />
     </TypeForm>
   );

@@ -1,12 +1,12 @@
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 
-import { dataTypeOptions } from "./data-type-options";
 import {
   ArrayType,
   CustomExpectedValueTypeId,
   ExpectedValue,
   FlattenedCustomExpectedValueList,
 } from "./expected-value-types";
+import { dataTypeOptions } from "./expected-values-options";
 
 export const getArrayExpectedValueType = (
   childrenTypeArray: CustomExpectedValueTypeId[],

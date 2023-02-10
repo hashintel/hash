@@ -15,7 +15,7 @@ import {
   useForkRef,
 } from "@mui/material";
 import { Box, experimental_sx, styled } from "@mui/system";
-import { memoize } from "lodash";
+import memoize from "lodash.memoize";
 import { forwardRef, ReactNode, useEffect, useRef, useState } from "react";
 
 /**

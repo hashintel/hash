@@ -1,17 +1,19 @@
 import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
-import { uniqueId } from "lodash";
+import uniqueId from "lodash.uniqueid";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { FunctionComponent, useEffect, useMemo, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
-import { dataTypeOptions as primitiveDataTypeOptions } from "../../../shared/data-type-options";
 import { getDefaultExpectedValue } from "../../../shared/default-expected-value";
 import {
   CustomExpectedValue,
   CustomExpectedValueTypeId,
 } from "../../../shared/expected-value-types";
-import { expectedValuesOptions } from "../../../shared/expected-values-options";
+import {
+  dataTypeOptions as primitiveDataTypeOptions,
+  expectedValuesOptions,
+} from "../../../shared/expected-values-options";
 import { CustomExpectedValueSelector } from "../shared/custom-expected-value-selector";
 import { DeleteExpectedValueModal } from "../shared/delete-expected-value-modal";
 import { ExpectedValueBadge } from "../shared/expected-value-badge";

@@ -8,12 +8,6 @@ import {
   Modal,
   TextField,
 } from "@hashintel/design-system";
-import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import {
-  generateBaseTypeId,
-  SchemaKind,
-} from "@local/hash-isomorphic-utils/ontology-types";
-import { versionedUriFromComponents } from "@local/hash-subgraph/src/shared/type-system-patch";
 import {
   Box,
   Divider,
@@ -26,7 +20,6 @@ import {
   bindToggle,
   PopupState,
 } from "material-ui-popup-state/hooks";
-import { useRouter } from "next/router";
 import {
   ComponentPropsWithoutRef,
   ComponentPropsWithRef,
@@ -47,6 +40,7 @@ import {
   useFormContext,
 } from "react-hook-form";
 
+import { TitleValidationFunction } from "../../shared/ontology-functions-context";
 import { QuestionIcon } from "./question-icon";
 import { withHandler } from "./with-handler";
 
@@ -55,12 +49,12 @@ type TypeFormSubmitProps = Omit<
   "size" | "variant" | "disabled" | "type" | "loading"
 >;
 
-export const TypeFormNameField = ({
+export const TypeFormTitleField = ({
   fieldDisabled,
-  typeExists,
+  validateTitle,
 }: {
   fieldDisabled: boolean;
-  typeExists: (name: string) => Promise<boolean>;
+  validateTitle: (title: string) => ReturnType<TitleValidationFunction>;
 }) => {
   const {
     register,
@@ -102,11 +96,11 @@ export const TypeFormNameField = ({
             return true;
           }
 
-          const exists = await typeExists(value);
+          const { allowed, message } = await validateTitle(value);
 
-          setTitleValid(getValues("name") === value && !exists);
+          setTitleValid(getValues("name") === value && allowed);
 
-          return exists ? "Property type name must be unique" : true;
+          return !allowed ? message : true;
         },
       })}
     />
@@ -187,27 +181,6 @@ export const TypeFormDescriptionField = ({
   );
 };
 
-export const generateInitialTypeUri = (baseUri: string) =>
-  versionedUriFromComponents(baseUri, 1);
-
-export const useGenerateTypeBaseUri = (kind: SchemaKind) => {
-  const router = useRouter();
-  const shortname = router.query.shortname?.toString().slice(1) ?? "";
-
-  return (value: string) => {
-    if (!shortname) {
-      throw new Error("Shortname must exist");
-    }
-
-    return generateBaseTypeId({
-      domain: frontendUrl,
-      namespace: shortname,
-      kind,
-      title: value,
-    });
-  };
-};
-
 type TypeFormModalProps<T extends ElementType = "div"> =
   ComponentPropsWithoutRef<T> & {
     as?: T;
@@ -267,7 +240,6 @@ export type TypeFormProps<T extends TypeFormDefaults = TypeFormDefaults> = {
 
 export const TypeForm = <T extends TypeFormDefaults>({
   children,
-  nameExists,
   disabledFields = [],
   getDefaultValues,
   onClose,
@@ -275,9 +247,10 @@ export const TypeForm = <T extends TypeFormDefaults>({
   popupState,
   onSubmit,
   submitButtonProps,
+  validateTitle,
 }: {
   children?: ReactNode;
-  nameExists: (name: string) => Promise<boolean>;
+  validateTitle: (title: string) => ReturnType<TitleValidationFunction>;
 } & TypeFormProps<T>) => {
   const defaultValues = useMemo(() => getDefaultValues(), [getDefaultValues]);
 
@@ -362,9 +335,9 @@ export const TypeForm = <T extends TypeFormDefaults>({
             },
           }}
         >
-          <TypeFormNameField
+          <TypeFormTitleField
             fieldDisabled={disabledFields.includes("name")}
-            typeExists={nameExists}
+            validateTitle={validateTitle}
           />
           <TypeFormDescriptionField
             defaultValues={defaultValues}

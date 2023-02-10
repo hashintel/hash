@@ -1,4 +1,3 @@
-import { getEntityTypeById } from "@blockprotocol/graph/stdlib";
 import { EntityType, VersionedUri } from "@blockprotocol/type-system/slim";
 import { LinkIcon, StyledPlusCircleIcon } from "@hashintel/design-system";
 import { TableBody, TableCell, TableFooter, TableHead } from "@mui/material";
@@ -26,12 +25,10 @@ import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
 import { MultipleValuesCell } from "./shared/multiple-values-cell";
 import { QuestionIcon } from "./shared/question-icon";
 import {
-  generateInitialTypeUri,
   TypeForm,
   TypeFormDefaults,
   TypeFormModal,
   TypeFormProps,
-  useGenerateTypeBaseUri,
 } from "./shared/type-form";
 import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { useStateCallback } from "./shared/use-state-callback";
@@ -50,28 +47,15 @@ const formDataToEntityType = (data: TypeFormDefaults) => ({
 });
 
 export const LinkTypeForm = (props: TypeFormProps) => {
-  const generateTypeBaseUri = useGenerateTypeBaseUri("entity-type");
+  const { validateTitle: remoteValidation } = useOntologyFunctions();
 
-  const { getEntityType } = useOntologyFunctions();
-
-  const nameExists = async (name: string) => {
-    const entityTypeId = generateInitialTypeUri(generateTypeBaseUri(name));
-
-    const res = await getEntityType({
-      data: {
-        entityTypeId,
-      },
+  const validateTitle = async (title: string) =>
+    remoteValidation({
+      kind: "entity-type",
+      title,
     });
 
-    if (!res.data) {
-      // @todo consider non-crash error handling
-      throw new Error("Unable to check whether name is available");
-    }
-
-    return !!getEntityTypeById(res.data, entityTypeId);
-  };
-
-  return <TypeForm nameExists={nameExists} {...props} />;
+  return <TypeForm validateTitle={validateTitle} {...props} />;
 };
 
 const LinkTypeRow = ({

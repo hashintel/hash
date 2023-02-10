@@ -5,7 +5,7 @@ import {
   PropertyValues,
   VersionedUri,
 } from "@blockprotocol/type-system";
-import { uniqueId } from "lodash";
+import uniqueId from "lodash.uniqueid";
 
 import { arrayExpectedValueDataDefaults } from "./shared/default-expected-value";
 import { ExpectedValue } from "./shared/expected-value-types";
