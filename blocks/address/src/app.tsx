@@ -10,6 +10,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import {
   CircularProgress,
   Collapse,
+  Fade,
   styled,
   ThemeProvider,
   Typography,
@@ -331,7 +332,7 @@ export const App: BlockComponent<true, RootEntity> = ({
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
         >
-          <Collapse
+          <Fade
             in={hovered || autocompleteFocused || animatingIn || animatingOut}
           >
             <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap" }}>
@@ -376,7 +377,7 @@ export const App: BlockComponent<true, RootEntity> = ({
                 to render a fixed map
               </TopBarTypography>
             </Box>
-          </Collapse>
+          </Fade>
 
           <Collapse
             in={!selectedAddress && !animatingIn}
