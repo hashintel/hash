@@ -8,12 +8,17 @@ mod knowledge;
 mod migration;
 mod ontology;
 mod pool;
-mod postgres;
 mod record;
+
+#[cfg(feature = "type-fetcher")]
+mod fetcher;
+mod postgres;
 
 use async_trait::async_trait;
 use error_stack::Result;
 
+#[cfg(feature = "type-fetcher")]
+pub use self::fetcher::FetchingPool;
 pub use self::{
     account::AccountStore,
     config::{DatabaseConnectionInfo, DatabaseType},
