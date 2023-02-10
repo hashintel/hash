@@ -25,6 +25,7 @@ import {
   ComponentPropsWithRef,
   createElement,
   ElementType,
+  FormEvent,
   forwardRef,
   ReactElement,
   ReactNode,
@@ -317,7 +318,7 @@ export const TypeForm = <T extends TypeFormDefaults>({
         p={3}
         component="form"
         display="block"
-        onSubmit={(event) => {
+        onSubmit={(event: FormEvent<HTMLFormElement>) => {
           event.preventDefault();
           event.stopPropagation(); // stop the parent submit being triggered
 

@@ -482,7 +482,7 @@ export const PropertyTypeRow = ({
         baseUri={extractBaseUri($id)}
         popupState={editModalPopupState}
         modalTitle={<>Edit Property Type</>}
-        onSubmit={async (data) => {
+        onSubmit={async (data: PropertyTypeFormValues) => {
           const res = await updatePropertyType({
             data: {
               propertyTypeId: $id,
