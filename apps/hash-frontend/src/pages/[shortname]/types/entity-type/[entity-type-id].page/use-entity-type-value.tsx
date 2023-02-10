@@ -4,7 +4,7 @@ import {
   PropertyType,
   VersionedUri,
 } from "@blockprotocol/type-system";
-import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
+import { AccountId, OwnedById } from "@local/hash-graphql-shared/types";
 import { Subgraph } from "@local/hash-subgraph";
 import { getEntityTypesByBaseUri } from "@local/hash-subgraph/src/stdlib/element/entity-type";
 import { getPropertyTypeById } from "@local/hash-subgraph/src/stdlib/element/property-type";
@@ -85,12 +85,22 @@ export const useEntityTypeValue = (
       entityTypeBaseUri,
     );
 
-    /** @todo - pick the latest version? */
-    // @todo handle adding any linked properties to known property types
-    const relevantEntityType =
-      relevantEntityTypes.length > 0 ? relevantEntityTypes[0]!.schema : null;
+    if (relevantEntityTypes.length > 0) {
+      const relevantVersions = relevantEntityTypes.map(
+        ({
+          metadata: {
+            recordId: { version },
+          },
+        }) => version,
+      );
+      const relevantVersionindex = relevantVersions.indexOf(
+        Math.max(...relevantVersions),
+      );
 
-    return relevantEntityType;
+      return relevantEntityTypes[relevantVersionindex]!.schema;
+    }
+
+    return null;
   }, [entityTypeBaseUri, entityTypesLoading, entityTypesSubgraph]);
 
   const [stateEntityType, setStateEntityType] = useState(contextEntityType);

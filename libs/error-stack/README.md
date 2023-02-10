@@ -141,7 +141,7 @@ For more examples of `error-stack` in use, please check out the [examples](https
 
 ## Contributors
 
-`error-stack` was created and is maintained by [HASH](https://hash.dev/). As an open-source project, we gratefully accept external contributions and have published a [contributing guide](https://github.com/hashintel/hash/blob/main/CONTRIBUTING.md) that outlines the process. If you have questions, please reach out to us on our [Discord server](https://hash.ai/discord).
+`error-stack` was created and is maintained by [HASH](https://hash.dev/). As an open-source project, we gratefully accept external contributions and have published a [contributing guide](https://github.com/hashintel/hash/blob/main/CONTRIBUTING.md) that outlines the process. If you have questions, please reach out to us on our [Discord server](https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_libs-error-stack-readme).
 
 ## License
 

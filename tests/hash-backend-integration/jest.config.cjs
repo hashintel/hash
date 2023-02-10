@@ -11,6 +11,8 @@ module.exports = {
   moduleNameMapper: {
     "@local/hash-backend-utils(.*)":
       "<rootDir>/../../libs/@local/hash-backend-utils/src$1",
+    "@local/hash-graphql-shared(.*)":
+      "<rootDir>/../../libs/@local/hash-graphql-shared/src$1",
     "@local/hash-isomorphic-utils(.*)":
       "<rootDir>/../../libs/@local/hash-isomorphic-utils/src$1",
     "@local/hash-graph-client": "<rootDir>/../../libs/@local/hash-graph-client",

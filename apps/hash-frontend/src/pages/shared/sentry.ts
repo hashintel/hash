@@ -12,13 +12,13 @@ export const setSentryUser = (params: {
       scope.setUser(null);
     } else if (
       authenticatedUser &&
-      sentryUser?.id !== authenticatedUser.entityEditionId.baseId
+      sentryUser?.id !== authenticatedUser.entityRecordId.entityId
     ) {
       const primaryEmail = authenticatedUser.emails.find(
         (email) => email.primary,
       );
       setUser({
-        id: authenticatedUser.entityEditionId.baseId,
+        id: authenticatedUser.entityRecordId.entityId,
         email: primaryEmail?.address,
       });
     }

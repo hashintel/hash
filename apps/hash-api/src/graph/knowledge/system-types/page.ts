@@ -1,9 +1,9 @@
-import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import {
   AccountId,
   extractOwnedByIdFromEntityId,
   OwnedById,
-} from "@local/hash-isomorphic-utils/types";
+} from "@local/hash-graphql-shared/types";
+import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import {
   Entity,
   EntityId,
@@ -12,6 +12,7 @@ import {
   SubgraphRootTypes,
 } from "@local/hash-subgraph";
 import { getEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
+import { mapSubgraph } from "@local/hash-subgraph/src/temp";
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 
@@ -61,30 +62,30 @@ export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
     entity.metadata.entityTypeId !== SYSTEM_TYPES.entityType.page.schema.$id
   ) {
     throw new EntityTypeMismatchError(
-      entity.metadata.editionId.baseId,
+      entity.metadata.recordId.entityId,
       SYSTEM_TYPES.entityType.block.schema.$id,
       entity.metadata.entityTypeId,
     );
   }
 
   const title = entity.properties[
-    SYSTEM_TYPES.propertyType.title.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.title.metadata.recordId.baseUri
   ] as string;
 
   const summary = entity.properties[
-    SYSTEM_TYPES.propertyType.summary.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.summary.metadata.recordId.baseUri
   ] as string | undefined;
 
   const index = entity.properties[
-    SYSTEM_TYPES.propertyType.index.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.index.metadata.recordId.baseUri
   ] as string | undefined;
 
   const icon = entity.properties[
-    SYSTEM_TYPES.propertyType.icon.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.icon.metadata.recordId.baseUri
   ] as string | undefined;
 
   const archived = entity.properties[
-    SYSTEM_TYPES.propertyType.archived.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.archived.metadata.recordId.baseUri
   ] as boolean | undefined;
 
   return {
@@ -136,16 +137,16 @@ export const createPage: ImpureGraphFunction<
   const index = generateKeyBetween(prevIndex ?? null, null);
 
   const properties: PropertyObject = {
-    [SYSTEM_TYPES.propertyType.title.metadata.editionId.baseId]: title,
+    [SYSTEM_TYPES.propertyType.title.metadata.recordId.baseUri]: title,
     ...(summary
       ? {
-          [SYSTEM_TYPES.propertyType.summary.metadata.editionId.baseId]:
+          [SYSTEM_TYPES.propertyType.summary.metadata.recordId.baseUri]:
             summary,
         }
       : {}),
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- account for old browsers
     ...(index !== undefined
-      ? { [SYSTEM_TYPES.propertyType.index.metadata.editionId.baseId]: index }
+      ? { [SYSTEM_TYPES.propertyType.index.metadata.recordId.baseUri]: index }
       : {}),
   };
 
@@ -168,7 +169,7 @@ export const createPage: ImpureGraphFunction<
             blockData: await createEntity(ctx, {
               ownedById,
               properties: {
-                [SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId]:
+                [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUri]:
                   [],
               },
               entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
@@ -204,7 +205,7 @@ export const getPageParentPage: ImpureGraphFunction<
 
   if (unexpectedParentPageLinks.length > 0) {
     throw new Error(
-      `Critical: Page with entity ID ${page.entity.metadata.editionId.baseId} has more than one parent page`,
+      `Critical: Page with entity ID ${page.entity.metadata.recordId.entityId} has more than one parent page`,
     );
   }
 
@@ -271,7 +272,9 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
       },
     })
     .then(({ data: subgraph }) =>
-      getEntities(subgraph as Subgraph<SubgraphRootTypes["entity"]>),
+      getEntities(
+        mapSubgraph(subgraph) as Subgraph<SubgraphRootTypes["entity"]>,
+      ),
     );
 
   const pages = pageEntities
@@ -281,7 +284,7 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
      */
     .filter(
       (pageEntity) =>
-        extractOwnedByIdFromEntityId(pageEntity.metadata.editionId.baseId) ===
+        extractOwnedByIdFromEntityId(pageEntity.metadata.recordId.entityId) ===
         params.workspace.accountId,
     )
     .map((entity) => getPageFromEntity({ entity }));
@@ -312,8 +315,8 @@ export const pageHasParentPage: ImpureGraphFunction<
   const { page, parentPage } = params;
 
   if (
-    page.entity.metadata.editionId.baseId ===
-    parentPage.entity.metadata.editionId.baseId
+    page.entity.metadata.recordId.entityId ===
+    parentPage.entity.metadata.recordId.entityId
   ) {
     throw new Error("A page cannot be the parent of itself");
   }
@@ -325,8 +328,8 @@ export const pageHasParentPage: ImpureGraphFunction<
   }
 
   if (
-    actualParentPage.entity.metadata.editionId.baseId ===
-    page.entity.metadata.editionId.baseId
+    actualParentPage.entity.metadata.recordId.entityId ===
+    page.entity.metadata.recordId.entityId
   ) {
     return true;
   }
@@ -357,13 +360,13 @@ export const removeParentPage: ImpureGraphFunction<
 
   if (unexpectedParentPageLinks.length > 0) {
     throw new Error(
-      `Critical: Page with entityId ${page.entity.metadata.editionId.baseId} has more than one parent page`,
+      `Critical: Page with entityId ${page.entity.metadata.recordId.entityId} has more than one parent page`,
     );
   }
 
   if (!parentPageLink) {
     throw new Error(
-      `Page with entityId ${page.entity.metadata.editionId.baseId} does not have a parent page`,
+      `Page with entityId ${page.entity.metadata.recordId.entityId} does not have a parent page`,
     );
   }
 
@@ -405,15 +408,15 @@ export const setPageParentPage: ImpureGraphFunction<
     // Check whether adding the parent page would create a cycle
     if (await pageHasParentPage(ctx, { page: parentPage, parentPage: page })) {
       throw new ApolloError(
-        `Could not set '${parentPage.entity.metadata.editionId.baseId}' as parent of '${page.entity.metadata.editionId.baseId}', this would create a cyclic dependency.`,
+        `Could not set '${parentPage.entity.metadata.recordId.entityId}' as parent of '${page.entity.metadata.recordId.entityId}', this would create a cyclic dependency.`,
         "CYCLIC_TREE",
       );
     }
 
     await createLinkEntity(ctx, {
       linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
-      leftEntityId: page.entity.metadata.editionId.baseId,
-      rightEntityId: parentPage.entity.metadata.editionId.baseId,
+      leftEntityId: page.entity.metadata.recordId.entityId,
+      rightEntityId: parentPage.entity.metadata.recordId.entityId,
       ownedById: actorId as OwnedById,
       actorId,
     });
@@ -423,7 +426,7 @@ export const setPageParentPage: ImpureGraphFunction<
     const updatedPageEntity = await updateEntityProperty(ctx, {
       entity: page.entity,
       propertyTypeBaseUri:
-        SYSTEM_TYPES.propertyType.index.metadata.editionId.baseId,
+        SYSTEM_TYPES.propertyType.index.metadata.recordId.baseUri,
       value: newIndex,
       actorId,
     });
@@ -454,8 +457,8 @@ export const getPageBlocks: ImpureGraphFunction<
         (a, b) =>
           (a.linkData.leftToRightOrder ?? 0) -
             (b.linkData.leftToRightOrder ?? 0) ||
-          a.metadata.editionId.baseId.localeCompare(
-            b.metadata.editionId.baseId,
+          a.metadata.recordId.entityId.localeCompare(
+            b.metadata.recordId.entityId,
           ) ||
           a.metadata.version.decisionTime.start.localeCompare(
             b.metadata.version.decisionTime.start,
@@ -486,8 +489,8 @@ export const addBlockToPage: ImpureGraphFunction<
   const { position: specifiedPosition, actorId, page, block } = params;
 
   await createLinkEntity(ctx, {
-    leftEntityId: page.entity.metadata.editionId.baseId,
-    rightEntityId: block.entity.metadata.editionId.baseId,
+    leftEntityId: page.entity.metadata.recordId.entityId,
+    rightEntityId: block.entity.metadata.recordId.entityId,
     linkEntityType: SYSTEM_TYPES.linkEntityType.contains,
     leftToRightOrder:
       specifiedPosition ??
@@ -495,7 +498,7 @@ export const addBlockToPage: ImpureGraphFunction<
       ((await getPageBlocks(ctx, { page })).length === 0 ? 0 : undefined),
     // assume that link to block is owned by the same account as the page
     ownedById: extractOwnedByIdFromEntityId(
-      page.entity.metadata.editionId.baseId,
+      page.entity.metadata.recordId.entityId,
     ),
     actorId,
   });
@@ -540,7 +543,7 @@ export const moveBlockInPage: ImpureGraphFunction<
 
   if (!linkEntity) {
     throw new Error(
-      `Critical: could not find contents link with index ${currentPosition} for page with entityId ${page.entity.metadata.editionId.baseId}`,
+      `Critical: could not find contents link with index ${currentPosition} for page with entityId ${page.entity.metadata.recordId.entityId}`,
     );
   }
 
@@ -589,7 +592,7 @@ export const removeBlockFromPage: ImpureGraphFunction<
 
   if (!linkEntity) {
     throw new Error(
-      `Critical: could not find contents link with index ${position} for page with entity ID ${page.entity.metadata.editionId.baseId}`,
+      `Critical: could not find contents link with index ${position} for page with entity ID ${page.entity.metadata.recordId.entityId}`,
     );
   }
 

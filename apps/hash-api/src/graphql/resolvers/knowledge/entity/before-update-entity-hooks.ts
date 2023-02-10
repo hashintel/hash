@@ -65,7 +65,7 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
   const currentShortname = user.shortname;
 
   const updatedShortname = updatedProperties[
-    SYSTEM_TYPES.propertyType.shortName.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUri
   ] as string | undefined;
 
   if (currentShortname !== updatedShortname) {
@@ -79,7 +79,7 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
   const currentPreferredName = user.preferredName;
 
   const updatedPreferredName = updatedProperties[
-    SYSTEM_TYPES.propertyType.preferredName.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.preferredName.metadata.recordId.baseUri
   ] as string | undefined;
 
   if (currentPreferredName !== updatedPreferredName) {
@@ -91,7 +91,7 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
   const currentEmails = user.emails;
 
   const updatedEmails = updatedProperties[
-    SYSTEM_TYPES.propertyType.email.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.email.metadata.recordId.baseUri
   ] as string[];
 
   if (

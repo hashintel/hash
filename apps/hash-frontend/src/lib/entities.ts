@@ -31,7 +31,7 @@ export const generateEntityLabel = (
 
   const getFallbackLabel = () => {
     // fallback to the entity type and a few characters of the entityUuid
-    const entityId = entityToLabel.metadata.editionId.baseId;
+    const entityId = entityToLabel.metadata.recordId.entityId;
 
     const entityType = getEntityTypeById(
       entitySubgraph,

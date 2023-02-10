@@ -16,6 +16,7 @@
     "@blockprotocol/type-system": "0.0.4-canary-20230209084023",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
+    "@local/hash-graphql-shared": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "execa": "5.1.1",

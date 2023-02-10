@@ -13,7 +13,7 @@ use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
         ontology::OntologyTypeEditionId,
-        time::{DecisionTime, TimeProjection, Timestamp, VersionInterval},
+        time::{DecisionTime, TimeProjection, Timestamp},
         EntityVertexId,
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
@@ -64,8 +64,7 @@ impl<C: AsClient> PostgresStore<C> {
             let version_interval = entity
                 .metadata()
                 .version()
-                .projected_time(time_axis)
-                .into_time_interval();
+                .projected_time(time_axis);
 
             // Intersects the version interval of the entity with the time projection's time
             // interval. We only want to resolve the entity further for the overlap of these two
@@ -374,10 +373,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         Ok(EntityMetadata::new(
             EntityEditionId::new(entity_id, EntityRecordId::new(row.get(0))),
-            EntityVersion::new(
-                VersionInterval::from_anonymous(row.get(1)),
-                VersionInterval::from_anonymous(row.get(2)),
-            ),
+            EntityVersion {
+                decision_time: row.get(1),
+                transaction_time: row.get(2),
+            },
             entity_type_id,
             ProvenanceMetadata::new(updated_by_id),
             archived,
@@ -602,10 +601,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         Ok(EntityMetadata::new(
             EntityEditionId::new(entity_id, EntityRecordId::new(row.get(0))),
-            EntityVersion::new(
-                VersionInterval::from_anonymous(row.get(1)),
-                VersionInterval::from_anonymous(row.get(2)),
-            ),
+            EntityVersion {
+                decision_time: row.get(1),
+                transaction_time: row.get(2),
+            },
             entity_type_id,
             ProvenanceMetadata::new(updated_by_id),
             archived,

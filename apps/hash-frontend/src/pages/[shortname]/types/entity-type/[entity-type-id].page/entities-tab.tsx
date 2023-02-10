@@ -55,7 +55,7 @@ export const EntitiesTab: FunctionComponent = () => {
     const namespaceEntities =
       entities?.filter(
         (entity) =>
-          extractOwnedByIdFromEntityId(entity.metadata.editionId.baseId) ===
+          extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId) ===
           activeWorkspaceAccountId,
       ) ?? [];
 

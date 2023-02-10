@@ -22,8 +22,9 @@ private = false
 category = "Deploy"
 description = "Spins up the deployment environment"
 extend = "yarn"
-args = ["external-services", "up", "postgres", "--wait"]
+args = ["external-services", "up", "postgres", "type-fetcher", "--build", "--wait"]
 cwd = "${REPO_ROOT}"
+env = { DOCKER_BUILDKIT = 1 }
 
 [tasks.migrate-db]
 extend = "cargo"

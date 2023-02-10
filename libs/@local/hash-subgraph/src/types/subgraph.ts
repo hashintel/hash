@@ -1,7 +1,4 @@
-import {
-  GraphResolveDepths,
-  OntologyTypeEditionId,
-} from "@local/hash-graph-client";
+import { GraphResolveDepths } from "@local/hash-graph-client";
 
 import { Edges } from "./edge";
 import {
@@ -10,21 +7,21 @@ import {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "./element";
-import { EntityVertexId } from "./identifier";
+import { EntityVertexId, OntologyTypeVertexId } from "./identifier";
 import { ResolvedTimeProjection, TimeProjection } from "./time";
 import { Vertices } from "./vertex";
 
 export type SubgraphRootTypes = {
   dataType: {
-    vertexId: OntologyTypeEditionId;
+    vertexId: OntologyTypeVertexId;
     element: DataTypeWithMetadata;
   };
   propertyType: {
-    vertexId: OntologyTypeEditionId;
+    vertexId: OntologyTypeVertexId;
     element: PropertyTypeWithMetadata;
   };
   entityType: {
-    vertexId: OntologyTypeEditionId;
+    vertexId: OntologyTypeVertexId;
     element: EntityTypeWithMetadata;
   };
   entity: {

@@ -32,6 +32,7 @@
     "@hashintel/design-system": "0.0.1",
     "@hashintel/type-editor": "0.0.3",
     "@lit-labs/react": "1.0.6",
+    "@local/hash-graphql-shared": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@mui/icons-material": "5.11.0",
@@ -80,6 +81,7 @@
     "react-transition-group": "4.4.2",
     "rooks": "7.4.3",
     "setimmediate": "1.0.5",
+    "ts-node": "10.9.1",
     "url-regex-safe": "2.0.2",
     "use-font-face-observer": "1.2.1",
     "uuid": "8.3.2"
