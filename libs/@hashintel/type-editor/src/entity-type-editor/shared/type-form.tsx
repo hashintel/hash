@@ -318,11 +318,10 @@ export const TypeForm = <T extends TypeFormDefaults>({
         component="form"
         display="block"
         onSubmit={(event) => {
+          event.preventDefault();
           event.stopPropagation(); // stop the parent submit being triggered
 
-          void handleSubmit(event).then(() => {
-            popupState.close();
-          });
+          void handleSubmit();
         }}
       >
         <Stack

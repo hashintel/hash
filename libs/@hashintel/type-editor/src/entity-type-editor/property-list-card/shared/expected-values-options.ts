@@ -46,32 +46,32 @@ type ExpectedValueOptionMap = {
 };
 
 export const expectedValuesOptions: ExpectedValueOptionMap = {
-  "https://blockprotocol.org/types/data-type/text/v/1": {
+  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1": {
     title: "Text",
     icon: faText,
     colors: chipColors.blue,
   },
-  "https://blockprotocol.org/types/data-type/number/v/1": {
+  "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1": {
     title: "Number",
     icon: fa100,
     colors: chipColors.blue,
   },
-  "https://blockprotocol.org/types/data-type/boolean/v/1": {
+  "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1": {
     title: "Boolean",
     icon: faSquareCheck,
     colors: chipColors.blue,
   },
-  "https://blockprotocol.org/types/data-type/object/v/1": {
+  "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1": {
     title: "Object",
     icon: faBracketsCurly,
     colors: chipColors.blue,
   },
-  "https://blockprotocol.org/types/data-type/empty-list/v/1": {
+  "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/v/1": {
     title: "Empty List",
     icon: faBracketsSquare,
     colors: chipColors.blue,
   },
-  "https://blockprotocol.org/types/data-type/null/v/1": {
+  "https://blockprotocol.org/@blockprotocol/types/data-type/null/v/1": {
     title: "Null",
     icon: faEmptySet,
     colors: chipColors.blue,
