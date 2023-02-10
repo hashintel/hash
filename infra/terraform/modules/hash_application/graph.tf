@@ -26,9 +26,9 @@ locals {
     mountPoints = []
     volumesFrom = []
     healthCheck = {
-      command  = ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:${local.graph_container_port}/api-doc/openapi.json || exit 1"]
+      command  = ["CMD", "/hash-graph", "server", "--healthcheck"]
       retries  = 5
-      interval = 30
+      interval = 20
       timeout  = 5
 
     }
