@@ -43,18 +43,18 @@ export const getHashInstanceFromEntity: PureGraphFunction<
   }
 
   const userSelfRegistrationIsEnabled = entity.properties[
-    SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.metadata.editionId
-      .baseId
+    SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.metadata.recordId
+      .baseUri
   ] as boolean;
 
   const userRegistrationByInviteIsEnabled = entity.properties[
     SYSTEM_TYPES.propertyType.userRegistrationByInviteIsEnabled.metadata
-      .editionId.baseId
+      .recordId.baseUri
   ] as boolean;
 
   const orgSelfRegistrationIsEnabled = entity.properties[
-    SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.metadata.editionId
-      .baseId
+    SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.metadata.recordId
+      .baseUri
   ] as boolean;
 
   return {
@@ -150,12 +150,12 @@ export const createHashInstance: ImpureGraphFunction<
   const entity = await createEntity(ctx, {
     ownedById: systemUserAccountId as OwnedById,
     properties: {
-      [SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.metadata
-        .editionId.baseId]: params.userSelfRegistrationIsEnabled ?? true,
+      [SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.metadata.recordId
+        .baseUri]: params.userSelfRegistrationIsEnabled ?? true,
       [SYSTEM_TYPES.propertyType.userRegistrationByInviteIsEnabled.metadata
-        .editionId.baseId]: params.userRegistrationByInviteIsEnabled ?? true,
-      [SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.metadata.editionId
-        .baseId]: params.orgSelfRegistrationIsEnabled ?? true,
+        .recordId.baseUri]: params.userRegistrationByInviteIsEnabled ?? true,
+      [SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.metadata.recordId
+        .baseUri]: params.orgSelfRegistrationIsEnabled ?? true,
     },
     entityTypeId: SYSTEM_TYPES.entityType.hashInstance.schema.$id,
     actorId,

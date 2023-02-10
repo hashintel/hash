@@ -5,41 +5,48 @@ import {
   PropertyType,
   VersionedUri,
 } from "@blockprotocol/type-system";
-import {
-  DataTypeWithMetadata as DataTypeWithMetadataGraphApi,
-  EntityTypeWithMetadata as EntityTypeWithMetadataGraphApi,
-  ExternalOntologyElementMetadata,
-  OntologyElementMetadata,
-  OwnedOntologyElementMetadata,
-  PropertyTypeWithMetadata as PropertyTypeWithMetadataGraphApi,
-  ProvenanceMetadata as ProvenanceMetadataGraphApi,
-} from "@local/hash-graph-client";
+import { ProvenanceMetadata as ProvenanceMetadataGraphApi } from "@local/hash-graph-client";
 
-import { EntityId, EntityRecordId, EntityVersion } from "./identifier";
+import {
+  EntityId,
+  EntityRecordId,
+  EntityVersion,
+  OntologyTypeRecordId,
+  Timestamp,
+} from "./identifier";
 
 // Due to restrictions with how much OpenAPI can express, we patch the schemas with the better-typed ones from the
 // type-system package.
 
-export type DataTypeWithMetadata = Omit<
-  DataTypeWithMetadataGraphApi,
-  "schema"
-> & { schema: DataType };
+export type OwnedOntologyElementMetadata = {
+  recordId: OntologyTypeRecordId;
+  ownedById: string;
+  provenance: ProvenanceMetadataGraphApi;
+};
 
-export type PropertyTypeWithMetadata = Omit<
-  PropertyTypeWithMetadataGraphApi,
-  "schema"
-> & { schema: PropertyType };
+export type ExternalOntologyElementMetadata = {
+  recordId: OntologyTypeRecordId;
+  fetchedAt: Timestamp;
+};
 
-export type EntityTypeWithMetadata = Omit<
-  EntityTypeWithMetadataGraphApi,
-  "schema"
-> & { schema: EntityType };
+export type OntologyElementMetadata =
+  | OwnedOntologyElementMetadata
+  | ExternalOntologyElementMetadata;
 
-export type {
-  ExternalOntologyElementMetadata,
-  OntologyElementMetadata,
-  OwnedOntologyElementMetadata,
-} from "@local/hash-graph-client";
+export type DataTypeWithMetadata = {
+  schema: DataType;
+  metadata: OntologyElementMetadata;
+};
+
+export type PropertyTypeWithMetadata = {
+  schema: PropertyType;
+  metadata: OntologyElementMetadata;
+};
+
+export type EntityTypeWithMetadata = {
+  schema: EntityType;
+  metadata: OntologyElementMetadata;
+};
 
 export const isExternalOntologyElementMetadata = (
   metadata: OntologyElementMetadata,

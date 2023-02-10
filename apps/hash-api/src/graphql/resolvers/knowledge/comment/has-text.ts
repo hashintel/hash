@@ -26,7 +26,7 @@ export const commentHasTextResolver: ResolverFn<
   // @todo implement `Text` class so that a `Text.getTokens()` method can be used here
   return (
     (textEntity.properties[
-      SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId
+      SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUri
     ] as TextToken[] | undefined) ?? []
   );
 };

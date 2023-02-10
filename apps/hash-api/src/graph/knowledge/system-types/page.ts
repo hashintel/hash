@@ -69,23 +69,23 @@ export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
   }
 
   const title = entity.properties[
-    SYSTEM_TYPES.propertyType.title.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.title.metadata.recordId.baseUri
   ] as string;
 
   const summary = entity.properties[
-    SYSTEM_TYPES.propertyType.summary.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.summary.metadata.recordId.baseUri
   ] as string | undefined;
 
   const index = entity.properties[
-    SYSTEM_TYPES.propertyType.index.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.index.metadata.recordId.baseUri
   ] as string | undefined;
 
   const icon = entity.properties[
-    SYSTEM_TYPES.propertyType.icon.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.icon.metadata.recordId.baseUri
   ] as string | undefined;
 
   const archived = entity.properties[
-    SYSTEM_TYPES.propertyType.archived.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.archived.metadata.recordId.baseUri
   ] as boolean | undefined;
 
   return {
@@ -137,16 +137,16 @@ export const createPage: ImpureGraphFunction<
   const index = generateKeyBetween(prevIndex ?? null, null);
 
   const properties: PropertyObject = {
-    [SYSTEM_TYPES.propertyType.title.metadata.editionId.baseId]: title,
+    [SYSTEM_TYPES.propertyType.title.metadata.recordId.baseUri]: title,
     ...(summary
       ? {
-          [SYSTEM_TYPES.propertyType.summary.metadata.editionId.baseId]:
+          [SYSTEM_TYPES.propertyType.summary.metadata.recordId.baseUri]:
             summary,
         }
       : {}),
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- account for old browsers
     ...(index !== undefined
-      ? { [SYSTEM_TYPES.propertyType.index.metadata.editionId.baseId]: index }
+      ? { [SYSTEM_TYPES.propertyType.index.metadata.recordId.baseUri]: index }
       : {}),
   };
 
@@ -169,7 +169,7 @@ export const createPage: ImpureGraphFunction<
             blockData: await createEntity(ctx, {
               ownedById,
               properties: {
-                [SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId]:
+                [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUri]:
                   [],
               },
               entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
@@ -426,7 +426,7 @@ export const setPageParentPage: ImpureGraphFunction<
     const updatedPageEntity = await updateEntityProperty(ctx, {
       entity: page.entity,
       propertyTypeBaseUri:
-        SYSTEM_TYPES.propertyType.index.metadata.editionId.baseId,
+        SYSTEM_TYPES.propertyType.index.metadata.recordId.baseUri,
       value: newIndex,
       actorId,
     });

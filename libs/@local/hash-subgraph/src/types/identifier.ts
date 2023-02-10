@@ -2,10 +2,10 @@
 // directly here, and have to import as alias before re-exporting the type
 // if we don't, the `api` package is unable to use this library.
 import {
+  BaseUri,
   validateBaseUri,
   VersionedUri as TVersionedUri,
 } from "@blockprotocol/type-system";
-import { OntologyTypeEditionId } from "@local/hash-graph-client";
 import { validate as validateUuid } from "uuid";
 
 export type VersionedUri = TVersionedUri;
@@ -84,14 +84,22 @@ export type EntityIdAndTimestamp = {
   timestamp: Timestamp;
 };
 
-export type { OntologyTypeEditionId };
+export type OntologyTypeVertexId = {
+  baseId: BaseUri;
+  version: number;
+};
 
-export type GraphElementVertexId = EntityVertexId | OntologyTypeEditionId;
+export type OntologyTypeRecordId = {
+  baseUri: BaseUri;
+  version: number;
+};
 
-export const ontologyTypeEditionIdToVersionedUri = (
-  ontologyTypeEditionId: OntologyTypeEditionId,
+export type GraphElementVertexId = EntityVertexId | OntologyTypeVertexId;
+
+export const ontologyTypeRecordIdToVersionedUri = (
+  ontologyTypeRecordId: OntologyTypeRecordId,
 ): VersionedUri => {
-  return `${ontologyTypeEditionId.baseId}v/${ontologyTypeEditionId.version}` as VersionedUri;
+  return `${ontologyTypeRecordId.baseUri}v/${ontologyTypeRecordId.version}` as VersionedUri;
 };
 
 export const isEntityId = (entityId: string): entityId is EntityId => {
@@ -117,9 +125,9 @@ export const isEntityVertexId = (
   );
 };
 
-export const isOntologyTypeEditionId = (
+export const isOntologyTypeRecordId = (
   editionId: object,
-): editionId is OntologyTypeEditionId => {
+): editionId is OntologyTypeRecordId => {
   return (
     "baseId" in editionId &&
     typeof editionId.baseId === "string" &&

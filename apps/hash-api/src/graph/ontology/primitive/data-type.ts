@@ -9,6 +9,8 @@ import {
 } from "@local/hash-subgraph";
 import { versionedUriFromComponents } from "@local/hash-subgraph/src/shared/type-system-patch";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { mapSubgraph } from "@local/hash-subgraph/src/temp";
+import { mapOntologyMetadata } from "@local/hash-subgraph/src/temp/map-vertices";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
@@ -59,7 +61,7 @@ export const createDataType: ImpureGraphFunction<
     actorId,
   });
 
-  return { schema, metadata };
+  return { schema, metadata: mapOntologyMetadata(metadata) };
 };
 
 /**
@@ -93,7 +95,10 @@ export const getDataTypeById: ImpureGraphFunction<
         },
       },
     })
-    .then(({ data }) => data as Subgraph<SubgraphRootTypes["dataType"]>);
+    .then(
+      ({ data }) =>
+        mapSubgraph(data) as Subgraph<SubgraphRootTypes["dataType"]>,
+    );
 
   const [dataType] = getRoots(dataTypeSubgraph);
 
@@ -137,13 +142,14 @@ export const updateDataType: ImpureGraphFunction<
     schema,
   });
 
-  const { editionId } = metadata;
+  const mappedMetadata = mapOntologyMetadata(metadata);
+  const { recordId } = mappedMetadata;
 
   return {
     schema: {
       ...schema,
-      $id: versionedUriFromComponents(editionId.baseId, editionId.version),
+      $id: versionedUriFromComponents(recordId.baseUri, recordId.version),
     },
-    metadata,
+    metadata: mappedMetadata,
   };
 };

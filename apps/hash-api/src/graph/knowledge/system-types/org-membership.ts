@@ -39,7 +39,7 @@ export const getOrgMembershipFromLinkEntity: PureGraphFunction<
   }
 
   const responsibility = linkEntity.properties[
-    SYSTEM_TYPES.propertyType.responsibility.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.responsibility.metadata.recordId.baseUri
   ] as string;
 
   return {
@@ -73,7 +73,7 @@ export const createOrgMembership: ImpureGraphFunction<
   Promise<OrgMembership>
 > = async (ctx, { user, org, responsibility, actorId }) => {
   const properties: PropertyObject = {
-    [SYSTEM_TYPES.propertyType.responsibility.metadata.editionId.baseId]:
+    [SYSTEM_TYPES.propertyType.responsibility.metadata.recordId.baseUri]:
       responsibility,
   };
 

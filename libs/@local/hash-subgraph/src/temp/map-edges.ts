@@ -14,7 +14,7 @@ import {
 import {
   isEntityId,
   isEntityIdAndTimestamp,
-  isOntologyTypeEditionId,
+  isOntologyTypeRecordId,
 } from "../types/identifier";
 
 export const mapOutwardEdge = (
@@ -27,7 +27,13 @@ export const mapOutwardEdge = (
     case "CONSTRAINS_LINK_DESTINATIONS_ON":
     case "INHERITS_FROM":
     case "CONSTRAINS_VALUES_ON": {
-      return outwardEdge;
+      return {
+        ...outwardEdge,
+        rightEndpoint: {
+          baseUri: outwardEdge.rightEndpoint.baseId,
+          version: outwardEdge.rightEndpoint.version,
+        },
+      };
     }
     // Knowledge-graph edge-kind cases
     case "HAS_LEFT_ENTITY":
@@ -49,9 +55,9 @@ export const mapOutwardEdge = (
     }
     // Shared edge-kind cases
     case "IS_OF_TYPE": {
-      if (!isOntologyTypeEditionId(outwardEdge.rightEndpoint)) {
+      if (!isOntologyTypeRecordId(outwardEdge.rightEndpoint)) {
         throw new Error(
-          `Expected an \`OntologyTypeEditionId\` for knowledge-graph to ontology edge endpoint but found:\n${JSON.stringify(
+          `Expected an \`OntologyTypeRecordId\` for knowledge-graph to ontology edge endpoint but found:\n${JSON.stringify(
             outwardEdge,
           )}`,
         );
@@ -59,7 +65,7 @@ export const mapOutwardEdge = (
       return {
         ...outwardEdge,
         rightEndpoint: {
-          baseId: outwardEdge.rightEndpoint.baseId,
+          baseUri: outwardEdge.rightEndpoint.baseId,
           version: outwardEdge.rightEndpoint.version,
         },
       };

@@ -2,7 +2,7 @@
  * A collection of 'aliases' which describe various variants of outward edges in more accessible-forms
  */
 import { OutwardEdge } from "../edge";
-import { EntityIdAndTimestamp, OntologyTypeEditionId } from "../identifier";
+import { EntityIdAndTimestamp, OntologyTypeRecordId } from "../identifier";
 
 /** @todo - is there a way to have TS force us to make this always satisfy `KnowledgeGraphOutwardEdge`? */
 export type OutwardLinkEdge = {
@@ -59,7 +59,7 @@ export const isIncomingLinkEdge = (
 export type ConstrainsPropertiesOnEdge = {
   reversed: false;
   kind: "CONSTRAINS_PROPERTIES_ON";
-  rightEndpoint: OntologyTypeEditionId;
+  rightEndpoint: OntologyTypeRecordId;
 };
 
 export const isConstrainsPropertiesOnEdge = (

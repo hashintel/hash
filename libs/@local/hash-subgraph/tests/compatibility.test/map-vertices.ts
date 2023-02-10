@@ -12,6 +12,7 @@ import {
   DataType as DataTypeGraphApi,
   EntityType as EntityTypeGraphApi,
   KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
+  OntologyElementMetadata as OntologyElementMetadataGraphApi,
   OntologyVertex as OntologyVertexGraphApi,
   PropertyType as PropertyTypeGraphApi,
   Vertices as VerticesGraphApi,
@@ -22,6 +23,7 @@ import {
   EntityVersion,
   isEntityId,
   KnowledgeGraphVertex,
+  OntologyElementMetadata,
   OntologyVertex,
   PropertyObject,
   Vertices,
@@ -74,6 +76,18 @@ const mapEntityType = (entityType: EntityTypeGraphApi): EntityType => {
   return entityType as EntityType;
 };
 
+const mapOntologyMetadata = (
+  metadata: OntologyElementMetadataGraphApi,
+): OntologyElementMetadata => {
+  return {
+    ...metadata,
+    recordId: {
+      baseUri: metadata.editionId.baseId,
+      version: metadata.editionId.version,
+    },
+  };
+};
+
 const mapOntologyVertex = (vertex: OntologyVertexGraphApi): OntologyVertex => {
   switch (vertex.kind) {
     case "dataType": {
@@ -81,6 +95,7 @@ const mapOntologyVertex = (vertex: OntologyVertexGraphApi): OntologyVertex => {
         kind: vertex.kind,
         inner: {
           ...vertex.inner,
+          metadata: mapOntologyMetadata(vertex.inner.metadata),
           schema: mapDataType(vertex.inner.schema),
         },
       };
@@ -90,6 +105,7 @@ const mapOntologyVertex = (vertex: OntologyVertexGraphApi): OntologyVertex => {
         kind: vertex.kind,
         inner: {
           ...vertex.inner,
+          metadata: mapOntologyMetadata(vertex.inner.metadata),
           schema: mapPropertyType(vertex.inner.schema),
         },
       };
@@ -99,6 +115,7 @@ const mapOntologyVertex = (vertex: OntologyVertexGraphApi): OntologyVertex => {
         kind: vertex.kind,
         inner: {
           ...vertex.inner,
+          metadata: mapOntologyMetadata(vertex.inner.metadata),
           schema: mapEntityType(vertex.inner.schema),
         },
       };

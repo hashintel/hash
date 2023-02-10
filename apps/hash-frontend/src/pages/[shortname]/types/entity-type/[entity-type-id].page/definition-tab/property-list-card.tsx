@@ -182,7 +182,7 @@ const usePropertyTypeVersions = (
       ...versions.map(
         ({
           metadata: {
-            editionId: { version },
+            recordId: { version },
           },
         }) => version,
       ),

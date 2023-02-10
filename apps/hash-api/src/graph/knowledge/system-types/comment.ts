@@ -50,11 +50,11 @@ export const getCommentFromEntity: PureGraphFunction<
   }
 
   const resolvedAt = entity.properties[
-    SYSTEM_TYPES.propertyType.resolvedAt.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.resolvedAt.metadata.recordId.baseUri
   ] as string | undefined;
 
   const deletedAt = entity.properties[
-    SYSTEM_TYPES.propertyType.deletedAt.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.deletedAt.metadata.recordId.baseUri
   ] as string | undefined;
 
   return {
@@ -140,7 +140,7 @@ export const createComment: ImpureGraphFunction<
   const textEntity = await createEntity(ctx, {
     ownedById,
     properties: {
-      [SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId]: tokens,
+      [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUri]: tokens,
     },
     entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
     actorId,
@@ -201,7 +201,7 @@ export const updateCommentText: ImpureGraphFunction<
   await updateEntityProperty(ctx, {
     entity: textEntity,
     propertyTypeBaseUri:
-      SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId,
+      SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUri,
     value: tokens,
     actorId,
   });
@@ -234,7 +234,7 @@ export const deleteComment: ImpureGraphFunction<
     updatedProperties: [
       {
         propertyTypeBaseUri:
-          SYSTEM_TYPES.propertyType.deletedAt.metadata.editionId.baseId,
+          SYSTEM_TYPES.propertyType.deletedAt.metadata.recordId.baseUri,
         value: new Date().toISOString(),
       },
     ],
@@ -368,7 +368,7 @@ export const resolveComment: ImpureGraphFunction<
     updatedProperties: [
       {
         propertyTypeBaseUri:
-          SYSTEM_TYPES.propertyType.resolvedAt.metadata.editionId.baseId,
+          SYSTEM_TYPES.propertyType.resolvedAt.metadata.recordId.baseUri,
         value: new Date().toISOString(),
       },
     ],

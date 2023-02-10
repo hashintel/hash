@@ -55,7 +55,7 @@ describe("Page", () => {
         ownedById: testUser.accountId as OwnedById,
         entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
         properties: {
-          [SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId]: [],
+          [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUri]: [],
         },
         actorId: testUser.accountId,
       }),
