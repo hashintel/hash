@@ -495,25 +495,6 @@ export interface Entity {
 /**
  *
  * @export
- * @interface EntityEditionId
- */
-export interface EntityEditionId {
-  /**
-   *
-   * @type {string}
-   * @memberof EntityEditionId
-   */
-  baseId: string;
-  /**
-   *
-   * @type {string}
-   * @memberof EntityEditionId
-   */
-  recordId: string;
-}
-/**
- *
- * @export
  * @interface EntityIdAndTimestamp
  */
 export interface EntityIdAndTimestamp {
@@ -563,12 +544,6 @@ export interface EntityMetadata {
   archived: boolean;
   /**
    *
-   * @type {EntityEditionId}
-   * @memberof EntityMetadata
-   */
-  editionId: EntityEditionId;
-  /**
-   *
    * @type {string}
    * @memberof EntityMetadata
    */
@@ -579,6 +554,12 @@ export interface EntityMetadata {
    * @memberof EntityMetadata
    */
   provenance: ProvenanceMetadata;
+  /**
+   *
+   * @type {EntityRecordId}
+   * @memberof EntityMetadata
+   */
+  recordId: EntityRecordId;
   /**
    *
    * @type {EntityVersion}
@@ -611,6 +592,25 @@ export const EntityQueryToken = {
 export type EntityQueryToken =
   (typeof EntityQueryToken)[keyof typeof EntityQueryToken];
 
+/**
+ *
+ * @export
+ * @interface EntityRecordId
+ */
+export interface EntityRecordId {
+  /**
+   *
+   * @type {string}
+   * @memberof EntityRecordId
+   */
+  editionId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof EntityRecordId
+   */
+  entityId: string;
+}
 /**
  *
  * @export

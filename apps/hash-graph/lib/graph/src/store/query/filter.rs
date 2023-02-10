@@ -108,7 +108,7 @@ where
 impl<'p> Filter<'p, Entity> {
     /// Creates a `Filter` to search for a specific entities, identified by its [`EntityId`].
     #[must_use]
-    pub fn for_entity_by_id(entity_id: EntityId) -> Self {
+    pub fn for_entity_by_entity_id(entity_id: EntityId) -> Self {
         Self::All(vec![
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
@@ -515,7 +515,7 @@ mod tests {
           ]
         }};
 
-        test_filter_representation(&Filter::for_entity_by_id(entity_id), &expected);
+        test_filter_representation(&Filter::for_entity_by_entity_id(entity_id), &expected);
     }
 
     #[test]
@@ -538,7 +538,7 @@ mod tests {
           ]
         }};
 
-        test_filter_representation(&Filter::for_entity_by_id(entity_id), &expected);
+        test_filter_representation(&Filter::for_entity_by_entity_id(entity_id), &expected);
     }
 
     #[test]

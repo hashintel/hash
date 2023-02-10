@@ -45,7 +45,7 @@ use crate::{
 #[cfg(feature = "__internal_bench")]
 use crate::{
     identifier::{
-        knowledge::{EntityId, EntityRecordId, EntityVersion},
+        knowledge::{EntityEditionId, EntityId, EntityVersion},
         time::DecisionTime,
     },
     knowledge::{EntityProperties, LinkOrder},
@@ -802,7 +802,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         > + Send,
         entity_type_ontology_id: OntologyId,
         actor_id: UpdatedById,
-    ) -> Result<Vec<EntityRecordId>, InsertionError> {
+    ) -> Result<Vec<EntityEditionId>, InsertionError> {
         self.client
             .simple_query(
                 "CREATE TEMPORARY TABLE entity_editions_temp (
@@ -868,7 +868,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .into_report()
             .change_context(InsertionError)?;
 
-        let entity_record_ids = self
+        let entity_edition_ids = self
             .client
             .query(
                 "INSERT INTO entity_editions (
@@ -896,7 +896,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .into_report()
             .change_context(InsertionError)?
             .into_iter()
-            .map(|row| EntityRecordId::new(row.get(0)))
+            .map(|row| EntityEditionId::new(row.get(0)))
             .collect();
 
         self.client
@@ -905,7 +905,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .into_report()
             .change_context(InsertionError)?;
 
-        Ok(entity_record_ids)
+        Ok(entity_edition_ids)
     }
 
     #[doc(hidden)]
@@ -913,7 +913,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     async fn insert_entity_versions(
         &self,
         entities: impl IntoIterator<
-            Item = (EntityId, EntityRecordId, Option<Timestamp<DecisionTime>>),
+            Item = (EntityId, EntityEditionId, Option<Timestamp<DecisionTime>>),
             IntoIter: Send,
         > + Send,
     ) -> Result<Vec<EntityVersion>, InsertionError> {
@@ -950,13 +950,13 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             Type::TIMESTAMPTZ,
         ]);
         futures::pin_mut!(writer);
-        for (entity_id, entity_record_id, decision_time) in entities {
+        for (entity_id, entity_edition_id, decision_time) in entities {
             writer
                 .as_mut()
                 .write(&[
                     &entity_id.owned_by_id(),
                     &entity_id.entity_uuid(),
-                    &entity_record_id,
+                    &entity_edition_id,
                     &decision_time,
                 ])
                 .await

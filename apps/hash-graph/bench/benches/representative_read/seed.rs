@@ -181,8 +181,8 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
                             None,
                             EntityProperties::empty(),
                             Some(LinkData::new(
-                                left_entity_metadata.edition_id().base_id(),
-                                right_entity_metadata.edition_id().base_id(),
+                                left_entity_metadata.record_id().entity_id(),
+                                right_entity_metadata.record_id().entity_id(),
                                 None,
                                 None,
                             )),

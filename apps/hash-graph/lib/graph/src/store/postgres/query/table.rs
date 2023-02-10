@@ -179,7 +179,7 @@ impl_ontology_column!(EntityTypes);
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Entities<'p> {
     EntityUuid,
-    RecordId,
+    EditionId,
     DecisionTime,
     TransactionTime,
     // TODO: Remove when correctly resolving time intervals in subgraphs.
@@ -202,7 +202,7 @@ impl Entities<'_> {
     pub const fn nullable(self) -> bool {
         match self {
             Self::EntityUuid
-            | Self::RecordId
+            | Self::EditionId
             | Self::DecisionTime
             | Self::TransactionTime
             | Self::ProjectedTime
@@ -232,7 +232,7 @@ impl Entities<'_> {
     fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
             Self::EntityUuid => "entity_uuid",
-            Self::RecordId => "entity_edition_id",
+            Self::EditionId => "entity_edition_id",
             Self::DecisionTime => "decision_time",
             Self::TransactionTime => "transaction_time",
             Self::ProjectedTime => unreachable!("projected time is not a column"),

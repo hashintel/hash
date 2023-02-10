@@ -588,7 +588,7 @@ mod tests {
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
                 Box::new(EntityQueryPath::RightEntity(Box::new(
-                    EntityQueryPath::RecordId,
+                    EntityQueryPath::EditionId,
                 ))),
             ))),
             Some(FilterExpression::Parameter(Parameter::Number(10.0))),
@@ -625,7 +625,7 @@ mod tests {
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
                 Box::new(EntityQueryPath::LeftEntity(Box::new(
-                    EntityQueryPath::RecordId,
+                    EntityQueryPath::EditionId,
                 ))),
             ))),
             Some(FilterExpression::Parameter(Parameter::Number(10.0))),
@@ -845,40 +845,7 @@ mod tests {
             let kernel = time_projection.kernel().cast::<TransactionTime>();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 
-            let filter = Filter::for_entity_by_id(entity_id);
-            compiler.add_filter(&filter);
-
-            test_compilation(
-                &compiler,
-                r#"
-                SELECT *
-                FROM "entities" AS "entities_0_0_0"
-                WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND "entities_0_0_0"."decision_time" && $2
-                  AND ("entities_0_0_0"."owned_by_id" = $3)
-                  AND ("entities_0_0_0"."entity_uuid" = $4)
-                "#,
-                &[
-                    &kernel,
-                    &time_projection.image(),
-                    &entity_id.owned_by_id().as_uuid(),
-                    &entity_id.entity_uuid().as_uuid(),
-                ],
-            );
-        }
-
-        #[test]
-        fn for_entity_by_edition_id() {
-            let entity_id = EntityId::new(
-                OwnedById::new(AccountId::new(Uuid::new_v4())),
-                EntityUuid::new(Uuid::new_v4()),
-            );
-
-            let time_projection = UnresolvedTimeProjection::default().resolve();
-            let kernel = time_projection.kernel().cast::<TransactionTime>();
-            let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
-
-            let filter = Filter::for_entity_by_id(entity_id);
+            let filter = Filter::for_entity_by_entity_id(entity_id);
             compiler.add_filter(&filter);
 
             test_compilation(
