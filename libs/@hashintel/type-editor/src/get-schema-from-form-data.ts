@@ -1,10 +1,11 @@
-import { EntityTypeEditorForm } from "./shared/form-types";
 import {
   EntityType,
   extractBaseUri,
-  ValueOrArray,
   PropertyTypeReference,
+  ValueOrArray,
 } from "@blockprotocol/type-system";
+
+import { EntityTypeEditorForm } from "./shared/form-types";
 
 export const getSchemaFromFormData = (
   data: EntityTypeEditorForm,

@@ -4,8 +4,8 @@ import {
   Button,
   ButtonProps,
   FontAwesomeIcon,
-  Modal,
   IconButton,
+  Modal,
   TextField,
 } from "@hashintel/design-system";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";

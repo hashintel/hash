@@ -1,12 +1,12 @@
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
+  Chip,
+  FontAwesomeIcon,
   popperPlacementInputNoRadius,
   popperPlacementPopperNoRadius,
   popperPlacementSelectors,
-  setPopperPlacementAttribute,
-  Chip,
-  FontAwesomeIcon,
   SelectorAutocomplete,
+  setPopperPlacementAttribute,
   TYPE_SELECTOR_HEIGHT,
 } from "@hashintel/design-system";
 import { Box, PopperPlacementType, Stack } from "@mui/material";
@@ -15,8 +15,8 @@ import { flushSync } from "react-dom";
 import { useFormContext, useWatch } from "react-hook-form";
 import { useResizeObserverRef } from "rooks";
 
-import { EntityTypeEditorForm } from "../../shared/form-types";
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
+import { EntityTypeEditorForm } from "../../shared/form-types";
 
 const TypeChipLabel = ({ children }: { children: ReactNode }) => (
   <Stack direction="row" spacing={0.75} fontSize={14} alignItems="center">

@@ -1,13 +1,15 @@
-import { EntityType, VersionedUri } from "@blockprotocol/type-system/slim";
 import { getEntityTypeById } from "@blockprotocol/graph/stdlib";
+import { EntityType, VersionedUri } from "@blockprotocol/type-system/slim";
+import { LinkIcon, StyledPlusCircleIcon } from "@hashintel/design-system";
 import { TableBody, TableCell, TableFooter, TableHead } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 
-import { LinkIcon, StyledPlusCircleIcon } from "@hashintel/design-system";
-
+import { useEntityTypesOptions } from "../shared/entity-types-options-context";
 import { EntityTypeEditorForm } from "../shared/form-types";
+import { useOntologyFunctions } from "../shared/ontology-functions-context";
+import { linkEntityTypeUri } from "../shared/uris";
 import { LinkEntityTypeSelector } from "./link-list-card/link-entity-type-selector";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
@@ -33,9 +35,6 @@ import {
 } from "./shared/type-form";
 import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { useStateCallback } from "./shared/use-state-callback";
-import { linkEntityTypeUri } from "../shared/uris";
-import { useOntologyFunctions } from "../shared/ontology-functions-context";
-import { useEntityTypesOptions } from "../shared/entity-types-options-context";
 
 const formDataToEntityType = (data: TypeFormDefaults) => ({
   type: "object" as const,
@@ -218,7 +217,6 @@ export const LinkListCard = () => {
   };
 
   const handleAddEntityType = (link: EntityType) => {
-    console.log({ link });
     cancelAddingNewLink();
     append(
       {

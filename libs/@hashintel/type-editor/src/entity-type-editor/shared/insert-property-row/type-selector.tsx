@@ -1,10 +1,9 @@
-import { PopupState } from "material-ui-popup-state/hooks";
-import { Ref, useRef, useState } from "react";
-
 import {
   SelectorAutocomplete,
   TypeListSelectorDropdownProps,
 } from "@hashintel/design-system";
+import { PopupState } from "material-ui-popup-state/hooks";
+import { Ref, useRef, useState } from "react";
 
 export type TypeSelectorType = {
   $id: string;

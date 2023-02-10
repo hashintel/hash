@@ -5,15 +5,15 @@ import {
   faListUl,
 } from "@fortawesome/free-solid-svg-icons";
 import {
-  faText,
   fa100,
+  faBracketsCurly,
+  faBracketsSquare,
   faCube,
   faCubes,
+  faEmptySet,
   faListTree,
   faSquareCheck,
-  faBracketsCurly,
-  faEmptySet,
-  faBracketsSquare,
+  faText,
   theme,
 } from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";

@@ -1,11 +1,14 @@
 import { extractVersion } from "@blockprotocol/type-system";
+import { VersionedUri } from "@blockprotocol/type-system/slim";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
   IconButton,
   MenuItem,
+  MenuItemProps,
+  OntologyChip,
+  parseUriForOntologyChip,
 } from "@hashintel/design-system";
-import { VersionedUri } from "@blockprotocol/type-system/slim";
 import {
   Box,
   Divider,
@@ -27,12 +30,6 @@ import {
   usePopupState,
 } from "material-ui-popup-state/hooks";
 import { Fragment, useCallback, useId } from "react";
-
-import {
-  MenuItemProps,
-  OntologyChip,
-  parseUriForOntologyChip,
-} from "@hashintel/design-system";
 
 export const TYPE_MENU_CELL_WIDTH = 70;
 

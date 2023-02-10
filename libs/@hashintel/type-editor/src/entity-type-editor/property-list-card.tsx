@@ -5,7 +5,10 @@ import {
   VersionedUri,
 } from "@blockprotocol/type-system";
 import { faList } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import {
+  FontAwesomeIcon,
+  StyledPlusCircleIcon,
+} from "@hashintel/design-system";
 import {
   Box,
   Checkbox,
@@ -39,8 +42,8 @@ import {
   useWatch,
 } from "react-hook-form";
 
-import { StyledPlusCircleIcon } from "@hashintel/design-system";
 import { EntityTypeEditorForm } from "../shared/form-types";
+import { useOntologyFunctions } from "../shared/ontology-functions-context";
 import {
   PropertyTypesByVersionedUri,
   usePropertyTypesOptions,
@@ -71,7 +74,6 @@ import { QuestionIcon } from "./shared/question-icon";
 import { TypeFormModal } from "./shared/type-form";
 import { TypeMenuCell } from "./shared/type-menu-cell";
 import { useStateCallback } from "./shared/use-state-callback";
-import { useOntologyFunctions } from "../shared/ontology-functions-context";
 
 const CollapsibleTableRow = ({
   expanded,
@@ -322,7 +324,9 @@ const PropertyRow = ({
 
         {allowArraysTableCell ?? (
           <DisabledCheckboxCell
-            title={`Edit the '${parentPropertyName}' property to change this`}
+            title={`Edit the '${
+              parentPropertyName ?? "parent"
+            }' property to change this`}
             checked={isArray}
             width={MULTIPLE_VALUES_CELL_WIDTH}
             sx={{ pr: 1 }}
@@ -331,7 +335,9 @@ const PropertyRow = ({
 
         {requiredTableCell ?? (
           <DisabledCheckboxCell
-            title={`Edit the '${parentPropertyName}' property to change this`}
+            title={`Edit the '${
+              parentPropertyName ?? "parent"
+            }' property to change this`}
             checked={isRequired}
             width={REQUIRED_CELL_WIDTH}
           />
@@ -429,10 +435,6 @@ export const PropertyTypeRow = ({
   }, [property]);
 
   if (!property) {
-    if (propertyTypesOptions) {
-      throw new Error("Missing property type");
-    }
-
     return null;
   }
 
@@ -511,7 +513,7 @@ const InsertPropertyRow = (
   const properties = useWatch({ control, name: "properties" });
 
   const propertyTypeOptions = usePropertyTypesOptions();
-  const propertyTypes = Object.values(propertyTypeOptions ?? {});
+  const propertyTypes = Object.values(propertyTypeOptions);
 
   const filteredPropertyTypes = useMemo(() => {
     const propertyBaseUris = properties.map((includedProperty) =>
@@ -551,7 +553,7 @@ export const PropertyListCard = () => {
     () =>
       sortRows(
         unsortedFields,
-        (propertyId) => propertyTypeOptions?.[propertyId],
+        (propertyId) => propertyTypeOptions[propertyId],
         (row) => row.title,
       ),
     [propertyTypeOptions, unsortedFields],

@@ -1,8 +1,7 @@
+import { EntityType, VersionedUri } from "@blockprotocol/type-system";
 import { createContext, PropsWithChildren, useContext, useMemo } from "react";
-import { VersionedUri } from "@blockprotocol/type-system";
 
 import { linkEntityTypeUri } from "./uris";
-import { EntityType } from "@blockprotocol/type-system/dist/cjs";
 
 export type EntityTypesByVersionedUri = Record<VersionedUri, EntityType>;
 export type EntityTypesContextValue = {

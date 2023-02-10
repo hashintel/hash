@@ -16,12 +16,12 @@ import { usePopupState } from "material-ui-popup-state/hooks";
 import { FunctionComponent, useEffect, useMemo, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
+import { usePropertyTypesOptions } from "../../../../../shared/property-types-options-context";
 import { Property } from "../../../shared/expected-value-types";
 import { CustomExpectedValueSelector } from "./custom-expected-value-selector";
 import { DeleteExpectedValueModal } from "./delete-expected-value-modal";
 import { ExpectedValueBadge } from "./expected-value-badge";
 import { ExpectedValueSelectorFormValues } from "./expected-value-selector-form-values";
-import { usePropertyTypesOptions } from "../../../../../shared/property-types-options-context";
 
 const StyledTableRow = styled(Box)(({ theme }) => ({
   display: "flex",
@@ -65,7 +65,7 @@ const ObjectExpectedValueRow: FunctionComponent<
   const { setValue } = useFormContext<ExpectedValueSelectorFormValues>();
 
   const propertyTypes = usePropertyTypesOptions();
-  const propertyType = propertyTypes?.[property.id];
+  const propertyType = propertyTypes[property.id];
 
   useEffect(() => {
     if (propertyType) {
@@ -331,7 +331,7 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
               }
             }}
             renderOption={(optProps, opt) => {
-              const property = propertyTypes?.[opt];
+              const property = propertyTypes[opt];
               return property ? (
                 <Box component="li" {...optProps} sx={{ py: 1.5, px: 2.25 }}>
                   <FontAwesomeIcon

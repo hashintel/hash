@@ -1,8 +1,10 @@
 import { faEdit } from "@fortawesome/free-regular-svg-icons";
 import {
+  addPopperPositionClassPopperModifier,
   FontAwesomeIcon,
   getInputProps,
   inputLabelProps,
+  popperPlacementPopperNoRadius,
   TextField,
 } from "@hashintel/design-system";
 import {
@@ -18,7 +20,7 @@ import {
   TableCell,
   Typography,
 } from "@mui/material";
-import { useId, useState, FunctionComponent, PropsWithChildren } from "react";
+import { FunctionComponent, PropsWithChildren, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   Controller,
@@ -27,10 +29,6 @@ import {
   useWatch,
 } from "react-hook-form";
 
-import {
-  addPopperPositionClassPopperModifier,
-  popperPlacementPopperNoRadius,
-} from "@hashintel/design-system";
 import { EntityTypeEditorForm } from "../../shared/form-types";
 
 const useFrozenValue = <T extends any>(value: T, isFrozen: boolean): T => {

@@ -1,17 +1,16 @@
-import { Box, Stack, ThemeProvider, Typography } from "@mui/material";
 import { EntityType, PropertyType } from "@blockprotocol/graph";
 import { VersionedUri } from "@blockprotocol/type-system";
+import { theme } from "@hashintel/design-system";
+import { Box, Stack, ThemeProvider, Typography } from "@mui/material";
 
 import { LinkListCard } from "./entity-type-editor/link-list-card";
 import { PropertyListCard } from "./entity-type-editor/property-list-card";
-
-import { theme } from "@hashintel/design-system";
 import { EntityTypesOptionsContextProvider } from "./shared/entity-types-options-context";
-import { PropertyTypesOptionsContextProvider } from "./shared/property-types-options-context";
 import {
   EditorOntologyFunctions,
   OntologyFunctionsContext,
 } from "./shared/ontology-functions-context";
+import { PropertyTypesOptionsContextProvider } from "./shared/property-types-options-context";
 
 export type EntityTypeEditorProps = {
   // the entity type being edited

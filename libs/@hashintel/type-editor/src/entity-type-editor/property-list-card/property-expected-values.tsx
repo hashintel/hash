@@ -3,9 +3,9 @@ import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
 import { chipClasses, Tooltip } from "@mui/material";
 import { Stack } from "@mui/system";
 
+import { usePropertyTypesOptions } from "../../shared/property-types-options-context";
 import { expectedValuesOptions } from "./shared/expected-values-options";
 import { getArrayExpectedValueType } from "./shared/get-expected-value-descriptor";
-import { usePropertyTypesOptions } from "../../shared/property-types-options-context";
 
 export const PropertyExpectedValues = ({
   property,

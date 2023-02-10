@@ -1,4 +1,5 @@
 import { VersionedUri } from "@blockprotocol/type-system";
+import { WhiteCard } from "@hashintel/design-system";
 import {
   ButtonBase,
   checkboxClasses,
@@ -16,8 +17,6 @@ import {
 import { Box, experimental_sx, styled } from "@mui/system";
 import { memoize } from "lodash";
 import { forwardRef, ReactNode, useEffect, useRef, useState } from "react";
-
-import { WhiteCard } from "@hashintel/design-system";
 
 /**
  * THIS MUST BE KEPT IN SYNC WITH EDIT_BAR_HEIGHT IN hash-frontend

@@ -1,8 +1,10 @@
 import { BaseUri } from "@blockprotocol/type-system";
 import {
+  AutocompleteDropdown,
   Button,
   Chip,
   FontAwesomeIcon,
+  StyledPlusCircleIcon,
   TextField,
 } from "@hashintel/design-system";
 import { Autocomplete, Box, PaperProps, Typography } from "@mui/material";
@@ -15,10 +17,6 @@ import {
   useWatch,
 } from "react-hook-form";
 
-import {
-  AutocompleteDropdown,
-  StyledPlusCircleIcon,
-} from "@hashintel/design-system";
 import { useStateCallback } from "../../shared/use-state-callback";
 import { dataTypeOptions } from "../shared/data-type-options";
 import { expectedValuesOptions } from "../shared/expected-values-options";

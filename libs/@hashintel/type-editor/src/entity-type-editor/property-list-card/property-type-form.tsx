@@ -1,6 +1,7 @@
-import { BaseUri } from "@blockprotocol/type-system";
 import { getPropertyTypeById } from "@blockprotocol/graph/stdlib";
+import { BaseUri } from "@blockprotocol/type-system";
 
+import { useOntologyFunctions } from "../../shared/ontology-functions-context";
 import {
   generateInitialTypeUri,
   TypeForm,
@@ -9,7 +10,6 @@ import {
 } from "../shared/type-form";
 import { ExpectedValueSelector } from "./property-type-form/expected-value-selector";
 import { PropertyTypeFormValues } from "./shared/property-type-form-values";
-import { useOntologyFunctions } from "../../shared/ontology-functions-context";
 
 export const PropertyTypeForm = ({
   baseUri,

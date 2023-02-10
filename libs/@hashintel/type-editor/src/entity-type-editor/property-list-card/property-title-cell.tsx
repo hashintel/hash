@@ -6,8 +6,8 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
-  IconButton,
   IconArrowRight,
+  IconButton,
 } from "@hashintel/design-system";
 import {
   Box,

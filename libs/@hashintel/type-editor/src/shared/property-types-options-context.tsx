@@ -1,6 +1,6 @@
-import { createContext, PropsWithChildren, useContext } from "react";
-import { VersionedUri } from "@blockprotocol/type-system";
 import { PropertyType } from "@blockprotocol/graph";
+import { VersionedUri } from "@blockprotocol/type-system";
+import { createContext, PropsWithChildren, useContext } from "react";
 
 export type PropertyTypesByVersionedUri = Record<VersionedUri, PropertyType>;
 export type PropertyTypesContextValue = PropertyTypesByVersionedUri;
