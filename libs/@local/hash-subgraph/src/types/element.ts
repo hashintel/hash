@@ -27,6 +27,7 @@ export type OwnedOntologyElementMetadata = {
 export type ExternalOntologyElementMetadata = {
   recordId: OntologyTypeRecordId;
   fetchedAt: Timestamp;
+  provenance: ProvenanceMetadataGraphApi;
 };
 
 export type OntologyElementMetadata =
