@@ -89,7 +89,7 @@ export const useEntityTypeValue = (
       const relevantVersions = relevantEntityTypes.map(
         ({
           metadata: {
-            editionId: { version },
+            recordId: { version },
           },
         }) => version,
       );
