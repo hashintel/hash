@@ -26,7 +26,7 @@ import {
   OntologyElementMetadata,
   PropertyObject,
 } from "../types/element";
-import { EntityId, EntityVersion, isEntityId } from "../types/identifier";
+import { EntityId, isEntityId } from "../types/identifier";
 import {
   KnowledgeGraphVertex,
   OntologyVertex,

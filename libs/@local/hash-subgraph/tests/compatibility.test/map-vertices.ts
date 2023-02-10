@@ -20,7 +20,6 @@ import {
 
 import {
   EntityId,
-  EntityVersion,
   isEntityId,
   KnowledgeGraphVertex,
   OntologyElementMetadata,
