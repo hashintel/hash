@@ -13,7 +13,7 @@ type-fetcher = { path = "../../lib/type-fetcher", optional = true }
 axum = "0.6.3"
 clap = { version = "4.1.4", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete = "4.1.1"
-error-stack = { version = "0.3.0", features = ["spantrace"] }
+error-stack = { version = "0.3.1", features = ["spantrace"] }
 futures = { version = "0.3.25", optional = true }
 graph = { path = "../../lib/graph", features = ["clap"] }
 regex = "1.7.1"

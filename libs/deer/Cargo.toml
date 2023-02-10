@@ -6,7 +6,7 @@ exclude = ["package.json"]
 publish = false
 
 [dependencies]
-error-stack = { version = "0.3.0", default_features = false }
+error-stack = { version = "0.3.1", default_features = false }
 
 num-traits = { version = "0.2.15", default_features = false }
 
