@@ -489,6 +489,7 @@ export const App: BlockComponent<true, RootEntity> = ({
                   boxShadow: "none",
                   [`.${autocompleteClasses.listbox}`]: {
                     padding: "0px",
+                    maxHeight: "unset",
                     [`.${autocompleteClasses.option}`]: {
                       alignItems: "flex-start",
                       paddingX: ({ spacing }) => `${spacing(2.5)} !important`,
