@@ -229,7 +229,36 @@ export const AddressCard = ({
               background: `url(${mapUrl}) no-repeat`,
               backgroundSize: "cover",
             }}
-          />
+          >
+            <Typography
+              sx={{
+                position: "absolute",
+                bottom: 13,
+                right: 13,
+                color: ({ palette }) => palette.common.black,
+                opacity: 0.5,
+                fontSize: 9,
+                lineHeight: "11px",
+              }}
+            >
+              ©{" "}
+              <Link
+                href="https://www.mapbox.com/about/maps/"
+                target="_blank"
+                sx={{ color: "inherit", textDecoration: "none" }}
+              >
+                Mapbox
+              </Link>{" "}
+              ©{" "}
+              <Link
+                href="https://www.openstreetmap.org/copyright"
+                target="_blank"
+                sx={{ color: "inherit", textDecoration: "none" }}
+              >
+                OpenStreetMap
+              </Link>
+            </Typography>
+          </Box>
         ) : (
           <CircularProgress sx={{ color: ({ palette }) => palette.gray[40] }} />
         )}
