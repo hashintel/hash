@@ -55,6 +55,7 @@ const testEntity: RootEntity = {
       editionId: new Date().toISOString(),
     },
     entityTypeId: packageJson.blockprotocol.schema as VersionedUri,
+    temporalVersioning: entityTemporalMetadata(),
   },
   properties: {},
 } as const;
@@ -66,15 +67,7 @@ const DevApp = () => {
       blockEntityRecordId={testEntity.metadata.recordId}
       blockInfo={packageJson.blockprotocol}
       initialData={{
-        initialEntities: [
-          {
-            ...testEntity,
-            metadata: {
-              ...testEntity.metadata,
-              temporalVersioning: entityTemporalMetadata(),
-            },
-          },
-        ],
+        initialEntities: [testEntity],
         initialTemporalAxes: temporalAxes,
       }}
       debug
