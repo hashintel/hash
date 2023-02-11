@@ -76,7 +76,14 @@ export const AddressCard = ({
 }: AddressCardProps) => {
   const theme = useTheme();
   const [editingDescription, setEditingDescription] = useState(false);
+  const [titleValue, setTitleValue] = useState(title);
   const [descriptionValue, setDescriptionValue] = useState(description);
+
+  useEffect(() => {
+    if (title !== titleValue) {
+      setTitleValue(title);
+    }
+  }, [title]);
 
   useEffect(() => {
     if (description !== descriptionValue) {
@@ -119,7 +126,8 @@ export const AddressCard = ({
       >
         <Stack gap={1.5}>
           <EditableField
-            defaultValue={title}
+            value={titleValue}
+            onChange={(event) => setTitleValue(event.target.value)}
             onBlur={(event) => updateTitle(event.target.value)}
             iconSize="21px"
             inputProps={{

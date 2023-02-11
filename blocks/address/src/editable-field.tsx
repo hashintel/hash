@@ -36,6 +36,7 @@ export const EditableField = ({
     >
       <TextField
         {...props}
+        value={value}
         autoFocus
         onBlur={(event) => {
           setEditing(false);
