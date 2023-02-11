@@ -1,14 +1,5 @@
 {
-  "compilerOptions": {
-    "allowJs": true,
-    "allowSyntheticDefaultImports": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "lib": ["DOM", "DOM.Iterable", "ESNext"],
-    "noEmit": true,
-    "noUncheckedIndexedAccess": true,
-    "resolveJsonModule": true,
-    "strict": true
-  },
-  "include": ["src"]
+  "extends": "@local/tsconfig/block.json",
+  "include": ["src"],
+  "exclude": ["node_modules"]
 }
