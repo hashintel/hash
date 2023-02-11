@@ -4,7 +4,7 @@ import {
   faQuestionCircle,
   IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@local/design-system";
+import { FontAwesomeIcon } from "@hashintel/design-system";
 import {
   Box,
   ListItemIcon,

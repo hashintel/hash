@@ -1,4 +1,4 @@
-import { Button } from "@local/design-system";
+import { Button } from "@hashintel/design-system";
 import { Box, Dialog, Stack, Typography } from "@mui/material";
 import { Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { FunctionComponent } from "react";

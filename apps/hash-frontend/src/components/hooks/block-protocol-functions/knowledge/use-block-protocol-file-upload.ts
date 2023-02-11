@@ -1,7 +1,7 @@
 import { useMutation } from "@apollo/client";
 import { extractBaseUri } from "@blockprotocol/type-system";
+import { EntityId } from "@local/hash-graphql-shared/types";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
 import { useCallback } from "react";
 
 import {
@@ -70,12 +70,12 @@ export const useBlockProtocolFileUpload = (
 
         const {
           createFileFromUrl: {
-            metadata: { editionId },
+            metadata: { recordId },
           },
         } = result.data;
 
         return {
-          entityId: editionId.baseId as EntityId,
+          entityId: recordId.entityId as EntityId,
           url,
           mediaType,
         };
@@ -111,7 +111,7 @@ export const useBlockProtocolFileUpload = (
 
       return {
         data: {
-          entityId: uploadedFileEntity.metadata.editionId.baseId as EntityId,
+          entityId: uploadedFileEntity.metadata.recordId.entityId as EntityId,
           url: uploadedFileUrl,
           mediaType,
         },

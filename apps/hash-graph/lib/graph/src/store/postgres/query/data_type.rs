@@ -1,7 +1,7 @@
 use crate::{
     ontology::{DataTypeQueryPath, DataTypeWithMetadata},
     store::postgres::query::{
-        table::{Column, DataTypes, JsonField, Relation, TypeIds},
+        table::{Column, DataTypes, JsonField, OntologyIds, Relation},
         PostgresQueryPath, PostgresRecord, Table,
     },
 };
@@ -15,7 +15,11 @@ impl PostgresRecord for DataTypeWithMetadata {
 impl PostgresQueryPath for DataTypeQueryPath<'_> {
     fn relations(&self) -> Vec<Relation> {
         match self {
-            Self::BaseUri | Self::Version => {
+            Self::BaseUri
+            | Self::Version
+            | Self::UpdatedById
+            | Self::OwnedById
+            | Self::AdditionalMetadata(_) => {
                 vec![Relation::DataTypeIds]
             }
             _ => vec![],
@@ -24,11 +28,13 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
 
     fn terminating_column(&self) -> Column {
         match self {
-            Self::BaseUri => Column::TypeIds(TypeIds::BaseUri),
-            Self::Version => Column::TypeIds(TypeIds::Version),
-            Self::VersionId => Column::DataTypes(DataTypes::VersionId),
-            Self::OwnedById => Column::DataTypes(DataTypes::OwnedById),
-            Self::UpdatedById => Column::DataTypes(DataTypes::UpdatedById),
+            Self::BaseUri => Column::OntologyIds(OntologyIds::BaseUri),
+            Self::Version => Column::OntologyIds(OntologyIds::Version),
+            Self::OwnedById => Column::OntologyIds(OntologyIds::AdditionalMetadata(Some(
+                JsonField::StaticText("owned_by_id"),
+            ))),
+            Self::UpdatedById => Column::OntologyIds(OntologyIds::UpdatedById),
+            Self::OntologyId => Column::DataTypes(DataTypes::OntologyId),
             Self::Schema(path) => path
                 .as_ref()
                 .map_or(Column::DataTypes(DataTypes::Schema(None)), |path| {
@@ -44,6 +50,14 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
             Self::Description => Column::DataTypes(DataTypes::Schema(Some(JsonField::StaticText(
                 "description",
             )))),
+            Self::AdditionalMetadata(path) => path.as_ref().map_or(
+                Column::OntologyIds(OntologyIds::AdditionalMetadata(None)),
+                |path| {
+                    Column::OntologyIds(OntologyIds::AdditionalMetadata(Some(JsonField::JsonPath(
+                        path,
+                    ))))
+                },
+            ),
         }
     }
 }

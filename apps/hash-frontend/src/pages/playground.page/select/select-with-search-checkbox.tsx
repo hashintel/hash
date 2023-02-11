@@ -5,7 +5,7 @@ import {
   MenuCheckboxItem,
   Select,
   TextField,
-} from "@local/design-system";
+} from "@hashintel/design-system";
 import { Box, Divider, FormControl, ListItemText } from "@mui/material";
 import { useMemo, useState } from "react";
 

@@ -3,8 +3,8 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
-import { customColors } from "@local/design-system";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
+import { customColors } from "@hashintel/design-system";
+import { EntityId } from "@local/hash-graphql-shared/types";
 
 import {
   getCellHorizontalPadding,
@@ -120,8 +120,8 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       },
       onClick: () => {
         markLinkAsArchived(
-          linkAndTargetEntities[0]?.linkEntity.metadata.editionId
-            .baseId as EntityId,
+          linkAndTargetEntities[0]?.linkEntity.metadata.recordId
+            .entityId as EntityId,
         );
       },
     });

@@ -1,6 +1,6 @@
 import { VersionedUri } from "@blockprotocol/type-system";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
+import { EntityId } from "@local/hash-graphql-shared/types";
 import {
   Entity,
   EntityTypeWithMetadata,

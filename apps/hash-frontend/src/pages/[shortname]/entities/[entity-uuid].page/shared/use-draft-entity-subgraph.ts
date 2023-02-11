@@ -58,7 +58,10 @@ export const useDraftEntitySubgraph = (
                 inner: {
                   properties: {},
                   metadata: {
-                    editionId: draftEntityVertexId,
+                    recordId: {
+                      entityId: draftEntityVertexId.baseId,
+                      version: draftEntityVertexId.version,
+                    },
                     entityTypeId,
                     provenance: { updatedById: "" },
                     archived: false,

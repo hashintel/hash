@@ -1,5 +1,5 @@
+import { AccountId, OwnedById } from "@local/hash-graphql-shared/types";
 import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
-import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
 import { EntityId, extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import ArticleIcon from "@mui/icons-material/Article";
 import { FunctionComponent, useMemo } from "react";
@@ -44,7 +44,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
         } else {
           // Once the query loads, either display the found name, or display "Unknown User" if the user doesn't exist in the users array
           const matchingUser = users.find(
-            (user) => user.entityEditionId.baseId === entityId,
+            (user) => user.entityRecordId.entityId === entityId,
           );
 
           if (matchingUser) {

@@ -139,7 +139,7 @@ async fn update() {
     let entity_v1 = api
         .get_entity_by_timestamp(
             v1_metadata.edition_id().base_id(),
-            v1_metadata.version().decision_time().start,
+            (*v1_metadata.version().decision_time.start()).into(),
         )
         .await
         .expect("could not get entity");
@@ -148,7 +148,7 @@ async fn update() {
     let entity_v2 = api
         .get_entity_by_timestamp(
             v2_metadata.edition_id().base_id(),
-            v2_metadata.version().decision_time().start,
+            (*v2_metadata.version().decision_time.start()).into(),
         )
         .await
         .expect("could not get entity");

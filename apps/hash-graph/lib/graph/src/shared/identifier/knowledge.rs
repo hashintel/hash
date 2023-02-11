@@ -6,13 +6,18 @@ use std::{
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use tokio_postgres::types::ToSql;
 use utoipa::{openapi, ToSchema};
+use uuid::Uuid;
 
 use crate::{
     identifier::{
         account::AccountId,
-        time::{DecisionTime, ProjectedTime, TimeAxis, TransactionTime, VersionInterval},
+        time::{
+            DecisionTime, IncludedTimeIntervalBound, ProjectedTime, TemporalTagged, TimeAxis,
+            Timestamp, TransactionTime, UnboundedOrExcludedTimeIntervalBound,
+        },
         EntityVertexId,
     },
+    interval::Interval,
     knowledge::{Entity, EntityUuid},
     provenance::OwnedById,
     subgraph::{Subgraph, SubgraphIndex},
@@ -91,37 +96,33 @@ impl ToSchema<'_> for EntityId {
     }
 }
 
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityVersion {
-    decision_time: VersionInterval<DecisionTime>,
-    transaction_time: VersionInterval<TransactionTime>,
+    #[schema(inline)]
+    pub decision_time: Interval<
+        Timestamp<DecisionTime>,
+        IncludedTimeIntervalBound<DecisionTime>,
+        UnboundedOrExcludedTimeIntervalBound<DecisionTime>,
+    >,
+    #[schema(inline)]
+    pub transaction_time: Interval<
+        Timestamp<TransactionTime>,
+        IncludedTimeIntervalBound<TransactionTime>,
+        UnboundedOrExcludedTimeIntervalBound<TransactionTime>,
+    >,
 }
 
 impl EntityVersion {
     #[must_use]
-    pub const fn new(
-        decision_time: VersionInterval<DecisionTime>,
-        transaction_time: VersionInterval<TransactionTime>,
-    ) -> Self {
-        Self {
-            decision_time,
-            transaction_time,
-        }
-    }
-
-    #[must_use]
-    pub const fn decision_time(&self) -> VersionInterval<DecisionTime> {
-        self.decision_time
-    }
-
-    #[must_use]
-    pub const fn transaction_time(&self) -> VersionInterval<TransactionTime> {
-        self.transaction_time
-    }
-
-    #[must_use]
-    pub fn projected_time(&self, time_axis: TimeAxis) -> VersionInterval<ProjectedTime> {
+    pub fn projected_time(
+        &self,
+        time_axis: TimeAxis,
+    ) -> Interval<
+        Timestamp<ProjectedTime>,
+        IncludedTimeIntervalBound<ProjectedTime>,
+        UnboundedOrExcludedTimeIntervalBound<ProjectedTime>,
+    > {
         match time_axis {
             TimeAxis::DecisionTime => self.decision_time.cast(),
             TimeAxis::TransactionTime => self.transaction_time.cast(),
@@ -132,16 +133,16 @@ impl EntityVersion {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, ToSql, ToSchema)]
 #[postgres(transparent)]
 #[repr(transparent)]
-pub struct EntityRecordId(i64);
+pub struct EntityRecordId(Uuid);
 
 impl EntityRecordId {
     #[must_use]
-    pub const fn new(id: i64) -> Self {
+    pub const fn new(id: Uuid) -> Self {
         Self(id)
     }
 
     #[must_use]
-    pub const fn as_i64(&self) -> i64 {
+    pub const fn as_uuid(&self) -> Uuid {
         self.0
     }
 }

@@ -4,7 +4,7 @@ import {
   EntityUuid,
   extractOwnedByIdFromEntityId,
   OwnedById,
-} from "@local/hash-isomorphic-utils/types";
+} from "@local/hash-graphql-shared/types";
 import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import produce from "immer";
@@ -49,7 +49,7 @@ const Page: NextPageWithLayout = () => {
 
   const entityOwnedById =
     entityFromDb &&
-    extractOwnedByIdFromEntityId(entityFromDb.metadata.editionId.baseId);
+    extractOwnedByIdFromEntityId(entityFromDb.metadata.recordId.entityId);
 
   const readonly = useIsReadonlyModeForResource(entityOwnedById);
 
@@ -155,8 +155,8 @@ const Page: NextPageWithLayout = () => {
       setSavingChanges(true);
 
       await applyDraftLinkEntityChanges(
-        getRoots(entitySubgraphFromDb)[0]?.metadata.editionId
-          .baseId as EntityId,
+        getRoots(entitySubgraphFromDb)[0]?.metadata.recordId
+          .entityId as EntityId,
         draftLinksToCreate,
         draftLinksToArchive,
       );
@@ -164,7 +164,7 @@ const Page: NextPageWithLayout = () => {
       /** @todo add validation here */
       await updateEntity({
         data: {
-          entityId: draftEntity.metadata.editionId.baseId,
+          entityId: draftEntity.metadata.recordId.entityId,
           entityTypeId: draftEntity.metadata.entityTypeId,
           properties: draftEntity.properties,
         },

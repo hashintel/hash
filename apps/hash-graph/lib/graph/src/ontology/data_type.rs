@@ -149,9 +149,11 @@ pub enum DataTypeQueryPath<'p> {
     /// [`DataType::json_type()`]: type_system::DataType::json_type
     Type,
     /// Only used internally and not available for deserialization.
-    VersionId,
+    OntologyId,
     /// Only used internally and not available for deserialization.
     Schema(Option<JsonPath<'p>>),
+    /// Only used internally and not available for deserialization.
+    AdditionalMetadata(Option<JsonPath<'p>>),
 }
 
 impl OntologyQueryPath for DataTypeQueryPath<'_> {
@@ -167,10 +169,6 @@ impl OntologyQueryPath for DataTypeQueryPath<'_> {
         Self::Version
     }
 
-    fn owned_by_id() -> Self {
-        Self::OwnedById
-    }
-
     fn updated_by_id() -> Self {
         Self::UpdatedById
     }
@@ -178,13 +176,17 @@ impl OntologyQueryPath for DataTypeQueryPath<'_> {
     fn schema() -> Self {
         Self::Schema(None)
     }
+
+    fn additional_metadata() -> Self {
+        Self::AdditionalMetadata(None)
+    }
 }
 
 impl QueryPath for DataTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::VersionId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
-            Self::Schema(_) => ParameterType::Any,
+            Self::OntologyId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
+            Self::Schema(_) | Self::AdditionalMetadata(_) => ParameterType::Any,
             Self::BaseUri => ParameterType::BaseUri,
             Self::VersionedUri => ParameterType::VersionedUri,
             Self::Version => ParameterType::UnsignedInteger,
@@ -196,7 +198,7 @@ impl QueryPath for DataTypeQueryPath<'_> {
 impl fmt::Display for DataTypeQueryPath<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::VersionId => fmt.write_str("versionId"),
+            Self::OntologyId => fmt.write_str("ontologyId"),
             Self::BaseUri => fmt.write_str("baseUri"),
             Self::Version => fmt.write_str("version"),
             Self::VersionedUri => fmt.write_str("versionedUri"),
@@ -207,6 +209,8 @@ impl fmt::Display for DataTypeQueryPath<'_> {
             Self::Title => fmt.write_str("title"),
             Self::Description => fmt.write_str("description"),
             Self::Type => fmt.write_str("type"),
+            Self::AdditionalMetadata(Some(path)) => write!(fmt, "additionalMetadata.{path}"),
+            Self::AdditionalMetadata(None) => fmt.write_str("additionalMetadata"),
         }
     }
 }
@@ -323,7 +327,7 @@ mod tests {
 
         assert_eq!(
             DataTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
-                once("version_id")
+                once("ontology_id")
             ))
             .expect_err(
                 "managed to convert data type query path with hidden token when it should have \
@@ -331,7 +335,7 @@ mod tests {
             )
             .to_string(),
             format!(
-                "unknown variant `version_id`, expected {}",
+                "unknown variant `ontology_id`, expected {}",
                 DataTypeQueryPathVisitor::EXPECTING
             )
         );

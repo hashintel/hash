@@ -1,6 +1,6 @@
 import { JsonObject } from "@blockprotocol/core";
 import { faEllipsisVertical } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@local/design-system";
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import {
   EntityStore,
   isBlockEntity,
@@ -60,7 +60,7 @@ const BlockHandle: ForwardRefRenderFunction<
       throw new Error(`No child entity on block to update`);
     }
     blockView.manager.updateEntityProperties(
-      childEntity.metadata.editionId.baseId!,
+      childEntity.metadata.recordId.entityId!,
       properties,
     );
   };

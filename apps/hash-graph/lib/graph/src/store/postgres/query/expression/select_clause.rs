@@ -53,7 +53,7 @@ mod tests {
                 None
             )
             .transpile_to_string(),
-            r#""type_ids_1_2_3"."base_uri""#
+            r#""ontology_id_with_metadata_1_2_3"."base_uri""#
         );
 
         assert_eq!(
@@ -98,7 +98,7 @@ mod tests {
                 Some(Cow::Borrowed("latest_version"))
             )
             .transpile_to_string(),
-            r#"MAX("type_ids_1_2_3"."version") OVER (PARTITION BY "type_ids_1_2_3"."base_uri") AS "latest_version""#
+            r#"MAX("ontology_id_with_metadata_1_2_3"."version") OVER (PARTITION BY "ontology_id_with_metadata_1_2_3"."base_uri") AS "latest_version""#
         );
     }
 }

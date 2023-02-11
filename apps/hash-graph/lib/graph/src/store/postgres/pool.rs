@@ -35,10 +35,10 @@ impl ErrorSink<Error> for ErrorLogger {
 impl<Tls: Clone + Send + Sync + 'static> PostgresStorePool<Tls>
 where
     Tls: MakeTlsConnect<
-        Socket,
-        Stream: Send + Sync,
-        TlsConnect: Send + TlsConnect<Socket, Future: Send>,
-    >,
+            Socket,
+            Stream: Send + Sync,
+            TlsConnect: Send + TlsConnect<Socket, Future: Send>,
+        >,
 {
     /// Creates a new `PostgresDatabasePool`.
     ///
@@ -71,10 +71,10 @@ where
 impl<Tls: Clone + Send + Sync + 'static> StorePool for PostgresStorePool<Tls>
 where
     Tls: MakeTlsConnect<
-        Socket,
-        Stream: Send + Sync,
-        TlsConnect: Send + TlsConnect<Socket, Future: Send>,
-    >,
+            Socket,
+            Stream: Send + Sync,
+            TlsConnect: Send + TlsConnect<Socket, Future: Send>,
+        >,
 {
     type Error = RunError<Error>;
     type Store<'pool> = PostgresStore<PooledConnection<'pool, PostgresConnectionManager<Tls>>>;
@@ -99,10 +99,10 @@ impl<Tls: Clone + Send + Sync + 'static> AsClient
     for PooledConnection<'_, PostgresConnectionManager<Tls>>
 where
     Tls: MakeTlsConnect<
-        Socket,
-        Stream: Send + Sync,
-        TlsConnect: Send + TlsConnect<Socket, Future: Send>,
-    >,
+            Socket,
+            Stream: Send + Sync,
+            TlsConnect: Send + TlsConnect<Socket, Future: Send>,
+        >,
 {
     type Client = Client;
 

@@ -1,6 +1,6 @@
 /* eslint-disable canonical/filename-no-index -- @todo rename file */
 
-import { IconButton } from "@local/design-system";
+import { IconButton } from "@hashintel/design-system";
 import { Box, Divider, Typography, typographyClasses } from "@mui/material";
 import Avatar from "@mui/material/Avatar";
 import Stack from "@mui/material/Stack";

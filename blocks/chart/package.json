@@ -43,6 +43,7 @@
     "servePort": 63217
   },
   "blockprotocol": {
+    "name": "@ben/chart",
     "displayName": "Chart",
     "examples": [
       {}
