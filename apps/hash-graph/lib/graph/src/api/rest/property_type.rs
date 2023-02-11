@@ -14,10 +14,10 @@ use crate::{
     api::rest::{report_to_status_code, utoipa_typedef::subgraph::Subgraph},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, OntologyElementMetadata, PropertyTypeQueryToken,
-        PropertyTypeWithMetadata,
+        patch_id_and_parse, OntologyElementMetadata, OwnedOntologyElementMetadata,
+        PropertyTypeQueryToken, PropertyTypeWithMetadata,
     },
-    provenance::{OwnedById, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool},
     subgraph::query::{PropertyTypeStructuralQuery, StructuralQuery},
 };
@@ -115,8 +115,14 @@ async fn create_property_type<P: StorePool + Send>(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
+        property_type.id().into(),
+        ProvenanceMetadata::new(actor_id),
+        owned_by_id,
+    ));
+
     store
-        .create_property_type(property_type, owned_by_id, actor_id)
+        .create_property_type(property_type, &metadata)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create property type");
@@ -127,8 +133,9 @@ async fn create_property_type<P: StorePool + Send>(
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
-        })
-        .map(Json)
+        })?;
+
+    Ok(Json(metadata))
 }
 
 #[utoipa::path(

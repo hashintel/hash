@@ -1,4 +1,4 @@
-import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
+import { apiOrigin } from "@local/hash-graphql-shared/environment";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import { useCallback, useEffect, useRef } from "react";
 

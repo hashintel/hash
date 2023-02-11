@@ -1,9 +1,5 @@
 import { useMutation } from "@apollo/client";
-import {
-  EntityUuid,
-  OwnedById,
-  Uuid,
-} from "@local/hash-isomorphic-utils/types";
+import { EntityUuid, OwnedById, Uuid } from "@local/hash-graphql-shared/types";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -39,7 +35,7 @@ export const useCreatePage = (ownedById: OwnedById) => {
               query: getAccountPagesTree,
               variables: {
                 ownedById: extractOwnedByIdFromEntityId(
-                  data.createPage.metadata.editionId.baseId,
+                  data.createPage.metadata.recordId.entityId,
                 ),
               },
             },
@@ -53,7 +49,7 @@ export const useCreatePage = (ownedById: OwnedById) => {
         variables: { ownedById, properties: { title: "", prevIndex } },
       });
 
-      const pageEntityId = response.data?.createPage.metadata.editionId.baseId;
+      const pageEntityId = response.data?.createPage.metadata.recordId.entityId;
 
       if (pageEntityId && workspaceShortname) {
         const pageEntityUuid = extractEntityUuidFromEntityId(pageEntityId);

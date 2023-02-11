@@ -1,6 +1,6 @@
 use clap::Parser;
 
-use crate::subcommands::Subcommand;
+use crate::subcommand::Subcommand;
 
 /// Arguments passed to the program.
 #[derive(Debug, Parser)]

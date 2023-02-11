@@ -6,7 +6,7 @@ import {
   ValueOrArray,
 } from "@blockprotocol/type-system";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@local/design-system";
+import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 // eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
@@ -145,14 +145,15 @@ const Page: NextPageWithLayout = () => {
   const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
 
   const [
-    remoteEntityTypeAndPropertyTypes,
+    remoteEntityType,
+    remotePropertyTypes,
     updateEntityType,
     publishDraft,
     { loading: loadingRemoteEntityType },
   ] = useEntityTypeValue(
     baseEntityTypeUri,
     routeNamespace?.accountId ?? null,
-    ({ entityType: fetchedEntityType }) => {
+    (fetchedEntityType) => {
       reset({
         properties: Object.entries(fetchedEntityType.properties).map(
           ([propertyId, ref]) => {
@@ -189,19 +190,17 @@ const Page: NextPageWithLayout = () => {
     },
   );
 
-  const entityType =
-    remoteEntityTypeAndPropertyTypes?.entityType ?? draftEntityType;
+  const entityType = remoteEntityType ?? draftEntityType;
 
   const entityTypeAndPropertyTypes = useMemo(
     () =>
       entityType
         ? {
             entityType,
-            propertyTypes:
-              remoteEntityTypeAndPropertyTypes?.propertyTypes ?? {},
+            propertyTypes: remotePropertyTypes ?? {},
           }
         : null,
-    [entityType, remoteEntityTypeAndPropertyTypes],
+    [entityType, remotePropertyTypes],
   );
 
   const handleSubmit = wrapHandleSubmit(async (data) => {

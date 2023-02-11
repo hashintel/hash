@@ -16,7 +16,7 @@ export const useGetOwnerForEntity = () => {
   return useCallback(
     (entity: Entity) => {
       const ownerUuid = extractOwnedByIdFromEntityId(
-        entity.metadata.editionId.baseId,
+        entity.metadata.recordId.entityId,
       );
 
       const owner =

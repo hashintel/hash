@@ -17,7 +17,8 @@
     clippy::std_instead_of_core,
     clippy::if_then_some_else_none,
     clippy::print_stdout,
-    clippy::print_stderr
+    clippy::print_stderr,
+    clippy::mod_module_files
 )]
 // TODO: once more stable introduce: warning missing_docs, clippy::missing_errors_doc
 #![allow(clippy::module_name_repetitions)]
@@ -49,8 +50,11 @@ use crate::{
 mod context;
 pub mod error;
 mod impls;
+#[macro_use]
+mod macros;
 mod number;
 mod schema;
+pub mod value;
 
 extern crate alloc;
 

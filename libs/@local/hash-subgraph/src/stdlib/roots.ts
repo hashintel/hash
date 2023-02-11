@@ -1,5 +1,5 @@
 import { mustBeDefined } from "../shared/invariant";
-import { isEntityVertexId, isOntologyTypeEditionId } from "../types/identifier";
+import { isEntityVertexId, isOntologyTypeRecordId } from "../types/identifier";
 import {
   Subgraph,
   SubgraphRootType,
@@ -54,7 +54,7 @@ export const isDataTypeRootedSubgraph = (
   subgraph: Subgraph,
 ): subgraph is Subgraph<SubgraphRootTypes["dataType"]> => {
   for (const rootEditionId of subgraph.roots) {
-    if (!isOntologyTypeEditionId(rootEditionId)) {
+    if (!isOntologyTypeRecordId(rootEditionId)) {
       return false;
     }
 
@@ -81,7 +81,7 @@ export const isPropertyTypeRootedSubgraph = (
   subgraph: Subgraph,
 ): subgraph is Subgraph<SubgraphRootTypes["propertyType"]> => {
   for (const rootEditionId of subgraph.roots) {
-    if (!isOntologyTypeEditionId(rootEditionId)) {
+    if (!isOntologyTypeRecordId(rootEditionId)) {
       return false;
     }
 
@@ -108,7 +108,7 @@ export const isEntityTypeRootedSubgraph = (
   subgraph: Subgraph,
 ): subgraph is Subgraph<SubgraphRootTypes["entityType"]> => {
   for (const rootEditionId of subgraph.roots) {
-    if (!isOntologyTypeEditionId(rootEditionId)) {
+    if (!isOntologyTypeRecordId(rootEditionId)) {
       return false;
     }
 

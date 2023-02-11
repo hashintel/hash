@@ -3,24 +3,21 @@
 
 mod args;
 mod error;
-mod subcommands;
+mod subcommand;
 
-use error::GraphError;
 use error_stack::Result;
-use subcommands::{completions::completions, Subcommand};
 
-use crate::{
-    args::Args,
-    subcommands::{migrate::migrate, server::server},
-};
+use self::{args::Args, error::GraphError, subcommand::Subcommand};
 
 #[tokio::main]
 async fn main() -> Result<(), GraphError> {
     let args = Args::parse_args();
 
     match args.subcommand {
-        Subcommand::Server(args) => server(args).await,
-        Subcommand::Migrate(args) => migrate(args).await,
-        Subcommand::Completions(args) => completions(args),
+        Subcommand::Server(args) => subcommand::server(args).await,
+        Subcommand::Migrate(args) => subcommand::migrate(args).await,
+        #[cfg(feature = "type-fetcher")]
+        Subcommand::TypeFetcher(args) => subcommand::type_fetcher(args).await,
+        Subcommand::Completions(args) => subcommand::completions(args),
     }
 }

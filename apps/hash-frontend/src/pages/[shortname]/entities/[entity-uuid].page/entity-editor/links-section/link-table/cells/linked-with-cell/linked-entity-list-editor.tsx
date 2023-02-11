@@ -1,5 +1,5 @@
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
+import { EntityId } from "@local/hash-graphql-shared/types";
 import { Entity, VersionedUri } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import { Box } from "@mui/material";
@@ -32,7 +32,7 @@ export const createDraftLinkEntity = ({
     linkData: { rightEntityId, leftEntityId },
     metadata: {
       archived: false,
-      editionId: { recordId: 1, baseId: `draft%${Date.now()}` },
+      recordId: { editionId: "", entityId: `draft%${Date.now()}` },
       entityTypeId: linkEntityTypeId,
       provenance: { updatedById: "" },
       version: {
@@ -65,8 +65,8 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
   const onSelect = (selectedEntity: Entity) => {
     const alreadyLinked = linkAndTargetEntities.find(
       ({ rightEntity }) =>
-        rightEntity.metadata.editionId.baseId ===
-        selectedEntity.metadata.editionId.baseId,
+        rightEntity.metadata.recordId.entityId ===
+        selectedEntity.metadata.recordId.entityId,
     );
 
     // if same entity is already linked, do nothing
@@ -74,9 +74,9 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
       return setAddingLink(false);
     }
 
-    const leftEntityId = getRoots(entitySubgraph)[0]?.metadata.editionId
-      .baseId as EntityId;
-    const rightEntityId = selectedEntity.metadata.editionId.baseId as EntityId;
+    const leftEntityId = getRoots(entitySubgraph)[0]?.metadata.recordId
+      .entityId as EntityId;
+    const rightEntityId = selectedEntity.metadata.recordId.entityId as EntityId;
 
     const linkEntity = createDraftLinkEntity({
       leftEntityId,
@@ -118,7 +118,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
   const linkedEntityIds = useMemo(
     () =>
       linkAndTargetEntities.map(
-        ({ rightEntity }) => rightEntity.metadata.editionId.baseId,
+        ({ rightEntity }) => rightEntity.metadata.recordId.entityId,
       ),
     [linkAndTargetEntities],
   );
@@ -127,7 +127,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
     <GridEditorWrapper>
       <Box sx={{ maxHeight: 300, overflowY: "auto" }}>
         {sortedLinkAndTargetEntities.map(({ rightEntity, linkEntity }) => {
-          const linkEntityId = linkEntity.metadata.editionId.baseId;
+          const linkEntityId = linkEntity.metadata.recordId.entityId;
           const selected = selectedLinkEntityId === linkEntityId;
           return (
             <LinkedEntityListRow
@@ -138,7 +138,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
                   draftCell.data.linkRow.linkAndTargetEntities =
                     draftCell.data.linkRow.linkAndTargetEntities.filter(
                       (item) =>
-                        item.linkEntity.metadata.editionId.baseId !==
+                        item.linkEntity.metadata.recordId.entityId !==
                         linkEntityId,
                     );
                 });

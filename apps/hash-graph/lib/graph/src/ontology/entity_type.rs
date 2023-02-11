@@ -257,9 +257,11 @@ pub enum EntityTypeQueryPath<'p> {
     /// [`EntityType::inherits_from()`]: type_system::EntityType::inherits_from
     InheritsFrom(Box<Self>),
     /// Only used internally and not available for deserialization.
-    VersionId,
+    OntologyId,
     /// Only used internally and not available for deserialization.
     Schema(Option<JsonPath<'p>>),
+    /// Only used internally and not available for deserialization.
+    AdditionalMetadata(Option<JsonPath<'p>>),
 }
 
 impl OntologyQueryPath for EntityTypeQueryPath<'_> {
@@ -275,10 +277,6 @@ impl OntologyQueryPath for EntityTypeQueryPath<'_> {
         Self::Version
     }
 
-    fn owned_by_id() -> Self {
-        Self::OwnedById
-    }
-
     fn updated_by_id() -> Self {
         Self::UpdatedById
     }
@@ -286,13 +284,17 @@ impl OntologyQueryPath for EntityTypeQueryPath<'_> {
     fn schema() -> Self {
         Self::Schema(None)
     }
+
+    fn additional_metadata() -> Self {
+        Self::AdditionalMetadata(None)
+    }
 }
 
 impl QueryPath for EntityTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::VersionId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
-            Self::Schema(_) => ParameterType::Any,
+            Self::OntologyId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
+            Self::Schema(_) | Self::AdditionalMetadata(_) => ParameterType::Any,
             Self::BaseUri => ParameterType::BaseUri,
             Self::VersionedUri => ParameterType::VersionedUri,
             Self::Version => ParameterType::UnsignedInteger,
@@ -309,7 +311,7 @@ impl QueryPath for EntityTypeQueryPath<'_> {
 impl fmt::Display for EntityTypeQueryPath<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::VersionId => fmt.write_str("versionId"),
+            Self::OntologyId => fmt.write_str("ontologyId"),
             Self::BaseUri => fmt.write_str("baseUri"),
             Self::Version => fmt.write_str("version"),
             Self::VersionedUri => fmt.write_str("versionedUri"),
@@ -326,6 +328,8 @@ impl fmt::Display for EntityTypeQueryPath<'_> {
             Self::Links(path) => write!(fmt, "links.{path}"),
             Self::RequiredLinks => fmt.write_str("requiredLinks"),
             Self::InheritsFrom(path) => write!(fmt, "inheritsFrom.{path}"),
+            Self::AdditionalMetadata(Some(path)) => write!(fmt, "additionalMetadata.{path}"),
+            Self::AdditionalMetadata(None) => fmt.write_str("additionalMetadata"),
         }
     }
 }
@@ -494,7 +498,7 @@ mod tests {
 
         assert_eq!(
             EntityTypeQueryPath::deserialize(
-                de::value::SeqDeserializer::<_, de::value::Error>::new(once("version_id"))
+                de::value::SeqDeserializer::<_, de::value::Error>::new(once("ontology_id"))
             )
             .expect_err(
                 "managed to convert entity type query path with hidden token when it should have \
@@ -502,7 +506,7 @@ mod tests {
             )
             .to_string(),
             format!(
-                "unknown variant `version_id`, expected {}",
+                "unknown variant `ontology_id`, expected {}",
                 EntityTypeQueryPathVisitor::EXPECTING
             )
         );

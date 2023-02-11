@@ -1,0 +1,15 @@
+{
+  "presets": [
+    [
+      "next/babel",
+      {
+        "preset-env": {
+          "targets": {
+            "chrome": "73"
+          }
+        }
+      }
+    ]
+  ],
+  "plugins": []
+}

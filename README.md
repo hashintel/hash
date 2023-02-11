@@ -4,10 +4,9 @@
 [hash]: https://hash.ai/platform/hash?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hash engine]: https://hash.ai/platform/engine?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hash roadmap]: https://hash.ai/roadmap?utm_medium=organic&utm_source=github_readme_hash-repo_root
-[hash user guide]: https://hash.ai/docs?utm_medium=organic&utm_source=github_readme_hash-repo_root
-[glossary of terms]: https://hash.ai/glossary?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [block protocol]: https://github.com/blockprotocol/blockprotocol
 [hiring]: https://hash.ai/careers?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[awesome hash]: https://github.com/hashintel/awesome-hash
 
 <!-- markdownlint-disable link-fragments -->
 
@@ -44,7 +43,7 @@ HASH does this by combining various different powerful tools together into one s
 
 ## [![a](/.github/assets/gh_icon_examples_20px-base.svg)][gh-examples] &nbsp; Examples
 
-_Coming soon_
+**Coming soon:** we'll be collecting examples in the _[Awesome HASH]_ repository.
 
 ## [![a](/.github/assets/gh_icon_roadmap_20px-base.svg)][gh-roadmap] &nbsp; Roadmap
 
@@ -56,37 +55,31 @@ Browse the [HASH roadmap] for more information about upcoming features and relea
 
 This repository's contents is divided across four primary sections:
 
-- [`/apps` - applications](#applications): the primary code behind our runnable applications
-- [`/blocks` - blocks](#blocks): our public [Block Protocol] blocks
-- [`/infra`- infrastructure](#infrastructure): deployment scripts and other tools used to run our apps
-- [`/libs` - libraries](#libraries): includes npm packages and Rust crates
+- [**`/apps`**](/apps) contains the primary code powering our runnable [applications](#applications)
+- [**`/blocks`**](/blocks) contains our public _Block Protocol_ [blocks](#blocks)
+- [**`/infra`**](/infra) houses deployment scripts, utilities and other [infrastructure](#infrastructure) useful in running our apps
+- [**`/libs`**](/libs) contains [libraries](#libraries) including npm packages and Rust crates
+
+Key projects within are summarized below.
 
 ### Applications
 
-#### HASH
-
-- [`/apps/hash`](apps/hash): entrypoint for [HASH] - a data-driven, entity-centric, all-in-one workspace based on the Block Protocol
-
-#### HASH Simulations
-
-- [`/apps/engine`](apps/engine): codebase for our next-gen version of [HASH Engine] - a versatile agent-based simulation engine written in Rust
-
-#### Our websites
-
-- [`/apps/hashdotai`](apps/hashdotai): contains the [HASH user guide] and [glossary of terms] content
-- [`/apps/hashdotdev`](apps/hashdotdev): contains the [hash.dev] developer-education website content and code
+- [`hash`](apps/hash): entry-point for **[HASH]**, a data-driven, entity-centric, all-in-one workspace based on the [Block Protocol]
+- [`engine`](apps/engine): experimental version of **[HASH Engine]**, a versatile agent-based simulation engine written in Rust
 
 ### Blocks
 
-- [`/blocks`](blocks): source code for all of HASH's open-source [Block Protocol] blocks
+- Various directories containing the source code for all of HASH's open-source [Block Protocol] blocks
 
 ### Infrastructure
 
-- [`/infra/terraform`](infra/terraform): contains Terraform modules for deploying HASH on AWS
+- [`terraform`](infra/terraform): Terraform modules for deploying HASH on AWS
 
 ### Libraries
 
-- [`/packages/libs`](packages/libs): source code for our open-source developer libraries
+- [`antsi`](libs/antsi): Rust crate supporting Select Graphic Rendition (as defined in ISO 6429) without external dependencies
+- [`deer`](libs/deer): fail-slow deserialization framework for Rust, featuring meaningful error messages and context
+- [`error-stack`](libs/error-stack): context-aware error-handling library for Rust which supports attaching arbitrary user data
 
 ## [![a](/.github/assets/gh_icon_contributing_20px-base.svg)][gh-contributing] &nbsp; Contributing
 

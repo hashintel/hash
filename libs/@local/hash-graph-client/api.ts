@@ -506,10 +506,10 @@ export interface EntityEditionId {
   baseId: string;
   /**
    *
-   * @type {number}
+   * @type {string}
    * @memberof EntityEditionId
    */
-  recordId: number;
+  recordId: string;
 }
 /**
  *
@@ -801,16 +801,35 @@ export interface EntityTypeWithMetadata {
 export interface EntityVersion {
   /**
    *
-   * @type {VersionInterval}
+   * @type {EntityVersionDecisionTime}
    * @memberof EntityVersion
    */
-  decisionTime: VersionInterval;
+  decisionTime: EntityVersionDecisionTime;
   /**
    *
-   * @type {VersionInterval}
+   * @type {EntityVersionDecisionTime}
    * @memberof EntityVersion
    */
-  transactionTime: VersionInterval;
+  transactionTime: EntityVersionDecisionTime;
+}
+/**
+ *
+ * @export
+ * @interface EntityVersionDecisionTime
+ */
+export interface EntityVersionDecisionTime {
+  /**
+   *
+   * @type {string}
+   * @memberof EntityVersionDecisionTime
+   */
+  end: string | null;
+  /**
+   *
+   * @type {string}
+   * @memberof EntityVersionDecisionTime
+   */
+  start: string;
 }
 /**
  *
@@ -843,6 +862,31 @@ export interface EqualFilter {
    * @memberof EqualFilter
    */
   equal: Array<FilterExpression>;
+}
+/**
+ *
+ * @export
+ * @interface ExternalOntologyElementMetadata
+ */
+export interface ExternalOntologyElementMetadata {
+  /**
+   *
+   * @type {OntologyTypeEditionId}
+   * @memberof ExternalOntologyElementMetadata
+   */
+  editionId: OntologyTypeEditionId;
+  /**
+   *
+   * @type {string}
+   * @memberof ExternalOntologyElementMetadata
+   */
+  fetchedAt: string;
+  /**
+   *
+   * @type {ProvenanceMetadata}
+   * @memberof ExternalOntologyElementMetadata
+   */
+  provenance: ProvenanceMetadata;
 }
 /**
  * @type Filter
@@ -1198,30 +1242,13 @@ export type OntologyEdgeKind =
   (typeof OntologyEdgeKind)[keyof typeof OntologyEdgeKind];
 
 /**
- *
+ * @type OntologyElementMetadata
  * @export
- * @interface OntologyElementMetadata
  */
-export interface OntologyElementMetadata {
-  /**
-   *
-   * @type {OntologyTypeEditionId}
-   * @memberof OntologyElementMetadata
-   */
-  editionId: OntologyTypeEditionId;
-  /**
-   *
-   * @type {string}
-   * @memberof OntologyElementMetadata
-   */
-  ownedById: string;
-  /**
-   *
-   * @type {ProvenanceMetadata}
-   * @memberof OntologyElementMetadata
-   */
-  provenance: ProvenanceMetadata;
-}
+export type OntologyElementMetadata =
+  | ExternalOntologyElementMetadata
+  | OwnedOntologyElementMetadata;
+
 /**
  * @type OntologyOutwardEdges
  * @export
@@ -1456,6 +1483,31 @@ export interface OutgoingEdgeResolveDepth {
    * @memberof OutgoingEdgeResolveDepth
    */
   outgoing: number;
+}
+/**
+ *
+ * @export
+ * @interface OwnedOntologyElementMetadata
+ */
+export interface OwnedOntologyElementMetadata {
+  /**
+   *
+   * @type {OntologyTypeEditionId}
+   * @memberof OwnedOntologyElementMetadata
+   */
+  editionId: OntologyTypeEditionId;
+  /**
+   *
+   * @type {string}
+   * @memberof OwnedOntologyElementMetadata
+   */
+  ownedById: string;
+  /**
+   *
+   * @type {ProvenanceMetadata}
+   * @memberof OwnedOntologyElementMetadata
+   */
+  provenance: ProvenanceMetadata;
 }
 /**
  *
@@ -2483,25 +2535,6 @@ export interface UpdatePropertyTypeRequest {
    * @memberof UpdatePropertyTypeRequest
    */
   typeToUpdate: string;
-}
-/**
- *
- * @export
- * @interface VersionInterval
- */
-export interface VersionInterval {
-  /**
-   *
-   * @type {string}
-   * @memberof VersionInterval
-   */
-  end: string | null;
-  /**
-   *
-   * @type {string}
-   * @memberof VersionInterval
-   */
-  start: string;
 }
 /**
  * @type Vertex

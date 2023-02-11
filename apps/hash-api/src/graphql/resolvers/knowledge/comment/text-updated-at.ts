@@ -11,7 +11,7 @@ export const commentTextUpdatedAtResolver: CommentResolvers<LoggedInGraphQLConte
     const context = dataSourcesToImpureGraphContext(dataSources);
 
     const comment = await getCommentById(context, {
-      entityId: metadata.editionId.baseId,
+      entityId: metadata.recordId.entityId,
     });
     const textEntity = await getCommentText(context, { comment });
 

@@ -13,8 +13,8 @@ import {
 } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { GraphApi, OntologyElementMetadata } from "@local/hash-graph-client";
+import { OwnedById } from "@local/hash-graphql-shared/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import { typedEntries } from "@local/hash-isomorphic-utils/util";
 import { PropertyObject } from "@local/hash-subgraph";
 import { camelCase, isEqual, upperFirst } from "lodash";

@@ -1,4 +1,4 @@
-use std::{future::Future, pin::Pin};
+use std::{borrow::Borrow, future::Future, pin::Pin};
 
 use async_trait::async_trait;
 use error_stack::{Result, ResultExt};
@@ -8,7 +8,7 @@ use type_system::{EntityType, EntityTypeReference, PropertyTypeReference};
 use crate::{
     identifier::{ontology::OntologyTypeEditionId, time::TimeProjection},
     ontology::{EntityTypeWithMetadata, OntologyElementMetadata, OntologyTypeWithMetadata},
-    provenance::{OwnedById, UpdatedById},
+    provenance::UpdatedById,
     store::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
@@ -245,37 +245,45 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, entity_type))]
-    async fn create_entity_type(
+    #[tracing::instrument(level = "info", skip(self, entity_types))]
+    async fn create_entity_types(
         &mut self,
-        entity_type: EntityType,
-        owned_by_id: OwnedById,
-        updated_by_id: UpdatedById,
-    ) -> Result<OntologyElementMetadata, InsertionError> {
+        entity_types: impl IntoIterator<
+            Item = (
+                EntityType,
+                impl Borrow<OntologyElementMetadata> + Send + Sync,
+            ),
+            IntoIter: Send,
+        > + Send,
+    ) -> Result<(), InsertionError> {
+        let entity_types = entity_types.into_iter();
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
-        // This clone is currently necessary because we extract the references as we insert them.
-        // We can only insert them after the type has been created, and so we currently extract them
-        // after as well. See `insert_entity_type_references` taking `&entity_type`
-        let (version_id, metadata) = transaction
-            .create(entity_type.clone(), owned_by_id, updated_by_id)
-            .await?;
+        let mut inserted_entity_types = Vec::with_capacity(entity_types.size_hint().0);
+        for (schema, metadata) in entity_types {
+            let ontology_id = transaction
+                .create(schema.clone(), metadata.borrow())
+                .await?;
+            inserted_entity_types.push((ontology_id, schema));
+        }
 
-        transaction
-            .insert_entity_type_references(&entity_type, version_id)
-            .await
-            .change_context(InsertionError)
-            .attach_printable_lazy(|| {
-                format!(
-                    "could not insert references for entity type: {}",
-                    entity_type.id()
-                )
-            })
-            .attach_lazy(|| entity_type.clone())?;
+        for (ontology_id, schema) in inserted_entity_types {
+            transaction
+                .insert_entity_type_references(&schema, ontology_id)
+                .await
+                .change_context(InsertionError)
+                .attach_printable_lazy(|| {
+                    format!(
+                        "could not insert references for entity type: {}",
+                        schema.id()
+                    )
+                })
+                .attach_lazy(|| schema.clone())?;
+        }
 
         transaction.commit().await.change_context(InsertionError)?;
 
-        Ok(metadata)
+        Ok(())
     }
 
     #[tracing::instrument(level = "info", skip(self))]
@@ -332,12 +340,12 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         // This clone is currently necessary because we extract the references as we insert them.
         // We can only insert them after the type has been created, and so we currently extract them
         // after as well. See `insert_entity_type_references` taking `&entity_type`
-        let (version_id, metadata) = transaction
+        let (ontology_id, metadata) = transaction
             .update::<EntityType>(entity_type.clone(), updated_by)
             .await?;
 
         transaction
-            .insert_entity_type_references(&entity_type, version_id)
+            .insert_entity_type_references(&entity_type, ontology_id)
             .await
             .change_context(UpdateError)
             .attach_printable_lazy(|| {

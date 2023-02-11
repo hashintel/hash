@@ -46,6 +46,7 @@
     "blockType": {
       "entryPoint": "react"
     },
+    "name": "@thehabbos007/calculation",
     "displayName": "Calculation",
     "examples": [
       {

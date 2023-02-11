@@ -1,4 +1,4 @@
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
+import { OwnedById } from "@local/hash-graphql-shared/types";
 import { EntityId } from "@local/hash-subgraph";
 import { useContext } from "react";
 
@@ -37,7 +37,7 @@ export const useApplyDraftLinkEntityChanges = () => {
             properties: {},
             linkData: {
               leftEntityId,
-              rightEntityId: rightEntity.metadata.editionId.baseId,
+              rightEntityId: rightEntity.metadata.recordId.entityId,
             },
           },
         }),

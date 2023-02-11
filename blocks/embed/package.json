@@ -43,6 +43,7 @@
     "servePort": 62680
   },
   "blockprotocol": {
+    "name": "@hash/embed",
     "displayName": "Embed",
     "icon": "public/embed.svg",
     "image": "public/preview.svg",

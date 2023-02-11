@@ -45,6 +45,7 @@
     "blockType": {
       "entryPoint": "react"
     },
+    "name": "@hash/image",
     "displayName": "Image",
     "icon": "public/image.svg",
     "image": "public/preview.svg",
