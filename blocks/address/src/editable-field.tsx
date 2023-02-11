@@ -1,3 +1,5 @@
+import { faPenToSquare } from "@fortawesome/free-regular-svg-icons";
+import { FontAwesomeIcon } from "@local/design-system";
 import {
   Box,
   Fade,
@@ -8,13 +10,18 @@ import {
   useTheme,
 } from "@mui/material";
 import { useRef, useState } from "react";
-import { PenToSquareIcon } from "./icons/pen-to-square-icon";
 
-export const EditableField = ({ sx, onBlur, ...props }: TextFieldProps) => {
+export const EditableField = ({
+  iconSize,
+  value,
+  sx,
+  onBlur,
+  ...props
+}: { iconSize: string } & TextFieldProps) => {
   const { transitions } = useTheme();
 
   const [hovered, setHovered] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(value ? false : true);
   const inputRef = useRef<HTMLDivElement | null>(null);
 
   return (
@@ -27,6 +34,7 @@ export const EditableField = ({ sx, onBlur, ...props }: TextFieldProps) => {
     >
       <TextField
         {...props}
+        autoFocus
         onBlur={(event) => {
           setEditing(false);
           onBlur?.(event);
@@ -77,7 +85,10 @@ export const EditableField = ({ sx, onBlur, ...props }: TextFieldProps) => {
               padding: 0.5,
             }}
           >
-            <PenToSquareIcon sx={{ fontSize: 21 }} />
+            <FontAwesomeIcon
+              icon={faPenToSquare}
+              sx={{ fontSize: `${iconSize} !important` }}
+            />
           </IconButton>
         </Box>
       </Fade>

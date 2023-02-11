@@ -1,4 +1,6 @@
-import CloseIcon from "@mui/icons-material/Close";
+import { faPenToSquare } from "@fortawesome/free-regular-svg-icons";
+import { faClose } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@local/design-system";
 import {
   Box,
   Button,
@@ -6,10 +8,10 @@ import {
   Card,
   CircularProgress,
   Fade,
-  IconButton,
   Link,
   Stack,
   Typography,
+  useTheme,
 } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 import { EditableField } from "./editable-field";
@@ -26,19 +28,20 @@ const MapButton = ({ children, href, sx, ...props }: ButtonProps) => {
     >
       <Button
         {...props}
+        variant="tertiary_quiet"
         sx={[
-          {
-            fontFamily: "Inter",
+          ({ palette }) => ({
             height: 42,
             fontWeight: 500,
             fontSize: 14,
             lineHeight: "18px",
-            color: "#4D5C6C",
-            border: "1px solid #DDE7F0",
+            color: palette.gray[80],
+            border: `1px solid ${palette.gray[30]}`,
             whiteSpace: "nowrap",
             textTransform: "none",
-            padding: ({ spacing }) => `${spacing(1.5)} ${spacing(2.5)}`,
-          },
+            paddingY: 1.5,
+            paddingX: 2.5,
+          }),
           ...(Array.isArray(sx) ? sx : [sx]),
         ]}
       >
@@ -69,6 +72,8 @@ export const AddressCard = ({
   updateTitle,
   updateDescription,
 }: AddressCardProps) => {
+  const theme = useTheme();
+  const [editingDescription, setEditingDescription] = useState(false);
   const [descriptionValue, setDescriptionValue] = useState(description);
 
   useEffect(() => {
@@ -89,46 +94,44 @@ export const AddressCard = ({
     <Card
       sx={{
         display: "flex",
-        border: "1px solid #EBF2F7",
+        border: ({ palette }) => `1px solid ${palette.gray[20]}`,
         borderRadius: 2.5,
         boxShadow: "none",
-        maxWidth: 800,
       }}
     >
       <Stack
         sx={{
           display: "flex",
           justifyContent: "space-between",
-          padding: ({ spacing }) => `${spacing(3)} ${spacing(3.75)}`,
+          paddingY: 3,
+          paddingX: 3.75,
           gap: 4,
-          maxWidth: 300,
+          width: 300,
         }}
       >
         <Stack gap={1.5}>
           <EditableField
             defaultValue={title}
             onBlur={(event) => updateTitle(event.target.value)}
+            iconSize="21px"
             inputProps={{
               sx: {
-                fontFamily: "Inter",
                 fontWeight: 700,
                 fontSize: 21,
                 lineHeight: 1,
                 letterSpacing: "-0.02em",
-                color: "#000",
+                color: theme.palette.common.black,
               },
             }}
           />
 
           <Typography
+            variant="regularTextLabels"
             sx={{
-              fontFamily: "Inter",
               fontWeight: 500,
-              fontSize: 16,
               lineHeight: 1.3,
               letterSpacing: "-0.02em",
-              color: "#37434F",
-              maxWidth: "100%",
+              color: ({ palette }) => palette.gray[90],
             }}
           >
             {fullAddress}
@@ -146,35 +149,55 @@ export const AddressCard = ({
           </MapButton>
         </Box>
 
-        <EditableField
-          value={descriptionValue}
-          onChange={(event) => setDescriptionValue(event.target.value)}
-          onBlur={(event) => updateDescription(event.target.value)}
-          placeholder="Description here"
-          inputProps={{
-            sx: {
-              fontFamily: "Inter",
+        {description || editingDescription ? (
+          <EditableField
+            value={descriptionValue}
+            onChange={(event) => setDescriptionValue(event.target.value)}
+            onBlur={(event) => {
+              setEditingDescription(false);
+              updateDescription(event.target.value);
+            }}
+            placeholder="Enter description"
+            iconSize="14px"
+            inputProps={{
+              sx: {
+                fontWeight: 500,
+                fontSize: 14,
+                lineHeight: 1.3,
+                letterSpacing: "-0.02em",
+                color: theme.palette.gray[90],
+              },
+            }}
+          />
+        ) : (
+          <Typography
+            onClick={() => {
+              setEditingDescription(true);
+            }}
+            sx={{
               fontWeight: 500,
-              fontSize: 16,
+              fontSize: 14,
               lineHeight: 1.3,
               letterSpacing: "-0.02em",
-              color: "#37434F",
-            },
-          }}
-        />
+              color: theme.palette.gray[50],
+            }}
+          >
+            Click here to add a description or more detailed information
+            <FontAwesomeIcon icon={faPenToSquare} sx={{ ml: 1 }} />
+          </Typography>
+        )}
       </Stack>
 
       <Box
-        sx={{
-          width: 1,
+        sx={({ palette }) => ({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#F7FAFC",
-          borderLeft: "1px solid #EBF2F7",
-          maxWidth: 500,
           position: "relative",
-        }}
+          background: palette.gray[10],
+          borderLeft: `1px solid ${palette.gray[20]}`,
+          width: 500,
+        })}
       >
         {mapUrl ? (
           <Box
@@ -186,21 +209,37 @@ export const AddressCard = ({
             }}
           />
         ) : (
-          <CircularProgress sx={{ color: "#C1CFDE" }} />
+          <CircularProgress sx={{ color: ({ palette }) => palette.gray[40] }} />
         )}
 
         <Fade in={hovered}>
-          <IconButton
+          <Button
+            size="small"
             onClick={onClose}
-            sx={{
+            variant="tertiary"
+            sx={({ palette }) => ({
               position: "absolute",
               top: 4,
               right: 4,
               padding: 0.5,
-            }}
+              background: "transparent !important",
+              fontSize: 12,
+              fontWeight: 600,
+              lineHeight: "18px",
+              letterSpacing: "0.05em",
+              textTransform: "uppercase",
+              border: "none",
+              fill: palette.gray[70],
+              ":hover": {
+                fill: palette.gray[80],
+              },
+            })}
+            endIcon={
+              <FontAwesomeIcon icon={faClose} sx={{ fill: "inherit" }} />
+            }
           >
-            <CloseIcon />
-          </IconButton>
+            Close
+          </Button>
         </Fade>
       </Box>
     </Card>
