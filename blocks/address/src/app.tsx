@@ -6,7 +6,7 @@ import {
 } from "@blockprotocol/graph/react";
 import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, theme } from "@local/design-system";
+import { FontAwesomeIcon, theme } from "@hashintel/design-system";
 import { AutofillSuggestion } from "@mapbox/search-js-core";
 import {
   CircularProgress,
@@ -61,7 +61,9 @@ const countryKey =
 const fullAddressKey =
   "https://alpha.hash.ai/@luisbett/types/property-type/fulladdress/";
 
-const accessToken = "";
+// const accessToken = "";
+const accessToken =
+  "pk.eyJ1IjoibHVpc2JldHRlbmNvdXJ0IiwiYSI6ImNsZHphbG9pdzB3cWIzb29hNzFxbjNtMjAifQ.IZNEdPk4pFvPoY3npFbAtQ";
 
 const getOptionLabel = (option: AutofillSuggestion | string) =>
   typeof option === "string" ? option : option.place_name ?? "";
