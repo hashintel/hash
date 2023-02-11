@@ -1,5 +1,5 @@
 import { faPenToSquare } from "@fortawesome/free-regular-svg-icons";
-import { faClose } from "@fortawesome/free-solid-svg-icons";
+import { faClose, faMinus, faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import {
   Box,
@@ -8,6 +8,7 @@ import {
   Card,
   CircularProgress,
   Fade,
+  IconButton,
   Link,
   Stack,
   Typography,
@@ -17,39 +18,7 @@ import { useEffect, useMemo, useState } from "react";
 import { EditableField } from "./editable-field";
 import { AppleIcon } from "./icons/apple-icon";
 import { GoogleIcon } from "./icons/google-icon";
-
-const MapButton = ({ children, href, sx, ...props }: ButtonProps) => {
-  return (
-    <Link
-      href={href}
-      sx={{
-        textDecoration: "none",
-      }}
-    >
-      <Button
-        {...props}
-        variant="tertiary_quiet"
-        sx={[
-          ({ palette }) => ({
-            height: 42,
-            fontWeight: 500,
-            fontSize: 14,
-            lineHeight: "18px",
-            color: palette.gray[80],
-            border: `1px solid ${palette.gray[30]}`,
-            whiteSpace: "nowrap",
-            textTransform: "none",
-            paddingY: 1.5,
-            paddingX: 2.5,
-          }),
-          ...(Array.isArray(sx) ? sx : [sx]),
-        ]}
-      >
-        {children}
-      </Button>
-    </Link>
-  );
-};
+import { MapButton } from "./map-button";
 
 type AddressCardProps = {
   title?: string;
