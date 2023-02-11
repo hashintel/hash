@@ -97,6 +97,9 @@ export const AddressCard = ({
         border: ({ palette }) => `1px solid ${palette.gray[20]}`,
         borderRadius: 2.5,
         boxShadow: "none",
+        [theme.breakpoints.down("md")]: {
+          flexDirection: "column",
+        },
       }}
     >
       <Stack
@@ -107,6 +110,9 @@ export const AddressCard = ({
           paddingX: 3.75,
           gap: 4,
           width: 300,
+          [theme.breakpoints.down("md")]: {
+            width: 1,
+          },
         }}
       >
         <Stack gap={1.5}>
@@ -138,8 +144,8 @@ export const AddressCard = ({
           </Typography>
         </Stack>
 
-        <Box>
-          <MapButton href={googleMapsUrl} sx={{ mb: 1.5 }}>
+        <Stack gap={1.5}>
+          <MapButton href={googleMapsUrl}>
             <GoogleIcon sx={{ fontSize: 18, mr: 1 }} />
             Open in Google Maps
           </MapButton>
@@ -147,7 +153,7 @@ export const AddressCard = ({
             <AppleIcon sx={{ fontSize: 18, mr: 1 }} />
             Open in Apple Maps
           </MapButton>
-        </Box>
+        </Stack>
 
         {description || editingDescription ? (
           <EditableField
@@ -197,6 +203,10 @@ export const AddressCard = ({
           background: palette.gray[10],
           borderLeft: `1px solid ${palette.gray[20]}`,
           width: 500,
+          [theme.breakpoints.down("md")]: {
+            width: 1,
+            height: 300,
+          },
         })}
       >
         {mapUrl ? (
