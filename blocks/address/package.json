@@ -1,7 +1,7 @@
 {
-  "name": "address",
-  "version": "0.0.0",
-  "description": "address block",
+  "name": "@blocks/address",
+  "version": "0.1.0",
+  "description": "Search for an address using the Mapbox Address Autofill and Mapbox Static Images APIs",
   "keywords": [
     "blockprotocol",
     "blocks"
@@ -51,15 +51,16 @@
     "blockType": {
       "entryPoint": "react"
     },
-    "displayName": "address",
+    "displayName": "Address",
     "examples": [
       {
-        "name": "World"
+        "title": "Empire State Building",
+        "description": "A skyscraper in Midtown Manhattan, New York City"
       }
     ],
     "icon": "public/omega.svg",
     "image": "public/block-preview.png",
-    "name": "address",
+    "name": "@hash/address",
     "protocol": "0.3",
     "schema": "https://alpha.hash.ai/@luisbett/types/entity-type/address-block/v/7"
   }
