@@ -61,9 +61,7 @@ const countryKey =
 const fullAddressKey =
   "https://alpha.hash.ai/@luisbett/types/property-type/fulladdress/";
 
-// const accessToken = "";
-const accessToken =
-  "pk.eyJ1IjoibHVpc2JldHRlbmNvdXJ0IiwiYSI6ImNsZHphbG9pdzB3cWIzb29hNzFxbjNtMjAifQ.IZNEdPk4pFvPoY3npFbAtQ";
+const accessToken = "";
 
 const getOptionLabel = (option: AutofillSuggestion | string) =>
   typeof option === "string" ? option : option.place_name ?? "";
