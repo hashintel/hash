@@ -13,15 +13,17 @@ import { useRef, useState } from "react";
 
 export const EditableField = ({
   iconSize,
+  readonly,
   value,
+  placeholder,
   sx,
   onBlur,
   ...props
-}: { iconSize: string } & TextFieldProps) => {
+}: { iconSize: string; readonly?: boolean } & TextFieldProps) => {
   const { transitions } = useTheme();
 
   const [hovered, setHovered] = useState(false);
-  const [editing, setEditing] = useState(value ? false : true);
+  const [editing, setEditing] = useState(!readonly && !value ? true : false);
   const inputRef = useRef<HTMLDivElement | null>(null);
 
   return (
@@ -51,6 +53,7 @@ export const EditableField = ({
           ...props.inputProps,
         }}
         variant="standard"
+        placeholder={!readonly ? placeholder : undefined}
         sx={{
           width: "100%",
           [`.${inputBaseClasses.root}`]: {
@@ -72,26 +75,28 @@ export const EditableField = ({
         }}
       />
 
-      <Fade in={hovered && !editing}>
-        <Box sx={{ position: "relative" }}>
-          <IconButton
-            onClick={() => {
-              setEditing(!editing);
-              inputRef.current?.focus();
-            }}
-            sx={{
-              position: "absolute",
-              top: -4,
-              padding: 0.5,
-            }}
-          >
-            <FontAwesomeIcon
-              icon={faPenToSquare}
-              sx={{ fontSize: `${iconSize} !important` }}
-            />
-          </IconButton>
-        </Box>
-      </Fade>
+      {!readonly ? (
+        <Fade in={hovered && !editing}>
+          <Box sx={{ position: "relative" }}>
+            <IconButton
+              onClick={() => {
+                setEditing(!editing);
+                inputRef.current?.focus();
+              }}
+              sx={{
+                position: "absolute",
+                top: -4,
+                padding: 0.5,
+              }}
+            >
+              <FontAwesomeIcon
+                icon={faPenToSquare}
+                sx={{ fontSize: `${iconSize} !important` }}
+              />
+            </IconButton>
+          </Box>
+        </Fade>
+      ) : null}
     </Box>
   );
 };

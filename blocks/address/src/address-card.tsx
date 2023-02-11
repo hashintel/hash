@@ -57,6 +57,7 @@ type AddressCardProps = {
   fullAddress: string;
   mapUrl?: string;
   hovered: boolean;
+  readonly?: boolean;
   onClose: () => void;
   updateTitle: (title: string) => void;
   updateDescription: (description: string) => void;
@@ -68,6 +69,7 @@ export const AddressCard = ({
   description,
   mapUrl,
   hovered,
+  readonly,
   onClose,
   updateTitle,
   updateDescription,
@@ -129,6 +131,7 @@ export const AddressCard = ({
                 color: theme.palette.common.black,
               },
             }}
+            readonly={readonly}
           />
 
           <Typography
@@ -155,7 +158,7 @@ export const AddressCard = ({
           </MapButton>
         </Stack>
 
-        {description || editingDescription ? (
+        {description || editingDescription || readonly ? (
           <EditableField
             value={descriptionValue}
             onChange={(event) => setDescriptionValue(event.target.value)}
@@ -174,6 +177,7 @@ export const AddressCard = ({
                 color: theme.palette.gray[90],
               },
             }}
+            readonly={readonly}
           />
         ) : (
           <Typography

@@ -523,6 +523,7 @@ export const App: BlockComponent<true, RootEntity> = ({
               fullAddress={selectedAddress.fullAddress ?? fullAddress}
               mapUrl={selectedAddress.mapUrl ?? mapUrl}
               hovered={hovered}
+              readonly={readonly}
               onClose={() => {
                 setAnimatingOut(true);
 
