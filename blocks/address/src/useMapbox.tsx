@@ -50,10 +50,11 @@ export const useMapbox = (accessToken: string) => {
         `${MAPBOX_API_URL}/autofill/v1/suggest/${query}?types=country,region,place,district,locality,postcode,address,poi,poi.landmark&access_token=${accessToken}&session_token=${sessionToken?.id}&language=en&proximity=ip&streets=true`,
       )
       .then(({ data }) => {
+        setSuggestionsError(false);
         setSuggestions(data.suggestions);
       })
-      .catch(({ response }) => {
-        setSuggestionsError(response.data.message);
+      .catch(() => {
+        setSuggestionsError(true);
       })
       .finally(() => {
         setSuggestionsLoading(false);

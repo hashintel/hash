@@ -8,7 +8,6 @@ import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, theme } from "@local/design-system";
 import { AutofillSuggestion } from "@mapbox/search-js-core";
-import SearchIcon from "@mui/icons-material/Search";
 import {
   CircularProgress,
   Collapse,
@@ -25,6 +24,7 @@ import TextField from "@mui/material/TextField";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AddressCard } from "./address-card";
 import { MapboxIcon } from "./icons/mapbox-icon";
+import { TriangleExclamationIcon } from "./icons/triangle-exclamation-icon";
 import {
   Address as AddressEntity,
   AddressLink,
@@ -405,111 +405,172 @@ export const App: BlockComponent<true, RootEntity> = ({
           in={!selectedAddress && !animatingIn}
           onEntered={() => setAnimatingOut(false)}
         >
-          <Autocomplete
-            onFocus={() => setAutocompleteFocused(true)}
-            onBlur={() => setAutocompleteFocused(false)}
-            getOptionLabel={getOptionLabel}
-            options={suggestions}
-            popupIcon={null}
-            freeSolo
-            onInputChange={(_event, newInputValue) => {
-              fetchSuggestions(newInputValue);
-            }}
-            onChange={(_event, option) => {
-              if (option && typeof option === "object") {
-                setAnimatingIn(true);
+          <Box sx={{ display: "flex", gap: 1.5 }}>
+            <Autocomplete
+              onFocus={() => setAutocompleteFocused(true)}
+              onBlur={() => setAutocompleteFocused(false)}
+              getOptionLabel={getOptionLabel}
+              options={suggestions}
+              popupIcon={null}
+              freeSolo
+              onInputChange={(_event, newInputValue) => {
+                fetchSuggestions(newInputValue);
+              }}
+              onChange={(_event, option) => {
+                if (option && typeof option === "object") {
+                  setAnimatingIn(true);
 
-                setTimeout(() => {
-                  selectAddress(option.action.id);
-                }, 300);
-              }
-            }}
-            filterOptions={(options) => options}
-            renderInput={({ InputProps, ...params }) => {
-              return (
-                <TextField
-                  {...params}
-                  placeholder="Start typing to enter an address or location"
-                  InputProps={{
-                    ...InputProps,
-                    endAdornment: suggestionsLoading ? (
-                      <CircularProgress />
-                    ) : (
-                      <FontAwesomeIcon
-                        icon={faSearch}
-                        sx={{ fontSize: 14, color: "#C1CFDE" }}
-                      />
-                    ),
-                  }}
+                  setTimeout(() => {
+                    selectAddress(option.action.id);
+                  }, 300);
+                }
+              }}
+              filterOptions={(options) => options}
+              renderInput={({ InputProps, ...params }) => {
+                return (
+                  <TextField
+                    {...params}
+                    placeholder="Start typing to enter an address or location"
+                    InputProps={{
+                      ...InputProps,
+                      endAdornment: suggestionsError ? (
+                        <TriangleExclamationIcon
+                          sx={{
+                            fontSize: 14,
+                            fill: ({ palette }) => palette.red[70],
+                          }}
+                        />
+                      ) : suggestionsLoading ? (
+                        <CircularProgress />
+                      ) : (
+                        <FontAwesomeIcon
+                          icon={faSearch}
+                          sx={{
+                            fontSize: 14,
+                            color: ({ palette }) => palette.gray[40],
+                          }}
+                        />
+                      ),
+                    }}
+                    sx={{
+                      display: "inline-flex",
+                      width: "auto",
+                      minWidth: 420,
+                    }}
+                  />
+                );
+              }}
+              renderOption={(props, option) => {
+                const label = getOptionLabel(option);
+                return (
+                  <Stack component="li" {...props}>
+                    <Typography
+                      variant="microText"
+                      sx={{
+                        fontSize: 14,
+                        fontWeight: 500,
+                        lineHeight: "18px",
+                        color: ({ palette }) => palette.common.black,
+                        marginBottom: 0.5,
+                      }}
+                    >
+                      {label}
+                    </Typography>
+
+                    <Typography
+                      variant="microText"
+                      sx={{
+                        fontSize: 13,
+                        lineHeight: "18px",
+                        color: ({ palette }) => palette.gray[50],
+                      }}
+                    >
+                      {option.country}
+                    </Typography>
+                  </Stack>
+                );
+              }}
+              PaperComponent={({ children, ...props }) => (
+                <Paper
+                  {...props}
                   sx={{
-                    display: "inline-flex",
-                    width: "auto",
-                    minWidth: 420,
-                  }}
-                />
-              );
-            }}
-            renderOption={(props, option) => {
-              const label = getOptionLabel(option);
-              return (
-                <Stack component="li" {...props}>
-                  <Typography
-                    variant="microText"
-                    sx={{
-                      fontSize: 14,
-                      fontWeight: 500,
-                      lineHeight: "18px",
-                      color: ({ palette }) => palette.common.black,
-                      marginBottom: 0.5,
-                    }}
-                  >
-                    {label}
-                  </Typography>
-
-                  <Typography
-                    variant="microText"
-                    sx={{
-                      fontSize: 13,
-                      lineHeight: "18px",
-                      color: ({ palette }) => palette.gray[50],
-                    }}
-                  >
-                    {option.country}
-                  </Typography>
-                </Stack>
-              );
-            }}
-            PaperComponent={({ children, ...props }) => (
-              <Paper
-                {...props}
-                sx={{
-                  filter:
-                    "drop-shadow(0px 11px 30px rgba(61, 78, 133, 0.04)) drop-shadow(0px 7.12963px 18.37px rgba(61, 78, 133, 0.05)) drop-shadow(0px 4.23704px 8.1px rgba(61, 78, 133, 0.06)) drop-shadow(0px 0.203704px 0.62963px rgba(61, 78, 133, 0.07))",
-                  border: ({ palette }) => `1px solid ${palette.gray[20]}`,
-                  boxShadow: "none",
-                  [`.${autocompleteClasses.listbox}`]: {
-                    padding: "0px",
-                    maxHeight: "unset",
-                    [`.${autocompleteClasses.option}`]: {
-                      alignItems: "flex-start",
-                      paddingX: ({ spacing }) => `${spacing(2.5)} !important`,
-                      paddingY: 1.25,
+                    filter:
+                      "drop-shadow(0px 11px 30px rgba(61, 78, 133, 0.04)) drop-shadow(0px 7.12963px 18.37px rgba(61, 78, 133, 0.05)) drop-shadow(0px 4.23704px 8.1px rgba(61, 78, 133, 0.06)) drop-shadow(0px 0.203704px 0.62963px rgba(61, 78, 133, 0.07))",
+                    border: ({ palette }) => `1px solid ${palette.gray[20]}`,
+                    boxShadow: "none",
+                    [`.${autocompleteClasses.listbox}`]: {
+                      padding: "0px",
+                      maxHeight: "unset",
+                      [`.${autocompleteClasses.option}`]: {
+                        alignItems: "flex-start",
+                        paddingX: ({ spacing }) => `${spacing(2.5)} !important`,
+                        paddingY: 1.25,
+                      },
                     },
-                  },
-                }}
+                  }}
+                >
+                  {children}
+                </Paper>
+              )}
+              sx={{
+                [`.${autocompleteClasses.input}`]: {
+                  paddingLeft: "0 !important",
+                },
+                [`.${autocompleteClasses.inputRoot}`]: {
+                  paddingX: ({ spacing }) => `${spacing(2.75)} !important`,
+                },
+              }}
+            />
+
+            {suggestionsError ? (
+              <Box
+                display="flex"
+                flexDirection="column"
+                justifyContent="center"
+                gap={1}
               >
-                {children}
-              </Paper>
-            )}
-            sx={{
-              [`.${autocompleteClasses.input}`]: {
-                paddingLeft: "0 !important",
-              },
-              [`.${autocompleteClasses.inputRoot}`]: {
-                paddingX: 2.75,
-              },
-            }}
-          />
+                <Typography
+                  variant="smallTextLabels"
+                  sx={{
+                    fontWeight: 700,
+                    fontSize: 13,
+                    lineHeight: 1,
+                    letterSpacing: "-0.02em",
+                    color: ({ palette }) => palette.black,
+                  }}
+                >
+                  <Box
+                    component="span"
+                    sx={{ color: ({ palette }) => palette.red[60] }}
+                  >
+                    Error connecting
+                  </Box>{" "}
+                  to the Block Protocol
+                </Typography>
+                <Typography
+                  sx={{
+                    fontWeight: 500,
+                    fontSize: 15,
+                    lineHeight: 1,
+                    letterSpacing: "-0.02em",
+                    color: ({ palette }) => palette.gray[50],
+                  }}
+                >
+                  Check your network connection or{" "}
+                  <Box
+                    component="span"
+                    sx={{
+                      fontWeight: 700,
+                      color: ({ palette }) => palette.gray[70],
+                    }}
+                  >
+                    contact support
+                  </Box>{" "}
+                  if this issue persists.
+                </Typography>
+              </Box>
+            ) : null}
+          </Box>
         </Collapse>
 
         <Collapse
