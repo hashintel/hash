@@ -44,32 +44,21 @@ mod color;
 mod font;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct Foreground(Color);
+pub(crate) struct Foreground(Color);
 
 impl Foreground {
     #[must_use]
-    pub const fn new(color: Color) -> Self {
+    const fn new(color: Color) -> Self {
         Self(color)
-    }
-
-    #[must_use]
-    pub const fn color(&self) -> Color {
-        self.0
     }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct Background(Color);
+pub(crate) struct Background(Color);
 
 impl Background {
-    #[must_use]
-    pub const fn new(color: Color) -> Self {
+    const fn new(color: Color) -> Self {
         Self(color)
-    }
-
-    #[must_use]
-    pub const fn color(&self) -> Color {
-        self.0
     }
 }
 
@@ -140,12 +129,20 @@ impl Style {
     }
 
     #[must_use]
-    pub const fn foreground(&self) -> Option<Foreground> {
-        self.foreground
+    pub const fn foreground(&self) -> Option<Color> {
+        if let Some(Foreground(color)) = self.foreground {
+            Some(color)
+        } else {
+            None
+        }
     }
 
     #[must_use]
-    pub const fn background(&self) -> Option<Background> {
-        self.background
+    pub const fn background(&self) -> Option<Color> {
+        if let Some(Background(color)) = self.background {
+            Some(color)
+        } else {
+            None
+        }
     }
 }
