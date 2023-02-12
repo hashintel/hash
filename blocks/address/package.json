@@ -62,6 +62,6 @@
     "image": "public/block-preview.png",
     "name": "@hash/address",
     "protocol": "0.3",
-    "schema": "https://alpha.hash.ai/@luisbett/types/entity-type/address-block/v/7"
+    "schema": "https://alpha.hash.ai/@luisbett/types/entity-type/address-block/v/14"
   }
 }

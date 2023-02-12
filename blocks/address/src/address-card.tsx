@@ -4,11 +4,9 @@ import { FontAwesomeIcon } from "@hashintel/design-system";
 import {
   Box,
   Button,
-  ButtonProps,
   Card,
   CircularProgress,
   Fade,
-  IconButton,
   Link,
   Stack,
   Typography,
@@ -30,6 +28,8 @@ type AddressCardProps = {
   onClose: () => void;
   updateTitle: (title: string) => void;
   updateDescription: (description: string) => void;
+  incrementZoomLevel?: () => void;
+  decrementZoomLevel?: () => void;
 };
 
 export const AddressCard = ({
@@ -42,6 +42,8 @@ export const AddressCard = ({
   onClose,
   updateTitle,
   updateDescription,
+  incrementZoomLevel,
+  decrementZoomLevel,
 }: AddressCardProps) => {
   const theme = useTheme();
   const [editingDescription, setEditingDescription] = useState(false);
@@ -199,6 +201,45 @@ export const AddressCard = ({
               backgroundSize: "cover",
             }}
           >
+            <Stack
+              sx={{
+                display: "inline-flex",
+                position: "absolute",
+                top: 13,
+                left: 13,
+              }}
+            >
+              <Button
+                onClick={incrementZoomLevel}
+                disabled={!incrementZoomLevel}
+                variant="tertiary"
+                sx={{
+                  minWidth: "unset",
+                  minHeight: "unset",
+                  padding: 0.5,
+                  borderBottomLeftRadius: 0,
+                  borderBottomRightRadius: 0,
+                  borderBottomWidth: 0,
+                }}
+              >
+                <FontAwesomeIcon icon={faPlus} />
+              </Button>
+              <Button
+                onClick={decrementZoomLevel}
+                disabled={!decrementZoomLevel}
+                variant="tertiary"
+                sx={{
+                  minWidth: "unset",
+                  minHeight: "unset",
+                  padding: 0.5,
+                  borderTopLeftRadius: 0,
+                  borderTopRightRadius: 0,
+                }}
+              >
+                <FontAwesomeIcon icon={faMinus} />
+              </Button>
+            </Stack>
+
             <Typography
               sx={{
                 position: "absolute",

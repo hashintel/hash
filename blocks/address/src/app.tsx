@@ -21,7 +21,7 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AddressCard } from "./address-card";
 import { MapboxIcon } from "./icons/mapbox-icon";
 import { TriangleExclamationIcon } from "./icons/triangle-exclamation-icon";
@@ -34,20 +34,15 @@ import {
 } from "./types";
 import { Address, useMapbox } from "./useMapbox";
 
+const DEFAULT_ZOOM_LEVEL = 16;
+const ZOOM_LEVEL_STEP_SIZE = 2;
+const MAX_ZOOM_LEVEL = 20;
+const MIN_ZOOM_LEVEL = 10;
+
 const addressTypeId =
   "https://alpha.hash.ai/@luisbett/types/entity-type/address/v/1";
 const addressLinkTypeId =
   "https://alpha.hash.ai/@luisbett/types/entity-type/address-link/v/1";
-
-const fileTypeId = "https://alpha.hash.ai/@luisbett/types/entity-type/file/v/1";
-const imageUrlKey = "https://alpha.hash.ai/@luisbett/types/property-type/url/";
-const imageLinkTypeId =
-  "https://alpha.hash.ai/@luisbett/types/entity-type/image/v/1";
-
-const titleKey = "https://alpha.hash.ai/@hash/types/property-type/title/";
-const descriptionKey =
-  "https://alpha.hash.ai/@luisbett/types/property-type/description/";
-
 const localityKey =
   "https://alpha.hash.ai/@luisbett/types/property-type/addresslocality/";
 const regionKey =
@@ -60,6 +55,19 @@ const countryKey =
   "https://alpha.hash.ai/@luisbett/types/property-type/addresscountry/";
 const fullAddressKey =
   "https://alpha.hash.ai/@luisbett/types/property-type/fulladdress/";
+
+const fileTypeId = "https://alpha.hash.ai/@luisbett/types/entity-type/file/v/1";
+const imageUrlKey = "https://alpha.hash.ai/@luisbett/types/property-type/url/";
+const imageLinkTypeId =
+  "https://alpha.hash.ai/@luisbett/types/entity-type/image-link/v/5";
+
+const titleKey = "https://alpha.hash.ai/@hash/types/property-type/title/";
+const descriptionKey =
+  "https://alpha.hash.ai/@luisbett/types/property-type/description/";
+const addressIdKey =
+  "https://alpha.hash.ai/@luisbett/types/property-type/addressid/";
+const zoomLevelKey =
+  "https://alpha.hash.ai/@luisbett/types/property-type/zoomlevel/";
 
 const accessToken = "";
 
@@ -86,21 +94,18 @@ export const App: BlockComponent<true, RootEntity> = ({
     properties,
   } = blockEntity;
 
-  const {
-    suggestions,
-    suggestionsLoading,
-    suggestionsError,
-    fetchSuggestions,
-    selectAddress,
-    selectedAddress,
-  } = useMapbox(accessToken);
-
   const [autocompleteFocused, setAutocompleteFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [animatingIn, setAnimatingIn] = useState(false);
   const [animatingOut, setAnimatingOut] = useState(false);
 
-  const { [titleKey]: title, [descriptionKey]: description } = properties;
+  const {
+    [titleKey]: title,
+    [descriptionKey]: description,
+    [addressIdKey]: addressId,
+  } = properties;
+
+  const zoomLevel = properties[zoomLevelKey] ?? DEFAULT_ZOOM_LEVEL;
 
   const addressLinkedEntity: LinkEntityAndRightEntity<true> = useMemo(
     () =>
@@ -118,20 +123,64 @@ export const App: BlockComponent<true, RootEntity> = ({
 
   const fullAddress = addressEntity?.properties[fullAddressKey];
 
-  const imageLinkedEntity: LinkEntityAndRightEntity<true> = useMemo(
+  const imageLinkedEntity: LinkEntityAndRightEntity<true> | undefined = useMemo(
     () =>
-      linkedEntities.find(
-        ({ linkEntity }) =>
-          linkEntity[0]?.metadata.entityTypeId === imageLinkTypeId,
-      ),
-    [linkedEntities],
-  )!;
+      linkedEntities.find(({ linkEntity }) => {
+        return (
+          linkEntity[0]?.metadata.entityTypeId === imageLinkTypeId &&
+          linkEntity[0]?.properties[zoomLevelKey] === zoomLevel &&
+          linkEntity[0]?.properties[addressIdKey] === addressId
+        );
+      }),
+    [linkedEntities, zoomLevel, addressId],
+  );
 
   const fileEntity: FileEntity | undefined = imageLinkedEntity?.rightEntity[0];
-  const imageLinkEntity: ImageLink | undefined =
-    imageLinkedEntity?.linkEntity[0];
+  const imageLinkEntity = imageLinkedEntity?.linkEntity[0] as
+    | ImageLink
+    | undefined;
 
   const mapUrl = fileEntity?.properties[imageUrlKey];
+
+  const availableZoomLevels = useMemo(() => {
+    return linkedEntities
+      .filter(({ linkEntity }) => {
+        return (
+          linkEntity[0]?.metadata.entityTypeId === imageLinkTypeId &&
+          linkEntity[0]?.properties[addressIdKey] === addressId
+        );
+      })
+      .map(({ linkEntity }) => linkEntity[0]?.properties[zoomLevelKey]);
+  }, [linkedEntities]);
+
+  const {
+    suggestions,
+    suggestionsLoading,
+    suggestionsError,
+    fetchSuggestions,
+    selectAddress,
+    selectedAddress,
+    mapFile,
+  } = useMapbox(
+    zoomLevel,
+    !availableZoomLevels.includes(zoomLevel),
+    accessToken,
+  );
+
+  const updateBlockAddress = async (address: Address) => {
+    await graphService?.updateEntity({
+      data: {
+        entityId,
+        entityTypeId,
+        properties: {
+          [addressIdKey]: address.addressId,
+          [titleKey]: address.featureName,
+          [descriptionKey]: "",
+          [zoomLevelKey]: 16,
+        },
+      },
+    });
+  };
 
   const updateTitle = async (title: string) => {
     await graphService?.updateEntity({
@@ -159,6 +208,31 @@ export const App: BlockComponent<true, RootEntity> = ({
     });
   };
 
+  const updateZoomLevel = async (zoomLevel: number) => {
+    await graphService?.updateEntity({
+      data: {
+        entityId,
+        entityTypeId,
+        properties: {
+          ...properties,
+          [zoomLevelKey]: zoomLevel,
+        },
+      },
+    });
+  };
+
+  const incrementZoomLevel = useCallback(() => {
+    if (zoomLevel <= MAX_ZOOM_LEVEL - ZOOM_LEVEL_STEP_SIZE) {
+      updateZoomLevel(zoomLevel + ZOOM_LEVEL_STEP_SIZE);
+    }
+  }, [zoomLevel, properties]);
+
+  const decrementZoomLevel = useCallback(() => {
+    if (zoomLevel >= MIN_ZOOM_LEVEL + ZOOM_LEVEL_STEP_SIZE) {
+      updateZoomLevel(zoomLevel - ZOOM_LEVEL_STEP_SIZE);
+    }
+  }, [zoomLevel, properties]);
+
   const uploadMap = async (mapFile: File) => {
     if (readonly || !mapFile) {
       return;
@@ -179,29 +253,24 @@ export const App: BlockComponent<true, RootEntity> = ({
             [imageUrlKey]: imageUrl,
           };
 
-          const createFileEntityResponse = await (!fileEntity
-            ? graphService?.createEntity({
-                data: {
-                  entityTypeId: fileTypeId,
-                  properties: fileProperties,
-                },
-              })
-            : graphService?.updateEntity({
-                data: {
-                  entityId: fileEntity.metadata.recordId.entityId,
-                  entityTypeId: fileEntity.metadata.entityTypeId,
-                  properties: fileProperties,
-                },
-              }));
+          const createFileEntityResponse = await graphService?.createEntity({
+            data: {
+              entityTypeId: fileTypeId,
+              properties: fileProperties,
+            },
+          });
 
           const fileEntityId =
             createFileEntityResponse?.data?.metadata.recordId.entityId;
 
-          if (!imageLinkEntity && fileEntityId) {
+          if (!imageLinkEntity && fileEntityId && addressId) {
             await graphService?.createEntity({
               data: {
                 entityTypeId: imageLinkTypeId,
-                properties: {},
+                properties: {
+                  [zoomLevelKey]: zoomLevel,
+                  [addressIdKey]: addressId,
+                },
                 linkData: {
                   leftEntityId: entityId,
                   rightEntityId: fileEntityId,
@@ -280,36 +349,35 @@ export const App: BlockComponent<true, RootEntity> = ({
         properties: {},
       },
     });
-    if (imageLinkEntity) {
-      await graphService?.deleteEntity({
-        data: {
-          entityId: imageLinkEntity.metadata.recordId.entityId,
-        },
-      });
-    }
-    if (addressLinkEntity) {
-      await graphService?.deleteEntity({
-        data: {
-          entityId: addressLinkEntity.metadata.recordId.entityId,
-        },
-      });
+
+    // Remove the address link and all image links
+    for (const { linkEntity } of linkedEntities) {
+      if (linkEntity[0]) {
+        await graphService?.deleteEntity({
+          data: {
+            entityId: linkEntity[0].metadata.recordId.entityId,
+          },
+        });
+      }
     }
   };
 
   useEffect(() => {
     if (selectedAddress) {
-      updateAddress(selectedAddress);
-      updateTitle(selectedAddress.featureName);
+      if (addressId !== selectedAddress.addressId) {
+        updateAddress(selectedAddress);
+        updateBlockAddress(selectedAddress);
+      }
     } else {
       resetBlock();
     }
   }, [selectedAddress]);
 
   useEffect(() => {
-    if (selectedAddress?.file) {
-      uploadMap(selectedAddress.file);
+    if (mapFile) {
+      uploadMap(mapFile);
     }
-  }, [selectedAddress?.file]);
+  }, [mapFile]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -582,7 +650,7 @@ export const App: BlockComponent<true, RootEntity> = ({
               title={selectedAddress.featureName ?? title}
               description={description}
               fullAddress={selectedAddress.fullAddress ?? fullAddress}
-              mapUrl={selectedAddress.mapUrl ?? mapUrl}
+              mapUrl={mapUrl}
               hovered={hovered}
               readonly={readonly}
               onClose={() => {
@@ -594,6 +662,12 @@ export const App: BlockComponent<true, RootEntity> = ({
               }}
               updateTitle={updateTitle}
               updateDescription={updateDescription}
+              incrementZoomLevel={
+                zoomLevel >= MAX_ZOOM_LEVEL ? undefined : incrementZoomLevel
+              }
+              decrementZoomLevel={
+                zoomLevel <= MIN_ZOOM_LEVEL ? undefined : decrementZoomLevel
+              }
             />
           ) : null}
         </Collapse>

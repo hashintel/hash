@@ -13,6 +13,7 @@ import { useSessionstorageState } from "rooks";
 const MAPBOX_API_URL = "https://api.mapbox.com";
 
 export type Address = {
+  addressId: string;
   postalCode: string;
   streetAddress: string;
   addressLocality: string;
@@ -20,14 +21,19 @@ export type Address = {
   addressCountry: string;
   fullAddress: string;
   featureName: string;
-  file: File | null;
-  mapUrl: string | null;
 };
 
-export const useMapbox = (accessToken: string) => {
+export const useMapbox = (
+  zoomLevel: number,
+  shouldFetchImage: boolean,
+  accessToken: string,
+) => {
   const [sessionToken, setSessionToken] =
     useSessionstorageState<SessionToken | null>("mapboxSessionToken", null);
   const [suggestions, setSuggestions] = useState<AutofillSuggestion[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
+    null,
+  );
   const [selectedAddress, setSelectedAddress] =
     useState<AutofillFeatureSuggestion | null>(null);
   const [mapUrl, setMapUrl] = useState<string | null>(null);
@@ -63,6 +69,7 @@ export const useMapbox = (accessToken: string) => {
 
   const selectAddress = (addressId?: string) => {
     if (addressId) {
+      setSelectedAddressId(addressId);
       axios
         .get<AutofillRetrieveResponse>(
           `${MAPBOX_API_URL}/autofill/v1/retrieve/${addressId}?access_token=${accessToken}&session_token=${sessionToken?.id}`,
@@ -74,31 +81,34 @@ export const useMapbox = (accessToken: string) => {
           }
         });
     } else {
+      setSelectedAddressId(null);
       setSelectedAddress(null);
       setMapUrl(null);
     }
   };
 
   useEffect(() => {
-    const coords = selectedAddress?.geometry.coordinates;
+    if (shouldFetchImage) {
+      const coords = selectedAddress?.geometry.coordinates;
 
-    if (coords) {
-      axios
-        .get<any>(
-          `${MAPBOX_API_URL}/styles/v1/mapbox/streets-v11/static/pin-s+555555(${coords[0]},${coords[1]})/${coords[0]},${coords[1]},16,0/600x400?access_token=${accessToken}&attribution=false&logo=false&sku=20d0104e2f29c-6abd-4991-8861-20cc6100bb5e`,
-          {
-            responseType: "arraybuffer",
-          },
-        )
-        .then(({ data, headers }) => {
-          let blob = new Blob([data], {
-            type: headers["content-type"],
+      if (coords) {
+        axios
+          .get<any>(
+            `${MAPBOX_API_URL}/styles/v1/mapbox/streets-v11/static/pin-s+555555(${coords[0]},${coords[1]})/${coords[0]},${coords[1]},${zoomLevel},0/600x400?access_token=${accessToken}&attribution=false&logo=false&sku=20d0104e2f29c-6abd-4991-8861-20cc6100bb5e`,
+            {
+              responseType: "arraybuffer",
+            },
+          )
+          .then(({ data, headers }) => {
+            let blob = new Blob([data], {
+              type: headers["content-type"],
+            });
+            setMapUrl(URL.createObjectURL(blob));
+            setMapFile(new File([blob], "map"));
           });
-          setMapUrl(URL.createObjectURL(blob));
-          setMapFile(new File([blob], "map"));
-        });
+      }
     }
-  }, [selectedAddress]);
+  }, [shouldFetchImage, selectedAddress, zoomLevel]);
 
   const address: Address | null = useMemo(
     () =>
@@ -111,8 +121,7 @@ export const useMapbox = (accessToken: string) => {
             addressRegion: selectedAddress.properties.address_level1 ?? "",
             addressCountry: selectedAddress.properties.country ?? "",
             fullAddress: selectedAddress.properties.full_address ?? "",
-            file: mapFile,
-            mapUrl,
+            addressId: selectedAddressId!,
           }
         : null,
     [selectedAddress, mapUrl],
@@ -125,5 +134,6 @@ export const useMapbox = (accessToken: string) => {
     suggestionsError,
     selectAddress,
     selectedAddress: address,
+    mapFile,
   };
 };
