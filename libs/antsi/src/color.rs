@@ -25,17 +25,34 @@
 /// | Reset                   | `ESC[39m`  | `ESC[49m`  |
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum BasicColor {
+    /// Black foreground or background
+    // TODO: example
     Black,
+    /// Red foreground or background
+    // TODO: example
     Red,
+    /// Green foreground or background
+    // TODO: example
     Green,
+    /// Yellow foreground or background
+    // TODO: example
     Yellow,
+    /// Blue foreground or background
+    // TODO: example
     Blue,
+    /// Magenta foreground or background
+    // TODO: example
     Magenta,
+    /// Cyan foreground or background
+    // TODO: example
     Cyan,
+    /// White foreground or background
+    // TODO: example
     White,
 }
 
 impl BasicColor {
+    /// Convert the color into its bright variant
     #[must_use]
     pub const fn bright(self) -> BrightColor {
         BrightColor(self)
@@ -123,6 +140,14 @@ pub struct BrightColor(BasicColor);
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct IndexedColor(u8);
 
+impl IndexedColor {
+    /// Create a new color which indexes into a preset table
+    #[must_use]
+    pub const fn new(index: u8) -> Self {
+        Self(index)
+    }
+}
+
 impl From<BasicColor> for IndexedColor {
     fn from(value: BasicColor) -> Self {
         match value {
@@ -189,21 +214,40 @@ pub struct RgbColor {
 }
 
 impl RgbColor {
+    /// Create a new RGB color
     #[must_use]
     pub const fn new(r: u8, g: u8, b: u8) -> Self {
         Self { r, g, b }
     }
 }
 
+/// Collection of every possible terminal color supported by `antsi`
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Color {
+    /// Basic 8 color palette
+    ///
+    /// Supported by pretty much every terminal, for more information see [`BasicColor`]
     Basic(BasicColor),
+
+    /// Bright variant of the basic color palette
+    ///
+    /// Supported by pretty much every terminal, for more information see [`BrightColor`]
     Bright(BrightColor),
+
+    /// Indexed color, more commonly known as xterm-color
+    ///
+    /// Supported by pretty much every terminal since the early 2000s, for more information see
+    /// [`IndexedColor`]
     Indexed(IndexedColor),
+
+    /// 24bit color support, more commonly known as truecolor
+    ///
+    /// Supported by some modern terminals since 2015+, for more information see [`RgbColor`]
     Rgb(RgbColor),
 }
 
 impl Color {
+    /// Return [`BasicColor`], if value of variant [`Color::Basic`]
     #[must_use]
     pub const fn as_basic(&self) -> Option<BasicColor> {
         if let Self::Basic(color) = self {
@@ -213,6 +257,7 @@ impl Color {
         }
     }
 
+    /// Return [`BrightColor`], if value of variant [`Color::Bright`]
     #[must_use]
     pub const fn as_bright(&self) -> Option<BrightColor> {
         if let Self::Bright(color) = self {
@@ -222,6 +267,7 @@ impl Color {
         }
     }
 
+    /// Return [`IndexedColor`], if value of variant [`Color::Indexed`]
     #[must_use]
     pub const fn as_indexed(&self) -> Option<IndexedColor> {
         if let Self::Indexed(color) = self {
@@ -231,6 +277,7 @@ impl Color {
         }
     }
 
+    /// Return [`RgbColor`], if value of variant [`Color::Rgb`]
     #[must_use]
     pub const fn as_rgb(&self) -> Option<RgbColor> {
         if let Self::Rgb(color) = self {
