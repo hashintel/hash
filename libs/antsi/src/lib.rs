@@ -1,9 +1,20 @@
+//! # Overview
+//!
+//! `antsi` is a no-std mini-crate that provides support for **S**elect **G**raphic **R**endition
+//! codes (better known as ANSI escape sequences) and most common extensions.
+//!
+//! The name is a play on words and encapsulates the three goals of the crate:
+//!
+//! - ant: small, productive and extremely useful (🐜)
+//! - ansi: implementation of ANSI escape sequences
+//! - antsy: restless as in fast, with near to no overhead (🏎️💨)
+//!
+//! The crate tries to be as correct as possible, acting both as a library and as an up-to-date
+//! reference guide regarding terminal support and related specifications (correct as of the time of
+//! publication).
+
 // Good reference to begin with: https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
 #![no_std]
-#![cfg_attr(
-    nightly,
-    feature(provide_any, error_in_core, error_generic_member_access)
-)]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![warn(
     missing_docs,
@@ -21,7 +32,6 @@
 )]
 #![allow(clippy::redundant_pub_crate)] // This would otherwise clash with `unreachable_pub`
 #![allow(clippy::module_name_repetitions)]
-#![allow(missing_docs)]
 #![cfg_attr(
     not(miri),
     doc(test(attr(deny(warnings, clippy::pedantic, clippy::nursery))))
@@ -234,6 +244,44 @@ pub enum Color {
     Rgb(RgbColor),
 }
 
+impl Color {
+    #[must_use]
+    pub const fn as_basic(&self) -> Option<BasicColor> {
+        if let Self::Basic(color) = self {
+            Some(*color)
+        } else {
+            None
+        }
+    }
+
+    #[must_use]
+    pub const fn as_bright(&self) -> Option<BrightColor> {
+        if let Self::Bright(color) = self {
+            Some(*color)
+        } else {
+            None
+        }
+    }
+
+    #[must_use]
+    pub const fn as_indexed(&self) -> Option<IndexedColor> {
+        if let Self::Indexed(color) = self {
+            Some(*color)
+        } else {
+            None
+        }
+    }
+
+    #[must_use]
+    pub const fn as_rgb(&self) -> Option<RgbColor> {
+        if let Self::Rgb(color) = self {
+            Some(*color)
+        } else {
+            None
+        }
+    }
+}
+
 impl From<BasicColor> for Color {
     fn from(value: BasicColor) -> Self {
         Self::Basic(value)
@@ -415,6 +463,31 @@ impl Font {
 
         self
     }
+
+    #[must_use]
+    pub const fn weight(&self) -> Option<FontWeight> {
+        self.weight
+    }
+
+    #[must_use]
+    pub const fn family(&self) -> Option<FontFamily> {
+        self.family
+    }
+
+    #[must_use]
+    pub const fn style(&self) -> u8 {
+        self.style
+    }
+
+    #[must_use]
+    pub const fn underline(&self) -> Option<Underline> {
+        self.underline
+    }
+
+    #[must_use]
+    pub const fn blinking(&self) -> Option<Blinking> {
+        self.blinking
+    }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -425,6 +498,11 @@ impl Foreground {
     pub const fn new(color: Color) -> Self {
         Self(color)
     }
+
+    #[must_use]
+    pub const fn color(&self) -> Color {
+        self.0
+    }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -434,6 +512,11 @@ impl Background {
     #[must_use]
     pub const fn new(color: Color) -> Self {
         Self(color)
+    }
+
+    #[must_use]
+    pub const fn color(&self) -> Color {
+        self.0
     }
 }
 
@@ -453,10 +536,6 @@ impl Style {
             foreground: None,
             background: None,
         }
-    }
-
-    pub fn font_mut(&mut self) -> &mut Font {
-        &mut self.font
     }
 
     #[must_use]
@@ -496,5 +575,24 @@ impl Style {
         self.background = Some(Background::new(color));
 
         self
+    }
+
+    #[must_use]
+    pub const fn font(&self) -> Font {
+        self.font
+    }
+
+    pub fn font_mut(&mut self) -> &mut Font {
+        &mut self.font
+    }
+
+    #[must_use]
+    pub const fn foreground(&self) -> Option<Foreground> {
+        self.foreground
+    }
+
+    #[must_use]
+    pub const fn background(&self) -> Option<Background> {
+        self.background
     }
 }
