@@ -201,44 +201,46 @@ export const AddressCard = ({
               backgroundSize: "cover",
             }}
           >
-            <Stack
-              sx={{
-                display: "inline-flex",
-                position: "absolute",
-                top: 13,
-                left: 13,
-              }}
-            >
-              <Button
-                onClick={incrementZoomLevel}
-                disabled={!incrementZoomLevel}
-                variant="tertiary"
+            <Fade in={hovered}>
+              <Stack
                 sx={{
-                  minWidth: "unset",
-                  minHeight: "unset",
-                  padding: 0.5,
-                  borderBottomLeftRadius: 0,
-                  borderBottomRightRadius: 0,
-                  borderBottomWidth: 0,
+                  display: "inline-flex",
+                  position: "absolute",
+                  top: 13,
+                  left: 13,
                 }}
               >
-                <FontAwesomeIcon icon={faPlus} />
-              </Button>
-              <Button
-                onClick={decrementZoomLevel}
-                disabled={!decrementZoomLevel}
-                variant="tertiary"
-                sx={{
-                  minWidth: "unset",
-                  minHeight: "unset",
-                  padding: 0.5,
-                  borderTopLeftRadius: 0,
-                  borderTopRightRadius: 0,
-                }}
-              >
-                <FontAwesomeIcon icon={faMinus} />
-              </Button>
-            </Stack>
+                <Button
+                  onClick={incrementZoomLevel}
+                  disabled={!incrementZoomLevel}
+                  variant="tertiary"
+                  sx={{
+                    minWidth: "unset",
+                    minHeight: "unset",
+                    padding: 0.5,
+                    borderBottomLeftRadius: 0,
+                    borderBottomRightRadius: 0,
+                    borderBottomWidth: 0,
+                  }}
+                >
+                  <FontAwesomeIcon icon={faPlus} />
+                </Button>
+                <Button
+                  onClick={decrementZoomLevel}
+                  disabled={!decrementZoomLevel}
+                  variant="tertiary"
+                  sx={{
+                    minWidth: "unset",
+                    minHeight: "unset",
+                    padding: 0.5,
+                    borderTopLeftRadius: 0,
+                    borderTopRightRadius: 0,
+                  }}
+                >
+                  <FontAwesomeIcon icon={faMinus} />
+                </Button>
+              </Stack>
+            </Fade>
 
             <Typography
               sx={{
