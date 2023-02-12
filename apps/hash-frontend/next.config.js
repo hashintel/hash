@@ -2,6 +2,7 @@ const { config } = require("dotenv-flow");
 const withTM = require("next-transpile-modules")([
   "@hashintel/design-system",
   "@local/hash-graph-client",
+  "@local/hash-graphql-shared",
   "@local/hash-isomorphic-utils",
   "@local/hash-subgraph",
 ]); // pass the modules you would like to see transpiled

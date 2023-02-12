@@ -1,4 +1,4 @@
-import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
+import { apiOrigin } from "@local/hash-graphql-shared/environment";
 import { Express } from "express";
 
 import { CacheAdapter } from "../cache";

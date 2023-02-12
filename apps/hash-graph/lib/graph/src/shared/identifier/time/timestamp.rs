@@ -1,12 +1,13 @@
 use core::fmt;
-use std::{collections::Bound, error::Error, marker::PhantomData, str::FromStr, time::SystemTime};
+use std::{error::Error, marker::PhantomData, str::FromStr, time::SystemTime};
 
 use derivative::Derivative;
-use interval_ops::LowerBound;
 use postgres_types::{private::BytesMut, FromSql, ToSql, Type};
 use serde::{Deserialize, Serialize};
 use time::{format_description::well_known::Iso8601, serde::iso8601, OffsetDateTime};
 use utoipa::{openapi, ToSchema};
+
+use crate::identifier::time::axis::TemporalTagged;
 
 /// Opaque structure to represent a single point in time.
 ///
@@ -33,32 +34,6 @@ pub struct Timestamp<A> {
     time: OffsetDateTime,
 }
 
-impl<A> LowerBound<Self> for Timestamp<A> {
-    fn as_bound(&self) -> Bound<&Self> {
-        Bound::Included(self)
-    }
-
-    fn into_bound(self) -> Bound<Self> {
-        Bound::Included(self)
-    }
-
-    fn from_bound(bound: Bound<Self>) -> Self {
-        match bound {
-            Bound::Included(timestamp) => timestamp,
-            Bound::Excluded(_) => {
-                unimplemented!(
-                    "Excluded bounds are not permitted as lower bounds for version intervals"
-                )
-            }
-            Bound::Unbounded => {
-                unimplemented!(
-                    "Unbounded bounds are not permitted as lower bounds for version intervals"
-                )
-            }
-        }
-    }
-}
-
 impl<A> fmt::Debug for Timestamp<A> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Debug::fmt(&self.time, fmt)
@@ -71,20 +46,24 @@ impl<A> fmt::Display for Timestamp<A> {
     }
 }
 
+impl<A> TemporalTagged for Timestamp<A> {
+    type Axis = A;
+    type Tagged<T> = Timestamp<T>;
+
+    fn cast<T>(self) -> Timestamp<T> {
+        Timestamp {
+            axis: PhantomData,
+            time: self.time,
+        }
+    }
+}
+
 impl<A> Timestamp<A> {
     #[must_use]
     pub fn now() -> Self {
         Self {
             axis: PhantomData,
             time: OffsetDateTime::now_utc(),
-        }
-    }
-
-    #[must_use]
-    pub const fn cast<T>(self) -> Timestamp<T> {
-        Timestamp {
-            axis: PhantomData,
-            time: self.time,
         }
     }
 

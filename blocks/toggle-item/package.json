@@ -39,6 +39,7 @@
     "servePort": 63216
   },
   "blockprotocol": {
+    "name": "@hash/toggle-item",
     "displayName": "Toggle List Item",
     "examples": [
       {

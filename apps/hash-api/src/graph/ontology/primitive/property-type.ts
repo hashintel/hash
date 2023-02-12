@@ -1,8 +1,8 @@
 import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
 import { UpdatePropertyTypeRequest } from "@local/hash-graph-client";
-import { PropertyTypeWithoutId } from "@local/hash-isomorphic-utils/graphql/types";
+import { PropertyTypeWithoutId } from "@local/hash-graphql-shared/graphql/types";
+import { AccountId, OwnedById } from "@local/hash-graphql-shared/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
   PropertyTypeWithMetadata,
   Subgraph,
@@ -10,6 +10,8 @@ import {
 } from "@local/hash-subgraph";
 import { versionedUriFromComponents } from "@local/hash-subgraph/src/shared/type-system-patch";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { mapSubgraph } from "@local/hash-subgraph/src/temp";
+import { mapOntologyMetadata } from "@local/hash-subgraph/src/temp/map-vertices";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
@@ -52,7 +54,7 @@ export const createPropertyType: ImpureGraphFunction<
     actorId,
   });
 
-  return { schema, metadata };
+  return { schema, metadata: mapOntologyMetadata(metadata) };
 };
 
 /**
@@ -85,7 +87,10 @@ export const getPropertyTypeById: ImpureGraphFunction<
         },
       },
     })
-    .then(({ data }) => data as Subgraph<SubgraphRootTypes["propertyType"]>);
+    .then(
+      ({ data }) =>
+        mapSubgraph(data) as Subgraph<SubgraphRootTypes["propertyType"]>,
+    );
 
   const [propertyType] = getRoots(propertyTypeSubgraph);
 
@@ -122,14 +127,15 @@ export const updatePropertyType: ImpureGraphFunction<
 
   const { data: metadata } = await graphApi.updatePropertyType(updateArguments);
 
+  const mappedMetadata = mapOntologyMetadata(metadata);
+
+  const { recordId } = mappedMetadata;
+
   return {
     schema: {
       ...schema,
-      $id: versionedUriFromComponents(
-        metadata.editionId.baseId,
-        metadata.editionId.version,
-      ),
+      $id: versionedUriFromComponents(recordId.baseUri, recordId.version),
     },
-    metadata,
+    metadata: mappedMetadata,
   };
 };

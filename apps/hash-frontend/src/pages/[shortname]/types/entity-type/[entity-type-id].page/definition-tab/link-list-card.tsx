@@ -1,5 +1,5 @@
 import { EntityType, VersionedUri } from "@blockprotocol/type-system";
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
+import { OwnedById } from "@local/hash-graphql-shared/types";
 import {
   EntityTypeWithMetadata,
   linkEntityTypeUri,

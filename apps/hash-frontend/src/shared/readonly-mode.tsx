@@ -1,4 +1,4 @@
-import { AccountId } from "@local/hash-isomorphic-utils/types";
+import { AccountId } from "@local/hash-graphql-shared/types";
 import { useRouter } from "next/router";
 
 import { AuthenticatedUser } from "../lib/user-and-org";

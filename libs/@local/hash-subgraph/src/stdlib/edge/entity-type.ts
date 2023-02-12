@@ -5,7 +5,7 @@ import {
 } from "@blockprotocol/type-system";
 
 import { isConstrainsPropertiesOnEdge } from "../../types/edge/outward-edge-alias";
-import { OntologyTypeEditionId, VersionedUri } from "../../types/identifier";
+import { OntologyTypeRecordId, VersionedUri } from "../../types/identifier";
 import { Subgraph } from "../../types/subgraph";
 
 /**
@@ -13,13 +13,13 @@ import { Subgraph } from "../../types/subgraph";
  * "ConstrainsPropertiesOn" `Edge`s from the respective `Vertex` within a `Subgraph`.
  *
  * @param subgraph {Subgraph} - The `Subgraph` containing the type tree of the `EntityType`
- * @param entityTypeId {OntologyTypeEditionId | VersionedUri} - The identifier of the `EntityType` to search for
- * @returns {OntologyTypeEditionId[]} - The identifiers of the `PropertyType`s referenced from the `EntityType`
+ * @param entityTypeId {OntologyTypeRecordId | VersionedUri} - The identifier of the `EntityType` to search for
+ * @returns {OntologyTypeRecordId[]} - The identifiers of the `PropertyType`s referenced from the `EntityType`
  */
 export const getPropertyTypesReferencedByEntityType = (
   subgraph: Subgraph,
-  entityTypeId: OntologyTypeEditionId | VersionedUri,
-): OntologyTypeEditionId[] => {
+  entityTypeId: OntologyTypeRecordId | VersionedUri,
+): OntologyTypeRecordId[] => {
   let baseUri: BaseUri;
   let version: number;
 
@@ -29,7 +29,7 @@ export const getPropertyTypesReferencedByEntityType = (
       extractVersion(entityTypeId),
     ];
   } else {
-    baseUri = entityTypeId.baseId;
+    baseUri = entityTypeId.baseUri;
     version = entityTypeId.version;
   }
 

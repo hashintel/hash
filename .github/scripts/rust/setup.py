@@ -64,12 +64,7 @@ def find_local_crates():
     `cargo-make` will run the sub-crate automatically.
     :return: a list of crate paths
     """
-    all_crates = [path.relative_to(CWD).parent for path in CWD.rglob("Cargo.toml")]
-    checked_crates = []
-    for crate in all_crates:
-        if not any(path in crate.parents for path in all_crates):
-            checked_crates.append(crate)
-    return checked_crates
+    return [path.relative_to(CWD).parent for path in CWD.rglob("Cargo.toml")]
 
 
 def find_toolchain(crate):

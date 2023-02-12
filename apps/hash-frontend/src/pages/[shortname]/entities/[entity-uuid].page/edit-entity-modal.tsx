@@ -1,5 +1,5 @@
 import { Button } from "@hashintel/design-system";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
+import { EntityId } from "@local/hash-graphql-shared/types";
 import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
 import { Drawer, Stack, Typography } from "@mui/material";
@@ -67,7 +67,7 @@ export const EditEntityModal = ({
       setSavingChanges(true);
 
       await applyDraftLinkEntityChanges(
-        draftEntity.metadata.editionId.baseId as EntityId,
+        draftEntity.metadata.recordId.entityId as EntityId,
         draftLinksToCreate,
         draftLinksToArchive,
       );
@@ -75,7 +75,7 @@ export const EditEntityModal = ({
       /** @todo add validation here */
       const updateEntityResponse = await updateEntity({
         data: {
-          entityId: draftEntity.metadata.editionId.baseId as EntityId,
+          entityId: draftEntity.metadata.recordId.entityId as EntityId,
           properties: draftEntity.properties,
           entityTypeId: draftEntity.metadata.entityTypeId,
         },
