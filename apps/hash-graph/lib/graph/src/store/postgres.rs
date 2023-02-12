@@ -13,7 +13,6 @@ use std::{
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
-use interval_ops::Interval;
 #[cfg(feature = "__internal_bench")]
 use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
 use tokio_postgres::{error::SqlState, GenericClient};
@@ -27,9 +26,10 @@ use crate::{
     identifier::{
         account::AccountId,
         ontology::OntologyTypeEditionId,
-        time::{ProjectedTime, TimeInterval},
+        time::{ProjectedTime, TimeIntervalBound, Timestamp},
         EntityVertexId,
     },
+    interval::Interval,
     ontology::{
         ExternalOntologyElementMetadata, OntologyElementMetadata, OwnedOntologyElementMetadata,
     },
@@ -46,7 +46,7 @@ use crate::{
 use crate::{
     identifier::{
         knowledge::{EntityId, EntityRecordId, EntityVersion},
-        time::{DecisionTime, Timestamp, VersionInterval},
+        time::DecisionTime,
     },
     knowledge::{EntityProperties, LinkOrder},
 };
@@ -56,16 +56,34 @@ use crate::{
 /// This is used to determine whether a traversal should continue or stop. If a traversal is
 /// resolved for a sufficient depths and a large enough interval, [`DependencyStatus::Resolved`]
 /// will be returned from [`DependencyMap::update`], otherwise [`DependencyStatus::Unresolved`] will
-/// be returned with the [`GraphResolveDepths`] and [`TimeInterval`] that the traversal should
+/// be returned with the [`GraphResolveDepths`] and [`Interval`] that the traversal should
 /// continue with.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DependencyStatus {
-    Unresolved(GraphResolveDepths, TimeInterval<ProjectedTime>),
+    Unresolved(
+        GraphResolveDepths,
+        Interval<
+            Timestamp<ProjectedTime>,
+            TimeIntervalBound<ProjectedTime>,
+            TimeIntervalBound<ProjectedTime>,
+        >,
+    ),
     Resolved,
 }
 
+#[expect(clippy::type_complexity, reason = "This type will be changed soon")]
 pub struct DependencyMap<K> {
-    resolved: HashMap<K, (GraphResolveDepths, TimeInterval<ProjectedTime>)>,
+    resolved: HashMap<
+        K,
+        (
+            GraphResolveDepths,
+            Interval<
+                Timestamp<ProjectedTime>,
+                TimeIntervalBound<ProjectedTime>,
+                TimeIntervalBound<ProjectedTime>,
+            >,
+        ),
+    >,
 }
 
 impl<K> Default for DependencyMap<K> {
@@ -94,19 +112,20 @@ where
         &mut self,
         identifier: &K,
         new_resolve_depth: GraphResolveDepths,
-        new_interval: TimeInterval<ProjectedTime>,
+        new_interval: Interval<
+            Timestamp<ProjectedTime>,
+            TimeIntervalBound<ProjectedTime>,
+            TimeIntervalBound<ProjectedTime>,
+        >,
     ) -> DependencyStatus {
         match self.resolved.raw_entry_mut().from_key(identifier) {
             RawEntryMut::Vacant(entry) => {
-                entry.insert(
-                    identifier.clone(),
-                    (new_resolve_depth, new_interval.clone()),
-                );
+                entry.insert(identifier.clone(), (new_resolve_depth, new_interval));
                 DependencyStatus::Unresolved(new_resolve_depth, new_interval)
             }
             RawEntryMut::Occupied(entry) => {
                 let (current_depths, current_interval) = entry.into_mut();
-                let old_interval = current_interval.clone();
+                let old_interval = *current_interval;
 
                 // Ideally, we want to use a `union` here instead, as we only want to resolve
                 // elements contained in either sets of intervals. However, the current
@@ -116,13 +135,13 @@ where
                 // subgraph will contain more information than requested, where we'll also be
                 // querying the space between the two intervals when they're not adjacent or
                 // overlapping.
-                *current_interval = current_interval.clone().merge(new_interval.clone());
+                *current_interval = current_interval.merge(new_interval);
 
                 if current_depths.update(new_resolve_depth) {
                     // We currently don't have a way to store different resolve depths for different
                     // intervals for the same identifier. For simplicity, we require to resolve the
                     // full interval with the updated resolve depths.
-                    DependencyStatus::Unresolved(*current_depths, current_interval.clone())
+                    DependencyStatus::Unresolved(*current_depths, *current_interval)
                 } else if old_interval.contains_interval(&new_interval) {
                     // The dependency is already resolved for the required interval
                     // old: [-----)
@@ -189,10 +208,7 @@ where
                     // ---------|-------------|-------------
                     // optimal  |       [---) | [---)
                     // current  |     [-----) | [-----)
-                    let difference = old_interval
-                        .clone()
-                        .merge(new_interval)
-                        .difference(old_interval);
+                    let difference = old_interval.merge(new_interval).difference(old_interval);
                     debug_assert_eq!(difference.len(), 1, "difference must be a single interval");
 
                     DependencyStatus::Unresolved(
@@ -981,11 +997,9 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .into_report()
             .change_context(InsertionError)?
             .into_iter()
-            .map(|row| {
-                EntityVersion::new(
-                    VersionInterval::from_anonymous(row.get(0)),
-                    VersionInterval::from_anonymous(row.get(1)),
-                )
+            .map(|row| EntityVersion {
+                decision_time: row.get(0),
+                transaction_time: row.get(1),
             })
             .collect();
 

@@ -18,6 +18,7 @@
     "serve": "14.1.0"
   },
   "blockprotocol": {
+    "name": "@hash/html-para",
     "displayName": "Inline HTML",
     "icon": "public/html.svg",
     "image": "public/preview.svg",

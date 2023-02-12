@@ -18,12 +18,12 @@ pub struct FetchServer;
 
 #[tarpc::server]
 impl Fetcher for FetchServer {
-    async fn fetch_entity_type_exhaustive(
+    async fn fetch_ontology_type_exhaustive(
         self,
         _context: Context,
         entity_type_url: String,
     ) -> Result<TypeFetchResponse, FetcherError> {
-        fetch_entity_type_exhaustive(entity_type_url).await
+        fetch_ontology_type_exhaustive(entity_type_url).await
     }
 }
 
@@ -48,7 +48,7 @@ impl StreamState {
     }
 }
 
-async fn fetch_entity_type_exhaustive(
+async fn fetch_ontology_type_exhaustive(
     entity_type_url: String,
 ) -> Result<TypeFetchResponse, FetcherError> {
     // let seen: DashSet<String> = DashSet::new();

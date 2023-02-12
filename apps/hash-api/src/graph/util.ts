@@ -10,11 +10,11 @@ import {
   ValueOrArray,
   VersionedUri,
 } from "@blockprotocol/type-system";
+import { OwnedById } from "@local/hash-graphql-shared/types";
 import {
   PrimitiveDataTypeKey,
   types,
 } from "@local/hash-isomorphic-utils/ontology-types";
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
   EntityTypeWithMetadata,
   linkEntityTypeUri,
@@ -238,7 +238,7 @@ export const generateSystemEntityTypeSchema = (
     params.properties?.reduce(
       (prev, { propertyType, array }) => ({
         ...prev,
-        [propertyType.metadata.editionId.baseId]: array
+        [propertyType.metadata.recordId.baseUri]: array
           ? {
               type: "array",
               items: { $ref: propertyType.schema.$id },
@@ -251,7 +251,7 @@ export const generateSystemEntityTypeSchema = (
 
   const requiredProperties = params.properties
     ?.filter(({ required }) => !!required)
-    .map(({ propertyType }) => propertyType.metadata.editionId.baseId);
+    .map(({ propertyType }) => propertyType.metadata.recordId.baseUri);
 
   const links =
     params.outgoingLinks?.reduce<EntityType["links"]>(

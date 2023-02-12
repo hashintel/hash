@@ -21,6 +21,7 @@ export interface TypeEntitiesRow {
   entity: string;
   entityTypeVersion: string;
   namespace: string;
+
   [k: string]: string;
 }
 
@@ -92,7 +93,7 @@ export const useEntitiesTable = (
         const { shortname: entityNamespace } = getOwnerForEntity(entity);
 
         const entityId = extractEntityUuidFromEntityId(
-          entity.metadata.editionId.baseId,
+          entity.metadata.recordId.entityId,
         );
 
         return {

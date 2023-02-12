@@ -5,34 +5,61 @@ import {
   PropertyType,
   VersionedUri,
 } from "@blockprotocol/type-system";
-import {
-  DataTypeWithMetadata as DataTypeWithMetadataGraphApi,
-  EntityTypeWithMetadata as EntityTypeWithMetadataGraphApi,
-  PropertyTypeWithMetadata as PropertyTypeWithMetadataGraphApi,
-  ProvenanceMetadata as ProvenanceMetadataGraphApi,
-} from "@local/hash-graph-client";
+import { ProvenanceMetadata as ProvenanceMetadataGraphApi } from "@local/hash-graph-client";
 
-import { EntityEditionId, EntityId, EntityVersion } from "./identifier";
+import {
+  EntityId,
+  EntityRecordId,
+  EntityVersion,
+  OntologyTypeRecordId,
+  Timestamp,
+} from "./identifier";
 
 // Due to restrictions with how much OpenAPI can express, we patch the schemas with the better-typed ones from the
 // type-system package.
 
-export type DataTypeWithMetadata = Omit<
-  DataTypeWithMetadataGraphApi,
-  "schema"
-> & { schema: DataType };
+export type OwnedOntologyElementMetadata = {
+  recordId: OntologyTypeRecordId;
+  ownedById: string;
+  provenance: ProvenanceMetadataGraphApi;
+};
 
-export type PropertyTypeWithMetadata = Omit<
-  PropertyTypeWithMetadataGraphApi,
-  "schema"
-> & { schema: PropertyType };
+export type ExternalOntologyElementMetadata = {
+  recordId: OntologyTypeRecordId;
+  fetchedAt: Timestamp;
+  provenance: ProvenanceMetadataGraphApi;
+};
 
-export type EntityTypeWithMetadata = Omit<
-  EntityTypeWithMetadataGraphApi,
-  "schema"
-> & { schema: EntityType };
+export type OntologyElementMetadata =
+  | OwnedOntologyElementMetadata
+  | ExternalOntologyElementMetadata;
 
-export type { OntologyElementMetadata } from "@local/hash-graph-client";
+export type DataTypeWithMetadata = {
+  schema: DataType;
+  metadata: OntologyElementMetadata;
+};
+
+export type PropertyTypeWithMetadata = {
+  schema: PropertyType;
+  metadata: OntologyElementMetadata;
+};
+
+export type EntityTypeWithMetadata = {
+  schema: EntityType;
+  metadata: OntologyElementMetadata;
+};
+
+export const isExternalOntologyElementMetadata = (
+  metadata: OntologyElementMetadata,
+): metadata is ExternalOntologyElementMetadata =>
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- this can be undefined if the cast is wrong
+  (metadata as ExternalOntologyElementMetadata).fetchedAt !== undefined;
+
+export const isOwnedOntologyElementMetadata = (
+  metadata: OntologyElementMetadata,
+): metadata is OwnedOntologyElementMetadata =>
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- this can be undefined if the cast is wrong
+  (metadata as OwnedOntologyElementMetadata).ownedById !== undefined;
 
 /** Plain JSON value and object definitions */
 type JsonValue = null | string | number | boolean | JsonObject | JsonValue[];
@@ -58,7 +85,7 @@ export type LinkData = {
 
 export type EntityMetadata = {
   archived: boolean;
-  editionId: EntityEditionId;
+  recordId: EntityRecordId;
   version: EntityVersion;
   entityTypeId: VersionedUri;
   provenance: ProvenanceMetadataGraphApi;

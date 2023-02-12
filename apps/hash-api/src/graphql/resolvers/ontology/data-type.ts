@@ -1,4 +1,5 @@
 import { Subgraph } from "@local/hash-subgraph";
+import { mapSubgraph } from "@local/hash-subgraph/src/temp";
 
 import {
   QueryGetAllLatestDataTypesArgs,
@@ -42,7 +43,7 @@ export const getAllLatestDataTypes: ResolverFn<
     },
   });
 
-  return dataTypeSubgraph as Subgraph;
+  return mapSubgraph(dataTypeSubgraph);
 };
 
 export const getDataType: ResolverFn<
@@ -81,5 +82,5 @@ export const getDataType: ResolverFn<
     },
   });
 
-  return dataTypeSubgraph as Subgraph;
+  return mapSubgraph(dataTypeSubgraph);
 };

@@ -1,8 +1,11 @@
 // For strange behavior we haven't found the cause of, we are unable to export
 // directly here, and have to import as alias before re-exporting the type
 // if we don't, the `api` package is unable to use this library.
-import { VersionedUri as TVersionedUri } from "@blockprotocol/type-system";
-import { OntologyTypeEditionId } from "@local/hash-graph-client";
+import {
+  BaseUri,
+  validateBaseUri,
+  VersionedUri as TVersionedUri,
+} from "@blockprotocol/type-system";
 import { validate as validateUuid } from "uuid";
 
 export type VersionedUri = TVersionedUri;
@@ -45,14 +48,14 @@ export type EntityVersion = {
   transactionTime: VersionInterval;
 };
 
-export type EntityRecordId = string;
+export type EntityEditionId = string;
 
 /**
  * An identifier of a specific edition of an `Entity` at a given `EntityRecordId`
  */
-export type EntityEditionId = {
-  baseId: EntityId;
-  recordId: EntityRecordId;
+export type EntityRecordId = {
+  entityId: EntityId;
+  editionId: EntityEditionId;
 };
 
 export type EntityVertexId = {
@@ -61,15 +64,15 @@ export type EntityVertexId = {
 };
 
 /**
- * A string representation of an `EntityEditionId`.
+ * A string representation of an `EntityRecordId`.
  * Can be useful for storing in keys of objects and other similar string-focused situations.
  */
-export type EntityEditionIdString = `${EntityId}/v/${EntityRecordId}`;
+export type EntityRecordIdString = `${EntityId}/v/${EntityEditionId}`;
 
-export const entityEditionIdToString = (
-  entityEditionId: EntityEditionId,
-): EntityEditionIdString =>
-  `${entityEditionId.baseId}/v/${entityEditionId.recordId}`;
+export const entityRecordIdToString = (
+  entityRecordId: EntityRecordId,
+): EntityRecordIdString =>
+  `${entityRecordId.entityId}/v/${entityRecordId.editionId}`;
 
 /**
  * A tuple struct of a given `EntityId` and timestamp, used to identify an `Entity` at a given moment of time, where
@@ -81,14 +84,22 @@ export type EntityIdAndTimestamp = {
   timestamp: Timestamp;
 };
 
-export type { OntologyTypeEditionId };
+export type OntologyTypeVertexId = {
+  baseId: BaseUri;
+  version: number;
+};
 
-export type GraphElementVertexId = EntityVertexId | OntologyTypeEditionId;
+export type OntologyTypeRecordId = {
+  baseUri: BaseUri;
+  version: number;
+};
 
-export const ontologyTypeEditionIdToVersionedUri = (
-  ontologyTypeEditionId: OntologyTypeEditionId,
+export type GraphElementVertexId = EntityVertexId | OntologyTypeVertexId;
+
+export const ontologyTypeRecordIdToVersionedUri = (
+  ontologyTypeRecordId: OntologyTypeRecordId,
 ): VersionedUri => {
-  return `${ontologyTypeEditionId.baseId}v/${ontologyTypeEditionId.version}` as VersionedUri;
+  return `${ontologyTypeRecordId.baseUri}v/${ontologyTypeRecordId.version}` as VersionedUri;
 };
 
 export const isEntityId = (entityId: string): entityId is EntityId => {
@@ -114,13 +125,13 @@ export const isEntityVertexId = (
   );
 };
 
-export const isOntologyTypeEditionId = (
+export const isOntologyTypeRecordId = (
   editionId: object,
-): editionId is OntologyTypeEditionId => {
+): editionId is OntologyTypeRecordId => {
   return (
     "baseId" in editionId &&
     typeof editionId.baseId === "string" &&
-    isEntityId(editionId.baseId) &&
+    validateBaseUri(editionId.baseId).type !== "Err" &&
     "version" in editionId &&
     typeof editionId.version === "number" &&
     Number.isInteger(editionId.version)

@@ -11,7 +11,7 @@ use crate::{
     identifier::{
         account::AccountId,
         knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
-        time::{TimeProjection, VersionInterval},
+        time::TimeProjection,
     },
     knowledge::{Entity, EntityProperties, EntityQueryPath, EntityUuid, LinkData},
     ontology::EntityTypeQueryPath,
@@ -139,10 +139,10 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                         EntityId::new(owned_by_id, entity_uuid),
                         EntityRecordId::new(row.get(record_id_index)),
                     ),
-                    EntityVersion::new(
-                        VersionInterval::from_anonymous(row.get(decision_time_index)),
-                        VersionInterval::from_anonymous(row.get(transaction_time_index)),
-                    ),
+                    EntityVersion {
+                        decision_time: row.get(decision_time_index),
+                        transaction_time: row.get(transaction_time_index),
+                    },
                     entity_type_uri,
                     ProvenanceMetadata::new(updated_by_id),
                     // TODO: only the historic table would have an `archived` field.
