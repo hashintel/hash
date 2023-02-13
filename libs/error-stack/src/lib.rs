@@ -505,22 +505,22 @@ pub use self::{
 
 #[cfg(test)]
 mod tests {
-    #![allow(dead_code)]
+    #![allow(dead_code, clippy::extra_unused_type_parameters)]
 
     use core::mem;
 
     use crate::Report;
 
-    const fn test_send<T: Send>() {}
+    const fn assert_send<T: Send>() {}
 
-    const fn test_sync<T: Sync>() {}
+    const fn assert_sync<T: Sync>() {}
 
-    const fn test_static<T: 'static>() {}
+    const fn assert_static<T: 'static>() {}
 
     const fn report() {
-        test_send::<Report<()>>();
-        test_sync::<Report<()>>();
-        test_static::<Report<()>>();
+        assert_send::<Report<()>>();
+        assert_sync::<Report<()>>();
+        assert_static::<Report<()>>();
     }
 
     #[test]
