@@ -3,7 +3,7 @@ use std::fmt;
 use error_stack::Context;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
-use type_system::repr;
+use type_system::{repr, uri::VersionedUri};
 
 // We would really like to use error-stack for this. It's not possible because
 // we need Serialize and Deserialize for `Report`
@@ -56,6 +56,6 @@ impl TypeFetchResponse {
 pub trait Fetcher {
     /// Fetch an entity type by its URL and return all types that are reachable from it.
     async fn fetch_ontology_type_exhaustive(
-        entity_type_url: String,
+        ontology_type_url: VersionedUri,
     ) -> Result<TypeFetchResponse, FetcherError>;
 }
