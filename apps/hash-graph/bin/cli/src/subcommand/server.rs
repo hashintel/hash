@@ -14,7 +14,7 @@ use graph::{
     provenance::{ProvenanceMetadata, UpdatedById},
     store::{
         AccountStore, BaseUriAlreadyExists, DataTypeStore, DatabaseConnectionInfo, EntityTypeStore,
-        PostgresStorePool,
+        PostgresStorePool, StorePool,
     },
 };
 use regex::Regex;
@@ -143,7 +143,6 @@ async fn insert_link_entity_type(
 #[expect(clippy::too_many_lines, reason = "temporary solution")]
 #[cfg(not(feature = "type-fetcher"))]
 async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphError> {
-    use graph::store::StorePool;
     use serde_json::json;
 
     // TODO: how do we make these URIs compliant
@@ -291,10 +290,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
 async fn stop_gap_setup_type_fetcher<A: tokio::net::ToSocketAddrs + Send + Sync + Clone>(
     pool: &FetchingPool<PostgresStorePool<NoTls>, A>,
 ) -> Result<(), GraphError> {
-    let mut fetching_store = pool
-        .acquire_fetching_store()
-        .await
-        .change_context(GraphError)?;
+    let mut fetching_store = pool.acquire().await.change_context(GraphError)?;
     let type_fetcher = fetching_store
         .fetcher_client()
         .await
