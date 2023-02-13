@@ -1,8 +1,7 @@
 import type { BlockVariant } from "@blockprotocol/core";
-import { AccountId } from "@local/hash-graphql-shared/types";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
-import { EntityId } from "@local/hash-subgraph";
+import { AccountId, EntityId } from "@local/hash-subgraph/main";
 import { Popper } from "@mui/material";
 import {
   EditorState,

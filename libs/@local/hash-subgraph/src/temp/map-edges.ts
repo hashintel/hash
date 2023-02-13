@@ -5,6 +5,7 @@ import {
   OntologyOutwardEdges,
 } from "@local/hash-graph-client";
 
+import { isEntityId } from "../types/branded";
 import {
   Edges,
   isKnowledgeGraphOutwardEdge,
@@ -12,7 +13,6 @@ import {
   OutwardEdge,
 } from "../types/edge";
 import {
-  isEntityId,
   isEntityIdAndTimestamp,
   isOntologyTypeRecordId,
 } from "../types/identifier";

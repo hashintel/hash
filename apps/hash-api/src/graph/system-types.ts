@@ -4,7 +4,7 @@ import {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-} from "@local/hash-subgraph";
+} from "@local/hash-subgraph/main";
 
 import { logger } from "../logger";
 import { ImpureGraphContext } from "./index";

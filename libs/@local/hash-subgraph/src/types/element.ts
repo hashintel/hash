@@ -7,8 +7,8 @@ import {
 } from "@blockprotocol/type-system";
 import { ProvenanceMetadata as ProvenanceMetadataGraphApi } from "@local/hash-graph-client";
 
+import { EntityId } from "./branded";
 import {
-  EntityId,
   EntityRecordId,
   EntityVersion,
   OntologyTypeRecordId,

@@ -1,4 +1,4 @@
-import { EntityId } from "@local/hash-graphql-shared/types";
+import { EntityId } from "@local/hash-subgraph/main";
 import { experimental_sx as sx, styled, TextareaAutosize } from "@mui/material";
 import {
   ChangeEventHandler,

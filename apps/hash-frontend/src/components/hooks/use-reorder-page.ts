@@ -2,7 +2,7 @@ import { useMutation } from "@apollo/client";
 import {
   EntityId,
   extractOwnedByIdFromEntityId,
-} from "@local/hash-graphql-shared/types";
+} from "@local/hash-subgraph/main";
 import { useCallback } from "react";
 
 import {

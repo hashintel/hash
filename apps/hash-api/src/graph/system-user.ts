@@ -1,15 +1,16 @@
 import { extractBaseUri } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountEntityId,
   AccountId,
   extractAccountId,
-} from "@local/hash-graphql-shared/types";
-import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
-import { getEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
-import { mapSubgraph } from "@local/hash-subgraph/src/temp";
+  Subgraph,
+  SubgraphRootTypes,
+} from "@local/hash-subgraph/main";
+import { getEntities } from "@local/hash-subgraph/stdlib/element/entity";
+import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { getRequiredEnv } from "../util";

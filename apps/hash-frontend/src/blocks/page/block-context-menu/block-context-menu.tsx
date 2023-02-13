@@ -13,7 +13,6 @@ import {
   faRefresh,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { EntityId } from "@local/hash-graphql-shared/types";
 import {
   areComponentsCompatible,
   isHashTextBlock,
@@ -23,7 +22,7 @@ import {
   PropertyObject,
   Subgraph,
   SubgraphRootTypes,
-} from "@local/hash-subgraph";
+} from "@local/hash-subgraph/main";
 import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import { PopupState } from "material-ui-popup-state/hooks";
@@ -205,7 +204,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
     const { recordId, entityTypeId } = blockEntity.blockChildEntity.metadata;
     const newBlockSubgraph = await fetchBlockSubgraph(
       entityTypeId,
-      recordId.entityId as EntityId,
+      recordId.entityId,
     );
 
     setBlockSubgraph(newBlockSubgraph);

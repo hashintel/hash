@@ -2,24 +2,22 @@ import { BaseUri, VersionedUri } from "@blockprotocol/type-system";
 import { Filter, GraphResolveDepths } from "@local/hash-graph-client";
 import {
   AccountId,
+  Entity,
+  EntityId,
+  EntityTypeWithMetadata,
   EntityUuid,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   OwnedById,
-} from "@local/hash-graphql-shared/types";
-import {
-  Entity,
-  EntityId,
-  EntityTypeWithMetadata,
   PropertyObject,
   splitEntityId,
   Subgraph,
   SubgraphRootTypes,
   TimeProjection,
-} from "@local/hash-subgraph";
-import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
-import { mapSubgraph } from "@local/hash-subgraph/src/temp";
-import { mapEntityMetadata } from "@local/hash-subgraph/src/temp/map-vertices";
+} from "@local/hash-subgraph/main";
+import { getRootsAsEntities } from "@local/hash-subgraph/stdlib/element/entity";
+import { mapSubgraph } from "@local/hash-subgraph/temp";
+import { mapEntityMetadata } from "@local/hash-subgraph/temp/map-vertices";
 import { ApolloError } from "apollo-server-errors";
 
 import {
