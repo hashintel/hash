@@ -84,6 +84,13 @@ where
 }
 
 #[cfg(any(feature = "std", feature = "hooks"))]
+struct SerializeHooks<'a> {
+    hooks: &'a SerdeHooks,
+    context: &'a mut HookContext<Frame>,
+    format: &'a mut fmt::config::Config,
+}
+
+#[cfg(any(feature = "std", feature = "hooks"))]
 fn serialize_attachment<'a>(
     hooks: &'a SerdeHooks,
     frame: &'a Frame,
@@ -115,12 +122,6 @@ fn serialize_attachment(frame: &Frame) -> impl Iterator<Item = String> + '_ {
     let (_, attachments) = debug_attachments_invoke(once(frame));
 
     attachments.into_iter()
-}
-
-#[cfg(any(feature = "std", feature = "hooks"))]
-struct SerializeHooks<'a> {
-    hooks: &'a SerdeHooks,
-    context: &'a mut HookContext<Frame>,
 }
 
 struct SerializeAttachmentList<'a, 'b, 'c> {

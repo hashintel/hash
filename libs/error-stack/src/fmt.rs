@@ -144,7 +144,7 @@
 
 mod charset;
 mod color;
-mod config;
+pub(crate) mod config;
 #[cfg(any(feature = "std", feature = "hooks"))]
 mod hook;
 mod location;
@@ -649,7 +649,7 @@ fn debug_context(context: &dyn Context, mode: ColorMode) -> Lines {
         .collect()
 }
 
-struct Opaque(usize);
+pub(crate) struct Opaque(usize);
 
 impl Opaque {
     const fn new() -> Self {
