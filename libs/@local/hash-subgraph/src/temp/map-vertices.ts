@@ -20,7 +20,7 @@ import {
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
 
-import { EntityId, isEntityId } from "../types/branded";
+import { EntityId, isEntityId, UpdatedById } from "../types/branded";
 import {
   EntityMetadata,
   LinkData,
@@ -90,6 +90,9 @@ export const mapOntologyMetadata = (
       baseUri: metadata.editionId.baseId,
       version: metadata.editionId.version,
     },
+    provenance: {
+      updatedById: metadata.provenance.updatedById as UpdatedById,
+    },
   };
 };
 
@@ -139,6 +142,9 @@ export const mapEntityMetadata = (
     },
     version: metadata.version as EntityVersion,
     entityTypeId: metadata.entityTypeId as VersionedUri,
+    provenance: {
+      updatedById: metadata.provenance.updatedById as UpdatedById,
+    },
   };
 };
 

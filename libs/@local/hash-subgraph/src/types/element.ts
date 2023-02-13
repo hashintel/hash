@@ -5,7 +5,6 @@ import {
   PropertyType,
   VersionedUri,
 } from "@blockprotocol/type-system";
-import { ProvenanceMetadata as ProvenanceMetadataGraphApi } from "@local/hash-graph-client";
 
 import { EntityId } from "./branded";
 import {
@@ -14,6 +13,7 @@ import {
   OntologyTypeRecordId,
   Timestamp,
 } from "./identifier";
+import { ProvenanceMetadata } from "./shared";
 
 // Due to restrictions with how much OpenAPI can express, we patch the schemas with the better-typed ones from the
 // type-system package.
@@ -21,13 +21,13 @@ import {
 export type OwnedOntologyElementMetadata = {
   recordId: OntologyTypeRecordId;
   ownedById: string;
-  provenance: ProvenanceMetadataGraphApi;
+  provenance: ProvenanceMetadata;
 };
 
 export type ExternalOntologyElementMetadata = {
   recordId: OntologyTypeRecordId;
   fetchedAt: Timestamp;
-  provenance: ProvenanceMetadataGraphApi;
+  provenance: ProvenanceMetadata;
 };
 
 export type OntologyElementMetadata =
@@ -88,7 +88,7 @@ export type EntityMetadata = {
   recordId: EntityRecordId;
   version: EntityVersion;
   entityTypeId: VersionedUri;
-  provenance: ProvenanceMetadataGraphApi;
+  provenance: ProvenanceMetadata;
 };
 
 export type Entity = {

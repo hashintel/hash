@@ -26,6 +26,7 @@ import {
   OntologyElementMetadata,
   OntologyVertex,
   PropertyObject,
+  UpdatedById,
   Vertices,
 } from "../../src/main";
 
@@ -84,6 +85,9 @@ const mapOntologyMetadata = (
     recordId: {
       baseUri: metadata.editionId.baseId,
       version: metadata.editionId.version,
+    },
+    provenance: {
+      updatedById: metadata.provenance.updatedById as UpdatedById,
     },
   };
 };
@@ -144,6 +148,10 @@ const mapKnowledgeGraphVertex = (
         },
         version: vertex.inner.metadata.version as EntityVersion,
         entityTypeId: vertex.inner.metadata.entityTypeId as VersionedUri,
+        provenance: {
+          updatedById: vertex.inner.metadata.provenance
+            .updatedById as UpdatedById,
+        },
       },
     },
   };

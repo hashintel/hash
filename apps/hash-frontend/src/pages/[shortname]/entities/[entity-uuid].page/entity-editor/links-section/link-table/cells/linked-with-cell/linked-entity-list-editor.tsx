@@ -1,5 +1,10 @@
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import { Entity, EntityId, VersionedUri } from "@local/hash-subgraph/main";
+import {
+  Entity,
+  EntityId,
+  UpdatedById,
+  VersionedUri,
+} from "@local/hash-subgraph/main";
 import { getRoots } from "@local/hash-subgraph/stdlib/roots";
 import { Box } from "@mui/material";
 import produce from "immer";
@@ -17,6 +22,11 @@ import { EntitySelector } from "./entity-selector";
 import { LinkedEntityListRow } from "./linked-entity-list-editor/linked-entity-list-row";
 import { MaxItemsReached } from "./linked-entity-list-editor/max-items-reached";
 
+/**
+ * @todo - This should is unsafe, and should be refactored to return a new type `DraftEntity`, so that we aren't
+ *   breaking invariants and constraints. Having a disjoint type will let us rely on `tsc` properly and avoid casts
+ *   and empty placeholder values below
+ */
 export const createDraftLinkEntity = ({
   rightEntityId,
   leftEntityId,
@@ -33,7 +43,7 @@ export const createDraftLinkEntity = ({
       archived: false,
       recordId: { editionId: "", entityId: `draft%${Date.now()}` as EntityId },
       entityTypeId: linkEntityTypeId,
-      provenance: { updatedById: "" },
+      provenance: { updatedById: "" as UpdatedById },
       version: {
         decisionTime: { start: "", end: null },
         transactionTime: { start: "", end: null },
