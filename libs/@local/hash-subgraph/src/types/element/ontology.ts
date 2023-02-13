@@ -49,6 +49,8 @@ export const isOntologyTypeRecordId = (
   );
 };
 
+/** @todo-0.3 - Consider redefining `EntityType` and `PropertyType` to use the branded `BaseUri`s inside them */
+
 export type OwnedOntologyElementMetadata = {
   recordId: OntologyTypeRecordId;
   ownedById: OwnedById;
@@ -59,8 +61,6 @@ export type ExternalOntologyElementMetadata = {
   recordId: OntologyTypeRecordId;
   fetchedAt: Timestamp;
   provenance: ProvenanceMetadata;
-  /** @todo-0.3 `ownedById` shouldn't be required in the BP ontology metadata */
-  ownedById: OwnedById;
 };
 
 export type OntologyElementMetadata = Subtype<

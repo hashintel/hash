@@ -3,6 +3,7 @@
  */
 export { compareBounds } from "./stdlib/bound";
 export {
+  intervalCompareWithInterval,
   intervalContainsInterval,
   intervalContainsTimestamp,
   intervalForTimestamp,
@@ -13,6 +14,7 @@ export {
   intervalMergeWithInterval,
   intervalOverlapsInterval,
   intervalUnionWithInterval,
+  sortIntervals,
   unionOfIntervals,
 } from "./stdlib/interval";
 export { getPropertyTypesReferencedByEntityType } from "./stdlib/subgraph/edge/entity-type";

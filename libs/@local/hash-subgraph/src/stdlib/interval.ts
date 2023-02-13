@@ -1,4 +1,5 @@
 import {
+  intervalCompareWithInterval as intervalCompareWithIntervalBp,
   intervalContainsInterval as intervalContainsIntervalBp,
   intervalContainsTimestamp as intervalContainsTimestampBp,
   intervalForTimestamp as intervalForTimestampBp,
@@ -9,6 +10,7 @@ import {
   intervalMergeWithInterval as intervalMergeWithIntervalBp,
   intervalOverlapsInterval as intervalOverlapsIntervalBp,
   intervalUnionWithInterval as intervalUnionWithIntervalBp,
+  sortIntervals as sortIntervalsBp,
   unionOfIntervals as unionOfIntervalsBp,
 } from "@blockprotocol/graph/stdlib";
 
@@ -19,6 +21,28 @@ import {
   TimeInterval,
   Timestamp,
 } from "../main";
+
+/** @todo-0.3 - these should be added to, and exposed from, the BP package */
+/**
+ * Standard comparison function that returns whether `IntervalA` is before the `IntervalB`. Where "before"
+ * is defined by first comparing the start bounds, and if those are equal, then the end bounds are compared.
+ *
+ * @param {TimeInterval} intervalA
+ * @param {TimeInterval} intervalB
+ */
+export const intervalCompareWithInterval = (
+  intervalA: TimeInterval,
+  intervalB: TimeInterval,
+): number => intervalCompareWithIntervalBp(intervalA, intervalB);
+
+/**
+ * Sorts a given collection of {@link TimeInterval} in place, sorted first from earliest to latest start bounds, and
+ * then earliest to latest end bounds.
+ *
+ * @param {TimeInterval[]} intervals
+ */
+export const sortIntervals = (intervals: TimeInterval[]) =>
+  sortIntervalsBp(intervals);
 
 /**
  * Creates a {@link BoundedTimeInterval} that represents the instant of time identified by the given {@link Timestamp}.

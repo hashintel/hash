@@ -13,7 +13,6 @@ import {
   LinkEntityAndRightEntity,
   Subgraph,
   TimeInterval,
-  Timestamp,
 } from "../../../main";
 
 /**
@@ -117,24 +116,24 @@ export const getRightEntityForLinkEntity = (
   ) as Entity[] | undefined;
 
 /**
- * For a given moment in time, get all outgoing link {@link Entity} revisions, and their "target" {@link Entity}
+ * For a given {@link TimeInterval}, get all outgoing link {@link Entity} revisions, and their "target" {@link Entity}
  * revisions (by default this is the "right entity"), from a given {@link Entity}.
  *
  * @param subgraph
  * @param {EntityId} entityId - The ID of the source entity to search for outgoing links from
- * @param {Date | Timestamp} [timestamp] - An optional `Date` or an ISO-formatted datetime string of the moment to
- *    search for. If the parameter is omitted then results will default to only returning results that are active in
- *    the latest instant of time in the {@link Subgraph}
+ * @param {TimeInterval} [interval] - An optional {@link TimeInterval} to constrain the period of time to search across.
+ * If the parameter is omitted then results will default to only returning results that are active in the latest instant
+ *   of time in the {@link Subgraph}
  */
 export const getOutgoingLinkAndTargetEntities = <
   LinkAndRightEntities extends LinkEntityAndRightEntity[] = LinkEntityAndRightEntity[],
 >(
   subgraph: Subgraph,
   entityId: EntityId,
-  timestamp?: Date | Timestamp,
+  interval?: TimeInterval,
 ): LinkAndRightEntities =>
   getOutgoingLinkAndTargetEntitiesBp(
     subgraph as unknown as SubgraphBp<true>,
     entityId,
-    timestamp,
+    interval,
   );
