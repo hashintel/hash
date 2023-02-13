@@ -4,14 +4,14 @@ import { EntityTypeWithoutId } from "@local/hash-graphql-shared/graphql/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountId,
+  EntityTypeRootType,
   EntityTypeWithMetadata,
   linkEntityTypeUri,
   ontologyTypeRecordIdToVersionedUri,
   OwnedById,
   Subgraph,
-  SubgraphRootTypes,
-} from "@local/hash-subgraph/main";
-import { getRoots } from "@local/hash-subgraph/stdlib/roots";
+} from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { mapSubgraph } from "@local/hash-subgraph/temp";
 import { mapOntologyMetadata } from "@local/hash-subgraph/temp/map-vertices";
 
@@ -93,10 +93,7 @@ export const getEntityTypeById: ImpureGraphFunction<
         },
       },
     })
-    .then(
-      ({ data }) =>
-        mapSubgraph(data) as Subgraph<SubgraphRootTypes["entityType"]>,
-    );
+    .then(({ data }) => mapSubgraph(data) as Subgraph<EntityTypeRootType>);
 
   const [entityType] = getRoots(entityTypeSubgraph);
 

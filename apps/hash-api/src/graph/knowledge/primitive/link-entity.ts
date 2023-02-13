@@ -2,11 +2,11 @@ import {
   AccountId,
   Entity,
   EntityId,
+  EntityPropertiesObject,
   EntityTypeWithMetadata,
   LinkData,
   OwnedById,
-  EntityPropertiesObject,
-} from "@local/hash-subgraph/main";
+} from "@local/hash-subgraph";
 import { mapEntityMetadata } from "@local/hash-subgraph/temp/map-vertices";
 
 import { ImpureGraphFunction } from "../..";

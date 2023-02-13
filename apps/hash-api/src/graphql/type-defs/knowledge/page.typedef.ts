@@ -139,7 +139,7 @@ export const pageTypedef = gql`
     """
     The entity's new properties.
     """
-    properties: JSONObject!
+    properties: EntityPropertiesObject!
   }
 
   """

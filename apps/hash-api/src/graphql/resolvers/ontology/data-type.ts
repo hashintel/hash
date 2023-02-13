@@ -1,4 +1,4 @@
-import { Subgraph } from "@local/hash-subgraph/main";
+import { Subgraph } from "@local/hash-subgraph";
 import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import {

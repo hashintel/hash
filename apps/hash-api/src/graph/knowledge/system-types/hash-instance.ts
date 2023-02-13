@@ -1,11 +1,11 @@
 import {
   AccountId,
   Entity,
+  EntityRootType,
   OwnedById,
   Subgraph,
-  SubgraphRootTypes,
-} from "@local/hash-subgraph/main";
-import { getRootsAsEntities } from "@local/hash-subgraph/stdlib/element/entity";
+} from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
@@ -101,9 +101,7 @@ export const getHashInstance: ImpureGraphFunction<
       },
     })
     .then(({ data: subgraph }) =>
-      getRootsAsEntities(
-        mapSubgraph(subgraph) as Subgraph<SubgraphRootTypes["entity"]>,
-      ),
+      getRoots(mapSubgraph(subgraph) as Subgraph<EntityRootType>),
     );
 
   if (entities.length > 1) {

@@ -6,7 +6,7 @@ import {
   EntityId,
   extractAccountId,
   extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph/main";
+} from "@local/hash-subgraph";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";

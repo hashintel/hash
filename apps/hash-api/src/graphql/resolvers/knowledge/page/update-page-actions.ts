@@ -1,10 +1,6 @@
 import { VersionedUri } from "@blockprotocol/type-system";
-import {
-  AccountId,
-  Entity,
-  EntityId,
-  OwnedById,
-} from "@local/hash-subgraph/main";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import { AccountId, Entity, EntityId, OwnedById } from "@local/hash-subgraph";
 import { UserInputError } from "apollo-server-errors";
 import produce from "immer";
 
@@ -321,12 +317,10 @@ export const handleUpdateEntity = async (
 
   await updateEntityProperties(context, {
     entity,
-    updatedProperties: Object.entries(action.properties).map(
-      ([key, value]) => ({
-        propertyTypeBaseUri: key,
-        value: (value ?? undefined) as PropertyValue,
-      }),
-    ),
+    updatedProperties: typedEntries(action.properties).map(([key, value]) => ({
+      propertyTypeBaseUri: key,
+      value: (value ?? undefined) as PropertyValue,
+    })),
     actorId: user.accountId,
   });
 };

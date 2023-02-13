@@ -2,9 +2,9 @@ import {
   AccountId,
   Entity,
   EntityId,
-  extractOwnedByIdFromEntityId,
   EntityPropertiesObject,
-} from "@local/hash-subgraph/main";
+  extractOwnedByIdFromEntityId,
+} from "@local/hash-subgraph";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";

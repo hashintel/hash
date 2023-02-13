@@ -2,7 +2,7 @@ import {
   OwnedById,
   PropertyTypeWithMetadata,
   Subgraph,
-} from "@local/hash-subgraph/main";
+} from "@local/hash-subgraph";
 import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import {

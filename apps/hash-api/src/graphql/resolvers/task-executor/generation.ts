@@ -15,7 +15,7 @@ import { typedEntries } from "@local/advanced-types/typed-entries";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { GraphApi, OntologyElementMetadata } from "@local/hash-graph-client";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { EntityPropertiesObject, OwnedById } from "@local/hash-subgraph/main";
+import { EntityPropertiesObject, OwnedById } from "@local/hash-subgraph";
 import { camelCase, isEqual, upperFirst } from "lodash";
 import { singular } from "pluralize";
 

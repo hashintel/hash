@@ -2,15 +2,15 @@ import {
   AccountId,
   Entity,
   EntityId,
+  EntityPropertiesObject,
+  EntityRootType,
   EntityUuid,
   extractEntityUuidFromEntityId,
   OwnedById,
-  EntityPropertiesObject,
   Subgraph,
-  SubgraphRootTypes,
   Uuid,
-} from "@local/hash-subgraph/main";
-import { getRootsAsEntities } from "@local/hash-subgraph/stdlib/element/entity";
+} from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
@@ -209,11 +209,7 @@ export const getOrgByShortname: ImpureGraphFunction<
       },
     })
     .then(({ data: userEntitiesSubgraph }) =>
-      getRootsAsEntities(
-        mapSubgraph(userEntitiesSubgraph) as Subgraph<
-          SubgraphRootTypes["entity"]
-        >,
-      ),
+      getRoots(mapSubgraph(userEntitiesSubgraph) as Subgraph<EntityRootType>),
     );
 
   if (unexpectedEntities.length > 0) {
