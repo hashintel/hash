@@ -9,6 +9,8 @@ import { EntityId } from "./branded";
 import { EntityRecordId, EntityVersion } from "./identifier";
 import { ProvenanceMetadata } from "./shared";
 
+export * from "./element/ontology";
+
 // Due to restrictions with how much OpenAPI can express, we patch the schemas with the better-typed ones from the
 // type-system package.
 

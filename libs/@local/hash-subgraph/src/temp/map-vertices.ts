@@ -80,6 +80,7 @@ const mapEntityType = (entityType: EntityTypeGraphApi): EntityType => {
 export const mapOntologyMetadata = (
   metadata: OntologyElementMetadataGraphApi,
 ): OntologyElementMetadata => {
+  /* @ts-expect-error -- @todo-0.3 `ownedById` shouldn't be required in the BP ontology metadata */
   return {
     ...metadata,
     recordId: {
