@@ -4,6 +4,7 @@ import {
   EntityVertexId,
   Subgraph,
   SubgraphRootTypes,
+  Timestamp,
 } from "@local/hash-subgraph/main";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
@@ -45,7 +46,7 @@ export const useDraftEntitySubgraph = (
 
         const draftEntityVertexId: EntityVertexId = {
           baseId: "draft%draft" as EntityId,
-          version: new Date().toISOString(),
+          version: new Date().toISOString() as Timestamp,
         };
 
         setDraftEntitySubgraph({

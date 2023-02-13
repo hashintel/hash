@@ -3,9 +3,9 @@ import {
   AccountId,
   Entity,
   EntityId,
+  EntityPropertiesObject,
   extractOwnedByIdFromEntityId,
   OwnedById,
-  PropertyObject,
   Subgraph,
   SubgraphRootTypes,
 } from "@local/hash-subgraph/main";
@@ -134,7 +134,7 @@ export const createPage: ImpureGraphFunction<
 
   const index = generateKeyBetween(prevIndex ?? null, null);
 
-  const properties: PropertyObject = {
+  const properties: EntityPropertiesObject = {
     [SYSTEM_TYPES.propertyType.title.metadata.recordId.baseUri]: title,
     ...(summary
       ? {
@@ -458,8 +458,8 @@ export const getPageBlocks: ImpureGraphFunction<
           a.metadata.recordId.entityId.localeCompare(
             b.metadata.recordId.entityId,
           ) ||
-          a.metadata.version.decisionTime.start.localeCompare(
-            b.metadata.version.decisionTime.start,
+          a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
+            b.metadata.temporalVersioning.decisionTime.start.limit,
           ),
       )
       .map((linkEntity) => getLinkEntityRightEntity(ctx, { linkEntity })),

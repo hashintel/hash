@@ -121,7 +121,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
 
   const commentCreatedAt = useMemo(() => {
     // @todo: replace this with the createdAt from the comment entity
-    const updatedAt = new Date(textUpdatedAt.decisionTime.start);
+    const updatedAt = new Date(textUpdatedAt.decisionTime.start.limit);
     const timeDistance = formatDistanceToNowStrict(updatedAt);
     return timeDistance === "0 seconds"
       ? "Just now"

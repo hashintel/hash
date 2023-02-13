@@ -7,48 +7,14 @@ import {
   VersionedUri as TVersionedUri,
 } from "@blockprotocol/type-system";
 
-import { EntityId, isEntityId } from "./branded";
+import { EntityId, isEntityId, Timestamp } from "./shared";
 
 export type VersionedUri = TVersionedUri;
-
-/** @todo - consider Type Branding this */
-export type Timestamp = string;
-
-export type VersionInterval = {
-  start: Timestamp;
-  end: Timestamp | null;
-};
-
-export type EntityVersion = {
-  decisionTime: VersionInterval;
-  transactionTime: VersionInterval;
-};
-
-export type EntityEditionId = string;
-
-/**
- * An identifier of a specific edition of an `Entity` at a given `EntityRecordId`
- */
-export type EntityRecordId = {
-  entityId: EntityId;
-  editionId: EntityEditionId;
-};
 
 export type EntityVertexId = {
   baseId: EntityId;
   version: Timestamp;
 };
-
-/**
- * A string representation of an `EntityRecordId`.
- * Can be useful for storing in keys of objects and other similar string-focused situations.
- */
-export type EntityRecordIdString = `${EntityId}/v/${EntityEditionId}`;
-
-export const entityRecordIdToString = (
-  entityRecordId: EntityRecordId,
-): EntityRecordIdString =>
-  `${entityRecordId.entityId}/v/${entityRecordId.editionId}`;
 
 /**
  * A tuple struct of a given `EntityId` and timestamp, used to identify an `Entity` at a given moment of time, where

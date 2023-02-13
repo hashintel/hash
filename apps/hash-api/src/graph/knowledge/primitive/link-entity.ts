@@ -5,7 +5,7 @@ import {
   EntityTypeWithMetadata,
   LinkData,
   OwnedById,
-  PropertyObject,
+  EntityPropertiesObject,
 } from "@local/hash-subgraph/main";
 import { mapEntityMetadata } from "@local/hash-subgraph/temp/map-vertices";
 
@@ -15,7 +15,7 @@ import { getLatestEntityById } from "./entity";
 
 export type CreateLinkEntityParams = {
   ownedById: OwnedById;
-  properties?: PropertyObject;
+  properties?: EntityPropertiesObject;
   linkEntityType: EntityTypeWithMetadata;
   leftEntityId: EntityId;
   leftToRightOrder?: number;
@@ -97,7 +97,7 @@ export const createLinkEntity: ImpureGraphFunction<
 export const updateLinkEntity: ImpureGraphFunction<
   {
     linkEntity: LinkEntity;
-    properties?: PropertyObject;
+    properties?: EntityPropertiesObject;
     leftToRightOrder?: number;
     rightToLeftOrder?: number;
     actorId: AccountId;

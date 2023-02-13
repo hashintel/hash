@@ -1,14 +1,15 @@
 import { BaseUri } from "@blockprotocol/type-system";
 
-import { EntityId } from "./branded";
 import {
   EntityIdAndTimestamp,
   EntityVertexId,
   isEntityVertexId,
   isOntologyTypeRecordId,
   OntologyTypeRecordId,
-  Timestamp,
 } from "./identifier";
+import { EntityId, Timestamp } from "./shared";
+
+export * from "./edge/outward-edge-alias";
 
 // -------------------------------- Edge Kinds --------------------------------
 

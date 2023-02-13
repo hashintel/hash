@@ -1,13 +1,12 @@
 import { BaseUri } from "@blockprotocol/type-system";
+
 import {
   DataTypeWithMetadata,
+  Entity,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-} from "@local/hash-subgraph/types/element/ontology"; // -------------------------------- Vertex Variants --------------------------------
-
-import { EntityId } from "./branded";
-import { Entity } from "./element";
-import { Timestamp } from "./identifier";
+} from "./element";
+import { EntityId, Timestamp } from "./shared";
 
 // -------------------------------- Vertex Variants --------------------------------
 

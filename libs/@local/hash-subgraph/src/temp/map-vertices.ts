@@ -12,6 +12,7 @@ import {
   DataType as DataTypeGraphApi,
   EntityMetadata as EntityMetadataGraphApi,
   EntityType as EntityTypeGraphApi,
+  EntityVersion as EntityVersionGraphApi,
   KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
   LinkData as LinkDataGraphApi,
   OntologyElementMetadata as OntologyElementMetadataGraphApi,
@@ -19,11 +20,18 @@ import {
   PropertyType as PropertyTypeGraphApi,
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
-import { OntologyElementMetadata } from "@local/hash-subgraph/types/element/ontology";
 
-import { EntityId, isEntityId, UpdatedById } from "../types/branded";
-import { EntityMetadata, LinkData, PropertyObject } from "../types/element";
-import { EntityVersion } from "../types/identifier";
+import {
+  EntityId,
+  EntityMetadata,
+  EntityPropertiesObject,
+  EntityTemporalVersioningMetadata,
+  isEntityId,
+  LinkData,
+  OntologyElementMetadata,
+  Timestamp,
+  UpdatedById,
+} from "../types";
 import {
   KnowledgeGraphVertex,
   OntologyVertex,
@@ -128,6 +136,33 @@ const mapOntologyVertex = (vertex: OntologyVertexGraphApi): OntologyVertex => {
   }
 };
 
+export const mapEntityVersion = (
+  entityVersion: EntityVersionGraphApi,
+): EntityTemporalVersioningMetadata => {
+  return {
+    transactionTime: {
+      start: {
+        kind: "inclusive",
+        limit: entityVersion.transactionTime.start as Timestamp,
+      },
+      end: {
+        kind: "exclusive",
+        limit: entityVersion.transactionTime.end as Timestamp,
+      },
+    },
+    decisionTime: {
+      start: {
+        kind: "inclusive",
+        limit: entityVersion.decisionTime.start as Timestamp,
+      },
+      end: {
+        kind: "exclusive",
+        limit: entityVersion.decisionTime.end as Timestamp,
+      },
+    },
+  };
+};
+
 export const mapEntityMetadata = (
   metadata: EntityMetadataGraphApi,
 ): EntityMetadata => {
@@ -137,7 +172,7 @@ export const mapEntityMetadata = (
       entityId: metadata.editionId.baseId as EntityId,
       editionId: metadata.editionId.recordId,
     },
-    version: metadata.version as EntityVersion,
+    temporalVersioning: mapEntityVersion(metadata.version),
     entityTypeId: metadata.entityTypeId as VersionedUri,
     provenance: {
       updatedById: metadata.provenance.updatedById as UpdatedById,
@@ -161,7 +196,7 @@ const mapKnowledgeGraphVertex = (
     ...vertex,
     inner: {
       ...vertex.inner,
-      properties: vertex.inner.properties as PropertyObject,
+      properties: vertex.inner.properties as EntityPropertiesObject,
       ...(vertex.inner.linkData
         ? { linkData: mapLinkData(vertex.inner.linkData) }
         : ({} as { linkData: never })),

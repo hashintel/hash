@@ -1,9 +1,10 @@
 import {
   EntityId,
   EntityMetadata,
-  EntityVersion,
+  EntityPropertiesObject,
+  EntityRevisionId,
+  EntityTemporalVersioningMetadata,
   LinkData,
-  PropertyObject,
   VersionedUri,
 } from "@local/hash-subgraph/main";
 import { Draft, produce } from "immer";
@@ -23,14 +24,15 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   metadata: {
     recordId: {
       entityId: EntityId | null;
-      revisionId?: EntityVersion;
+      revisionId?: EntityRevisionId;
     };
     entityTypeId?: VersionedUri | null;
     provenance?: EntityMetadata["provenance"];
+    temporalVersioning?: EntityTemporalVersioningMetadata;
   };
   /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
   blockChildEntity?: Type & { draftId?: string };
-  properties: PropertyObject & { entity?: DraftEntity };
+  properties: EntityPropertiesObject & { entity?: DraftEntity };
   linkData?: LinkData;
 
   componentId?: string;
@@ -166,11 +168,12 @@ export const createEntityStore = (
         if (draftData[draftId]) {
           if (
             new Date(
-              draftData[draftId]!.metadata.recordId.revisionId?.decisionTime
-                .start ?? 0,
+              draftData[draftId]!.metadata.temporalVersioning?.decisionTime
+                .start.limit ?? 0,
             ).getTime() >
             new Date(
-              draftEntity.metadata.recordId.revisionId?.decisionTime.start ?? 0,
+              draftEntity.metadata.temporalVersioning?.decisionTime.start
+                .limit ?? 0,
             ).getTime()
           ) {
             Object.assign(draftEntity, draftData[draftId]);

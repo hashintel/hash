@@ -1,4 +1,4 @@
-import { EntityId, PropertyObject } from "@local/hash-subgraph/main";
+import { EntityId, EntityPropertiesObject } from "@local/hash-subgraph/main";
 import { Draft, produce } from "immer";
 import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
@@ -286,7 +286,7 @@ const entityStoreReducer = (
                 );
               } else {
                 draftEntity.properties = action.payload
-                  .properties as PropertyObject;
+                  .properties as EntityPropertiesObject;
               }
             }
           },

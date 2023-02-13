@@ -19,7 +19,7 @@ import {
 } from "@local/hash-isomorphic-utils/blocks";
 import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import {
-  PropertyObject,
+  EntityPropertiesObject,
   Subgraph,
   SubgraphRootTypes,
 } from "@local/hash-subgraph/main";
@@ -87,7 +87,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
       !!blockEntity?.properties.entity &&
       Object.keys(
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-        (blockEntity.properties.entity as { properties: PropertyObject })
+        (blockEntity.properties.entity as { properties: EntityPropertiesObject })
           .properties ?? {},
       ).length > 0;
     const items = [

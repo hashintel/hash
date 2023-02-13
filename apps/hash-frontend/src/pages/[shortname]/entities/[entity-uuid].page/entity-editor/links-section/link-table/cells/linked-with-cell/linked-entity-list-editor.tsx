@@ -2,6 +2,7 @@ import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
 import {
   Entity,
   EntityId,
+  Timestamp,
   UpdatedById,
   VersionedUri,
 } from "@local/hash-subgraph/main";
@@ -44,9 +45,25 @@ export const createDraftLinkEntity = ({
       recordId: { editionId: "", entityId: `draft%${Date.now()}` as EntityId },
       entityTypeId: linkEntityTypeId,
       provenance: { updatedById: "" as UpdatedById },
-      version: {
-        decisionTime: { start: "", end: null },
-        transactionTime: { start: "", end: null },
+      temporalVersioning: {
+        decisionTime: {
+          start: {
+            kind: "inclusive",
+            limit: "" as Timestamp,
+          },
+          end: {
+            kind: "unbounded",
+          },
+        },
+        transactionTime: {
+          start: {
+            kind: "inclusive",
+            limit: "" as Timestamp,
+          },
+          end: {
+            kind: "unbounded",
+          },
+        },
       },
     },
   };

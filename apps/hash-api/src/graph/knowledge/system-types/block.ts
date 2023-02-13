@@ -3,7 +3,7 @@ import {
   Entity,
   EntityId,
   extractOwnedByIdFromEntityId,
-  PropertyObject,
+  EntityPropertiesObject,
 } from "@local/hash-subgraph/main";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
@@ -84,7 +84,7 @@ export const createBlock: ImpureGraphFunction<
 > = async (ctx, params) => {
   const { componentId, blockData, ownedById, actorId } = params;
 
-  const properties: PropertyObject = {
+  const properties: EntityPropertiesObject = {
     [SYSTEM_TYPES.propertyType.componentId.metadata.recordId.baseUri]:
       componentId,
   };

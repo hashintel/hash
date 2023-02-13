@@ -1,5 +1,6 @@
 import {
   EntityType,
+  EntityTypeReference,
   extractBaseUri,
   extractVersion,
   PropertyTypeReference,
@@ -92,7 +93,12 @@ const getSchemaFromEditorForm = (
       ...(link.infinity ? {} : { maxItems: link.maxValue }),
       ordered: false,
       items: link.entityTypes.length
-        ? { oneOf: link.entityTypes.map((id) => ({ $ref: id })) }
+        ? {
+            oneOf: link.entityTypes.map((id) => ({ $ref: id })) as [
+              EntityTypeReference,
+              ...EntityTypeReference[],
+            ],
+          }
         : {},
     };
   }

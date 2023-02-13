@@ -1,15 +1,24 @@
-import { GraphResolveDepths } from "@local/hash-graph-client";
 import {
-  DataTypeWithMetadata,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-subgraph/types/element/ontology";
+  GraphResolveDepths,
+  TimeProjection,
+  UnresolvedTimeProjection,
+} from "@local/hash-graph-client";
 
 import { Edges } from "./edge";
-import { Entity } from "./element";
+import {
+  DataTypeWithMetadata,
+  Entity,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "./element";
 import { EntityVertexId, OntologyTypeVertexId } from "./identifier";
-import { ResolvedTimeProjection, TimeProjection } from "./time";
 import { Vertices } from "./vertex";
+
+/** @todo-0.3 - remove this */
+export {
+  type TimeProjection as ResolvedTimeProjection,
+  type UnresolvedTimeProjection as TimeProjection,
+} from "@local/hash-graph-client";
 
 export type SubgraphRootTypes = {
   dataType: {
@@ -37,6 +46,6 @@ export type Subgraph<RootType extends SubgraphRootType = SubgraphRootType> = {
   vertices: Vertices;
   edges: Edges;
   depths: GraphResolveDepths;
-  timeProjection: TimeProjection;
-  resolvedTimeProjection: ResolvedTimeProjection;
+  timeProjection: UnresolvedTimeProjection;
+  resolvedTimeProjection: TimeProjection;
 };

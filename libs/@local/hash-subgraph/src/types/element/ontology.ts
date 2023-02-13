@@ -7,10 +7,9 @@ import {
 import { DataType, EntityType, PropertyType } from "@blockprotocol/type-system";
 import { Brand } from "@local/advanced-types/brand";
 import { Subtype } from "@local/advanced-types/subtype";
-import { OwnedById } from "@local/hash-subgraph/types/branded";
-import { ProvenanceMetadata } from "@local/hash-subgraph/types/shared";
 
-import { OntologyTypeRecordId, Timestamp } from "../identifier";
+import { OntologyTypeRecordId } from "../identifier";
+import { OwnedById, ProvenanceMetadata, Timestamp } from "../shared";
 
 /**
  * The second component of the [{@link BaseUri}, RevisionId] tuple needed to identify a specific ontology type vertex
@@ -67,11 +66,9 @@ export type EntityTypeWithMetadata = Subtype<
 export const isExternalOntologyElementMetadata = (
   metadata: OntologyElementMetadata,
 ): metadata is ExternalOntologyElementMetadata =>
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- this can be undefined if the cast is wrong
   (metadata as ExternalOntologyElementMetadata).fetchedAt !== undefined;
 
 export const isOwnedOntologyElementMetadata = (
   metadata: OntologyElementMetadata,
 ): metadata is OwnedOntologyElementMetadata =>
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- this can be undefined if the cast is wrong
   (metadata as OwnedOntologyElementMetadata).ownedById !== undefined;

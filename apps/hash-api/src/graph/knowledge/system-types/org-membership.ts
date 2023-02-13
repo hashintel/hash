@@ -1,7 +1,7 @@
 import {
   extractEntityUuidFromEntityId,
   OwnedById,
-  PropertyObject,
+  EntityPropertiesObject,
   Uuid,
 } from "@local/hash-subgraph/main";
 
@@ -72,7 +72,7 @@ export const createOrgMembership: ImpureGraphFunction<
   },
   Promise<OrgMembership>
 > = async (ctx, { user, org, responsibility, actorId }) => {
-  const properties: PropertyObject = {
+  const properties: EntityPropertiesObject = {
     [SYSTEM_TYPES.propertyType.responsibility.metadata.recordId.baseUri]:
       responsibility,
   };

@@ -23,8 +23,9 @@ export const scalars = {
   Entity: "@local/hash-subgraph/main#Entity",
   EntityRecordId: "@local/hash-subgraph/main#EntityRecordId",
   EntityMetadata: "@local/hash-subgraph/main#EntityMetadata",
-  EntityVersion: "@local/hash-subgraph/main#EntityVersion",
-  PropertyObject: "@local/hash-subgraph/main#PropertyObject",
+  EntityTemporalVersioningMetadata:
+    "@local/hash-subgraph/main#EntityTemporalVersioningMetadata",
+  EntityPropertiesObject: "@local/hash-subgraph/main#EntityPropertiesObject",
 
   GraphElementVertexId: "@local/hash-subgraph/main#GraphElementVertexId",
   Edges: "@local/hash-subgraph/main#Edges",

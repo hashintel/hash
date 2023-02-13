@@ -3172,7 +3172,7 @@
   integrity sha512-6ZAo56f3qnPHwhSxottFEqMCRYV98ajX+6o7KgRFRV8ildaHtOmKXshiPhROf02UVGE9zLPH+zrgktstX1YJeA==
   dependencies:
     "@blockprotocol/core" "0.0.12"
-    "@blockprotocol/type-system" "0.0.3-canary-20230111084611"
+    "@blockprotocol/type-system" "0.0.4-canary-20230210130343"
     ajv "^8.11.2"
     ajv-formats "^2.1.1"
     json-schema-to-typescript "^11.0.2"
@@ -3207,9 +3207,9 @@
     "@blockprotocol/core" "0.0.12"
     "@blockprotocol/graph" "0.1.0-canary-20230111084611"
 
-"@blockprotocol/type-system@0.0.3-canary-20230111084611":
-  version "0.0.3-canary-20230111084611"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.0.3-canary-20230111084611.tgz#c8269e2b99645c2f92885c2cbd2c36fea2f953a9"
+"@blockprotocol/type-system@0.0.4-canary-20230210130343":
+  version "0.0.4-canary-20230210130343"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.0.4-canary-20230210130343.tgz#c8269e2b99645c2f92885c2cbd2c36fea2f953a9"
   integrity sha512-1TWmUGnFKxP9ag8IyjlQmHludY5AYX3BJ0eqDgt/dtSVzzLJZ5I9xzzZyyoOgRf5BsZHhIE5aDUH1HKAWZXgcw==
 
 "@blockprotocol/type-system@0.0.4-canary-20230210130343":
@@ -9316,7 +9316,7 @@ block-scripts@0.1.0-canary-20230111084611:
     "@babel/preset-typescript" "7.18.6"
     "@babel/runtime" "^7.20.6"
     "@blockprotocol/graph" "0.1.0-canary-20230111084611"
-    "@blockprotocol/type-system" "0.0.3-canary-20230111084611"
+    "@blockprotocol/type-system" "0.0.4-canary-20230210130343"
     babel-loader "^9.1.0"
     chalk "5.1.2"
     copy-webpack-plugin "10.2.4"
@@ -16606,7 +16606,7 @@ mock-block-dock@0.1.0-canary-20230111084611:
     "@blockprotocol/core" "0.0.12"
     "@blockprotocol/graph" "0.1.0-canary-20230111084611"
     "@blockprotocol/hook" "0.1.0-canary-20230111084611"
-    "@blockprotocol/type-system" "0.0.3-canary-20230111084611"
+    "@blockprotocol/type-system" "0.0.4-canary-20230210130343"
     "@emotion/react" "^11.10.0"
     "@emotion/styled" "^11.10.0"
     "@lit-labs/react" "^1.0.4"

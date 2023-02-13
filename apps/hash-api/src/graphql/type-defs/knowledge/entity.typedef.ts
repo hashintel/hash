@@ -4,7 +4,7 @@ export const entityTypedef = gql`
   scalar EntityId
   scalar EntityRecordId
   scalar Entity
-  scalar PropertyObject
+  scalar EntityPropertiesObject
   scalar EntityMetadata
   scalar LinkData
 
@@ -31,7 +31,7 @@ export const entityTypedef = gql`
     """
     The properties of new entity.
     """
-    entityProperties: PropertyObject
+    entityProperties: EntityPropertiesObject
     """
     Associated Entities to either create/get and link to this entity.
     """
@@ -95,7 +95,7 @@ export const entityTypedef = gql`
       """
       The properties of new entity.
       """
-      properties: PropertyObject!
+      properties: EntityPropertiesObject!
       """
       Associated Entities to either create/get and link to this entity.
       """
@@ -117,7 +117,7 @@ export const entityTypedef = gql`
       """
       The updated properties of the entity.
       """
-      updatedProperties: PropertyObject!
+      updatedProperties: EntityPropertiesObject!
       """
       The updated left to right order of the link entity (if updating a link entity).
       """

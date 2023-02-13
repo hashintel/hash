@@ -5,7 +5,7 @@ import {
   EntityUuid,
   extractEntityUuidFromEntityId,
   OwnedById,
-  PropertyObject,
+  EntityPropertiesObject,
   Subgraph,
   SubgraphRootTypes,
   Uuid,
@@ -303,7 +303,7 @@ export const createUser: ImpureGraphFunction<
   const userAccountId =
     params.userAccountId ?? (await graphApi.createAccountId()).data;
 
-  const properties: PropertyObject = {
+  const properties: EntityPropertiesObject = {
     [SYSTEM_TYPES.propertyType.email.metadata.recordId.baseUri]: emails,
     [SYSTEM_TYPES.propertyType.kratosIdentityId.metadata.recordId.baseUri]:
       kratosIdentityId,

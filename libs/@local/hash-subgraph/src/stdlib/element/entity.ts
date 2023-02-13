@@ -1,9 +1,13 @@
+import { Entity } from "@local/hash-subgraph/types/element/knowledge";
+
 import { mustBeDefined } from "../../shared/invariant";
-import { EntityId } from "../../types/branded";
-import { Entity } from "../../types/element";
-import { EntityVertexId, isEntityVertexId } from "../../types/identifier";
-import { Subgraph } from "../../types/subgraph";
-import { isEntityVertex } from "../../types/vertex";
+import {
+  EntityId,
+  EntityVertexId,
+  isEntityVertex,
+  isEntityVertexId,
+  Subgraph,
+} from "../../types";
 
 /**
  * Returns all `Entity`s within the vertices of the subgraph
@@ -11,12 +15,11 @@ import { isEntityVertex } from "../../types/vertex";
  * @param subgraph
  */
 export const getEntities = (subgraph: Subgraph): Entity[] => {
-  return Object.values(
-    Object.values(subgraph.vertices).flatMap((versionObject) =>
-      Object.values(versionObject)
-        .filter(isEntityVertex)
-        .map((vertex) => vertex.inner),
-    ),
+  /* @ts-expect-error -- @todo-0.3 This is temporary and due to the `Vertices` and `Edges` objects not being migrated yet */
+  return Object.values(subgraph.vertices).flatMap((versionObject) =>
+    Object.values(versionObject)
+      .filter(isEntityVertex)
+      .map((vertex) => vertex.inner),
   );
 };
 

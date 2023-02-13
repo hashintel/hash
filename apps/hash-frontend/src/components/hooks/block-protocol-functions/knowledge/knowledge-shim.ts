@@ -14,8 +14,8 @@ import {
 import {
   Entity,
   EntityId,
+  EntityPropertiesObject,
   LinkData,
-  PropertyObject,
   Subgraph,
   SubgraphRootTypes,
   VersionedUri,
@@ -76,7 +76,7 @@ export type AggregateEntitiesMessageCallback = MessageCallback<
 
 export type CreateEntityRequest = {
   entityTypeId: VersionedUri;
-  properties: PropertyObject;
+  properties: EntityPropertiesObject;
   linkData?: LinkData;
 };
 

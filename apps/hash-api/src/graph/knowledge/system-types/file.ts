@@ -1,5 +1,5 @@
 import { apiOrigin } from "@local/hash-graphql-shared/environment";
-import { Entity, PropertyObject } from "@local/hash-subgraph/main";
+import { Entity, EntityPropertiesObject } from "@local/hash-subgraph/main";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { PresignedPostUpload } from "../../../storage";
@@ -100,7 +100,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   });
 
   try {
-    const properties: PropertyObject = {
+    const properties: EntityPropertiesObject = {
       [SYSTEM_TYPES.propertyType.fileUrl.metadata.recordId.baseUri]:
         formatUrl(key),
       [SYSTEM_TYPES.propertyType.fileMediaType.metadata.recordId.baseUri]:
@@ -145,7 +145,7 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
   const key = url;
 
   try {
-    const properties: PropertyObject = {
+    const properties: EntityPropertiesObject = {
       // When a file is an external link, we simply use the key as the fileUrl.
       [SYSTEM_TYPES.propertyType.fileUrl.metadata.recordId.baseUri]: key,
       [SYSTEM_TYPES.propertyType.fileMediaType.metadata.recordId.baseUri]:

@@ -5,7 +5,7 @@ import {
   EntityUuid,
   extractEntityUuidFromEntityId,
   OwnedById,
-  PropertyObject,
+  EntityPropertiesObject,
   Subgraph,
   SubgraphRootTypes,
   Uuid,
@@ -122,7 +122,7 @@ export const createOrg: ImpureGraphFunction<
   const orgAccountId =
     params.orgAccountId ?? (await graphApi.createAccountId()).data;
 
-  const properties: PropertyObject = {
+  const properties: EntityPropertiesObject = {
     [SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUri]: shortname,
     [SYSTEM_TYPES.propertyType.orgName.metadata.recordId.baseUri]: name,
     ...(providedInfo

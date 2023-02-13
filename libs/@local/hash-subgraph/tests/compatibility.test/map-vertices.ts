@@ -20,12 +20,12 @@ import {
 
 import {
   EntityId,
-  EntityVersion,
+  EntityPropertiesObject,
   isEntityId,
   KnowledgeGraphVertex,
   OntologyElementMetadata,
   OntologyVertex,
-  PropertyObject,
+  Timestamp,
   UpdatedById,
   Vertices,
 } from "../../src/main";
@@ -135,20 +135,50 @@ const mapKnowledgeGraphVertex = (
     ...vertex,
     inner: {
       ...vertex.inner,
-      properties: vertex.inner.properties as PropertyObject,
-      linkData: {
-        ...vertex.inner.linkData,
-        leftEntityId: vertex.inner.linkData?.leftEntityId as EntityId,
-        rightEntityId: vertex.inner.linkData?.rightEntityId as EntityId,
-      },
+      properties: vertex.inner.properties as EntityPropertiesObject,
+      ...(vertex.inner.linkData
+        ? {
+            linkData: {
+              leftEntityId: vertex.inner.linkData.leftEntityId as EntityId,
+              rightEntityId: vertex.inner.linkData.rightEntityId as EntityId,
+              leftToRightOrder: vertex.inner.linkData.leftToRightOrder,
+              rightToLeftOrder: vertex.inner.linkData.rightToLeftOrder,
+            },
+          }
+        : ({} as { linkData: never })),
       metadata: {
         ...vertex.inner.metadata,
         recordId: {
           entityId: vertex.inner.metadata.editionId.baseId as EntityId,
           editionId: vertex.inner.metadata.editionId.recordId,
         },
-        version: vertex.inner.metadata.version as EntityVersion,
         entityTypeId: vertex.inner.metadata.entityTypeId as VersionedUri,
+        temporalVersioning: {
+          transactionTime: {
+            start: {
+              kind: "inclusive",
+              limit: vertex.inner.metadata.version.transactionTime
+                .start as Timestamp,
+            },
+            end: {
+              kind: "exclusive",
+              limit: vertex.inner.metadata.version.transactionTime
+                .end as Timestamp,
+            },
+          },
+          decisionTime: {
+            start: {
+              kind: "inclusive",
+              limit: vertex.inner.metadata.version.decisionTime
+                .start as Timestamp,
+            },
+            end: {
+              kind: "exclusive",
+              limit: vertex.inner.metadata.version.decisionTime
+                .end as Timestamp,
+            },
+          },
+        },
         provenance: {
           updatedById: vertex.inner.metadata.provenance
             .updatedById as UpdatedById,

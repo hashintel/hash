@@ -9,7 +9,7 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   OwnedById,
-  PropertyObject,
+  EntityPropertiesObject,
   splitEntityId,
   Subgraph,
   SubgraphRootTypes,
@@ -35,14 +35,14 @@ import {
 
 export type CreateEntityParams = {
   ownedById: OwnedById;
-  properties: PropertyObject;
+  properties: EntityPropertiesObject;
   entityTypeId: VersionedUri;
   entityUuid?: EntityUuid;
   actorId: AccountId;
 };
 
 /** @todo: potentially directly export this from the subgraph package */
-export type PropertyValue = PropertyObject[BaseUri];
+export type PropertyValue = EntityPropertiesObject[BaseUri];
 
 /**
  * Create an entity.
@@ -221,7 +221,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
   {
     ownedById: OwnedById;
     entityTypeId: VersionedUri;
-    properties: PropertyObject;
+    properties: EntityPropertiesObject;
     linkedEntities?: LinkedEntityDefinition[];
     actorId: AccountId;
   },
@@ -316,7 +316,7 @@ export const updateEntity: ImpureGraphFunction<
   {
     entity: Entity;
     entityTypeId?: VersionedUri;
-    properties: PropertyObject;
+    properties: EntityPropertiesObject;
     actorId: AccountId;
   },
   Promise<Entity>
@@ -387,7 +387,7 @@ export const updateEntityProperties: ImpureGraphFunction<
 
   return await updateEntity(ctx, {
     entity,
-    properties: updatedProperties.reduce<PropertyObject>(
+    properties: updatedProperties.reduce<EntityPropertiesObject>(
       (prev, { propertyTypeBaseUri, value }) =>
         value
           ? {

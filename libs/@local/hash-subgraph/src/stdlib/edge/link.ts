@@ -1,14 +1,15 @@
+import { Entity } from "@local/hash-subgraph/types/element/knowledge";
+
 import { mustBeDefined } from "../../shared/invariant";
-import { EntityId } from "../../types/branded";
 import {
+  EntityId,
+  entityRecordIdToString,
   isHasLeftEntityEdge,
   isHasRightEntityEdge,
   isIncomingLinkEdge,
   isOutwardLinkEdge,
-} from "../../types/edge/outward-edge-alias";
-import { Entity } from "../../types/element";
-import { entityRecordIdToString } from "../../types/identifier";
-import { Subgraph } from "../../types/subgraph";
+  Subgraph,
+} from "../../types";
 import { getEntityAtTimestamp } from "../element/entity";
 
 const getUniqueEntitiesFilter = () => {

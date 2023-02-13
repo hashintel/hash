@@ -1,4 +1,9 @@
-import { Entity, Subgraph, SubgraphRootTypes } from "@local/hash-subgraph/main";
+import {
+  Entity,
+  Subgraph,
+  SubgraphRootTypes,
+  Timestamp,
+} from "@local/hash-subgraph/main";
 import { Dispatch, SetStateAction } from "react";
 
 export const updateEntitySubgraphStateByEntity = (
@@ -15,8 +20,11 @@ export const updateEntitySubgraphStateByEntity = (
      *   allow for optimistic updates without being incorrect.
      */
     const newEntity = JSON.parse(JSON.stringify(entity)) as Entity;
-    const newEntityVersion = new Date().toISOString();
-    newEntity.metadata.version.decisionTime.start = newEntityVersion;
+    const newEntityVersion = new Date().toISOString() as Timestamp;
+    newEntity.metadata.temporalVersioning.decisionTime.start.limit =
+      newEntityVersion;
+    newEntity.metadata.temporalVersioning.transactionTime.start.limit =
+      newEntityVersion;
 
     return subgraph
       ? ({

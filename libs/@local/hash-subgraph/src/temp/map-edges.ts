@@ -5,7 +5,6 @@ import {
   OntologyOutwardEdges,
 } from "@local/hash-graph-client";
 
-import { isEntityId } from "../types/branded";
 import {
   Edges,
   isKnowledgeGraphOutwardEdge,
@@ -16,6 +15,7 @@ import {
   isEntityIdAndTimestamp,
   isOntologyTypeRecordId,
 } from "../types/identifier";
+import { isEntityId } from "../types/shared";
 
 export const mapOutwardEdge = (
   outwardEdge: OntologyOutwardEdges | KnowledgeGraphOutwardEdges,
