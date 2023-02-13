@@ -1,65 +1,16 @@
+import { BaseUri, VersionedUri } from "@blockprotocol/type-system";
 import {
-  BaseUri,
-  DataType,
-  EntityType,
-  PropertyType,
-  VersionedUri,
-} from "@blockprotocol/type-system";
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "./element/ontology";
 
 import { EntityId } from "./branded";
-import {
-  EntityRecordId,
-  EntityVersion,
-  OntologyTypeRecordId,
-  Timestamp,
-} from "./identifier";
+import { EntityRecordId, EntityVersion } from "./identifier";
 import { ProvenanceMetadata } from "./shared";
 
 // Due to restrictions with how much OpenAPI can express, we patch the schemas with the better-typed ones from the
 // type-system package.
-
-export type OwnedOntologyElementMetadata = {
-  recordId: OntologyTypeRecordId;
-  ownedById: string;
-  provenance: ProvenanceMetadata;
-};
-
-export type ExternalOntologyElementMetadata = {
-  recordId: OntologyTypeRecordId;
-  fetchedAt: Timestamp;
-  provenance: ProvenanceMetadata;
-};
-
-export type OntologyElementMetadata =
-  | OwnedOntologyElementMetadata
-  | ExternalOntologyElementMetadata;
-
-export type DataTypeWithMetadata = {
-  schema: DataType;
-  metadata: OntologyElementMetadata;
-};
-
-export type PropertyTypeWithMetadata = {
-  schema: PropertyType;
-  metadata: OntologyElementMetadata;
-};
-
-export type EntityTypeWithMetadata = {
-  schema: EntityType;
-  metadata: OntologyElementMetadata;
-};
-
-export const isExternalOntologyElementMetadata = (
-  metadata: OntologyElementMetadata,
-): metadata is ExternalOntologyElementMetadata =>
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- this can be undefined if the cast is wrong
-  (metadata as ExternalOntologyElementMetadata).fetchedAt !== undefined;
-
-export const isOwnedOntologyElementMetadata = (
-  metadata: OntologyElementMetadata,
-): metadata is OwnedOntologyElementMetadata =>
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- this can be undefined if the cast is wrong
-  (metadata as OwnedOntologyElementMetadata).ownedById !== undefined;
 
 /** Plain JSON value and object definitions */
 type JsonValue = null | string | number | boolean | JsonObject | JsonValue[];

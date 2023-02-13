@@ -19,14 +19,10 @@ import {
   PropertyType as PropertyTypeGraphApi,
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
+import { OntologyElementMetadata } from "@local/hash-subgraph/types/element/ontology";
 
 import { EntityId, isEntityId, UpdatedById } from "../types/branded";
-import {
-  EntityMetadata,
-  LinkData,
-  OntologyElementMetadata,
-  PropertyObject,
-} from "../types/element";
+import { EntityMetadata, LinkData, PropertyObject } from "../types/element";
 import { EntityVersion } from "../types/identifier";
 import {
   KnowledgeGraphVertex,

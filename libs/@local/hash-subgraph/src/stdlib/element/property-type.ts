@@ -4,8 +4,8 @@ import {
   extractVersion,
   VersionedUri,
 } from "@blockprotocol/type-system";
+import { PropertyTypeWithMetadata } from "@local/hash-subgraph/types/element/ontology";
 
-import { PropertyTypeWithMetadata } from "../../types/element";
 import { OntologyTypeRecordId } from "../../types/identifier";
 import { Subgraph } from "../../types/subgraph";
 import { isPropertyTypeVertex } from "../../types/vertex";

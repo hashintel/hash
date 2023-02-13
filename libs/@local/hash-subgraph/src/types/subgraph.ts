@@ -1,12 +1,12 @@
 import { GraphResolveDepths } from "@local/hash-graph-client";
-
-import { Edges } from "./edge";
 import {
   DataTypeWithMetadata,
-  Entity,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-} from "./element";
+} from "@local/hash-subgraph/types/element/ontology";
+
+import { Edges } from "./edge";
+import { Entity } from "./element";
 import { EntityVertexId, OntologyTypeVertexId } from "./identifier";
 import { ResolvedTimeProjection, TimeProjection } from "./time";
 import { Vertices } from "./vertex";
