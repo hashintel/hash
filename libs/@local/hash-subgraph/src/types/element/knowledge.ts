@@ -67,7 +67,12 @@ export const isEntityRecordId: typeof isEntityRecordIdBp = (
 };
 
 export type EntityPropertyValue = EntityPropertyValueBp;
-export type EntityPropertiesObject = EntityPropertiesObjectBp;
+export type EntityPropertiesObject = Subtype<
+  EntityPropertiesObjectBp,
+  {
+    [_: BaseUri]: EntityPropertyValue;
+  }
+>;
 
 type HalfClosedInterval = TimeInterval<
   InclusiveLimitedTemporalBound,
