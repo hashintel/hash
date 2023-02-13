@@ -27,6 +27,8 @@ tracing = "0.1.37"
 type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "2ea406f" }
 uuid = "1.3.0"
 
+# Remove again when the type fetcher is used in the graph
+time = "0.3.17"
 
 [features]
 type-fetcher = ["dep:type-fetcher", "dep:tarpc", "dep:tokio-serde", "dep:futures", "graph/type-fetcher"]
