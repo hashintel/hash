@@ -28,7 +28,7 @@ export function typedEntries<T extends {}>(object: T): ReadonlyArray<Entry<T>> {
   return Object.entries(object) as unknown as ReadonlyArray<Entry<T>>;
 }
 
-/** `Object.values` analogue which returns a well-typed array */
+/** `Object.keys` analogue which returns a well-typed array */
 export const typedKeys = <T extends {}>(object: T): Entry<T>[0][] => {
   return Object.keys(object) as Entry<T>[0][];
 };
