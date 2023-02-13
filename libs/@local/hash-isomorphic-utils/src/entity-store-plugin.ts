@@ -1,4 +1,4 @@
-import { EntityId, EntityPropertiesObject } from "@local/hash-subgraph/main";
+import { EntityId, EntityPropertiesObject } from "@local/hash-subgraph";
 import { Draft, produce } from "immer";
 import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";

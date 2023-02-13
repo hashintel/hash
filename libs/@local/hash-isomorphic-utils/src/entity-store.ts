@@ -1,3 +1,4 @@
+import { VersionedUri } from "@blockprotocol/type-system";
 import {
   EntityId,
   EntityMetadata,
@@ -5,8 +6,7 @@ import {
   EntityRevisionId,
   EntityTemporalVersioningMetadata,
   LinkData,
-  VersionedUri,
-} from "@local/hash-subgraph/main";
+} from "@local/hash-subgraph";
 import { Draft, produce } from "immer";
 
 import { BlockEntity } from "./entity";
