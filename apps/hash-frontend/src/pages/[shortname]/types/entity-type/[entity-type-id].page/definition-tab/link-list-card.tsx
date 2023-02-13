@@ -4,8 +4,8 @@ import {
   EntityTypeWithMetadata,
   linkEntityTypeUri,
   OwnedById,
-} from "@local/hash-subgraph/main";
-import { getEntityTypeById } from "@local/hash-subgraph/stdlib/element/entity-type";
+} from "@local/hash-subgraph";
+import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
 import { TableBody, TableCell, TableFooter, TableHead } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";

@@ -1,4 +1,3 @@
-import { extractBaseUri } from "@blockprotocol/type-system";
 import { Button } from "@hashintel/design-system";
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
@@ -7,7 +6,8 @@ import {
   EntityId,
   extractEntityUuidFromEntityId,
   Uuid,
-} from "@local/hash-subgraph/main";
+} from "@local/hash-subgraph";
+import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Box, buttonClasses, Collapse } from "@mui/material";

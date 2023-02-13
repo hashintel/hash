@@ -5,7 +5,7 @@ import {
   EntityId,
   EntityMetadata,
   EntityTemporalVersioningMetadata,
-} from "@local/hash-subgraph/main";
+} from "@local/hash-subgraph";
 
 import {
   GetPageCommentsQuery,

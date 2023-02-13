@@ -4,7 +4,7 @@ import {
   EntityId,
   extractEntityUuidFromEntityId,
   OwnedById,
-} from "@local/hash-subgraph/main";
+} from "@local/hash-subgraph";
 import ArticleIcon from "@mui/icons-material/Article";
 import { FunctionComponent, useMemo } from "react";
 

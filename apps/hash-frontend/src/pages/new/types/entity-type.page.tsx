@@ -2,7 +2,8 @@ import { EntityType } from "@blockprotocol/type-system";
 import { Button, TextField } from "@hashintel/design-system";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { generateBaseTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { versionedUriFromComponents } from "@local/hash-subgraph/shared/type-system-patch";
+import { BaseUri } from "@local/hash-subgraph";
+import { versionedUriFromComponents } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
   Container,
@@ -55,7 +56,7 @@ type CreateEntityTypeFormData = {
 
 const HELPER_TEXT_WIDTH = 290;
 
-const generateInitialEntityTypeId = (baseUri: string) =>
+const generateInitialEntityTypeId = (baseUri: BaseUri) =>
   versionedUriFromComponents(baseUri, 1);
 
 /**

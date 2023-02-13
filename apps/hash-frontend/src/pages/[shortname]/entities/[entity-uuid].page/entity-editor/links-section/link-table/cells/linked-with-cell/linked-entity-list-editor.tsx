@@ -1,12 +1,7 @@
+import { VersionedUri } from "@blockprotocol/type-system";
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import {
-  Entity,
-  EntityId,
-  Timestamp,
-  UpdatedById,
-  VersionedUri,
-} from "@local/hash-subgraph/main";
-import { getRoots } from "@local/hash-subgraph/stdlib/roots";
+import { Entity, EntityId, Timestamp, UpdatedById } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
 import produce from "immer";
 import { useMemo, useState } from "react";
