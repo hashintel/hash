@@ -1,4 +1,5 @@
 import { mustBeDefined } from "../../shared/invariant";
+import { EntityId } from "../../types/branded";
 import {
   isHasLeftEntityEdge,
   isHasRightEntityEdge,
@@ -6,7 +7,7 @@ import {
   isOutwardLinkEdge,
 } from "../../types/edge/outward-edge-alias";
 import { Entity } from "../../types/element";
-import { EntityId, entityRecordIdToString } from "../../types/identifier";
+import { entityRecordIdToString } from "../../types/identifier";
 import { Subgraph } from "../../types/subgraph";
 import { getEntityAtTimestamp } from "../element/entity";
 

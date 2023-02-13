@@ -1,5 +1,5 @@
 import { Logger } from "@local/hash-backend-utils/logger";
-import { AccountId, OwnedById } from "@local/hash-graphql-shared/types";
+import { AccountId, OwnedById } from "@local/hash-subgraph/main";
 
 import { ImpureGraphContext } from "../graph";
 import {

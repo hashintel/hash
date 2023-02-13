@@ -12,14 +12,14 @@ import {
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { EntityType, TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { OwnedById } from "@local/hash-graphql-shared/types";
 import {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   isOwnedOntologyElementMetadata,
   linkEntityTypeUri,
+  OwnedById,
   PropertyTypeWithMetadata,
-} from "@local/hash-subgraph";
+} from "@local/hash-subgraph/main";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

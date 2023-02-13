@@ -1,9 +1,9 @@
 import {
   extractEntityUuidFromEntityId,
   OwnedById,
+  PropertyObject,
   Uuid,
-} from "@local/hash-graphql-shared/types";
-import { PropertyObject } from "@local/hash-subgraph";
+} from "@local/hash-subgraph/main";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";

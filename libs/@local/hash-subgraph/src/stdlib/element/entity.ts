@@ -1,10 +1,7 @@
 import { mustBeDefined } from "../../shared/invariant";
+import { EntityId } from "../../types/branded";
 import { Entity } from "../../types/element";
-import {
-  EntityId,
-  EntityVertexId,
-  isEntityVertexId,
-} from "../../types/identifier";
+import { EntityVertexId, isEntityVertexId } from "../../types/identifier";
 import { Subgraph } from "../../types/subgraph";
 import { isEntityVertex } from "../../types/vertex";
 

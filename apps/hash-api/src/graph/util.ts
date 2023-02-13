@@ -10,7 +10,6 @@ import {
   ValueOrArray,
   VersionedUri,
 } from "@blockprotocol/type-system";
-import { OwnedById } from "@local/hash-graphql-shared/types";
 import {
   PrimitiveDataTypeKey,
   types,
@@ -18,8 +17,9 @@ import {
 import {
   EntityTypeWithMetadata,
   linkEntityTypeUri,
+  OwnedById,
   PropertyTypeWithMetadata,
-} from "@local/hash-subgraph";
+} from "@local/hash-subgraph/main";
 
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";
