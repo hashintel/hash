@@ -377,8 +377,8 @@ impl DatabaseApi<'_> {
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                     kernel: UnresolvedKernel::new(None),
                     image: UnresolvedImage::new(
-                        Some(TimeIntervalBound::Included(timestamp)),
-                        Some(TimeIntervalBound::Included(timestamp)),
+                        Some(TimeIntervalBound::Inclusive(timestamp)),
+                        Some(TimeIntervalBound::Inclusive(timestamp)),
                     ),
                 }),
             })

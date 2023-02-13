@@ -1915,15 +1915,15 @@ export interface TimeIntervalBoundOneOf {
    * @type {string}
    * @memberof TimeIntervalBoundOneOf
    */
-  bound: TimeIntervalBoundOneOfBoundEnum;
+  kind: TimeIntervalBoundOneOfKindEnum;
 }
 
-export const TimeIntervalBoundOneOfBoundEnum = {
+export const TimeIntervalBoundOneOfKindEnum = {
   Unbounded: "unbounded",
 } as const;
 
-export type TimeIntervalBoundOneOfBoundEnum =
-  (typeof TimeIntervalBoundOneOfBoundEnum)[keyof typeof TimeIntervalBoundOneOfBoundEnum];
+export type TimeIntervalBoundOneOfKindEnum =
+  (typeof TimeIntervalBoundOneOfKindEnum)[keyof typeof TimeIntervalBoundOneOfKindEnum];
 
 /**
  *
@@ -1936,21 +1936,21 @@ export interface TimeIntervalBoundOneOf1 {
    * @type {string}
    * @memberof TimeIntervalBoundOneOf1
    */
-  bound: TimeIntervalBoundOneOf1BoundEnum;
+  kind: TimeIntervalBoundOneOf1KindEnum;
   /**
    *
    * @type {string}
    * @memberof TimeIntervalBoundOneOf1
    */
-  timestamp: string;
+  limit: string;
 }
 
-export const TimeIntervalBoundOneOf1BoundEnum = {
-  Included: "included",
+export const TimeIntervalBoundOneOf1KindEnum = {
+  Inclusive: "inclusive",
 } as const;
 
-export type TimeIntervalBoundOneOf1BoundEnum =
-  (typeof TimeIntervalBoundOneOf1BoundEnum)[keyof typeof TimeIntervalBoundOneOf1BoundEnum];
+export type TimeIntervalBoundOneOf1KindEnum =
+  (typeof TimeIntervalBoundOneOf1KindEnum)[keyof typeof TimeIntervalBoundOneOf1KindEnum];
 
 /**
  *
@@ -1963,21 +1963,21 @@ export interface TimeIntervalBoundOneOf2 {
    * @type {string}
    * @memberof TimeIntervalBoundOneOf2
    */
-  bound: TimeIntervalBoundOneOf2BoundEnum;
+  kind: TimeIntervalBoundOneOf2KindEnum;
   /**
    *
    * @type {string}
    * @memberof TimeIntervalBoundOneOf2
    */
-  timestamp: string;
+  limit: string;
 }
 
-export const TimeIntervalBoundOneOf2BoundEnum = {
-  Excluded: "excluded",
+export const TimeIntervalBoundOneOf2KindEnum = {
+  Exclusive: "exclusive",
 } as const;
 
-export type TimeIntervalBoundOneOf2BoundEnum =
-  (typeof TimeIntervalBoundOneOf2BoundEnum)[keyof typeof TimeIntervalBoundOneOf2BoundEnum];
+export type TimeIntervalBoundOneOf2KindEnum =
+  (typeof TimeIntervalBoundOneOf2KindEnum)[keyof typeof TimeIntervalBoundOneOf2KindEnum];
 
 /**
  * @type TimeProjection

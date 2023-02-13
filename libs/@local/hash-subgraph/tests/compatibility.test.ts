@@ -62,11 +62,9 @@ test("Graph API subgraph type is compatible with library type", () => {
         image: {
           axis: "decision",
           start: {
-            bound: "unbounded",
+            kind: "unbounded",
           },
-          end: {
-            bound: "unbounded",
-          },
+          end: null,
         },
       },
       resolved: {
@@ -77,10 +75,11 @@ test("Graph API subgraph type is compatible with library type", () => {
         image: {
           axis: "decision",
           start: {
-            bound: "unbounded",
+            kind: "unbounded",
           },
           end: {
-            bound: "unbounded",
+            kind: "inclusive",
+            limit: "2022-01-01T0:0:0",
           },
         },
       },

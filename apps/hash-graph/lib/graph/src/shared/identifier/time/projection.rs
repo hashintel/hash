@@ -161,10 +161,10 @@ impl<K, I> UnresolvedProjection<K, I> {
                 axis: self.image.axis,
                 interval: Interval::new(
                     self.image.interval.start.unwrap_or_else(|| {
-                        TimeIntervalBound::Included(Timestamp::from_anonymous(now))
+                        TimeIntervalBound::Inclusive(Timestamp::from_anonymous(now))
                     }),
                     self.image.interval.end.unwrap_or_else(|| {
-                        TimeIntervalBound::Included(Timestamp::from_anonymous(now))
+                        TimeIntervalBound::Inclusive(Timestamp::from_anonymous(now))
                     }),
                 ),
             },
