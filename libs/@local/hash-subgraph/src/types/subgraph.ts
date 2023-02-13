@@ -11,8 +11,13 @@ import {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "./element";
-import { EntityVertexId, OntologyTypeVertexId } from "./identifier";
-import { Vertices } from "./vertex";
+import {
+  EntityVertexId,
+  OntologyTypeVertexId,
+  Vertices,
+} from "./subgraph/vertices";
+
+export * from "./subgraph/vertices";
 
 /** @todo-0.3 - remove this */
 export {

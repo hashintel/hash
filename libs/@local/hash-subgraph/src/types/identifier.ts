@@ -11,11 +11,6 @@ import { EntityId, isEntityId, Timestamp } from "./shared";
 
 export type VersionedUri = TVersionedUri;
 
-export type EntityVertexId = {
-  baseId: EntityId;
-  version: Timestamp;
-};
-
 /**
  * A tuple struct of a given `EntityId` and timestamp, used to identify an `Entity` at a given moment of time, where
  * that time may be any time in an `Entity`'s lifespan (and thus the timestamp is *not* necessarily equal to an
@@ -26,35 +21,15 @@ export type EntityIdAndTimestamp = {
   timestamp: Timestamp;
 };
 
-export type OntologyTypeVertexId = {
-  baseId: BaseUri;
-  version: number;
-};
-
 export type OntologyTypeRecordId = {
   baseUri: BaseUri;
   version: number;
 };
 
-export type GraphElementVertexId = EntityVertexId | OntologyTypeVertexId;
-
 export const ontologyTypeRecordIdToVersionedUri = (
   ontologyTypeRecordId: OntologyTypeRecordId,
 ): VersionedUri => {
   return `${ontologyTypeRecordId.baseUri}v/${ontologyTypeRecordId.version}` as VersionedUri;
-};
-
-export const isEntityVertexId = (
-  vertexId: object,
-): vertexId is EntityVertexId => {
-  return (
-    "baseId" in vertexId &&
-    typeof vertexId.baseId === "string" &&
-    isEntityId(vertexId.baseId) &&
-    "version" in vertexId &&
-    typeof vertexId.version === "string" &&
-    !Number.isNaN(Date.parse(vertexId.version))
-  );
 };
 
 export const isOntologyTypeRecordId = (
