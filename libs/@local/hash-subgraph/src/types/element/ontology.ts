@@ -4,11 +4,17 @@ import {
   EntityTypeWithMetadata as EntityTypeWithMetadataBp,
   PropertyTypeWithMetadata as PropertyTypeWithMetadataBp,
 } from "@blockprotocol/graph";
-import { DataType, EntityType, PropertyType } from "@blockprotocol/type-system";
+import {
+  BaseUri,
+  DataType,
+  EntityType,
+  PropertyType,
+  validateBaseUri,
+  VersionedUri,
+} from "@blockprotocol/type-system/slim";
 import { Brand } from "@local/advanced-types/brand";
 import { Subtype } from "@local/advanced-types/subtype";
 
-import { OntologyTypeRecordId } from "../identifier";
 import { OwnedById, ProvenanceMetadata, Timestamp } from "../shared";
 
 /**
@@ -19,6 +25,30 @@ export type OntologyTypeRevisionId = Brand<
   `${number}`,
   "OntologyTypeRevisionId"
 >;
+
+export type OntologyTypeRecordId = {
+  baseUri: BaseUri;
+  version: number;
+};
+
+export const ontologyTypeRecordIdToVersionedUri = (
+  ontologyTypeRecordId: OntologyTypeRecordId,
+): VersionedUri => {
+  return `${ontologyTypeRecordId.baseUri}v/${ontologyTypeRecordId.version}` as VersionedUri;
+};
+
+export const isOntologyTypeRecordId = (
+  editionId: object,
+): editionId is OntologyTypeRecordId => {
+  return (
+    "baseId" in editionId &&
+    typeof editionId.baseId === "string" &&
+    validateBaseUri(editionId.baseId).type !== "Err" &&
+    "version" in editionId &&
+    typeof editionId.version === "number" &&
+    Number.isInteger(editionId.version)
+  );
+};
 
 export type OwnedOntologyElementMetadata = {
   recordId: OntologyTypeRecordId;

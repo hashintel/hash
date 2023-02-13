@@ -7,9 +7,9 @@ import {
   Entity,
   EntityRecordId,
   EntityTypeWithMetadata,
+  OntologyTypeRecordId,
   PropertyTypeWithMetadata,
 } from "../element";
-import { OntologyTypeRecordId } from "../identifier";
 import { EntityId } from "../shared";
 import { EntityIdWithInterval, EntityIdWithTimestamp } from "./edges";
 import {
