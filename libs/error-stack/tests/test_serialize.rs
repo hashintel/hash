@@ -14,7 +14,7 @@ use insta::assert_json_snapshot;
 fn prepare(suffix: bool) -> impl Drop {
     // backtraces are not consistent across platforms, and therefore super hard to test
     // for now we disable them
-    snapshots::prepare(suffix, false, true, false)
+    snapshots::prepare(suffix, true, false)
 }
 
 /// This is the main test, to test all different parts at once,

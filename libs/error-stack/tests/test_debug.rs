@@ -12,7 +12,7 @@ use error_stack::Report;
 use insta::assert_snapshot;
 
 fn prepare(suffix: bool) -> impl Drop {
-    snapshots::prepare(suffix, true, false, true)
+    snapshots::prepare(suffix, false, true)
 }
 
 /// This is the main test, to test all different parts at once,
