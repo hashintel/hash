@@ -3,7 +3,7 @@
   "version": "0.0.0-private",
   "private": true,
   "description": "A collection of helper types",
-  "license" : "(MIT OR Apache-2.0)",
+  "license": "(MIT OR Apache-2.0)",
   "exports": {
     "./*": "./src/*.ts"
   },
