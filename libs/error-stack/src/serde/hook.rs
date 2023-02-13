@@ -3,12 +3,12 @@ use core::{any::TypeId, iter::FusedIterator};
 
 pub(crate) use default::install_builtin_serde_hooks;
 
-use crate::Frame;
+use crate::{hook::context::impl_hook_context, Frame};
 
 pub struct Serde {}
 
-crate::hook::context::impl_hook_context! {
-    // TODO: upcoming PR will add documentation
+// TODO: upcoming PR will add documentation
+impl_hook_context! {
     #[allow(missing_docs)]
     pub struct HookContext<Serde> { .. }
 }

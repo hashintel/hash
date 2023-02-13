@@ -59,7 +59,7 @@ impl<T> Inner<T> {
 }
 
 macro_rules! impl_hook_context {
-    ($(#[$meta:meta])* $vis:vis struct HookContext<$extra:ident> {..}) => {
+    ($(#[$meta:meta])* $vis:vis struct HookContext<$extra:ty> { .. }) => {
 
 // TODO: add link to serde hooks once implemented
 // TODO: ideally we would want to make `HookContextInner` private, as it is an implementation
