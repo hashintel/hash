@@ -10,11 +10,11 @@ import {
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import { DataType, TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { OwnedById } from "@local/hash-graphql-shared/types";
 import {
   DataTypeWithMetadata,
   isOwnedOntologyElementMetadata,
-} from "@local/hash-subgraph";
+  OwnedById,
+} from "@local/hash-subgraph/main";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

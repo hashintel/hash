@@ -26,14 +26,18 @@ export const getRoots = <RootType extends SubgraphRootType>(
   subgraph: Subgraph<RootType>,
 ): RootType["element"][] =>
   subgraph.roots.map((rootVertexId) => {
+    /** @todo-0.3 - Remove all of these any casts */
+    // We could use type-guards here to convince TS that it's safe, but that would be slower, it's currently not
+    // smart enough to realise this can produce a value of type `Vertex` as it struggles with discriminating
+    // `EntityId` and `BaseUri`
+
+    const versionObject =
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      subgraph.vertices[(rootVertexId as any).baseId as string];
+
     const root = mustBeDefined(
-      subgraph.vertices[rootVertexId.baseId]?.[
-        // We could use type-guards here to convince TS that it's safe, but that would be slower, it's currently not
-        // smart enough to realise this can produce a value of type `Vertex` as it struggles with discriminating
-        // `EntityId` and `BaseUri`
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        rootVertexId.version as any
-      ] as Vertex,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      (versionObject as any)[rootVertexId.version] as Vertex,
       `roots should have corresponding vertices but ${JSON.stringify(
         rootVertexId,
       )} is missing`,

@@ -1,23 +1,21 @@
 import { extractBaseUri } from "@blockprotocol/type-system";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountEntityId,
   AccountId,
-  extractAccountId,
-} from "@local/hash-graphql-shared/types";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import {
   Entity,
   EntityRecordId,
   EntityRecordIdString,
   entityRecordIdToString,
+  extractAccountId,
   Subgraph,
-} from "@local/hash-subgraph";
+} from "@local/hash-subgraph/main";
 import {
   getIncomingLinksForEntityAtMoment,
   getLeftEntityForLinkEntityAtMoment,
   getOutgoingLinksForEntityAtMoment,
   getRightEntityForLinkEntityAtMoment,
-} from "@local/hash-subgraph/src/stdlib/edge/link";
+} from "@local/hash-subgraph/stdlib/edge/link";
 import { Session } from "@ory/client";
 
 export type MinimalUser = {

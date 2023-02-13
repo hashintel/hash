@@ -1,7 +1,10 @@
-import { EntityTypeWithMetadata, VersionedUri } from "@local/hash-subgraph";
-import { getOutgoingLinkAndTargetEntitiesAtMoment } from "@local/hash-subgraph/src/stdlib/edge/link";
-import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import {
+  EntityTypeWithMetadata,
+  VersionedUri,
+} from "@local/hash-subgraph/main";
+import { getOutgoingLinkAndTargetEntitiesAtMoment } from "@local/hash-subgraph/stdlib/edge/link";
+import { getEntityTypeById } from "@local/hash-subgraph/stdlib/element/entity-type";
+import { getRoots } from "@local/hash-subgraph/stdlib/roots";
 import { useMemo } from "react";
 
 import { useMarkLinkEntityToArchive } from "../../../shared/use-mark-link-entity-to-archive";

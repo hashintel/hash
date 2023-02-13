@@ -1,7 +1,6 @@
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import { EntityId } from "@local/hash-graphql-shared/types";
-import { Entity, VersionedUri } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { Entity, EntityId, VersionedUri } from "@local/hash-subgraph/main";
+import { getRoots } from "@local/hash-subgraph/stdlib/roots";
 import { Box } from "@mui/material";
 import produce from "immer";
 import { useMemo, useState } from "react";
@@ -32,7 +31,7 @@ export const createDraftLinkEntity = ({
     linkData: { rightEntityId, leftEntityId },
     metadata: {
       archived: false,
-      recordId: { editionId: "", entityId: `draft%${Date.now()}` },
+      recordId: { editionId: "", entityId: `draft%${Date.now()}` as EntityId },
       entityTypeId: linkEntityTypeId,
       provenance: { updatedById: "" },
       version: {
@@ -76,7 +75,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
 
     const leftEntityId = getRoots(entitySubgraph)[0]?.metadata.recordId
       .entityId as EntityId;
-    const rightEntityId = selectedEntity.metadata.recordId.entityId as EntityId;
+    const rightEntityId = selectedEntity.metadata.recordId.entityId;
 
     const linkEntity = createDraftLinkEntity({
       leftEntityId,
@@ -145,7 +144,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
 
                 onChange(newCell);
 
-                markLinkEntityToArchive(linkEntityId as EntityId);
+                markLinkEntityToArchive(linkEntityId);
               }}
               selected={selected}
               onSelect={() =>

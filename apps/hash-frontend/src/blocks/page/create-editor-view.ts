@@ -1,10 +1,5 @@
 import { ApolloClient } from "@apollo/client";
 import {
-  AccountId,
-  EntityId,
-  OwnedById,
-} from "@local/hash-graphql-shared/types";
-import {
   HashBlock,
   paragraphBlockComponentId,
 } from "@local/hash-isomorphic-utils/blocks";
@@ -17,6 +12,7 @@ import {
 // import { apiOrigin } from "@local/hash-graphql-shared/environment";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { save } from "@local/hash-isomorphic-utils/save";
+import { AccountId, EntityId, OwnedById } from "@local/hash-subgraph/main";
 import { debounce } from "lodash";
 // import applyDevTools from "prosemirror-dev-tools";
 import { Plugin } from "prosemirror-state";

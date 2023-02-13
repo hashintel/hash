@@ -1,5 +1,5 @@
-import { Subgraph } from "@local/hash-subgraph";
-import { mapSubgraph } from "@local/hash-subgraph/src/temp";
+import { Subgraph } from "@local/hash-subgraph/main";
+import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import {
   QueryGetAllLatestDataTypesArgs,

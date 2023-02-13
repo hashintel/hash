@@ -3,8 +3,7 @@ import {
   getPageQuery,
   updatePageContents,
 } from "@local/hash-graphql-shared/queries/page.queries";
-import { EntityId, OwnedById } from "@local/hash-graphql-shared/types";
-import { VersionedUri } from "@local/hash-subgraph";
+import { EntityId, OwnedById, VersionedUri } from "@local/hash-subgraph/main";
 import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
@@ -92,7 +91,7 @@ const calculateSaveActions = async (
 
       actions.push({
         updateEntity: {
-          entityId: draftEntity.metadata.recordId.entityId as EntityId,
+          entityId: draftEntity.metadata.recordId.entityId,
           properties: nextProperties,
         },
       });
@@ -280,9 +279,9 @@ const calculateSaveActions = async (
 
         actions.push({
           swapBlockData: {
-            entityId: savedEntity.metadata.recordId.entityId as EntityId,
-            newEntityEntityId: newChildEntityForBlock.metadata.recordId
-              .entityId as EntityId,
+            entityId: savedEntity.metadata.recordId.entityId,
+            newEntityEntityId:
+              newChildEntityForBlock.metadata.recordId.entityId,
           },
         });
       }
@@ -333,8 +332,7 @@ const calculateSaveActions = async (
           },
           ...(draftEntity.metadata.recordId.entityId
             ? {
-                existingBlockEntityId: draftEntity.metadata.recordId
-                  .entityId as EntityId,
+                existingBlockEntityId: draftEntity.metadata.recordId.entityId,
               }
             : {
                 blockPlaceholderId,

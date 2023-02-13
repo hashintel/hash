@@ -1,5 +1,5 @@
 import { apiOrigin } from "@local/hash-graphql-shared/environment";
-import { Entity, PropertyObject } from "@local/hash-subgraph";
+import { Entity, PropertyObject } from "@local/hash-subgraph/main";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { PresignedPostUpload } from "../../../storage";
