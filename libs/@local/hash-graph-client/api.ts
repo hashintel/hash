@@ -351,10 +351,10 @@ export interface DecisionTimeImage {
   axis: DecisionTime;
   /**
    *
-   * @type {TimeIntervalBound}
+   * @type {LimitedTimeIntervalBound}
    * @memberof DecisionTimeImage
    */
-  end: TimeIntervalBound;
+  end: LimitedTimeIntervalBound;
   /**
    *
    * @type {TimeIntervalBound}
@@ -383,10 +383,10 @@ export interface DecisionTimeImageAllOf {
 export interface DecisionTimeImageAllOf1 {
   /**
    *
-   * @type {TimeIntervalBound}
+   * @type {LimitedTimeIntervalBound}
    * @memberof DecisionTimeImageAllOf1
    */
-  end: TimeIntervalBound;
+  end: LimitedTimeIntervalBound;
   /**
    *
    * @type {TimeIntervalBound}
@@ -1149,6 +1149,68 @@ export interface KnowledgeGraphVertices {
   [key: string]: { [key: string]: KnowledgeGraphVertex };
 }
 /**
+ * @type LimitedTimeIntervalBound
+ * @export
+ */
+export type LimitedTimeIntervalBound =
+  | LimitedTimeIntervalBoundOneOf
+  | LimitedTimeIntervalBoundOneOf1;
+
+/**
+ *
+ * @export
+ * @interface LimitedTimeIntervalBoundOneOf
+ */
+export interface LimitedTimeIntervalBoundOneOf {
+  /**
+   *
+   * @type {string}
+   * @memberof LimitedTimeIntervalBoundOneOf
+   */
+  kind: LimitedTimeIntervalBoundOneOfKindEnum;
+  /**
+   *
+   * @type {string}
+   * @memberof LimitedTimeIntervalBoundOneOf
+   */
+  limit: string;
+}
+
+export const LimitedTimeIntervalBoundOneOfKindEnum = {
+  Inclusive: "inclusive",
+} as const;
+
+export type LimitedTimeIntervalBoundOneOfKindEnum =
+  (typeof LimitedTimeIntervalBoundOneOfKindEnum)[keyof typeof LimitedTimeIntervalBoundOneOfKindEnum];
+
+/**
+ *
+ * @export
+ * @interface LimitedTimeIntervalBoundOneOf1
+ */
+export interface LimitedTimeIntervalBoundOneOf1 {
+  /**
+   *
+   * @type {string}
+   * @memberof LimitedTimeIntervalBoundOneOf1
+   */
+  kind: LimitedTimeIntervalBoundOneOf1KindEnum;
+  /**
+   *
+   * @type {string}
+   * @memberof LimitedTimeIntervalBoundOneOf1
+   */
+  limit: string;
+}
+
+export const LimitedTimeIntervalBoundOneOf1KindEnum = {
+  Exclusive: "exclusive",
+} as const;
+
+export type LimitedTimeIntervalBoundOneOf1KindEnum =
+  (typeof LimitedTimeIntervalBoundOneOf1KindEnum)[keyof typeof LimitedTimeIntervalBoundOneOf1KindEnum];
+
+/**
  * The associated information for \'Link\' entities
  * @export
  * @interface LinkData
@@ -1900,9 +1962,9 @@ export interface TemporalAxes {
  * @export
  */
 export type TimeIntervalBound =
-  | TimeIntervalBoundOneOf
-  | TimeIntervalBoundOneOf1
-  | TimeIntervalBoundOneOf2;
+  | LimitedTimeIntervalBoundOneOf
+  | LimitedTimeIntervalBoundOneOf1
+  | TimeIntervalBoundOneOf;
 
 /**
  *
@@ -1924,60 +1986,6 @@ export const TimeIntervalBoundOneOfKindEnum = {
 
 export type TimeIntervalBoundOneOfKindEnum =
   (typeof TimeIntervalBoundOneOfKindEnum)[keyof typeof TimeIntervalBoundOneOfKindEnum];
-
-/**
- *
- * @export
- * @interface TimeIntervalBoundOneOf1
- */
-export interface TimeIntervalBoundOneOf1 {
-  /**
-   *
-   * @type {string}
-   * @memberof TimeIntervalBoundOneOf1
-   */
-  kind: TimeIntervalBoundOneOf1KindEnum;
-  /**
-   *
-   * @type {string}
-   * @memberof TimeIntervalBoundOneOf1
-   */
-  limit: string;
-}
-
-export const TimeIntervalBoundOneOf1KindEnum = {
-  Inclusive: "inclusive",
-} as const;
-
-export type TimeIntervalBoundOneOf1KindEnum =
-  (typeof TimeIntervalBoundOneOf1KindEnum)[keyof typeof TimeIntervalBoundOneOf1KindEnum];
-
-/**
- *
- * @export
- * @interface TimeIntervalBoundOneOf2
- */
-export interface TimeIntervalBoundOneOf2 {
-  /**
-   *
-   * @type {string}
-   * @memberof TimeIntervalBoundOneOf2
-   */
-  kind: TimeIntervalBoundOneOf2KindEnum;
-  /**
-   *
-   * @type {string}
-   * @memberof TimeIntervalBoundOneOf2
-   */
-  limit: string;
-}
-
-export const TimeIntervalBoundOneOf2KindEnum = {
-  Exclusive: "exclusive",
-} as const;
-
-export type TimeIntervalBoundOneOf2KindEnum =
-  (typeof TimeIntervalBoundOneOf2KindEnum)[keyof typeof TimeIntervalBoundOneOf2KindEnum];
 
 /**
  * @type TimeProjection
@@ -2012,10 +2020,10 @@ export interface TransactionTimeImage {
   axis: TransactionTime;
   /**
    *
-   * @type {TimeIntervalBound}
+   * @type {LimitedTimeIntervalBound}
    * @memberof TransactionTimeImage
    */
-  end: TimeIntervalBound;
+  end: LimitedTimeIntervalBound;
   /**
    *
    * @type {TimeIntervalBound}
@@ -2088,10 +2096,10 @@ export interface UnresolvedDecisionTimeImage {
   axis: DecisionTime;
   /**
    *
-   * @type {TimeIntervalBound}
+   * @type {LimitedTimeIntervalBound}
    * @memberof UnresolvedDecisionTimeImage
    */
-  end: TimeIntervalBound | null;
+  end: LimitedTimeIntervalBound | null;
   /**
    *
    * @type {TimeIntervalBound}
@@ -2107,10 +2115,10 @@ export interface UnresolvedDecisionTimeImage {
 export interface UnresolvedDecisionTimeImageAllOf {
   /**
    *
-   * @type {TimeIntervalBound}
+   * @type {LimitedTimeIntervalBound}
    * @memberof UnresolvedDecisionTimeImageAllOf
    */
-  end: TimeIntervalBound | null;
+  end: LimitedTimeIntervalBound | null;
   /**
    *
    * @type {TimeIntervalBound}
@@ -2178,10 +2186,10 @@ export interface UnresolvedTransactionTimeImage {
   axis: TransactionTime;
   /**
    *
-   * @type {TimeIntervalBound}
+   * @type {LimitedTimeIntervalBound}
    * @memberof UnresolvedTransactionTimeImage
    */
-  end: TimeIntervalBound | null;
+  end: LimitedTimeIntervalBound | null;
   /**
    *
    * @type {TimeIntervalBound}

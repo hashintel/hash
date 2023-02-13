@@ -81,10 +81,7 @@ pub fn bench_get_entities_by_property(
                 graph_resolve_depths,
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                     pinned: UnresolvedKernel::new(None),
-                    variable: UnresolvedImage::new(
-                        Some(TimeIntervalBound::Unbounded),
-                        Some(TimeIntervalBound::Unbounded),
-                    ),
+                    variable: UnresolvedImage::new(Some(TimeIntervalBound::Unbounded), None),
                 }),
             })
             .await
@@ -121,10 +118,7 @@ pub fn bench_get_link_by_target_by_property(
                 graph_resolve_depths,
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                     pinned: UnresolvedKernel::new(None),
-                    variable: UnresolvedImage::new(
-                        Some(TimeIntervalBound::Unbounded),
-                        Some(TimeIntervalBound::Unbounded),
-                    ),
+                    variable: UnresolvedImage::new(Some(TimeIntervalBound::Unbounded), None),
                 }),
             })
             .await

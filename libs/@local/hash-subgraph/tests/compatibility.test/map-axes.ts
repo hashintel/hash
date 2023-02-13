@@ -31,7 +31,7 @@ export const mapUnresolvedTimeProjection = (
               limit: image.start.limit as Timestamp,
             },
       end:
-        image.end === null || image.end.kind === "unbounded"
+        image.end === null
           ? null
           : {
               kind: image.end.kind,
@@ -78,17 +78,10 @@ export const mapTimeProjection = (
               kind: image.start.kind,
               limit: image.start.limit as Timestamp,
             },
-      end:
-        image.end.kind === "unbounded"
-          ? {
-              kind: "inclusive",
-              /** @todo-0.3 - This is incorrect, the Graph API shouldn't allow unbounded resolved intervals */
-              limit: new Date("3000-01-01").toISOString() as Timestamp,
-            }
-          : {
-              kind: image.end.kind,
-              limit: image.end.limit as Timestamp,
-            },
+      end: {
+        kind: image.end.kind,
+        limit: image.end.limit as Timestamp,
+      },
     };
   };
   return timeProjection.pinned.axis === "transaction"

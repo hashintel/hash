@@ -42,7 +42,7 @@ impl<C: AsClient> PostgresStore<C> {
             let dependency_status = dependency_context.ontology_dependency_map.update(
                 entity_type_id,
                 current_resolve_depths,
-                time_projection.image(),
+                time_projection.image().convert(),
             );
 
             let entity_type = match dependency_status {
@@ -50,7 +50,7 @@ impl<C: AsClient> PostgresStore<C> {
                     // The dependency may have to be resolved more than anticipated, so we update
                     // the resolve depth and time projection.
                     current_resolve_depths = depths;
-                    time_projection.set_image(interval);
+                    time_projection.set_image(interval.convert());
                     subgraph
                         .get_or_read::<EntityTypeWithMetadata>(
                             self,

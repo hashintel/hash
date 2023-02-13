@@ -71,6 +71,7 @@ impl<A> IntervalBound<Timestamp<A>> for TimeIntervalBound<A> {
 #[derive(Derivative, Serialize, Deserialize, ToSchema)]
 #[derivative(
     Debug(bound = ""),
+    Copy(bound = ""),
     Clone(bound = ""),
     PartialEq(bound = ""),
     Eq(bound = ""),

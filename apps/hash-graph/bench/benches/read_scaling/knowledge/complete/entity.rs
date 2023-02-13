@@ -165,10 +165,7 @@ pub fn bench_get_entity_by_id(
                     graph_resolve_depths,
                     time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                         pinned: UnresolvedKernel::new(None),
-                        variable: UnresolvedImage::new(
-                            Some(TimeIntervalBound::Unbounded),
-                            Some(TimeIntervalBound::Unbounded),
-                        ),
+                        variable: UnresolvedImage::new(Some(TimeIntervalBound::Unbounded), None),
                     }),
                 })
                 .await

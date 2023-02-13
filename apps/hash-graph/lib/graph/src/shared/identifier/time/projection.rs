@@ -4,8 +4,8 @@ use utoipa::{openapi, ToSchema};
 use crate::{
     identifier::time::{
         axis::TemporalTagged, bound::TimeIntervalBound, DecisionTime, IncludedTimeIntervalBound,
-        ProjectedTime, TimeAxis, Timestamp, TransactionTime, UnboundedOrExcludedTimeIntervalBound,
-        UnresolvedTimeInterval,
+        LimitedTimeIntervalBound, ProjectedTime, TimeAxis, Timestamp, TransactionTime,
+        UnboundedOrExcludedTimeIntervalBound, UnresolvedTimeInterval,
     },
     interval::Interval,
 };
@@ -83,7 +83,10 @@ pub struct UnresolvedImage<A> {
 
 impl<A: Default> UnresolvedImage<A> {
     #[must_use]
-    pub fn new(start: Option<TimeIntervalBound<A>>, end: Option<TimeIntervalBound<A>>) -> Self {
+    pub fn new(
+        start: Option<TimeIntervalBound<A>>,
+        end: Option<LimitedTimeIntervalBound<A>>,
+    ) -> Self {
         Self {
             axis: A::default(),
             interval: UnresolvedTimeInterval { start, end },
@@ -164,7 +167,7 @@ impl<K, I> UnresolvedProjection<K, I> {
                         TimeIntervalBound::Inclusive(Timestamp::from_anonymous(now))
                     }),
                     self.variable.interval.end.unwrap_or_else(|| {
-                        TimeIntervalBound::Inclusive(Timestamp::from_anonymous(now))
+                        LimitedTimeIntervalBound::Inclusive(Timestamp::from_anonymous(now))
                     }),
                 ),
             },
@@ -227,10 +230,7 @@ impl Default for UnresolvedTimeProjection {
     fn default() -> Self {
         Self::DecisionTime(UnresolvedProjection {
             pinned: UnresolvedKernel::new(None),
-            variable: UnresolvedImage::new(
-                Some(TimeIntervalBound::Unbounded),
-                Some(TimeIntervalBound::Unbounded),
-            ),
+            variable: UnresolvedImage::new(Some(TimeIntervalBound::Unbounded), None),
         })
     }
 }
@@ -327,7 +327,7 @@ impl ToSchema<'_> for Kernel<TransactionTime> {
 pub struct Image<A> {
     pub axis: A,
     #[serde(flatten)]
-    pub interval: Interval<Timestamp<A>, TimeIntervalBound<A>, TimeIntervalBound<A>>,
+    pub interval: Interval<Timestamp<A>, TimeIntervalBound<A>, LimitedTimeIntervalBound<A>>,
 }
 
 pub type DecisionTimeImage = Image<DecisionTime>;
@@ -350,7 +350,7 @@ impl ToSchema<'_> for Image<DecisionTime> {
                         Interval::<
                             Timestamp<DecisionTime>,
                             TimeIntervalBound<DecisionTime>,
-                            TimeIntervalBound<DecisionTime>,
+                            LimitedTimeIntervalBound<DecisionTime>,
                         >::schema()
                         .1,
                     )
@@ -381,7 +381,7 @@ impl ToSchema<'_> for Image<TransactionTime> {
                         Interval::<
                             Timestamp<TransactionTime>,
                             TimeIntervalBound<TransactionTime>,
-                            TimeIntervalBound<TransactionTime>,
+                            LimitedTimeIntervalBound<TransactionTime>,
                         >::schema()
                         .1,
                     )
@@ -404,23 +404,18 @@ impl<K, I> Projection<K, I> {
     ///
     /// If the two intervals do not overlap, [`None`] is returned.
     pub fn intersect_image(
-        self,
+        mut self,
         interval: Interval<
             Timestamp<I>,
             IncludedTimeIntervalBound<I>,
             UnboundedOrExcludedTimeIntervalBound<I>,
         >,
     ) -> Option<Self> {
-        self.variable
-            .interval
-            .intersect(interval.convert())
-            .map(|interval| Self {
-                pinned: self.pinned,
-                variable: Image {
-                    axis: self.variable.axis,
-                    interval,
-                },
-            })
+        let variable_interval: Interval<Timestamp<I>, TimeIntervalBound<I>, TimeIntervalBound<I>> =
+            self.variable.interval.convert();
+        let intersection = variable_interval.intersect(interval.convert())?;
+        self.variable.interval = intersection.convert();
+        Some(self)
     }
 }
 
@@ -519,7 +514,7 @@ impl TimeProjection {
     ) -> Interval<
         Timestamp<ProjectedTime>,
         TimeIntervalBound<ProjectedTime>,
-        TimeIntervalBound<ProjectedTime>,
+        LimitedTimeIntervalBound<ProjectedTime>,
     > {
         match self {
             Self::DecisionTime(projection) => projection.variable.interval.cast(),
@@ -553,7 +548,7 @@ impl TimeProjection {
         interval: Interval<
             Timestamp<ProjectedTime>,
             TimeIntervalBound<ProjectedTime>,
-            TimeIntervalBound<ProjectedTime>,
+            LimitedTimeIntervalBound<ProjectedTime>,
         >,
     ) {
         match self {

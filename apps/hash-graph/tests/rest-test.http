@@ -56,9 +56,7 @@ Content-Type: application/json
       "start": {
         "bound": "unbounded"
       },
-      "end": {
-        "bound": "unbounded"
-      }
+      "end": null
     }
   }
 }
@@ -148,9 +146,7 @@ Content-Type: application/json
       "start": {
         "bound": "unbounded"
       },
-      "end": {
-        "bound": "unbounded"
-      }
+      "end": null
     }
   }
 }
@@ -260,9 +256,7 @@ Content-Type: application/json
       "start": {
         "bound": "unbounded"
       },
-      "end": {
-        "bound": "unbounded"
-      }
+      "end": null
     }
   }
 }
@@ -354,9 +348,7 @@ Content-Type: application/json
       "start": {
         "bound": "unbounded"
       },
-      "end": {
-        "bound": "unbounded"
-      }
+      "end": null
     }
   }
 }
@@ -452,9 +444,7 @@ Content-Type: application/json
       "start": {
         "bound": "unbounded"
       },
-      "end": {
-        "bound": "unbounded"
-      }
+      "end": null
     }
   }
 }
@@ -543,9 +533,7 @@ Content-Type: application/json
       "start": {
         "bound": "unbounded"
       },
-      "end": {
-        "bound": "unbounded"
-      }
+      "end": null
     }
   }
 }
@@ -651,9 +639,7 @@ Content-Type: application/json
       "start": {
         "bound": "unbounded"
       },
-      "end": {
-        "bound": "unbounded"
-      }
+      "end": null
     }
   }
 }
@@ -722,9 +708,7 @@ Content-Type: application/json
       "start": {
         "bound": "unbounded"
       },
-      "end": {
-        "bound": "unbounded"
-      }
+      "end": null
     }
   }
 }
@@ -797,9 +781,7 @@ Content-Type: application/json
       "start": {
         "bound": "unbounded"
       },
-      "end": {
-        "bound": "unbounded"
-      }
+      "end": null
     }
   }
 }
@@ -1114,7 +1096,7 @@ Content-Type: application/json
     "image": {
       "axis": "decision",
       "start": { "bound": "unbounded" },
-      "end": { "bound": "unbounded" }
+      "end": null
     }
   }
 }
@@ -1269,9 +1251,7 @@ Content-Type: application/json
       "start": {
         "bound": "unbounded"
       },
-      "end": {
-        "bound": "unbounded"
-      }
+      "end": null
     }
   }
 }

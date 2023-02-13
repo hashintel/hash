@@ -80,7 +80,7 @@ impl<C: AsClient> PostgresStore<C> {
             let dependency_status = dependency_context.knowledge_dependency_map.update(
                 &entity_vertex_id,
                 current_resolve_depths,
-                intersected_time_projection.image(),
+                intersected_time_projection.image().convert(),
             );
 
             match dependency_status {
@@ -95,7 +95,7 @@ impl<C: AsClient> PostgresStore<C> {
                     // It may also return a different time interval than the one requested, so
                     // we update the `intersected_time_projection`'s time interval to the returned
                     // value.
-                    intersected_time_projection.set_image(interval);
+                    intersected_time_projection.set_image(interval.convert());
                 }
                 DependencyStatus::Resolved => return Ok(()),
             };

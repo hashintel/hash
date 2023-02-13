@@ -46,8 +46,8 @@ use crate::{
         ontology::OntologyTypeEditionId,
         time::{
             DecisionTime, DecisionTimeImage, DecisionTimeKernel, DecisionTimeProjection,
-            IncludedTimeIntervalBound, TimeIntervalBound, TimeProjection, Timestamp,
-            TransactionTime, TransactionTimeImage, TransactionTimeKernel,
+            IncludedTimeIntervalBound, LimitedTimeIntervalBound, TimeIntervalBound, TimeProjection,
+            Timestamp, TransactionTime, TransactionTimeImage, TransactionTimeKernel,
             TransactionTimeProjection, UnboundedOrExcludedTimeIntervalBound,
             UnresolvedDecisionTimeImage, UnresolvedDecisionTimeKernel,
             UnresolvedDecisionTimeProjection, UnresolvedTimeProjection,
@@ -500,6 +500,10 @@ impl Modify for TimeSchemaAddon {
             components.schemas.insert(
                 TimeIntervalBound::<()>::schema().0.to_owned(),
                 TimeIntervalBound::<()>::schema().1,
+            );
+            components.schemas.insert(
+                LimitedTimeIntervalBound::<()>::schema().0.to_owned(),
+                LimitedTimeIntervalBound::<()>::schema().1,
             );
         }
     }
