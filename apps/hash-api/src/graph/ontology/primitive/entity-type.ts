@@ -12,8 +12,7 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
-import { mapOntologyMetadata } from "@local/hash-subgraph/temp/map-vertices";
+import { mapOntologyMetadata, mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { NotFoundError } from "../../../lib/error";
 import {

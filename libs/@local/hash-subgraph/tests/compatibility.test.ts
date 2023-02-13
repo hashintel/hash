@@ -12,7 +12,7 @@ import { Subgraph as SubgraphGraphApi } from "@local/hash-graph-client";
 import {
   mapTimeProjection,
   mapUnresolvedTimeProjection,
-} from "@local/hash-subgraph/temp/map-axes";
+} from "@local/hash-subgraph/temp";
 
 import { Subgraph } from "../src/main";
 import { mapEdges } from "./compatibility.test/map-edges";

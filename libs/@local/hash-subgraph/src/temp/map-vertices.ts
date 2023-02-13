@@ -89,7 +89,6 @@ const mapEntityType = (entityType: EntityTypeGraphApi): EntityType => {
 export const mapOntologyMetadata = (
   metadata: OntologyElementMetadataGraphApi,
 ): OntologyElementMetadata => {
-  /* @ts-expect-error -- @todo-0.3 `ownedById` shouldn't be required in the BP ontology metadata */
   return {
     ...metadata,
     recordId: {
@@ -99,6 +98,11 @@ export const mapOntologyMetadata = (
     provenance: {
       updatedById: metadata.provenance.updatedById as UpdatedById,
     },
+    ...("fetchedAt" in metadata
+      ? { fetchedAt: metadata.fetchedAt as Timestamp }
+      : ({} as {
+          fetchedAt: Timestamp;
+        })),
   };
 };
 

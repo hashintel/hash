@@ -7,7 +7,7 @@ import {
   LinkData,
   OwnedById,
 } from "@local/hash-subgraph";
-import { mapEntityMetadata } from "@local/hash-subgraph/temp/map-vertices";
+import { mapEntityMetadata } from "@local/hash-subgraph/temp";
 
 import { ImpureGraphFunction } from "../..";
 import { isEntityTypeLinkEntityType } from "../../ontology/primitive/entity-type";

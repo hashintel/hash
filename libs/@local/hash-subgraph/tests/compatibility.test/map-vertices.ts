@@ -28,7 +28,7 @@ import {
   Timestamp,
   UpdatedById,
   Vertices,
-} from "@local/hash-subgraph/main";
+} from "@local/hash-subgraph";
 
 const mapDataType = (dataType: DataTypeGraphApi): DataType => {
   const idResult = validateVersionedUri(dataType.$id);
@@ -80,7 +80,6 @@ const mapEntityType = (entityType: EntityTypeGraphApi): EntityType => {
 const mapOntologyMetadata = (
   metadata: OntologyElementMetadataGraphApi,
 ): OntologyElementMetadata => {
-  /* @ts-expect-error -- @todo-0.3 `ownedById` shouldn't be required in the BP ontology metadata */
   return {
     ...metadata,
     recordId: {
@@ -90,6 +89,11 @@ const mapOntologyMetadata = (
     provenance: {
       updatedById: metadata.provenance.updatedById as UpdatedById,
     },
+    ...("fetchedAt" in metadata
+      ? { fetchedAt: metadata.fetchedAt as Timestamp }
+      : ({} as {
+          fetchedAt: Timestamp;
+        })),
   };
 };
 

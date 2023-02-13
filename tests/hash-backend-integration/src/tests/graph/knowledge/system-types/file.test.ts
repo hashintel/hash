@@ -11,7 +11,7 @@ import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
 import { StorageType } from "@apps/hash-api/src/storage";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { OwnedById } from "@local/hash-subgraph/main";
+import { OwnedById } from "@local/hash-subgraph";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

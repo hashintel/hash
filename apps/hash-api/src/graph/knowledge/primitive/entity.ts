@@ -1,4 +1,4 @@
-import { BaseUri, VersionedUri } from "@blockprotocol/type-system";
+import { VersionedUri } from "@blockprotocol/type-system";
 import {
   Filter,
   GraphResolveDepths,
@@ -6,6 +6,7 @@ import {
 } from "@local/hash-graph-client";
 import {
   AccountId,
+  BaseUri,
   Entity,
   EntityId,
   EntityPropertiesObject,
@@ -19,8 +20,7 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
-import { mapEntityMetadata } from "@local/hash-subgraph/temp/map-vertices";
+import { mapEntityMetadata, mapSubgraph } from "@local/hash-subgraph/temp";
 import { ApolloError } from "apollo-server-errors";
 
 import {

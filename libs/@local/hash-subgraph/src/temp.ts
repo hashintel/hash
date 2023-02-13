@@ -5,15 +5,20 @@
  */
 
 import { Subgraph as SubgraphGraphApi } from "@local/hash-graph-client";
+
 import {
   mapTimeProjection,
   mapUnresolvedTimeProjection,
-} from "@local/hash-subgraph/temp/map-axes";
-
+} from "./temp/map-axes";
 import { mapEdges } from "./temp/map-edges";
 import { mapRoots } from "./temp/map-roots";
 import { mapVertices } from "./temp/map-vertices";
 import { Subgraph } from "./types";
+
+export * from "./temp/map-axes";
+export * from "./temp/map-edges";
+export * from "./temp/map-roots";
+export * from "./temp/map-vertices";
 
 export const mapSubgraph = (subgraphGraphApi: SubgraphGraphApi) => {
   const mappedSubgraph: Subgraph = {

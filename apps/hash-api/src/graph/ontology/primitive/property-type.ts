@@ -9,10 +9,9 @@ import {
   PropertyTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
-import { versionedUriFromComponents } from "@local/hash-subgraph/shared/type-system-patch";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
-import { mapOntologyMetadata } from "@local/hash-subgraph/temp/map-vertices";
+import { mapOntologyMetadata, mapSubgraph } from "@local/hash-subgraph/temp";
+import { versionedUriFromComponents } from "@local/hash-subgraph/type-system-patch";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";

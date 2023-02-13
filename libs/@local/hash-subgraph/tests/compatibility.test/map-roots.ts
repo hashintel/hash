@@ -6,7 +6,7 @@ import {
   isOntologyTypeVertexId,
   OntologyTypeRevisionId,
   Subgraph,
-} from "@local/hash-subgraph/main";
+} from "@local/hash-subgraph";
 
 export const mapRoots = (
   roots: SubgraphGraphApi["roots"],

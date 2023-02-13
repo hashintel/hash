@@ -10,7 +10,7 @@ import {
   QueryTemporalAxes,
   QueryTemporalAxesUnresolved,
   Timestamp,
-} from "@local/hash-subgraph/main";
+} from "@local/hash-subgraph";
 
 export const mapUnresolvedTimeProjection = (
   timeProjection: UnresolvedTimeProjection,

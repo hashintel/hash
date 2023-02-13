@@ -29,7 +29,7 @@ import {
   OwnedById,
   PropertyTypeWithMetadata,
   Subgraph,
-} from "@local/hash-subgraph/main";
+} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { mapSubgraph } from "@local/hash-subgraph/temp";
 

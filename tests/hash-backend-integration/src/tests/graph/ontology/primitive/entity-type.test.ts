@@ -19,7 +19,7 @@ import {
   linkEntityTypeUri,
   OwnedById,
   PropertyTypeWithMetadata,
-} from "@local/hash-subgraph/main";
+} from "@local/hash-subgraph";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 

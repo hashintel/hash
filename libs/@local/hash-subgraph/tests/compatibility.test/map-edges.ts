@@ -14,7 +14,7 @@ import {
   OntologyTypeRevisionId,
   OutwardEdge,
   Timestamp,
-} from "@local/hash-subgraph/main";
+} from "@local/hash-subgraph";
 
 export const mapOutwardEdge = (
   outwardEdge:
