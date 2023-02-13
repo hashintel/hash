@@ -332,7 +332,7 @@ export interface DataTypeWithMetadata {
  */
 
 export const DecisionTime = {
-  Decision: "decision",
+  DecisionTime: "decisionTime",
 } as const;
 
 export type DecisionTime = (typeof DecisionTime)[keyof typeof DecisionTime];
@@ -2000,7 +2000,7 @@ export type TimeProjection = DecisionTimeProjection | TransactionTimeProjection;
  */
 
 export const TransactionTime = {
-  Transaction: "transaction",
+  TransactionTime: "transactionTime",
 } as const;
 
 export type TransactionTime =

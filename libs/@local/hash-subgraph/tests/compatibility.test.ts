@@ -56,11 +56,11 @@ test("Graph API subgraph type is compatible with library type", () => {
     temporalAxes: {
       initial: {
         pinned: {
-          axis: "transaction",
+          axis: "transactionTime",
           timestamp: null,
         },
         variable: {
-          axis: "decision",
+          axis: "decisionTime",
           start: {
             kind: "unbounded",
           },
@@ -69,11 +69,11 @@ test("Graph API subgraph type is compatible with library type", () => {
       },
       resolved: {
         pinned: {
-          axis: "transaction",
+          axis: "transactionTime",
           timestamp: "2022-01-01T0:0:0",
         },
         variable: {
-          axis: "decision",
+          axis: "decisionTime",
           start: {
             kind: "unbounded",
           },

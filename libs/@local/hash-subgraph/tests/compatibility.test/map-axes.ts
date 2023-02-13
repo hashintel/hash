@@ -39,7 +39,7 @@ export const mapUnresolvedTimeProjection = (
             },
     };
   };
-  return timeProjection.pinned.axis === "transaction"
+  return timeProjection.pinned.axis === "transactionTime"
     ? {
         pinned: {
           axis: "transactionTime",
@@ -84,7 +84,7 @@ export const mapTimeProjection = (
       },
     };
   };
-  return timeProjection.pinned.axis === "transaction"
+  return timeProjection.pinned.axis === "transactionTime"
     ? {
         pinned: {
           axis: "transactionTime",
