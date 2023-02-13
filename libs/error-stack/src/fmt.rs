@@ -169,7 +169,7 @@ pub use color::ColorMode;
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub use hook::HookContext;
 #[cfg(any(feature = "std", feature = "hooks"))]
-pub(crate) use hook::{install_builtin_hooks, Format, Hooks};
+pub(crate) use hook::{install_builtin_debug_hooks, FmtHooks, Format};
 #[cfg(not(any(feature = "std", feature = "hooks")))]
 use location::LocationDisplay;
 
@@ -675,7 +675,7 @@ impl Opaque {
     }
 }
 
-fn debug_attachments_invoke<'a>(
+pub(crate) fn debug_attachments_invoke<'a>(
     frames: impl IntoIterator<Item = &'a Frame>,
     config: &mut Config,
 ) -> (Opaque, Vec<String>) {

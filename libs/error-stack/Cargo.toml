@@ -74,8 +74,3 @@ required-features = ["std"]
 [[example]]
 name = "detect"
 required-features = ['std']
-
-
-[[test]]
-name = "common"
-test = false
