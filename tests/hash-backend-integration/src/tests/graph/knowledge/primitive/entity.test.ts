@@ -85,6 +85,7 @@ describe("Entity CRU", () => {
           type: "object",
           properties: {},
           allOf: [{ $ref: linkEntityTypeUri }],
+          additionalProperties: false,
         },
         actorId: testUser.accountId,
       })

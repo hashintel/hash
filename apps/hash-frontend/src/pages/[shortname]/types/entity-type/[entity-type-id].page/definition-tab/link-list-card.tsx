@@ -1,4 +1,5 @@
 import { EntityType, VersionedUri } from "@blockprotocol/type-system";
+import { EntityTypeWithoutId } from "@local/hash-graphql-shared/graphql/types";
 import {
   EntityTypeWithMetadata,
   linkEntityTypeUri,
@@ -48,7 +49,7 @@ import {
 import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { useStateCallback } from "./shared/use-state-callback";
 
-const formDataToEntityType = (data: TypeFormDefaults) => ({
+const formDataToEntityType = (data: TypeFormDefaults): EntityTypeWithoutId => ({
   type: "object" as const,
   kind: "entityType" as const,
   title: data.name,
@@ -59,6 +60,7 @@ const formDataToEntityType = (data: TypeFormDefaults) => ({
     },
   ],
   properties: {},
+  additionalProperties: false,
 });
 
 export const LinkTypeForm = (props: TypeFormProps) => {

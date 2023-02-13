@@ -104,12 +104,13 @@ const Page: NextPageWithLayout = () => {
   const handleFormSubmit = handleSubmit(async ({ name, description }) => {
     const baseUri = generateEntityTypeBaseUriForUser(name);
     const entityType: EntityType = {
+      $id: generateInitialEntityTypeId(baseUri),
       title: name,
       description,
       kind: "entityType",
       type: "object",
       properties: {},
-      $id: generateInitialEntityTypeId(baseUri),
+      additionalProperties: false,
     };
 
     const nextUrl = `${baseUri}?draft=${encodeURIComponent(

@@ -295,6 +295,7 @@ export const generateSystemEntityTypeSchema = (
     properties,
     required: requiredProperties,
     links,
+    additionalProperties: false,
   };
 };
 
