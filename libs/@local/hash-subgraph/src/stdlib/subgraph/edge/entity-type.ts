@@ -1,3 +1,4 @@
+import { Subgraph as SubgraphBp } from "@blockprotocol/graph";
 import { getPropertyTypesReferencedByEntityType as getPropertyTypesReferencedByEntityTypeBp } from "@blockprotocol/graph/stdlib";
 import { VersionedUri } from "@blockprotocol/type-system/slim";
 
@@ -16,6 +17,6 @@ export const getPropertyTypesReferencedByEntityType = (
   entityTypeId: OntologyTypeVertexId | VersionedUri,
 ): OntologyTypeVertexId[] =>
   getPropertyTypesReferencedByEntityTypeBp(
-    subgraph,
+    subgraph as unknown as SubgraphBp<true>,
     entityTypeId,
   ) as OntologyTypeVertexId[];

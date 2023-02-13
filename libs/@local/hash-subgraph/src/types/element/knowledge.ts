@@ -10,11 +10,12 @@ import {
   type LinkEntityAndRightEntity as LinkEntityAndRightEntityBp,
   isEntityRecordId as isEntityRecordIdBp,
 } from "@blockprotocol/graph";
-import { BaseUri, VersionedUri } from "@blockprotocol/type-system/slim";
+import { VersionedUri } from "@blockprotocol/type-system/slim";
 import { Brand } from "@local/advanced-types/brand";
 import { Subtype } from "@local/advanced-types/subtype";
 
 import {
+  BaseUri,
   EntityId,
   ExclusiveLimitedTemporalBound,
   InclusiveLimitedTemporalBound,

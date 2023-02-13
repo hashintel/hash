@@ -1,9 +1,10 @@
 import {
-  BaseUri,
   ParseVersionedUriError,
   validateVersionedUri,
   VersionedUri,
 } from "@blockprotocol/type-system";
+
+import { BaseUri } from "../types";
 
 export class InvalidVersionedUriComponentsError extends Error {
   components: { baseUri: BaseUri; version: number };

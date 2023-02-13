@@ -1,12 +1,14 @@
+import { type Subgraph as SubgraphBp } from "@blockprotocol/graph";
 import {
   getEntityTypeById as getEntityTypeByIdBp,
   getEntityTypeByVertexId as getEntityTypeByVertexIdBp,
   getEntityTypes as getEntityTypesBp,
   getEntityTypesByBaseUri as getEntityTypesByBaseUriBp,
 } from "@blockprotocol/graph/stdlib";
-import { BaseUri, VersionedUri } from "@blockprotocol/type-system/slim";
+import { VersionedUri } from "@blockprotocol/type-system/slim";
 
 import {
+  BaseUri,
   EntityTypeWithMetadata,
   OntologyTypeVertexId,
   Subgraph,
@@ -18,7 +20,9 @@ import {
  * @param subgraph
  */
 export const getEntityTypes = (subgraph: Subgraph): EntityTypeWithMetadata[] =>
-  getEntityTypesBp(subgraph) as EntityTypeWithMetadata[];
+  getEntityTypesBp(
+    subgraph as unknown as SubgraphBp<true>,
+  ) as EntityTypeWithMetadata[];
 
 /**
  * Gets an `EntityTypeWithMetadata` by its `VersionedUri` from within the vertices of the subgraph. Returns `undefined`
@@ -32,7 +36,7 @@ export const getEntityTypeById = (
   subgraph: Subgraph,
   entityTypeId: VersionedUri,
 ): EntityTypeWithMetadata | undefined =>
-  getEntityTypeByIdBp(subgraph, entityTypeId) as
+  getEntityTypeByIdBp(subgraph as unknown as SubgraphBp<true>, entityTypeId) as
     | EntityTypeWithMetadata
     | undefined;
 
@@ -48,9 +52,10 @@ export const getEntityTypeByVertexId = (
   subgraph: Subgraph,
   vertexId: OntologyTypeVertexId,
 ): EntityTypeWithMetadata | undefined =>
-  getEntityTypeByVertexIdBp(subgraph, vertexId) as
-    | EntityTypeWithMetadata
-    | undefined;
+  getEntityTypeByVertexIdBp(
+    subgraph as unknown as SubgraphBp<true>,
+    vertexId,
+  ) as EntityTypeWithMetadata | undefined;
 
 /**
  * Returns all `EntityTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUri`
@@ -62,4 +67,7 @@ export const getEntityTypesByBaseUri = (
   subgraph: Subgraph,
   baseUri: BaseUri,
 ): EntityTypeWithMetadata[] =>
-  getEntityTypesByBaseUriBp(subgraph, baseUri) as EntityTypeWithMetadata[];
+  getEntityTypesByBaseUriBp(
+    subgraph as unknown as SubgraphBp<true>,
+    baseUri,
+  ) as EntityTypeWithMetadata[];

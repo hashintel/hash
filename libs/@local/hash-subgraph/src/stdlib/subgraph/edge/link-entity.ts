@@ -1,3 +1,4 @@
+import { Subgraph as SubgraphBp } from "@blockprotocol/graph";
 import {
   getIncomingLinksForEntity as getIncomingLinksForEntityBp,
   getLeftEntityForLinkEntity as getLeftEntityForLinkEntityBp,
@@ -34,7 +35,11 @@ export const getOutgoingLinksForEntity = (
   entityId: EntityId,
   interval?: TimeInterval,
 ): Entity[] =>
-  getOutgoingLinksForEntityBp(subgraph, entityId, interval) as Entity[];
+  getOutgoingLinksForEntityBp(
+    subgraph as unknown as SubgraphBp<true>,
+    entityId,
+    interval,
+  ) as Entity[];
 
 /**
  * Get all incoming link entities from a given {@link Entity}.
@@ -55,7 +60,11 @@ export const getIncomingLinksForEntity = (
   entityId: EntityId,
   interval?: TimeInterval,
 ): Entity[] =>
-  getIncomingLinksForEntityBp(subgraph, entityId, interval) as Entity[];
+  getIncomingLinksForEntityBp(
+    subgraph as unknown as SubgraphBp<true>,
+    entityId,
+    interval,
+  ) as Entity[];
 
 /**
  * Get the "left entity" revisions (by default this is the "source") of a given link entity.
@@ -76,9 +85,11 @@ export const getLeftEntityForLinkEntity = (
   entityId: EntityId,
   interval?: TimeInterval,
 ): Entity[] | undefined =>
-  getLeftEntityForLinkEntityBp(subgraph, entityId, interval) as
-    | Entity[]
-    | undefined;
+  getLeftEntityForLinkEntityBp(
+    subgraph as unknown as SubgraphBp<true>,
+    entityId,
+    interval,
+  ) as Entity[] | undefined;
 
 /**
  * Get the "right entity" revisions (by default this is the "target") of a given link entity.
@@ -99,9 +110,11 @@ export const getRightEntityForLinkEntity = (
   entityId: EntityId,
   interval?: TimeInterval,
 ): Entity[] | undefined =>
-  getRightEntityForLinkEntityBp(subgraph, entityId, interval) as
-    | Entity[]
-    | undefined;
+  getRightEntityForLinkEntityBp(
+    subgraph as unknown as SubgraphBp<true>,
+    entityId,
+    interval,
+  ) as Entity[] | undefined;
 
 /**
  * For a given moment in time, get all outgoing link {@link Entity} revisions, and their "target" {@link Entity}
@@ -120,4 +133,8 @@ export const getOutgoingLinkAndTargetEntities = <
   entityId: EntityId,
   timestamp?: Date | Timestamp,
 ): LinkAndRightEntities =>
-  getOutgoingLinkAndTargetEntitiesBp(subgraph, entityId, timestamp);
+  getOutgoingLinkAndTargetEntitiesBp(
+    subgraph as unknown as SubgraphBp<true>,
+    entityId,
+    timestamp,
+  );

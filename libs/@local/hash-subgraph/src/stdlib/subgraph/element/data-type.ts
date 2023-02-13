@@ -1,12 +1,14 @@
+import { type Subgraph as SubgraphBp } from "@blockprotocol/graph";
 import {
   getDataTypeById as getDataTypeByIdBp,
   getDataTypeByVertexId as getDataTypeByVertexIdBp,
   getDataTypes as getDataTypesBp,
   getDataTypesByBaseUri as getDataTypesByBaseUriBp,
 } from "@blockprotocol/graph/stdlib";
-import { BaseUri, VersionedUri } from "@blockprotocol/type-system/slim";
+import { VersionedUri } from "@blockprotocol/type-system/slim";
 
 import {
+  BaseUri,
   DataTypeWithMetadata,
   OntologyTypeVertexId,
   Subgraph,
@@ -18,7 +20,9 @@ import {
  * @param subgraph
  */
 export const getDataTypes = (subgraph: Subgraph): DataTypeWithMetadata[] =>
-  getDataTypesBp(subgraph) as DataTypeWithMetadata[];
+  getDataTypesBp(
+    subgraph as unknown as SubgraphBp<true>,
+  ) as DataTypeWithMetadata[];
 
 /**
  * Gets a `DataTypeWithMetadata` by its `VersionedUri` from within the vertices of the subgraph. Returns `undefined` if
@@ -32,7 +36,9 @@ export const getDataTypeById = (
   subgraph: Subgraph,
   dataTypeId: VersionedUri,
 ): DataTypeWithMetadata | undefined =>
-  getDataTypeByIdBp(subgraph, dataTypeId) as DataTypeWithMetadata | undefined;
+  getDataTypeByIdBp(subgraph as unknown as SubgraphBp<true>, dataTypeId) as
+    | DataTypeWithMetadata
+    | undefined;
 
 /**
  * Gets a `DataTypeWithMetadata` by its `OntologyTypeVertexId` from within the vertices of the subgraph. Returns
@@ -46,7 +52,7 @@ export const getDataTypeByVertexId = (
   subgraph: Subgraph,
   vertexId: OntologyTypeVertexId,
 ): DataTypeWithMetadata | undefined =>
-  getDataTypeByVertexIdBp(subgraph, vertexId) as
+  getDataTypeByVertexIdBp(subgraph as unknown as SubgraphBp<true>, vertexId) as
     | DataTypeWithMetadata
     | undefined;
 
@@ -60,4 +66,7 @@ export const getDataTypesByBaseUri = (
   subgraph: Subgraph,
   baseUri: BaseUri,
 ): DataTypeWithMetadata[] =>
-  getDataTypesByBaseUriBp(subgraph, baseUri) as DataTypeWithMetadata[];
+  getDataTypesByBaseUriBp(
+    subgraph as unknown as SubgraphBp<true>,
+    baseUri,
+  ) as DataTypeWithMetadata[];

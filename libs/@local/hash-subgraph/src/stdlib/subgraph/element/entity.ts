@@ -1,3 +1,4 @@
+import { Subgraph as SubgraphBp } from "@blockprotocol/graph";
 import {
   getEntities as getEntitiesBp,
   getEntityRevision as getEntityRevisionBp,
@@ -23,7 +24,8 @@ import {
 export const getEntities = (
   subgraph: Subgraph,
   latest: boolean = false,
-): Entity[] => getEntitiesBp(subgraph, latest) as Entity[];
+): Entity[] =>
+  getEntitiesBp(subgraph as unknown as SubgraphBp<true>, latest) as Entity[];
 
 /**
  * Gets an {@link Entity} by its {@link EntityId} from within the vertices of the subgraph. If
@@ -43,9 +45,11 @@ export const getEntityRevision = (
   entityId: EntityId,
   targetRevisionInformation?: EntityRevisionId | Timestamp | Date,
 ): Entity | undefined =>
-  getEntityRevisionBp(subgraph, entityId, targetRevisionInformation) as
-    | Entity
-    | undefined;
+  getEntityRevisionBp(
+    subgraph as unknown as SubgraphBp<true>,
+    entityId,
+    targetRevisionInformation,
+  ) as Entity | undefined;
 
 /**
  * Returns all {@link Entity} revisions within the vertices of the subgraph that match a given {@link EntityId}.
@@ -62,4 +66,8 @@ export const getEntityRevisionsByEntityId = (
   entityId: EntityId,
   interval?: TimeInterval,
 ): Entity[] =>
-  getEntityRevisionsByEntityIdBp(subgraph, entityId, interval) as Entity[];
+  getEntityRevisionsByEntityIdBp(
+    subgraph as unknown as SubgraphBp<true>,
+    entityId,
+    interval,
+  ) as Entity[];

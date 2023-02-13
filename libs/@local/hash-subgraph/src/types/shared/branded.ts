@@ -1,5 +1,15 @@
+import {
+  BaseUri as BaseUriBp,
+  validateBaseUri,
+} from "@blockprotocol/type-system/slim";
 import { Brand } from "@local/advanced-types/brand";
 import { validate as validateUuid } from "uuid";
+
+export type BaseUri = Brand<BaseUriBp, "BaseUri">;
+
+export const isBaseUri = (baseUri: string): baseUri is BaseUri => {
+  return validateBaseUri(baseUri).type === "Ok";
+};
 
 /** Valid Uuids of the system */
 export type Uuid = Brand<string, "Uuid">;

@@ -1,5 +1,5 @@
 import { type GraphElementIdentifiers as GraphElementIdentifiersBp } from "@blockprotocol/graph";
-import { BaseUri, VersionedUri } from "@blockprotocol/type-system/slim";
+import { VersionedUri } from "@blockprotocol/type-system/slim";
 import { Subtype } from "@local/advanced-types/subtype";
 
 import {
@@ -10,7 +10,7 @@ import {
   OntologyTypeRecordId,
   PropertyTypeWithMetadata,
 } from "../element";
-import { EntityId } from "../shared";
+import { BaseUri, EntityId } from "../shared";
 import { EntityIdWithInterval, EntityIdWithTimestamp } from "./edges";
 import {
   DataTypeVertex,

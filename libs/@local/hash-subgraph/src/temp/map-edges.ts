@@ -6,6 +6,7 @@ import {
 } from "@local/hash-graph-client";
 
 import {
+  BaseUri,
   Edges,
   EntityId,
   isEntityId,
@@ -31,7 +32,7 @@ export const mapOutwardEdge = (
       return {
         ...outwardEdge,
         rightEndpoint: {
-          baseId: outwardEdge.rightEndpoint.baseId,
+          baseId: outwardEdge.rightEndpoint.baseId as BaseUri,
           revisionId:
             `${outwardEdge.rightEndpoint.version}` as OntologyTypeRevisionId,
         },
@@ -81,7 +82,7 @@ export const mapOutwardEdge = (
             ...outwardEdge,
             reversed: outwardEdge.reversed,
             rightEndpoint: {
-              baseId: outwardEdge.rightEndpoint.baseId,
+              baseId: outwardEdge.rightEndpoint.baseId as BaseUri,
               revisionId:
                 `${outwardEdge.rightEndpoint.version}` as OntologyTypeRevisionId,
             },
@@ -98,7 +99,7 @@ export const mapEdges = (edges: EdgesGraphApi): Edges => {
     const result = validateBaseUri(baseId);
     if (result.type === "Ok") {
       // ------------ Ontology Type case ----------------
-      const baseUri = result.inner;
+      const baseUri = result.inner as BaseUri;
 
       mappedEdges[baseUri] = Object.fromEntries(
         Object.entries(inner).map(([version, outwardEdges]) => {

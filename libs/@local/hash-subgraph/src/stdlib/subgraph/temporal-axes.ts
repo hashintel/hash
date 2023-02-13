@@ -1,3 +1,4 @@
+import { Subgraph as SubgraphBp } from "@blockprotocol/graph";
 import { getLatestInstantIntervalForSubgraph as getLatestInstantIntervalForSubgraphBp } from "@blockprotocol/graph/stdlib";
 
 import { BoundedTimeInterval, Subgraph } from "../../main";
@@ -13,4 +14,6 @@ import { BoundedTimeInterval, Subgraph } from "../../main";
 export const getLatestInstantIntervalForSubgraph = (
   subgraph: Subgraph,
 ): BoundedTimeInterval =>
-  getLatestInstantIntervalForSubgraphBp(subgraph) as BoundedTimeInterval;
+  getLatestInstantIntervalForSubgraphBp(
+    subgraph as unknown as SubgraphBp<true>,
+  ) as BoundedTimeInterval;

@@ -20,7 +20,6 @@ import {
   isOntologyTypeVertexId as isOntologyTypeVertexIdBp,
   isPropertyTypeVertex as isPropertyTypeVertexBp,
 } from "@blockprotocol/graph";
-import { BaseUri } from "@blockprotocol/type-system/slim";
 import { Subtype } from "@local/advanced-types/subtype";
 
 import {
@@ -33,7 +32,7 @@ import {
   OntologyTypeRevisionId,
   PropertyTypeWithMetadata,
 } from "../element";
-import { EntityId } from "../shared";
+import { BaseUri, EntityId } from "../shared";
 
 export type DataTypeVertex = Subtype<
   DataTypeVertexBp,
@@ -129,15 +128,33 @@ export const isEntityVertexId = (
 
 export type OntologyVertices = Subtype<
   OntologyVerticesBp,
-  Record<BaseUri, Record<OntologyTypeRevisionId, OntologyVertex>>
+  {
+    [baseUri: BaseUri]: {
+      [revisionId: OntologyTypeRevisionId]: OntologyVertex;
+    };
+  }
 >;
 
 export type KnowledgeGraphVertices = Subtype<
   KnowledgeGraphVerticesBp<true>,
-  Record<EntityId, Record<EntityRevisionId, KnowledgeGraphVertex>>
+  {
+    [entityId: EntityId]: {
+      [revisionId: EntityRevisionId]: KnowledgeGraphVertex;
+    };
+  }
 >;
 
-export type Vertices = Subtype<
+export type Vertices = OntologyVertices & KnowledgeGraphVertices;
+
+/**
+ * This provides a sanity check that we've almost correctly expressed `Vertices` as a subtype of the Block Protocol one.
+ *
+ * We unfortunately need these two different types because in the Block Protocol we had to use `|` instead of `&` due
+ * to overlapping index types. We _wanted_ to use `&` but it produces unsatisfiable types. However, because we have
+ * branded types here (thus the index types do not overlap) we can do better in HASH and use `&`, although this confuses
+ * TypeScript and it thinks they are incompatible. Thus, the strange check type.
+ */
+export type _CheckVertices = Subtype<
   VerticesBp<true>,
-  OntologyVertices & KnowledgeGraphVertices
+  OntologyVertices | KnowledgeGraphVertices
 >;

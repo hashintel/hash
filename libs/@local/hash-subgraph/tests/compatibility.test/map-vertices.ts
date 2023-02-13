@@ -18,6 +18,7 @@ import {
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
 import {
+  BaseUri,
   EntityId,
   EntityPropertiesObject,
   isEntityId,
@@ -83,7 +84,7 @@ const mapOntologyMetadata = (
   return {
     ...metadata,
     recordId: {
-      baseUri: metadata.editionId.baseId,
+      baseUri: metadata.editionId.baseId as BaseUri,
       version: metadata.editionId.version,
     },
     provenance: {
@@ -195,7 +196,7 @@ export const mapVertices = (vertices: VerticesGraphApi): Vertices => {
     const result = validateBaseUri(baseId);
     if (result.type === "Ok") {
       // ------------ Ontology Type case ----------------
-      const baseUri = result.inner;
+      const baseUri = result.inner as BaseUri;
 
       mappedVertices[baseUri] = Object.fromEntries(
         Object.entries(inner).map(([version, vertex]) => {

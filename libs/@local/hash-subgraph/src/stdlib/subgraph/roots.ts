@@ -1,3 +1,4 @@
+import { Subgraph as SubgraphBp } from "@blockprotocol/graph";
 import {
   getRoots as getRootsBp,
   isDataTypeRootedSubgraph as isDataTypeRootedSubgraphBp,
@@ -28,7 +29,8 @@ import {
  */
 export const getRoots = <RootType extends SubgraphRootType>(
   subgraph: Subgraph<RootType>,
-): RootType["element"][] => getRootsBp(subgraph);
+): RootType["element"][] =>
+  getRootsBp(subgraph as unknown as SubgraphBp<true, RootType>);
 
 /**
  * A type-guard that can be used to constrain the generic parameter of `Subgraph` to `DataTypeWithMetadata`.
@@ -41,7 +43,7 @@ export const getRoots = <RootType extends SubgraphRootType>(
 export const isDataTypeRootedSubgraph = (
   subgraph: Subgraph,
 ): subgraph is Subgraph<DataTypeRootType> =>
-  isDataTypeRootedSubgraphBp(subgraph);
+  isDataTypeRootedSubgraphBp(subgraph as unknown as SubgraphBp<true>);
 
 /**
  * A type-guard that can be used to constrain the generic parameter of `Subgraph` to `PropertyTypeWithMetadata`.
@@ -54,7 +56,7 @@ export const isDataTypeRootedSubgraph = (
 export const isPropertyTypeRootedSubgraph = (
   subgraph: Subgraph,
 ): subgraph is Subgraph<PropertyTypeRootType> =>
-  isPropertyTypeRootedSubgraphBp(subgraph);
+  isPropertyTypeRootedSubgraphBp(subgraph as unknown as SubgraphBp<true>);
 
 /**
  * A type-guard that can be used to constrain the generic parameter of `Subgraph` to `EntityTypeWithMetadata`.
@@ -67,7 +69,7 @@ export const isPropertyTypeRootedSubgraph = (
 export const isEntityTypeRootedSubgraph = (
   subgraph: Subgraph,
 ): subgraph is Subgraph<EntityTypeRootType> =>
-  isEntityTypeRootedSubgraphBp(subgraph);
+  isEntityTypeRootedSubgraphBp(subgraph as unknown as SubgraphBp<true>);
 
 /**
  * A type-guard that can be used to constrain the generic parameter of `Subgraph` to `Entity`.
@@ -79,4 +81,5 @@ export const isEntityTypeRootedSubgraph = (
  */
 export const isEntityRootedSubgraph = (
   subgraph: Subgraph,
-): subgraph is Subgraph<EntityRootType> => isEntityRootedSubgraphBp(subgraph);
+): subgraph is Subgraph<EntityRootType> =>
+  isEntityRootedSubgraphBp(subgraph as unknown as SubgraphBp<true>);
