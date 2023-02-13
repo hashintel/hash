@@ -76,12 +76,12 @@ export const getPropertyTypeById: ImpureGraphFunction<
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       timeProjection: {
-        kernel: {
-          axis: "transaction",
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
+        variable: {
+          axis: "decisionTime",
           start: null,
           end: null,
         },

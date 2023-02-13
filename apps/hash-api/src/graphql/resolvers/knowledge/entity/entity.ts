@@ -169,12 +169,12 @@ export const getAllLatestEntitiesResolver: ResolverFn<
       hasRightEntity,
     },
     timeProjection: {
-      kernel: {
-        axis: "transaction",
+      pinned: {
+        axis: "transactionTime",
         timestamp: null,
       },
-      image: {
-        axis: "decision",
+      variable: {
+        axis: "decisionTime",
         start: null,
         end: null,
       },
@@ -234,18 +234,16 @@ export const getEntityResolver: ResolverFn<
       hasRightEntity,
     },
     timeProjection: {
-      kernel: {
-        axis: "transaction",
+      pinned: {
+        axis: "transactionTime",
         timestamp: null,
       },
-      image: {
-        axis: "decision",
+      variable: {
+        axis: "decisionTime",
         start: entityVersion
-          ? { bound: "included", timestamp: entityVersion }
+          ? { kind: "inclusive", limit: entityVersion }
           : null,
-        end: entityVersion
-          ? { bound: "included", timestamp: entityVersion }
-          : null,
+        end: entityVersion ? { kind: "inclusive", limit: entityVersion } : null,
       },
     },
   });

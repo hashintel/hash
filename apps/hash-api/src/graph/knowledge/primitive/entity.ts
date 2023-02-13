@@ -121,12 +121,12 @@ export const getLatestEntityById: ImpureGraphFunction<
         hasRightEntity: { incoming: 0, outgoing: 0 },
       },
       timeProjection: {
-        kernel: {
-          axis: "transaction",
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
+        variable: {
+          axis: "decisionTime",
           start: null,
           end: null,
         },
@@ -476,12 +476,12 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
 
   /** @todo-0.3 - replace this with `queryAxes: QueryTemporalAxesUnresolved` */
   const timeProjection: UnresolvedTimeProjection = {
-    kernel: {
-      axis: "transaction",
+    pinned: {
+      axis: "transactionTime",
       timestamp: null,
     },
-    image: {
-      axis: "decision",
+    variable: {
+      axis: "decisionTime",
       start: null,
       end: null,
     },
@@ -601,12 +601,12 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
 
   /** @todo-0.3 - replace this with `queryAxes: QueryTemporalAxesUnresolved` */
   const timeProjection: UnresolvedTimeProjection = {
-    kernel: {
-      axis: "transaction",
+    pinned: {
+      axis: "transactionTime",
       timestamp: null,
     },
-    image: {
-      axis: "decision",
+    variable: {
+      axis: "decisionTime",
       start: null,
       end: null,
     },
@@ -684,12 +684,12 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
       ...graphResolveDepths,
     },
     timeProjection: {
-      kernel: {
-        axis: "transaction",
+      pinned: {
+        axis: "transactionTime",
         timestamp: null,
       },
-      image: {
-        axis: "decision",
+      variable: {
+        axis: "decisionTime",
         start: null,
         end: null,
       },

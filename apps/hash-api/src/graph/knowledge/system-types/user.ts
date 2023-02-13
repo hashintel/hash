@@ -149,12 +149,12 @@ export const getUserByShortname: ImpureGraphFunction<
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       timeProjection: {
-        kernel: {
-          axis: "transaction",
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
+        variable: {
+          axis: "decisionTime",
           start: null,
           end: null,
         },
@@ -208,12 +208,12 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       timeProjection: {
-        kernel: {
-          axis: "transaction",
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
+        variable: {
+          axis: "decisionTime",
           start: null,
           end: null,
         },

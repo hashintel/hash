@@ -31,12 +31,12 @@ export const getAllLatestDataTypes: ResolverFn<
       hasRightEntity: { incoming: 0, outgoing: 0 },
     },
     timeProjection: {
-      kernel: {
-        axis: "transaction",
+      pinned: {
+        axis: "transactionTime",
         timestamp: null,
       },
-      image: {
-        axis: "decision",
+      variable: {
+        axis: "decisionTime",
         start: null,
         end: null,
       },
@@ -70,12 +70,12 @@ export const getDataType: ResolverFn<
       hasRightEntity: { incoming: 0, outgoing: 0 },
     },
     timeProjection: {
-      kernel: {
-        axis: "transaction",
+      pinned: {
+        axis: "transactionTime",
         timestamp: null,
       },
-      image: {
-        axis: "decision",
+      variable: {
+        axis: "decisionTime",
         start: null,
         end: null,
       },
