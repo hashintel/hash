@@ -22,15 +22,15 @@ import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   DataTypeWithMetadata,
   Entity,
+  EntityRootType,
   EntityTypeWithMetadata,
   extractOwnedByIdFromEntityId,
   linkEntityTypeUri,
   OwnedById,
   PropertyTypeWithMetadata,
   Subgraph,
-  SubgraphRootTypes,
 } from "@local/hash-subgraph/main";
-import { getRootsAsEntities } from "@local/hash-subgraph/stdlib/element/entity";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
@@ -221,9 +221,7 @@ describe("Entity CRU", () => {
         },
       })
       .then(({ data }) =>
-        getRootsAsEntities(
-          mapSubgraph(data) as Subgraph<SubgraphRootTypes["entity"]>,
-        ).filter(
+        getRoots(mapSubgraph(data) as Subgraph<EntityRootType>).filter(
           (entity) =>
             extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId) ===
             testUser.accountId,
