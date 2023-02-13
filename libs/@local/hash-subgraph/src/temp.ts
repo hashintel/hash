@@ -27,8 +27,10 @@ export const mapSubgraph = (subgraphGraphApi: SubgraphGraphApi) => {
     edges: mapEdges(subgraphGraphApi.edges),
     depths: subgraphGraphApi.depths,
     temporalAxes: {
-      initial: mapUnresolvedTimeProjection(subgraphGraphApi.timeProjection),
-      resolved: mapTimeProjection(subgraphGraphApi.resolvedTimeProjection),
+      initial: mapUnresolvedTimeProjection(
+        subgraphGraphApi.temporalAxes.initial,
+      ),
+      resolved: mapTimeProjection(subgraphGraphApi.temporalAxes.resolved),
     },
   };
 

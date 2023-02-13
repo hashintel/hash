@@ -200,8 +200,8 @@ impl DatabaseApi<'_> {
                 filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::default(),
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                    kernel: UnresolvedKernel::new(None),
-                    image: UnresolvedImage::new(
+                    pinned: UnresolvedKernel::new(None),
+                    variable: UnresolvedImage::new(
                         Some(TimeIntervalBound::Unbounded),
                         Some(TimeIntervalBound::Unbounded),
                     ),
@@ -250,8 +250,8 @@ impl DatabaseApi<'_> {
                 filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::default(),
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                    kernel: UnresolvedKernel::new(None),
-                    image: UnresolvedImage::new(
+                    pinned: UnresolvedKernel::new(None),
+                    variable: UnresolvedImage::new(
                         Some(TimeIntervalBound::Unbounded),
                         Some(TimeIntervalBound::Unbounded),
                     ),
@@ -300,8 +300,8 @@ impl DatabaseApi<'_> {
                 filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::default(),
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                    kernel: UnresolvedKernel::new(None),
-                    image: UnresolvedImage::new(
+                    pinned: UnresolvedKernel::new(None),
+                    variable: UnresolvedImage::new(
                         Some(TimeIntervalBound::Unbounded),
                         Some(TimeIntervalBound::Unbounded),
                     ),
@@ -350,8 +350,8 @@ impl DatabaseApi<'_> {
                 filter: Filter::for_entity_by_id(entity_id),
                 graph_resolve_depths: GraphResolveDepths::default(),
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                    kernel: UnresolvedKernel::new(None),
-                    image: UnresolvedImage::new(
+                    pinned: UnresolvedKernel::new(None),
+                    variable: UnresolvedImage::new(
                         Some(TimeIntervalBound::Unbounded),
                         Some(TimeIntervalBound::Unbounded),
                     ),
@@ -375,8 +375,8 @@ impl DatabaseApi<'_> {
                 filter: Filter::for_entity_by_id(entity_id),
                 graph_resolve_depths: GraphResolveDepths::default(),
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                    kernel: UnresolvedKernel::new(None),
-                    image: UnresolvedImage::new(
+                    pinned: UnresolvedKernel::new(None),
+                    variable: UnresolvedImage::new(
                         Some(TimeIntervalBound::Inclusive(timestamp)),
                         Some(TimeIntervalBound::Inclusive(timestamp)),
                     ),
@@ -398,8 +398,8 @@ impl DatabaseApi<'_> {
                 filter: Filter::for_entity_by_id(entity_id),
                 graph_resolve_depths: GraphResolveDepths::default(),
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                    kernel: UnresolvedKernel::new(None),
-                    image: UnresolvedImage::new(None, None),
+                    pinned: UnresolvedKernel::new(None),
+                    variable: UnresolvedImage::new(None, None),
                 }),
             })
             .await?
@@ -499,8 +499,8 @@ impl DatabaseApi<'_> {
                 filter,
                 graph_resolve_depths: GraphResolveDepths::default(),
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                    kernel: UnresolvedKernel::new(None),
-                    image: UnresolvedImage::new(
+                    pinned: UnresolvedKernel::new(None),
+                    variable: UnresolvedImage::new(
                         Some(TimeIntervalBound::Unbounded),
                         Some(TimeIntervalBound::Unbounded),
                     ),
@@ -558,8 +558,8 @@ impl DatabaseApi<'_> {
                 filter,
                 graph_resolve_depths: GraphResolveDepths::default(),
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                    kernel: UnresolvedKernel::new(None),
-                    image: UnresolvedImage::new(None, None),
+                    pinned: UnresolvedKernel::new(None),
+                    variable: UnresolvedImage::new(None, None),
                 }),
             })
             .await?;

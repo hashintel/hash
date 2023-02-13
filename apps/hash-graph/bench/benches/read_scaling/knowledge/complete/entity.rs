@@ -164,8 +164,8 @@ pub fn bench_get_entity_by_id(
                     filter: Filter::for_entity_by_id(entity_edition_id.base_id()),
                     graph_resolve_depths,
                     time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                        kernel: UnresolvedKernel::new(None),
-                        image: UnresolvedImage::new(
+                        pinned: UnresolvedKernel::new(None),
+                        variable: UnresolvedImage::new(
                             Some(TimeIntervalBound::Unbounded),
                             Some(TimeIntervalBound::Unbounded),
                         ),

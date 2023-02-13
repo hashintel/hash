@@ -33,8 +33,8 @@ pub fn bench_get_entity_type_by_id(
                     filter: Filter::for_versioned_uri(entity_type_id),
                     graph_resolve_depths: GraphResolveDepths::default(),
                     time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                        kernel: UnresolvedKernel::new(None),
-                        image: UnresolvedImage::new(
+                        pinned: UnresolvedKernel::new(None),
+                        variable: UnresolvedImage::new(
                             Some(TimeIntervalBound::Unbounded),
                             Some(TimeIntervalBound::Unbounded),
                         ),

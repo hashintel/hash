@@ -142,28 +142,28 @@ impl ToSchema<'_> for UnresolvedImage<TransactionTime> {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UnresolvedProjection<K, I> {
-    pub kernel: UnresolvedKernel<K>,
-    pub image: UnresolvedImage<I>,
+    pub pinned: UnresolvedKernel<K>,
+    pub variable: UnresolvedImage<I>,
 }
 
 impl<K, I> UnresolvedProjection<K, I> {
     pub fn resolve(self) -> Projection<K, I> {
         let now = Timestamp::now();
         Projection {
-            kernel: Kernel {
-                axis: self.kernel.axis,
+            pinned: Kernel {
+                axis: self.pinned.axis,
                 timestamp: self
-                    .kernel
+                    .pinned
                     .timestamp
                     .unwrap_or_else(|| Timestamp::from_anonymous(now)),
             },
-            image: Image {
-                axis: self.image.axis,
+            variable: Image {
+                axis: self.variable.axis,
                 interval: Interval::new(
-                    self.image.interval.start.unwrap_or_else(|| {
+                    self.variable.interval.start.unwrap_or_else(|| {
                         TimeIntervalBound::Inclusive(Timestamp::from_anonymous(now))
                     }),
-                    self.image.interval.end.unwrap_or_else(|| {
+                    self.variable.interval.end.unwrap_or_else(|| {
                         TimeIntervalBound::Inclusive(Timestamp::from_anonymous(now))
                     }),
                 ),
@@ -180,15 +180,15 @@ impl ToSchema<'_> for UnresolvedProjection<TransactionTime, DecisionTime> {
             "UnresolvedDecisionTimeProjection",
             openapi::ObjectBuilder::new()
                 .property(
-                    "kernel",
+                    "pinned",
                     openapi::Ref::from_schema_name(UnresolvedKernel::<TransactionTime>::schema().0),
                 )
-                .required("kernel")
+                .required("pinned")
                 .property(
-                    "image",
+                    "variable",
                     openapi::Ref::from_schema_name(UnresolvedImage::<DecisionTime>::schema().0),
                 )
-                .required("image")
+                .required("variable")
                 .into(),
         )
     }
@@ -202,15 +202,15 @@ impl ToSchema<'_> for UnresolvedProjection<DecisionTime, TransactionTime> {
             "UnresolvedTransactionTimeProjection",
             openapi::ObjectBuilder::new()
                 .property(
-                    "kernel",
+                    "pinned",
                     openapi::Ref::from_schema_name(UnresolvedKernel::<DecisionTime>::schema().0),
                 )
-                .required("kernel")
+                .required("pinned")
                 .property(
-                    "image",
+                    "variable",
                     openapi::Ref::from_schema_name(UnresolvedImage::<TransactionTime>::schema().0),
                 )
-                .required("image")
+                .required("variable")
                 .into(),
         )
     }
@@ -226,8 +226,8 @@ pub enum UnresolvedTimeProjection {
 impl Default for UnresolvedTimeProjection {
     fn default() -> Self {
         Self::DecisionTime(UnresolvedProjection {
-            kernel: UnresolvedKernel::new(None),
-            image: UnresolvedImage::new(
+            pinned: UnresolvedKernel::new(None),
+            variable: UnresolvedImage::new(
                 Some(TimeIntervalBound::Unbounded),
                 Some(TimeIntervalBound::Unbounded),
             ),
@@ -395,8 +395,8 @@ impl ToSchema<'_> for Image<TransactionTime> {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Projection<K, I> {
-    pub kernel: Kernel<K>,
-    pub image: Image<I>,
+    pub pinned: Kernel<K>,
+    pub variable: Image<I>,
 }
 
 impl<K, I> Projection<K, I> {
@@ -411,13 +411,13 @@ impl<K, I> Projection<K, I> {
             UnboundedOrExcludedTimeIntervalBound<I>,
         >,
     ) -> Option<Self> {
-        self.image
+        self.variable
             .interval
             .intersect(interval.convert())
             .map(|interval| Self {
-                kernel: self.kernel,
-                image: Image {
-                    axis: self.image.axis,
+                pinned: self.pinned,
+                variable: Image {
+                    axis: self.variable.axis,
                     interval,
                 },
             })
@@ -432,15 +432,15 @@ impl ToSchema<'_> for Projection<TransactionTime, DecisionTime> {
             "DecisionTimeProjection",
             openapi::ObjectBuilder::new()
                 .property(
-                    "kernel",
+                    "pinned",
                     openapi::Ref::from_schema_name(Kernel::<TransactionTime>::schema().0),
                 )
-                .required("kernel")
+                .required("pinned")
                 .property(
-                    "image",
+                    "variable",
                     openapi::Ref::from_schema_name(Image::<DecisionTime>::schema().0),
                 )
-                .required("image")
+                .required("variable")
                 .into(),
         )
     }
@@ -454,15 +454,15 @@ impl ToSchema<'_> for Projection<DecisionTime, TransactionTime> {
             "TransactionTimeProjection",
             openapi::ObjectBuilder::new()
                 .property(
-                    "kernel",
+                    "pinned",
                     openapi::Ref::from_schema_name(Kernel::<DecisionTime>::schema().0),
                 )
-                .required("kernel")
+                .required("pinned")
                 .property(
-                    "image",
+                    "variable",
                     openapi::Ref::from_schema_name(Image::<TransactionTime>::schema().0),
                 )
-                .required("image")
+                .required("variable")
                 .into(),
         )
     }
@@ -508,8 +508,8 @@ impl TimeProjection {
     #[must_use]
     pub fn kernel(&self) -> Timestamp<()> {
         match self {
-            Self::DecisionTime(projection) => projection.kernel.timestamp.cast(),
-            Self::TransactionTime(projection) => projection.kernel.timestamp.cast(),
+            Self::DecisionTime(projection) => projection.pinned.timestamp.cast(),
+            Self::TransactionTime(projection) => projection.pinned.timestamp.cast(),
         }
     }
 
@@ -522,8 +522,8 @@ impl TimeProjection {
         TimeIntervalBound<ProjectedTime>,
     > {
         match self {
-            Self::DecisionTime(projection) => projection.image.interval.cast(),
-            Self::TransactionTime(projection) => projection.image.interval.cast(),
+            Self::DecisionTime(projection) => projection.variable.interval.cast(),
+            Self::TransactionTime(projection) => projection.variable.interval.cast(),
         }
     }
 
@@ -557,8 +557,8 @@ impl TimeProjection {
         >,
     ) {
         match self {
-            Self::DecisionTime(projection) => projection.image.interval = interval.cast(),
-            Self::TransactionTime(projection) => projection.image.interval = interval.cast(),
+            Self::DecisionTime(projection) => projection.variable.interval = interval.cast(),
+            Self::TransactionTime(projection) => projection.variable.interval = interval.cast(),
         }
     }
 }

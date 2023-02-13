@@ -421,16 +421,16 @@ export interface DecisionTimeKernel {
 export interface DecisionTimeProjection {
   /**
    *
-   * @type {DecisionTimeImage}
-   * @memberof DecisionTimeProjection
-   */
-  image: DecisionTimeImage;
-  /**
-   *
    * @type {TransactionTimeKernel}
    * @memberof DecisionTimeProjection
    */
-  kernel: TransactionTimeKernel;
+  pinned: TransactionTimeKernel;
+  /**
+   *
+   * @type {DecisionTimeImage}
+   * @memberof DecisionTimeProjection
+   */
+  variable: DecisionTimeImage;
 }
 /**
  *
@@ -2063,16 +2063,16 @@ export interface TransactionTimeKernel {
 export interface TransactionTimeProjection {
   /**
    *
-   * @type {TransactionTimeImage}
-   * @memberof TransactionTimeProjection
-   */
-  image: TransactionTimeImage;
-  /**
-   *
    * @type {DecisionTimeKernel}
    * @memberof TransactionTimeProjection
    */
-  kernel: DecisionTimeKernel;
+  pinned: DecisionTimeKernel;
+  /**
+   *
+   * @type {TransactionTimeImage}
+   * @memberof TransactionTimeProjection
+   */
+  variable: TransactionTimeImage;
 }
 /**
  *
@@ -2145,16 +2145,16 @@ export interface UnresolvedDecisionTimeKernel {
 export interface UnresolvedDecisionTimeProjection {
   /**
    *
-   * @type {UnresolvedDecisionTimeImage}
-   * @memberof UnresolvedDecisionTimeProjection
-   */
-  image: UnresolvedDecisionTimeImage;
-  /**
-   *
    * @type {UnresolvedTransactionTimeKernel}
    * @memberof UnresolvedDecisionTimeProjection
    */
-  kernel: UnresolvedTransactionTimeKernel;
+  pinned: UnresolvedTransactionTimeKernel;
+  /**
+   *
+   * @type {UnresolvedDecisionTimeImage}
+   * @memberof UnresolvedDecisionTimeProjection
+   */
+  variable: UnresolvedDecisionTimeImage;
 }
 /**
  * @type UnresolvedTimeProjection
@@ -2216,16 +2216,16 @@ export interface UnresolvedTransactionTimeKernel {
 export interface UnresolvedTransactionTimeProjection {
   /**
    *
-   * @type {UnresolvedTransactionTimeImage}
-   * @memberof UnresolvedTransactionTimeProjection
-   */
-  image: UnresolvedTransactionTimeImage;
-  /**
-   *
    * @type {UnresolvedDecisionTimeKernel}
    * @memberof UnresolvedTransactionTimeProjection
    */
-  kernel: UnresolvedDecisionTimeKernel;
+  pinned: UnresolvedDecisionTimeKernel;
+  /**
+   *
+   * @type {UnresolvedTransactionTimeImage}
+   * @memberof UnresolvedTransactionTimeProjection
+   */
+  variable: UnresolvedTransactionTimeImage;
 }
 /**
  * The contents of a Data Type update request

@@ -55,11 +55,11 @@ test("Graph API subgraph type is compatible with library type", () => {
     },
     temporalAxes: {
       initial: {
-        kernel: {
+        pinned: {
           axis: "transaction",
           timestamp: null,
         },
-        image: {
+        variable: {
           axis: "decision",
           start: {
             kind: "unbounded",
@@ -68,11 +68,11 @@ test("Graph API subgraph type is compatible with library type", () => {
         },
       },
       resolved: {
-        kernel: {
+        pinned: {
           axis: "transaction",
           timestamp: "2022-01-01T0:0:0",
         },
-        image: {
+        variable: {
           axis: "decision",
           start: {
             kind: "unbounded",
@@ -92,6 +92,11 @@ test("Graph API subgraph type is compatible with library type", () => {
     vertices: mapVertices(subgraphGraphApi.vertices),
     edges: mapEdges(subgraphGraphApi.edges),
     depths: subgraphGraphApi.depths,
-    temporalAxes: subgraphGraphApi.temporalAxes,
+    temporalAxes: {
+      initial: mapUnresolvedTimeProjection(
+        subgraphGraphApi.temporalAxes.initial,
+      ),
+      resolved: mapTimeProjection(subgraphGraphApi.temporalAxes.resolved),
+    },
   };
 });

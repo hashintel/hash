@@ -88,12 +88,16 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         let temporal_table_info = self.artifacts.temporal_tables.get_or_insert_with(|| {
             match self.time_projection {
                 TimeProjection::DecisionTime(projection) => {
-                    self.artifacts.parameters.push(&projection.kernel.timestamp);
-                    self.artifacts.parameters.push(&projection.image.interval);
+                    self.artifacts.parameters.push(&projection.pinned.timestamp);
+                    self.artifacts
+                        .parameters
+                        .push(&projection.variable.interval);
                 }
                 TimeProjection::TransactionTime(projection) => {
-                    self.artifacts.parameters.push(&projection.kernel.timestamp);
-                    self.artifacts.parameters.push(&projection.image.interval);
+                    self.artifacts.parameters.push(&projection.pinned.timestamp);
+                    self.artifacts
+                        .parameters
+                        .push(&projection.variable.interval);
                 }
             };
 

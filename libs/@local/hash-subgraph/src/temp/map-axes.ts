@@ -23,43 +23,42 @@ export const mapUnresolvedTimeProjection = (
       start:
         image.start === null
           ? null
-          : image.start.bound === "unbounded"
+          : image.start.kind === "unbounded"
           ? {
               kind: "unbounded",
             }
           : {
-              kind:
-                image.start.bound === "included" ? "inclusive" : "exclusive",
-              limit: image.start.timestamp as Timestamp,
+              kind: image.start.kind,
+              limit: image.start.limit as Timestamp,
             },
       end:
-        image.end === null || image.end.bound === "unbounded"
+        image.end === null || image.end.kind === "unbounded"
           ? null
           : {
-              kind: image.end.bound === "included" ? "inclusive" : "exclusive",
-              limit: image.end.timestamp as Timestamp,
+              kind: image.end.kind,
+              limit: image.end.limit as Timestamp,
             },
     };
   };
-  return timeProjection.kernel.axis === "transaction"
+  return timeProjection.pinned.axis === "transaction"
     ? {
         pinned: {
           axis: "transactionTime",
-          timestamp: timeProjection.kernel.timestamp as Timestamp,
+          timestamp: timeProjection.pinned.timestamp as Timestamp,
         },
         variable: {
           axis: "decisionTime",
-          interval: mapInterval(timeProjection.image),
+          interval: mapInterval(timeProjection.variable),
         },
       }
     : {
         pinned: {
           axis: "decisionTime",
-          timestamp: timeProjection.kernel.timestamp as Timestamp,
+          timestamp: timeProjection.pinned.timestamp as Timestamp,
         },
         variable: {
           axis: "transactionTime",
-          interval: mapInterval(timeProjection.image),
+          interval: mapInterval(timeProjection.variable),
         },
       };
 };
@@ -72,47 +71,46 @@ export const mapTimeProjection = (
   ): QueryTemporalAxes["variable"]["interval"] => {
     return {
       start:
-        image.start.bound === "unbounded"
+        image.start.kind === "unbounded"
           ? {
               kind: "unbounded",
             }
           : {
-              kind:
-                image.start.bound === "included" ? "inclusive" : "exclusive",
-              limit: image.start.timestamp as Timestamp,
+              kind: image.start.kind,
+              limit: image.start.limit as Timestamp,
             },
       end:
-        image.end.bound === "unbounded"
+        image.end.kind === "unbounded"
           ? {
               kind: "inclusive",
               /** @todo-0.3 - This is incorrect, the Graph API shouldn't allow unbounded resolved intervals */
               limit: new Date("3000-01-01").toISOString() as Timestamp,
             }
           : {
-              kind: image.end.bound === "included" ? "inclusive" : "exclusive",
-              limit: image.end.timestamp as Timestamp,
+              kind: image.end.kind,
+              limit: image.end.limit as Timestamp,
             },
     };
   };
-  return timeProjection.kernel.axis === "transaction"
+  return timeProjection.pinned.axis === "transaction"
     ? {
         pinned: {
           axis: "transactionTime",
-          timestamp: timeProjection.kernel.timestamp as Timestamp,
+          timestamp: timeProjection.pinned.timestamp as Timestamp,
         },
         variable: {
           axis: "decisionTime",
-          interval: mapInterval(timeProjection.image),
+          interval: mapInterval(timeProjection.variable),
         },
       }
     : {
         pinned: {
           axis: "decisionTime",
-          timestamp: timeProjection.kernel.timestamp as Timestamp,
+          timestamp: timeProjection.pinned.timestamp as Timestamp,
         },
         variable: {
           axis: "transactionTime",
-          interval: mapInterval(timeProjection.image),
+          interval: mapInterval(timeProjection.variable),
         },
       };
 };
