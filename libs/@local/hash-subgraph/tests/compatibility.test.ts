@@ -53,33 +53,35 @@ test("Graph API subgraph type is compatible with library type", () => {
         outgoing: 0,
       },
     },
-    timeProjection: {
-      kernel: {
-        axis: "transaction",
-        timestamp: null,
-      },
-      image: {
-        axis: "decision",
-        start: {
-          bound: "unbounded",
+    temporalAxes: {
+      initial: {
+        kernel: {
+          axis: "transaction",
+          timestamp: null,
         },
-        end: {
-          bound: "unbounded",
+        image: {
+          axis: "decision",
+          start: {
+            bound: "unbounded",
+          },
+          end: {
+            bound: "unbounded",
+          },
         },
       },
-    },
-    resolvedTimeProjection: {
-      kernel: {
-        axis: "transaction",
-        timestamp: "2022-01-01T0:0:0",
-      },
-      image: {
-        axis: "decision",
-        start: {
-          bound: "unbounded",
+      resolved: {
+        kernel: {
+          axis: "transaction",
+          timestamp: "2022-01-01T0:0:0",
         },
-        end: {
-          bound: "unbounded",
+        image: {
+          axis: "decision",
+          start: {
+            bound: "unbounded",
+          },
+          end: {
+            bound: "unbounded",
+          },
         },
       },
     },
@@ -91,9 +93,6 @@ test("Graph API subgraph type is compatible with library type", () => {
     vertices: mapVertices(subgraphGraphApi.vertices),
     edges: mapEdges(subgraphGraphApi.edges),
     depths: subgraphGraphApi.depths,
-    temporalAxes: {
-      initial: mapUnresolvedTimeProjection(subgraphGraphApi.timeProjection),
-      resolved: mapTimeProjection(subgraphGraphApi.resolvedTimeProjection),
-    },
+    temporalAxes: subgraphGraphApi.temporalAxes,
   };
 });

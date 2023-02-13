@@ -1859,28 +1859,41 @@ export interface Subgraph {
   edges: Edges;
   /**
    *
-   * @type {TimeProjection}
-   * @memberof Subgraph
-   */
-  resolvedTimeProjection: TimeProjection;
-  /**
-   *
    * @type {Array<GraphElementVertexId>}
    * @memberof Subgraph
    */
   roots: Array<GraphElementVertexId>;
   /**
    *
-   * @type {UnresolvedTimeProjection}
+   * @type {TemporalAxes}
    * @memberof Subgraph
    */
-  timeProjection: UnresolvedTimeProjection;
+  temporalAxes: TemporalAxes;
   /**
    *
    * @type {Vertices}
    * @memberof Subgraph
    */
   vertices: Vertices;
+}
+/**
+ *
+ * @export
+ * @interface TemporalAxes
+ */
+export interface TemporalAxes {
+  /**
+   *
+   * @type {UnresolvedTimeProjection}
+   * @memberof TemporalAxes
+   */
+  initial: UnresolvedTimeProjection;
+  /**
+   *
+   * @type {TimeProjection}
+   * @memberof TemporalAxes
+   */
+  resolved: TimeProjection;
 }
 /**
  * @type TimeIntervalBound
