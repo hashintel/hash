@@ -2,7 +2,6 @@ import {
   Array as TypeSystemArray,
   BaseUri,
   EntityType,
-  extractBaseUri,
   extractVersion,
   OneOf,
   PropertyType,
@@ -16,6 +15,7 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { GraphApi, OntologyElementMetadata } from "@local/hash-graph-client";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { EntityPropertiesObject, OwnedById } from "@local/hash-subgraph";
+import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
 import { camelCase, isEqual, upperFirst } from "lodash";
 import { singular } from "pluralize";
 

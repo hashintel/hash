@@ -1,10 +1,14 @@
 import {
+  extractBaseUri as extractBaseUriBp,
   ParseVersionedUriError,
   validateVersionedUri,
   VersionedUri,
 } from "@blockprotocol/type-system";
 
 import { BaseUri } from "../types";
+
+export const extractBaseUri = (versionedUri: VersionedUri): BaseUri =>
+  extractBaseUriBp(versionedUri) as BaseUri;
 
 export class InvalidVersionedUriComponentsError extends Error {
   components: { baseUri: BaseUri; version: number };

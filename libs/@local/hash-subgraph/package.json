@@ -4,7 +4,8 @@
   "private": true,
   "exports": {
     ".": "./src/main.ts",
-    "./stdlib": "./src/stdlib.ts"
+    "./stdlib": "./src/stdlib.ts",
+    "./type-system-patch": "./src/shared/type-system-patch.ts"
   },
   "types": "./src/main.ts",
   "typesVersions": {
@@ -14,6 +15,9 @@
       ],
       "stdlib": [
         "./src/stdlib.ts"
+      ],
+      "type-system-patch": [
+        "./src/shared/type-system-patch.ts"
       ]
     }
   },

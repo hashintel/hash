@@ -1,4 +1,3 @@
-import { extractBaseUri } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
@@ -11,6 +10,7 @@ import {
 } from "@local/hash-subgraph";
 import { getEntities } from "@local/hash-subgraph/stdlib";
 import { mapSubgraph } from "@local/hash-subgraph/temp";
+import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { getRequiredEnv } from "../util";
