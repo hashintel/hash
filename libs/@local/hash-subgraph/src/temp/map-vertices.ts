@@ -36,7 +36,7 @@ import {
   KnowledgeGraphVertex,
   OntologyVertex,
   Vertices,
-} from "../types/vertex";
+} from "../types/subgraph/vertices";
 
 const mapDataType = (dataType: DataTypeGraphApi): DataType => {
   const idResult = validateVersionedUri(dataType.$id);

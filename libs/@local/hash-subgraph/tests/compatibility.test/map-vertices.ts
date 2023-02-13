@@ -17,7 +17,6 @@ import {
   PropertyType as PropertyTypeGraphApi,
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
-
 import {
   EntityId,
   EntityPropertiesObject,
@@ -28,7 +27,7 @@ import {
   Timestamp,
   UpdatedById,
   Vertices,
-} from "../../src/main";
+} from "@local/hash-subgraph/main";
 
 const mapDataType = (dataType: DataTypeGraphApi): DataType => {
   const idResult = validateVersionedUri(dataType.$id);

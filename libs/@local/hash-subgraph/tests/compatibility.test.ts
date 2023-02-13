@@ -9,6 +9,10 @@
  */
 
 import { Subgraph as SubgraphGraphApi } from "@local/hash-graph-client";
+import {
+  mapTimeProjection,
+  mapUnresolvedTimeProjection,
+} from "@local/hash-subgraph/temp/map-axes";
 
 import { Subgraph } from "../src/main";
 import { mapEdges } from "./compatibility.test/map-edges";
@@ -87,7 +91,9 @@ test("Graph API subgraph type is compatible with library type", () => {
     vertices: mapVertices(subgraphGraphApi.vertices),
     edges: mapEdges(subgraphGraphApi.edges),
     depths: subgraphGraphApi.depths,
-    timeProjection: subgraphGraphApi.timeProjection,
-    resolvedTimeProjection: subgraphGraphApi.resolvedTimeProjection,
+    temporalAxes: {
+      initial: mapUnresolvedTimeProjection(subgraphGraphApi.timeProjection),
+      resolved: mapTimeProjection(subgraphGraphApi.resolvedTimeProjection),
+    },
   };
 });
