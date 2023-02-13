@@ -193,7 +193,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             title={<Box sx={{ mt: { xs: 0, md: 7, lg: 8 } }}>HASH</Box>}
             buttons={
               <Button
-                href="https://github.com/hashintel/hash/tree/main/packages/hash"
+                href="https://github.com/hashintel/hash/tree/main/apps/hash"
                 openInNew
                 endIcon={
                   <FaIcon name="arrow-up-right-from-square" type="solid" />
@@ -240,7 +240,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             title={<Box sx={{ mt: { xs: 0, md: 5, lg: 8 } }}>HASH Engine</Box>}
             buttons={
               <Button
-                href="https://github.com/hashintel/hash/tree/main/packages/engine"
+                href="https://github.com/hashintel/hash/tree/main/apps/engine"
                 openInNew
                 endIcon={
                   <FaIcon name="arrow-up-right-from-square" type="solid" />

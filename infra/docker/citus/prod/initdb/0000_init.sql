@@ -1,0 +1,2 @@
+CREATE EXTENSION
+  citus;

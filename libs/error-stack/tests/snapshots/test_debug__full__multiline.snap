@@ -1,0 +1,38 @@
+---
+source: tests/test_debug.rs
+expression: "format!(\"{report:#?}\")"
+---
+root error
+<<<<<<< HEAD:packages/libs/error-stack/tests/snapshots/test_debug__full__multiline.snap
+├╴ at tests/common/mod.rs:4:5
+├╴ backtrace (1)
+├╴ span trace with 2 frames (1)
+├╴ A multiline
+│  attachment
+│  that might have some
+│  additional info
+╰╴ A multiline
+   attachment
+   that might have some
+   additional info
+=======
+├╴at tests/common.rs:4:5
+├╴backtrace (1)
+├╴span trace with 2 frames (1)
+├╴A multiline
+│ attachment
+│ that might have some
+│ additional info
+╰╴A multiline
+  attachment
+  that might have some
+  additional info
+>>>>>>> origin/main:libs/error-stack/tests/snapshots/test_debug__full__multiline.snap
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+backtrace no. 1
+  [redacted]
+
+span trace No. 1
+  [redacted]

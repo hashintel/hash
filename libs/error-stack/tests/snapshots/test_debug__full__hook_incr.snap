@@ -1,0 +1,28 @@
+---
+source: tests/test_debug.rs
+expression: "format!(\"{report:?}\")"
+---
+root error
+<<<<<<< HEAD:packages/libs/error-stack/tests/snapshots/test_debug__full__hook_incr.snap
+├╴ at tests/common/mod.rs:4:5
+├╴ backtrace (1)
+├╴ span trace with 2 frames (1)
+├╴ 0
+├╴ 1
+╰╴ 2
+=======
+├╴at tests/common.rs:4:5
+├╴backtrace (1)
+├╴span trace with 2 frames (1)
+├╴0
+├╴1
+╰╴2
+>>>>>>> origin/main:libs/error-stack/tests/snapshots/test_debug__full__hook_incr.snap
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+backtrace no. 1
+  [redacted]
+
+span trace No. 1
+  [redacted]

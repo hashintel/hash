@@ -1,6 +1,7 @@
 {
   "name": "@blocks/chart",
   "version": "0.1.0",
+  "private": true,
   "description": "A block for plotting entities in a 2D chart",
   "keywords": [
     "blockprotocol",
@@ -27,7 +28,7 @@
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash.debounce": "4.0.7",
     "block-scripts": "0.0.14",
-    "eslint": "8.31.0",
+    "eslint": "8.33.0",
     "mock-block-dock": "0.0.10",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -42,6 +43,7 @@
     "servePort": 63217
   },
   "blockprotocol": {
+    "name": "@ben/chart",
     "displayName": "Chart",
     "examples": [
       {}

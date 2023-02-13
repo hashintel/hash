@@ -13,7 +13,7 @@ import { ProviderName } from "./types";
 
 const node = document.getElementById("app");
 
-/** Temporarily leaving this here, till we fix importing it from hash-shared */
+/** Temporarily leaving this here, till we fix importing it from hash-isomorphic-utils */
 const apiGraphQLEndpoint = "http://localhost:5001/graphql";
 
 const getEmbedBlock = async (
@@ -49,7 +49,7 @@ const getEmbedBlock = async (
 };
 
 // @todo replace typeof variants[number] with type BlockVariant when available
-const getVariantProperties = (variant: typeof variants[number]) => {
+const getVariantProperties = (variant: (typeof variants)[number]) => {
   return {
     ...variant.properties,
     embedType: variant.properties?.embedType as ProviderName | undefined,

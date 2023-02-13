@@ -1,6 +1,7 @@
 {
   "name": "@blocks/toggle-item",
   "version": "0.1.0",
+  "private": true,
   "description": "Toggle list item block",
   "keywords": [
     "blockprotocol",
@@ -23,7 +24,7 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "block-scripts": "0.0.14",
-    "eslint": "8.31.0",
+    "eslint": "8.33.0",
     "mock-block-dock": "0.0.10",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -38,6 +39,7 @@
     "servePort": 63216
   },
   "blockprotocol": {
+    "name": "@hash/toggle-item",
     "displayName": "Toggle List Item",
     "examples": [
       {

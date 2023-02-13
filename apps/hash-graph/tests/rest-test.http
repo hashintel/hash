@@ -1,0 +1,1284 @@
+# This file either runs with JetBrains' http requests or using httpYac (https://httpyac.github.io).
+
+### Create account
+POST http://127.0.0.1:4000/accounts
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.global.set("account_id", response.body.toString());
+    });
+%}
+
+### Get all data types
+POST http://127.0.0.1:4000/data-types/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "all": []
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    },
+    "hasRightEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": {
+        "bound": "unbounded"
+      },
+      "end": {
+        "bound": "unbounded"
+      }
+    }
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 6, "Unexpected number of data types"); // The number of primitive data types
+    });
+%}
+
+### Insert Text data type
+POST http://127.0.0.1:4000/data-types
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
+  "schema": {
+    "kind": "dataType",
+    "$id": "http://localhost:3000/@alice/types/data-type/text/v/1",
+    "title": "Text",
+    "type": "string"
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("text_data_type_id", `${response.body.editionId.baseId}v/${response.body.editionId.version}`);
+%}
+
+### Get Text data type
+POST http://127.0.0.1:4000/data-types/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "equal": [
+      {
+        "path": [
+          "versionedUri"
+        ]
+      },
+      {
+        "parameter": "{{text_data_type_id}}"
+      }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    },
+    "hasRightEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": {
+        "bound": "unbounded"
+      },
+      "end": {
+        "bound": "unbounded"
+      }
+    }
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 1, "Unexpected number of data types");
+    });
+%}
+
+### Update Text data type
+PUT http://127.0.0.1:4000/data-types
+Content-Type: application/json
+Accept: application/json
+
+{
+  "actorId": "{{account_id}}",
+  "typeToUpdate": "http://localhost:3000/@alice/types/data-type/text/v/1",
+  "schema": {
+    "kind": "dataType",
+    "title": "Text",
+    "description": "An ordered sequence of characters",
+    "type": "string"
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert Name property type
+POST http://127.0.0.1:4000/property-types
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
+  "schema": {
+    "kind": "propertyType",
+    "$id": "http://localhost:3000/@alice/types/property-type/name/v/1",
+    "title": "Name",
+    "oneOf": [
+      {
+        "$ref": "http://localhost:3000/@alice/types/data-type/text/v/1"
+      }
+    ]
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("person_property_type_id", `${response.body.editionId.baseId}v/${response.body.editionId.version}`);
+%}
+
+### Get Name property type
+POST http://127.0.0.1:4000/property-types/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "equal": [
+      { "path": ["versionedUri"] },
+      { "parameter": "{{person_property_type_id}}" }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    },
+    "hasRightEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": {
+        "bound": "unbounded"
+      },
+      "end": {
+        "bound": "unbounded"
+      }
+    }
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 1, "Unexpected number of property types");
+    });
+%}
+
+### Update Name property type
+PUT http://127.0.0.1:4000/property-types
+Content-Type: application/json
+Accept: application/json
+
+{
+  "actorId": "{{account_id}}",
+  "typeToUpdate": "http://localhost:3000/@alice/types/property-type/name/v/1",
+  "schema": {
+    "kind": "propertyType",
+    "title": "Name",
+    "oneOf": [
+      {
+        "$ref": "http://localhost:3000/@alice/types/data-type/text/v/2"
+      }
+    ]
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Get all latest property types
+POST http://127.0.0.1:4000/property-types/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "equal": [
+      {
+        "path": [
+          "version"
+        ]
+      },
+      {
+        "parameter": "latest"
+      }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    },
+    "hasRightEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": {
+        "bound": "unbounded"
+      },
+      "end": {
+        "bound": "unbounded"
+      }
+    }
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 1, "Unexpected number of property types");
+    });
+%}
+
+### Insert Friendship entity link type
+POST http://127.0.0.1:4000/entity-types
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
+  "schema": {
+    "kind": "entityType",
+    "$id": "http://localhost:3000/@alice/types/entity-type/friendship/v/1",
+    "type": "object",
+    "title": "Friendship",
+    "allOf": [
+      {
+        "$ref": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1"
+      }
+    ],
+    "properties": {}
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("friendship_link_entity_type_id", `${response.body.editionId.baseId}v/${response.body.editionId.version}`);
+%}
+
+### Get Friendship entity type
+POST http://127.0.0.1:4000/entity-types/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "equal": [
+      {
+        "path": [
+          "versionedUri"
+        ]
+      },
+      {
+        "parameter": "{{friendship_link_entity_type_id}}"
+      }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": {
+        "bound": "unbounded"
+      },
+      "end": {
+        "bound": "unbounded"
+      }
+    }
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 1, "Unexpected number of entities");
+    });
+%}
+
+### Insert Person entity type
+POST http://127.0.0.1:4000/entity-types
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
+  "schema": {
+    "kind": "entityType",
+    "$id": "http://localhost:3000/@alice/types/entity-type/person/v/1",
+    "type": "object",
+    "title": "Person",
+    "properties": {
+      "http://localhost:3000/@alice/types/property-type/name/": {
+        "$ref": "http://localhost:3000/@alice/types/property-type/name/v/1"
+      }
+    }
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("person_entity_type_id", `${response.body.editionId.baseId}v/${response.body.editionId.version}`);
+%}
+
+### Get Person entity type
+POST http://127.0.0.1:4000/entity-types/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "equal": [
+      { "path": ["versionedUri"] },
+      { "parameter": "{{person_entity_type_id}}" }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    },
+    "hasRightEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": {
+        "bound": "unbounded"
+      },
+      "end": {
+        "bound": "unbounded"
+      }
+    }
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 1, "Unexpected number of entity types");
+    });
+%}
+
+### Update Person entity type
+PUT http://127.0.0.1:4000/entity-types
+Content-Type: application/json
+Accept: application/json
+
+{
+  "actorId": "{{account_id}}",
+  "typeToUpdate": "http://localhost:3000/@alice/types/entity-type/person/v/1",
+  "schema": {
+    "kind": "entityType",
+    "type": "object",
+    "title": "Person",
+    "properties": {
+      "http://localhost:3000/@alice/types/property-type/name/": {
+        "$ref": "http://localhost:3000/@alice/types/property-type/name/v/2"
+      }
+    },
+    "links": {
+      "{{friendship_link_entity_type_id}}": {
+        "type": "array",
+        "items": {
+          "oneOf": [
+            {
+              "$ref": "http://localhost:3000/@alice/types/entity-type/person/v/2"
+            }
+          ]
+        },
+        "ordered": false
+      }
+    }
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Get all latest entity types
+POST http://127.0.0.1:4000/entity-types/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "equal": [
+      {
+        "path": [
+          "version"
+        ]
+      },
+      {
+        "parameter": "latest"
+      }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    },
+    "hasRightEntity": {
+      "incoming": 0,
+      "outgoing": 0
+    }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": {
+        "bound": "unbounded"
+      },
+      "end": {
+        "bound": "unbounded"
+      }
+    }
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 3, "Unexpected number of entity types");
+    });
+%}
+
+### Get all link entity type
+POST http://127.0.0.1:4000/entity-types/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "equal": [
+      {
+        "path": [
+          "inheritsFrom",
+          "*",
+          "versionedUri"
+        ]
+      },
+      {
+        "parameter": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1"
+      }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": {
+        "bound": "unbounded"
+      },
+      "end": {
+        "bound": "unbounded"
+      }
+    }
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 1, "Unexpected number of entity types");
+    });
+%}
+
+### Get all entity types which links to a link (should be none)
+POST http://127.0.0.1:4000/entity-types/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "all": [
+      {
+        "equal": [
+          {
+            "path": [
+              "links",
+              "*",
+              "baseUri"
+            ]
+          },
+          {
+            "parameter": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/"
+          }
+        ]
+      }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": {
+        "bound": "unbounded"
+      },
+      "end": {
+        "bound": "unbounded"
+      }
+    }
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 0, "Unexpected number of entity types");
+    });
+%}
+
+
+
+### Insert Person entity
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
+  "properties": {
+    "http://localhost:3000/@alice/types/property-type/name/": "Alice"
+  },
+  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1"
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("person_a_entity_id", response.body.editionId.baseId);
+    client.global.set("person_a_owned_by_id", response.body.editionId.baseId.split("%")[0])
+    client.global.set("person_a_entity_uuid", response.body.editionId.baseId.split("%")[1])
+%}
+
+### Get latest Person entity
+POST http://127.0.0.1:4000/entities/query
+Content-Type: application/json
+
+{
+  "filter": {
+  "all": [
+      {
+        "equal": [
+          {
+            "path": [
+              "uuid"
+            ]
+          },
+          {
+            "parameter": "{{person_a_entity_uuid}}"
+          }
+        ]
+      },
+      {
+        "equal": [
+          {
+            "path": [
+              "ownedById"
+            ]
+          },
+          {
+            "parameter": "{{person_a_owned_by_id}}"
+          }
+        ]
+      }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": null,
+      "end": null
+    }
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 1, "Unexpected number of entities");
+    });
+%}
+
+### Update Person entity
+PUT http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+
+{
+ "actorId": "{{account_id}}",
+ "entityId": "{{person_a_entity_id}}",
+ "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
+ "properties": {
+   "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison"
+ },
+ "archived": false
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert second Person entity
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
+  "properties": {
+    "http://localhost:3000/@alice/types/property-type/name/": "Bob"
+  },
+  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1"
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("person_b_entity_id", response.body.editionId.baseId);
+    client.global.set("person_b_entity_uuid", response.body.editionId.baseId.split("%")[1])
+%}
+
+### Get all latest entities by using a query
+POST http://127.0.0.1:4000/entities/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "all": []
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": null,
+      "end": null
+    }
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 2, "Unexpected number of entities");
+    });
+%}
+
+### Insert link between entities
+POST http://127.0.0.1:4000/entities
+// TODO Use a structural query to check the link was created
+// TODO remove this link
+// TODO check the link was removed
+// TODO insert ordered link
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
+  "properties": {},
+  "entityTypeId": "{{friendship_link_entity_type_id}}",
+  "linkData": {
+    "leftEntityId": "{{person_a_entity_id}}",
+    "rightEntityId": "{{person_b_entity_id}}"
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+
+### Get link by source and target
+POST http://127.0.0.1:4000/entities/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "all": [
+      {
+        "equal": [
+          {
+            "path": [
+              "leftEntity",
+              "uuid"
+            ]
+          },
+          {
+            "parameter": "{{person_a_entity_uuid}}"
+          }
+        ]
+      },
+      {
+        "equal": [
+          {
+            "path": [
+              "rightEntity",
+              "uuid"
+            ]
+          },
+          {
+            "parameter": "{{person_b_entity_uuid}}"
+          }
+        ]
+      }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": { "bound": "unbounded" },
+      "end": { "bound": "unbounded" }
+    }
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 1, "Unexpected number of entities");
+    });
+%}
+
+### Archive an entity
+PUT http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+
+{
+ "actorId": "{{account_id}}",
+ "entityId": "{{person_b_entity_id}}",
+ "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1",
+ "properties": {
+   "http://localhost:3000/@alice/types/property-type/name/": "Bob"
+ },
+ "archived": true
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Get all latest unarchived entities by using a query
+// Only person_a and the link remains as entities
+POST http://127.0.0.1:4000/entities/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "equal": [
+      {
+        "path": [
+          "archived"
+        ]
+      },
+      {
+        "parameter": false
+      }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": null,
+      "end": null
+    }
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 2, "Unexpected number of entities");
+    });
+%}
+
+
+### Get all archived entities
+POST http://127.0.0.1:4000/entities/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "equal": [
+      {
+        "path": [
+          "archived"
+        ]
+      },
+      {
+        "parameter": true
+      }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    }
+  },
+  "timeProjection": {
+    "kernel": {
+      "axis": "transaction",
+      "timestamp": null
+    },
+    "image": {
+      "axis": "decision",
+      "start": {
+        "bound": "unbounded"
+      },
+      "end": {
+        "bound": "unbounded"
+      }
+    }
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 1, "Unexpected number of entities");
+    });
+%}

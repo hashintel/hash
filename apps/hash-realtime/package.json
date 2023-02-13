@@ -1,0 +1,30 @@
+{
+  "name": "@apps/hash-realtime",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Realtime streaming update server from the HASH datstore",
+  "license": "AGPL-3.0",
+  "scripts": {
+    "clear-redis": "ts-node ./src/scripts/clear-redis.ts",
+    "dev": "node --max-old-space-size=2048 ./node_modules/.bin/ts-node-dev --respawn --transpile-only ./src/index.ts",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit",
+    "start": "cross-env NODE_ENV=production node --max-old-space-size=2048 ./node_modules/.bin/ts-node --transpile-only ./src/index.ts"
+  },
+  "dependencies": {
+    "@local/hash-backend-utils": "0.0.0-private",
+    "set-interval-async": "2.0.3",
+    "slonik": "24.1.2",
+    "ts-node": "10.9.1",
+    "typescript": "4.9.4"
+  },
+  "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "@types/node": "18.11.9",
+    "@types/set-interval-async": "1.0.0",
+    "eslint": "8.33.0",
+    "ts-node-dev": "2.0.0"
+  }
+}

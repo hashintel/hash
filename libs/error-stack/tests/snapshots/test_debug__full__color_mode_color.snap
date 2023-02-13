@@ -1,0 +1,24 @@
+---
+source: tests/test_debug.rs
+expression: "format!(\"{report:?}\")"
+---
+<<<<<<< HEAD:packages/libs/error-stack/tests/snapshots/test_debug__full__hook_for_context.snap
+root error
+├╴ at tests/common/mod.rs:4:5
+├╴ backtrace (1)
+├╴ span trace with 2 frames (1)
+╰╴ 1 additional opaque attachment
+=======
+[1mroot error[22m
+[31m├╴[39mat [90mtests/common.rs:4:5[39m
+[31m├╴[39mbacktrace (1)
+[31m╰╴[39mspan trace with 2 frames (1)
+>>>>>>> origin/main:libs/error-stack/tests/snapshots/test_debug__full__color_mode_color.snap
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+backtrace no. 1
+  [redacted]
+
+span trace No. 1
+  [redacted]

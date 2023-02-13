@@ -1,0 +1,30 @@
+---
+source: tests/test_serialize.rs
+expression: a
+---
+[
+  {
+    "context": "context A",
+    "attachments": [
+      "printable C: 4",
+    ],
+    "sources": [
+      {
+        "context": "root error",
+        "attachments": [
+          "printable C: 1",
+          "printable C: 3",
+        ],
+        "sources": [],
+      },
+      {
+        "context": "root error",
+        "attachments": [
+          "printable C: 2",
+          "printable C: 3",
+        ],
+        "sources": [],
+      },
+    ],
+  },
+]

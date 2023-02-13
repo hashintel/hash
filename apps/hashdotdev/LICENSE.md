@@ -1,29 +1,7 @@
-The [hash.dev](https://hash.dev) website is dedicated to
-developers, and its source code is made freely available to all
-under the excellent MIT License.
+# License
 
-The MIT License (MIT)
-=====================
+The [hash.dev](https://hash.dev) website is dedicated to developers, and its source code is made freely available to all under either the [Apache License, Version 2.0](LICENSE-APACHE.md) or [MIT license](LICENSE-MIT.md) at your option.
 
-Copyright © 2022 HASH
+Markdown files (those suffixed `.md`) containing content displayed on the [hash.dev](https://hash.dev/) website are available under the [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International](https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-CC.md) license.
 
-Permission is hereby granted, free of charge, to any person
-obtaining a copy of this software and associated documentation
-files (the “Software”), to deal in the Software without
-restriction, including without limitation the rights to use,
-copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-OTHER DEALINGS IN THE SOFTWARE.
+For more information about contributing to the HASH developer website, see our top-level [CONTRIBUTING](https://github.com/hashintel/hash/blob/main/CONTRIBUTING.md) guide.

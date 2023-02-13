@@ -110,19 +110,28 @@ $ ./ssh_bastion.sh -N -L 5554:h-hash-dev-usea1-pg.*.us-east-1.rds.amazonaws.com:
 
 This will start an SSH tunnel making `localhost:5554` point to the remote RDS instance within the private subnet in AWS.
 
-To migrate the graph, you must first build the docker container that contains the migrations and run it with the graph credentials you put into the [`./hash/prod.secrets.tfvars`](./hash/prod.secrets.tfvars) file:
+To migrate the graph, you must first build the docker container that contains the graph and run it with the graph credentials and the you put into the [`./hash/prod.secrets.tfvars`](./hash/prod.secrets.tfvars) file using the `migrate` subcommand:
+
+Look at the next step and build `hash-graph`.
 
 ```console
-$ DOCKER_BUILDKIT=1 docker build ./packages/graph -f ./packages/graph/deployment/migrations/Dockerfile -t hash-graph-migrate:latest
-..
-$ docker run --rm --network host -e 'HASH_GRAPH_PG_MIGRATION_URL=postgres://graph:changeme@localhost:5554/graph' hash-graph-migrate:latest
+$ docker run --rm \
+  --network host \
+  -e HASH_GRAPH_PG_USER=graph \
+  -e HASH_GRAPH_PG_PASSWORD="changeme" \
+  -e HASH_GRAPH_PG_HOST=localhost \
+  -e HASH_GRAPH_PG_PORT=5554 \
+  -e HASH_GRAPH_PG_DATABASE=graph \
+  -e RUST_LOG=debug \
+  000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-graphecr:latest \
+  migrate
 ..
 ```
 
 You can simultaneously run the migrations for Kratos:
 
 ```console
-$ DOCKER_BUILDKIT=1 docker build ./packages/hash/external-services/kratos --build-arg ENV=prod -t kratos:latest
+$ DOCKER_BUILDKIT=1 docker build ./apps/hash-external-services/kratos --build-arg ENV=prod -t kratos:latest
 ..
 $ docker run --network host --rm -e "DSN=postgres://kratos:changeme@localhost:5554/kratos" kratos:latest migrate sql -e --yes
 ..
@@ -149,7 +158,7 @@ The build and push commands ran from the root of this ([`hashintel/hash`](../../
 **Building `hash-graph`**:
 
 ```console
-$ DOCKER_BUILDKIT=1 docker build ./packages/graph -f ./packages/graph/deployment/graph/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-graphecr:latest
+$ DOCKER_BUILDKIT=1 docker build ./apps/hash-graph -f ./apps/hash-graph/docker/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-graphecr:latest
 ..
 $ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-graphecr:latest
 ..
@@ -158,7 +167,7 @@ $ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-gra
 **Building `hash-api`**:
 
 ```console
-$ DOCKER_BUILDKIT=1 docker build . -f ./packages/hash/docker/api/prod/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-apiecr:latest
+$ DOCKER_BUILDKIT=1 docker build . -f ./infra/docker/api/prod/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-apiecr:latest
 ..
 $ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-apiecr:latest
 ..
@@ -169,7 +178,7 @@ $ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-api
 For Kratos, it's required to provide some build-time args to ensure a secure instance running in production mode (and configuring an API secret `$SECRET` which should match the `kratos_api_key` tfvar).
 
 ```console
-$ DOCKER_BUILDKIT=1 docker build ./packages/hash/external-services/kratos --build-arg ENV=prod --build-arg API_SECRET=$SECRET -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-kratosecr:latest
+$ DOCKER_BUILDKIT=1 docker build ./apps/hash-external-services/kratos --build-arg ENV=prod --build-arg API_SECRET=$SECRET -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-kratosecr:latest
 ..
 $ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-kratosecr:latest
 ..

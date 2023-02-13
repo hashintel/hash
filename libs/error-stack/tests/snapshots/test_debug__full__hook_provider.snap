@@ -1,0 +1,32 @@
+---
+source: tests/test_debug.rs
+expression: "format!(\"{report:?}\")"
+---
+context D
+<<<<<<< HEAD:packages/libs/error-stack/tests/snapshots/test_debug__full__hook_provider.snap
+├╴ usize: 420
+├╴ &'static str: Invalid User Input
+├╴ at tests/test_debug.rs:396:38
+│
+╰─▶ root error
+    ├╴ at tests/common/mod.rs:4:5
+    ├╴ backtrace (1)
+    ╰╴ span trace with 2 frames (1)
+=======
+├╴usize: 420
+├╴&'static str: Invalid User Input
+├╴at tests/test_debug.rs:589:38
+│
+╰─▶ root error
+    ├╴at tests/common.rs:4:5
+    ├╴backtrace (1)
+    ╰╴span trace with 2 frames (1)
+>>>>>>> origin/main:libs/error-stack/tests/snapshots/test_debug__full__hook_provider.snap
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+backtrace no. 1
+  [redacted]
+
+span trace No. 1
+  [redacted]

@@ -1,0 +1,41 @@
+---
+source: tests/test_debug.rs
+expression: "format!(\"{report:#?}\")"
+---
+context B
+<<<<<<< HEAD:packages/libs/error-stack/tests/snapshots/test_debug__full__multiline_context.snap
+├╴ at tests/test_debug.rs:128:14
+├╴ printable C
+=======
+├╴at tests/test_debug.rs:321:14
+├╴printable C
+>>>>>>> origin/main:libs/error-stack/tests/snapshots/test_debug__full__multiline_context.snap
+│
+├─▶ A multiline
+│   context that might have
+│   a bit more info
+<<<<<<< HEAD:packages/libs/error-stack/tests/snapshots/test_debug__full__multiline_context.snap
+│   ├╴ at tests/test_debug.rs:125:14
+│   ├╴ printable B
+│   ╰╴ 1 additional opaque attachment
+=======
+│   ├╴at tests/test_debug.rs:318:14
+│   ├╴printable B
+│   ╰╴1 additional opaque attachment
+>>>>>>> origin/main:libs/error-stack/tests/snapshots/test_debug__full__multiline_context.snap
+│
+╰─▶ A multiline
+    context that might have
+    a bit more info
+<<<<<<< HEAD:packages/libs/error-stack/tests/snapshots/test_debug__full__multiline_context.snap
+    ├╴ at tests/test_debug.rs:124:22
+    ╰╴ backtrace (1)
+=======
+    ├╴at tests/test_debug.rs:317:22
+    ╰╴backtrace (1)
+>>>>>>> origin/main:libs/error-stack/tests/snapshots/test_debug__full__multiline_context.snap
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+backtrace no. 1
+  [redacted]

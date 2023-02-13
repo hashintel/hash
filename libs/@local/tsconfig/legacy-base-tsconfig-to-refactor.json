@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "allowJs": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "lib": ["dom", "es2020"],
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noUncheckedIndexedAccess": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "es2020",
+    "baseUrl": ".",
+    "paths": {
+      "@local/hash-backend-utils/*": ["../hash-backend-utils/src/*"],
+      "@local/hash-graphql-shared/*": ["../hash-graphql-shared/src/*"],
+      "@local/hash-isomorphic-utils/*": ["../hash-isomorphic-utils/src/*"]
+    }
+  },
+  "ts-node": {
+    "transpileOnly": true
+  }
+}

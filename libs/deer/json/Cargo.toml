@@ -1,0 +1,18 @@
+[package]
+name = "deer-json"
+version = "0.0.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+error-stack = { version = "0.3.1", default_features = false }
+
+serde_json = { version = "1.0.91", default_features = false, features = ['alloc'] }
+
+deer = { path = "..", default_features = false }
+
+[features]
+default = ['std']
+std = ["serde_json/std", "deer/std"]
+arbitrary-precision = ['deer/arbitrary-precision', 'serde_json/arbitrary_precision']

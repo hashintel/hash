@@ -1,0 +1,41 @@
+extend = { path = "../../.github/scripts/rust/Makefile.toml" }
+
+[env]
+CARGO_MIRI_HACK_FLAGS = "--workspace"
+CARGO_RUSTDOC_FLAGS = "--all-features -Zunstable-options -Zrustdoc-scrape-examples=examples -- -Zunstable-options"
+
+# The `test` task will execute these task in the folloing order:
+#  1. Run unit tests
+#  2. Build the test dependencies (CI only)
+#  3. Setup python (CI only)
+#  4. Run the integration tests
+
+[tasks.test]
+run_task = { name = ["test-task", "run-integrations"] }
+
+[tasks.build-test-deps]
+condition = { env_true = ["CARGO_MAKE_CI"] }
+private = true
+extend = "build-task"
+args = ["build", "-p", "memory", "--profile", "${CARGO_MAKE_CARGO_PROFILE}"]
+
+[tasks.setup-python]
+condition = { env_true = ["CARGO_MAKE_CI"] }
+extend = "bash"
+args = ["lib/execution/src/runner/python/setup.sh", "python3.10"]
+dependencies = ["build-test-deps"]
+
+[tasks.run-integrations]
+private = true
+extend = "cargo"
+args = ["nextest", "run", "--workspace", "--test", "integration", "--no-fail-fast", "--cargo-profile", "${CARGO_MAKE_CARGO_PROFILE}", "--all-features"]
+dependencies = ["install-cargo-nextest", "setup-python"]
+
+# The workspace crate (`hash_engine_lib`) does not have any source files but only the integration tests. `rustdoc` will
+# error when running on an empty crate, so disable running it on the workspace crate.
+[tasks.rustdoc]
+workspace = true
+
+[tasks.rustdoc-task]
+condition = { env_false = ["CARGO_MAKE_CRATE_IS_WORKSPACE"] }
+args = ["rustdoc", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_RUSTDOC_FLAGS, )", "${@}"]

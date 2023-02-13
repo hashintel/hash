@@ -1,8 +1,0 @@
-# Rust artifacts
-target/
-
-# Local environment file will not be comitted to the repository
-/.env.local
-
-
-log/

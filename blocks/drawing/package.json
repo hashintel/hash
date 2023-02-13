@@ -1,6 +1,7 @@
 {
   "name": "@blocks/drawing",
   "version": "0.2.1",
+  "private": true,
   "description": "Create a diagram, sketch an idea, or map a process",
   "keywords": [
     "blockprotocol",
@@ -32,7 +33,7 @@
     "@local/tsconfig": "0.0.0-private",
     "@types/react-resizable": "1.7.4",
     "block-scripts": "0.0.14",
-    "eslint": "8.31.0",
+    "eslint": "8.33.0",
     "mock-block-dock": "0.0.38",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -50,6 +51,7 @@
     "blockType": {
       "entryPoint": "react"
     },
+    "name": "@tldraw/drawing",
     "displayName": "Drawing",
     "examples": [
       {

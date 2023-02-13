@@ -1,0 +1,13 @@
+---
+source: tests/test_serialize.rs
+expression: report
+---
+[
+  {
+    "context": "root error",
+    "attachments": [
+      "printable A",
+    ],
+    "sources": [],
+  },
+]

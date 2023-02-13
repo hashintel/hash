@@ -11,7 +11,7 @@ date: "2022-06-10"
 
 We are proud to announce a new error library for Rust: `error-stack` - a context-aware error library with arbitrary attached user data.
 
-- [View the crate on GitHub >](https://github.com/hashintel/hash/tree/main/packages/libs/error-stack)
+- [View the crate on GitHub >](https://github.com/hashintel/hash/tree/main/libs/error-stack)
 
 This post outlines some of our experiences with error-handling in Rust, why we built the `error-stack` library, the architectural choices we made along the way, and what you can expect from the crate.
 
@@ -267,7 +267,7 @@ We don't have space here to talk about all of the features of `error-stack`, but
 - Just like [`eyre`](https://crates.io/crates/eyre), the crate is able to set its own `Display` and `Debug` hooks that are called when printing the `Report`, which means you can write your own custom formatting and do other cool things
 - We have in-built support for backtraces on the nightly channel and feature-flagged support for `tracing` to capture a `SpanTrace`
 
-[Check out the `error-stack` repository](https://github.com/hashintel/hash/tree/main/packages/libs/error-stack) for even more information about the library.
+[Check out the `error-stack` repository](https://github.com/hashintel/hash/tree/main/libs/error-stack) for even more information about the library.
 
 ### The future of error-stack
 
@@ -277,7 +277,7 @@ During development of the library we included a `Provider` implementation while 
 
 We cannot guarantee full backward compatibility until this crate hits `v1.0.0`. However, we will aim to avoid breaking changes, and in the event of any will announce them beforehand and provide a migration guide.
 
-Contributions are greatly welcome. View the [project code on GitHub](https://github.com/hashintel/hash/tree/main/packages/libs/error-stack) and, if you like it, please star the repository!
+Contributions are greatly welcome. View the [project code on GitHub](https://github.com/hashintel/hash/tree/main/libs/error-stack) and, if you like it, please star the repository!
 
 ### Acknowledgments
 
@@ -287,4 +287,4 @@ We would like to thank the [Error Project Group](https://github.com/rust-lang/pr
 
 This crate is published under the MIT License.
 
-[**View and star `error-stack` on GitHub >**](https://github.com/hashintel/hash/tree/main/packages/libs/error-stack)
+[**View and star `error-stack` on GitHub >**](https://github.com/hashintel/hash/tree/main/libs/error-stack)

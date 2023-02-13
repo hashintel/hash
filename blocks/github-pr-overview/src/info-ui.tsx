@@ -1,4 +1,4 @@
-import { LoadingSpinner } from "@hashintel/hash-design-system";
+import { LoadingSpinner } from "@hashintel/design-system";
 import { Box, Typography } from "@mui/material";
 import { FunctionComponent } from "react";
 
