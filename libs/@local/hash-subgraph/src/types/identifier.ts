@@ -7,19 +7,7 @@ import {
   VersionedUri as TVersionedUri,
 } from "@blockprotocol/type-system";
 
-import { EntityId, isEntityId, Timestamp } from "./shared";
-
 export type VersionedUri = TVersionedUri;
-
-/**
- * A tuple struct of a given `EntityId` and timestamp, used to identify an `Entity` at a given moment of time, where
- * that time may be any time in an `Entity`'s lifespan (and thus the timestamp is *not* necessarily equal to an
- * `EntityVersion`)
- */
-export type EntityIdAndTimestamp = {
-  baseId: EntityId;
-  timestamp: Timestamp;
-};
 
 export type OntologyTypeRecordId = {
   baseUri: BaseUri;
@@ -42,19 +30,6 @@ export const isOntologyTypeRecordId = (
     "version" in editionId &&
     typeof editionId.version === "number" &&
     Number.isInteger(editionId.version)
-  );
-};
-
-export const isEntityIdAndTimestamp = (
-  entityIdAndTimestamp: object,
-): entityIdAndTimestamp is EntityIdAndTimestamp => {
-  return (
-    "baseId" in entityIdAndTimestamp &&
-    typeof entityIdAndTimestamp.baseId === "string" &&
-    isEntityId(entityIdAndTimestamp.baseId) &&
-    "timestamp" in entityIdAndTimestamp &&
-    typeof entityIdAndTimestamp.timestamp === "string" &&
-    !Number.isNaN(Date.parse(entityIdAndTimestamp.timestamp))
   );
 };
 

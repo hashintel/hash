@@ -4,19 +4,20 @@ import {
   UnresolvedTimeProjection,
 } from "@local/hash-graph-client";
 
-import { Edges } from "./edge";
 import {
   DataTypeWithMetadata,
   Entity,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "./element";
+import { Edges } from "./subgraph/edges";
 import {
   EntityVertexId,
   OntologyTypeVertexId,
   Vertices,
 } from "./subgraph/vertices";
 
+export * from "./subgraph/edges";
 export * from "./subgraph/vertices";
 
 /** @todo-0.3 - remove this */
