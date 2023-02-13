@@ -1,4 +1,4 @@
-import { EntityId } from "@local/hash-graphql-shared/types";
+import { EntityId } from "@local/hash-subgraph/main";
 
 import { useEntityEditor } from "../entity-editor/entity-editor-context";
 
@@ -8,7 +8,7 @@ export const useMarkLinkEntityToArchive = () => {
 
   const markLinkEntityToArchive = (linkEntityId: EntityId) => {
     const foundIndex = draftLinksToCreate.findIndex(
-      (item) => item.linkEntity.metadata.editionId.baseId === linkEntityId,
+      (item) => item.linkEntity.metadata.recordId.entityId === linkEntityId,
     );
 
     if (foundIndex !== -1) {

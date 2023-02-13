@@ -1,7 +1,11 @@
 import { useQuery } from "@apollo/client";
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
-import { EntityId } from "@local/hash-graphql-shared/types";
-import { Entity, EntityMetadata, EntityVersion } from "@local/hash-subgraph";
+import {
+  Entity,
+  EntityId,
+  EntityMetadata,
+  EntityVersion,
+} from "@local/hash-subgraph/main";
 
 import {
   GetPageCommentsQuery,

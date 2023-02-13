@@ -115,7 +115,8 @@ export const returnTypeAsJson = async (request: NextRequest) => {
     );
   }
 
-  const type = vertices[baseId]?.[version];
+  /** @todo-0.3 - remove this any when the subgraph is migrated */
+  const type = (vertices[baseId] as any)[version];
 
   if (!type) {
     return generateErrorResponse(

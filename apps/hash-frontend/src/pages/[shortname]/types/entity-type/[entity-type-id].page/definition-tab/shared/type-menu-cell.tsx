@@ -5,7 +5,7 @@ import {
   IconButton,
   MenuItem,
 } from "@hashintel/design-system";
-import { VersionedUri } from "@local/hash-subgraph";
+import { VersionedUri } from "@local/hash-subgraph/main";
 import {
   Box,
   Divider,

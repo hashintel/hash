@@ -12,7 +12,7 @@ pub use self::query::{EntityQueryPath, EntityQueryPathVisitor, EntityQueryToken}
 use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityVersion},
-        time::TimeAxis,
+        time::{TemporalTagged, TimeAxis},
         EntityVertexId,
     },
     provenance::ProvenanceMetadata,
@@ -288,10 +288,10 @@ impl Record for Entity {
 
     fn vertex_id(&self, time_axis: TimeAxis) -> Self::VertexId {
         let timestamp = match time_axis {
-            TimeAxis::DecisionTime => self.metadata().version().decision_time().start.cast(),
-            TimeAxis::TransactionTime => self.metadata().version().transaction_time().start.cast(),
+            TimeAxis::DecisionTime => self.metadata().version().decision_time.start().cast(),
+            TimeAxis::TransactionTime => self.metadata().version().transaction_time.start().cast(),
         };
-        EntityVertexId::new(self.edition_id().base_id(), timestamp)
+        EntityVertexId::new(self.edition_id().base_id(), timestamp.into())
     }
 
     fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {

@@ -17,8 +17,8 @@ import {
   LoadingSpinner,
 } from "@hashintel/design-system";
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
-import { EntityId } from "@local/hash-graphql-shared/types";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { EntityId } from "@local/hash-subgraph/main";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
 import { isEqual } from "lodash";
@@ -87,7 +87,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
 }) => {
   const {
     metadata: {
-      editionId: { baseId },
+      recordId: { entityId },
       // TODO: The provenance fields shouldn't be used for this
       //   see https://app.asana.com/0/1201095311341924/1203466351235289/f
       provenance: { updatedById: commentCreatedById },
@@ -97,7 +97,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
     textUpdatedAt,
   } = comment;
 
-  const commentEntityId = baseId as EntityId;
+  const commentEntityId = entityId;
 
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [collapsed, setCollapsed] = useState(true);

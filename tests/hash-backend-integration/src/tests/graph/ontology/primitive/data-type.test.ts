@@ -10,8 +10,11 @@ import {
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import { DataType, TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { OwnedById } from "@local/hash-graphql-shared/types";
-import { DataTypeWithMetadata } from "@local/hash-subgraph";
+import {
+  DataTypeWithMetadata,
+  isOwnedOntologyElementMetadata,
+  OwnedById,
+} from "@local/hash-subgraph/main";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
@@ -70,18 +73,20 @@ describe("Data type CRU", () => {
 
   const updatedTitle = "New text!";
   it("can update a data type", async () => {
-    expect(createdDataType.metadata.provenance.updatedById).toBe(
-      testUser.accountId,
-    );
+    expect(
+      isOwnedOntologyElementMetadata(createdDataType.metadata) &&
+        createdDataType.metadata.provenance.updatedById,
+    ).toBe(testUser.accountId);
 
-    createdDataType = await updateDataType(graphContext, {
+    const updatedDataType = await updateDataType(graphContext, {
       dataTypeId: createdDataType.schema.$id,
       schema: { ...dataTypeSchema, title: updatedTitle },
       actorId: testUser2.accountId,
     }).catch((err) => Promise.reject(err.data));
 
-    expect(createdDataType.metadata.provenance.updatedById).toBe(
-      testUser2.accountId,
-    );
+    expect(
+      isOwnedOntologyElementMetadata(updatedDataType.metadata) &&
+        updatedDataType.metadata.provenance.updatedById,
+    ).toBe(testUser2.accountId);
   });
 });

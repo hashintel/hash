@@ -1,4 +1,5 @@
 import { mustBeDefined } from "../../shared/invariant";
+import { EntityId } from "../../types/branded";
 import {
   isHasLeftEntityEdge,
   isHasRightEntityEdge,
@@ -6,14 +7,14 @@ import {
   isOutwardLinkEdge,
 } from "../../types/edge/outward-edge-alias";
 import { Entity } from "../../types/element";
-import { entityEditionIdToString, EntityId } from "../../types/identifier";
+import { entityRecordIdToString } from "../../types/identifier";
 import { Subgraph } from "../../types/subgraph";
 import { getEntityAtTimestamp } from "../element/entity";
 
 const getUniqueEntitiesFilter = () => {
   const set = new Set();
   return (entity: Entity) => {
-    const editionIdString = entityEditionIdToString(entity.metadata.editionId);
+    const editionIdString = entityRecordIdToString(entity.metadata.recordId);
     if (set.has(editionIdString)) {
       return false;
     } else {
@@ -52,7 +53,7 @@ export const getOutgoingLinksForEntityAtMoment = (
     Object.entries(entityEdges)
       // Only look at outgoing edges that were created before or at the timestamp
       .filter(([edgeTimestamp, _]) => edgeTimestamp <= timestampString)
-      // Extract the link `EntityEditionId`s from the endpoints of the link edges
+      // Extract the link `EntityRecordId`s from the endpoints of the link edges
       .flatMap(([_, outwardEdges]) => {
         return outwardEdges.filter(isOutwardLinkEdge).map((edge) => {
           return edge.rightEndpoint;
@@ -110,7 +111,7 @@ export const getIncomingLinksForEntityAtMoment = (
     Object.entries(entityEdges)
       // Only look at edges that were created before or at the timestamp
       .filter(([edgeTimestamp, _]) => edgeTimestamp <= timestampString)
-      // Extract the link `EntityEditionId`s from the endpoints of the link edges
+      // Extract the link `EntityRecordId`s from the endpoints of the link edges
       .flatMap(([_, outwardEdges]) => {
         return outwardEdges.filter(isIncomingLinkEdge).map((edge) => {
           return edge.rightEndpoint;
@@ -221,7 +222,7 @@ export const getOutgoingLinkAndTargetEntitiesAtMoment = (
       linkEntity,
       rightEntity: getRightEntityForLinkEntityAtMoment(
         subgraph,
-        linkEntity.metadata.editionId.baseId,
+        linkEntity.metadata.recordId.entityId,
         timestamp,
       ),
     };

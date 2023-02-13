@@ -6,7 +6,7 @@ import {
 } from "@blockprotocol/type-system";
 
 import { DataTypeWithMetadata } from "../../types/element";
-import { OntologyTypeEditionId } from "../../types/identifier";
+import { OntologyTypeRecordId } from "../../types/identifier";
 import { Subgraph } from "../../types/subgraph";
 import { isDataTypeVertex } from "../../types/vertex";
 
@@ -55,18 +55,18 @@ export const getDataTypeById = (
 };
 
 /**
- * Gets a `DataTypeWithMetadata` by its `OntologyTypeEditionId` from within the vertices of the subgraph. Returns
+ * Gets a `DataTypeWithMetadata` by its `OntologyTypeRecordId` from within the vertices of the subgraph. Returns
  * `undefined` if the data type couldn't be found.
  *
  * @param subgraph
- * @param editionId
+ * @param recordId
  * @throws if the vertex isn't a `DataTypeVertex`
  */
 export const getDataTypeByEditionId = (
   subgraph: Subgraph,
-  editionId: OntologyTypeEditionId,
+  recordId: OntologyTypeRecordId,
 ): DataTypeWithMetadata | undefined => {
-  const vertex = subgraph.vertices[editionId.baseId]?.[editionId.version];
+  const vertex = subgraph.vertices[recordId.baseUri]?.[recordId.version];
 
   if (!vertex) {
     return undefined;

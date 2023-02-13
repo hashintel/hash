@@ -36,3 +36,10 @@ pub enum TimeAxis {
 /// [`TimeProjection`]: crate::identifier::time::TimeProjection
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ProjectedTime;
+
+pub trait TemporalTagged {
+    type Axis;
+    type Tagged<A>: TemporalTagged<Axis = A>;
+
+    fn cast<A>(self) -> Self::Tagged<A>;
+}

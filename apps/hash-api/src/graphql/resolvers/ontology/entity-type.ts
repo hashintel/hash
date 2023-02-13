@@ -1,5 +1,9 @@
-import { OwnedById } from "@local/hash-graphql-shared/types";
-import { EntityTypeWithMetadata, Subgraph } from "@local/hash-subgraph";
+import {
+  EntityTypeWithMetadata,
+  OwnedById,
+  Subgraph,
+} from "@local/hash-subgraph/main";
+import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import {
   createEntityType,
@@ -26,8 +30,7 @@ export const createEntityTypeResolver: ResolverFn<
   const { ownedById, entityType } = params;
 
   const createdEntityType = await createEntityType(context, {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-    ownedById: (ownedById as OwnedById) ?? user.accountId,
+    ownedById: ownedById ?? (user.accountId as OwnedById),
     schema: entityType,
     actorId: user.accountId,
   });
@@ -80,7 +83,7 @@ export const getAllLatestEntityTypesResolver: ResolverFn<
     },
   });
 
-  return entityTypeSubgraph as Subgraph;
+  return mapSubgraph(entityTypeSubgraph);
 };
 
 export const getEntityTypeResolver: ResolverFn<
@@ -129,7 +132,7 @@ export const getEntityTypeResolver: ResolverFn<
     },
   });
 
-  return entityTypeSubgraph as Subgraph;
+  return mapSubgraph(entityTypeSubgraph);
 };
 
 export const updateEntityTypeResolver: ResolverFn<

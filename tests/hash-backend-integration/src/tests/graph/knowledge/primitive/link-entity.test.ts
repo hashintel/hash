@@ -21,13 +21,13 @@ import {
 } from "@apps/hash-api/src/graph/util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { OwnedById } from "@local/hash-graphql-shared/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   Entity,
   EntityTypeWithMetadata,
   linkEntityTypeUri,
-} from "@local/hash-subgraph";
+  OwnedById,
+} from "@local/hash-subgraph/main";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
@@ -160,17 +160,17 @@ describe("Link entity", () => {
   it("can link entities", async () => {
     linkEntityFriend = await createLinkEntity(graphContext, {
       ownedById: testUser.accountId as OwnedById,
-      leftEntityId: leftEntity.metadata.editionId.baseId,
+      leftEntityId: leftEntity.metadata.recordId.entityId,
       linkEntityType: friendLinkEntityType,
-      rightEntityId: friendRightEntity.metadata.editionId.baseId,
+      rightEntityId: friendRightEntity.metadata.recordId.entityId,
       actorId: testUser.accountId,
     });
 
     linkEntityAcquaintance = await createLinkEntity(graphContext, {
       ownedById: testUser.accountId as OwnedById,
-      leftEntityId: leftEntity.metadata.editionId.baseId,
+      leftEntityId: leftEntity.metadata.recordId.entityId,
       linkEntityType: acquaintanceLinkEntityType,
-      rightEntityId: acquaintanceRightEntity.metadata.editionId.baseId,
+      rightEntityId: acquaintanceRightEntity.metadata.recordId.entityId,
       actorId: testUser.accountId,
     });
   });

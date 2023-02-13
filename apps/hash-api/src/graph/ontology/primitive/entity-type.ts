@@ -1,16 +1,19 @@
 import { EntityType, VersionedUri } from "@blockprotocol/type-system";
 import { UpdateEntityTypeRequest } from "@local/hash-graph-client";
 import { EntityTypeWithoutId } from "@local/hash-graphql-shared/graphql/types";
-import { AccountId, OwnedById } from "@local/hash-graphql-shared/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
+  AccountId,
   EntityTypeWithMetadata,
   linkEntityTypeUri,
-  ontologyTypeEditionIdToVersionedUri,
+  ontologyTypeRecordIdToVersionedUri,
+  OwnedById,
   Subgraph,
   SubgraphRootTypes,
-} from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+} from "@local/hash-subgraph/main";
+import { getRoots } from "@local/hash-subgraph/stdlib/roots";
+import { mapSubgraph } from "@local/hash-subgraph/temp";
+import { mapOntologyMetadata } from "@local/hash-subgraph/temp/map-vertices";
 
 import { NotFoundError } from "../../../lib/error";
 import {
@@ -56,7 +59,7 @@ export const createEntityType: ImpureGraphFunction<
     schema,
   });
 
-  return { schema, metadata };
+  return { schema, metadata: mapOntologyMetadata(metadata) };
 };
 
 /**
@@ -90,7 +93,10 @@ export const getEntityTypeById: ImpureGraphFunction<
         },
       },
     })
-    .then(({ data }) => data as Subgraph<SubgraphRootTypes["entityType"]>);
+    .then(
+      ({ data }) =>
+        mapSubgraph(data) as Subgraph<SubgraphRootTypes["entityType"]>,
+    );
 
   const [entityType] = getRoots(entityTypeSubgraph);
 
@@ -127,14 +133,15 @@ export const updateEntityType: ImpureGraphFunction<
 
   const { data: metadata } = await graphApi.updateEntityType(updateArguments);
 
-  const { editionId } = metadata;
+  const mappedMetadata = mapOntologyMetadata(metadata);
+  const { recordId } = mappedMetadata;
 
   return {
     schema: {
       ...schema,
-      $id: ontologyTypeEditionIdToVersionedUri(editionId),
+      $id: ontologyTypeRecordIdToVersionedUri(recordId),
     },
-    metadata,
+    metadata: mappedMetadata,
   };
 };
 

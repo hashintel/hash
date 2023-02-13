@@ -1,18 +1,17 @@
 import {
   AccountId,
+  Entity,
+  EntityId,
   EntityUuid,
   extractEntityUuidFromEntityId,
   OwnedById,
-  Uuid,
-} from "@local/hash-graphql-shared/types";
-import {
-  Entity,
-  EntityId,
   PropertyObject,
   Subgraph,
   SubgraphRootTypes,
-} from "@local/hash-subgraph";
-import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
+  Uuid,
+} from "@local/hash-subgraph/main";
+import { getRootsAsEntities } from "@local/hash-subgraph/stdlib/element/entity";
+import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import {
   kratosIdentityApi,
@@ -65,33 +64,33 @@ export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
     entity.metadata.entityTypeId !== SYSTEM_TYPES.entityType.user.schema.$id
   ) {
     throw new EntityTypeMismatchError(
-      entity.metadata.editionId.baseId,
+      entity.metadata.recordId.entityId,
       SYSTEM_TYPES.entityType.user.schema.$id,
       entity.metadata.entityTypeId,
     );
   }
 
   const kratosIdentityId = entity.properties[
-    SYSTEM_TYPES.propertyType.kratosIdentityId.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.kratosIdentityId.metadata.recordId.baseUri
   ] as string;
 
   const shortname = entity.properties[
-    SYSTEM_TYPES.propertyType.shortName.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUri
   ] as string | undefined;
 
   const preferredName = entity.properties[
-    SYSTEM_TYPES.propertyType.shortName.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUri
   ] as string | undefined;
 
   const emails = entity.properties[
-    SYSTEM_TYPES.propertyType.email.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.email.metadata.recordId.baseUri
   ] as string[];
 
   const isAccountSignupComplete = !!shortname && !!preferredName;
 
   return {
     accountId: extractEntityUuidFromEntityId(
-      entity.metadata.editionId.baseId,
+      entity.metadata.recordId.entityId,
     ) as Uuid as AccountId,
     shortname,
     preferredName,
@@ -140,7 +139,7 @@ export const getUserByShortname: ImpureGraphFunction<
               {
                 path: [
                   "properties",
-                  SYSTEM_TYPES.propertyType.shortName.metadata.editionId.baseId,
+                  SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUri,
                 ],
               },
               { parameter: params.shortname },
@@ -163,7 +162,9 @@ export const getUserByShortname: ImpureGraphFunction<
     })
     .then(({ data: userEntitiesSubgraph }) =>
       getRootsAsEntities(
-        userEntitiesSubgraph as Subgraph<SubgraphRootTypes["entity"]>,
+        mapSubgraph(userEntitiesSubgraph) as Subgraph<
+          SubgraphRootTypes["entity"]
+        >,
       ),
     );
 
@@ -200,8 +201,8 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
               {
                 path: [
                   "properties",
-                  SYSTEM_TYPES.propertyType.kratosIdentityId.metadata.editionId
-                    .baseId,
+                  SYSTEM_TYPES.propertyType.kratosIdentityId.metadata.recordId
+                    .baseUri,
                 ],
               },
               { parameter: params.kratosIdentityId },
@@ -224,7 +225,9 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
     })
     .then(({ data: userEntitiesSubgraph }) =>
       getRootsAsEntities(
-        userEntitiesSubgraph as Subgraph<SubgraphRootTypes["entity"]>,
+        mapSubgraph(userEntitiesSubgraph) as Subgraph<
+          SubgraphRootTypes["entity"]
+        >,
       ),
     );
 
@@ -301,18 +304,18 @@ export const createUser: ImpureGraphFunction<
     params.userAccountId ?? (await graphApi.createAccountId()).data;
 
   const properties: PropertyObject = {
-    [SYSTEM_TYPES.propertyType.email.metadata.editionId.baseId]: emails,
-    [SYSTEM_TYPES.propertyType.kratosIdentityId.metadata.editionId.baseId]:
+    [SYSTEM_TYPES.propertyType.email.metadata.recordId.baseUri]: emails,
+    [SYSTEM_TYPES.propertyType.kratosIdentityId.metadata.recordId.baseUri]:
       kratosIdentityId,
     ...(shortname
       ? {
-          [SYSTEM_TYPES.propertyType.shortName.metadata.editionId.baseId]:
+          [SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUri]:
             shortname,
         }
       : {}),
     ...(preferredName
       ? {
-          [SYSTEM_TYPES.propertyType.preferredName.metadata.editionId.baseId]:
+          [SYSTEM_TYPES.propertyType.preferredName.metadata.recordId.baseUri]:
             preferredName,
         }
       : {}),
@@ -419,7 +422,7 @@ export const updateUserShortname: ImpureGraphFunction<
   const updatedUser = await updateEntityProperty(ctx, {
     entity: user.entity,
     propertyTypeBaseUri:
-      SYSTEM_TYPES.propertyType.shortName.metadata.editionId.baseId,
+      SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUri,
     value: updatedShortname,
     actorId,
   }).then((updatedEntity) => getUserFromEntity({ entity: updatedEntity }));
@@ -432,7 +435,7 @@ export const updateUserShortname: ImpureGraphFunction<
     await updateEntityProperty(ctx, {
       entity: user.entity,
       propertyTypeBaseUri:
-        SYSTEM_TYPES.propertyType.shortName.metadata.editionId.baseId,
+        SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUri,
       value: previousShortname,
       actorId,
     });
@@ -465,7 +468,7 @@ export const updateUserPreferredName: ImpureGraphFunction<
   const updatedEntity = await updateEntityProperty(ctx, {
     entity: user.entity,
     propertyTypeBaseUri:
-      SYSTEM_TYPES.propertyType.preferredName.metadata.editionId.baseId,
+      SYSTEM_TYPES.propertyType.preferredName.metadata.recordId.baseUri,
     value: updatedPreferredName,
     actorId,
   });
@@ -539,7 +542,7 @@ export const isUserMemberOfOrg: ImpureGraphFunction<
 
   return !!orgs.find(
     (org) =>
-      extractEntityUuidFromEntityId(org.entity.metadata.editionId.baseId) ===
+      extractEntityUuidFromEntityId(org.entity.metadata.recordId.entityId) ===
       params.orgEntityUuid,
   );
 };

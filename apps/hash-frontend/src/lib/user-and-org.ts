@@ -1,28 +1,26 @@
 import { extractBaseUri } from "@blockprotocol/type-system";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountEntityId,
   AccountId,
-  extractAccountId,
-} from "@local/hash-graphql-shared/types";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import {
   Entity,
-  EntityEditionId,
-  EntityEditionIdString,
-  entityEditionIdToString,
+  EntityRecordId,
+  EntityRecordIdString,
+  entityRecordIdToString,
+  extractAccountId,
   Subgraph,
-} from "@local/hash-subgraph";
+} from "@local/hash-subgraph/main";
 import {
   getIncomingLinksForEntityAtMoment,
   getLeftEntityForLinkEntityAtMoment,
   getOutgoingLinksForEntityAtMoment,
   getRightEntityForLinkEntityAtMoment,
-} from "@local/hash-subgraph/src/stdlib/edge/link";
+} from "@local/hash-subgraph/stdlib/edge/link";
 import { Session } from "@ory/client";
 
 export type MinimalUser = {
   kind: "user";
-  entityEditionId: EntityEditionId;
+  entityRecordId: EntityRecordId;
   accountId: AccountId;
   accountSignupComplete: boolean;
   shortname?: string;
@@ -46,10 +44,10 @@ export const constructMinimalUser = (params: {
 
   return {
     kind: "user",
-    entityEditionId: userEntity.metadata.editionId,
+    entityRecordId: userEntity.metadata.recordId,
     // Cast reason: The EntityUuid of a User's baseId is an AccountId
     accountId: extractAccountId(
-      userEntity.metadata.editionId.baseId as AccountEntityId,
+      userEntity.metadata.recordId.entityId as AccountEntityId,
     ),
     shortname,
     preferredName,
@@ -64,8 +62,8 @@ export type User = MinimalUser & {
 export const constructUser = (params: {
   subgraph: Subgraph;
   userEntity: Entity;
-  resolvedUsers?: Record<EntityEditionIdString, User>;
-  resolvedOrgs?: Record<EntityEditionIdString, Org>;
+  resolvedUsers?: Record<EntityRecordIdString, User>;
+  resolvedOrgs?: Record<EntityRecordIdString, Org>;
 }): User => {
   const { userEntity, subgraph } = params;
 
@@ -74,7 +72,7 @@ export const constructUser = (params: {
 
   const orgMemberships = getOutgoingLinksForEntityAtMoment(
     subgraph,
-    userEntity.metadata.editionId.baseId,
+    userEntity.metadata.recordId.entityId,
     new Date(),
   ).filter(
     (linkEntity) =>
@@ -86,7 +84,7 @@ export const constructUser = (params: {
 
   // We add it to resolved users *before* fully creating so that when we're traversing we know
   // we already encountered it and avoid infinite recursion
-  resolvedUsers[entityEditionIdToString(user.entityEditionId)] = user;
+  resolvedUsers[entityRecordIdToString(user.entityRecordId)] = user;
 
   user.memberOf = orgMemberships.map(({ properties, linkData, metadata }) => {
     const responsibility: string = properties[
@@ -98,12 +96,11 @@ export const constructUser = (params: {
     }
     const orgEntity = getRightEntityForLinkEntityAtMoment(
       subgraph,
-      metadata.editionId.baseId,
+      metadata.recordId.entityId,
       new Date(),
     );
 
-    let org =
-      resolvedOrgs[entityEditionIdToString(orgEntity.metadata.editionId)];
+    let org = resolvedOrgs[entityRecordIdToString(orgEntity.metadata.recordId)];
 
     if (!org) {
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
@@ -114,7 +111,7 @@ export const constructUser = (params: {
         resolvedOrgs,
       });
 
-      resolvedOrgs[entityEditionIdToString(org.entityEditionId)] = org;
+      resolvedOrgs[entityRecordIdToString(org.entityRecordId)] = org;
     }
 
     return {
@@ -175,7 +172,7 @@ export const constructAuthenticatedUser = (params: {
 
 export type MinimalOrg = {
   kind: "org";
-  entityEditionId: EntityEditionId;
+  entityRecordId: EntityRecordId;
   accountId: AccountId;
   shortname: string;
   name: string;
@@ -196,9 +193,9 @@ export const constructMinimalOrg = (params: {
 
   return {
     kind: "org",
-    entityEditionId: orgEntity.metadata.editionId,
+    entityRecordId: orgEntity.metadata.recordId,
     accountId: extractAccountId(
-      orgEntity.metadata.editionId.baseId as AccountEntityId,
+      orgEntity.metadata.recordId.entityId as AccountEntityId,
     ),
     shortname,
     name,
@@ -212,8 +209,8 @@ export type Org = MinimalOrg & {
 export const constructOrg = (params: {
   subgraph: Subgraph;
   orgEntity: Entity;
-  resolvedUsers?: Record<EntityEditionIdString, User>;
-  resolvedOrgs?: Record<EntityEditionIdString, Org>;
+  resolvedUsers?: Record<EntityRecordIdString, User>;
+  resolvedOrgs?: Record<EntityRecordIdString, Org>;
 }): Org => {
   const { subgraph, orgEntity } = params;
 
@@ -222,7 +219,7 @@ export const constructOrg = (params: {
 
   const orgMemberships = getIncomingLinksForEntityAtMoment(
     subgraph,
-    orgEntity.metadata.editionId.baseId,
+    orgEntity.metadata.recordId.entityId,
     new Date(),
   ).filter(
     (linkEntity) =>
@@ -236,7 +233,7 @@ export const constructOrg = (params: {
 
   // We add it to resolved orgs *before* fully creating so that when we're traversing we know
   // we already encountered it and avoid infinite recursion
-  resolvedOrgs[entityEditionIdToString(org.entityEditionId)] = org;
+  resolvedOrgs[entityRecordIdToString(org.entityRecordId)] = org;
 
   org.members = orgMemberships.map(({ properties, linkData, metadata }) => {
     const responsibility: string = properties[
@@ -248,12 +245,12 @@ export const constructOrg = (params: {
     }
     const userEntity = getLeftEntityForLinkEntityAtMoment(
       subgraph,
-      metadata.editionId.baseId,
+      metadata.recordId.entityId,
       new Date(),
     );
 
     let user =
-      resolvedUsers[entityEditionIdToString(userEntity.metadata.editionId)];
+      resolvedUsers[entityRecordIdToString(userEntity.metadata.recordId)];
 
     if (!user) {
       user = constructUser({
@@ -263,7 +260,7 @@ export const constructOrg = (params: {
         resolvedUsers,
       });
 
-      resolvedUsers[entityEditionIdToString(user.entityEditionId)] = user;
+      resolvedUsers[entityRecordIdToString(user.entityRecordId)] = user;
     }
 
     return {

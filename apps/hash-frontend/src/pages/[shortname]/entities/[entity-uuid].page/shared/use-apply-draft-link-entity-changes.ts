@@ -1,5 +1,4 @@
-import { OwnedById } from "@local/hash-graphql-shared/types";
-import { EntityId } from "@local/hash-subgraph";
+import { EntityId, OwnedById } from "@local/hash-subgraph/main";
 import { useContext } from "react";
 
 import { useBlockProtocolArchiveEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
@@ -37,7 +36,7 @@ export const useApplyDraftLinkEntityChanges = () => {
             properties: {},
             linkData: {
               leftEntityId,
-              rightEntityId: rightEntity.metadata.editionId.baseId,
+              rightEntityId: rightEntity.metadata.recordId.entityId,
             },
           },
         }),

@@ -1,7 +1,9 @@
 import { VersionedUri } from "@blockprotocol/type-system";
-import { OwnedById } from "@local/hash-graphql-shared/types";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import {
+  extractEntityUuidFromEntityId,
+  OwnedById,
+} from "@local/hash-subgraph/main";
+import { getRoots } from "@local/hash-subgraph/stdlib/roots";
 import { useRouter } from "next/router";
 import { useContext, useState } from "react";
 
@@ -67,13 +69,13 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       }
 
       await applyDraftLinkEntityChanges(
-        entity.metadata.editionId.baseId,
+        entity.metadata.recordId.entityId,
         draftLinksToCreate,
         draftLinksToArchive,
       );
 
       const entityId = extractEntityUuidFromEntityId(
-        entity.metadata.editionId.baseId,
+        entity.metadata.recordId.entityId,
       );
 
       void router.push(`/@${activeWorkspace.shortname}/entities/${entityId}`);
