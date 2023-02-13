@@ -75,9 +75,9 @@ jobs:
       - name: Install tools
         uses: taiki-e/install-action@v2
         env:
-          CARGO_BINSTALL_LOG_LEVEL: debug
+          BINSTALL_LOG_LEVEL: debug
         with:
-          tool: cargo-binstall@0.20.1,cargo-make@0.36.3,cargo-hack@0.5.26
+          tool: cargo-make@0.36.3,cargo-hack@0.5.26
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -140,9 +140,9 @@ jobs:
       - name: Install tools
         uses: taiki-e/install-action@v2
         env:
-          CARGO_BINSTALL_LOG_LEVEL: debug
+          BINSTALL_LOG_LEVEL: debug
         with:
-          tool: cargo-binstall@0.20.1,cargo-make@0.36.3,cargo-hack@0.5.26,cargo-nextest@0.9.37
+          tool: cargo-make@0.36.3,cargo-hack@0.5.26,cargo-nextest@0.9.37
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -223,9 +223,9 @@ jobs:
       - name: Install tools
         uses: taiki-e/install-action@v2
         env:
-          CARGO_BINSTALL_LOG_LEVEL: debug
+          BINSTALL_LOG_LEVEL: debug
         with:
-          tool: cargo-binstall@0.20.1,cargo-make@0.36.3,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
+          tool: cargo-make@0.36.3,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -278,9 +278,9 @@ jobs:
       - name: Install tools
         uses: taiki-e/install-action@v2
         env:
-          CARGO_BINSTALL_LOG_LEVEL: debug
+          BINSTALL_LOG_LEVEL: debug
         with:
-          tool: cargo-binstall@0.20.1,cargo-make@0.36.3
+          tool: cargo-make@0.36.3
 
       - name: Build Docker container
         run: cargo make --profile ${{ matrix.profile }} build-docker
@@ -312,9 +312,9 @@ jobs:
         if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' }}
         uses: taiki-e/install-action@v2
         env:
-          CARGO_BINSTALL_LOG_LEVEL: debug
+          BINSTALL_LOG_LEVEL: debug
         with:
-          tool: cargo-binstall@0.20.1,cargo-make@0.36.3,cargo-hack@0.5.26,cargo-nextest@0.9.37,cargo-semver-checks@0.17.0
+          tool: cargo-make@0.36.3,cargo-hack@0.5.26,cargo-nextest@0.9.37,cargo-semver-checks@0.17.0
 
       - name: Run lints
         if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/trunk-merge/')) || github.event_name == 'pull_request' }}
