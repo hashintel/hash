@@ -1,12 +1,11 @@
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   createKratosIdentity,
   kratosIdentityApi,
-} from "@hashintel/hash-api/src/auth/ory-kratos";
+} from "@apps/hash-api/src/auth/ory-kratos";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
-} from "@hashintel/hash-api/src/graph";
+} from "@apps/hash-api/src/graph";
 import {
   createUser,
   getUserByKratosIdentityId,
@@ -16,11 +15,11 @@ import {
   updateUserPreferredName,
   updateUserShortname,
   User,
-} from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
-import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { EntityUuid } from "@hashintel/hash-shared/types";
-import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
+} from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { systemUserAccountId } from "@apps/hash-api/src/graph/system-user";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import { Logger } from "@local/hash-backend-utils/logger";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph/main";
 
 import {
   createTestImpureGraphContext,
@@ -116,8 +115,8 @@ describe("User model class", () => {
     const testOrg = await createTestOrg(graphContext, "userModelTest", logger);
 
     const orgEntityUuid = extractEntityUuidFromEntityId(
-      testOrg.entity.metadata.editionId.baseId,
-    ) as EntityUuid;
+      testOrg.entity.metadata.recordId.entityId,
+    );
 
     expect(
       await isUserMemberOfOrg(graphContext, {

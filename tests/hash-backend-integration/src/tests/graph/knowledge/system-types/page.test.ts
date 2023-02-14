@@ -1,13 +1,12 @@
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
-} from "@hashintel/hash-api/src/graph";
-import { createEntity } from "@hashintel/hash-api/src/graph/knowledge/primitive/entity";
+} from "@apps/hash-api/src/graph";
+import { createEntity } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import {
   Block,
   createBlock,
-} from "@hashintel/hash-api/src/graph/knowledge/system-types/block";
+} from "@apps/hash-api/src/graph/knowledge/system-types/block";
 import {
   addBlockToPage,
   createPage,
@@ -19,11 +18,12 @@ import {
   Page,
   removeBlockFromPage,
   setPageParentPage,
-} from "@hashintel/hash-api/src/graph/knowledge/system-types/page";
-import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
-import { SYSTEM_TYPES } from "@hashintel/hash-api/src/graph/system-types";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { OwnedById } from "@hashintel/hash-shared/types";
+} from "@apps/hash-api/src/graph/knowledge/system-types/page";
+import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import { Logger } from "@local/hash-backend-utils/logger";
+import { OwnedById } from "@local/hash-subgraph/main";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
@@ -55,7 +55,7 @@ describe("Page", () => {
         ownedById: testUser.accountId as OwnedById,
         entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
         properties: {
-          [SYSTEM_TYPES.propertyType.tokens.metadata.editionId.baseId]: [],
+          [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUri]: [],
         },
         actorId: testUser.accountId,
       }),
@@ -105,7 +105,7 @@ describe("Page", () => {
 
   it("can get a page by its entity id", async () => {
     const fetchedPage = await getPageById(graphContext, {
-      entityId: testPage.entity.metadata.editionId.baseId,
+      entityId: testPage.entity.metadata.recordId.entityId,
     });
 
     expect(fetchedPage).toEqual(testPage);
@@ -118,14 +118,14 @@ describe("Page", () => {
 
     expect(
       allPages.sort((a, b) =>
-        a.entity.metadata.editionId.baseId.localeCompare(
-          b.entity.metadata.editionId.baseId,
+        a.entity.metadata.recordId.entityId.localeCompare(
+          b.entity.metadata.recordId.entityId,
         ),
       ),
     ).toEqual(
       [testPage, testPage2].sort((a, b) =>
-        a.entity.metadata.editionId.baseId.localeCompare(
-          b.entity.metadata.editionId.baseId,
+        a.entity.metadata.recordId.entityId.localeCompare(
+          b.entity.metadata.recordId.entityId,
         ),
       ),
     );

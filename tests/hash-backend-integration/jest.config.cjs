@@ -9,14 +9,17 @@ module.exports = {
   coverageReporters: ["lcov", "text"],
   testEnvironment: "node",
   moduleNameMapper: {
-    "@hashintel/hash-backend-utils(.*)":
-      "<rootDir>/../../packages/hash/backend-utils/src$1",
-    "@hashintel/hash-shared(.*)": "<rootDir>/../../packages/hash/shared/src$1",
-    "@hashintel/hash-subgraph(.*)": "<rootDir>/../../packages/hash/subgraph$1",
-    "@hashintel/hash-graph-client":
-      "<rootDir>/../../packages/graph/clients/typescript",
+    "@local/hash-backend-utils(.*)":
+      "<rootDir>/../../libs/@local/hash-backend-utils/src$1",
+    "@local/hash-graphql-shared(.*)":
+      "<rootDir>/../../libs/@local/hash-graphql-shared/src$1",
+    "@local/hash-isomorphic-utils(.*)":
+      "<rootDir>/../../libs/@local/hash-isomorphic-utils/src$1",
+    "@local/hash-graph-client": "<rootDir>/../../libs/@local/hash-graph-client",
+    "@local/hash-subgraph(.*)":
+      "<rootDir>/../../libs/@local/hash-subgraph/src$1",
   },
-  setupFiles: ["@hashintel/hash-backend-utils/environment"],
+  setupFiles: ["@local/hash-backend-utils/environment"],
   testMatch: [
     "<rootDir>/src/tests/model/knowledge/**",
     "<rootDir>/src/tests/graph/**",

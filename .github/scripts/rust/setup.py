@@ -25,19 +25,25 @@ ALWAYS_RUN_PATTERNS = [".github/**"]
 # rust-toolchain.toml
 TOOLCHAINS = {
     "libs/deer": ["1.65"],
-    "packages/libs/error-stack": ["1.63", "1.65"]
+    "libs/error-stack": ["1.63", "1.65"]
 }
 
 # Try and publish these crates when their version is changed in Cargo.toml
-PUBLISH_PATTERNS = ["packages/libs/error-stack**"]
+PUBLISH_PATTERNS = [
+    "libs/error-stack**",
+    "libs/antsi**",
+]
 # deer is disabled for now because we don't want to publish it just yet
 # "libs/deer**"
 
 # Build a docker container for these crates
-DOCKER_PATTERNS = ["packages/graph/hash_graph"]
+DOCKER_PATTERNS = ["apps/hash-graph"]
 
 # Build a coverage report for these crates
 COVERAGE_EXCLUDE_PATTERNS = ["apps/engine**"]
+
+# We only run a subset of configurations for PRs, the rest will only be tested prior merging
+IS_PULL_REQUEST_EVENT = "GITHUB_EVENT_NAME" in os.environ and os.environ["GITHUB_EVENT_NAME"] == "pull_request"
 
 
 def generate_diffs():
@@ -58,12 +64,7 @@ def find_local_crates():
     `cargo-make` will run the sub-crate automatically.
     :return: a list of crate paths
     """
-    all_crates = [path.relative_to(CWD).parent for path in CWD.rglob("Cargo.toml")]
-    checked_crates = []
-    for crate in all_crates:
-        if not any(path in crate.parents for path in all_crates):
-            checked_crates.append(crate)
-    return checked_crates
+    return [path.relative_to(CWD).parent for path in CWD.rglob("Cargo.toml")]
 
 
 def find_toolchain(crate):
@@ -215,9 +216,10 @@ def output_matrix(name, github_output_file, crates, **kwargs):
     available_toolchains = set()
     for crate in crates:
         available_toolchains.add(find_toolchain(crate))
-        for pattern, additional_toolchains in TOOLCHAINS.items():
-            for additional_toolchain in additional_toolchains:
-                available_toolchains.add(additional_toolchain)
+        if not IS_PULL_REQUEST_EVENT:
+            for pattern, additional_toolchains in TOOLCHAINS.items():
+                for additional_toolchain in additional_toolchains:
+                    available_toolchains.add(additional_toolchain)
 
     used_toolchain_combinations = []
     for crate in crates:
@@ -267,11 +269,17 @@ def main():
     changed_docker_crates = filter_for_docker_crates(changed_parent_crates)
 
     github_output_file = open(os.environ["GITHUB_OUTPUT_FILE_PATH"], "w")
-
+    
     output_matrix("lint", github_output_file, changed_parent_crates)
-    output_matrix("test", github_output_file, changed_parent_crates, profile=["development", "production"])
+    if IS_PULL_REQUEST_EVENT:
+        output_matrix("test", github_output_file, changed_parent_crates, profile=["development"])
+    else:
+        output_matrix("test", github_output_file, changed_parent_crates, profile=["development", "production"])
     output_matrix("coverage", github_output_file, coverage_crates)
-    output_matrix("docker", github_output_file, changed_docker_crates, profile=["production"])
+    if IS_PULL_REQUEST_EVENT:
+        output_matrix("docker", github_output_file, changed_docker_crates, profile=["development"])
+    else:
+        output_matrix("docker", github_output_file, changed_docker_crates, profile=["production"])
     output_matrix(
         "publish",
         github_output_file,

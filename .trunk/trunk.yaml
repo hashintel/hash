@@ -1,0 +1,23 @@
+version: 0.1
+cli:
+  version: 1.3.2
+  sha256:
+    darwin_arm64: b7a2aa9a7604003af7f3d9e343e0a93c293c32fc97297aa980702afffce58080
+    darwin_x86_64: 4efb618ee5299a6974acdb06ce5babe6b00b23ddeb3d600232b2c3369126124f
+    linux_x86_64: c26bb7b744b3e327f8d89e499d37a90d585f4ba5dadaf91d9c5e5a5584f79964
+plugins:
+  sources:
+    - id: trunk
+      ref: v0.0.8
+      uri: https://github.com/trunk-io/plugins
+merge:
+  required_statuses:
+    - Linting
+    - Unit tests
+    - Backend integration tests
+    - Playwright tests
+    - Merging enabled
+actions:
+  enabled:
+    - trunk-announce
+    - trunk-upgrade-available

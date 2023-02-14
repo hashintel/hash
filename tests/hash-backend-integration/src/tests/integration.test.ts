@@ -14,11 +14,11 @@ import {
   OrgEmailInvitation,
   User,
   VerificationCode,
-} from "@hashintel/hash-api/src/model";
-import { PostgresAdapter } from "@hashintel/hash-api/src/db";
-import { DummyEmailTransporter } from "@hashintel/hash-api/src/email/transporters";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { treeFromParentReferences } from "@hashintel/hash-api/src/util";
+} from "@apps/hash-api/src/model";
+import { PostgresAdapter } from "@apps/hash-api/src/db";
+import { DummyEmailTransporter } from "@apps/hash-api/src/email/transporters";
+import { Logger } from "@local/hash-backend-utils/logger";
+import { treeFromParentReferences } from "@apps/hash-api/src/util";
 
 import { ClientError } from "graphql-request";
 import { ApiClient } from "./util";
@@ -32,6 +32,10 @@ import {
   WayToUseHash,
   DeprecatedEntityType,
 } from "../graphql/api-types.gen";
+import {
+  blockProtocolHubOrigin,
+  paragraphBlockComponentId,
+} from "@local/hash-isomorphic-utils/blocks";
 
 const logger = new Logger({
   mode: "dev",
@@ -564,7 +568,7 @@ describe("logged in user ", () => {
           {
             insertBlock: {
               accountId: existingUser.accountId,
-              componentId: "https://blockprotocol.org/blocks/@hash/header",
+              componentId: `${blockProtocolHubOrigin}/blocks/@hash/header`,
               position: 0,
               entity: {
                 entityType: {
@@ -658,7 +662,7 @@ describe("logged in user ", () => {
     });
 
     // ComponentId doesn't exist in the database
-    const componentId = "https://blockprotocol.org/blocks/@hash/unknown";
+    const componentId = `${blockProtocolHubOrigin}/blocks/@hash/unknown`;
     let entityTypeComponentId: string;
     it("can add a block with unknown componentId", async () => {
       // No type argument given to insertBlock, only componentId
@@ -869,7 +873,7 @@ describe("logged in user ", () => {
         {
           insertBlock: {
             accountId: page.accountId,
-            componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
+            componentId: paragraphBlockComponentId,
             position: 1,
             entity: {
               entityType: {
@@ -882,7 +886,7 @@ describe("logged in user ", () => {
         {
           insertBlock: {
             accountId: page.accountId,
-            componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
+            componentId: paragraphBlockComponentId,
             position: 2,
             entity: {
               entityType: {
@@ -936,7 +940,7 @@ describe("logged in user ", () => {
           {
             insertBlock: {
               accountId: existingUser.accountId,
-              componentId: "https://blockprotocol.org/blocks/@hash/header",
+              componentId: `${blockProtocolHubOrigin}/blocks/@hash/header`,
               position: 0,
               entity: {
                 entityType: {
@@ -958,11 +962,11 @@ describe("logged in user ", () => {
           {
             insertBlock: {
               accountId: existingUser.accountId,
-              componentId: "https://blockprotocol.org/blocks/@hash/divider",
+              componentId: `${blockProtocolHubOrigin}/blocks/@hash/divider`,
               position: 1,
               entity: {
                 entityType: {
-                  componentId: "https://blockprotocol.org/blocks/@hash/divider",
+                  componentId: `${blockProtocolHubOrigin}/blocks/@hash/divider`,
                 },
                 entityProperties: {},
               },
@@ -1016,7 +1020,7 @@ describe("logged in user ", () => {
         accountId: existingUser.accountId,
         filter: {
           entityType: {
-            componentId: "https://blockprotocol.org/blocks/@hash/divider",
+            componentId: `${blockProtocolHubOrigin}/blocks/@hash/divider`,
           },
         },
       });
@@ -1083,7 +1087,7 @@ describe("logged in user ", () => {
         {
           insertBlock: {
             accountId: page.accountId,
-            componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
+            componentId: paragraphBlockComponentId,
             position: 1,
             entity: {
               entityType: {

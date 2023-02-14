@@ -1,17 +1,20 @@
-import { DataType, TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
-} from "@hashintel/hash-api/src/graph";
-import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
+} from "@apps/hash-api/src/graph";
+import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createDataType,
   getDataTypeById,
   updateDataType,
-} from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { OwnedById } from "@hashintel/hash-shared/types";
-import { DataTypeWithMetadata } from "@hashintel/hash-subgraph";
+} from "@apps/hash-api/src/graph/ontology/primitive/data-type";
+import { DataType, TypeSystemInitializer } from "@blockprotocol/type-system";
+import { Logger } from "@local/hash-backend-utils/logger";
+import {
+  DataTypeWithMetadata,
+  isOwnedOntologyElementMetadata,
+  OwnedById,
+} from "@local/hash-subgraph/main";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
@@ -70,18 +73,20 @@ describe("Data type CRU", () => {
 
   const updatedTitle = "New text!";
   it("can update a data type", async () => {
-    expect(createdDataType.metadata.provenance.updatedById).toBe(
-      testUser.accountId,
-    );
+    expect(
+      isOwnedOntologyElementMetadata(createdDataType.metadata) &&
+        createdDataType.metadata.provenance.updatedById,
+    ).toBe(testUser.accountId);
 
-    createdDataType = await updateDataType(graphContext, {
+    const updatedDataType = await updateDataType(graphContext, {
       dataTypeId: createdDataType.schema.$id,
       schema: { ...dataTypeSchema, title: updatedTitle },
       actorId: testUser2.accountId,
     }).catch((err) => Promise.reject(err.data));
 
-    expect(createdDataType.metadata.provenance.updatedById).toBe(
-      testUser2.accountId,
-    );
+    expect(
+      isOwnedOntologyElementMetadata(updatedDataType.metadata) &&
+        updatedDataType.metadata.provenance.updatedById,
+    ).toBe(testUser2.accountId);
   });
 });

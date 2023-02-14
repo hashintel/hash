@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-error-stack = { version = "0.2.4", default_features = false }
+error-stack = { version = "0.3.1", default_features = false }
 
 serde_json = { version = "1.0.91", default_features = false, features = ['alloc'] }
 

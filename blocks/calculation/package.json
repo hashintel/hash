@@ -1,6 +1,7 @@
 {
   "name": "@blocks/calculation",
   "version": "0.2.0",
+  "private": true,
   "description": "Spreadsheet-like table for doing computation on entities",
   "keywords": [
     "blockprotocol",
@@ -28,7 +29,7 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "block-scripts": "0.0.14",
-    "eslint": "8.32.0",
+    "eslint": "8.33.0",
     "mock-block-dock": "0.0.38",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -45,6 +46,7 @@
     "blockType": {
       "entryPoint": "react"
     },
+    "name": "@thehabbos007/calculation",
     "displayName": "Calculation",
     "examples": [
       {

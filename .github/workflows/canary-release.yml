@@ -1,0 +1,30 @@
+name: Canary Release
+on: workflow_dispatch
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: ./.github/actions/warm-up-repo
+
+      - name: Publish changesets to npm, with 'canary' tags
+        run: |
+          yarn changeset version --snapshot canary
+
+          git config user.email "support@hash.ai"
+          git config user.name "hashdotai"
+          git commit -am "temporarily convert changesets to canary releases"
+          git revert `git rev-parse HEAD` --no-edit
+          git push
+          git checkout `git rev-parse HEAD~1`
+
+          cat << EOF > "$HOME/.npmrc"
+            //registry.npmjs.org/:_authToken=$NPM_TOKEN
+          EOF
+
+          yarn changeset publish --tag canary
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -12,23 +12,23 @@
   "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
-    "codegen": "block-scripts codegen",
     "dev": "block-scripts dev",
     "fix:eslint": "eslint --fix .",
+    "generate-types": "block-scripts codegen",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "serve": "block-scripts serve"
   },
   "dependencies": {
     "@blockprotocol/graph": "0.1.0-canary-20230111084611",
-    "prismjs": "1.28.0"
+    "prismjs": "1.29.0"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/prismjs": "1.26.0",
     "block-scripts": "0.1.0-canary-20230111084611",
-    "eslint": "8.32.0",
+    "eslint": "8.33.0",
     "mock-block-dock": "0.1.0-canary-20230111084611",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -58,6 +58,6 @@
       }
     ],
     "protocol": "0.3",
-    "schema": "https://alpha.hash.ai/@ciaran/types/entity-type/code-snippet/v/1"
+    "schema": "https://alpha.hash.ai/@ciaran/types/entity-type/code-snippet/v/2"
   }
 }

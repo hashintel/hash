@@ -1,6 +1,7 @@
 {
   "name": "@blocks/stopwatch",
   "version": "0.1.0",
+  "private": true,
   "description": "stopwatch block",
   "keywords": [
     "blockprotocol",
@@ -23,7 +24,7 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "block-scripts": "0.0.14",
-    "eslint": "8.32.0",
+    "eslint": "8.33.0",
     "mock-block-dock": "0.0.10",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -38,7 +39,8 @@
     "servePort": 63214
   },
   "blockprotocol": {
-    "displayName": "timer",
+    "name": "@hash/stopwatch",
+    "displayName": "Stopwatch",
     "examples": [
       {}
     ],

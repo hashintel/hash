@@ -1,9 +1,9 @@
 import { CodegenConfig } from "@graphql-codegen/cli";
-import { scalars } from "@hashintel/hash-shared/graphql/scalar-mapping";
+import { scalars } from "@local/hash-graphql-shared/graphql/scalar-mapping";
 
 const config: CodegenConfig = {
   overwrite: true,
-  schema: "../../packages/hash/api/src/graphql/type-defs/**/*.ts",
+  schema: "../../apps/hash-api/src/graphql/type-defs/**/*.ts",
   generates: {
     "./src/graphql/fragment-types.gen.json": {
       plugins: ["fragment-matcher"],

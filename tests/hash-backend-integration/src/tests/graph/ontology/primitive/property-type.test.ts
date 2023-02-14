@@ -1,24 +1,25 @@
 import {
-  PropertyType,
-  TypeSystemInitializer,
-} from "@blockprotocol/type-system";
-import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
-} from "@hashintel/hash-api/src/graph";
-import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
-import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
+} from "@apps/hash-api/src/graph";
+import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { createDataType } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import {
   createPropertyType,
   getPropertyTypeById,
   updatePropertyType,
-} from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { OwnedById } from "@hashintel/hash-shared/types";
+} from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import {
+  PropertyType,
+  TypeSystemInitializer,
+} from "@blockprotocol/type-system";
+import { Logger } from "@local/hash-backend-utils/logger";
 import {
   DataTypeWithMetadata,
+  isOwnedOntologyElementMetadata,
+  OwnedById,
   PropertyTypeWithMetadata,
-} from "@hashintel/hash-subgraph";
+} from "@local/hash-subgraph/main";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
@@ -87,11 +88,12 @@ describe("Property type CRU", () => {
   const updatedTitle = "New test!";
 
   it("can update a property type", async () => {
-    expect(createdPropertyType.metadata.provenance.updatedById).toBe(
-      testUser.accountId,
-    );
+    expect(
+      isOwnedOntologyElementMetadata(createdPropertyType.metadata) &&
+        createdPropertyType.metadata.provenance.updatedById,
+    ).toBe(testUser.accountId);
 
-    createdPropertyType = await updatePropertyType(graphContext, {
+    const updatedPropertyType = await updatePropertyType(graphContext, {
       propertyTypeId: createdPropertyType.schema.$id,
       schema: {
         ...propertyTypeSchema,
@@ -100,8 +102,9 @@ describe("Property type CRU", () => {
       actorId: testUser2.accountId,
     }).catch((err) => Promise.reject(err.data));
 
-    expect(createdPropertyType.metadata.provenance.updatedById).toBe(
-      testUser2.accountId,
-    );
+    expect(
+      isOwnedOntologyElementMetadata(updatedPropertyType.metadata) &&
+        updatedPropertyType.metadata.provenance.updatedById,
+    ).toBe(testUser2.accountId);
   });
 });

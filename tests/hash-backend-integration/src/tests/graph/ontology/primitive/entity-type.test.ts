@@ -1,24 +1,25 @@
-import { EntityType, TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
-} from "@hashintel/hash-api/src/graph";
-import { User } from "@hashintel/hash-api/src/graph/knowledge/system-types/user";
-import { createDataType } from "@hashintel/hash-api/src/graph/ontology/primitive/data-type";
+} from "@apps/hash-api/src/graph";
+import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { createDataType } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import {
   createEntityType,
   getEntityTypeById,
   updateEntityType,
-} from "@hashintel/hash-api/src/graph/ontology/primitive/entity-type";
-import { createPropertyType } from "@hashintel/hash-api/src/graph/ontology/primitive/property-type";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { OwnedById } from "@hashintel/hash-shared/types";
+} from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
+import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import { EntityType, TypeSystemInitializer } from "@blockprotocol/type-system";
+import { Logger } from "@local/hash-backend-utils/logger";
 import {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
+  isOwnedOntologyElementMetadata,
   linkEntityTypeUri,
+  OwnedById,
   PropertyTypeWithMetadata,
-} from "@hashintel/hash-subgraph";
+} from "@local/hash-subgraph/main";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
@@ -142,10 +143,10 @@ beforeAll(async () => {
     title: "Some",
     type: "object",
     properties: {
-      [favoriteBookPropertyType.metadata.editionId.baseId]: {
+      [favoriteBookPropertyType.metadata.recordId.baseUri]: {
         $ref: favoriteBookPropertyType.schema.$id,
       },
-      [namePropertyType.metadata.editionId.baseId]: {
+      [namePropertyType.metadata.recordId.baseUri]: {
         $ref: namePropertyType.schema.$id,
       },
     },
@@ -190,9 +191,10 @@ describe("Entity type CRU", () => {
   const updatedTitle = "New text!";
 
   it("can update an entity type", async () => {
-    expect(createdEntityType.metadata.provenance.updatedById).toBe(
-      testUser.accountId,
-    );
+    expect(
+      isOwnedOntologyElementMetadata(createdEntityType.metadata) &&
+        createdEntityType.metadata.provenance.updatedById,
+    ).toBe(testUser.accountId);
 
     const updatedEntityType = await updateEntityType(graphContext, {
       entityTypeId: createdEntityType.schema.$id,
@@ -200,8 +202,9 @@ describe("Entity type CRU", () => {
       actorId: testUser2.accountId,
     }).catch((err) => Promise.reject(err.data));
 
-    expect(updatedEntityType.metadata.provenance.updatedById).toBe(
-      testUser2.accountId,
-    );
+    expect(
+      isOwnedOntologyElementMetadata(updatedEntityType.metadata) &&
+        updatedEntityType.metadata.provenance.updatedById,
+    ).toBe(testUser2.accountId);
   });
 });

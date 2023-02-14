@@ -67,10 +67,12 @@ module.exports = {
       {
         // graph uses 'exports' field in package.json https://github.com/import-js/eslint-plugin-import/issues/1810
         ignore: [
-          "^@hashintel",
+          "^@apps/",
           "^@blockprotocol/graph",
           "^@blockprotocol/hook",
           "^@blockprotocol/type-system",
+          "^@hashintel/",
+          "^@local/",
         ],
       },
     ],
@@ -177,6 +179,12 @@ module.exports = {
             importNames: ["default"],
             message:
               "Please use the custom src/components/Button component instead.",
+          },
+        ],
+        patterns: [
+          {
+            group: ["@hashintel/design-system/*"],
+            message: "Please import from @hashintel/design-system instead.",
           },
         ],
       },

@@ -13,7 +13,7 @@ import { ProviderName } from "./types";
 
 const node = document.getElementById("app");
 
-/** Temporarily leaving this here, till we fix importing it from hash-shared */
+/** Temporarily leaving this here, till we fix importing it from hash-isomorphic-utils */
 const apiGraphQLEndpoint = "http://localhost:5001/graphql";
 
 const getEmbedBlock = async (
