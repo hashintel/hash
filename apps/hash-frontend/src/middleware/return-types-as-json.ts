@@ -4,7 +4,7 @@ import {
   PropertyType,
   VersionedUri,
 } from "@blockprotocol/type-system";
-import { apiGraphQLEndpoint } from "@local/hash-isomorphic-utils/environment";
+import { apiGraphQLEndpoint } from "@local/hash-graphql-shared/environment";
 import type { ApolloError } from "apollo-server-express";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
@@ -115,7 +115,8 @@ export const returnTypeAsJson = async (request: NextRequest) => {
     );
   }
 
-  const type = vertices[baseId]?.[version];
+  /** @todo-0.3 - remove this any when the subgraph is migrated */
+  const type = (vertices[baseId] as any)[version];
 
   if (!type) {
     return generateErrorResponse(

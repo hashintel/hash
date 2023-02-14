@@ -1,9 +1,10 @@
 import { VersionedUri } from "@blockprotocol/type-system";
 import {
+  EntityId,
   EntityVertexId,
   Subgraph,
   SubgraphRootTypes,
-} from "@local/hash-subgraph";
+} from "@local/hash-subgraph/main";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
 import { useBlockProtocolGetEntityType } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
@@ -43,7 +44,7 @@ export const useDraftEntitySubgraph = (
         }
 
         const draftEntityVertexId: EntityVertexId = {
-          baseId: "draft%draft",
+          baseId: "draft%draft" as EntityId,
           version: new Date().toISOString(),
         };
 
@@ -58,7 +59,10 @@ export const useDraftEntitySubgraph = (
                 inner: {
                   properties: {},
                   metadata: {
-                    editionId: draftEntityVertexId,
+                    recordId: {
+                      entityId: draftEntityVertexId.baseId,
+                      version: draftEntityVertexId.version,
+                    },
                     entityTypeId,
                     provenance: { updatedById: "" },
                     archived: false,

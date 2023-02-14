@@ -4,7 +4,7 @@ import {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
-} from "@local/hash-subgraph";
+} from "@local/hash-subgraph/main";
 
 import { logger } from "../logger";
 import { ImpureGraphContext } from "./index";
@@ -173,7 +173,7 @@ export const orgProvidedInfoPropertyTypeInitializer = async (
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     await SYSTEM_TYPES_INITIALIZERS.propertyType.orgSize(context);
 
-  const orgSizeBaseUri = orgSizePropertyType.metadata.editionId.baseId;
+  const orgSizeBaseUri = orgSizePropertyType.metadata.recordId.baseUri;
 
   return propertyTypeInitializer({
     ...types.propertyType.orgProvidedInfo,
@@ -608,10 +608,10 @@ const fileKeyPropertyTypeInitializer = async (context: ImpureGraphContext) => {
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   const objectStoreKeyBaseUri =
-    objectStoreKeyPropertyType.metadata.editionId.baseId;
+    objectStoreKeyPropertyType.metadata.recordId.baseUri;
 
   const externalFileUrlBaseUri =
-    externalFileUrlPropertyType.metadata.editionId.baseId;
+    externalFileUrlPropertyType.metadata.recordId.baseUri;
 
   return propertyTypeInitializer({
     ...types.propertyType.fileKey,

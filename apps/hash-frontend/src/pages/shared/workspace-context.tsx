@@ -1,4 +1,4 @@
-import { AccountId } from "@local/hash-isomorphic-utils/types";
+import { AccountId } from "@local/hash-subgraph/main";
 import {
   createContext,
   FunctionComponent,

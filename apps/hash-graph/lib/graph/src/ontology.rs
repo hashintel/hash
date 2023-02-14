@@ -154,7 +154,6 @@ pub trait OntologyTypeWithMetadata: Record {
 #[serde(untagged)]
 pub enum OntologyElementMetadata {
     Owned(OwnedOntologyElementMetadata),
-    #[serde(skip_serializing)]
     External(ExternalOntologyElementMetadata),
 }
 
@@ -214,6 +213,7 @@ pub struct ExternalOntologyElementMetadata {
     #[serde(rename = "provenance")]
     provenance_metadata: ProvenanceMetadata,
     #[schema(value_type = String)]
+    #[serde(with = "time::serde::iso8601")]
     fetched_at: OffsetDateTime,
 }
 

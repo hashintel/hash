@@ -1,8 +1,7 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
 import { extractBaseUri } from "@blockprotocol/type-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
-import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
+import { getRootsAsEntities } from "@local/hash-subgraph/stdlib/element/entity";
 import { GraphQLError } from "graphql";
 import { useCallback, useState } from "react";
 
@@ -72,7 +71,7 @@ export const useUpdateAuthenticatedUser = () => {
 
         const { errors } = await updateEntity({
           variables: {
-            entityId: latestUserEntity.metadata.editionId.baseId as EntityId,
+            entityId: latestUserEntity.metadata.recordId.entityId,
             updatedProperties: {
               ...currentProperties,
               ...(params.shortname

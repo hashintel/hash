@@ -1,17 +1,19 @@
 mod bounds;
-mod interval_bounds;
 
 use core::{
     cmp::Ordering,
+    fmt,
+    hash::{Hash, Hasher},
     iter::{once, Chain, Once},
-    ops::Bound,
+    marker::PhantomData,
+    ops::{Bound, RangeBounds},
 };
 
-use self::bounds::{compare_bounds, BoundType, LowerBoundHelper, UpperBoundHelper};
-pub use self::{
-    bounds::{LowerBound, UpperBound},
-    interval_bounds::IntervalBounds,
-};
+use serde::{Deserialize, Serialize};
+use utoipa::{openapi, ToSchema};
+
+pub use self::bounds::IntervalBound;
+use self::bounds::{compare_bounds, BoundType, IntervalBoundHelper};
 
 enum Return<T> {
     None,
@@ -59,94 +61,161 @@ impl<T> ExactSizeIterator for Return<T> {
     }
 }
 
-// To avoid exposing the type, we use `impl Trait` syntax here
-type IntervalIter<T> = impl ExactSizeIterator<Item = T>;
+// TODO: We want some sensible aliases for intervals with specific bounds, so we don't have to
+//       write `Interval<T, S, E>` everywhere. This also improves the `ToSchema` definition.
+//   see https://app.asana.com/0/0/1203783495017458/f
+#[derive(Copy, Clone, Serialize, Deserialize)]
+#[serde(bound(
+    serialize = "S: Serialize, E: Serialize",
+    deserialize = "S: Deserialize<'de>, E: Deserialize<'de>"
+))]
+pub struct Interval<T, S, E> {
+    start: S,
+    end: E,
+    #[serde(skip)]
+    _marker: PhantomData<T>,
+}
 
-pub trait Interval<T>: Sized {
-    type LowerBound: LowerBound<T>;
-    type UpperBound: UpperBound<T>;
+impl<T, S, E> Interval<T, S, E> {
+    /// Creates an interval from the given bounds.
+    ///
+    /// # Safety
+    ///
+    /// The start bound must be less than or equal to the end bound.
+    pub fn new_unchecked(start: S, end: E) -> Self {
+        Self {
+            start,
+            end,
+            _marker: PhantomData,
+        }
+    }
 
+    /// Returns a reference to the start bound of this interval
+    pub fn start(&self) -> &S {
+        &self.start
+    }
+
+    /// Returns a reference to the end bound of this interval
+    pub fn end(&self) -> &E {
+        &self.end
+    }
+
+    /// Converts the interval into its bounds.
+    pub fn into_bounds(self) -> (S, E) {
+        (self.start, self.end)
+    }
+}
+
+impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
     /// Creates an interval from the given bounds.
     ///
     /// # Panics
     ///
-    /// Panics if the lower bound is greater than the upper bound.
-    fn from_bounds(lower: Self::LowerBound, upper: Self::UpperBound) -> Self
-    where
-        T: PartialOrd;
-
-    /// Returns a reference to the lower bound of this interval
-    fn lower_bound(&self) -> &Self::LowerBound;
-
-    /// Returns a reference to the upper bound of this interval
-    fn upper_bound(&self) -> &Self::UpperBound;
-
-    /// Converts the interval into its bounds.
-    fn into_bound(self) -> (Self::LowerBound, Self::UpperBound);
-
-    /// Returns `true` if both intervals have any points in common.
-    #[must_use]
-    fn overlaps(&self, other: &impl Interval<T>) -> bool
+    /// Panics if the start bound is greater than the end bound.
+    pub fn new(start: S, end: E) -> Self
     where
         T: PartialOrd,
     {
-        let lhs_lower = self.lower_bound();
-        let lhs_upper = self.upper_bound();
-        let rhs_lower = other.lower_bound();
-        let rhs_upper = other.upper_bound();
+        assert_ne!(
+            compare_bounds(
+                start.as_bound(),
+                end.as_bound(),
+                BoundType::Start,
+                BoundType::End,
+            ),
+            Ordering::Greater,
+            "Start bound must be less than or equal to end bound"
+        );
+        Self::new_unchecked(start, end)
+    }
 
+    pub fn convert<S2, E2>(self) -> Interval<T, E2, S2>
+    where
+        E2: IntervalBound<T>,
+        S2: IntervalBound<T>,
+    {
+        let (lower, upper) = self.into_bounds();
+        Interval::new_unchecked(
+            E2::from_bound(lower.into_bound()),
+            S2::from_bound(upper.into_bound()),
+        )
+    }
+
+    /// Returns `true` if both intervals have any points in common.
+    #[must_use]
+    pub fn overlaps(
+        &self,
+        other: &Interval<T, impl IntervalBound<T>, impl IntervalBound<T>>,
+    ) -> bool
+    where
+        T: PartialOrd,
+    {
         // Examples |      1     |     2
         // =========|============|============
         // Range A  |    [-----] | [-----]
         // Range B  | [-----]    |    [-----]
         matches!(
-            lhs_lower.cmp_lower(rhs_lower),
+            self.cmp_start_to_start(other),
             Ordering::Greater | Ordering::Equal
         ) && matches!(
-            lhs_lower.cmp_upper(rhs_upper),
+            self.cmp_start_to_end(other),
             Ordering::Less | Ordering::Equal
         ) || matches!(
-            rhs_lower.cmp_lower(lhs_lower),
+            other.cmp_start_to_start(self),
             Ordering::Greater | Ordering::Equal
         ) && matches!(
-            rhs_lower.cmp_upper(lhs_upper),
+            other.cmp_start_to_end(self),
             Ordering::Less | Ordering::Equal
         )
     }
 
     /// Returns `true` if both intervals are adjacent but do not overlap.
     #[must_use]
-    fn is_adjacent_to(&self, other: &impl Interval<T>) -> bool
+    pub fn is_adjacent_to(
+        &self,
+        other: &Interval<T, impl IntervalBound<T>, impl IntervalBound<T>>,
+    ) -> bool
     where
-        T: PartialOrd,
+        T: PartialEq,
     {
-        self.upper_bound().is_adjacent_to(other.lower_bound())
-            || other.upper_bound().is_adjacent_to(self.lower_bound())
+        fn bounds_are_adjacent<T>(lhs: &impl IntervalBound<T>, rhs: &impl IntervalBound<T>) -> bool
+        where
+            T: PartialEq,
+        {
+            match (lhs.as_bound(), rhs.as_bound()) {
+                (Bound::Included(lhs), Bound::Excluded(rhs))
+                | (Bound::Excluded(lhs), Bound::Included(rhs)) => lhs == rhs,
+                _ => false,
+            }
+        }
+
+        bounds_are_adjacent(self.start(), other.end())
+            || bounds_are_adjacent(other.start(), self.end())
     }
 
     /// Checks if this interval contains the other value.
     ///
-    /// Returns `true` if this interval's lower bound is less than or equal to `other` and this
-    /// interval's upper bound is greater than or equal to `other`.
+    /// Returns `true` if this interval's start bound is less than or equal to `other` and this
+    /// interval's end bound is greater than or equal to `other`.
     #[must_use]
-    fn contains_point(&self, other: &T) -> bool
+    pub fn contains_point(&self, other: &T) -> bool
     where
         T: PartialOrd,
     {
         matches!(
             compare_bounds(
-                self.lower_bound().as_bound(),
+                self.start().as_bound(),
                 Bound::Included(other),
-                BoundType::Lower,
-                BoundType::Lower,
+                BoundType::Start,
+                BoundType::Start,
             ),
             Ordering::Less | Ordering::Equal
         ) && matches!(
             compare_bounds(
-                self.upper_bound().as_bound(),
+                self.end().as_bound(),
                 Bound::Included(other),
-                BoundType::Upper,
-                BoundType::Upper,
+                BoundType::End,
+                BoundType::End,
             ),
             Ordering::Greater | Ordering::Equal
         )
@@ -154,19 +223,22 @@ pub trait Interval<T>: Sized {
 
     /// Checks if this interval completely contains the other interval.
     ///
-    /// Returns `true` if this interval's lower bound is less than or equal to the other interval's
-    /// lower bound and this interval's upper bound is greater than or equal to the other
-    /// interval's upper bound.
+    /// Returns `true` if this interval's start bound is less than or equal to the other interval's
+    /// start bound and this interval's end bound is greater than or equal to the other
+    /// interval's end bound.
     #[must_use]
-    fn contains_interval(&self, other: &impl Interval<T>) -> bool
+    pub fn contains_interval(
+        &self,
+        other: &Interval<T, impl IntervalBound<T>, impl IntervalBound<T>>,
+    ) -> bool
     where
         T: PartialOrd,
     {
         matches!(
-            self.lower_bound().cmp_lower(other.lower_bound()),
+            self.cmp_start_to_start(other),
             Ordering::Less | Ordering::Equal
         ) && matches!(
-            self.upper_bound().cmp_upper(other.upper_bound()),
+            self.cmp_end_to_end(other),
             Ordering::Greater | Ordering::Equal
         )
     }
@@ -176,7 +248,7 @@ pub trait Interval<T>: Sized {
     /// A complement is the interval of all points that are not in the this interval. The resulting
     /// interval and this interval do not overlap.
     #[must_use]
-    fn complement(self) -> IntervalIter<Self>
+    pub fn complement(self) -> impl ExactSizeIterator<Item = Self>
     where
         T: PartialOrd,
     {
@@ -185,40 +257,35 @@ pub trait Interval<T>: Sized {
         // Range      |   [-----]   | ---)    | ---]    |    (--- |    [---
         // -------------------------|---------|---------|---------|---------
         // Complement | --)     (-- |    [--- |    (--- | ---]    | ---)
-        let lower = <Self::LowerBound as LowerBound<T>>::from_bound(Bound::Unbounded);
-        let upper = <Self::UpperBound as UpperBound<T>>::from_bound(Bound::Unbounded);
-        Self::from_bounds(lower, upper).difference(self)
+        let start = S::from_bound(Bound::Unbounded);
+        let end = E::from_bound(Bound::Unbounded);
+        Self::new_unchecked(start, end).difference(self)
     }
 
     /// Returns a new interval that contains all points in both intervals.
     ///
     /// In comparison to [`Self::union`], this method does also return the points between the
     /// intervals if they do not overlap.
-    fn merge(self, other: Self) -> Self
+    pub fn merge(self, other: Self) -> Self
     where
         T: PartialOrd,
     {
-        let (lhs_lower, lhs_upper) = self.into_bound();
-        let (rhs_lower, rhs_upper) = other.into_bound();
-
+        let start_ordering = self.cmp_start_to_start(&other);
+        let end_ordering = self.cmp_end_to_end(&other);
         // Examples |     1     |      2    |        3        |        4        |      5
         // =========|===========|===========|=================|=================|=============
         // Range A  |   [-----] | [-----]   | [-----]         |         [-----] | [---------]
         // Range B  | [-----]   |   [-----] |         [-----] | [-----]         |   [-----]
         // ---------|-----------|-----------|-----------------|-----------------|-------------
         // Merge    | [-------] | [-------] | [-------------] | [-------------] | [---------]
-        Self::from_bounds(
-            match lhs_lower.cmp_lower(&rhs_lower) {
-                Ordering::Less | Ordering::Equal => lhs_lower,
-                Ordering::Greater => {
-                    <Self::LowerBound as LowerBound<T>>::from_bound(rhs_lower.into_bound())
-                }
+        Self::new_unchecked(
+            match start_ordering {
+                Ordering::Less | Ordering::Equal => self.start,
+                Ordering::Greater => other.start,
             },
-            match lhs_upper.cmp_upper(&rhs_upper) {
-                Ordering::Greater | Ordering::Equal => lhs_upper,
-                Ordering::Less => {
-                    <Self::UpperBound as UpperBound<T>>::from_bound(rhs_upper.into_bound())
-                }
+            match end_ordering {
+                Ordering::Greater | Ordering::Equal => self.end,
+                Ordering::Less => other.end,
             },
         )
     }
@@ -226,13 +293,13 @@ pub trait Interval<T>: Sized {
     /// Returns a new interval that contains all points in both intervals.
     ///
     /// In comparison to [`Self::merge`], this method returns two intervals if they don't overlap.
-    fn union(self, other: Self) -> IntervalIter<Self>
+    pub fn union(self, other: Self) -> impl ExactSizeIterator<Item = Self>
     where
         T: PartialOrd,
     {
         if self.overlaps(&other) || self.is_adjacent_to(&other) {
             Return::one(self.merge(other))
-        } else if self.lower_bound().cmp_lower(other.lower_bound()) == Ordering::Less {
+        } else if self.cmp_start_to_start(&other) == Ordering::Less {
             Return::two(self, other)
         } else {
             Return::two(other, self)
@@ -241,13 +308,13 @@ pub trait Interval<T>: Sized {
 
     /// Returns a new interval that contains all points in both intervals.
     #[must_use]
-    fn intersect(self, other: Self) -> Option<Self>
+    pub fn intersect(self, other: Self) -> Option<Self>
     where
         T: PartialOrd,
     {
         self.overlaps(&other).then(|| {
-            let (lhs_lower, lhs_upper) = self.into_bound();
-            let (rhs_lower, rhs_upper) = other.into_bound();
+            let start_ordering = self.cmp_start_to_start(&other);
+            let end_ordering = self.cmp_end_to_end(&other);
 
             // Examples     |     1     |     2
             // =============|===========|===========
@@ -255,14 +322,14 @@ pub trait Interval<T>: Sized {
             // Range B      | [-----]   |   [-----]
             // -------------|-----------|-----------
             // Intersection |   [---]   |   [---]
-            Self::from_bounds(
-                match lhs_lower.cmp_lower(&rhs_lower) {
-                    Ordering::Less | Ordering::Equal => rhs_lower,
-                    Ordering::Greater => lhs_lower,
+            Self::new_unchecked(
+                match start_ordering {
+                    Ordering::Less | Ordering::Equal => other.start,
+                    Ordering::Greater => self.start,
                 },
-                match lhs_upper.cmp_upper(&rhs_upper) {
-                    Ordering::Less | Ordering::Equal => lhs_upper,
-                    Ordering::Greater => rhs_upper,
+                match end_ordering {
+                    Ordering::Less | Ordering::Equal => self.end,
+                    Ordering::Greater => other.end,
                 },
             )
         })
@@ -272,18 +339,15 @@ pub trait Interval<T>: Sized {
     ///
     /// If the intervals do not overlap, the first interval is returned. If the result would be two
     /// disjoint intervals, `None` is returned.
-    fn difference(self, other: Self) -> IntervalIter<Self>
+    pub fn difference(self, other: Self) -> impl ExactSizeIterator<Item = Self>
     where
         T: PartialOrd,
     {
-        let (lhs_lower, lhs_upper) = self.into_bound();
-        let (rhs_lower, rhs_upper) = other.into_bound();
-
         match (
-            lhs_lower.cmp_lower(&rhs_lower),
-            lhs_lower.cmp_upper(&rhs_upper),
-            lhs_upper.cmp_lower(&rhs_lower),
-            lhs_upper.cmp_upper(&rhs_upper),
+            self.cmp_start_to_start(&other),
+            self.cmp_start_to_end(&other),
+            self.cmp_end_to_start(&other),
+            self.cmp_end_to_end(&other),
         ) {
             // Range B is completely contained in range A:
             // Example    |         1
@@ -293,8 +357,8 @@ pub trait Interval<T>: Sized {
             // -----------|-------------------
             // Difference | [---]       [---]
             (Ordering::Less, _, _, Ordering::Greater) => Return::two(
-                Self::from_bounds(lhs_lower, rhs_lower.into_upper()),
-                Self::from_bounds(rhs_upper.into_lower(), lhs_upper),
+                Self::new_unchecked(self.start, other.start.flip()),
+                Self::new_unchecked(other.end.flip(), self.end),
             ),
 
             // Ranges do not overlap:
@@ -304,9 +368,7 @@ pub trait Interval<T>: Sized {
             // Range B    | [---]
             // -----------|--------------
             // Difference |        [---]
-            (_, Ordering::Greater, ..) | (_, _, Ordering::Less, _) => {
-                Return::one(Self::from_bounds(lhs_lower, lhs_upper))
-            }
+            (_, Ordering::Greater, ..) | (_, _, Ordering::Less, _) => Return::one(self),
 
             // Range A is completely contained in range B:
             // Examples   |     1     |    2    |    3    |   4
@@ -331,7 +393,7 @@ pub trait Interval<T>: Sized {
                 _,
                 Ordering::Greater | Ordering::Equal,
                 Ordering::Less | Ordering::Equal,
-            ) => Return::one(Self::from_bounds(lhs_lower, rhs_lower.into_upper())),
+            ) => Return::one(Self::new_unchecked(self.start, other.start.flip())),
 
             // Range A ends after range B:
             // Examples   |     1     |     2
@@ -345,8 +407,97 @@ pub trait Interval<T>: Sized {
                 Ordering::Less | Ordering::Equal,
                 _,
                 Ordering::Greater,
-            ) => Return::one(Self::from_bounds(rhs_upper.into_lower(), lhs_upper)),
+            ) => Return::one(Self::new_unchecked(other.end.flip(), self.end)),
         }
+    }
+}
+
+impl<T, S, E> RangeBounds<T> for Interval<T, S, E>
+where
+    S: IntervalBound<T>,
+    E: IntervalBound<T>,
+{
+    fn start_bound(&self) -> Bound<&T> {
+        self.start.as_bound()
+    }
+
+    fn end_bound(&self) -> Bound<&T> {
+        self.end.as_bound()
+    }
+}
+
+impl<T, S, E, R> PartialEq<R> for Interval<T, S, E>
+where
+    T: PartialEq,
+    S: IntervalBound<T>,
+    E: IntervalBound<T>,
+    R: RangeBounds<T>,
+{
+    fn eq(&self, other: &R) -> bool {
+        self.start_bound() == other.start_bound() && self.end_bound() == other.end_bound()
+    }
+}
+
+impl<T, S, E> Eq for Interval<T, S, E>
+where
+    T: Eq,
+    S: IntervalBound<T>,
+    E: IntervalBound<T>,
+{
+}
+
+impl<T, S, E> Hash for Interval<T, S, E>
+where
+    S: Hash,
+    E: Hash,
+{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.start.hash(state);
+        self.end.hash(state);
+    }
+}
+
+impl<T, S, E> fmt::Debug for Interval<T, S, E>
+where
+    T: fmt::Debug,
+    S: IntervalBound<T>,
+    E: IntervalBound<T>,
+{
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.start_bound() {
+            Bound::Included(limit) => write!(fmt, "[{limit:?}")?,
+            Bound::Excluded(limit) => write!(fmt, "({limit:?}")?,
+            Bound::Unbounded => write!(fmt, "(-∞")?,
+        }
+        fmt.write_str(", ")?;
+        match self.end_bound() {
+            Bound::Included(limit) => write!(fmt, "{limit:?}]"),
+            Bound::Excluded(limit) => write!(fmt, "{limit:?})"),
+            Bound::Unbounded => write!(fmt, "+∞)"),
+        }
+    }
+}
+
+// utoipa does not properly support generics yet, so we need to manually implement ToSchema for
+// Interval. `#[schema(inline)]` does not work as well as it does not add a `ToSchema` bound.
+impl<'s, A, S, E> ToSchema<'s> for Interval<A, S, E>
+where
+    S: ToSchema<'s>,
+    E: ToSchema<'s>,
+{
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "Interval",
+            openapi::Schema::Object(
+                openapi::ObjectBuilder::new()
+                    .property("start", openapi::Ref::from_schema_name(S::schema().0))
+                    .required("start")
+                    .property("end", openapi::Ref::from_schema_name(E::schema().0))
+                    .required("end")
+                    .build(),
+            )
+            .into(),
+        )
     }
 }
 
@@ -362,22 +513,22 @@ mod tests {
     use super::*;
 
     fn assert_equality(
-        actual: impl IntoIterator<Item = impl Interval<u32>>,
-        expected: impl IntoIterator<Item = impl Interval<u32>>,
+        actual: impl IntoIterator<Item = Interval<u32, Bound<u32>, Bound<u32>>>,
+        expected: impl IntoIterator<Item = Interval<u32, Bound<u32>, Bound<u32>>>,
         operator: &'static str,
     ) {
         let actual: Vec<_> = actual
             .into_iter()
             .map(|actual| {
-                let (lower, upper) = actual.into_bound();
-                IntervalBounds::from_bounds(lower.into_bound(), upper.into_bound())
+                let (start, end) = actual.into_bounds();
+                Interval::new(start.into_bound(), end.into_bound())
             })
             .collect();
         let expected: Vec<_> = expected
             .into_iter()
             .map(|expected| {
-                let (lower, upper) = expected.into_bound();
-                IntervalBounds::from_bounds(lower.into_bound(), upper.into_bound())
+                let (start, end) = expected.into_bounds();
+                Interval::new(start.into_bound(), end.into_bound())
             })
             .collect();
 
@@ -388,19 +539,19 @@ mod tests {
     }
 
     struct TestData<I, U, D> {
-        lhs: IntervalBounds<u32>,
-        rhs: IntervalBounds<u32>,
+        lhs: Interval<u32, Bound<u32>, Bound<u32>>,
+        rhs: Interval<u32, Bound<u32>, Bound<u32>>,
         intersection: I,
         union: U,
-        merge: IntervalBounds<u32>,
+        merge: Interval<u32, Bound<u32>, Bound<u32>>,
         difference: D,
     }
 
     fn test(
         test_data: TestData<
-            impl IntoIterator<Item = IntervalBounds<u32>>,
-            impl IntoIterator<Item = IntervalBounds<u32>>,
-            impl IntoIterator<Item = IntervalBounds<u32>>,
+            impl IntoIterator<Item = Interval<u32, Bound<u32>, Bound<u32>>>,
+            impl IntoIterator<Item = Interval<u32, Bound<u32>, Bound<u32>>>,
+            impl IntoIterator<Item = Interval<u32, Bound<u32>, Bound<u32>>>,
         >,
     ) {
         let TestData {
@@ -471,40 +622,40 @@ mod tests {
         // lhs.difference(rhs).union(rhs.difference(lhs)), "symmetric difference");
     }
 
-    fn unbounded_unbounded() -> IntervalBounds<u32> {
-        IntervalBounds::from_bounds(Bound::Unbounded, Bound::Unbounded)
+    fn unbounded_unbounded() -> Interval<u32, Bound<u32>, Bound<u32>> {
+        Interval::new(Bound::Unbounded, Bound::Unbounded)
     }
 
-    fn included_unbounded(lower: u32) -> IntervalBounds<u32> {
-        IntervalBounds::from_bounds(Bound::Included(lower), Bound::Unbounded)
+    fn included_unbounded(start: u32) -> Interval<u32, Bound<u32>, Bound<u32>> {
+        Interval::new(Bound::Included(start), Bound::Unbounded)
     }
 
-    fn excluded_unbounded(lower: u32) -> IntervalBounds<u32> {
-        IntervalBounds::from_bounds(Bound::Excluded(lower), Bound::Unbounded)
+    fn excluded_unbounded(start: u32) -> Interval<u32, Bound<u32>, Bound<u32>> {
+        Interval::new(Bound::Excluded(start), Bound::Unbounded)
     }
 
-    fn unbounded_included(upper: u32) -> IntervalBounds<u32> {
-        IntervalBounds::from_bounds(Bound::Unbounded, Bound::Included(upper))
+    fn unbounded_included(end: u32) -> Interval<u32, Bound<u32>, Bound<u32>> {
+        Interval::new(Bound::Unbounded, Bound::Included(end))
     }
 
-    fn unbounded_excluded(upper: u32) -> IntervalBounds<u32> {
-        IntervalBounds::from_bounds(Bound::Unbounded, Bound::Excluded(upper))
+    fn unbounded_excluded(end: u32) -> Interval<u32, Bound<u32>, Bound<u32>> {
+        Interval::new(Bound::Unbounded, Bound::Excluded(end))
     }
 
-    fn included_included(lower: u32, upper: u32) -> IntervalBounds<u32> {
-        IntervalBounds::from_bounds(Bound::Included(lower), Bound::Included(upper))
+    fn included_included(start: u32, end: u32) -> Interval<u32, Bound<u32>, Bound<u32>> {
+        Interval::new(Bound::Included(start), Bound::Included(end))
     }
 
-    fn included_excluded(lower: u32, upper: u32) -> IntervalBounds<u32> {
-        IntervalBounds::from_bounds(Bound::Included(lower), Bound::Excluded(upper))
+    fn included_excluded(start: u32, end: u32) -> Interval<u32, Bound<u32>, Bound<u32>> {
+        Interval::new(Bound::Included(start), Bound::Excluded(end))
     }
 
-    fn excluded_included(lower: u32, upper: u32) -> IntervalBounds<u32> {
-        IntervalBounds::from_bounds(Bound::Excluded(lower), Bound::Included(upper))
+    fn excluded_included(start: u32, end: u32) -> Interval<u32, Bound<u32>, Bound<u32>> {
+        Interval::new(Bound::Excluded(start), Bound::Included(end))
     }
 
-    fn excluded_excluded(lower: u32, upper: u32) -> IntervalBounds<u32> {
-        IntervalBounds::from_bounds(Bound::Excluded(lower), Bound::Excluded(upper))
+    fn excluded_excluded(start: u32, end: u32) -> Interval<u32, Bound<u32>, Bound<u32>> {
+        Interval::new(Bound::Excluded(start), Bound::Excluded(end))
     }
 
     #[test]

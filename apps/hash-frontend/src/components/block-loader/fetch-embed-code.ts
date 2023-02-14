@@ -1,5 +1,5 @@
 import { JsonObject } from "@blockprotocol/core";
-import { apiGraphQLEndpoint } from "@local/hash-isomorphic-utils/environment";
+import { apiGraphQLEndpoint } from "@local/hash-graphql-shared/environment";
 
 export type FetchEmbedCodeFn = (
   url: string,

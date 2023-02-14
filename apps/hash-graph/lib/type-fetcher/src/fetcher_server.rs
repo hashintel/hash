@@ -6,24 +6,25 @@ use reqwest::{
     Client,
 };
 use tarpc::context::Context;
+use time::OffsetDateTime;
 use type_system::{
     DataType, DataTypeReference, EntityType, EntityTypeReference, PropertyType,
     PropertyTypeReference,
 };
 
-use crate::fetcher::{FetchedOntologyType, Fetcher, FetcherError, TypeFetchResponse};
+use crate::fetcher::{FetchedOntologyType, Fetcher, FetcherError, OntologyType, TypeFetchResponse};
 
 #[derive(Clone)]
 pub struct FetchServer;
 
 #[tarpc::server]
 impl Fetcher for FetchServer {
-    async fn fetch_entity_type_exhaustive(
+    async fn fetch_ontology_type_exhaustive(
         self,
         _context: Context,
         entity_type_url: String,
     ) -> Result<TypeFetchResponse, FetcherError> {
-        fetch_entity_type_exhaustive(entity_type_url).await
+        fetch_ontology_type_exhaustive(entity_type_url).await
     }
 }
 
@@ -48,7 +49,7 @@ impl StreamState {
     }
 }
 
-async fn fetch_entity_type_exhaustive(
+async fn fetch_ontology_type_exhaustive(
     entity_type_url: String,
 ) -> Result<TypeFetchResponse, FetcherError> {
     // let seen: DashSet<String> = DashSet::new();
@@ -63,8 +64,8 @@ async fn fetch_entity_type_exhaustive(
             let Some(url) = next_url else { return Ok(None) };
             let response = fetch_ontology_type(client, url).await?;
 
-            let uris: Vec<String> = match response.clone() {
-                FetchedOntologyType::EntityType(schema) => {
+            let uris: Vec<String> = match response.ontology_type.clone() {
+                OntologyType::EntityType(schema) => {
                     let entity_type: EntityType = schema.try_into().map_err(|error| {
                         tracing::error!(error=?error, "Couldn't convert schema to Entity Type");
                         FetcherError::TypeParsingError(format!(
@@ -73,7 +74,7 @@ async fn fetch_entity_type_exhaustive(
                     })?;
                     traverse_entity_type_references(&entity_type).collect()
                 }
-                FetchedOntologyType::PropertyType(schema) => {
+                OntologyType::PropertyType(schema) => {
                     let property_type: PropertyType = schema.try_into().map_err(|error| {
                         tracing::error!(error=?error, "Couldn't convert schema to Property Type");
                         FetcherError::TypeParsingError(format!(
@@ -83,7 +84,7 @@ async fn fetch_entity_type_exhaustive(
 
                     traverse_property_type_references(&property_type).collect()
                 }
-                FetchedOntologyType::DataType(schema) => {
+                OntologyType::DataType(schema) => {
                     let data_type: DataType = schema.try_into().map_err(|error| {
                         tracing::error!(error=?error, "Couldn't convert schema to Data Type");
                         FetcherError::TypeParsingError(format!(
@@ -120,7 +121,7 @@ pub async fn fetch_ontology_type(
     client: Client,
     url: String,
 ) -> Result<FetchedOntologyType, FetcherError> {
-    let resp = client
+    let ontology_type = client
         .get(&url)
         .header(ACCEPT, "application/json")
         .header(USER_AGENT, "HASH Graph")
@@ -130,14 +131,17 @@ pub async fn fetch_ontology_type(
             tracing::error!(error=?err, url=&url, "Could not fetch ontology type");
             FetcherError::NetworkError(format!("Error fetching {url}: {err:?}"))
         })?
-        .json::<FetchedOntologyType>()
+        .json::<OntologyType>()
         .await
         .map_err(|err| {
             tracing::error!(error=?err, url=&url, "Could not deserialize response");
             FetcherError::SerializationError(format!("Error deserializing {url}: {err:?}"))
         })?;
 
-    Ok(resp)
+    Ok(FetchedOntologyType {
+        ontology_type,
+        fetched_at: OffsetDateTime::now_utc(),
+    })
 }
 
 #[allow(clippy::enum_variant_names)]

@@ -43,7 +43,7 @@ describe("Org", () => {
   });
 
   it("can get the account id", () => {
-    expect(createdOrg.entity.metadata.editionId.baseId).toBeDefined();
+    expect(createdOrg.entity.metadata.recordId.entityId).toBeDefined();
   });
 
   it("can update the shortname of an org", async () => {

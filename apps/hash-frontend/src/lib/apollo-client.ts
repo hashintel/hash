@@ -1,4 +1,4 @@
-import { createApolloClient } from "@local/hash-isomorphic-utils/graphql/create-apollo-client";
+import { createApolloClient } from "@local/hash-graphql-shared/graphql/create-apollo-client";
 
 import { isBrowser } from "./config";
 

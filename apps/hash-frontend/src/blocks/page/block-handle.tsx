@@ -60,7 +60,7 @@ const BlockHandle: ForwardRefRenderFunction<
       throw new Error(`No child entity on block to update`);
     }
     blockView.manager.updateEntityProperties(
-      childEntity.metadata.editionId.baseId!,
+      childEntity.metadata.recordId.entityId!,
       properties,
     );
   };

@@ -4,7 +4,8 @@ import {
   IconButton,
   TextField,
 } from "@hashintel/design-system";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { getRoots } from "@local/hash-subgraph/stdlib/roots";
+import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph/types/element";
 import {
   Box,
   Collapse,
@@ -151,7 +152,9 @@ export const AccountEntityTypeList: FunctionComponent<
   const accountEntityTypes = useMemo(() => {
     if (allEntityTypes) {
       return allEntityTypes.filter(
-        (root) => root.metadata.ownedById === ownedById,
+        (root) =>
+          isOwnedOntologyElementMetadata(root.metadata) &&
+          root.metadata.ownedById === ownedById,
       );
     }
 

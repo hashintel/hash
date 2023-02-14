@@ -1,9 +1,9 @@
 import { useMutation } from "@apollo/client";
-import { getPageInfoQuery } from "@local/hash-isomorphic-utils/queries/page.queries";
+import { getPageInfoQuery } from "@local/hash-graphql-shared/queries/page.queries";
 import {
   EntityId,
   extractOwnedByIdFromEntityId,
-} from "@local/hash-isomorphic-utils/types";
+} from "@local/hash-subgraph/main";
 import { useCallback } from "react";
 
 import {

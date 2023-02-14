@@ -8,13 +8,13 @@ description = "HASH Graph API"
 [dependencies]
 type-fetcher = { path = "../type-fetcher", optional = true }
 
-async-trait = "0.1.63"
+async-trait = "0.1.64"
 axum = "0.6.3"
 bb8-postgres = "0.8.1"
 clap = { version = "4.1.4", features = ["derive", "env"], optional = true }
 time = { version = "0.3.17", features = ['serde', 'serde-well-known'] }
 derivative = "2.2.0"
-error-stack = { version = "0.3.0", features = ["spantrace"] }
+error-stack = { version = "0.3.1", features = ["spantrace"] }
 futures = "0.3.25"
 hyper = "0.14.23"
 postgres-types = { version = "0.2.4", default-features = false, features = ["derive", "with-uuid-1", "with-serde_json-1", "with-time-0_3"] }
@@ -22,6 +22,7 @@ postgres-protocol = "0.6.4"
 regex = "1.7.1"
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = "1.0.91"
+tokio = { version = "1.24.2", default-features = false }
 tokio-postgres = { version = "0.7.7", default-features = false }
 tower = "0.4.13"
 tower-http = { version = "0.3.5", features = ["trace"] }
@@ -34,13 +35,16 @@ opentelemetry = { version = "0.18.0", features = ["rt-tokio"] }
 opentelemetry-otlp = "0.11.0"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter", "json"] }
 type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "2ea406f" }
-uuid = { version = "1.2.2", features = ["v4", "serde"] }
+uuid = { version = "1.3.0", features = ["v4", "serde"] }
 utoipa = { version = "3.0.1", features = ["uuid"] }
 include_dir = "0.7.3"
 refinery = { version = "0.8", features = ["tokio-postgres"] }
 
+tarpc = { version = "0.31", features = ["serde-transport", "tcp"], optional = true }
+tokio-serde = { version = "0.8", features = ["messagepack"], optional = true }
+
 [dev-dependencies]
-tokio = { version = "1.24.2", features = ["rt-multi-thread", "macros", "tracing"] }
+tokio = { version = "1.25.0", features = ["rt-multi-thread", "macros", "tracing"] }
 graph-test-data = { path = "../../tests/test_data" }
 criterion = "0.4.0"
 
@@ -49,7 +53,7 @@ criterion = "0.4.0"
 #          compile code for externally written benchmarks to avoid exposing internals of the data store
 __internal_bench = []
 clap = ["dep:clap"]
-type-fetcher = ["dep:type-fetcher"]
+type-fetcher = ["dep:type-fetcher", "dep:tarpc", "dep:tokio-serde"]
 
 [[test]]
 test = false

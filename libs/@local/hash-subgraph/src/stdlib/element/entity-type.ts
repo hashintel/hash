@@ -6,7 +6,7 @@ import {
 } from "@blockprotocol/type-system";
 
 import { EntityTypeWithMetadata } from "../../types/element";
-import { OntologyTypeEditionId } from "../../types/identifier";
+import { OntologyTypeRecordId } from "../../types/identifier";
 import { Subgraph } from "../../types/subgraph";
 import { isEntityTypeVertex } from "../../types/vertex";
 
@@ -57,18 +57,18 @@ export const getEntityTypeById = (
 };
 
 /**
- * Gets a `EntityTypeWithMetadata` by its `OntologyTypeEditionId` from within the vertices of the subgraph. Returns
+ * Gets a `EntityTypeWithMetadata` by its `OntologyTypeRecordId` from within the vertices of the subgraph. Returns
  * `undefined` if the entity type couldn't be found.
  *
  * @param subgraph
- * @param editionId
+ * @param recordId
  * @throws if the vertex isn't a `EntityTypeVertex`
  */
 export const getEntityTypeByEditionId = (
   subgraph: Subgraph,
-  editionId: OntologyTypeEditionId,
+  recordId: OntologyTypeRecordId,
 ): EntityTypeWithMetadata | undefined => {
-  const vertex = subgraph.vertices[editionId.baseId]?.[editionId.version];
+  const vertex = subgraph.vertices[recordId.baseUri]?.[recordId.version];
 
   if (!vertex) {
     return undefined;

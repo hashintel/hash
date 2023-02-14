@@ -2,7 +2,7 @@ import { gql } from "apollo-server-express";
 
 export const entityTypedef = gql`
   scalar EntityId
-  scalar EntityEditionId
+  scalar EntityRecordId
   scalar Entity
   scalar PropertyObject
   scalar EntityMetadata

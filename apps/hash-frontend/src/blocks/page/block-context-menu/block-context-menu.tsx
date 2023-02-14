@@ -18,12 +18,11 @@ import {
   isHashTextBlock,
 } from "@local/hash-isomorphic-utils/blocks";
 import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
 import {
   PropertyObject,
   Subgraph,
   SubgraphRootTypes,
-} from "@local/hash-subgraph";
+} from "@local/hash-subgraph/main";
 import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import { PopupState } from "material-ui-popup-state/hooks";
@@ -80,7 +79,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
     );
   }, [currentComponentId, userBlocks]);
 
-  const entityId = blockEntity?.metadata.editionId.baseId ?? null;
+  const entityId = blockEntity?.metadata.recordId.entityId ?? null;
 
   const menuItems = useMemo(() => {
     /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
@@ -202,10 +201,10 @@ const BlockContextMenu: ForwardRefRenderFunction<
       return;
     }
 
-    const { editionId, entityTypeId } = blockEntity.blockChildEntity.metadata;
+    const { recordId, entityTypeId } = blockEntity.blockChildEntity.metadata;
     const newBlockSubgraph = await fetchBlockSubgraph(
       entityTypeId,
-      editionId.baseId as EntityId,
+      recordId.entityId,
     );
 
     setBlockSubgraph(newBlockSubgraph);
