@@ -1,8 +1,6 @@
-import { typedKeys } from "@local/advanced-types/typed-entries";
 import { Filter } from "@local/hash-graph-client";
 import {
   Entity,
-  isEntityId,
   OwnedById,
   splitEntityId,
   Subgraph,
@@ -35,27 +33,6 @@ import { LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapEntityToGQL } from "../graphql-mapping";
 import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
-
-/**
- * @todo - Remove this when the Subgraph is appropriately queryable for a timestamp
- *   at the moment, (not in the roots) all versions of linked entities are returned,
- *   and with the lack of an `endTime`, this breaks the query ability of the graph to
- *   find the correct version of an entity.
- *   https://app.asana.com/0/1201095311341924/1203331904553375/f
- *
- */
-const removeNonLatestEntities = (subgraph: Subgraph) => {
-  for (const entityId of typedKeys(subgraph.vertices)) {
-    if (isEntityId(entityId)) {
-      for (const oldVersion of typedKeys(subgraph.vertices[entityId]!)
-        .sort()
-        .slice(0, -1)) {
-        // eslint-disable-next-line no-param-reassign -- it's the point of the function
-        delete subgraph.vertices[entityId]![oldVersion];
-      }
-    }
-  }
-};
 
 export const createEntityResolver: ResolverFn<
   Promise<Entity>,
@@ -181,9 +158,7 @@ export const getAllLatestEntitiesResolver: ResolverFn<
     },
   });
 
-  const mappedSubgraph = mapSubgraph(entitySubgraph);
-  removeNonLatestEntities(mappedSubgraph);
-  return mappedSubgraph;
+  return mapSubgraph(entitySubgraph);
 };
 
 export const getEntityResolver: ResolverFn<
@@ -248,9 +223,7 @@ export const getEntityResolver: ResolverFn<
     },
   });
 
-  const mappedSubgraph = mapSubgraph(entitySubgraph);
-  removeNonLatestEntities(mappedSubgraph);
-  return mappedSubgraph;
+  return mapSubgraph(entitySubgraph);
 };
 
 export const updateEntityResolver: ResolverFn<
