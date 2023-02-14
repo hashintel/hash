@@ -12,7 +12,7 @@ use graph::{
     },
     knowledge::{EntityMetadata, EntityProperties},
     provenance::{OwnedById, UpdatedById},
-    store::{query::Filter, AccountStore, EntityStore, Store as _, Transaction},
+    store::{query::Filter, AccountStore, EntityStore},
     subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};

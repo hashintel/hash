@@ -23,8 +23,7 @@ use crate::{
     provenance::{OwnedById, UpdatedById},
     store::{
         crud::Read, query::Filter, AccountStore, DataTypeStore, EntityStore, EntityTypeStore,
-        InsertionError, PropertyTypeStore, QueryError, Record, Store, StoreError, StorePool,
-        UpdateError,
+        InsertionError, PropertyTypeStore, QueryError, Record, StoreError, StorePool, UpdateError,
     },
     subgraph::{query::StructuralQuery, Subgraph},
 };
@@ -318,20 +317,5 @@ where
                 link_order,
             )
             .await
-    }
-}
-
-#[async_trait]
-impl<S, A> Store for FetchingStore<S, A>
-where
-    S: Store + Send,
-    A: Send + Sync,
-{
-    type Transaction<'t> = S::Transaction<'t>
-    where
-        Self: 't;
-
-    async fn transaction(&mut self) -> Result<Self::Transaction<'_>, StoreError> {
-        self.store.transaction().await
     }
 }
