@@ -1,4 +1,5 @@
 #![allow(missing_docs)]
+#![allow(clippy::unwrap_used)]
 
 use rustc_version::{version_meta, Channel};
 
