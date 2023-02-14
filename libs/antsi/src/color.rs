@@ -1,3 +1,5 @@
+use crate::macros::impl_const;
+
 /// Basic colors variants
 ///
 /// ## Support
@@ -223,6 +225,7 @@ impl RgbColor {
 
 /// Collection of every possible terminal color supported by `antsi`
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum Color {
     /// Basic 8 color palette
     ///
@@ -288,26 +291,34 @@ impl Color {
     }
 }
 
-impl From<BasicColor> for Color {
-    fn from(value: BasicColor) -> Self {
-        Self::Basic(value)
+impl_const! {
+    impl const? From<BasicColor> for Color {
+        fn from(value: BasicColor) -> Self {
+            Self::Basic(value)
+        }
     }
 }
 
-impl From<BrightColor> for Color {
-    fn from(value: BrightColor) -> Self {
-        Self::Bright(value)
+impl_const! {
+    impl const? From<BrightColor> for Color {
+        fn from(value: BrightColor) -> Self {
+            Self::Bright(value)
+        }
     }
 }
 
-impl From<IndexedColor> for Color {
-    fn from(value: IndexedColor) -> Self {
-        Self::Indexed(value)
+impl_const! {
+    impl const? From<IndexedColor> for Color {
+        fn from(value: IndexedColor) -> Self {
+            Self::Indexed(value)
+        }
     }
 }
 
-impl From<RgbColor> for Color {
-    fn from(value: RgbColor) -> Self {
-        Self::Rgb(value)
+impl_const! {
+    impl const? From<RgbColor> for Color {
+        fn from(value: RgbColor) -> Self {
+            Self::Rgb(value)
+        }
     }
 }
