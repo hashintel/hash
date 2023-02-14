@@ -68,7 +68,9 @@ pub enum FontFamily {
     Primary,
     /// Fraktur
     ///
-    /// What is Fraktur? [ISO 6429] was first introduced in 1976 as [ECMA-48], a time where in
+    /// ## What is Fraktur?
+    ///
+    /// [ISO 6429] was first introduced in 1976 as [ECMA-48], a time where in
     /// Germany the usage of an alternative Latin alphabet
     /// [Fraktur](https://en.wikipedia.org/wiki/Fraktur) was more common.
     /// Nowadays Fraktur is seldom used in Germany and is no longer taught or practiced and can be
