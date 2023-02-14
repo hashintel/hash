@@ -302,12 +302,12 @@ async fn stop_gap_setup_type_fetcher<A: tokio::net::ToSocketAddrs + Send + Sync 
     let store = fetching_store.store().await;
 
     let ontology_types = [
-        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-        "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
-        "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
-        "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/v/1",
-        "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
-        "https://blockprotocol.org/@blockprotocol/types/data-type/null/v/1",
+        "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
+        "https://blockprotocol.org/@blockprotocol/types/data-type/number/",
+        "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/",
+        "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/",
+        "https://blockprotocol.org/@blockprotocol/types/data-type/object/",
+        "https://blockprotocol.org/@blockprotocol/types/data-type/null/",
     ];
 
     // TODO: Revisit once an authentication and authorization setup is in place
@@ -328,7 +328,10 @@ async fn stop_gap_setup_type_fetcher<A: tokio::net::ToSocketAddrs + Send + Sync 
 
     for ontology_type in ontology_types {
         let fetched_ontology_types = type_fetcher
-            .fetch_ontology_type_exhaustive(context::current(), ontology_type.to_owned())
+            .fetch_ontology_type_exhaustive(
+                context::current(),
+                VersionedUri::new(BaseUri::new(ontology_type.to_owned()).unwrap(), 1),
+            )
             .await
             .into_report()
             .change_context(GraphError)?
