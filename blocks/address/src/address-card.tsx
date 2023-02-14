@@ -1,4 +1,4 @@
-import { faPenToSquare } from "@fortawesome/free-regular-svg-icons";
+import { faCopy, faPenToSquare } from "@fortawesome/free-regular-svg-icons";
 import {
   faArrowRotateLeft,
   faMinus,
@@ -16,7 +16,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { EditableField } from "./editable-field";
 import { AppleIcon } from "./icons/apple-icon";
 import { GoogleIcon } from "./icons/google-icon";
@@ -74,6 +74,10 @@ export const AddressCard = ({
     [fullAddress],
   );
 
+  const copyToClipboard = useCallback(() => {
+    navigator.clipboard.writeText(fullAddress);
+  }, [fullAddress]);
+
   return (
     <Card
       sx={{
@@ -117,17 +121,36 @@ export const AddressCard = ({
             readonly={readonly}
           />
 
-          <Typography
-            variant="regularTextLabels"
-            sx={{
-              fontWeight: 500,
-              lineHeight: 1.3,
-              letterSpacing: "-0.02em",
-              color: ({ palette }) => palette.gray[90],
-            }}
-          >
-            {fullAddress}
-          </Typography>
+          <Box display="flex">
+            <Typography
+              variant="regularTextLabels"
+              sx={{
+                fontWeight: 500,
+                lineHeight: 1.3,
+                letterSpacing: "-0.02em",
+                color: ({ palette }) => palette.gray[90],
+              }}
+            >
+              {fullAddress}
+            </Typography>
+            {readonly ? (
+              <Button
+                onClick={copyToClipboard}
+                variant="tertiary"
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "flex-start",
+                  height: "fit-content",
+                  borderRadius: "50%",
+                  minWidth: "unset",
+                  minHeight: "unset",
+                  padding: 1,
+                }}
+              >
+                <FontAwesomeIcon icon={faCopy} sx={{ fontSize: 12 }} />
+              </Button>
+            ) : null}
+          </Box>
         </Stack>
 
         <Stack gap={1.5}>
