@@ -6,34 +6,10 @@ import {
   validateBaseUri,
   VersionedUri as TVersionedUri,
 } from "@blockprotocol/type-system";
-import { validate as validateUuid } from "uuid";
+
+import { EntityId, isEntityId } from "./branded";
 
 export type VersionedUri = TVersionedUri;
-
-// `${AccountId}%${EntityUuid}`
-export type EntityId = `${string}%${string}`;
-
-/** @todo - consider Type Branding this */
-export const entityIdFromOwnedByIdAndEntityUuid = (
-  ownedById: string,
-  entityUuid: string,
-): EntityId => {
-  return `${ownedById}%${entityUuid}`;
-};
-
-/** @todo - consider Type Branding this */
-export const splitEntityId = (entityId: EntityId): [string, string] => {
-  const [ownedById, entityUuid] = entityId.split("%");
-  return [ownedById!, entityUuid!];
-};
-
-export const extractOwnedByIdFromEntityId = (entityId: EntityId): string => {
-  return splitEntityId(entityId)[0]!;
-};
-
-export const extractEntityUuidFromEntityId = (entityId: EntityId): string => {
-  return splitEntityId(entityId)[1]!;
-};
 
 /** @todo - consider Type Branding this */
 export type Timestamp = string;
@@ -100,16 +76,6 @@ export const ontologyTypeRecordIdToVersionedUri = (
   ontologyTypeRecordId: OntologyTypeRecordId,
 ): VersionedUri => {
   return `${ontologyTypeRecordId.baseUri}v/${ontologyTypeRecordId.version}` as VersionedUri;
-};
-
-export const isEntityId = (entityId: string): entityId is EntityId => {
-  const [accountId, entityUuid] = entityId.split("%");
-  return (
-    accountId != null &&
-    entityUuid != null &&
-    validateUuid(accountId) &&
-    validateUuid(entityUuid)
-  );
 };
 
 export const isEntityVertexId = (

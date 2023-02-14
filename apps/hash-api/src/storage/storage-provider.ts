@@ -1,4 +1,4 @@
-import { AccountId } from "@local/hash-graphql-shared/types";
+import { AccountId } from "@local/hash-subgraph/main";
 import { DataSource } from "apollo-datasource";
 
 export enum StorageType {

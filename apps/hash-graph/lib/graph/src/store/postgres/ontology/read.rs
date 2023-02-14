@@ -30,8 +30,13 @@ use crate::{
 #[derive(Deserialize)]
 #[serde(untagged)]
 enum AdditionalOntologyMetadata {
-    Owned { owned_by_id: OwnedById },
-    External { fetched_at: OffsetDateTime },
+    Owned {
+        owned_by_id: OwnedById,
+    },
+    External {
+        #[serde(with = "time::serde::iso8601")]
+        fetched_at: OffsetDateTime,
+    },
 }
 
 impl<'a> FromSql<'a> for AdditionalOntologyMetadata {

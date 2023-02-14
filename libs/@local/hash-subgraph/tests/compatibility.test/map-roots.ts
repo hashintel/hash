@@ -1,6 +1,10 @@
 import { Subgraph as SubgraphGraphApi } from "@local/hash-graph-client";
 
-import { isEntityVertexId, isOntologyTypeRecordId, Subgraph } from "../../src";
+import {
+  isEntityVertexId,
+  isOntologyTypeRecordId,
+  Subgraph,
+} from "../../src/main";
 
 export const mapRoots = (
   roots: SubgraphGraphApi["roots"],

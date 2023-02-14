@@ -1,4 +1,4 @@
-import { Entity, Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
+import { Entity, Subgraph, SubgraphRootTypes } from "@local/hash-subgraph/main";
 import { Dispatch, SetStateAction } from "react";
 
 export const updateEntitySubgraphStateByEntity = (
