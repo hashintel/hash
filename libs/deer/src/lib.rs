@@ -141,9 +141,19 @@ pub trait Visitor<'de>: Sized {
             .change_context(VisitorError))
     }
 
+    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, VisitorError>
+    where
+        D: Deserializer<'de>,
+    {
+        // we do not know what the received value is
+        Err(Report::new(TypeError.into_error())
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
+    }
+
     fn visit_bool(self, v: bool) -> Result<Self::Value, VisitorError> {
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(visitor::BoolSchema::document()))
+            .attach(ReceivedType::new(bool::document()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
@@ -521,6 +531,13 @@ pub trait Deserializer<'de>: Sized {
     ///
     /// Current value is not of type object
     fn deserialize_object<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: Visitor<'de>;
+
+    /// Hint that the `Deserialize` type expects a value to be present or not
+    ///
+    /// This should call `visit_none`, `visit_null` or `visit_some`.
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>;
 

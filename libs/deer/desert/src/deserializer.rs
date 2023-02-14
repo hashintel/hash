@@ -82,6 +82,23 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
         }
         .change_context(DeserializerError)
     }
+
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: Visitor<'de>,
+    {
+        let token = self.peek();
+
+        match token {
+            Token::Null => {
+                // only eat the token if we're going to visit null
+                self.next();
+                visitor.visit_null()
+            }
+            _ => visitor.visit_some(self),
+        }
+        .change_context(DeserializerError)
+    }
 }
 
 impl<'a, 'de> Deserializer<'a, 'de> {
@@ -146,6 +163,13 @@ impl<'de> deer::Deserializer<'de> for DeserializerNone<'_> {
     }
 
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_none().change_context(DeserializerError)
+    }
+
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>,
     {
