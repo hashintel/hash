@@ -4,6 +4,10 @@
 
 `deer` is an **experimental** backend-agnostic deserialization framework for Rust, featuring meaningful error messages and context (utilizing [`error-stack`](https://crates.io/crates/error-stack)) and a fail-slow behavior by default.
 
+## ⚠️ Disclaimer ⚠️
+
+This crate does not ship with any functionality and is only a name reservation to stop potential name squatting. In the future the actual crate will be published under this name, for the current (incomplete) implementation of the crate please visit the linked repository.
+
 ## Fail-Slow
 
 Currently available Rust deserializers have mostly been developed with correctness and speed in mind. These are universally beneficial optimizations, but in certain cases (such as when collecting user-facing validation feedback) there are relatively few options available within Rust that allow for extended evaluation beyond a single error. `deer` aims to improve this situation by consciously trading off an acceptable degree of speed to enable the surfacing of multiple errors.
