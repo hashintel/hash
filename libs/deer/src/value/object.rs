@@ -12,7 +12,7 @@ pub struct ObjectAccessDeserializer<'a, T> {
 
 impl<'a, T> ObjectAccessDeserializer<'a, T> {
     #[must_use]
-    pub const fn new(context: &'a Context, value: T) -> Self {
+    pub const fn new(value: T, context: &'a Context) -> Self {
         Self { context, value }
     }
 }
