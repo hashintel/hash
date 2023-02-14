@@ -379,7 +379,8 @@ Accept: application/json
       }
     ],
     "properties": {}
-  }
+  },
+  "additionalProperties": false
 }
 
 > {%
@@ -474,7 +475,8 @@ Accept: application/json
         "$ref": "http://localhost:3000/@alice/types/property-type/name/v/1"
       }
     }
-  }
+  },
+  "additionalProperties": false
 }
 
 > {%
@@ -575,7 +577,8 @@ Accept: application/json
         "ordered": false
       }
     }
-  }
+  },
+  "additionalProperties": false
 }
 
 > {%
