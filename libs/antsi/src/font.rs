@@ -20,6 +20,7 @@
 ///
 /// [ISO 6429]: https://www.iso.org/standard/12782.html
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum FontWeight {
     /// Bold text
     ///
@@ -63,6 +64,7 @@ impl AlternativeFontFamily {
 ///
 /// [ISO 6429]: https://www.iso.org/standard/12782.html
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum FontFamily {
     /// The primary (default) font family
     Primary,
@@ -85,12 +87,14 @@ pub enum FontFamily {
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum Underline {
     Single,
     Double,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum Blinking {
     Slow,
     Fast,
