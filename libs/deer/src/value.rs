@@ -59,6 +59,13 @@ macro_rules! impl_owned {
             {
                 visitor.$method(self.value).change_context(DeserializerError)
             }
+
+            fn deserialize_optional<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+            where
+                V: Visitor<'de>
+            {
+                visitor.visit_some(self).change_context(DeserializerError)
+            }
         }
 
         impl<'de> IntoDeserializer<'de> for $ty {
@@ -134,6 +141,13 @@ impl<'de> Deserializer<'de> for NoneDeserializer<'_> {
     {
         visitor.visit_none().change_context(DeserializerError)
     }
+
+    fn deserialize_optional<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_none().change_context(DeserializerError)
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -171,6 +185,13 @@ impl<'de> Deserializer<'de> for NullDeserializer<'_> {
     {
         visitor.visit_null().change_context(DeserializerError)
     }
+
+    fn deserialize_optional<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_null().change_context(DeserializerError)
+    }
 }
 
 impl_owned!(bool, BoolDeserializer, visit_bool);
@@ -191,5 +212,3 @@ impl_owned!(f32, F32Deserializer, visit_f32);
 impl_owned!(f64, F64Deserializer, visit_f64);
 
 impl_owned!(!copy: Number, NumberDeserializer, visit_number);
-
-// TODO: test

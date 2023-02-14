@@ -46,6 +46,13 @@ impl<'de> Deserializer<'de> for BytesDeserializer<'_, '_> {
             .visit_bytes(self.value)
             .change_context(DeserializerError)
     }
+
+    fn deserialize_optional<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_some(self).change_context(DeserializerError)
+    }
 }
 
 impl<'de, 'b> IntoDeserializer<'de> for &'b [u8] {
@@ -96,6 +103,13 @@ impl<'de> Deserializer<'de> for BorrowedBytesDeserializer<'_, 'de> {
         visitor
             .visit_borrowed_bytes(self.value)
             .change_context(DeserializerError)
+    }
+
+    fn deserialize_optional<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_some(self).change_context(DeserializerError)
     }
 }
 

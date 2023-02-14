@@ -45,4 +45,11 @@ where
             .visit_object(self.value)
             .change_context(DeserializerError)
     }
+
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_some(self).change_context(DeserializerError)
+    }
 }

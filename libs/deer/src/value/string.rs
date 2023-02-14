@@ -46,6 +46,13 @@ impl<'de> Deserializer<'de> for StrDeserializer<'_, '_> {
             .visit_str(self.value)
             .change_context(DeserializerError)
     }
+
+    fn deserialize_optional<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_some(self).change_context(DeserializerError)
+    }
 }
 
 impl<'de, 'b> IntoDeserializer<'de> for &'b str {
@@ -96,6 +103,13 @@ impl<'de> Deserializer<'de> for BorrowedStrDeserializer<'_, 'de> {
         visitor
             .visit_borrowed_str(self.value)
             .change_context(DeserializerError)
+    }
+
+    fn deserialize_optional<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_some(self).change_context(DeserializerError)
     }
 }
 

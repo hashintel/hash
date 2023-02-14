@@ -370,6 +370,18 @@ impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a> {
             else => Error
         })
     }
+
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: Visitor<'de>,
+    {
+        match &self.value {
+            None => visitor.visit_none(),
+            Some(Value::Null) => visitor.visit_null(),
+            _ => visitor.visit_some(self),
+        }
+        .change_context(DeserializerError)
+    }
 }
 
 #[must_use]
