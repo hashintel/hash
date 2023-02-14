@@ -54,7 +54,7 @@ impl TypeFetchResponse {
 
 #[tarpc::service]
 pub trait Fetcher {
-    /// Fetch an entity type by its URL and return all types that are reachable from it.
+    /// Fetch an ontology type by its URL and return all types that are reachable from it.
     async fn fetch_ontology_type_exhaustive(
         ontology_type_url: VersionedUri,
     ) -> Result<TypeFetchResponse, FetcherError>;
