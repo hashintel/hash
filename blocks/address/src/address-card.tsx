@@ -1,5 +1,9 @@
 import { faPenToSquare } from "@fortawesome/free-regular-svg-icons";
-import { faClose, faMinus, faPlus } from "@fortawesome/free-solid-svg-icons";
+import {
+  faArrowRotateLeft,
+  faMinus,
+  faPlus,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import {
   Box,
@@ -298,10 +302,13 @@ export const AddressCard = ({
               },
             })}
             endIcon={
-              <FontAwesomeIcon icon={faClose} sx={{ fill: "inherit" }} />
+              <FontAwesomeIcon
+                icon={faArrowRotateLeft}
+                sx={{ fill: "inherit" }}
+              />
             }
           >
-            Close
+            Clear location
           </Button>
         </Fade>
       </Box>
