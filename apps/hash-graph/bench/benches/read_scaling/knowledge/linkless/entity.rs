@@ -108,14 +108,14 @@ pub fn bench_get_entity_by_id(
             // query
             entity_metadata_list
                 .iter()
-                .map(EntityMetadata::edition_id)
+                .map(EntityMetadata::record_id)
                 .choose(&mut thread_rng())
                 .expect("could not choose random entity")
         },
-        |entity_edition_id| async move {
+        |entity_record_id| async move {
             store
                 .get_entity(&StructuralQuery {
-                    filter: Filter::for_entity_by_id(entity_edition_id.base_id()),
+                    filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id()),
                     graph_resolve_depths: GraphResolveDepths::default(),
                     time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                         kernel: UnresolvedKernel::new(None),

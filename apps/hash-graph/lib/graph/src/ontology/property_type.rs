@@ -205,7 +205,7 @@ impl QueryPath for PropertyTypeQueryPath<'_> {
             Self::Schema(_) | Self::AdditionalMetadata(_) => ParameterType::Any,
             Self::BaseUri => ParameterType::BaseUri,
             Self::VersionedUri => ParameterType::VersionedUri,
-            Self::Version => ParameterType::UnsignedInteger,
+            Self::Version => ParameterType::OntologyTypeVersion,
             Self::Title | Self::Description => ParameterType::Text,
             Self::DataTypes(path) => path.expected_type(),
             Self::PropertyTypes(path) => path.expected_type(),

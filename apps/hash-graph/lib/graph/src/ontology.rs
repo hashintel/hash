@@ -23,7 +23,7 @@ pub use self::{
     property_type::{PropertyTypeQueryPath, PropertyTypeQueryPathVisitor, PropertyTypeQueryToken},
 };
 use crate::{
-    identifier::{ontology::OntologyTypeEditionId, time::TimeAxis},
+    identifier::{ontology::OntologyTypeRecordId, time::TimeAxis, OntologyTypeVertexId},
     provenance::{OwnedById, ProvenanceMetadata},
     store::{query::Filter, Record},
 };
@@ -159,10 +159,10 @@ pub enum OntologyElementMetadata {
 
 impl OntologyElementMetadata {
     #[must_use]
-    pub const fn edition_id(&self) -> &OntologyTypeEditionId {
+    pub const fn record_id(&self) -> &OntologyTypeRecordId {
         match self {
-            Self::Owned(owned) => owned.edition_id(),
-            Self::External(external) => external.edition_id(),
+            Self::Owned(owned) => owned.record_id(),
+            Self::External(external) => external.record_id(),
         }
     }
 }
@@ -170,7 +170,7 @@ impl OntologyElementMetadata {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct OwnedOntologyElementMetadata {
-    edition_id: OntologyTypeEditionId,
+    record_id: OntologyTypeRecordId,
     #[serde(rename = "provenance")]
     provenance_metadata: ProvenanceMetadata,
     owned_by_id: OwnedById,
@@ -179,20 +179,20 @@ pub struct OwnedOntologyElementMetadata {
 impl OwnedOntologyElementMetadata {
     #[must_use]
     pub const fn new(
-        edition_id: OntologyTypeEditionId,
+        record_id: OntologyTypeRecordId,
         provenance_metadata: ProvenanceMetadata,
         owned_by_id: OwnedById,
     ) -> Self {
         Self {
-            edition_id,
+            record_id,
             provenance_metadata,
             owned_by_id,
         }
     }
 
     #[must_use]
-    pub const fn edition_id(&self) -> &OntologyTypeEditionId {
-        &self.edition_id
+    pub const fn record_id(&self) -> &OntologyTypeRecordId {
+        &self.record_id
     }
 
     #[must_use]
@@ -209,7 +209,7 @@ impl OwnedOntologyElementMetadata {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ExternalOntologyElementMetadata {
-    edition_id: OntologyTypeEditionId,
+    record_id: OntologyTypeRecordId,
     #[serde(rename = "provenance")]
     provenance_metadata: ProvenanceMetadata,
     #[schema(value_type = String)]
@@ -220,20 +220,20 @@ pub struct ExternalOntologyElementMetadata {
 impl ExternalOntologyElementMetadata {
     #[must_use]
     pub const fn new(
-        edition_id: OntologyTypeEditionId,
+        record_id: OntologyTypeRecordId,
         provenance_metadata: ProvenanceMetadata,
         fetched_at: OffsetDateTime,
     ) -> Self {
         Self {
-            edition_id,
+            record_id,
             provenance_metadata,
             fetched_at,
         }
     }
 
     #[must_use]
-    pub const fn edition_id(&self) -> &OntologyTypeEditionId {
-        &self.edition_id
+    pub const fn record_id(&self) -> &OntologyTypeRecordId {
+        &self.record_id
     }
 
     #[must_use]
@@ -256,20 +256,16 @@ pub struct DataTypeWithMetadata {
 }
 
 impl Record for DataTypeWithMetadata {
-    type EditionId = OntologyTypeEditionId;
     type QueryPath<'p> = DataTypeQueryPath<'p>;
-    type VertexId = Self::EditionId;
-
-    fn edition_id(&self) -> &Self::EditionId {
-        self.metadata().edition_id()
-    }
+    type VertexId = OntologyTypeVertexId;
 
     fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
-        self.edition_id().clone()
+        let record_id = self.metadata().record_id();
+        OntologyTypeVertexId::new(record_id.base_uri().clone(), record_id.version())
     }
 
     fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
-        Filter::for_ontology_type_edition_id(vertex_id)
+        Filter::for_ontology_type_vertex_id(vertex_id)
     }
 }
 
@@ -301,20 +297,16 @@ pub struct PropertyTypeWithMetadata {
 }
 
 impl Record for PropertyTypeWithMetadata {
-    type EditionId = OntologyTypeEditionId;
     type QueryPath<'p> = PropertyTypeQueryPath<'p>;
-    type VertexId = Self::EditionId;
-
-    fn edition_id(&self) -> &Self::EditionId {
-        self.metadata().edition_id()
-    }
+    type VertexId = OntologyTypeVertexId;
 
     fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
-        self.edition_id().clone()
+        let record_id = self.metadata().record_id();
+        OntologyTypeVertexId::new(record_id.base_uri().clone(), record_id.version())
     }
 
     fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
-        Filter::for_ontology_type_edition_id(vertex_id)
+        Filter::for_ontology_type_vertex_id(vertex_id)
     }
 }
 
@@ -346,20 +338,16 @@ pub struct EntityTypeWithMetadata {
 }
 
 impl Record for EntityTypeWithMetadata {
-    type EditionId = OntologyTypeEditionId;
     type QueryPath<'p> = EntityTypeQueryPath<'p>;
-    type VertexId = Self::EditionId;
-
-    fn edition_id(&self) -> &Self::EditionId {
-        self.metadata().edition_id()
-    }
+    type VertexId = OntologyTypeVertexId;
 
     fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
-        self.edition_id().clone()
+        let record_id = self.metadata().record_id();
+        OntologyTypeVertexId::new(record_id.base_uri().clone(), record_id.version())
     }
 
     fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
-        Filter::for_ontology_type_edition_id(vertex_id)
+        Filter::for_ontology_type_vertex_id(vertex_id)
     }
 }
 

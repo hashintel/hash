@@ -20,7 +20,6 @@ import {
 
 import {
   EntityId,
-  EntityVersion,
   isEntityId,
   KnowledgeGraphVertex,
   OntologyElementMetadata,
@@ -79,13 +78,7 @@ const mapEntityType = (entityType: EntityTypeGraphApi): EntityType => {
 const mapOntologyMetadata = (
   metadata: OntologyElementMetadataGraphApi,
 ): OntologyElementMetadata => {
-  return {
-    ...metadata,
-    recordId: {
-      baseUri: metadata.editionId.baseId,
-      version: metadata.editionId.version,
-    },
-  };
+  return metadata;
 };
 
 const mapOntologyVertex = (vertex: OntologyVertexGraphApi): OntologyVertex => {
@@ -139,10 +132,9 @@ const mapKnowledgeGraphVertex = (
       metadata: {
         ...vertex.inner.metadata,
         recordId: {
-          entityId: vertex.inner.metadata.editionId.baseId as EntityId,
-          editionId: vertex.inner.metadata.editionId.recordId,
+          ...vertex.inner.metadata.recordId,
+          entityId: vertex.inner.metadata.recordId.entityId as EntityId,
         },
-        version: vertex.inner.metadata.version as EntityVersion,
         entityTypeId: vertex.inner.metadata.entityTypeId as VersionedUri,
       },
     },

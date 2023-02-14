@@ -133,9 +133,9 @@ impl EntityVersion {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, ToSql, ToSchema)]
 #[postgres(transparent)]
 #[repr(transparent)]
-pub struct EntityRecordId(Uuid);
+pub struct EntityEditionId(Uuid);
 
-impl EntityRecordId {
+impl EntityEditionId {
     #[must_use]
     pub const fn new(id: Uuid) -> Self {
         Self(id)
@@ -149,9 +149,9 @@ impl EntityRecordId {
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct EntityEditionId {
-    base_id: EntityId,
-    record_id: EntityRecordId,
+pub struct EntityRecordId {
+    entity_id: EntityId,
+    edition_id: EntityEditionId,
 }
 
 impl SubgraphIndex<Entity> for EntityVertexId {
@@ -163,22 +163,22 @@ impl SubgraphIndex<Entity> for EntityVertexId {
     }
 }
 
-impl EntityEditionId {
+impl EntityRecordId {
     #[must_use]
-    pub const fn new(entity_id: EntityId, record_id: EntityRecordId) -> Self {
+    pub const fn new(entity_id: EntityId, edition_id: EntityEditionId) -> Self {
         Self {
-            base_id: entity_id,
-            record_id,
+            entity_id,
+            edition_id,
         }
     }
 
     #[must_use]
-    pub const fn base_id(&self) -> EntityId {
-        self.base_id
+    pub const fn entity_id(&self) -> EntityId {
+        self.entity_id
     }
 
     #[must_use]
-    pub const fn record_id(&self) -> EntityRecordId {
-        self.record_id
+    pub const fn edition_id(&self) -> EntityEditionId {
+        self.edition_id
     }
 }

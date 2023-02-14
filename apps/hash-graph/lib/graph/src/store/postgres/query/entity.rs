@@ -42,7 +42,7 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
     fn terminating_column(&self) -> Column {
         match self {
             Self::Uuid => Column::Entities(Entities::EntityUuid),
-            Self::RecordId => Column::Entities(Entities::RecordId),
+            Self::EditionId => Column::Entities(Entities::EditionId),
             Self::DecisionTime => Column::Entities(Entities::DecisionTime),
             Self::TransactionTime => Column::Entities(Entities::TransactionTime),
             Self::Archived => Column::Entities(Entities::Archived),
