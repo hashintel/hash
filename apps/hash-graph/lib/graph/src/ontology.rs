@@ -188,6 +188,14 @@ impl OntologyElementMetadata {
             Self::External(external) => external.record_id(),
         }
     }
+
+    #[must_use]
+    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
+        match self {
+            Self::Owned(owned) => owned.provenance_metadata,
+            Self::External(external) => external.provenance_metadata,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
