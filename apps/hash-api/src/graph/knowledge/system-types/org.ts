@@ -196,7 +196,7 @@ export const getOrgByShortname: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeProjection: {
+      timeAxes: {
         pinned: {
           axis: "transactionTime",
           timestamp: null,

@@ -80,7 +80,7 @@ export const getEntityTypeById: ImpureGraphFunction<
         equal: [{ path: ["versionedUri"] }, { parameter: entityTypeId }],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeProjection: {
+      timeAxes: {
         pinned: {
           axis: "transactionTime",
           timestamp: null,

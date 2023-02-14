@@ -72,7 +72,7 @@ export const getAllLatestPropertyTypesResolver: ResolverFn<
         hasLeftEntity: { incoming: 0, outgoing: 0 },
         hasRightEntity: { incoming: 0, outgoing: 0 },
       },
-      timeProjection: {
+      timeAxes: {
         pinned: {
           axis: "transactionTime",
           timestamp: null,
@@ -116,7 +116,7 @@ export const getPropertyTypeResolver: ResolverFn<
         hasLeftEntity: { incoming: 0, outgoing: 0 },
         hasRightEntity: { incoming: 0, outgoing: 0 },
       },
-      timeProjection: {
+      timeAxes: {
         pinned: {
           axis: "transactionTime",
           timestamp: null,
