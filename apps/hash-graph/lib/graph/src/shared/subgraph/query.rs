@@ -162,6 +162,7 @@ pub struct StructuralQuery<'p, R: Record> {
     #[serde(bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>")]
     pub filter: Filter<'p, R>,
     pub graph_resolve_depths: GraphResolveDepths,
+    #[serde(rename = "timeAxes")]
     pub time_projection: UnresolvedTimeProjection,
 }
 
@@ -177,7 +178,7 @@ impl<'p, R: Record> StructuralQuery<'p, R> {
                 )
                 .required("graphResolveDepths")
                 .property(
-                    "timeProjection",
+                    "timeAxes",
                     Ref::from_schema_name(UnresolvedTimeProjection::schema().0),
                 )
                 .required("timeProjection")
