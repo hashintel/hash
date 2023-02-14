@@ -1,3 +1,4 @@
+import { typedKeys } from "@local/advanced-types/typed-entries";
 import { Filter } from "@local/hash-graph-client";
 import {
   Entity,
@@ -44,13 +45,12 @@ import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
  *
  */
 const removeNonLatestEntities = (subgraph: Subgraph) => {
-  for (const entityId of Object.keys(subgraph.vertices)) {
+  for (const entityId of typedKeys(subgraph.vertices)) {
     if (isEntityId(entityId)) {
-      for (const oldVersion of Object.keys(subgraph.vertices[entityId]!)
+      for (const oldVersion of typedKeys(subgraph.vertices[entityId]!)
         .sort()
         .slice(0, -1)) {
-        /* @ts-expect-error -- @todo-0.3 This is temporary and due to the `Vertices` and `Edges` objects not being migrated yet */
-        // eslint-disable-next-line no-param-reassign
+        // eslint-disable-next-line no-param-reassign -- it's the point of the function
         delete subgraph.vertices[entityId]![oldVersion];
       }
     }
