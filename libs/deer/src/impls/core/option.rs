@@ -153,6 +153,7 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for Option<T> {
 
     fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
         // TODO: is deserialize_any ok here?
+        //  non self-describing formats _might_ fail here (e.g. bincode)
         de.deserialize_any(OptionVisitor(PhantomData, de.context()))
             .change_context(DeserializeError)
     }
