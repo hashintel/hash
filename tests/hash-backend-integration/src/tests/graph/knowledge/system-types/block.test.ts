@@ -16,8 +16,11 @@ import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
-import { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
+import {
+  Entity,
+  EntityTypeWithMetadata,
+  OwnedById,
+} from "@local/hash-subgraph/main";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
@@ -86,7 +89,7 @@ describe("Block", () => {
 
   it("can get a block by its entity id", async () => {
     const fetchedBlock = await getBlockById(graphContext, {
-      entityId: testBlock.entity.metadata.editionId.baseId,
+      entityId: testBlock.entity.metadata.recordId.entityId,
     });
 
     expect(fetchedBlock).not.toBeNull();

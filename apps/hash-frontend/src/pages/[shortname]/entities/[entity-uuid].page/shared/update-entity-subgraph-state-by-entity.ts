@@ -1,4 +1,4 @@
-import { Entity, Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
+import { Entity, Subgraph, SubgraphRootTypes } from "@local/hash-subgraph/main";
 import { Dispatch, SetStateAction } from "react";
 
 export const updateEntitySubgraphStateByEntity = (
@@ -23,14 +23,14 @@ export const updateEntitySubgraphStateByEntity = (
           ...subgraph,
           roots: [
             {
-              baseId: newEntity.metadata.editionId.baseId,
+              baseId: newEntity.metadata.recordId.entityId,
               version: newEntityVersion,
             },
           ],
           vertices: {
             ...subgraph.vertices,
-            [newEntity.metadata.editionId.baseId]: {
-              ...subgraph.vertices[newEntity.metadata.editionId.baseId],
+            [newEntity.metadata.recordId.entityId]: {
+              ...subgraph.vertices[newEntity.metadata.recordId.entityId],
               [newEntityVersion]: {
                 kind: "entity",
                 inner: newEntity,

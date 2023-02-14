@@ -11,15 +11,15 @@ import {
   CreateResourceError,
   ReadOrModifyResourceError,
 } from "@blockprotocol/graph";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
 import {
   Entity,
+  EntityId,
   LinkData,
   PropertyObject,
   Subgraph,
   SubgraphRootTypes,
   VersionedUri,
-} from "@local/hash-subgraph";
+} from "@local/hash-subgraph/main";
 
 export type KnowledgeCallbacks = {
   getEntity: GetEntityMessageCallback;

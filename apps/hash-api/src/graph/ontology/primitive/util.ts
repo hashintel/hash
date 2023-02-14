@@ -1,6 +1,10 @@
 import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
-import { entityIdFromOwnedByIdAndEntityUuid } from "@local/hash-subgraph";
+import {
+  entityIdFromOwnedByIdAndEntityUuid,
+  EntityUuid,
+  OwnedById,
+  Uuid,
+} from "@local/hash-subgraph/main";
 
 import { ImpureGraphFunction } from "../..";
 import { getOrgById } from "../../knowledge/system-types/org";
@@ -24,14 +28,14 @@ export const getNamespaceOfAccountOwner: ImpureGraphFunction<
       : (
           (await getUserById(ctx, {
             entityId: entityIdFromOwnedByIdAndEntityUuid(
-              systemUserAccountId,
-              params.ownerId,
+              systemUserAccountId as OwnedById,
+              params.ownerId as Uuid as EntityUuid,
             ),
           }).catch(() => undefined)) ??
           (await getOrgById(ctx, {
             entityId: entityIdFromOwnedByIdAndEntityUuid(
-              systemUserAccountId,
-              params.ownerId,
+              systemUserAccountId as OwnedById,
+              params.ownerId as Uuid as EntityUuid,
             ),
           }).catch(() => undefined))
         )?.shortname;

@@ -1,10 +1,10 @@
 import { EntityType, VersionedUri } from "@blockprotocol/type-system";
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
   EntityTypeWithMetadata,
   linkEntityTypeUri,
-} from "@local/hash-subgraph";
-import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
+  OwnedById,
+} from "@local/hash-subgraph/main";
+import { getEntityTypeById } from "@local/hash-subgraph/stdlib/element/entity-type";
 import { TableBody, TableCell, TableFooter, TableHead } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";

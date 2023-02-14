@@ -10,7 +10,7 @@ import {
   extractEntityUuidFromEntityId,
   Subgraph,
   SubgraphRootTypes,
-} from "@local/hash-subgraph";
+} from "@local/hash-subgraph/main";
 import { useMemo } from "react";
 
 import { useGetOwnerForEntity } from "../../../../../../components/hooks/use-get-owner-for-entity";
@@ -21,6 +21,7 @@ export interface TypeEntitiesRow {
   entity: string;
   entityTypeVersion: string;
   namespace: string;
+
   [k: string]: string;
 }
 
@@ -92,7 +93,7 @@ export const useEntitiesTable = (
         const { shortname: entityNamespace } = getOwnerForEntity(entity);
 
         const entityId = extractEntityUuidFromEntityId(
-          entity.metadata.editionId.baseId,
+          entity.metadata.recordId.entityId,
         );
 
         return {

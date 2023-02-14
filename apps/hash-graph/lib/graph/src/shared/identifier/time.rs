@@ -1,12 +1,16 @@
 mod axis;
+mod bound;
 mod interval;
 mod projection;
 mod timestamp;
-mod version;
 
 pub use self::{
-    axis::{DecisionTime, ProjectedTime, TimeAxis, TransactionTime},
-    interval::{TimeInterval, TimeIntervalBound, UnresolvedTimeInterval},
+    axis::{DecisionTime, ProjectedTime, TemporalTagged, TimeAxis, TransactionTime},
+    bound::{
+        IncludedTimeIntervalBound, LimitedTimeIntervalBound, TimeIntervalBound,
+        UnboundedOrExcludedTimeIntervalBound,
+    },
+    interval::UnresolvedTimeInterval,
     projection::{
         DecisionTimeImage, DecisionTimeKernel, DecisionTimeProjection, Image, Kernel,
         TimeProjection, TransactionTimeImage, TransactionTimeKernel, TransactionTimeProjection,
@@ -16,5 +20,4 @@ pub use self::{
         UnresolvedTransactionTimeProjection,
     },
     timestamp::Timestamp,
-    version::VersionInterval,
 };

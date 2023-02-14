@@ -1,36 +1,15 @@
 // For strange behavior we haven't found the cause of, we are unable to export
 // directly here, and have to import as alias before re-exporting the type
 // if we don't, the `api` package is unable to use this library.
-import { VersionedUri as TVersionedUri } from "@blockprotocol/type-system";
-import { OntologyTypeEditionId } from "@local/hash-graph-client";
-import { validate as validateUuid } from "uuid";
+import {
+  BaseUri,
+  validateBaseUri,
+  VersionedUri as TVersionedUri,
+} from "@blockprotocol/type-system";
+
+import { EntityId, isEntityId } from "./branded";
 
 export type VersionedUri = TVersionedUri;
-
-// `${AccountId}%${EntityUuid}`
-export type EntityId = `${string}%${string}`;
-
-/** @todo - consider Type Branding this */
-export const entityIdFromOwnedByIdAndEntityUuid = (
-  ownedById: string,
-  entityUuid: string,
-): EntityId => {
-  return `${ownedById}%${entityUuid}`;
-};
-
-/** @todo - consider Type Branding this */
-export const splitEntityId = (entityId: EntityId): [string, string] => {
-  const [ownedById, entityUuid] = entityId.split("%");
-  return [ownedById!, entityUuid!];
-};
-
-export const extractOwnedByIdFromEntityId = (entityId: EntityId): string => {
-  return splitEntityId(entityId)[0]!;
-};
-
-export const extractEntityUuidFromEntityId = (entityId: EntityId): string => {
-  return splitEntityId(entityId)[1]!;
-};
 
 /** @todo - consider Type Branding this */
 export type Timestamp = string;
@@ -45,14 +24,14 @@ export type EntityVersion = {
   transactionTime: VersionInterval;
 };
 
-export type EntityRecordId = string;
+export type EntityEditionId = string;
 
 /**
  * An identifier of a specific edition of an `Entity` at a given `EntityRecordId`
  */
-export type EntityEditionId = {
-  baseId: EntityId;
-  recordId: EntityRecordId;
+export type EntityRecordId = {
+  entityId: EntityId;
+  editionId: EntityEditionId;
 };
 
 export type EntityVertexId = {
@@ -61,15 +40,15 @@ export type EntityVertexId = {
 };
 
 /**
- * A string representation of an `EntityEditionId`.
+ * A string representation of an `EntityRecordId`.
  * Can be useful for storing in keys of objects and other similar string-focused situations.
  */
-export type EntityEditionIdString = `${EntityId}/v/${EntityRecordId}`;
+export type EntityRecordIdString = `${EntityId}/v/${EntityEditionId}`;
 
-export const entityEditionIdToString = (
-  entityEditionId: EntityEditionId,
-): EntityEditionIdString =>
-  `${entityEditionId.baseId}/v/${entityEditionId.recordId}`;
+export const entityRecordIdToString = (
+  entityRecordId: EntityRecordId,
+): EntityRecordIdString =>
+  `${entityRecordId.entityId}/v/${entityRecordId.editionId}`;
 
 /**
  * A tuple struct of a given `EntityId` and timestamp, used to identify an `Entity` at a given moment of time, where
@@ -81,24 +60,22 @@ export type EntityIdAndTimestamp = {
   timestamp: Timestamp;
 };
 
-export type { OntologyTypeEditionId };
-
-export type GraphElementVertexId = EntityVertexId | OntologyTypeEditionId;
-
-export const ontologyTypeEditionIdToVersionedUri = (
-  ontologyTypeEditionId: OntologyTypeEditionId,
-): VersionedUri => {
-  return `${ontologyTypeEditionId.baseId}v/${ontologyTypeEditionId.version}` as VersionedUri;
+export type OntologyTypeVertexId = {
+  baseId: BaseUri;
+  version: number;
 };
 
-export const isEntityId = (entityId: string): entityId is EntityId => {
-  const [accountId, entityUuid] = entityId.split("%");
-  return (
-    accountId != null &&
-    entityUuid != null &&
-    validateUuid(accountId) &&
-    validateUuid(entityUuid)
-  );
+export type OntologyTypeRecordId = {
+  baseUri: BaseUri;
+  version: number;
+};
+
+export type GraphElementVertexId = EntityVertexId | OntologyTypeVertexId;
+
+export const ontologyTypeRecordIdToVersionedUri = (
+  ontologyTypeRecordId: OntologyTypeRecordId,
+): VersionedUri => {
+  return `${ontologyTypeRecordId.baseUri}v/${ontologyTypeRecordId.version}` as VersionedUri;
 };
 
 export const isEntityVertexId = (
@@ -114,13 +91,13 @@ export const isEntityVertexId = (
   );
 };
 
-export const isOntologyTypeEditionId = (
+export const isOntologyTypeRecordId = (
   editionId: object,
-): editionId is OntologyTypeEditionId => {
+): editionId is OntologyTypeRecordId => {
   return (
     "baseId" in editionId &&
     typeof editionId.baseId === "string" &&
-    isEntityId(editionId.baseId) &&
+    validateBaseUri(editionId.baseId).type !== "Err" &&
     "version" in editionId &&
     typeof editionId.version === "number" &&
     Number.isInteger(editionId.version)

@@ -19,8 +19,7 @@ import {
 import { systemUserAccountId } from "@apps/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { EntityUuid } from "@local/hash-isomorphic-utils/types";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph/main";
 
 import {
   createTestImpureGraphContext,
@@ -116,8 +115,8 @@ describe("User model class", () => {
     const testOrg = await createTestOrg(graphContext, "userModelTest", logger);
 
     const orgEntityUuid = extractEntityUuidFromEntityId(
-      testOrg.entity.metadata.editionId.baseId,
-    ) as EntityUuid;
+      testOrg.entity.metadata.recordId.entityId,
+    );
 
     expect(
       await isUserMemberOfOrg(graphContext, {

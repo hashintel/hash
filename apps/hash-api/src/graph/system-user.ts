@@ -6,9 +6,11 @@ import {
   AccountEntityId,
   AccountId,
   extractAccountId,
-} from "@local/hash-isomorphic-utils/types";
-import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
-import { getEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
+  Subgraph,
+  SubgraphRootTypes,
+} from "@local/hash-subgraph/main";
+import { getEntities } from "@local/hash-subgraph/stdlib/element/entity";
+import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { getRequiredEnv } from "../util";
@@ -66,7 +68,9 @@ export const ensureSystemUserAccountIdExists = async (params: {
     });
 
   const existingUserEntities = getEntities(
-    existingUserEntitiesSubgraph as Subgraph<SubgraphRootTypes["entity"]>,
+    mapSubgraph(existingUserEntitiesSubgraph) as Subgraph<
+      SubgraphRootTypes["entity"]
+    >,
   );
 
   const existingSystemUserEntity = existingUserEntities.find(
@@ -78,7 +82,7 @@ export const ensureSystemUserAccountIdExists = async (params: {
 
   if (existingSystemUserEntity) {
     systemUserAccountId = extractAccountId(
-      existingSystemUserEntity.metadata.editionId.baseId as AccountEntityId,
+      existingSystemUserEntity.metadata.recordId.entityId as AccountEntityId,
     );
     logger.info(
       `Using existing system user account id: ${systemUserAccountId}`,
