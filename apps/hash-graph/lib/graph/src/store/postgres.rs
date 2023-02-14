@@ -25,9 +25,9 @@ pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
     identifier::{
         account::AccountId,
-        ontology::OntologyTypeEditionId,
+        ontology::OntologyTypeRecordId,
         time::{ProjectedTime, TimeIntervalBound, Timestamp},
-        EntityVertexId,
+        EntityVertexId, OntologyTypeVertexId,
     },
     interval::Interval,
     ontology::{
@@ -45,7 +45,7 @@ use crate::{
 #[cfg(feature = "__internal_bench")]
 use crate::{
     identifier::{
-        knowledge::{EntityId, EntityRecordId, EntityVersion},
+        knowledge::{EntityEditionId, EntityId, EntityVersion},
         time::DecisionTime,
     },
     knowledge::{EntityProperties, LinkOrder},
@@ -226,7 +226,7 @@ where
 
 #[derive(Default)]
 pub struct DependencyContext {
-    pub ontology_dependency_map: DependencyMap<OntologyTypeEditionId>,
+    pub ontology_dependency_map: DependencyMap<OntologyTypeVertexId>,
     pub knowledge_dependency_map: DependencyMap<EntityVertexId>,
 }
 
@@ -304,8 +304,8 @@ where
                     record_created_by_id := $4
                 );"#,
                 &[
-                    &metadata.edition_id().base_id().as_str(),
-                    &metadata.edition_id().version(),
+                    &metadata.record_id().base_uri().as_str(),
+                    &metadata.record_id().version(),
                     &metadata.owned_by_id(),
                     &metadata.provenance_metadata().updated_by_id(),
                 ],
@@ -316,11 +316,11 @@ where
             .map_err(|report| match report.current_context().code() {
                 Some(&SqlState::EXCLUSION_VIOLATION | &SqlState::UNIQUE_VIOLATION) => report
                     .change_context(BaseUriAlreadyExists)
-                    .attach_printable(metadata.edition_id().base_id().clone())
+                    .attach_printable(metadata.record_id().base_uri().clone())
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)
-                    .attach_printable(VersionedUri::from(metadata.edition_id())),
+                    .attach_printable(VersionedUri::from(metadata.record_id())),
             })
     }
 
@@ -346,8 +346,8 @@ where
                     record_created_by_id := $4
                 );"#,
                 &[
-                    &metadata.edition_id().base_id().as_str(),
-                    &metadata.edition_id().version(),
+                    &metadata.record_id().base_uri().as_str(),
+                    &metadata.record_id().version(),
                     &metadata.fetched_at(),
                     &metadata.provenance_metadata().updated_by_id(),
                 ],
@@ -358,11 +358,11 @@ where
             .map_err(|report| match report.current_context().code() {
                 Some(&SqlState::EXCLUSION_VIOLATION | &SqlState::UNIQUE_VIOLATION) => report
                     .change_context(BaseUriAlreadyExists)
-                    .attach_printable(metadata.edition_id().base_id().clone())
+                    .attach_printable(metadata.record_id().base_uri().clone())
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)
-                    .attach_printable(VersionedUri::from(metadata.edition_id())),
+                    .attach_printable(VersionedUri::from(metadata.record_id())),
             })
     }
 
@@ -474,7 +474,7 @@ where
         T: OntologyDatabaseType,
     {
         let uri = database_type.id();
-        let edition_id = OntologyTypeEditionId::from(uri);
+        let record_id = OntologyTypeRecordId::from(uri);
 
         let (ontology_id, owned_by_id) = self
             .update_owned_ontology_id(uri, updated_by_id)
@@ -487,7 +487,7 @@ where
         Ok((
             ontology_id,
             OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                edition_id,
+                record_id,
                 ProvenanceMetadata::new(updated_by_id),
                 owned_by_id,
             )),
@@ -802,7 +802,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         > + Send,
         entity_type_ontology_id: OntologyId,
         actor_id: UpdatedById,
-    ) -> Result<Vec<EntityRecordId>, InsertionError> {
+    ) -> Result<Vec<EntityEditionId>, InsertionError> {
         self.client
             .simple_query(
                 "CREATE TEMPORARY TABLE entity_editions_temp (
@@ -868,7 +868,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .into_report()
             .change_context(InsertionError)?;
 
-        let entity_record_ids = self
+        let entity_edition_ids = self
             .client
             .query(
                 "INSERT INTO entity_editions (
@@ -896,7 +896,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .into_report()
             .change_context(InsertionError)?
             .into_iter()
-            .map(|row| EntityRecordId::new(row.get(0)))
+            .map(|row| EntityEditionId::new(row.get(0)))
             .collect();
 
         self.client
@@ -905,7 +905,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .into_report()
             .change_context(InsertionError)?;
 
-        Ok(entity_record_ids)
+        Ok(entity_edition_ids)
     }
 
     #[doc(hidden)]
@@ -913,7 +913,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     async fn insert_entity_versions(
         &self,
         entities: impl IntoIterator<
-            Item = (EntityId, EntityRecordId, Option<Timestamp<DecisionTime>>),
+            Item = (EntityId, EntityEditionId, Option<Timestamp<DecisionTime>>),
             IntoIter: Send,
         > + Send,
     ) -> Result<Vec<EntityVersion>, InsertionError> {
@@ -950,13 +950,13 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             Type::TIMESTAMPTZ,
         ]);
         futures::pin_mut!(writer);
-        for (entity_id, entity_record_id, decision_time) in entities {
+        for (entity_id, entity_edition_id, decision_time) in entities {
             writer
                 .as_mut()
                 .write(&[
                     &entity_id.owned_by_id(),
                     &entity_id.entity_uuid(),
-                    &entity_record_id,
+                    &entity_edition_id,
                     &decision_time,
                 ])
                 .await

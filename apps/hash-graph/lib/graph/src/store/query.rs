@@ -17,7 +17,7 @@ pub trait QueryPath {
 pub enum ParameterType {
     Boolean,
     Number,
-    UnsignedInteger,
+    OntologyTypeVersion,
     Text,
     Uuid,
     BaseUri,
@@ -31,7 +31,7 @@ impl fmt::Display for ParameterType {
         match self {
             Self::Boolean => fmt.write_str("boolean"),
             Self::Number => fmt.write_str("number"),
-            Self::UnsignedInteger => fmt.write_str("unsigned integer"),
+            Self::OntologyTypeVersion => fmt.write_str("ontology type version"),
             Self::Text => fmt.write_str("text"),
             Self::Uuid => fmt.write_str("UUID"),
             Self::BaseUri => fmt.write_str("base URI"),

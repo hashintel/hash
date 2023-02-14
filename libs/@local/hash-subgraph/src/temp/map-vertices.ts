@@ -92,8 +92,8 @@ export const mapOntologyMetadata = (
   return {
     ...metadata,
     recordId: {
-      baseUri: metadata.editionId.baseId as BaseUri,
-      version: metadata.editionId.version,
+      baseUri: metadata.recordId.baseUri as BaseUri,
+      version: metadata.recordId.version,
     },
     provenance: {
       updatedById: metadata.provenance.updatedById as UpdatedById,
@@ -174,8 +174,8 @@ export const mapEntityMetadata = (
   return {
     ...metadata,
     recordId: {
-      entityId: metadata.editionId.baseId as EntityId,
-      editionId: metadata.editionId.recordId,
+      ...metadata.recordId,
+      entityId: metadata.recordId.entityId as EntityId,
     },
     temporalVersioning: mapEntityVersion(metadata.version),
     entityTypeId: metadata.entityTypeId as VersionedUri,

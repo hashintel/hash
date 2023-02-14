@@ -44,8 +44,8 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
 
         let owned_by_id_index = compiler.add_selection_path(&EntityQueryPath::OwnedById);
         let entity_uuid_index = compiler.add_selection_path(&EntityQueryPath::Uuid);
-        let record_id_index = compiler.add_distinct_selection_with_ordering(
-            &EntityQueryPath::RecordId,
+        let edition_id_index = compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::EditionId,
             Distinctness::Distinct,
             None,
         );
@@ -135,9 +135,9 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                 Ok(Entity::new(
                     properties,
                     link_data,
-                    EntityEditionId::new(
+                    EntityRecordId::new(
                         EntityId::new(owned_by_id, entity_uuid),
-                        EntityRecordId::new(row.get(record_id_index)),
+                        EntityEditionId::new(row.get(edition_id_index)),
                     ),
                     EntityVersion {
                         decision_time: row.get(decision_time_index),

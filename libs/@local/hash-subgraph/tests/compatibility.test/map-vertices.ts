@@ -83,8 +83,8 @@ const mapOntologyMetadata = (
   return {
     ...metadata,
     recordId: {
-      baseUri: metadata.editionId.baseId as BaseUri,
-      version: metadata.editionId.version,
+      baseUri: metadata.recordId.baseUri as BaseUri,
+      version: metadata.recordId.version,
     },
     provenance: {
       updatedById: metadata.provenance.updatedById as UpdatedById,
@@ -153,8 +153,8 @@ const mapKnowledgeGraphVertex = (
       metadata: {
         ...vertex.inner.metadata,
         recordId: {
-          entityId: vertex.inner.metadata.editionId.baseId as EntityId,
-          editionId: vertex.inner.metadata.editionId.recordId,
+          ...vertex.inner.metadata.recordId,
+          entityId: vertex.inner.metadata.recordId.entityId as EntityId,
         },
         entityTypeId: vertex.inner.metadata.entityTypeId as VersionedUri,
         temporalVersioning: {

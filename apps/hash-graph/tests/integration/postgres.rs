@@ -11,12 +11,12 @@ use graph::{
     identifier::{
         account::AccountId,
         knowledge::EntityId,
-        ontology::OntologyTypeEditionId,
+        ontology::OntologyTypeVersion,
         time::{
             DecisionTime, LimitedTimeIntervalBound, TimeIntervalBound, Timestamp, UnresolvedImage,
             UnresolvedKernel, UnresolvedProjection, UnresolvedTimeProjection,
         },
-        GraphElementVertexId,
+        GraphElementVertexId, OntologyTypeVertexId,
     },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
@@ -207,7 +207,7 @@ impl DatabaseApi<'_> {
             .await?
             .vertices
             .data_types
-            .remove(&OntologyTypeEditionId::from(uri))
+            .remove(&OntologyTypeVertexId::from(uri))
             .expect("no data type found"))
     }
 
@@ -254,7 +254,7 @@ impl DatabaseApi<'_> {
             .await?
             .vertices
             .property_types
-            .remove(&OntologyTypeEditionId::from(uri))
+            .remove(&OntologyTypeVertexId::from(uri))
             .expect("no property type found"))
     }
 
@@ -301,7 +301,7 @@ impl DatabaseApi<'_> {
             .await?
             .vertices
             .entity_types
-            .remove(&OntologyTypeEditionId::from(uri))
+            .remove(&OntologyTypeVertexId::from(uri))
             .expect("no entity type found"))
     }
 
@@ -338,7 +338,7 @@ impl DatabaseApi<'_> {
         Ok(self
             .store
             .get_entity(&StructuralQuery {
-                filter: Filter::for_entity_by_id(entity_id),
+                filter: Filter::for_entity_by_entity_id(entity_id),
                 graph_resolve_depths: GraphResolveDepths::default(),
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                     pinned: UnresolvedKernel::new(None),
@@ -360,7 +360,7 @@ impl DatabaseApi<'_> {
         let entities = self
             .store
             .get_entity(&StructuralQuery {
-                filter: Filter::for_entity_by_id(entity_id),
+                filter: Filter::for_entity_by_entity_id(entity_id),
                 graph_resolve_depths: GraphResolveDepths::default(),
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                     pinned: UnresolvedKernel::new(None),
@@ -383,7 +383,7 @@ impl DatabaseApi<'_> {
         let entities = self
             .store
             .get_entity(&StructuralQuery {
-                filter: Filter::for_entity_by_id(entity_id),
+                filter: Filter::for_entity_by_entity_id(entity_id),
                 graph_resolve_depths: GraphResolveDepths::default(),
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                     pinned: UnresolvedKernel::new(None),
@@ -475,8 +475,8 @@ impl DatabaseApi<'_> {
                 Some(FilterExpression::Path(EntityQueryPath::Type(
                     EntityTypeQueryPath::Version,
                 ))),
-                Some(FilterExpression::Parameter(Parameter::SignedInteger(
-                    link_type_id.version().into(),
+                Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
+                    OntologyTypeVersion::new(link_type_id.version()),
                 ))),
             ),
         ]);
@@ -496,10 +496,10 @@ impl DatabaseApi<'_> {
         let roots = subgraph
             .roots
             .into_iter()
-            .filter_map(|edition_id| match edition_id {
+            .filter_map(|vertex_id| match vertex_id {
                 GraphElementVertexId::Ontology(_) => None,
-                GraphElementVertexId::KnowledgeGraph(edition_id) => {
-                    subgraph.vertices.entities.remove(&edition_id)
+                GraphElementVertexId::KnowledgeGraph(vertex_id) => {
+                    subgraph.vertices.entities.remove(&vertex_id)
                 }
             })
             .collect::<Vec<_>>();
@@ -552,7 +552,7 @@ impl DatabaseApi<'_> {
         Ok(subgraph
             .roots
             .into_iter()
-            .filter_map(|edition_id| match edition_id {
+            .filter_map(|vertex_id| match vertex_id {
                 GraphElementVertexId::Ontology(_) => None,
                 GraphElementVertexId::KnowledgeGraph(edition_id) => {
                     subgraph.vertices.entities.remove(&edition_id)
