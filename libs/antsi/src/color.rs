@@ -249,48 +249,6 @@ pub enum Color {
     Rgb(RgbColor),
 }
 
-impl Color {
-    /// Return [`BasicColor`], if value of variant [`Color::Basic`]
-    #[must_use]
-    pub const fn as_basic(&self) -> Option<BasicColor> {
-        if let Self::Basic(color) = self {
-            Some(*color)
-        } else {
-            None
-        }
-    }
-
-    /// Return [`BrightColor`], if value of variant [`Color::Bright`]
-    #[must_use]
-    pub const fn as_bright(&self) -> Option<BrightColor> {
-        if let Self::Bright(color) = self {
-            Some(*color)
-        } else {
-            None
-        }
-    }
-
-    /// Return [`IndexedColor`], if value of variant [`Color::Indexed`]
-    #[must_use]
-    pub const fn as_indexed(&self) -> Option<IndexedColor> {
-        if let Self::Indexed(color) = self {
-            Some(*color)
-        } else {
-            None
-        }
-    }
-
-    /// Return [`RgbColor`], if value of variant [`Color::Rgb`]
-    #[must_use]
-    pub const fn as_rgb(&self) -> Option<RgbColor> {
-        if let Self::Rgb(color) = self {
-            Some(*color)
-        } else {
-            None
-        }
-    }
-}
-
 impl_const! {
     impl const? From<BasicColor> for Color {
         fn from(value: BasicColor) -> Self {
