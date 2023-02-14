@@ -17,8 +17,8 @@ import {
   LoadingSpinner,
 } from "@hashintel/design-system";
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
-import { EntityId } from "@local/hash-graphql-shared/types";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { EntityId } from "@local/hash-subgraph/main";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
 import { isEqual } from "lodash";
@@ -97,7 +97,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
     textUpdatedAt,
   } = comment;
 
-  const commentEntityId = entityId as EntityId;
+  const commentEntityId = entityId;
 
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [collapsed, setCollapsed] = useState(true);

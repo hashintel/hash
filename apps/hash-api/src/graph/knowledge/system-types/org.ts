@@ -1,19 +1,17 @@
 import {
   AccountId,
+  Entity,
+  EntityId,
   EntityUuid,
   extractEntityUuidFromEntityId,
   OwnedById,
-  Uuid,
-} from "@local/hash-graphql-shared/types";
-import {
-  Entity,
-  EntityId,
   PropertyObject,
   Subgraph,
   SubgraphRootTypes,
-} from "@local/hash-subgraph";
-import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
-import { mapSubgraph } from "@local/hash-subgraph/src/temp";
+  Uuid,
+} from "@local/hash-subgraph/main";
+import { getRootsAsEntities } from "@local/hash-subgraph/stdlib/element/entity";
+import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import {

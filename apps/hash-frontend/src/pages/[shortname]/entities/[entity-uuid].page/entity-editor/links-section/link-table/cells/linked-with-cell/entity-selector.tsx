@@ -2,8 +2,12 @@ import {
   GRID_CLICK_IGNORE_CLASS,
   SelectorAutocomplete,
 } from "@hashintel/design-system";
-import { Entity, EntityId, EntityTypeWithMetadata } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import {
+  Entity,
+  EntityId,
+  EntityTypeWithMetadata,
+} from "@local/hash-subgraph/main";
+import { getRoots } from "@local/hash-subgraph/stdlib/roots";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useBlockProtocolAggregateEntities } from "../../../../../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-aggregate-entities";

@@ -2,6 +2,7 @@ use std::fmt;
 
 use error_stack::Context;
 use serde::{Deserialize, Serialize};
+use time::OffsetDateTime;
 use type_system::repr;
 
 // We would really like to use error-stack for this. It's not possible because
@@ -28,10 +29,16 @@ impl fmt::Display for FetcherError {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(untagged)]
-pub enum FetchedOntologyType {
+pub enum OntologyType {
     EntityType(repr::EntityType),
     PropertyType(repr::PropertyType),
     DataType(repr::DataType),
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct FetchedOntologyType {
+    pub ontology_type: OntologyType,
+    pub fetched_at: OffsetDateTime,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

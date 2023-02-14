@@ -22,6 +22,7 @@
     "@blockprotocol/core": "0.0.14-canary-20230209084023",
     "@blockprotocol/type-system": "0.0.4-canary-20230209084023",
     "@graphql-tools/schema": "8.5.0",
+    "@local/advanced-types": "0.0.0-private",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-graphql-shared": "0.0.0-private",

@@ -1,8 +1,10 @@
 import {
   AccountId,
+  Entity,
+  EntityId,
   extractOwnedByIdFromEntityId,
-} from "@local/hash-graphql-shared/types";
-import { Entity, EntityId, PropertyObject } from "@local/hash-subgraph";
+  PropertyObject,
+} from "@local/hash-subgraph/main";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";

@@ -1,12 +1,12 @@
 import { Filter } from "@local/hash-graph-client";
-import { OwnedById } from "@local/hash-graphql-shared/types";
 import {
   Entity,
   isEntityId,
+  OwnedById,
   splitEntityId,
   Subgraph,
-} from "@local/hash-subgraph";
-import { mapSubgraph } from "@local/hash-subgraph/src/temp";
+} from "@local/hash-subgraph/main";
+import { mapSubgraph } from "@local/hash-subgraph/temp";
 import { ForbiddenError, UserInputError } from "apollo-server-express";
 
 import {
