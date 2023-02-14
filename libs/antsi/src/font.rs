@@ -2,9 +2,9 @@
 ///
 /// ## Support
 ///
-/// Terminals that implement ANSI escape sequences, usually implement [`Bold`], but only some have
-/// support for [`Faint`]. This is often dependent on the available font-weights of the currently
-/// used terminal font.
+/// Terminals that implement ANSI escape sequences, usually implement [`Self::Bold`], but only some
+/// have support for [`Self::Faint`]. This is often dependent on the available font-weights of the
+/// currently used terminal font.
 ///
 /// ## Specification
 ///
@@ -56,8 +56,8 @@ impl AlternativeFontFamily {
 /// ## Specification
 ///
 /// Support was part of the initial ANSI escape sequence specification [ISO 6429], the change of
-/// font families is supported by a few. Support for the [`Fraktur`] font is only available in a
-/// select few terminal emulators, like [Terminology](https://github.com/borisfaure/terminology).
+/// font families is supported by a few. Support for the [`Self::Fraktur`] font is only available in
+/// a select few terminal emulators, like [Terminology](https://github.com/borisfaure/terminology).
 ///
 /// The specification supports 9 alternative fonts.
 ///
