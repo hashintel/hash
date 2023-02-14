@@ -1,3 +1,8 @@
-export { EntityTypeEditor, EntityTypeEditorProps } from "./entity-type-editor";
+export {
+  type EntityTypeEditorProps,
+  EntityTypeEditor,
+  EntityTypeFormProvider,
+  useEntityTypeForm,
+} from "./entity-type-editor";
 export { getSchemaFromFormData } from "./get-schema-from-form-data";
-export { EntityTypeEditorForm } from "./shared/form-types";
+export type { EntityTypeEditorForm } from "./shared/form-types";

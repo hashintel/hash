@@ -12,6 +12,11 @@ import {
 } from "./shared/ontology-functions-context";
 import { PropertyTypesOptionsContextProvider } from "./shared/property-types-options-context";
 
+export {
+  FormProvider as EntityTypeFormProvider,
+  useForm as useEntityTypeForm,
+} from "react-hook-form";
+
 export type EntityTypeEditorProps = {
   // the entity type being edited
   entityType: EntityType;

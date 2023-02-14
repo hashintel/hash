@@ -8,7 +8,9 @@ import {
 } from "@hashintel/design-system";
 import {
   EntityTypeEditorForm,
+  EntityTypeFormProvider,
   getSchemaFromFormData,
+  useEntityTypeForm,
 } from "@hashintel/type-editor";
 import { OwnedById } from "@local/hash-graphql-shared/types";
 import { Box, Container, Theme, Typography } from "@mui/material";
@@ -18,7 +20,6 @@ import { Buffer } from "buffer/";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
-import { FormProvider, useForm } from "react-hook-form";
 
 import { PageErrorState } from "../../../../components/page-error-state";
 import {
@@ -72,7 +73,7 @@ const Page: NextPageWithLayout = () => {
     }
   }, [router.query.draft]);
 
-  const formMethods = useForm<EntityTypeEditorForm>({
+  const formMethods = useEntityTypeForm<EntityTypeEditorForm>({
     defaultValues: { properties: [], links: [] },
   });
   const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
@@ -187,7 +188,7 @@ const Page: NextPageWithLayout = () => {
       <Head>
         <title>{entityType.title} | Entity Type | HASH</title>
       </Head>
-      <FormProvider {...formMethods}>
+      <EntityTypeFormProvider {...formMethods}>
         <LatestPropertyTypesContextProvider>
           <EntityTypeContext.Provider value={entityType}>
             <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
@@ -307,7 +308,7 @@ const Page: NextPageWithLayout = () => {
             </EntityTypeEntitiesContext.Provider>
           </EntityTypeContext.Provider>
         </LatestPropertyTypesContextProvider>
-      </FormProvider>
+      </EntityTypeFormProvider>
       <GlobalStyles<Theme>
         styles={(theme) => ({
           body: {

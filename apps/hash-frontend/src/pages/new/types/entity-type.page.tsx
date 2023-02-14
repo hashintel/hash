@@ -93,8 +93,7 @@ const Page: NextPageWithLayout = () => {
       kind: "entity-type",
       version: 1,
     });
-    const entityType: EntityType = {
-      additionalProperties: false,
+    const entityType: Omit<EntityType, "additionalProperties"> = {
       title: name,
       description,
       kind: "entityType",
