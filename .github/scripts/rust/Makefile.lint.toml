@@ -135,26 +135,20 @@ script = '''
 //! ```cargo
 //! [dependencies]
 //! serde = {version = "*", features = ["derive"]}
-//! toml_edit = {version = "*"}
 //! serde_json = {version = "*"}
 //! ```
 use std::env;
 use std::fs;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::path::PathBuf;
-use toml_edit::Document;
+use serde::Serialize;
 
-#[derive(Deserialize, Serialize, Default)]
+#[derive(Serialize, Default)]
 struct LintFile {
-    #[serde(default)]
     allow: HashSet<String>,
-    #[serde(default)]
     warn: HashSet<String>,
-    #[serde(default)]
     deny: HashSet<String>,
-    #[serde(default)]
     forbid: HashSet<String>,
-    #[serde(default)]
     default: HashSet<String>,
 }
 
@@ -165,15 +159,42 @@ fn main() {
     let path = cwd.join(".cargo/config.toml");
 
     if !path.exists() || !path.is_file() {
-        println!("{}", serde_json::to_string_pretty(&LintFile::default()).expect("able to serialize"));
-        return;
+        panic!(".cargo/config.toml needs to exist")
     }
 
-    let contents = path::read_to_string(&path).expect(&format!("should be able to read {}", path.display()));
-    let document = contents.parse::<Document>();
+    let contents = fs::read_to_string(&path).expect(&format!("should be able to read {}", path.display()));
 
-    // TODO: find decor that matches our string
-    // TODO: parse all strings
-    // TODO: return result
+    // brute-force, search for the line:
+    // ## START CLIPPY LINTS ##
+    // and then:
+    // ## END CLIPPY LINTS ##
+    // take all values in between
+
+    if !contents.contains("## START CLIPPY LINTS ##") || !contents.contains("## END CLIPPY LINTS ##") {
+        panic!("malformed .cargo/config.toml, please add the required markers")
+    }
+
+    let lints = contents.lines()
+        .map(|value| value.trim())
+        .skip_while(|value| *value != "## START CLIPPY LINTS ##")
+        .take_while(|value| *value != "## END CLIPPY LINTS ##")
+        .filter(|value| !value.is_empty())
+        .filter(|value| value.starts_with('"'))
+        // remove leading `"` and trailing `",`
+        .map(|value| &value[1..(value.len() - 2)]).fold(LintFile::default(), |mut acc, line| {
+            let (arg, lint) = line.split_at(2);
+
+            match arg {
+                "-A" => acc.allow.insert(lint.to_owned()),
+                "-W" => acc.warn.insert(lint.to_owned()),
+                "-D" => acc.deny.insert(lint.to_owned()),
+                "-F" => acc.forbid.insert(lint.to_owned()),
+                _ => panic!("unrecognized rust flag {arg}")
+            };
+
+            acc
+        });
+
+    println!("{}", serde_json::to_string_pretty(&lints).expect("able to serialize"))
 }
 '''
