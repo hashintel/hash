@@ -6,7 +6,7 @@ export const createEntityMutation = gql`
   mutation createEntity(
     $entityTypeId: VersionedUri!
     $ownedById: OwnedById
-    $properties: PropertyObject!
+    $properties: EntityPropertiesObject!
     $linkData: LinkData
   ) {
     # This is a scalar, which has no selection.
@@ -78,7 +78,7 @@ export const getAllLatestEntitiesQuery = gql`
 export const updateEntityMutation = gql`
   mutation updateEntity(
     $entityId: EntityId!
-    $updatedProperties: PropertyObject!
+    $updatedProperties: EntityPropertiesObject!
     $leftToRightOrder: Int
     $rightToLeftOrder: Int
     $entityTypeId: VersionedUri

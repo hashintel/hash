@@ -1,5 +1,9 @@
 const { config } = require("dotenv-flow");
 const withTM = require("next-transpile-modules")([
+  "@blockprotocol/core",
+  "@blockprotocol/graph",
+  "@blockprotocol/hook",
+  "@blockprotocol/type-system",
   "@hashintel/design-system",
   "@local/advanced-types",
   "@local/hash-graph-client",

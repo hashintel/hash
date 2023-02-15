@@ -4,9 +4,8 @@ import {
   AccountId,
   Entity,
   EntityId,
-  extractAccountId,
   extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph/main";
+} from "@local/hash-subgraph";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
@@ -195,9 +194,7 @@ export const updateCommentText: ImpureGraphFunction<
 
   if (
     actorId !==
-    extractAccountId(
-      comment.entity.metadata.recordId.entityId as AccountEntityId,
-    )
+    extractOwnedByIdFromEntityId(comment.entity.metadata.recordId.entityId)
   ) {
     throw new Error(
       `Critical: account ${actorId} does not have permission to edit the comment with entityId ${comment.entity.metadata.recordId.entityId}`,
@@ -233,7 +230,7 @@ export const deleteComment: ImpureGraphFunction<
   // Throw error if the user trying to delete the comment is not the comment's author
   if (
     actorId !==
-    extractAccountId(
+    extractOwnedByIdFromEntityId(
       comment.entity.metadata.recordId.entityId as AccountEntityId,
     )
   ) {
@@ -367,10 +364,7 @@ export const resolveComment: ImpureGraphFunction<
   // Throw error if the user trying to resolve the comment is not the comment's author
   // or the author of the block the comment is attached to
   if (
-    actorId !==
-      extractAccountId(
-        author.entity.metadata.recordId.entityId as AccountEntityId,
-      ) &&
+    actorId !== author.accountId &&
     parent.metadata.entityTypeId === SYSTEM_TYPES.entityType.block.schema.$id &&
     actorId !== extractOwnedByIdFromEntityId(parent.metadata.recordId.entityId)
   ) {

@@ -1,23 +1,26 @@
-import { BaseUri, VersionedUri } from "@blockprotocol/type-system";
-import { Filter, GraphResolveDepths } from "@local/hash-graph-client";
+import { VersionedUri } from "@blockprotocol/type-system";
+import {
+  Filter,
+  GraphResolveDepths,
+  UnresolvedTimeProjection,
+} from "@local/hash-graph-client";
 import {
   AccountId,
+  BaseUri,
   Entity,
   EntityId,
+  EntityPropertiesObject,
+  EntityRootType,
   EntityTypeWithMetadata,
   EntityUuid,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   OwnedById,
-  PropertyObject,
   splitEntityId,
   Subgraph,
-  SubgraphRootTypes,
-  TimeProjection,
-} from "@local/hash-subgraph/main";
-import { getRootsAsEntities } from "@local/hash-subgraph/stdlib/element/entity";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
-import { mapEntityMetadata } from "@local/hash-subgraph/temp/map-vertices";
+} from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
+import { mapEntityMetadata, mapSubgraph } from "@local/hash-subgraph/temp";
 import { ApolloError } from "apollo-server-errors";
 
 import {
@@ -35,14 +38,14 @@ import {
 
 export type CreateEntityParams = {
   ownedById: OwnedById;
-  properties: PropertyObject;
+  properties: EntityPropertiesObject;
   entityTypeId: VersionedUri;
   entityUuid?: EntityUuid;
   actorId: AccountId;
 };
 
 /** @todo: potentially directly export this from the subgraph package */
-export type PropertyValue = PropertyObject[BaseUri];
+export type PropertyValue = EntityPropertiesObject[BaseUri];
 
 /**
  * Create an entity.
@@ -117,19 +120,21 @@ export const getLatestEntityById: ImpureGraphFunction<
         hasLeftEntity: { incoming: 0, outgoing: 0 },
         hasRightEntity: { incoming: 0, outgoing: 0 },
       },
-      timeProjection: {
-        kernel: {
-          axis: "transaction",
+      timeAxes: {
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
+        variable: {
+          axis: "decisionTime",
           start: null,
           end: null,
         },
       },
     })
-    .then(({ data: subgraph }) => getRootsAsEntities(mapSubgraph(subgraph)));
+    .then(({ data: subgraph }) =>
+      getRoots(mapSubgraph(subgraph) as Subgraph<EntityRootType>),
+    );
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
@@ -221,7 +226,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
   {
     ownedById: OwnedById;
     entityTypeId: VersionedUri;
-    properties: PropertyObject;
+    properties: EntityPropertiesObject;
     linkedEntities?: LinkedEntityDefinition[];
     actorId: AccountId;
   },
@@ -316,7 +321,7 @@ export const updateEntity: ImpureGraphFunction<
   {
     entity: Entity;
     entityTypeId?: VersionedUri;
-    properties: PropertyObject;
+    properties: EntityPropertiesObject;
     actorId: AccountId;
   },
   Promise<Entity>
@@ -387,7 +392,7 @@ export const updateEntityProperties: ImpureGraphFunction<
 
   return await updateEntity(ctx, {
     entity,
-    properties: updatedProperties.reduce<PropertyObject>(
+    properties: updatedProperties.reduce<EntityPropertiesObject>(
       (prev, { propertyTypeBaseUri, value }) =>
         value
           ? {
@@ -469,13 +474,14 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     ],
   };
 
-  const timeProjection: TimeProjection = {
-    kernel: {
-      axis: "transaction",
+  /** @todo-0.3 - replace this with `queryAxes: QueryTemporalAxesUnresolved` */
+  const timeAxes: UnresolvedTimeProjection = {
+    pinned: {
+      axis: "transactionTime",
       timestamp: null,
     },
-    image: {
-      axis: "decision",
+    variable: {
+      axis: "decisionTime",
       start: null,
       end: null,
     },
@@ -496,22 +502,20 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     .getEntitiesByQuery({
       filter,
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeProjection,
+      timeAxes,
     })
-    .then(
-      ({ data }) => mapSubgraph(data) as Subgraph<SubgraphRootTypes["entity"]>,
-    );
+    .then(({ data }) => mapSubgraph(data) as Subgraph<EntityRootType>);
 
-  const incomingLinkEntities = getRootsAsEntities(
-    incomingLinkEntitiesSubgraph,
-  ).map((linkEntity) => {
-    if (!isEntityLinkEntity(linkEntity)) {
-      throw new Error(
-        `Entity with ID ${linkEntity.metadata.recordId.entityId} is not a link entity.`,
-      );
-    }
-    return linkEntity;
-  });
+  const incomingLinkEntities = getRoots(incomingLinkEntitiesSubgraph).map(
+    (linkEntity) => {
+      if (!isEntityLinkEntity(linkEntity)) {
+        throw new Error(
+          `Entity with ID ${linkEntity.metadata.recordId.entityId} is not a link entity.`,
+        );
+      }
+      return linkEntity;
+    },
+  );
 
   return incomingLinkEntities;
 };
@@ -595,13 +599,14 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     );
   }
 
-  const timeProjection: TimeProjection = {
-    kernel: {
-      axis: "transaction",
+  /** @todo-0.3 - replace this with `queryAxes: QueryTemporalAxesUnresolved` */
+  const timeAxes: UnresolvedTimeProjection = {
+    pinned: {
+      axis: "transactionTime",
       timestamp: null,
     },
-    image: {
-      axis: "decision",
+    variable: {
+      axis: "decisionTime",
       start: null,
       end: null,
     },
@@ -611,22 +616,20 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     .getEntitiesByQuery({
       filter,
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeProjection,
+      timeAxes,
     })
-    .then(
-      ({ data }) => mapSubgraph(data) as Subgraph<SubgraphRootTypes["entity"]>,
-    );
+    .then(({ data }) => mapSubgraph(data) as Subgraph<EntityRootType>);
 
-  const outgoingLinkEntities = getRootsAsEntities(
-    outgoingLinkEntitiesSubgraph,
-  ).map((linkEntity) => {
-    if (!isEntityLinkEntity(linkEntity)) {
-      throw new Error(
-        `Entity with ID ${linkEntity.metadata.recordId.entityId} is not a link entity.`,
-      );
-    }
-    return linkEntity;
-  });
+  const outgoingLinkEntities = getRoots(outgoingLinkEntitiesSubgraph).map(
+    (linkEntity) => {
+      if (!isEntityLinkEntity(linkEntity)) {
+        throw new Error(
+          `Entity with ID ${linkEntity.metadata.recordId.entityId} is not a link entity.`,
+        );
+      }
+      return linkEntity;
+    },
+  );
 
   return outgoingLinkEntities;
 };
@@ -639,7 +642,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
  */
 export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
   { entity: Entity; graphResolveDepths: Partial<GraphResolveDepths> },
-  Promise<Subgraph<SubgraphRootTypes["entity"]>>
+  Promise<Subgraph<EntityRootType>>
 > = async ({ graphApi }, params) => {
   const { entity, graphResolveDepths } = params;
 
@@ -680,18 +683,18 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
       hasRightEntity: { incoming: 0, outgoing: 0 },
       ...graphResolveDepths,
     },
-    timeProjection: {
-      kernel: {
-        axis: "transaction",
+    timeAxes: {
+      pinned: {
+        axis: "transactionTime",
         timestamp: null,
       },
-      image: {
-        axis: "decision",
+      variable: {
+        axis: "decisionTime",
         start: null,
         end: null,
       },
     },
   });
 
-  return mapSubgraph(entitySubgraph) as Subgraph<SubgraphRootTypes["entity"]>;
+  return mapSubgraph(entitySubgraph) as Subgraph<EntityRootType>;
 };

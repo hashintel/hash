@@ -46,19 +46,17 @@ Content-Type: application/json
       "outgoing": 0
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "timeAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
+    "variable": {
+      "axis": "decisionTime",
       "start": {
-        "bound": "unbounded"
+        "kind": "unbounded"
       },
-      "end": {
-        "bound": "unbounded"
-      }
+      "end": null
     }
   }
 }
@@ -138,19 +136,17 @@ Content-Type: application/json
       "outgoing": 0
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "timeAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
+    "variable": {
+      "axis": "decisionTime",
       "start": {
-        "bound": "unbounded"
+        "kind": "unbounded"
       },
-      "end": {
-        "bound": "unbounded"
-      }
+      "end": null
     }
   }
 }
@@ -250,19 +246,17 @@ Content-Type: application/json
       "outgoing": 0
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "timeAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
+    "variable": {
+      "axis": "decisionTime",
       "start": {
-        "bound": "unbounded"
+        "kind": "unbounded"
       },
-      "end": {
-        "bound": "unbounded"
-      }
+      "end": null
     }
   }
 }
@@ -344,19 +338,17 @@ Content-Type: application/json
       "outgoing": 0
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "timeAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
+    "variable": {
+      "axis": "decisionTime",
       "start": {
-        "bound": "unbounded"
+        "kind": "unbounded"
       },
-      "end": {
-        "bound": "unbounded"
-      }
+      "end": null
     }
   }
 }
@@ -386,8 +378,10 @@ Accept: application/json
         "$ref": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1"
       }
     ],
-    "properties": {}
-  }
+    "properties": {},
+    "additionalProperties": false
+  },
+  "additionalProperties": false
 }
 
 > {%
@@ -442,19 +436,17 @@ Content-Type: application/json
       "outgoing": 2
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "timeAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
+    "variable": {
+      "axis": "decisionTime",
       "start": {
-        "bound": "unbounded"
+        "kind": "unbounded"
       },
-      "end": {
-        "bound": "unbounded"
-      }
+      "end": null
     }
   }
 }
@@ -483,8 +475,10 @@ Accept: application/json
       "http://localhost:3000/@alice/types/property-type/name/": {
         "$ref": "http://localhost:3000/@alice/types/property-type/name/v/1"
       }
-    }
-  }
+    },
+    "additionalProperties": false
+  },
+  "additionalProperties": false
 }
 
 > {%
@@ -533,19 +527,17 @@ Content-Type: application/json
       "outgoing": 0
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "timeAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
+    "variable": {
+      "axis": "decisionTime",
       "start": {
-        "bound": "unbounded"
+        "kind": "unbounded"
       },
-      "end": {
-        "bound": "unbounded"
-      }
+      "end": null
     }
   }
 }
@@ -586,8 +578,10 @@ Accept: application/json
         },
         "ordered": false
       }
-    }
-  }
+    },
+    "additionalProperties": false
+  },
+  "additionalProperties": false
 }
 
 > {%
@@ -641,19 +635,17 @@ Content-Type: application/json
       "outgoing": 0
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "timeAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
+    "variable": {
+      "axis": "decisionTime",
       "start": {
-        "bound": "unbounded"
+        "kind": "unbounded"
       },
-      "end": {
-        "bound": "unbounded"
-      }
+      "end": null
     }
   }
 }
@@ -712,19 +704,17 @@ Content-Type: application/json
       "outgoing": 2
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "timeAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
+    "variable": {
+      "axis": "decisionTime",
       "start": {
-        "bound": "unbounded"
+        "kind": "unbounded"
       },
-      "end": {
-        "bound": "unbounded"
-      }
+      "end": null
     }
   }
 }
@@ -787,19 +777,17 @@ Content-Type: application/json
       "outgoing": 2
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "timeAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
+    "variable": {
+      "axis": "decisionTime",
       "start": {
-        "bound": "unbounded"
+        "kind": "unbounded"
       },
-      "end": {
-        "bound": "unbounded"
-      }
+      "end": null
     }
   }
 }
@@ -897,13 +885,13 @@ Content-Type: application/json
       "outgoing": 2
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "timeAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
+    "variable": {
+      "axis": "decisionTime",
       "start": null,
       "end": null
     }
@@ -996,13 +984,13 @@ Content-Type: application/json
       "outgoing": 2
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "timeAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
+    "variable": {
+      "axis": "decisionTime",
       "start": null,
       "end": null
     }
@@ -1106,15 +1094,15 @@ Content-Type: application/json
       "outgoing": 2
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "timeAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
-      "start": { "bound": "unbounded" },
-      "end": { "bound": "unbounded" }
+    "variable": {
+      "axis": "decisionTime",
+      "start": { "kind": "unbounded" },
+      "end": null
     }
   }
 }
@@ -1193,13 +1181,13 @@ Content-Type: application/json
       "outgoing": 2
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "timeAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
+    "variable": {
+      "axis": "decisionTime",
       "start": null,
       "end": null
     }
@@ -1259,19 +1247,17 @@ Content-Type: application/json
       "outgoing": 2
     }
   },
-  "timeProjection": {
-    "kernel": {
-      "axis": "transaction",
+  "timeAxes": {
+    "pinned": {
+      "axis": "transactionTime",
       "timestamp": null
     },
-    "image": {
-      "axis": "decision",
+    "variable": {
+      "axis": "decisionTime",
       "start": {
-        "bound": "unbounded"
+        "kind": "unbounded"
       },
-      "end": {
-        "bound": "unbounded"
-      }
+      "end": null
     }
   }
 }

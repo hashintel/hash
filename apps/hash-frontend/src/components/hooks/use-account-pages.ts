@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import { EntityId, OwnedById } from "@local/hash-subgraph/main";
+import { EntityId, OwnedById } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import {

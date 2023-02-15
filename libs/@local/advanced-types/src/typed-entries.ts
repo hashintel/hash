@@ -9,7 +9,9 @@ type TupleEntry<
 type ObjectEntry<T extends {}> = T extends object
   ? { [K in keyof T]: [K, Required<T>[K]] }[keyof T] extends infer E
     ? E extends [infer K, infer V]
-      ? K extends string | number
+      ? K extends string
+        ? [K, V]
+        : K extends number
         ? [`${K}`, V]
         : never
       : never
