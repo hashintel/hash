@@ -297,7 +297,7 @@ impl QueryPath for EntityTypeQueryPath<'_> {
             Self::Schema(_) | Self::AdditionalMetadata(_) => ParameterType::Any,
             Self::BaseUri => ParameterType::BaseUri,
             Self::VersionedUri => ParameterType::VersionedUri,
-            Self::Version => ParameterType::UnsignedInteger,
+            Self::Version => ParameterType::OntologyTypeVersion,
             Self::Title | Self::Description => ParameterType::Text,
             Self::Default | Self::Examples | Self::Required | Self::RequiredLinks => {
                 ParameterType::Any

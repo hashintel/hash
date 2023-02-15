@@ -12,9 +12,8 @@ use uuid::Uuid;
 use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
-        ontology::OntologyTypeEditionId,
         time::{DecisionTime, TimeProjection, Timestamp},
-        EntityVertexId,
+        EntityVertexId, OntologyTypeVertexId,
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
@@ -101,7 +100,7 @@ impl<C: AsClient> PostgresStore<C> {
 
             if current_resolve_depths.is_of_type.outgoing > 0 {
                 let entity_type_id =
-                    OntologyTypeEditionId::from(entity.metadata().entity_type_id());
+                    OntologyTypeVertexId::from(entity.metadata().entity_type_id());
                 subgraph.edges.insert(Edge::KnowledgeGraph {
                     vertex_id: entity_vertex_id,
                     outward_edge: KnowledgeGraphOutwardEdges::ToOntology(OutwardEdge {
@@ -142,7 +141,7 @@ impl<C: AsClient> PostgresStore<C> {
                             // outgoing link `Entity`
                             kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                             reversed: true,
-                            right_endpoint: outgoing_link_entity.metadata().edition_id().base_id(),
+                            right_endpoint: outgoing_link_entity.metadata().record_id().entity_id(),
                         }),
                     });
 
@@ -181,7 +180,7 @@ impl<C: AsClient> PostgresStore<C> {
                             // incoming link `Entity`
                             kind: KnowledgeGraphEdgeKind::HasRightEntity,
                             reversed: true,
-                            right_endpoint: incoming_link_entity.metadata().edition_id().base_id(),
+                            right_endpoint: incoming_link_entity.metadata().record_id().entity_id(),
                         }),
                     });
 
@@ -220,7 +219,7 @@ impl<C: AsClient> PostgresStore<C> {
                             // outgoing `Link` `Entity`
                             kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                             reversed: false,
-                            right_endpoint: left_entity.metadata().edition_id().base_id(),
+                            right_endpoint: left_entity.metadata().record_id().entity_id(),
                         }),
                     });
 
@@ -259,7 +258,7 @@ impl<C: AsClient> PostgresStore<C> {
                             // outgoing `Link` `Entity`
                             kind: KnowledgeGraphEdgeKind::HasRightEntity,
                             reversed: false,
-                            right_endpoint: right_entity.metadata().edition_id().base_id(),
+                            right_endpoint: right_entity.metadata().record_id().entity_id(),
                         }),
                     });
 
@@ -371,7 +370,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .change_context(InsertionError)?;
 
         Ok(EntityMetadata::new(
-            EntityEditionId::new(entity_id, EntityRecordId::new(row.get(0))),
+            EntityRecordId::new(entity_id, EntityEditionId::new(row.get(0))),
             EntityVersion {
                 decision_time: row.get(1),
                 transaction_time: row.get(2),
@@ -436,7 +435,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .await
             .change_context(InsertionError)?;
 
-        let entity_record_ids = transaction
+        let entity_edition_ids = transaction
             .insert_entity_records(entity_editions, entity_type_ontology_id, actor_id)
             .await?;
 
@@ -445,7 +444,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_ids
                     .iter()
                     .copied()
-                    .zip(entity_record_ids.iter().copied())
+                    .zip(entity_edition_ids.iter().copied())
                     .zip(entity_versions)
                     .map(|(((entity_id, ..), entity_edition_id), decision_time)| {
                         (entity_id, entity_edition_id, decision_time)
@@ -458,10 +457,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(entity_ids
             .into_iter()
             .zip(entity_versions)
-            .zip(entity_record_ids)
-            .map(|(((entity_id, ..), entity_version), entity_record_id)| {
+            .zip(entity_edition_ids)
+            .map(|(((entity_id, ..), entity_version), entity_edition_id)| {
                 EntityMetadata::new(
-                    EntityEditionId::new(entity_id, entity_record_id),
+                    EntityRecordId::new(entity_id, entity_edition_id),
                     entity_version,
                     entity_type_id.clone(),
                     ProvenanceMetadata::new(actor_id),
@@ -599,7 +598,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         transaction.commit().await.change_context(UpdateError)?;
 
         Ok(EntityMetadata::new(
-            EntityEditionId::new(entity_id, EntityRecordId::new(row.get(0))),
+            EntityRecordId::new(entity_id, EntityEditionId::new(row.get(0))),
             EntityVersion {
                 decision_time: row.get(1),
                 transaction_time: row.get(2),

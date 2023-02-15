@@ -8,11 +8,8 @@ use crate::{
 ///
 /// [`store`]: crate::store
 pub trait Record: Sized + Send {
-    type EditionId;
     type VertexId: SubgraphIndex<Self> + Send + Sync;
     type QueryPath<'p>: QueryPath + Send + Sync;
-
-    fn edition_id(&self) -> &Self::EditionId;
 
     fn vertex_id(&self, time_axis: TimeAxis) -> Self::VertexId;
 
