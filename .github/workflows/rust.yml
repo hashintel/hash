@@ -130,13 +130,6 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
 
-      - name: Cache Node dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            **/node_modules
-          key: ${{ hashFiles('**/yarn.lock') }}
-
       - name: Install tools
         shell: bash
         run: |
@@ -214,13 +207,6 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           override: true
 
-      - name: Cache Node dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            **/node_modules
-          key: ${{ hashFiles('**/yarn.lock') }}
-
       - name: Install tools
         shell: bash
         run: |
@@ -269,13 +255,6 @@ jobs:
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
-
-      - name: Cache Node dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            **/node_modules
-          key: ${{ hashFiles('**/yarn.lock') }}
 
       - name: Install tools
         run: |
