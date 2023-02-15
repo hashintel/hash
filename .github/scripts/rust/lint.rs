@@ -169,7 +169,7 @@ fn collect_cargo(cwd: &Path) -> LintFile {
                 "--force-warn" => acc.force_warn.insert(lint.to_owned()),
                 "-D" => acc.deny.insert(lint.to_owned()),
                 "-F" => acc.forbid.insert(lint.to_owned()),
-                _ => panic!("unrecognized rust flag {arg}")
+                _ => panic!("unrecognized rust flag {}", arg),
             };
 
             acc
