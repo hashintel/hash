@@ -3,7 +3,7 @@
 //! serde = {version = "*", features = ["derive"]}
 //! toml = {version = "*", features = ["parse"]}
 //! ```
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::env;
 use std::fs;
 use std::collections::{HashMap, HashSet};
@@ -187,7 +187,11 @@ fn apply(cwd: &Path) {
     let contents = fs::read_to_string(&path).expect(&format!("should be able to read {}", path.display()));
 
     if !contents.contains(PREFIX) || !contents.contains(SUFFIX) {
-        panic!("malformed .cargo/config.toml, please add the required markers")
+        panic!(concat!(
+            "malformed .cargo/config.toml, please add the required markers ",
+            r###""## START CLIPPY LINTS ##" and "## END CLIPPY LINTS ##" on a separate line to "###,
+            "delimit the region this script is allowed to modify."
+        ))
     }
 
     // strip out content between the markers
