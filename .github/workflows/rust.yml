@@ -103,12 +103,16 @@ jobs:
       - name: Check public documentation
         working-directory: ${{ matrix.directory }}
         if: always()
-        run: cargo +${{ matrix.toolchain }} make rustdoc --check -D warnings
+        env:
+          RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
+        run: cargo +${{ matrix.toolchain }} make doc
 
       - name: Check private documentation
         working-directory: ${{ matrix.directory }}
         if: always()
-        run: cargo +${{ matrix.toolchain }} make rustdoc --check -D warnings --document-private-items
+        env:
+          RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
+        run: cargo +${{ matrix.toolchain }} make doc --document-private-items
 
   test:
     name: test

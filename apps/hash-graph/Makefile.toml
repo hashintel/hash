@@ -1,7 +1,7 @@
 extend = { path = "../../.github/scripts/rust/Makefile.toml" }
 
 [env]
-CARGO_RUSTDOC_HACK_FLAGS = "--workspace --exclude hash_graph_benches"
+CARGO_RUSTDOC_HACK_FLAGS = ""
 
 RUST_LOG = "debug,hyper=warn"
 
@@ -83,21 +83,9 @@ args = ["httpyac", "send", "--all", "${REPO_ROOT}/apps/hash-graph/tests/rest-tes
 
 [tasks.test]
 run_task = [
-    { name = ["test-task", "deployment-up", "test-integration", "deployment-down"], condition = { env_true = ["CARGO_MAKE_CI"] } },
+    { name = ["deployment-up", "test-task", "deployment-down"], condition = { env_false = ["CARGO_MAKE_CI"] } },
     { name = ["test-task"] }
 ]
-
-[tasks.test-task]
-env = { CARGO_TEST_FLAGS = "${CARGO_TEST_FLAGS} --exclude graph-integration" }
-
-[tasks.test-task-doc]
-condition = { profiles = ["development"] }
-
-[tasks.test-integration]
-private = false
-extend = "cargo"
-args = ["nextest", "run", "--cargo-profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_TEST_FLAGS, )", "-p", "graph-integration", "--profile", "integration", "${@}"]
-dependencies = ["install-cargo-nextest"]
 
 [tasks.miri]
 clear = true

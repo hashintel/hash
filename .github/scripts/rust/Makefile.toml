@@ -136,15 +136,6 @@ run_task = { name = ["doc-task"] }
 extend = "cargo"
 args = ["hack", "@@split(CARGO_DOC_HACK_FLAGS, )", "doc", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_DOC_FLAGS, )", "${@}"]
 
-[tasks.rustdoc]
-category = "Docs"
-description = "Builds the documentation for the crate"
-run_task = { name = ["rustdoc-task"] }
-
-[tasks.rustdoc-task]
-extend = "cargo"
-args = ["hack", "@@split(CARGO_RUSTDOC_HACK_FLAGS, )", "rustdoc", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_RUSTDOC_FLAGS, )", "${@}"]
-
 ################################################################################
 ## Tests                                                                      ##
 ################################################################################
