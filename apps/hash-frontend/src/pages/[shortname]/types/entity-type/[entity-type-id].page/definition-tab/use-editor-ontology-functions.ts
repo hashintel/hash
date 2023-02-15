@@ -122,10 +122,8 @@ export const useEditorOntologyFunctions = (
   );
 
   return {
-    getEntityType: getEntityType as any,
     createEntityType: wrappedCreateEntityType,
     updateEntityType: wrappedUpdateEntityType,
-    getPropertyType: getPropertyType as any,
     createPropertyType: wrappedCreatePropertyType,
     updatePropertyType: wrappedUpdatePropertyType,
     validateTitle,

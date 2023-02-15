@@ -11,10 +11,8 @@ export type TitleValidationFunction = (proposal: {
 
 export type EditorOntologyFunctions = Pick<
   EmbedderGraphMessageCallbacks<false>,
-  | "getPropertyType"
   | "createPropertyType"
   | "updatePropertyType"
-  | "getEntityType"
   | "createEntityType"
   | "updateEntityType"
 > & { validateTitle: TitleValidationFunction };
