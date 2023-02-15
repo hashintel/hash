@@ -9,12 +9,14 @@
 extern crate serde;
 extern crate toml;
 
+use std::{
+    collections::{BTreeSet, HashMap},
+    env, fs,
+    iter::once,
+    path::{Path, PathBuf},
+};
+
 use serde::Deserialize;
-use std::env;
-use std::fs;
-use std::collections::{HashMap, BTreeSet};
-use std::path::{PathBuf, Path};
-use std::iter::once;
 
 const PREFIX: &'static str = "## START CLIPPY LINTS ##";
 const SUFFIX: &'static str = "## END CLIPPY LINTS ##";
@@ -66,17 +68,19 @@ impl Lints {
     }
 
     fn into_file(self) -> LintFile {
-        self.0.into_iter().fold(LintFile::default(), |mut acc, (lint, level)| {
-            match level {
-                LintLevel::Allow => acc.allow.insert(lint),
-                LintLevel::Warn => acc.warn.insert(lint),
-                LintLevel::ForceWarn => acc.force_warn.insert(lint),
-                LintLevel::Deny => acc.deny.insert(lint),
-                LintLevel::Forbid => acc.forbid.insert(lint),
-            };
+        self.0
+            .into_iter()
+            .fold(LintFile::default(), |mut acc, (lint, level)| {
+                match level {
+                    LintLevel::Allow => acc.allow.insert(lint),
+                    LintLevel::Warn => acc.warn.insert(lint),
+                    LintLevel::ForceWarn => acc.force_warn.insert(lint),
+                    LintLevel::Deny => acc.deny.insert(lint),
+                    LintLevel::Forbid => acc.forbid.insert(lint),
+                };
 
-            acc
-        })
+                acc
+            })
     }
 }
 
@@ -121,15 +125,18 @@ fn collect_lints(cwd: &Path) -> LintFile {
         }
     }
 
-    // we now apply them into a single configuration this allows for easy overwrites in child directories
+    // we now apply them into a single configuration this allows for easy overwrites in child
+    // directories
     files.reverse();
 
     let mut lints = Lints::new();
 
     for file in files {
-        let contents = fs::read_to_string(&file).expect(&format!("should be able to read {}", file.display()));
+        let contents =
+            fs::read_to_string(&file).expect(&format!("should be able to read {}", file.display()));
 
-        let file = toml::from_str(&contents).expect(&format!("should be valid toml ({})", file.display()));
+        let file =
+            toml::from_str(&contents).expect(&format!("should be valid toml ({})", file.display()));
         lints.apply(file);
     }
 
@@ -143,7 +150,8 @@ fn collect_cargo(cwd: &Path) -> LintFile {
         panic!(".cargo/config.toml needs to exist")
     }
 
-    let contents = fs::read_to_string(&path).expect(&format!("should be able to read {}", path.display()));
+    let contents =
+        fs::read_to_string(&path).expect(&format!("should be able to read {}", path.display()));
 
     // brute-force, search for the line:
     // ## START CLIPPY LINTS ##
@@ -190,14 +198,14 @@ fn generate(cwd: &Path) {
     let lints = collect_lints(cwd);
 
     // read the `config.toml`
-    let contents = fs::read_to_string(&path).expect(&format!("should be able to read {}", path.display()));
+    let contents =
+        fs::read_to_string(&path).expect(&format!("should be able to read {}", path.display()));
 
     if !contents.contains(PREFIX) || !contents.contains(SUFFIX) {
         panic!(
             "malformed .cargo/config.toml, please add the required markers \"{}\" and \"{}\" on a \
-            separate line to delimit the region this script is allowed to modify.",
-            PREFIX,
-            SUFFIX
+             separate line to delimit the region this script is allowed to modify.",
+            PREFIX, SUFFIX
         )
     }
 
@@ -205,18 +213,43 @@ fn generate(cwd: &Path) {
     let prefix = contents.lines().take_while(|value| value.trim() != PREFIX);
     let suffix = contents.lines().skip_while(|value| value.trim() != SUFFIX);
 
-    let indent = contents.lines()
+    let indent = contents
+        .lines()
         .find(|value| value.trim() == PREFIX)
         .map(|value| " ".repeat(value.len() - value.trim_start().len()))
         .unwrap_or_else(|| "    ".to_owned());
 
-    let body = lints.forbid.into_iter().map(|lint| format!(r#"{indent}"-F{lint}","#))
-        .chain(lints.deny.into_iter().map(|lint| format!(r#"{indent}"-D{lint}","#)))
-        .chain(lints.force_warn.into_iter().map(|lint| format!(r#"{indent}"--force-warn{lint}","#)))
-        .chain(lints.warn.into_iter().map(|lint| format!(r#"{indent}"-W{lint}","#)))
-        .chain(lints.allow.into_iter().map(|lint| format!(r#"{indent}"-A{lint}","#)));
+    let body = lints
+        .forbid
+        .into_iter()
+        .map(|lint| format!(r#"{indent}"-F{lint}","#))
+        .chain(
+            lints
+                .deny
+                .into_iter()
+                .map(|lint| format!(r#"{indent}"-D{lint}","#)),
+        )
+        .chain(
+            lints
+                .force_warn
+                .into_iter()
+                .map(|lint| format!(r#"{indent}"--force-warn{lint}","#)),
+        )
+        .chain(
+            lints
+                .warn
+                .into_iter()
+                .map(|lint| format!(r#"{indent}"-W{lint}","#)),
+        )
+        .chain(
+            lints
+                .allow
+                .into_iter()
+                .map(|lint| format!(r#"{indent}"-A{lint}","#)),
+        );
 
-    let contents: Vec<_> = prefix.map(|line| line.to_owned())
+    let contents: Vec<_> = prefix
+        .map(|line| line.to_owned())
         .chain(once(format!("{indent}{PREFIX}")))
         .chain(body)
         .chain(suffix.map(|line| line.to_owned()))
@@ -276,15 +309,21 @@ fn check(cwd: &Path) {
 }
 
 fn main() {
-    let cwd = env::var("CARGO_MAKE_WORKSPACE_WORKING_DIRECTORY").expect("environment variable should exist");
+    let cwd = env::var("CARGO_MAKE_WORKSPACE_WORKING_DIRECTORY")
+        .expect("environment variable should exist");
     let cwd = PathBuf::from(cwd);
 
-    let args = env::var("CARGO_MAKE_CLIPPY_LINT_MODE").or_else(|_| env::var("CARGO_MAKE_TASK_ARGS")).expect("environment variable should exist");
-    let mode = args.split(" ").next().expect("at least one position argument specifying mode required");
+    let args = env::var("CARGO_MAKE_CLIPPY_LINT_MODE")
+        .or_else(|_| env::var("CARGO_MAKE_TASK_ARGS"))
+        .expect("environment variable should exist");
+    let mode = args
+        .split(" ")
+        .next()
+        .expect("at least one position argument specifying mode required");
 
     match mode {
         "generate" => generate(&cwd),
         "check" => check(&cwd),
-        _ => panic!("unrecognized mode, available: `generate`, `check`")
+        _ => panic!("unrecognized mode, available: `generate`, `check`"),
     };
 }
