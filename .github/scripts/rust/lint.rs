@@ -6,7 +6,7 @@
 use serde::Deserialize;
 use std::env;
 use std::fs;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, BTreeSet};
 use std::path::{PathBuf, Path};
 use std::iter::once;
 
@@ -77,17 +77,17 @@ impl Lints {
 #[derive(Deserialize, Default)]
 struct LintFile {
     #[serde(default)]
-    allow: HashSet<String>,
+    allow: BTreeSet<String>,
     #[serde(default)]
-    warn: HashSet<String>,
+    warn: BTreeSet<String>,
     #[serde(default)]
-    force_warn: HashSet<String>,
+    force_warn: BTreeSet<String>,
     #[serde(default)]
-    deny: HashSet<String>,
+    deny: BTreeSet<String>,
     #[serde(default)]
-    forbid: HashSet<String>,
+    forbid: BTreeSet<String>,
     #[serde(default)]
-    default: HashSet<String>,
+    default: BTreeSet<String>,
 }
 
 fn collect_lints(cwd: &Path) -> LintFile {
@@ -218,7 +218,7 @@ fn apply(cwd: &Path) {
     fs::write(&path, contents.join("\n")).expect("unable to write `.cargo/config.toml`");
 }
 
-fn print_diff(level: &str, left: &HashSet<String>, right: &HashSet<String>) {
+fn print_diff(level: &str, left: &BTreeSet<String>, right: &BTreeSet<String>) {
     let create = left - right;
     let remove = right - left;
 
