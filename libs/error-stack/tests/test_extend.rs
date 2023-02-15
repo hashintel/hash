@@ -4,6 +4,7 @@
 mod common;
 use core::fmt::{Display, Formatter};
 
+#[allow(clippy::wildcard_imports)]
 use common::*;
 use error_stack::{report, Context, Report};
 

@@ -3,8 +3,10 @@
 // unsafe code.
 #![cfg(not(miri))]
 #![cfg_attr(all(nightly, feature = "std"), feature(error_generic_member_access))]
+#![allow(clippy::std_instead_of_core)]
 mod common;
 
+#[allow(clippy::wildcard_imports)]
 use common::*;
 use error_stack::fmt::{Charset, ColorMode};
 #[allow(unused_imports)]
@@ -23,11 +25,11 @@ fn setup_tracing() {
             tracing_subscriber::Registry::default().with(ErrorLayer::default()),
         )
         .expect("Could not set tracing subscriber");
-    })
+    });
 }
 
 #[cfg(not(feature = "spantrace"))]
-fn setup_tracing() {}
+const fn setup_tracing() {}
 
 #[cfg(not(all(rust_1_65, feature = "std")))]
 fn setup_backtrace() {
@@ -263,6 +265,7 @@ mod full {
         panic::Location,
     };
 
+    #[allow(clippy::wildcard_imports)]
     use super::*;
 
     #[test]
@@ -556,7 +559,7 @@ mod full {
 
         Report::install_debug_hook::<Location<'static>>(|_, _| {});
 
-        assert_snapshot!(format!("{report:?}"))
+        assert_snapshot!(format!("{report:?}"));
     }
 
     #[cfg(nightly)]
