@@ -1,4 +1,4 @@
-extend = ["./Makefile.lint.toml"]
+extend = { path = "./Makefile.lint.toml" }
 
 [config]
 default_to_workspace = false
