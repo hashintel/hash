@@ -1,4 +1,7 @@
-import { Entity, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import {
+  Entity,
+  extractOwnedByIdFromEntityId,
+} from "@local/hash-subgraph/main";
 import { useCallback } from "react";
 
 import { useOrgs } from "./use-orgs";
@@ -16,7 +19,7 @@ export const useGetOwnerForEntity = () => {
   return useCallback(
     (entity: Entity) => {
       const ownerUuid = extractOwnedByIdFromEntityId(
-        entity.metadata.editionId.baseId,
+        entity.metadata.recordId.entityId,
       );
 
       const owner =

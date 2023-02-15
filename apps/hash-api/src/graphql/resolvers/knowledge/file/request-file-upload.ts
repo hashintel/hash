@@ -1,4 +1,4 @@
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
+import { OwnedById } from "@local/hash-subgraph/main";
 
 import { createFileFromUploadRequest } from "../../../../graph/knowledge/system-types/file";
 import {

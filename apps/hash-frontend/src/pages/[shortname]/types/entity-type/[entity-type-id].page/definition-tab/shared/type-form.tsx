@@ -12,7 +12,7 @@ import {
   generateBaseTypeId,
   SchemaKind,
 } from "@local/hash-isomorphic-utils/ontology-types";
-import { versionedUriFromComponents } from "@local/hash-subgraph/src/shared/type-system-patch";
+import { versionedUriFromComponents } from "@local/hash-subgraph/shared/type-system-patch";
 import {
   Box,
   Divider,

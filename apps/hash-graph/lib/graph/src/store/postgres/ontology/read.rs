@@ -11,7 +11,7 @@ use type_system::uri::BaseUri;
 
 use crate::{
     identifier::{
-        ontology::{OntologyTypeEditionId, OntologyTypeVersion},
+        ontology::{OntologyTypeRecordId, OntologyTypeVersion},
         time::TimeProjection,
     },
     ontology::{
@@ -30,8 +30,13 @@ use crate::{
 #[derive(Deserialize)]
 #[serde(untagged)]
 enum AdditionalOntologyMetadata {
-    Owned { owned_by_id: OwnedById },
-    External { fetched_at: OffsetDateTime },
+    Owned {
+        owned_by_id: OwnedById,
+    },
+    External {
+        #[serde(with = "time::serde::iso8601")]
+        fetched_at: OffsetDateTime,
+    },
 }
 
 impl<'a> FromSql<'a> for AdditionalOntologyMetadata {
@@ -109,20 +114,20 @@ where
                     .into_report()
                     .change_context(QueryError)?;
 
-                let edition_id = OntologyTypeEditionId::new(base_uri, version);
+                let record_id = OntologyTypeRecordId::new(base_uri, version);
                 let provenance = ProvenanceMetadata::new(updated_by_id);
 
                 Ok(T::new(record, match metadata {
                     AdditionalOntologyMetadata::Owned { owned_by_id } => {
                         OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                            edition_id,
+                            record_id,
                             provenance,
                             owned_by_id,
                         ))
                     }
                     AdditionalOntologyMetadata::External { fetched_at } => {
                         OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
-                            edition_id, provenance, fetched_at,
+                            record_id, provenance, fetched_at,
                         ))
                     }
                 }))

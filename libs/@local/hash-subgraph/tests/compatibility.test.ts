@@ -10,7 +10,7 @@
 
 import { Subgraph as SubgraphGraphApi } from "@local/hash-graph-client";
 
-import { Subgraph } from "../src";
+import { Subgraph } from "../src/main";
 import { mapEdges } from "./compatibility.test/map-edges";
 import { mapRoots } from "./compatibility.test/map-roots";
 import { mapVertices } from "./compatibility.test/map-vertices";

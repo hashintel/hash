@@ -12,6 +12,7 @@ import {
   DataType as DataTypeGraphApi,
   EntityType as EntityTypeGraphApi,
   KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
+  OntologyElementMetadata as OntologyElementMetadataGraphApi,
   OntologyVertex as OntologyVertexGraphApi,
   PropertyType as PropertyTypeGraphApi,
   Vertices as VerticesGraphApi,
@@ -19,13 +20,13 @@ import {
 
 import {
   EntityId,
-  EntityVersion,
   isEntityId,
   KnowledgeGraphVertex,
+  OntologyElementMetadata,
   OntologyVertex,
   PropertyObject,
   Vertices,
-} from "../../src";
+} from "../../src/main";
 
 const mapDataType = (dataType: DataTypeGraphApi): DataType => {
   const idResult = validateVersionedUri(dataType.$id);
@@ -74,6 +75,12 @@ const mapEntityType = (entityType: EntityTypeGraphApi): EntityType => {
   return entityType as EntityType;
 };
 
+const mapOntologyMetadata = (
+  metadata: OntologyElementMetadataGraphApi,
+): OntologyElementMetadata => {
+  return metadata;
+};
+
 const mapOntologyVertex = (vertex: OntologyVertexGraphApi): OntologyVertex => {
   switch (vertex.kind) {
     case "dataType": {
@@ -81,6 +88,7 @@ const mapOntologyVertex = (vertex: OntologyVertexGraphApi): OntologyVertex => {
         kind: vertex.kind,
         inner: {
           ...vertex.inner,
+          metadata: mapOntologyMetadata(vertex.inner.metadata),
           schema: mapDataType(vertex.inner.schema),
         },
       };
@@ -90,6 +98,7 @@ const mapOntologyVertex = (vertex: OntologyVertexGraphApi): OntologyVertex => {
         kind: vertex.kind,
         inner: {
           ...vertex.inner,
+          metadata: mapOntologyMetadata(vertex.inner.metadata),
           schema: mapPropertyType(vertex.inner.schema),
         },
       };
@@ -99,6 +108,7 @@ const mapOntologyVertex = (vertex: OntologyVertexGraphApi): OntologyVertex => {
         kind: vertex.kind,
         inner: {
           ...vertex.inner,
+          metadata: mapOntologyMetadata(vertex.inner.metadata),
           schema: mapEntityType(vertex.inner.schema),
         },
       };
@@ -121,11 +131,10 @@ const mapKnowledgeGraphVertex = (
       },
       metadata: {
         ...vertex.inner.metadata,
-        editionId: {
-          baseId: vertex.inner.metadata.editionId.baseId as EntityId,
-          recordId: vertex.inner.metadata.editionId.recordId,
+        recordId: {
+          ...vertex.inner.metadata.recordId,
+          entityId: vertex.inner.metadata.recordId.entityId as EntityId,
         },
-        version: vertex.inner.metadata.version as EntityVersion,
         entityTypeId: vertex.inner.metadata.entityTypeId as VersionedUri,
       },
     },

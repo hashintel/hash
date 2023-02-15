@@ -25,9 +25,9 @@ pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
     identifier::{
         account::AccountId,
-        ontology::OntologyTypeEditionId,
-        time::{ProjectedTime, TimeInterval},
-        EntityVertexId,
+        ontology::OntologyTypeRecordId,
+        time::{ProjectedTime, TimeIntervalBound, Timestamp},
+        EntityVertexId, OntologyTypeVertexId,
     },
     interval::Interval,
     ontology::{
@@ -37,16 +37,16 @@ use crate::{
     store::{
         error::{VersionedUriAlreadyExists, WrongOntologyVersion},
         postgres::ontology::{OntologyDatabaseType, OntologyId},
-        AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, Store,
-        StoreError, Transaction, UpdateError,
+        AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError,
+        StoreError, UpdateError,
     },
     subgraph::edges::GraphResolveDepths,
 };
 #[cfg(feature = "__internal_bench")]
 use crate::{
     identifier::{
-        knowledge::{EntityId, EntityRecordId, EntityVersion},
-        time::{DecisionTime, Timestamp, VersionInterval},
+        knowledge::{EntityEditionId, EntityId, EntityVersion},
+        time::DecisionTime,
     },
     knowledge::{EntityProperties, LinkOrder},
 };
@@ -56,16 +56,34 @@ use crate::{
 /// This is used to determine whether a traversal should continue or stop. If a traversal is
 /// resolved for a sufficient depths and a large enough interval, [`DependencyStatus::Resolved`]
 /// will be returned from [`DependencyMap::update`], otherwise [`DependencyStatus::Unresolved`] will
-/// be returned with the [`GraphResolveDepths`] and [`TimeInterval`] that the traversal should
+/// be returned with the [`GraphResolveDepths`] and [`Interval`] that the traversal should
 /// continue with.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DependencyStatus {
-    Unresolved(GraphResolveDepths, TimeInterval<ProjectedTime>),
+    Unresolved(
+        GraphResolveDepths,
+        Interval<
+            Timestamp<ProjectedTime>,
+            TimeIntervalBound<ProjectedTime>,
+            TimeIntervalBound<ProjectedTime>,
+        >,
+    ),
     Resolved,
 }
 
+#[expect(clippy::type_complexity, reason = "This type will be changed soon")]
 pub struct DependencyMap<K> {
-    resolved: HashMap<K, (GraphResolveDepths, TimeInterval<ProjectedTime>)>,
+    resolved: HashMap<
+        K,
+        (
+            GraphResolveDepths,
+            Interval<
+                Timestamp<ProjectedTime>,
+                TimeIntervalBound<ProjectedTime>,
+                TimeIntervalBound<ProjectedTime>,
+            >,
+        ),
+    >,
 }
 
 impl<K> Default for DependencyMap<K> {
@@ -94,19 +112,20 @@ where
         &mut self,
         identifier: &K,
         new_resolve_depth: GraphResolveDepths,
-        new_interval: TimeInterval<ProjectedTime>,
+        new_interval: Interval<
+            Timestamp<ProjectedTime>,
+            TimeIntervalBound<ProjectedTime>,
+            TimeIntervalBound<ProjectedTime>,
+        >,
     ) -> DependencyStatus {
         match self.resolved.raw_entry_mut().from_key(identifier) {
             RawEntryMut::Vacant(entry) => {
-                entry.insert(
-                    identifier.clone(),
-                    (new_resolve_depth, new_interval.clone()),
-                );
+                entry.insert(identifier.clone(), (new_resolve_depth, new_interval));
                 DependencyStatus::Unresolved(new_resolve_depth, new_interval)
             }
             RawEntryMut::Occupied(entry) => {
                 let (current_depths, current_interval) = entry.into_mut();
-                let old_interval = current_interval.clone();
+                let old_interval = *current_interval;
 
                 // Ideally, we want to use a `union` here instead, as we only want to resolve
                 // elements contained in either sets of intervals. However, the current
@@ -116,13 +135,13 @@ where
                 // subgraph will contain more information than requested, where we'll also be
                 // querying the space between the two intervals when they're not adjacent or
                 // overlapping.
-                *current_interval = current_interval.clone().merge(new_interval.clone());
+                *current_interval = current_interval.merge(new_interval);
 
                 if current_depths.update(new_resolve_depth) {
                     // We currently don't have a way to store different resolve depths for different
                     // intervals for the same identifier. For simplicity, we require to resolve the
                     // full interval with the updated resolve depths.
-                    DependencyStatus::Unresolved(*current_depths, current_interval.clone())
+                    DependencyStatus::Unresolved(*current_depths, *current_interval)
                 } else if old_interval.contains_interval(&new_interval) {
                     // The dependency is already resolved for the required interval
                     // old: [-----)
@@ -189,10 +208,7 @@ where
                     // ---------|-------------|-------------
                     // optimal  |       [---) | [---)
                     // current  |     [-----) | [-----)
-                    let difference = old_interval
-                        .clone()
-                        .merge(new_interval)
-                        .difference(old_interval);
+                    let difference = old_interval.merge(new_interval).difference(old_interval);
                     debug_assert_eq!(difference.len(), 1, "difference must be a single interval");
 
                     DependencyStatus::Unresolved(
@@ -210,50 +226,13 @@ where
 
 #[derive(Default)]
 pub struct DependencyContext {
-    pub ontology_dependency_map: DependencyMap<OntologyTypeEditionId>,
+    pub ontology_dependency_map: DependencyMap<OntologyTypeVertexId>,
     pub knowledge_dependency_map: DependencyMap<EntityVertexId>,
 }
 
 /// A Postgres-backed store
 pub struct PostgresStore<C> {
     client: C,
-}
-
-#[async_trait]
-impl<C: AsClient> Store for PostgresStore<C> {
-    type Transaction<'t>
-    where
-        C: 't,
-    = PostgresStore<tokio_postgres::Transaction<'t>>;
-
-    async fn transaction(&mut self) -> Result<Self::Transaction<'_>, StoreError> {
-        Ok(PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .into_report()
-                .change_context(StoreError)?,
-        ))
-    }
-}
-
-#[async_trait]
-impl Transaction for PostgresStore<tokio_postgres::Transaction<'_>> {
-    async fn commit(self) -> Result<(), StoreError> {
-        self.client
-            .commit()
-            .await
-            .into_report()
-            .change_context(StoreError)
-    }
-
-    async fn rollback(self) -> Result<(), StoreError> {
-        self.client
-            .rollback()
-            .await
-            .into_report()
-            .change_context(StoreError)
-    }
 }
 
 impl<C> PostgresStore<C>
@@ -288,8 +267,8 @@ where
                     record_created_by_id := $4
                 );"#,
                 &[
-                    &metadata.edition_id().base_id().as_str(),
-                    &metadata.edition_id().version(),
+                    &metadata.record_id().base_uri().as_str(),
+                    &metadata.record_id().version(),
                     &metadata.owned_by_id(),
                     &metadata.provenance_metadata().updated_by_id(),
                 ],
@@ -300,11 +279,11 @@ where
             .map_err(|report| match report.current_context().code() {
                 Some(&SqlState::EXCLUSION_VIOLATION | &SqlState::UNIQUE_VIOLATION) => report
                     .change_context(BaseUriAlreadyExists)
-                    .attach_printable(metadata.edition_id().base_id().clone())
+                    .attach_printable(metadata.record_id().base_uri().clone())
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)
-                    .attach_printable(VersionedUri::from(metadata.edition_id())),
+                    .attach_printable(VersionedUri::from(metadata.record_id())),
             })
     }
 
@@ -330,8 +309,8 @@ where
                     record_created_by_id := $4
                 );"#,
                 &[
-                    &metadata.edition_id().base_id().as_str(),
-                    &metadata.edition_id().version(),
+                    &metadata.record_id().base_uri().as_str(),
+                    &metadata.record_id().version(),
                     &metadata.fetched_at(),
                     &metadata.provenance_metadata().updated_by_id(),
                 ],
@@ -342,11 +321,11 @@ where
             .map_err(|report| match report.current_context().code() {
                 Some(&SqlState::EXCLUSION_VIOLATION | &SqlState::UNIQUE_VIOLATION) => report
                     .change_context(BaseUriAlreadyExists)
-                    .attach_printable(metadata.edition_id().base_id().clone())
+                    .attach_printable(metadata.record_id().base_uri().clone())
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)
-                    .attach_printable(VersionedUri::from(metadata.edition_id())),
+                    .attach_printable(VersionedUri::from(metadata.record_id())),
             })
     }
 
@@ -458,7 +437,7 @@ where
         T: OntologyDatabaseType,
     {
         let uri = database_type.id();
-        let edition_id = OntologyTypeEditionId::from(uri);
+        let record_id = OntologyTypeRecordId::from(uri);
 
         let (ontology_id, owned_by_id) = self
             .update_owned_ontology_id(uri, updated_by_id)
@@ -471,7 +450,7 @@ where
         Ok((
             ontology_id,
             OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                edition_id,
+                record_id,
                 ProvenanceMetadata::new(updated_by_id),
                 owned_by_id,
             )),
@@ -715,9 +694,37 @@ where
             .attach_printable_lazy(|| uri.clone())?
             .get(0))
     }
+
+    pub async fn transaction(
+        &mut self,
+    ) -> Result<PostgresStore<tokio_postgres::Transaction<'_>>, StoreError> {
+        Ok(PostgresStore::new(
+            self.as_mut_client()
+                .transaction()
+                .await
+                .into_report()
+                .change_context(StoreError)?,
+        ))
+    }
 }
 
 impl PostgresStore<tokio_postgres::Transaction<'_>> {
+    pub async fn commit(self) -> Result<(), StoreError> {
+        self.client
+            .commit()
+            .await
+            .into_report()
+            .change_context(StoreError)
+    }
+
+    pub async fn rollback(self) -> Result<(), StoreError> {
+        self.client
+            .rollback()
+            .await
+            .into_report()
+            .change_context(StoreError)
+    }
+
     #[doc(hidden)]
     #[cfg(feature = "__internal_bench")]
     async fn insert_entity_ids(
@@ -786,7 +793,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         > + Send,
         entity_type_ontology_id: OntologyId,
         actor_id: UpdatedById,
-    ) -> Result<Vec<EntityRecordId>, InsertionError> {
+    ) -> Result<Vec<EntityEditionId>, InsertionError> {
         self.client
             .simple_query(
                 "CREATE TEMPORARY TABLE entity_editions_temp (
@@ -852,7 +859,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .into_report()
             .change_context(InsertionError)?;
 
-        let entity_record_ids = self
+        let entity_edition_ids = self
             .client
             .query(
                 "INSERT INTO entity_editions (
@@ -880,7 +887,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .into_report()
             .change_context(InsertionError)?
             .into_iter()
-            .map(|row| EntityRecordId::new(row.get(0)))
+            .map(|row| EntityEditionId::new(row.get(0)))
             .collect();
 
         self.client
@@ -889,7 +896,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .into_report()
             .change_context(InsertionError)?;
 
-        Ok(entity_record_ids)
+        Ok(entity_edition_ids)
     }
 
     #[doc(hidden)]
@@ -897,7 +904,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     async fn insert_entity_versions(
         &self,
         entities: impl IntoIterator<
-            Item = (EntityId, EntityRecordId, Option<Timestamp<DecisionTime>>),
+            Item = (EntityId, EntityEditionId, Option<Timestamp<DecisionTime>>),
             IntoIter: Send,
         > + Send,
     ) -> Result<Vec<EntityVersion>, InsertionError> {
@@ -934,13 +941,13 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             Type::TIMESTAMPTZ,
         ]);
         futures::pin_mut!(writer);
-        for (entity_id, entity_record_id, decision_time) in entities {
+        for (entity_id, entity_edition_id, decision_time) in entities {
             writer
                 .as_mut()
                 .write(&[
                     &entity_id.owned_by_id(),
                     &entity_id.entity_uuid(),
-                    &entity_record_id,
+                    &entity_edition_id,
                     &decision_time,
                 ])
                 .await
@@ -981,11 +988,9 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .into_report()
             .change_context(InsertionError)?
             .into_iter()
-            .map(|row| {
-                EntityVersion::new(
-                    VersionInterval::from_anonymous(row.get(0)),
-                    VersionInterval::from_anonymous(row.get(1)),
-                )
+            .map(|row| EntityVersion {
+                decision_time: row.get(0),
+                transaction_time: row.get(1),
             })
             .collect();
 

@@ -495,25 +495,6 @@ export interface Entity {
 /**
  *
  * @export
- * @interface EntityEditionId
- */
-export interface EntityEditionId {
-  /**
-   *
-   * @type {string}
-   * @memberof EntityEditionId
-   */
-  baseId: string;
-  /**
-   *
-   * @type {string}
-   * @memberof EntityEditionId
-   */
-  recordId: string;
-}
-/**
- *
- * @export
  * @interface EntityIdAndTimestamp
  */
 export interface EntityIdAndTimestamp {
@@ -563,12 +544,6 @@ export interface EntityMetadata {
   archived: boolean;
   /**
    *
-   * @type {EntityEditionId}
-   * @memberof EntityMetadata
-   */
-  editionId: EntityEditionId;
-  /**
-   *
    * @type {string}
    * @memberof EntityMetadata
    */
@@ -579,6 +554,12 @@ export interface EntityMetadata {
    * @memberof EntityMetadata
    */
   provenance: ProvenanceMetadata;
+  /**
+   *
+   * @type {EntityRecordId}
+   * @memberof EntityMetadata
+   */
+  recordId: EntityRecordId;
   /**
    *
    * @type {EntityVersion}
@@ -594,7 +575,7 @@ export interface EntityMetadata {
 
 export const EntityQueryToken = {
   Uuid: "uuid",
-  RecordId: "recordId",
+  EditionId: "editionId",
   Archived: "archived",
   OwnedById: "ownedById",
   UpdatedById: "updatedById",
@@ -611,6 +592,25 @@ export const EntityQueryToken = {
 export type EntityQueryToken =
   (typeof EntityQueryToken)[keyof typeof EntityQueryToken];
 
+/**
+ *
+ * @export
+ * @interface EntityRecordId
+ */
+export interface EntityRecordId {
+  /**
+   *
+   * @type {string}
+   * @memberof EntityRecordId
+   */
+  editionId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof EntityRecordId
+   */
+  entityId: string;
+}
 /**
  *
  * @export
@@ -801,16 +801,35 @@ export interface EntityTypeWithMetadata {
 export interface EntityVersion {
   /**
    *
-   * @type {VersionInterval}
+   * @type {EntityVersionDecisionTime}
    * @memberof EntityVersion
    */
-  decisionTime: VersionInterval;
+  decisionTime: EntityVersionDecisionTime;
   /**
    *
-   * @type {VersionInterval}
+   * @type {EntityVersionDecisionTime}
    * @memberof EntityVersion
    */
-  transactionTime: VersionInterval;
+  transactionTime: EntityVersionDecisionTime;
+}
+/**
+ *
+ * @export
+ * @interface EntityVersionDecisionTime
+ */
+export interface EntityVersionDecisionTime {
+  /**
+   *
+   * @type {string}
+   * @memberof EntityVersionDecisionTime
+   */
+  end: string | null;
+  /**
+   *
+   * @type {string}
+   * @memberof EntityVersionDecisionTime
+   */
+  start: string;
 }
 /**
  *
@@ -852,12 +871,6 @@ export interface EqualFilter {
 export interface ExternalOntologyElementMetadata {
   /**
    *
-   * @type {OntologyTypeEditionId}
-   * @memberof ExternalOntologyElementMetadata
-   */
-  editionId: OntologyTypeEditionId;
-  /**
-   *
    * @type {string}
    * @memberof ExternalOntologyElementMetadata
    */
@@ -868,6 +881,12 @@ export interface ExternalOntologyElementMetadata {
    * @memberof ExternalOntologyElementMetadata
    */
   provenance: ProvenanceMetadata;
+  /**
+   *
+   * @type {OntologyTypeRecordId}
+   * @memberof ExternalOntologyElementMetadata
+   */
+  recordId: OntologyTypeRecordId;
 }
 /**
  * @type Filter
@@ -896,7 +915,7 @@ export type GraphElementId = string;
  * @type GraphElementVertexId
  * @export
  */
-export type GraphElementVertexId = EntityVertexId | OntologyTypeEditionId;
+export type GraphElementVertexId = EntityVertexId | OntologyTypeVertexId;
 
 /**
  * TODO: DOC - <https://app.asana.com/0/0/1203438518991188/f>
@@ -1226,7 +1245,9 @@ export type OntologyEdgeKind =
  * @type OntologyElementMetadata
  * @export
  */
-export type OntologyElementMetadata = OwnedOntologyElementMetadata;
+export type OntologyElementMetadata =
+  | ExternalOntologyElementMetadata
+  | OwnedOntologyElementMetadata;
 
 /**
  * @type OntologyOutwardEdges
@@ -1336,19 +1357,38 @@ export interface OntologyRootedEdges {
 /**
  *
  * @export
- * @interface OntologyTypeEditionId
+ * @interface OntologyTypeRecordId
  */
-export interface OntologyTypeEditionId {
+export interface OntologyTypeRecordId {
   /**
    *
    * @type {string}
-   * @memberof OntologyTypeEditionId
+   * @memberof OntologyTypeRecordId
+   */
+  baseUri: string;
+  /**
+   *
+   * @type {number}
+   * @memberof OntologyTypeRecordId
+   */
+  version: number;
+}
+/**
+ *
+ * @export
+ * @interface OntologyTypeVertexId
+ */
+export interface OntologyTypeVertexId {
+  /**
+   *
+   * @type {string}
+   * @memberof OntologyTypeVertexId
    */
   baseId: string;
   /**
    *
    * @type {number}
-   * @memberof OntologyTypeEditionId
+   * @memberof OntologyTypeVertexId
    */
   version: number;
 }
@@ -1471,12 +1511,6 @@ export interface OutgoingEdgeResolveDepth {
 export interface OwnedOntologyElementMetadata {
   /**
    *
-   * @type {OntologyTypeEditionId}
-   * @memberof OwnedOntologyElementMetadata
-   */
-  editionId: OntologyTypeEditionId;
-  /**
-   *
    * @type {string}
    * @memberof OwnedOntologyElementMetadata
    */
@@ -1487,6 +1521,12 @@ export interface OwnedOntologyElementMetadata {
    * @memberof OwnedOntologyElementMetadata
    */
   provenance: ProvenanceMetadata;
+  /**
+   *
+   * @type {OntologyTypeRecordId}
+   * @memberof OwnedOntologyElementMetadata
+   */
+  recordId: OntologyTypeRecordId;
 }
 /**
  *
@@ -2514,25 +2554,6 @@ export interface UpdatePropertyTypeRequest {
    * @memberof UpdatePropertyTypeRequest
    */
   typeToUpdate: string;
-}
-/**
- *
- * @export
- * @interface VersionInterval
- */
-export interface VersionInterval {
-  /**
-   *
-   * @type {string}
-   * @memberof VersionInterval
-   */
-  end: string | null;
-  /**
-   *
-   * @type {string}
-   * @memberof VersionInterval
-   */
-  start: string;
 }
 /**
  * @type Vertex

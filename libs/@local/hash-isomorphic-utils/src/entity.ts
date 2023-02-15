@@ -1,3 +1,5 @@
+import { TextToken } from "@local/hash-graphql-shared/graphql/types";
+
 import {
   DraftEntity,
   EntityStore,
@@ -8,7 +10,6 @@ import {
   TEXT_TOKEN_PROPERTY_TYPE_BASE_URI,
 } from "./entity-store";
 import { Block } from "./graphql/api-types.gen";
-import { TextToken } from "./graphql/types";
 import { flatMapTree } from "./util";
 
 export type BlockEntity = Block;

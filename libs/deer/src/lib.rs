@@ -50,8 +50,11 @@ use crate::{
 mod context;
 pub mod error;
 mod impls;
+#[macro_use]
+mod macros;
 mod number;
 mod schema;
+pub mod value;
 
 extern crate alloc;
 

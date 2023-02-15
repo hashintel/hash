@@ -1,18 +1,19 @@
 import { useQuery } from "@apollo/client";
 import {
+  GetPageQuery,
+  GetPageQueryVariables,
+} from "@local/hash-graphql-shared/graphql/api-types.gen";
+import {
+  getPageInfoQuery,
+  getPageQuery,
+} from "@local/hash-graphql-shared/queries/page.queries";
+import {
   defaultBlockComponentIds,
   fetchBlock,
   HashBlock,
 } from "@local/hash-isomorphic-utils/blocks";
-import {
-  GetPageQuery,
-  GetPageQueryVariables,
-} from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import {
-  getPageInfoQuery,
-  getPageQuery,
-} from "@local/hash-isomorphic-utils/queries/page.queries";
+import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
@@ -20,9 +21,8 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   OwnedById,
-} from "@local/hash-isomorphic-utils/types";
-import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
-import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
+} from "@local/hash-subgraph/main";
+import { getRootsAsEntities } from "@local/hash-subgraph/stdlib/element/entity";
 import { alpha, Box, Collapse } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetServerSideProps } from "next";
@@ -411,7 +411,7 @@ const Page: NextPageWithLayout<PageProps> = ({
           <TopContextBar
             crumbs={generateCrumbsFromPages({
               pages: accountPages,
-              pageEntityId: data.page.metadata.editionId.baseId as EntityId,
+              pageEntityId: data.page.metadata.recordId.entityId,
               ownerShortname: pageWorkspace.shortname!,
             })}
             scrollToTop={scrollToTop}

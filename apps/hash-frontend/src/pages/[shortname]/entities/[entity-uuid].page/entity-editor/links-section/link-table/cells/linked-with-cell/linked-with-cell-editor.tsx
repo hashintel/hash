@@ -1,7 +1,6 @@
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
-import { Entity } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { Entity, EntityId } from "@local/hash-subgraph/main";
+import { getRoots } from "@local/hash-subgraph/stdlib/roots";
 
 import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../../../entity-editor-context";
@@ -32,8 +31,8 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
       linkAndTargetEntities[0] ?? {};
 
     const sameEntity =
-      currentLinkedEntity?.metadata.editionId.baseId ===
-      selectedEntity.metadata.editionId.baseId;
+      currentLinkedEntity?.metadata.recordId.entityId ===
+      selectedEntity.metadata.recordId.entityId;
 
     // if clicked on the same entity, do nothing
     if (sameEntity) {
@@ -42,17 +41,15 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
 
     // if there is an existing link, archive it
     if (currentLink) {
-      markLinkEntityToArchive(
-        currentLink.metadata.editionId.baseId as EntityId,
-      );
+      markLinkEntityToArchive(currentLink.metadata.recordId.entityId);
     }
 
     // create new link
     const linkEntity = createDraftLinkEntity({
       linkEntityTypeId,
-      leftEntityId: getRoots(entitySubgraph)[0]?.metadata.editionId
-        .baseId as EntityId,
-      rightEntityId: selectedEntity.metadata.editionId.baseId as EntityId,
+      leftEntityId: getRoots(entitySubgraph)[0]?.metadata.recordId
+        .entityId as EntityId,
+      rightEntityId: selectedEntity.metadata.recordId.entityId,
     });
 
     const newLinkAndTargetEntity: LinkAndTargetEntity = {
@@ -72,7 +69,7 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
   // if there could be one linked entity, just render the entity selector
   if (maxItems === 1) {
     const linkedEntityId =
-      linkAndTargetEntities[0]?.rightEntity.metadata.editionId.baseId;
+      linkAndTargetEntities[0]?.rightEntity.metadata.recordId.entityId;
 
     return (
       <EntitySelector

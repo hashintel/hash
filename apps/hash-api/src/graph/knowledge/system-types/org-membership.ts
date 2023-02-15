@@ -1,9 +1,9 @@
 import {
   extractEntityUuidFromEntityId,
   OwnedById,
+  PropertyObject,
   Uuid,
-} from "@local/hash-isomorphic-utils/types";
-import { PropertyObject } from "@local/hash-subgraph";
+} from "@local/hash-subgraph/main";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
@@ -32,14 +32,14 @@ export const getOrgMembershipFromLinkEntity: PureGraphFunction<
     SYSTEM_TYPES.linkEntityType.orgMembership.schema.$id
   ) {
     throw new EntityTypeMismatchError(
-      linkEntity.metadata.editionId.baseId,
+      linkEntity.metadata.recordId.entityId,
       SYSTEM_TYPES.entityType.user.schema.$id,
       linkEntity.metadata.entityTypeId,
     );
   }
 
   const responsibility = linkEntity.properties[
-    SYSTEM_TYPES.propertyType.responsibility.metadata.editionId.baseId
+    SYSTEM_TYPES.propertyType.responsibility.metadata.recordId.baseUri
   ] as string;
 
   return {
@@ -73,17 +73,17 @@ export const createOrgMembership: ImpureGraphFunction<
   Promise<OrgMembership>
 > = async (ctx, { user, org, responsibility, actorId }) => {
   const properties: PropertyObject = {
-    [SYSTEM_TYPES.propertyType.responsibility.metadata.editionId.baseId]:
+    [SYSTEM_TYPES.propertyType.responsibility.metadata.recordId.baseUri]:
       responsibility,
   };
 
   const linkEntity = await createLinkEntity(ctx, {
     ownedById: extractEntityUuidFromEntityId(
-      org.entity.metadata.editionId.baseId,
+      org.entity.metadata.recordId.entityId,
     ) as Uuid as OwnedById,
     linkEntityType: SYSTEM_TYPES.linkEntityType.orgMembership,
-    leftEntityId: user.entity.metadata.editionId.baseId,
-    rightEntityId: org.entity.metadata.editionId.baseId,
+    leftEntityId: user.entity.metadata.recordId.entityId,
+    rightEntityId: org.entity.metadata.recordId.entityId,
     properties,
     actorId,
   });

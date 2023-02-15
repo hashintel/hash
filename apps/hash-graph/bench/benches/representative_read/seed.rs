@@ -8,7 +8,7 @@ use graph::{
     identifier::account::AccountId,
     knowledge::{EntityProperties, EntityUuid, LinkData},
     provenance::{OwnedById, UpdatedById},
-    store::{AccountStore, AsClient, EntityStore, Store, Transaction},
+    store::{AccountStore, AsClient, EntityStore},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::{repr, uri::VersionedUri, EntityType};
@@ -181,8 +181,8 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
                             None,
                             EntityProperties::empty(),
                             Some(LinkData::new(
-                                left_entity_metadata.edition_id().base_id(),
-                                right_entity_metadata.edition_id().base_id(),
+                                left_entity_metadata.record_id().entity_id(),
+                                right_entity_metadata.record_id().entity_id(),
                                 None,
                                 None,
                             )),

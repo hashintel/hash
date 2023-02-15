@@ -11,7 +11,7 @@ use crate::{
     identifier::{
         account::AccountId,
         knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
-        time::{TimeProjection, VersionInterval},
+        time::TimeProjection,
     },
     knowledge::{Entity, EntityProperties, EntityQueryPath, EntityUuid, LinkData},
     ontology::EntityTypeQueryPath,
@@ -44,8 +44,8 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
 
         let owned_by_id_index = compiler.add_selection_path(&EntityQueryPath::OwnedById);
         let entity_uuid_index = compiler.add_selection_path(&EntityQueryPath::Uuid);
-        let record_id_index = compiler.add_distinct_selection_with_ordering(
-            &EntityQueryPath::RecordId,
+        let edition_id_index = compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::EditionId,
             Distinctness::Distinct,
             None,
         );
@@ -135,14 +135,14 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                 Ok(Entity::new(
                     properties,
                     link_data,
-                    EntityEditionId::new(
+                    EntityRecordId::new(
                         EntityId::new(owned_by_id, entity_uuid),
-                        EntityRecordId::new(row.get(record_id_index)),
+                        EntityEditionId::new(row.get(edition_id_index)),
                     ),
-                    EntityVersion::new(
-                        VersionInterval::from_anonymous(row.get(decision_time_index)),
-                        VersionInterval::from_anonymous(row.get(transaction_time_index)),
-                    ),
+                    EntityVersion {
+                        decision_time: row.get(decision_time_index),
+                        transaction_time: row.get(transaction_time_index),
+                    },
                     entity_type_uri,
                     ProvenanceMetadata::new(updated_by_id),
                     // TODO: only the historic table would have an `archived` field.

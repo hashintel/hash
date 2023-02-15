@@ -1,5 +1,5 @@
 import { BlockVariant, JsonObject } from "@blockprotocol/core";
-import { EntityId } from "@local/hash-subgraph";
+import { EntityId } from "@local/hash-subgraph/main";
 import { Node, Schema } from "prosemirror-model";
 import { EditorState, Transaction } from "prosemirror-state";
 import { EditorProps, EditorView } from "prosemirror-view";
@@ -211,7 +211,7 @@ export class ProsemirrorManager {
       entities.map(async (blockEntity) => {
         const draftEntity = mustGetDraftEntityByEntityId(
           store.draft,
-          blockEntity.metadata.editionId.baseId,
+          blockEntity.metadata.recordId.entityId,
         );
 
         await this.defineBlockByComponentId(blockEntity.componentId);
@@ -434,17 +434,17 @@ export class ProsemirrorManager {
     // If the target entity is the same as the block's child entity
     // we don't need to do anything
     if (
-      targetChildEntity.metadata.editionId.baseId ===
-        childEntity.metadata.editionId.baseId &&
-      targetChildEntity.metadata.editionId.recordId ===
-        childEntity.metadata.editionId.recordId
+      targetChildEntity.metadata.recordId.entityId ===
+        childEntity.metadata.recordId.entityId &&
+      targetChildEntity.metadata.recordId.editionId ===
+        childEntity.metadata.recordId.editionId
     ) {
       return;
     }
 
     const blockEntityDraftId = mustGetDraftEntityByEntityId(
       entityStore.draft,
-      blockEntity.metadata.editionId.baseId,
+      blockEntity.metadata.recordId.entityId,
     ).draftId;
 
     addEntityStoreAction(this.view.state, tr, {

@@ -1,11 +1,10 @@
 import {
-  EntityEditionId,
   GraphResolveDepths,
   Subgraph,
   SubgraphRootTypes,
 } from "@blockprotocol/graph";
 import { VersionedUri } from "@blockprotocol/type-system/slim";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
+import { EntityId } from "@local/hash-subgraph/main";
 import { useCallback } from "react";
 
 import { useBlockProtocolGetEntity } from "../components/hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
@@ -34,8 +33,8 @@ export const useFetchBlockSubgraph = () => {
         const now: string = new Date().toISOString();
         const placeholderEntity = {
           metadata: {
-            editionId: {
-              baseId: "placeholder-account%entity-id-not-set",
+            recordId: {
+              entityId: "placeholder-account%entity-id-not-set",
               version: now, // @todo-0.3 check this against types in @blockprotocol/graph when mismatches fixed
               versionId: now,
             },
@@ -48,11 +47,14 @@ export const useFetchBlockSubgraph = () => {
           depths,
           edges: {},
           roots: [
-            placeholderEntity.metadata.editionId as any as EntityEditionId,
+            {
+              baseId: placeholderEntity.metadata.recordId.entityId,
+              versionId: placeholderEntity.metadata.recordId.version,
+            },
           ], // @todo-0.3 fix when type mismatches fixed
           vertices: {
-            [placeholderEntity.metadata.editionId.baseId]: {
-              [now]: {
+            [placeholderEntity.metadata.recordId.entityId]: {
+              [placeholderEntity.metadata.recordId.version]: {
                 kind: "entity",
                 inner: placeholderEntity,
               },
@@ -80,11 +82,11 @@ export const useFetchBlockSubgraph = () => {
             roots: [
               // @todo-0.3 remove this when edition ids match between HASH and BP
               {
-                ...data.roots[0]!,
+                baseId: data.roots[0]!.baseId,
                 versionId: data.roots[0]!.version,
               },
             ],
-          };
+          } as Subgraph<SubgraphRootTypes["entity"]>;
         })
         .catch((err) => {
           // eslint-disable-next-line no-console -- intentional debug log until we have better user-facing errors

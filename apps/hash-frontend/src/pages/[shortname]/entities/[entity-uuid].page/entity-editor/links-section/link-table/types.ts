@@ -1,12 +1,12 @@
 import { VersionedUri } from "@blockprotocol/type-system";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
-import { EntityId } from "@local/hash-isomorphic-utils/types";
 import {
   Entity,
+  EntityId,
   EntityTypeWithMetadata,
   Subgraph,
   SubgraphRootTypes,
-} from "@local/hash-subgraph";
+} from "@local/hash-subgraph/main";
 
 export type LinkAndTargetEntity = { rightEntity: Entity; linkEntity: Entity };
 

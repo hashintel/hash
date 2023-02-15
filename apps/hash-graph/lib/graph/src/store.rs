@@ -8,12 +8,16 @@ mod knowledge;
 mod migration;
 mod ontology;
 mod pool;
-mod postgres;
 mod record;
 
-use async_trait::async_trait;
-use error_stack::Result;
+#[cfg(feature = "type-fetcher")]
+mod fetcher;
+mod postgres;
 
+use async_trait::async_trait;
+
+#[cfg(feature = "type-fetcher")]
+pub use self::fetcher::FetchingPool;
 pub use self::{
     account::AccountStore,
     config::{DatabaseConnectionInfo, DatabaseType},
@@ -39,15 +43,8 @@ pub use self::{
 pub trait Store:
     AccountStore + DataTypeStore + PropertyTypeStore + EntityTypeStore + EntityStore
 {
-    type Transaction<'t>: Transaction
-    where
-        Self: 't;
-
-    async fn transaction(&mut self) -> Result<Self::Transaction<'_>, StoreError>;
 }
-
-#[async_trait]
-pub trait Transaction: Store {
-    async fn commit(self) -> Result<(), StoreError>;
-    async fn rollback(self) -> Result<(), StoreError>;
+impl<S> Store for S where
+    S: AccountStore + DataTypeStore + PropertyTypeStore + EntityTypeStore + EntityStore
+{
 }

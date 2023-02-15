@@ -1,12 +1,13 @@
-import { AccountId, OwnedById } from "@local/hash-isomorphic-utils/types";
 import {
+  AccountId,
   Entity,
   EntityId,
-  EntityMetadata,
   EntityTypeWithMetadata,
   LinkData,
+  OwnedById,
   PropertyObject,
-} from "@local/hash-subgraph";
+} from "@local/hash-subgraph/main";
+import { mapEntityMetadata } from "@local/hash-subgraph/temp/map-vertices";
 
 import { ImpureGraphFunction } from "../..";
 import { isEntityTypeLinkEntityType } from "../../ontology/primitive/entity-type";
@@ -78,7 +79,7 @@ export const createLinkEntity: ImpureGraphFunction<
   });
 
   return {
-    metadata: linkEntityMetadata as EntityMetadata,
+    metadata: mapEntityMetadata(linkEntityMetadata),
     properties,
     linkData,
   };
@@ -107,9 +108,9 @@ export const updateLinkEntity: ImpureGraphFunction<
 
   const properties = params.properties ?? linkEntity.properties;
 
-  const { data: metadata } = await graphApi.updateEntity({
+  const { data: linkEntityMetadata } = await graphApi.updateEntity({
     actorId,
-    entityId: linkEntity.metadata.editionId.baseId,
+    entityId: linkEntity.metadata.recordId.entityId,
     entityTypeId: linkEntity.metadata.entityTypeId,
     properties,
     archived: linkEntity.metadata.archived,
@@ -118,7 +119,7 @@ export const updateLinkEntity: ImpureGraphFunction<
   });
 
   return {
-    metadata: metadata as EntityMetadata,
+    metadata: mapEntityMetadata(linkEntityMetadata),
     properties,
     linkData: {
       ...linkEntity.linkData,

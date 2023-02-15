@@ -1,10 +1,7 @@
 import { mustBeDefined } from "../../shared/invariant";
+import { EntityId } from "../../types/branded";
 import { Entity } from "../../types/element";
-import {
-  EntityId,
-  EntityVertexId,
-  isEntityVertexId,
-} from "../../types/identifier";
+import { EntityVertexId, isEntityVertexId } from "../../types/identifier";
 import { Subgraph } from "../../types/subgraph";
 import { isEntityVertex } from "../../types/vertex";
 
@@ -24,11 +21,11 @@ export const getEntities = (subgraph: Subgraph): Entity[] => {
 };
 
 /**
- * Gets an `Entity` by its `EntityEditionId` from within the vertices of the subgraph. Returns `undefined`
+ * Gets an `Entity` by its `EntityRecordId` from within the vertices of the subgraph. Returns `undefined`
  * if the entity couldn't be found.
  *
  * @param subgraph
- * @param entityEditionId
+ * @param entityRecordId
  * @throws if the vertex isn't an `EntityVertex`
  */
 export const getEntityByVertexId = (
@@ -111,7 +108,7 @@ export const getEntityAtTimestamp = (
  * Returns all root `Entity` vertices of the subgraph
  *
  * @param subgraph
- * @throws if the roots aren't all `EntityEditionId`s
+ * @throws if the roots aren't all `EntityRecordId`s
  * @throws if the subgraph is malformed and there isn't a vertex associated with the root ID
  */
 export const getRootsAsEntities = (subgraph: Subgraph): Entity[] => {

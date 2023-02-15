@@ -11,9 +11,13 @@ use uuid::Uuid;
 use crate::{
     identifier::{
         account::AccountId,
-        time::{DecisionTime, ProjectedTime, TimeAxis, TransactionTime, VersionInterval},
+        time::{
+            DecisionTime, IncludedTimeIntervalBound, ProjectedTime, TemporalTagged, TimeAxis,
+            Timestamp, TransactionTime, UnboundedOrExcludedTimeIntervalBound,
+        },
         EntityVertexId,
     },
+    interval::Interval,
     knowledge::{Entity, EntityUuid},
     provenance::OwnedById,
     subgraph::{Subgraph, SubgraphIndex},
@@ -92,37 +96,33 @@ impl ToSchema<'_> for EntityId {
     }
 }
 
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityVersion {
-    decision_time: VersionInterval<DecisionTime>,
-    transaction_time: VersionInterval<TransactionTime>,
+    #[schema(inline)]
+    pub decision_time: Interval<
+        Timestamp<DecisionTime>,
+        IncludedTimeIntervalBound<DecisionTime>,
+        UnboundedOrExcludedTimeIntervalBound<DecisionTime>,
+    >,
+    #[schema(inline)]
+    pub transaction_time: Interval<
+        Timestamp<TransactionTime>,
+        IncludedTimeIntervalBound<TransactionTime>,
+        UnboundedOrExcludedTimeIntervalBound<TransactionTime>,
+    >,
 }
 
 impl EntityVersion {
     #[must_use]
-    pub const fn new(
-        decision_time: VersionInterval<DecisionTime>,
-        transaction_time: VersionInterval<TransactionTime>,
-    ) -> Self {
-        Self {
-            decision_time,
-            transaction_time,
-        }
-    }
-
-    #[must_use]
-    pub const fn decision_time(&self) -> VersionInterval<DecisionTime> {
-        self.decision_time
-    }
-
-    #[must_use]
-    pub const fn transaction_time(&self) -> VersionInterval<TransactionTime> {
-        self.transaction_time
-    }
-
-    #[must_use]
-    pub fn projected_time(&self, time_axis: TimeAxis) -> VersionInterval<ProjectedTime> {
+    pub fn projected_time(
+        &self,
+        time_axis: TimeAxis,
+    ) -> Interval<
+        Timestamp<ProjectedTime>,
+        IncludedTimeIntervalBound<ProjectedTime>,
+        UnboundedOrExcludedTimeIntervalBound<ProjectedTime>,
+    > {
         match time_axis {
             TimeAxis::DecisionTime => self.decision_time.cast(),
             TimeAxis::TransactionTime => self.transaction_time.cast(),
@@ -133,9 +133,9 @@ impl EntityVersion {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, ToSql, ToSchema)]
 #[postgres(transparent)]
 #[repr(transparent)]
-pub struct EntityRecordId(Uuid);
+pub struct EntityEditionId(Uuid);
 
-impl EntityRecordId {
+impl EntityEditionId {
     #[must_use]
     pub const fn new(id: Uuid) -> Self {
         Self(id)
@@ -149,9 +149,9 @@ impl EntityRecordId {
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct EntityEditionId {
-    base_id: EntityId,
-    record_id: EntityRecordId,
+pub struct EntityRecordId {
+    entity_id: EntityId,
+    edition_id: EntityEditionId,
 }
 
 impl SubgraphIndex<Entity> for EntityVertexId {
@@ -163,22 +163,22 @@ impl SubgraphIndex<Entity> for EntityVertexId {
     }
 }
 
-impl EntityEditionId {
+impl EntityRecordId {
     #[must_use]
-    pub const fn new(entity_id: EntityId, record_id: EntityRecordId) -> Self {
+    pub const fn new(entity_id: EntityId, edition_id: EntityEditionId) -> Self {
         Self {
-            base_id: entity_id,
-            record_id,
+            entity_id,
+            edition_id,
         }
     }
 
     #[must_use]
-    pub const fn base_id(&self) -> EntityId {
-        self.base_id
+    pub const fn entity_id(&self) -> EntityId {
+        self.entity_id
     }
 
     #[must_use]
-    pub const fn record_id(&self) -> EntityRecordId {
-        self.record_id
+    pub const fn edition_id(&self) -> EntityEditionId {
+        self.edition_id
     }
 }
