@@ -25,5 +25,13 @@ type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "2
 uuid = { version = "1.3.0", features = ["v4", "serde"] }
 
 [[bench]]
-# TODO - Rename, lib.rs, main.rs, hash_graph_benchmark.rs?
-name = "entry"
+name = "read_scaling"
+path = "read_scaling/lib.rs"
+
+[[bench]]
+name = "representative_read"
+path = "representative_read/lib.rs"
+
+[[bench]]
+name = "writes"
+path = "writes/lib.rs"

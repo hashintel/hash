@@ -47,7 +47,8 @@ pub struct TypeFetchResponse {
 }
 
 impl TypeFetchResponse {
-    #[must_use] pub fn new(results: Vec<FetchedOntologyType>) -> Self {
+    #[must_use]
+    pub fn new(results: Vec<FetchedOntologyType>) -> Self {
         Self { results }
     }
 }
