@@ -174,7 +174,7 @@ fn collect_cargo(cwd: &Path) -> LintFile {
     file
 }
 
-fn apply(cwd: &Path) {
+fn generate(cwd: &Path) {
     let path = cwd.join(".cargo/config.toml");
 
     if !path.exists() || !path.is_file() {
@@ -274,8 +274,8 @@ fn main() {
     let mode = args.split(" ").next().expect("at least one position argument specifying mode required");
 
     match mode {
-        "apply" => apply(&cwd),
+        "generate" => generate(&cwd),
         "check" => check(&cwd),
-        _ => panic!("unrecognized mode, available: `apply`, `check`")
+        _ => panic!("unrecognized mode, available: `generate`, `check`")
     };
 }
