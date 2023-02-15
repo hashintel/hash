@@ -141,16 +141,6 @@ pub trait Visitor<'de>: Sized {
             .change_context(VisitorError))
     }
 
-    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, VisitorError>
-    where
-        D: Deserializer<'de>,
-    {
-        // we do not know what the received value is
-        Err(Report::new(TypeError.into_error())
-            .attach(ExpectedType::new(self.expecting()))
-            .change_context(VisitorError))
-    }
-
     fn visit_bool(self, v: bool) -> Result<Self::Value, VisitorError> {
         Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(bool::document()))
@@ -298,6 +288,36 @@ pub trait Visitor<'de>: Sized {
     fn visit_f64(self, v: f64) -> Result<Self::Value, VisitorError> {
         self.visit_number(Number::from(v))
             .attach(ReceivedType::new(f64::reflection()))
+    }
+}
+
+#[allow(unused_variables)]
+pub trait OptionalVisitor<'de>: Sized {
+    type Value;
+
+    fn expecting(&self) -> Document;
+
+    fn visit_none(self) -> Result<Self::Value, VisitorError> {
+        Err(Report::new(MissingError.into_error())
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
+    }
+
+    fn visit_null(self) -> Result<Self::Value, VisitorError> {
+        Err(Report::new(TypeError.into_error())
+            .attach(ReceivedType::new(<()>::reflection()))
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
+    }
+
+    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, VisitorError>
+    where
+        D: Deserializer<'de>,
+    {
+        // we do not know what the received type was as we delegate to the inner implementation
+        Err(Report::new(TypeError.into_error())
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
     }
 }
 
@@ -534,12 +554,12 @@ pub trait Deserializer<'de>: Sized {
     where
         V: Visitor<'de>;
 
-    /// Hint that the `Deserialize` type expects a value to be present or not
+    /// Hint that the `Deserialize` type expects a value to be present or not.
     ///
-    /// This should call `visit_none`, `visit_null` or `visit_some`.
+    /// Due to the special nature of this deserialization call a special visitor is used.
     fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
-        V: Visitor<'de>;
+        V: OptionalVisitor<'de>;
 
     derive_from_number![
         deserialize_i8(to_i8: i8) -> visit_i8,

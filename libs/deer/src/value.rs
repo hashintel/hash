@@ -9,7 +9,7 @@ use error_stack::ResultExt;
 pub use object::ObjectAccessDeserializer;
 pub use string::{BorrowedStrDeserializer, StrDeserializer, StringDeserializer};
 
-use crate::{error::DeserializerError, Context, Deserializer, Number, Visitor};
+use crate::{error::DeserializerError, Context, Deserializer, Number, OptionalVisitor, Visitor};
 
 macro_rules! impl_owned {
     (@INTERNAL COPY, $ty:ty, $name:ident, $method:ident) => {
@@ -62,7 +62,7 @@ macro_rules! impl_owned {
 
             fn deserialize_optional<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
             where
-                V: Visitor<'de>
+                V: OptionalVisitor<'de>
             {
                 visitor.visit_some(self).change_context(DeserializerError)
             }
@@ -144,7 +144,7 @@ impl<'de> Deserializer<'de> for NoneDeserializer<'_> {
 
     fn deserialize_optional<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
     where
-        V: Visitor<'de>,
+        V: OptionalVisitor<'de>,
     {
         visitor.visit_none().change_context(DeserializerError)
     }
@@ -188,7 +188,7 @@ impl<'de> Deserializer<'de> for NullDeserializer<'_> {
 
     fn deserialize_optional<V>(self, visitor: V) -> error_stack::Result<V::Value, DeserializerError>
     where
-        V: Visitor<'de>,
+        V: OptionalVisitor<'de>,
     {
         visitor.visit_null().change_context(DeserializerError)
     }

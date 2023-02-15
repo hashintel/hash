@@ -1,7 +1,7 @@
 use alloc::borrow::ToOwned;
 use core::ops::Range;
 
-use deer::{error::DeserializerError, Context, Visitor};
+use deer::{error::DeserializerError, Context, OptionalVisitor, Visitor};
 use error_stack::{Result, ResultExt};
 
 use crate::{array::ArrayAccess, object::ObjectAccess, tape::Tape, token::Token};
@@ -85,7 +85,7 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
 
     fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
-        V: Visitor<'de>,
+        V: OptionalVisitor<'de>,
     {
         let token = self.peek();
 
@@ -171,7 +171,7 @@ impl<'de> deer::Deserializer<'de> for DeserializerNone<'_> {
 
     fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
-        V: Visitor<'de>,
+        V: OptionalVisitor<'de>,
     {
         visitor.visit_none().change_context(DeserializerError)
     }
