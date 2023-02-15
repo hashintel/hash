@@ -19,7 +19,7 @@ import { LinkedEntityListRow } from "./linked-entity-list-editor/linked-entity-l
 import { MaxItemsReached } from "./linked-entity-list-editor/max-items-reached";
 
 /**
- * @todo - This should is unsafe, and should be refactored to return a new type `DraftEntity`, so that we aren't
+ * @todo - This is unsafe, and should be refactored to return a new type `DraftEntity`, so that we aren't
  *   breaking invariants and constraints. Having a disjoint type will let us rely on `tsc` properly and avoid casts
  *   and empty placeholder values below
  */
