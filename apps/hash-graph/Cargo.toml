@@ -1,7 +1,7 @@
 cargo-features = ["profile-rustflags"]
 
 [workspace]
-members = ["lib/*", "bin/*", "bench"]
+members = ["lib/*", "bin/*", "bench", "tests/*"]
 default-members = ["bin/cli"]
 
 [workspace.package]

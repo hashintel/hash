@@ -58,4 +58,4 @@ type-fetcher = ["dep:type-fetcher", "dep:tarpc", "dep:tokio-serde"]
 [[test]]
 test = false
 name = "integration"
-path = "../../tests/integration/lib.rs"
+path = "../../tests/integration/src/lib.rs"

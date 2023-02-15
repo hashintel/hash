@@ -1,5 +1,5 @@
 [package]
-name = "hash_graph_benches"
+name = "graph-benches"
 version = "0.0.0"
 edition = "2021"
 publish = false
