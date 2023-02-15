@@ -29,6 +29,10 @@
     "material-ui-popup-state": "4.0.2",
     "rooks": "7.4.3"
   },
+  "devDependencies": {
+    "@types/lodash.memoize": "4.1.7",
+    "@types/lodash.uniqueid": "4.0.7"
+  },
   "peerDependencies": {
     "@mui/material": "^5.11.8",
     "@mui/system": "^5.11.8",
