@@ -215,7 +215,7 @@ fn apply(cwd: &Path) {
         .chain(suffix.map(|line| line.to_owned()))
         .collect();
 
-    fs::write(&path, contents.join("\n")).expect("able to write `.cargo/config.toml`");
+    fs::write(&path, contents.join("\n")).expect("unable to write `.cargo/config.toml`");
 }
 
 fn print_diff(level: &str, left: &HashSet<String>, right: &HashSet<String>) {
