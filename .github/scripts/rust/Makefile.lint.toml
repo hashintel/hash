@@ -4,5 +4,5 @@ script = { file = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/lint.rs
 
 [tasks.update-clippy-check]
 private = true
-env = { CARGO_MAKE_CLIPPY_LINT_MODE = "check" }
+env = { CARGO_MAKE_CLIPPY_LINT_MODE = "generate" }
 run_task = "update-clippy"
