@@ -166,6 +166,10 @@ pub struct StructuralQuery<'p, R: Record> {
 }
 
 impl<'p, R: Record> StructuralQuery<'p, R> {
+    #[expect(
+        clippy::same_name_method,
+        reason = "This is supposed to replace the derived `schema` method"
+    )]
     fn schema() -> RefOr<Schema> {
         Schema::Object(
             ObjectBuilder::new()

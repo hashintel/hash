@@ -299,7 +299,7 @@ async fn stop_gap_setup_type_fetcher<A: tokio::net::ToSocketAddrs + Send + Sync 
         .fetcher_client()
         .await
         .change_context(GraphError)?;
-    let store = fetching_store.store().await;
+    let store = fetching_store.store();
 
     let ontology_types = [
         "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
@@ -330,7 +330,13 @@ async fn stop_gap_setup_type_fetcher<A: tokio::net::ToSocketAddrs + Send + Sync 
         let fetched_ontology_types = type_fetcher
             .fetch_ontology_type_exhaustive(
                 context::current(),
-                VersionedUri::new(BaseUri::new(ontology_type.to_owned()).unwrap(), 1),
+                VersionedUri::new(
+                    BaseUri::new(ontology_type.to_owned())
+                        .into_report()
+                        .attach_printable_lazy(|| ontology_type.to_owned())
+                        .change_context(GraphError)?,
+                    1,
+                ),
             )
             .await
             .into_report()
@@ -404,8 +410,7 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
             args.type_fetcher_address.type_fetcher_port,
         ),
         DomainValidator::new(args.allowed_url_domain.clone()),
-    )
-    .change_context(GraphError)?;
+    );
 
     #[cfg(not(feature = "type-fetcher"))]
     stop_gap_setup(&pool).await?;

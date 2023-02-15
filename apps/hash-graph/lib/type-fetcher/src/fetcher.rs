@@ -20,9 +20,9 @@ impl fmt::Display for FetcherError {
         fmt.write_str("the type fetcher encountered an error during execution: ")?;
 
         match self {
-            FetcherError::NetworkError(message)
-            | FetcherError::SerializationError(message)
-            | FetcherError::TypeParsingError(message) => fmt.write_str(message),
+            Self::NetworkError(message)
+            | Self::SerializationError(message)
+            | Self::TypeParsingError(message) => fmt.write_str(message),
         }
     }
 }
@@ -47,7 +47,7 @@ pub struct TypeFetchResponse {
 }
 
 impl TypeFetchResponse {
-    pub fn new(results: Vec<FetchedOntologyType>) -> Self {
+    #[must_use] pub fn new(results: Vec<FetchedOntologyType>) -> Self {
         Self { results }
     }
 }

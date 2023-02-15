@@ -438,7 +438,8 @@ where
         metadata: &OntologyElementMetadata,
     ) -> Result<OntologyId, InsertionError>
     where
-        T: OntologyDatabaseType,
+        T: OntologyDatabaseType + Send,
+        T::Representation: Send,
     {
         let ontology_id = match metadata {
             OntologyElementMetadata::Owned(metadata) => {
@@ -471,7 +472,8 @@ where
         updated_by_id: UpdatedById,
     ) -> Result<(OntologyId, OntologyElementMetadata), UpdateError>
     where
-        T: OntologyDatabaseType,
+        T: OntologyDatabaseType + Send,
+        T::Representation: Send,
     {
         let uri = database_type.id();
         let record_id = OntologyTypeRecordId::from(uri);
@@ -507,7 +509,8 @@ where
         database_type: T,
     ) -> Result<(), InsertionError>
     where
-        T: OntologyDatabaseType,
+        T: OntologyDatabaseType + Send,
+        T::Representation: Send,
     {
         let value_repr = T::Representation::from(database_type);
         let value = serde_json::to_value(value_repr)

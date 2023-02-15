@@ -1,3 +1,5 @@
+cargo-features = ["profile-rustflags"]
+
 [workspace]
 members = ["lib/*", "bin/*", "bench"]
 default-members = ["bin/cli"]

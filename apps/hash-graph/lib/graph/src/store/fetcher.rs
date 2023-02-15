@@ -23,13 +23,13 @@ impl<P, A> FetchingPool<P, A>
 where
     A: ToSocketAddrs,
 {
-    pub fn new(pool: P, address: A, domain_validator: DomainValidator) -> Result<Self, StoreError> {
-        Ok(Self {
+    pub fn new(pool: P, address: A, domain_validator: DomainValidator) -> Self {
+        Self {
             pool,
             address,
             config: tarpc::client::Config::default(),
             domain_validator,
-        })
+        }
     }
 }
 
@@ -38,7 +38,9 @@ where
     P: StorePool + Send + Sync,
     A: ToSocketAddrs + Send + Sync + Clone,
 {
-    // When using the `FetchingStore`, this will be replaced by the `StorePool` trait
+    /// # Errors
+    ///
+    /// - If the underlying pool fails to acquire a store.
     pub async fn acquire_fetching_store(&self) -> Result<FetchingStore<P::Store<'_>, A>, P::Error> {
         Ok(FetchingStore {
             store: self.pool.acquire().await?,
@@ -113,7 +115,8 @@ pub struct FetchingStore<S, A> {
 
 impl<S, A> FetchingStore<S, A>
 where
-    A: ToSocketAddrs,
+    S: Send + Sync,
+    A: ToSocketAddrs + Send + Sync,
 {
     pub async fn fetcher_client(&self) -> Result<FetcherClient, StoreError>
     where
@@ -127,7 +130,7 @@ where
         Ok(FetcherClient::new(self.config.clone(), transport).spawn())
     }
 
-    pub async fn store(&mut self) -> &mut S {
+    pub fn store(&mut self) -> &mut S {
         &mut self.store
     }
 }
