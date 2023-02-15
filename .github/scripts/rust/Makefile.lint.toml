@@ -1,4 +1,4 @@
-[tasks.clippy-collect]
+[tasks.clippy-collect-lints]
 private = true
 script_runner = "@rust"
 script = '''
@@ -124,5 +124,56 @@ fn main() {
     }
 
     println!("{}", serde_json::to_string_pretty(&lints.into_file()).expect("able to serialize"))
+}
+'''
+
+
+[tasks.clippy-collect-cargo]
+private = true
+script_runner = "@rust"
+script = '''
+//! ```cargo
+//! [dependencies]
+//! serde = {version = "*", features = ["derive"]}
+//! toml_edit = {version = "*"}
+//! serde_json = {version = "*"}
+//! ```
+use std::env;
+use std::fs;
+use std::collections::{HashMap, HashSet};
+use std::path::PathBuf;
+use toml_edit::Document;
+
+#[derive(Deserialize, Serialize, Default)]
+struct LintFile {
+    #[serde(default)]
+    allow: HashSet<String>,
+    #[serde(default)]
+    warn: HashSet<String>,
+    #[serde(default)]
+    deny: HashSet<String>,
+    #[serde(default)]
+    forbid: HashSet<String>,
+    #[serde(default)]
+    default: HashSet<String>,
+}
+
+fn main() {
+    let cwd = env::var("CARGO_MAKE_WORKSPACE_WORKING_DIRECTORY").expect("environment variable should exist");
+    let cwd = PathBuf::from(cwd);
+
+    let path = cwd.join(".cargo/config.toml");
+
+    if !path.exists() || !path.is_file() {
+        println!("{}", serde_json::to_string_pretty(&LintFile::default()).expect("able to serialize"));
+        return;
+    }
+
+    let contents = path::read_to_string(&path).expect(&format!("should be able to read {}", path.display()));
+    let document = contents.parse::<Document>();
+
+    // TODO: find decor that matches our string
+    // TODO: parse all strings
+    // TODO: return result
 }
 '''
