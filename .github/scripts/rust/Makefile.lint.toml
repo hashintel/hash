@@ -198,3 +198,17 @@ fn main() {
     println!("{}", serde_json::to_string_pretty(&lints).expect("able to serialize"))
 }
 '''
+
+[tasks.clippy-check]
+private = true
+script_runner = "@rust"
+script = '''
+
+'''
+
+[tasks.clippy-apply]
+private = true
+script_runner = "@rust"
+script = '''
+
+'''
