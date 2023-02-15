@@ -203,11 +203,11 @@ fn apply(cwd: &Path) {
         .map(|value| " ".repeat(value.len() - value.trim_start().len()))
         .unwrap_or_else(|| "    ".to_owned());
 
-    let body = lints.allow.into_iter().map(|lint| format!(r#"{indent}"-A{lint}","#))
-        .chain(lints.warn.into_iter().map(|lint| format!(r#"{indent}"-W{lint}","#)))
-        .chain(lints.force_warn.into_iter().map(|lint| format!(r#"{indent}"--force-warn{lint}","#)))
+    let body = lints.forbid.into_iter().map(|lint| format!(r#"{indent}"-F{lint}","#))
         .chain(lints.deny.into_iter().map(|lint| format!(r#"{indent}"-D{lint}","#)))
-        .chain(lints.forbid.into_iter().map(|lint| format!(r#"{indent}"-F{lint}","#)));
+        .chain(lints.force_warn.into_iter().map(|lint| format!(r#"{indent}"--force-warn{lint}","#)))
+        .chain(lints.warn.into_iter().map(|lint| format!(r#"{indent}"-W{lint}","#)))
+        .chain(lints.allow.into_iter().map(|lint| format!(r#"{indent}"-A{lint}","#)));
 
     let contents: Vec<_> = prefix.map(|line| line.to_owned())
         .chain(once(format!("{indent}## START CLIPPY LINTS ##")))
@@ -270,7 +270,7 @@ fn main() {
     let cwd = env::var("CARGO_MAKE_WORKSPACE_WORKING_DIRECTORY").expect("environment variable should exist");
     let cwd = PathBuf::from(cwd);
 
-    let args = env::var("CARGO_MAKE_TASK_ARGS").expect("environment variable should exist");
+    let args = env::var("CARGO_MAKE_CLIPPY_LINT_MODE").or_else(|_| env::var("CARGO_MAKE_TASK_ARGS")).expect("environment variable should exist");
     let mode = args.split(" ").next().expect("at least one position argument specifying mode required");
 
     match mode {
