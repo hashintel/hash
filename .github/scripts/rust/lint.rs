@@ -191,11 +191,12 @@ fn generate(cwd: &Path) {
     let contents = fs::read_to_string(&path).expect(&format!("should be able to read {}", path.display()));
 
     if !contents.contains(PREFIX) || !contents.contains(SUFFIX) {
-        panic!(concat!(
-            "malformed .cargo/config.toml, please add the required markers ",
-            r###""## START CLIPPY LINTS ##" and "## END CLIPPY LINTS ##" on a separate line to "###,
-            "delimit the region this script is allowed to modify."
-        ))
+        panic!(
+            "malformed .cargo/config.toml, please add the required markers \"{}\" and \"{}\" on a \
+            separate line to delimit the region this script is allowed to modify.",
+            PREFIX,
+            SUFFIX
+        )
     }
 
     // strip out content between the markers
@@ -214,7 +215,7 @@ fn generate(cwd: &Path) {
         .chain(lints.allow.into_iter().map(|lint| format!(r#"{indent}"-A{lint}","#)));
 
     let contents: Vec<_> = prefix.map(|line| line.to_owned())
-        .chain(once(format!("{indent}## START CLIPPY LINTS ##")))
+        .chain(once(format!("{indent}{PREFIX}")))
         .chain(body)
         .chain(suffix.map(|line| line.to_owned()))
         .collect();
