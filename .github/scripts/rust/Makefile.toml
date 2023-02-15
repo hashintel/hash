@@ -1,3 +1,5 @@
+extend = ["./Makefile.lint.toml"]
+
 [config]
 default_to_workspace = false
 
