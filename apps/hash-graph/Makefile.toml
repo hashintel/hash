@@ -1,8 +1,6 @@
 extend = { path = "../../.github/scripts/rust/Makefile.toml" }
 
 [env]
-CARGO_RUSTDOC_HACK_FLAGS = ""
-
 RUST_LOG = "debug,hyper=warn"
 
 [env.production]

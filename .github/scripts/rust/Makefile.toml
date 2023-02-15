@@ -21,9 +21,6 @@ CARGO_CLIPPY_HACK_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "--
 CARGO_DOC_FLAGS = "--no-deps --all-features -Zunstable-options -Zrustdoc-scrape-examples"
 CARGO_DOC_HACK_FLAGS = "--workspace"
 
-CARGO_RUSTDOC_FLAGS = "--all-features -Zunstable-options -Zrustdoc-scrape-examples -- -Zunstable-options"
-CARGO_RUSTDOC_HACK_FLAGS = "--workspace"
-
 CARGO_TEST_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "", mapping = {"pull_request" = "--all-features" } }
 CARGO_TEST_HACK_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "--workspace --optional-deps --feature-powerset", mapping = {"pull_request" = "--workspace" } }
 
