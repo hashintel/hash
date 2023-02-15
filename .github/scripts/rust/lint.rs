@@ -4,6 +4,8 @@
 //! toml = {version = "*", features = ["parse"]}
 //! ```
 
+#![allow(non_snake_case)]
+
 extern crate serde;
 extern crate toml;
 
@@ -28,7 +30,7 @@ enum LintLevel {
 struct Lints(HashMap<String, LintLevel>);
 
 impl Lints {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self(HashMap::new())
     }
 
@@ -37,7 +39,7 @@ impl Lints {
     // * warn
     // * deny
     // * forbid
-    pub fn apply(&mut self, file: LintFile) {
+    fn apply(&mut self, file: LintFile) {
         for lint in file.allow {
             self.0.insert(lint, LintLevel::Allow);
         }
@@ -63,7 +65,7 @@ impl Lints {
         }
     }
 
-    pub fn into_file(self) -> LintFile {
+    fn into_file(self) -> LintFile {
         self.0.into_iter().fold(LintFile::default(), |mut acc, (lint, level)| {
             match level {
                 LintLevel::Allow => acc.allow.insert(lint),
