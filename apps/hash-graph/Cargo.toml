@@ -2,7 +2,7 @@ cargo-features = ["profile-rustflags"]
 
 [workspace]
 members = ["lib/*", "bin/*", "bench", "tests/*"]
-default-members = ["bin/cli"]
+default-members = ["bin/*", "lib/*"]
 
 [workspace.package]
 description = "The entity-graph query-layer for the HASH datastore"

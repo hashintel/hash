@@ -1,3 +1,11 @@
+#![cfg(test)]
+#![feature(associated_type_bounds)]
+#![allow(
+    clippy::missing_panics_doc,
+    clippy::missing_errors_doc,
+    clippy::unwrap_used
+)]
+
 mod data_type;
 mod entity;
 mod entity_type;

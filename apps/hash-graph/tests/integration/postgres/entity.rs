@@ -2,7 +2,7 @@ use graph::knowledge::{EntityLinkOrder, EntityProperties};
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::uri::{BaseUri, VersionedUri};
 
-use crate::postgres::DatabaseTestWrapper;
+use crate::DatabaseTestWrapper;
 
 #[tokio::test]
 async fn insert() {

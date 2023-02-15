@@ -1,7 +1,7 @@
 use graph::ontology::OntologyTypeWithMetadata;
 use type_system::{repr, DataType};
 
-use crate::postgres::DatabaseTestWrapper;
+use crate::DatabaseTestWrapper;
 
 #[tokio::test]
 async fn insert() {
