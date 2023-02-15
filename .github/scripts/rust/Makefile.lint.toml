@@ -1,0 +1,34 @@
+[tasks.clippy-fetch]
+private = true
+script_runner = "@rust"
+script = '''
+//! ```cargo
+//! [dependencies]
+//! serde = {version = "*", features = ["derive"]}
+//! toml = {version = "*", features = ["serde"]}
+//! ```
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct Lints {
+    deny: HashSet<String>,
+    allow: HashSet<String>,
+    forbid: HashSet<String>,
+    warn: HashSet<String>
+}
+
+impl BitOr for Lints {
+    fn bit_or(&self, other: &Self) -> Self {
+        Self {
+            deny: &self.deny | &other.deny,
+            allow: &self.allow | &other.allow,
+            forbid: &self.forbid | &other.forbid,
+            warn: &self.warn | &other.warn
+        }
+    }
+}
+
+fn main() {
+
+}
+'''
