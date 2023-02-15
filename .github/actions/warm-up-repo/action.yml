@@ -14,7 +14,7 @@ runs:
     - uses: actions/setup-node@v3
       with:
         node-version: 16 ## aligned with Node version on Vercel
-        cache: yarn
+        # cache: yarn ## Currently disabled because of frequent timeouts
 
     - run: yarn install
       shell: bash
