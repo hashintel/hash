@@ -39,7 +39,7 @@ use graph::{
         query::{Filter, FilterExpression, Parameter},
         AccountStore, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityStore,
         EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool, PropertyTypeStore,
-        QueryError, Store, StorePool, UpdateError,
+        QueryError, StorePool, UpdateError,
     },
     subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
 };

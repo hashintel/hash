@@ -12,7 +12,7 @@ use graph::{
     },
     knowledge::{EntityMetadata, EntityProperties, LinkData},
     provenance::{OwnedById, UpdatedById},
-    store::{query::Filter, AccountStore, EntityStore, Store as _, Transaction},
+    store::{query::Filter, AccountStore, EntityStore},
     subgraph::{
         edges::{EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth},
         query::StructuralQuery,

@@ -8,7 +8,7 @@ use graph::{
     identifier::account::AccountId,
     knowledge::{EntityProperties, EntityUuid, LinkData},
     provenance::{OwnedById, UpdatedById},
-    store::{AccountStore, AsClient, EntityStore, Store, Transaction},
+    store::{AccountStore, AsClient, EntityStore},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::{repr, uri::VersionedUri, EntityType};

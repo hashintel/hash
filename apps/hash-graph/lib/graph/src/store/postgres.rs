@@ -37,8 +37,8 @@ use crate::{
     store::{
         error::{VersionedUriAlreadyExists, WrongOntologyVersion},
         postgres::ontology::{OntologyDatabaseType, OntologyId},
-        AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, Store,
-        StoreError, Transaction, UpdateError,
+        AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError,
+        StoreError, UpdateError,
     },
     subgraph::edges::GraphResolveDepths,
 };
@@ -233,43 +233,6 @@ pub struct DependencyContext {
 /// A Postgres-backed store
 pub struct PostgresStore<C> {
     client: C,
-}
-
-#[async_trait]
-impl<C: AsClient> Store for PostgresStore<C> {
-    type Transaction<'t>
-    where
-        C: 't,
-    = PostgresStore<tokio_postgres::Transaction<'t>>;
-
-    async fn transaction(&mut self) -> Result<Self::Transaction<'_>, StoreError> {
-        Ok(PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .into_report()
-                .change_context(StoreError)?,
-        ))
-    }
-}
-
-#[async_trait]
-impl Transaction for PostgresStore<tokio_postgres::Transaction<'_>> {
-    async fn commit(self) -> Result<(), StoreError> {
-        self.client
-            .commit()
-            .await
-            .into_report()
-            .change_context(StoreError)
-    }
-
-    async fn rollback(self) -> Result<(), StoreError> {
-        self.client
-            .rollback()
-            .await
-            .into_report()
-            .change_context(StoreError)
-    }
 }
 
 impl<C> PostgresStore<C>
@@ -734,9 +697,46 @@ where
             .attach_printable_lazy(|| uri.clone())?
             .get(0))
     }
+
+    /// # Errors
+    ///
+    /// - if the underlying client cannot start a transaction
+    pub async fn transaction(
+        &mut self,
+    ) -> Result<PostgresStore<tokio_postgres::Transaction<'_>>, StoreError> {
+        Ok(PostgresStore::new(
+            self.as_mut_client()
+                .transaction()
+                .await
+                .into_report()
+                .change_context(StoreError)?,
+        ))
+    }
 }
 
 impl PostgresStore<tokio_postgres::Transaction<'_>> {
+    /// # Errors
+    ///
+    /// - if the underlying client cannot commit the transaction
+    pub async fn commit(self) -> Result<(), StoreError> {
+        self.client
+            .commit()
+            .await
+            .into_report()
+            .change_context(StoreError)
+    }
+
+    /// # Errors
+    ///
+    /// - if the underlying client cannot rollback the transaction
+    pub async fn rollback(self) -> Result<(), StoreError> {
+        self.client
+            .rollback()
+            .await
+            .into_report()
+            .change_context(StoreError)
+    }
+
     #[doc(hidden)]
     #[cfg(feature = "__internal_bench")]
     async fn insert_entity_ids(
