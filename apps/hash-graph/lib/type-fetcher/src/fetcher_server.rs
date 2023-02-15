@@ -116,6 +116,10 @@ async fn fetch_ontology_type_exhaustive(
     Ok(TypeFetchResponse::new(res))
 }
 
+/// # Errors
+///
+/// - If the client fails to fetch the ontology type
+/// - If the client fails to deserialize the response
 pub async fn fetch_ontology_type(
     client: Client,
     url: VersionedUri,
@@ -152,7 +156,8 @@ pub enum OntologyTypeReference<'a> {
 }
 
 impl OntologyTypeReference<'_> {
-    pub fn uri(&self) -> &VersionedUri {
+    #[must_use]
+    pub const fn uri(&self) -> &VersionedUri {
         match self {
             OntologyTypeReference::EntityTypeReference(r) => r.uri(),
             OntologyTypeReference::PropertyTypeReference(r) => r.uri(),

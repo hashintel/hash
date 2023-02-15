@@ -340,8 +340,7 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
             args.type_fetcher_address.type_fetcher_port,
         ),
         DomainValidator::new(args.allowed_url_domain.clone()),
-    )
-    .change_context(GraphError)?;
+    );
 
     let rest_router = rest_api_router(RestRouterDependencies {
         store: Arc::new(pool),

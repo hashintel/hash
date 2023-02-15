@@ -770,6 +770,42 @@ dependencies = [
 ]
 
 [[package]]
+name = "graph-benches"
+version = "0.0.0"
+dependencies = [
+ "criterion",
+ "criterion-macro",
+ "futures",
+ "graph",
+ "graph-test-data",
+ "rand",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-postgres",
+ "type-system",
+ "uuid",
+]
+
+[[package]]
+name = "graph-integration"
+version = "0.0.0"
+dependencies = [
+ "error-stack",
+ "futures",
+ "graph",
+ "graph-test-data",
+ "rand",
+ "serde",
+ "serde_json",
+ "time",
+ "tokio",
+ "tokio-postgres",
+ "type-system",
+ "uuid",
+]
+
+[[package]]
 name = "graph-test-data"
 version = "0.0.0"
 
@@ -818,24 +854,6 @@ dependencies = [
  "tokio-serde",
  "tracing",
  "type-fetcher",
- "type-system",
- "uuid",
-]
-
-[[package]]
-name = "hash_graph_benches"
-version = "0.0.0"
-dependencies = [
- "criterion",
- "criterion-macro",
- "futures",
- "graph",
- "graph-test-data",
- "rand",
- "serde",
- "serde_json",
- "tokio",
- "tokio-postgres",
  "type-system",
  "uuid",
 ]

@@ -1,3 +1,11 @@
+#![feature(custom_test_frameworks, lint_reasons, associated_type_bounds)]
+#![test_runner(criterion::runner)]
+#![allow(
+    clippy::print_stderr,
+    clippy::use_debug,
+    reason = "This is a benchmark"
+)]
+
 //! Benchmarks to check the performance of operations across a "representative" graph.
 //!
 //! There are some designs in this module which aren't immediately obvious. Across runs, Criterion
@@ -17,16 +25,20 @@
 //!
 //! [`BenchmarkId`]: criterion::BenchmarkId
 
-use criterion::{BenchmarkId, Criterion, SamplingMode};
-use criterion_macro::criterion;
-use graph::subgraph::edges::{EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth};
-
-use crate::{representative_read::seed::setup_and_extract_samples, util::setup};
+#[path = "../util.rs"]
+mod util;
 
 mod knowledge;
 mod ontology;
 
 mod seed;
+
+use criterion::{BenchmarkId, Criterion, SamplingMode};
+use criterion_macro::criterion;
+use graph::subgraph::edges::{EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth};
+
+use self::seed::setup_and_extract_samples;
+use crate::util::setup;
 
 const DB_NAME: &str = "representative_read";
 

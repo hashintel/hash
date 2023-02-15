@@ -87,9 +87,9 @@ const SEED_ENTITIES: [(&str, &str, usize); 12] = [
     // entity
     (entity_type::PAGE_V2, entity::PAGE_V1, 100),
     (entity_type::PAGE_V2, entity::PAGE_V2, 1_000),
-    (entity_type::PERSON_V1, entity::PERSON_A_V1, 100),
-    (entity_type::PERSON_V1, entity::PERSON_B_V1, 1_000),
-    (entity_type::PERSON_V1, entity::PERSON_C_V1, 10_000),
+    (entity_type::PERSON_V1, entity::PERSON_ALICE_V1, 100),
+    (entity_type::PERSON_V1, entity::PERSON_BOB_V1, 1_000),
+    (entity_type::PERSON_V1, entity::PERSON_CHARLES_V1, 10_000),
     (entity_type::PLAYLIST_V1, entity::PLAYLIST_V1, 100),
     (entity_type::SONG_V1, entity::SONG_V1, 100),
 ];

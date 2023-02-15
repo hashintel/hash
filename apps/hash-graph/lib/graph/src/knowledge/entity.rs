@@ -333,7 +333,7 @@ mod tests {
 
     #[test]
     fn person() {
-        test_entity(graph_test_data::entity::PERSON_A_V1);
+        test_entity(graph_test_data::entity::PERSON_ALICE_V1);
     }
 
     #[test]
