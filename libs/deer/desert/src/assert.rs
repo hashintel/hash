@@ -29,6 +29,9 @@ where
     assert_tokens_with_context(value, tokens, &Context::new());
 }
 
+/// # Panics
+///
+/// if error could not be serialized
 pub fn assert_tokens_with_context_error<'de, T>(
     error: &ErrorVec,
     tokens: &'de [Token],
