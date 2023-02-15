@@ -1,6 +1,6 @@
 import { faSmile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { EntityTypeEditorForm } from "@hashintel/type-editor/src/shared/form-types";
+import { EntityTypeEditorForm } from "@hashintel/type-editor";
 import { useState } from "react";
 import { useFormState } from "react-hook-form";
 

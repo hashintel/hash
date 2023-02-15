@@ -15,6 +15,7 @@ import { PropertyTypesOptionsContextProvider } from "./shared/property-types-opt
 export {
   FormProvider as EntityTypeFormProvider,
   useForm as useEntityTypeForm,
+  useFormState as useEntityTypeFormState,
 } from "react-hook-form";
 
 export type EntityTypeEditorProps = {
