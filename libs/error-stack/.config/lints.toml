@@ -9,3 +9,7 @@ allow = [
     # This is an error handling library producing Results, not Errors
     "clippy::missing_errors_doc"
 ]
+
+default = [
+    "unsafe_code"
+]
