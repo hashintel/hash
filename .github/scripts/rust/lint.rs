@@ -10,6 +10,9 @@ use std::collections::{HashMap, HashSet};
 use std::path::{PathBuf, Path};
 use std::iter::once;
 
+const PREFIX: &'static str = "## START CLIPPY LINTS ##";
+const SUFFIX: &'static str = "## END CLIPPY LINTS ##";
+
 enum LintLevel {
     Allow,
     Warn,
@@ -142,14 +145,14 @@ fn collect_cargo(cwd: &Path) -> LintFile {
     // ## END CLIPPY LINTS ##
     // take all values in between
 
-    if !contents.contains("## START CLIPPY LINTS ##") || !contents.contains("## END CLIPPY LINTS ##") {
+    if !contents.contains(PREFIX) || !contents.contains(SUFFIX) {
         panic!("malformed .cargo/config.toml, please add the required markers")
     }
 
     let file = contents.lines()
         .map(|value| value.trim())
-        .skip_while(|value| *value != "## START CLIPPY LINTS ##")
-        .take_while(|value| *value != "## END CLIPPY LINTS ##")
+        .skip_while(|value| *value != PREFIX)
+        .take_while(|value| *value != SUFFIX)
         .filter(|value| !value.is_empty())
         .filter(|value| value.starts_with('"'))
         // remove leading `"` and trailing `",`
@@ -183,15 +186,19 @@ fn apply(cwd: &Path) {
     // read the `config.toml`
     let contents = fs::read_to_string(&path).expect(&format!("should be able to read {}", path.display()));
 
-    if !contents.contains("## START CLIPPY LINTS ##") || !contents.contains("## END CLIPPY LINTS ##") {
+    if !contents.contains(PREFIX) || !contents.contains(SUFFIX) {
         panic!("malformed .cargo/config.toml, please add the required markers")
     }
 
     // strip out content between the markers
-    let prefix = contents.lines().take_while(|value| value.trim() != "## START CLIPPY LINTS ##");
-    let suffix = contents.lines().skip_while(|value| value.trim() != "## END CLIPPY LINTS ##");
+    let prefix = contents.lines().take_while(|value| value.trim() != PREFIX);
+    let suffix = contents.lines().skip_while(|value| value.trim() != SUFFIX);
 
-    let indent = "    ";
+    let indent = contents.lines()
+        .find(|value| value.trim() == PREFIX)
+        .map(|value| " ".repeat(value.len() - value.trim_start().len()))
+        .unwrap_or_else(|| "    ".to_owned());
+
     let body = lints.allow.into_iter().map(|lint| format!(r#"{indent}"-A{lint}","#))
         .chain(lints.warn.into_iter().map(|lint| format!(r#"{indent}"-W{lint}","#)))
         .chain(lints.force_warn.into_iter().map(|lint| format!(r#"{indent}"--force-warn{lint}","#)))
