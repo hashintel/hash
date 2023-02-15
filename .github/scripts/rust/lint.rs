@@ -3,6 +3,10 @@
 //! serde = {version = "*", features = ["derive"]}
 //! toml = {version = "*", features = ["parse"]}
 //! ```
+
+extern crate serde;
+extern crate toml;
+
 use serde::Deserialize;
 use std::env;
 use std::fs;
