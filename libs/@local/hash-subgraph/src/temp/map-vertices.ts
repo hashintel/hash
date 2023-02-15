@@ -27,7 +27,6 @@ import {
   OntologyElementMetadata,
   PropertyObject,
 } from "../types/element";
-import { EntityVersion } from "../types/identifier";
 import {
   KnowledgeGraphVertex,
   OntologyVertex,
@@ -84,13 +83,7 @@ const mapEntityType = (entityType: EntityTypeGraphApi): EntityType => {
 export const mapOntologyMetadata = (
   metadata: OntologyElementMetadataGraphApi,
 ): OntologyElementMetadata => {
-  return {
-    ...metadata,
-    recordId: {
-      baseUri: metadata.editionId.baseId,
-      version: metadata.editionId.version,
-    },
-  };
+  return metadata;
 };
 
 const mapOntologyVertex = (vertex: OntologyVertexGraphApi): OntologyVertex => {
@@ -134,10 +127,9 @@ export const mapEntityMetadata = (
   return {
     ...metadata,
     recordId: {
-      entityId: metadata.editionId.baseId as EntityId,
-      editionId: metadata.editionId.recordId,
+      ...metadata.recordId,
+      entityId: metadata.recordId.entityId as EntityId,
     },
-    version: metadata.version as EntityVersion,
     entityTypeId: metadata.entityTypeId as VersionedUri,
   };
 };
