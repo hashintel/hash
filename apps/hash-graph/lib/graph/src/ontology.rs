@@ -11,6 +11,11 @@ use error_stack::{Context, IntoReport, Result, ResultExt};
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json;
 use time::OffsetDateTime;
+#[cfg(feature = "type-fetcher")]
+use type_fetcher::fetcher_server::{
+    traverse_data_type_references, traverse_entity_type_references,
+    traverse_property_type_references, OntologyTypeReference,
+};
 use type_system::{
     repr, uri::VersionedUri, DataType, EntityType, ParseDataTypeError, ParseEntityTypeError,
     ParsePropertyTypeError, PropertyType,
@@ -108,6 +113,9 @@ pub trait OntologyType:
     type WithMetadata: OntologyTypeWithMetadata<OntologyType = Self>;
 
     fn id(&self) -> &VersionedUri;
+
+    #[cfg(feature = "type-fetcher")]
+    fn traverse_references(&self) -> Vec<OntologyTypeReference>;
 }
 
 impl OntologyType for DataType {
@@ -117,6 +125,11 @@ impl OntologyType for DataType {
 
     fn id(&self) -> &VersionedUri {
         self.id()
+    }
+
+    #[cfg(feature = "type-fetcher")]
+    fn traverse_references(&self) -> Vec<OntologyTypeReference> {
+        traverse_data_type_references(self).collect()
     }
 }
 
@@ -128,6 +141,11 @@ impl OntologyType for PropertyType {
     fn id(&self) -> &VersionedUri {
         self.id()
     }
+
+    #[cfg(feature = "type-fetcher")]
+    fn traverse_references(&self) -> Vec<OntologyTypeReference> {
+        traverse_property_type_references(self).collect()
+    }
 }
 
 impl OntologyType for EntityType {
@@ -137,6 +155,11 @@ impl OntologyType for EntityType {
 
     fn id(&self) -> &VersionedUri {
         self.id()
+    }
+
+    #[cfg(feature = "type-fetcher")]
+    fn traverse_references(&self) -> Vec<OntologyTypeReference> {
+        traverse_entity_type_references(self).collect()
     }
 }
 
@@ -163,6 +186,14 @@ impl OntologyElementMetadata {
         match self {
             Self::Owned(owned) => owned.record_id(),
             Self::External(external) => external.record_id(),
+        }
+    }
+
+    #[must_use]
+    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
+        match self {
+            Self::Owned(owned) => owned.provenance_metadata,
+            Self::External(external) => external.provenance_metadata,
         }
     }
 }
