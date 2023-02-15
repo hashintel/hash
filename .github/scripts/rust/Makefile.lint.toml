@@ -1,4 +1,4 @@
-[tasks.clippy-fetch]
+[tasks.clippy-collect]
 private = true
 script_runner = "@rust"
 script = '''
@@ -10,9 +10,9 @@ script = '''
 //! ```
 use serde::Deserialize;
 use std::env;
+use std::fs;
 use std::collections::{HashMap, HashSet};
 
-// TODO: no this is wrong, we need to go up and then selectively set
 enum LintLevel {
     Deny,
     Allow,
@@ -22,12 +22,41 @@ enum LintLevel {
 
 struct Lints(HashMap<String, LintLevel>);
 
+impl Lints {
+    pub fn new() -> Self {
+        Self(HashMap::new())
+    }
+
+    // if defined multiple times this is the priority order
+    // * allow
+    // * warn
+    // * deny
+    // * forbid
+    pub fn apply(&mut self, file: LintFile) {
+        for lint in file.allow {
+            self.0.insert(lint, LintLevel::Allow);
+        }
+
+        for lint in file.warn {
+            self.0.insert(lint, LintLevel::Warn);
+        }
+
+        for lint in file.deny {
+            self.0.insert(lint, LintLevel::Deny);
+        }
+
+        for lint in file.forbid {
+            self.0.insert(lint, LintLevel::Forbid);
+        }
+    }
+}
+
 #[derive(Deserialize, Default)]
 struct LintFile {
-    deny: HashSet<String>,
     allow: HashSet<String>,
+    warn: HashSet<String>,
+    deny: HashSet<String>,
     forbid: HashSet<String>,
-    warn: HashSet<String>
 }
 
 fn main() {
@@ -58,7 +87,16 @@ fn main() {
         }
     }
 
-    // we now selectively apply them into a single configuration
-    // this allows for easy overwrites in child directories
+    // we now apply them into a single configuration this allows for easy overwrites in child directories
+    files.reverse();
+
+    let mut lints = Lints::new;
+
+    for file in files {
+        let contents = fs::read_to_string(&file).expect(&format!("should be able to read {file}"));
+
+        let file = toml::from_str(&contents).expect(&format!("should be valid toml ({file})"));
+        lints.apply(file);
+    }
 }
 '''
