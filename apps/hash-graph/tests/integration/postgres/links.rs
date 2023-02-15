@@ -6,8 +6,8 @@ use crate::DatabaseTestWrapper;
 
 #[tokio::test]
 async fn insert() {
-    let alice = serde_json::from_str(entity::PERSON_A_V1).expect("could not parse entity");
-    let bob = serde_json::from_str(entity::PERSON_B_V1).expect("could not parse entity");
+    let alice = serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity");
+    let bob = serde_json::from_str(entity::PERSON_BOB_V1).expect("could not parse entity");
     let friend_of = EntityProperties::empty();
 
     let mut database = DatabaseTestWrapper::new().await;
@@ -70,9 +70,9 @@ async fn insert() {
 
 #[tokio::test]
 async fn get_entity_links() {
-    let alice = serde_json::from_str(entity::PERSON_A_V1).expect("could not parse entity");
-    let bob = serde_json::from_str(entity::PERSON_B_V1).expect("could not parse entity");
-    let charles = serde_json::from_str(entity::PERSON_C_V1).expect("could not parse entity");
+    let alice = serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity");
+    let bob = serde_json::from_str(entity::PERSON_BOB_V1).expect("could not parse entity");
+    let charles = serde_json::from_str(entity::PERSON_CHARLES_V1).expect("could not parse entity");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
@@ -180,8 +180,8 @@ async fn get_entity_links() {
 
 #[tokio::test]
 async fn remove_link() {
-    let alice = serde_json::from_str(entity::PERSON_A_V1).expect("could not parse entity");
-    let bob = serde_json::from_str(entity::PERSON_B_V1).expect("could not parse entity");
+    let alice = serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity");
+    let bob = serde_json::from_str(entity::PERSON_BOB_V1).expect("could not parse entity");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database

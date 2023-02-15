@@ -7,7 +7,7 @@ use crate::DatabaseTestWrapper;
 #[tokio::test]
 async fn insert() {
     let person: EntityProperties =
-        serde_json::from_str(entity::PERSON_A_V1).expect("could not parse entity");
+        serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
