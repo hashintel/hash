@@ -1,7 +1,5 @@
 #![cfg_attr(nightly, feature(provide_any))]
-// can be considered safe, because we only check the output, which in itself does not use **any**
-// unsafe code.
-#![cfg(not(miri))]
+#![cfg(not(miri))] // debug formatting does not utilize any unsafe code
 #![cfg_attr(all(nightly, feature = "std"), feature(error_generic_member_access))]
 #![allow(clippy::std_instead_of_core)]
 mod common;
@@ -250,10 +248,9 @@ mod full {
     //!
     //! Does any combination of those work together?
     //! Therefore most of them are redundant, this means that we can cut down on the amount of
-    //! snapshots that are generated.
-    //! This does *not* impact speed, but makes it easier to look through all snapshots, which means
-    //! that instead of 118 new snapshots once a code line changes, one just needs to look over
-    //! < 30, which is a lot more manageable.
+    //! snapshots that are generated. This does *not* impact speed, but makes it easier to look
+    //! through all snapshots, which means that instead of 118 new snapshots once a code line
+    //! changes, one just needs to look over < 30, which is a lot more manageable.
     //!
     //! There are still some big snapshot tests, which are used evaluate all of the above.
 
