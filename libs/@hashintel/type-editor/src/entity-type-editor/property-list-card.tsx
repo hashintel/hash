@@ -42,7 +42,7 @@ import {
   useWatch,
 } from "react-hook-form";
 
-import { EntityTypeEditorForm } from "../shared/form-types";
+import { EntityTypeEditorFormData } from "../shared/form-types";
 import { useOntologyFunctions } from "../shared/ontology-functions-context";
 import {
   PropertyTypesByVersionedUri,
@@ -391,7 +391,7 @@ export const PropertyTypeRow = ({
   onUpdateVersion: (nextId: VersionedUri) => void;
   flash: boolean;
 }) => {
-  const { control } = useFormContext<EntityTypeEditorForm>();
+  const { control } = useFormContext<EntityTypeEditorFormData>();
 
   const array = useWatch({
     control,
@@ -509,7 +509,7 @@ export const PropertyTypeRow = ({
 const InsertPropertyRow = (
   props: Omit<InsertTypeRowProps<PropertyType>, "options" | "variant">,
 ) => {
-  const { control } = useFormContext<EntityTypeEditorForm>();
+  const { control } = useFormContext<EntityTypeEditorFormData>();
   const properties = useWatch({ control, name: "properties" });
 
   const propertyTypeOptions = usePropertyTypesOptions();
@@ -536,7 +536,7 @@ const InsertPropertyRow = (
 
 export const PropertyListCard = () => {
   const { control, getValues, setValue } =
-    useFormContext<EntityTypeEditorForm>();
+    useFormContext<EntityTypeEditorFormData>();
   const {
     fields: unsortedFields,
     append,

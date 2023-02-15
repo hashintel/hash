@@ -1,7 +1,7 @@
 import { EntityTypeEditorProps } from "@hashintel/type-editor";
-import { OwnedById } from "@local/hash-isomorphic-utils/types";
-import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
-import { getPropertyTypeById } from "@local/hash-subgraph/src/stdlib/element/property-type";
+import { OwnedById } from "@local/hash-subgraph";
+import { getEntityTypeById } from "@local/hash-subgraph/stdlib/element/entity-type";
+import { getPropertyTypeById } from "@local/hash-subgraph/stdlib/element/property-type";
 import { useCallback } from "react";
 
 import { useBlockProtocolCreateEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";

@@ -16,7 +16,7 @@ export type EntityTypeEditorLinkData = EntityTypeEditorTypeData & {
   entityTypes: VersionedUri[];
 };
 
-export type EntityTypeEditorForm = {
+export type EntityTypeEditorFormData = {
   properties: EntityTypeEditorPropertyData[];
   links: EntityTypeEditorLinkData[];
 };

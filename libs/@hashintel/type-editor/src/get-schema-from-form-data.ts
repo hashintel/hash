@@ -5,10 +5,10 @@ import {
   ValueOrArray,
 } from "@blockprotocol/type-system";
 
-import { EntityTypeEditorForm } from "./shared/form-types";
+import { EntityTypeEditorFormData } from "./shared/form-types";
 
 export const getSchemaFromFormData = (
-  data: EntityTypeEditorForm,
+  data: EntityTypeEditorFormData,
 ): Partial<EntityType> => {
   const properties = data.properties;
 

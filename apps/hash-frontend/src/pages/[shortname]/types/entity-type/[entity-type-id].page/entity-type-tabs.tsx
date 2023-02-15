@@ -1,6 +1,6 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { EntityTypeEditorForm } from "@hashintel/type-editor";
+import { EntityTypeEditorFormData } from "@hashintel/type-editor";
 import { Box, Tabs, tabsClasses } from "@mui/material";
 import { useRouter } from "next/router";
 import { useState } from "react";
@@ -20,7 +20,7 @@ export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
 
   const [animateTabs, setAnimateTabs] = useState(false);
 
-  const { control } = useFormContext<EntityTypeEditorForm>();
+  const { control } = useFormContext<EntityTypeEditorFormData>();
   const propertiesCount = useWatch({
     control,
     name: "properties.length" as "properties.length",

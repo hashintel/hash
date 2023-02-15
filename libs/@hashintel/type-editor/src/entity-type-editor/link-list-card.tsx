@@ -6,7 +6,7 @@ import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 
 import { useEntityTypesOptions } from "../shared/entity-types-options-context";
-import { EntityTypeEditorForm } from "../shared/form-types";
+import { EntityTypeEditorFormData } from "../shared/form-types";
 import { useOntologyFunctions } from "../shared/ontology-functions-context";
 import { linkEntityTypeUri } from "../shared/uris";
 import { LinkEntityTypeSelector } from "./link-list-card/link-entity-type-selector";
@@ -146,7 +146,7 @@ const InsertLinkRow = (
     "options" | "variant" | "createButtonProps"
   >,
 ) => {
-  const { control } = useFormContext<EntityTypeEditorForm>();
+  const { control } = useFormContext<EntityTypeEditorFormData>();
   const links = useWatch({ control, name: "links" });
 
   const { linkTypes: linkTypeOptions } = useEntityTypesOptions();
@@ -164,7 +164,7 @@ const InsertLinkRow = (
 };
 
 export const LinkListCard = () => {
-  const { control, setValue } = useFormContext<EntityTypeEditorForm>();
+  const { control, setValue } = useFormContext<EntityTypeEditorFormData>();
   const {
     fields: unsortedFields,
     append,

@@ -1,6 +1,6 @@
 import { faSmile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { EntityTypeEditorForm } from "@hashintel/type-editor";
+import { EntityTypeEditorFormData } from "@hashintel/type-editor";
 import { useState } from "react";
 import { useFormState } from "react-hook-form";
 
@@ -14,7 +14,7 @@ import {
 } from "./shared/edit-bar";
 
 const useFrozenValue = <T extends any>(value: T): T => {
-  const { isDirty } = useFormState<EntityTypeEditorForm>();
+  const { isDirty } = useFormState<EntityTypeEditorFormData>();
 
   const [frozen, setFrozen] = useState(value);
 
@@ -32,7 +32,7 @@ export const EditBarTypeEditor = ({
   currentVersion: number;
   discardButtonProps: Partial<ButtonProps>;
 }) => {
-  const { isDirty } = useFormState<EntityTypeEditorForm>();
+  const { isDirty } = useFormState<EntityTypeEditorFormData>();
   const frozenVersion = useFrozenValue(currentVersion);
   const ref = useFreezeScrollWhileTransitioning();
 
@@ -40,7 +40,7 @@ export const EditBarTypeEditor = ({
 
   const frozenDiscardButtonProps = useFrozenValue(discardButtonProps);
 
-  const { isSubmitting } = useFormState<EntityTypeEditorForm>();
+  const { isSubmitting } = useFormState<EntityTypeEditorFormData>();
 
   const frozenSubmitting = useFrozenValue(isSubmitting);
 

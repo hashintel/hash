@@ -7,12 +7,13 @@ import {
   OntologyIcon,
 } from "@hashintel/design-system";
 import {
-  EntityTypeEditorForm,
+  EntityTypeEditorFormData,
   EntityTypeFormProvider,
+  getFormDataFromSchema,
   getSchemaFromFormData,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import { OwnedById } from "@local/hash-graphql-shared/types";
+import { OwnedById } from "@local/hash-subgraph";
 import { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 // eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
@@ -39,10 +40,6 @@ import { LatestPropertyTypesContextProvider } from "./[entity-type-id].page/shar
 import { useCurrentTab } from "./[entity-type-id].page/shared/tabs";
 import { useEntityTypeEntitiesContextValue } from "./[entity-type-id].page/use-entity-type-entities-context-value";
 import { useEntityTypeValue } from "./[entity-type-id].page/use-entity-type-value";
-
-type Entries<T> = {
-  [K in keyof T]: [K, T[K]];
-}[keyof T][];
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -73,7 +70,7 @@ const Page: NextPageWithLayout = () => {
     }
   }, [router.query.draft]);
 
-  const formMethods = useEntityTypeForm<EntityTypeEditorForm>({
+  const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
     defaultValues: { properties: [], links: [] },
   });
   const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
@@ -88,39 +85,7 @@ const Page: NextPageWithLayout = () => {
     baseEntityTypeUri,
     routeNamespace?.accountId ?? null,
     (fetchedEntityType) => {
-      reset({
-        properties: Object.entries(fetchedEntityType.properties).map(
-          ([propertyId, ref]) => {
-            const isArray = "type" in ref;
-
-            return {
-              $id: isArray ? ref.items.$ref : ref.$ref,
-              required: !!fetchedEntityType.required?.includes(propertyId),
-              array: isArray,
-              maxValue: isArray ? ref.maxItems ?? 1 : 1,
-              minValue: isArray ? ref.minItems ?? 0 : 0,
-              infinity: isArray && typeof ref.maxItems !== "number",
-            };
-          },
-        ),
-        links: fetchedEntityType.links
-          ? (
-              Object.entries(fetchedEntityType.links) as Entries<
-                typeof fetchedEntityType.links
-              >
-            ).map(([linkEntityTypeId, link]) => ({
-              $id: linkEntityTypeId,
-              array: true,
-              maxValue: link.maxItems ?? 1,
-              minValue: link.minItems ?? 0,
-              infinity: typeof link.maxItems !== "number",
-              entityTypes:
-                "oneOf" in link.items
-                  ? link.items.oneOf.map((ref) => ref.$ref)
-                  : [],
-            }))
-          : [],
-      });
+      reset(getFormDataFromSchema(fetchedEntityType));
     },
   );
 

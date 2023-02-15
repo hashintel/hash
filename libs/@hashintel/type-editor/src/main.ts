@@ -5,5 +5,6 @@ export {
   useEntityTypeForm,
   useEntityTypeFormState,
 } from "./entity-type-editor";
+export { getFormDataFromSchema } from "./get-form-data-from-schema";
 export { getSchemaFromFormData } from "./get-schema-from-form-data";
-export type { EntityTypeEditorForm } from "./shared/form-types";
+export type { EntityTypeEditorFormData } from "./shared/form-types";

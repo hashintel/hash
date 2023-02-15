@@ -29,7 +29,7 @@ import {
   useWatch,
 } from "react-hook-form";
 
-import { EntityTypeEditorForm } from "../../shared/form-types";
+import { EntityTypeEditorFormData } from "../../shared/form-types";
 
 const useFrozenValue = <T extends any>(value: T, isFrozen: boolean): T => {
   const [frozen, setFrozen] = useState(value);
@@ -93,7 +93,7 @@ export const MultipleValuesCell = ({
   index: number;
   variant: "property" | "link";
 }) => {
-  const { control, setValue } = useFormContext<EntityTypeEditorForm>();
+  const { control, setValue } = useFormContext<EntityTypeEditorFormData>();
 
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
   const [multipleValuesMenuOpen, setMultipleValuesMenuOpen] = useState(false);

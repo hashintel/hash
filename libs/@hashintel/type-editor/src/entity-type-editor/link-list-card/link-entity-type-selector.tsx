@@ -16,7 +16,7 @@ import { useFormContext, useWatch } from "react-hook-form";
 import { useResizeObserverRef } from "rooks";
 
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
-import { EntityTypeEditorForm } from "../../shared/form-types";
+import { EntityTypeEditorFormData } from "../../shared/form-types";
 
 const TypeChipLabel = ({ children }: { children: ReactNode }) => (
   <Stack direction="row" spacing={0.75} fontSize={14} alignItems="center">
@@ -39,7 +39,7 @@ export const LinkEntityTypeSelector = ({
 }: {
   linkIndex: number;
 }) => {
-  const { control, setValue } = useFormContext<EntityTypeEditorForm>();
+  const { control, setValue } = useFormContext<EntityTypeEditorFormData>();
 
   const [entityTypeSelectorPopupOpen, setEntityTypeSelectorPopupOpen] =
     useState(false);

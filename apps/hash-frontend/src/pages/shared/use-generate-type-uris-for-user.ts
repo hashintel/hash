@@ -1,6 +1,6 @@
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { generateBaseTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { versionedUriFromComponents } from "@local/hash-subgraph/src/shared/type-system-patch";
+import { versionedUriFromComponents } from "@local/hash-subgraph/shared/type-system-patch";
 import { useCallback, useContext } from "react";
 
 import { WorkspaceContext } from "./workspace-context";
