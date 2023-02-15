@@ -20,5 +20,6 @@
       },
       "ordered": false
     }
-  }
+  },
+  "additionalProperties": false
 }

@@ -23,7 +23,7 @@ import {
   extractEntityUuidFromEntityId,
   isEntityId,
   OwnedById,
-} from "@local/hash-subgraph/main";
+} from "@local/hash-subgraph";
 import { Box, Collapse } from "@mui/material";
 import {
   FunctionComponent,

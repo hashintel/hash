@@ -7,5 +7,6 @@
     "https://blockprotocol.org/@alice/types/property-type/text/": {
       "$ref": "https://blockprotocol.org/@alice/types/property-type/text/v/1"
     }
-  }
+  },
+  "additionalProperties": false
 }

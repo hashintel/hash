@@ -1,15 +1,15 @@
 import { VersionedUri } from "@blockprotocol/type-system";
 import {
+  EntityTypeRootType,
   EntityTypeWithMetadata,
   Subgraph,
-  SubgraphRootTypes,
-} from "@local/hash-subgraph/main";
+} from "@local/hash-subgraph";
 
 export type EntityTypesSet = Record<VersionedUri, EntityTypeWithMetadata>;
 export type EntityTypesContextValue = {
   entityTypes: EntityTypesSet | null;
   linkTypes: EntityTypesSet | null;
-  subgraph: Subgraph<SubgraphRootTypes["entityType"]> | null;
+  subgraph: Subgraph<EntityTypeRootType> | null;
   loading: boolean;
 
   refetch: () => Promise<void>;

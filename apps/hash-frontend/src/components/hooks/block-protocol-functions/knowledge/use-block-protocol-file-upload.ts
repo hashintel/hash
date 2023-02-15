@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
-import { extractBaseUri } from "@blockprotocol/type-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
 import { useCallback } from "react";
 
 import {

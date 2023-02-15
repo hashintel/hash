@@ -1,19 +1,18 @@
-import {
-  Array,
-  extractBaseUri,
-  ValueOrArray,
-} from "@blockprotocol/type-system";
+import { Array, ValueOrArray } from "@blockprotocol/type-system";
 import { Button } from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   Entity,
+  EntityRootType,
   OwnedById,
   Subgraph,
-  SubgraphRootTypes,
-} from "@local/hash-subgraph/main";
-import { getEntityTypeById } from "@local/hash-subgraph/stdlib/element/entity-type";
-import { getPropertyTypeById } from "@local/hash-subgraph/stdlib/element/property-type";
-import { getRoots } from "@local/hash-subgraph/stdlib/roots";
+} from "@local/hash-subgraph";
+import {
+  getEntityTypeById,
+  getPropertyTypeById,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
+import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
 import { Container, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 
@@ -37,10 +36,9 @@ const isArrayDefinition = <T,>(input: ValueOrArray<T>): input is Array<T> =>
  */
 const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
   const { authenticatedUser } = useAuthenticatedUser();
-  const [userSubgraph, setUserSubgraph] =
-    useState<Subgraph<SubgraphRootTypes["entity"]>>();
+  const [userSubgraph, setUserSubgraph] = useState<Subgraph<EntityRootType>>();
   const [aggregateEntitiesSubgraph, setAggregateEntitiesSubgraph] =
-    useState<Subgraph<SubgraphRootTypes["entity"]>>();
+    useState<Subgraph<EntityRootType>>();
 
   const [createdEntity, setCreatedEntity] = useState<Entity>();
 

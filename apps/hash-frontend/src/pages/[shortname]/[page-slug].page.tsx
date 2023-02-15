@@ -17,12 +17,14 @@ import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
+  EntityRootType,
   EntityUuid,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   OwnedById,
-} from "@local/hash-subgraph/main";
-import { getRootsAsEntities } from "@local/hash-subgraph/stdlib/element/entity";
+  Subgraph,
+} from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { alpha, Box, Collapse } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetServerSideProps } from "next";
@@ -128,7 +130,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
   const { cookie } = req.headers ?? {};
 
-  const workspacesSubgraph = await apolloClient
+  const workspacesSubgraph = (await apolloClient
     .query<GetAllLatestEntitiesQuery>({
       query: getAllLatestEntitiesQuery,
       variables: {
@@ -146,9 +148,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
       },
       context: { headers: { cookie } },
     })
-    .then(({ data }) => data.getAllLatestEntities);
+    .then(({ data }) => data.getAllLatestEntities)) as Subgraph<EntityRootType>;
 
-  const workspaces = getRootsAsEntities(workspacesSubgraph).map((entity) =>
+  const workspaces = getRoots(workspacesSubgraph).map((entity) =>
     entity.metadata.entityTypeId === types.entityType.user.entityTypeId
       ? constructMinimalUser({
           userEntity: entity,

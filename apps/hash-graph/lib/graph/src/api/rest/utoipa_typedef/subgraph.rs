@@ -20,14 +20,19 @@ use crate::{
 };
 
 #[derive(Serialize, ToSchema)]
+pub struct TemporalAxes {
+    pub initial: UnresolvedTimeProjection,
+    pub resolved: TimeProjection,
+}
+
+#[derive(Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Subgraph {
     roots: Vec<GraphElementVertexId>,
     vertices: Vertices,
     edges: Edges,
     depths: GraphResolveDepths,
-    time_projection: UnresolvedTimeProjection,
-    resolved_time_projection: TimeProjection,
+    temporal_axes: TemporalAxes,
 }
 
 impl From<crate::subgraph::Subgraph> for Subgraph {
@@ -43,8 +48,10 @@ impl From<crate::subgraph::Subgraph> for Subgraph {
             vertices,
             edges,
             depths: subgraph.depths,
-            time_projection: subgraph.time_projection,
-            resolved_time_projection: subgraph.resolved_time_projection,
+            temporal_axes: TemporalAxes {
+                initial: subgraph.time_projection,
+                resolved: subgraph.resolved_time_projection,
+            },
         }
     }
 }
