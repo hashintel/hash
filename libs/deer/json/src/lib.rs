@@ -241,7 +241,12 @@ impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a> {
             Some(Value::Null) => visitor.visit_null(),
             Some(Value::Bool(bool)) => visitor.visit_bool(bool),
             Some(Value::Number(number)) => serde_to_deer_number(&number)
-                .ok_or_else(|| todo!())
+                .ok_or_else(|| {
+                    unimplemented!(
+                        "serde number has arbitrary precision enabled, deer has not, no fallback \
+                         is implemented just yet"
+                    )
+                })
                 .and_then(|number| visitor.visit_number(number)),
             Some(Value::Array(array)) => visitor.visit_array(ArrayAccess::new(array, self.context)),
             Some(Value::Object(object)) => {

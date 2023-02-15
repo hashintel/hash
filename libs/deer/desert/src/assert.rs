@@ -7,6 +7,9 @@ use similar_asserts::{assert_eq, assert_serde_eq};
 
 use crate::{deserializer::Deserializer, error::ErrorVec, token::Token};
 
+/// # Panics
+///
+/// if there are any remaining tokens in the stream after deserialization
 pub fn assert_tokens_with_context<'de, T>(expected: &T, tokens: &'de [Token], context: &Context)
 where
     T: Deserialize<'de> + PartialEq + Debug,
@@ -14,9 +17,7 @@ where
     let mut de = Deserializer::new(tokens, context);
     let received = T::deserialize(&mut de).expect("should deserialize");
 
-    if de.remaining() > 0 {
-        panic!("{} remaining tokens", de.remaining());
-    }
+    assert_eq!(de.remaining(), 0, "{} remaining tokens", de.remaining());
 
     assert_eq!(received, *expected);
 }

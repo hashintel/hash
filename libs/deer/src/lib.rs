@@ -602,7 +602,8 @@ pub(crate) mod test {
             _marker: PhantomData::default(),
         };
 
-        serde_json::to_value(s).unwrap()
+        serde_json::to_value(s)
+            .expect("should be able to convert `SerializeFrame` into `serde_json::Value`")
     }
 
     struct ErrorMessage<'a, 'b, E: Variant> {
