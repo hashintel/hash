@@ -1,8 +1,6 @@
 extend = { path = "../../.github/scripts/rust/Makefile.toml" }
 
 [env]
-CARGO_RUSTDOC_HACK_FLAGS = "--workspace --exclude hash_graph_benches"
-
 RUST_LOG = "debug,hyper=warn"
 
 [env.production]
@@ -83,18 +81,9 @@ args = ["httpyac", "send", "--all", "${REPO_ROOT}/apps/hash-graph/tests/rest-tes
 
 [tasks.test]
 run_task = [
-    { name = ["test-task", "deployment-up", "test-integration", "deployment-down"], condition = { env_true = ["CARGO_MAKE_CI"] } },
+    { name = ["deployment-up", "test-task", "deployment-down"], condition = { env_true = ["CARGO_MAKE_CI"] } },
     { name = ["test-task"] }
 ]
-
-[tasks.test-task-doc]
-condition = { profiles = ["development"] }
-
-[tasks.test-integration]
-private = false
-extend = "cargo"
-args = ["nextest", "run", "--cargo-profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_TEST_FLAGS, )", "--workspace", "--test", "integration", "--profile", "integration", "${@}"]
-dependencies = ["install-cargo-nextest"]
 
 [tasks.miri]
 clear = true
@@ -106,20 +95,12 @@ args = ["Miri is disabled as unsafe code is forbidden"]
 ####################
 [tasks.coverage]
 run_task = [
-    { name = ["deployment-up", "coverage-task", "coverage-integration", "deployment-down", "coverage-report"], condition = { env_true = ["CARGO_MAKE_CI"] } },
-    { name = ["coverage-task", "coverage-integration", "coverage-report"] },
+    { name = ["deployment-up", "coverage-task", "deployment-down"], condition = { env_true = ["CARGO_MAKE_CI"] } },
+    { name = ["coverage-task"] },
 ]
 
 [tasks.coverage-task]
-args = ["llvm-cov", "--no-report", "test", "--workspace", "--all-features", "--all-targets"]
-
-[tasks.coverage-integration]
-extend = "coverage-task"
-args = ["llvm-cov", "--no-report", "nextest", "--workspace", "--all-features", "--test", "integration"]
-
-[tasks.coverage-report]
-extend = "coverage-task"
-args = ["llvm-cov", "report", "${@}"]
+args = ["llvm-cov", "test", "--workspace", "--all-features", "--all-targets", "${@}"]
 
 
 ## OpenAPI client

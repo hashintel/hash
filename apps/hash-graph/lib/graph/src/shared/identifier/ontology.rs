@@ -51,7 +51,7 @@ impl<'a> FromSql<'a> for OntologyTypeVersion {
     postgres_types::accepts!(INT8);
 
     fn from_sql(_: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
-        Ok(Self::new(i64::from_sql(&Type::INT8, raw)? as u32))
+        Ok(Self::new(i64::from_sql(&Type::INT8, raw)?.try_into()?))
     }
 }
 

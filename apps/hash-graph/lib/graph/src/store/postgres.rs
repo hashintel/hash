@@ -401,7 +401,8 @@ where
         metadata: &OntologyElementMetadata,
     ) -> Result<OntologyId, InsertionError>
     where
-        T: OntologyDatabaseType,
+        T: OntologyDatabaseType + Send,
+        T::Representation: Send,
     {
         let ontology_id = match metadata {
             OntologyElementMetadata::Owned(metadata) => {
@@ -434,7 +435,8 @@ where
         updated_by_id: UpdatedById,
     ) -> Result<(OntologyId, OntologyElementMetadata), UpdateError>
     where
-        T: OntologyDatabaseType,
+        T: OntologyDatabaseType + Send,
+        T::Representation: Send,
     {
         let uri = database_type.id();
         let record_id = OntologyTypeRecordId::from(uri);
@@ -470,7 +472,8 @@ where
         database_type: T,
     ) -> Result<(), InsertionError>
     where
-        T: OntologyDatabaseType,
+        T: OntologyDatabaseType + Send,
+        T::Representation: Send,
     {
         let value_repr = T::Representation::from(database_type);
         let value = serde_json::to_value(value_repr)
@@ -695,6 +698,9 @@ where
             .get(0))
     }
 
+    /// # Errors
+    ///
+    /// - if the underlying client cannot start a transaction
     pub async fn transaction(
         &mut self,
     ) -> Result<PostgresStore<tokio_postgres::Transaction<'_>>, StoreError> {
@@ -709,6 +715,9 @@ where
 }
 
 impl PostgresStore<tokio_postgres::Transaction<'_>> {
+    /// # Errors
+    ///
+    /// - if the underlying client cannot commit the transaction
     pub async fn commit(self) -> Result<(), StoreError> {
         self.client
             .commit()
@@ -717,6 +726,9 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .change_context(StoreError)
     }
 
+    /// # Errors
+    ///
+    /// - if the underlying client cannot rollback the transaction
     pub async fn rollback(self) -> Result<(), StoreError> {
         self.client
             .rollback()

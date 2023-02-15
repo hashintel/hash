@@ -49,13 +49,13 @@ impl<P, A> FetchingPool<P, A>
 where
     A: ToSocketAddrs,
 {
-    pub fn new(pool: P, address: A, domain_validator: DomainValidator) -> Result<Self, StoreError> {
-        Ok(Self {
+    pub fn new(pool: P, address: A, domain_validator: DomainValidator) -> Self {
+        Self {
             pool,
             address,
             config: tarpc::client::Config::default(),
             domain_validator,
-        })
+        }
     }
 }
 
@@ -96,7 +96,8 @@ pub struct FetchingStore<S, A> {
 
 impl<S, A> FetchingStore<S, A>
 where
-    A: ToSocketAddrs,
+    S: Send + Sync,
+    A: ToSocketAddrs + Send + Sync,
 {
     pub async fn fetcher_client(&self) -> Result<FetcherClient, StoreError>
     where
@@ -170,7 +171,7 @@ where
         .map(|subgraph| !subgraph.roots.is_empty())
     }
 
-    async fn collect_external_ontology_types<'o, T: crate::ontology::OntologyType>(
+    async fn collect_external_ontology_types<'o, T: crate::ontology::OntologyType + Sync>(
         &self,
         ontology_type: &'o T,
     ) -> Result<Vec<OntologyTypeReference<'o>>, QueryError> {
@@ -190,7 +191,10 @@ where
 
     async fn fetch_external_ontology_types(
         &self,
-        ontology_type_references: impl IntoIterator<Item = (OntologyTypeReference<'_>, UpdatedById)>,
+        ontology_type_references: impl IntoIterator<
+            Item = (OntologyTypeReference<'_>, UpdatedById),
+            IntoIter: Send,
+        > + Send,
     ) -> Result<
         (
             Vec<(DataType, OntologyElementMetadata)>,
@@ -289,7 +293,7 @@ where
         Ok((data_types, property_types, entity_types))
     }
 
-    async fn insert_external_types<'o, T: crate::ontology::OntologyType + 'o>(
+    async fn insert_external_types<'o, T: crate::ontology::OntologyType + Sync + 'o>(
         &mut self,
         ontology_types: impl IntoIterator<Item = (&'o T, UpdatedById), IntoIter: Send> + Send,
     ) -> Result<(), InsertionError> {

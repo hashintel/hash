@@ -22,16 +22,16 @@ enum Return<T> {
 }
 
 impl<T> Return<T> {
-    fn none() -> Self {
-        Return::None
+    const fn none() -> Self {
+        Self::None
     }
 
     fn one(value: T) -> Self {
-        Return::One(once(value))
+        Self::One(once(value))
     }
 
     fn two(first: T, second: T) -> Self {
-        Return::Two(once(first).chain(once(second)))
+        Self::Two(once(first).chain(once(second)))
     }
 }
 
@@ -40,17 +40,17 @@ impl<T> Iterator for Return<T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Return::None => None,
-            Return::One(value) => value.next(),
-            Return::Two(values) => values.next(),
+            Self::None => None,
+            Self::One(value) => value.next(),
+            Self::Two(values) => values.next(),
         }
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
         match self {
-            Return::None => (0, Some(0)),
-            Return::One(_) => (1, Some(1)),
-            Return::Two(_) => (2, Some(2)),
+            Self::None => (0, Some(0)),
+            Self::One(_) => (1, Some(1)),
+            Self::Two(_) => (2, Some(2)),
         }
     }
 }
@@ -82,7 +82,7 @@ impl<T, S, E> Interval<T, S, E> {
     /// # Safety
     ///
     /// The start bound must be less than or equal to the end bound.
-    pub fn new_unchecked(start: S, end: E) -> Self {
+    pub const fn new_unchecked(start: S, end: E) -> Self {
         Self {
             start,
             end,
@@ -91,16 +91,20 @@ impl<T, S, E> Interval<T, S, E> {
     }
 
     /// Returns a reference to the start bound of this interval
-    pub fn start(&self) -> &S {
+    pub const fn start(&self) -> &S {
         &self.start
     }
 
     /// Returns a reference to the end bound of this interval
-    pub fn end(&self) -> &E {
+    pub const fn end(&self) -> &E {
         &self.end
     }
 
     /// Converts the interval into its bounds.
+    #[expect(
+        clippy::missing_const_for_fn,
+        reason = "false positive: the destructor for this type cannot be evaluated at compile-time"
+    )]
     pub fn into_bounds(self) -> (S, E) {
         (self.start, self.end)
     }
@@ -266,6 +270,7 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
     ///
     /// In comparison to [`Self::union`], this method does also return the points between the
     /// intervals if they do not overlap.
+    #[must_use]
     pub fn merge(self, other: Self) -> Self
     where
         T: PartialOrd,
@@ -659,6 +664,7 @@ mod tests {
     }
 
     #[test]
+    #[expect(clippy::too_many_lines)]
     fn partially_overlapping() {
         // Range A:      [-----]   |   [-----]
         // Range B:        [-----] | [-----]
@@ -1076,6 +1082,7 @@ mod tests {
     }
 
     #[test]
+    #[expect(clippy::too_many_lines)]
     fn disjoint() {
         // Range A:      [---]       |       [---]
         // Range B:            [---] | [---]
@@ -1661,6 +1668,7 @@ mod tests {
     }
 
     #[test]
+    #[expect(clippy::cognitive_complexity)]
     fn contains_point() {
         assert!(included_included(5, 10).contains_point(&5));
         assert!(included_included(5, 10).contains_point(&10));

@@ -2,12 +2,12 @@ use graph::knowledge::{EntityLinkOrder, EntityProperties};
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::uri::{BaseUri, VersionedUri};
 
-use crate::postgres::DatabaseTestWrapper;
+use crate::DatabaseTestWrapper;
 
 #[tokio::test]
 async fn insert() {
     let person: EntityProperties =
-        serde_json::from_str(entity::PERSON_A_V1).expect("could not parse entity");
+        serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database

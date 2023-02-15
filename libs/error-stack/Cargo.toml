@@ -60,18 +60,22 @@ targets = ["x86_64-unknown-linux-gnu"]
 [[example]]
 name = "demo"
 required-features = ["std"]
+doc-scrape-examples = true
 
 [[example]]
 name = "exit_code"
 required-features = ["std"]
+doc-scrape-examples = true
 
 [[example]]
 name = "parse_config"
 required-features = ["std"]
+doc-scrape-examples = true
 
 [[example]]
 name = "detect"
 required-features = ['std']
+doc-scrape-examples = true
 
 
 [[test]]
