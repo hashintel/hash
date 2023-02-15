@@ -161,7 +161,7 @@ impl Foreground {
 
         let buffer = &[if bright { b'9' } else { b'3' }, color.digit()];
         // This should never fail because both are valid ASCII
-        let control = core::str::from_utf8(buffer).expect("valid utf-8 buffer");
+        let control = core::str::from_utf8(buffer).expect("should be valid utf-8 buffer");
 
         sequence.push_control(control)
     }
