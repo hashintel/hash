@@ -214,8 +214,10 @@ fn generate(cwd: &Path) {
         .chain(body)
         .chain(suffix.map(|line| line.to_owned()))
         .collect();
+    let mut contents = contents.join("\n");
+    contents.push('\n');
 
-    fs::write(&path, contents.join("\n")).expect("unable to write `.cargo/config.toml`");
+    fs::write(&path, contents).expect("unable to write `.cargo/config.toml`");
 }
 
 fn print_diff(level: &str, left: &BTreeSet<String>, right: &BTreeSet<String>) {
