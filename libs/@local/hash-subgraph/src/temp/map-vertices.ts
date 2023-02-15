@@ -150,20 +150,26 @@ export const mapEntityVersion = (
         kind: "inclusive",
         limit: entityVersion.transactionTime.start as Timestamp,
       },
-      end: {
-        kind: "exclusive",
-        limit: entityVersion.transactionTime.end as Timestamp,
-      },
+      end:
+        entityVersion.transactionTime.end === null
+          ? { kind: "unbounded" }
+          : {
+              kind: "exclusive",
+              limit: entityVersion.transactionTime.end as Timestamp,
+            },
     },
     decisionTime: {
       start: {
         kind: "inclusive",
         limit: entityVersion.decisionTime.start as Timestamp,
       },
-      end: {
-        kind: "exclusive",
-        limit: entityVersion.decisionTime.end as Timestamp,
-      },
+      end:
+        entityVersion.transactionTime.end === null
+          ? { kind: "unbounded" }
+          : {
+              kind: "exclusive",
+              limit: entityVersion.transactionTime.end as Timestamp,
+            },
     },
   };
 };

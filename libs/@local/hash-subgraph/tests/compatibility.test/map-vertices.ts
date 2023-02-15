@@ -164,11 +164,14 @@ const mapKnowledgeGraphVertex = (
               limit: vertex.inner.metadata.version.transactionTime
                 .start as Timestamp,
             },
-            end: {
-              kind: "exclusive",
-              limit: vertex.inner.metadata.version.transactionTime
-                .end as Timestamp,
-            },
+            end:
+              vertex.inner.metadata.version.transactionTime.end === null
+                ? { kind: "unbounded" }
+                : {
+                    kind: "exclusive",
+                    limit: vertex.inner.metadata.version.transactionTime
+                      .end as Timestamp,
+                  },
           },
           decisionTime: {
             start: {
@@ -176,11 +179,14 @@ const mapKnowledgeGraphVertex = (
               limit: vertex.inner.metadata.version.decisionTime
                 .start as Timestamp,
             },
-            end: {
-              kind: "exclusive",
-              limit: vertex.inner.metadata.version.decisionTime
-                .end as Timestamp,
-            },
+            end:
+              vertex.inner.metadata.version.transactionTime.end === null
+                ? { kind: "unbounded" }
+                : {
+                    kind: "exclusive",
+                    limit: vertex.inner.metadata.version.transactionTime
+                      .end as Timestamp,
+                  },
           },
         },
         provenance: {
