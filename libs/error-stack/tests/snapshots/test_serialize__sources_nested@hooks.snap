@@ -1,0 +1,219 @@
+---
+source: tests/test_serialize.rs
+expression: report
+---
+[
+  {
+    "context": "context A",
+    "attachments": [
+      {
+        "file": "tests/common/snapshots.rs",
+        "line": 220,
+        "column": 10
+      },
+      "2",
+      "1"
+    ],
+    "sources": [
+      {
+        "context": "context A",
+        "attachments": [
+          {
+            "file": "tests/common/snapshots.rs",
+            "line": 214,
+            "column": 10
+          },
+          "4",
+          "3"
+        ],
+        "sources": [
+          {
+            "context": "root error",
+            "attachments": [
+              {
+                "file": "tests/common/mod.rs",
+                "line": 4,
+                "column": 5
+              },
+              "6"
+            ],
+            "sources": []
+          }
+        ]
+      },
+      {
+        "context": "context A",
+        "attachments": [
+          {
+            "file": "tests/common/snapshots.rs",
+            "line": 209,
+            "column": 10
+          },
+          "5",
+          "3"
+        ],
+        "sources": [
+          {
+            "context": "context A",
+            "attachments": [
+              {
+                "file": "tests/common/snapshots.rs",
+                "line": 207,
+                "column": 10
+              },
+              "7"
+            ],
+            "sources": [
+              {
+                "context": "context A",
+                "attachments": [
+                  {
+                    "file": "tests/common/snapshots.rs",
+                    "line": 198,
+                    "column": 34
+                  },
+                  "9",
+                  "8"
+                ],
+                "sources": [
+                  {
+                    "context": "root error",
+                    "attachments": [
+                      {
+                        "file": "tests/common/mod.rs",
+                        "line": 4,
+                        "column": 5
+                      }
+                    ],
+                    "sources": []
+                  }
+                ]
+              },
+              {
+                "context": "context A",
+                "attachments": [
+                  {
+                    "file": "tests/common/snapshots.rs",
+                    "line": 192,
+                    "column": 10
+                  },
+                  "13",
+                  "10",
+                  "16",
+                  "9",
+                  "8"
+                ],
+                "sources": [
+                  {
+                    "context": "root error",
+                    "attachments": [
+                      {
+                        "file": "tests/common/mod.rs",
+                        "line": 4,
+                        "column": 5
+                      }
+                    ],
+                    "sources": []
+                  }
+                ]
+              },
+              {
+                "context": "context A",
+                "attachments": [
+                  {
+                    "file": "tests/common/snapshots.rs",
+                    "line": 178,
+                    "column": 10
+                  },
+                  "15",
+                  "14",
+                  "10",
+                  "16",
+                  "9",
+                  "8"
+                ],
+                "sources": [
+                  {
+                    "context": "root error",
+                    "attachments": [
+                      {
+                        "file": "tests/common/mod.rs",
+                        "line": 4,
+                        "column": 5
+                      }
+                    ],
+                    "sources": []
+                  }
+                ]
+              },
+              {
+                "context": "context A",
+                "attachments": [
+                  {
+                    "file": "tests/common/snapshots.rs",
+                    "line": 188,
+                    "column": 10
+                  },
+                  "11",
+                  "9",
+                  "8"
+                ],
+                "sources": [
+                  {
+                    "context": "root error",
+                    "attachments": [
+                      {
+                        "file": "tests/common/mod.rs",
+                        "line": 4,
+                        "column": 5
+                      }
+                    ],
+                    "sources": []
+                  }
+                ]
+              },
+              {
+                "context": "context A",
+                "attachments": [
+                  {
+                    "file": "tests/common/snapshots.rs",
+                    "line": 184,
+                    "column": 10
+                  },
+                  "12",
+                  "9",
+                  "8"
+                ],
+                "sources": [
+                  {
+                    "context": "context A",
+                    "attachments": [
+                      {
+                        "file": "tests/common/snapshots.rs",
+                        "line": 183,
+                        "column": 10
+                      }
+                    ],
+                    "sources": [
+                      {
+                        "context": "root error",
+                        "attachments": [
+                          {
+                            "file": "tests/common/mod.rs",
+                            "line": 4,
+                            "column": 5
+                          }
+                        ],
+                        "sources": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

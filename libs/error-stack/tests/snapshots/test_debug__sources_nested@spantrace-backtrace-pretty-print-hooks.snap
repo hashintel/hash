@@ -1,0 +1,128 @@
+---
+source: tests/test_debug.rs
+expression: "format!(\"{report:?}\")"
+---
+context A
+├╴ at tests/common/snapshots.rs:220:10
+├╴ 2
+├╴ 1
+│
+╰┬▶ context A
+ │  ├╴ at tests/common/snapshots.rs:214:10
+ │  ├╴ 4
+ │  ├╴ 3
+ │  │
+ │  ╰─▶ root error
+ │      ├╴ at tests/common/mod.rs:4:5
+ │      ├╴ backtrace (1)
+ │      ├╴ span trace with 2 frames (1)
+ │      ╰╴ 6
+ │
+ ╰▶ context A
+    ├╴ at tests/common/snapshots.rs:209:10
+    ├╴ 5
+    ├╴ 3
+    │
+    ├─▶ context A
+    │   ├╴ at tests/common/snapshots.rs:207:10
+    │   ╰╴ 7
+    │
+    ╰┬▶ context A
+     │  ├╴ at tests/common/snapshots.rs:198:34
+     │  ├╴ 9
+     │  ├╴ 8
+     │  │
+     │  ╰─▶ root error
+     │      ├╴ at tests/common/mod.rs:4:5
+     │      ├╴ backtrace (2)
+     │      ╰╴ span trace with 2 frames (2)
+     │
+     ├▶ context A
+     │  ├╴ at tests/common/snapshots.rs:192:10
+     │  ├╴ 13
+     │  ├╴ 10
+     │  ├╴ 16
+     │  ├╴ 9
+     │  ├╴ 8
+     │  │
+     │  ╰─▶ root error
+     │      ├╴ at tests/common/mod.rs:4:5
+     │      ├╴ backtrace (3)
+     │      ╰╴ span trace with 2 frames (3)
+     │
+     ├▶ context A
+     │  ├╴ at tests/common/snapshots.rs:178:10
+     │  ├╴ 15
+     │  ├╴ 14
+     │  ├╴ 10
+     │  ├╴ 16
+     │  ├╴ 9
+     │  ├╴ 8
+     │  │
+     │  ╰─▶ root error
+     │      ├╴ at tests/common/mod.rs:4:5
+     │      ├╴ backtrace (4)
+     │      ╰╴ span trace with 2 frames (4)
+     │
+     ├▶ context A
+     │  ├╴ at tests/common/snapshots.rs:188:10
+     │  ├╴ 11
+     │  ├╴ 9
+     │  ├╴ 8
+     │  │
+     │  ╰─▶ root error
+     │      ├╴ at tests/common/mod.rs:4:5
+     │      ├╴ backtrace (5)
+     │      ╰╴ span trace with 2 frames (5)
+     │
+     ╰▶ context A
+        ├╴ at tests/common/snapshots.rs:184:10
+        ├╴ 12
+        ├╴ 9
+        ├╴ 8
+        │
+        ├─▶ context A
+        │   ╰╴ at tests/common/snapshots.rs:183:10
+        │
+        ╰─▶ root error
+            ├╴ at tests/common/mod.rs:4:5
+            ├╴ backtrace (6)
+            ╰╴ span trace with 2 frames (6)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+backtrace no. 1
+  [redacted]
+
+span trace No. 1
+  [redacted]
+
+backtrace no. 2
+  [redacted]
+
+span trace No. 2
+  [redacted]
+
+backtrace no. 3
+  [redacted]
+
+span trace No. 3
+  [redacted]
+
+backtrace no. 4
+  [redacted]
+
+span trace No. 4
+  [redacted]
+
+backtrace no. 5
+  [redacted]
+
+span trace No. 5
+  [redacted]
+
+backtrace no. 6
+  [redacted]
+
+span trace No. 6
+  [redacted]

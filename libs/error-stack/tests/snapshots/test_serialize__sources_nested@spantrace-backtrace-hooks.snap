@@ -1,0 +1,849 @@
+---
+source: tests/test_serialize.rs
+expression: report
+---
+[
+  {
+    "context": "context A",
+    "attachments": [
+      {
+        "file": "tests/common/snapshots.rs",
+        "line": 219,
+        "column": 10
+      },
+      "2",
+      "1"
+    ],
+    "sources": [
+      {
+        "context": "context A",
+        "attachments": [
+          {
+            "file": "tests/common/snapshots.rs",
+            "line": 213,
+            "column": 10
+          },
+          "4",
+          "3"
+        ],
+        "sources": [
+          {
+            "context": "root error",
+            "attachments": [
+              {
+                "file": "tests/common/mod.rs",
+                "line": 4,
+                "column": 5
+              },
+              [
+                "   0: std::backtrace_rs::backtrace::libunwind::trace",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/../../backtrace/src/backtrace/libunwind.rs:93:5",
+                "   1: std::backtrace_rs::backtrace::trace_unsynchronized",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/../../backtrace/src/backtrace/mod.rs:66:5",
+                "   2: std::backtrace::Backtrace::create",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/backtrace.rs:332:13",
+                "   3: core::ops::function::FnOnce::call_once",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                "   4: core::bool::<impl bool>::then",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/bool.rs:71:24",
+                "   5: error_stack::report::Report<C>::from_frame",
+                "             at ./src/report.rs:288:25",
+                "   6: error_stack::report::Report<C>::new",
+                "             at ./src/report.rs:274:9",
+                "   7: test_serialize::common::create_report",
+                "             at ./tests/common/mod.rs:4:5",
+                "   8: test_serialize::common::create_error",
+                "             at ./tests/common/mod.rs:168:9",
+                "   9: test_serialize::common::snapshots::create_report::func_b",
+                "             at ./tests/common/snapshots.rs:82:9",
+                "  10: test_serialize::common::snapshots::create_report::func_a",
+                "             at ./tests/common/snapshots.rs:87:9",
+                "  11: core::ops::function::FnOnce::call_once",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                "  12: test_serialize::common::capture_error",
+                "             at ./tests/common/mod.rs:180:5",
+                "  13: test_serialize::common::snapshots::create_report",
+                "             at ./tests/common/snapshots.rs:90:5",
+                "  14: test_serialize::common::snapshots::create_sources_nested",
+                "             at ./tests/common/snapshots.rs:211:18",
+                "  15: test_serialize::sources_nested",
+                "             at ./tests/test_serialize.rs:26:18",
+                "  16: test_serialize::sources_nested::{{closure}}",
+                "             at ./tests/test_serialize.rs:23:21",
+                "  17: core::ops::function::FnOnce::call_once",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                "  18: core::ops::function::FnOnce::call_once",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                "  19: test::__rust_begin_short_backtrace",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/test/src/lib.rs:657:18",
+                "  20: <alloc::boxed::Box<F,A> as core::ops::function::FnOnce<Args>>::call_once",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/alloc/src/boxed.rs:2000:9",
+                "  21: <core::panic::unwind_safe::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/panic/unwind_safe.rs:271:9",
+                "  22: std::panicking::try::do_call",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panicking.rs:483:40",
+                "  23: std::panicking::try",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panicking.rs:447:19",
+                "  24: std::panic::catch_unwind",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panic.rs:137:14",
+                "  25: test::run_test_in_process",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/test/src/lib.rs:680:27",
+                "  26: test::run_test::run_test_inner::{{closure}}",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/test/src/lib.rs:574:39",
+                "  27: test::run_test::run_test_inner::{{closure}}",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/test/src/lib.rs:601:37",
+                "  28: std::sys_common::backtrace::__rust_begin_short_backtrace",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/sys_common/backtrace.rs:121:18",
+                "  29: std::thread::Builder::spawn_unchecked_::{{closure}}::{{closure}}",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/thread/mod.rs:550:17",
+                "  30: <core::panic::unwind_safe::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/panic/unwind_safe.rs:271:9",
+                "  31: std::panicking::try::do_call",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panicking.rs:483:40",
+                "  32: std::panicking::try",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panicking.rs:447:19",
+                "  33: std::panic::catch_unwind",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panic.rs:137:14",
+                "  34: std::thread::Builder::spawn_unchecked_::{{closure}}",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/thread/mod.rs:549:30",
+                "  35: core::ops::function::FnOnce::call_once{{vtable.shim}}",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                "  36: <alloc::boxed::Box<F,A> as core::ops::function::FnOnce<Args>>::call_once",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/alloc/src/boxed.rs:2000:9",
+                "  37: <alloc::boxed::Box<F,A> as core::ops::function::FnOnce<Args>>::call_once",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/alloc/src/boxed.rs:2000:9",
+                "  38: std::sys::unix::thread::Thread::new::thread_start",
+                "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/sys/unix/thread.rs:108:17",
+                "  39: __pthread_deallocate"
+              ],
+              {
+                "spans": [
+                  {
+                    "fields": [],
+                    "level": "INFO",
+                    "name": "func_b",
+                    "target": "test_serialize::common::snapshots",
+                    "module_path": "test_serialize::common::snapshots",
+                    "file": "tests/common/snapshots.rs",
+                    "line": 80,
+                    "type": "span"
+                  },
+                  {
+                    "fields": [],
+                    "level": "INFO",
+                    "name": "func_a",
+                    "target": "test_serialize::common::snapshots",
+                    "module_path": "test_serialize::common::snapshots",
+                    "file": "tests/common/snapshots.rs",
+                    "line": 85,
+                    "type": "span"
+                  }
+                ]
+              },
+              "6"
+            ],
+            "sources": []
+          }
+        ]
+      },
+      {
+        "context": "context A",
+        "attachments": [
+          {
+            "file": "tests/common/snapshots.rs",
+            "line": 208,
+            "column": 10
+          },
+          "5",
+          "3"
+        ],
+        "sources": [
+          {
+            "context": "context A",
+            "attachments": [
+              {
+                "file": "tests/common/snapshots.rs",
+                "line": 206,
+                "column": 10
+              },
+              "7"
+            ],
+            "sources": [
+              {
+                "context": "context A",
+                "attachments": [
+                  {
+                    "file": "tests/common/snapshots.rs",
+                    "line": 197,
+                    "column": 34
+                  },
+                  "9",
+                  "8"
+                ],
+                "sources": [
+                  {
+                    "context": "root error",
+                    "attachments": [
+                      {
+                        "file": "tests/common/mod.rs",
+                        "line": 4,
+                        "column": 5
+                      },
+                      [
+                        "   0: std::backtrace_rs::backtrace::libunwind::trace",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/../../backtrace/src/backtrace/libunwind.rs:93:5",
+                        "   1: std::backtrace_rs::backtrace::trace_unsynchronized",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/../../backtrace/src/backtrace/mod.rs:66:5",
+                        "   2: std::backtrace::Backtrace::create",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/backtrace.rs:332:13",
+                        "   3: core::ops::function::FnOnce::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                        "   4: core::bool::<impl bool>::then",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/bool.rs:71:24",
+                        "   5: error_stack::report::Report<C>::from_frame",
+                        "             at ./src/report.rs:288:25",
+                        "   6: error_stack::report::Report<C>::new",
+                        "             at ./src/report.rs:274:9",
+                        "   7: test_serialize::common::create_report",
+                        "             at ./tests/common/mod.rs:4:5",
+                        "   8: test_serialize::common::create_error",
+                        "             at ./tests/common/mod.rs:168:9",
+                        "   9: test_serialize::common::snapshots::create_report::func_b",
+                        "             at ./tests/common/snapshots.rs:82:9",
+                        "  10: test_serialize::common::snapshots::create_report::func_a",
+                        "             at ./tests/common/snapshots.rs:87:9",
+                        "  11: core::ops::function::FnOnce::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                        "  12: test_serialize::common::capture_error",
+                        "             at ./tests/common/mod.rs:180:5",
+                        "  13: test_serialize::common::snapshots::create_report",
+                        "             at ./tests/common/snapshots.rs:90:5",
+                        "  14: test_serialize::common::snapshots::create_sources_nested",
+                        "             at ./tests/common/snapshots.rs:197:18",
+                        "  15: test_serialize::sources_nested",
+                        "             at ./tests/test_serialize.rs:26:18",
+                        "  16: test_serialize::sources_nested::{{closure}}",
+                        "             at ./tests/test_serialize.rs:23:21",
+                        "  17: core::ops::function::FnOnce::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                        "  18: core::ops::function::FnOnce::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                        "  19: test::__rust_begin_short_backtrace",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/test/src/lib.rs:657:18",
+                        "  20: <alloc::boxed::Box<F,A> as core::ops::function::FnOnce<Args>>::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/alloc/src/boxed.rs:2000:9",
+                        "  21: <core::panic::unwind_safe::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/panic/unwind_safe.rs:271:9",
+                        "  22: std::panicking::try::do_call",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panicking.rs:483:40",
+                        "  23: std::panicking::try",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panicking.rs:447:19",
+                        "  24: std::panic::catch_unwind",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panic.rs:137:14",
+                        "  25: test::run_test_in_process",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/test/src/lib.rs:680:27",
+                        "  26: test::run_test::run_test_inner::{{closure}}",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/test/src/lib.rs:574:39",
+                        "  27: test::run_test::run_test_inner::{{closure}}",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/test/src/lib.rs:601:37",
+                        "  28: std::sys_common::backtrace::__rust_begin_short_backtrace",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/sys_common/backtrace.rs:121:18",
+                        "  29: std::thread::Builder::spawn_unchecked_::{{closure}}::{{closure}}",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/thread/mod.rs:550:17",
+                        "  30: <core::panic::unwind_safe::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/panic/unwind_safe.rs:271:9",
+                        "  31: std::panicking::try::do_call",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panicking.rs:483:40",
+                        "  32: std::panicking::try",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panicking.rs:447:19",
+                        "  33: std::panic::catch_unwind",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panic.rs:137:14",
+                        "  34: std::thread::Builder::spawn_unchecked_::{{closure}}",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/thread/mod.rs:549:30",
+                        "  35: core::ops::function::FnOnce::call_once{{vtable.shim}}",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                        "  36: <alloc::boxed::Box<F,A> as core::ops::function::FnOnce<Args>>::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/alloc/src/boxed.rs:2000:9",
+                        "  37: <alloc::boxed::Box<F,A> as core::ops::function::FnOnce<Args>>::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/alloc/src/boxed.rs:2000:9",
+                        "  38: std::sys::unix::thread::Thread::new::thread_start",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/sys/unix/thread.rs:108:17",
+                        "  39: __pthread_deallocate"
+                      ],
+                      {
+                        "spans": [
+                          {
+                            "fields": [],
+                            "level": "INFO",
+                            "name": "func_b",
+                            "target": "test_serialize::common::snapshots",
+                            "module_path": "test_serialize::common::snapshots",
+                            "file": "tests/common/snapshots.rs",
+                            "line": 80,
+                            "type": "span"
+                          },
+                          {
+                            "fields": [],
+                            "level": "INFO",
+                            "name": "func_a",
+                            "target": "test_serialize::common::snapshots",
+                            "module_path": "test_serialize::common::snapshots",
+                            "file": "tests/common/snapshots.rs",
+                            "line": 85,
+                            "type": "span"
+                          }
+                        ]
+                      }
+                    ],
+                    "sources": []
+                  }
+                ]
+              },
+              {
+                "context": "context A",
+                "attachments": [
+                  {
+                    "file": "tests/common/snapshots.rs",
+                    "line": 191,
+                    "column": 10
+                  },
+                  "13",
+                  "10",
+                  "16",
+                  "9",
+                  "8"
+                ],
+                "sources": [
+                  {
+                    "context": "root error",
+                    "attachments": [
+                      {
+                        "file": "tests/common/mod.rs",
+                        "line": 4,
+                        "column": 5
+                      },
+                      [
+                        "   0: std::backtrace_rs::backtrace::libunwind::trace",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/../../backtrace/src/backtrace/libunwind.rs:93:5",
+                        "   1: std::backtrace_rs::backtrace::trace_unsynchronized",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/../../backtrace/src/backtrace/mod.rs:66:5",
+                        "   2: std::backtrace::Backtrace::create",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/backtrace.rs:332:13",
+                        "   3: core::ops::function::FnOnce::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                        "   4: core::bool::<impl bool>::then",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/bool.rs:71:24",
+                        "   5: error_stack::report::Report<C>::from_frame",
+                        "             at ./src/report.rs:288:25",
+                        "   6: error_stack::report::Report<C>::new",
+                        "             at ./src/report.rs:274:9",
+                        "   7: test_serialize::common::create_report",
+                        "             at ./tests/common/mod.rs:4:5",
+                        "   8: test_serialize::common::create_error",
+                        "             at ./tests/common/mod.rs:168:9",
+                        "   9: test_serialize::common::snapshots::create_report::func_b",
+                        "             at ./tests/common/snapshots.rs:82:9",
+                        "  10: test_serialize::common::snapshots::create_report::func_a",
+                        "             at ./tests/common/snapshots.rs:87:9",
+                        "  11: core::ops::function::FnOnce::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                        "  12: test_serialize::common::capture_error",
+                        "             at ./tests/common/mod.rs:180:5",
+                        "  13: test_serialize::common::snapshots::create_report",
+                        "             at ./tests/common/snapshots.rs:90:5",
+                        "  14: test_serialize::common::snapshots::create_sources_nested",
+                        "             at ./tests/common/snapshots.rs:190:18",
+                        "  15: test_serialize::sources_nested",
+                        "             at ./tests/test_serialize.rs:26:18",
+                        "  16: test_serialize::sources_nested::{{closure}}",
+                        "             at ./tests/test_serialize.rs:23:21",
+                        "  17: core::ops::function::FnOnce::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                        "  18: core::ops::function::FnOnce::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                        "  19: test::__rust_begin_short_backtrace",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/test/src/lib.rs:657:18",
+                        "  20: <alloc::boxed::Box<F,A> as core::ops::function::FnOnce<Args>>::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/alloc/src/boxed.rs:2000:9",
+                        "  21: <core::panic::unwind_safe::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/panic/unwind_safe.rs:271:9",
+                        "  22: std::panicking::try::do_call",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panicking.rs:483:40",
+                        "  23: std::panicking::try",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panicking.rs:447:19",
+                        "  24: std::panic::catch_unwind",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panic.rs:137:14",
+                        "  25: test::run_test_in_process",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/test/src/lib.rs:680:27",
+                        "  26: test::run_test::run_test_inner::{{closure}}",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/test/src/lib.rs:574:39",
+                        "  27: test::run_test::run_test_inner::{{closure}}",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/test/src/lib.rs:601:37",
+                        "  28: std::sys_common::backtrace::__rust_begin_short_backtrace",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/sys_common/backtrace.rs:121:18",
+                        "  29: std::thread::Builder::spawn_unchecked_::{{closure}}::{{closure}}",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/thread/mod.rs:550:17",
+                        "  30: <core::panic::unwind_safe::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/panic/unwind_safe.rs:271:9",
+                        "  31: std::panicking::try::do_call",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panicking.rs:483:40",
+                        "  32: std::panicking::try",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panicking.rs:447:19",
+                        "  33: std::panic::catch_unwind",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panic.rs:137:14",
+                        "  34: std::thread::Builder::spawn_unchecked_::{{closure}}",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/thread/mod.rs:549:30",
+                        "  35: core::ops::function::FnOnce::call_once{{vtable.shim}}",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                        "  36: <alloc::boxed::Box<F,A> as core::ops::function::FnOnce<Args>>::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/alloc/src/boxed.rs:2000:9",
+                        "  37: <alloc::boxed::Box<F,A> as core::ops::function::FnOnce<Args>>::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/alloc/src/boxed.rs:2000:9",
+                        "  38: std::sys::unix::thread::Thread::new::thread_start",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/sys/unix/thread.rs:108:17",
+                        "  39: __pthread_deallocate"
+                      ],
+                      {
+                        "spans": [
+                          {
+                            "fields": [],
+                            "level": "INFO",
+                            "name": "func_b",
+                            "target": "test_serialize::common::snapshots",
+                            "module_path": "test_serialize::common::snapshots",
+                            "file": "tests/common/snapshots.rs",
+                            "line": 80,
+                            "type": "span"
+                          },
+                          {
+                            "fields": [],
+                            "level": "INFO",
+                            "name": "func_a",
+                            "target": "test_serialize::common::snapshots",
+                            "module_path": "test_serialize::common::snapshots",
+                            "file": "tests/common/snapshots.rs",
+                            "line": 85,
+                            "type": "span"
+                          }
+                        ]
+                      }
+                    ],
+                    "sources": []
+                  }
+                ]
+              },
+              {
+                "context": "context A",
+                "attachments": [
+                  {
+                    "file": "tests/common/snapshots.rs",
+                    "line": 177,
+                    "column": 10
+                  },
+                  "15",
+                  "14",
+                  "10",
+                  "16",
+                  "9",
+                  "8"
+                ],
+                "sources": [
+                  {
+                    "context": "root error",
+                    "attachments": [
+                      {
+                        "file": "tests/common/mod.rs",
+                        "line": 4,
+                        "column": 5
+                      },
+                      [
+                        "   0: std::backtrace_rs::backtrace::libunwind::trace",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/../../backtrace/src/backtrace/libunwind.rs:93:5",
+                        "   1: std::backtrace_rs::backtrace::trace_unsynchronized",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/../../backtrace/src/backtrace/mod.rs:66:5",
+                        "   2: std::backtrace::Backtrace::create",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/backtrace.rs:332:13",
+                        "   3: core::ops::function::FnOnce::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                        "   4: core::bool::<impl bool>::then",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/bool.rs:71:24",
+                        "   5: error_stack::report::Report<C>::from_frame",
+                        "             at ./src/report.rs:288:25",
+                        "   6: error_stack::report::Report<C>::new",
+                        "             at ./src/report.rs:274:9",
+                        "   7: test_serialize::common::create_report",
+                        "             at ./tests/common/mod.rs:4:5",
+                        "   8: test_serialize::common::create_error",
+                        "             at ./tests/common/mod.rs:168:9",
+                        "   9: test_serialize::common::snapshots::create_report::func_b",
+                        "             at ./tests/common/snapshots.rs:82:9",
+                        "  10: test_serialize::common::snapshots::create_report::func_a",
+                        "             at ./tests/common/snapshots.rs:87:9",
+                        "  11: core::ops::function::FnOnce::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                        "  12: test_serialize::common::capture_error",
+                        "             at ./tests/common/mod.rs:180:5",
+                        "  13: test_serialize::common::snapshots::create_report",
+                        "             at ./tests/common/snapshots.rs:90:5",
+                        "  14: test_serialize::common::snapshots::create_sources_nested",
+                        "             at ./tests/common/snapshots.rs:176:14",
+                        "  15: test_serialize::sources_nested",
+                        "             at ./tests/test_serialize.rs:26:18",
+                        "  16: test_serialize::sources_nested::{{closure}}",
+                        "             at ./tests/test_serialize.rs:23:21",
+                        "  17: core::ops::function::FnOnce::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                        "  18: core::ops::function::FnOnce::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                        "  19: test::__rust_begin_short_backtrace",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/test/src/lib.rs:657:18",
+                        "  20: <alloc::boxed::Box<F,A> as core::ops::function::FnOnce<Args>>::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/alloc/src/boxed.rs:2000:9",
+                        "  21: <core::panic::unwind_safe::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/panic/unwind_safe.rs:271:9",
+                        "  22: std::panicking::try::do_call",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panicking.rs:483:40",
+                        "  23: std::panicking::try",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panicking.rs:447:19",
+                        "  24: std::panic::catch_unwind",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panic.rs:137:14",
+                        "  25: test::run_test_in_process",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/test/src/lib.rs:680:27",
+                        "  26: test::run_test::run_test_inner::{{closure}}",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/test/src/lib.rs:574:39",
+                        "  27: test::run_test::run_test_inner::{{closure}}",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/test/src/lib.rs:601:37",
+                        "  28: std::sys_common::backtrace::__rust_begin_short_backtrace",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/sys_common/backtrace.rs:121:18",
+                        "  29: std::thread::Builder::spawn_unchecked_::{{closure}}::{{closure}}",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/thread/mod.rs:550:17",
+                        "  30: <core::panic::unwind_safe::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/panic/unwind_safe.rs:271:9",
+                        "  31: std::panicking::try::do_call",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panicking.rs:483:40",
+                        "  32: std::panicking::try",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panicking.rs:447:19",
+                        "  33: std::panic::catch_unwind",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panic.rs:137:14",
+                        "  34: std::thread::Builder::spawn_unchecked_::{{closure}}",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/thread/mod.rs:549:30",
+                        "  35: core::ops::function::FnOnce::call_once{{vtable.shim}}",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                        "  36: <alloc::boxed::Box<F,A> as core::ops::function::FnOnce<Args>>::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/alloc/src/boxed.rs:2000:9",
+                        "  37: <alloc::boxed::Box<F,A> as core::ops::function::FnOnce<Args>>::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/alloc/src/boxed.rs:2000:9",
+                        "  38: std::sys::unix::thread::Thread::new::thread_start",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/sys/unix/thread.rs:108:17",
+                        "  39: __pthread_deallocate"
+                      ],
+                      {
+                        "spans": [
+                          {
+                            "fields": [],
+                            "level": "INFO",
+                            "name": "func_b",
+                            "target": "test_serialize::common::snapshots",
+                            "module_path": "test_serialize::common::snapshots",
+                            "file": "tests/common/snapshots.rs",
+                            "line": 80,
+                            "type": "span"
+                          },
+                          {
+                            "fields": [],
+                            "level": "INFO",
+                            "name": "func_a",
+                            "target": "test_serialize::common::snapshots",
+                            "module_path": "test_serialize::common::snapshots",
+                            "file": "tests/common/snapshots.rs",
+                            "line": 85,
+                            "type": "span"
+                          }
+                        ]
+                      }
+                    ],
+                    "sources": []
+                  }
+                ]
+              },
+              {
+                "context": "context A",
+                "attachments": [
+                  {
+                    "file": "tests/common/snapshots.rs",
+                    "line": 187,
+                    "column": 10
+                  },
+                  "11",
+                  "9",
+                  "8"
+                ],
+                "sources": [
+                  {
+                    "context": "root error",
+                    "attachments": [
+                      {
+                        "file": "tests/common/mod.rs",
+                        "line": 4,
+                        "column": 5
+                      },
+                      [
+                        "   0: std::backtrace_rs::backtrace::libunwind::trace",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/../../backtrace/src/backtrace/libunwind.rs:93:5",
+                        "   1: std::backtrace_rs::backtrace::trace_unsynchronized",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/../../backtrace/src/backtrace/mod.rs:66:5",
+                        "   2: std::backtrace::Backtrace::create",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/backtrace.rs:332:13",
+                        "   3: core::ops::function::FnOnce::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                        "   4: core::bool::<impl bool>::then",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/bool.rs:71:24",
+                        "   5: error_stack::report::Report<C>::from_frame",
+                        "             at ./src/report.rs:288:25",
+                        "   6: error_stack::report::Report<C>::new",
+                        "             at ./src/report.rs:274:9",
+                        "   7: test_serialize::common::create_report",
+                        "             at ./tests/common/mod.rs:4:5",
+                        "   8: test_serialize::common::create_error",
+                        "             at ./tests/common/mod.rs:168:9",
+                        "   9: test_serialize::common::snapshots::create_report::func_b",
+                        "             at ./tests/common/snapshots.rs:82:9",
+                        "  10: test_serialize::common::snapshots::create_report::func_a",
+                        "             at ./tests/common/snapshots.rs:87:9",
+                        "  11: core::ops::function::FnOnce::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                        "  12: test_serialize::common::capture_error",
+                        "             at ./tests/common/mod.rs:180:5",
+                        "  13: test_serialize::common::snapshots::create_report",
+                        "             at ./tests/common/snapshots.rs:90:5",
+                        "  14: test_serialize::common::snapshots::create_sources_nested",
+                        "             at ./tests/common/snapshots.rs:186:14",
+                        "  15: test_serialize::sources_nested",
+                        "             at ./tests/test_serialize.rs:26:18",
+                        "  16: test_serialize::sources_nested::{{closure}}",
+                        "             at ./tests/test_serialize.rs:23:21",
+                        "  17: core::ops::function::FnOnce::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                        "  18: core::ops::function::FnOnce::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                        "  19: test::__rust_begin_short_backtrace",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/test/src/lib.rs:657:18",
+                        "  20: <alloc::boxed::Box<F,A> as core::ops::function::FnOnce<Args>>::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/alloc/src/boxed.rs:2000:9",
+                        "  21: <core::panic::unwind_safe::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/panic/unwind_safe.rs:271:9",
+                        "  22: std::panicking::try::do_call",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panicking.rs:483:40",
+                        "  23: std::panicking::try",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panicking.rs:447:19",
+                        "  24: std::panic::catch_unwind",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panic.rs:137:14",
+                        "  25: test::run_test_in_process",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/test/src/lib.rs:680:27",
+                        "  26: test::run_test::run_test_inner::{{closure}}",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/test/src/lib.rs:574:39",
+                        "  27: test::run_test::run_test_inner::{{closure}}",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/test/src/lib.rs:601:37",
+                        "  28: std::sys_common::backtrace::__rust_begin_short_backtrace",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/sys_common/backtrace.rs:121:18",
+                        "  29: std::thread::Builder::spawn_unchecked_::{{closure}}::{{closure}}",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/thread/mod.rs:550:17",
+                        "  30: <core::panic::unwind_safe::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/panic/unwind_safe.rs:271:9",
+                        "  31: std::panicking::try::do_call",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panicking.rs:483:40",
+                        "  32: std::panicking::try",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panicking.rs:447:19",
+                        "  33: std::panic::catch_unwind",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panic.rs:137:14",
+                        "  34: std::thread::Builder::spawn_unchecked_::{{closure}}",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/thread/mod.rs:549:30",
+                        "  35: core::ops::function::FnOnce::call_once{{vtable.shim}}",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                        "  36: <alloc::boxed::Box<F,A> as core::ops::function::FnOnce<Args>>::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/alloc/src/boxed.rs:2000:9",
+                        "  37: <alloc::boxed::Box<F,A> as core::ops::function::FnOnce<Args>>::call_once",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/alloc/src/boxed.rs:2000:9",
+                        "  38: std::sys::unix::thread::Thread::new::thread_start",
+                        "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/sys/unix/thread.rs:108:17",
+                        "  39: __pthread_deallocate"
+                      ],
+                      {
+                        "spans": [
+                          {
+                            "fields": [],
+                            "level": "INFO",
+                            "name": "func_b",
+                            "target": "test_serialize::common::snapshots",
+                            "module_path": "test_serialize::common::snapshots",
+                            "file": "tests/common/snapshots.rs",
+                            "line": 80,
+                            "type": "span"
+                          },
+                          {
+                            "fields": [],
+                            "level": "INFO",
+                            "name": "func_a",
+                            "target": "test_serialize::common::snapshots",
+                            "module_path": "test_serialize::common::snapshots",
+                            "file": "tests/common/snapshots.rs",
+                            "line": 85,
+                            "type": "span"
+                          }
+                        ]
+                      }
+                    ],
+                    "sources": []
+                  }
+                ]
+              },
+              {
+                "context": "context A",
+                "attachments": [
+                  {
+                    "file": "tests/common/snapshots.rs",
+                    "line": 183,
+                    "column": 10
+                  },
+                  "12",
+                  "9",
+                  "8"
+                ],
+                "sources": [
+                  {
+                    "context": "context A",
+                    "attachments": [
+                      {
+                        "file": "tests/common/snapshots.rs",
+                        "line": 182,
+                        "column": 10
+                      }
+                    ],
+                    "sources": [
+                      {
+                        "context": "root error",
+                        "attachments": [
+                          {
+                            "file": "tests/common/mod.rs",
+                            "line": 4,
+                            "column": 5
+                          },
+                          [
+                            "   0: std::backtrace_rs::backtrace::libunwind::trace",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/../../backtrace/src/backtrace/libunwind.rs:93:5",
+                            "   1: std::backtrace_rs::backtrace::trace_unsynchronized",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/../../backtrace/src/backtrace/mod.rs:66:5",
+                            "   2: std::backtrace::Backtrace::create",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/backtrace.rs:332:13",
+                            "   3: core::ops::function::FnOnce::call_once",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                            "   4: core::bool::<impl bool>::then",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/bool.rs:71:24",
+                            "   5: error_stack::report::Report<C>::from_frame",
+                            "             at ./src/report.rs:288:25",
+                            "   6: error_stack::report::Report<C>::new",
+                            "             at ./src/report.rs:274:9",
+                            "   7: test_serialize::common::create_report",
+                            "             at ./tests/common/mod.rs:4:5",
+                            "   8: test_serialize::common::create_error",
+                            "             at ./tests/common/mod.rs:168:9",
+                            "   9: test_serialize::common::snapshots::create_report::func_b",
+                            "             at ./tests/common/snapshots.rs:82:9",
+                            "  10: test_serialize::common::snapshots::create_report::func_a",
+                            "             at ./tests/common/snapshots.rs:87:9",
+                            "  11: core::ops::function::FnOnce::call_once",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                            "  12: test_serialize::common::capture_error",
+                            "             at ./tests/common/mod.rs:180:5",
+                            "  13: test_serialize::common::snapshots::create_report",
+                            "             at ./tests/common/snapshots.rs:90:5",
+                            "  14: test_serialize::common::snapshots::create_sources_nested",
+                            "             at ./tests/common/snapshots.rs:181:14",
+                            "  15: test_serialize::sources_nested",
+                            "             at ./tests/test_serialize.rs:26:18",
+                            "  16: test_serialize::sources_nested::{{closure}}",
+                            "             at ./tests/test_serialize.rs:23:21",
+                            "  17: core::ops::function::FnOnce::call_once",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                            "  18: core::ops::function::FnOnce::call_once",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                            "  19: test::__rust_begin_short_backtrace",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/test/src/lib.rs:657:18",
+                            "  20: <alloc::boxed::Box<F,A> as core::ops::function::FnOnce<Args>>::call_once",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/alloc/src/boxed.rs:2000:9",
+                            "  21: <core::panic::unwind_safe::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/panic/unwind_safe.rs:271:9",
+                            "  22: std::panicking::try::do_call",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panicking.rs:483:40",
+                            "  23: std::panicking::try",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panicking.rs:447:19",
+                            "  24: std::panic::catch_unwind",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panic.rs:137:14",
+                            "  25: test::run_test_in_process",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/test/src/lib.rs:680:27",
+                            "  26: test::run_test::run_test_inner::{{closure}}",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/test/src/lib.rs:574:39",
+                            "  27: test::run_test::run_test_inner::{{closure}}",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/test/src/lib.rs:601:37",
+                            "  28: std::sys_common::backtrace::__rust_begin_short_backtrace",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/sys_common/backtrace.rs:121:18",
+                            "  29: std::thread::Builder::spawn_unchecked_::{{closure}}::{{closure}}",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/thread/mod.rs:550:17",
+                            "  30: <core::panic::unwind_safe::AssertUnwindSafe<F> as core::ops::function::FnOnce<()>>::call_once",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/panic/unwind_safe.rs:271:9",
+                            "  31: std::panicking::try::do_call",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panicking.rs:483:40",
+                            "  32: std::panicking::try",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panicking.rs:447:19",
+                            "  33: std::panic::catch_unwind",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/panic.rs:137:14",
+                            "  34: std::thread::Builder::spawn_unchecked_::{{closure}}",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/thread/mod.rs:549:30",
+                            "  35: core::ops::function::FnOnce::call_once{{vtable.shim}}",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/core/src/ops/function.rs:507:5",
+                            "  36: <alloc::boxed::Box<F,A> as core::ops::function::FnOnce<Args>>::call_once",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/alloc/src/boxed.rs:2000:9",
+                            "  37: <alloc::boxed::Box<F,A> as core::ops::function::FnOnce<Args>>::call_once",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/alloc/src/boxed.rs:2000:9",
+                            "  38: std::sys::unix::thread::Thread::new::thread_start",
+                            "             at /rustc/7632db0e87d8adccc9a83a47795c9411b1455855/library/std/src/sys/unix/thread.rs:108:17",
+                            "  39: __pthread_deallocate"
+                          ],
+                          {
+                            "spans": [
+                              {
+                                "fields": [],
+                                "level": "INFO",
+                                "name": "func_b",
+                                "target": "test_serialize::common::snapshots",
+                                "module_path": "test_serialize::common::snapshots",
+                                "file": "tests/common/snapshots.rs",
+                                "line": 80,
+                                "type": "span"
+                              },
+                              {
+                                "fields": [],
+                                "level": "INFO",
+                                "name": "func_a",
+                                "target": "test_serialize::common::snapshots",
+                                "module_path": "test_serialize::common::snapshots",
+                                "file": "tests/common/snapshots.rs",
+                                "line": 85,
+                                "type": "span"
+                              }
+                            ]
+                          }
+                        ],
+                        "sources": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -476,6 +476,8 @@ pub mod iter;
 
 mod compat;
 mod frame;
+#[cfg(any(feature = "std", feature = "hooks"))]
+mod hook;
 mod macros;
 mod report;
 mod result;
@@ -484,10 +486,8 @@ mod context;
 #[cfg(any(nightly, feature = "std"))]
 mod error;
 pub mod fmt;
-#[cfg(any(feature = "std", feature = "hooks"))]
-mod hook;
 #[cfg(feature = "serde")]
-mod serde;
+pub mod serde;
 
 pub use self::{
     compat::IntoReportCompat,

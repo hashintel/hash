@@ -1,8 +1,12 @@
+// This is a mod.rs not module.rs, because otherwise CLion does not
+// recognize the snapshots.rs file :/
 #![allow(dead_code)]
 
 pub fn create_report() -> Report<RootError> {
     Report::new(RootError)
 }
+
+pub mod snapshots;
 
 extern crate alloc;
 

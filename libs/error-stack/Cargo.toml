@@ -18,10 +18,12 @@ keywords = ["error", "errorstack", "error-handling", "report", "no_std"]
 categories = ["rust-patterns", "no-std"]
 
 [dependencies]
+tracing-core = { version = "0.1", optional = true, default_features = false }
 tracing-error = { version = "0.2", optional = true, default_features = false }
 anyhow = { version = "1.0.65", default-features = false, optional = true }
 eyre = { version = "0.6", default-features = false, optional = true }
 serde = { version = "1", default-features = false, optional = true }
+erased-serde = { version = "0.3.23", default-features = false, optional = true, features = ['alloc'] }
 spin = { version = "0.9", default-features = false, optional = true, features = ['rwlock', 'once'] }
 
 [dev-dependencies]
@@ -46,10 +48,10 @@ rustc_version = "0.4"
 [features]
 default = ["std"]
 
-spantrace = ["dep:tracing-error", "std"]
+spantrace = ["dep:tracing-error", "dep:tracing-core", "std"]
 std = ["anyhow?/std"]
 eyre = ["dep:eyre", "std"]
-serde = ["dep:serde"]
+serde = ["dep:serde", "dep:erased-serde"]
 hooks = ['dep:spin']
 
 [package.metadata.docs.rs]
@@ -72,8 +74,3 @@ required-features = ["std"]
 [[example]]
 name = "detect"
 required-features = ['std']
-
-
-[[test]]
-name = "common"
-test = false

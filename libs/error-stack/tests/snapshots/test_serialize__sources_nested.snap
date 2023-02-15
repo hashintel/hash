@@ -1,0 +1,155 @@
+---
+source: tests/test_serialize.rs
+expression: report
+---
+[
+  {
+    "context": "context A",
+    "attachments": [
+      "at tests/common/snapshots.rs:220:10",
+      "2",
+      "1"
+    ],
+    "sources": [
+      {
+        "context": "context A",
+        "attachments": [
+          "at tests/common/snapshots.rs:214:10",
+          "4",
+          "3"
+        ],
+        "sources": [
+          {
+            "context": "root error",
+            "attachments": [
+              "at tests/common/mod.rs:4:5",
+              "6"
+            ],
+            "sources": []
+          }
+        ]
+      },
+      {
+        "context": "context A",
+        "attachments": [
+          "at tests/common/snapshots.rs:209:10",
+          "5",
+          "3"
+        ],
+        "sources": [
+          {
+            "context": "context A",
+            "attachments": [
+              "at tests/common/snapshots.rs:207:10",
+              "7"
+            ],
+            "sources": [
+              {
+                "context": "context A",
+                "attachments": [
+                  "at tests/common/snapshots.rs:198:34",
+                  "9",
+                  "8"
+                ],
+                "sources": [
+                  {
+                    "context": "root error",
+                    "attachments": [
+                      "at tests/common/mod.rs:4:5"
+                    ],
+                    "sources": []
+                  }
+                ]
+              },
+              {
+                "context": "context A",
+                "attachments": [
+                  "at tests/common/snapshots.rs:192:10",
+                  "13",
+                  "10",
+                  "16",
+                  "9",
+                  "8"
+                ],
+                "sources": [
+                  {
+                    "context": "root error",
+                    "attachments": [
+                      "at tests/common/mod.rs:4:5"
+                    ],
+                    "sources": []
+                  }
+                ]
+              },
+              {
+                "context": "context A",
+                "attachments": [
+                  "at tests/common/snapshots.rs:178:10",
+                  "15",
+                  "14",
+                  "10",
+                  "16",
+                  "9",
+                  "8"
+                ],
+                "sources": [
+                  {
+                    "context": "root error",
+                    "attachments": [
+                      "at tests/common/mod.rs:4:5"
+                    ],
+                    "sources": []
+                  }
+                ]
+              },
+              {
+                "context": "context A",
+                "attachments": [
+                  "at tests/common/snapshots.rs:188:10",
+                  "11",
+                  "9",
+                  "8"
+                ],
+                "sources": [
+                  {
+                    "context": "root error",
+                    "attachments": [
+                      "at tests/common/mod.rs:4:5"
+                    ],
+                    "sources": []
+                  }
+                ]
+              },
+              {
+                "context": "context A",
+                "attachments": [
+                  "at tests/common/snapshots.rs:184:10",
+                  "12",
+                  "9",
+                  "8"
+                ],
+                "sources": [
+                  {
+                    "context": "context A",
+                    "attachments": [
+                      "at tests/common/snapshots.rs:183:10"
+                    ],
+                    "sources": [
+                      {
+                        "context": "root error",
+                        "attachments": [
+                          "at tests/common/mod.rs:4:5"
+                        ],
+                        "sources": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

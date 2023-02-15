@@ -6,9 +6,12 @@
 use alloc::{boxed::Box, string::String, vec::Vec};
 use core::{any::TypeId, mem};
 
-pub(crate) use default::install_builtin_hooks;
+pub(crate) use default::install_builtin_debug_hooks;
 
-use crate::fmt::{charset::Charset, ColorMode, Frame};
+use crate::{
+    fmt::{charset::Charset, ColorMode, Frame},
+    hook::context::impl_hook_context,
+};
 
 pub(crate) struct Format {
     alternate: bool,
@@ -42,7 +45,7 @@ impl Format {
     }
 }
 
-crate::hook::context::impl_hook_context! {
+impl_hook_context! {
     /// Carrier for contextual information used across hook invocations.
     ///
     /// `HookContext` has two fundamental use-cases:
@@ -418,14 +421,14 @@ fn into_boxed_hook<T: Send + Sync + 'static>(
 /// [`SpanTrace`]: tracing_error::SpanTrace
 /// [`Display`]: core::fmt::Display
 /// [`Debug`]: core::fmt::Debug
-/// [`.insert()`]: Hooks::insert
-pub(crate) struct Hooks {
+/// [`.insert()`]: FmtHooks::insert
+pub(crate) struct FmtHooks {
     // We use `Vec`, instead of `HashMap` or `BTreeMap`, so that ordering is consistent with the
     // insertion order of types.
     pub(crate) inner: Vec<(TypeId, BoxedHook)>,
 }
 
-impl Hooks {
+impl FmtHooks {
     pub(crate) fn insert<T: Send + Sync + 'static>(
         &mut self,
         hook: impl Fn(&T, &mut HookContext<T>) + Send + Sync + 'static,
@@ -472,7 +475,7 @@ mod default {
         Report,
     };
 
-    pub(crate) fn install_builtin_hooks() {
+    pub(crate) fn install_builtin_debug_hooks() {
         // We could in theory remove this and replace it with a single AtomicBool.
         static INSTALL_BUILTIN: Once = Once::new();
 

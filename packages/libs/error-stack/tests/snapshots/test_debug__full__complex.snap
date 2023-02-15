@@ -1,0 +1,49 @@
+---
+source: tests/test_debug.rs
+expression: "format!(\"{report:?}\")"
+---
+context A
+├╴ at tests/test_debug.rs:241:14
+├╴ printable A
+│
+╰┬▶ root error
+ │  ├╴ at tests/common/mod.rs:4:5
+ │  ├╴ backtrace (1)
+ │  ├╴ span trace with 2 frames (1)
+ │  ╰╴ printable A
+ │
+ ├▶ root error
+ │  ├╴ at tests/common/mod.rs:4:5
+ │  ├╴ backtrace (2)
+ │  ├╴ span trace with 2 frames (2)
+ │  ├╴ printable B
+ │  ├╴ Test
+ │  ╰╴ 1 additional opaque attachment
+ │
+ ╰▶ root error
+    ├╴ at tests/common/mod.rs:4:5
+    ├╴ backtrace (3)
+    ├╴ span trace with 2 frames (3)
+    ├╴ printable B
+    ├╴ Test
+    ╰╴ 3 additional opaque attachments
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+backtrace no. 1
+  [redacted]
+
+span trace No. 1
+  [redacted]
+
+backtrace no. 2
+  [redacted]
+
+span trace No. 2
+  [redacted]
+
+backtrace no. 3
+  [redacted]
+
+span trace No. 3
+  [redacted]
