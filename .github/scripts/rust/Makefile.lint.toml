@@ -14,10 +14,10 @@ use std::fs;
 use std::collections::{HashMap, HashSet};
 
 enum LintLevel {
-    Deny,
     Allow,
+    Warn,
+    Deny,
     Forbid,
-    Warn
 }
 
 struct Lints(HashMap<String, LintLevel>);
@@ -48,15 +48,31 @@ impl Lints {
         for lint in file.forbid {
             self.0.insert(lint, LintLevel::Forbid);
         }
+
+        for lint in file.default {
+            self.0.remove(&lint);
+        }
+    }
+
+    pub fn into_file(self) -> LintFile {
+        self.0.into_iter().fold(LintFile::default(), |acc, (lint, level)| {
+            match level {
+                LintLevel::Allow => acc.allow.insert(lint),
+                LintLevel::Warn => acc.warn.insert(lint),
+                LintLevel::Deny => acc.deny.insert(lint),
+                LintLevel::Forbid => acc.forbid.insert(lint),
+            }
+        })
     }
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Serialize, Default)]
 struct LintFile {
     allow: HashSet<String>,
     warn: HashSet<String>,
     deny: HashSet<String>,
     forbid: HashSet<String>,
+    default: HashSet<String>,
 }
 
 fn main() {
@@ -98,5 +114,7 @@ fn main() {
         let file = toml::from_str(&contents).expect(&format!("should be valid toml ({file})"));
         lints.apply(file);
     }
+
+    println!("{}", serde_json::to_string_pretty(&lints.into_file()))
 }
 '''
