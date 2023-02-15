@@ -303,7 +303,7 @@ pub struct ParameterConversionError {
 impl fmt::Display for ParameterConversionError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         let actual = match &self.actual {
-            Parameter::Any(Value::Null) => "null".to_string(),
+            Parameter::Any(Value::Null) => "null".to_owned(),
             Parameter::Boolean(boolean) | Parameter::Any(Value::Bool(boolean)) => {
                 boolean.to_string()
             }
@@ -313,8 +313,8 @@ impl fmt::Display for ParameterConversionError {
             Parameter::Any(Value::String(string)) => string.clone(),
             Parameter::Uuid(uuid) => uuid.to_string(),
             Parameter::OntologyTypeVersion(version) => version.inner().to_string(),
-            Parameter::Any(Value::Object(_)) => "object".to_string(),
-            Parameter::Any(Value::Array(_)) => "array".to_string(),
+            Parameter::Any(Value::Object(_)) => "object".to_owned(),
+            Parameter::Any(Value::Array(_)) => "array".to_owned(),
         };
 
         write!(fmt, "could not convert {actual} to {}", self.expected)
@@ -337,10 +337,10 @@ impl Parameter<'_> {
 
             // Boolean conversions
             (Parameter::Boolean(bool), ParameterType::Any) => {
-                *self = Parameter::Any(Value::Bool(*bool))
+                *self = Parameter::Any(Value::Bool(*bool));
             }
             (Parameter::Any(Value::Bool(bool)), ParameterType::Boolean) => {
-                *self = Parameter::Boolean(*bool)
+                *self = Parameter::Boolean(*bool);
             }
 
             // Number conversions
@@ -352,7 +352,7 @@ impl Parameter<'_> {
                             expected,
                         })
                     },
-                )?))
+                )?));
             }
             (Parameter::Any(Value::Number(number)), ParameterType::Number) => {
                 *self = Parameter::Number(number.as_f64().ok_or_else(|| {
@@ -360,7 +360,7 @@ impl Parameter<'_> {
                         actual: self.to_owned(),
                         expected,
                     })
-                })?)
+                })?);
             }
             (Parameter::Number(number), ParameterType::OntologyTypeVersion) => {
                 // Postgres cannot represent unsigned integer, so we use i64 instead
@@ -380,10 +380,10 @@ impl Parameter<'_> {
 
             // Text conversions
             (Parameter::Text(text), ParameterType::Any) => {
-                *self = Parameter::Any(Value::String(text.to_string()))
+                *self = Parameter::Any(Value::String((*text).to_string()));
             }
             (Parameter::Any(Value::String(string)), ParameterType::Text) => {
-                *self = Parameter::Text(Cow::Owned(string.clone()))
+                *self = Parameter::Text(Cow::Owned(string.clone()));
             }
             (Parameter::Text(_base_uri), ParameterType::BaseUri) => {
                 // TODO: validate base uri

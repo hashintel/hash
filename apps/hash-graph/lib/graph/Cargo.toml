@@ -54,8 +54,3 @@ criterion = "0.4.0"
 __internal_bench = []
 clap = ["dep:clap"]
 type-fetcher = ["dep:type-fetcher", "dep:tarpc", "dep:tokio-serde"]
-
-[[test]]
-test = false
-name = "integration"
-path = "../../tests/integration/lib.rs"

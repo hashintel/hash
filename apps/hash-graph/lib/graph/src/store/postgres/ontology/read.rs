@@ -101,8 +101,7 @@ where
                 let base_uri = BaseUri::new(row.get(base_uri_index))
                     .into_report()
                     .change_context(QueryError)?;
-                let version: i64 = row.get(version_index);
-                let version = OntologyTypeVersion::new(version as u32);
+                let version: OntologyTypeVersion = row.get(version_index);
                 let updated_by_id = UpdatedById::new(row.get(updated_by_id_path_index));
                 let metadata: AdditionalOntologyMetadata = row.get(additional_metadata_index);
 

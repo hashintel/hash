@@ -229,17 +229,11 @@ impl<A> TemporalTagged for UnboundedOrExcludedTimeIntervalBound<A> {
 
 impl<A> IntervalBound<Timestamp<A>> for UnboundedOrExcludedTimeIntervalBound<A> {
     fn as_bound(&self) -> Bound<&Timestamp<A>> {
-        match self.0 {
-            Some(ref limit) => Bound::Excluded(limit),
-            None => Bound::Unbounded,
-        }
+        self.0.as_ref().map_or(Bound::Unbounded, Bound::Excluded)
     }
 
     fn into_bound(self) -> Bound<Timestamp<A>> {
-        match self.0 {
-            Some(limit) => Bound::Excluded(limit),
-            None => Bound::Unbounded,
-        }
+        self.0.map_or(Bound::Unbounded, Bound::Excluded)
     }
 
     fn from_bound(bound: Bound<Timestamp<A>>) -> Self {
