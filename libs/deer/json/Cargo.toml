@@ -1,7 +1,16 @@
 [package]
 name = "deer-json"
-version = "0.0.0"
+version = "0.0.0-reserved"
+authors = ["HASH"]
 edition = "2021"
+rust-version = "1.65"
+license = "MIT OR Apache-2.0"
+description = "A backend-agnostic fail-slow deserialization framework"
+documentation = "https://docs.rs/deer"
+repository = "https://github.com/hashintel/hash/tree/main/libs/deer"
+keywords = ["json", "deserialize", "serde", "no_std"]
+categories = ["no-std", "encoding"]
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
