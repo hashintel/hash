@@ -764,7 +764,7 @@ dependencies = [
  "tracing-opentelemetry 0.18.0",
  "tracing-subscriber",
  "type-fetcher",
- "type-system",
+ "type-system 0.0.0 (git+https://github.com/blockprotocol/blockprotocol?rev=646b7d1)",
  "utoipa",
  "uuid",
 ]
@@ -783,7 +783,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tokio-postgres",
- "type-system",
+ "type-system 0.0.0 (git+https://github.com/blockprotocol/blockprotocol?rev=646b7d1)",
  "uuid",
 ]
 
@@ -801,7 +801,7 @@ dependencies = [
  "time",
  "tokio",
  "tokio-postgres",
- "type-system",
+ "type-system 0.0.0 (git+https://github.com/blockprotocol/blockprotocol?rev=2ea406f)",
  "uuid",
 ]
 
@@ -854,7 +854,7 @@ dependencies = [
  "tokio-serde",
  "tracing",
  "type-fetcher",
- "type-system",
+ "type-system 0.0.0 (git+https://github.com/blockprotocol/blockprotocol?rev=646b7d1)",
  "uuid",
 ]
 
@@ -2695,7 +2695,22 @@ dependencies = [
  "time",
  "tokio",
  "tracing",
- "type-system",
+ "type-system 0.0.0 (git+https://github.com/blockprotocol/blockprotocol?rev=646b7d1)",
+]
+
+[[package]]
+name = "type-system"
+version = "0.0.0"
+source = "git+https://github.com/blockprotocol/blockprotocol?rev=2ea406f#2ea406f632972635cc47aa5a45fd2981533037a7"
+dependencies = [
+ "console_error_panic_hook",
+ "regex",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tsify",
+ "url",
+ "wasm-bindgen",
 ]
 
 [[package]]
