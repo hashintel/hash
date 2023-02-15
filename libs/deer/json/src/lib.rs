@@ -63,9 +63,9 @@ fn serde_to_deer_number(number: &serde_json::Number) -> Option<deer::Number> {
 #[allow(clippy::unnecessary_wraps)]
 #[cfg(feature = "arbitrary-precision")]
 fn serde_to_deer_number(number: &serde_json::Number) -> Option<deer::Number> {
+    #[allow(unsafe_code)]
     // SAFETY: we know that `number` is already valid, therefore we can safely construct the deer
     // variant.
-    #[allow(unsafe_code)]
     unsafe {
         Some(deer::Number::from_string_unchecked(format!("{number}")))
     }
