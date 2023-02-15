@@ -136,8 +136,8 @@ where
                 filter: Filter::for_versioned_uri(versioned_uri),
                 graph_resolve_depths: GraphResolveDepths::default(),
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                    kernel: UnresolvedKernel::new(None),
-                    image: UnresolvedImage::new(None, None),
+                    pinned: UnresolvedKernel::new(None),
+                    variable: UnresolvedImage::new(None, None),
                 }),
             }
         }
