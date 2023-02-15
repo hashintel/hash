@@ -13,6 +13,7 @@ use std::iter::once;
 enum LintLevel {
     Allow,
     Warn,
+    ForceWarn,
     Deny,
     Forbid,
 }
@@ -38,6 +39,10 @@ impl Lints {
             self.0.insert(lint, LintLevel::Warn);
         }
 
+        for lint in file.force_warn {
+            self.0.insert(lint, LintLevel::ForceWarn);
+        }
+
         for lint in file.deny {
             self.0.insert(lint, LintLevel::Deny);
         }
@@ -56,6 +61,7 @@ impl Lints {
             match level {
                 LintLevel::Allow => acc.allow.insert(lint),
                 LintLevel::Warn => acc.warn.insert(lint),
+                LintLevel::ForceWarn => acc.force_warn.insert(lint),
                 LintLevel::Deny => acc.deny.insert(lint),
                 LintLevel::Forbid => acc.forbid.insert(lint),
             };
@@ -71,6 +77,8 @@ struct LintFile {
     allow: HashSet<String>,
     #[serde(default)]
     warn: HashSet<String>,
+    #[serde(default)]
+    force_warn: HashSet<String>,
     #[serde(default)]
     deny: HashSet<String>,
     #[serde(default)]
@@ -151,6 +159,7 @@ fn collect_cargo(cwd: &Path) -> LintFile {
             match arg {
                 "-A" => acc.allow.insert(lint.to_owned()),
                 "-W" => acc.warn.insert(lint.to_owned()),
+                "--force-warn" => acc.force_warn.insert(lint.to_owned()),
                 "-D" => acc.deny.insert(lint.to_owned()),
                 "-F" => acc.forbid.insert(lint.to_owned()),
                 _ => panic!("unrecognized rust flag {arg}")
@@ -185,6 +194,7 @@ fn apply(cwd: &Path) {
     let indent = "    ";
     let body = lints.allow.into_iter().map(|lint| format!(r#"{indent}"-A{lint}","#))
         .chain(lints.warn.into_iter().map(|lint| format!(r#"{indent}"-W{lint}","#)))
+        .chain(lints.force_warn.into_iter().map(|lint| format!(r#"{indent}"--force-warn{lint}","#)))
         .chain(lints.deny.into_iter().map(|lint| format!(r#"{indent}"-D{lint}","#)))
         .chain(lints.forbid.into_iter().map(|lint| format!(r#"{indent}"-F{lint}","#)));
 
@@ -221,6 +231,11 @@ fn check(cwd: &Path) {
     if !(&lints.warn ^ &cargo.warn).is_empty() {
         fail = true;
         print_diff("Warn", &lints.warn, &cargo.warn);
+    }
+
+    if !(&lints.force_warn ^ &cargo.force_warn).is_empty() {
+        fail = true;
+        print_diff("Force Warn", &lints.force_warn, &cargo.force_warn);
     }
 
     if !(&lints.deny ^ &cargo.deny).is_empty() {
