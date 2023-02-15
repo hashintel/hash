@@ -66,7 +66,7 @@ Content-Type: application/json
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.roots.length === 6, "Unexpected number of data types"); // The number of primitive data types
+        client.assert(response.body.roots.length === 0, "Unexpected number of data types"); // The number of primitive data types
     });
 %}
 

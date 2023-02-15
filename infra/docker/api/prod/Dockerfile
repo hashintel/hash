@@ -15,6 +15,7 @@ COPY libs/@local/hash-graph-client/package.json libs/@local/hash-graph-client/
 COPY libs/@local/hash-isomorphic-utils/package.json libs/@local/hash-isomorphic-utils/
 COPY libs/@local/hash-graphql-shared/package.json libs/@local/hash-graphql-shared/
 COPY libs/@local/hash-subgraph/package.json libs/@local/hash-subgraph/
+COPY libs/@local/advanced-types/package.json libs/@local/advanced-types/
 COPY libs/@local/tsconfig/package.json libs/@local/tsconfig/
 RUN yarn workspace @apps/hash-api install --frozen-lockfile --ignore-scripts --prefer-offline
 
@@ -40,6 +41,7 @@ COPY libs/@local/hash-graph-client libs/@local/hash-graph-client
 COPY libs/@local/hash-graphql-shared libs/@local/hash-graphql-shared
 COPY libs/@local/hash-isomorphic-utils libs/@local/hash-isomorphic-utils
 COPY libs/@local/hash-subgraph libs/@local/hash-subgraph
+COPY libs/@local/advanced-types libs/@local/advanced-types
 COPY libs/@local/tsconfig libs/@local/tsconfig
 RUN mkdir -p /app/var/uploads
 
