@@ -22,7 +22,6 @@ import {
   Timestamp,
 } from "../main";
 
-/** @todo-0.3 - these should be added to, and exposed from, the BP package */
 /**
  * Standard comparison function that returns whether `IntervalA` is before the `IntervalB`. Where "before"
  * is defined by first comparing the start bounds, and if those are equal, then the end bounds are compared.
