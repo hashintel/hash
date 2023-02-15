@@ -11,8 +11,7 @@ use crate::{
     store::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
-        AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, Record, Store,
-        Transaction, UpdateError,
+        AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{edges::GraphResolveDepths, query::StructuralQuery, Subgraph},
 };
