@@ -6,29 +6,59 @@ script = '''
 //! [dependencies]
 //! serde = {version = "*", features = ["derive"]}
 //! toml = {version = "*", features = ["serde"]}
+//! serde_json = {version = "*"}
 //! ```
 use serde::Deserialize;
+use std::env;
+use std::collections::{HashMap, HashSet};
 
-#[derive(Deserialize)]
-struct Lints {
+// TODO: no this is wrong, we need to go up and then selectively set
+enum LintLevel {
+    Deny,
+    Allow,
+    Forbid,
+    Warn
+}
+
+struct Lints(HashMap<String, LintLevel>);
+
+#[derive(Deserialize, Default)]
+struct LintFile {
     deny: HashSet<String>,
     allow: HashSet<String>,
     forbid: HashSet<String>,
     warn: HashSet<String>
 }
 
-impl BitOr for Lints {
-    fn bit_or(&self, other: &Self) -> Self {
-        Self {
-            deny: &self.deny | &other.deny,
-            allow: &self.allow | &other.allow,
-            forbid: &self.forbid | &other.forbid,
-            warn: &self.warn | &other.warn
+fn main() {
+    let cwd = env::get("CARGO_MAKE_WORKSPACE_WORKING_DIRECTORY").expect("environment variable should exist");
+    let cwd = PathBuf::from(cwd);
+
+    let mut active = &cwd;
+    let mut files = vec![];
+
+    // go up the directory tree and find all files in `.config/lints.toml`
+    loop {
+        let candidate = active.join(".config/lints.toml");
+
+        if candidate.exists() && candidate.is_file() {
+            files.push(candidate);
+        }
+
+        // we do this until we reach the root of the git repo (a `.git` folder is present)
+        if active.join(".git").exists() && active.join(".git").is_dir() {
+            break;
+        }
+
+        // ... or we have no parent anymore
+        if let Some(parent) = active.parent() {
+            active = parent;
+        } else {
+            break;
         }
     }
-}
 
-fn main() {
-
+    // we now selectively apply them into a single configuration
+    // this allows for easy overwrites in child directories
 }
 '''
