@@ -114,6 +114,9 @@ jobs:
           RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
         run: cargo +${{ matrix.toolchain }} make doc --document-private-items
 
+      - name: Ensure empty git diff
+        run: git --no-pager diff --exit-code --color
+
   test:
     name: test
     needs: setup

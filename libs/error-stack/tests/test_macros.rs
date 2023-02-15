@@ -3,6 +3,7 @@
 
 mod common;
 
+#[allow(clippy::wildcard_imports)]
 use common::*;
 use error_stack::{bail, ensure, report};
 

@@ -56,7 +56,7 @@ fn i128_err_zero() {
             }
         },
         &[Token::I128(0)],
-    )
+    );
 }
 
 #[test]
@@ -72,7 +72,7 @@ fn isize_err_zero() {
             }
         },
         &[Token::ISize(0)],
-    )
+    );
 }
 
 #[test]
@@ -88,7 +88,7 @@ fn u128_err_zero() {
             }
         },
         &[Token::U128(0)],
-    )
+    );
 }
 
 #[test]
@@ -104,5 +104,5 @@ fn usize_err_zero() {
             }
         },
         &[Token::USize(0)],
-    )
+    );
 }

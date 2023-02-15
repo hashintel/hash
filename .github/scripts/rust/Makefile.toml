@@ -1,3 +1,5 @@
+extend = { path = "./Makefile.lint.toml" }
+
 [config]
 default_to_workspace = false
 
@@ -118,7 +120,7 @@ run_task = { name = ["clippy-task"] }
 [tasks.clippy-task]
 extend = "cargo"
 args = ["hack", "@@split(CARGO_CLIPPY_HACK_FLAGS, )", "clippy", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_CLIPPY_FLAGS, )", "${@}"]
-dependencies = ["install-clippy"]
+dependencies = ["install-clippy", "update-clippy-check"]
 
 ################################################################################
 ## Docs                                                                       ##

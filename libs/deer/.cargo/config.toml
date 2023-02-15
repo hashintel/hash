@@ -4,6 +4,7 @@ rustflags = [
     ## START CLIPPY LINTS ##
     "-Dunsafe_code",
     "-Wclippy::all",
+    "-Wclippy::alloc_instead_of_core",
     "-Wclippy::as_underscore",
     "-Wclippy::await_holding_lock",
     "-Wclippy::char_lit_as_u8",
@@ -31,6 +32,7 @@ rustflags = [
     "-Wclippy::from_iter_instead_of_collect",
     "-Wclippy::get_unwrap",
     "-Wclippy::if_let_mutex",
+    "-Wclippy::if_then_some_else_none",
     "-Wclippy::implicit_clone",
     "-Wclippy::imprecise_flops",
     "-Wclippy::inefficient_to_string",
@@ -74,6 +76,8 @@ rustflags = [
     "-Wclippy::same_name_method",
     "-Wclippy::semicolon_if_nothing_returned",
     "-Wclippy::single_match_else",
+    "-Wclippy::std_instead_of_alloc",
+    "-Wclippy::std_instead_of_core",
     "-Wclippy::str_to_string",
     "-Wclippy::string_add",
     "-Wclippy::string_add_assign",
@@ -94,6 +98,10 @@ rustflags = [
     "-Wclippy::zero_sized_map_values",
     "-Wfuture_incompatible",
     "-Wnonstandard_style",
+    "-Wunreachable_pub",
+    "-Aclippy::missing_errors_doc",
     "-Aclippy::module_name_repetitions",
+    "-Aclippy::redundant_pub_crate",
+    "-Amissing_docs",
     ## END CLIPPY LINTS ##
 ]
