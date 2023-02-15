@@ -10,6 +10,9 @@ CARGO_DOC_FLAGS = "--no-deps --all-features -Zunstable-options -Zrustdoc-scrape-
 #  3. Setup python (CI only)
 #  4. Run the integration tests
 
+[tasks.clippy-task]
+dependencies = ["install-clippy"]
+
 [tasks.test]
 run_task = { name = ["test-task", "run-integrations"] }
 
