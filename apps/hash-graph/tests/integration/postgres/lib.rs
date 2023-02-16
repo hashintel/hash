@@ -472,7 +472,7 @@ impl DatabaseApi<'_> {
                     Box::new(EntityQueryPath::Uuid),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    source_entity_id.entity_uuid().as_uuid(),
+                    source_entity_id.entity_uuid.as_uuid(),
                 ))),
             ),
             Filter::Equal(
@@ -480,7 +480,7 @@ impl DatabaseApi<'_> {
                     Box::new(EntityQueryPath::OwnedById),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    source_entity_id.owned_by_id().as_uuid(),
+                    source_entity_id.owned_by_id.as_uuid(),
                 ))),
             ),
             Filter::Equal(
@@ -540,7 +540,7 @@ impl DatabaseApi<'_> {
                     Box::new(EntityQueryPath::Uuid),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    source_entity_id.entity_uuid().as_uuid(),
+                    source_entity_id.entity_uuid.as_uuid(),
                 ))),
             ),
             Filter::Equal(
@@ -548,7 +548,7 @@ impl DatabaseApi<'_> {
                     Box::new(EntityQueryPath::OwnedById),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    source_entity_id.owned_by_id().as_uuid(),
+                    source_entity_id.owned_by_id.as_uuid(),
                 ))),
             ),
             Filter::Equal(

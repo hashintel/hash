@@ -785,17 +785,25 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             writer
                 .as_mut()
                 .write(&[
-                    &entity_id.owned_by_id(),
-                    &entity_id.entity_uuid(),
-                    &left_entity_id.as_ref().map(EntityId::owned_by_id),
-                    &left_entity_id.as_ref().map(EntityId::entity_uuid),
-                    &right_entity_id.as_ref().map(EntityId::owned_by_id),
-                    &right_entity_id.as_ref().map(EntityId::entity_uuid),
+                    &entity_id.owned_by_id,
+                    &entity_id.entity_uuid,
+                    &left_entity_id
+                        .as_ref()
+                        .map(|entity_id| entity_id.owned_by_id),
+                    &left_entity_id
+                        .as_ref()
+                        .map(|entity_id| entity_id.entity_uuid),
+                    &right_entity_id
+                        .as_ref()
+                        .map(|entity_id| entity_id.owned_by_id),
+                    &right_entity_id
+                        .as_ref()
+                        .map(|entity_id| entity_id.entity_uuid),
                 ])
                 .await
                 .into_report()
                 .change_context(InsertionError)
-                .attach_printable(entity_id.entity_uuid())?;
+                .attach_printable(entity_id.entity_uuid)?;
         }
 
         writer
@@ -967,8 +975,8 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             writer
                 .as_mut()
                 .write(&[
-                    &entity_id.owned_by_id(),
-                    &entity_id.entity_uuid(),
+                    &entity_id.owned_by_id,
+                    &entity_id.entity_uuid,
                     &entity_edition_id,
                     &decision_time,
                 ])

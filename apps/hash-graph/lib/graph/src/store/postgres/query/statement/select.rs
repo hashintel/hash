@@ -838,10 +838,10 @@ mod tests {
 
         #[test]
         fn for_entity_by_entity_id() {
-            let entity_id = EntityId::new(
-                OwnedById::new(AccountId::new(Uuid::new_v4())),
-                EntityUuid::new(Uuid::new_v4()),
-            );
+            let entity_id = EntityId {
+                owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
+                entity_uuid: EntityUuid::new(Uuid::new_v4()),
+            };
 
             let time_projection = UnresolvedTimeProjection::default().resolve();
             let kernel = time_projection.kernel().cast::<TransactionTime>();
@@ -863,18 +863,18 @@ mod tests {
                 &[
                     &kernel,
                     &time_projection.image(),
-                    &entity_id.owned_by_id().as_uuid(),
-                    &entity_id.entity_uuid().as_uuid(),
+                    &entity_id.owned_by_id.as_uuid(),
+                    &entity_id.entity_uuid.as_uuid(),
                 ],
             );
         }
 
         #[test]
         fn for_incoming_link_by_source_entity_id() {
-            let entity_id = EntityId::new(
-                OwnedById::new(AccountId::new(Uuid::new_v4())),
-                EntityUuid::new(Uuid::new_v4()),
-            );
+            let entity_id = EntityId {
+                owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
+                entity_uuid: EntityUuid::new(Uuid::new_v4()),
+            };
 
             let time_projection = UnresolvedTimeProjection::default().resolve();
             let kernel = time_projection.kernel().cast::<TransactionTime>();
@@ -896,18 +896,18 @@ mod tests {
                 &[
                     &kernel,
                     &time_projection.image(),
-                    &entity_id.owned_by_id().as_uuid(),
-                    &entity_id.entity_uuid().as_uuid(),
+                    &entity_id.owned_by_id.as_uuid(),
+                    &entity_id.entity_uuid.as_uuid(),
                 ],
             );
         }
 
         #[test]
         fn for_outgoing_link_by_source_entity_id() {
-            let entity_id = EntityId::new(
-                OwnedById::new(AccountId::new(Uuid::new_v4())),
-                EntityUuid::new(Uuid::new_v4()),
-            );
+            let entity_id = EntityId {
+                owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
+                entity_uuid: EntityUuid::new(Uuid::new_v4()),
+            };
 
             let time_projection = UnresolvedTimeProjection::default().resolve();
             let kernel = time_projection.kernel().cast::<TransactionTime>();
@@ -929,18 +929,18 @@ mod tests {
                 &[
                     &kernel,
                     &time_projection.image(),
-                    &entity_id.owned_by_id().as_uuid(),
-                    &entity_id.entity_uuid().as_uuid(),
+                    &entity_id.owned_by_id.as_uuid(),
+                    &entity_id.entity_uuid.as_uuid(),
                 ],
             );
         }
 
         #[test]
         fn for_left_entity_by_entity_id() {
-            let entity_id = EntityId::new(
-                OwnedById::new(AccountId::new(Uuid::new_v4())),
-                EntityUuid::new(Uuid::new_v4()),
-            );
+            let entity_id = EntityId {
+                owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
+                entity_uuid: EntityUuid::new(Uuid::new_v4()),
+            };
 
             let time_projection = UnresolvedTimeProjection::default().resolve();
             let kernel = time_projection.kernel().cast::<TransactionTime>();
@@ -966,18 +966,18 @@ mod tests {
                 &[
                     &kernel,
                     &time_projection.image(),
-                    &entity_id.owned_by_id().as_uuid(),
-                    &entity_id.entity_uuid().as_uuid(),
+                    &entity_id.owned_by_id.as_uuid(),
+                    &entity_id.entity_uuid.as_uuid(),
                 ],
             );
         }
 
         #[test]
         fn for_right_entity_by_entity_id() {
-            let entity_id = EntityId::new(
-                OwnedById::new(AccountId::new(Uuid::new_v4())),
-                EntityUuid::new(Uuid::new_v4()),
-            );
+            let entity_id = EntityId {
+                owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
+                entity_uuid: EntityUuid::new(Uuid::new_v4()),
+            };
 
             let time_projection = UnresolvedTimeProjection::default().resolve();
             let kernel = time_projection.kernel().cast::<TransactionTime>();
@@ -1003,8 +1003,8 @@ mod tests {
                 &[
                     &kernel,
                     &time_projection.image(),
-                    &entity_id.owned_by_id().as_uuid(),
-                    &entity_id.entity_uuid().as_uuid(),
+                    &entity_id.owned_by_id.as_uuid(),
+                    &entity_id.entity_uuid.as_uuid(),
                 ],
             );
         }

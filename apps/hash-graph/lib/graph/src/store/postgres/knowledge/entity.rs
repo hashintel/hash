@@ -303,10 +303,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         properties: EntityProperties,
         link_data: Option<LinkData>,
     ) -> Result<EntityMetadata, InsertionError> {
-        let entity_id = EntityId::new(
+        let entity_id = EntityId {
             owned_by_id,
-            entity_uuid.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
-        );
+            entity_uuid: entity_uuid.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
+        };
 
         let entity_type_ontology_id = self
             .ontology_id_by_uri(&entity_type_id)
@@ -343,8 +343,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     );
                 "#,
                 &[
-                    &entity_id.owned_by_id(),
-                    &entity_id.entity_uuid(),
+                    &entity_id.owned_by_id,
+                    &entity_id.entity_uuid,
                     &decision_time,
                     &updated_by_id,
                     &archived,
@@ -352,16 +352,16 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     &properties,
                     &link_data
                         .as_ref()
-                        .map(|metadata| metadata.left_entity_id().owned_by_id()),
+                        .map(|metadata| metadata.left_entity_id().owned_by_id),
                     &link_data
                         .as_ref()
-                        .map(|metadata| metadata.left_entity_id().entity_uuid()),
+                        .map(|metadata| metadata.left_entity_id().entity_uuid),
                     &link_data
                         .as_ref()
-                        .map(|metadata| metadata.right_entity_id().owned_by_id()),
+                        .map(|metadata| metadata.right_entity_id().owned_by_id),
                     &link_data
                         .as_ref()
-                        .map(|metadata| metadata.right_entity_id().entity_uuid()),
+                        .map(|metadata| metadata.right_entity_id().entity_uuid),
                     &link_data.as_ref().map(LinkData::left_to_right_order),
                     &link_data.as_ref().map(LinkData::right_to_left_order),
                 ],
@@ -410,10 +410,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let mut entity_versions = Vec::with_capacity(entities.size_hint().0);
         for (owned_by_id, entity_uuid, properties, link_data, decision_time) in entities {
             entity_ids.push((
-                EntityId::new(
+                EntityId {
                     owned_by_id,
-                    entity_uuid.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
-                ),
+                    entity_uuid: entity_uuid.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
+                },
                 link_data.as_ref().map(LinkData::left_entity_id),
                 link_data.as_ref().map(LinkData::right_entity_id),
             ));
@@ -547,7 +547,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                  SELECT EXISTS (
                     SELECT 1 FROM entity_ids WHERE owned_by_id = $1 AND entity_uuid = $2
                  );"#,
-                &[&entity_id.owned_by_id(), &entity_id.entity_uuid()],
+                &[&entity_id.owned_by_id, &entity_id.entity_uuid],
             )
             .await
             .into_report()
@@ -581,8 +581,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     );
                 "#,
                 &[
-                    &entity_id.owned_by_id(),
-                    &entity_id.entity_uuid(),
+                    &entity_id.owned_by_id,
+                    &entity_id.entity_uuid,
                     &decision_time,
                     &updated_by_id,
                     &archived,

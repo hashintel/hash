@@ -111,13 +111,13 @@ impl<'p> Filter<'p, Entity> {
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.owned_by_id().as_uuid(),
+                    entity_id.owned_by_id.as_uuid(),
                 ))),
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::Uuid)),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.entity_uuid().as_uuid(),
+                    entity_id.entity_uuid.as_uuid(),
                 ))),
             ),
         ])
@@ -133,7 +133,7 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::OwnedById),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.owned_by_id().as_uuid(),
+                    entity_id.owned_by_id.as_uuid(),
                 ))),
             ),
             Self::Equal(
@@ -141,7 +141,7 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::Uuid),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.entity_uuid().as_uuid(),
+                    entity_id.entity_uuid.as_uuid(),
                 ))),
             ),
         ])
@@ -157,7 +157,7 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::OwnedById),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.owned_by_id().as_uuid(),
+                    entity_id.owned_by_id.as_uuid(),
                 ))),
             ),
             Self::Equal(
@@ -165,7 +165,7 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::Uuid),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.entity_uuid().as_uuid(),
+                    entity_id.entity_uuid.as_uuid(),
                 ))),
             ),
         ])
@@ -181,7 +181,7 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::OwnedById),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.owned_by_id().as_uuid(),
+                    entity_id.owned_by_id.as_uuid(),
                 ))),
             ),
             Self::Equal(
@@ -189,7 +189,7 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::Uuid),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.entity_uuid().as_uuid(),
+                    entity_id.entity_uuid.as_uuid(),
                 ))),
             ),
         ])
@@ -205,7 +205,7 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::OwnedById),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.owned_by_id().as_uuid(),
+                    entity_id.owned_by_id.as_uuid(),
                 ))),
             ),
             Self::Equal(
@@ -213,7 +213,7 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::Uuid),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.entity_uuid().as_uuid(),
+                    entity_id.entity_uuid.as_uuid(),
                 ))),
             ),
         ])
@@ -498,20 +498,20 @@ mod tests {
 
     #[test]
     fn for_entity_by_entity_id() {
-        let entity_id = EntityId::new(
-            OwnedById::new(AccountId::new(Uuid::new_v4())),
-            EntityUuid::new(Uuid::new_v4()),
-        );
+        let entity_id = EntityId {
+            owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
+            entity_uuid: EntityUuid::new(Uuid::new_v4()),
+        };
 
         let expected = json! {{
           "all": [
             { "equal": [
               { "path": ["ownedById"] },
-              { "parameter": entity_id.owned_by_id() }
+              { "parameter": entity_id.owned_by_id }
             ]},
             { "equal": [
               { "path": ["uuid"] },
-              { "parameter": entity_id.entity_uuid() }
+              { "parameter": entity_id.entity_uuid }
             ]}
           ]
         }};
@@ -521,20 +521,20 @@ mod tests {
 
     #[test]
     fn for_entity_by_id() {
-        let entity_id = EntityId::new(
-            OwnedById::new(AccountId::new(Uuid::new_v4())),
-            EntityUuid::new(Uuid::new_v4()),
-        );
+        let entity_id = EntityId {
+            owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
+            entity_uuid: EntityUuid::new(Uuid::new_v4()),
+        };
 
         let expected = json! {{
           "all": [
             { "equal": [
               { "path": ["ownedById"] },
-              { "parameter": entity_id.owned_by_id() }
+              { "parameter": entity_id.owned_by_id }
             ]},
             { "equal": [
               { "path": ["uuid"] },
-              { "parameter": entity_id.entity_uuid() }
+              { "parameter": entity_id.entity_uuid }
             ]}
           ]
         }};
@@ -544,20 +544,20 @@ mod tests {
 
     #[test]
     fn for_outgoing_link_by_source_entity_id() {
-        let entity_id = EntityId::new(
-            OwnedById::new(AccountId::new(Uuid::new_v4())),
-            EntityUuid::new(Uuid::new_v4()),
-        );
+        let entity_id = EntityId {
+            owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
+            entity_uuid: EntityUuid::new(Uuid::new_v4()),
+        };
 
         let expected = json! {{
           "all": [
             { "equal": [
               { "path": ["leftEntity", "ownedById"] },
-              { "parameter": entity_id.owned_by_id() }
+              { "parameter": entity_id.owned_by_id }
             ]},
             { "equal": [
               { "path": ["leftEntity", "uuid"] },
-              { "parameter": entity_id.entity_uuid() }
+              { "parameter": entity_id.entity_uuid }
             ]}
           ]
         }};
@@ -570,20 +570,20 @@ mod tests {
 
     #[test]
     fn for_left_entity_by_entity_id() {
-        let entity_id = EntityId::new(
-            OwnedById::new(AccountId::new(Uuid::new_v4())),
-            EntityUuid::new(Uuid::new_v4()),
-        );
+        let entity_id = EntityId {
+            owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
+            entity_uuid: EntityUuid::new(Uuid::new_v4()),
+        };
 
         let expected = json! {{
           "all": [
             { "equal": [
               { "path": ["outgoingLinks", "ownedById"] },
-              { "parameter": entity_id.owned_by_id() }
+              { "parameter": entity_id.owned_by_id }
             ]},
             { "equal": [
               { "path": ["outgoingLinks", "uuid"] },
-              { "parameter": entity_id.entity_uuid() }
+              { "parameter": entity_id.entity_uuid }
             ]}
           ]
         }};
@@ -593,20 +593,20 @@ mod tests {
 
     #[test]
     fn for_right_entity_by_entity_id() {
-        let entity_id = EntityId::new(
-            OwnedById::new(AccountId::new(Uuid::new_v4())),
-            EntityUuid::new(Uuid::new_v4()),
-        );
+        let entity_id = EntityId {
+            owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
+            entity_uuid: EntityUuid::new(Uuid::new_v4()),
+        };
 
         let expected = json! {{
           "all": [
             { "equal": [
               { "path": ["incomingLinks", "ownedById"] },
-              { "parameter": entity_id.owned_by_id() }
+              { "parameter": entity_id.owned_by_id }
             ]},
             { "equal": [
               { "path": ["incomingLinks", "uuid"] },
-              { "parameter": entity_id.entity_uuid() }
+              { "parameter": entity_id.entity_uuid }
             ]}
           ]
         }};

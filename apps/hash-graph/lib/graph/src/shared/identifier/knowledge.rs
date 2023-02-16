@@ -25,28 +25,8 @@ use crate::{
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EntityId {
-    owned_by_id: OwnedById,
-    entity_uuid: EntityUuid,
-}
-
-impl EntityId {
-    #[must_use]
-    pub const fn new(owned_by_id: OwnedById, entity_uuid: EntityUuid) -> Self {
-        Self {
-            owned_by_id,
-            entity_uuid,
-        }
-    }
-
-    #[must_use]
-    pub const fn owned_by_id(&self) -> OwnedById {
-        self.owned_by_id
-    }
-
-    #[must_use]
-    pub const fn entity_uuid(&self) -> EntityUuid {
-        self.entity_uuid
-    }
+    pub owned_by_id: OwnedById,
+    pub entity_uuid: EntityUuid,
 }
 
 impl Serialize for EntityId {

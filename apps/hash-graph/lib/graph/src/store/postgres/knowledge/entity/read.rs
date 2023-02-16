@@ -15,7 +15,7 @@ use crate::{
     },
     knowledge::{Entity, EntityProperties, EntityQueryPath, EntityUuid, LinkData},
     ontology::EntityTypeQueryPath,
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata},
     store::{
         crud,
         postgres::query::{Distinctness, SelectCompiler},
@@ -109,14 +109,14 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                             Some(right_owned_by_id),
                             Some(right_entity_uuid),
                         ) => Some(LinkData::new(
-                            EntityId::new(
-                                OwnedById::new(left_owned_by_id),
-                                EntityUuid::new(left_entity_uuid),
-                            ),
-                            EntityId::new(
-                                OwnedById::new(right_owned_by_id),
-                                EntityUuid::new(right_entity_uuid),
-                            ),
+                            EntityId {
+                                owned_by_id: OwnedById::new(left_owned_by_id),
+                                entity_uuid: EntityUuid::new(left_entity_uuid),
+                            },
+                            EntityId {
+                                owned_by_id: OwnedById::new(right_owned_by_id),
+                                entity_uuid: EntityUuid::new(right_entity_uuid),
+                            },
                             row.get(left_to_right_order_index),
                             row.get(right_to_left_order_index),
                         )),
@@ -128,15 +128,14 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                     }
                 };
 
-                let owned_by_id = OwnedById::new(row.get(owned_by_id_index));
-                let entity_uuid = EntityUuid::new(row.get(entity_uuid_index));
-                let updated_by_id = UpdatedById::new(row.get(updated_by_id_index));
-
                 Ok(Entity::new(
                     properties,
                     link_data,
                     EntityRecordId {
-                        entity_id: EntityId::new(owned_by_id, entity_uuid),
+                        entity_id: EntityId {
+                            owned_by_id: row.get(owned_by_id_index),
+                            entity_uuid: row.get(entity_uuid_index),
+                        },
                         edition_id: EntityEditionId::new(row.get(edition_id_index)),
                     },
                     EntityVersion {
@@ -144,7 +143,9 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                         transaction_time: row.get(transaction_time_index),
                     },
                     entity_type_uri,
-                    ProvenanceMetadata { updated_by_id },
+                    ProvenanceMetadata {
+                        updated_by_id: row.get(updated_by_id_index),
+                    },
                     // TODO: only the historic table would have an `archived` field.
                     //   Consider what we should do about that.
                     row.get(archived_index),
