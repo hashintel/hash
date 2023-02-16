@@ -3,12 +3,9 @@ import {
   EntityType,
   PropertyType,
   VersionedUri,
-} from "@blockprotocol/type-system";
+} from "@blockprotocol/type-system/slim";
 import { apiGraphQLEndpoint } from "@local/hash-graphql-shared/environment";
-import {
-  OntologyTypeRevisionId,
-  OntologyTypeVertexId,
-} from "@local/hash-subgraph";
+import { OntologyTypeVertexId } from "@local/hash-subgraph";
 import type { ApolloError } from "apollo-server-express";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
