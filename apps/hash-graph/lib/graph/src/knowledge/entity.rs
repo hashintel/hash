@@ -173,57 +173,12 @@ impl LinkData {
 // TODO: deny_unknown_fields on other structs
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityMetadata {
-    record_id: EntityRecordId,
-    version: EntityVersion,
+    pub record_id: EntityRecordId,
+    pub version: EntityVersion,
     #[schema(value_type = String)]
-    entity_type_id: VersionedUri,
-    #[serde(rename = "provenance")]
-    provenance_metadata: ProvenanceMetadata,
-    archived: bool,
-}
-
-impl EntityMetadata {
-    #[must_use]
-    pub const fn new(
-        record_id: EntityRecordId,
-        version: EntityVersion,
-        entity_type_id: VersionedUri,
-        provenance_metadata: ProvenanceMetadata,
-        archived: bool,
-    ) -> Self {
-        Self {
-            record_id,
-            version,
-            entity_type_id,
-            provenance_metadata,
-            archived,
-        }
-    }
-
-    #[must_use]
-    pub const fn record_id(&self) -> EntityRecordId {
-        self.record_id
-    }
-
-    #[must_use]
-    pub const fn version(&self) -> &EntityVersion {
-        &self.version
-    }
-
-    #[must_use]
-    pub const fn entity_type_id(&self) -> &VersionedUri {
-        &self.entity_type_id
-    }
-
-    #[must_use]
-    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
-        self.provenance_metadata
-    }
-
-    #[must_use]
-    pub const fn archived(&self) -> bool {
-        self.archived
-    }
+    pub entity_type_id: VersionedUri,
+    pub provenance: ProvenanceMetadata,
+    pub archived: bool,
 }
 
 /// A record of an [`Entity`] that has been persisted in the datastore, with its associated
@@ -242,22 +197,22 @@ impl Entity {
     pub const fn new(
         properties: EntityProperties,
         link_data: Option<LinkData>,
-        identifier: EntityRecordId,
+        record_id: EntityRecordId,
         version: EntityVersion,
         entity_type_id: VersionedUri,
-        provenance_metadata: ProvenanceMetadata,
+        provenance: ProvenanceMetadata,
         archived: bool,
     ) -> Self {
         Self {
             properties,
             link_data,
-            metadata: EntityMetadata::new(
-                identifier,
+            metadata: EntityMetadata {
+                record_id,
                 version,
                 entity_type_id,
-                provenance_metadata,
+                provenance,
                 archived,
-            ),
+            },
         }
     }
 
@@ -283,10 +238,10 @@ impl Record for Entity {
 
     fn vertex_id(&self, time_axis: TimeAxis) -> Self::VertexId {
         let timestamp = match time_axis {
-            TimeAxis::DecisionTime => self.metadata().version().decision_time.start().cast(),
-            TimeAxis::TransactionTime => self.metadata().version().transaction_time.start().cast(),
+            TimeAxis::DecisionTime => self.metadata().version.decision_time.start().cast(),
+            TimeAxis::TransactionTime => self.metadata().version.transaction_time.start().cast(),
         };
-        EntityVertexId::new(self.metadata().record_id().entity_id, timestamp.into())
+        EntityVertexId::new(self.metadata().record_id.entity_id, timestamp.into())
     }
 
     fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {

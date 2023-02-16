@@ -106,8 +106,8 @@ async fn seed_db(
                             None,
                             properties.clone(),
                             Some(LinkData::new(
-                                entity_a_metadata.record_id().entity_id,
-                                entity_b_metadata.record_id().entity_id,
+                                entity_a_metadata.record_id.entity_id,
+                                entity_b_metadata.record_id.entity_id,
                                 None,
                                 None,
                             )),
@@ -154,7 +154,7 @@ pub fn bench_get_entity_by_id(
             // query
             entity_metadata_list
                 .iter()
-                .map(EntityMetadata::record_id)
+                .map(|metadata| metadata.record_id)
                 .choose(&mut thread_rng())
                 .expect("could not choose random entity")
         },

@@ -108,7 +108,7 @@ pub fn bench_get_entity_by_id(
             // query
             entity_metadata_list
                 .iter()
-                .map(EntityMetadata::record_id)
+                .map(|metadata| metadata.record_id)
                 .choose(&mut thread_rng())
                 .expect("could not choose random entity")
         },

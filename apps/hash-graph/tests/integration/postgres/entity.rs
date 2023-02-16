@@ -35,7 +35,7 @@ async fn insert() {
         .expect("could not create entity");
 
     let entities = api
-        .get_entities(metadata.record_id().entity_id)
+        .get_entities(metadata.record_id.entity_id)
         .await
         .expect("could not get entity");
     assert_eq!(entities.len(), 1);
@@ -72,7 +72,7 @@ async fn query() {
         .expect("could not create entity");
 
     let queried_organizations = api
-        .get_entities(metadata.record_id().entity_id)
+        .get_entities(metadata.record_id.entity_id)
         .await
         .expect("could not get entity");
     assert_eq!(queried_organizations.len(), 1);
@@ -112,7 +112,7 @@ async fn update() {
 
     let v2_metadata = api
         .update_entity(
-            v1_metadata.record_id().entity_id,
+            v1_metadata.record_id.entity_id,
             page_v2.clone(),
             VersionedUri {
                 base_uri: BaseUri::new(
@@ -127,14 +127,14 @@ async fn update() {
         .expect("could not update entity");
 
     let entities = api
-        .get_entities(v2_metadata.record_id().entity_id)
+        .get_entities(v2_metadata.record_id.entity_id)
         .await
         .expect("could not get entity");
 
     assert_eq!(entities.len(), 2);
 
     let entity_v2 = api
-        .get_latest_entity(v2_metadata.record_id().entity_id)
+        .get_latest_entity(v2_metadata.record_id.entity_id)
         .await
         .expect("could not get entity");
 
@@ -142,8 +142,8 @@ async fn update() {
 
     let entity_v1 = api
         .get_entity_by_timestamp(
-            v1_metadata.record_id().entity_id,
-            (*v1_metadata.version().decision_time.start()).into(),
+            v1_metadata.record_id.entity_id,
+            (*v1_metadata.version.decision_time.start()).into(),
         )
         .await
         .expect("could not get entity");
@@ -151,8 +151,8 @@ async fn update() {
 
     let entity_v2 = api
         .get_entity_by_timestamp(
-            v2_metadata.record_id().entity_id,
-            (*v2_metadata.version().decision_time.start()).into(),
+            v2_metadata.record_id.entity_id,
+            (*v2_metadata.version.decision_time.start()).into(),
         )
         .await
         .expect("could not get entity");

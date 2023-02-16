@@ -4,7 +4,7 @@ use std::{
 };
 
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
-use tokio_postgres::types::ToSql;
+use tokio_postgres::types::{FromSql, ToSql};
 use utoipa::{openapi, ToSchema};
 use uuid::Uuid;
 
@@ -130,7 +130,9 @@ impl EntityVersion {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, ToSql, ToSchema)]
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, FromSql, ToSql, ToSchema,
+)]
 #[postgres(transparent)]
 #[repr(transparent)]
 pub struct EntityEditionId(Uuid);
