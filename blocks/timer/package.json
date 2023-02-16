@@ -44,7 +44,7 @@
     "blockType": {
       "entryPoint": "react"
     },
-    "name": "@timdiekmann/timer",
+    "name": "@hash/timer",
     "displayName": "Timer",
     "examples": [
       {
