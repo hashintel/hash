@@ -634,17 +634,8 @@ export const App: BlockComponent<true, RootEntity> = ({
                     color: ({ palette }) => palette.gray[50],
                   }}
                 >
-                  Check your network connection or{" "}
-                  <Box
-                    component="span"
-                    sx={{
-                      fontWeight: 700,
-                      color: ({ palette }) => palette.gray[70],
-                    }}
-                  >
-                    contact support
-                  </Box>{" "}
-                  if this issue persists.
+                  Check your network connection or contact support if this issue
+                  persists.
                 </Typography>
               </Box>
             ) : null}
