@@ -1,5 +1,5 @@
 import { EntityTypeEditorProps } from "@hashintel/type-editor";
-import { OwnedById } from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph/main";
 import { getEntityTypeById } from "@local/hash-subgraph/stdlib/element/entity-type";
 import { getPropertyTypeById } from "@local/hash-subgraph/stdlib/element/property-type";
 import { useCallback } from "react";
