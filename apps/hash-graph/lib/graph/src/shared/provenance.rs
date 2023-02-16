@@ -53,17 +53,5 @@ define_provenance_id!(UpdatedById);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ProvenanceMetadata {
-    updated_by_id: UpdatedById,
-}
-
-impl ProvenanceMetadata {
-    #[must_use]
-    pub const fn new(updated_by_id: UpdatedById) -> Self {
-        Self { updated_by_id }
-    }
-
-    #[must_use]
-    pub const fn updated_by_id(&self) -> UpdatedById {
-        self.updated_by_id
-    }
+    pub updated_by_id: UpdatedById,
 }

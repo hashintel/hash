@@ -213,7 +213,9 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         let data_type_metadata =
             OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
                 data_type.id().into(),
-                ProvenanceMetadata::new(UpdatedById::new(root_account_id)),
+                ProvenanceMetadata {
+                    updated_by_id: UpdatedById::new(root_account_id),
+                },
                 OffsetDateTime::now_utc(),
             ));
 
@@ -251,7 +253,9 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     let link_entity_type_metadata =
         OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
             link_entity_type.id().into(),
-            ProvenanceMetadata::new(UpdatedById::new(root_account_id)),
+            ProvenanceMetadata {
+                updated_by_id: UpdatedById::new(root_account_id),
+            },
             OffsetDateTime::now_utc(),
         ));
 

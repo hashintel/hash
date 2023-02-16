@@ -271,7 +271,7 @@ where
                     &record_id.base_uri.as_str(),
                     &record_id.version,
                     &owned_by_id,
-                    &provenance.updated_by_id(),
+                    &provenance.updated_by_id,
                 ],
             )
             .await
@@ -315,7 +315,7 @@ where
                     &record_id.base_uri.as_str(),
                     &record_id.version,
                     &fetched_at,
-                    &provenance.updated_by_id(),
+                    &provenance.updated_by_id,
                 ],
             )
             .await
@@ -464,7 +464,7 @@ where
 
         Ok((ontology_id, OntologyElementMetadata::Owned {
             record_id,
-            provenance: ProvenanceMetadata::new(updated_by_id),
+            provenance: ProvenanceMetadata { updated_by_id },
             owned_by_id,
         }))
     }

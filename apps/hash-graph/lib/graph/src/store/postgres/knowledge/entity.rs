@@ -380,7 +380,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 transaction_time: row.get(2),
             },
             entity_type_id,
-            provenance: ProvenanceMetadata::new(updated_by_id),
+            provenance: ProvenanceMetadata { updated_by_id },
             archived,
         })
     }
@@ -469,7 +469,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 },
                 version,
                 entity_type_id: entity_type_id.clone(),
-                provenance: ProvenanceMetadata::new(actor_id),
+                provenance: ProvenanceMetadata {
+                    updated_by_id: actor_id,
+                },
                 archived: false,
             })
             .collect())
@@ -612,7 +614,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 transaction_time: row.get(2),
             },
             entity_type_id,
-            provenance: ProvenanceMetadata::new(updated_by_id),
+            provenance: ProvenanceMetadata { updated_by_id },
             archived,
         })
     }

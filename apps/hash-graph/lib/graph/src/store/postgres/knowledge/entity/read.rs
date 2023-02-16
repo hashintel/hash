@@ -144,7 +144,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                         transaction_time: row.get(transaction_time_index),
                     },
                     entity_type_uri,
-                    ProvenanceMetadata::new(updated_by_id),
+                    ProvenanceMetadata { updated_by_id },
                     // TODO: only the historic table would have an `archived` field.
                     //   Consider what we should do about that.
                     row.get(archived_index),

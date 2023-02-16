@@ -200,7 +200,9 @@ pub async fn seed<D, P, E, C>(
         match store
             .create_data_type(data_type.clone(), &OntologyElementMetadata::Owned {
                 record_id: data_type.id().clone().into(),
-                provenance: ProvenanceMetadata::new(UpdatedById::new(account_id)),
+                provenance: ProvenanceMetadata {
+                    updated_by_id: UpdatedById::new(account_id),
+                },
                 owned_by_id: OwnedById::new(account_id),
             })
             .await
@@ -228,7 +230,9 @@ pub async fn seed<D, P, E, C>(
         match store
             .create_property_type(property_type.clone(), &OntologyElementMetadata::Owned {
                 record_id: property_type.id().clone().into(),
-                provenance: ProvenanceMetadata::new(UpdatedById::new(account_id)),
+                provenance: ProvenanceMetadata {
+                    updated_by_id: UpdatedById::new(account_id),
+                },
                 owned_by_id: OwnedById::new(account_id),
             })
             .await
@@ -256,7 +260,9 @@ pub async fn seed<D, P, E, C>(
         match store
             .create_entity_type(entity_type.clone(), &OntologyElementMetadata::Owned {
                 record_id: entity_type.id().clone().into(),
-                provenance: ProvenanceMetadata::new(UpdatedById::new(account_id)),
+                provenance: ProvenanceMetadata {
+                    updated_by_id: UpdatedById::new(account_id),
+                },
                 owned_by_id: OwnedById::new(account_id),
             })
             .await
