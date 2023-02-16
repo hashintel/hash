@@ -40,7 +40,7 @@ async fn insert() {
         .expect("could not get entity");
     assert_eq!(entities.len(), 1);
 
-    assert_eq!(entities[0].properties(), &person);
+    assert_eq!(entities[0].properties, person);
 }
 
 #[tokio::test]
@@ -77,7 +77,7 @@ async fn query() {
         .expect("could not get entity");
     assert_eq!(queried_organizations.len(), 1);
 
-    assert_eq!(queried_organizations[0].properties(), &organization);
+    assert_eq!(queried_organizations[0].properties, organization);
 }
 
 #[tokio::test]
@@ -138,7 +138,7 @@ async fn update() {
         .await
         .expect("could not get entity");
 
-    assert_eq!(entity_v2.properties(), &page_v2);
+    assert_eq!(entity_v2.properties, page_v2);
 
     let entity_v1 = api
         .get_entity_by_timestamp(
@@ -147,7 +147,7 @@ async fn update() {
         )
         .await
         .expect("could not get entity");
-    assert_eq!(entity_v1.properties(), &page_v1);
+    assert_eq!(entity_v1.properties, page_v1);
 
     let entity_v2 = api
         .get_entity_by_timestamp(
@@ -157,5 +157,5 @@ async fn update() {
         .await
         .expect("could not get entity");
 
-    assert_eq!(entity_v2.properties(), &page_v2);
+    assert_eq!(entity_v2.properties, page_v2);
 }

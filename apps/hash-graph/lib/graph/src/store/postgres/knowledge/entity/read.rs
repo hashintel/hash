@@ -13,7 +13,7 @@ use crate::{
         knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
         time::TimeProjection,
     },
-    knowledge::{Entity, EntityProperties, EntityQueryPath, EntityUuid, LinkData},
+    knowledge::{Entity, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid, LinkData},
     ontology::EntityTypeQueryPath,
     provenance::{OwnedById, ProvenanceMetadata},
     store::{
@@ -86,7 +86,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                     serde_json::from_value(row.get(properties_index))
                         .into_report()
                         .change_context(QueryError)?;
-                let entity_type_uri = VersionedUri::from_str(row.get(type_id_index))
+                let entity_type_id = VersionedUri::from_str(row.get(type_id_index))
                     .into_report()
                     .change_context(QueryError)?;
 
@@ -128,28 +128,28 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                     }
                 };
 
-                Ok(Entity::new(
+                Ok(Entity {
                     properties,
                     link_data,
-                    EntityRecordId {
-                        entity_id: EntityId {
-                            owned_by_id: row.get(owned_by_id_index),
-                            entity_uuid: row.get(entity_uuid_index),
+                    metadata: EntityMetadata {
+                        record_id: EntityRecordId {
+                            entity_id: EntityId {
+                                owned_by_id: row.get(owned_by_id_index),
+                                entity_uuid: row.get(entity_uuid_index),
+                            },
+                            edition_id: EntityEditionId::new(row.get(edition_id_index)),
                         },
-                        edition_id: EntityEditionId::new(row.get(edition_id_index)),
+                        version: EntityVersion {
+                            decision_time: row.get(decision_time_index),
+                            transaction_time: row.get(transaction_time_index),
+                        },
+                        entity_type_id,
+                        provenance: ProvenanceMetadata {
+                            updated_by_id: row.get(updated_by_id_index),
+                        },
+                        archived: row.get(archived_index),
                     },
-                    EntityVersion {
-                        decision_time: row.get(decision_time_index),
-                        transaction_time: row.get(transaction_time_index),
-                    },
-                    entity_type_uri,
-                    ProvenanceMetadata {
-                        updated_by_id: row.get(updated_by_id_index),
-                    },
-                    // TODO: only the historic table would have an `archived` field.
-                    //   Consider what we should do about that.
-                    row.get(archived_index),
-                ))
+                })
             })
             .try_collect()
             .await

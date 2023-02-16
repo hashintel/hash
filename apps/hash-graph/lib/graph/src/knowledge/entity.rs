@@ -187,50 +187,10 @@ pub struct EntityMetadata {
 #[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Entity {
-    properties: EntityProperties,
+    pub properties: EntityProperties,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    link_data: Option<LinkData>,
-    metadata: EntityMetadata,
-}
-
-impl Entity {
-    #[must_use]
-    pub const fn new(
-        properties: EntityProperties,
-        link_data: Option<LinkData>,
-        record_id: EntityRecordId,
-        version: EntityVersion,
-        entity_type_id: VersionedUri,
-        provenance: ProvenanceMetadata,
-        archived: bool,
-    ) -> Self {
-        Self {
-            properties,
-            link_data,
-            metadata: EntityMetadata {
-                record_id,
-                version,
-                entity_type_id,
-                provenance,
-                archived,
-            },
-        }
-    }
-
-    #[must_use]
-    pub const fn properties(&self) -> &EntityProperties {
-        &self.properties
-    }
-
-    #[must_use]
-    pub const fn link_data(&self) -> Option<LinkData> {
-        self.link_data
-    }
-
-    #[must_use]
-    pub const fn metadata(&self) -> &EntityMetadata {
-        &self.metadata
-    }
+    pub link_data: Option<LinkData>,
+    pub metadata: EntityMetadata,
 }
 
 impl Record for Entity {
@@ -239,10 +199,10 @@ impl Record for Entity {
 
     fn vertex_id(&self, time_axis: TimeAxis) -> Self::VertexId {
         let timestamp = match time_axis {
-            TimeAxis::DecisionTime => self.metadata().version.decision_time.start().cast(),
-            TimeAxis::TransactionTime => self.metadata().version.transaction_time.start().cast(),
+            TimeAxis::DecisionTime => self.metadata.version.decision_time.start().cast(),
+            TimeAxis::TransactionTime => self.metadata.version.transaction_time.start().cast(),
         };
-        EntityVertexId::new(self.metadata().record_id.entity_id, timestamp.into())
+        EntityVertexId::new(self.metadata.record_id.entity_id, timestamp.into())
     }
 
     fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {

@@ -223,7 +223,7 @@ pub enum EntityQueryPath<'p> {
     ///
     /// [`LinkData::right_to_left_order()`]: crate::knowledge::LinkData::right_to_left_order
     RightToLeftOrder,
-    /// Corresponds to [`Entity::properties()`].
+    /// Corresponds to [`Entity::properties`].
     ///
     /// Deserializes from `["properties", ...]` where `...` is a path to a property URI of an
     /// [`Entity`].
@@ -246,7 +246,7 @@ pub enum EntityQueryPath<'p> {
     /// ```
     ///
     /// [`Entity`]: crate::knowledge::Entity
-    /// [`Entity::properties()`]: crate::knowledge::Entity::properties
+    /// [`Entity::properties`]: crate::knowledge::Entity::properties
     Properties(Option<JsonPath<'p>>),
 }
 

@@ -60,7 +60,7 @@ async fn insert() {
         .get_link_entity_target(alice_metadata.record_id.entity_id, friend_of_type_id)
         .await
         .expect("could not fetch entity");
-    let link_data = link_entity.link_data().expect("entity is not a link");
+    let link_data = link_entity.link_data.expect("entity is not a link");
 
     assert_eq!(
         link_data.left_entity_id(),
@@ -156,15 +156,15 @@ async fn get_entity_links() {
     assert!(
         links_from_source
             .iter()
-            .any(|link_entity| { link_entity.metadata().entity_type_id == friend_link_type_id })
+            .any(|link_entity| { link_entity.metadata.entity_type_id == friend_link_type_id })
     );
     assert!(links_from_source.iter().any(|link_entity| {
-        link_entity.metadata().entity_type_id == acquaintance_entity_link_type_id
+        link_entity.metadata.entity_type_id == acquaintance_entity_link_type_id
     }));
 
     let link_datas = links_from_source
         .iter()
-        .map(|entity| entity.link_data().expect("entity is not a link"))
+        .map(|entity| entity.link_data.expect("entity is not a link"))
         .collect::<Vec<_>>();
     assert!(
         link_datas

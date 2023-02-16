@@ -60,7 +60,7 @@ impl<C: AsClient> PostgresStore<C> {
             };
 
             let version_interval = entity
-                .metadata()
+                .metadata
                 .version
                 .projected_time(time_axis);
 
@@ -100,7 +100,7 @@ impl<C: AsClient> PostgresStore<C> {
 
             if current_resolve_depths.is_of_type.outgoing > 0 {
                 let entity_type_id =
-                    OntologyTypeVertexId::from(entity.metadata().entity_type_id.clone());
+                    OntologyTypeVertexId::from(entity.metadata.entity_type_id.clone());
 
                 subgraph.edges.insert(Edge::KnowledgeGraph {
                     vertex_id: entity_vertex_id,
@@ -142,7 +142,7 @@ impl<C: AsClient> PostgresStore<C> {
                             // outgoing link `Entity`
                             kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                             reversed: true,
-                            right_endpoint: outgoing_link_entity.metadata().record_id.entity_id,
+                            right_endpoint: outgoing_link_entity.metadata.record_id.entity_id,
                         }),
                     });
 
@@ -181,7 +181,7 @@ impl<C: AsClient> PostgresStore<C> {
                             // incoming link `Entity`
                             kind: KnowledgeGraphEdgeKind::HasRightEntity,
                             reversed: true,
-                            right_endpoint: incoming_link_entity.metadata().record_id.entity_id,
+                            right_endpoint: incoming_link_entity.metadata.record_id.entity_id,
                         }),
                     });
 
@@ -220,7 +220,7 @@ impl<C: AsClient> PostgresStore<C> {
                             // outgoing `Link` `Entity`
                             kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                             reversed: false,
-                            right_endpoint: left_entity.metadata().record_id.entity_id,
+                            right_endpoint: left_entity.metadata.record_id.entity_id,
                         }),
                     });
 
@@ -259,7 +259,7 @@ impl<C: AsClient> PostgresStore<C> {
                             // outgoing `Link` `Entity`
                             kind: KnowledgeGraphEdgeKind::HasRightEntity,
                             reversed: false,
-                            right_endpoint: right_entity.metadata().record_id.entity_id,
+                            right_endpoint: right_entity.metadata.record_id.entity_id,
                         }),
                     });
 
