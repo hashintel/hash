@@ -6,7 +6,7 @@ use std::{
 
 use graph::{
     identifier::account::AccountId,
-    knowledge::{EntityProperties, EntityUuid, LinkData},
+    knowledge::{EntityLinkOrder, EntityProperties, EntityUuid, LinkData},
     provenance::{OwnedById, UpdatedById},
     store::{AccountStore, AsClient, EntityStore},
 };
@@ -180,12 +180,14 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
                             OwnedById::new(account_id),
                             None,
                             EntityProperties::empty(),
-                            Some(LinkData::new(
-                                left_entity_metadata.record_id.entity_id,
-                                right_entity_metadata.record_id.entity_id,
-                                None,
-                                None,
-                            )),
+                            Some(LinkData {
+                                left_entity_id: left_entity_metadata.record_id.entity_id,
+                                right_entity_id: right_entity_metadata.record_id.entity_id,
+                                order: EntityLinkOrder {
+                                    left_to_right: None,
+                                    right_to_left: None,
+                                },
+                            }),
                             None,
                         )
                     }),

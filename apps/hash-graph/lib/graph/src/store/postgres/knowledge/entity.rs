@@ -352,18 +352,22 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     &properties,
                     &link_data
                         .as_ref()
-                        .map(|metadata| metadata.left_entity_id().owned_by_id),
+                        .map(|metadata| metadata.left_entity_id.owned_by_id),
                     &link_data
                         .as_ref()
-                        .map(|metadata| metadata.left_entity_id().entity_uuid),
+                        .map(|metadata| metadata.left_entity_id.entity_uuid),
                     &link_data
                         .as_ref()
-                        .map(|metadata| metadata.right_entity_id().owned_by_id),
+                        .map(|metadata| metadata.right_entity_id.owned_by_id),
                     &link_data
                         .as_ref()
-                        .map(|metadata| metadata.right_entity_id().entity_uuid),
-                    &link_data.as_ref().map(LinkData::left_to_right_order),
-                    &link_data.as_ref().map(LinkData::right_to_left_order),
+                        .map(|metadata| metadata.right_entity_id.entity_uuid),
+                    &link_data
+                        .as_ref()
+                        .map(|link_data| link_data.order.left_to_right),
+                    &link_data
+                        .as_ref()
+                        .map(|link_data| link_data.order.right_to_left),
                 ],
             )
             .await
@@ -414,13 +418,19 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     owned_by_id,
                     entity_uuid: entity_uuid.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
                 },
-                link_data.as_ref().map(LinkData::left_entity_id),
-                link_data.as_ref().map(LinkData::right_entity_id),
+                link_data.as_ref().map(|link_data| link_data.left_entity_id),
+                link_data
+                    .as_ref()
+                    .map(|link_data| link_data.right_entity_id),
             ));
             entity_editions.push((
                 properties,
-                link_data.as_ref().and_then(LinkData::left_to_right_order),
-                link_data.as_ref().and_then(LinkData::right_to_left_order),
+                link_data
+                    .as_ref()
+                    .and_then(|link_data| link_data.order.left_to_right),
+                link_data
+                    .as_ref()
+                    .and_then(|link_data| link_data.order.right_to_left),
             ));
             entity_versions.push(decision_time);
         }
@@ -588,8 +598,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     &archived,
                     &entity_type_ontology_id,
                     &properties,
-                    &link_order.left_to_right(),
-                    &link_order.right_to_left(),
+                    &link_order.left_to_right,
+                    &link_order.right_to_left,
                 ],
             )
             .await

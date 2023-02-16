@@ -13,7 +13,10 @@ use crate::{
         knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
         time::TimeProjection,
     },
-    knowledge::{Entity, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid, LinkData},
+    knowledge::{
+        Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
+        LinkData,
+    },
     ontology::EntityTypeQueryPath,
     provenance::{OwnedById, ProvenanceMetadata},
     store::{
@@ -108,18 +111,20 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                             Some(left_entity_uuid),
                             Some(right_owned_by_id),
                             Some(right_entity_uuid),
-                        ) => Some(LinkData::new(
-                            EntityId {
+                        ) => Some(LinkData {
+                            left_entity_id: EntityId {
                                 owned_by_id: OwnedById::new(left_owned_by_id),
                                 entity_uuid: EntityUuid::new(left_entity_uuid),
                             },
-                            EntityId {
+                            right_entity_id: EntityId {
                                 owned_by_id: OwnedById::new(right_owned_by_id),
                                 entity_uuid: EntityUuid::new(right_entity_uuid),
                             },
-                            row.get(left_to_right_order_index),
-                            row.get(right_to_left_order_index),
-                        )),
+                            order: EntityLinkOrder {
+                                left_to_right: row.get(left_to_right_order_index),
+                                right_to_left: row.get(right_to_left_order_index),
+                            },
+                        }),
                         (None, None, None, None) => None,
                         _ => unreachable!(
                             "It's not possible to have a link entity with the left entityId or \

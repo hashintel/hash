@@ -10,7 +10,7 @@ use graph::{
             UnresolvedTimeProjection,
         },
     },
-    knowledge::{EntityMetadata, EntityProperties, LinkData},
+    knowledge::{EntityLinkOrder, EntityMetadata, EntityProperties, LinkData},
     provenance::{OwnedById, UpdatedById},
     store::{query::Filter, AccountStore, EntityStore},
     subgraph::{
@@ -105,12 +105,14 @@ async fn seed_db(
                             owned_by_id,
                             None,
                             properties.clone(),
-                            Some(LinkData::new(
-                                entity_a_metadata.record_id.entity_id,
-                                entity_b_metadata.record_id.entity_id,
-                                None,
-                                None,
-                            )),
+                            Some(LinkData {
+                                left_entity_id: entity_a_metadata.record_id.entity_id,
+                                right_entity_id: entity_b_metadata.record_id.entity_id,
+                                order: EntityLinkOrder {
+                                    left_to_right: None,
+                                    right_to_left: None,
+                                },
+                            }),
                             None,
                         )
                     })

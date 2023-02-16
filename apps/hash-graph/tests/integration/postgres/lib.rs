@@ -456,7 +456,14 @@ impl DatabaseApi<'_> {
                 false,
                 entity_type_id,
                 properties,
-                Some(LinkData::new(left_entity_id, right_entity_id, None, None)),
+                Some(LinkData {
+                    left_entity_id,
+                    right_entity_id,
+                    order: EntityLinkOrder {
+                        left_to_right: None,
+                        right_to_left: None,
+                    },
+                }),
             )
             .await
     }

@@ -121,7 +121,10 @@ async fn update() {
                 .expect("couldn't construct Base URI"),
                 version: 1,
             },
-            EntityLinkOrder::new(None, None),
+            EntityLinkOrder {
+                left_to_right: None,
+                right_to_left: None,
+            },
         )
         .await
         .expect("could not update entity");

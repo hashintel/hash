@@ -62,14 +62,8 @@ async fn insert() {
         .expect("could not fetch entity");
     let link_data = link_entity.link_data.expect("entity is not a link");
 
-    assert_eq!(
-        link_data.left_entity_id(),
-        alice_metadata.record_id.entity_id
-    );
-    assert_eq!(
-        link_data.right_entity_id(),
-        bob_metadata.record_id.entity_id
-    );
+    assert_eq!(link_data.left_entity_id, alice_metadata.record_id.entity_id);
+    assert_eq!(link_data.right_entity_id, bob_metadata.record_id.entity_id);
 }
 
 #[tokio::test]
@@ -169,17 +163,17 @@ async fn get_entity_links() {
     assert!(
         link_datas
             .iter()
-            .any(|link_data| link_data.left_entity_id() == alice_metadata.record_id.entity_id)
+            .any(|link_data| link_data.left_entity_id == alice_metadata.record_id.entity_id)
     );
     assert!(
         link_datas
             .iter()
-            .any(|link_data| link_data.right_entity_id() == bob_metadata.record_id.entity_id)
+            .any(|link_data| link_data.right_entity_id == bob_metadata.record_id.entity_id)
     );
     assert!(
         link_datas
             .iter()
-            .any(|link_data| link_data.right_entity_id() == charles_metadata.record_id.entity_id)
+            .any(|link_data| link_data.right_entity_id == charles_metadata.record_id.entity_id)
     );
 }
 
@@ -246,7 +240,10 @@ async fn remove_link() {
         link_entity_metadata.record_id.entity_id,
         EntityProperties::empty(),
         friend_link_type_id,
-        EntityLinkOrder::new(None, None),
+        EntityLinkOrder {
+            left_to_right: None,
+            right_to_left: None,
+        },
     )
     .await
     .expect("could not remove link");
