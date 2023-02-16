@@ -327,8 +327,7 @@ export const App: BlockComponent<true, RootEntity> = ({
       if (!addressLinkEntity) {
         await graphService?.createEntity({
           data: {
-            entityTypeId:
-              "https://alpha.hash.ai/@luisbett/types/entity-type/address-link/v/1",
+            entityTypeId: addressLinkTypeId,
             properties: {},
             linkData: {
               leftEntityId: entityId,
