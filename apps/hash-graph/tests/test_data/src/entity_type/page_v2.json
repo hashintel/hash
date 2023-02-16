@@ -31,5 +31,6 @@
       },
       "ordered": true
     }
-  }
+  },
+  "additionalProperties": false
 }

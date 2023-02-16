@@ -1,5 +1,6 @@
-import { BaseUri, VersionedUri } from "@blockprotocol/type-system";
+import { VersionedUri } from "@blockprotocol/type-system";
 import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
+import { BaseUri } from "@local/hash-subgraph";
 import slugify from "slugify";
 
 import { frontendUrl } from "./environment";
@@ -34,7 +35,7 @@ export const generateBaseTypeId = ({
 }): BaseUri =>
   `${domain ?? frontendUrl}/@${namespace}/types/${kind}/${
     slugOverride ?? slugifyTypeTitle(title)
-  }/` as const;
+  }/` as const as BaseUri;
 
 /**
  * Generate the identifier of a type (its versioned URI).

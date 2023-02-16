@@ -1,6 +1,6 @@
 import { Button } from "@hashintel/design-system";
-import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph/main";
-import { getRoots } from "@local/hash-subgraph/stdlib/roots";
+import { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Drawer, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
@@ -14,7 +14,7 @@ interface EditEntityModalProps {
   open: boolean;
   onClose: () => void;
   onSubmit: () => void;
-  entitySubgraph: Subgraph<SubgraphRootTypes["entity"]>;
+  entitySubgraph: Subgraph<EntityRootType>;
 }
 
 export const EditEntityModal = ({
@@ -24,7 +24,7 @@ export const EditEntityModal = ({
   entitySubgraph,
 }: EditEntityModalProps) => {
   const [draftEntitySubgraph, setDraftEntitySubgraph] = useState<
-    Subgraph<SubgraphRootTypes["entity"]> | undefined
+    Subgraph<EntityRootType> | undefined
   >(entitySubgraph);
   const [savingChanges, setSavingChanges] = useState(false);
   const [isDirty, setIsDirty] = useState(false);

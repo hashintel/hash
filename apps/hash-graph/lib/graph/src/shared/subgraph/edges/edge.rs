@@ -2,7 +2,7 @@ use serde::Serialize;
 use utoipa::{openapi, ToSchema};
 
 use crate::{
-    identifier::{knowledge::EntityId, ontology::OntologyTypeEditionId, EntityVertexId},
+    identifier::{knowledge::EntityId, EntityVertexId, OntologyTypeVertexId},
     subgraph::edges::{KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
 };
 
@@ -44,7 +44,7 @@ where
 #[derive(Debug, Hash, PartialEq, Eq, Serialize)]
 #[serde(untagged)]
 pub enum OntologyOutwardEdges {
-    ToOntology(OutwardEdge<OntologyEdgeKind, OntologyTypeEditionId>),
+    ToOntology(OutwardEdge<OntologyEdgeKind, OntologyTypeVertexId>),
     ToKnowledgeGraph(OutwardEdge<SharedEdgeKind, EntityVertexId>),
 }
 
@@ -56,7 +56,7 @@ impl ToSchema<'_> for OntologyOutwardEdges {
         (
             "OntologyOutwardEdges",
             openapi::OneOfBuilder::new()
-                .item(<OutwardEdge<OntologyEdgeKind, OntologyTypeEditionId>>::schema().1)
+                .item(<OutwardEdge<OntologyEdgeKind, OntologyTypeVertexId>>::schema().1)
                 .item(<OutwardEdge<SharedEdgeKind, EntityVertexId>>::schema().1)
                 .into(),
         )
@@ -67,5 +67,5 @@ impl ToSchema<'_> for OntologyOutwardEdges {
 #[serde(untagged)]
 pub enum KnowledgeGraphOutwardEdges {
     ToKnowledgeGraph(OutwardEdge<KnowledgeGraphEdgeKind, EntityId>),
-    ToOntology(OutwardEdge<SharedEdgeKind, OntologyTypeEditionId>),
+    ToOntology(OutwardEdge<SharedEdgeKind, OntologyTypeVertexId>),
 }

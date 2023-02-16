@@ -39,22 +39,22 @@ use crate::{
         utoipa_typedef::subgraph::{
             Edges, KnowledgeGraphOutwardEdges, KnowledgeGraphRootedEdges, KnowledgeGraphVertex,
             KnowledgeGraphVertices, OntologyRootedEdges, OntologyVertex, OntologyVertices,
-            Subgraph, Vertex, Vertices,
+            Subgraph, TemporalAxes, Vertex, Vertices,
         },
     },
     identifier::{
-        ontology::OntologyTypeEditionId,
+        ontology::{OntologyTypeRecordId, OntologyTypeVersion},
         time::{
             DecisionTime, DecisionTimeImage, DecisionTimeKernel, DecisionTimeProjection,
-            IncludedTimeIntervalBound, TimeIntervalBound, TimeProjection, Timestamp,
-            TransactionTime, TransactionTimeImage, TransactionTimeKernel,
+            IncludedTimeIntervalBound, LimitedTimeIntervalBound, TimeIntervalBound, TimeProjection,
+            Timestamp, TransactionTime, TransactionTimeImage, TransactionTimeKernel,
             TransactionTimeProjection, UnboundedOrExcludedTimeIntervalBound,
             UnresolvedDecisionTimeImage, UnresolvedDecisionTimeKernel,
             UnresolvedDecisionTimeProjection, UnresolvedTimeProjection,
             UnresolvedTransactionTimeImage, UnresolvedTransactionTimeKernel,
             UnresolvedTransactionTimeProjection,
         },
-        EntityVertexId, GraphElementId, GraphElementVertexId,
+        EntityVertexId, GraphElementId, GraphElementVertexId, OntologyTypeVertexId,
     },
     ontology::{
         domain_validator::DomainValidator, ExternalOntologyElementMetadata,
@@ -177,11 +177,13 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             OwnedById,
             UpdatedById,
             ProvenanceMetadata,
-            OntologyTypeEditionId,
+            OntologyTypeRecordId,
             OntologyElementMetadata,
             OwnedOntologyElementMetadata,
             ExternalOntologyElementMetadata,
             EntityVertexId,
+            OntologyTypeVertexId,
+            OntologyTypeVersion,
             Selector,
 
             GraphElementId,
@@ -204,6 +206,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             EdgeResolveDepths,
             OutgoingEdgeResolveDepth,
             Subgraph,
+            TemporalAxes,
 
             DecisionTime,
             TransactionTime,
@@ -499,6 +502,10 @@ impl Modify for TimeSchemaAddon {
             components.schemas.insert(
                 TimeIntervalBound::<()>::schema().0.to_owned(),
                 TimeIntervalBound::<()>::schema().1,
+            );
+            components.schemas.insert(
+                LimitedTimeIntervalBound::<()>::schema().0.to_owned(),
+                LimitedTimeIntervalBound::<()>::schema().1,
             );
         }
     }

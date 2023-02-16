@@ -1,10 +1,10 @@
 import {
-  extractBaseUri,
   OneOf,
   PropertyType,
   PropertyValues,
   VersionedUri,
 } from "@blockprotocol/type-system";
+import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
 import { uniqueId } from "lodash";
 
 import { arrayExpectedValueDataDefaults } from "./shared/default-expected-value";

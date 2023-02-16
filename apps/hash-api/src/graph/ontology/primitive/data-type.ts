@@ -1,17 +1,15 @@
-import { DataType } from "@blockprotocol/type-system";
+import { DataType, VersionedUri } from "@blockprotocol/type-system";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountId,
+  DataTypeRootType,
   DataTypeWithMetadata,
   OwnedById,
   Subgraph,
-  SubgraphRootTypes,
-  VersionedUri,
-} from "@local/hash-subgraph/main";
-import { versionedUriFromComponents } from "@local/hash-subgraph/shared/type-system-patch";
-import { getRoots } from "@local/hash-subgraph/stdlib/roots";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
-import { mapOntologyMetadata } from "@local/hash-subgraph/temp/map-vertices";
+} from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
+import { mapOntologyMetadata, mapSubgraph } from "@local/hash-subgraph/temp";
+import { versionedUriFromComponents } from "@local/hash-subgraph/type-system-patch";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
@@ -84,22 +82,19 @@ export const getDataTypeById: ImpureGraphFunction<
         equal: [{ path: ["versionedUri"] }, { parameter: dataTypeId }],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeProjection: {
-        kernel: {
-          axis: "transaction",
+      timeAxes: {
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
+        variable: {
+          axis: "decisionTime",
           start: null,
           end: null,
         },
       },
     })
-    .then(
-      ({ data }) =>
-        mapSubgraph(data) as Subgraph<SubgraphRootTypes["dataType"]>,
-    );
+    .then(({ data }) => mapSubgraph(data) as Subgraph<DataTypeRootType>);
 
   const [dataType] = getRoots(dataTypeSubgraph);
 

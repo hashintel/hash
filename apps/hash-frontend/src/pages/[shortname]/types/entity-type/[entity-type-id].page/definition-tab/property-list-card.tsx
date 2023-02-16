@@ -1,13 +1,13 @@
 import {
-  extractBaseUri,
   extractVersion,
   PropertyType,
   VersionedUri,
 } from "@blockprotocol/type-system";
 import { faList } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { OwnedById, Subgraph } from "@local/hash-subgraph/main";
-import { getPropertyTypesByBaseUri } from "@local/hash-subgraph/stdlib/element/property-type";
+import { OwnedById, Subgraph } from "@local/hash-subgraph";
+import { getPropertyTypesByBaseUri } from "@local/hash-subgraph/stdlib";
+import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
   Checkbox,
@@ -588,8 +588,7 @@ export const PropertyListCard = () => {
 
   const { routeNamespace } = useRouteNamespace();
   const { createPropertyType } = useBlockProtocolCreatePropertyType(
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-    (routeNamespace?.accountId as OwnedById) ?? null,
+    (routeNamespace?.accountId as OwnedById | undefined) ?? null,
   );
 
   const refetchPropertyTypes = useRefetchLatestPropertyTypes();

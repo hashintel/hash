@@ -5,14 +5,13 @@ import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountId,
   OwnedById,
+  PropertyTypeRootType,
   PropertyTypeWithMetadata,
   Subgraph,
-  SubgraphRootTypes,
-} from "@local/hash-subgraph/main";
-import { versionedUriFromComponents } from "@local/hash-subgraph/shared/type-system-patch";
-import { getRoots } from "@local/hash-subgraph/stdlib/roots";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
-import { mapOntologyMetadata } from "@local/hash-subgraph/temp/map-vertices";
+} from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
+import { mapOntologyMetadata, mapSubgraph } from "@local/hash-subgraph/temp";
+import { versionedUriFromComponents } from "@local/hash-subgraph/type-system-patch";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
@@ -76,22 +75,19 @@ export const getPropertyTypeById: ImpureGraphFunction<
         equal: [{ path: ["versionedUri"] }, { parameter: propertyTypeId }],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeProjection: {
-        kernel: {
-          axis: "transaction",
+      timeAxes: {
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
+        variable: {
+          axis: "decisionTime",
           start: null,
           end: null,
         },
       },
     })
-    .then(
-      ({ data }) =>
-        mapSubgraph(data) as Subgraph<SubgraphRootTypes["propertyType"]>,
-    );
+    .then(({ data }) => mapSubgraph(data) as Subgraph<PropertyTypeRootType>);
 
   const [propertyType] = getRoots(propertyTypeSubgraph);
 

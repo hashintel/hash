@@ -8,6 +8,7 @@ use crate::store::{
     migration::{Migration, MigrationState, StoreMigration},
 };
 
+#[expect(clippy::str_to_string)]
 mod embedded {
     use refinery::embed_migrations;
     embed_migrations!("../../postgres_migrations");

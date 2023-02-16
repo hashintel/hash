@@ -6,14 +6,14 @@ use futures::FutureExt;
 use type_system::{DataTypeReference, PropertyType, PropertyTypeReference};
 
 use crate::{
-    identifier::{ontology::OntologyTypeEditionId, time::TimeProjection},
+    identifier::{time::TimeProjection, OntologyTypeVertexId},
     ontology::{OntologyElementMetadata, OntologyTypeWithMetadata, PropertyTypeWithMetadata},
     provenance::UpdatedById,
     store::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
-        AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, Record, Store,
-        Transaction, UpdateError,
+        AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, Record,
+        UpdateError,
     },
     subgraph::{
         edges::{
@@ -32,7 +32,7 @@ impl<C: AsClient> PostgresStore<C> {
     #[tracing::instrument(level = "trace", skip(self, dependency_context, subgraph))]
     pub(crate) fn traverse_property_type<'a>(
         &'a self,
-        property_type_id: &'a OntologyTypeEditionId,
+        property_type_id: &'a OntologyTypeVertexId,
         dependency_context: &'a mut DependencyContext,
         subgraph: &'a mut Subgraph,
         mut current_resolve_depths: GraphResolveDepths,
@@ -42,7 +42,7 @@ impl<C: AsClient> PostgresStore<C> {
             let dependency_status = dependency_context.ontology_dependency_map.update(
                 property_type_id,
                 current_resolve_depths,
-                time_projection.image(),
+                time_projection.image().convert(),
             );
 
             let property_type = match dependency_status {
@@ -50,7 +50,7 @@ impl<C: AsClient> PostgresStore<C> {
                     // The dependency may have to be resolved more than anticipated, so we update
                     // the resolve depth and time projection.
                     current_resolve_depths = depths;
-                    time_projection.set_image(interval);
+                    time_projection.set_image(interval.convert());
                     subgraph
                         .get_or_read::<PropertyTypeWithMetadata>(
                             self,
@@ -93,12 +93,12 @@ impl<C: AsClient> PostgresStore<C> {
                         outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
                             kind: OntologyEdgeKind::ConstrainsValuesOn,
                             reversed: false,
-                            right_endpoint: OntologyTypeEditionId::from(&data_type_ref),
+                            right_endpoint: OntologyTypeVertexId::from(&data_type_ref),
                         }),
                     });
 
                     self.traverse_data_type(
-                        &OntologyTypeEditionId::from(&data_type_ref),
+                        &OntologyTypeVertexId::from(&data_type_ref),
                         dependency_context,
                         subgraph,
                         GraphResolveDepths {
@@ -121,12 +121,12 @@ impl<C: AsClient> PostgresStore<C> {
                         outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
                             kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                             reversed: false,
-                            right_endpoint: OntologyTypeEditionId::from(&property_type_ref_uri),
+                            right_endpoint: OntologyTypeVertexId::from(&property_type_ref_uri),
                         }),
                     });
 
                     self.traverse_property_type(
-                        &OntologyTypeEditionId::from(&property_type_ref_uri),
+                        &OntologyTypeVertexId::from(&property_type_ref_uri),
                         dependency_context,
                         subgraph,
                         GraphResolveDepths {

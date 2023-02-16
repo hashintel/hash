@@ -12,6 +12,7 @@ import {
   DataType as DataTypeGraphApi,
   EntityMetadata as EntityMetadataGraphApi,
   EntityType as EntityTypeGraphApi,
+  EntityVersion as EntityVersionGraphApi,
   KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
   LinkData as LinkDataGraphApi,
   OntologyElementMetadata as OntologyElementMetadataGraphApi,
@@ -20,19 +21,23 @@ import {
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
 
-import { EntityId, isEntityId } from "../types/branded";
 import {
+  BaseUri,
+  EntityId,
   EntityMetadata,
+  EntityPropertiesObject,
+  EntityTemporalVersioningMetadata,
+  isEntityId,
   LinkData,
   OntologyElementMetadata,
-  PropertyObject,
-} from "../types/element";
-import { EntityVersion } from "../types/identifier";
+  Timestamp,
+  UpdatedById,
+} from "../types";
 import {
   KnowledgeGraphVertex,
   OntologyVertex,
   Vertices,
-} from "../types/vertex";
+} from "../types/subgraph/vertices";
 
 const mapDataType = (dataType: DataTypeGraphApi): DataType => {
   const idResult = validateVersionedUri(dataType.$id);
@@ -87,9 +92,17 @@ export const mapOntologyMetadata = (
   return {
     ...metadata,
     recordId: {
-      baseUri: metadata.editionId.baseId,
-      version: metadata.editionId.version,
+      baseUri: metadata.recordId.baseUri as BaseUri,
+      version: metadata.recordId.version,
     },
+    provenance: {
+      updatedById: metadata.provenance.updatedById as UpdatedById,
+    },
+    ...("fetchedAt" in metadata
+      ? { fetchedAt: metadata.fetchedAt as Timestamp }
+      : ({} as {
+          fetchedAt: Timestamp;
+        })),
   };
 };
 
@@ -128,17 +141,53 @@ const mapOntologyVertex = (vertex: OntologyVertexGraphApi): OntologyVertex => {
   }
 };
 
+export const mapEntityVersion = (
+  entityVersion: EntityVersionGraphApi,
+): EntityTemporalVersioningMetadata => {
+  return {
+    transactionTime: {
+      start: {
+        kind: "inclusive",
+        limit: entityVersion.transactionTime.start as Timestamp,
+      },
+      end:
+        entityVersion.transactionTime.end === null
+          ? { kind: "unbounded" }
+          : {
+              kind: "exclusive",
+              limit: entityVersion.transactionTime.end as Timestamp,
+            },
+    },
+    decisionTime: {
+      start: {
+        kind: "inclusive",
+        limit: entityVersion.decisionTime.start as Timestamp,
+      },
+      end:
+        entityVersion.transactionTime.end === null
+          ? { kind: "unbounded" }
+          : {
+              kind: "exclusive",
+              limit: entityVersion.transactionTime.end as Timestamp,
+            },
+    },
+  };
+};
+
 export const mapEntityMetadata = (
   metadata: EntityMetadataGraphApi,
 ): EntityMetadata => {
   return {
     ...metadata,
     recordId: {
-      entityId: metadata.editionId.baseId as EntityId,
-      editionId: metadata.editionId.recordId,
+      ...metadata.recordId,
+      entityId: metadata.recordId.entityId as EntityId,
     },
-    version: metadata.version as EntityVersion,
+    temporalVersioning: mapEntityVersion(metadata.version),
     entityTypeId: metadata.entityTypeId as VersionedUri,
+    provenance: {
+      updatedById: metadata.provenance.updatedById as UpdatedById,
+    },
   };
 };
 
@@ -158,7 +207,7 @@ const mapKnowledgeGraphVertex = (
     ...vertex,
     inner: {
       ...vertex.inner,
-      properties: vertex.inner.properties as PropertyObject,
+      properties: vertex.inner.properties as EntityPropertiesObject,
       ...(vertex.inner.linkData
         ? { linkData: mapLinkData(vertex.inner.linkData) }
         : ({} as { linkData: never })),
@@ -175,7 +224,7 @@ export const mapVertices = (vertices: VerticesGraphApi): Vertices => {
     const result = validateBaseUri(baseId);
     if (result.type === "Ok") {
       // ------------ Ontology Type case ----------------
-      const baseUri = result.inner;
+      const baseUri = result.inner as BaseUri;
 
       mappedVertices[baseUri] = Object.fromEntries(
         Object.entries(inner).map(([version, vertex]) => {

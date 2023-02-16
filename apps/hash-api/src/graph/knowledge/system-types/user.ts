@@ -2,15 +2,15 @@ import {
   AccountId,
   Entity,
   EntityId,
+  EntityPropertiesObject,
+  EntityRootType,
   EntityUuid,
   extractEntityUuidFromEntityId,
   OwnedById,
-  PropertyObject,
   Subgraph,
-  SubgraphRootTypes,
   Uuid,
-} from "@local/hash-subgraph/main";
-import { getRootsAsEntities } from "@local/hash-subgraph/stdlib/element/entity";
+} from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import {
@@ -148,24 +148,20 @@ export const getUserByShortname: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeProjection: {
-        kernel: {
-          axis: "transaction",
+      timeAxes: {
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
+        variable: {
+          axis: "decisionTime",
           start: null,
           end: null,
         },
       },
     })
     .then(({ data: userEntitiesSubgraph }) =>
-      getRootsAsEntities(
-        mapSubgraph(userEntitiesSubgraph) as Subgraph<
-          SubgraphRootTypes["entity"]
-        >,
-      ),
+      getRoots(mapSubgraph(userEntitiesSubgraph) as Subgraph<EntityRootType>),
     );
 
   if (unexpectedEntities.length > 0) {
@@ -211,24 +207,20 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeProjection: {
-        kernel: {
-          axis: "transaction",
+      timeAxes: {
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
+        variable: {
+          axis: "decisionTime",
           start: null,
           end: null,
         },
       },
     })
     .then(({ data: userEntitiesSubgraph }) =>
-      getRootsAsEntities(
-        mapSubgraph(userEntitiesSubgraph) as Subgraph<
-          SubgraphRootTypes["entity"]
-        >,
-      ),
+      getRoots(mapSubgraph(userEntitiesSubgraph) as Subgraph<EntityRootType>),
     );
 
   if (unexpectedEntities.length > 0) {
@@ -303,7 +295,7 @@ export const createUser: ImpureGraphFunction<
   const userAccountId =
     params.userAccountId ?? (await graphApi.createAccountId()).data;
 
-  const properties: PropertyObject = {
+  const properties: EntityPropertiesObject = {
     [SYSTEM_TYPES.propertyType.email.metadata.recordId.baseUri]: emails,
     [SYSTEM_TYPES.propertyType.kratosIdentityId.metadata.recordId.baseUri]:
       kratosIdentityId,

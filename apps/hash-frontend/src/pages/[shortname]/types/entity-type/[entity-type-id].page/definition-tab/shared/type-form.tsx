@@ -1,4 +1,3 @@
-import { BaseUri } from "@blockprotocol/type-system";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import {
   Button,
@@ -12,7 +11,8 @@ import {
   generateBaseTypeId,
   SchemaKind,
 } from "@local/hash-isomorphic-utils/ontology-types";
-import { versionedUriFromComponents } from "@local/hash-subgraph/shared/type-system-patch";
+import { BaseUri } from "@local/hash-subgraph";
+import { versionedUriFromComponents } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
   Divider,
@@ -187,7 +187,7 @@ export const TypeFormDescriptionField = ({
   );
 };
 
-export const generateInitialTypeUri = (baseUri: string) =>
+export const generateInitialTypeUri = (baseUri: BaseUri) =>
   versionedUriFromComponents(baseUri, 1);
 
 export const useGenerateTypeBaseUri = (kind: SchemaKind) => {

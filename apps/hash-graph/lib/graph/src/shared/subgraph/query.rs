@@ -162,11 +162,12 @@ pub struct StructuralQuery<'p, R: Record> {
     #[serde(bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>")]
     pub filter: Filter<'p, R>,
     pub graph_resolve_depths: GraphResolveDepths,
+    #[serde(rename = "timeAxes")]
     pub time_projection: UnresolvedTimeProjection,
 }
 
 impl<'p, R: Record> StructuralQuery<'p, R> {
-    fn schema() -> RefOr<Schema> {
+    fn generate_schema() -> RefOr<Schema> {
         Schema::Object(
             ObjectBuilder::new()
                 .property("filter", Ref::from_schema_name("Filter"))
@@ -177,7 +178,7 @@ impl<'p, R: Record> StructuralQuery<'p, R> {
                 )
                 .required("graphResolveDepths")
                 .property(
-                    "timeProjection",
+                    "timeAxes",
                     Ref::from_schema_name(UnresolvedTimeProjection::schema().0),
                 )
                 .required("timeProjection")
@@ -196,7 +197,7 @@ impl<'p> ToSchema<'_> for StructuralQuery<'p, DataTypeWithMetadata> {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
             "DataTypeStructuralQuery",
-            StructuralQuery::<'p, DataTypeWithMetadata>::schema(),
+            StructuralQuery::<'p, DataTypeWithMetadata>::generate_schema(),
         )
     }
 }
@@ -205,7 +206,7 @@ impl<'p> ToSchema<'_> for StructuralQuery<'p, PropertyTypeWithMetadata> {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
             "PropertyTypeStructuralQuery",
-            StructuralQuery::<'p, PropertyTypeWithMetadata>::schema(),
+            StructuralQuery::<'p, PropertyTypeWithMetadata>::generate_schema(),
         )
     }
 }
@@ -214,7 +215,7 @@ impl<'p> ToSchema<'_> for StructuralQuery<'p, EntityTypeWithMetadata> {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
             "EntityTypeStructuralQuery",
-            StructuralQuery::<'p, EntityTypeWithMetadata>::schema(),
+            StructuralQuery::<'p, EntityTypeWithMetadata>::generate_schema(),
         )
     }
 }
@@ -223,7 +224,7 @@ impl<'p> ToSchema<'_> for StructuralQuery<'p, Entity> {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
             "EntityStructuralQuery",
-            StructuralQuery::<'p, Entity>::schema(),
+            StructuralQuery::<'p, Entity>::generate_schema(),
         )
     }
 }

@@ -5,8 +5,6 @@ COMMON_HACK_FLAGS = "--optional-deps --feature-powerset --group-features eyre,ho
 CARGO_CLIPPY_HACK_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "${COMMON_HACK_FLAGS}", mapping = { "pull_request" = "" } }
 CARGO_TEST_HACK_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "${COMMON_HACK_FLAGS}", mapping = { "pull_request" = "" } }
 CARGO_INSTA_TEST_FLAGS = "--no-fail-fast"
-CARGO_RUSTDOC_HACK_FLAGS = ""
-CARGO_DOC_HACK_FLAGS = ""
 # The only features that are of relevance are: spantrace, std, hooks
 # all others do not change the output
 CARGO_INSTA_TEST_HACK_FLAGS = "--keep-going --feature-powerset --include-features spantrace,std,hooks"
@@ -46,28 +44,6 @@ dependencies = ["install-rust-src"]
 private = true
 install_crate = { rustup_component_name = "rust-src" }
 
-
-[tasks.rustdoc]
-workspace = true
-run_task = [
-    { name = ["rustdoc-task"], condition = { env_true = ["CARGO_MAKE_CRATE_IS_WORKSPACE"] } },
-    { name = ["rustdoc-task-subcrate"] },
-]
-
-[tasks.rustdoc-task-subcrate]
-env = { CARGO_RUSTDOC_FLAGS = "--all-features -- -Z unstable-options" }
-run_task = { name = ["rustdoc-task"] }
-
-[tasks.doc]
-workspace = true
-run_task = [
-    { name = ["doc-task"], condition = { env_true = ["CARGO_MAKE_CRATE_IS_WORKSPACE"] } },
-    { name = ["doc-task-subcrate"] },
-]
-
-[tasks.doc-task-subcrate]
-env = { CARGO_DOC_FLAGS = "--all-features" }
-run_task = { name = ["doc-task"] }
 
 # Snapshot Tests
 # ==============

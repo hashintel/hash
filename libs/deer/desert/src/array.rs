@@ -12,7 +12,7 @@ use crate::{
     token::Token,
 };
 
-pub struct ArrayAccess<'a, 'b, 'de: 'a> {
+pub(crate) struct ArrayAccess<'a, 'b, 'de: 'a> {
     deserializer: &'a mut Deserializer<'b, 'de>,
 
     length: Option<usize>,
@@ -21,7 +21,7 @@ pub struct ArrayAccess<'a, 'b, 'de: 'a> {
 }
 
 impl<'a, 'b, 'de> ArrayAccess<'a, 'b, 'de> {
-    pub fn new(deserializer: &'a mut Deserializer<'b, 'de>, length: Option<usize>) -> Self {
+    pub(crate) fn new(deserializer: &'a mut Deserializer<'b, 'de>, length: Option<usize>) -> Self {
         Self {
             deserializer,
             consumed: 0,
@@ -92,17 +92,15 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
         if matches!(self.deserializer.peek(), Token::ArrayEnd) {
             // we have reached the ending, if `self.remaining` is set we use the `DeserializerNone`
             // to deserialize any values that require `None`
-            if self.remaining.is_some() {
+            self.remaining.is_some().then(|| {
                 // previous statement ensures that remaining is decremented and wasn't 0
                 let value = T::deserialize(DeserializerNone {
                     context: self.deserializer.context(),
                 });
 
                 self.consumed += 1;
-                Some(value.change_context(ArrayAccessError))
-            } else {
-                None
-            }
+                value.change_context(ArrayAccessError)
+            })
         } else {
             let value = T::deserialize(&mut *self.deserializer);
             self.consumed += 1;
@@ -116,10 +114,10 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
     }
 
     fn end(self) -> Result<(), ArrayAccessError> {
-        let mut result = Ok(());
-
         // ensure that we consume the last token, if it is the wrong token error out
-        if self.deserializer.peek() != Token::ArrayEnd {
+        let mut result = if self.deserializer.peek() == Token::ArrayEnd {
+            Ok(())
+        } else {
             let mut error = Report::new(ArrayLengthError.into_error())
                 .attach(ExpectedLength::new(self.consumed));
 
@@ -127,18 +125,13 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
                 error = error.attach(ReceivedLength::new(length));
             }
 
-            result = Err(error);
-        }
+            Err(error)
+        };
 
         // bump until the very end, which ensures that deserialize calls after this might succeed!
         let bump = self
             .scan_end()
-            .map(
-                // we need to convert the index (peek index) into an amount to bump
-                // which means we need to increment
-                |index| index + 1,
-            )
-            .unwrap_or_else(|| self.deserializer.tape().remaining());
+            .map_or_else(|| self.deserializer.tape().remaining(), |index| index + 1);
         self.deserializer.tape_mut().bump_n(bump);
 
         if let Some(remaining) = self.remaining {
