@@ -1,12 +1,12 @@
 import {
+  EntityTypeRootType,
   EntityTypeWithMetadata,
   Subgraph,
-  SubgraphRootTypes,
-} from "@local/hash-subgraph/main";
+} from "@local/hash-subgraph";
 
 export type EntityTypesContextValue = {
   entityTypes: EntityTypeWithMetadata[] | null;
-  subgraph: Subgraph<SubgraphRootTypes["entityType"]> | null;
+  subgraph: Subgraph<EntityTypeRootType> | null;
   loading: boolean;
 
   refetch: () => Promise<void>;

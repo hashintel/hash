@@ -85,8 +85,8 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
 }
 
 impl<'a, 'de> Deserializer<'a, 'de> {
-    pub(crate) fn new_bare(tape: Tape<'a, 'de>, context: &'a Context) -> Self {
-        Self { tape, context }
+    pub(crate) const fn new_bare(tape: Tape<'a, 'de>, context: &'a Context) -> Self {
+        Self { context, tape }
     }
 
     pub fn new(tokens: &'de [Token], context: &'a Context) -> Self {
@@ -105,7 +105,7 @@ impl<'a, 'de> Deserializer<'a, 'de> {
         self.tape.next().expect("should have token to deserialize")
     }
 
-    pub(crate) fn tape(&self) -> &Tape<'a, 'de> {
+    pub(crate) const fn tape(&self) -> &Tape<'a, 'de> {
         &self.tape
     }
 
@@ -113,11 +113,11 @@ impl<'a, 'de> Deserializer<'a, 'de> {
         &mut self.tape
     }
 
-    pub fn remaining(&self) -> usize {
+    pub const fn remaining(&self) -> usize {
         self.tape.remaining()
     }
 
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.tape.is_empty()
     }
 }

@@ -43,7 +43,7 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
     /// [`BaseUri`]: type_system::uri::BaseUri
     async fn create_data_types(
         &mut self,
-        property_types: impl IntoIterator<
+        data_types: impl IntoIterator<
             Item = (DataType, impl Borrow<OntologyElementMetadata> + Send + Sync),
             IntoIter: Send,
         > + Send,

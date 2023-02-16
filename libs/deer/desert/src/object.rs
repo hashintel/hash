@@ -13,7 +13,7 @@ use crate::{
     token::Token,
 };
 
-pub struct ObjectAccess<'a, 'b, 'de: 'a> {
+pub(crate) struct ObjectAccess<'a, 'b, 'de: 'a> {
     deserializer: &'a mut Deserializer<'b, 'de>,
 
     length: Option<usize>,
@@ -22,7 +22,7 @@ pub struct ObjectAccess<'a, 'b, 'de: 'a> {
 }
 
 impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
-    pub fn new(deserializer: &'a mut Deserializer<'b, 'de>, length: Option<usize>) -> Self {
+    pub(crate) fn new(deserializer: &'a mut Deserializer<'b, 'de>, length: Option<usize>) -> Self {
         Self {
             deserializer,
             length,
@@ -34,10 +34,6 @@ impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
     // This assumes that Str and such are atomic, meaning `Str Str` as a deserialize value is
     // considered invalid, as that should use `ArrayAccess` instead.
     fn scan(&self, key: &str) -> Option<usize> {
-        let mut objects: usize = 0;
-        let mut arrays: usize = 0;
-        let mut n = 0;
-
         #[derive(Copy, Clone, Eq, PartialEq)]
         enum State {
             Key,
@@ -47,11 +43,15 @@ impl<'a, 'b, 'de: 'a> ObjectAccess<'a, 'b, 'de> {
         impl State {
             fn flip(&mut self) {
                 match *self {
-                    State::Key => *self = State::Value,
-                    State::Value => *self = State::Key,
+                    Self::Key => *self = Self::Value,
+                    Self::Value => *self = Self::Key,
                 }
             }
         }
+
+        let mut objects: usize = 0;
+        let mut arrays: usize = 0;
+        let mut n = 0;
 
         let mut state = State::Key;
 
@@ -236,10 +236,10 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
     }
 
     fn end(self) -> Result<(), ObjectAccessError> {
-        let mut result = Ok(());
-
         // ensure that we consume the last token, if it is the wrong token error out
-        if self.deserializer.peek() != Token::ObjectEnd {
+        let mut result = if self.deserializer.peek() == Token::ObjectEnd {
+            Ok(())
+        } else {
             let mut error = Report::new(ObjectLengthError.into_error())
                 .attach(ExpectedLength::new(self.consumed));
 
@@ -247,8 +247,8 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
                 error = error.attach(ReceivedLength::new(length));
             }
 
-            result = Err(error);
-        }
+            Err(error)
+        };
 
         // bump until the very end, which ensures that deserialize calls after this might succeed!
         let bump = self

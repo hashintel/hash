@@ -4,9 +4,11 @@ import {
   LoadingSpinner,
   TextField,
 } from "@hashintel/design-system";
-import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
-import { EntityStoreType } from "@local/hash-isomorphic-utils/entity-store";
-import { EntityId } from "@local/hash-subgraph/main";
+import {
+  DraftEntity,
+  EntityStoreType,
+} from "@local/hash-isomorphic-utils/entity-store";
+import { EntityId } from "@local/hash-subgraph";
 import {
   Box,
   InputAdornment,
@@ -63,7 +65,7 @@ export const LoadEntityMenuContent: FunctionComponent<
   }, [popupState]);
 
   const swapEntity = useCallback(
-    (targetEntity: BlockEntity["properties"]["entity"]) => {
+    (targetEntity: DraftEntity["properties"]["entity"]) => {
       if (!blockEntityId) {
         return;
       }

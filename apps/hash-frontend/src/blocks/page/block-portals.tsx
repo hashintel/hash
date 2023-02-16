@@ -27,11 +27,7 @@ export const BlockPortals = ({ draftId, portals }: PortalProps) => {
       id: draftId,
       error,
       setError,
-      /** @todo-0.3 fix type mismatch between HASH and blockprotocol */
-      blockSubgraph: blockSubgraph as unknown as Subgraph<
-        true,
-        EntityRootType<true>
-      >,
+      blockSubgraph,
       setBlockSubgraph,
     }),
     [draftId, error, setError, blockSubgraph, setBlockSubgraph],

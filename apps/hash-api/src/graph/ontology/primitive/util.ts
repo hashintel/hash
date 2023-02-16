@@ -4,7 +4,7 @@ import {
   EntityUuid,
   OwnedById,
   Uuid,
-} from "@local/hash-subgraph/main";
+} from "@local/hash-subgraph";
 
 import { ImpureGraphFunction } from "../..";
 import { getOrgById } from "../../knowledge/system-types/org";

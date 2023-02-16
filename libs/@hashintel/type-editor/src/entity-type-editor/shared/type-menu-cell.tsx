@@ -1,5 +1,4 @@
-import { extractVersion } from "@blockprotocol/type-system";
-import { VersionedUri } from "@blockprotocol/type-system/slim";
+import { extractVersion, VersionedUri } from "@blockprotocol/type-system/slim";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,

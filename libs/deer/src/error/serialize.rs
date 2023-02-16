@@ -506,8 +506,8 @@ mod tests {
         let split = FrameSplitIterator::new(&report);
         let mut frames = divide_frames(split).into_iter();
 
-        assert_stack(&frames.next().unwrap(), &["D", "C", "Z Error"]);
-        assert_stack(&frames.next().unwrap(), &[
+        assert_stack(&frames.next().expect("first chain"), &["D", "C", "Z Error"]);
+        assert_stack(&frames.next().expect("second chain"), &[
             "D", "C", "Z Error", "B", "A", "Z Error",
         ]);
     }

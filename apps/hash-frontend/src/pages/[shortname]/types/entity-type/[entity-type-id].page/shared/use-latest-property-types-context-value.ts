@@ -1,5 +1,5 @@
-import { SubgraphRootTypes } from "@local/hash-subgraph/main";
-import { getRoots } from "@local/hash-subgraph/stdlib/roots";
+import { PropertyTypeRootType } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useBlockProtocolAggregatePropertyTypes } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-aggregate-property-types";
@@ -18,7 +18,7 @@ export const useLatestPropertyTypesContextValue = () => {
           setPropertyTypes((existingPropertyTypes) => ({
             ...(existingPropertyTypes ?? {}),
             ...Object.fromEntries(
-              getRoots<SubgraphRootTypes["propertyType"]>(
+              getRoots<PropertyTypeRootType>(
                 propertyTypesSubgraph as any, // @todo-0.3 fix this
               ).map((propertyType) => {
                 return [propertyType.schema.$id, propertyType.schema];

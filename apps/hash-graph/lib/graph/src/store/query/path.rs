@@ -16,6 +16,7 @@ pub struct JsonPath<'p> {
 }
 
 impl<'p> JsonPath<'p> {
+    #[must_use]
     pub fn from_path_tokens(path: Vec<PathToken<'p>>) -> Self {
         Self { path }
     }
@@ -24,6 +25,10 @@ impl<'p> JsonPath<'p> {
         writer.write_char('$')?;
         for token in &self.path {
             match token {
+                #[expect(
+                    clippy::use_debug,
+                    reason = "Debug string is escaped, Display string is not"
+                )]
                 PathToken::Field(field) => {
                     write!(writer, ".{field:?}")?;
                 }

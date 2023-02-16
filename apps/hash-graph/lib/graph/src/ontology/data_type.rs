@@ -189,7 +189,7 @@ impl QueryPath for DataTypeQueryPath<'_> {
             Self::Schema(_) | Self::AdditionalMetadata(_) => ParameterType::Any,
             Self::BaseUri => ParameterType::BaseUri,
             Self::VersionedUri => ParameterType::VersionedUri,
-            Self::Version => ParameterType::UnsignedInteger,
+            Self::Version => ParameterType::OntologyTypeVersion,
             Self::Description | Self::Title | Self::Type => ParameterType::Text,
         }
     }

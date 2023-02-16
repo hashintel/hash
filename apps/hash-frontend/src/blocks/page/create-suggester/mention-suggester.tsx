@@ -1,4 +1,4 @@
-import { AccountId, EntityId, OwnedById } from "@local/hash-subgraph/main";
+import { AccountId, EntityId, OwnedById } from "@local/hash-subgraph";
 import ArticleIcon from "@mui/icons-material/Article";
 import { FunctionComponent, useContext, useMemo } from "react";
 

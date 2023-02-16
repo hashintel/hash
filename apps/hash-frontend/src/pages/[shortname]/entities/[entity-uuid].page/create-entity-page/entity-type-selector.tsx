@@ -1,6 +1,6 @@
 import { EntityType } from "@blockprotocol/type-system";
 import { SelectorAutocomplete } from "@hashintel/design-system";
-import { EntityTypeWithMetadata } from "@local/hash-subgraph/main";
+import { EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { FunctionComponent, useRef, useState } from "react";
 
 import { useEntityTypesOptional } from "../../../../../shared/entity-types-context/hooks";

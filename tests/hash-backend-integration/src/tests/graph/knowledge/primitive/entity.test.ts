@@ -22,15 +22,15 @@ import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   DataTypeWithMetadata,
   Entity,
+  EntityRootType,
   EntityTypeWithMetadata,
   extractOwnedByIdFromEntityId,
   linkEntityTypeUri,
   OwnedById,
   PropertyTypeWithMetadata,
   Subgraph,
-  SubgraphRootTypes,
-} from "@local/hash-subgraph/main";
-import { getRootsAsEntities } from "@local/hash-subgraph/stdlib/element/entity";
+} from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
@@ -85,6 +85,7 @@ describe("Entity CRU", () => {
           type: "object",
           properties: {},
           allOf: [{ $ref: linkEntityTypeUri }],
+          additionalProperties: false,
         },
         actorId: testUser.accountId,
       })
@@ -207,22 +208,20 @@ describe("Entity CRU", () => {
           all: [],
         },
         graphResolveDepths: zeroedGraphResolveDepths,
-        timeProjection: {
-          kernel: {
-            axis: "transaction",
+        timeAxes: {
+          pinned: {
+            axis: "transactionTime",
             timestamp: null,
           },
-          image: {
-            axis: "decision",
+          variable: {
+            axis: "decisionTime",
             start: null,
             end: null,
           },
         },
       })
       .then(({ data }) =>
-        getRootsAsEntities(
-          mapSubgraph(data) as Subgraph<SubgraphRootTypes["entity"]>,
-        ).filter(
+        getRoots(mapSubgraph(data) as Subgraph<EntityRootType>).filter(
           (entity) =>
             extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId) ===
             testUser.accountId,

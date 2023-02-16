@@ -22,16 +22,11 @@ use crate::{
     Eq(bound = ""),
     Hash(bound = "")
 )]
-#[serde(
-    rename_all = "camelCase",
-    bound = "",
-    tag = "bound",
-    content = "timestamp"
-)]
+#[serde(rename_all = "camelCase", bound = "", tag = "kind", content = "limit")]
 pub enum TimeIntervalBound<A> {
     Unbounded,
-    Included(Timestamp<A>),
-    Excluded(Timestamp<A>),
+    Inclusive(Timestamp<A>),
+    Exclusive(Timestamp<A>),
 }
 
 impl<A> TemporalTagged for TimeIntervalBound<A> {
@@ -41,8 +36,8 @@ impl<A> TemporalTagged for TimeIntervalBound<A> {
     fn cast<T>(self) -> TimeIntervalBound<T> {
         match self {
             Self::Unbounded => TimeIntervalBound::Unbounded,
-            Self::Included(limit) => TimeIntervalBound::Included(limit.cast()),
-            Self::Excluded(limit) => TimeIntervalBound::Excluded(limit.cast()),
+            Self::Inclusive(limit) => TimeIntervalBound::Inclusive(limit.cast()),
+            Self::Exclusive(limit) => TimeIntervalBound::Exclusive(limit.cast()),
         }
     }
 }
@@ -51,23 +46,23 @@ impl<A> IntervalBound<Timestamp<A>> for TimeIntervalBound<A> {
     fn as_bound(&self) -> Bound<&Timestamp<A>> {
         match self {
             Self::Unbounded => Bound::Unbounded,
-            Self::Included(limit) => Bound::Included(limit),
-            Self::Excluded(limit) => Bound::Excluded(limit),
+            Self::Inclusive(limit) => Bound::Included(limit),
+            Self::Exclusive(limit) => Bound::Excluded(limit),
         }
     }
 
     fn into_bound(self) -> Bound<Timestamp<A>> {
         match self {
-            Self::Included(limit) => Bound::Included(limit),
-            Self::Excluded(limit) => Bound::Excluded(limit),
+            Self::Inclusive(limit) => Bound::Included(limit),
+            Self::Exclusive(limit) => Bound::Excluded(limit),
             Self::Unbounded => Bound::Unbounded,
         }
     }
 
     fn from_bound(bound: Bound<Timestamp<A>>) -> Self {
         match bound {
-            Bound::Included(limit) => Self::Included(limit),
-            Bound::Excluded(limit) => Self::Excluded(limit),
+            Bound::Included(limit) => Self::Inclusive(limit),
+            Bound::Excluded(limit) => Self::Exclusive(limit),
             Bound::Unbounded => Self::Unbounded,
         }
     }
@@ -76,20 +71,16 @@ impl<A> IntervalBound<Timestamp<A>> for TimeIntervalBound<A> {
 #[derive(Derivative, Serialize, Deserialize, ToSchema)]
 #[derivative(
     Debug(bound = ""),
+    Copy(bound = ""),
     Clone(bound = ""),
     PartialEq(bound = ""),
     Eq(bound = ""),
     Hash(bound = "")
 )]
-#[serde(
-    rename_all = "camelCase",
-    bound = "",
-    tag = "bound",
-    content = "timestamp"
-)]
+#[serde(rename_all = "camelCase", bound = "", tag = "kind", content = "limit")]
 pub enum LimitedTimeIntervalBound<A> {
-    Included(Timestamp<A>),
-    Excluded(Timestamp<A>),
+    Inclusive(Timestamp<A>),
+    Exclusive(Timestamp<A>),
 }
 
 impl<A> TemporalTagged for LimitedTimeIntervalBound<A> {
@@ -98,8 +89,8 @@ impl<A> TemporalTagged for LimitedTimeIntervalBound<A> {
 
     fn cast<T>(self) -> LimitedTimeIntervalBound<T> {
         match self {
-            Self::Included(limit) => LimitedTimeIntervalBound::Included(limit.cast()),
-            Self::Excluded(limit) => LimitedTimeIntervalBound::Excluded(limit.cast()),
+            Self::Inclusive(limit) => LimitedTimeIntervalBound::Inclusive(limit.cast()),
+            Self::Exclusive(limit) => LimitedTimeIntervalBound::Exclusive(limit.cast()),
         }
     }
 }
@@ -107,22 +98,22 @@ impl<A> TemporalTagged for LimitedTimeIntervalBound<A> {
 impl<A> IntervalBound<Timestamp<A>> for LimitedTimeIntervalBound<A> {
     fn as_bound(&self) -> Bound<&Timestamp<A>> {
         match self {
-            Self::Included(limit) => Bound::Included(limit),
-            Self::Excluded(limit) => Bound::Excluded(limit),
+            Self::Inclusive(limit) => Bound::Included(limit),
+            Self::Exclusive(limit) => Bound::Excluded(limit),
         }
     }
 
     fn into_bound(self) -> Bound<Timestamp<A>> {
         match self {
-            Self::Included(limit) => Bound::Included(limit),
-            Self::Excluded(limit) => Bound::Excluded(limit),
+            Self::Inclusive(limit) => Bound::Included(limit),
+            Self::Exclusive(limit) => Bound::Excluded(limit),
         }
     }
 
     fn from_bound(bound: Bound<Timestamp<A>>) -> Self {
         match bound {
-            Bound::Included(limit) => Self::Included(limit),
-            Bound::Excluded(limit) => Self::Excluded(limit),
+            Bound::Included(limit) => Self::Inclusive(limit),
+            Bound::Excluded(limit) => Self::Exclusive(limit),
             Bound::Unbounded => {
                 unimplemented!("Cannot convert unbounded bound to limited temporal bound")
             }
@@ -238,17 +229,11 @@ impl<A> TemporalTagged for UnboundedOrExcludedTimeIntervalBound<A> {
 
 impl<A> IntervalBound<Timestamp<A>> for UnboundedOrExcludedTimeIntervalBound<A> {
     fn as_bound(&self) -> Bound<&Timestamp<A>> {
-        match self.0 {
-            Some(ref limit) => Bound::Excluded(limit),
-            None => Bound::Unbounded,
-        }
+        self.0.as_ref().map_or(Bound::Unbounded, Bound::Excluded)
     }
 
     fn into_bound(self) -> Bound<Timestamp<A>> {
-        match self.0 {
-            Some(limit) => Bound::Excluded(limit),
-            None => Bound::Unbounded,
-        }
+        self.0.map_or(Bound::Unbounded, Bound::Excluded)
     }
 
     fn from_bound(bound: Bound<Timestamp<A>>) -> Self {

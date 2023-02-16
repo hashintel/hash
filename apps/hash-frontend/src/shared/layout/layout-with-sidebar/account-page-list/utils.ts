@@ -1,6 +1,6 @@
 import { UniqueIdentifier } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import { EntityId } from "@local/hash-subgraph/main";
+import { EntityId } from "@local/hash-subgraph";
 
 import { AccountPage } from "../../../../components/hooks/use-account-pages";
 

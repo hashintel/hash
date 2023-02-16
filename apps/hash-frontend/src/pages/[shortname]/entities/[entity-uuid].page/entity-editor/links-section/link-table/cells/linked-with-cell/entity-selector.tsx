@@ -2,12 +2,8 @@ import {
   GRID_CLICK_IGNORE_CLASS,
   SelectorAutocomplete,
 } from "@hashintel/design-system";
-import {
-  Entity,
-  EntityId,
-  EntityTypeWithMetadata,
-} from "@local/hash-subgraph/main";
-import { getRoots } from "@local/hash-subgraph/stdlib/roots";
+import { Entity, EntityId, EntityTypeWithMetadata } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useBlockProtocolAggregateEntities } from "../../../../../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-aggregate-entities";
@@ -65,8 +61,8 @@ export const EntitySelector = ({
           !entityIdsToFilterOut?.includes(entity.metadata.recordId.entityId),
       )
       .sort((a, b) =>
-        a.metadata.version.decisionTime.start.localeCompare(
-          b.metadata.version.decisionTime.start,
+        a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
+          b.metadata.temporalVersioning.decisionTime.start.limit,
         ),
       );
   }, [entities, entityIdsToFilterOut]);

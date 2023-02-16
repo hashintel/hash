@@ -3,10 +3,10 @@ import { SizedGridColumn } from "@glideapps/glide-data-grid";
 import {
   Entity,
   EntityId,
+  EntityRootType,
   EntityTypeWithMetadata,
   Subgraph,
-  SubgraphRootTypes,
-} from "@local/hash-subgraph/main";
+} from "@local/hash-subgraph";
 
 export type LinkAndTargetEntity = { rightEntity: Entity; linkEntity: Entity };
 
@@ -19,7 +19,7 @@ export type LinkRow = {
   expectedEntityTypes: EntityTypeWithMetadata[];
   expectedEntityTypeTitles: string[];
   linkAndTargetEntities: LinkAndTargetEntity[];
-  entitySubgraph: Subgraph<SubgraphRootTypes["entity"]>;
+  entitySubgraph: Subgraph<EntityRootType>;
   markLinkAsArchived: (linkEntityId: EntityId) => void;
 };
 

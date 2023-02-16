@@ -1,14 +1,14 @@
 use std::{borrow::Cow, fmt, str::FromStr};
 
 use derivative::Derivative;
-use error_stack::{bail, ensure, Context, IntoReport, Report, ResultExt};
+use error_stack::{bail, Context, IntoReport, Report, ResultExt};
 use serde::Deserialize;
 use serde_json::{Number, Value};
 use type_system::uri::{BaseUri, VersionedUri};
 use uuid::Uuid;
 
 use crate::{
-    identifier::{knowledge::EntityId, ontology::OntologyTypeEditionId},
+    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion, OntologyTypeVertexId},
     knowledge::{Entity, EntityQueryPath},
     store::{
         query::{OntologyQueryPath, ParameterType, QueryPath},
@@ -73,11 +73,11 @@ where
 
     /// Creates a `Filter` to filter by a given version.
     #[must_use]
-    fn for_version(version: u32) -> Self {
+    fn for_version(version: OntologyTypeVersion) -> Self {
         Self::Equal(
             Some(FilterExpression::Path(<R::QueryPath<'p>>::version())),
-            Some(FilterExpression::Parameter(Parameter::SignedInteger(
-                version.into(),
+            Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
+                version,
             ))),
         )
     }
@@ -88,19 +88,17 @@ where
     pub fn for_versioned_uri(versioned_uri: &'p VersionedUri) -> Self {
         Self::All(vec![
             Self::for_base_uri(versioned_uri.base_uri()),
-            Self::for_version(versioned_uri.version()),
+            Self::for_version(OntologyTypeVersion::new(versioned_uri.version())),
         ])
     }
 
     /// Creates a `Filter` to search for a specific ontology type of kind `R`, identified by its
-    /// [`OntologyTypeEditionId`].
+    /// [`OntologyTypeVertexId`].
     #[must_use]
-    pub fn for_ontology_type_edition_id(
-        ontology_type_edition_id: &'p OntologyTypeEditionId,
-    ) -> Self {
+    pub fn for_ontology_type_vertex_id(ontology_type_vertex_id: &'p OntologyTypeVertexId) -> Self {
         Self::All(vec![
-            Self::for_base_uri(ontology_type_edition_id.base_id()),
-            Self::for_version(ontology_type_edition_id.version().inner()),
+            Self::for_base_uri(ontology_type_vertex_id.base_id()),
+            Self::for_version(ontology_type_vertex_id.version()),
         ])
     }
 }
@@ -108,7 +106,7 @@ where
 impl<'p> Filter<'p, Entity> {
     /// Creates a `Filter` to search for a specific entities, identified by its [`EntityId`].
     #[must_use]
-    pub fn for_entity_by_id(entity_id: EntityId) -> Self {
+    pub fn for_entity_by_entity_id(entity_id: EntityId) -> Self {
         Self::All(vec![
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
@@ -279,7 +277,7 @@ pub enum Parameter<'p> {
     #[serde(skip)]
     Uuid(Uuid),
     #[serde(skip)]
-    SignedInteger(i64),
+    OntologyTypeVersion(OntologyTypeVersion),
 }
 
 impl Parameter<'_> {
@@ -290,7 +288,7 @@ impl Parameter<'_> {
             Parameter::Text(text) => Parameter::Text(Cow::Owned(text.to_string())),
             Parameter::Any(value) => Parameter::Any(value.clone()),
             Parameter::Uuid(uuid) => Parameter::Uuid(*uuid),
-            Parameter::SignedInteger(integer) => Parameter::SignedInteger(*integer),
+            Parameter::OntologyTypeVersion(version) => Parameter::OntologyTypeVersion(*version),
         }
     }
 }
@@ -305,7 +303,7 @@ pub struct ParameterConversionError {
 impl fmt::Display for ParameterConversionError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         let actual = match &self.actual {
-            Parameter::Any(Value::Null) => "null".to_string(),
+            Parameter::Any(Value::Null) => "null".to_owned(),
             Parameter::Boolean(boolean) | Parameter::Any(Value::Bool(boolean)) => {
                 boolean.to_string()
             }
@@ -314,9 +312,9 @@ impl fmt::Display for ParameterConversionError {
             Parameter::Text(text) => text.to_string(),
             Parameter::Any(Value::String(string)) => string.clone(),
             Parameter::Uuid(uuid) => uuid.to_string(),
-            Parameter::SignedInteger(integer) => integer.to_string(),
-            Parameter::Any(Value::Object(_)) => "object".to_string(),
-            Parameter::Any(Value::Array(_)) => "array".to_string(),
+            Parameter::OntologyTypeVersion(version) => version.inner().to_string(),
+            Parameter::Any(Value::Object(_)) => "object".to_owned(),
+            Parameter::Any(Value::Array(_)) => "array".to_owned(),
         };
 
         write!(fmt, "could not convert {actual} to {}", self.expected)
@@ -339,10 +337,10 @@ impl Parameter<'_> {
 
             // Boolean conversions
             (Parameter::Boolean(bool), ParameterType::Any) => {
-                *self = Parameter::Any(Value::Bool(*bool))
+                *self = Parameter::Any(Value::Bool(*bool));
             }
             (Parameter::Any(Value::Bool(bool)), ParameterType::Boolean) => {
-                *self = Parameter::Boolean(*bool)
+                *self = Parameter::Boolean(*bool);
             }
 
             // Number conversions
@@ -354,7 +352,7 @@ impl Parameter<'_> {
                             expected,
                         })
                     },
-                )?))
+                )?));
             }
             (Parameter::Any(Value::Number(number)), ParameterType::Number) => {
                 *self = Parameter::Number(number.as_f64().ok_or_else(|| {
@@ -362,27 +360,30 @@ impl Parameter<'_> {
                         actual: self.to_owned(),
                         expected,
                     })
-                })?)
+                })?);
             }
-            (Parameter::Number(number), ParameterType::UnsignedInteger) => {
+            (Parameter::Number(number), ParameterType::OntologyTypeVersion) => {
                 // Postgres cannot represent unsigned integer, so we use i64 instead
                 let number = number.round() as i64;
-                ensure!(!number.is_negative(), ParameterConversionError {
-                    actual: self.to_owned(),
-                    expected: ParameterType::UnsignedInteger
-                });
-                *self = Parameter::SignedInteger(number);
+                *self = Parameter::OntologyTypeVersion(OntologyTypeVersion::new(
+                    number.try_into().into_report().change_context_lazy(|| {
+                        ParameterConversionError {
+                            actual: self.to_owned(),
+                            expected: ParameterType::OntologyTypeVersion,
+                        }
+                    })?,
+                ));
             }
-            (Parameter::Text(text), ParameterType::UnsignedInteger) if text == "latest" => {
+            (Parameter::Text(text), ParameterType::OntologyTypeVersion) if text == "latest" => {
                 // Special case for checking `version == "latest"
             }
 
             // Text conversions
             (Parameter::Text(text), ParameterType::Any) => {
-                *self = Parameter::Any(Value::String(text.to_string()))
+                *self = Parameter::Any(Value::String((*text).to_string()));
             }
             (Parameter::Any(Value::String(string)), ParameterType::Text) => {
-                *self = Parameter::Text(Cow::Owned(string.clone()))
+                *self = Parameter::Text(Cow::Owned(string.clone()));
             }
             (Parameter::Text(_base_uri), ParameterType::BaseUri) => {
                 // TODO: validate base uri
@@ -467,8 +468,8 @@ mod tests {
     }
 
     #[test]
-    fn for_ontology_type_edition_id() {
-        let uri = OntologyTypeEditionId::new(
+    fn for_ontology_type_version_id() {
+        let uri = OntologyTypeVertexId::new(
             BaseUri::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
             )
@@ -490,7 +491,7 @@ mod tests {
         }};
 
         test_filter_representation(
-            &Filter::<DataTypeWithMetadata>::for_ontology_type_edition_id(&uri),
+            &Filter::<DataTypeWithMetadata>::for_ontology_type_vertex_id(&uri),
             &expected,
         );
     }
@@ -515,7 +516,7 @@ mod tests {
           ]
         }};
 
-        test_filter_representation(&Filter::for_entity_by_id(entity_id), &expected);
+        test_filter_representation(&Filter::for_entity_by_entity_id(entity_id), &expected);
     }
 
     #[test]
@@ -538,7 +539,7 @@ mod tests {
           ]
         }};
 
-        test_filter_representation(&Filter::for_entity_by_id(entity_id), &expected);
+        test_filter_representation(&Filter::for_entity_by_entity_id(entity_id), &expected);
     }
 
     #[test]

@@ -33,5 +33,6 @@
   },
   "requiredLinks": [
     "https://blockprotocol.org/@alice/types/entity-type/written-by/v/1"
-  ]
+  ],
+  "additionalProperties": false
 }
