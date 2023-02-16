@@ -10,7 +10,7 @@ use uuid::Uuid;
 use crate::{
     identifier::{
         account::AccountId,
-        knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
+        knowledge::{EntityId, EntityRecordId, EntityVersion},
         time::TimeProjection,
     },
     knowledge::{
