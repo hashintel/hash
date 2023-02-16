@@ -1,4 +1,4 @@
-import { PropertyType } from "@blockprotocol/type-system";
+import { PropertyType } from "@blockprotocol/type-system/slim";
 import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
 import { chipClasses, Tooltip } from "@mui/material";
 import { Stack } from "@mui/system";

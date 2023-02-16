@@ -1,4 +1,4 @@
-import { PropertyType } from "@blockprotocol/type-system";
+import { PropertyType } from "@blockprotocol/type-system/slim";
 import {
   faArrowsRotate,
   faChevronRight,

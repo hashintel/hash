@@ -36,10 +36,10 @@ export const useEditorOntologyFunctions = (
     OntologyFunctions["createEntityType"]
   >(
     (args) => {
-      return createEntityType(args).then(async (res) => {
+      return createEntityType(args as any).then(async (res) => {
         await refetchEntityTypes();
         return res;
-      }) as any; // @todo fix this when types consistent
+      }) as any; // @todo fix these when types consistent: additionalProperties/ownedById removed
     },
     [createEntityType, refetchEntityTypes],
   );
@@ -48,10 +48,10 @@ export const useEditorOntologyFunctions = (
     OntologyFunctions["updateEntityType"]
   >(
     (args) => {
-      return updateEntityType(args).then(async (res) => {
+      return updateEntityType(args as any).then(async (res) => {
         await refetchEntityTypes();
         return res;
-      }) as any; // @todo fix this when types consistent;
+      }) as any; // @todo fix these when types consistent: additionalProperties/ownedById removed
     },
     [updateEntityType, refetchEntityTypes],
   );
@@ -63,7 +63,7 @@ export const useEditorOntologyFunctions = (
       return createPropertyType(args).then(async (res) => {
         await refetchPropertyTypes();
         return res;
-      }) as any; // @todo fix this when types consistent;;
+      }) as any; // @todo fix this when types consistent: ownedById removed
     },
     [createPropertyType, refetchPropertyTypes],
   );
@@ -75,7 +75,7 @@ export const useEditorOntologyFunctions = (
       return updatePropertyType(args).then(async (res) => {
         await refetchPropertyTypes();
         return res;
-      }) as any; // @todo fix this when types consistent;;
+      }) as any; // @todo fix this when types consistent: ownedById removed
     },
     [updatePropertyType, refetchPropertyTypes],
   );

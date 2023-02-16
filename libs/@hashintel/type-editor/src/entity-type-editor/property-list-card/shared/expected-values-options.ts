@@ -1,4 +1,7 @@
-import { validateVersionedUri, VersionedUri } from "@blockprotocol/type-system";
+import {
+  validateVersionedUri,
+  VersionedUri,
+} from "@blockprotocol/type-system/slim";
 import {
   faList,
   faListCheck,

@@ -1,4 +1,4 @@
-import { EntityType, VersionedUri } from "@blockprotocol/type-system";
+import { EntityType, VersionedUri } from "@blockprotocol/type-system/slim";
 import { createContext, PropsWithChildren, useContext, useMemo } from "react";
 
 import { linkEntityTypeUri } from "./uris";

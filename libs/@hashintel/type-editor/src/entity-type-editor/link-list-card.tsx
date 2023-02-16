@@ -220,7 +220,7 @@ export const LinkListCard = () => {
   const handleSubmit = async (data: TypeFormDefaults) => {
     const res = await createEntityType({
       data: {
-        entityType: formDataToEntityType(data), // @todo replace when BP types updated
+        entityType: formDataToEntityType(data),
       },
     });
 

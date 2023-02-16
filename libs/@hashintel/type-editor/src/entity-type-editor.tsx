@@ -1,5 +1,5 @@
 import { EntityType, PropertyType } from "@blockprotocol/graph";
-import { VersionedUri } from "@blockprotocol/type-system";
+import { VersionedUri } from "@blockprotocol/type-system/slim";
 import { theme } from "@hashintel/design-system";
 import { Box, Stack, ThemeProvider, Typography } from "@mui/material";
 

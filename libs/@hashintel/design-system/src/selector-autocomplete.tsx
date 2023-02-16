@@ -222,13 +222,13 @@ export const SelectorAutocomplete = <
                   },
                 }),
                 ...(open
-                  ? ([
+                  ? [
                       popperPlacementInputNoRadius,
                       popperPlacementInputNoBorder,
                       joined
                         ? { borderRadius: "0 !important", boxShadow: "none" }
                         : {},
-                    ] as any) // @todo fix this
+                    ]
                   : []),
               ],
             }}

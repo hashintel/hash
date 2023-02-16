@@ -1,9 +1,10 @@
 import {
   EntityType,
+  EntityTypeReference,
   extractBaseUri,
   PropertyTypeReference,
   ValueOrArray,
-} from "@blockprotocol/type-system";
+} from "@blockprotocol/type-system/slim";
 
 import { EntityTypeEditorFormData } from "./shared/form-types";
 
@@ -60,7 +61,12 @@ export const getSchemaFromFormData = (
       ...(link.infinity ? {} : { maxItems: link.maxValue }),
       ordered: false,
       items: link.entityTypes.length
-        ? ({ oneOf: link.entityTypes.map((id) => ({ $ref: id })) } as any) // @todo fix this
+        ? {
+            oneOf: link.entityTypes.map((id) => ({ $ref: id })) as [
+              EntityTypeReference,
+              ...EntityTypeReference[],
+            ], // assert that there is at least one item in the array
+          }
         : {},
     };
   }

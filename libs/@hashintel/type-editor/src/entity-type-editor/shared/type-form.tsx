@@ -1,3 +1,4 @@
+import { BaseUri } from "@blockprotocol/type-system/slim";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import {
   Button,

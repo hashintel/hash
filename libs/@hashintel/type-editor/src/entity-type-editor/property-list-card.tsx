@@ -3,7 +3,7 @@ import {
   extractVersion,
   PropertyType,
   VersionedUri,
-} from "@blockprotocol/type-system";
+} from "@blockprotocol/type-system/slim";
 import { faList } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,

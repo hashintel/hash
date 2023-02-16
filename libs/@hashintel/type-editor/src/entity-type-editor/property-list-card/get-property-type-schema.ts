@@ -8,7 +8,7 @@ import {
   PropertyValues,
   ValueOrArray,
   VersionedUri,
-} from "@blockprotocol/type-system";
+} from "@blockprotocol/type-system/slim";
 import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
 
 import {

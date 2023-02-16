@@ -1,5 +1,5 @@
 import { PropertyType } from "@blockprotocol/graph";
-import { VersionedUri } from "@blockprotocol/type-system";
+import { VersionedUri } from "@blockprotocol/type-system/slim";
 import { createContext, PropsWithChildren, useContext } from "react";
 
 export type PropertyTypesByVersionedUri = Record<VersionedUri, PropertyType>;

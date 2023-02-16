@@ -1,6 +1,7 @@
 import { VersionedUri } from "@blockprotocol/type-system";
 import {
   EntityId,
+  EntityRevisionId,
   EntityRootType,
   EntityVertexId,
   Subgraph,
@@ -48,7 +49,7 @@ export const useDraftEntitySubgraph = (
 
         const draftEntityVertexId: EntityVertexId = {
           baseId: "draft%draft" as EntityId,
-          revisionId: now,
+          revisionId: now as EntityRevisionId,
         };
 
         setDraftEntitySubgraph({

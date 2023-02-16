@@ -20,16 +20,16 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.1.0-canary-20230209084023",
+    "@blockprotocol/graph": "0.1.0-canary-20230111084611",
     "prismjs": "1.29.0"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/prismjs": "1.26.0",
-    "block-scripts": "0.1.0-canary-20230209084023",
+    "block-scripts": "0.1.0-canary-20230111084611",
     "eslint": "8.33.0",
-    "mock-block-dock": "0.1.0-canary-20230209084023",
+    "mock-block-dock": "0.1.0-canary-20230111084611",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "typescript": "4.9.4"

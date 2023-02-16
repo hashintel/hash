@@ -23,9 +23,8 @@ export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
   const { control } = useFormContext<EntityTypeEditorFormData>();
   const propertiesCount = useWatch({
     control,
-    name: "properties.length" as "properties.length",
-    // @todo fix this – why the error?
-  } as any);
+    name: "properties.length",
+  });
 
   const { entities } = useEntityTypeEntities();
 
@@ -74,7 +73,7 @@ export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
           href={isDraft ? router.asPath : getTabUri(baseUri, "definition")}
           label="Definition"
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
-          count={(propertiesCount as any as number) ?? 0} // @todo-0.3 fix this
+          count={propertiesCount ?? 0}
           active={currentTab === "definition"}
         />
         {isDraft

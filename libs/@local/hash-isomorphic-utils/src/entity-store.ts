@@ -92,6 +92,7 @@ const findEntities = (contents: BlockEntity[]): EntityStoreType[] => {
   for (const entity of contents) {
     entities.push(entity);
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     if (entity.blockChildEntity) {
       entities.push(entity.blockChildEntity);
     }
@@ -143,6 +144,7 @@ export const createEntityStore = (
   for (const entity of entities) {
     const entityId = entity.metadata.recordId.entityId;
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     if (entity && !entityToDraft[entityId]) {
       entityToDraft[entityId] = generateDraftIdForEntity(entityId);
     }

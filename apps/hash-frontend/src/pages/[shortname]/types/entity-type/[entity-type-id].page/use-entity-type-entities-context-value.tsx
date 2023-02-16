@@ -54,7 +54,7 @@ export const useEntityTypeEntitiesContextValue = (
         if (!relevantTypesMap.has(entityTypeId)) {
           const type = getEntityTypeById(subgraph, entityTypeId)?.schema;
           if (type) {
-            relevantTypesMap.set(entityTypeId, type as any); // @todo-0.3 fix this when types are consistent
+            relevantTypesMap.set(entityTypeId, type);
           }
         }
       }

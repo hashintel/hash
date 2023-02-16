@@ -4,7 +4,7 @@ import {
   PropertyType,
   PropertyValues,
   VersionedUri,
-} from "@blockprotocol/type-system";
+} from "@blockprotocol/type-system/slim";
 import uniqueId from "lodash.uniqueid";
 
 import { arrayExpectedValueDataDefaults } from "./shared/default-expected-value";

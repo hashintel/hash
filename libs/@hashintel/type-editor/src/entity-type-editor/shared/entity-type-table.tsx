@@ -1,4 +1,4 @@
-import { VersionedUri } from "@blockprotocol/type-system";
+import { VersionedUri } from "@blockprotocol/type-system/slim";
 import { WhiteCard } from "@hashintel/design-system";
 import {
   ButtonBase,

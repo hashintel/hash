@@ -18,11 +18,11 @@ export const useLatestPropertyTypesContextValue = () => {
           setPropertyTypes((existingPropertyTypes) => ({
             ...(existingPropertyTypes ?? {}),
             ...Object.fromEntries(
-              getRoots<PropertyTypeRootType>(
-                propertyTypesSubgraph as any, // @todo-0.3 fix this
-              ).map((propertyType) => {
-                return [propertyType.schema.$id, propertyType.schema];
-              }),
+              getRoots<PropertyTypeRootType>(propertyTypesSubgraph).map(
+                (propertyType) => {
+                  return [propertyType.schema.$id, propertyType.schema];
+                },
+              ),
             ),
           }));
         }
