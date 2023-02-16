@@ -7,7 +7,9 @@ use serde::{Deserialize, Serialize};
 use utoipa::{openapi, ToSchema};
 
 use crate::{
-    identifier::time::{axis::TemporalTagged, TimeIntervalBound, Timestamp},
+    identifier::time::{
+        axis::TemporalTagged, LimitedTimeIntervalBound, TimeIntervalBound, Timestamp,
+    },
     interval::{Interval, IntervalBound},
 };
 
@@ -22,7 +24,7 @@ use crate::{
 #[serde(rename_all = "camelCase", bound = "", deny_unknown_fields)]
 pub struct UnresolvedTimeInterval<A> {
     pub start: Option<TimeIntervalBound<A>>,
-    pub end: Option<TimeIntervalBound<A>>,
+    pub end: Option<LimitedTimeIntervalBound<A>>,
 }
 
 // Utoipa is able to generate this schema automatically, but instead of using `.nullable(true)` it
@@ -49,7 +51,7 @@ impl<A> ToSchema<'_> for UnresolvedTimeInterval<A> {
                     openapi::Schema::OneOf(
                         openapi::OneOfBuilder::new()
                             .item(openapi::Ref::from_schema_name(
-                                TimeIntervalBound::<A>::schema().0,
+                                LimitedTimeIntervalBound::<A>::schema().0,
                             ))
                             .nullable(true)
                             .build(),

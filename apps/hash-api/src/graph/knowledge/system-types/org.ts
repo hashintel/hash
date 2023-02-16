@@ -2,15 +2,15 @@ import {
   AccountId,
   Entity,
   EntityId,
+  EntityPropertiesObject,
+  EntityRootType,
   EntityUuid,
   extractEntityUuidFromEntityId,
   OwnedById,
-  PropertyObject,
   Subgraph,
-  SubgraphRootTypes,
   Uuid,
-} from "@local/hash-subgraph/main";
-import { getRootsAsEntities } from "@local/hash-subgraph/stdlib/element/entity";
+} from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
@@ -122,7 +122,7 @@ export const createOrg: ImpureGraphFunction<
   const orgAccountId =
     params.orgAccountId ?? (await graphApi.createAccountId()).data;
 
-  const properties: PropertyObject = {
+  const properties: EntityPropertiesObject = {
     [SYSTEM_TYPES.propertyType.shortName.metadata.recordId.baseUri]: shortname,
     [SYSTEM_TYPES.propertyType.orgName.metadata.recordId.baseUri]: name,
     ...(providedInfo
@@ -196,24 +196,20 @@ export const getOrgByShortname: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeProjection: {
-        kernel: {
-          axis: "transaction",
+      timeAxes: {
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
+        variable: {
+          axis: "decisionTime",
           start: null,
           end: null,
         },
       },
     })
     .then(({ data: userEntitiesSubgraph }) =>
-      getRootsAsEntities(
-        mapSubgraph(userEntitiesSubgraph) as Subgraph<
-          SubgraphRootTypes["entity"]
-        >,
-      ),
+      getRoots(mapSubgraph(userEntitiesSubgraph) as Subgraph<EntityRootType>),
     );
 
   if (unexpectedEntities.length > 0) {

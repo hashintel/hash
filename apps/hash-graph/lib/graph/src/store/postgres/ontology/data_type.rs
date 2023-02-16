@@ -5,14 +5,13 @@ use error_stack::{Result, ResultExt};
 use type_system::DataType;
 
 use crate::{
-    identifier::{ontology::OntologyTypeEditionId, time::TimeProjection},
+    identifier::{time::TimeProjection, OntologyTypeVertexId},
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
     provenance::UpdatedById,
     store::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
-        AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, Record, Store,
-        Transaction, UpdateError,
+        AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{edges::GraphResolveDepths, query::StructuralQuery, Subgraph},
 };
@@ -24,7 +23,7 @@ impl<C: AsClient> PostgresStore<C> {
     #[tracing::instrument(level = "trace", skip(self, dependency_context, subgraph))]
     pub(crate) async fn traverse_data_type(
         &self,
-        data_type_id: &OntologyTypeEditionId,
+        data_type_id: &OntologyTypeVertexId,
         dependency_context: &mut DependencyContext,
         subgraph: &mut Subgraph,
         mut current_resolve_depths: GraphResolveDepths,
@@ -33,7 +32,7 @@ impl<C: AsClient> PostgresStore<C> {
         let dependency_status = dependency_context.ontology_dependency_map.update(
             data_type_id,
             current_resolve_depths,
-            time_projection.image(),
+            time_projection.image().convert(),
         );
 
         #[expect(unused_assignments, unused_variables)]
@@ -42,7 +41,7 @@ impl<C: AsClient> PostgresStore<C> {
                 // The dependency may have to be resolved more than anticipated, so we update
                 // the resolve depth and time projection.
                 current_resolve_depths = depths;
-                time_projection.set_image(interval);
+                time_projection.set_image(interval.convert());
                 subgraph
                     .get_or_read::<DataTypeWithMetadata>(self, data_type_id, &time_projection)
                     .await?

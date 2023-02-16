@@ -1,12 +1,13 @@
 import {
   EntityType,
-  extractBaseUri,
+  EntityTypeReference,
   extractVersion,
   PropertyTypeReference,
   ValueOrArray,
 } from "@blockprotocol/type-system";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
+import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
 import { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 // eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
@@ -92,7 +93,12 @@ const getSchemaFromEditorForm = (
       ...(link.infinity ? {} : { maxItems: link.maxValue }),
       ordered: false,
       items: link.entityTypes.length
-        ? { oneOf: link.entityTypes.map((id) => ({ $ref: id })) }
+        ? {
+            oneOf: link.entityTypes.map((id) => ({ $ref: id })) as [
+              EntityTypeReference,
+              ...EntityTypeReference[],
+            ],
+          }
         : {},
     };
   }

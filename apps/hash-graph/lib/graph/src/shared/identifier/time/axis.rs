@@ -8,7 +8,7 @@ use utoipa::ToSchema;
 #[serde(rename_all = "camelCase")]
 pub enum DecisionTime {
     #[default]
-    Decision,
+    DecisionTime,
 }
 
 /// Time axis for the transaction time.
@@ -18,7 +18,7 @@ pub enum DecisionTime {
 #[serde(rename_all = "camelCase")]
 pub enum TransactionTime {
     #[default]
-    Transaction,
+    TransactionTime,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

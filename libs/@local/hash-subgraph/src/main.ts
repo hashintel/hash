@@ -1,7 +1,6 @@
-export * from "./types/branded";
-export * from "./types/edge";
-export * from "./types/element";
-export * from "./types/identifier";
-export * from "./types/subgraph";
-export * from "./types/time";
-export * from "./types/vertex";
+import { VersionedUri } from "@blockprotocol/type-system/slim";
+
+export * from "./types";
+
+export const linkEntityTypeUri: VersionedUri =
+  "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";

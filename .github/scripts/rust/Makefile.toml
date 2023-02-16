@@ -1,3 +1,5 @@
+extend = { path = "./Makefile.lint.toml" }
+
 [config]
 default_to_workspace = false
 
@@ -20,9 +22,6 @@ CARGO_CLIPPY_HACK_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "--
 
 CARGO_DOC_FLAGS = "--no-deps --all-features -Zunstable-options -Zrustdoc-scrape-examples"
 CARGO_DOC_HACK_FLAGS = "--workspace"
-
-CARGO_RUSTDOC_FLAGS = "--all-features -Zunstable-options -Zrustdoc-scrape-examples -- -Zunstable-options"
-CARGO_RUSTDOC_HACK_FLAGS = "--workspace"
 
 CARGO_TEST_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "", mapping = {"pull_request" = "--all-features" } }
 CARGO_TEST_HACK_FLAGS = { source = "${GITHUB_EVENT_NAME}", default_value = "--workspace --optional-deps --feature-powerset", mapping = {"pull_request" = "--workspace" } }
@@ -121,7 +120,7 @@ run_task = { name = ["clippy-task"] }
 [tasks.clippy-task]
 extend = "cargo"
 args = ["hack", "@@split(CARGO_CLIPPY_HACK_FLAGS, )", "clippy", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_CLIPPY_FLAGS, )", "${@}"]
-dependencies = ["install-clippy"]
+dependencies = ["install-clippy", "update-clippy-check"]
 
 ################################################################################
 ## Docs                                                                       ##
@@ -135,15 +134,6 @@ run_task = { name = ["doc-task"] }
 [tasks.doc-task]
 extend = "cargo"
 args = ["hack", "@@split(CARGO_DOC_HACK_FLAGS, )", "doc", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_DOC_FLAGS, )", "${@}"]
-
-[tasks.rustdoc]
-category = "Docs"
-description = "Builds the documentation for the crate"
-run_task = { name = ["rustdoc-task"] }
-
-[tasks.rustdoc-task]
-extend = "cargo"
-args = ["hack", "@@split(CARGO_RUSTDOC_HACK_FLAGS, )", "rustdoc", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_RUSTDOC_FLAGS, )", "${@}"]
 
 ################################################################################
 ## Tests                                                                      ##

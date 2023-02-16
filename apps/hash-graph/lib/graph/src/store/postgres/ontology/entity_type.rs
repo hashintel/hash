@@ -6,14 +6,13 @@ use futures::FutureExt;
 use type_system::{EntityType, EntityTypeReference, PropertyTypeReference};
 
 use crate::{
-    identifier::{ontology::OntologyTypeEditionId, time::TimeProjection},
+    identifier::{time::TimeProjection, OntologyTypeVertexId},
     ontology::{EntityTypeWithMetadata, OntologyElementMetadata, OntologyTypeWithMetadata},
     provenance::UpdatedById,
     store::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
-        AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, Record, Store,
-        Transaction, UpdateError,
+        AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{
         edges::{
@@ -32,7 +31,7 @@ impl<C: AsClient> PostgresStore<C> {
     #[tracing::instrument(level = "trace", skip(self, dependency_context, subgraph))]
     pub(crate) fn traverse_entity_type<'a>(
         &'a self,
-        entity_type_id: &'a OntologyTypeEditionId,
+        entity_type_id: &'a OntologyTypeVertexId,
         dependency_context: &'a mut DependencyContext,
         subgraph: &'a mut Subgraph,
         mut current_resolve_depths: GraphResolveDepths,
@@ -42,7 +41,7 @@ impl<C: AsClient> PostgresStore<C> {
             let dependency_status = dependency_context.ontology_dependency_map.update(
                 entity_type_id,
                 current_resolve_depths,
-                time_projection.image(),
+                time_projection.image().convert(),
             );
 
             let entity_type = match dependency_status {
@@ -50,7 +49,7 @@ impl<C: AsClient> PostgresStore<C> {
                     // The dependency may have to be resolved more than anticipated, so we update
                     // the resolve depth and time projection.
                     current_resolve_depths = depths;
-                    time_projection.set_image(interval);
+                    time_projection.set_image(interval.convert());
                     subgraph
                         .get_or_read::<EntityTypeWithMetadata>(
                             self,
@@ -118,12 +117,12 @@ impl<C: AsClient> PostgresStore<C> {
                         outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
                             kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                             reversed: false,
-                            right_endpoint: OntologyTypeEditionId::from(&property_type_ref_uri),
+                            right_endpoint: OntologyTypeVertexId::from(&property_type_ref_uri),
                         }),
                     });
 
                     self.traverse_property_type(
-                        &OntologyTypeEditionId::from(&property_type_ref_uri),
+                        &OntologyTypeVertexId::from(&property_type_ref_uri),
                         dependency_context,
                         subgraph,
                         GraphResolveDepths {
@@ -147,14 +146,12 @@ impl<C: AsClient> PostgresStore<C> {
                         outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
                             kind: OntologyEdgeKind::InheritsFrom,
                             reversed: false,
-                            right_endpoint: OntologyTypeEditionId::from(
-                                &inherits_from_type_ref_uri,
-                            ),
+                            right_endpoint: OntologyTypeVertexId::from(&inherits_from_type_ref_uri),
                         }),
                     });
 
                     self.traverse_entity_type(
-                        &OntologyTypeEditionId::from(&inherits_from_type_ref_uri),
+                        &OntologyTypeVertexId::from(&inherits_from_type_ref_uri),
                         dependency_context,
                         subgraph,
                         GraphResolveDepths {
@@ -178,12 +175,12 @@ impl<C: AsClient> PostgresStore<C> {
                             outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
                                 kind: OntologyEdgeKind::ConstrainsLinksOn,
                                 reversed: false,
-                                right_endpoint: OntologyTypeEditionId::from(&link_type_uri),
+                                right_endpoint: OntologyTypeVertexId::from(&link_type_uri),
                             }),
                         });
 
                         self.traverse_entity_type(
-                            &OntologyTypeEditionId::from(&link_type_uri),
+                            &OntologyTypeVertexId::from(&link_type_uri),
                             dependency_context,
                             subgraph,
                             GraphResolveDepths {
@@ -209,14 +206,14 @@ impl<C: AsClient> PostgresStore<C> {
                                     outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
                                         kind: OntologyEdgeKind::ConstrainsLinkDestinationsOn,
                                         reversed: false,
-                                        right_endpoint: OntologyTypeEditionId::from(
+                                        right_endpoint: OntologyTypeVertexId::from(
                                             &destination_type_uri,
                                         ),
                                     }),
                                 });
 
                                 self.traverse_entity_type(
-                                    &OntologyTypeEditionId::from(&destination_type_uri),
+                                    &OntologyTypeVertexId::from(&destination_type_uri),
                                     dependency_context,
                                     subgraph,
                                     GraphResolveDepths {

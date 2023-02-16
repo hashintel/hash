@@ -4,8 +4,8 @@ import {
   Entity,
   EntityId,
   EntityMetadata,
-  EntityVersion,
-} from "@local/hash-subgraph/main";
+  EntityTemporalVersioningMetadata,
+} from "@local/hash-subgraph";
 
 import {
   GetPageCommentsQuery,
@@ -19,7 +19,7 @@ export type PageThread = PageComment & {
 
 export type PageComment = {
   hasText: Array<TextToken>;
-  textUpdatedAt: EntityVersion;
+  textUpdatedAt: EntityTemporalVersioningMetadata;
   author: Entity;
   parent: Entity;
   metadata: EntityMetadata;

@@ -33,12 +33,12 @@ impl<'a> Serialize for SerializeAttachment<'a> {
             FrameKind::Context(_) => {
                 // TODO: for now `Context` is unsupported, upcoming PR will fix via hooks
                 // `SerializeAttachmentList` ensures that no context is ever serialized
-                todo!()
+                unimplemented!()
             }
             FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
                 // TODO: for now opaque attachments are unsupported, upcoming PR will fix that
                 // `SerializeAttachmentList` ensures that no such attachment is added
-                todo!()
+                unimplemented!()
             }
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
                 format!("{attachment}").serialize(serializer)
@@ -89,7 +89,7 @@ impl<'a> Serialize for SerializeContext<'a> {
 
         let mut map = serializer.serialize_map(Some(3))?;
         map.serialize_entry("context", &format!("{context}").as_str())?;
-        map.serialize_entry("attachments", &SerializeAttachmentList(&attachments[..]))?;
+        map.serialize_entry("attachments", &SerializeAttachmentList(attachments))?;
         map.serialize_entry("sources", &SerializeSources(sources))?;
 
         map.end()

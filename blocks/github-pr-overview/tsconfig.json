@@ -1,5 +1,0 @@
-{
-  "extends": "@local/tsconfig/block.json",
-  "include": ["src", "assets.d.ts"],
-  "exclude": ["node_modules"]
-}

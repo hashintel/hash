@@ -1,4 +1,4 @@
-import { Entity } from "@local/hash-subgraph/main";
+import { Entity } from "@local/hash-subgraph";
 
 import {
   getCommentAuthor,

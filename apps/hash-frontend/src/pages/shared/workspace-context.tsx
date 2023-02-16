@@ -1,4 +1,4 @@
-import { AccountId } from "@local/hash-subgraph/main";
+import { AccountId } from "@local/hash-subgraph";
 import {
   createContext,
   FunctionComponent,

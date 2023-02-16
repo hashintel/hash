@@ -1,4 +1,4 @@
-import { AccountId } from "@local/hash-subgraph/main";
+import { AccountId } from "@local/hash-subgraph";
 import { EditorState } from "prosemirror-state";
 import { DirectEditorProps, EditorView } from "prosemirror-view";
 

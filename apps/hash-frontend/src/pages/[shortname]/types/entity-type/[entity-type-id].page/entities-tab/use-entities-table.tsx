@@ -1,16 +1,17 @@
 import {
   EntityType,
-  extractBaseUri,
   extractVersion,
   PropertyType,
 } from "@blockprotocol/type-system";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
 import {
+  BaseUri,
   Entity,
+  EntityRootType,
   extractEntityUuidFromEntityId,
   Subgraph,
-  SubgraphRootTypes,
-} from "@local/hash-subgraph/main";
+} from "@local/hash-subgraph";
+import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
 import { useMemo } from "react";
 
 import { useGetOwnerForEntity } from "../../../../../../components/hooks/use-get-owner-for-entity";
@@ -29,7 +30,7 @@ export const useEntitiesTable = (
   entities?: Entity[],
   entityTypes?: EntityType[],
   propertyTypes?: PropertyType[],
-  subgraph?: Subgraph<SubgraphRootTypes["entity"]>,
+  subgraph?: Subgraph<EntityRootType>,
 ) => {
   const getOwnerForEntity = useGetOwnerForEntity();
 
@@ -107,7 +108,7 @@ export const useEntitiesTable = (
           // additionalTypes: "",
           ...propertyColumns.reduce((fields, column) => {
             if (column.id) {
-              const propertyValue = entity.properties[column.id];
+              const propertyValue = entity.properties[column.id as BaseUri];
 
               const value = Array.isArray(propertyValue)
                 ? propertyValue.join(", ")
