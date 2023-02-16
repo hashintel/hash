@@ -142,7 +142,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                                 owned_by_id: row.get(owned_by_id_index),
                                 entity_uuid: row.get(entity_uuid_index),
                             },
-                            edition_id: EntityEditionId::new(row.get(edition_id_index)),
+                            edition_id: row.get(edition_id_index),
                         },
                         version: EntityVersion {
                             decision_time: row.get(decision_time_index),
