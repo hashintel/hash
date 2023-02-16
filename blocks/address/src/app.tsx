@@ -614,7 +614,7 @@ export const App: BlockComponent<true, RootEntity> = ({
                   >
                     Error connecting
                   </Box>{" "}
-                  to the Block Protocol
+                  to the Mapbox API
                 </Typography>
                 <Typography
                   sx={{
