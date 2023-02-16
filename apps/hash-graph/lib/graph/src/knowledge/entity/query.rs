@@ -197,7 +197,7 @@ pub enum EntityQueryPath<'p> {
     /// [`Entity`]: crate::knowledge::Entity
     /// [`LinkData::right_entity_id()`]: crate::knowledge::LinkData::right_entity_id
     RightEntity(Box<Self>),
-    /// Corresponds to [`LinkData::left_to_right_order()`].
+    /// Corresponds to [`EntityLinkOrder::left_to_right`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -208,9 +208,9 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`LinkData::left_to_right_order()`]: crate::knowledge::LinkData::left_to_right_order
+    /// [`EntityLinkOrder::left_to_right`]: crate::knowledge::EntityLinkOrder::left_to_right
     LeftToRightOrder,
-    /// Corresponds to [`LinkData::right_to_left_order()`].
+    /// Corresponds to [`EntityLinkOrder::right_to_left`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -221,7 +221,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`LinkData::right_to_left_order()`]: crate::knowledge::LinkData::right_to_left_order
+    /// [`EntityLinkOrder::right_to_left`]: crate::knowledge::EntityLinkOrder::right_to_left
     RightToLeftOrder,
     /// Corresponds to [`Entity::properties`].
     ///
