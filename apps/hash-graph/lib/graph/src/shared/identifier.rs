@@ -3,8 +3,8 @@ pub mod knowledge;
 pub mod ontology;
 pub mod time;
 
-use serde::{Deserialize, Serialize};
-use type_system::uri::{BaseUri, VersionedUri};
+use serde::Serialize;
+use type_system::uri::BaseUri;
 use utoipa::ToSchema;
 
 use crate::identifier::{
@@ -12,13 +12,6 @@ use crate::identifier::{
     ontology::OntologyTypeVersion,
     time::{ProjectedTime, Timestamp},
 };
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
-#[serde(untagged)]
-pub enum GraphElementId {
-    Ontology(BaseUri),
-    KnowledgeGraph(EntityId),
-}
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
