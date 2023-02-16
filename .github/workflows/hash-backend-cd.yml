@@ -62,7 +62,7 @@ jobs:
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           BUILD_ARGS: |
-            TYPE_FETCHER=no
+            TYPE_FETCHER=yes
 
   build-api:
     name: Build and push HASH api image
