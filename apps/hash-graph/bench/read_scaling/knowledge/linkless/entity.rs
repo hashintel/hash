@@ -115,7 +115,7 @@ pub fn bench_get_entity_by_id(
         |entity_record_id| async move {
             store
                 .get_entity(&StructuralQuery {
-                    filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id()),
+                    filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
                     graph_resolve_depths: GraphResolveDepths::default(),
                     time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                         pinned: UnresolvedKernel::new(None),

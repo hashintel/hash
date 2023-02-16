@@ -286,7 +286,7 @@ impl Record for Entity {
             TimeAxis::DecisionTime => self.metadata().version().decision_time.start().cast(),
             TimeAxis::TransactionTime => self.metadata().version().transaction_time.start().cast(),
         };
-        EntityVertexId::new(self.metadata().record_id().entity_id(), timestamp.into())
+        EntityVertexId::new(self.metadata().record_id().entity_id, timestamp.into())
     }
 
     fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {

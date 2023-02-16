@@ -135,10 +135,10 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                 Ok(Entity::new(
                     properties,
                     link_data,
-                    EntityRecordId::new(
-                        EntityId::new(owned_by_id, entity_uuid),
-                        EntityEditionId::new(row.get(edition_id_index)),
-                    ),
+                    EntityRecordId {
+                        entity_id: EntityId::new(owned_by_id, entity_uuid),
+                        edition_id: EntityEditionId::new(row.get(edition_id_index)),
+                    },
                     EntityVersion {
                         decision_time: row.get(decision_time_index),
                         transaction_time: row.get(transaction_time_index),

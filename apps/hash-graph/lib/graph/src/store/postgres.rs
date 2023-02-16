@@ -267,8 +267,8 @@ where
                     record_created_by_id := $4
                 );"#,
                 &[
-                    &metadata.record_id().base_uri().as_str(),
-                    &metadata.record_id().version(),
+                    &metadata.record_id().base_uri.as_str(),
+                    &metadata.record_id().version,
                     &metadata.owned_by_id(),
                     &metadata.provenance_metadata().updated_by_id(),
                 ],
@@ -279,7 +279,7 @@ where
             .map_err(|report| match report.current_context().code() {
                 Some(&SqlState::EXCLUSION_VIOLATION | &SqlState::UNIQUE_VIOLATION) => report
                     .change_context(BaseUriAlreadyExists)
-                    .attach_printable(metadata.record_id().base_uri().clone())
+                    .attach_printable(metadata.record_id().base_uri.clone())
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)
@@ -309,8 +309,8 @@ where
                     record_created_by_id := $4
                 );"#,
                 &[
-                    &metadata.record_id().base_uri().as_str(),
-                    &metadata.record_id().version(),
+                    &metadata.record_id().base_uri.as_str(),
+                    &metadata.record_id().version,
                     &metadata.fetched_at(),
                     &metadata.provenance_metadata().updated_by_id(),
                 ],
@@ -321,7 +321,7 @@ where
             .map_err(|report| match report.current_context().code() {
                 Some(&SqlState::EXCLUSION_VIOLATION | &SqlState::UNIQUE_VIOLATION) => report
                     .change_context(BaseUriAlreadyExists)
-                    .attach_printable(metadata.record_id().base_uri().clone())
+                    .attach_printable(metadata.record_id().base_uri.clone())
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)

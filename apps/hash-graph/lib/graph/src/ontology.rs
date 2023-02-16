@@ -292,7 +292,7 @@ impl Record for DataTypeWithMetadata {
 
     fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
         let record_id = self.metadata().record_id();
-        OntologyTypeVertexId::new(record_id.base_uri().clone(), record_id.version())
+        OntologyTypeVertexId::new(record_id.base_uri.clone(), record_id.version)
     }
 
     fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
@@ -333,7 +333,7 @@ impl Record for PropertyTypeWithMetadata {
 
     fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
         let record_id = self.metadata().record_id();
-        OntologyTypeVertexId::new(record_id.base_uri().clone(), record_id.version())
+        OntologyTypeVertexId::new(record_id.base_uri.clone(), record_id.version)
     }
 
     fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
@@ -374,7 +374,7 @@ impl Record for EntityTypeWithMetadata {
 
     fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
         let record_id = self.metadata().record_id();
-        OntologyTypeVertexId::new(record_id.base_uri().clone(), record_id.version())
+        OntologyTypeVertexId::new(record_id.base_uri.clone(), record_id.version)
     }
 
     fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {

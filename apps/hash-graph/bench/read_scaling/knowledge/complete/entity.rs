@@ -106,8 +106,8 @@ async fn seed_db(
                             None,
                             properties.clone(),
                             Some(LinkData::new(
-                                entity_a_metadata.record_id().entity_id(),
-                                entity_b_metadata.record_id().entity_id(),
+                                entity_a_metadata.record_id().entity_id,
+                                entity_b_metadata.record_id().entity_id,
                                 None,
                                 None,
                             )),
@@ -161,7 +161,7 @@ pub fn bench_get_entity_by_id(
         |entity_record_id| async move {
             store
                 .get_entity(&StructuralQuery {
-                    filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id()),
+                    filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
                     graph_resolve_depths,
                     time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
                         pinned: UnresolvedKernel::new(None),

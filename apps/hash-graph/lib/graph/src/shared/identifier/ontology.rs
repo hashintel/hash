@@ -59,29 +59,9 @@ impl<'a> FromSql<'a> for OntologyTypeVersion {
 #[serde(rename_all = "camelCase")]
 pub struct OntologyTypeRecordId {
     #[schema(value_type = String)]
-    base_uri: BaseUri,
+    pub base_uri: BaseUri,
     #[schema(value_type = u32)]
-    version: OntologyTypeVersion,
-}
-
-impl OntologyTypeRecordId {
-    #[must_use]
-    pub const fn new(base_id: BaseUri, version: OntologyTypeVersion) -> Self {
-        Self {
-            base_uri: base_id,
-            version,
-        }
-    }
-
-    #[must_use]
-    pub const fn base_uri(&self) -> &BaseUri {
-        &self.base_uri
-    }
-
-    #[must_use]
-    pub const fn version(&self) -> OntologyTypeVersion {
-        self.version
-    }
+    pub version: OntologyTypeVersion,
 }
 
 impl Display for OntologyTypeRecordId {

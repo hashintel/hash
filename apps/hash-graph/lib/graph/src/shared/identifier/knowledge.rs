@@ -150,8 +150,8 @@ impl EntityEditionId {
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityRecordId {
-    entity_id: EntityId,
-    edition_id: EntityEditionId,
+    pub entity_id: EntityId,
+    pub edition_id: EntityEditionId,
 }
 
 impl SubgraphIndex<Entity> for EntityVertexId {
@@ -160,25 +160,5 @@ impl SubgraphIndex<Entity> for EntityVertexId {
         subgraph: &'a mut Subgraph,
     ) -> RawEntryMut<'a, Self, Entity, RandomState> {
         subgraph.vertices.entities.raw_entry_mut().from_key(self)
-    }
-}
-
-impl EntityRecordId {
-    #[must_use]
-    pub const fn new(entity_id: EntityId, edition_id: EntityEditionId) -> Self {
-        Self {
-            entity_id,
-            edition_id,
-        }
-    }
-
-    #[must_use]
-    pub const fn entity_id(&self) -> EntityId {
-        self.entity_id
-    }
-
-    #[must_use]
-    pub const fn edition_id(&self) -> EntityEditionId {
-        self.edition_id
     }
 }
