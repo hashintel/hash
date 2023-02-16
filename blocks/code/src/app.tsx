@@ -76,7 +76,7 @@ export const App: BlockComponent<RootEntity> = ({
     if (readonly) {
       return;
     }
-    void graphService.updateEntity({
+    void graphService?.updateEntity({
       data: {
         entityId,
         entityTypeId,
