@@ -54,7 +54,7 @@ export const createEntityWithPlaceholdersFn =
     } else {
       return await createEntityWithLinks(context, {
         ownedById: entityActorId as OwnedById,
-        entityTypeId: entityDefinition.entityTypeId!,
+        entityTypeId: entityDefinition.entityTypeId,
         properties: entityDefinition.entityProperties ?? {},
         linkedEntities: entityDefinition.linkedEntities ?? undefined,
         actorId: entityActorId,

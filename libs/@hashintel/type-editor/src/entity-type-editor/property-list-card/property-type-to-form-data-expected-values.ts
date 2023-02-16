@@ -1,4 +1,5 @@
 import {
+  extractBaseUri,
   OneOf,
   PropertyType,
   PropertyValues,

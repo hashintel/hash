@@ -5,7 +5,6 @@ import {
   TextField,
 } from "@hashintel/design-system";
 import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import {
   Box,
   Collapse,

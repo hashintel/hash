@@ -2,7 +2,6 @@ import { VersionedUri } from "@blockprotocol/type-system/slim";
 import {
   Entity,
   EntityId,
-  EntityRevisionId,
   GraphResolveDepths,
   KnowledgeGraphVertices,
   Subgraph,
@@ -101,12 +100,12 @@ export const useFetchBlockSubgraph = () => {
           roots: [
             {
               baseId: placeholderEntity.metadata.recordId.entityId,
-              revisionId: now as EntityRevisionId,
+              revisionId: now,
             },
           ],
           vertices: {
             [placeholderEntity.metadata.recordId.entityId]: {
-              [now as EntityRevisionId]: {
+              [now]: {
                 kind: "entity" as const,
                 inner: placeholderEntity,
               },

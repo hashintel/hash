@@ -5,7 +5,6 @@ import {
   VersionedUri,
 } from "@blockprotocol/type-system";
 import { apiGraphQLEndpoint } from "@local/hash-graphql-shared/environment";
-import { OntologyTypeVertexId } from "@local/hash-subgraph";
 import type { ApolloError } from "apollo-server-express";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
@@ -100,7 +99,7 @@ export const returnTypeAsJson = async (request: NextRequest) => {
       ? data.getEntityType
       : data.getPropertyType;
 
-  const root = roots[0] as OntologyTypeVertexId | undefined;
+  const root = roots[0];
   if (!root) {
     return generateErrorResponse(
       404,
