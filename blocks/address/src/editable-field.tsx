@@ -81,7 +81,7 @@ export const EditableField = ({
           <Box sx={{ position: "relative" }}>
             <IconButton
               onClick={() => {
-                setEditing(!editing);
+                setEditing(true);
                 inputRef.current?.focus();
               }}
               sx={{
