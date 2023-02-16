@@ -808,13 +808,13 @@ mod tests {
 
         #[test]
         fn for_ontology_type_record_id() {
-            let uri = OntologyTypeVertexId::new(
-                BaseUri::new(
+            let uri = OntologyTypeVertexId {
+                base_id: BaseUri::new(
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
                 )
                 .expect("invalid base uri"),
-                OntologyTypeVersion::new(1),
-            );
+                version: OntologyTypeVersion::new(1),
+            };
 
             let time_projection = UnresolvedTimeProjection::default().resolve();
             let mut compiler =
@@ -832,7 +832,7 @@ mod tests {
                   ON "ontology_id_with_metadata_0_1_0"."ontology_id" = "data_types_0_0_0"."ontology_id"
                 WHERE ("ontology_id_with_metadata_0_1_0"."base_uri" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
                 "#,
-                &[&uri.base_id().as_str(), &uri.version()],
+                &[&uri.base_id.as_str(), &uri.version],
             );
         }
 

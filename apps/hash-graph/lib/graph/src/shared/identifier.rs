@@ -16,49 +16,15 @@ use crate::identifier::{
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityVertexId {
-    base_id: EntityId,
-    version: Timestamp<ProjectedTime>,
-}
-
-impl EntityVertexId {
-    #[must_use]
-    pub const fn new(base_id: EntityId, version: Timestamp<ProjectedTime>) -> Self {
-        Self { base_id, version }
-    }
-
-    #[must_use]
-    pub const fn base_id(&self) -> EntityId {
-        self.base_id
-    }
-
-    #[must_use]
-    pub const fn version(&self) -> Timestamp<ProjectedTime> {
-        self.version
-    }
+    pub base_id: EntityId,
+    pub version: Timestamp<ProjectedTime>,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct OntologyTypeVertexId {
-    base_id: BaseUri,
-    version: OntologyTypeVersion,
-}
-
-impl OntologyTypeVertexId {
-    #[must_use]
-    pub const fn new(base_id: BaseUri, version: OntologyTypeVersion) -> Self {
-        Self { base_id, version }
-    }
-
-    #[must_use]
-    pub const fn base_id(&self) -> &BaseUri {
-        &self.base_id
-    }
-
-    #[must_use]
-    pub const fn version(&self) -> OntologyTypeVersion {
-        self.version
-    }
+    pub base_id: BaseUri,
+    pub version: OntologyTypeVersion,
 }
 
 impl From<VersionedUri> for OntologyTypeVertexId {

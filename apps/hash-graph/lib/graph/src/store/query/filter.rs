@@ -97,8 +97,8 @@ where
     #[must_use]
     pub fn for_ontology_type_vertex_id(ontology_type_vertex_id: &'p OntologyTypeVertexId) -> Self {
         Self::All(vec![
-            Self::for_base_uri(ontology_type_vertex_id.base_id()),
-            Self::for_version(ontology_type_vertex_id.version()),
+            Self::for_base_uri(&ontology_type_vertex_id.base_id),
+            Self::for_version(ontology_type_vertex_id.version),
         ])
     }
 }
@@ -469,23 +469,23 @@ mod tests {
 
     #[test]
     fn for_ontology_type_version_id() {
-        let uri = OntologyTypeVertexId::new(
-            BaseUri::new(
+        let uri = OntologyTypeVertexId {
+            base_id: BaseUri::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
             )
             .expect("invalid base uri"),
-            OntologyTypeVersion::new(1),
-        );
+            version: OntologyTypeVersion::new(1),
+        };
 
         let expected = json! {{
           "all": [
             { "equal": [
               { "path": ["baseUri"] },
-              { "parameter": uri.base_id() }
+              { "parameter": uri.base_id }
             ]},
             { "equal": [
               { "path": ["version"] },
-              { "parameter": uri.version() }
+              { "parameter": uri.version }
             ]}
           ]
         }};
