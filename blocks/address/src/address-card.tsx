@@ -302,38 +302,40 @@ export const AddressCard = ({
           <CircularProgress sx={{ color: ({ palette }) => palette.gray[40] }} />
         )}
 
-        <Fade in={hovered}>
-          <Button
-            size="small"
-            onClick={onClose}
-            variant="tertiary"
-            sx={({ palette }) => ({
-              position: "absolute",
-              top: 4,
-              right: 4,
-              padding: 0.5,
-              background: "transparent !important",
-              fontSize: 12,
-              fontWeight: 600,
-              lineHeight: "18px",
-              letterSpacing: "0.05em",
-              textTransform: "uppercase",
-              border: "none",
-              fill: palette.gray[70],
-              ":hover": {
-                fill: palette.gray[80],
-              },
-            })}
-            endIcon={
-              <FontAwesomeIcon
-                icon={faArrowRotateLeft}
-                sx={{ fill: "inherit" }}
-              />
-            }
-          >
-            Clear location
-          </Button>
-        </Fade>
+        {!readonly ? (
+          <Fade in={hovered}>
+            <Button
+              size="small"
+              onClick={onClose}
+              variant="tertiary"
+              sx={({ palette }) => ({
+                position: "absolute",
+                top: 4,
+                right: 4,
+                padding: 0.5,
+                background: "transparent !important",
+                fontSize: 12,
+                fontWeight: 600,
+                lineHeight: "18px",
+                letterSpacing: "0.05em",
+                textTransform: "uppercase",
+                border: "none",
+                fill: palette.gray[70],
+                ":hover": {
+                  fill: palette.gray[80],
+                },
+              })}
+              endIcon={
+                <FontAwesomeIcon
+                  icon={faArrowRotateLeft}
+                  sx={{ fill: "inherit" }}
+                />
+              }
+            >
+              Clear location
+            </Button>
+          </Fade>
+        ) : null}
       </Box>
     </Card>
   );

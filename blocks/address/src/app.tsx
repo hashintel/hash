@@ -386,87 +386,89 @@ export const App: BlockComponent<true, RootEntity> = ({
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
-        <Fade
-          in={hovered || autocompleteFocused || animatingIn || animatingOut}
-        >
-          <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap" }}>
-            <Link
-              //  @todo: link this to the block's hub page
-              href=""
-              target="_blank"
-              variant="regularTextLabels"
-              sx={({ palette }) => ({
-                display: "inline-flex",
-                alignItems: "center",
-                textDecoration: "none",
-                fontSize: 15,
-                lineHeight: 1,
-                letterSpacing: -0.02,
-                marginBottom: 1.5,
-                whiteSpace: "nowrap",
-                color: palette.gray[50],
-                fill: palette.gray[40],
-                ":hover": {
-                  color: palette.gray[60],
-                  fill: palette.gray[50],
-                },
-              })}
-            >
-              Get help{" "}
-              <FontAwesomeIcon
-                icon={faQuestionCircle}
-                sx={{ fontSize: 16, ml: 1, fill: "inherit" }}
-              />
-            </Link>
+        {!readonly ? (
+          <Fade
+            in={hovered || autocompleteFocused || animatingIn || animatingOut}
+          >
+            <Box sx={{ display: "flex", columnGap: 3, flexWrap: "wrap" }}>
+              <Link
+                //  @todo: link this to the block's hub page
+                href=""
+                target="_blank"
+                variant="regularTextLabels"
+                sx={({ palette }) => ({
+                  display: "inline-flex",
+                  alignItems: "center",
+                  textDecoration: "none",
+                  fontSize: 15,
+                  lineHeight: 1,
+                  letterSpacing: -0.02,
+                  marginBottom: 1.5,
+                  whiteSpace: "nowrap",
+                  color: palette.gray[50],
+                  fill: palette.gray[40],
+                  ":hover": {
+                    color: palette.gray[60],
+                    fill: palette.gray[50],
+                  },
+                })}
+              >
+                Get help{" "}
+                <FontAwesomeIcon
+                  icon={faQuestionCircle}
+                  sx={{ fontSize: 16, ml: 1, fill: "inherit" }}
+                />
+              </Link>
 
-            <Typography
-              variant="regularTextLabels"
-              sx={{
-                display: "inline-flex",
-                alignItems: "center",
-                textDecoration: "none",
-                fontSize: 15,
-                lineHeight: 1,
-                letterSpacing: -0.02,
-                marginBottom: 1.5,
-                whiteSpace: "nowrap",
-                color: ({ palette }) => palette.gray[50],
-              }}
-            >
-              Using
-              {!selectedAddress ? (
-                <>
-                  <Box
-                    component="span"
-                    sx={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      color: ({ palette }) => palette.gray[60],
-                      mx: 1,
-                    }}
-                  >
-                    <MapboxIcon sx={{ fontSize: 16, mr: 0.375 }} />
-                    Mapbox Address Autofill{" "}
-                  </Box>
-                  and
-                </>
-              ) : null}
-              <Box
-                component="span"
+              <Typography
+                variant="regularTextLabels"
                 sx={{
                   display: "inline-flex",
                   alignItems: "center",
-                  color: ({ palette }) => palette.gray[60],
-                  mx: 1,
+                  textDecoration: "none",
+                  fontSize: 15,
+                  lineHeight: 1,
+                  letterSpacing: -0.02,
+                  marginBottom: 1.5,
+                  whiteSpace: "nowrap",
+                  color: ({ palette }) => palette.gray[50],
                 }}
               >
-                <MapboxIcon sx={{ fontSize: 16, mr: 0.375 }} />
-                Mapbox Static Images
-              </Box>
-              to render a fixed map
-            </Typography>
-          </Box>
-        </Fade>
+                Using
+                {!selectedAddress ? (
+                  <>
+                    <Box
+                      component="span"
+                      sx={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        color: ({ palette }) => palette.gray[60],
+                        mx: 1,
+                      }}
+                    >
+                      <MapboxIcon sx={{ fontSize: 16, mr: 0.375 }} />
+                      Mapbox Address Autofill{" "}
+                    </Box>
+                    and
+                  </>
+                ) : null}
+                <Box
+                  component="span"
+                  sx={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    color: ({ palette }) => palette.gray[60],
+                    mx: 1,
+                  }}
+                >
+                  <MapboxIcon sx={{ fontSize: 16, mr: 0.375 }} />
+                  Mapbox Static Images
+                </Box>
+                to render a fixed map
+              </Typography>
+            </Box>
+          </Fade>
+        ) : null}
 
         <Collapse
           in={!selectedAddress && !animatingIn}
