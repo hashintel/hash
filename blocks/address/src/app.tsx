@@ -15,6 +15,7 @@ import {
   Link,
   ThemeProvider,
   Typography,
+  useMediaQuery,
 } from "@mui/material";
 import Autocomplete, { autocompleteClasses } from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
@@ -378,11 +379,13 @@ export const App: BlockComponent<true, RootEntity> = ({
     }
   }, [mapFile]);
 
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   return (
     <ThemeProvider theme={theme}>
       <Box
         ref={blockRootRef}
-        sx={{ display: "inline-block" }}
+        sx={{ display: "inline-block", width: { xs: "100%", md: "auto" } }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
@@ -420,52 +423,54 @@ export const App: BlockComponent<true, RootEntity> = ({
                 />
               </Link>
 
-              <Typography
-                variant="regularTextLabels"
-                sx={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  textDecoration: "none",
-                  fontSize: 15,
-                  lineHeight: 1,
-                  letterSpacing: -0.02,
-                  marginBottom: 1.5,
-                  whiteSpace: "nowrap",
-                  color: ({ palette }) => palette.gray[50],
-                }}
-              >
-                Using
-                {!selectedAddress ? (
-                  <>
-                    <Box
-                      component="span"
-                      sx={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        color: ({ palette }) => palette.gray[60],
-                        mx: 1,
-                      }}
-                    >
-                      <MapboxIcon sx={{ fontSize: 16, mr: 0.375 }} />
-                      Mapbox Address Autofill{" "}
-                    </Box>
-                    and
-                  </>
-                ) : null}
-                <Box
-                  component="span"
+              {!isMobile ? (
+                <Typography
+                  variant="regularTextLabels"
                   sx={{
                     display: "inline-flex",
                     alignItems: "center",
-                    color: ({ palette }) => palette.gray[60],
-                    mx: 1,
+                    textDecoration: "none",
+                    fontSize: 15,
+                    lineHeight: 1,
+                    letterSpacing: -0.02,
+                    marginBottom: 1.5,
+                    flexWrap: "wrap",
+                    color: ({ palette }) => palette.gray[50],
                   }}
                 >
-                  <MapboxIcon sx={{ fontSize: 16, mr: 0.375 }} />
-                  Mapbox Static Images
-                </Box>
-                to render a fixed map
-              </Typography>
+                  Using
+                  {!selectedAddress ? (
+                    <>
+                      <Box
+                        component="span"
+                        sx={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          color: ({ palette }) => palette.gray[60],
+                          mx: 1,
+                        }}
+                      >
+                        <MapboxIcon sx={{ fontSize: 16, mr: 0.375 }} />
+                        Mapbox Address Autofill{" "}
+                      </Box>
+                      and
+                    </>
+                  ) : null}
+                  <Box
+                    component="span"
+                    sx={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      color: ({ palette }) => palette.gray[60],
+                      mx: 1,
+                    }}
+                  >
+                    <MapboxIcon sx={{ fontSize: 16, mr: 0.375 }} />
+                    Mapbox Static Images
+                  </Box>
+                  to render a fixed map
+                </Typography>
+              ) : null}
             </Box>
           </Fade>
         ) : null}
@@ -499,7 +504,11 @@ export const App: BlockComponent<true, RootEntity> = ({
                 return (
                   <TextField
                     {...params}
-                    placeholder="Start typing to enter an address or location"
+                    placeholder={
+                      isMobile
+                        ? "Enter an address"
+                        : "Start typing to enter an address or location"
+                    }
                     InputProps={{
                       ...InputProps,
                       endAdornment: suggestionsError ? (
@@ -523,8 +532,7 @@ export const App: BlockComponent<true, RootEntity> = ({
                     }}
                     sx={{
                       display: "inline-flex",
-                      width: "auto",
-                      minWidth: 420,
+                      maxWidth: 420,
                     }}
                   />
                 );
@@ -582,6 +590,7 @@ export const App: BlockComponent<true, RootEntity> = ({
                 </Paper>
               )}
               sx={{
+                width: 1,
                 [`.${autocompleteClasses.input}`]: {
                   paddingLeft: "0 !important",
                 },
