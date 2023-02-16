@@ -15,7 +15,6 @@ use crate::{
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, DataTypeQueryToken, DataTypeWithMetadata, OntologyElementMetadata,
-        OwnedOntologyElementMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool},
@@ -110,11 +109,11 @@ async fn create_data_type<P: StorePool + Send>(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-        data_type.id().clone().into(),
-        ProvenanceMetadata::new(actor_id),
+    let metadata = OntologyElementMetadata::Owned {
+        record_id: data_type.id().clone().into(),
+        provenance: ProvenanceMetadata::new(actor_id),
         owned_by_id,
-    ));
+    };
 
     store
         .create_data_type(data_type, &metadata)

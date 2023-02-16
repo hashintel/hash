@@ -26,7 +26,7 @@ use crate::{
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     ontology::{
         domain_validator::DomainValidator, DataTypeWithMetadata, EntityTypeWithMetadata,
-        ExternalOntologyElementMetadata, OntologyElementMetadata, PropertyTypeWithMetadata,
+        OntologyElementMetadata, PropertyTypeWithMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
@@ -210,7 +210,7 @@ where
         let mut entity_types = Vec::new();
 
         for (reference, fetched_by) in ontology_type_references {
-            let provenance_metadata = ProvenanceMetadata::new(fetched_by);
+            let provenance = ProvenanceMetadata::new(fetched_by);
             let fetched_ontology_types = fetcher_client
                 .fetch_ontology_type_exhaustive(context::current(), reference.uri().clone())
                 .await
@@ -232,14 +232,13 @@ where
                             ))
                             .await?
                         {
-                            let metadata = ExternalOntologyElementMetadata::new(
-                                data_type.id().clone().into(),
-                                provenance_metadata,
-                                fetched_ontology_type.fetched_at,
-                            );
+                            let metadata = OntologyElementMetadata::External {
+                                record_id: data_type.id().clone().into(),
+                                provenance,
+                                fetched_at: fetched_ontology_type.fetched_at,
+                            };
 
-                            data_types
-                                .push((data_type, OntologyElementMetadata::External(metadata)));
+                            data_types.push((data_type, metadata));
                         }
                     }
                     OntologyType::PropertyType(property_type) => {
@@ -254,14 +253,13 @@ where
                             ))
                             .await?
                         {
-                            let metadata = ExternalOntologyElementMetadata::new(
-                                property_type.id().clone().into(),
-                                provenance_metadata,
-                                fetched_ontology_type.fetched_at,
-                            );
+                            let metadata = OntologyElementMetadata::External {
+                                record_id: property_type.id().clone().into(),
+                                provenance,
+                                fetched_at: fetched_ontology_type.fetched_at,
+                            };
 
-                            property_types
-                                .push((property_type, OntologyElementMetadata::External(metadata)));
+                            property_types.push((property_type, metadata));
                         }
                     }
                     OntologyType::EntityType(entity_type) => {
@@ -276,14 +274,13 @@ where
                             ))
                             .await?
                         {
-                            let metadata = ExternalOntologyElementMetadata::new(
-                                entity_type.id().clone().into(),
-                                provenance_metadata,
-                                fetched_ontology_type.fetched_at,
-                            );
+                            let metadata = OntologyElementMetadata::External {
+                                record_id: entity_type.id().clone().into(),
+                                provenance,
+                                fetched_at: fetched_ontology_type.fetched_at,
+                            };
 
-                            entity_types
-                                .push((entity_type, OntologyElementMetadata::External(metadata)));
+                            entity_types.push((entity_type, metadata));
                         }
                     }
                 }

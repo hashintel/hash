@@ -14,10 +14,7 @@ use crate::{
         ontology::{OntologyTypeRecordId, OntologyTypeVersion},
         time::TimeProjection,
     },
-    ontology::{
-        ExternalOntologyElementMetadata, OntologyElementMetadata, OntologyType,
-        OntologyTypeWithMetadata, OwnedOntologyElementMetadata,
-    },
+    ontology::{OntologyElementMetadata, OntologyType, OntologyTypeWithMetadata},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         crud::Read,
@@ -118,16 +115,18 @@ where
 
                 Ok(T::new(record, match metadata {
                     AdditionalOntologyMetadata::Owned { owned_by_id } => {
-                        OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
+                        OntologyElementMetadata::Owned {
                             record_id,
                             provenance,
                             owned_by_id,
-                        ))
+                        }
                     }
                     AdditionalOntologyMetadata::External { fetched_at } => {
-                        OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
-                            record_id, provenance, fetched_at,
-                        ))
+                        OntologyElementMetadata::External {
+                            record_id,
+                            provenance,
+                            fetched_at,
+                        }
                     }
                 }))
             })

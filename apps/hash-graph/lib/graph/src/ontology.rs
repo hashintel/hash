@@ -176,105 +176,37 @@ pub trait OntologyTypeWithMetadata: Record {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(untagged)]
 pub enum OntologyElementMetadata {
-    Owned(OwnedOntologyElementMetadata),
-    External(ExternalOntologyElementMetadata),
+    #[serde(rename_all = "camelCase")]
+    #[schema(title = "OwnedOntologyElementMetadata")]
+    Owned {
+        record_id: OntologyTypeRecordId,
+        provenance: ProvenanceMetadata,
+        owned_by_id: OwnedById,
+    },
+    #[serde(rename_all = "camelCase")]
+    #[schema(title = "ExternalOntologyElementMetadata")]
+    External {
+        record_id: OntologyTypeRecordId,
+        provenance: ProvenanceMetadata,
+        #[schema(value_type = String)]
+        #[serde(with = "time::serde::iso8601")]
+        fetched_at: OffsetDateTime,
+    },
 }
 
 impl OntologyElementMetadata {
     #[must_use]
     pub const fn record_id(&self) -> &OntologyTypeRecordId {
         match self {
-            Self::Owned(owned) => owned.record_id(),
-            Self::External(external) => external.record_id(),
+            Self::Owned { record_id, .. } | Self::External { record_id, .. } => record_id,
         }
     }
 
     #[must_use]
     pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
         match self {
-            Self::Owned(owned) => owned.provenance_metadata,
-            Self::External(external) => external.provenance_metadata,
+            Self::Owned { provenance, .. } | Self::External { provenance, .. } => *provenance,
         }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct OwnedOntologyElementMetadata {
-    record_id: OntologyTypeRecordId,
-    #[serde(rename = "provenance")]
-    provenance_metadata: ProvenanceMetadata,
-    owned_by_id: OwnedById,
-}
-
-impl OwnedOntologyElementMetadata {
-    #[must_use]
-    pub const fn new(
-        record_id: OntologyTypeRecordId,
-        provenance_metadata: ProvenanceMetadata,
-        owned_by_id: OwnedById,
-    ) -> Self {
-        Self {
-            record_id,
-            provenance_metadata,
-            owned_by_id,
-        }
-    }
-
-    #[must_use]
-    pub const fn record_id(&self) -> &OntologyTypeRecordId {
-        &self.record_id
-    }
-
-    #[must_use]
-    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
-        self.provenance_metadata
-    }
-
-    #[must_use]
-    pub const fn owned_by_id(&self) -> OwnedById {
-        self.owned_by_id
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct ExternalOntologyElementMetadata {
-    record_id: OntologyTypeRecordId,
-    #[serde(rename = "provenance")]
-    provenance_metadata: ProvenanceMetadata,
-    #[schema(value_type = String)]
-    #[serde(with = "time::serde::iso8601")]
-    fetched_at: OffsetDateTime,
-}
-
-impl ExternalOntologyElementMetadata {
-    #[must_use]
-    pub const fn new(
-        record_id: OntologyTypeRecordId,
-        provenance_metadata: ProvenanceMetadata,
-        fetched_at: OffsetDateTime,
-    ) -> Self {
-        Self {
-            record_id,
-            provenance_metadata,
-            fetched_at,
-        }
-    }
-
-    #[must_use]
-    pub const fn record_id(&self) -> &OntologyTypeRecordId {
-        &self.record_id
-    }
-
-    #[must_use]
-    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
-        self.provenance_metadata
-    }
-
-    #[must_use]
-    pub const fn fetched_at(&self) -> OffsetDateTime {
-        self.fetched_at
     }
 }
 

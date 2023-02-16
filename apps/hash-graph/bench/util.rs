@@ -2,7 +2,7 @@ use std::mem::ManuallyDrop;
 
 use graph::{
     identifier::account::AccountId,
-    ontology::{OntologyElementMetadata, OwnedOntologyElementMetadata},
+    ontology::OntologyElementMetadata,
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         AsClient, BaseUriAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
@@ -198,14 +198,11 @@ pub async fn seed<D, P, E, C>(
         let data_type = DataType::try_from(data_type_repr).expect("could not parse data type");
 
         match store
-            .create_data_type(
-                data_type.clone(),
-                &OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                    data_type.id().clone().into(),
-                    ProvenanceMetadata::new(UpdatedById::new(account_id)),
-                    OwnedById::new(account_id),
-                )),
-            )
+            .create_data_type(data_type.clone(), &OntologyElementMetadata::Owned {
+                record_id: data_type.id().clone().into(),
+                provenance: ProvenanceMetadata::new(UpdatedById::new(account_id)),
+                owned_by_id: OwnedById::new(account_id),
+            })
             .await
         {
             Ok(_) => {}
@@ -229,14 +226,11 @@ pub async fn seed<D, P, E, C>(
             PropertyType::try_from(property_typee_repr).expect("could not parse property type");
 
         match store
-            .create_property_type(
-                property_type.clone(),
-                &OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                    property_type.id().clone().into(),
-                    ProvenanceMetadata::new(UpdatedById::new(account_id)),
-                    OwnedById::new(account_id),
-                )),
-            )
+            .create_property_type(property_type.clone(), &OntologyElementMetadata::Owned {
+                record_id: property_type.id().clone().into(),
+                provenance: ProvenanceMetadata::new(UpdatedById::new(account_id)),
+                owned_by_id: OwnedById::new(account_id),
+            })
             .await
         {
             Ok(_) => {}
@@ -260,14 +254,11 @@ pub async fn seed<D, P, E, C>(
             EntityType::try_from(entity_type_repr).expect("could not parse entity type");
 
         match store
-            .create_entity_type(
-                entity_type.clone(),
-                &OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                    entity_type.id().clone().into(),
-                    ProvenanceMetadata::new(UpdatedById::new(account_id)),
-                    OwnedById::new(account_id),
-                )),
-            )
+            .create_entity_type(entity_type.clone(), &OntologyElementMetadata::Owned {
+                record_id: entity_type.id().clone().into(),
+                provenance: ProvenanceMetadata::new(UpdatedById::new(account_id)),
+                owned_by_id: OwnedById::new(account_id),
+            })
             .await
         {
             Ok(_) => {}

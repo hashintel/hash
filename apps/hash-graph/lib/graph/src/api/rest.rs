@@ -56,10 +56,7 @@ use crate::{
         },
         EntityVertexId, GraphElementVertexId, OntologyTypeVertexId,
     },
-    ontology::{
-        domain_validator::DomainValidator, ExternalOntologyElementMetadata,
-        OntologyElementMetadata, OwnedOntologyElementMetadata, Selector,
-    },
+    ontology::{domain_validator::DomainValidator, OntologyElementMetadata, Selector},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{QueryError, StorePool},
     subgraph::edges::{
@@ -179,8 +176,6 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             ProvenanceMetadata,
             OntologyTypeRecordId,
             OntologyElementMetadata,
-            OwnedOntologyElementMetadata,
-            ExternalOntologyElementMetadata,
             EntityVertexId,
             OntologyTypeVertexId,
             OntologyTypeVersion,

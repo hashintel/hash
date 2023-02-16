@@ -13,6 +13,7 @@ use std::{
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
+use time::OffsetDateTime;
 #[cfg(feature = "__internal_bench")]
 use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
 use tokio_postgres::{error::SqlState, GenericClient};
@@ -30,9 +31,7 @@ use crate::{
         EntityVertexId, OntologyTypeVertexId,
     },
     interval::Interval,
-    ontology::{
-        ExternalOntologyElementMetadata, OntologyElementMetadata, OwnedOntologyElementMetadata,
-    },
+    ontology::OntologyElementMetadata,
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         error::{VersionedUriAlreadyExists, WrongOntologyVersion},
@@ -253,7 +252,9 @@ where
     #[tracing::instrument(level = "debug", skip(self))]
     async fn create_owned_ontology_id(
         &self,
-        metadata: &OwnedOntologyElementMetadata,
+        record_id: &OntologyTypeRecordId,
+        provenance: ProvenanceMetadata,
+        owned_by_id: OwnedById,
     ) -> Result<OntologyId, InsertionError> {
         self.as_client()
             .query_one(
@@ -267,10 +268,10 @@ where
                     record_created_by_id := $4
                 );"#,
                 &[
-                    &metadata.record_id().base_uri.as_str(),
-                    &metadata.record_id().version,
-                    &metadata.owned_by_id(),
-                    &metadata.provenance_metadata().updated_by_id(),
+                    &record_id.base_uri.as_str(),
+                    &record_id.version,
+                    &owned_by_id,
+                    &provenance.updated_by_id(),
                 ],
             )
             .await
@@ -279,11 +280,11 @@ where
             .map_err(|report| match report.current_context().code() {
                 Some(&SqlState::EXCLUSION_VIOLATION | &SqlState::UNIQUE_VIOLATION) => report
                     .change_context(BaseUriAlreadyExists)
-                    .attach_printable(metadata.record_id().base_uri.clone())
+                    .attach_printable(record_id.base_uri.clone())
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)
-                    .attach_printable(VersionedUri::from(metadata.record_id().clone())),
+                    .attach_printable(VersionedUri::from(record_id.clone())),
             })
     }
 
@@ -295,7 +296,9 @@ where
     #[tracing::instrument(level = "debug", skip(self))]
     async fn create_external_ontology_id(
         &self,
-        metadata: &ExternalOntologyElementMetadata,
+        record_id: &OntologyTypeRecordId,
+        provenance: ProvenanceMetadata,
+        fetched_at: OffsetDateTime,
     ) -> Result<OntologyId, InsertionError> {
         self.as_client()
             .query_one(
@@ -309,10 +312,10 @@ where
                     record_created_by_id := $4
                 );"#,
                 &[
-                    &metadata.record_id().base_uri.as_str(),
-                    &metadata.record_id().version,
-                    &metadata.fetched_at(),
-                    &metadata.provenance_metadata().updated_by_id(),
+                    &record_id.base_uri.as_str(),
+                    &record_id.version,
+                    &fetched_at,
+                    &provenance.updated_by_id(),
                 ],
             )
             .await
@@ -321,11 +324,11 @@ where
             .map_err(|report| match report.current_context().code() {
                 Some(&SqlState::EXCLUSION_VIOLATION | &SqlState::UNIQUE_VIOLATION) => report
                     .change_context(BaseUriAlreadyExists)
-                    .attach_printable(metadata.record_id().base_uri.clone())
+                    .attach_printable(record_id.base_uri.clone())
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)
-                    .attach_printable(VersionedUri::from(metadata.record_id().clone())),
+                    .attach_printable(VersionedUri::from(record_id.clone())),
             })
     }
 
@@ -405,11 +408,21 @@ where
         T::Representation: Send,
     {
         let ontology_id = match metadata {
-            OntologyElementMetadata::Owned(metadata) => {
-                self.create_owned_ontology_id(metadata).await?
+            OntologyElementMetadata::Owned {
+                record_id,
+                provenance,
+                owned_by_id,
+            } => {
+                self.create_owned_ontology_id(record_id, *provenance, *owned_by_id)
+                    .await?
             }
-            OntologyElementMetadata::External(metadata) => {
-                self.create_external_ontology_id(metadata).await?
+            OntologyElementMetadata::External {
+                record_id,
+                provenance,
+                fetched_at,
+            } => {
+                self.create_external_ontology_id(record_id, *provenance, *fetched_at)
+                    .await?
             }
         };
 
@@ -449,14 +462,11 @@ where
             .await
             .change_context(UpdateError)?;
 
-        Ok((
-            ontology_id,
-            OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                record_id,
-                ProvenanceMetadata::new(updated_by_id),
-                owned_by_id,
-            )),
-        ))
+        Ok((ontology_id, OntologyElementMetadata::Owned {
+            record_id,
+            provenance: ProvenanceMetadata::new(updated_by_id),
+            owned_by_id,
+        }))
     }
 
     /// Inserts an [`OntologyDatabaseType`] identified by [`OntologyId`], and associated with an
