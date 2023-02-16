@@ -100,7 +100,7 @@ impl<C: AsClient> PostgresStore<C> {
 
             if current_resolve_depths.is_of_type.outgoing > 0 {
                 let entity_type_id =
-                    OntologyTypeVertexId::from(entity.metadata().entity_type_id());
+                    OntologyTypeVertexId::from(entity.metadata().entity_type_id().clone());
                 subgraph.edges.insert(Edge::KnowledgeGraph {
                     vertex_id: entity_vertex_id,
                     outward_edge: KnowledgeGraphOutwardEdges::ToOntology(OutwardEdge {

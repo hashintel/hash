@@ -283,7 +283,7 @@ where
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)
-                    .attach_printable(VersionedUri::from(metadata.record_id())),
+                    .attach_printable(VersionedUri::from(metadata.record_id().clone())),
             })
     }
 
@@ -325,7 +325,7 @@ where
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)
-                    .attach_printable(VersionedUri::from(metadata.record_id())),
+                    .attach_printable(VersionedUri::from(metadata.record_id().clone())),
             })
     }
 
@@ -355,8 +355,8 @@ where
                     record_created_by_id := $3
                 );"#,
                 &[
-                    &uri.base_uri().as_str(),
-                    &i64::from(uri.version()),
+                    &uri.base_uri.as_str(),
+                    &i64::from(uri.version),
                     &updated_by_id,
                 ],
             )
@@ -373,7 +373,7 @@ where
                     .change_context(UpdateError),
                 Some(&SqlState::RESTRICT_VIOLATION) => report
                     .change_context(BaseUriDoesNotExist)
-                    .attach_printable(uri.base_uri().clone())
+                    .attach_printable(uri.base_uri.clone())
                     .change_context(UpdateError),
                 _ => report
                     .change_context(UpdateError)
@@ -439,7 +439,7 @@ where
         T::Representation: Send,
     {
         let uri = database_type.id();
-        let record_id = OntologyTypeRecordId::from(uri);
+        let record_id = OntologyTypeRecordId::from(uri.clone());
 
         let (ontology_id, owned_by_id) = self
             .update_owned_ontology_id(uri, updated_by_id)
@@ -679,7 +679,7 @@ where
     /// - if the entry referred to by `uri` does not exist.
     #[tracing::instrument(level = "debug", skip(self))]
     async fn ontology_id_by_uri(&self, uri: &VersionedUri) -> Result<OntologyId, QueryError> {
-        let version = i64::from(uri.version());
+        let version = i64::from(uri.version);
         Ok(self
             .client
             .as_client()
@@ -689,7 +689,7 @@ where
                 FROM ontology_ids
                 WHERE base_uri = $1 AND version = $2;
                 "#,
-                &[&uri.base_uri().as_str(), &version],
+                &[&uri.base_uri.as_str(), &version],
             )
             .await
             .into_report()

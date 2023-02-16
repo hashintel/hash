@@ -90,20 +90,21 @@ impl Display for OntologyTypeRecordId {
     }
 }
 
-// The Type System crate doesn't let us destructure so we need to clone base_uri
-impl From<&VersionedUri> for OntologyTypeRecordId {
-    fn from(versioned_uri: &VersionedUri) -> Self {
+impl From<VersionedUri> for OntologyTypeRecordId {
+    fn from(versioned_uri: VersionedUri) -> Self {
         Self {
-            base_uri: versioned_uri.base_uri().clone(),
-            version: OntologyTypeVersion::new(versioned_uri.version()),
+            base_uri: versioned_uri.base_uri,
+            version: OntologyTypeVersion::new(versioned_uri.version),
         }
     }
 }
 
-impl From<&OntologyTypeRecordId> for VersionedUri {
-    fn from(record_id: &OntologyTypeRecordId) -> Self {
-        // We should make it possible to destructure to avoid the clone
-        Self::new(record_id.base_uri().clone(), record_id.version.inner())
+impl From<OntologyTypeRecordId> for VersionedUri {
+    fn from(record_id: OntologyTypeRecordId) -> Self {
+        Self {
+            base_uri: record_id.base_uri,
+            version: record_id.version.inner(),
+        }
     }
 }
 

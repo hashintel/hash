@@ -123,7 +123,7 @@ impl DatabaseTestWrapper {
             let data_type = DataType::try_from(data_type_repr).expect("could not parse data type");
 
             let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                data_type.id().into(),
+                data_type.id().clone().into(),
                 ProvenanceMetadata::new(UpdatedById::new(account_id)),
                 OwnedById::new(account_id),
             ));
@@ -139,7 +139,7 @@ impl DatabaseTestWrapper {
                 PropertyType::try_from(property_type_repr).expect("could not parse property type");
 
             let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                property_type.id().into(),
+                property_type.id().clone().into(),
                 ProvenanceMetadata::new(UpdatedById::new(account_id)),
                 OwnedById::new(account_id),
             ));
@@ -155,7 +155,7 @@ impl DatabaseTestWrapper {
                 EntityType::try_from(entity_type_repr).expect("could not parse entity type");
 
             let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                entity_type.id().into(),
+                entity_type.id().clone().into(),
                 ProvenanceMetadata::new(UpdatedById::new(account_id)),
                 OwnedById::new(account_id),
             ));
@@ -188,7 +188,7 @@ impl DatabaseApi<'_> {
         data_type: DataType,
     ) -> Result<OntologyElementMetadata, InsertionError> {
         let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-            data_type.id().into(),
+            data_type.id().clone().into(),
             ProvenanceMetadata::new(UpdatedById::new(self.account_id)),
             OwnedById::new(self.account_id),
         ));
@@ -215,7 +215,7 @@ impl DatabaseApi<'_> {
             .await?
             .vertices
             .data_types
-            .remove(&OntologyTypeVertexId::from(uri))
+            .remove(&OntologyTypeVertexId::from(uri.clone()))
             .expect("no data type found"))
     }
 
@@ -233,7 +233,7 @@ impl DatabaseApi<'_> {
         property_type: PropertyType,
     ) -> Result<OntologyElementMetadata, InsertionError> {
         let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-            property_type.id().into(),
+            property_type.id().clone().into(),
             ProvenanceMetadata::new(UpdatedById::new(self.account_id)),
             OwnedById::new(self.account_id),
         ));
@@ -262,7 +262,7 @@ impl DatabaseApi<'_> {
             .await?
             .vertices
             .property_types
-            .remove(&OntologyTypeVertexId::from(uri))
+            .remove(&OntologyTypeVertexId::from(uri.clone()))
             .expect("no property type found"))
     }
 
@@ -280,7 +280,7 @@ impl DatabaseApi<'_> {
         entity_type: EntityType,
     ) -> Result<OntologyElementMetadata, InsertionError> {
         let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-            entity_type.id().into(),
+            entity_type.id().clone().into(),
             ProvenanceMetadata::new(UpdatedById::new(self.account_id)),
             OwnedById::new(self.account_id),
         ));
@@ -309,7 +309,7 @@ impl DatabaseApi<'_> {
             .await?
             .vertices
             .entity_types
-            .remove(&OntologyTypeVertexId::from(uri))
+            .remove(&OntologyTypeVertexId::from(uri.clone()))
             .expect("no entity type found"))
     }
 
@@ -476,7 +476,7 @@ impl DatabaseApi<'_> {
                     EntityTypeQueryPath::BaseUri,
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                    link_type_id.base_uri().as_str(),
+                    link_type_id.base_uri.as_str(),
                 )))),
             ),
             Filter::Equal(
@@ -484,7 +484,7 @@ impl DatabaseApi<'_> {
                     EntityTypeQueryPath::Version,
                 ))),
                 Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
-                    OntologyTypeVersion::new(link_type_id.version()),
+                    OntologyTypeVersion::new(link_type_id.version),
                 ))),
             ),
         ]);

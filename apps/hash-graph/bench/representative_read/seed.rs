@@ -267,8 +267,8 @@ async fn get_samples(account_id: AccountId, store_wrapper: &mut StoreWrapper) ->
                 LIMIT 50
                 "#,
                 &[
-                    &entity_type_id.base_uri().as_str(),
-                    &i64::from(entity_type_id.version()),
+                    &entity_type_id.base_uri.as_str(),
+                    &i64::from(entity_type_id.version),
                 ],
             )
             .await

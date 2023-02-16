@@ -34,7 +34,7 @@ tonic = "0.8.3"
 opentelemetry = { version = "0.18.0", features = ["rt-tokio"] }
 opentelemetry-otlp = "0.11.0"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter", "json"] }
-type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "646b7d1" }
+type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "ce8df71" }
 uuid = { version = "1.3.0", features = ["v4", "serde"] }
 utoipa = { version = "3.0.1", features = ["uuid"] }
 include_dir = "0.7.3"

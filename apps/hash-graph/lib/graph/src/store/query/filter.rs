@@ -87,8 +87,8 @@ where
     #[must_use]
     pub fn for_versioned_uri(versioned_uri: &'p VersionedUri) -> Self {
         Self::All(vec![
-            Self::for_base_uri(versioned_uri.base_uri()),
-            Self::for_version(OntologyTypeVersion::new(versioned_uri.version())),
+            Self::for_base_uri(&versioned_uri.base_uri),
+            Self::for_version(OntologyTypeVersion::new(versioned_uri.version)),
         ])
     }
 
@@ -440,23 +440,23 @@ mod tests {
 
     #[test]
     fn for_versioned_uri() {
-        let uri = VersionedUri::new(
-            BaseUri::new(
+        let uri = VersionedUri {
+            base_uri: BaseUri::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
             )
             .expect("invalid base uri"),
-            1,
-        );
+            version: 1,
+        };
 
         let expected = json! {{
           "all": [
             { "equal": [
               { "path": ["baseUri"] },
-              { "parameter": uri.base_uri() }
+              { "parameter": uri.base_uri }
             ]},
             { "equal": [
               { "path": ["version"] },
-              { "parameter": uri.version() }
+              { "parameter": uri.version }
             ]}
           ]
         }};

@@ -775,13 +775,13 @@ mod tests {
 
         #[test]
         fn for_versioned_uri() {
-            let uri = VersionedUri::new(
-                BaseUri::new(
+            let uri = VersionedUri {
+                base_uri: BaseUri::new(
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
                 )
                 .expect("invalid base uri"),
-                1,
-            );
+                version: 1,
+            };
 
             let time_projection = UnresolvedTimeProjection::default().resolve();
             let mut compiler =
@@ -800,8 +800,8 @@ mod tests {
                 WHERE ("ontology_id_with_metadata_0_1_0"."base_uri" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
                 "#,
                 &[
-                    &uri.base_uri().as_str(),
-                    &OntologyTypeVersion::new(uri.version()),
+                    &uri.base_uri.as_str(),
+                    &OntologyTypeVersion::new(uri.version),
                 ],
             );
         }

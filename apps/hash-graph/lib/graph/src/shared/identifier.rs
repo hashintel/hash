@@ -4,7 +4,7 @@ pub mod ontology;
 pub mod time;
 
 use serde::Serialize;
-use type_system::uri::BaseUri;
+use type_system::uri::{BaseUri, VersionedUri};
 use utoipa::ToSchema;
 
 use crate::identifier::{
@@ -61,11 +61,11 @@ impl OntologyTypeVertexId {
     }
 }
 
-impl From<&VersionedUri> for OntologyTypeVertexId {
-    fn from(uri: &VersionedUri) -> Self {
+impl From<VersionedUri> for OntologyTypeVertexId {
+    fn from(uri: VersionedUri) -> Self {
         Self {
-            base_id: uri.base_uri().clone(),
-            version: OntologyTypeVersion::new(uri.version()),
+            base_id: uri.base_uri,
+            version: OntologyTypeVersion::new(uri.version),
         }
     }
 }
