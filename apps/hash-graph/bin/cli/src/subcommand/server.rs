@@ -84,7 +84,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
 
     use graph::{
         identifier::account::AccountId,
-        ontology::OntologyElementMetadata,
+        ontology::{ExternalOntologyElementMetadata, OntologyElementMetadata},
         provenance::{ProvenanceMetadata, UpdatedById},
         store::{AccountStore, BaseUriAlreadyExists, DataTypeStore, EntityTypeStore, StorePool},
     };
@@ -210,11 +210,12 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     for data_type in [text, number, boolean, empty_list, object, null] {
         let title = data_type.title().to_owned();
 
-        let data_type_metadata = OntologyElementMetadata::External {
-            record_id: data_type.id().clone().into(),
-            provenance: ProvenanceMetadata::new(UpdatedById::new(root_account_id)),
-            fetched_at: OffsetDateTime::now_utc(),
-        };
+        let data_type_metadata =
+            OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
+                data_type.id().clone().into(),
+                ProvenanceMetadata::new(UpdatedById::new(root_account_id)),
+                OffsetDateTime::now_utc(),
+            ));
 
         if let Err(error) = connection
             .create_data_type(data_type, &data_type_metadata)
@@ -247,11 +248,12 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         Vec::default(),
     );
 
-    let link_entity_type_metadata = OntologyElementMetadata::External {
-        record_id: link_entity_type.id().clone().into(),
-        provenance: ProvenanceMetadata::new(UpdatedById::new(root_account_id)),
-        fetched_at: OffsetDateTime::now_utc(),
-    };
+    let link_entity_type_metadata =
+        OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
+            link_entity_type.id().clone().into(),
+            ProvenanceMetadata::new(UpdatedById::new(root_account_id)),
+            OffsetDateTime::now_utc(),
+        ));
 
     let title = link_entity_type.title().to_owned();
 
