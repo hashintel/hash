@@ -27,6 +27,8 @@
 pub use color::{BasicColor, BrightColor, Color, IndexedColor, RgbColor};
 pub use font::{Blinking, Font, FontFamily, FontWeight, Underline};
 
+use crate::macros::impl_const;
+
 mod color;
 mod font;
 mod macros;
@@ -41,23 +43,14 @@ impl Foreground {
     }
 }
 
-#[cfg(nightly)]
-impl<T> const From<T> for Foreground
-where
-    T: ~const Into<Color>,
-{
-    fn from(value: T) -> Self {
-        Self(value.into())
-    }
-}
-
-#[cfg(not(nightly))]
-impl<T> From<T> for Foreground
-where
-    T: Into<Color>,
-{
-    fn from(value: T) -> Self {
-        Self(value.into())
+impl_const! {
+    impl<T> const? From<T> for Foreground
+    where
+        T: ~const Into<Color>
+    {
+        fn from(value: T) -> Self {
+            Self(value.into())
+        }
     }
 }
 
@@ -71,23 +64,14 @@ impl Background {
     }
 }
 
-#[cfg(nightly)]
-impl<T> const From<T> for Background
-where
-    T: ~const Into<Color>,
-{
-    fn from(value: T) -> Self {
-        Self(value.into())
-    }
-}
-
-#[cfg(not(nightly))]
-impl<T> From<T> for Background
-where
-    T: Into<Color>,
-{
-    fn from(value: T) -> Self {
-        Self(value.into())
+impl_const! {
+    impl<T> const? From<T> for Background
+    where
+        T: ~const Into<Color>
+    {
+        fn from(value: T) -> Self {
+            Self(value.into())
+        }
     }
 }
 
@@ -100,6 +84,46 @@ pub struct Style {
 }
 
 impl Style {
+    impl_const! {
+        #[nightly]
+        #[must_use]
+        pub const fn with_foreground(mut self, color: impl ~const Into<Foreground>) -> Self {
+            self.foreground = Some(color.into());
+
+            self
+        }
+    }
+
+    impl_const! {
+        #[stable]
+        #[must_use]
+        pub const fn with_foreground(mut self, color: Foreground) -> Self {
+            self.foreground = Some(color);
+
+            self
+        }
+    }
+
+    impl_const! {
+        #[nightly]
+        #[must_use]
+        pub const fn with_background(mut self, color: impl ~const Into<Background>) -> Self {
+            self.background = Some(color.into());
+
+            self
+        }
+    }
+
+    impl_const! {
+        #[stable]
+        #[must_use]
+        pub const fn with_background(mut self, color: Background) -> Self {
+            self.background = Some(color);
+
+            self
+        }
+    }
+
     #[must_use]
     pub const fn new() -> Self {
         Self {
@@ -122,40 +146,8 @@ impl Style {
         self
     }
 
-    #[must_use]
-    #[cfg(nightly)]
-    pub const fn with_foreground(mut self, color: impl ~const Into<Foreground>) -> Self {
-        self.foreground = Some(color.into());
-
-        self
-    }
-
-    #[must_use]
-    #[cfg(not(nightly))]
-    pub const fn with_foreground(mut self, color: Foreground) -> Self {
-        self.foreground = Some(color.into());
-
-        self
-    }
-
     pub fn set_foreground(&mut self, color: impl Into<Foreground>) -> &mut Self {
         self.foreground = Some(color.into());
-
-        self
-    }
-
-    #[must_use]
-    #[cfg(nightly)]
-    pub const fn with_background(mut self, color: impl ~const Into<Background>) -> Self {
-        self.background = Some(color.into());
-
-        self
-    }
-
-    #[must_use]
-    #[cfg(not(nightly))]
-    pub const fn with_background(mut self, color: Background) -> Self {
-        self.background = Some(color.into());
 
         self
     }
