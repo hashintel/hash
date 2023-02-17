@@ -28,6 +28,7 @@ OR REPLACE FUNCTION update_ontology_id (
   "ontology_id" UUID,
   "base_uri" TEXT,
   "version" BIGINT,
+  "version_to_update" BIGINT,
   "record_created_by_id" UUID
 ) RETURNS TABLE (_ontology_id UUID) AS $update_ontology_id$
 BEGIN
@@ -36,15 +37,17 @@ BEGIN
   SET
     "ontology_id" = update_ontology_id.ontology_id,
     "version" = update_ontology_id.version,
-    "record_created_by_id" = update_ontology_id.record_created_by_id,
-    "transaction_time" = tstzrange(now(), NULL, '[)')
+    "record_created_by_id" = update_ontology_id.record_created_by_id
   WHERE ontology_ids.base_uri = update_ontology_id.base_uri
-    AND ontology_ids.transaction_time @> now()
+    AND ontology_ids.version = update_ontology_id.version_to_update
   RETURNING update_ontology_id.ontology_id;
 
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'Trying to update an ontology type without specifying metadata'
-    USING ERRCODE = 'restrict_violation';
+    RAISE EXCEPTION 'Tried to update ontology type with base_uri `%` from version `%` to version `%` but it does not exist',
+      update_ontology_id.base_uri,
+      update_ontology_id.version_to_update,
+      update_ontology_id.version
+    USING ERRCODE = 'invalid_parameter_value';
   END IF;
   
 END $update_ontology_id$ LANGUAGE plpgsql VOLATILE;
@@ -52,11 +55,6 @@ END $update_ontology_id$ LANGUAGE plpgsql VOLATILE;
 CREATE
 OR REPLACE FUNCTION "update_ontology_ids_trigger" () RETURNS TRIGGER AS $update_ontology_ids_trigger$
 BEGIN
-  IF (OLD.version != NEW.version - 1) THEN
-    RAISE EXCEPTION 'Not updating the latest id: % -> %', OLD.version, NEW.version
-    USING ERRCODE = 'invalid_parameter_value';
-  END IF;
-
   INSERT INTO ontology_ids (
     "ontology_id",
     "base_uri",
@@ -70,8 +68,6 @@ BEGIN
     NEW.record_created_by_id,
     NEW.transaction_time
   );
-
-  OLD.transaction_time = tstzrange(lower(OLD.transaction_time), lower(NEW.transaction_time), '[)');
 
   RETURN OLD;
 END $update_ontology_ids_trigger$ LANGUAGE plpgsql VOLATILE;
