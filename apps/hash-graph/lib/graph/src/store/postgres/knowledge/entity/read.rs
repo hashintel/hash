@@ -18,7 +18,7 @@ use crate::{
         LinkData,
     },
     ontology::EntityTypeQueryPath,
-    provenance::{OwnedById, ProvenanceMetadata},
+    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         crud,
         postgres::query::{Distinctness, SelectCompiler},
@@ -133,6 +133,8 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                     }
                 };
 
+                let updated_by_id = UpdatedById::new(row.get(updated_by_id_index));
+
                 Ok(Entity {
                     properties,
                     link_data,
@@ -149,9 +151,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                             transaction_time: row.get(transaction_time_index),
                         },
                         entity_type_id,
-                        provenance: ProvenanceMetadata {
-                            updated_by_id: row.get(updated_by_id_index),
-                        },
+                        provenance: ProvenanceMetadata::new(updated_by_id),
                         archived: row.get(archived_index),
                     },
                 })

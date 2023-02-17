@@ -111,9 +111,7 @@ async fn create_data_type<P: StorePool + Send>(
 
     let metadata = OntologyElementMetadata::Owned {
         record_id: data_type.id().clone().into(),
-        provenance: ProvenanceMetadata {
-            updated_by_id: actor_id,
-        },
+        provenance: ProvenanceMetadata::new(actor_id),
         owned_by_id,
     };
 

@@ -124,9 +124,7 @@ impl DatabaseTestWrapper {
 
             let metadata = OntologyElementMetadata::Owned {
                 record_id: data_type.id().clone().into(),
-                provenance: ProvenanceMetadata {
-                    updated_by_id: UpdatedById::new(account_id),
-                },
+                provenance: ProvenanceMetadata::new(UpdatedById::new(account_id)),
                 owned_by_id: OwnedById::new(account_id),
             };
 
@@ -142,9 +140,7 @@ impl DatabaseTestWrapper {
 
             let metadata = OntologyElementMetadata::Owned {
                 record_id: property_type.id().clone().into(),
-                provenance: ProvenanceMetadata {
-                    updated_by_id: UpdatedById::new(account_id),
-                },
+                provenance: ProvenanceMetadata::new(UpdatedById::new(account_id)),
                 owned_by_id: OwnedById::new(account_id),
             };
 
@@ -160,9 +156,7 @@ impl DatabaseTestWrapper {
 
             let metadata = OntologyElementMetadata::Owned {
                 record_id: entity_type.id().clone().into(),
-                provenance: ProvenanceMetadata {
-                    updated_by_id: UpdatedById::new(account_id),
-                },
+                provenance: ProvenanceMetadata::new(UpdatedById::new(account_id)),
                 owned_by_id: OwnedById::new(account_id),
             };
 
@@ -195,9 +189,7 @@ impl DatabaseApi<'_> {
     ) -> Result<OntologyElementMetadata, InsertionError> {
         let metadata = OntologyElementMetadata::Owned {
             record_id: data_type.id().clone().into(),
-            provenance: ProvenanceMetadata {
-                updated_by_id: UpdatedById::new(self.account_id),
-            },
+            provenance: ProvenanceMetadata::new(UpdatedById::new(self.account_id)),
             owned_by_id: OwnedById::new(self.account_id),
         };
 
@@ -242,9 +234,7 @@ impl DatabaseApi<'_> {
     ) -> Result<OntologyElementMetadata, InsertionError> {
         let metadata = OntologyElementMetadata::Owned {
             record_id: property_type.id().clone().into(),
-            provenance: ProvenanceMetadata {
-                updated_by_id: UpdatedById::new(self.account_id),
-            },
+            provenance: ProvenanceMetadata::new(UpdatedById::new(self.account_id)),
             owned_by_id: OwnedById::new(self.account_id),
         };
 
@@ -291,9 +281,7 @@ impl DatabaseApi<'_> {
     ) -> Result<OntologyElementMetadata, InsertionError> {
         let metadata = OntologyElementMetadata::Owned {
             record_id: entity_type.id().clone().into(),
-            provenance: ProvenanceMetadata {
-                updated_by_id: UpdatedById::new(self.account_id),
-            },
+            provenance: ProvenanceMetadata::new(UpdatedById::new(self.account_id)),
             owned_by_id: OwnedById::new(self.account_id),
         };
 

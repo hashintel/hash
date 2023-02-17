@@ -111,7 +111,7 @@ where
                     .change_context(QueryError)?;
 
                 let record_id = OntologyTypeRecordId { base_uri, version };
-                let provenance = ProvenanceMetadata { updated_by_id };
+                let provenance = ProvenanceMetadata::new(updated_by_id);
 
                 Ok(T::new(record, match metadata {
                     AdditionalOntologyMetadata::Owned { owned_by_id } => {

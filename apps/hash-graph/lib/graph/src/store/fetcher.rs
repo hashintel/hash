@@ -210,9 +210,7 @@ where
         let mut entity_types = Vec::new();
 
         for (reference, fetched_by) in ontology_type_references {
-            let provenance = ProvenanceMetadata {
-                updated_by_id: fetched_by,
-            };
+            let provenance = ProvenanceMetadata::new(fetched_by);
             let fetched_ontology_types = fetcher_client
                 .fetch_ontology_type_exhaustive(context::current(), reference.uri().clone())
                 .await
@@ -400,7 +398,7 @@ where
         self.insert_external_types(data_types.iter().map(|(data_type, metadata)| {
             (
                 data_type,
-                metadata.borrow().provenance_metadata().updated_by_id,
+                metadata.borrow().provenance_metadata().updated_by_id(),
             )
         }))
         .await?;
@@ -449,7 +447,7 @@ where
         self.insert_external_types(property_types.iter().map(|(property_type, metadata)| {
             (
                 property_type,
-                metadata.borrow().provenance_metadata().updated_by_id,
+                metadata.borrow().provenance_metadata().updated_by_id(),
             )
         }))
         .await?;
@@ -500,7 +498,7 @@ where
         self.insert_external_types(entity_types.iter().map(|(entity_type, metadata)| {
             (
                 entity_type,
-                metadata.borrow().provenance_metadata().updated_by_id,
+                metadata.borrow().provenance_metadata().updated_by_id(),
             )
         }))
         .await?;

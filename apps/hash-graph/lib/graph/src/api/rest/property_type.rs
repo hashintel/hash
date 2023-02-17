@@ -14,8 +14,8 @@ use crate::{
     api::rest::{report_to_status_code, utoipa_typedef::subgraph::Subgraph},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, OntologyElementMetadata, PropertyTypeQueryToken,
-        PropertyTypeWithMetadata,
+        patch_id_and_parse, OntologyElementMetadata, 
+        PropertyTypeQueryToken, PropertyTypeWithMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool},
@@ -117,9 +117,7 @@ async fn create_property_type<P: StorePool + Send>(
 
     let metadata = OntologyElementMetadata::Owned {
         record_id: property_type.id().clone().into(),
-        provenance: ProvenanceMetadata {
-            updated_by_id: actor_id,
-        },
+        provenance: ProvenanceMetadata::new(actor_id),
         owned_by_id,
     };
 
