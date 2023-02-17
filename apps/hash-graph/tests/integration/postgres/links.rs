@@ -20,11 +20,13 @@ async fn insert() {
         .await
         .expect("could not seed database");
 
-    let person_type_id = VersionedUri::new(
-        BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/person/".to_owned())
-            .expect("couldn't construct Base URI"),
-        1,
-    );
+    let person_type_id = VersionedUri {
+        base_uri: BaseUri::new(
+            "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
+        )
+        .expect("couldn't construct Base URI"),
+        version: 1,
+    };
 
     let alice_metadata = api
         .create_entity(alice, person_type_id.clone(), None)
@@ -36,35 +38,37 @@ async fn insert() {
         .await
         .expect("could not create entity");
 
-    let friend_of_type_id = VersionedUri::new(
-        BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/friend-of/".to_owned())
-            .expect("couldn't construct Base URI"),
-        1,
-    );
+    let friend_of_type_id = VersionedUri {
+        base_uri: BaseUri::new(
+            "https://blockprotocol.org/@alice/types/entity-type/friend-of/".to_owned(),
+        )
+        .expect("couldn't construct Base URI"),
+        version: 1,
+    };
 
     api.create_link_entity(
         friend_of,
         friend_of_type_id.clone(),
         None,
-        alice_metadata.record_id().entity_id(),
-        bob_metadata.record_id().entity_id(),
+        alice_metadata.record_id().entity_id,
+        bob_metadata.record_id().entity_id,
     )
     .await
     .expect("could not create link");
 
     let link_entity = api
-        .get_link_entity_target(alice_metadata.record_id().entity_id(), friend_of_type_id)
+        .get_link_entity_target(alice_metadata.record_id().entity_id, friend_of_type_id)
         .await
         .expect("could not fetch entity");
-    let link_data = link_entity.link_data().expect("entity is not a link");
+    let link_data = link_entity.link_data.expect("entity is not a link");
 
     assert_eq!(
-        link_data.left_entity_id(),
-        alice_metadata.record_id().entity_id()
+        link_data.left_entity_id,
+        alice_metadata.record_id().entity_id
     );
     assert_eq!(
-        link_data.right_entity_id(),
-        bob_metadata.record_id().entity_id()
+        link_data.right_entity_id,
+        bob_metadata.record_id().entity_id
     );
 }
 
@@ -85,25 +89,29 @@ async fn get_entity_links() {
         .await
         .expect("could not seed database");
 
-    let person_type_id = VersionedUri::new(
-        BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/person/".to_owned())
-            .expect("couldn't construct Base URI"),
-        1,
-    );
+    let person_type_id = VersionedUri {
+        base_uri: BaseUri::new(
+            "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
+        )
+        .expect("couldn't construct Base URI"),
+        version: 1,
+    };
 
-    let friend_link_type_id = VersionedUri::new(
-        BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/friend-of/".to_owned())
-            .expect("couldn't construct Base URI"),
-        1,
-    );
+    let friend_link_type_id = VersionedUri {
+        base_uri: BaseUri::new(
+            "https://blockprotocol.org/@alice/types/entity-type/friend-of/".to_owned(),
+        )
+        .expect("couldn't construct Base URI"),
+        version: 1,
+    };
 
-    let acquaintance_entity_link_type_id = VersionedUri::new(
-        BaseUri::new(
+    let acquaintance_entity_link_type_id = VersionedUri {
+        base_uri: BaseUri::new(
             "https://blockprotocol.org/@alice/types/entity-type/acquaintance-of/".to_owned(),
         )
         .expect("couldn't construct Base URI"),
-        1,
-    );
+        version: 1,
+    };
 
     let alice_metadata = api
         .create_entity(alice, person_type_id.clone(), None)
@@ -124,8 +132,8 @@ async fn get_entity_links() {
         EntityProperties::empty(),
         friend_link_type_id.clone(),
         None,
-        alice_metadata.record_id().entity_id(),
-        bob_metadata.record_id().entity_id(),
+        alice_metadata.record_id().entity_id,
+        bob_metadata.record_id().entity_id,
     )
     .await
     .expect("could not create link");
@@ -134,47 +142,47 @@ async fn get_entity_links() {
         EntityProperties::empty(),
         acquaintance_entity_link_type_id.clone(),
         None,
-        alice_metadata.record_id().entity_id(),
-        charles_metadata.record_id().entity_id(),
+        alice_metadata.record_id().entity_id,
+        charles_metadata.record_id().entity_id,
     )
     .await
     .expect("could not create link");
 
     let links_from_source = api
-        .get_latest_entity_links(alice_metadata.record_id().entity_id())
+        .get_latest_entity_links(alice_metadata.record_id().entity_id)
         .await
         .expect("could not fetch link");
 
     assert!(
         links_from_source
             .iter()
-            .any(|link_entity| link_entity.metadata().entity_type_id() == &friend_link_type_id)
+            .any(|link_entity| link_entity.metadata.entity_type_id() == &friend_link_type_id)
     );
     assert!(
         links_from_source
             .iter()
-            .any(|link_entity| link_entity.metadata().entity_type_id()
+            .any(|link_entity| link_entity.metadata.entity_type_id()
                 == &acquaintance_entity_link_type_id)
     );
 
     let link_datas = links_from_source
         .iter()
-        .map(|entity| entity.link_data().expect("entity is not a link"))
+        .map(|entity| entity.link_data.expect("entity is not a link"))
         .collect::<Vec<_>>();
     assert!(
         link_datas
             .iter()
-            .any(|link_data| link_data.left_entity_id() == alice_metadata.record_id().entity_id())
+            .any(|link_data| link_data.left_entity_id == alice_metadata.record_id().entity_id)
     );
     assert!(
         link_datas
             .iter()
-            .any(|link_data| link_data.right_entity_id() == bob_metadata.record_id().entity_id())
+            .any(|link_data| link_data.right_entity_id == bob_metadata.record_id().entity_id)
     );
     assert!(
-        link_datas.iter().any(
-            |link_data| link_data.right_entity_id() == charles_metadata.record_id().entity_id()
-        )
+        link_datas
+            .iter()
+            .any(|link_data| link_data.right_entity_id == charles_metadata.record_id().entity_id)
     );
 }
 
@@ -193,17 +201,21 @@ async fn remove_link() {
         .await
         .expect("could not seed database");
 
-    let person_type_id = VersionedUri::new(
-        BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/person/".to_owned())
-            .expect("couldn't construct Base URI"),
-        1,
-    );
+    let person_type_id = VersionedUri {
+        base_uri: BaseUri::new(
+            "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
+        )
+        .expect("couldn't construct Base URI"),
+        version: 1,
+    };
 
-    let friend_link_type_id = VersionedUri::new(
-        BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/friend-of/".to_owned())
-            .expect("couldn't construct Base URI"),
-        1,
-    );
+    let friend_link_type_id = VersionedUri {
+        base_uri: BaseUri::new(
+            "https://blockprotocol.org/@alice/types/entity-type/friend-of/".to_owned(),
+        )
+        .expect("couldn't construct Base URI"),
+        version: 1,
+    };
 
     let alice_metadata = api
         .create_entity(alice, person_type_id.clone(), None)
@@ -220,30 +232,33 @@ async fn remove_link() {
             EntityProperties::empty(),
             friend_link_type_id.clone(),
             None,
-            alice_metadata.record_id().entity_id(),
-            bob_metadata.record_id().entity_id(),
+            alice_metadata.record_id().entity_id,
+            bob_metadata.record_id().entity_id,
         )
         .await
         .expect("could not create link");
 
     assert!(
-        !api.get_latest_entity_links(alice_metadata.record_id().entity_id())
+        !api.get_latest_entity_links(alice_metadata.record_id().entity_id)
             .await
             .expect("could not fetch links")
             .is_empty()
     );
 
     api.archive_entity(
-        link_entity_metadata.record_id().entity_id(),
+        link_entity_metadata.record_id().entity_id,
         EntityProperties::empty(),
         friend_link_type_id,
-        EntityLinkOrder::new(None, None),
+        EntityLinkOrder {
+            left_to_right: None,
+            right_to_left: None,
+        },
     )
     .await
     .expect("could not remove link");
 
     assert!(
-        api.get_latest_entity_links(alice_metadata.record_id().entity_id())
+        api.get_latest_entity_links(alice_metadata.record_id().entity_id)
             .await
             .expect("could not fetch links")
             .is_empty()

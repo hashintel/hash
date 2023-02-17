@@ -201,7 +201,7 @@ pub async fn seed<D, P, E, C>(
             .create_data_type(
                 data_type.clone(),
                 &OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                    data_type.id().into(),
+                    data_type.id().clone().into(),
                     ProvenanceMetadata::new(UpdatedById::new(account_id)),
                     OwnedById::new(account_id),
                 )),
@@ -232,7 +232,7 @@ pub async fn seed<D, P, E, C>(
             .create_property_type(
                 property_type.clone(),
                 &OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                    property_type.id().into(),
+                    property_type.id().clone().into(),
                     ProvenanceMetadata::new(UpdatedById::new(account_id)),
                     OwnedById::new(account_id),
                 )),
@@ -263,7 +263,7 @@ pub async fn seed<D, P, E, C>(
             .create_entity_type(
                 entity_type.clone(),
                 &OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                    entity_type.id().into(),
+                    entity_type.id().clone().into(),
                     ProvenanceMetadata::new(UpdatedById::new(account_id)),
                     OwnedById::new(account_id),
                 )),

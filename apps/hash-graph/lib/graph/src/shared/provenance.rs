@@ -1,7 +1,7 @@
 use core::fmt;
 
 use serde::{Deserialize, Serialize};
-use tokio_postgres::types::ToSql;
+use tokio_postgres::types::{FromSql, ToSql};
 use utoipa::{openapi, ToSchema};
 use uuid::Uuid;
 
@@ -10,7 +10,18 @@ use crate::identifier::account::AccountId;
 macro_rules! define_provenance_id {
     ($name:tt) => {
         #[derive(
-            Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, ToSql,
+            Debug,
+            Copy,
+            Clone,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            Serialize,
+            Deserialize,
+            FromSql,
+            ToSql,
         )]
         #[postgres(transparent)]
         #[repr(transparent)]
@@ -50,6 +61,9 @@ macro_rules! define_provenance_id {
 define_provenance_id!(OwnedById);
 define_provenance_id!(UpdatedById);
 
+// TODO: Make fields `pub` when `#[feature(mut_restriction)]` is available.
+//   see https://github.com/rust-lang/rust/issues/105077
+//   see https://app.asana.com/0/0/1203977361907407/f
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ProvenanceMetadata {

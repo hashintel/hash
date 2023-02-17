@@ -66,12 +66,12 @@ impl From<crate::subgraph::vertices::Vertices> for Vertices {
             ontology: OntologyVertices(data_types.chain(property_types).chain(entity_types).fold(
                 HashMap::new(),
                 |mut map, (id, vertex)| {
-                    match map.entry(id.base_id().clone()) {
+                    match map.entry(id.base_id.clone()) {
                         Entry::Occupied(entry) => {
-                            entry.into_mut().insert(id.version(), vertex);
+                            entry.into_mut().insert(id.version, vertex);
                         }
                         Entry::Vacant(entry) => {
-                            entry.insert(BTreeMap::from([(id.version(), vertex)]));
+                            entry.insert(BTreeMap::from([(id.version, vertex)]));
                         }
                     }
                     map
@@ -80,15 +80,15 @@ impl From<crate::subgraph::vertices::Vertices> for Vertices {
             knowledge_graph: KnowledgeGraphVertices(vertices.entities.into_iter().fold(
                 HashMap::new(),
                 |mut map, (id, vertex)| {
-                    match map.entry(id.base_id()) {
+                    match map.entry(id.base_id) {
                         Entry::Occupied(entry) => {
                             entry
                                 .into_mut()
-                                .insert(id.version(), KnowledgeGraphVertex::Entity(vertex));
+                                .insert(id.version, KnowledgeGraphVertex::Entity(vertex));
                         }
                         Entry::Vacant(entry) => {
                             entry.insert(BTreeMap::from([(
-                                id.version(),
+                                id.version,
                                 KnowledgeGraphVertex::Entity(vertex),
                             )]));
                         }

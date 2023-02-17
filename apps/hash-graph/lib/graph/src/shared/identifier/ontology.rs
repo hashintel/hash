@@ -59,29 +59,9 @@ impl<'a> FromSql<'a> for OntologyTypeVersion {
 #[serde(rename_all = "camelCase")]
 pub struct OntologyTypeRecordId {
     #[schema(value_type = String)]
-    base_uri: BaseUri,
+    pub base_uri: BaseUri,
     #[schema(value_type = u32)]
-    version: OntologyTypeVersion,
-}
-
-impl OntologyTypeRecordId {
-    #[must_use]
-    pub const fn new(base_id: BaseUri, version: OntologyTypeVersion) -> Self {
-        Self {
-            base_uri: base_id,
-            version,
-        }
-    }
-
-    #[must_use]
-    pub const fn base_uri(&self) -> &BaseUri {
-        &self.base_uri
-    }
-
-    #[must_use]
-    pub const fn version(&self) -> OntologyTypeVersion {
-        self.version
-    }
+    pub version: OntologyTypeVersion,
 }
 
 impl Display for OntologyTypeRecordId {
@@ -90,20 +70,21 @@ impl Display for OntologyTypeRecordId {
     }
 }
 
-// The Type System crate doesn't let us destructure so we need to clone base_uri
-impl From<&VersionedUri> for OntologyTypeRecordId {
-    fn from(versioned_uri: &VersionedUri) -> Self {
+impl From<VersionedUri> for OntologyTypeRecordId {
+    fn from(versioned_uri: VersionedUri) -> Self {
         Self {
-            base_uri: versioned_uri.base_uri().clone(),
-            version: OntologyTypeVersion::new(versioned_uri.version()),
+            base_uri: versioned_uri.base_uri,
+            version: OntologyTypeVersion::new(versioned_uri.version),
         }
     }
 }
 
-impl From<&OntologyTypeRecordId> for VersionedUri {
-    fn from(record_id: &OntologyTypeRecordId) -> Self {
-        // We should make it possible to destructure to avoid the clone
-        Self::new(record_id.base_uri().clone(), record_id.version.inner())
+impl From<OntologyTypeRecordId> for VersionedUri {
+    fn from(record_id: OntologyTypeRecordId) -> Self {
+        Self {
+            base_uri: record_id.base_uri,
+            version: record_id.version.inner(),
+        }
     }
 }
 

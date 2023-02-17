@@ -54,7 +54,7 @@ use crate::{
             UnresolvedTransactionTimeImage, UnresolvedTransactionTimeKernel,
             UnresolvedTransactionTimeProjection,
         },
-        EntityVertexId, GraphElementId, GraphElementVertexId, OntologyTypeVertexId,
+        EntityVertexId, GraphElementVertexId, OntologyTypeVertexId,
     },
     ontology::{
         domain_validator::DomainValidator, ExternalOntologyElementMetadata,
@@ -186,7 +186,6 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             OntologyTypeVersion,
             Selector,
 
-            GraphElementId,
             GraphElementVertexId,
             OntologyVertex,
             KnowledgeGraphVertex,

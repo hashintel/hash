@@ -906,12 +906,6 @@ export type Filter =
 export type FilterExpression = ParameterExpression | PathExpression;
 
 /**
- * @type GraphElementId
- * @export
- */
-export type GraphElementId = string;
-
-/**
  * @type GraphElementVertexId
  * @export
  */

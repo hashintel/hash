@@ -3127,6 +3127,14 @@
     es-module-lexer "^0.10.5"
     uuid "^8.3.2"
 
+"@blockprotocol/core@0.0.14-canary-20230210130343":
+  version "0.0.14-canary-20230210130343"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.0.14-canary-20230210130343.tgz#e5487c4657ef880b265742de46f633c21641f106"
+  integrity sha512-Vds9Ja8NdYaZ54kfUNtwv0i7fJQYv8Tr3arUq7s7iHTi68EUB0Ehc+/YhOAIzMWBbuLGQ8jpujSe02S8ww+t+A==
+  dependencies:
+    es-module-lexer "^0.10.5"
+    uuid "^8.3.2"
+
 "@blockprotocol/core@0.0.14-canary-20230214141700":
   version "0.0.14-canary-20230214141700"
   resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.0.14-canary-20230214141700.tgz#7b943296561a4b9eece1f6394d656e100867444d"
@@ -3179,6 +3187,19 @@
     lit "^2.4.1"
     node-fetch "^3.3.0"
 
+"@blockprotocol/graph@0.1.0-canary-20230210130343":
+  version "0.1.0-canary-20230210130343"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.1.0-canary-20230210130343.tgz#f285fd43827614460f3e859f8e09864d227962f8"
+  integrity sha512-kCPsHpNg9uWwTgmdEdCJ4POoQ/wlJMAvQeqR89kVQjLAEiDJEcyNsWiXlEdLUy5kKXiWAuqLxlBjPeQnnvQihQ==
+  dependencies:
+    "@blockprotocol/core" "0.0.14-canary-20230210130343"
+    "@blockprotocol/type-system" "0.0.4-canary-20230210130343"
+    ajv "^8.11.2"
+    ajv-formats "^2.1.1"
+    json-schema-to-typescript "^11.0.2"
+    lit "^2.4.1"
+    node-fetch "^3.3.0"
+
 "@blockprotocol/graph@0.1.0-canary-20230214141700":
   version "0.1.0-canary-20230214141700"
   resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.1.0-canary-20230214141700.tgz#bc1acc15de3f27874cf45b58a13d51640eb09742"
@@ -3207,6 +3228,14 @@
     "@blockprotocol/core" "0.0.12"
     "@blockprotocol/graph" "0.1.0-canary-20230111084611"
 
+"@blockprotocol/hook@0.1.0-canary-20230210130343":
+  version "0.1.0-canary-20230210130343"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/hook/-/hook-0.1.0-canary-20230210130343.tgz#f1293197d3b860d5f675f319a60afd35ff5a8252"
+  integrity sha512-C3Wia4DohO35gXUjzesdR9oXwnq5tS8I9FXI0Sct0yzKPqq0EKWiyFLXhooE8voqajoGwFC81M9qySO3UPQ29w==
+  dependencies:
+    "@blockprotocol/core" "0.0.14-canary-20230210130343"
+    "@blockprotocol/graph" "0.1.0-canary-20230210130343"
+
 "@blockprotocol/hook@0.1.0-canary-20230214141700":
   version "0.1.0-canary-20230214141700"
   resolved "https://registry.yarnpkg.com/@blockprotocol/hook/-/hook-0.1.0-canary-20230214141700.tgz#5503ab52986b5a7bcaed6868b9638d96e22f0696"
@@ -3219,6 +3248,11 @@
   version "0.0.3-canary-20230111084611"
   resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.0.3-canary-20230111084611.tgz#c8269e2b99645c2f92885c2cbd2c36fea2f953a9"
   integrity sha512-1TWmUGnFKxP9ag8IyjlQmHludY5AYX3BJ0eqDgt/dtSVzzLJZ5I9xzzZyyoOgRf5BsZHhIE5aDUH1HKAWZXgcw==
+
+"@blockprotocol/type-system@0.0.4-canary-20230210130343":
+  version "0.0.4-canary-20230210130343"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.0.4-canary-20230210130343.tgz#fb77890ea27dba143cb7cfc22c73c0dd3f35325c"
+  integrity sha512-sWca6zKPajyiNlv6oavOhf74k0qrguBmz1UzjXcsdcNxJhGTUaxRKQNg12MJ6IM+sPD6nxuO9r3hMEPcoTU0/g==
 
 "@blockprotocol/type-system@0.0.4-canary-20230214141700":
   version "0.0.4-canary-20230214141700"
@@ -3826,6 +3860,18 @@
   version "2.1.2"
   resolved "https://registry.yarnpkg.com/@fal-works/esbuild-plugin-global-externals/-/esbuild-plugin-global-externals-2.1.2.tgz#c05ed35ad82df8e6ac616c68b92c2282bd083ba4"
   integrity sha512-cEee/Z+I12mZcFJshKcCqC8tuX5hG3s+d+9nZ3LabqKF1vKdF41B92pJVCBggjAGORAeOzyyDDKrZwIkLffeOQ==
+
+"@floating-ui/core@^0.7.3":
+  version "0.7.3"
+  resolved "https://registry.yarnpkg.com/@floating-ui/core/-/core-0.7.3.tgz#d274116678ffae87f6b60e90f88cc4083eefab86"
+  integrity sha512-buc8BXHmG9l82+OQXOFU3Kr2XQx9ys01U/Q9HMIrZ300iLc8HLMgh7dcCqgYzAzf4BkoQvDcXf5Y+CuEZ5JBYg==
+
+"@floating-ui/dom@^0.5.2":
+  version "0.5.4"
+  resolved "https://registry.yarnpkg.com/@floating-ui/dom/-/dom-0.5.4.tgz#4eae73f78bcd4bd553ae2ade30e6f1f9c73fe3f1"
+  integrity sha512-419BMceRLq0RrmTSDxn8hf9R3VCJv2K9PUfugh5JyEFmdjzDo+e8U5EdR8nzKq8Yj1htzLm3b6eQEEam3/rrtg==
+  dependencies:
+    "@floating-ui/core" "^0.7.3"
 
 "@fortawesome/fontawesome-common-types@^0.3.0":
   version "0.3.0"
@@ -4753,6 +4799,39 @@
     fs-extra "^8.1.0"
     globby "^11.0.0"
     read-yaml-file "^1.1.0"
+
+"@mapbox/search-js-core@^1.0.0-beta.14":
+  version "1.0.0-beta.14"
+  resolved "https://registry.yarnpkg.com/@mapbox/search-js-core/-/search-js-core-1.0.0-beta.14.tgz#9708414814dab7d6a94e4813048de788c6f4cef7"
+  integrity sha512-fHSoxLrcRpsdQ60k947quqLWtqyYpC4FoIGFj2ijm8fSOHuvi9lU60UFHORLr0BL5uq54g9oUXqVEGoeKVWWQw==
+  dependencies:
+    "@types/geojson" "^7946.0.8"
+
+"@mapbox/search-js-react@1.0.0-beta.14":
+  version "1.0.0-beta.14"
+  resolved "https://registry.yarnpkg.com/@mapbox/search-js-react/-/search-js-react-1.0.0-beta.14.tgz#7516c61fa56feec450b53bdb54800328acf7d3c1"
+  integrity sha512-btOYw4QvRGqpa6EsS0qR0IwcZOsEC8Xlnw96s+ioClXxnU2GSEwyh/NH9bYuruN4brT+PBcEfH3ob7QceGqeWw==
+  dependencies:
+    "@mapbox/search-js-core" "^1.0.0-beta.14"
+    "@mapbox/search-js-web" "^1.0.0-beta.14"
+    "@types/geojson" "^7946.0.8"
+    "@types/react" "^17.0.43"
+
+"@mapbox/search-js-web@^1.0.0-beta.14":
+  version "1.0.0-beta.14"
+  resolved "https://registry.yarnpkg.com/@mapbox/search-js-web/-/search-js-web-1.0.0-beta.14.tgz#a301f7c8a4b60af2ca097b29bbcd77d6a84bcea6"
+  integrity sha512-sPETQdgCqS1fu6dX/hdh5jpUu/TIhklkwNwlC6gJMqZran0viMuYDMPZCbCwVdz6IspUdQ7IQsw8Je7l5Mc70w==
+  dependencies:
+    "@floating-ui/dom" "^0.5.2"
+    "@mapbox/search-js-core" "^1.0.0-beta.14"
+    "@mapbox/sphericalmercator" "^1.2.0"
+    focus-trap "^6.7.3"
+    no-scroll "^2.1.1"
+
+"@mapbox/sphericalmercator@^1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@mapbox/sphericalmercator/-/sphericalmercator-1.2.0.tgz#55d4896be906bfff859e22a1d72267329a0fff90"
+  integrity sha512-ZTOuuwGuMOJN+HEmG/68bSEw15HHaMWmQ5gdTsWdWsjDe56K1kGvLOK6bOSC8gWgIvEO0w6un/2Gvv1q5hJSkQ==
 
 "@mdx-js/mdx@^2.0.0":
   version "2.1.1"
@@ -6991,6 +7070,11 @@
   dependencies:
     "@types/node" "*"
 
+"@types/geojson@^7946.0.8":
+  version "7946.0.10"
+  resolved "https://registry.yarnpkg.com/@types/geojson/-/geojson-7946.0.10.tgz#6dfbf5ea17142f7f9a043809f1cd4c448cb68249"
+  integrity sha512-Nmh0K3iWQJzniTuPRcJn5hxXkfB1T1pgB89SBig5PlJQU5yocazeu4jATJlaA0GYFKWMqDdvYemoSnF2pXgLVA==
+
 "@types/glob@^7.1.1", "@types/glob@^7.1.3":
   version "7.2.0"
   resolved "https://registry.yarnpkg.com/@types/glob/-/glob-7.2.0.tgz#bc1b5bf3aa92f25bd5dd39f35c57361bdce5b2eb"
@@ -7343,7 +7427,7 @@
   dependencies:
     "@types/react" "*"
 
-"@types/react@*", "@types/react@18.0.25", "@types/react@>=16", "@types/react@^17.0.39", "@types/react@^18.0.15":
+"@types/react@*", "@types/react@18.0.25", "@types/react@>=16", "@types/react@^17.0.39", "@types/react@^17.0.43", "@types/react@^18.0.15":
   version "18.0.25"
   resolved "https://registry.yarnpkg.com/@types/react/-/react-18.0.25.tgz#8b1dcd7e56fe7315535a4af25435e0bb55c8ae44"
   integrity sha512-xD6c0KDT4m7n9uD4ZHi02lzskaiqcBxf4zi+tXZY98a04wvc0hi/TcCPC2FOESZi51Nd7tlUeOJY8RofL799/g==
@@ -8841,6 +8925,40 @@ block-scripts@0.1.0-canary-20230111084611:
     webpack-dev-server "^4.11.1"
     yargs-parser "21.1.1"
 
+block-scripts@0.1.0-canary-20230210130343:
+  version "0.1.0-canary-20230210130343"
+  resolved "https://registry.yarnpkg.com/block-scripts/-/block-scripts-0.1.0-canary-20230210130343.tgz#0e209594a73d63a233475732ad22ad8e0e1348e9"
+  integrity sha512-G6DVu69PJzHp2sYKWKOW6zstYgQeX9rFihgyUIZFcthFxC691Eh23btH3U08DgH/x7wA+zXHsuAzkCl/0AWpQg==
+  dependencies:
+    "@babel/core" "^7.20.5"
+    "@babel/plugin-proposal-class-properties" "^7.18.6"
+    "@babel/plugin-proposal-decorators" "^7.20.5"
+    "@babel/plugin-transform-runtime" "^7.19.6"
+    "@babel/preset-env" "^7.20.2"
+    "@babel/preset-react" "^7.18.6"
+    "@babel/preset-typescript" "7.18.6"
+    "@babel/runtime" "^7.20.6"
+    "@blockprotocol/graph" "0.1.0-canary-20230210130343"
+    "@blockprotocol/type-system" "0.0.4-canary-20230210130343"
+    babel-loader "^9.1.0"
+    chalk "5.2.0"
+    copy-webpack-plugin "10.2.4"
+    core-js "^3.26.1"
+    css-loader "^6.7.1"
+    fs-extra "^10.1.0"
+    html-webpack-plugin "^5.5.0"
+    sass "^1.52.3"
+    sass-loader "^12.6.0"
+    serve-handler "^6.1.3"
+    style-loader "^3.3.1"
+    typescript "4.9.4"
+    typescript-json-schema "^0.53.0"
+    webpack "^5.75.0"
+    webpack-assets-manifest "^5.1.0"
+    webpack-bundle-analyzer "^4.5.0"
+    webpack-dev-server "^4.11.1"
+    yargs-parser "21.1.1"
+
 blockprotocol@0.0.10:
   version "0.0.10"
   resolved "https://registry.yarnpkg.com/blockprotocol/-/blockprotocol-0.0.10.tgz#8ffb1c45ea789d6909012f101b9591b2e6213c7e"
@@ -9310,10 +9428,15 @@ chalk@5.0.1:
   resolved "https://registry.yarnpkg.com/chalk/-/chalk-5.0.1.tgz#ca57d71e82bb534a296df63bbacc4a1c22b2a4b6"
   integrity sha512-Fo07WOYGqMfCWHOzSXOt2CxDbC6skS/jO9ynEcmpANMoPrD+W1r1K6Vx7iNm+AQmETU1Xr2t+n8nzkV9t6xh3w==
 
-chalk@5.1.2, chalk@^5.0.0, chalk@^5.0.1, chalk@^5.1.2:
+chalk@5.1.2:
   version "5.1.2"
   resolved "https://registry.yarnpkg.com/chalk/-/chalk-5.1.2.tgz#d957f370038b75ac572471e83be4c5ca9f8e8c45"
   integrity sha512-E5CkT4jWURs1Vy5qGJye+XwCkNj7Od3Af7CP6SujMetSMkLs8Do2RWJK5yx1wamHV/op8Rz+9rltjaTQWDnEFQ==
+
+chalk@5.2.0, chalk@^5.0.0, chalk@^5.0.1, chalk@^5.1.2:
+  version "5.2.0"
+  resolved "https://registry.yarnpkg.com/chalk/-/chalk-5.2.0.tgz#249623b7d66869c673699fb66d65723e54dfcfb3"
+  integrity sha512-ree3Gqw/nazQAPuJJEy+avdl7QfZMcUvmHIKgEZkGL+xOBzRvup5Hxo6LHuMceSxOabuJLJm5Yp/92R9eMmMvA==
 
 chalk@^2.0.0, chalk@^2.1.0, chalk@^2.3.0, chalk@^2.4.1:
   version "2.4.2"
@@ -11971,6 +12094,13 @@ fn.name@1.x.x:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/fn.name/-/fn.name-1.1.0.tgz#26cad8017967aea8731bc42961d04a3d5988accc"
   integrity sha512-GRnmB5gPyJpAhTQdSZTSp9uaPSvl09KoYcMQtsB9rQoOmzs9dH6ffeccH+Z+cv6P68Hu5bC6JjRh4Ah/mHSNRw==
+
+focus-trap@^6.7.3:
+  version "6.9.4"
+  resolved "https://registry.yarnpkg.com/focus-trap/-/focus-trap-6.9.4.tgz#436da1a1d935c48b97da63cd8f361c6f3aa16444"
+  integrity sha512-v2NTsZe2FF59Y+sDykKY+XjqZ0cPfhq/hikWVL88BqLivnNiEffAsac6rP6H45ff9wG9LL5ToiDqrLEP9GX9mw==
+  dependencies:
+    tabbable "^5.3.3"
 
 follow-redirects@^1.0.0, follow-redirects@^1.14.0, follow-redirects@^1.14.7, follow-redirects@^1.14.8, follow-redirects@^1.14.9:
   version "1.15.1"
@@ -14960,7 +15090,7 @@ lodash.curry@^4.0.1:
 lodash.debounce@4.0.8, lodash.debounce@^4.0.8:
   version "4.0.8"
   resolved "https://registry.yarnpkg.com/lodash.debounce/-/lodash.debounce-4.0.8.tgz#82d79bff30a67c4005ffd5e2515300ad9ca4d7af"
-  integrity sha1-gteb/zCmfEAF/9XiUVMArZyk168=
+  integrity sha512-FT1yDzDYEoYWhnSGnpE/4Kj1fLZkDFyqRb7fNt6FdYOSxlUWAtp42Eh6Wb0rGIv/m9Bgo7x4GhQbm5Ys4SG5ow==
 
 lodash.debounce@^3.1.1:
   version "3.1.1"
@@ -15861,6 +15991,11 @@ mime@^2.0.3, mime@^2.3.1:
   resolved "https://registry.yarnpkg.com/mime/-/mime-2.6.0.tgz#a2a682a95cd4d0cb1d6257e28f83da7e35800367"
   integrity sha512-USPkMeET31rOMiarsBNIHZKLGgvKc/LrjofAnBlOttf5ajRvqiRA8QsenbcooctK6d6Ts6aqZXBA+XbkKthiQg==
 
+mime@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/mime/-/mime-3.0.0.tgz#b374550dca3a0c18443b0c950a6a58f1931cf7a7"
+  integrity sha512-jSCU7/VB1loIWBZe14aEYHU/+1UMEHoaO7qxCOVJOw9GgH72VAWppxNcjU+x9a2k3GSIBXNKxXQFqRvvZ7vr3A==
+
 mimic-fn@^2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/mimic-fn/-/mimic-fn-2.1.0.tgz#7ed2c2ccccaf84d3ffcb7a69b57711fc2083401b"
@@ -16077,6 +16212,30 @@ mock-block-dock@0.1.0-canary-20230111084611:
     "@mui/material" "^5.10.4"
     ajv "^8.11.2"
     echarts "^5.3.3"
+    react-json-view "^1.21.3"
+    react-resizable "^3.0.4"
+    slate "^0.82.1"
+    slate-react "^0.83.1"
+    styled-jsx "^5.1.0"
+    use-local-storage-state "^18.1.1"
+    uuid "^8.3.2"
+
+mock-block-dock@0.1.0-canary-20230210130343:
+  version "0.1.0-canary-20230210130343"
+  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.1.0-canary-20230210130343.tgz#a0db1a44d51ac4fffeff49b27b6f15426bf0f916"
+  integrity sha512-qFOtasI7FLoQwqmjy25nff+i3oHBKjIW7B6YLmg6r7cAmWFGLxfN8YUkOZLNSNCkYHJmI1uJj/Gptb7QffHaOw==
+  dependencies:
+    "@blockprotocol/core" "0.0.14-canary-20230210130343"
+    "@blockprotocol/graph" "0.1.0-canary-20230210130343"
+    "@blockprotocol/hook" "0.1.0-canary-20230210130343"
+    "@blockprotocol/type-system" "0.0.4-canary-20230210130343"
+    "@emotion/react" "^11.10.0"
+    "@emotion/styled" "^11.10.0"
+    "@lit-labs/react" "^1.0.4"
+    "@mui/material" "^5.10.4"
+    ajv "^8.11.2"
+    echarts "^5.3.3"
+    mime "^3.0.0"
     react-json-view "^1.21.3"
     react-resizable "^3.0.4"
     slate "^0.82.1"
@@ -16346,6 +16505,11 @@ no-case@^3.0.4:
   dependencies:
     lower-case "^2.0.2"
     tslib "^2.0.3"
+
+no-scroll@^2.1.1:
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/no-scroll/-/no-scroll-2.1.1.tgz#f37e08cb159b75a5bdbfc0a87cd9223e120e6e27"
+  integrity sha512-YTzGAJOo/B6hkodeT5SKKHpOhAzjMfkUCCXjLJwjWk2F4/InIg+HbdH9kmT7bKpleDuqLZDTRy2OdNtAj0IVyQ==
 
 node-abort-controller@^3.0.1:
   version "3.0.1"
@@ -19998,6 +20162,11 @@ synckit@^0.8.1:
   dependencies:
     "@pkgr/utils" "^2.3.1"
     tslib "^2.4.0"
+
+tabbable@^5.3.3:
+  version "5.3.3"
+  resolved "https://registry.yarnpkg.com/tabbable/-/tabbable-5.3.3.tgz#aac0ff88c73b22d6c3c5a50b1586310006b47fbf"
+  integrity sha512-QD9qKY3StfbZqWOPLp0++pOrAVb/HbUi5xCc8cUo4XjP19808oaMiDzn0leBY5mCespIBM0CIZePzZjgzR83kA==
 
 table@^6.7.1:
   version "6.8.0"
