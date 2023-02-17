@@ -12,20 +12,19 @@ The name is a play on words and encapsulates the three goals of the crate:
 
 The crate tries to be as correct as possible, acting both as a library and as an up-to-date reference guide regarding terminal support and related specifications (correct as of the time of publication).
 
-## ⚠️ Disclaimer ⚠️
-
-This crate does not ship with any functionality and is only a name reservation to stop potential name squatting. In the future the actual crate will be published under this name, for the current (incomplete) implementation of the crate please visit the linked repository.
-
 ## Example
 
 ```rust
 use antsi::{BasicColor, Style, Font, FontWeight};
+
 // effortless const support
 const PANIC_STYLE: Style = Style::new().with_foreground(BasicColor::Red.bright().into());
 const BOLD_STYLE: Style = Style::new().with_font(Font::new().with_weight(FontWeight::Bold));
+
 fn knows_user() -> bool {
     true
 }
+
 fn main() {
     // dynamic style support
     let mut style = Style::new();
