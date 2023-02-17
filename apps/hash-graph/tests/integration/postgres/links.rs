@@ -50,20 +50,26 @@ async fn insert() {
         friend_of,
         friend_of_type_id.clone(),
         None,
-        alice_metadata.record_id.entity_id,
-        bob_metadata.record_id.entity_id,
+        alice_metadata.record_id().entity_id,
+        bob_metadata.record_id().entity_id,
     )
     .await
     .expect("could not create link");
 
     let link_entity = api
-        .get_link_entity_target(alice_metadata.record_id.entity_id, friend_of_type_id)
+        .get_link_entity_target(alice_metadata.record_id().entity_id, friend_of_type_id)
         .await
         .expect("could not fetch entity");
     let link_data = link_entity.link_data.expect("entity is not a link");
 
-    assert_eq!(link_data.left_entity_id, alice_metadata.record_id.entity_id);
-    assert_eq!(link_data.right_entity_id, bob_metadata.record_id.entity_id);
+    assert_eq!(
+        link_data.left_entity_id,
+        alice_metadata.record_id().entity_id
+    );
+    assert_eq!(
+        link_data.right_entity_id,
+        bob_metadata.record_id().entity_id
+    );
 }
 
 #[tokio::test]
@@ -126,8 +132,8 @@ async fn get_entity_links() {
         EntityProperties::empty(),
         friend_link_type_id.clone(),
         None,
-        alice_metadata.record_id.entity_id,
-        bob_metadata.record_id.entity_id,
+        alice_metadata.record_id().entity_id,
+        bob_metadata.record_id().entity_id,
     )
     .await
     .expect("could not create link");
@@ -136,25 +142,28 @@ async fn get_entity_links() {
         EntityProperties::empty(),
         acquaintance_entity_link_type_id.clone(),
         None,
-        alice_metadata.record_id.entity_id,
-        charles_metadata.record_id.entity_id,
+        alice_metadata.record_id().entity_id,
+        charles_metadata.record_id().entity_id,
     )
     .await
     .expect("could not create link");
 
     let links_from_source = api
-        .get_latest_entity_links(alice_metadata.record_id.entity_id)
+        .get_latest_entity_links(alice_metadata.record_id().entity_id)
         .await
         .expect("could not fetch link");
 
     assert!(
         links_from_source
             .iter()
-            .any(|link_entity| { link_entity.metadata.entity_type_id == friend_link_type_id })
+            .any(|link_entity| link_entity.metadata.entity_type_id() == &friend_link_type_id)
     );
-    assert!(links_from_source.iter().any(|link_entity| {
-        link_entity.metadata.entity_type_id == acquaintance_entity_link_type_id
-    }));
+    assert!(
+        links_from_source
+            .iter()
+            .any(|link_entity| link_entity.metadata.entity_type_id()
+                == &acquaintance_entity_link_type_id)
+    );
 
     let link_datas = links_from_source
         .iter()
@@ -163,17 +172,17 @@ async fn get_entity_links() {
     assert!(
         link_datas
             .iter()
-            .any(|link_data| link_data.left_entity_id == alice_metadata.record_id.entity_id)
+            .any(|link_data| link_data.left_entity_id == alice_metadata.record_id().entity_id)
     );
     assert!(
         link_datas
             .iter()
-            .any(|link_data| link_data.right_entity_id == bob_metadata.record_id.entity_id)
+            .any(|link_data| link_data.right_entity_id == bob_metadata.record_id().entity_id)
     );
     assert!(
         link_datas
             .iter()
-            .any(|link_data| link_data.right_entity_id == charles_metadata.record_id.entity_id)
+            .any(|link_data| link_data.right_entity_id == charles_metadata.record_id().entity_id)
     );
 }
 
@@ -223,21 +232,21 @@ async fn remove_link() {
             EntityProperties::empty(),
             friend_link_type_id.clone(),
             None,
-            alice_metadata.record_id.entity_id,
-            bob_metadata.record_id.entity_id,
+            alice_metadata.record_id().entity_id,
+            bob_metadata.record_id().entity_id,
         )
         .await
         .expect("could not create link");
 
     assert!(
-        !api.get_latest_entity_links(alice_metadata.record_id.entity_id)
+        !api.get_latest_entity_links(alice_metadata.record_id().entity_id)
             .await
             .expect("could not fetch links")
             .is_empty()
     );
 
     api.archive_entity(
-        link_entity_metadata.record_id.entity_id,
+        link_entity_metadata.record_id().entity_id,
         EntityProperties::empty(),
         friend_link_type_id,
         EntityLinkOrder {
@@ -249,7 +258,7 @@ async fn remove_link() {
     .expect("could not remove link");
 
     assert!(
-        api.get_latest_entity_links(alice_metadata.record_id.entity_id)
+        api.get_latest_entity_links(alice_metadata.record_id().entity_id)
             .await
             .expect("could not fetch links")
             .is_empty()

@@ -138,22 +138,22 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                 Ok(Entity {
                     properties,
                     link_data,
-                    metadata: EntityMetadata {
-                        record_id: EntityRecordId {
+                    metadata: EntityMetadata::new(
+                        EntityRecordId {
                             entity_id: EntityId {
                                 owned_by_id: row.get(owned_by_id_index),
                                 entity_uuid: row.get(entity_uuid_index),
                             },
                             edition_id: row.get(edition_id_index),
                         },
-                        version: EntityVersion {
+                        EntityVersion {
                             decision_time: row.get(decision_time_index),
                             transaction_time: row.get(transaction_time_index),
                         },
                         entity_type_id,
-                        provenance: ProvenanceMetadata::new(updated_by_id),
-                        archived: row.get(archived_index),
-                    },
+                        ProvenanceMetadata::new(updated_by_id),
+                        row.get(archived_index),
+                    ),
                 })
             })
             .try_collect()

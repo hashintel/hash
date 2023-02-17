@@ -121,14 +121,62 @@ pub struct LinkData {
 /// The metadata of an [`Entity`] record.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 // TODO: deny_unknown_fields on other structs
+// TODO: Make fields `pub` when `#[feature(mut_restriction)]` is available.
+//   see https://github.com/rust-lang/rust/issues/105077
+//   see https://app.asana.com/0/0/1203977361907407/f
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityMetadata {
-    pub record_id: EntityRecordId,
-    pub version: EntityVersion,
+    record_id: EntityRecordId,
+    version: EntityVersion,
     #[schema(value_type = String)]
-    pub entity_type_id: VersionedUri,
-    pub provenance: ProvenanceMetadata,
-    pub archived: bool,
+    entity_type_id: VersionedUri,
+    #[serde(rename = "provenance")]
+    provenance_metadata: ProvenanceMetadata,
+    archived: bool,
+}
+
+impl EntityMetadata {
+    #[must_use]
+    pub const fn new(
+        record_id: EntityRecordId,
+        version: EntityVersion,
+        entity_type_id: VersionedUri,
+        provenance_metadata: ProvenanceMetadata,
+        archived: bool,
+    ) -> Self {
+        Self {
+            record_id,
+            version,
+            entity_type_id,
+            provenance_metadata,
+            archived,
+        }
+    }
+
+    #[must_use]
+    pub const fn record_id(&self) -> EntityRecordId {
+        self.record_id
+    }
+
+    #[must_use]
+    pub const fn version(&self) -> &EntityVersion {
+        &self.version
+    }
+
+    #[must_use]
+    pub const fn entity_type_id(&self) -> &VersionedUri {
+        &self.entity_type_id
+    }
+
+    #[must_use]
+    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
+        self.provenance_metadata
+    }
+
+    #[must_use]
+    pub const fn archived(&self) -> bool {
+        self.archived
+    }
 }
 
 /// A record of an [`Entity`] that has been persisted in the datastore, with its associated
@@ -148,11 +196,11 @@ impl Record for Entity {
 
     fn vertex_id(&self, time_axis: TimeAxis) -> Self::VertexId {
         let timestamp = match time_axis {
-            TimeAxis::DecisionTime => self.metadata.version.decision_time.start().cast(),
-            TimeAxis::TransactionTime => self.metadata.version.transaction_time.start().cast(),
+            TimeAxis::DecisionTime => self.metadata.version().decision_time.start().cast(),
+            TimeAxis::TransactionTime => self.metadata.version().transaction_time.start().cast(),
         };
         EntityVertexId {
-            base_id: self.metadata.record_id.entity_id,
+            base_id: self.metadata.record_id().entity_id,
             version: timestamp.into(),
         }
     }
