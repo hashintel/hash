@@ -98,13 +98,13 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
 
     // TODO: how do we make these URIs compliant
     let text = DataType::new(
-        VersionedUri::new(
-            BaseUri::new(
+        VersionedUri {
+            base_uri: BaseUri::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
             )
             .expect("failed to construct base URI"),
-            1,
-        ),
+            version: 1,
+        },
         "Text".to_owned(),
         Some("An ordered sequence of characters".to_owned()),
         "string".to_owned(),
@@ -112,13 +112,13 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     );
 
     let number = DataType::new(
-        VersionedUri::new(
-            BaseUri::new(
+        VersionedUri {
+            base_uri: BaseUri::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/number/".to_owned(),
             )
             .expect("failed to construct base URI"),
-            1,
-        ),
+            version: 1,
+        },
         "Number".to_owned(),
         Some("An arithmetical value (in the Real number system)".to_owned()),
         "number".to_owned(),
@@ -126,13 +126,13 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     );
 
     let boolean = DataType::new(
-        VersionedUri::new(
-            BaseUri::new(
+        VersionedUri {
+            base_uri: BaseUri::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/".to_owned(),
             )
             .expect("failed to construct base URI"),
-            1,
-        ),
+            version: 1,
+        },
         "Boolean".to_owned(),
         Some("A True or False value".to_owned()),
         "boolean".to_owned(),
@@ -140,13 +140,13 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     );
 
     let null = DataType::new(
-        VersionedUri::new(
-            BaseUri::new(
+        VersionedUri {
+            base_uri: BaseUri::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/null/".to_owned(),
             )
             .expect("failed to construct base URI"),
-            1,
-        ),
+            version: 1,
+        },
         "Null".to_owned(),
         Some("A placeholder value representing 'nothing'".to_owned()),
         "null".to_owned(),
@@ -154,13 +154,13 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     );
 
     let object = DataType::new(
-        VersionedUri::new(
-            BaseUri::new(
+        VersionedUri {
+            base_uri: BaseUri::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/object/".to_owned(),
             )
             .expect("failed to construct base URI"),
-            1,
-        ),
+            version: 1,
+        },
         "Object".to_owned(),
         Some("A plain JSON object with no pre-defined structure".to_owned()),
         "object".to_owned(),
@@ -168,13 +168,13 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     );
 
     let empty_list = DataType::new(
-        VersionedUri::new(
-            BaseUri::new(
+        VersionedUri {
+            base_uri: BaseUri::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/".to_owned(),
             )
             .expect("failed to construct base URI"),
-            1,
-        ),
+            version: 1,
+        },
         "Empty List".to_owned(),
         Some("An Empty List".to_owned()),
         "array".to_owned(),
@@ -212,7 +212,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
 
         let data_type_metadata =
             OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
-                data_type.id().into(),
+                data_type.id().clone().into(),
                 ProvenanceMetadata::new(UpdatedById::new(root_account_id)),
                 OffsetDateTime::now_utc(),
             ));
@@ -232,13 +232,13 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         }
     }
     let link_entity_type = EntityType::new(
-        VersionedUri::new(
-            BaseUri::new(
+        VersionedUri {
+            base_uri: BaseUri::new(
                 "https://blockprotocol.org/@blockprotocol/types/entity-type/link/".to_owned(),
             )
             .expect("failed to construct base URI"),
-            1,
-        ),
+            version: 1,
+        },
         "Link".to_owned(),
         Some("A link".to_owned()),
         Object::new(HashMap::default(), Vec::default()).expect("invalid property object"),
@@ -250,7 +250,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
 
     let link_entity_type_metadata =
         OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
-            link_entity_type.id().into(),
+            link_entity_type.id().clone().into(),
             ProvenanceMetadata::new(UpdatedById::new(root_account_id)),
             OffsetDateTime::now_utc(),
         ));

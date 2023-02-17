@@ -3,7 +3,7 @@ pub mod knowledge;
 pub mod ontology;
 pub mod time;
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use type_system::uri::{BaseUri, VersionedUri};
 use utoipa::ToSchema;
 
@@ -13,66 +13,25 @@ use crate::identifier::{
     time::{ProjectedTime, Timestamp},
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
-#[serde(untagged)]
-pub enum GraphElementId {
-    Ontology(BaseUri),
-    KnowledgeGraph(EntityId),
-}
-
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityVertexId {
-    base_id: EntityId,
-    version: Timestamp<ProjectedTime>,
-}
-
-impl EntityVertexId {
-    #[must_use]
-    pub const fn new(base_id: EntityId, version: Timestamp<ProjectedTime>) -> Self {
-        Self { base_id, version }
-    }
-
-    #[must_use]
-    pub const fn base_id(&self) -> EntityId {
-        self.base_id
-    }
-
-    #[must_use]
-    pub const fn version(&self) -> Timestamp<ProjectedTime> {
-        self.version
-    }
+    pub base_id: EntityId,
+    pub version: Timestamp<ProjectedTime>,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct OntologyTypeVertexId {
-    base_id: BaseUri,
-    version: OntologyTypeVersion,
+    pub base_id: BaseUri,
+    pub version: OntologyTypeVersion,
 }
 
-impl OntologyTypeVertexId {
-    #[must_use]
-    pub const fn new(base_id: BaseUri, version: OntologyTypeVersion) -> Self {
-        Self { base_id, version }
-    }
-
-    #[must_use]
-    pub const fn base_id(&self) -> &BaseUri {
-        &self.base_id
-    }
-
-    #[must_use]
-    pub const fn version(&self) -> OntologyTypeVersion {
-        self.version
-    }
-}
-
-impl From<&VersionedUri> for OntologyTypeVertexId {
-    fn from(uri: &VersionedUri) -> Self {
+impl From<VersionedUri> for OntologyTypeVertexId {
+    fn from(uri: VersionedUri) -> Self {
         Self {
-            base_id: uri.base_uri().clone(),
-            version: OntologyTypeVersion::new(uri.version()),
+            base_id: uri.base_uri,
+            version: OntologyTypeVersion::new(uri.version),
         }
     }
 }

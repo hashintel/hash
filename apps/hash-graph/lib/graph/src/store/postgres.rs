@@ -267,8 +267,8 @@ where
                     record_created_by_id := $4
                 );"#,
                 &[
-                    &metadata.record_id().base_uri().as_str(),
-                    &metadata.record_id().version(),
+                    &metadata.record_id().base_uri.as_str(),
+                    &metadata.record_id().version,
                     &metadata.owned_by_id(),
                     &metadata.provenance_metadata().updated_by_id(),
                 ],
@@ -279,11 +279,11 @@ where
             .map_err(|report| match report.current_context().code() {
                 Some(&SqlState::EXCLUSION_VIOLATION | &SqlState::UNIQUE_VIOLATION) => report
                     .change_context(BaseUriAlreadyExists)
-                    .attach_printable(metadata.record_id().base_uri().clone())
+                    .attach_printable(metadata.record_id().base_uri.clone())
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)
-                    .attach_printable(VersionedUri::from(metadata.record_id())),
+                    .attach_printable(VersionedUri::from(metadata.record_id().clone())),
             })
     }
 
@@ -309,8 +309,8 @@ where
                     record_created_by_id := $4
                 );"#,
                 &[
-                    &metadata.record_id().base_uri().as_str(),
-                    &metadata.record_id().version(),
+                    &metadata.record_id().base_uri.as_str(),
+                    &metadata.record_id().version,
                     &metadata.fetched_at(),
                     &metadata.provenance_metadata().updated_by_id(),
                 ],
@@ -321,11 +321,11 @@ where
             .map_err(|report| match report.current_context().code() {
                 Some(&SqlState::EXCLUSION_VIOLATION | &SqlState::UNIQUE_VIOLATION) => report
                     .change_context(BaseUriAlreadyExists)
-                    .attach_printable(metadata.record_id().base_uri().clone())
+                    .attach_printable(metadata.record_id().base_uri.clone())
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)
-                    .attach_printable(VersionedUri::from(metadata.record_id())),
+                    .attach_printable(VersionedUri::from(metadata.record_id().clone())),
             })
     }
 
@@ -355,8 +355,8 @@ where
                     record_created_by_id := $3
                 );"#,
                 &[
-                    &uri.base_uri().as_str(),
-                    &i64::from(uri.version()),
+                    &uri.base_uri.as_str(),
+                    &i64::from(uri.version),
                     &updated_by_id,
                 ],
             )
@@ -373,7 +373,7 @@ where
                     .change_context(UpdateError),
                 Some(&SqlState::RESTRICT_VIOLATION) => report
                     .change_context(BaseUriDoesNotExist)
-                    .attach_printable(uri.base_uri().clone())
+                    .attach_printable(uri.base_uri.clone())
                     .change_context(UpdateError),
                 _ => report
                     .change_context(UpdateError)
@@ -439,7 +439,7 @@ where
         T::Representation: Send,
     {
         let uri = database_type.id();
-        let record_id = OntologyTypeRecordId::from(uri);
+        let record_id = OntologyTypeRecordId::from(uri.clone());
 
         let (ontology_id, owned_by_id) = self
             .update_owned_ontology_id(uri, updated_by_id)
@@ -679,7 +679,7 @@ where
     /// - if the entry referred to by `uri` does not exist.
     #[tracing::instrument(level = "debug", skip(self))]
     async fn ontology_id_by_uri(&self, uri: &VersionedUri) -> Result<OntologyId, QueryError> {
-        let version = i64::from(uri.version());
+        let version = i64::from(uri.version);
         Ok(self
             .client
             .as_client()
@@ -689,7 +689,7 @@ where
                 FROM ontology_ids
                 WHERE base_uri = $1 AND version = $2;
                 "#,
-                &[&uri.base_uri().as_str(), &version],
+                &[&uri.base_uri.as_str(), &version],
             )
             .await
             .into_report()
@@ -775,17 +775,25 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             writer
                 .as_mut()
                 .write(&[
-                    &entity_id.owned_by_id(),
-                    &entity_id.entity_uuid(),
-                    &left_entity_id.as_ref().map(EntityId::owned_by_id),
-                    &left_entity_id.as_ref().map(EntityId::entity_uuid),
-                    &right_entity_id.as_ref().map(EntityId::owned_by_id),
-                    &right_entity_id.as_ref().map(EntityId::entity_uuid),
+                    &entity_id.owned_by_id,
+                    &entity_id.entity_uuid,
+                    &left_entity_id
+                        .as_ref()
+                        .map(|entity_id| entity_id.owned_by_id),
+                    &left_entity_id
+                        .as_ref()
+                        .map(|entity_id| entity_id.entity_uuid),
+                    &right_entity_id
+                        .as_ref()
+                        .map(|entity_id| entity_id.owned_by_id),
+                    &right_entity_id
+                        .as_ref()
+                        .map(|entity_id| entity_id.entity_uuid),
                 ])
                 .await
                 .into_report()
                 .change_context(InsertionError)
-                .attach_printable(entity_id.entity_uuid())?;
+                .attach_printable(entity_id.entity_uuid)?;
         }
 
         writer
@@ -957,8 +965,8 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             writer
                 .as_mut()
                 .write(&[
-                    &entity_id.owned_by_id(),
-                    &entity_id.entity_uuid(),
+                    &entity_id.owned_by_id,
+                    &entity_id.entity_uuid,
                     &entity_edition_id,
                     &decision_time,
                 ])

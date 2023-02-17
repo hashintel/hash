@@ -173,6 +173,9 @@ pub trait OntologyTypeWithMetadata: Record {
     fn metadata(&self) -> &OntologyElementMetadata;
 }
 
+// TODO: Flatten when `#[feature(mut_restriction)]` is available.
+//   see https://github.com/rust-lang/rust/issues/105077
+//   see https://app.asana.com/0/0/1203977361907407/f
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(untagged)]
 pub enum OntologyElementMetadata {
@@ -292,7 +295,10 @@ impl Record for DataTypeWithMetadata {
 
     fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
         let record_id = self.metadata().record_id();
-        OntologyTypeVertexId::new(record_id.base_uri().clone(), record_id.version())
+        OntologyTypeVertexId {
+            base_id: record_id.base_uri.clone(),
+            version: record_id.version,
+        }
     }
 
     fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
@@ -333,7 +339,10 @@ impl Record for PropertyTypeWithMetadata {
 
     fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
         let record_id = self.metadata().record_id();
-        OntologyTypeVertexId::new(record_id.base_uri().clone(), record_id.version())
+        OntologyTypeVertexId {
+            base_id: record_id.base_uri.clone(),
+            version: record_id.version,
+        }
     }
 
     fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
@@ -374,7 +383,10 @@ impl Record for EntityTypeWithMetadata {
 
     fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
         let record_id = self.metadata().record_id();
-        OntologyTypeVertexId::new(record_id.base_uri().clone(), record_id.version())
+        OntologyTypeVertexId {
+            base_id: record_id.base_uri.clone(),
+            version: record_id.version,
+        }
     }
 
     fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {

@@ -149,7 +149,7 @@ where
             OntologyTypeReference::EntityTypeReference(reference) => reference.uri(),
         };
 
-        if self.domain_validator.validate_url(uri.base_uri().as_str()) {
+        if self.domain_validator.validate_url(uri.base_uri.as_str()) {
             // If the domain is valid, we own the data type and it either exists or we cannot
             // reference it.
             return Ok(true);
@@ -233,7 +233,7 @@ where
                             .await?
                         {
                             let metadata = ExternalOntologyElementMetadata::new(
-                                data_type.id().into(),
+                                data_type.id().clone().into(),
                                 provenance_metadata,
                                 fetched_ontology_type.fetched_at,
                             );
@@ -255,7 +255,7 @@ where
                             .await?
                         {
                             let metadata = ExternalOntologyElementMetadata::new(
-                                property_type.id().into(),
+                                property_type.id().clone().into(),
                                 provenance_metadata,
                                 fetched_ontology_type.fetched_at,
                             );
@@ -277,7 +277,7 @@ where
                             .await?
                         {
                             let metadata = ExternalOntologyElementMetadata::new(
-                                entity_type.id().into(),
+                                entity_type.id().clone().into(),
                                 provenance_metadata,
                                 fetched_ontology_type.fetched_at,
                             );

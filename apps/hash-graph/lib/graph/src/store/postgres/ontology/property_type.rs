@@ -88,17 +88,19 @@ impl<C: AsClient> PostgresStore<C> {
 
             if let Some(data_type_ref_uris) = data_type_ref_uris {
                 for data_type_ref in data_type_ref_uris {
+                    let data_type_vertex_id = OntologyTypeVertexId::from(data_type_ref);
+
                     subgraph.edges.insert(Edge::Ontology {
                         vertex_id: property_type_id.clone(),
                         outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
                             kind: OntologyEdgeKind::ConstrainsValuesOn,
                             reversed: false,
-                            right_endpoint: OntologyTypeVertexId::from(&data_type_ref),
+                            right_endpoint: data_type_vertex_id.clone(),
                         }),
                     });
 
                     self.traverse_data_type(
-                        &OntologyTypeVertexId::from(&data_type_ref),
+                        &data_type_vertex_id,
                         dependency_context,
                         subgraph,
                         GraphResolveDepths {
@@ -116,17 +118,19 @@ impl<C: AsClient> PostgresStore<C> {
 
             if let Some(property_type_ref_uris) = property_type_ref_uris {
                 for property_type_ref_uri in property_type_ref_uris {
+                    let property_type_vertex_id = OntologyTypeVertexId::from(property_type_ref_uri);
+
                     subgraph.edges.insert(Edge::Ontology {
                         vertex_id: property_type_id.clone(),
                         outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
                             kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                             reversed: false,
-                            right_endpoint: OntologyTypeVertexId::from(&property_type_ref_uri),
+                            right_endpoint: property_type_vertex_id.clone(),
                         }),
                     });
 
                     self.traverse_property_type(
-                        &OntologyTypeVertexId::from(&property_type_ref_uri),
+                        &property_type_vertex_id,
                         dependency_context,
                         subgraph,
                         GraphResolveDepths {

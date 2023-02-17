@@ -31,6 +31,7 @@ use crate::{
     Serialize,
     Deserialize,
     ToSchema,
+    FromSql,
     ToSql,
 )]
 #[postgres(transparent)]
@@ -91,86 +92,38 @@ impl EntityProperties {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
 pub struct EntityLinkOrder {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    left_to_right_order: Option<LinkOrder>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    right_to_left_order: Option<LinkOrder>,
-}
-
-impl EntityLinkOrder {
-    #[must_use]
-    pub const fn new(
-        left_to_right_order: Option<LinkOrder>,
-        right_to_left_order: Option<LinkOrder>,
-    ) -> Self {
-        Self {
-            left_to_right_order,
-            right_to_left_order,
-        }
-    }
-
-    #[must_use]
-    pub const fn left_to_right(&self) -> Option<LinkOrder> {
-        self.left_to_right_order
-    }
-
-    #[must_use]
-    pub const fn right_to_left(&self) -> Option<LinkOrder> {
-        self.right_to_left_order
-    }
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "leftToRightOrder"
+    )]
+    pub left_to_right: Option<LinkOrder>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "rightToLeftOrder"
+    )]
+    pub right_to_left: Option<LinkOrder>,
 }
 
 /// The associated information for 'Link' entities
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LinkData {
-    left_entity_id: EntityId,
-    right_entity_id: EntityId,
+    pub left_entity_id: EntityId,
+    pub right_entity_id: EntityId,
     #[serde(flatten)]
-    order: EntityLinkOrder,
-}
-
-impl LinkData {
-    #[must_use]
-    pub const fn new(
-        left_entity_id: EntityId,
-        right_entity_id: EntityId,
-        left_to_right_order: Option<LinkOrder>,
-        right_to_left_order: Option<LinkOrder>,
-    ) -> Self {
-        Self {
-            left_entity_id,
-            right_entity_id,
-            order: EntityLinkOrder::new(left_to_right_order, right_to_left_order),
-        }
-    }
-
-    #[must_use]
-    pub const fn left_entity_id(&self) -> EntityId {
-        self.left_entity_id
-    }
-
-    #[must_use]
-    pub const fn right_entity_id(&self) -> EntityId {
-        self.right_entity_id
-    }
-
-    #[must_use]
-    pub const fn left_to_right_order(&self) -> Option<LinkOrder> {
-        self.order.left_to_right_order
-    }
-
-    #[must_use]
-    pub const fn right_to_left_order(&self) -> Option<LinkOrder> {
-        self.order.right_to_left_order
-    }
+    pub order: EntityLinkOrder,
 }
 
 /// The metadata of an [`Entity`] record.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 // TODO: deny_unknown_fields on other structs
+// TODO: Make fields `pub` when `#[feature(mut_restriction)]` is available.
+//   see https://github.com/rust-lang/rust/issues/105077
+//   see https://app.asana.com/0/0/1203977361907407/f
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityMetadata {
     record_id: EntityRecordId,
@@ -231,50 +184,10 @@ impl EntityMetadata {
 #[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Entity {
-    properties: EntityProperties,
+    pub properties: EntityProperties,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    link_data: Option<LinkData>,
-    metadata: EntityMetadata,
-}
-
-impl Entity {
-    #[must_use]
-    pub const fn new(
-        properties: EntityProperties,
-        link_data: Option<LinkData>,
-        identifier: EntityRecordId,
-        version: EntityVersion,
-        entity_type_id: VersionedUri,
-        provenance_metadata: ProvenanceMetadata,
-        archived: bool,
-    ) -> Self {
-        Self {
-            properties,
-            link_data,
-            metadata: EntityMetadata::new(
-                identifier,
-                version,
-                entity_type_id,
-                provenance_metadata,
-                archived,
-            ),
-        }
-    }
-
-    #[must_use]
-    pub const fn properties(&self) -> &EntityProperties {
-        &self.properties
-    }
-
-    #[must_use]
-    pub const fn link_data(&self) -> Option<LinkData> {
-        self.link_data
-    }
-
-    #[must_use]
-    pub const fn metadata(&self) -> &EntityMetadata {
-        &self.metadata
-    }
+    pub link_data: Option<LinkData>,
+    pub metadata: EntityMetadata,
 }
 
 impl Record for Entity {
@@ -283,14 +196,17 @@ impl Record for Entity {
 
     fn vertex_id(&self, time_axis: TimeAxis) -> Self::VertexId {
         let timestamp = match time_axis {
-            TimeAxis::DecisionTime => self.metadata().version().decision_time.start().cast(),
-            TimeAxis::TransactionTime => self.metadata().version().transaction_time.start().cast(),
+            TimeAxis::DecisionTime => self.metadata.version().decision_time.start().cast(),
+            TimeAxis::TransactionTime => self.metadata.version().transaction_time.start().cast(),
         };
-        EntityVertexId::new(self.metadata().record_id().entity_id(), timestamp.into())
+        EntityVertexId {
+            base_id: self.metadata.record_id().entity_id,
+            version: timestamp.into(),
+        }
     }
 
     fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
-        Filter::for_entity_by_entity_id(vertex_id.base_id())
+        Filter::for_entity_by_entity_id(vertex_id.base_id)
     }
 }
 

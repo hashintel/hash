@@ -113,7 +113,7 @@ where
                     .into_report()
                     .change_context(QueryError)?;
 
-                let record_id = OntologyTypeRecordId::new(base_uri, version);
+                let record_id = OntologyTypeRecordId { base_uri, version };
                 let provenance = ProvenanceMetadata::new(updated_by_id);
 
                 Ok(T::new(record, match metadata {

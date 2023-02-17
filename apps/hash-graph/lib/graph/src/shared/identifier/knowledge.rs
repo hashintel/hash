@@ -4,7 +4,7 @@ use std::{
 };
 
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
-use tokio_postgres::types::ToSql;
+use tokio_postgres::types::{FromSql, ToSql};
 use utoipa::{openapi, ToSchema};
 use uuid::Uuid;
 
@@ -25,28 +25,8 @@ use crate::{
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EntityId {
-    owned_by_id: OwnedById,
-    entity_uuid: EntityUuid,
-}
-
-impl EntityId {
-    #[must_use]
-    pub const fn new(owned_by_id: OwnedById, entity_uuid: EntityUuid) -> Self {
-        Self {
-            owned_by_id,
-            entity_uuid,
-        }
-    }
-
-    #[must_use]
-    pub const fn owned_by_id(&self) -> OwnedById {
-        self.owned_by_id
-    }
-
-    #[must_use]
-    pub const fn entity_uuid(&self) -> EntityUuid {
-        self.entity_uuid
-    }
+    pub owned_by_id: OwnedById,
+    pub entity_uuid: EntityUuid,
 }
 
 impl Serialize for EntityId {
@@ -130,7 +110,9 @@ impl EntityVersion {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, ToSql, ToSchema)]
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, FromSql, ToSql, ToSchema,
+)]
 #[postgres(transparent)]
 #[repr(transparent)]
 pub struct EntityEditionId(Uuid);
@@ -150,8 +132,8 @@ impl EntityEditionId {
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityRecordId {
-    entity_id: EntityId,
-    edition_id: EntityEditionId,
+    pub entity_id: EntityId,
+    pub edition_id: EntityEditionId,
 }
 
 impl SubgraphIndex<Entity> for EntityVertexId {
@@ -160,25 +142,5 @@ impl SubgraphIndex<Entity> for EntityVertexId {
         subgraph: &'a mut Subgraph,
     ) -> RawEntryMut<'a, Self, Entity, RandomState> {
         subgraph.vertices.entities.raw_entry_mut().from_key(self)
-    }
-}
-
-impl EntityRecordId {
-    #[must_use]
-    pub const fn new(entity_id: EntityId, edition_id: EntityEditionId) -> Self {
-        Self {
-            entity_id,
-            edition_id,
-        }
-    }
-
-    #[must_use]
-    pub const fn entity_id(&self) -> EntityId {
-        self.entity_id
-    }
-
-    #[must_use]
-    pub const fn edition_id(&self) -> EntityEditionId {
-        self.edition_id
     }
 }
