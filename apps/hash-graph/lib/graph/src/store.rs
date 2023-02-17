@@ -22,7 +22,7 @@ pub use self::{
     account::AccountStore,
     config::{DatabaseConnectionInfo, DatabaseType},
     error::{
-        BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, StoreError,
+        BaseUriAlreadyExists, InsertionError, OntologyVersionDoesNotExist, QueryError, StoreError,
         UpdateError,
     },
     knowledge::EntityStore,
