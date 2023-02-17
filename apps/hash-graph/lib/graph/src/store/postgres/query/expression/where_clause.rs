@@ -82,7 +82,7 @@ mod tests {
             ),
             Filter::Equal(
                 Some(FilterExpression::Path(DataTypeQueryPath::Version)),
-                Some(FilterExpression::Parameter(Parameter::Number(1.0))),
+                Some(FilterExpression::Parameter(Parameter::Number(1))),
             ),
         ]);
         where_clause.add_condition(compiler.compile_filter(&filter_b));
@@ -147,7 +147,7 @@ mod tests {
             .collect::<Vec<_>>();
         assert_eq!(parameters, &[
             "\"https://blockprotocol.org/@blockprotocol/types/data-type/text/\"",
-            "1.0",
+            "1",
             "\"some title\"",
             "\"some description\""
         ]);

@@ -267,7 +267,7 @@ pub enum FilterExpression<'p, R: Record + ?Sized> {
     Parameter(Parameter<'p>),
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Deserialize)]
 #[serde(untagged)]
 pub enum Parameter<'p> {
     Boolean(bool),
