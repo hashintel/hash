@@ -271,7 +271,7 @@ pub enum FilterExpression<'p, R: Record + ?Sized> {
 #[serde(untagged)]
 pub enum Parameter<'p> {
     Boolean(bool),
-    Number(f64),
+    Number(i32),
     Text(Cow<'p, str>),
     Any(Value),
     #[serde(skip)]
@@ -345,33 +345,31 @@ impl Parameter<'_> {
 
             // Number conversions
             (Parameter::Number(number), ParameterType::Any) => {
-                *self = Parameter::Any(Value::Number(Number::from_f64(*number).ok_or_else(
-                    || {
-                        Report::new(ParameterConversionError {
-                            actual: self.to_owned(),
-                            expected,
-                        })
-                    },
-                )?));
+                *self = Parameter::Any(Value::Number(Number::from(*number)));
             }
             (Parameter::Any(Value::Number(number)), ParameterType::Number) => {
-                *self = Parameter::Number(number.as_f64().ok_or_else(|| {
+                let number = number.as_i64().ok_or_else(|| {
                     Report::new(ParameterConversionError {
                         actual: self.to_owned(),
                         expected,
                     })
-                })?);
-            }
-            (Parameter::Number(number), ParameterType::OntologyTypeVersion) => {
-                // Postgres cannot represent unsigned integer, so we use i64 instead
-                let number = number.round() as i64;
-                *self = Parameter::OntologyTypeVersion(OntologyTypeVersion::new(
-                    number.try_into().into_report().change_context_lazy(|| {
-                        ParameterConversionError {
+                })?;
+                *self =
+                    Parameter::Number(i32::try_from(number).into_report().change_context_lazy(
+                        || ParameterConversionError {
                             actual: self.to_owned(),
                             expected: ParameterType::OntologyTypeVersion,
-                        }
-                    })?,
+                        },
+                    )?);
+            }
+            (Parameter::Number(number), ParameterType::OntologyTypeVersion) => {
+                *self = Parameter::OntologyTypeVersion(OntologyTypeVersion::new(
+                    u32::try_from(*number)
+                        .into_report()
+                        .change_context_lazy(|| ParameterConversionError {
+                            actual: self.to_owned(),
+                            expected: ParameterType::OntologyTypeVersion,
+                        })?,
                 ));
             }
             (Parameter::Text(text), ParameterType::OntologyTypeVersion) if text == "latest" => {
