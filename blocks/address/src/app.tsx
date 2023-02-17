@@ -423,54 +423,56 @@ export const App: BlockComponent<true, RootEntity> = ({
                 />
               </Link>
 
-              {!isMobile ? (
-                <Typography
-                  variant="regularTextLabels"
+              <Typography
+                variant="regularTextLabels"
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  textDecoration: "none",
+                  fontSize: 15,
+                  lineHeight: 1,
+                  letterSpacing: -0.02,
+                  marginBottom: 1.5,
+                  flexWrap: "wrap",
+                  color: ({ palette }) => palette.gray[50],
+                }}
+              >
+                <Box component="span" sx={{ mr: 1 }}>
+                  Using
+                </Box>
+                {!selectedAddress ? (
+                  <>
+                    <Box
+                      component="span"
+                      sx={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        color: ({ palette }) => palette.gray[60],
+                        mr: 1,
+                      }}
+                    >
+                      <MapboxIcon sx={{ fontSize: 16, mr: 0.375 }} />
+                      Mapbox Address Autofill
+                    </Box>
+                    <Box component="span" sx={{ mr: 1 }}>
+                      and
+                    </Box>
+                  </>
+                ) : null}
+                <Box
+                  component="span"
                   sx={{
                     display: "inline-flex",
                     alignItems: "center",
-                    textDecoration: "none",
-                    fontSize: 15,
-                    lineHeight: 1,
-                    letterSpacing: -0.02,
-                    marginBottom: 1.5,
-                    flexWrap: "wrap",
-                    color: ({ palette }) => palette.gray[50],
+                    color: ({ palette }) => palette.gray[60],
+                    mr: 1,
                   }}
                 >
-                  Using
-                  {!selectedAddress ? (
-                    <>
-                      <Box
-                        component="span"
-                        sx={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          color: ({ palette }) => palette.gray[60],
-                          mx: 1,
-                        }}
-                      >
-                        <MapboxIcon sx={{ fontSize: 16, mr: 0.375 }} />
-                        Mapbox Address Autofill{" "}
-                      </Box>
-                      and
-                    </>
-                  ) : null}
-                  <Box
-                    component="span"
-                    sx={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      color: ({ palette }) => palette.gray[60],
-                      mx: 1,
-                    }}
-                  >
-                    <MapboxIcon sx={{ fontSize: 16, mr: 0.375 }} />
-                    Mapbox Static Images
-                  </Box>
-                  to render a fixed map
-                </Typography>
-              ) : null}
+                  <MapboxIcon sx={{ fontSize: 16, mr: 0.375 }} />
+                  Mapbox Static Images
+                </Box>
+                to render a fixed map
+              </Typography>
             </Box>
           </Fade>
         ) : null}
