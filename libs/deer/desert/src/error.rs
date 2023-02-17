@@ -37,7 +37,8 @@ pub struct BareError<'a> {
 }
 
 impl BareError<'static> {
-    pub fn new_static(
+    #[must_use]
+    pub const fn new_static(
         namespace: &'static str,
         id: &'static [&'static str],
         properties: Value,
@@ -59,7 +60,7 @@ impl<'a> BareError<'a> {
             .get("id")?
             .as_array()?
             .iter()
-            .filter_map(|value| value.as_str())
+            .filter_map(Value::as_str)
             .collect::<Vec<_>>();
 
         let properties = object.get("properties")?;

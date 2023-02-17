@@ -1,7 +1,6 @@
 import {
   Array,
   BaseUri,
-  extractBaseUri,
   Object,
   OneOf,
   PropertyType,
@@ -10,6 +9,7 @@ import {
   ValueOrArray,
   VersionedUri,
 } from "@blockprotocol/type-system";
+import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
 
 import {
   ArrayExpectedValue,

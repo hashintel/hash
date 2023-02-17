@@ -1,13 +1,13 @@
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
+  EntityRootType,
   EntityUuid,
   extractOwnedByIdFromEntityId,
   OwnedById,
   Subgraph,
-  SubgraphRootTypes,
-} from "@local/hash-subgraph/main";
-import { getRoots } from "@local/hash-subgraph/stdlib/roots";
+} from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import produce from "immer";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -41,9 +41,9 @@ const Page: NextPageWithLayout = () => {
   const applyDraftLinkEntityChanges = useApplyDraftLinkEntityChanges();
 
   const [entitySubgraphFromDb, setEntitySubgraphFromDb] =
-    useState<Subgraph<SubgraphRootTypes["entity"]>>();
+    useState<Subgraph<EntityRootType>>();
   const [draftEntitySubgraph, setDraftEntitySubgraph] =
-    useState<Subgraph<SubgraphRootTypes["entity"]>>();
+    useState<Subgraph<EntityRootType>>();
 
   const entityFromDb =
     entitySubgraphFromDb && getRoots(entitySubgraphFromDb)[0];

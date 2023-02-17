@@ -1,5 +1,5 @@
 import { useLazyQuery } from "@apollo/client";
-import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph/main";
+import { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
 import {
@@ -37,7 +37,7 @@ export const useBlockProtocolGetEntity = (): {
 
       const { data: response } = await getEntityFn({
         variables: {
-          entityId,
+          entityId, // @todo-0.3 consider validating that this matches the id format,
           constrainsValuesOn: { outgoing: 255 },
           constrainsPropertiesOn: { outgoing: 255 },
           constrainsLinksOn: { outgoing: 1 },
@@ -49,7 +49,9 @@ export const useBlockProtocolGetEntity = (): {
         },
       });
 
-      if (!response) {
+      const { getEntity: entitySubgraph } = response ?? {};
+
+      if (!entitySubgraph) {
         return {
           errors: [
             {
@@ -62,7 +64,7 @@ export const useBlockProtocolGetEntity = (): {
 
       return {
         /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
-        data: response.getEntity as Subgraph<SubgraphRootTypes["entity"]>,
+        data: entitySubgraph as Subgraph<EntityRootType>,
       };
     },
     [getEntityFn],

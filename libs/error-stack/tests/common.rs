@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+#![allow(dead_code, unreachable_pub)]
 
 pub fn create_report() -> Report<RootError> {
     Report::new(RootError)
@@ -51,7 +51,7 @@ impl Context for ContextA {
     #[cfg(nightly)]
     fn provide<'a>(&'a self, demand: &mut core::any::Demand<'a>) {
         demand.provide_ref(&self.0);
-        demand.provide_value(self.0 as u64);
+        demand.provide_value(u64::from(self.0));
     }
 }
 
@@ -68,7 +68,7 @@ impl Context for ContextB {
     #[cfg(nightly)]
     fn provide<'a>(&'a self, demand: &mut core::any::Demand<'a>) {
         demand.provide_ref(&self.0);
-        demand.provide_value(self.0 as i64);
+        demand.provide_value(i64::from(self.0));
     }
 }
 
@@ -125,8 +125,8 @@ impl std::error::Error for ErrorB {
 
 #[cfg(all(rust_1_65, feature = "std"))]
 impl ErrorB {
-    pub fn backtrace(&self) -> Option<&Backtrace> {
-        Some(&self.1)
+    pub const fn backtrace(&self) -> &Backtrace {
+        &self.1
     }
 }
 
@@ -171,7 +171,7 @@ pub fn create_future() -> impl Future<Output = Result<(), RootError>> {
 }
 
 pub fn capture_ok<E>(closure: impl FnOnce() -> Result<(), E>) {
-    closure().expect("expected an OK value, found an error")
+    closure().expect("expected an OK value, found an error");
 }
 
 pub fn capture_error<E>(closure: impl FnOnce() -> Result<(), E>) -> Report<E> {
@@ -235,8 +235,10 @@ pub fn remove_builtin_messages<S: AsRef<str>>(
         .into_iter()
         .filter_map(|message| {
             let message = message.as_ref();
+            // Reason: complexity + readability
+            #[allow(clippy::if_then_some_else_none)]
             if message != "Location" && message != "Backtrace" && message != "SpanTrace" {
-                Some(message.to_string())
+                Some(message.to_owned())
             } else {
                 None
             }

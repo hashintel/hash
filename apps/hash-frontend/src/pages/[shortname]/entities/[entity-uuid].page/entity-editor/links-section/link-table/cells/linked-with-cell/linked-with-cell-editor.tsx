@@ -1,6 +1,6 @@
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import { Entity, EntityId } from "@local/hash-subgraph/main";
-import { getRoots } from "@local/hash-subgraph/stdlib/roots";
+import { Entity, EntityId } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../../../entity-editor-context";

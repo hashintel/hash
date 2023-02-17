@@ -1,7 +1,4 @@
-import {
-  Entity,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph/main";
+import { Entity, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
 import { useOrgs } from "./use-orgs";

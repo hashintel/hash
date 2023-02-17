@@ -17,17 +17,18 @@ import {
   PropertyType as PropertyTypeGraphApi,
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
-
 import {
+  BaseUri,
   EntityId,
-  EntityVersion,
+  EntityPropertiesObject,
   isEntityId,
   KnowledgeGraphVertex,
   OntologyElementMetadata,
   OntologyVertex,
-  PropertyObject,
+  Timestamp,
+  UpdatedById,
   Vertices,
-} from "../../src/main";
+} from "@local/hash-subgraph";
 
 const mapDataType = (dataType: DataTypeGraphApi): DataType => {
   const idResult = validateVersionedUri(dataType.$id);
@@ -82,9 +83,17 @@ const mapOntologyMetadata = (
   return {
     ...metadata,
     recordId: {
-      baseUri: metadata.editionId.baseId,
-      version: metadata.editionId.version,
+      baseUri: metadata.recordId.baseUri as BaseUri,
+      version: metadata.recordId.version,
     },
+    provenance: {
+      updatedById: metadata.provenance.updatedById as UpdatedById,
+    },
+    ...("fetchedAt" in metadata
+      ? { fetchedAt: metadata.fetchedAt as Timestamp }
+      : ({} as {
+          fetchedAt: Timestamp;
+        })),
   };
 };
 
@@ -130,20 +139,60 @@ const mapKnowledgeGraphVertex = (
     ...vertex,
     inner: {
       ...vertex.inner,
-      properties: vertex.inner.properties as PropertyObject,
-      linkData: {
-        ...vertex.inner.linkData,
-        leftEntityId: vertex.inner.linkData?.leftEntityId as EntityId,
-        rightEntityId: vertex.inner.linkData?.rightEntityId as EntityId,
-      },
+      properties: vertex.inner.properties as EntityPropertiesObject,
+      ...(vertex.inner.linkData
+        ? {
+            linkData: {
+              leftEntityId: vertex.inner.linkData.leftEntityId as EntityId,
+              rightEntityId: vertex.inner.linkData.rightEntityId as EntityId,
+              leftToRightOrder: vertex.inner.linkData.leftToRightOrder,
+              rightToLeftOrder: vertex.inner.linkData.rightToLeftOrder,
+            },
+          }
+        : ({} as { linkData: never })),
       metadata: {
         ...vertex.inner.metadata,
         recordId: {
-          entityId: vertex.inner.metadata.editionId.baseId as EntityId,
-          editionId: vertex.inner.metadata.editionId.recordId,
+          ...vertex.inner.metadata.recordId,
+          entityId: vertex.inner.metadata.recordId.entityId as EntityId,
         },
-        version: vertex.inner.metadata.version as EntityVersion,
         entityTypeId: vertex.inner.metadata.entityTypeId as VersionedUri,
+        temporalVersioning: {
+          transactionTime: {
+            start: {
+              kind: "inclusive",
+              limit: vertex.inner.metadata.version.transactionTime
+                .start as Timestamp,
+            },
+            end:
+              vertex.inner.metadata.version.transactionTime.end === null
+                ? { kind: "unbounded" }
+                : {
+                    kind: "exclusive",
+                    limit: vertex.inner.metadata.version.transactionTime
+                      .end as Timestamp,
+                  },
+          },
+          decisionTime: {
+            start: {
+              kind: "inclusive",
+              limit: vertex.inner.metadata.version.decisionTime
+                .start as Timestamp,
+            },
+            end:
+              vertex.inner.metadata.version.transactionTime.end === null
+                ? { kind: "unbounded" }
+                : {
+                    kind: "exclusive",
+                    limit: vertex.inner.metadata.version.transactionTime
+                      .end as Timestamp,
+                  },
+          },
+        },
+        provenance: {
+          updatedById: vertex.inner.metadata.provenance
+            .updatedById as UpdatedById,
+        },
       },
     },
   };
@@ -157,7 +206,7 @@ export const mapVertices = (vertices: VerticesGraphApi): Vertices => {
     const result = validateBaseUri(baseId);
     if (result.type === "Ok") {
       // ------------ Ontology Type case ----------------
-      const baseUri = result.inner;
+      const baseUri = result.inner as BaseUri;
 
       mappedVertices[baseUri] = Object.fromEntries(
         Object.entries(inner).map(([version, vertex]) => {

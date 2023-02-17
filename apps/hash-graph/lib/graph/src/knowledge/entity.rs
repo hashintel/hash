@@ -11,7 +11,7 @@ use uuid::Uuid;
 pub use self::query::{EntityQueryPath, EntityQueryPathVisitor, EntityQueryToken};
 use crate::{
     identifier::{
-        knowledge::{EntityEditionId, EntityId, EntityVersion},
+        knowledge::{EntityId, EntityRecordId, EntityVersion},
         time::{TemporalTagged, TimeAxis},
         EntityVertexId,
     },
@@ -173,7 +173,7 @@ impl LinkData {
 // TODO: deny_unknown_fields on other structs
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityMetadata {
-    edition_id: EntityEditionId,
+    record_id: EntityRecordId,
     version: EntityVersion,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
@@ -185,14 +185,14 @@ pub struct EntityMetadata {
 impl EntityMetadata {
     #[must_use]
     pub const fn new(
-        edition_id: EntityEditionId,
+        record_id: EntityRecordId,
         version: EntityVersion,
         entity_type_id: VersionedUri,
         provenance_metadata: ProvenanceMetadata,
         archived: bool,
     ) -> Self {
         Self {
-            edition_id,
+            record_id,
             version,
             entity_type_id,
             provenance_metadata,
@@ -201,8 +201,8 @@ impl EntityMetadata {
     }
 
     #[must_use]
-    pub const fn edition_id(&self) -> EntityEditionId {
-        self.edition_id
+    pub const fn record_id(&self) -> EntityRecordId {
+        self.record_id
     }
 
     #[must_use]
@@ -242,7 +242,7 @@ impl Entity {
     pub const fn new(
         properties: EntityProperties,
         link_data: Option<LinkData>,
-        identifier: EntityEditionId,
+        identifier: EntityRecordId,
         version: EntityVersion,
         entity_type_id: VersionedUri,
         provenance_metadata: ProvenanceMetadata,
@@ -278,24 +278,19 @@ impl Entity {
 }
 
 impl Record for Entity {
-    type EditionId = EntityEditionId;
     type QueryPath<'p> = EntityQueryPath<'p>;
     type VertexId = EntityVertexId;
-
-    fn edition_id(&self) -> &Self::EditionId {
-        &self.metadata.edition_id
-    }
 
     fn vertex_id(&self, time_axis: TimeAxis) -> Self::VertexId {
         let timestamp = match time_axis {
             TimeAxis::DecisionTime => self.metadata().version().decision_time.start().cast(),
             TimeAxis::TransactionTime => self.metadata().version().transaction_time.start().cast(),
         };
-        EntityVertexId::new(self.edition_id().base_id(), timestamp.into())
+        EntityVertexId::new(self.metadata().record_id().entity_id(), timestamp.into())
     }
 
     fn create_filter_for_vertex_id(vertex_id: &Self::VertexId) -> Filter<Self> {
-        Filter::for_entity_by_id(vertex_id.base_id())
+        Filter::for_entity_by_entity_id(vertex_id.base_id())
     }
 }
 
@@ -338,7 +333,7 @@ mod tests {
 
     #[test]
     fn person() {
-        test_entity(graph_test_data::entity::PERSON_A_V1);
+        test_entity(graph_test_data::entity::PERSON_ALICE_V1);
     }
 
     #[test]

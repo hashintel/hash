@@ -1,7 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph/main";
-import { getRoots } from "@local/hash-subgraph/stdlib/roots";
+import { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import {
@@ -47,14 +47,13 @@ export const useUsers = (
     const resolvedOrgs = {};
 
     /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
-    return getRoots(subgraph as Subgraph<SubgraphRootTypes["entity"]>).map(
-      (userEntity) =>
-        constructUser({
-          subgraph,
-          userEntity,
-          resolvedUsers,
-          resolvedOrgs,
-        }),
+    return getRoots(subgraph as Subgraph<EntityRootType>).map((userEntity) =>
+      constructUser({
+        subgraph,
+        userEntity,
+        resolvedUsers,
+        resolvedOrgs,
+      }),
     );
   }, [subgraph]);
 

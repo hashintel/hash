@@ -2,7 +2,7 @@ import {
   EntityTypeWithMetadata,
   OwnedById,
   Subgraph,
-} from "@local/hash-subgraph/main";
+} from "@local/hash-subgraph";
 import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import {
@@ -70,13 +70,13 @@ export const getAllLatestEntityTypesResolver: ResolverFn<
       hasLeftEntity: { incoming: 0, outgoing: 0 },
       hasRightEntity: { incoming: 0, outgoing: 0 },
     },
-    timeProjection: {
-      kernel: {
-        axis: "transaction",
+    timeAxes: {
+      pinned: {
+        axis: "transactionTime",
         timestamp: null,
       },
-      image: {
-        axis: "decision",
+      variable: {
+        axis: "decisionTime",
         start: null,
         end: null,
       },
@@ -119,13 +119,13 @@ export const getEntityTypeResolver: ResolverFn<
       hasLeftEntity: { incoming: 0, outgoing: 0 },
       hasRightEntity: { incoming: 0, outgoing: 0 },
     },
-    timeProjection: {
-      kernel: {
-        axis: "transaction",
+    timeAxes: {
+      pinned: {
+        axis: "transactionTime",
         timestamp: null,
       },
-      image: {
-        axis: "decision",
+      variable: {
+        axis: "decisionTime",
         start: null,
         end: null,
       },

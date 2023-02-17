@@ -88,12 +88,16 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         let temporal_table_info = self.artifacts.temporal_tables.get_or_insert_with(|| {
             match self.time_projection {
                 TimeProjection::DecisionTime(projection) => {
-                    self.artifacts.parameters.push(&projection.kernel.timestamp);
-                    self.artifacts.parameters.push(&projection.image.interval);
+                    self.artifacts.parameters.push(&projection.pinned.timestamp);
+                    self.artifacts
+                        .parameters
+                        .push(&projection.variable.interval);
                 }
                 TimeProjection::TransactionTime(projection) => {
-                    self.artifacts.parameters.push(&projection.kernel.timestamp);
-                    self.artifacts.parameters.push(&projection.image.interval);
+                    self.artifacts.parameters.push(&projection.pinned.timestamp);
+                    self.artifacts
+                        .parameters
+                        .push(&projection.variable.interval);
                 }
             };
 
@@ -426,7 +430,9 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                     Parameter::Boolean(bool) => self.artifacts.parameters.push(bool),
                     Parameter::Any(json) => self.artifacts.parameters.push(json),
                     Parameter::Uuid(uuid) => self.artifacts.parameters.push(uuid),
-                    Parameter::SignedInteger(integer) => self.artifacts.parameters.push(integer),
+                    Parameter::OntologyTypeVersion(version) => {
+                        self.artifacts.parameters.push(version);
+                    }
                 }
                 Expression::Parameter(self.artifacts.parameters.len())
             }

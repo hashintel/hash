@@ -304,7 +304,7 @@ export interface DataTypeStructuralQuery {
    * @type {UnresolvedTimeProjection}
    * @memberof DataTypeStructuralQuery
    */
-  timeProjection: UnresolvedTimeProjection;
+  timeAxes?: UnresolvedTimeProjection;
 }
 /**
  *
@@ -332,7 +332,7 @@ export interface DataTypeWithMetadata {
  */
 
 export const DecisionTime = {
-  Decision: "decision",
+  DecisionTime: "decisionTime",
 } as const;
 
 export type DecisionTime = (typeof DecisionTime)[keyof typeof DecisionTime];
@@ -351,10 +351,10 @@ export interface DecisionTimeImage {
   axis: DecisionTime;
   /**
    *
-   * @type {TimeIntervalBound}
+   * @type {LimitedTimeIntervalBound}
    * @memberof DecisionTimeImage
    */
-  end: TimeIntervalBound;
+  end: LimitedTimeIntervalBound;
   /**
    *
    * @type {TimeIntervalBound}
@@ -383,10 +383,10 @@ export interface DecisionTimeImageAllOf {
 export interface DecisionTimeImageAllOf1 {
   /**
    *
-   * @type {TimeIntervalBound}
+   * @type {LimitedTimeIntervalBound}
    * @memberof DecisionTimeImageAllOf1
    */
-  end: TimeIntervalBound;
+  end: LimitedTimeIntervalBound;
   /**
    *
    * @type {TimeIntervalBound}
@@ -421,16 +421,16 @@ export interface DecisionTimeKernel {
 export interface DecisionTimeProjection {
   /**
    *
-   * @type {DecisionTimeImage}
-   * @memberof DecisionTimeProjection
-   */
-  image: DecisionTimeImage;
-  /**
-   *
    * @type {TransactionTimeKernel}
    * @memberof DecisionTimeProjection
    */
-  kernel: TransactionTimeKernel;
+  pinned: TransactionTimeKernel;
+  /**
+   *
+   * @type {DecisionTimeImage}
+   * @memberof DecisionTimeProjection
+   */
+  variable: DecisionTimeImage;
 }
 /**
  *
@@ -495,25 +495,6 @@ export interface Entity {
 /**
  *
  * @export
- * @interface EntityEditionId
- */
-export interface EntityEditionId {
-  /**
-   *
-   * @type {string}
-   * @memberof EntityEditionId
-   */
-  baseId: string;
-  /**
-   *
-   * @type {string}
-   * @memberof EntityEditionId
-   */
-  recordId: string;
-}
-/**
- *
- * @export
  * @interface EntityIdAndTimestamp
  */
 export interface EntityIdAndTimestamp {
@@ -563,12 +544,6 @@ export interface EntityMetadata {
   archived: boolean;
   /**
    *
-   * @type {EntityEditionId}
-   * @memberof EntityMetadata
-   */
-  editionId: EntityEditionId;
-  /**
-   *
    * @type {string}
    * @memberof EntityMetadata
    */
@@ -579,6 +554,12 @@ export interface EntityMetadata {
    * @memberof EntityMetadata
    */
   provenance: ProvenanceMetadata;
+  /**
+   *
+   * @type {EntityRecordId}
+   * @memberof EntityMetadata
+   */
+  recordId: EntityRecordId;
   /**
    *
    * @type {EntityVersion}
@@ -594,7 +575,7 @@ export interface EntityMetadata {
 
 export const EntityQueryToken = {
   Uuid: "uuid",
-  RecordId: "recordId",
+  EditionId: "editionId",
   Archived: "archived",
   OwnedById: "ownedById",
   UpdatedById: "updatedById",
@@ -611,6 +592,25 @@ export const EntityQueryToken = {
 export type EntityQueryToken =
   (typeof EntityQueryToken)[keyof typeof EntityQueryToken];
 
+/**
+ *
+ * @export
+ * @interface EntityRecordId
+ */
+export interface EntityRecordId {
+  /**
+   *
+   * @type {string}
+   * @memberof EntityRecordId
+   */
+  editionId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof EntityRecordId
+   */
+  entityId: string;
+}
 /**
  *
  * @export
@@ -634,7 +634,7 @@ export interface EntityStructuralQuery {
    * @type {UnresolvedTimeProjection}
    * @memberof EntityStructuralQuery
    */
-  timeProjection: UnresolvedTimeProjection;
+  timeAxes?: UnresolvedTimeProjection;
 }
 /**
  * Specifies the structure of an Entity Type
@@ -772,7 +772,7 @@ export interface EntityTypeStructuralQuery {
    * @type {UnresolvedTimeProjection}
    * @memberof EntityTypeStructuralQuery
    */
-  timeProjection: UnresolvedTimeProjection;
+  timeAxes?: UnresolvedTimeProjection;
 }
 /**
  *
@@ -871,12 +871,6 @@ export interface EqualFilter {
 export interface ExternalOntologyElementMetadata {
   /**
    *
-   * @type {OntologyTypeEditionId}
-   * @memberof ExternalOntologyElementMetadata
-   */
-  editionId: OntologyTypeEditionId;
-  /**
-   *
    * @type {string}
    * @memberof ExternalOntologyElementMetadata
    */
@@ -887,6 +881,12 @@ export interface ExternalOntologyElementMetadata {
    * @memberof ExternalOntologyElementMetadata
    */
   provenance: ProvenanceMetadata;
+  /**
+   *
+   * @type {OntologyTypeRecordId}
+   * @memberof ExternalOntologyElementMetadata
+   */
+  recordId: OntologyTypeRecordId;
 }
 /**
  * @type Filter
@@ -915,7 +915,7 @@ export type GraphElementId = string;
  * @type GraphElementVertexId
  * @export
  */
-export type GraphElementVertexId = EntityVertexId | OntologyTypeEditionId;
+export type GraphElementVertexId = EntityVertexId | OntologyTypeVertexId;
 
 /**
  * TODO: DOC - <https://app.asana.com/0/0/1203438518991188/f>
@@ -1149,6 +1149,68 @@ export interface KnowledgeGraphVertices {
   [key: string]: { [key: string]: KnowledgeGraphVertex };
 }
 /**
+ * @type LimitedTimeIntervalBound
+ * @export
+ */
+export type LimitedTimeIntervalBound =
+  | LimitedTimeIntervalBoundOneOf
+  | LimitedTimeIntervalBoundOneOf1;
+
+/**
+ *
+ * @export
+ * @interface LimitedTimeIntervalBoundOneOf
+ */
+export interface LimitedTimeIntervalBoundOneOf {
+  /**
+   *
+   * @type {string}
+   * @memberof LimitedTimeIntervalBoundOneOf
+   */
+  kind: LimitedTimeIntervalBoundOneOfKindEnum;
+  /**
+   *
+   * @type {string}
+   * @memberof LimitedTimeIntervalBoundOneOf
+   */
+  limit: string;
+}
+
+export const LimitedTimeIntervalBoundOneOfKindEnum = {
+  Inclusive: "inclusive",
+} as const;
+
+export type LimitedTimeIntervalBoundOneOfKindEnum =
+  (typeof LimitedTimeIntervalBoundOneOfKindEnum)[keyof typeof LimitedTimeIntervalBoundOneOfKindEnum];
+
+/**
+ *
+ * @export
+ * @interface LimitedTimeIntervalBoundOneOf1
+ */
+export interface LimitedTimeIntervalBoundOneOf1 {
+  /**
+   *
+   * @type {string}
+   * @memberof LimitedTimeIntervalBoundOneOf1
+   */
+  kind: LimitedTimeIntervalBoundOneOf1KindEnum;
+  /**
+   *
+   * @type {string}
+   * @memberof LimitedTimeIntervalBoundOneOf1
+   */
+  limit: string;
+}
+
+export const LimitedTimeIntervalBoundOneOf1KindEnum = {
+  Exclusive: "exclusive",
+} as const;
+
+export type LimitedTimeIntervalBoundOneOf1KindEnum =
+  (typeof LimitedTimeIntervalBoundOneOf1KindEnum)[keyof typeof LimitedTimeIntervalBoundOneOf1KindEnum];
+
+/**
  * The associated information for \'Link\' entities
  * @export
  * @interface LinkData
@@ -1357,19 +1419,38 @@ export interface OntologyRootedEdges {
 /**
  *
  * @export
- * @interface OntologyTypeEditionId
+ * @interface OntologyTypeRecordId
  */
-export interface OntologyTypeEditionId {
+export interface OntologyTypeRecordId {
   /**
    *
    * @type {string}
-   * @memberof OntologyTypeEditionId
+   * @memberof OntologyTypeRecordId
+   */
+  baseUri: string;
+  /**
+   *
+   * @type {number}
+   * @memberof OntologyTypeRecordId
+   */
+  version: number;
+}
+/**
+ *
+ * @export
+ * @interface OntologyTypeVertexId
+ */
+export interface OntologyTypeVertexId {
+  /**
+   *
+   * @type {string}
+   * @memberof OntologyTypeVertexId
    */
   baseId: string;
   /**
    *
    * @type {number}
-   * @memberof OntologyTypeEditionId
+   * @memberof OntologyTypeVertexId
    */
   version: number;
 }
@@ -1492,12 +1573,6 @@ export interface OutgoingEdgeResolveDepth {
 export interface OwnedOntologyElementMetadata {
   /**
    *
-   * @type {OntologyTypeEditionId}
-   * @memberof OwnedOntologyElementMetadata
-   */
-  editionId: OntologyTypeEditionId;
-  /**
-   *
    * @type {string}
    * @memberof OwnedOntologyElementMetadata
    */
@@ -1508,6 +1583,12 @@ export interface OwnedOntologyElementMetadata {
    * @memberof OwnedOntologyElementMetadata
    */
   provenance: ProvenanceMetadata;
+  /**
+   *
+   * @type {OntologyTypeRecordId}
+   * @memberof OwnedOntologyElementMetadata
+   */
+  recordId: OntologyTypeRecordId;
 }
 /**
  *
@@ -1762,7 +1843,7 @@ export interface PropertyTypeStructuralQuery {
    * @type {UnresolvedTimeProjection}
    * @memberof PropertyTypeStructuralQuery
    */
-  timeProjection: UnresolvedTimeProjection;
+  timeAxes?: UnresolvedTimeProjection;
 }
 /**
  *
@@ -1859,22 +1940,16 @@ export interface Subgraph {
   edges: Edges;
   /**
    *
-   * @type {TimeProjection}
-   * @memberof Subgraph
-   */
-  resolvedTimeProjection: TimeProjection;
-  /**
-   *
    * @type {Array<GraphElementVertexId>}
    * @memberof Subgraph
    */
   roots: Array<GraphElementVertexId>;
   /**
    *
-   * @type {UnresolvedTimeProjection}
+   * @type {TemporalAxes}
    * @memberof Subgraph
    */
-  timeProjection: UnresolvedTimeProjection;
+  temporalAxes: TemporalAxes;
   /**
    *
    * @type {Vertices}
@@ -1883,13 +1958,32 @@ export interface Subgraph {
   vertices: Vertices;
 }
 /**
+ *
+ * @export
+ * @interface TemporalAxes
+ */
+export interface TemporalAxes {
+  /**
+   *
+   * @type {UnresolvedTimeProjection}
+   * @memberof TemporalAxes
+   */
+  initial: UnresolvedTimeProjection;
+  /**
+   *
+   * @type {TimeProjection}
+   * @memberof TemporalAxes
+   */
+  resolved: TimeProjection;
+}
+/**
  * @type TimeIntervalBound
  * @export
  */
 export type TimeIntervalBound =
-  | TimeIntervalBoundOneOf
-  | TimeIntervalBoundOneOf1
-  | TimeIntervalBoundOneOf2;
+  | LimitedTimeIntervalBoundOneOf
+  | LimitedTimeIntervalBoundOneOf1
+  | TimeIntervalBoundOneOf;
 
 /**
  *
@@ -1902,69 +1996,15 @@ export interface TimeIntervalBoundOneOf {
    * @type {string}
    * @memberof TimeIntervalBoundOneOf
    */
-  bound: TimeIntervalBoundOneOfBoundEnum;
+  kind: TimeIntervalBoundOneOfKindEnum;
 }
 
-export const TimeIntervalBoundOneOfBoundEnum = {
+export const TimeIntervalBoundOneOfKindEnum = {
   Unbounded: "unbounded",
 } as const;
 
-export type TimeIntervalBoundOneOfBoundEnum =
-  (typeof TimeIntervalBoundOneOfBoundEnum)[keyof typeof TimeIntervalBoundOneOfBoundEnum];
-
-/**
- *
- * @export
- * @interface TimeIntervalBoundOneOf1
- */
-export interface TimeIntervalBoundOneOf1 {
-  /**
-   *
-   * @type {string}
-   * @memberof TimeIntervalBoundOneOf1
-   */
-  bound: TimeIntervalBoundOneOf1BoundEnum;
-  /**
-   *
-   * @type {string}
-   * @memberof TimeIntervalBoundOneOf1
-   */
-  timestamp: string;
-}
-
-export const TimeIntervalBoundOneOf1BoundEnum = {
-  Included: "included",
-} as const;
-
-export type TimeIntervalBoundOneOf1BoundEnum =
-  (typeof TimeIntervalBoundOneOf1BoundEnum)[keyof typeof TimeIntervalBoundOneOf1BoundEnum];
-
-/**
- *
- * @export
- * @interface TimeIntervalBoundOneOf2
- */
-export interface TimeIntervalBoundOneOf2 {
-  /**
-   *
-   * @type {string}
-   * @memberof TimeIntervalBoundOneOf2
-   */
-  bound: TimeIntervalBoundOneOf2BoundEnum;
-  /**
-   *
-   * @type {string}
-   * @memberof TimeIntervalBoundOneOf2
-   */
-  timestamp: string;
-}
-
-export const TimeIntervalBoundOneOf2BoundEnum = {
-  Excluded: "excluded",
-} as const;
-
-export type TimeIntervalBoundOneOf2BoundEnum =
-  (typeof TimeIntervalBoundOneOf2BoundEnum)[keyof typeof TimeIntervalBoundOneOf2BoundEnum];
+export type TimeIntervalBoundOneOfKindEnum =
+  (typeof TimeIntervalBoundOneOfKindEnum)[keyof typeof TimeIntervalBoundOneOfKindEnum];
 
 /**
  * @type TimeProjection
@@ -1979,7 +2019,7 @@ export type TimeProjection = DecisionTimeProjection | TransactionTimeProjection;
  */
 
 export const TransactionTime = {
-  Transaction: "transaction",
+  TransactionTime: "transactionTime",
 } as const;
 
 export type TransactionTime =
@@ -1999,10 +2039,10 @@ export interface TransactionTimeImage {
   axis: TransactionTime;
   /**
    *
-   * @type {TimeIntervalBound}
+   * @type {LimitedTimeIntervalBound}
    * @memberof TransactionTimeImage
    */
-  end: TimeIntervalBound;
+  end: LimitedTimeIntervalBound;
   /**
    *
    * @type {TimeIntervalBound}
@@ -2050,16 +2090,16 @@ export interface TransactionTimeKernel {
 export interface TransactionTimeProjection {
   /**
    *
-   * @type {TransactionTimeImage}
-   * @memberof TransactionTimeProjection
-   */
-  image: TransactionTimeImage;
-  /**
-   *
    * @type {DecisionTimeKernel}
    * @memberof TransactionTimeProjection
    */
-  kernel: DecisionTimeKernel;
+  pinned: DecisionTimeKernel;
+  /**
+   *
+   * @type {TransactionTimeImage}
+   * @memberof TransactionTimeProjection
+   */
+  variable: TransactionTimeImage;
 }
 /**
  *
@@ -2075,10 +2115,10 @@ export interface UnresolvedDecisionTimeImage {
   axis: DecisionTime;
   /**
    *
-   * @type {TimeIntervalBound}
+   * @type {LimitedTimeIntervalBound}
    * @memberof UnresolvedDecisionTimeImage
    */
-  end: TimeIntervalBound | null;
+  end: LimitedTimeIntervalBound | null;
   /**
    *
    * @type {TimeIntervalBound}
@@ -2094,10 +2134,10 @@ export interface UnresolvedDecisionTimeImage {
 export interface UnresolvedDecisionTimeImageAllOf {
   /**
    *
-   * @type {TimeIntervalBound}
+   * @type {LimitedTimeIntervalBound}
    * @memberof UnresolvedDecisionTimeImageAllOf
    */
-  end: TimeIntervalBound | null;
+  end: LimitedTimeIntervalBound | null;
   /**
    *
    * @type {TimeIntervalBound}
@@ -2132,16 +2172,16 @@ export interface UnresolvedDecisionTimeKernel {
 export interface UnresolvedDecisionTimeProjection {
   /**
    *
-   * @type {UnresolvedDecisionTimeImage}
-   * @memberof UnresolvedDecisionTimeProjection
-   */
-  image: UnresolvedDecisionTimeImage;
-  /**
-   *
    * @type {UnresolvedTransactionTimeKernel}
    * @memberof UnresolvedDecisionTimeProjection
    */
-  kernel: UnresolvedTransactionTimeKernel;
+  pinned: UnresolvedTransactionTimeKernel;
+  /**
+   *
+   * @type {UnresolvedDecisionTimeImage}
+   * @memberof UnresolvedDecisionTimeProjection
+   */
+  variable: UnresolvedDecisionTimeImage;
 }
 /**
  * @type UnresolvedTimeProjection
@@ -2165,10 +2205,10 @@ export interface UnresolvedTransactionTimeImage {
   axis: TransactionTime;
   /**
    *
-   * @type {TimeIntervalBound}
+   * @type {LimitedTimeIntervalBound}
    * @memberof UnresolvedTransactionTimeImage
    */
-  end: TimeIntervalBound | null;
+  end: LimitedTimeIntervalBound | null;
   /**
    *
    * @type {TimeIntervalBound}
@@ -2203,16 +2243,16 @@ export interface UnresolvedTransactionTimeKernel {
 export interface UnresolvedTransactionTimeProjection {
   /**
    *
-   * @type {UnresolvedTransactionTimeImage}
-   * @memberof UnresolvedTransactionTimeProjection
-   */
-  image: UnresolvedTransactionTimeImage;
-  /**
-   *
    * @type {UnresolvedDecisionTimeKernel}
    * @memberof UnresolvedTransactionTimeProjection
    */
-  kernel: UnresolvedDecisionTimeKernel;
+  pinned: UnresolvedDecisionTimeKernel;
+  /**
+   *
+   * @type {UnresolvedTransactionTimeImage}
+   * @memberof UnresolvedTransactionTimeProjection
+   */
+  variable: UnresolvedTransactionTimeImage;
 }
 /**
  * The contents of a Data Type update request

@@ -3,13 +3,13 @@ import {
   AccountId,
   Entity,
   EntityId,
+  EntityPropertiesObject,
+  EntityRootType,
   extractOwnedByIdFromEntityId,
   OwnedById,
-  PropertyObject,
   Subgraph,
-  SubgraphRootTypes,
-} from "@local/hash-subgraph/main";
-import { getEntities } from "@local/hash-subgraph/stdlib/element/entity";
+} from "@local/hash-subgraph";
+import { getEntities } from "@local/hash-subgraph/stdlib";
 import { mapSubgraph } from "@local/hash-subgraph/temp";
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
@@ -134,7 +134,7 @@ export const createPage: ImpureGraphFunction<
 
   const index = generateKeyBetween(prevIndex ?? null, null);
 
-  const properties: PropertyObject = {
+  const properties: EntityPropertiesObject = {
     [SYSTEM_TYPES.propertyType.title.metadata.recordId.baseUri]: title,
     ...(summary
       ? {
@@ -257,22 +257,20 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeProjection: {
-        kernel: {
-          axis: "transaction",
+      timeAxes: {
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
+        variable: {
+          axis: "decisionTime",
           start: null,
           end: null,
         },
       },
     })
     .then(({ data: subgraph }) =>
-      getEntities(
-        mapSubgraph(subgraph) as Subgraph<SubgraphRootTypes["entity"]>,
-      ),
+      getEntities(mapSubgraph(subgraph) as Subgraph<EntityRootType>),
     );
 
   const pages = pageEntities
@@ -458,8 +456,8 @@ export const getPageBlocks: ImpureGraphFunction<
           a.metadata.recordId.entityId.localeCompare(
             b.metadata.recordId.entityId,
           ) ||
-          a.metadata.version.decisionTime.start.localeCompare(
-            b.metadata.version.decisionTime.start,
+          a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
+            b.metadata.temporalVersioning.decisionTime.start.limit,
           ),
       )
       .map((linkEntity) => getLinkEntityRightEntity(ctx, { linkEntity })),

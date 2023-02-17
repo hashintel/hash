@@ -27,5 +27,6 @@
       },
       "ordered": false
     }
-  }
+  },
+  "additionalProperties": false
 }
