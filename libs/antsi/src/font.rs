@@ -107,7 +107,7 @@ pub enum Blinking {
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[non_exhaustive]
-pub enum Script {
+pub enum FontScript {
     Sub,
     Super,
 }
@@ -117,7 +117,7 @@ pub struct Font {
     weight: Option<FontWeight>,
     family: Option<FontFamily>,
     // mintty extension
-    script: Option<Script>,
+    script: Option<FontScript>,
 
     // Value layout: `XXÖO_IRHS`
     //
@@ -138,6 +138,7 @@ impl Font {
     #[must_use]
     pub const fn new() -> Self {
         Self {
+            script: None,
             weight: None,
             family: None,
             style: 0x00,

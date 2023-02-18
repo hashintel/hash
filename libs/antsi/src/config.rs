@@ -32,7 +32,7 @@ impl Delimiter {
     }
 
     fn store(self) {
-        DELIMITER.store(self.into_u8(), Ordering::Relaxed)
+        DELIMITER.store(self.into_u8(), Ordering::Relaxed);
     }
 }
 
@@ -69,7 +69,7 @@ impl Compliance {
     }
 
     fn store(self) {
-        COMPLIANCE.store(self.into_u8(), Ordering::Relaxed)
+        COMPLIANCE.store(self.into_u8(), Ordering::Relaxed);
     }
 }
 

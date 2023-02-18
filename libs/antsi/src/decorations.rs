@@ -1,3 +1,4 @@
+// todo: note that on mintty this is the emoji selector
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Frame {
     Framed,
@@ -28,4 +29,14 @@ pub struct Line {
 pub struct Decorations {
     frame: Option<Frame>,
     line: Option<Line>,
+}
+
+impl Decorations {
+    #[must_use]
+    pub const fn new() -> Self {
+        Self {
+            frame: None,
+            line: None,
+        }
+    }
 }

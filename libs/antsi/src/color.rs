@@ -365,7 +365,7 @@ impl_const! {
 impl_const! {
     impl const? From<CmykColor> for Color {
         fn from(value: CmykColor) -> Self {
-            Self::Cmy(value)
+            Self::Cmyk(value)
         }
     }
 }

@@ -25,7 +25,7 @@
 #![allow(missing_docs)]
 
 pub use color::{BasicColor, BrightColor, CmyColor, CmykColor, Color, IndexedColor, RgbColor};
-pub use font::{Blinking, Font, FontFamily, FontWeight, Underline};
+pub use font::{Blinking, Font, FontFamily, FontScript, FontWeight, Underline};
 
 use crate::{decorations::Decorations, macros::impl_const};
 
@@ -77,7 +77,7 @@ impl_const! {
     }
 }
 
-// wezterm extension
+// kitty + vte extension
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct UnderlineColor(Color);
 
@@ -175,6 +175,7 @@ impl Style {
     pub const fn new() -> Self {
         Self {
             font: Font::new(),
+            decorations: Decorations::new(),
             foreground: None,
             background: None,
             underline_color: None,
