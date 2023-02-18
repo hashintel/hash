@@ -1,8 +1,10 @@
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Frame {
     Framed,
     Encircled,
 }
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Location {
     BelowOrRight,
     AboveOrLeft,
@@ -10,22 +12,20 @@ pub enum Location {
     AboveOrRight,
 }
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Stroke {
     Single,
     Double,
 }
 
-// TODO: renaem
-pub struct RenameMe {
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub struct Line {
     location: Location,
     stroke: Stroke,
 }
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Default)]
 pub struct Decorations {
     frame: Option<Frame>,
-    rendition_aspect: Option<RenameMe>,
-
-    overline: bool,
+    line: Option<Line>,
 }
-
-// TODO: mintty 8:7m

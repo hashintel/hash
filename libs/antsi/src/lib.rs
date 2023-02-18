@@ -27,11 +27,11 @@
 pub use color::{BasicColor, BrightColor, CmyColor, CmykColor, Color, IndexedColor, RgbColor};
 pub use font::{Blinking, Font, FontFamily, FontWeight, Underline};
 
-use crate::macros::impl_const;
+use crate::{decorations::Decorations, macros::impl_const};
 
 mod color;
 pub mod config;
-mod deco;
+pub mod decorations;
 mod font;
 mod macros;
 
@@ -102,6 +102,7 @@ impl_const! {
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Default)]
 pub struct Style {
     font: Font,
+    decorations: Decorations,
 
     foreground: Option<Foreground>,
     background: Option<Background>,

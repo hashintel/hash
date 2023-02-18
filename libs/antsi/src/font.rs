@@ -105,17 +105,28 @@ pub enum Blinking {
     Fast,
 }
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum Script {
+    Sub,
+    Super,
+}
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Default)]
 pub struct Font {
     weight: Option<FontWeight>,
     family: Option<FontFamily>,
+    // mintty extension
+    script: Option<Script>,
 
-    // Value layout: `XXXO_IRHS`
+    // Value layout: `XXÖO_IRHS`
     //
     // * `I`: `italic`
     // * `R`: `inverse/reverse`
     // * `H`: `hidden/invisible`
     // * `S`: `strikethrough`
+    // * `O`: `overstrike` - mintty extension
+    // * `Ö`: `overline`
     // * `X`: unused
     style: u8,
 
@@ -263,4 +274,6 @@ impl Font {
     pub const fn blinking(&self) -> Option<Blinking> {
         self.blinking
     }
+
+    // TODO: getter for hidden, italic, strikethrough, overstrike, script
 }
