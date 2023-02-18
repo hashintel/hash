@@ -210,16 +210,75 @@ impl From<BrightColor> for IndexedColor {
 /// [ISO 8613-6]: https://www.iso.org/standard/22943.html
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct RgbColor {
-    r: u8,
-    g: u8,
-    b: u8,
+    red: u8,
+    green: u8,
+    blue: u8,
 }
 
 impl RgbColor {
     /// Create a new RGB color
     #[must_use]
-    pub const fn new(r: u8, g: u8, b: u8) -> Self {
-        Self { r, g, b }
+    pub const fn new(red: u8, green: u8, blue: u8) -> Self {
+        Self { red, green, blue }
+    }
+}
+
+// wezterm extension
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub struct RgbaColor {
+    red: u8,
+    green: u8,
+    blue: u8,
+    alpha: u8,
+}
+
+impl RgbaColor {
+    #[must_use]
+    pub const fn new(red: u8, green: u8, blue: u8, alpha: u8) -> Self {
+        Self {
+            red,
+            green,
+            blue,
+            alpha,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub struct CmyColor {
+    cyan: u8,
+    magenta: u8,
+    yellow: u8,
+}
+
+impl CmyColor {
+    #[must_use]
+    pub const fn new(cyan: u8, magenta: u8, yellow: u8) -> Self {
+        Self {
+            cyan,
+            magenta,
+            yellow,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub struct CmykColor {
+    cyan: u8,
+    magenta: u8,
+    yellow: u8,
+    black: u8,
+}
+
+impl CmykColor {
+    #[must_use]
+    pub const fn new(cyan: u8, magenta: u8, yellow: u8, black: u8) -> Self {
+        Self {
+            cyan,
+            magenta,
+            yellow,
+            black,
+        }
     }
 }
 
@@ -247,6 +306,12 @@ pub enum Color {
     ///
     /// Supported by some modern terminals since 2015+, for more information see [`RgbColor`]
     Rgb(RgbColor),
+
+    Rgba(RgbaColor),
+
+    Cmy(CmyColor),
+
+    Cmyk(CmykColor),
 }
 
 impl_const! {
@@ -277,6 +342,30 @@ impl_const! {
     impl const? From<RgbColor> for Color {
         fn from(value: RgbColor) -> Self {
             Self::Rgb(value)
+        }
+    }
+}
+
+impl_const! {
+    impl const? From<RgbaColor> for Color {
+        fn from(value: RgbaColor) -> Self {
+            Self::Rgba(value)
+        }
+    }
+}
+
+impl_const! {
+    impl const? From<CmyColor> for Color {
+        fn from(value: CmyColor) -> Self {
+            Self::Cmy(value)
+        }
+    }
+}
+
+impl_const! {
+    impl const? From<CmykColor> for Color {
+        fn from(value: CmykColor) -> Self {
+            Self::Cmy(value)
         }
     }
 }

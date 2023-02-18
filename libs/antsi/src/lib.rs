@@ -24,12 +24,14 @@
 // future PR will add remaining documentation
 #![allow(missing_docs)]
 
-pub use color::{BasicColor, BrightColor, Color, IndexedColor, RgbColor};
+pub use color::{BasicColor, BrightColor, CmyColor, CmykColor, Color, IndexedColor, RgbColor};
 pub use font::{Blinking, Font, FontFamily, FontWeight, Underline};
 
 use crate::macros::impl_const;
 
 mod color;
+pub mod config;
+mod deco;
 mod font;
 mod macros;
 
@@ -75,12 +77,36 @@ impl_const! {
     }
 }
 
+// wezterm extension
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub struct UnderlineColor(Color);
+
+impl UnderlineColor {
+    #[must_use]
+    pub const fn new(color: Color) -> Self {
+        Self(color)
+    }
+}
+
+impl_const! {
+    impl<T> const? From<T> for UnderlineColor
+    where
+        T: ~const Into<Color>
+    {
+        fn from(value: T) -> Self {
+            Self(value.into())
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Default)]
 pub struct Style {
     font: Font,
 
     foreground: Option<Foreground>,
     background: Option<Background>,
+
+    underline_color: Option<UnderlineColor>,
 }
 
 impl Style {
@@ -124,12 +150,33 @@ impl Style {
         }
     }
 
+    impl_const! {
+        #[nightly]
+        #[must_use]
+        pub const fn with_underline_color(mut self, color: impl ~const Into<UnderlineColor>) -> Self {
+            self.underline_color = Some(color.into());
+
+            self
+        }
+    }
+
+    impl_const! {
+        #[stable]
+        #[must_use]
+        pub const fn with_underline_color(mut self, color: UnderlineColor) -> Self {
+            self.underline_color = Some(color);
+
+            self
+        }
+    }
+
     #[must_use]
     pub const fn new() -> Self {
         Self {
             font: Font::new(),
             foreground: None,
             background: None,
+            underline_color: None,
         }
     }
 
@@ -154,6 +201,12 @@ impl Style {
 
     pub fn set_background(&mut self, color: impl Into<Background>) -> &mut Self {
         self.background = Some(color.into());
+
+        self
+    }
+
+    pub fn set_underline_color(&mut self, color: impl Into<UnderlineColor>) -> &mut Self {
+        self.underline_color = Some(color.into());
 
         self
     }

@@ -66,8 +66,6 @@ impl AlternativeFontFamily {
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum FontFamily {
-    /// The primary (default) font family
-    Primary,
     /// Fraktur
     ///
     /// ## What is Fraktur?
@@ -91,6 +89,13 @@ pub enum FontFamily {
 pub enum Underline {
     Single,
     Double,
+
+    // kitty + vte extension
+    Curly,
+    // kitty + vte extension
+    Dotted,
+    // kitty + vte extension
+    Dashed,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -105,12 +110,13 @@ pub struct Font {
     weight: Option<FontWeight>,
     family: Option<FontFamily>,
 
-    // Value layout: `XXXX_IRHS`
+    // Value layout: `XXXO_IRHS`
     //
     // * `I`: `italic`
     // * `R`: `inverse/reverse`
     // * `H`: `hidden/invisible`
     // * `S`: `strikethrough`
+    // * `X`: unused
     style: u8,
 
     underline: Option<Underline>,
