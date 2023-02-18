@@ -25,10 +25,16 @@ pub struct Line {
     stroke: Stroke,
 }
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum Marking {
+    Line(Line),
+    Stress,
+}
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Default)]
 pub struct Decorations {
     frame: Option<Frame>,
-    line: Option<Line>,
+    marking: Option<Marking>,
 }
 
 impl Decorations {
@@ -36,7 +42,7 @@ impl Decorations {
     pub const fn new() -> Self {
         Self {
             frame: None,
-            line: None,
+            marking: None,
         }
     }
 }

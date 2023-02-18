@@ -125,16 +125,16 @@ pub struct BrightColor(BasicColor);
 /// > specifying the index into the colour table given by the attribute
 /// > "content colour table" applying to the object with which the content is associated.
 ///
-/// [ISO 8613-6] and [ECMA-48] specified the separator between elements to be `03/10` (`:`), while
-/// newer implementations followed the initial implementation of `xterm`, which used the separator
-/// `03/11` (`;`).
+/// [ISO 8613-6] and [ECMA-48] specified the separator between elements to be `03/10` (`:`), until
+/// [ISO 8613-6] was rediscovered in the early 2010s implementations used the format initially used
+/// by `xterm`, which used `;` as a separator instead of `:`. Most actively maintained open-source
+/// terminal emulators like [`xterm`], [`kitty`] or [`wezterm`] support both delimiter and recommend
+/// the use of `:`. Note that most built-in terminal emulators like [`Terminal.app`] do **not**
+/// support `;` as a delimiter.
+/// A detailed explanation as to why this discrepancy between standard and implementation
+/// happened can be read in the [xterm repository](https://github.com/ThomasDickey/xterm-snapshots/blob/8d625aa49d5fdaa055a9f26d514121f032c7b771/charproc.c#L1957-L2028).
 ///
-/// The only difference to all common implementations is, that the separator used in the
-/// specification is `:`, while most implementations only support `;` as a separator. An explanation
-/// as to why can be seen in the source code of the initial support in `xterm`,
-/// which all other terminal emulators adopted: [GitHub repo](https://github.com/ThomasDickey/xterm-snapshots/blob/8d625aa49d5fdaa055a9f26d514121f032c7b771/charproc.c#L1957-L2028)
-///
-/// The escape sequence for these colors is `ESC[38;5;{ID}m` for the foreground and `ESC[38;5;{ID}m`
+/// The escape sequence for these colors is `ESC[38:5:{ID}m` for the foreground and `ESC[38:5:{ID}m`
 /// for the background.
 ///
 /// [ISO 8613-6]: https://www.iso.org/standard/22943.html
@@ -195,15 +195,19 @@ impl From<BrightColor> for IndexedColor {
 /// ## Specification
 ///
 /// This mode was initially specified in 1994, together with [`IndexedColor`], but most terminals do
-/// not support the format outlined in [ISO 8613-6], The standard is a lot more complete than the
-/// now used format of `ESC[38;2;{r};{g};{b}m` and featured optional color space id, tolerance and
-/// color space associated with the tolerance parameters.
+/// not support the format outlined in [ISO 8613-6] completely. The standard specified the optional
+/// parameters `color space id`, `tolerance value` and `color space of the tolerance value`, but
+/// left the meaning of those parameters unspecified. Nowadays modern terminal emulators support
+/// `ESC[38::2:{r}:{g}:{b}m`. Which follows the same format, but ignores any value set for those
+/// optional parameters.
 ///
-/// Only `xterm` supports this scheme, where the color space id and tolerance parameters are
-/// ignored. The specification also uses `:` as a separator instead of `;`. `xterm` was the first
-/// terminal with wide-spread adoption that implemented RGB support in 2012, and all other terminals
-/// copied their implementation. For the reason why there's a discrepancy between the standard and
-/// implementation a detailed reasoning is provided in the [xterm repo](https://github.com/ThomasDickey/xterm-snapshots/blob/8d625aa49d5fdaa055a9f26d514121f032c7b771/charproc.c#L1957-L2028)
+/// Modern terminal emulators like [`kitty`], [`wezterm`], [`mintty`] or modern versions of
+/// [`xterm`] support a reduced set where one can specify a value for the parameter, but it will be
+/// ignored. Older terminal emulators like [`Terminal.app`] support a legacy format first introduced
+/// by `xterm` in 2012, which used `;` as a separator instead of `:` and has no notion of optional
+/// fields (e.g. `ESC[38;2;{r};{g};{b}m`). For a detailed explanation as to why the discrepancy
+/// between standard and initial implementation was created please visit the
+/// [xterm repository](https://github.com/ThomasDickey/xterm-snapshots/blob/8d625aa49d5fdaa055a9f26d514121f032c7b771/charproc.c#L1957-L2028).
 ///
 /// [ISO 8613-6] also specified multiple additional modes, like transparent, CMK, and CMYK support.
 ///
