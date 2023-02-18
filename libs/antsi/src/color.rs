@@ -203,11 +203,11 @@ impl From<BrightColor> for IndexedColor {
 ///
 /// Modern terminal emulators like [`kitty`], [`wezterm`], [`mintty`] or modern versions of
 /// [`xterm`] support a reduced set where one can specify a value for the parameter, but it will be
-/// ignored. Older terminal emulators like [`Terminal.app`] support a legacy format first introduced
-/// by `xterm` in 2012, which used `;` as a separator instead of `:` and has no notion of optional
-/// fields (e.g. `ESC[38;2;{r};{g};{b}m`). For a detailed explanation as to why the discrepancy
-/// between standard and initial implementation was created please visit the
-/// [xterm repository](https://github.com/ThomasDickey/xterm-snapshots/blob/8d625aa49d5fdaa055a9f26d514121f032c7b771/charproc.c#L1957-L2028).
+/// ignored. Older terminal emulators like [`Terminal.app`] only support a legacy format first
+/// introduced by `xterm` in 2012, which used `;` as a separator instead of `:` and has no notion of
+/// optional fields, e.g. `ESC[38;2;{r};{g};{b}m`, (Most modern terminal emulators support this
+/// format due to compatability concerns). For a detailed explanation as to why the discrepancy
+/// between standard and initial implementation was created please visit the [xterm repository](https://github.com/ThomasDickey/xterm-snapshots/blob/8d625aa49d5fdaa055a9f26d514121f032c7b771/charproc.c#L1957-L2028).
 ///
 /// [ISO 8613-6] also specified multiple additional modes, like transparent, CMK, and CMYK support.
 ///
