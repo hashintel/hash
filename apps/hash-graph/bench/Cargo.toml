@@ -13,7 +13,7 @@ autobenches = false
 [dev-dependencies]
 criterion = { version = "0.4.0", features = ["async_tokio", "html_reports"] }
 criterion-macro = "0.4.0"
-futures = "0.3.25"
+futures = "0.3.26"
 graph = { path = "../lib/graph", features = ["__internal_bench"] }
 graph-test-data = { path = "../tests/test_data" }
 rand = "0.8.5"
