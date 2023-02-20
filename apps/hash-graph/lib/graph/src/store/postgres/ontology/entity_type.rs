@@ -299,7 +299,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         let StructuralQuery {
             ref filter,
             graph_resolve_depths,
-            time_projection: ref unresolved_time_projection,
+            time_axes: ref unresolved_time_projection,
         } = *query;
 
         let time_projection = unresolved_time_projection.clone().resolve();

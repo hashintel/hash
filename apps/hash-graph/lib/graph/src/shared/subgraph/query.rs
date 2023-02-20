@@ -162,29 +162,25 @@ pub struct StructuralQuery<'p, R: Record> {
     #[serde(bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>")]
     pub filter: Filter<'p, R>,
     pub graph_resolve_depths: GraphResolveDepths,
-    #[serde(rename = "timeAxes")]
-    pub time_projection: UnresolvedTemporalAxes,
+    pub time_axes: UnresolvedTemporalAxes,
 }
 
 impl<'p, R: Record> StructuralQuery<'p, R> {
     fn generate_schema() -> RefOr<Schema> {
-        Schema::Object(
-            ObjectBuilder::new()
-                .property("filter", Ref::from_schema_name("Filter"))
-                .required("filter")
-                .property(
-                    "graphResolveDepths",
-                    Ref::from_schema_name(GraphResolveDepths::schema().0),
-                )
-                .required("graphResolveDepths")
-                .property(
-                    "timeAxes",
-                    Ref::from_schema_name(UnresolvedTemporalAxes::schema().0),
-                )
-                .required("timeProjection")
-                .build(),
-        )
-        .into()
+        ObjectBuilder::new()
+            .property("filter", Ref::from_schema_name("Filter"))
+            .required("filter")
+            .property(
+                "graphResolveDepths",
+                Ref::from_schema_name(GraphResolveDepths::schema().0),
+            )
+            .required("graphResolveDepths")
+            .property(
+                "timeAxes",
+                Ref::from_schema_name(UnresolvedTemporalAxes::schema().0),
+            )
+            .required("timeAxes")
+            .into()
     }
 }
 

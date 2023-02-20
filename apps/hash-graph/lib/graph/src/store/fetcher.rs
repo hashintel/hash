@@ -136,7 +136,7 @@ where
             StructuralQuery {
                 filter: Filter::for_versioned_uri(versioned_uri),
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: UnresolvedTemporalAxes::DecisionTime {
+                time_axes: UnresolvedTemporalAxes::DecisionTime {
                     pinned: UnresolvedPinnedTemporalAxis::new(None),
                     variable: UnresolvedVariableTemporalAxis::new(None, None),
                 },

@@ -32,7 +32,7 @@ pub fn bench_get_entity_type_by_id(
                 .get_entity_type(&StructuralQuery {
                     filter: Filter::for_versioned_uri(entity_type_id),
                     graph_resolve_depths: GraphResolveDepths::default(),
-                    time_projection: UnresolvedTemporalAxes::DecisionTime {
+                    time_axes: UnresolvedTemporalAxes::DecisionTime {
                         pinned: UnresolvedPinnedTemporalAxis::new(None),
                         variable: UnresolvedVariableTemporalAxis::new(
                             Some(TimeIntervalBound::Unbounded),
