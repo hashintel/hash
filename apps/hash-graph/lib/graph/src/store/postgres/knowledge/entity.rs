@@ -69,10 +69,10 @@ impl<C: AsClient> PostgresStore<C> {
             // intervals.
             let Some(mut intersected_temporal_axes) = temporal_axes.intersect_variable_interval(version_interval) else {
                 // `traverse_entity` is called with the returned entities from `read` with
-                // `temporal_axes`. This implies, that the version interval of `entity` is
-                // overlaps with `temporal_axes`. `version_interval` returns `None` if there are
+                // `temporal_axes`. This implies, that the version interval of `entity` overlaps
+                // with `temporal_axes`. `version_interval` returns `None` if there are
                 // no overlapping points, so this should never happen.
-                unreachable!("the version interval of the entity does not overlap with the temporal axis's time interval");
+                unreachable!("the version interval of the entity does not overlap with the variable axis's time interval");
             };
 
             let dependency_status = dependency_context.knowledge_dependency_map.update(

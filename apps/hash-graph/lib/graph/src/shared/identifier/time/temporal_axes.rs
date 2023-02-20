@@ -256,8 +256,8 @@ where
 /// [`Timestamp`], while the other axis can be a [`Interval`]. The pinned axis is called the
 /// [`PinnedTemporalAxis`] and the other axis is called the [`VariableTemporalAxis`] of a
 /// projection. The returned data will then only contain temporal data that is contained in the
-/// [`Interval`] of the [`VariableTemporalAxis`], the [`VariableAxis`], for the given [`Timestamp`]
-/// of the [`PinnedTemporalAxis`].
+/// [`Interval`] of the [`VariableTemporalAxis`] for the given [`Timestamp`] of the
+/// [`PinnedTemporalAxis`].
 ///
 /// [`Interval`]: crate::interval::Interval
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
