@@ -1,7 +1,7 @@
 mod axis;
 mod bound;
 mod interval;
-mod projection;
+mod temporal_axes;
 mod timestamp;
 
 pub use self::{
@@ -11,7 +11,7 @@ pub use self::{
         UnboundedOrExcludedTimeIntervalBound,
     },
     interval::UnresolvedTimeInterval,
-    projection::{
+    temporal_axes::{
         Kernel, TemporalAxes, UnresolvedPinnedTemporalAxis, UnresolvedTemporalAxes,
         UnresolvedVariableTemporalAxis, VariableTemporalAxis,
     },
