@@ -111,7 +111,7 @@ async fn create_data_type<P: StorePool + Send>(
     })?;
 
     let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-        data_type.id().into(),
+        data_type.id().clone().into(),
         ProvenanceMetadata::new(actor_id),
         owned_by_id,
     ));
@@ -204,16 +204,13 @@ async fn update_data_type<P: StorePool + Send>(
 ) -> Result<Json<OntologyElementMetadata>, StatusCode> {
     let Json(UpdateDataTypeRequest {
         schema,
-        type_to_update,
+        mut type_to_update,
         actor_id,
     }) = body;
 
-    let new_type_id = VersionedUri::new(
-        type_to_update.base_uri().clone(),
-        type_to_update.version() + 1,
-    );
+    type_to_update.version += 1;
 
-    let data_type = patch_id_and_parse(&new_type_id, schema).map_err(|report| {
+    let data_type = patch_id_and_parse(&type_to_update, schema).map_err(|report| {
         tracing::error!(error=?report, "Couldn't patch schema and convert to Data Type");
         StatusCode::UNPROCESSABLE_ENTITY
         // TODO - We should probably return more information to the client

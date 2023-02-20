@@ -1,4 +1,4 @@
-import { EntityId } from "@local/hash-subgraph/main";
+import { EntityId } from "@local/hash-subgraph";
 import { Dispatch, SetStateAction, useState } from "react";
 
 import { LinkAndTargetEntity } from "../entity-editor/links-section/link-table/types";

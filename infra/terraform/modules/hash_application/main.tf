@@ -9,6 +9,11 @@ locals {
       ecr_arn  = var.graph_image.ecr_arn
     },
     {
+      task_def = local.type_fetcher_service_container_def
+      env_vars = aws_ssm_parameter.type_fetcher_env_vars
+      ecr_arn  = var.type_fetcher_image.ecr_arn
+    },
+    {
       task_def = local.kratos_service_container_def
       env_vars = aws_ssm_parameter.kratos_env_vars
       ecr_arn  = var.kratos_image.ecr_arn
@@ -395,7 +400,14 @@ resource "aws_security_group" "app_sg" {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    description = "Allow outgoing requests"
+    description = "Allow outgoing requests to fetch types"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    description = "Allow outgoing requests to fetch types"
     cidr_blocks = ["0.0.0.0/0"]
   }
   egress {

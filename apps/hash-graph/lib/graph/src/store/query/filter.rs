@@ -87,8 +87,8 @@ where
     #[must_use]
     pub fn for_versioned_uri(versioned_uri: &'p VersionedUri) -> Self {
         Self::All(vec![
-            Self::for_base_uri(versioned_uri.base_uri()),
-            Self::for_version(OntologyTypeVersion::new(versioned_uri.version())),
+            Self::for_base_uri(&versioned_uri.base_uri),
+            Self::for_version(OntologyTypeVersion::new(versioned_uri.version)),
         ])
     }
 
@@ -97,8 +97,8 @@ where
     #[must_use]
     pub fn for_ontology_type_vertex_id(ontology_type_vertex_id: &'p OntologyTypeVertexId) -> Self {
         Self::All(vec![
-            Self::for_base_uri(ontology_type_vertex_id.base_id()),
-            Self::for_version(ontology_type_vertex_id.version()),
+            Self::for_base_uri(&ontology_type_vertex_id.base_id),
+            Self::for_version(ontology_type_vertex_id.version),
         ])
     }
 }
@@ -111,13 +111,13 @@ impl<'p> Filter<'p, Entity> {
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.owned_by_id().as_uuid(),
+                    entity_id.owned_by_id.as_uuid(),
                 ))),
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::Uuid)),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.entity_uuid().as_uuid(),
+                    entity_id.entity_uuid.as_uuid(),
                 ))),
             ),
         ])
@@ -133,7 +133,7 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::OwnedById),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.owned_by_id().as_uuid(),
+                    entity_id.owned_by_id.as_uuid(),
                 ))),
             ),
             Self::Equal(
@@ -141,7 +141,7 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::Uuid),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.entity_uuid().as_uuid(),
+                    entity_id.entity_uuid.as_uuid(),
                 ))),
             ),
         ])
@@ -157,7 +157,7 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::OwnedById),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.owned_by_id().as_uuid(),
+                    entity_id.owned_by_id.as_uuid(),
                 ))),
             ),
             Self::Equal(
@@ -165,7 +165,7 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::Uuid),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.entity_uuid().as_uuid(),
+                    entity_id.entity_uuid.as_uuid(),
                 ))),
             ),
         ])
@@ -181,7 +181,7 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::OwnedById),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.owned_by_id().as_uuid(),
+                    entity_id.owned_by_id.as_uuid(),
                 ))),
             ),
             Self::Equal(
@@ -189,7 +189,7 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::Uuid),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.entity_uuid().as_uuid(),
+                    entity_id.entity_uuid.as_uuid(),
                 ))),
             ),
         ])
@@ -205,7 +205,7 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::OwnedById),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.owned_by_id().as_uuid(),
+                    entity_id.owned_by_id.as_uuid(),
                 ))),
             ),
             Self::Equal(
@@ -213,7 +213,7 @@ impl<'p> Filter<'p, Entity> {
                     Box::new(EntityQueryPath::Uuid),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.entity_uuid().as_uuid(),
+                    entity_id.entity_uuid.as_uuid(),
                 ))),
             ),
         ])
@@ -303,7 +303,7 @@ pub struct ParameterConversionError {
 impl fmt::Display for ParameterConversionError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         let actual = match &self.actual {
-            Parameter::Any(Value::Null) => "null".to_string(),
+            Parameter::Any(Value::Null) => "null".to_owned(),
             Parameter::Boolean(boolean) | Parameter::Any(Value::Bool(boolean)) => {
                 boolean.to_string()
             }
@@ -313,8 +313,8 @@ impl fmt::Display for ParameterConversionError {
             Parameter::Any(Value::String(string)) => string.clone(),
             Parameter::Uuid(uuid) => uuid.to_string(),
             Parameter::OntologyTypeVersion(version) => version.inner().to_string(),
-            Parameter::Any(Value::Object(_)) => "object".to_string(),
-            Parameter::Any(Value::Array(_)) => "array".to_string(),
+            Parameter::Any(Value::Object(_)) => "object".to_owned(),
+            Parameter::Any(Value::Array(_)) => "array".to_owned(),
         };
 
         write!(fmt, "could not convert {actual} to {}", self.expected)
@@ -337,10 +337,10 @@ impl Parameter<'_> {
 
             // Boolean conversions
             (Parameter::Boolean(bool), ParameterType::Any) => {
-                *self = Parameter::Any(Value::Bool(*bool))
+                *self = Parameter::Any(Value::Bool(*bool));
             }
             (Parameter::Any(Value::Bool(bool)), ParameterType::Boolean) => {
-                *self = Parameter::Boolean(*bool)
+                *self = Parameter::Boolean(*bool);
             }
 
             // Number conversions
@@ -352,7 +352,7 @@ impl Parameter<'_> {
                             expected,
                         })
                     },
-                )?))
+                )?));
             }
             (Parameter::Any(Value::Number(number)), ParameterType::Number) => {
                 *self = Parameter::Number(number.as_f64().ok_or_else(|| {
@@ -360,7 +360,7 @@ impl Parameter<'_> {
                         actual: self.to_owned(),
                         expected,
                     })
-                })?)
+                })?);
             }
             (Parameter::Number(number), ParameterType::OntologyTypeVersion) => {
                 // Postgres cannot represent unsigned integer, so we use i64 instead
@@ -380,10 +380,10 @@ impl Parameter<'_> {
 
             // Text conversions
             (Parameter::Text(text), ParameterType::Any) => {
-                *self = Parameter::Any(Value::String(text.to_string()))
+                *self = Parameter::Any(Value::String((*text).to_string()));
             }
             (Parameter::Any(Value::String(string)), ParameterType::Text) => {
-                *self = Parameter::Text(Cow::Owned(string.clone()))
+                *self = Parameter::Text(Cow::Owned(string.clone()));
             }
             (Parameter::Text(_base_uri), ParameterType::BaseUri) => {
                 // TODO: validate base uri
@@ -440,23 +440,23 @@ mod tests {
 
     #[test]
     fn for_versioned_uri() {
-        let uri = VersionedUri::new(
-            BaseUri::new(
+        let uri = VersionedUri {
+            base_uri: BaseUri::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
             )
             .expect("invalid base uri"),
-            1,
-        );
+            version: 1,
+        };
 
         let expected = json! {{
           "all": [
             { "equal": [
               { "path": ["baseUri"] },
-              { "parameter": uri.base_uri() }
+              { "parameter": uri.base_uri }
             ]},
             { "equal": [
               { "path": ["version"] },
-              { "parameter": uri.version() }
+              { "parameter": uri.version }
             ]}
           ]
         }};
@@ -469,23 +469,23 @@ mod tests {
 
     #[test]
     fn for_ontology_type_version_id() {
-        let uri = OntologyTypeVertexId::new(
-            BaseUri::new(
+        let uri = OntologyTypeVertexId {
+            base_id: BaseUri::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
             )
             .expect("invalid base uri"),
-            OntologyTypeVersion::new(1),
-        );
+            version: OntologyTypeVersion::new(1),
+        };
 
         let expected = json! {{
           "all": [
             { "equal": [
               { "path": ["baseUri"] },
-              { "parameter": uri.base_id() }
+              { "parameter": uri.base_id }
             ]},
             { "equal": [
               { "path": ["version"] },
-              { "parameter": uri.version() }
+              { "parameter": uri.version }
             ]}
           ]
         }};
@@ -498,20 +498,20 @@ mod tests {
 
     #[test]
     fn for_entity_by_entity_id() {
-        let entity_id = EntityId::new(
-            OwnedById::new(AccountId::new(Uuid::new_v4())),
-            EntityUuid::new(Uuid::new_v4()),
-        );
+        let entity_id = EntityId {
+            owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
+            entity_uuid: EntityUuid::new(Uuid::new_v4()),
+        };
 
         let expected = json! {{
           "all": [
             { "equal": [
               { "path": ["ownedById"] },
-              { "parameter": entity_id.owned_by_id() }
+              { "parameter": entity_id.owned_by_id }
             ]},
             { "equal": [
               { "path": ["uuid"] },
-              { "parameter": entity_id.entity_uuid() }
+              { "parameter": entity_id.entity_uuid }
             ]}
           ]
         }};
@@ -521,20 +521,20 @@ mod tests {
 
     #[test]
     fn for_entity_by_id() {
-        let entity_id = EntityId::new(
-            OwnedById::new(AccountId::new(Uuid::new_v4())),
-            EntityUuid::new(Uuid::new_v4()),
-        );
+        let entity_id = EntityId {
+            owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
+            entity_uuid: EntityUuid::new(Uuid::new_v4()),
+        };
 
         let expected = json! {{
           "all": [
             { "equal": [
               { "path": ["ownedById"] },
-              { "parameter": entity_id.owned_by_id() }
+              { "parameter": entity_id.owned_by_id }
             ]},
             { "equal": [
               { "path": ["uuid"] },
-              { "parameter": entity_id.entity_uuid() }
+              { "parameter": entity_id.entity_uuid }
             ]}
           ]
         }};
@@ -544,20 +544,20 @@ mod tests {
 
     #[test]
     fn for_outgoing_link_by_source_entity_id() {
-        let entity_id = EntityId::new(
-            OwnedById::new(AccountId::new(Uuid::new_v4())),
-            EntityUuid::new(Uuid::new_v4()),
-        );
+        let entity_id = EntityId {
+            owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
+            entity_uuid: EntityUuid::new(Uuid::new_v4()),
+        };
 
         let expected = json! {{
           "all": [
             { "equal": [
               { "path": ["leftEntity", "ownedById"] },
-              { "parameter": entity_id.owned_by_id() }
+              { "parameter": entity_id.owned_by_id }
             ]},
             { "equal": [
               { "path": ["leftEntity", "uuid"] },
-              { "parameter": entity_id.entity_uuid() }
+              { "parameter": entity_id.entity_uuid }
             ]}
           ]
         }};
@@ -570,20 +570,20 @@ mod tests {
 
     #[test]
     fn for_left_entity_by_entity_id() {
-        let entity_id = EntityId::new(
-            OwnedById::new(AccountId::new(Uuid::new_v4())),
-            EntityUuid::new(Uuid::new_v4()),
-        );
+        let entity_id = EntityId {
+            owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
+            entity_uuid: EntityUuid::new(Uuid::new_v4()),
+        };
 
         let expected = json! {{
           "all": [
             { "equal": [
               { "path": ["outgoingLinks", "ownedById"] },
-              { "parameter": entity_id.owned_by_id() }
+              { "parameter": entity_id.owned_by_id }
             ]},
             { "equal": [
               { "path": ["outgoingLinks", "uuid"] },
-              { "parameter": entity_id.entity_uuid() }
+              { "parameter": entity_id.entity_uuid }
             ]}
           ]
         }};
@@ -593,20 +593,20 @@ mod tests {
 
     #[test]
     fn for_right_entity_by_entity_id() {
-        let entity_id = EntityId::new(
-            OwnedById::new(AccountId::new(Uuid::new_v4())),
-            EntityUuid::new(Uuid::new_v4()),
-        );
+        let entity_id = EntityId {
+            owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
+            entity_uuid: EntityUuid::new(Uuid::new_v4()),
+        };
 
         let expected = json! {{
           "all": [
             { "equal": [
               { "path": ["incomingLinks", "ownedById"] },
-              { "parameter": entity_id.owned_by_id() }
+              { "parameter": entity_id.owned_by_id }
             ]},
             { "equal": [
               { "path": ["incomingLinks", "uuid"] },
-              { "parameter": entity_id.entity_uuid() }
+              { "parameter": entity_id.entity_uuid }
             ]}
           ]
         }};

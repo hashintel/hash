@@ -14,7 +14,8 @@ import { useRemoteBlock } from "./use-remote-block";
 
 type RemoteBlockProps = {
   graphCallbacks: Omit<
-    EmbedderGraphMessageCallbacks,
+    /** @todo-0.3 - Add these back */
+    EmbedderGraphMessageCallbacks<true>,
     | "createEntity"
     | "getEntity"
     | "aggregateEntities"
@@ -24,6 +25,10 @@ type RemoteBlockProps = {
     | "updateLink"
     | "deleteLink"
     | "getLinkedAggregation"
+    | "createPropertyType"
+    | "aggregatePropertyTypes"
+    | "updatePropertyType"
+    | "getPropertyType"
     | "createEntityType"
     | "aggregateEntityTypes"
     | "updateEntityType"
@@ -32,8 +37,9 @@ type RemoteBlockProps = {
     | "createLinkedAggregation"
     | "updateLinkedAggregation"
     | "deleteLinkedAggregation"
+    | "uploadFile"
   >;
-  graphProperties: Required<BlockGraphProperties["graph"]>;
+  graphProperties: Required<BlockGraphProperties<true>["graph"]>;
   blockMetadata: BlockMetadata;
   crossFrame?: boolean;
   editableRef?: (node: HTMLElement | null) => void;
@@ -81,9 +87,7 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
   });
 
   useEffect(() => {
-    if (graphService) {
-      graphService.registerCallbacks(graphCallbacks);
-    }
+    graphService.registerCallbacks(graphCallbacks);
   }, [graphCallbacks, graphService]);
 
   useHookEmbedderService(wrapperRef, {
@@ -105,19 +109,15 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
   });
 
   useEffect(() => {
-    if (graphService) {
-      graphService.blockEntitySubgraph({
-        data: graphProperties.blockEntitySubgraph,
-      });
-    }
+    graphService.blockEntitySubgraph({
+      data: graphProperties.blockEntitySubgraph,
+    });
   }, [graphProperties.blockEntitySubgraph, graphService]);
 
   useEffect(() => {
-    if (graphService) {
-      graphService.readonly({
-        data: graphProperties.readonly,
-      });
-    }
+    graphService.readonly({
+      data: graphProperties.readonly,
+    });
   }, [graphProperties.readonly, graphService]);
 
   if (loading) {
@@ -132,22 +132,18 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
     throw err;
   }
 
-  const propsToInject: BlockGraphProperties = {
+  const propsToInject: BlockGraphProperties<true> = {
     graph: graphProperties,
   };
 
   return (
     <div ref={wrapperRef}>
-      {graphService ? (
-        <BlockRenderer
-          blockSource={blockSource}
-          blockType={blockMetadata.blockType}
-          properties={propsToInject}
-          sourceUrl={blockMetadata.source}
-        />
-      ) : (
-        <BlockLoadingIndicator />
-      )}
+      <BlockRenderer
+        blockSource={blockSource}
+        blockType={blockMetadata.blockType}
+        properties={propsToInject}
+        sourceUrl={blockMetadata.source}
+      />
     </div>
   );
 };

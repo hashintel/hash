@@ -1,15 +1,13 @@
 import {
   BlockGraphProperties,
   EmbedderGraphMessageCallbacks,
+  EntityRootType,
+  Subgraph,
 } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import { VersionedUri } from "@blockprotocol/type-system/slim";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
-import {
-  Entity,
-  EntityId,
-  Subgraph as LocalSubgraph,
-} from "@local/hash-subgraph/main";
-import { getRoots } from "@local/hash-subgraph/stdlib/roots";
+import { Entity, EntityId } from "@local/hash-subgraph";
 import {
   FunctionComponent,
   useCallback,
@@ -64,7 +62,10 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
 
   useEffect(() => {
     void fetchBlockSubgraph(blockEntityTypeId, blockEntityId).then(
-      (newBlockSubgraph) => setBlockSubgraph(newBlockSubgraph),
+      (newBlockSubgraph) =>
+        setBlockSubgraph(
+          newBlockSubgraph as unknown as Subgraph<true, EntityRootType<true>>,
+        ),
     );
   }, [fetchBlockSubgraph, blockEntityId, blockEntityTypeId, setBlockSubgraph]);
 
@@ -78,15 +79,27 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       getEmbedBlock: fetchEmbedCode,
       uploadFile,
       updateEntity: async (
-        ...args: Parameters<EmbedderGraphMessageCallbacks["updateEntity"]>
+        ...args: Parameters<EmbedderGraphMessageCallbacks<true>["updateEntity"]>
       ) => {
-        const res = await updateEntity(...args);
+        const [messageData] = args;
+        const res = await updateEntity(
+          messageData.data
+            ? {
+                data: {
+                  ...messageData.data,
+                  entityId: messageData.data.entityId as EntityId,
+                },
+              }
+            : {},
+        );
 
         const newBlockSubgraph = await fetchBlockSubgraph(
           blockEntityTypeId,
           blockEntityId,
         );
-        setBlockSubgraph(newBlockSubgraph);
+        setBlockSubgraph(
+          newBlockSubgraph as unknown as Subgraph<true, EntityRootType<true>>,
+        );
 
         return res;
       },
@@ -130,7 +143,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   //   );
   // }
 
-  const graphProperties = useMemo<BlockGraphProperties["graph"]>(
+  const graphProperties = useMemo<BlockGraphProperties<true>["graph"]>(
     () => ({
       readonly,
       blockEntitySubgraph: blockSubgraph,
@@ -144,23 +157,16 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     if (!graphProperties.blockEntitySubgraph) {
       return null;
     }
-    // @todo.0-3 fix this to import from @blockprotocol/graph when key mismatches are fixed
-    const rootEntity = getRoots({
-      ...graphProperties.blockEntitySubgraph,
-      roots: graphProperties.blockEntitySubgraph.roots.map(
-        (externalVertexId) => ({
-          baseId: externalVertexId.baseId,
-          version: externalVertexId.versionId,
-        }),
-      ),
-    } as unknown as LocalSubgraph)[0] as Entity | undefined;
+    const rootEntity = getRoots(graphProperties.blockEntitySubgraph)[0] as
+      | Entity
+      | undefined;
 
     if (!rootEntity) {
       throw new Error("Root entity not present in blockEntitySubgraph");
     }
 
     return {
-      ...(graphProperties as Required<BlockGraphProperties["graph"]>),
+      ...(graphProperties as Required<BlockGraphProperties<true>["graph"]>),
       blockEntity: {
         entityId: rootEntity.metadata.recordId.entityId,
         properties: rootEntity.properties,

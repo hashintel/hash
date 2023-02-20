@@ -1,22 +1,29 @@
 import { Subgraph as SubgraphGraphApi } from "@local/hash-graph-client";
-
 import {
-  isEntityVertexId,
-  isOntologyTypeRecordId,
+  EntityRevisionId,
+  OntologyTypeRevisionId,
   Subgraph,
-} from "../../src/main";
+} from "@local/hash-subgraph";
+
+import { isBaseUri, isEntityId } from "../../src/types/shared/branded";
 
 export const mapRoots = (
   roots: SubgraphGraphApi["roots"],
 ): Subgraph["roots"] => {
   return roots.map((root) => {
-    if (isEntityVertexId(root)) {
-      return root;
-    } else if (isOntologyTypeRecordId(root)) {
-      return root;
+    if (isEntityId(root.baseId)) {
+      return {
+        baseId: root.baseId,
+        revisionId: root.version as EntityRevisionId,
+      };
+    } else if (isBaseUri(root.baseId)) {
+      return {
+        baseId: root.baseId,
+        revisionId: root.version as OntologyTypeRevisionId,
+      };
     } else {
       throw new Error(
-        `Unrecognized root edition ID format: ${JSON.stringify(root)}`,
+        `Unrecognized root vertex ID format: ${JSON.stringify(root)}`,
       );
     }
   });

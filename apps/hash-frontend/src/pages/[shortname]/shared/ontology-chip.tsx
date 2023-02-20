@@ -1,7 +1,5 @@
-import {
-  extractBaseUri,
-  validateVersionedUri,
-} from "@blockprotocol/type-system";
+import { validateVersionedUri } from "@blockprotocol/type-system";
+import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
   Stack,

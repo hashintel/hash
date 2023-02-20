@@ -1,4 +1,4 @@
-import { EntityId } from "@local/hash-subgraph/main";
+import { EntityId } from "@local/hash-subgraph";
 import { experimental_sx as sx, styled, TextareaAutosize } from "@mui/material";
 import {
   ChangeEventHandler,

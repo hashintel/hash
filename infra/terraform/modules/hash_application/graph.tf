@@ -25,6 +25,7 @@ locals {
     cpu         = 0 # let ECS divvy up the available CPU
     mountPoints = []
     volumesFrom = []
+    dependsOn   = [{ condition = "HEALTHY", containerName = local.type_fetcher_service_container_def.name }]
     command     = ["server"]
     healthCheck = {
       command  = ["CMD", "/hash-graph", "server", "--healthcheck"]

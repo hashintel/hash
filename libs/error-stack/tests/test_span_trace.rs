@@ -4,6 +4,7 @@
 
 mod common;
 
+#[allow(clippy::wildcard_imports)]
 use common::*;
 use error_stack::Result;
 use tracing_error::{ErrorLayer, SpanTrace};
@@ -16,7 +17,7 @@ fn install_tracing_subscriber() {
             tracing_subscriber::Registry::default().with(ErrorLayer::default()),
         )
         .expect("Could not set tracing subscriber");
-    })
+    });
 }
 
 #[test]

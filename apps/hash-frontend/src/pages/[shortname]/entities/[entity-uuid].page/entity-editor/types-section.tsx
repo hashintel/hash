@@ -1,7 +1,9 @@
-import { extractBaseUri, extractVersion } from "@blockprotocol/type-system";
-import { versionedUriFromComponents } from "@local/hash-subgraph/shared/type-system-patch";
-import { getEntityTypeById } from "@local/hash-subgraph/stdlib/element/entity-type";
-import { getRoots } from "@local/hash-subgraph/stdlib/roots";
+import { extractVersion } from "@blockprotocol/type-system";
+import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  extractBaseUri,
+  versionedUriFromComponents,
+} from "@local/hash-subgraph/type-system-patch";
 import { Box } from "@mui/material";
 import { useEffect, useState } from "react";
 
@@ -50,10 +52,13 @@ export const TypesSection = () => {
         return;
       }
 
-      const currentEntityVersion = extractVersion(entityTypeId);
+      const currentEntityTypeVersion = extractVersion(entityTypeId);
+      const entityTypeWithSameBaseIdVersion = Number(
+        entityTypeWithSameBaseId.revisionId,
+      );
 
-      if (entityTypeWithSameBaseId.version > currentEntityVersion) {
-        setNewVersion(entityTypeWithSameBaseId.version);
+      if (entityTypeWithSameBaseIdVersion > currentEntityTypeVersion) {
+        setNewVersion(entityTypeWithSameBaseIdVersion);
       }
     };
 

@@ -72,12 +72,12 @@ impl Edges {
                 HashMap::new(),
                 |mut map, (id, edges)| {
                     let edges = edges.into_iter().collect();
-                    match map.entry(id.base_id().clone()) {
+                    match map.entry(id.base_id.clone()) {
                         Entry::Occupied(entry) => {
-                            entry.into_mut().insert(id.version(), edges);
+                            entry.into_mut().insert(id.version, edges);
                         }
                         Entry::Vacant(entry) => {
-                            entry.insert(BTreeMap::from([(id.version(), edges)]));
+                            entry.insert(BTreeMap::from([(id.version, edges)]));
                         }
                     }
                     map
@@ -117,11 +117,11 @@ impl Edges {
                                 let earliest_timestamp = if edge.reversed {
                                     vertices.earliest_entity_by_id(&edge.right_endpoint)
                                 } else {
-                                    vertices.earliest_entity_by_id(&id.base_id())
+                                    vertices.earliest_entity_by_id(&id.base_id)
                                 }
                                     .expect("entity must exist in subgraph")
                                     .vertex_id(time_axis)
-                                    .version();
+                                    .version;
 
                                 KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
                                     kind: edge.kind,
@@ -134,16 +134,16 @@ impl Edges {
                             }
                         }
                     }).collect();
-                    match map.entry(id.base_id()) {
+                    match map.entry(id.base_id) {
                         Entry::Occupied(entry) => {
                             entry.into_mut().insert(
-                                id.version(),
+                                id.version,
                                 edges,
                             );
                         }
                         Entry::Vacant(entry) => {
                             entry.insert(BTreeMap::from([(
-                                id.version(),
+                                id.version,
                                 edges,
                             )]));
                         }

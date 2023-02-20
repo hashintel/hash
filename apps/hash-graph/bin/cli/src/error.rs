@@ -21,8 +21,8 @@ pub enum HealthcheckError {
 impl fmt::Display for HealthcheckError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            HealthcheckError::NotHealthy => fmt.write_str("healthcheck failed"),
-            HealthcheckError::Timeout => fmt.write_str("healthcheck timed out"),
+            Self::NotHealthy => fmt.write_str("healthcheck failed"),
+            Self::Timeout => fmt.write_str("healthcheck timed out"),
         }
     }
 }

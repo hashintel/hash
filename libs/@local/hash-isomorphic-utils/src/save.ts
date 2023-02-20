@@ -1,9 +1,10 @@
 import { ApolloClient } from "@apollo/client";
+import { VersionedUri } from "@blockprotocol/type-system";
 import {
   getPageQuery,
   updatePageContents,
 } from "@local/hash-graphql-shared/queries/page.queries";
-import { EntityId, OwnedById, VersionedUri } from "@local/hash-subgraph/main";
+import { EntityId, OwnedById } from "@local/hash-subgraph";
 import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";

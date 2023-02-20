@@ -7,9 +7,12 @@
  * relevant for the type editors.
  */
 import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
-import { OwnedById } from "@local/hash-subgraph/main";
+import { OwnedById } from "@local/hash-subgraph";
 
-import { KnowledgeCallbacks } from "../../components/hooks/block-protocol-functions/knowledge/knowledge-shim";
+import {
+  KnowledgeCallbacks,
+  UploadFileRequestCallback,
+} from "../../components/hooks/block-protocol-functions/knowledge/knowledge-shim";
 import { useBlockProtocolAggregateEntities } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-aggregate-entities";
 import { useBlockProtocolArchiveEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
 import { useBlockProtocolCreateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
@@ -32,28 +35,28 @@ import { useBlockProtocolUpdatePropertyType } from "../../components/hooks/block
 import { useIsReadonlyModeForApp } from "../../shared/readonly-mode";
 
 export type GraphMessageCallbacks = Omit<
-  EmbedderGraphMessageCallbacks,
-  | "getEntity"
-  | "createEntity"
-  | "aggregateEntities"
-  | "getEntityType"
-  | "createLink"
-  | "getLink"
-  | "updateLink"
-  | "deleteLink"
+  EmbedderGraphMessageCallbacks<true>,
   | "getLinkedAggregation"
   | "deleteEntity"
   | "deleteEntityType"
   | "createLinkedAggregation"
   | "updateLinkedAggregation"
   | "deleteLinkedAggregation"
-  // Replaced by new ontology callbacks
+  /** @todo-0.3 fix these inconsistencies */
+  | "getEntity"
+  | "createEntity"
+  | "aggregateEntities"
+  | "getEntityType"
   | "createEntityType"
   | "updateEntityType"
   | "aggregateEntityTypes"
+  | "aggregatePropertyTypes"
+  | "getPropertyType"
+  | "uploadFile"
+  | "updateEntity"
 > &
   OntologyCallbacks &
-  KnowledgeCallbacks;
+  KnowledgeCallbacks & { uploadFile: UploadFileRequestCallback };
 
 /** @todo Consider if we should move this out of the page and into the hooks directory. */
 export const useBlockProtocolFunctionsWithOntology = (
