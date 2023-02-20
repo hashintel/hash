@@ -444,7 +444,7 @@ mod tests {
     #[test]
     fn entity_simple_query() {
         let temporal_axes = UnresolvedTemporalAxes::default().resolve();
-        let pinned_timestamp = temporal_axes.pinned_timestamp().cast::<TransactionTime>();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
 
         let filter = Filter::Equal(
@@ -475,7 +475,7 @@ mod tests {
     #[test]
     fn entity_with_manual_selection() {
         let temporal_axes = UnresolvedTemporalAxes::default().resolve();
-        let pinned_timestamp = temporal_axes.pinned_timestamp().cast::<TransactionTime>();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::new(&temporal_axes);
         compiler.add_distinct_selection_with_ordering(
             &EntityQueryPath::Uuid,
@@ -521,7 +521,7 @@ mod tests {
     #[test]
     fn entity_property_query() {
         let temporal_axes = UnresolvedTemporalAxes::default().resolve();
-        let pinned_timestamp = temporal_axes.pinned_timestamp().cast::<TransactionTime>();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
         let json_path = JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
             r#"$."https://blockprotocol.org/@alice/types/property-type/name/""#,
@@ -558,7 +558,7 @@ mod tests {
     #[test]
     fn entity_property_null_query() {
         let temporal_axes = UnresolvedTemporalAxes::default().resolve();
-        let pinned_timestamp = temporal_axes.pinned_timestamp().cast::<TransactionTime>();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
         let json_path = JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
             r#"$."https://blockprotocol.org/@alice/types/property-type/name/""#,
@@ -592,7 +592,7 @@ mod tests {
     #[test]
     fn entity_outgoing_link_query() {
         let temporal_axes = UnresolvedTemporalAxes::default().resolve();
-        let pinned_timestamp = temporal_axes.pinned_timestamp().cast::<TransactionTime>();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
 
         let filter = Filter::Equal(
@@ -629,7 +629,7 @@ mod tests {
     #[test]
     fn entity_incoming_link_query() {
         let temporal_axes = UnresolvedTemporalAxes::default().resolve();
-        let pinned_timestamp = temporal_axes.pinned_timestamp().cast::<TransactionTime>();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
 
         let filter = Filter::Equal(
@@ -666,7 +666,7 @@ mod tests {
     #[test]
     fn link_entity_left_right_id() {
         let temporal_axes = UnresolvedTemporalAxes::default().resolve();
-        let pinned_timestamp = temporal_axes.pinned_timestamp().cast::<TransactionTime>();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
 
         let filter = Filter::All(vec![
@@ -723,7 +723,7 @@ mod tests {
     #[test]
     fn filter_left_and_right() {
         let temporal_axes = UnresolvedTemporalAxes::default().resolve();
-        let pinned_timestamp = temporal_axes.pinned_timestamp().cast::<TransactionTime>();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
 
         let filter = Filter::All(vec![
@@ -854,7 +854,7 @@ mod tests {
             };
 
             let temporal_axes = UnresolvedTemporalAxes::default().resolve();
-            let pinned_timestamp = temporal_axes.pinned_timestamp().cast::<TransactionTime>();
+            let pinned_timestamp = temporal_axes.pinned_timestamp();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
 
             let filter = Filter::for_entity_by_entity_id(entity_id);
@@ -887,7 +887,7 @@ mod tests {
             };
 
             let temporal_axes = UnresolvedTemporalAxes::default().resolve();
-            let pinned_timestamp = temporal_axes.pinned_timestamp().cast::<TransactionTime>();
+            let pinned_timestamp = temporal_axes.pinned_timestamp();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
 
             let filter = Filter::for_incoming_link_by_source_entity_id(entity_id);
@@ -920,7 +920,7 @@ mod tests {
             };
 
             let temporal_axes = UnresolvedTemporalAxes::default().resolve();
-            let pinned_timestamp = temporal_axes.pinned_timestamp().cast::<TransactionTime>();
+            let pinned_timestamp = temporal_axes.pinned_timestamp();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
 
             let filter = Filter::for_outgoing_link_by_source_entity_id(entity_id);
@@ -953,7 +953,7 @@ mod tests {
             };
 
             let temporal_axes = UnresolvedTemporalAxes::default().resolve();
-            let pinned_timestamp = temporal_axes.pinned_timestamp().cast::<TransactionTime>();
+            let pinned_timestamp = temporal_axes.pinned_timestamp();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
 
             let filter = Filter::for_left_entity_by_entity_id(entity_id);
@@ -990,7 +990,7 @@ mod tests {
             };
 
             let temporal_axes = UnresolvedTemporalAxes::default().resolve();
-            let pinned_timestamp = temporal_axes.pinned_timestamp().cast::<TransactionTime>();
+            let pinned_timestamp = temporal_axes.pinned_timestamp();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
 
             let filter = Filter::for_right_entity_by_entity_id(entity_id);
