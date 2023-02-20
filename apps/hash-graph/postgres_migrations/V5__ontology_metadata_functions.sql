@@ -106,7 +106,7 @@ BEGIN
     AND ontology_ids.version = update_owned_ontology_id.version_to_update
   RETURNING _ontology_id, metadata.owned_by_id;
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'No owned ontology type with base_uri `%` and version `%` does exist',
+    RAISE EXCEPTION 'No owned ontology type with base_uri `%` and version `%` exists',
       update_owned_ontology_id.base_uri,
       update_owned_ontology_id.version_to_update
     USING ERRCODE = 'restrict_violation';
