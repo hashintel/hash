@@ -47,7 +47,7 @@ use crate::{
         time::{
             DecisionTime, InclusiveTemporalBound, LimitedTemporalBound, TemporalAxes,
             TemporalBound, Timestamp, TransactionTime, UnboundedOrExclusiveTemporalBound,
-            UnresolvedTemporalAxes,
+            UnresolvedTemporalAxes, VersionInterval,
         },
         EntityVertexId, GraphElementVertexId, OntologyTypeVertexId,
     },
@@ -488,6 +488,10 @@ impl Modify for TimeSchemaAddon {
             components.schemas.insert(
                 LimitedTemporalBound::<()>::schema().0.to_owned(),
                 LimitedTemporalBound::<()>::schema().1,
+            );
+            components.schemas.insert(
+                "VersionInterval".to_owned(),
+                VersionInterval::<()>::schema().1,
             );
         }
     }

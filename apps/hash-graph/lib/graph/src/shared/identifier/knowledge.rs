@@ -77,9 +77,7 @@ impl ToSchema<'_> for EntityId {
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityTemporalMetadata {
-    #[schema(inline)]
     pub decision_time: VersionInterval<DecisionTime>,
-    #[schema(inline)]
     pub transaction_time: VersionInterval<TransactionTime>,
 }
 
