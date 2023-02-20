@@ -1,8 +1,8 @@
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
     identifier::time::{
-        TimeIntervalBound, UnresolvedImage, UnresolvedKernel, UnresolvedProjection,
-        UnresolvedTimeProjection,
+        TimeIntervalBound, UnresolvedPinnedTemporalAxis, UnresolvedProjection,
+        UnresolvedTimeProjection, UnresolvedVariableTemporalAxis,
     },
     store::{query::Filter, EntityTypeStore},
     subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
@@ -33,8 +33,11 @@ pub fn bench_get_entity_type_by_id(
                     filter: Filter::for_versioned_uri(entity_type_id),
                     graph_resolve_depths: GraphResolveDepths::default(),
                     time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                        pinned: UnresolvedKernel::new(None),
-                        variable: UnresolvedImage::new(Some(TimeIntervalBound::Unbounded), None),
+                        pinned: UnresolvedPinnedTemporalAxis::new(None),
+                        variable: UnresolvedVariableTemporalAxis::new(
+                            Some(TimeIntervalBound::Unbounded),
+                            None,
+                        ),
                     }),
                 })
                 .await

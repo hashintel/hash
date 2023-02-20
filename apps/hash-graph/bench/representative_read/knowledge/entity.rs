@@ -3,8 +3,8 @@ use std::borrow::Cow;
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
     identifier::time::{
-        TimeIntervalBound, UnresolvedImage, UnresolvedKernel, UnresolvedProjection,
-        UnresolvedTimeProjection,
+        TimeIntervalBound, UnresolvedPinnedTemporalAxis, UnresolvedProjection,
+        UnresolvedTimeProjection, UnresolvedVariableTemporalAxis,
     },
     knowledge::{EntityQueryPath, EntityUuid},
     store::{
@@ -43,8 +43,8 @@ pub fn bench_get_entity_by_id(
                     ),
                     graph_resolve_depths: GraphResolveDepths::default(),
                     time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                        pinned: UnresolvedKernel::new(None),
-                        variable: UnresolvedImage::new(None, None),
+                        pinned: UnresolvedPinnedTemporalAxis::new(None),
+                        variable: UnresolvedVariableTemporalAxis::new(None, None),
                     }),
                 })
                 .await
@@ -80,8 +80,11 @@ pub fn bench_get_entities_by_property(
                 filter,
                 graph_resolve_depths,
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                    pinned: UnresolvedKernel::new(None),
-                    variable: UnresolvedImage::new(Some(TimeIntervalBound::Unbounded), None),
+                    pinned: UnresolvedPinnedTemporalAxis::new(None),
+                    variable: UnresolvedVariableTemporalAxis::new(
+                        Some(TimeIntervalBound::Unbounded),
+                        None,
+                    ),
                 }),
             })
             .await
@@ -117,8 +120,11 @@ pub fn bench_get_link_by_target_by_property(
                 filter,
                 graph_resolve_depths,
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                    pinned: UnresolvedKernel::new(None),
-                    variable: UnresolvedImage::new(Some(TimeIntervalBound::Unbounded), None),
+                    pinned: UnresolvedPinnedTemporalAxis::new(None),
+                    variable: UnresolvedVariableTemporalAxis::new(
+                        Some(TimeIntervalBound::Unbounded),
+                        None,
+                    ),
                 }),
             })
             .await

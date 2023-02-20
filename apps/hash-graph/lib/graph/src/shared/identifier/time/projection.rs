@@ -12,12 +12,12 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct UnresolvedKernel<A> {
+pub struct UnresolvedPinnedTemporalAxis<A> {
     pub axis: A,
     pub timestamp: Option<Timestamp<A>>,
 }
 
-impl<A: Default> UnresolvedKernel<A> {
+impl<A: Default> UnresolvedPinnedTemporalAxis<A> {
     #[must_use]
     pub fn new(timestamp: Option<Timestamp<A>>) -> Self {
         Self {
@@ -27,13 +27,13 @@ impl<A: Default> UnresolvedKernel<A> {
     }
 }
 
-impl<'s, A> ToSchema<'s> for UnresolvedKernel<A>
+impl<'s, A> ToSchema<'s> for UnresolvedPinnedTemporalAxis<A>
 where
     A: ToSchema<'s>,
 {
     fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
         (
-            "UnresolvedKernel",
+            "UnresolvedPinnedTemporalAxis",
             openapi::ObjectBuilder::new()
                 .property("axis", openapi::Ref::from_schema_name(A::schema().0))
                 .required("axis")
@@ -50,13 +50,13 @@ where
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct UnresolvedImage<A> {
+pub struct UnresolvedVariableTemporalAxis<A> {
     pub axis: A,
     #[serde(flatten)]
     pub interval: UnresolvedTimeInterval<A>,
 }
 
-impl<A: Default> UnresolvedImage<A> {
+impl<A: Default> UnresolvedVariableTemporalAxis<A> {
     #[must_use]
     pub fn new(
         start: Option<TimeIntervalBound<A>>,
@@ -69,13 +69,13 @@ impl<A: Default> UnresolvedImage<A> {
     }
 }
 
-impl<'s, A> ToSchema<'s> for UnresolvedImage<A>
+impl<'s, A> ToSchema<'s> for UnresolvedVariableTemporalAxis<A>
 where
     A: ToSchema<'s>,
 {
     fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
         (
-            "UnresolvedImage",
+            "UnresolvedVariableTemporalAxis",
             openapi::Schema::AllOf(
                 openapi::AllOfBuilder::new()
                     .item(
@@ -97,8 +97,8 @@ where
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UnresolvedProjection<K, I> {
-    pub pinned: UnresolvedKernel<K>,
-    pub variable: UnresolvedImage<I>,
+    pub pinned: UnresolvedPinnedTemporalAxis<K>,
+    pub variable: UnresolvedVariableTemporalAxis<I>,
 }
 
 impl<K, I> UnresolvedProjection<K, I> {
@@ -134,9 +134,15 @@ impl ToSchema<'_> for UnresolvedDecisionTimeProjection {
         (
             "UnresolvedDecisionTimeProjection",
             openapi::ObjectBuilder::new()
-                .property("pinned", UnresolvedKernel::<TransactionTime>::schema().1)
+                .property(
+                    "pinned",
+                    UnresolvedPinnedTemporalAxis::<TransactionTime>::schema().1,
+                )
                 .required("pinned")
-                .property("variable", UnresolvedImage::<DecisionTime>::schema().1)
+                .property(
+                    "variable",
+                    UnresolvedVariableTemporalAxis::<DecisionTime>::schema().1,
+                )
                 .required("variable")
                 .into(),
         )
@@ -150,9 +156,15 @@ impl ToSchema<'_> for UnresolvedTransactionTimeProjection {
         (
             "UnresolvedTransactionTimeProjection",
             openapi::ObjectBuilder::new()
-                .property("pinned", UnresolvedKernel::<DecisionTime>::schema().1)
+                .property(
+                    "pinned",
+                    UnresolvedPinnedTemporalAxis::<DecisionTime>::schema().1,
+                )
                 .required("pinned")
-                .property("variable", UnresolvedImage::<TransactionTime>::schema().1)
+                .property(
+                    "variable",
+                    UnresolvedVariableTemporalAxis::<TransactionTime>::schema().1,
+                )
                 .required("variable")
                 .into(),
         )
@@ -169,8 +181,8 @@ pub enum UnresolvedTimeProjection {
 impl Default for UnresolvedTimeProjection {
     fn default() -> Self {
         Self::DecisionTime(UnresolvedProjection {
-            pinned: UnresolvedKernel::new(None),
-            variable: UnresolvedImage::new(Some(TimeIntervalBound::Unbounded), None),
+            pinned: UnresolvedPinnedTemporalAxis::new(None),
+            variable: UnresolvedVariableTemporalAxis::new(Some(TimeIntervalBound::Unbounded), None),
         })
     }
 }

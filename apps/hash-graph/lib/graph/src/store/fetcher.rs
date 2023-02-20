@@ -19,8 +19,8 @@ use crate::{
         account::AccountId,
         knowledge::EntityId,
         time::{
-            DecisionTime, TimeProjection, Timestamp, UnresolvedImage, UnresolvedKernel,
-            UnresolvedProjection, UnresolvedTimeProjection,
+            DecisionTime, TimeProjection, Timestamp, UnresolvedPinnedTemporalAxis,
+            UnresolvedProjection, UnresolvedTimeProjection, UnresolvedVariableTemporalAxis,
         },
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
@@ -137,8 +137,8 @@ where
                 filter: Filter::for_versioned_uri(versioned_uri),
                 graph_resolve_depths: GraphResolveDepths::default(),
                 time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                    pinned: UnresolvedKernel::new(None),
-                    variable: UnresolvedImage::new(None, None),
+                    pinned: UnresolvedPinnedTemporalAxis::new(None),
+                    variable: UnresolvedVariableTemporalAxis::new(None, None),
                 }),
             }
         }

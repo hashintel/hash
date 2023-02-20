@@ -13,8 +13,9 @@ pub use self::{
     interval::UnresolvedTimeInterval,
     projection::{
         DecisionTimeProjection, Image, Kernel, TimeProjection, TransactionTimeProjection,
-        UnresolvedDecisionTimeProjection, UnresolvedImage, UnresolvedKernel, UnresolvedProjection,
+        UnresolvedDecisionTimeProjection, UnresolvedPinnedTemporalAxis, UnresolvedProjection,
         UnresolvedTimeProjection, UnresolvedTransactionTimeProjection,
+        UnresolvedVariableTemporalAxis,
     },
     timestamp::Timestamp,
 };
