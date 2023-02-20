@@ -304,7 +304,7 @@ export interface DataTypeStructuralQuery {
    * @type {UnresolvedTemporalAxes}
    * @memberof DataTypeStructuralQuery
    */
-  timeAxes?: UnresolvedTemporalAxes;
+  timeAxes: UnresolvedTemporalAxes;
 }
 /**
  *
@@ -602,7 +602,7 @@ export interface EntityStructuralQuery {
    * @type {UnresolvedTemporalAxes}
    * @memberof EntityStructuralQuery
    */
-  timeAxes?: UnresolvedTemporalAxes;
+  timeAxes: UnresolvedTemporalAxes;
 }
 /**
  * Specifies the structure of an Entity Type
@@ -740,7 +740,7 @@ export interface EntityTypeStructuralQuery {
    * @type {UnresolvedTemporalAxes}
    * @memberof EntityTypeStructuralQuery
    */
-  timeAxes?: UnresolvedTemporalAxes;
+  timeAxes: UnresolvedTemporalAxes;
 }
 /**
  *
@@ -1805,7 +1805,7 @@ export interface PropertyTypeStructuralQuery {
    * @type {UnresolvedTemporalAxes}
    * @memberof PropertyTypeStructuralQuery
    */
-  timeAxes?: UnresolvedTemporalAxes;
+  timeAxes: UnresolvedTemporalAxes;
 }
 /**
  *
