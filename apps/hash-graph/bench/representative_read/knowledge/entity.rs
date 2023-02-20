@@ -3,8 +3,8 @@ use std::borrow::Cow;
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
     identifier::time::{
-        TimeIntervalBound, UnresolvedPinnedTemporalAxis, UnresolvedProjection,
-        UnresolvedTemporalAxes, UnresolvedVariableTemporalAxis,
+        TimeIntervalBound, UnresolvedPinnedTemporalAxis, UnresolvedTemporalAxes,
+        UnresolvedVariableTemporalAxis,
     },
     knowledge::{EntityQueryPath, EntityUuid},
     store::{
@@ -42,10 +42,10 @@ pub fn bench_get_entity_by_id(
                         ))),
                     ),
                     graph_resolve_depths: GraphResolveDepths::default(),
-                    time_projection: UnresolvedTemporalAxes::DecisionTime(UnresolvedProjection {
+                    time_projection: UnresolvedTemporalAxes::DecisionTime {
                         pinned: UnresolvedPinnedTemporalAxis::new(None),
                         variable: UnresolvedVariableTemporalAxis::new(None, None),
-                    }),
+                    },
                 })
                 .await
                 .expect("failed to read entity from store");
@@ -79,13 +79,13 @@ pub fn bench_get_entities_by_property(
             .get_entity(&StructuralQuery {
                 filter,
                 graph_resolve_depths,
-                time_projection: UnresolvedTemporalAxes::DecisionTime(UnresolvedProjection {
+                time_projection: UnresolvedTemporalAxes::DecisionTime {
                     pinned: UnresolvedPinnedTemporalAxis::new(None),
                     variable: UnresolvedVariableTemporalAxis::new(
                         Some(TimeIntervalBound::Unbounded),
                         None,
                     ),
-                }),
+                },
             })
             .await
             .expect("failed to read entity from store");
@@ -119,13 +119,13 @@ pub fn bench_get_link_by_target_by_property(
             .get_entity(&StructuralQuery {
                 filter,
                 graph_resolve_depths,
-                time_projection: UnresolvedTemporalAxes::DecisionTime(UnresolvedProjection {
+                time_projection: UnresolvedTemporalAxes::DecisionTime {
                     pinned: UnresolvedPinnedTemporalAxis::new(None),
                     variable: UnresolvedVariableTemporalAxis::new(
                         Some(TimeIntervalBound::Unbounded),
                         None,
                     ),
-                }),
+                },
             })
             .await
             .expect("failed to read entity from store");

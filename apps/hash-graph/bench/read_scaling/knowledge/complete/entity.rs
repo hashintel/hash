@@ -6,8 +6,8 @@ use graph::{
     identifier::{
         account::AccountId,
         time::{
-            TimeIntervalBound, UnresolvedPinnedTemporalAxis, UnresolvedProjection,
-            UnresolvedTemporalAxes, UnresolvedVariableTemporalAxis,
+            TimeIntervalBound, UnresolvedPinnedTemporalAxis, UnresolvedTemporalAxes,
+            UnresolvedVariableTemporalAxis,
         },
     },
     knowledge::{EntityLinkOrder, EntityMetadata, EntityProperties, LinkData},
@@ -165,13 +165,13 @@ pub fn bench_get_entity_by_id(
                 .get_entity(&StructuralQuery {
                     filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
                     graph_resolve_depths,
-                    time_projection: UnresolvedTemporalAxes::DecisionTime(UnresolvedProjection {
+                    time_projection: UnresolvedTemporalAxes::DecisionTime {
                         pinned: UnresolvedPinnedTemporalAxis::new(None),
                         variable: UnresolvedVariableTemporalAxis::new(
                             Some(TimeIntervalBound::Unbounded),
                             None,
                         ),
-                    }),
+                    },
                 })
                 .await
                 .expect("failed to read entity from store");
