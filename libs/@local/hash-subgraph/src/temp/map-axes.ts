@@ -1,10 +1,6 @@
 import {
-  DecisionTimeImage,
   TimeProjection,
-  TransactionTimeImage,
-  UnresolvedDecisionTimeImage,
   UnresolvedTimeProjection,
-  UnresolvedTransactionTimeImage,
 } from "@local/hash-graph-client";
 
 import {
@@ -17,7 +13,7 @@ export const mapUnresolvedTimeProjection = (
   timeProjection: UnresolvedTimeProjection,
 ): QueryTemporalAxesUnresolved => {
   const mapInterval = (
-    image: UnresolvedTransactionTimeImage | UnresolvedDecisionTimeImage,
+    image: UnresolvedTimeProjection["variable"],
   ): QueryTemporalAxesUnresolved["variable"]["interval"] => {
     return {
       start:
@@ -67,7 +63,7 @@ export const mapTimeProjection = (
   timeProjection: TimeProjection,
 ): QueryTemporalAxes => {
   const mapInterval = (
-    image: TransactionTimeImage | DecisionTimeImage,
+    image: TimeProjection["variable"],
   ): QueryTemporalAxes["variable"]["interval"] => {
     return {
       start:
