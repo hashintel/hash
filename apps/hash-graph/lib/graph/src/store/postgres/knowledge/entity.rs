@@ -62,7 +62,7 @@ impl<C: AsClient> PostgresStore<C> {
             let version_interval = entity
                 .metadata
                 .version()
-                .projected_time(time_axis);
+                .variable_time_interval(time_axis);
 
             // Intersects the version interval of the entity with the temporal axis's time
             // interval. We only want to resolve the entity further for the overlap of these two

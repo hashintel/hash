@@ -12,12 +12,11 @@ use crate::{
     identifier::{
         account::AccountId,
         time::{
-            DecisionTime, InclusiveTemporalBound, TemporalTagged, TimeAxis, Timestamp,
-            TransactionTime, UnboundedOrExclusiveTemporalBound, VariableAxis,
+            DecisionTime, EntityVersionInterval, TemporalTagged, TimeAxis, TransactionTime,
+            VariableAxis,
         },
         EntityVertexId,
     },
-    interval::Interval,
     knowledge::{Entity, EntityUuid},
     provenance::OwnedById,
     subgraph::{Subgraph, SubgraphIndex},
@@ -80,29 +79,17 @@ impl ToSchema<'_> for EntityId {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityVersion {
     #[schema(inline)]
-    pub decision_time: Interval<
-        Timestamp<DecisionTime>,
-        InclusiveTemporalBound<DecisionTime>,
-        UnboundedOrExclusiveTemporalBound<DecisionTime>,
-    >,
+    pub decision_time: EntityVersionInterval<DecisionTime>,
     #[schema(inline)]
-    pub transaction_time: Interval<
-        Timestamp<TransactionTime>,
-        InclusiveTemporalBound<TransactionTime>,
-        UnboundedOrExclusiveTemporalBound<TransactionTime>,
-    >,
+    pub transaction_time: EntityVersionInterval<TransactionTime>,
 }
 
 impl EntityVersion {
     #[must_use]
-    pub fn projected_time(
+    pub fn variable_time_interval(
         &self,
         time_axis: TimeAxis,
-    ) -> Interval<
-        Timestamp<VariableAxis>,
-        InclusiveTemporalBound<VariableAxis>,
-        UnboundedOrExclusiveTemporalBound<VariableAxis>,
-    > {
+    ) -> EntityVersionInterval<VariableAxis> {
         match time_axis {
             TimeAxis::DecisionTime => self.decision_time.cast(),
             TimeAxis::TransactionTime => self.transaction_time.cast(),

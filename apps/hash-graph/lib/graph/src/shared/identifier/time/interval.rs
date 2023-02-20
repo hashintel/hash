@@ -6,9 +6,7 @@ use postgres_types::{private::BytesMut, FromSql, ToSql, Type};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    identifier::time::{
-        axis::TemporalTagged, LimitedTemporalBound, TemporalBound, Timestamp,
-    },
+    identifier::time::{axis::TemporalTagged, LimitedTemporalBound, TemporalBound, Timestamp},
     interval::{Interval, IntervalBound},
 };
 
@@ -21,7 +19,7 @@ use crate::{
     Hash(bound = "")
 )]
 #[serde(rename_all = "camelCase", bound = "", deny_unknown_fields)]
-pub struct UnresolvedTimeInterval<A> {
+pub struct UnresolvedTemporalInterval<A> {
     pub start: Option<TemporalBound<A>>,
     pub end: Option<LimitedTemporalBound<A>>,
 }

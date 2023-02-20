@@ -1,14 +1,12 @@
 use serde::{Deserialize, Serialize};
 use utoipa::{openapi, ToSchema};
 
-use crate::{
-    identifier::time::{
-        axis::{PinnedAxis, TemporalTagged},
-        bound::TemporalBound,
-        DecisionTime, InclusiveTemporalBound, LimitedTemporalBound, TimeAxis, Timestamp,
-        TransactionTime, UnboundedOrExclusiveTemporalBound, UnresolvedTimeInterval, VariableAxis,
-    },
-    interval::Interval,
+use crate::identifier::time::{
+    axis::{PinnedAxis, TemporalTagged},
+    bound::TemporalBound,
+    DecisionTime, EntityVersionInterval, LimitedTemporalBound, LimitedTemporalInterval,
+    TemporalInterval, TimeAxis, Timestamp, TransactionTime, UnresolvedTemporalInterval,
+    VariableAxis,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -63,7 +61,7 @@ where
 pub struct UnresolvedVariableTemporalAxis<A> {
     pub axis: A,
     #[serde(flatten)]
-    pub interval: UnresolvedTimeInterval<A>,
+    pub interval: UnresolvedTemporalInterval<A>,
 }
 
 impl<A: Default> UnresolvedVariableTemporalAxis<A> {
@@ -71,14 +69,14 @@ impl<A: Default> UnresolvedVariableTemporalAxis<A> {
     pub fn new(start: Option<TemporalBound<A>>, end: Option<LimitedTemporalBound<A>>) -> Self {
         Self {
             axis: A::default(),
-            interval: UnresolvedTimeInterval { start, end },
+            interval: UnresolvedTemporalInterval { start, end },
         }
     }
 
     pub fn resolve(self, now: Timestamp<()>) -> VariableTemporalAxis<A> {
         VariableTemporalAxis {
             axis: self.axis,
-            interval: Interval::new(
+            interval: LimitedTemporalInterval::new(
                 self.interval
                     .start
                     .unwrap_or_else(|| TemporalBound::Inclusive(Timestamp::from_anonymous(now))),
@@ -210,20 +208,12 @@ where
 pub struct VariableTemporalAxis<A> {
     pub axis: A,
     #[serde(flatten)]
-    pub interval: Interval<Timestamp<A>, TemporalBound<A>, LimitedTemporalBound<A>>,
+    pub interval: LimitedTemporalInterval<A>,
 }
 
 impl<A> VariableTemporalAxis<A> {
-    pub fn intersect(
-        mut self,
-        interval: Interval<
-            Timestamp<A>,
-            InclusiveTemporalBound<A>,
-            UnboundedOrExclusiveTemporalBound<A>,
-        >,
-    ) -> Option<Self> {
-        let variable_interval: Interval<Timestamp<A>, TemporalBound<A>, TemporalBound<A>> =
-            self.interval.convert();
+    pub fn intersect(mut self, interval: EntityVersionInterval<A>) -> Option<Self> {
+        let variable_interval: TemporalInterval<A> = self.interval.convert();
         let intersection = variable_interval.intersect(interval.convert())?;
         self.interval = intersection.convert();
         Some(self)
@@ -269,6 +259,8 @@ where
 /// projection. The returned data will then only contain temporal data that is contained in the
 /// [`Interval`] of the [`VariableTemporalAxis`], the [`VariableAxis`], for the given [`Timestamp`]
 /// of the [`PinnedTemporalAxis`].
+///
+/// [`Interval`]: crate::interval::Interval
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(untagged)]
 pub enum TemporalAxes {
@@ -314,13 +306,7 @@ impl TemporalAxes {
     }
 
     #[must_use]
-    pub fn variable_interval(
-        &self,
-    ) -> Interval<
-        Timestamp<VariableAxis>,
-        TemporalBound<VariableAxis>,
-        LimitedTemporalBound<VariableAxis>,
-    > {
+    pub fn variable_interval(&self) -> LimitedTemporalInterval<VariableAxis> {
         match self {
             Self::DecisionTime { variable, .. } => variable.interval.cast(),
             Self::TransactionTime { variable, .. } => variable.interval.cast(),
@@ -330,14 +316,12 @@ impl TemporalAxes {
     /// Intersects the image of the projection with the provided [`Interval`].
     ///
     /// If the two intervals do not overlap, [`None`] is returned.
+    ///
+    /// [`Interval`]: crate::interval::Interval
     #[must_use]
     pub fn intersect_variable_interval(
         self,
-        version_interval: Interval<
-            Timestamp<VariableAxis>,
-            InclusiveTemporalBound<VariableAxis>,
-            UnboundedOrExclusiveTemporalBound<VariableAxis>,
-        >,
+        version_interval: EntityVersionInterval<VariableAxis>,
     ) -> Option<Self> {
         match self {
             Self::DecisionTime { pinned, variable } => variable
@@ -349,14 +333,7 @@ impl TemporalAxes {
         }
     }
 
-    pub fn set_variable_interval(
-        &mut self,
-        interval: Interval<
-            Timestamp<VariableAxis>,
-            TemporalBound<VariableAxis>,
-            LimitedTemporalBound<VariableAxis>,
-        >,
-    ) {
+    pub fn set_variable_interval(&mut self, interval: LimitedTemporalInterval<VariableAxis>) {
         match self {
             Self::DecisionTime { variable, .. } => variable.interval = interval.cast(),
             Self::TransactionTime { variable, .. } => variable.interval = interval.cast(),

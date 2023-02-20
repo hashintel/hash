@@ -10,10 +10,17 @@ pub use self::{
         InclusiveTemporalBound, LimitedTemporalBound, TemporalBound,
         UnboundedOrExclusiveTemporalBound,
     },
-    interval::UnresolvedTimeInterval,
+    interval::UnresolvedTemporalInterval,
     temporal_axes::{
         PinnedTemporalAxis, TemporalAxes, UnresolvedPinnedTemporalAxis, UnresolvedTemporalAxes,
         UnresolvedVariableTemporalAxis, VariableTemporalAxis,
     },
     timestamp::Timestamp,
 };
+use crate::interval::Interval;
+
+pub type TemporalInterval<A> = Interval<Timestamp<A>, TemporalBound<A>, LimitedTemporalBound<A>>;
+pub type LimitedTemporalInterval<A> =
+    Interval<Timestamp<A>, TemporalBound<A>, LimitedTemporalBound<A>>;
+pub type EntityVersionInterval<A> =
+    Interval<Timestamp<A>, InclusiveTemporalBound<A>, UnboundedOrExclusiveTemporalBound<A>>;

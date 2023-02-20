@@ -26,10 +26,9 @@ use crate::{
     identifier::{
         account::AccountId,
         ontology::OntologyTypeRecordId,
-        time::{VariableAxis, TemporalBound, Timestamp},
+        time::{TemporalInterval, VariableAxis},
         EntityVertexId, OntologyTypeVertexId,
     },
-    interval::Interval,
     ontology::{
         ExternalOntologyElementMetadata, OntologyElementMetadata, OwnedOntologyElementMetadata,
     },
@@ -46,7 +45,7 @@ use crate::{
 use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityVersion},
-        time::DecisionTime,
+        time::{DecisionTime, Timestamp},
     },
     knowledge::{EntityProperties, LinkOrder},
 };
@@ -58,32 +57,16 @@ use crate::{
 /// will be returned from [`DependencyMap::update`], otherwise [`DependencyStatus::Unresolved`] will
 /// be returned with the [`GraphResolveDepths`] and [`Interval`] that the traversal should
 /// continue with.
+///
+/// [`Interval`]: crate::interval::Interval
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DependencyStatus {
-    Unresolved(
-        GraphResolveDepths,
-        Interval<
-            Timestamp<VariableAxis>,
-            TemporalBound<VariableAxis>,
-            TemporalBound<VariableAxis>,
-        >,
-    ),
+    Unresolved(GraphResolveDepths, TemporalInterval<VariableAxis>),
     Resolved,
 }
 
-#[expect(clippy::type_complexity, reason = "This type will be changed soon")]
 pub struct DependencyMap<K> {
-    resolved: HashMap<
-        K,
-        (
-            GraphResolveDepths,
-            Interval<
-                Timestamp<VariableAxis>,
-                TemporalBound<VariableAxis>,
-                TemporalBound<VariableAxis>,
-            >,
-        ),
-    >,
+    resolved: HashMap<K, (GraphResolveDepths, TemporalInterval<VariableAxis>)>,
 }
 
 impl<K> Default for DependencyMap<K> {
@@ -112,11 +95,7 @@ where
         &mut self,
         identifier: &K,
         new_resolve_depth: GraphResolveDepths,
-        new_interval: Interval<
-            Timestamp<VariableAxis>,
-            TemporalBound<VariableAxis>,
-            TemporalBound<VariableAxis>,
-        >,
+        new_interval: TemporalInterval<VariableAxis>,
     ) -> DependencyStatus {
         match self.resolved.raw_entry_mut().from_key(identifier) {
             RawEntryMut::Vacant(entry) => {
