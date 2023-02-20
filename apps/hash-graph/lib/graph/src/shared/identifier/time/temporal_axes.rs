@@ -3,9 +3,11 @@ use utoipa::{openapi, ToSchema};
 
 use crate::{
     identifier::time::{
-        axis::TemporalTagged, bound::TimeIntervalBound, DecisionTime, IncludedTimeIntervalBound,
-        LimitedTimeIntervalBound, TimeAxis, Timestamp, TransactionTime,
-        UnboundedOrExcludedTimeIntervalBound, UnresolvedTimeInterval, VariableAxis,
+        axis::{PinnedAxis, TemporalTagged},
+        bound::TimeIntervalBound,
+        DecisionTime, IncludedTimeIntervalBound, LimitedTimeIntervalBound, TimeAxis, Timestamp,
+        TransactionTime, UnboundedOrExcludedTimeIntervalBound, UnresolvedTimeInterval,
+        VariableAxis,
     },
     interval::Interval,
 };
@@ -308,7 +310,7 @@ impl TemporalAxes {
     }
 
     #[must_use]
-    pub fn pinned_timestamp(&self) -> Timestamp<()> {
+    pub fn pinned_timestamp(&self) -> Timestamp<PinnedAxis> {
         match self {
             Self::DecisionTime { pinned, .. } => pinned.timestamp.cast(),
             Self::TransactionTime { pinned, .. } => pinned.timestamp.cast(),
