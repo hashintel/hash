@@ -18,7 +18,7 @@ export const parseUriForOntologyChip = (uri: string) => {
   const validated = validateVersionedUri(uri);
   const parsed = validated.type === "Ok" ? extractBaseUri(validated.inner) : "";
   const url = new URL(parsed);
-  const domain = url.host === "localhost:3000" ? "hash.ai" : url.host;
+  const domain = url.host === "localhost:3000" ? "localhost" : url.host;
   const pathname = url.pathname.slice(1);
   const isHash = domain === "hash.ai";
   const parts = pathname.split("/");
