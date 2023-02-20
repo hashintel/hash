@@ -1,7 +1,7 @@
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
     identifier::time::{
-        TimeIntervalBound, UnresolvedPinnedTemporalAxis, UnresolvedTemporalAxes,
+        TemporalBound, UnresolvedPinnedTemporalAxis, UnresolvedTemporalAxes,
         UnresolvedVariableTemporalAxis,
     },
     store::{query::Filter, EntityTypeStore},
@@ -35,7 +35,7 @@ pub fn bench_get_entity_type_by_id(
                     temporal_axes: UnresolvedTemporalAxes::DecisionTime {
                         pinned: UnresolvedPinnedTemporalAxis::new(None),
                         variable: UnresolvedVariableTemporalAxis::new(
-                            Some(TimeIntervalBound::Unbounded),
+                            Some(TemporalBound::Unbounded),
                             None,
                         ),
                     },

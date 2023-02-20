@@ -26,7 +26,7 @@ use crate::{
     identifier::{
         account::AccountId,
         ontology::OntologyTypeRecordId,
-        time::{VariableAxis, TimeIntervalBound, Timestamp},
+        time::{VariableAxis, TemporalBound, Timestamp},
         EntityVertexId, OntologyTypeVertexId,
     },
     interval::Interval,
@@ -64,8 +64,8 @@ pub enum DependencyStatus {
         GraphResolveDepths,
         Interval<
             Timestamp<VariableAxis>,
-            TimeIntervalBound<VariableAxis>,
-            TimeIntervalBound<VariableAxis>,
+            TemporalBound<VariableAxis>,
+            TemporalBound<VariableAxis>,
         >,
     ),
     Resolved,
@@ -79,8 +79,8 @@ pub struct DependencyMap<K> {
             GraphResolveDepths,
             Interval<
                 Timestamp<VariableAxis>,
-                TimeIntervalBound<VariableAxis>,
-                TimeIntervalBound<VariableAxis>,
+                TemporalBound<VariableAxis>,
+                TemporalBound<VariableAxis>,
             >,
         ),
     >,
@@ -114,8 +114,8 @@ where
         new_resolve_depth: GraphResolveDepths,
         new_interval: Interval<
             Timestamp<VariableAxis>,
-            TimeIntervalBound<VariableAxis>,
-            TimeIntervalBound<VariableAxis>,
+            TemporalBound<VariableAxis>,
+            TemporalBound<VariableAxis>,
         >,
     ) -> DependencyStatus {
         match self.resolved.raw_entry_mut().from_key(identifier) {

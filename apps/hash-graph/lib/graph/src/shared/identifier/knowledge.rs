@@ -12,8 +12,8 @@ use crate::{
     identifier::{
         account::AccountId,
         time::{
-            DecisionTime, IncludedTimeIntervalBound, VariableAxis, TemporalTagged, TimeAxis,
-            Timestamp, TransactionTime, UnboundedOrExcludedTimeIntervalBound,
+            DecisionTime, InclusiveTemporalBound, TemporalTagged, TimeAxis, Timestamp,
+            TransactionTime, UnboundedOrExclusiveTemporalBound, VariableAxis,
         },
         EntityVertexId,
     },
@@ -82,14 +82,14 @@ pub struct EntityVersion {
     #[schema(inline)]
     pub decision_time: Interval<
         Timestamp<DecisionTime>,
-        IncludedTimeIntervalBound<DecisionTime>,
-        UnboundedOrExcludedTimeIntervalBound<DecisionTime>,
+        InclusiveTemporalBound<DecisionTime>,
+        UnboundedOrExclusiveTemporalBound<DecisionTime>,
     >,
     #[schema(inline)]
     pub transaction_time: Interval<
         Timestamp<TransactionTime>,
-        IncludedTimeIntervalBound<TransactionTime>,
-        UnboundedOrExcludedTimeIntervalBound<TransactionTime>,
+        InclusiveTemporalBound<TransactionTime>,
+        UnboundedOrExclusiveTemporalBound<TransactionTime>,
     >,
 }
 
@@ -100,8 +100,8 @@ impl EntityVersion {
         time_axis: TimeAxis,
     ) -> Interval<
         Timestamp<VariableAxis>,
-        IncludedTimeIntervalBound<VariableAxis>,
-        UnboundedOrExcludedTimeIntervalBound<VariableAxis>,
+        InclusiveTemporalBound<VariableAxis>,
+        UnboundedOrExclusiveTemporalBound<VariableAxis>,
     > {
         match time_axis {
             TimeAxis::DecisionTime => self.decision_time.cast(),

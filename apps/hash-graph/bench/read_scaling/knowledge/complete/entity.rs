@@ -6,7 +6,7 @@ use graph::{
     identifier::{
         account::AccountId,
         time::{
-            TimeIntervalBound, UnresolvedPinnedTemporalAxis, UnresolvedTemporalAxes,
+            TemporalBound, UnresolvedPinnedTemporalAxis, UnresolvedTemporalAxes,
             UnresolvedVariableTemporalAxis,
         },
     },
@@ -168,7 +168,7 @@ pub fn bench_get_entity_by_id(
                     temporal_axes: UnresolvedTemporalAxes::DecisionTime {
                         pinned: UnresolvedPinnedTemporalAxis::new(None),
                         variable: UnresolvedVariableTemporalAxis::new(
-                            Some(TimeIntervalBound::Unbounded),
+                            Some(TemporalBound::Unbounded),
                             None,
                         ),
                     },

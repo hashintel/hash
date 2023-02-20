@@ -389,16 +389,16 @@ export interface DecisionTimeAxesVariable {
   axis: DecisionTime;
   /**
    *
-   * @type {LimitedTimeIntervalBound}
+   * @type {LimitedTemporalBound}
    * @memberof DecisionTimeAxesVariable
    */
-  end: LimitedTimeIntervalBound;
+  end: LimitedTemporalBound;
   /**
    *
-   * @type {TimeIntervalBound}
+   * @type {TemporalBound}
    * @memberof DecisionTimeAxesVariable
    */
-  start: TimeIntervalBound;
+  start: TemporalBound;
 }
 /**
  *
@@ -834,6 +834,33 @@ export interface EqualFilter {
 /**
  *
  * @export
+ * @interface ExclusiveBound
+ */
+export interface ExclusiveBound {
+  /**
+   *
+   * @type {string}
+   * @memberof ExclusiveBound
+   */
+  kind: ExclusiveBoundKindEnum;
+  /**
+   *
+   * @type {string}
+   * @memberof ExclusiveBound
+   */
+  limit: string;
+}
+
+export const ExclusiveBoundKindEnum = {
+  Exclusive: "exclusive",
+} as const;
+
+export type ExclusiveBoundKindEnum =
+  (typeof ExclusiveBoundKindEnum)[keyof typeof ExclusiveBoundKindEnum];
+
+/**
+ *
+ * @export
  * @interface ExternalOntologyElementMetadata
  */
 export interface ExternalOntologyElementMetadata {
@@ -934,6 +961,33 @@ export interface GraphResolveDepths {
    */
   isOfType: OutgoingEdgeResolveDepth;
 }
+/**
+ *
+ * @export
+ * @interface InclusiveBound
+ */
+export interface InclusiveBound {
+  /**
+   *
+   * @type {string}
+   * @memberof InclusiveBound
+   */
+  kind: InclusiveBoundKindEnum;
+  /**
+   *
+   * @type {string}
+   * @memberof InclusiveBound
+   */
+  limit: string;
+}
+
+export const InclusiveBoundKindEnum = {
+  Inclusive: "inclusive",
+} as const;
+
+export type InclusiveBoundKindEnum =
+  (typeof InclusiveBoundKindEnum)[keyof typeof InclusiveBoundKindEnum];
+
 /**
  *
  * @export
@@ -1111,66 +1165,10 @@ export interface KnowledgeGraphVertices {
   [key: string]: { [key: string]: KnowledgeGraphVertex };
 }
 /**
- * @type LimitedTimeIntervalBound
+ * @type LimitedTemporalBound
  * @export
  */
-export type LimitedTimeIntervalBound =
-  | LimitedTimeIntervalBoundOneOf
-  | LimitedTimeIntervalBoundOneOf1;
-
-/**
- *
- * @export
- * @interface LimitedTimeIntervalBoundOneOf
- */
-export interface LimitedTimeIntervalBoundOneOf {
-  /**
-   *
-   * @type {string}
-   * @memberof LimitedTimeIntervalBoundOneOf
-   */
-  kind: LimitedTimeIntervalBoundOneOfKindEnum;
-  /**
-   *
-   * @type {string}
-   * @memberof LimitedTimeIntervalBoundOneOf
-   */
-  limit: string;
-}
-
-export const LimitedTimeIntervalBoundOneOfKindEnum = {
-  Inclusive: "inclusive",
-} as const;
-
-export type LimitedTimeIntervalBoundOneOfKindEnum =
-  (typeof LimitedTimeIntervalBoundOneOfKindEnum)[keyof typeof LimitedTimeIntervalBoundOneOfKindEnum];
-
-/**
- *
- * @export
- * @interface LimitedTimeIntervalBoundOneOf1
- */
-export interface LimitedTimeIntervalBoundOneOf1 {
-  /**
-   *
-   * @type {string}
-   * @memberof LimitedTimeIntervalBoundOneOf1
-   */
-  kind: LimitedTimeIntervalBoundOneOf1KindEnum;
-  /**
-   *
-   * @type {string}
-   * @memberof LimitedTimeIntervalBoundOneOf1
-   */
-  limit: string;
-}
-
-export const LimitedTimeIntervalBoundOneOf1KindEnum = {
-  Exclusive: "exclusive",
-} as const;
-
-export type LimitedTimeIntervalBoundOneOf1KindEnum =
-  (typeof LimitedTimeIntervalBoundOneOf1KindEnum)[keyof typeof LimitedTimeIntervalBoundOneOf1KindEnum];
+export type LimitedTemporalBound = ExclusiveBound | InclusiveBound;
 
 /**
  * The associated information for \'Link\' entities
@@ -1927,6 +1925,12 @@ export interface Subgraph {
 export type TemporalAxes = DecisionTimeAxes | TransactionTimeAxes;
 
 /**
+ * @type TemporalBound
+ * @export
+ */
+export type TemporalBound = ExclusiveBound | InclusiveBound | UnboundedBound;
+
+/**
  *
  * @export
  * @interface TemporalSubgraphAxes
@@ -1945,36 +1949,6 @@ export interface TemporalSubgraphAxes {
    */
   resolved: TemporalAxes;
 }
-/**
- * @type TimeIntervalBound
- * @export
- */
-export type TimeIntervalBound =
-  | LimitedTimeIntervalBoundOneOf
-  | LimitedTimeIntervalBoundOneOf1
-  | TimeIntervalBoundOneOf;
-
-/**
- *
- * @export
- * @interface TimeIntervalBoundOneOf
- */
-export interface TimeIntervalBoundOneOf {
-  /**
-   *
-   * @type {string}
-   * @memberof TimeIntervalBoundOneOf
-   */
-  kind: TimeIntervalBoundOneOfKindEnum;
-}
-
-export const TimeIntervalBoundOneOfKindEnum = {
-  Unbounded: "unbounded",
-} as const;
-
-export type TimeIntervalBoundOneOfKindEnum =
-  (typeof TimeIntervalBoundOneOfKindEnum)[keyof typeof TimeIntervalBoundOneOfKindEnum];
-
 /**
  * Time axis for the transaction time.  This is used as the generic argument to time-related structs and can be used as tag value.
  * @export
@@ -2040,17 +2014,38 @@ export interface TransactionTimeAxesVariable {
   axis: TransactionTime;
   /**
    *
-   * @type {LimitedTimeIntervalBound}
+   * @type {LimitedTemporalBound}
    * @memberof TransactionTimeAxesVariable
    */
-  end: LimitedTimeIntervalBound;
+  end: LimitedTemporalBound;
   /**
    *
-   * @type {TimeIntervalBound}
+   * @type {TemporalBound}
    * @memberof TransactionTimeAxesVariable
    */
-  start: TimeIntervalBound;
+  start: TemporalBound;
 }
+/**
+ *
+ * @export
+ * @interface UnboundedBound
+ */
+export interface UnboundedBound {
+  /**
+   *
+   * @type {string}
+   * @memberof UnboundedBound
+   */
+  kind: UnboundedBoundKindEnum;
+}
+
+export const UnboundedBoundKindEnum = {
+  Unbounded: "unbounded",
+} as const;
+
+export type UnboundedBoundKindEnum =
+  (typeof UnboundedBoundKindEnum)[keyof typeof UnboundedBoundKindEnum];
+
 /**
  *
  * @export
@@ -2103,16 +2098,16 @@ export interface UnresolvedDecisionTimeAxesVariable {
   axis: DecisionTime;
   /**
    *
-   * @type {LimitedTimeIntervalBound}
+   * @type {LimitedTemporalBound}
    * @memberof UnresolvedDecisionTimeAxesVariable
    */
-  end: LimitedTimeIntervalBound | null;
+  end: LimitedTemporalBound | null;
   /**
    *
-   * @type {TimeIntervalBound}
+   * @type {TemporalBound}
    * @memberof UnresolvedDecisionTimeAxesVariable
    */
-  start: TimeIntervalBound | null;
+  start: TemporalBound | null;
 }
 /**
  * @type UnresolvedTemporalAxes
@@ -2174,16 +2169,16 @@ export interface UnresolvedTransactionTimeAxesVariable {
   axis: TransactionTime;
   /**
    *
-   * @type {LimitedTimeIntervalBound}
+   * @type {LimitedTemporalBound}
    * @memberof UnresolvedTransactionTimeAxesVariable
    */
-  end: LimitedTimeIntervalBound | null;
+  end: LimitedTemporalBound | null;
   /**
    *
-   * @type {TimeIntervalBound}
+   * @type {TemporalBound}
    * @memberof UnresolvedTransactionTimeAxesVariable
    */
-  start: TimeIntervalBound | null;
+  start: TemporalBound | null;
 }
 /**
  * The contents of a Data Type update request

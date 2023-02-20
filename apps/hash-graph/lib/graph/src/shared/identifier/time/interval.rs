@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     identifier::time::{
-        axis::TemporalTagged, LimitedTimeIntervalBound, TimeIntervalBound, Timestamp,
+        axis::TemporalTagged, LimitedTemporalBound, TemporalBound, Timestamp,
     },
     interval::{Interval, IntervalBound},
 };
@@ -22,8 +22,8 @@ use crate::{
 )]
 #[serde(rename_all = "camelCase", bound = "", deny_unknown_fields)]
 pub struct UnresolvedTimeInterval<A> {
-    pub start: Option<TimeIntervalBound<A>>,
-    pub end: Option<LimitedTimeIntervalBound<A>>,
+    pub start: Option<TemporalBound<A>>,
+    pub end: Option<LimitedTemporalBound<A>>,
 }
 
 impl<A, S, E> TemporalTagged for Interval<Timestamp<A>, S, E>

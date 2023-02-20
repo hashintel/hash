@@ -4,10 +4,9 @@ use utoipa::{openapi, ToSchema};
 use crate::{
     identifier::time::{
         axis::{PinnedAxis, TemporalTagged},
-        bound::TimeIntervalBound,
-        DecisionTime, IncludedTimeIntervalBound, LimitedTimeIntervalBound, TimeAxis, Timestamp,
-        TransactionTime, UnboundedOrExcludedTimeIntervalBound, UnresolvedTimeInterval,
-        VariableAxis,
+        bound::TemporalBound,
+        DecisionTime, InclusiveTemporalBound, LimitedTemporalBound, TimeAxis, Timestamp,
+        TransactionTime, UnboundedOrExclusiveTemporalBound, UnresolvedTimeInterval, VariableAxis,
     },
     interval::Interval,
 };
@@ -69,10 +68,7 @@ pub struct UnresolvedVariableTemporalAxis<A> {
 
 impl<A: Default> UnresolvedVariableTemporalAxis<A> {
     #[must_use]
-    pub fn new(
-        start: Option<TimeIntervalBound<A>>,
-        end: Option<LimitedTimeIntervalBound<A>>,
-    ) -> Self {
+    pub fn new(start: Option<TemporalBound<A>>, end: Option<LimitedTemporalBound<A>>) -> Self {
         Self {
             axis: A::default(),
             interval: UnresolvedTimeInterval { start, end },
@@ -83,11 +79,11 @@ impl<A: Default> UnresolvedVariableTemporalAxis<A> {
         VariableTemporalAxis {
             axis: self.axis,
             interval: Interval::new(
-                self.interval.start.unwrap_or_else(|| {
-                    TimeIntervalBound::Inclusive(Timestamp::from_anonymous(now))
-                }),
+                self.interval
+                    .start
+                    .unwrap_or_else(|| TemporalBound::Inclusive(Timestamp::from_anonymous(now))),
                 self.interval.end.unwrap_or_else(|| {
-                    LimitedTimeIntervalBound::Inclusive(Timestamp::from_anonymous(now))
+                    LimitedTemporalBound::Inclusive(Timestamp::from_anonymous(now))
                 }),
             ),
         }
@@ -109,7 +105,7 @@ where
                     openapi::Schema::OneOf(
                         openapi::OneOfBuilder::new()
                             .item(openapi::Ref::from_schema_name(
-                                TimeIntervalBound::<A>::schema().0,
+                                TemporalBound::<A>::schema().0,
                             ))
                             .nullable(true)
                             .build(),
@@ -121,7 +117,7 @@ where
                     openapi::Schema::OneOf(
                         openapi::OneOfBuilder::new()
                             .item(openapi::Ref::from_schema_name(
-                                LimitedTimeIntervalBound::<A>::schema().0,
+                                LimitedTemporalBound::<A>::schema().0,
                             ))
                             .nullable(true)
                             .build(),
@@ -156,7 +152,7 @@ impl Default for UnresolvedTemporalAxes {
     fn default() -> Self {
         Self::DecisionTime {
             pinned: UnresolvedPinnedTemporalAxis::new(None),
-            variable: UnresolvedVariableTemporalAxis::new(Some(TimeIntervalBound::Unbounded), None),
+            variable: UnresolvedVariableTemporalAxis::new(Some(TemporalBound::Unbounded), None),
         }
     }
 }
@@ -214,7 +210,7 @@ where
 pub struct VariableTemporalAxis<A> {
     pub axis: A,
     #[serde(flatten)]
-    pub interval: Interval<Timestamp<A>, TimeIntervalBound<A>, LimitedTimeIntervalBound<A>>,
+    pub interval: Interval<Timestamp<A>, TemporalBound<A>, LimitedTemporalBound<A>>,
 }
 
 impl<A> VariableTemporalAxis<A> {
@@ -222,11 +218,11 @@ impl<A> VariableTemporalAxis<A> {
         mut self,
         interval: Interval<
             Timestamp<A>,
-            IncludedTimeIntervalBound<A>,
-            UnboundedOrExcludedTimeIntervalBound<A>,
+            InclusiveTemporalBound<A>,
+            UnboundedOrExclusiveTemporalBound<A>,
         >,
     ) -> Option<Self> {
-        let variable_interval: Interval<Timestamp<A>, TimeIntervalBound<A>, TimeIntervalBound<A>> =
+        let variable_interval: Interval<Timestamp<A>, TemporalBound<A>, TemporalBound<A>> =
             self.interval.convert();
         let intersection = variable_interval.intersect(interval.convert())?;
         self.interval = intersection.convert();
@@ -246,12 +242,12 @@ where
                 .required("axis")
                 .property(
                     "start",
-                    openapi::Ref::from_schema_name(TimeIntervalBound::<A>::schema().0),
+                    openapi::Ref::from_schema_name(TemporalBound::<A>::schema().0),
                 )
                 .required("start")
                 .property(
                     "end",
-                    openapi::Ref::from_schema_name(LimitedTimeIntervalBound::<A>::schema().0),
+                    openapi::Ref::from_schema_name(LimitedTemporalBound::<A>::schema().0),
                 )
                 .required("end")
                 .into(),
@@ -322,8 +318,8 @@ impl TemporalAxes {
         &self,
     ) -> Interval<
         Timestamp<VariableAxis>,
-        TimeIntervalBound<VariableAxis>,
-        LimitedTimeIntervalBound<VariableAxis>,
+        TemporalBound<VariableAxis>,
+        LimitedTemporalBound<VariableAxis>,
     > {
         match self {
             Self::DecisionTime { variable, .. } => variable.interval.cast(),
@@ -339,8 +335,8 @@ impl TemporalAxes {
         self,
         version_interval: Interval<
             Timestamp<VariableAxis>,
-            IncludedTimeIntervalBound<VariableAxis>,
-            UnboundedOrExcludedTimeIntervalBound<VariableAxis>,
+            InclusiveTemporalBound<VariableAxis>,
+            UnboundedOrExclusiveTemporalBound<VariableAxis>,
         >,
     ) -> Option<Self> {
         match self {
@@ -357,8 +353,8 @@ impl TemporalAxes {
         &mut self,
         interval: Interval<
             Timestamp<VariableAxis>,
-            TimeIntervalBound<VariableAxis>,
-            LimitedTimeIntervalBound<VariableAxis>,
+            TemporalBound<VariableAxis>,
+            LimitedTemporalBound<VariableAxis>,
         >,
     ) {
         match self {

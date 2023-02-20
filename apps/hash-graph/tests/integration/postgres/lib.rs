@@ -21,7 +21,7 @@ use graph::{
         knowledge::EntityId,
         ontology::OntologyTypeVersion,
         time::{
-            DecisionTime, LimitedTimeIntervalBound, TimeIntervalBound, Timestamp,
+            DecisionTime, LimitedTemporalBound, TemporalBound, Timestamp,
             UnresolvedPinnedTemporalAxis, UnresolvedTemporalAxes, UnresolvedVariableTemporalAxis,
         },
         GraphElementVertexId, OntologyTypeVertexId,
@@ -210,7 +210,7 @@ impl DatabaseApi<'_> {
                 temporal_axes: UnresolvedTemporalAxes::DecisionTime {
                     pinned: UnresolvedPinnedTemporalAxis::new(None),
                     variable: UnresolvedVariableTemporalAxis::new(
-                        Some(TimeIntervalBound::Unbounded),
+                        Some(TemporalBound::Unbounded),
                         None,
                     ),
                 },
@@ -260,7 +260,7 @@ impl DatabaseApi<'_> {
                 temporal_axes: UnresolvedTemporalAxes::DecisionTime {
                     pinned: UnresolvedPinnedTemporalAxis::new(None),
                     variable: UnresolvedVariableTemporalAxis::new(
-                        Some(TimeIntervalBound::Unbounded),
+                        Some(TemporalBound::Unbounded),
                         None,
                     ),
                 },
@@ -310,7 +310,7 @@ impl DatabaseApi<'_> {
                 temporal_axes: UnresolvedTemporalAxes::DecisionTime {
                     pinned: UnresolvedPinnedTemporalAxis::new(None),
                     variable: UnresolvedVariableTemporalAxis::new(
-                        Some(TimeIntervalBound::Unbounded),
+                        Some(TemporalBound::Unbounded),
                         None,
                     ),
                 },
@@ -360,7 +360,7 @@ impl DatabaseApi<'_> {
                 temporal_axes: UnresolvedTemporalAxes::DecisionTime {
                     pinned: UnresolvedPinnedTemporalAxis::new(None),
                     variable: UnresolvedVariableTemporalAxis::new(
-                        Some(TimeIntervalBound::Unbounded),
+                        Some(TemporalBound::Unbounded),
                         None,
                     ),
                 },
@@ -385,8 +385,8 @@ impl DatabaseApi<'_> {
                 temporal_axes: UnresolvedTemporalAxes::DecisionTime {
                     pinned: UnresolvedPinnedTemporalAxis::new(None),
                     variable: UnresolvedVariableTemporalAxis::new(
-                        Some(TimeIntervalBound::Inclusive(timestamp)),
-                        Some(LimitedTimeIntervalBound::Inclusive(timestamp)),
+                        Some(TemporalBound::Inclusive(timestamp)),
+                        Some(LimitedTemporalBound::Inclusive(timestamp)),
                     ),
                 },
             })
@@ -516,7 +516,7 @@ impl DatabaseApi<'_> {
                 temporal_axes: UnresolvedTemporalAxes::DecisionTime {
                     pinned: UnresolvedPinnedTemporalAxis::new(None),
                     variable: UnresolvedVariableTemporalAxis::new(
-                        Some(TimeIntervalBound::Unbounded),
+                        Some(TemporalBound::Unbounded),
                         None,
                     ),
                 },

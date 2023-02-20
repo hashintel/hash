@@ -45,8 +45,8 @@ use crate::{
     identifier::{
         ontology::{OntologyTypeRecordId, OntologyTypeVersion},
         time::{
-            DecisionTime, IncludedTimeIntervalBound, LimitedTimeIntervalBound, TemporalAxes,
-            TimeIntervalBound, Timestamp, TransactionTime, UnboundedOrExcludedTimeIntervalBound,
+            DecisionTime, InclusiveTemporalBound, LimitedTemporalBound, TemporalAxes,
+            TemporalBound, Timestamp, TransactionTime, UnboundedOrExclusiveTemporalBound,
             UnresolvedTemporalAxes,
         },
         EntityVertexId, GraphElementVertexId, OntologyTypeVertexId,
@@ -472,22 +472,22 @@ impl Modify for TimeSchemaAddon {
                     .into(),
             );
             components.schemas.insert(
-                UnboundedOrExcludedTimeIntervalBound::<()>::schema()
+                UnboundedOrExclusiveTemporalBound::<()>::schema()
                     .0
                     .to_owned(),
-                UnboundedOrExcludedTimeIntervalBound::<()>::schema().1,
+                UnboundedOrExclusiveTemporalBound::<()>::schema().1,
             );
             components.schemas.insert(
-                IncludedTimeIntervalBound::<()>::schema().0.to_owned(),
-                IncludedTimeIntervalBound::<()>::schema().1,
+                InclusiveTemporalBound::<()>::schema().0.to_owned(),
+                InclusiveTemporalBound::<()>::schema().1,
             );
             components.schemas.insert(
-                TimeIntervalBound::<()>::schema().0.to_owned(),
-                TimeIntervalBound::<()>::schema().1,
+                TemporalBound::<()>::schema().0.to_owned(),
+                TemporalBound::<()>::schema().1,
             );
             components.schemas.insert(
-                LimitedTimeIntervalBound::<()>::schema().0.to_owned(),
-                LimitedTimeIntervalBound::<()>::schema().1,
+                LimitedTemporalBound::<()>::schema().0.to_owned(),
+                LimitedTemporalBound::<()>::schema().1,
             );
         }
     }

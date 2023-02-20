@@ -7,8 +7,8 @@ mod timestamp;
 pub use self::{
     axis::{DecisionTime, TemporalTagged, TimeAxis, TransactionTime, VariableAxis},
     bound::{
-        IncludedTimeIntervalBound, LimitedTimeIntervalBound, TimeIntervalBound,
-        UnboundedOrExcludedTimeIntervalBound,
+        InclusiveTemporalBound, LimitedTemporalBound, TemporalBound,
+        UnboundedOrExclusiveTemporalBound,
     },
     interval::UnresolvedTimeInterval,
     temporal_axes::{

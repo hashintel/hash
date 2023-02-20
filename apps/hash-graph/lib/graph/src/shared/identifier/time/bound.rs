@@ -23,26 +23,29 @@ use crate::{
     Hash(bound = "")
 )]
 #[serde(rename_all = "camelCase", bound = "", tag = "kind", content = "limit")]
-pub enum TimeIntervalBound<A> {
+pub enum TemporalBound<A> {
+    #[schema(title = "UnboundedBound")]
     Unbounded,
+    #[schema(title = "InclusiveBound")]
     Inclusive(Timestamp<A>),
+    #[schema(title = "ExclusiveBound")]
     Exclusive(Timestamp<A>),
 }
 
-impl<A> TemporalTagged for TimeIntervalBound<A> {
+impl<A> TemporalTagged for TemporalBound<A> {
     type Axis = A;
-    type Tagged<T> = TimeIntervalBound<T>;
+    type Tagged<T> = TemporalBound<T>;
 
-    fn cast<T>(self) -> TimeIntervalBound<T> {
+    fn cast<T>(self) -> TemporalBound<T> {
         match self {
-            Self::Unbounded => TimeIntervalBound::Unbounded,
-            Self::Inclusive(limit) => TimeIntervalBound::Inclusive(limit.cast()),
-            Self::Exclusive(limit) => TimeIntervalBound::Exclusive(limit.cast()),
+            Self::Unbounded => TemporalBound::Unbounded,
+            Self::Inclusive(limit) => TemporalBound::Inclusive(limit.cast()),
+            Self::Exclusive(limit) => TemporalBound::Exclusive(limit.cast()),
         }
     }
 }
 
-impl<A> IntervalBound<Timestamp<A>> for TimeIntervalBound<A> {
+impl<A> IntervalBound<Timestamp<A>> for TemporalBound<A> {
     fn as_bound(&self) -> Bound<&Timestamp<A>> {
         match self {
             Self::Unbounded => Bound::Unbounded,
@@ -78,24 +81,26 @@ impl<A> IntervalBound<Timestamp<A>> for TimeIntervalBound<A> {
     Hash(bound = "")
 )]
 #[serde(rename_all = "camelCase", bound = "", tag = "kind", content = "limit")]
-pub enum LimitedTimeIntervalBound<A> {
+pub enum LimitedTemporalBound<A> {
+    #[schema(title = "InclusiveBound")]
     Inclusive(Timestamp<A>),
+    #[schema(title = "ExclusiveBound")]
     Exclusive(Timestamp<A>),
 }
 
-impl<A> TemporalTagged for LimitedTimeIntervalBound<A> {
+impl<A> TemporalTagged for LimitedTemporalBound<A> {
     type Axis = A;
-    type Tagged<T> = LimitedTimeIntervalBound<T>;
+    type Tagged<T> = LimitedTemporalBound<T>;
 
-    fn cast<T>(self) -> LimitedTimeIntervalBound<T> {
+    fn cast<T>(self) -> LimitedTemporalBound<T> {
         match self {
-            Self::Inclusive(limit) => LimitedTimeIntervalBound::Inclusive(limit.cast()),
-            Self::Exclusive(limit) => LimitedTimeIntervalBound::Exclusive(limit.cast()),
+            Self::Inclusive(limit) => LimitedTemporalBound::Inclusive(limit.cast()),
+            Self::Exclusive(limit) => LimitedTemporalBound::Exclusive(limit.cast()),
         }
     }
 }
 
-impl<A> IntervalBound<Timestamp<A>> for LimitedTimeIntervalBound<A> {
+impl<A> IntervalBound<Timestamp<A>> for LimitedTemporalBound<A> {
     fn as_bound(&self) -> Bound<&Timestamp<A>> {
         match self {
             Self::Inclusive(limit) => Bound::Included(limit),
@@ -131,30 +136,30 @@ impl<A> IntervalBound<Timestamp<A>> for LimitedTimeIntervalBound<A> {
     Hash(bound = "")
 )]
 #[serde(transparent)]
-pub struct IncludedTimeIntervalBound<A>(Timestamp<A>);
+pub struct InclusiveTemporalBound<A>(Timestamp<A>);
 
-impl<A> From<IncludedTimeIntervalBound<A>> for Timestamp<A> {
-    fn from(value: IncludedTimeIntervalBound<A>) -> Self {
+impl<A> From<InclusiveTemporalBound<A>> for Timestamp<A> {
+    fn from(value: InclusiveTemporalBound<A>) -> Self {
         value.0
     }
 }
 
-impl<A> From<Timestamp<A>> for IncludedTimeIntervalBound<A> {
+impl<A> From<Timestamp<A>> for InclusiveTemporalBound<A> {
     fn from(value: Timestamp<A>) -> Self {
         Self(value)
     }
 }
 
-impl<A> TemporalTagged for IncludedTimeIntervalBound<A> {
+impl<A> TemporalTagged for InclusiveTemporalBound<A> {
     type Axis = A;
-    type Tagged<T> = IncludedTimeIntervalBound<T>;
+    type Tagged<T> = InclusiveTemporalBound<T>;
 
-    fn cast<T>(self) -> IncludedTimeIntervalBound<T> {
-        IncludedTimeIntervalBound(self.0.cast())
+    fn cast<T>(self) -> InclusiveTemporalBound<T> {
+        InclusiveTemporalBound(self.0.cast())
     }
 }
 
-impl<A> IntervalBound<Timestamp<A>> for IncludedTimeIntervalBound<A> {
+impl<A> IntervalBound<Timestamp<A>> for InclusiveTemporalBound<A> {
     fn as_bound(&self) -> Bound<&Timestamp<A>> {
         Bound::Included(&self.0)
     }
@@ -186,13 +191,13 @@ impl<A> IntervalBound<Timestamp<A>> for IncludedTimeIntervalBound<A> {
     Hash(bound = "")
 )]
 #[serde(transparent)]
-pub struct UnboundedOrExcludedTimeIntervalBound<A>(Option<Timestamp<A>>);
+pub struct UnboundedOrExclusiveTemporalBound<A>(Option<Timestamp<A>>);
 
-impl<A> ToSchema<'_> for UnboundedOrExcludedTimeIntervalBound<A> {
+impl<A> ToSchema<'_> for UnboundedOrExclusiveTemporalBound<A> {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
-            "UnboundedOrExcludedBound",
-            openapi::Schema::Object(
+            "UnboundedOrExclusiveTemporalBound",
+            Schema::Object(
                 openapi::ObjectBuilder::new()
                     .schema_type(openapi::SchemaType::String)
                     .format(Some(openapi::SchemaFormat::KnownFormat(
@@ -206,28 +211,28 @@ impl<A> ToSchema<'_> for UnboundedOrExcludedTimeIntervalBound<A> {
     }
 }
 
-impl<A> From<UnboundedOrExcludedTimeIntervalBound<A>> for Option<Timestamp<A>> {
-    fn from(value: UnboundedOrExcludedTimeIntervalBound<A>) -> Self {
+impl<A> From<UnboundedOrExclusiveTemporalBound<A>> for Option<Timestamp<A>> {
+    fn from(value: UnboundedOrExclusiveTemporalBound<A>) -> Self {
         value.0
     }
 }
 
-impl<A> From<Option<Timestamp<A>>> for UnboundedOrExcludedTimeIntervalBound<A> {
+impl<A> From<Option<Timestamp<A>>> for UnboundedOrExclusiveTemporalBound<A> {
     fn from(value: Option<Timestamp<A>>) -> Self {
         Self(value)
     }
 }
 
-impl<A> TemporalTagged for UnboundedOrExcludedTimeIntervalBound<A> {
+impl<A> TemporalTagged for UnboundedOrExclusiveTemporalBound<A> {
     type Axis = A;
-    type Tagged<T> = UnboundedOrExcludedTimeIntervalBound<T>;
+    type Tagged<T> = UnboundedOrExclusiveTemporalBound<T>;
 
-    fn cast<T>(self) -> UnboundedOrExcludedTimeIntervalBound<T> {
-        UnboundedOrExcludedTimeIntervalBound(self.0.map(Timestamp::cast))
+    fn cast<T>(self) -> UnboundedOrExclusiveTemporalBound<T> {
+        UnboundedOrExclusiveTemporalBound(self.0.map(Timestamp::cast))
     }
 }
 
-impl<A> IntervalBound<Timestamp<A>> for UnboundedOrExcludedTimeIntervalBound<A> {
+impl<A> IntervalBound<Timestamp<A>> for UnboundedOrExclusiveTemporalBound<A> {
     fn as_bound(&self) -> Bound<&Timestamp<A>> {
         self.0.as_ref().map_or(Bound::Unbounded, Bound::Excluded)
     }

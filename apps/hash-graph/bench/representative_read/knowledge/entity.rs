@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
     identifier::time::{
-        TimeIntervalBound, UnresolvedPinnedTemporalAxis, UnresolvedTemporalAxes,
+        TemporalBound, UnresolvedPinnedTemporalAxis, UnresolvedTemporalAxes,
         UnresolvedVariableTemporalAxis,
     },
     knowledge::{EntityQueryPath, EntityUuid},
@@ -82,7 +82,7 @@ pub fn bench_get_entities_by_property(
                 temporal_axes: UnresolvedTemporalAxes::DecisionTime {
                     pinned: UnresolvedPinnedTemporalAxis::new(None),
                     variable: UnresolvedVariableTemporalAxis::new(
-                        Some(TimeIntervalBound::Unbounded),
+                        Some(TemporalBound::Unbounded),
                         None,
                     ),
                 },
@@ -122,7 +122,7 @@ pub fn bench_get_link_by_target_by_property(
                 temporal_axes: UnresolvedTemporalAxes::DecisionTime {
                     pinned: UnresolvedPinnedTemporalAxis::new(None),
                     variable: UnresolvedVariableTemporalAxis::new(
-                        Some(TimeIntervalBound::Unbounded),
+                        Some(TemporalBound::Unbounded),
                         None,
                     ),
                 },
