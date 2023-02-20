@@ -19,7 +19,7 @@ pub use self::{
 };
 use crate::interval::Interval;
 
-pub type TemporalInterval<A> = Interval<Timestamp<A>, TemporalBound<A>, LimitedTemporalBound<A>>;
+pub type TemporalInterval<A> = Interval<Timestamp<A>, TemporalBound<A>, TemporalBound<A>>;
 pub type LimitedTemporalInterval<A> =
     Interval<Timestamp<A>, TemporalBound<A>, LimitedTemporalBound<A>>;
 pub type VersionInterval<A> =
