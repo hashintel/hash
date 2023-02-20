@@ -5,8 +5,11 @@ on:
         default: .*
         description: Regex to filter block dir names
         required: false
+      DEPLOYMENT_BASE_URL:
+        description: Deployment Base URL
+        required: true
 
-name: Publish blocks to production
+name: Publish blocks to preview
 
 jobs:
   pick-blocks:
@@ -50,4 +53,5 @@ jobs:
         run: npx blockprotocol@latest publish --yes
         working-directory: blocks/${{ matrix.block-dir-name }}
         env:
-          BLOCK_PROTOCOL_API_KEY_HASH: ${{ secrets.BLOCK_PROTOCOL_API_KEY_HASH_PRODUCTION }}
+          BLOCK_PROTOCOL_API_KEY_HASH: ${{ secrets.BLOCK_PROTOCOL_API_KEY_HASH_PREVIEW }}
+          BLOCK_PROTOCOL_SITE_HOST: ${{ github.event.inputs.DEPLOYMENT_BASE_URL }}
