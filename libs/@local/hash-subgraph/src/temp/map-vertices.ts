@@ -12,7 +12,6 @@ import {
   DataType as DataTypeGraphApi,
   EntityMetadata as EntityMetadataGraphApi,
   EntityType as EntityTypeGraphApi,
-  EntityVersion as EntityVersionGraphApi,
   KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
   LinkData as LinkDataGraphApi,
   OntologyElementMetadata as OntologyElementMetadataGraphApi,
@@ -142,7 +141,7 @@ const mapOntologyVertex = (vertex: OntologyVertexGraphApi): OntologyVertex => {
 };
 
 export const mapEntityVersion = (
-  entityVersion: EntityVersionGraphApi,
+  entityVersion: EntityMetadataGraphApi["version"],
 ): EntityTemporalVersioningMetadata => {
   return {
     transactionTime: {
