@@ -1,8 +1,8 @@
 import { validateBaseUri } from "@blockprotocol/type-system";
 import {
   Edges as EdgesGraphApi,
-  KnowledgeGraphOutwardEdges as KnowledgeGraphOutwardEdgesGraphApi,
-  OntologyOutwardEdges as OntologyOutwardEdgesGraphApi,
+  KnowledgeGraphOutwardEdge as KnowledgeGraphOutwardEdgeGraphApi,
+  OntologyOutwardEdge as OntologyOutwardEdgeGraphApi,
 } from "@local/hash-graph-client";
 
 import {
@@ -18,9 +18,7 @@ import {
 } from "../types";
 
 export const mapOutwardEdge = (
-  outwardEdge:
-    | OntologyOutwardEdgesGraphApi
-    | KnowledgeGraphOutwardEdgesGraphApi,
+  outwardEdge: OntologyOutwardEdgeGraphApi | KnowledgeGraphOutwardEdgeGraphApi,
 ): OutwardEdge => {
   switch (outwardEdge.kind) {
     // Ontology edge-kind cases
