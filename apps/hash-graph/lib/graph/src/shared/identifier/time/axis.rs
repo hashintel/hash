@@ -27,7 +27,7 @@ pub enum TimeAxis {
     TransactionTime,
 }
 
-/// Time axis for the variable temporal axis used in [`TimeProjection`]s.
+/// Time axis for the variable temporal axis used in [`TemporalAxes`]s.
 ///
 /// This is used as the generic argument to time-related structs. Please refer to the documentation
 /// of [`TemporalAxes`] for more information.
@@ -36,7 +36,7 @@ pub enum TimeAxis {
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct VariableAxis;
 
-/// Time axis for the pinned temporal axis used in [`TimeProjection`]s.
+/// Time axis for the pinned temporal axis used in [`TemporalAxes`]s.
 ///
 /// This is used as the generic argument to time-related structs. Please refer to the documentation
 /// of [`TemporalAxes`] for more information.
