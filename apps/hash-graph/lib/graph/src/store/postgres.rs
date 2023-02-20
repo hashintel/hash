@@ -262,8 +262,8 @@ where
                 FROM create_owned_ontology_id(
                     base_uri := $1,
                     version := $2,
-                    record_created_by_id := $4,
-                    owned_by_id := $3
+                    record_created_by_id := $3,
+                    owned_by_id := $4
                 );"#,
                 &[
                     &metadata.record_id().base_uri.as_str(),
@@ -306,14 +306,14 @@ where
                 FROM create_external_ontology_id(
                     base_uri := $1,
                     version := $2,
-                    record_created_by_id := $4,
-                    fetched_at := $3
+                    record_created_by_id := $3,
+                    fetched_at := $4
                 );"#,
                 &[
                     &metadata.record_id().base_uri.as_str(),
                     &metadata.record_id().version,
-                    &metadata.fetched_at(),
                     &metadata.provenance_metadata().updated_by_id(),
+                    &metadata.fetched_at(),
                 ],
             )
             .await
