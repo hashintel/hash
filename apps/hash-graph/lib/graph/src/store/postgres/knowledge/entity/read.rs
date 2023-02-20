@@ -33,7 +33,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
     async fn read(
         &self,
         filter: &Filter<Entity>,
-        time_projection: &TemporalAxes,
+        temporal_axes: &TemporalAxes,
     ) -> Result<Vec<Entity>, QueryError> {
         // We can't define these inline otherwise we'll drop while borrowed
         let left_entity_uuid_path = EntityQueryPath::LeftEntity(Box::new(EntityQueryPath::Uuid));
@@ -43,7 +43,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         let right_owned_by_id_query_path =
             EntityQueryPath::RightEntity(Box::new(EntityQueryPath::OwnedById));
 
-        let mut compiler = SelectCompiler::new(time_projection);
+        let mut compiler = SelectCompiler::new(temporal_axes);
 
         let owned_by_id_index = compiler.add_selection_path(&EntityQueryPath::OwnedById);
         let entity_uuid_index = compiler.add_selection_path(&EntityQueryPath::Uuid);

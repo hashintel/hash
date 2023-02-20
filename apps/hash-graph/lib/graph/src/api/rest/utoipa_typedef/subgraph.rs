@@ -41,7 +41,7 @@ impl From<crate::subgraph::Subgraph> for Subgraph {
         let edges = Edges::from_vertices_and_store_edges(
             subgraph.edges,
             &vertices,
-            subgraph.resolved_time_projection.variable_time_axis(),
+            subgraph.resolved_temporal_axes.variable_time_axis(),
         );
         Self {
             roots: subgraph.roots.into_iter().collect(),
@@ -49,8 +49,8 @@ impl From<crate::subgraph::Subgraph> for Subgraph {
             edges,
             depths: subgraph.depths,
             temporal_axes: TemporalSubgraphAxes {
-                initial: subgraph.time_projection,
-                resolved: subgraph.resolved_time_projection,
+                initial: subgraph.temporal_axes,
+                resolved: subgraph.resolved_temporal_axes,
             },
         }
     }

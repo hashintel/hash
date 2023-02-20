@@ -136,7 +136,7 @@ where
             StructuralQuery {
                 filter: Filter::for_versioned_uri(versioned_uri),
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_axes: UnresolvedTemporalAxes::DecisionTime {
+                temporal_axes: UnresolvedTemporalAxes::DecisionTime {
                     pinned: UnresolvedPinnedTemporalAxis::new(None),
                     variable: UnresolvedVariableTemporalAxis::new(None, None),
                 },
@@ -366,9 +366,9 @@ where
     async fn read(
         &self,
         query: &Filter<R>,
-        time_projection: &TemporalAxes,
+        temporal_axes: &TemporalAxes,
     ) -> Result<Vec<R>, QueryError> {
-        self.store.read(query, time_projection).await
+        self.store.read(query, temporal_axes).await
     }
 }
 

@@ -27,24 +27,24 @@ pub struct Subgraph {
     pub vertices: Vertices,
     pub edges: Edges,
     pub depths: GraphResolveDepths,
-    pub time_projection: UnresolvedTemporalAxes,
-    pub resolved_time_projection: TemporalAxes,
+    pub temporal_axes: UnresolvedTemporalAxes,
+    pub resolved_temporal_axes: TemporalAxes,
 }
 
 impl Subgraph {
     #[must_use]
     pub fn new(
         depths: GraphResolveDepths,
-        time_projection: UnresolvedTemporalAxes,
-        resolved_time_projection: TemporalAxes,
+        temporal_axes: UnresolvedTemporalAxes,
+        resolved_temporal_axes: TemporalAxes,
     ) -> Self {
         Self {
             roots: HashSet::new(),
             vertices: Vertices::default(),
             edges: Edges::default(),
             depths,
-            time_projection,
-            resolved_time_projection,
+            temporal_axes,
+            resolved_temporal_axes,
         }
     }
 

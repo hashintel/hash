@@ -162,7 +162,7 @@ pub struct StructuralQuery<'p, R: Record> {
     #[serde(bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>")]
     pub filter: Filter<'p, R>,
     pub graph_resolve_depths: GraphResolveDepths,
-    pub time_axes: UnresolvedTemporalAxes,
+    pub temporal_axes: UnresolvedTemporalAxes,
 }
 
 impl<'p, R: Record> StructuralQuery<'p, R> {

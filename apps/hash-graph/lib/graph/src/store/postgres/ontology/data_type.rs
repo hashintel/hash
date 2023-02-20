@@ -27,23 +27,23 @@ impl<C: AsClient> PostgresStore<C> {
         dependency_context: &mut DependencyContext,
         subgraph: &mut Subgraph,
         mut current_resolve_depths: GraphResolveDepths,
-        mut time_projection: TemporalAxes,
+        mut temporal_axes: TemporalAxes,
     ) -> Result<(), QueryError> {
         let dependency_status = dependency_context.ontology_dependency_map.update(
             data_type_id,
             current_resolve_depths,
-            time_projection.variable_interval().convert(),
+            temporal_axes.variable_interval().convert(),
         );
 
         #[expect(unused_assignments, unused_variables)]
         let data_type = match dependency_status {
             DependencyStatus::Unresolved(depths, interval) => {
                 // The dependency may have to be resolved more than anticipated, so we update
-                // the resolve depth and time projection.
+                // the resolve depth and the temporal axes.
                 current_resolve_depths = depths;
-                time_projection.set_variable_interval(interval.convert());
+                temporal_axes.set_variable_interval(interval.convert());
                 subgraph
-                    .get_or_read::<DataTypeWithMetadata>(self, data_type_id, &time_projection)
+                    .get_or_read::<DataTypeWithMetadata>(self, data_type_id, &temporal_axes)
                     .await?
             }
             DependencyStatus::Resolved => return Ok(()),
@@ -88,20 +88,20 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         let StructuralQuery {
             ref filter,
             graph_resolve_depths,
-            time_axes: ref unresolved_time_projection,
+            temporal_axes: ref unresolved_temporal_axes,
         } = *query;
 
-        let time_projection = unresolved_time_projection.clone().resolve();
-        let time_axis = time_projection.variable_time_axis();
+        let temporal_axes = unresolved_temporal_axes.clone().resolve();
+        let time_axis = temporal_axes.variable_time_axis();
 
         let mut subgraph = Subgraph::new(
             graph_resolve_depths,
-            unresolved_time_projection.clone(),
-            time_projection.clone(),
+            unresolved_temporal_axes.clone(),
+            temporal_axes.clone(),
         );
         let mut dependency_context = DependencyContext::default();
 
-        for data_type in Read::<DataTypeWithMetadata>::read(self, filter, &time_projection).await? {
+        for data_type in Read::<DataTypeWithMetadata>::read(self, filter, &temporal_axes).await? {
             let vertex_id = data_type.vertex_id(time_axis);
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
             subgraph.insert(&vertex_id, data_type);
@@ -111,7 +111,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                 &mut dependency_context,
                 &mut subgraph,
                 graph_resolve_depths,
-                time_projection.clone(),
+                temporal_axes.clone(),
             )
             .await?;
 

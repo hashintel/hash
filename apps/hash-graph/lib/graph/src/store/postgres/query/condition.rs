@@ -113,8 +113,8 @@ mod tests {
         rendered: &'static str,
         parameters: &[&'p dyn ToSql],
     ) {
-        let time_projection = UnresolvedTemporalAxes::default().resolve();
-        let mut compiler = SelectCompiler::new(&time_projection);
+        let temporal_axes = UnresolvedTemporalAxes::default().resolve();
+        let mut compiler = SelectCompiler::new(&temporal_axes);
         let condition = compiler.compile_filter(filter);
 
         assert_eq!(condition.transpile_to_string(), rendered);

@@ -29,16 +29,16 @@ pub trait Read<R: Record + Send>: Sync {
     async fn read(
         &self,
         query: &Filter<R>,
-        time_projection: &TemporalAxes,
+        temporal_axes: &TemporalAxes,
     ) -> Result<Vec<R>, QueryError>;
 
     #[tracing::instrument(level = "info", skip(self, query))]
     async fn read_one(
         &self,
         query: &Filter<R>,
-        time_projection: &TemporalAxes,
+        temporal_axes: &TemporalAxes,
     ) -> Result<R, QueryError> {
-        let mut records = self.read(query, time_projection).await?;
+        let mut records = self.read(query, temporal_axes).await?;
         ensure!(
             records.len() <= 1,
             Report::new(QueryError).attach_printable(format!(
