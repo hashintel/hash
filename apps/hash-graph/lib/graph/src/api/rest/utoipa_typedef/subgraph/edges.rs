@@ -16,12 +16,12 @@ use crate::{
         OntologyTypeVertexId,
     },
     store::Record,
-    subgraph::edges::{KnowledgeGraphEdgeKind, OntologyOutwardEdges, OutwardEdge, SharedEdgeKind},
+    subgraph::edges::{KnowledgeGraphEdgeKind, OntologyOutwardEdge, OutwardEdge, SharedEdgeKind},
 };
 
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
-pub enum KnowledgeGraphOutwardEdges {
+pub enum KnowledgeGraphOutwardEdge {
     ToKnowledgeGraph(OutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>),
     ToOntology(OutwardEdge<SharedEdgeKind, OntologyTypeVertexId>),
 }
@@ -29,13 +29,21 @@ pub enum KnowledgeGraphOutwardEdges {
 // WARNING: This MUST be kept up to date with the enum variants.
 //   Utoipa is not able to derive the correct schema for this as it has problems with generic
 //   parameters.
-impl ToSchema<'_> for KnowledgeGraphOutwardEdges {
+impl ToSchema<'_> for KnowledgeGraphOutwardEdge {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
-            "KnowledgeGraphOutwardEdges",
+            "KnowledgeGraphOutwardEdge",
             OneOfBuilder::new()
-                .item(<OutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>>::schema().1)
-                .item(<OutwardEdge<SharedEdgeKind, OntologyTypeVertexId>>::schema().1)
+                .item(
+                    <OutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>>::generate_schema(
+                        "KnowledgeGraphToKnowledgeGraphOutwardEdge",
+                    ),
+                )
+                .item(
+                    <OutwardEdge<SharedEdgeKind, OntologyTypeVertexId>>::generate_schema(
+                        "KnowledgeGraphToOntologyOutwardEdge",
+                    ),
+                )
                 .into(),
         )
     }
@@ -44,13 +52,13 @@ impl ToSchema<'_> for KnowledgeGraphOutwardEdges {
 #[derive(Default, Debug, Serialize, ToSchema)]
 #[serde(transparent)]
 pub struct KnowledgeGraphRootedEdges(
-    pub HashMap<EntityId, BTreeMap<Timestamp<VariableAxis>, Vec<KnowledgeGraphOutwardEdges>>>,
+    pub HashMap<EntityId, BTreeMap<Timestamp<VariableAxis>, Vec<KnowledgeGraphOutwardEdge>>>,
 );
 
 #[derive(Default, Debug, Serialize, ToSchema)]
 #[serde(transparent)]
 pub struct OntologyRootedEdges(
-    pub HashMap<BaseUri, BTreeMap<OntologyTypeVersion, Vec<OntologyOutwardEdges>>>,
+    pub HashMap<BaseUri, BTreeMap<OntologyTypeVersion, Vec<OntologyOutwardEdge>>>,
 );
 
 #[derive(Serialize)]
@@ -89,7 +97,7 @@ impl Edges {
                     let edges = edges.into_iter().map(|edge| {
                         match edge {
                             crate::subgraph::edges::KnowledgeGraphOutwardEdges::ToOntology(edge) => {
-                                KnowledgeGraphOutwardEdges::ToOntology(edge)
+                                KnowledgeGraphOutwardEdge::ToOntology(edge)
                             }
                             crate::subgraph::edges::KnowledgeGraphOutwardEdges::ToKnowledgeGraph(
                                 edge,
@@ -123,7 +131,7 @@ impl Edges {
                                     .vertex_id(time_axis)
                                     .version;
 
-                                KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
+                                KnowledgeGraphOutwardEdge::ToKnowledgeGraph(OutwardEdge {
                                     kind: edge.kind,
                                     reversed: edge.reversed,
                                     right_endpoint: EntityIdAndTimestamp {
@@ -165,10 +173,8 @@ impl ToSchema<'_> for Edges {
                 .additional_properties(Some(Schema::from(
                     ObjectBuilder::new().additional_properties(Some(Array::new(
                         OneOfBuilder::new()
-                            .item(Ref::from_schema_name(OntologyOutwardEdges::schema().0))
-                            .item(Ref::from_schema_name(
-                                KnowledgeGraphOutwardEdges::schema().0,
-                            )),
+                            .item(Ref::from_schema_name(OntologyOutwardEdge::schema().0))
+                            .item(Ref::from_schema_name(KnowledgeGraphOutwardEdge::schema().0)),
                     ))),
                 )))
                 .into(),
