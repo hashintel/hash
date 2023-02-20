@@ -12,7 +12,7 @@ use crate::{
     identifier::{
         knowledge::EntityId,
         ontology::OntologyTypeVersion,
-        time::{VariableAxis, Timestamp},
+        time::{Timestamp, VariableAxis},
     },
     knowledge::Entity,
 };

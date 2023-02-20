@@ -10,7 +10,7 @@ use utoipa::ToSchema;
 use crate::identifier::{
     knowledge::EntityId,
     ontology::OntologyTypeVersion,
-    time::{VariableAxis, Timestamp},
+    time::{Timestamp, VariableAxis},
 };
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]

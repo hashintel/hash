@@ -3,7 +3,7 @@ use utoipa::ToSchema;
 
 use crate::identifier::{
     knowledge::EntityId,
-    time::{VariableAxis, Timestamp},
+    time::{Timestamp, VariableAxis},
 };
 
 pub mod subgraph;
