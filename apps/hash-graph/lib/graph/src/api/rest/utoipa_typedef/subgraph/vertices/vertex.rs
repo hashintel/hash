@@ -11,8 +11,11 @@ use crate::{
 #[serde(rename_all = "camelCase")]
 #[expect(clippy::enum_variant_names)]
 pub enum OntologyVertex {
+    #[schema(title = "DataTypeVertex")]
     DataType(Box<DataTypeWithMetadata>),
+    #[schema(title = "PropertyTypeVertex")]
     PropertyType(Box<PropertyTypeWithMetadata>),
+    #[schema(title = "EntityTypeVertex")]
     EntityType(Box<EntityTypeWithMetadata>),
 }
 
@@ -38,6 +41,7 @@ impl From<EntityTypeWithMetadata> for OntologyVertex {
 #[serde(tag = "kind", content = "inner")]
 #[serde(rename_all = "camelCase")]
 pub enum KnowledgeGraphVertex {
+    #[schema(title = "EntityVertex")]
     Entity(Entity),
 }
 
@@ -46,6 +50,8 @@ pub enum KnowledgeGraphVertex {
 #[serde(untagged)]
 #[expect(dead_code, reason = "This is used in the generated OpenAPI spec")]
 pub enum Vertex {
+    #[schema(title = "OntologyVertex")]
     Ontology(Box<OntologyVertex>),
+    #[schema(title = "KnowledgeGraphVertex")]
     KnowledgeGraph(Box<KnowledgeGraphVertex>),
 }

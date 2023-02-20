@@ -315,6 +315,33 @@ export interface DataTypeStructuralQuery {
 /**
  *
  * @export
+ * @interface DataTypeVertex
+ */
+export interface DataTypeVertex {
+  /**
+   *
+   * @type {DataTypeWithMetadata}
+   * @memberof DataTypeVertex
+   */
+  inner: DataTypeWithMetadata;
+  /**
+   *
+   * @type {string}
+   * @memberof DataTypeVertex
+   */
+  kind: DataTypeVertexKindEnum;
+}
+
+export const DataTypeVertexKindEnum = {
+  DataType: "dataType",
+} as const;
+
+export type DataTypeVertexKindEnum =
+  (typeof DataTypeVertexKindEnum)[keyof typeof DataTypeVertexKindEnum];
+
+/**
+ *
+ * @export
  * @interface DataTypeWithMetadata
  */
 export interface DataTypeWithMetadata {
@@ -707,6 +734,33 @@ export interface EntityTypeStructuralQuery {
 /**
  *
  * @export
+ * @interface EntityTypeVertex
+ */
+export interface EntityTypeVertex {
+  /**
+   *
+   * @type {EntityTypeWithMetadata}
+   * @memberof EntityTypeVertex
+   */
+  inner: EntityTypeWithMetadata;
+  /**
+   *
+   * @type {string}
+   * @memberof EntityTypeVertex
+   */
+  kind: EntityTypeVertexKindEnum;
+}
+
+export const EntityTypeVertexKindEnum = {
+  EntityType: "entityType",
+} as const;
+
+export type EntityTypeVertexKindEnum =
+  (typeof EntityTypeVertexKindEnum)[keyof typeof EntityTypeVertexKindEnum];
+
+/**
+ *
+ * @export
  * @interface EntityTypeWithMetadata
  */
 export interface EntityTypeWithMetadata {
@@ -723,6 +777,33 @@ export interface EntityTypeWithMetadata {
    */
   schema: EntityType;
 }
+/**
+ *
+ * @export
+ * @interface EntityVertex
+ */
+export interface EntityVertex {
+  /**
+   *
+   * @type {Entity}
+   * @memberof EntityVertex
+   */
+  inner: Entity;
+  /**
+   *
+   * @type {string}
+   * @memberof EntityVertex
+   */
+  kind: EntityVertexKindEnum;
+}
+
+export const EntityVertexKindEnum = {
+  Entity: "entity",
+} as const;
+
+export type EntityVertexKindEnum =
+  (typeof EntityVertexKindEnum)[keyof typeof EntityVertexKindEnum];
+
 /**
  *
  * @export
@@ -1051,34 +1132,7 @@ export interface KnowledgeGraphRootedEdges {
  * @type KnowledgeGraphVertex
  * @export
  */
-export type KnowledgeGraphVertex = KnowledgeGraphVertexOneOf;
-
-/**
- *
- * @export
- * @interface KnowledgeGraphVertexOneOf
- */
-export interface KnowledgeGraphVertexOneOf {
-  /**
-   *
-   * @type {Entity}
-   * @memberof KnowledgeGraphVertexOneOf
-   */
-  inner: Entity;
-  /**
-   *
-   * @type {string}
-   * @memberof KnowledgeGraphVertexOneOf
-   */
-  kind: KnowledgeGraphVertexOneOfKindEnum;
-}
-
-export const KnowledgeGraphVertexOneOfKindEnum = {
-  Entity: "entity",
-} as const;
-
-export type KnowledgeGraphVertexOneOfKindEnum =
-  (typeof KnowledgeGraphVertexOneOfKindEnum)[keyof typeof KnowledgeGraphVertexOneOfKindEnum];
+export type KnowledgeGraphVertex = EntityVertex;
 
 /**
  *
@@ -1362,90 +1416,9 @@ export interface OntologyTypeVertexId {
  * @export
  */
 export type OntologyVertex =
-  | OntologyVertexOneOf
-  | OntologyVertexOneOf1
-  | OntologyVertexOneOf2;
-
-/**
- *
- * @export
- * @interface OntologyVertexOneOf
- */
-export interface OntologyVertexOneOf {
-  /**
-   *
-   * @type {DataTypeWithMetadata}
-   * @memberof OntologyVertexOneOf
-   */
-  inner: DataTypeWithMetadata;
-  /**
-   *
-   * @type {string}
-   * @memberof OntologyVertexOneOf
-   */
-  kind: OntologyVertexOneOfKindEnum;
-}
-
-export const OntologyVertexOneOfKindEnum = {
-  DataType: "dataType",
-} as const;
-
-export type OntologyVertexOneOfKindEnum =
-  (typeof OntologyVertexOneOfKindEnum)[keyof typeof OntologyVertexOneOfKindEnum];
-
-/**
- *
- * @export
- * @interface OntologyVertexOneOf1
- */
-export interface OntologyVertexOneOf1 {
-  /**
-   *
-   * @type {PropertyTypeWithMetadata}
-   * @memberof OntologyVertexOneOf1
-   */
-  inner: PropertyTypeWithMetadata;
-  /**
-   *
-   * @type {string}
-   * @memberof OntologyVertexOneOf1
-   */
-  kind: OntologyVertexOneOf1KindEnum;
-}
-
-export const OntologyVertexOneOf1KindEnum = {
-  PropertyType: "propertyType",
-} as const;
-
-export type OntologyVertexOneOf1KindEnum =
-  (typeof OntologyVertexOneOf1KindEnum)[keyof typeof OntologyVertexOneOf1KindEnum];
-
-/**
- *
- * @export
- * @interface OntologyVertexOneOf2
- */
-export interface OntologyVertexOneOf2 {
-  /**
-   *
-   * @type {EntityTypeWithMetadata}
-   * @memberof OntologyVertexOneOf2
-   */
-  inner: EntityTypeWithMetadata;
-  /**
-   *
-   * @type {string}
-   * @memberof OntologyVertexOneOf2
-   */
-  kind: OntologyVertexOneOf2KindEnum;
-}
-
-export const OntologyVertexOneOf2KindEnum = {
-  EntityType: "entityType",
-} as const;
-
-export type OntologyVertexOneOf2KindEnum =
-  (typeof OntologyVertexOneOf2KindEnum)[keyof typeof OntologyVertexOneOf2KindEnum];
+  | DataTypeVertex
+  | EntityTypeVertex
+  | PropertyTypeVertex;
 
 /**
  *
@@ -1754,6 +1727,33 @@ export interface PropertyTypeStructuralQuery {
    */
   temporalAxes: QueryTemporalAxesUnresolved;
 }
+/**
+ *
+ * @export
+ * @interface PropertyTypeVertex
+ */
+export interface PropertyTypeVertex {
+  /**
+   *
+   * @type {PropertyTypeWithMetadata}
+   * @memberof PropertyTypeVertex
+   */
+  inner: PropertyTypeWithMetadata;
+  /**
+   *
+   * @type {string}
+   * @memberof PropertyTypeVertex
+   */
+  kind: PropertyTypeVertexKindEnum;
+}
+
+export const PropertyTypeVertexKindEnum = {
+  PropertyType: "propertyType",
+} as const;
+
+export type PropertyTypeVertexKindEnum =
+  (typeof PropertyTypeVertexKindEnum)[keyof typeof PropertyTypeVertexKindEnum];
+
 /**
  *
  * @export
