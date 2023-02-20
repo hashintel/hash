@@ -30,7 +30,7 @@ export const getAllLatestDataTypes: ResolverFn<
       hasLeftEntity: { incoming: 0, outgoing: 0 },
       hasRightEntity: { incoming: 0, outgoing: 0 },
     },
-    timeAxes: {
+    temporalAxes: {
       pinned: {
         axis: "transactionTime",
         timestamp: null,
@@ -69,7 +69,7 @@ export const getDataType: ResolverFn<
       hasLeftEntity: { incoming: 0, outgoing: 0 },
       hasRightEntity: { incoming: 0, outgoing: 0 },
     },
-    timeAxes: {
+    temporalAxes: {
       pinned: {
         axis: "transactionTime",
         timestamp: null,

@@ -208,7 +208,7 @@ describe("Entity CRU", () => {
           all: [],
         },
         graphResolveDepths: zeroedGraphResolveDepths,
-        timeAxes: {
+        temporalAxes: {
           pinned: {
             axis: "transactionTime",
             timestamp: null,

@@ -148,7 +148,7 @@ export const getUserByShortname: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeAxes: {
+      temporalAxes: {
         pinned: {
           axis: "transactionTime",
           timestamp: null,
@@ -207,7 +207,7 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeAxes: {
+      temporalAxes: {
         pinned: {
           axis: "transactionTime",
           timestamp: null,

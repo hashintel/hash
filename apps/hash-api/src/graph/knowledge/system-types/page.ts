@@ -257,7 +257,7 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeAxes: {
+      temporalAxes: {
         pinned: {
           axis: "transactionTime",
           timestamp: null,

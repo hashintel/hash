@@ -46,7 +46,7 @@ Content-Type: application/json
       "outgoing": 0
     }
   },
-  "timeAxes": {
+  "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
       "timestamp": null
@@ -136,7 +136,7 @@ Content-Type: application/json
       "outgoing": 0
     }
   },
-  "timeAxes": {
+  "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
       "timestamp": null
@@ -246,7 +246,7 @@ Content-Type: application/json
       "outgoing": 0
     }
   },
-  "timeAxes": {
+  "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
       "timestamp": null
@@ -338,7 +338,7 @@ Content-Type: application/json
       "outgoing": 0
     }
   },
-  "timeAxes": {
+  "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
       "timestamp": null
@@ -436,7 +436,7 @@ Content-Type: application/json
       "outgoing": 2
     }
   },
-  "timeAxes": {
+  "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
       "timestamp": null
@@ -527,7 +527,7 @@ Content-Type: application/json
       "outgoing": 0
     }
   },
-  "timeAxes": {
+  "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
       "timestamp": null
@@ -635,7 +635,7 @@ Content-Type: application/json
       "outgoing": 0
     }
   },
-  "timeAxes": {
+  "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
       "timestamp": null
@@ -704,7 +704,7 @@ Content-Type: application/json
       "outgoing": 2
     }
   },
-  "timeAxes": {
+  "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
       "timestamp": null
@@ -777,7 +777,7 @@ Content-Type: application/json
       "outgoing": 2
     }
   },
-  "timeAxes": {
+  "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
       "timestamp": null
@@ -885,7 +885,7 @@ Content-Type: application/json
       "outgoing": 2
     }
   },
-  "timeAxes": {
+  "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
       "timestamp": null
@@ -984,7 +984,7 @@ Content-Type: application/json
       "outgoing": 2
     }
   },
-  "timeAxes": {
+  "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
       "timestamp": null
@@ -1094,7 +1094,7 @@ Content-Type: application/json
       "outgoing": 2
     }
   },
-  "timeAxes": {
+  "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
       "timestamp": null
@@ -1181,7 +1181,7 @@ Content-Type: application/json
       "outgoing": 2
     }
   },
-  "timeAxes": {
+  "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
       "timestamp": null
@@ -1247,7 +1247,7 @@ Content-Type: application/json
       "outgoing": 2
     }
   },
-  "timeAxes": {
+  "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
       "timestamp": null

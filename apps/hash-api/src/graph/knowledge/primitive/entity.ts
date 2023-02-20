@@ -120,7 +120,7 @@ export const getLatestEntityById: ImpureGraphFunction<
         hasLeftEntity: { incoming: 0, outgoing: 0 },
         hasRightEntity: { incoming: 0, outgoing: 0 },
       },
-      timeAxes: {
+      temporalAxes: {
         pinned: {
           axis: "transactionTime",
           timestamp: null,
@@ -475,7 +475,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
   };
 
   /** @todo-0.3 - replace this with `queryAxes: QueryTemporalAxesUnresolved` */
-  const timeAxes: UnresolvedTemporalAxes = {
+  const temporalAxes: UnresolvedTemporalAxes = {
     pinned: {
       axis: "transactionTime",
       timestamp: null,
@@ -502,7 +502,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     .getEntitiesByQuery({
       filter,
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeAxes,
+      temporalAxes,
     })
     .then(({ data }) => mapSubgraph(data) as Subgraph<EntityRootType>);
 
@@ -600,7 +600,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
   }
 
   /** @todo-0.3 - replace this with `queryAxes: QueryTemporalAxesUnresolved` */
-  const timeAxes: UnresolvedTemporalAxes = {
+  const temporalAxes: UnresolvedTemporalAxes = {
     pinned: {
       axis: "transactionTime",
       timestamp: null,
@@ -616,7 +616,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     .getEntitiesByQuery({
       filter,
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeAxes,
+      temporalAxes,
     })
     .then(({ data }) => mapSubgraph(data) as Subgraph<EntityRootType>);
 
@@ -683,7 +683,7 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
       hasRightEntity: { incoming: 0, outgoing: 0 },
       ...graphResolveDepths,
     },
-    timeAxes: {
+    temporalAxes: {
       pinned: {
         axis: "transactionTime",
         timestamp: null,

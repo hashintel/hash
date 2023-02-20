@@ -176,10 +176,10 @@ impl<'p, R: Record> StructuralQuery<'p, R> {
             )
             .required("graphResolveDepths")
             .property(
-                "timeAxes",
+                "temporalAxes",
                 Ref::from_schema_name(UnresolvedTemporalAxes::schema().0),
             )
-            .required("timeAxes")
+            .required("temporalAxes")
             .into()
     }
 }

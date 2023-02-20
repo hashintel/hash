@@ -145,7 +145,7 @@ export const getAllLatestEntitiesResolver: ResolverFn<
       hasLeftEntity,
       hasRightEntity,
     },
-    timeAxes: {
+    temporalAxes: {
       pinned: {
         axis: "transactionTime",
         timestamp: null,
@@ -208,7 +208,7 @@ export const getEntityResolver: ResolverFn<
       hasLeftEntity,
       hasRightEntity,
     },
-    timeAxes: {
+    temporalAxes: {
       pinned: {
         axis: "transactionTime",
         timestamp: null,

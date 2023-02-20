@@ -54,7 +54,7 @@ export const ensureSystemUserAccountIdExists = async (params: {
         hasLeftEntity: { outgoing: 0, incoming: 0 },
         hasRightEntity: { outgoing: 0, incoming: 0 },
       },
-      timeAxes: {
+      temporalAxes: {
         pinned: {
           axis: "transactionTime",
           timestamp: null,

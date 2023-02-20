@@ -88,7 +88,7 @@ export const getHashInstance: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeAxes: {
+      temporalAxes: {
         pinned: {
           axis: "transactionTime",
           timestamp: null,
