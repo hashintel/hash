@@ -17,7 +17,7 @@ publish = false
 [dependencies]
 error-stack = { version = "0.3.1", default_features = false }
 
-serde_json = { version = "1.0.91", default_features = false, features = ['alloc'] }
+serde_json = { version = "1.0.93", default_features = false, features = ['alloc'] }
 
 deer = { path = "..", default_features = false }
 
