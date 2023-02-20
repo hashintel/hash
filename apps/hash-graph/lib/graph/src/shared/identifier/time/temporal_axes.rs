@@ -4,8 +4,8 @@ use utoipa::{openapi, ToSchema};
 use crate::{
     identifier::time::{
         axis::TemporalTagged, bound::TimeIntervalBound, DecisionTime, IncludedTimeIntervalBound,
-        LimitedTimeIntervalBound, ProjectedTime, TimeAxis, Timestamp, TransactionTime,
-        UnboundedOrExcludedTimeIntervalBound, UnresolvedTimeInterval,
+        LimitedTimeIntervalBound, TimeAxis, Timestamp, TransactionTime,
+        UnboundedOrExcludedTimeIntervalBound, UnresolvedTimeInterval, VariableAxis,
     },
     interval::Interval,
 };
@@ -26,8 +26,8 @@ impl<A: Default> UnresolvedPinnedTemporalAxis<A> {
         }
     }
 
-    pub fn resolve(self, now: Timestamp<()>) -> Kernel<A> {
-        Kernel {
+    pub fn resolve(self, now: Timestamp<()>) -> PinnedTemporalAxis<A> {
+        PinnedTemporalAxis {
             axis: self.axis,
             timestamp: self
                 .timestamp
@@ -181,22 +181,22 @@ impl UnresolvedTemporalAxes {
 /// Please refer to the documentation of [`TemporalAxes`] for more information.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct Kernel<A> {
+pub struct PinnedTemporalAxis<A> {
     pub axis: A,
     pub timestamp: Timestamp<A>,
 }
 
-impl<'s, A> ToSchema<'s> for Kernel<A>
+impl<'s, A> ToSchema<'s> for PinnedTemporalAxis<A>
 where
     A: ToSchema<'s>,
 {
     fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
         (
-            "Kernel",
+            "PinnedTemporalAxis",
             openapi::ObjectBuilder::new()
                 .property("axis", openapi::Ref::from_schema_name(A::schema().0))
                 .required("axis")
-                .property("timestamp", Timestamp::<TransactionTime>::schema().1)
+                .property("timestamp", Timestamp::<A>::schema().1)
                 .required("timestamp")
                 .build()
                 .into(),
@@ -267,23 +267,24 @@ where
 /// In order to query data from the Graph, only one of the two time axes can be used. This is
 /// achieved by using a `TimeProjection`. The `TimeProjection` pins one axis to a specified
 /// [`Timestamp`], while the other axis can be a [`Interval`]. The pinned axis is called the
-/// [`Kernel`] and the other axis is called the [`VariableTemporalAxis`] of a projection. The
-/// returned data will then only contain temporal data that is contained in the [`Interval`] of the
-/// [`VariableTemporalAxis`], the [`ProjectedTime`], for the given [`Timestamp`] of the [`Kernel`].
+/// [`PinnedTemporalAxis`] and the other axis is called the [`VariableTemporalAxis`] of a
+/// projection. The returned data will then only contain temporal data that is contained in the
+/// [`Interval`] of the [`VariableTemporalAxis`], the [`VariableAxis`], for the given [`Timestamp`]
+/// of the [`PinnedTemporalAxis`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(untagged)]
 pub enum TemporalAxes {
     #[schema(title = "DecisionTimeAxes")]
     DecisionTime {
         #[schema(inline)]
-        pinned: Kernel<TransactionTime>,
+        pinned: PinnedTemporalAxis<TransactionTime>,
         #[schema(inline)]
         variable: VariableTemporalAxis<DecisionTime>,
     },
     #[schema(title = "TransactionTimeAxes")]
     TransactionTime {
         #[schema(inline)]
-        pinned: Kernel<DecisionTime>,
+        pinned: PinnedTemporalAxis<DecisionTime>,
         #[schema(inline)]
         variable: VariableTemporalAxis<TransactionTime>,
     },
@@ -291,7 +292,7 @@ pub enum TemporalAxes {
 
 impl TemporalAxes {
     #[must_use]
-    pub const fn kernel_time_axis(&self) -> TimeAxis {
+    pub const fn pinned_time_axis(&self) -> TimeAxis {
         match self {
             Self::DecisionTime { .. } => TimeAxis::TransactionTime,
             Self::TransactionTime { .. } => TimeAxis::DecisionTime,
@@ -299,7 +300,7 @@ impl TemporalAxes {
     }
 
     #[must_use]
-    pub const fn image_time_axis(&self) -> TimeAxis {
+    pub const fn variable_time_axis(&self) -> TimeAxis {
         match self {
             Self::DecisionTime { .. } => TimeAxis::DecisionTime,
             Self::TransactionTime { .. } => TimeAxis::TransactionTime,
@@ -307,7 +308,7 @@ impl TemporalAxes {
     }
 
     #[must_use]
-    pub fn kernel(&self) -> Timestamp<()> {
+    pub fn pinned_timestamp(&self) -> Timestamp<()> {
         match self {
             Self::DecisionTime { pinned, .. } => pinned.timestamp.cast(),
             Self::TransactionTime { pinned, .. } => pinned.timestamp.cast(),
@@ -315,12 +316,12 @@ impl TemporalAxes {
     }
 
     #[must_use]
-    pub fn image(
+    pub fn variable_interval(
         &self,
     ) -> Interval<
-        Timestamp<ProjectedTime>,
-        TimeIntervalBound<ProjectedTime>,
-        LimitedTimeIntervalBound<ProjectedTime>,
+        Timestamp<VariableAxis>,
+        TimeIntervalBound<VariableAxis>,
+        LimitedTimeIntervalBound<VariableAxis>,
     > {
         match self {
             Self::DecisionTime { variable, .. } => variable.interval.cast(),
@@ -331,12 +332,13 @@ impl TemporalAxes {
     /// Intersects the image of the projection with the provided [`Interval`].
     ///
     /// If the two intervals do not overlap, [`None`] is returned.
-    pub fn intersect_image(
+    #[must_use]
+    pub fn intersect_variable_interval(
         self,
         version_interval: Interval<
-            Timestamp<ProjectedTime>,
-            IncludedTimeIntervalBound<ProjectedTime>,
-            UnboundedOrExcludedTimeIntervalBound<ProjectedTime>,
+            Timestamp<VariableAxis>,
+            IncludedTimeIntervalBound<VariableAxis>,
+            UnboundedOrExcludedTimeIntervalBound<VariableAxis>,
         >,
     ) -> Option<Self> {
         match self {
@@ -349,12 +351,12 @@ impl TemporalAxes {
         }
     }
 
-    pub fn set_image(
+    pub fn set_variable_interval(
         &mut self,
         interval: Interval<
-            Timestamp<ProjectedTime>,
-            TimeIntervalBound<ProjectedTime>,
-            LimitedTimeIntervalBound<ProjectedTime>,
+            Timestamp<VariableAxis>,
+            TimeIntervalBound<VariableAxis>,
+            LimitedTimeIntervalBound<VariableAxis>,
         >,
     ) {
         match self {

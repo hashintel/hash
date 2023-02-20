@@ -32,7 +32,7 @@ impl<C: AsClient> PostgresStore<C> {
         let dependency_status = dependency_context.ontology_dependency_map.update(
             data_type_id,
             current_resolve_depths,
-            time_projection.image().convert(),
+            time_projection.variable_interval().convert(),
         );
 
         #[expect(unused_assignments, unused_variables)]
@@ -41,7 +41,7 @@ impl<C: AsClient> PostgresStore<C> {
                 // The dependency may have to be resolved more than anticipated, so we update
                 // the resolve depth and time projection.
                 current_resolve_depths = depths;
-                time_projection.set_image(interval.convert());
+                time_projection.set_variable_interval(interval.convert());
                 subgraph
                     .get_or_read::<DataTypeWithMetadata>(self, data_type_id, &time_projection)
                     .await?
@@ -92,7 +92,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         } = *query;
 
         let time_projection = unresolved_time_projection.clone().resolve();
-        let time_axis = time_projection.image_time_axis();
+        let time_axis = time_projection.variable_time_axis();
 
         let mut subgraph = Subgraph::new(
             graph_resolve_depths,

@@ -48,7 +48,7 @@ impl<C: AsClient> PostgresStore<C> {
         time_projection: TemporalAxes,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
         async move {
-            let time_axis = subgraph.resolved_time_projection.image_time_axis();
+            let time_axis = subgraph.resolved_time_projection.variable_time_axis();
 
             let entity: &Entity = match entity_vertex_id.subgraph_vertex_entry(subgraph) {
                 RawEntryMut::Occupied(entry) => entry.into_mut(),
@@ -67,7 +67,7 @@ impl<C: AsClient> PostgresStore<C> {
             // Intersects the version interval of the entity with the time projection's time
             // interval. We only want to resolve the entity further for the overlap of these two
             // intervals.
-            let Some(mut intersected_time_projection) = time_projection.intersect_image(version_interval) else {
+            let Some(mut intersected_time_projection) = time_projection.intersect_variable_interval(version_interval) else {
                 // `traverse_entity` is called with the returned entities from `read` with
                 // `time_projection`. This implies, that the version interval of `entity` is
                 // overlaps with `time_projection`. `intersect_image` returns `None` if there are
@@ -78,7 +78,7 @@ impl<C: AsClient> PostgresStore<C> {
             let dependency_status = dependency_context.knowledge_dependency_map.update(
                 &entity_vertex_id,
                 current_resolve_depths,
-                intersected_time_projection.image().convert(),
+                intersected_time_projection.variable_interval().convert(),
             );
 
             match dependency_status {
@@ -93,7 +93,7 @@ impl<C: AsClient> PostgresStore<C> {
                     // It may also return a different time interval than the one requested, so
                     // we update the `intersected_time_projection`'s time interval to the returned
                     // value.
-                    intersected_time_projection.set_image(interval.convert());
+                    intersected_time_projection.set_variable_interval(interval.convert());
                 }
                 DependencyStatus::Resolved => return Ok(()),
             };
@@ -495,7 +495,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         } = *query;
 
         let time_projection = unresolved_time_projection.clone().resolve();
-        let time_axis = time_projection.image_time_axis();
+        let time_axis = time_projection.variable_time_axis();
 
         let mut subgraph = Subgraph::new(
             graph_resolve_depths,

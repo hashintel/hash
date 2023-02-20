@@ -447,7 +447,7 @@ mod tests {
     #[test]
     fn entity_simple_query() {
         let time_projection = UnresolvedTemporalAxes::default().resolve();
-        let kernel = time_projection.kernel().cast::<TransactionTime>();
+        let kernel = time_projection.pinned_timestamp().cast::<TransactionTime>();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 
         let filter = Filter::Equal(
@@ -469,7 +469,7 @@ mod tests {
             "#,
             &[
                 &kernel,
-                &time_projection.image(),
+                &time_projection.variable_interval(),
                 &"12345678-ABCD-4321-5678-ABCD5555DCBA",
             ],
         );
@@ -478,7 +478,7 @@ mod tests {
     #[test]
     fn entity_with_manual_selection() {
         let time_projection = UnresolvedTemporalAxes::default().resolve();
-        let kernel = time_projection.kernel().cast::<TransactionTime>();
+        let kernel = time_projection.pinned_timestamp().cast::<TransactionTime>();
         let mut compiler = SelectCompiler::<Entity>::new(&time_projection);
         compiler.add_distinct_selection_with_ordering(
             &EntityQueryPath::Uuid,
@@ -513,14 +513,14 @@ mod tests {
             ORDER BY "entities_0_0_0"."entity_uuid" ASC,
                      "entities_0_0_0"."decision_time" DESC
             "#,
-            &[&kernel, &time_projection.image(), &Uuid::nil()],
+            &[&kernel, &time_projection.variable_interval(), &Uuid::nil()],
         );
     }
 
     #[test]
     fn entity_property_query() {
         let time_projection = UnresolvedTemporalAxes::default().resolve();
-        let kernel = time_projection.kernel().cast::<TransactionTime>();
+        let kernel = time_projection.pinned_timestamp().cast::<TransactionTime>();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
         let json_path = JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
             r#"$."https://blockprotocol.org/@alice/types/property-type/name/""#,
@@ -545,14 +545,14 @@ mod tests {
               AND "entities_0_0_0"."decision_time" && $3
               AND jsonb_path_query_first("entities_0_0_0"."properties", $1::text::jsonpath) = $4
             "#,
-            &[&json_path, &kernel, &time_projection.image(), &"Bob"],
+            &[&json_path, &kernel, &time_projection.variable_interval(), &"Bob"],
         );
     }
 
     #[test]
     fn entity_property_null_query() {
         let time_projection = UnresolvedTemporalAxes::default().resolve();
-        let kernel = time_projection.kernel().cast::<TransactionTime>();
+        let kernel = time_projection.pinned_timestamp().cast::<TransactionTime>();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
         let json_path = JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
             r#"$."https://blockprotocol.org/@alice/types/property-type/name/""#,
@@ -575,14 +575,14 @@ mod tests {
               AND "entities_0_0_0"."decision_time" && $3
               AND jsonb_path_query_first("entities_0_0_0"."properties", $1::text::jsonpath) IS NULL
             "#,
-            &[&json_path, &kernel, &time_projection.image()],
+            &[&json_path, &kernel, &time_projection.variable_interval()],
         );
     }
 
     #[test]
     fn entity_outgoing_link_query() {
         let time_projection = UnresolvedTemporalAxes::default().resolve();
-        let kernel = time_projection.kernel().cast::<TransactionTime>();
+        let kernel = time_projection.pinned_timestamp().cast::<TransactionTime>();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 
         let filter = Filter::Equal(
@@ -612,14 +612,14 @@ mod tests {
               AND "entities_0_2_0"."decision_time" && $2
               AND "entities_0_2_0"."entity_edition_id" = $3
             "#,
-            &[&kernel, &time_projection.image(), &10.0],
+            &[&kernel, &time_projection.variable_interval(), &10.0],
         );
     }
 
     #[test]
     fn entity_incoming_link_query() {
         let time_projection = UnresolvedTemporalAxes::default().resolve();
-        let kernel = time_projection.kernel().cast::<TransactionTime>();
+        let kernel = time_projection.pinned_timestamp().cast::<TransactionTime>();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 
         let filter = Filter::Equal(
@@ -649,14 +649,14 @@ mod tests {
               AND "entities_0_2_0"."decision_time" && $2
               AND "entities_0_2_0"."entity_edition_id" = $3
             "#,
-            &[&kernel, &time_projection.image(), &10.0],
+            &[&kernel, &time_projection.variable_interval(), &10.0],
         );
     }
 
     #[test]
     fn link_entity_left_right_id() {
         let time_projection = UnresolvedTemporalAxes::default().resolve();
-        let kernel = time_projection.kernel().cast::<TransactionTime>();
+        let kernel = time_projection.pinned_timestamp().cast::<TransactionTime>();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 
         let filter = Filter::All(vec![
@@ -701,7 +701,7 @@ mod tests {
             "#,
             &[
                 &kernel,
-                &time_projection.image(),
+                &time_projection.variable_interval(),
                 &Uuid::nil(),
                 &Uuid::nil(),
                 &Uuid::nil(),
@@ -713,7 +713,7 @@ mod tests {
     #[test]
     fn filter_left_and_right() {
         let time_projection = UnresolvedTemporalAxes::default().resolve();
-        let kernel = time_projection.kernel().cast::<TransactionTime>();
+        let kernel = time_projection.pinned_timestamp().cast::<TransactionTime>();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 
         let filter = Filter::All(vec![
@@ -753,7 +753,7 @@ mod tests {
             "#,
             &[
                 &kernel,
-                &time_projection.image(),
+                &time_projection.variable_interval(),
                 &"https://example.com/@example-org/types/entity-type/address",
                 &"https://example.com/@example-org/types/entity-type/name",
             ],
@@ -844,7 +844,7 @@ mod tests {
             };
 
             let time_projection = UnresolvedTemporalAxes::default().resolve();
-            let kernel = time_projection.kernel().cast::<TransactionTime>();
+            let kernel = time_projection.pinned_timestamp().cast::<TransactionTime>();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 
             let filter = Filter::for_entity_by_entity_id(entity_id);
@@ -862,7 +862,7 @@ mod tests {
                 "#,
                 &[
                     &kernel,
-                    &time_projection.image(),
+                    &time_projection.variable_interval(),
                     &entity_id.owned_by_id.as_uuid(),
                     &entity_id.entity_uuid.as_uuid(),
                 ],
@@ -877,7 +877,7 @@ mod tests {
             };
 
             let time_projection = UnresolvedTemporalAxes::default().resolve();
-            let kernel = time_projection.kernel().cast::<TransactionTime>();
+            let kernel = time_projection.pinned_timestamp().cast::<TransactionTime>();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 
             let filter = Filter::for_incoming_link_by_source_entity_id(entity_id);
@@ -895,7 +895,7 @@ mod tests {
                 "#,
                 &[
                     &kernel,
-                    &time_projection.image(),
+                    &time_projection.variable_interval(),
                     &entity_id.owned_by_id.as_uuid(),
                     &entity_id.entity_uuid.as_uuid(),
                 ],
@@ -910,7 +910,7 @@ mod tests {
             };
 
             let time_projection = UnresolvedTemporalAxes::default().resolve();
-            let kernel = time_projection.kernel().cast::<TransactionTime>();
+            let kernel = time_projection.pinned_timestamp().cast::<TransactionTime>();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 
             let filter = Filter::for_outgoing_link_by_source_entity_id(entity_id);
@@ -928,7 +928,7 @@ mod tests {
                 "#,
                 &[
                     &kernel,
-                    &time_projection.image(),
+                    &time_projection.variable_interval(),
                     &entity_id.owned_by_id.as_uuid(),
                     &entity_id.entity_uuid.as_uuid(),
                 ],
@@ -943,7 +943,7 @@ mod tests {
             };
 
             let time_projection = UnresolvedTemporalAxes::default().resolve();
-            let kernel = time_projection.kernel().cast::<TransactionTime>();
+            let kernel = time_projection.pinned_timestamp().cast::<TransactionTime>();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 
             let filter = Filter::for_left_entity_by_entity_id(entity_id);
@@ -965,7 +965,7 @@ mod tests {
                 "#,
                 &[
                     &kernel,
-                    &time_projection.image(),
+                    &time_projection.variable_interval(),
                     &entity_id.owned_by_id.as_uuid(),
                     &entity_id.entity_uuid.as_uuid(),
                 ],
@@ -980,7 +980,7 @@ mod tests {
             };
 
             let time_projection = UnresolvedTemporalAxes::default().resolve();
-            let kernel = time_projection.kernel().cast::<TransactionTime>();
+            let kernel = time_projection.pinned_timestamp().cast::<TransactionTime>();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 
             let filter = Filter::for_right_entity_by_entity_id(entity_id);
@@ -1002,7 +1002,7 @@ mod tests {
                 "#,
                 &[
                     &kernel,
-                    &time_projection.image(),
+                    &time_projection.variable_interval(),
                     &entity_id.owned_by_id.as_uuid(),
                     &entity_id.entity_uuid.as_uuid(),
                 ],

@@ -12,7 +12,7 @@ use crate::{
     identifier::{
         account::AccountId,
         time::{
-            DecisionTime, IncludedTimeIntervalBound, ProjectedTime, TemporalTagged, TimeAxis,
+            DecisionTime, IncludedTimeIntervalBound, VariableAxis, TemporalTagged, TimeAxis,
             Timestamp, TransactionTime, UnboundedOrExcludedTimeIntervalBound,
         },
         EntityVertexId,
@@ -99,9 +99,9 @@ impl EntityVersion {
         &self,
         time_axis: TimeAxis,
     ) -> Interval<
-        Timestamp<ProjectedTime>,
-        IncludedTimeIntervalBound<ProjectedTime>,
-        UnboundedOrExcludedTimeIntervalBound<ProjectedTime>,
+        Timestamp<VariableAxis>,
+        IncludedTimeIntervalBound<VariableAxis>,
+        UnboundedOrExcludedTimeIntervalBound<VariableAxis>,
     > {
         match time_axis {
             TimeAxis::DecisionTime => self.decision_time.cast(),

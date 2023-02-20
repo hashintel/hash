@@ -5,14 +5,14 @@ mod temporal_axes;
 mod timestamp;
 
 pub use self::{
-    axis::{DecisionTime, ProjectedTime, TemporalTagged, TimeAxis, TransactionTime},
+    axis::{DecisionTime, TemporalTagged, TimeAxis, TransactionTime, VariableAxis},
     bound::{
         IncludedTimeIntervalBound, LimitedTimeIntervalBound, TimeIntervalBound,
         UnboundedOrExcludedTimeIntervalBound,
     },
     interval::UnresolvedTimeInterval,
     temporal_axes::{
-        Kernel, TemporalAxes, UnresolvedPinnedTemporalAxis, UnresolvedTemporalAxes,
+        PinnedTemporalAxis, TemporalAxes, UnresolvedPinnedTemporalAxis, UnresolvedTemporalAxes,
         UnresolvedVariableTemporalAxis, VariableTemporalAxis,
     },
     timestamp::Timestamp,

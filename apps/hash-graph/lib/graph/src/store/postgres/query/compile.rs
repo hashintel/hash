@@ -111,7 +111,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                 Condition::TimeIntervalContainsTimestamp(
                     Expression::Column(
                         Column::Entities(Entities::from_time_axis(
-                            self.time_projection.kernel_time_axis(),
+                            self.time_projection.pinned_time_axis(),
                         ))
                         .aliased(alias),
                     ),
@@ -123,7 +123,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                 .add_condition(Condition::Overlap(
                     Expression::Column(
                         Column::Entities(Entities::from_time_axis(
-                            self.time_projection.image_time_axis(),
+                            self.time_projection.variable_time_axis(),
                         ))
                         .aliased(alias),
                     ),
@@ -295,7 +295,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         let condition = Condition::TimeIntervalContainsTimestamp(
             Expression::Column(
                 Column::Entities(Entities::from_time_axis(
-                    self.time_projection.image_time_axis(),
+                    self.time_projection.variable_time_axis(),
                 ))
                 .aliased(alias),
             ),
@@ -411,7 +411,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                 if column.column == Column::Entities(Entities::ProjectedTime) {
                     Expression::Function(Function::Lower(Box::new(Expression::Column(
                         Column::Entities(Entities::from_time_axis(
-                            self.time_projection.image_time_axis(),
+                            self.time_projection.variable_time_axis(),
                         ))
                         .aliased(column.alias),
                     ))))
