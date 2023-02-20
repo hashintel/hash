@@ -10,7 +10,7 @@ use uuid::Uuid;
 use crate::{
     identifier::{
         account::AccountId,
-        knowledge::{EntityId, EntityRecordId, EntityVersion},
+        knowledge::{EntityId, EntityRecordId, EntityTemporalMetadata},
         time::TemporalAxes,
     },
     knowledge::{
@@ -146,7 +146,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                             },
                             edition_id: row.get(edition_id_index),
                         },
-                        EntityVersion {
+                        EntityTemporalMetadata {
                             decision_time: row.get(decision_time_index),
                             transaction_time: row.get(transaction_time_index),
                         },

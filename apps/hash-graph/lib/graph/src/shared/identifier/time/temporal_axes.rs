@@ -4,9 +4,8 @@ use utoipa::{openapi, ToSchema};
 use crate::identifier::time::{
     axis::{PinnedAxis, TemporalTagged},
     bound::TemporalBound,
-    DecisionTime, EntityVersionInterval, LimitedTemporalBound, LimitedTemporalInterval,
-    TemporalInterval, TimeAxis, Timestamp, TransactionTime, UnresolvedTemporalInterval,
-    VariableAxis,
+    DecisionTime, LimitedTemporalBound, LimitedTemporalInterval, TemporalInterval, TimeAxis,
+    Timestamp, TransactionTime, UnresolvedTemporalInterval, VariableAxis, VersionInterval,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -212,7 +211,7 @@ pub struct VariableTemporalAxis<A> {
 }
 
 impl<A> VariableTemporalAxis<A> {
-    pub fn intersect(mut self, interval: EntityVersionInterval<A>) -> Option<Self> {
+    pub fn intersect(mut self, interval: VersionInterval<A>) -> Option<Self> {
         let variable_interval: TemporalInterval<A> = self.interval.convert();
         let intersection = variable_interval.intersect(interval.convert())?;
         self.interval = intersection.convert();
@@ -321,7 +320,7 @@ impl TemporalAxes {
     #[must_use]
     pub fn intersect_variable_interval(
         self,
-        version_interval: EntityVersionInterval<VariableAxis>,
+        version_interval: VersionInterval<VariableAxis>,
     ) -> Option<Self> {
         match self {
             Self::DecisionTime { pinned, variable } => variable

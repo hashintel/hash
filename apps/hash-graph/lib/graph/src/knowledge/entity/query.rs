@@ -64,7 +64,7 @@ pub enum EntityQueryPath<'p> {
     /// [`StructuralQuery`].
     ///
     /// [`StructuralQuery`]: crate::shared::subgraph::query::StructuralQuery
-    /// [`EntityVersion`]: crate::identifier::knowledge::EntityVersion
+    /// [`EntityVersion`]: crate::identifier::knowledge::EntityTemporalMetadata
     /// [`Entity`]: crate::knowledge::Entity
     DecisionTime,
     /// The transaction time axis of the [`EntityVersion`] belonging to the [`Entity`].
@@ -73,7 +73,7 @@ pub enum EntityQueryPath<'p> {
     /// [`StructuralQuery`].
     ///
     /// [`StructuralQuery`]: crate::shared::subgraph::query::StructuralQuery
-    /// [`EntityVersion`]: crate::identifier::knowledge::EntityVersion
+    /// [`EntityVersion`]: crate::identifier::knowledge::EntityTemporalMetadata
     /// [`Entity`]: crate::knowledge::Entity
     TransactionTime,
     /// Whether or not the [`Entity`] is archived.

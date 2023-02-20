@@ -44,7 +44,7 @@ use crate::{
 #[cfg(feature = "__internal_bench")]
 use crate::{
     identifier::{
-        knowledge::{EntityEditionId, EntityId, EntityVersion},
+        knowledge::{EntityEditionId, EntityId, EntityTemporalMetadata},
         time::{DecisionTime, Timestamp},
     },
     knowledge::{EntityProperties, LinkOrder},
@@ -906,7 +906,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             Item = (EntityId, EntityEditionId, Option<Timestamp<DecisionTime>>),
             IntoIter: Send,
         > + Send,
-    ) -> Result<Vec<EntityVersion>, InsertionError> {
+    ) -> Result<Vec<EntityTemporalMetadata>, InsertionError> {
         self.client
             .simple_query(
                 "CREATE TEMPORARY TABLE entity_temporal_metadata_temp (
@@ -987,7 +987,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .into_report()
             .change_context(InsertionError)?
             .into_iter()
-            .map(|row| EntityVersion {
+            .map(|row| EntityTemporalMetadata {
                 decision_time: row.get(0),
                 transaction_time: row.get(1),
             })
