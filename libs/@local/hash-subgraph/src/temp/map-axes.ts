@@ -1,7 +1,4 @@
-import {
-  TimeProjection,
-  UnresolvedTimeProjection,
-} from "@local/hash-graph-client";
+import { TemporalAxes, UnresolvedTemporalAxes } from "@local/hash-graph-client";
 
 import {
   QueryTemporalAxes,
@@ -9,97 +6,97 @@ import {
   Timestamp,
 } from "../types";
 
-export const mapUnresolvedTimeProjection = (
-  timeProjection: UnresolvedTimeProjection,
+export const mapUnresolvedTemporalAxes = (
+  temporalAxes: UnresolvedTemporalAxes,
 ): QueryTemporalAxesUnresolved => {
   const mapInterval = (
-    image: UnresolvedTimeProjection["variable"],
+    variable: UnresolvedTemporalAxes["variable"],
   ): QueryTemporalAxesUnresolved["variable"]["interval"] => {
     return {
       start:
-        image.start === null
+        variable.start === null
           ? null
-          : image.start.kind === "unbounded"
+          : variable.start.kind === "unbounded"
           ? {
               kind: "unbounded",
             }
           : {
-              kind: image.start.kind,
-              limit: image.start.limit as Timestamp,
+              kind: variable.start.kind,
+              limit: variable.start.limit as Timestamp,
             },
       end:
-        image.end === null
+        variable.end === null
           ? null
           : {
-              kind: image.end.kind,
-              limit: image.end.limit as Timestamp,
+              kind: variable.end.kind,
+              limit: variable.end.limit as Timestamp,
             },
     };
   };
-  return timeProjection.pinned.axis === "transactionTime"
+  return temporalAxes.pinned.axis === "transactionTime"
     ? {
         pinned: {
           axis: "transactionTime",
-          timestamp: timeProjection.pinned.timestamp as Timestamp,
+          timestamp: temporalAxes.pinned.timestamp as Timestamp,
         },
         variable: {
           axis: "decisionTime",
-          interval: mapInterval(timeProjection.variable),
+          interval: mapInterval(temporalAxes.variable),
         },
       }
     : {
         pinned: {
           axis: "decisionTime",
-          timestamp: timeProjection.pinned.timestamp as Timestamp,
+          timestamp: temporalAxes.pinned.timestamp as Timestamp,
         },
         variable: {
           axis: "transactionTime",
-          interval: mapInterval(timeProjection.variable),
+          interval: mapInterval(temporalAxes.variable),
         },
       };
 };
 
-export const mapTimeProjection = (
-  timeProjection: TimeProjection,
+export const mapTemporalAxes = (
+  temporalAxes: TemporalAxes,
 ): QueryTemporalAxes => {
   const mapInterval = (
-    image: TimeProjection["variable"],
+    variable: TemporalAxes["variable"],
   ): QueryTemporalAxes["variable"]["interval"] => {
     return {
       start:
-        image.start.kind === "unbounded"
+        variable.start.kind === "unbounded"
           ? {
               kind: "unbounded",
             }
           : {
-              kind: image.start.kind,
-              limit: image.start.limit as Timestamp,
+              kind: variable.start.kind,
+              limit: variable.start.limit as Timestamp,
             },
       end: {
-        kind: image.end.kind,
-        limit: image.end.limit as Timestamp,
+        kind: variable.end.kind,
+        limit: variable.end.limit as Timestamp,
       },
     };
   };
-  return timeProjection.pinned.axis === "transactionTime"
+  return temporalAxes.pinned.axis === "transactionTime"
     ? {
         pinned: {
           axis: "transactionTime",
-          timestamp: timeProjection.pinned.timestamp as Timestamp,
+          timestamp: temporalAxes.pinned.timestamp as Timestamp,
         },
         variable: {
           axis: "decisionTime",
-          interval: mapInterval(timeProjection.variable),
+          interval: mapInterval(temporalAxes.variable),
         },
       }
     : {
         pinned: {
           axis: "decisionTime",
-          timestamp: timeProjection.pinned.timestamp as Timestamp,
+          timestamp: temporalAxes.pinned.timestamp as Timestamp,
         },
         variable: {
           axis: "transactionTime",
-          interval: mapInterval(timeProjection.variable),
+          interval: mapInterval(temporalAxes.variable),
         },
       };
 };

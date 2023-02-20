@@ -2,7 +2,7 @@ import { VersionedUri } from "@blockprotocol/type-system";
 import {
   Filter,
   GraphResolveDepths,
-  UnresolvedTimeProjection,
+  UnresolvedTemporalAxes,
 } from "@local/hash-graph-client";
 import {
   AccountId,
@@ -475,7 +475,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
   };
 
   /** @todo-0.3 - replace this with `queryAxes: QueryTemporalAxesUnresolved` */
-  const timeAxes: UnresolvedTimeProjection = {
+  const timeAxes: UnresolvedTemporalAxes = {
     pinned: {
       axis: "transactionTime",
       timestamp: null,
@@ -600,7 +600,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
   }
 
   /** @todo-0.3 - replace this with `queryAxes: QueryTemporalAxesUnresolved` */
-  const timeAxes: UnresolvedTimeProjection = {
+  const timeAxes: UnresolvedTemporalAxes = {
     pinned: {
       axis: "transactionTime",
       timestamp: null,
