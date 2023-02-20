@@ -50,7 +50,7 @@ use crate::{
             EntityLinkOrder,
             EntityProperties,
             EntityRecordId,
-            EntityVersion,
+            EntityTemporalMetadata,
             EntityQueryToken,
             LinkData,
             LinkOrder,
