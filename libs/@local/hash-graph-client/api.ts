@@ -340,97 +340,97 @@ export type DecisionTime = (typeof DecisionTime)[keyof typeof DecisionTime];
 /**
  *
  * @export
- * @interface DecisionTimeImage
+ * @interface DecisionTimeProjection
  */
-export interface DecisionTimeImage {
+export interface DecisionTimeProjection {
   /**
    *
-   * @type {DecisionTime}
-   * @memberof DecisionTimeImage
+   * @type {DecisionTimeProjectionPinned}
+   * @memberof DecisionTimeProjection
    */
-  axis: DecisionTime;
+  pinned: DecisionTimeProjectionPinned;
   /**
    *
-   * @type {LimitedTimeIntervalBound}
-   * @memberof DecisionTimeImage
+   * @type {DecisionTimeProjectionVariable}
+   * @memberof DecisionTimeProjection
    */
-  end: LimitedTimeIntervalBound;
-  /**
-   *
-   * @type {TimeIntervalBound}
-   * @memberof DecisionTimeImage
-   */
-  start: TimeIntervalBound;
+  variable: DecisionTimeProjectionVariable;
 }
 /**
  *
  * @export
- * @interface DecisionTimeImageAllOf
+ * @interface DecisionTimeProjectionPinned
  */
-export interface DecisionTimeImageAllOf {
+export interface DecisionTimeProjectionPinned {
   /**
    *
-   * @type {DecisionTime}
-   * @memberof DecisionTimeImageAllOf
+   * @type {TransactionTime}
+   * @memberof DecisionTimeProjectionPinned
    */
-  axis: DecisionTime;
-}
-/**
- *
- * @export
- * @interface DecisionTimeImageAllOf1
- */
-export interface DecisionTimeImageAllOf1 {
-  /**
-   *
-   * @type {LimitedTimeIntervalBound}
-   * @memberof DecisionTimeImageAllOf1
-   */
-  end: LimitedTimeIntervalBound;
-  /**
-   *
-   * @type {TimeIntervalBound}
-   * @memberof DecisionTimeImageAllOf1
-   */
-  start: TimeIntervalBound;
-}
-/**
- *
- * @export
- * @interface DecisionTimeKernel
- */
-export interface DecisionTimeKernel {
-  /**
-   *
-   * @type {DecisionTime}
-   * @memberof DecisionTimeKernel
-   */
-  axis: DecisionTime;
+  axis: TransactionTime;
   /**
    *
    * @type {string}
-   * @memberof DecisionTimeKernel
+   * @memberof DecisionTimeProjectionPinned
    */
   timestamp: string;
 }
 /**
  *
  * @export
- * @interface DecisionTimeProjection
+ * @interface DecisionTimeProjectionVariable
  */
-export interface DecisionTimeProjection {
+export interface DecisionTimeProjectionVariable {
   /**
    *
-   * @type {TransactionTimeKernel}
-   * @memberof DecisionTimeProjection
+   * @type {DecisionTime}
+   * @memberof DecisionTimeProjectionVariable
    */
-  pinned: TransactionTimeKernel;
+  axis: DecisionTime;
   /**
    *
-   * @type {DecisionTimeImage}
-   * @memberof DecisionTimeProjection
+   * @type {LimitedTimeIntervalBound}
+   * @memberof DecisionTimeProjectionVariable
    */
-  variable: DecisionTimeImage;
+  end: LimitedTimeIntervalBound;
+  /**
+   *
+   * @type {TimeIntervalBound}
+   * @memberof DecisionTimeProjectionVariable
+   */
+  start: TimeIntervalBound;
+}
+/**
+ *
+ * @export
+ * @interface DecisionTimeProjectionVariableAllOf
+ */
+export interface DecisionTimeProjectionVariableAllOf {
+  /**
+   *
+   * @type {DecisionTime}
+   * @memberof DecisionTimeProjectionVariableAllOf
+   */
+  axis: DecisionTime;
+}
+/**
+ *
+ * @export
+ * @interface DecisionTimeProjectionVariableAllOf1
+ */
+export interface DecisionTimeProjectionVariableAllOf1 {
+  /**
+   *
+   * @type {LimitedTimeIntervalBound}
+   * @memberof DecisionTimeProjectionVariableAllOf1
+   */
+  end: LimitedTimeIntervalBound;
+  /**
+   *
+   * @type {TimeIntervalBound}
+   * @memberof DecisionTimeProjectionVariableAllOf1
+   */
+  start: TimeIntervalBound;
 }
 /**
  *
@@ -2022,141 +2022,78 @@ export type TransactionTime =
 /**
  *
  * @export
- * @interface TransactionTimeImage
+ * @interface TransactionTimeProjection
  */
-export interface TransactionTimeImage {
+export interface TransactionTimeProjection {
   /**
    *
-   * @type {TransactionTime}
-   * @memberof TransactionTimeImage
+   * @type {TransactionTimeProjectionPinned}
+   * @memberof TransactionTimeProjection
    */
-  axis: TransactionTime;
+  pinned: TransactionTimeProjectionPinned;
   /**
    *
-   * @type {LimitedTimeIntervalBound}
-   * @memberof TransactionTimeImage
+   * @type {TransactionTimeProjectionVariable}
+   * @memberof TransactionTimeProjection
    */
-  end: LimitedTimeIntervalBound;
-  /**
-   *
-   * @type {TimeIntervalBound}
-   * @memberof TransactionTimeImage
-   */
-  start: TimeIntervalBound;
+  variable: TransactionTimeProjectionVariable;
 }
 /**
  *
  * @export
- * @interface TransactionTimeImageAllOf
+ * @interface TransactionTimeProjectionPinned
  */
-export interface TransactionTimeImageAllOf {
+export interface TransactionTimeProjectionPinned {
   /**
    *
-   * @type {TransactionTime}
-   * @memberof TransactionTimeImageAllOf
+   * @type {DecisionTime}
+   * @memberof TransactionTimeProjectionPinned
    */
-  axis: TransactionTime;
-}
-/**
- *
- * @export
- * @interface TransactionTimeKernel
- */
-export interface TransactionTimeKernel {
-  /**
-   *
-   * @type {TransactionTime}
-   * @memberof TransactionTimeKernel
-   */
-  axis: TransactionTime;
+  axis: DecisionTime;
   /**
    *
    * @type {string}
-   * @memberof TransactionTimeKernel
+   * @memberof TransactionTimeProjectionPinned
    */
   timestamp: string;
 }
 /**
  *
  * @export
- * @interface TransactionTimeProjection
+ * @interface TransactionTimeProjectionVariable
  */
-export interface TransactionTimeProjection {
+export interface TransactionTimeProjectionVariable {
   /**
    *
-   * @type {DecisionTimeKernel}
-   * @memberof TransactionTimeProjection
+   * @type {TransactionTime}
+   * @memberof TransactionTimeProjectionVariable
    */
-  pinned: DecisionTimeKernel;
-  /**
-   *
-   * @type {TransactionTimeImage}
-   * @memberof TransactionTimeProjection
-   */
-  variable: TransactionTimeImage;
-}
-/**
- *
- * @export
- * @interface UnresolvedDecisionTimeImage
- */
-export interface UnresolvedDecisionTimeImage {
-  /**
-   *
-   * @type {DecisionTime}
-   * @memberof UnresolvedDecisionTimeImage
-   */
-  axis: DecisionTime;
+  axis: TransactionTime;
   /**
    *
    * @type {LimitedTimeIntervalBound}
-   * @memberof UnresolvedDecisionTimeImage
+   * @memberof TransactionTimeProjectionVariable
    */
-  end: LimitedTimeIntervalBound | null;
+  end: LimitedTimeIntervalBound;
   /**
    *
    * @type {TimeIntervalBound}
-   * @memberof UnresolvedDecisionTimeImage
+   * @memberof TransactionTimeProjectionVariable
    */
-  start: TimeIntervalBound | null;
+  start: TimeIntervalBound;
 }
 /**
  *
  * @export
- * @interface UnresolvedDecisionTimeImageAllOf
+ * @interface TransactionTimeProjectionVariableAllOf
  */
-export interface UnresolvedDecisionTimeImageAllOf {
+export interface TransactionTimeProjectionVariableAllOf {
   /**
    *
-   * @type {LimitedTimeIntervalBound}
-   * @memberof UnresolvedDecisionTimeImageAllOf
+   * @type {TransactionTime}
+   * @memberof TransactionTimeProjectionVariableAllOf
    */
-  end: LimitedTimeIntervalBound | null;
-  /**
-   *
-   * @type {TimeIntervalBound}
-   * @memberof UnresolvedDecisionTimeImageAllOf
-   */
-  start: TimeIntervalBound | null;
-}
-/**
- *
- * @export
- * @interface UnresolvedDecisionTimeKernel
- */
-export interface UnresolvedDecisionTimeKernel {
-  /**
-   *
-   * @type {DecisionTime}
-   * @memberof UnresolvedDecisionTimeKernel
-   */
-  axis: DecisionTime;
-  /**
-   *
-   * @type {string}
-   * @memberof UnresolvedDecisionTimeKernel
-   */
-  timestamp: string | null;
+  axis: TransactionTime;
 }
 /**
  *
@@ -2166,17 +2103,94 @@ export interface UnresolvedDecisionTimeKernel {
 export interface UnresolvedDecisionTimeProjection {
   /**
    *
-   * @type {UnresolvedTransactionTimeKernel}
+   * @type {UnresolvedDecisionTimeProjectionPinned}
    * @memberof UnresolvedDecisionTimeProjection
    */
-  pinned: UnresolvedTransactionTimeKernel;
+  pinned: UnresolvedDecisionTimeProjectionPinned;
   /**
    *
-   * @type {UnresolvedDecisionTimeImage}
+   * @type {UnresolvedDecisionTimeProjectionVariable}
    * @memberof UnresolvedDecisionTimeProjection
    */
-  variable: UnresolvedDecisionTimeImage;
+  variable: UnresolvedDecisionTimeProjectionVariable;
 }
+/**
+ *
+ * @export
+ * @interface UnresolvedDecisionTimeProjectionPinned
+ */
+export interface UnresolvedDecisionTimeProjectionPinned {
+  /**
+   *
+   * @type {TransactionTime}
+   * @memberof UnresolvedDecisionTimeProjectionPinned
+   */
+  axis: TransactionTime;
+  /**
+   *
+   * @type {string}
+   * @memberof UnresolvedDecisionTimeProjectionPinned
+   */
+  timestamp: string | null;
+}
+/**
+ *
+ * @export
+ * @interface UnresolvedDecisionTimeProjectionVariable
+ */
+export interface UnresolvedDecisionTimeProjectionVariable {
+  /**
+   *
+   * @type {DecisionTime}
+   * @memberof UnresolvedDecisionTimeProjectionVariable
+   */
+  axis: DecisionTime;
+  /**
+   *
+   * @type {UnresolvedDecisionTimeProjectionVariableAllOfEnd}
+   * @memberof UnresolvedDecisionTimeProjectionVariable
+   */
+  end: UnresolvedDecisionTimeProjectionVariableAllOfEnd | null;
+  /**
+   *
+   * @type {UnresolvedDecisionTimeProjectionVariableAllOfStart}
+   * @memberof UnresolvedDecisionTimeProjectionVariable
+   */
+  start: UnresolvedDecisionTimeProjectionVariableAllOfStart | null;
+}
+/**
+ *
+ * @export
+ * @interface UnresolvedDecisionTimeProjectionVariableAllOf
+ */
+export interface UnresolvedDecisionTimeProjectionVariableAllOf {
+  /**
+   *
+   * @type {UnresolvedDecisionTimeProjectionVariableAllOfEnd}
+   * @memberof UnresolvedDecisionTimeProjectionVariableAllOf
+   */
+  end: UnresolvedDecisionTimeProjectionVariableAllOfEnd | null;
+  /**
+   *
+   * @type {UnresolvedDecisionTimeProjectionVariableAllOfStart}
+   * @memberof UnresolvedDecisionTimeProjectionVariableAllOf
+   */
+  start: UnresolvedDecisionTimeProjectionVariableAllOfStart | null;
+}
+/**
+ * @type UnresolvedDecisionTimeProjectionVariableAllOfEnd
+ * @export
+ */
+export type UnresolvedDecisionTimeProjectionVariableAllOfEnd =
+  LimitedTimeIntervalBound;
+
+/**
+ * @type UnresolvedDecisionTimeProjectionVariableAllOfStart
+ * @export
+ */
+export type UnresolvedDecisionTimeProjectionVariableAllOfStart =
+  TimeIntervalBound;
+
 /**
  * @type UnresolvedTimeProjection
  * @export
@@ -2188,65 +2202,40 @@ export type UnresolvedTimeProjection =
 /**
  *
  * @export
- * @interface UnresolvedTransactionTimeImage
- */
-export interface UnresolvedTransactionTimeImage {
-  /**
-   *
-   * @type {TransactionTime}
-   * @memberof UnresolvedTransactionTimeImage
-   */
-  axis: TransactionTime;
-  /**
-   *
-   * @type {LimitedTimeIntervalBound}
-   * @memberof UnresolvedTransactionTimeImage
-   */
-  end: LimitedTimeIntervalBound | null;
-  /**
-   *
-   * @type {TimeIntervalBound}
-   * @memberof UnresolvedTransactionTimeImage
-   */
-  start: TimeIntervalBound | null;
-}
-/**
- *
- * @export
- * @interface UnresolvedTransactionTimeKernel
- */
-export interface UnresolvedTransactionTimeKernel {
-  /**
-   *
-   * @type {TransactionTime}
-   * @memberof UnresolvedTransactionTimeKernel
-   */
-  axis: TransactionTime;
-  /**
-   *
-   * @type {string}
-   * @memberof UnresolvedTransactionTimeKernel
-   */
-  timestamp: string | null;
-}
-/**
- *
- * @export
  * @interface UnresolvedTransactionTimeProjection
  */
 export interface UnresolvedTransactionTimeProjection {
   /**
    *
-   * @type {UnresolvedDecisionTimeKernel}
+   * @type {UnresolvedTransactionTimeProjectionPinned}
    * @memberof UnresolvedTransactionTimeProjection
    */
-  pinned: UnresolvedDecisionTimeKernel;
+  pinned: UnresolvedTransactionTimeProjectionPinned;
   /**
    *
-   * @type {UnresolvedTransactionTimeImage}
+   * @type {UnresolvedDecisionTimeProjectionVariable}
    * @memberof UnresolvedTransactionTimeProjection
    */
-  variable: UnresolvedTransactionTimeImage;
+  variable: UnresolvedDecisionTimeProjectionVariable;
+}
+/**
+ *
+ * @export
+ * @interface UnresolvedTransactionTimeProjectionPinned
+ */
+export interface UnresolvedTransactionTimeProjectionPinned {
+  /**
+   *
+   * @type {DecisionTime}
+   * @memberof UnresolvedTransactionTimeProjectionPinned
+   */
+  axis: DecisionTime;
+  /**
+   *
+   * @type {string}
+   * @memberof UnresolvedTransactionTimeProjectionPinned
+   */
+  timestamp: string | null;
 }
 /**
  * The contents of a Data Type update request

@@ -12,12 +12,9 @@ pub use self::{
     },
     interval::UnresolvedTimeInterval,
     projection::{
-        DecisionTimeImage, DecisionTimeKernel, DecisionTimeProjection, Image, Kernel,
-        TimeProjection, TransactionTimeImage, TransactionTimeKernel, TransactionTimeProjection,
-        UnresolvedDecisionTimeImage, UnresolvedDecisionTimeKernel,
+        DecisionTimeProjection, Image, Kernel, TimeProjection, TransactionTimeProjection,
         UnresolvedDecisionTimeProjection, UnresolvedImage, UnresolvedKernel, UnresolvedProjection,
-        UnresolvedTimeProjection, UnresolvedTransactionTimeImage, UnresolvedTransactionTimeKernel,
-        UnresolvedTransactionTimeProjection,
+        UnresolvedTimeProjection, UnresolvedTransactionTimeProjection,
     },
     timestamp::Timestamp,
 };
