@@ -19,8 +19,8 @@ use crate::{
         account::AccountId,
         knowledge::EntityId,
         time::{
-            DecisionTime, TimeProjection, Timestamp, UnresolvedPinnedTemporalAxis,
-            UnresolvedProjection, UnresolvedTimeProjection, UnresolvedVariableTemporalAxis,
+            DecisionTime, TemporalAxes, Timestamp, UnresolvedPinnedTemporalAxis,
+            UnresolvedTemporalAxes, UnresolvedVariableTemporalAxis,
         },
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
@@ -136,10 +136,10 @@ where
             StructuralQuery {
                 filter: Filter::for_versioned_uri(versioned_uri),
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                time_projection: UnresolvedTemporalAxes::DecisionTime {
                     pinned: UnresolvedPinnedTemporalAxis::new(None),
                     variable: UnresolvedVariableTemporalAxis::new(None, None),
-                }),
+                },
             }
         }
 
@@ -366,7 +366,7 @@ where
     async fn read(
         &self,
         query: &Filter<R>,
-        time_projection: &TimeProjection,
+        time_projection: &TemporalAxes,
     ) -> Result<Vec<R>, QueryError> {
         self.store.read(query, time_projection).await
     }

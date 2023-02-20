@@ -4,7 +4,6 @@ use derivative::Derivative;
 use postgres_protocol::types::{timestamp_from_sql, RangeBound};
 use postgres_types::{private::BytesMut, FromSql, ToSql, Type};
 use serde::{Deserialize, Serialize};
-use utoipa::{openapi, ToSchema};
 
 use crate::{
     identifier::time::{
@@ -25,43 +24,6 @@ use crate::{
 pub struct UnresolvedTimeInterval<A> {
     pub start: Option<TimeIntervalBound<A>>,
     pub end: Option<LimitedTimeIntervalBound<A>>,
-}
-
-// Utoipa is able to generate this schema automatically, but instead of using `.nullable(true)` it
-// left the `start` and `end` properties out of the `required` list.
-impl<A> ToSchema<'_> for UnresolvedTimeInterval<A> {
-    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
-        (
-            "UnresolvedTimeInterval",
-            openapi::ObjectBuilder::new()
-                .property(
-                    "start",
-                    openapi::Schema::OneOf(
-                        openapi::OneOfBuilder::new()
-                            .item(openapi::Ref::from_schema_name(
-                                TimeIntervalBound::<A>::schema().0,
-                            ))
-                            .nullable(true)
-                            .build(),
-                    ),
-                )
-                .required("start")
-                .property(
-                    "end",
-                    openapi::Schema::OneOf(
-                        openapi::OneOfBuilder::new()
-                            .item(openapi::Ref::from_schema_name(
-                                LimitedTimeIntervalBound::<A>::schema().0,
-                            ))
-                            .nullable(true)
-                            .build(),
-                    ),
-                )
-                .required("end")
-                .build()
-                .into(),
-        )
-    }
 }
 
 impl<A, S, E> TemporalTagged for Interval<Timestamp<A>, S, E>

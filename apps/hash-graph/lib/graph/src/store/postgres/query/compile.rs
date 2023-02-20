@@ -4,7 +4,7 @@ use postgres_types::ToSql;
 use tokio_postgres::row::RowIndex;
 
 use crate::{
-    identifier::time::TimeProjection,
+    identifier::time::TemporalAxes,
     store::{
         postgres::query::{
             expression::Constant,
@@ -41,13 +41,13 @@ pub struct CompilerArtifacts<'p> {
 pub struct SelectCompiler<'c, 'p, T> {
     statement: SelectStatement<'c>,
     artifacts: CompilerArtifacts<'p>,
-    time_projection: &'p TimeProjection,
+    time_projection: &'p TemporalAxes,
     _marker: PhantomData<fn(*const T)>,
 }
 
 impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     /// Creates a new, empty compiler.
-    pub fn new(time_projection: &'p TimeProjection) -> Self {
+    pub fn new(time_projection: &'p TemporalAxes) -> Self {
         Self {
             statement: SelectStatement {
                 with: WithExpression::default(),
@@ -74,7 +74,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     }
 
     /// Creates a new compiler, which will select everything using the asterisk (`*`).
-    pub fn with_asterisk(time_projection: &'p TimeProjection) -> Self {
+    pub fn with_asterisk(time_projection: &'p TemporalAxes) -> Self {
         let mut default = Self::new(time_projection);
         default
             .statement
@@ -87,17 +87,13 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         let table = Table::Entities.aliased(alias);
         let temporal_table_info = self.artifacts.temporal_tables.get_or_insert_with(|| {
             match self.time_projection {
-                TimeProjection::DecisionTime(projection) => {
-                    self.artifacts.parameters.push(&projection.pinned.timestamp);
-                    self.artifacts
-                        .parameters
-                        .push(&projection.variable.interval);
+                TemporalAxes::DecisionTime { pinned, variable } => {
+                    self.artifacts.parameters.push(&pinned.timestamp);
+                    self.artifacts.parameters.push(&variable.interval);
                 }
-                TimeProjection::TransactionTime(projection) => {
-                    self.artifacts.parameters.push(&projection.pinned.timestamp);
-                    self.artifacts
-                        .parameters
-                        .push(&projection.variable.interval);
+                TemporalAxes::TransactionTime { pinned, variable } => {
+                    self.artifacts.parameters.push(&pinned.timestamp);
+                    self.artifacts.parameters.push(&variable.interval);
                 }
             };
 

@@ -11,7 +11,7 @@ use crate::{
     identifier::{
         account::AccountId,
         knowledge::{EntityId, EntityRecordId, EntityVersion},
-        time::TimeProjection,
+        time::TemporalAxes,
     },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
@@ -33,7 +33,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
     async fn read(
         &self,
         filter: &Filter<Entity>,
-        time_projection: &TimeProjection,
+        time_projection: &TemporalAxes,
     ) -> Result<Vec<Entity>, QueryError> {
         // We can't define these inline otherwise we'll drop while borrowed
         let left_entity_uuid_path = EntityQueryPath::LeftEntity(Box::new(EntityQueryPath::Uuid));

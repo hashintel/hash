@@ -81,7 +81,7 @@ mod tests {
     use uuid::Uuid;
 
     use crate::{
-        identifier::time::{TemporalTagged, TransactionTime, UnresolvedTimeProjection},
+        identifier::time::{TemporalTagged, TransactionTime, UnresolvedTemporalAxes},
         knowledge::{Entity, EntityQueryPath},
         ontology::{
             DataTypeQueryPath, DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata,
@@ -122,7 +122,7 @@ mod tests {
 
     #[test]
     fn asterisk() {
-        let time_projection = UnresolvedTimeProjection::default().resolve();
+        let time_projection = UnresolvedTemporalAxes::default().resolve();
         test_compilation(
             &SelectCompiler::<DataTypeWithMetadata>::with_asterisk(&time_projection),
             r#"SELECT * FROM "data_types" AS "data_types_0_0_0""#,
@@ -132,7 +132,7 @@ mod tests {
 
     #[test]
     fn simple_expression() {
-        let time_projection = UnresolvedTimeProjection::default().resolve();
+        let time_projection = UnresolvedTemporalAxes::default().resolve();
         let mut compiler = SelectCompiler::<DataTypeWithMetadata>::with_asterisk(&time_projection);
         compiler.add_filter(&Filter::Equal(
             Some(FilterExpression::Path(DataTypeQueryPath::VersionedUri)),
@@ -153,7 +153,7 @@ mod tests {
 
     #[test]
     fn specific_version() {
-        let time_projection = UnresolvedTimeProjection::default().resolve();
+        let time_projection = UnresolvedTemporalAxes::default().resolve();
         let mut compiler = SelectCompiler::<DataTypeWithMetadata>::with_asterisk(&time_projection);
 
         let filter = Filter::All(vec![
@@ -188,7 +188,7 @@ mod tests {
 
     #[test]
     fn latest_version() {
-        let time_projection = UnresolvedTimeProjection::default().resolve();
+        let time_projection = UnresolvedTemporalAxes::default().resolve();
         let mut compiler = SelectCompiler::<DataTypeWithMetadata>::with_asterisk(&time_projection);
 
         compiler.add_filter(&Filter::Equal(
@@ -214,7 +214,7 @@ mod tests {
 
     #[test]
     fn not_latest_version() {
-        let time_projection = UnresolvedTimeProjection::default().resolve();
+        let time_projection = UnresolvedTemporalAxes::default().resolve();
         let mut compiler = SelectCompiler::<DataTypeWithMetadata>::with_asterisk(&time_projection);
 
         compiler.add_filter(&Filter::NotEqual(
@@ -240,7 +240,7 @@ mod tests {
 
     #[test]
     fn property_type_by_referenced_data_types() {
-        let time_projection = UnresolvedTimeProjection::default().resolve();
+        let time_projection = UnresolvedTemporalAxes::default().resolve();
         let mut compiler =
             SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(&time_projection);
 
@@ -311,7 +311,7 @@ mod tests {
 
     #[test]
     fn property_type_by_referenced_property_types() {
-        let time_projection = UnresolvedTimeProjection::default().resolve();
+        let time_projection = UnresolvedTemporalAxes::default().resolve();
         let mut compiler =
             SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(&time_projection);
 
@@ -342,7 +342,7 @@ mod tests {
 
     #[test]
     fn entity_type_by_referenced_property_types() {
-        let time_projection = UnresolvedTimeProjection::default().resolve();
+        let time_projection = UnresolvedTemporalAxes::default().resolve();
         let mut compiler =
             SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(&time_projection);
 
@@ -373,7 +373,7 @@ mod tests {
 
     #[test]
     fn entity_type_by_referenced_link_types() {
-        let time_projection = UnresolvedTimeProjection::default().resolve();
+        let time_projection = UnresolvedTemporalAxes::default().resolve();
         let mut compiler =
             SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(&time_projection);
 
@@ -412,7 +412,7 @@ mod tests {
 
     #[test]
     fn entity_type_by_inheritance() {
-        let time_projection = UnresolvedTimeProjection::default().resolve();
+        let time_projection = UnresolvedTemporalAxes::default().resolve();
         let mut compiler =
             SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(&time_projection);
 
@@ -446,7 +446,7 @@ mod tests {
 
     #[test]
     fn entity_simple_query() {
-        let time_projection = UnresolvedTimeProjection::default().resolve();
+        let time_projection = UnresolvedTemporalAxes::default().resolve();
         let kernel = time_projection.kernel().cast::<TransactionTime>();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 
@@ -477,7 +477,7 @@ mod tests {
 
     #[test]
     fn entity_with_manual_selection() {
-        let time_projection = UnresolvedTimeProjection::default().resolve();
+        let time_projection = UnresolvedTemporalAxes::default().resolve();
         let kernel = time_projection.kernel().cast::<TransactionTime>();
         let mut compiler = SelectCompiler::<Entity>::new(&time_projection);
         compiler.add_distinct_selection_with_ordering(
@@ -519,7 +519,7 @@ mod tests {
 
     #[test]
     fn entity_property_query() {
-        let time_projection = UnresolvedTimeProjection::default().resolve();
+        let time_projection = UnresolvedTemporalAxes::default().resolve();
         let kernel = time_projection.kernel().cast::<TransactionTime>();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
         let json_path = JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
@@ -551,7 +551,7 @@ mod tests {
 
     #[test]
     fn entity_property_null_query() {
-        let time_projection = UnresolvedTimeProjection::default().resolve();
+        let time_projection = UnresolvedTemporalAxes::default().resolve();
         let kernel = time_projection.kernel().cast::<TransactionTime>();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
         let json_path = JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
@@ -581,7 +581,7 @@ mod tests {
 
     #[test]
     fn entity_outgoing_link_query() {
-        let time_projection = UnresolvedTimeProjection::default().resolve();
+        let time_projection = UnresolvedTemporalAxes::default().resolve();
         let kernel = time_projection.kernel().cast::<TransactionTime>();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 
@@ -618,7 +618,7 @@ mod tests {
 
     #[test]
     fn entity_incoming_link_query() {
-        let time_projection = UnresolvedTimeProjection::default().resolve();
+        let time_projection = UnresolvedTemporalAxes::default().resolve();
         let kernel = time_projection.kernel().cast::<TransactionTime>();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 
@@ -655,7 +655,7 @@ mod tests {
 
     #[test]
     fn link_entity_left_right_id() {
-        let time_projection = UnresolvedTimeProjection::default().resolve();
+        let time_projection = UnresolvedTemporalAxes::default().resolve();
         let kernel = time_projection.kernel().cast::<TransactionTime>();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 
@@ -712,7 +712,7 @@ mod tests {
 
     #[test]
     fn filter_left_and_right() {
-        let time_projection = UnresolvedTimeProjection::default().resolve();
+        let time_projection = UnresolvedTemporalAxes::default().resolve();
         let kernel = time_projection.kernel().cast::<TransactionTime>();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 
@@ -783,7 +783,7 @@ mod tests {
                 version: 1,
             };
 
-            let time_projection = UnresolvedTimeProjection::default().resolve();
+            let time_projection = UnresolvedTemporalAxes::default().resolve();
             let mut compiler =
                 SelectCompiler::<DataTypeWithMetadata>::with_asterisk(&time_projection);
 
@@ -816,7 +816,7 @@ mod tests {
                 version: OntologyTypeVersion::new(1),
             };
 
-            let time_projection = UnresolvedTimeProjection::default().resolve();
+            let time_projection = UnresolvedTemporalAxes::default().resolve();
             let mut compiler =
                 SelectCompiler::<DataTypeWithMetadata>::with_asterisk(&time_projection);
 
@@ -843,7 +843,7 @@ mod tests {
                 entity_uuid: EntityUuid::new(Uuid::new_v4()),
             };
 
-            let time_projection = UnresolvedTimeProjection::default().resolve();
+            let time_projection = UnresolvedTemporalAxes::default().resolve();
             let kernel = time_projection.kernel().cast::<TransactionTime>();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 
@@ -876,7 +876,7 @@ mod tests {
                 entity_uuid: EntityUuid::new(Uuid::new_v4()),
             };
 
-            let time_projection = UnresolvedTimeProjection::default().resolve();
+            let time_projection = UnresolvedTemporalAxes::default().resolve();
             let kernel = time_projection.kernel().cast::<TransactionTime>();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 
@@ -909,7 +909,7 @@ mod tests {
                 entity_uuid: EntityUuid::new(Uuid::new_v4()),
             };
 
-            let time_projection = UnresolvedTimeProjection::default().resolve();
+            let time_projection = UnresolvedTemporalAxes::default().resolve();
             let kernel = time_projection.kernel().cast::<TransactionTime>();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 
@@ -942,7 +942,7 @@ mod tests {
                 entity_uuid: EntityUuid::new(Uuid::new_v4()),
             };
 
-            let time_projection = UnresolvedTimeProjection::default().resolve();
+            let time_projection = UnresolvedTemporalAxes::default().resolve();
             let kernel = time_projection.kernel().cast::<TransactionTime>();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 
@@ -979,7 +979,7 @@ mod tests {
                 entity_uuid: EntityUuid::new(Uuid::new_v4()),
             };
 
-            let time_projection = UnresolvedTimeProjection::default().resolve();
+            let time_projection = UnresolvedTemporalAxes::default().resolve();
             let kernel = time_projection.kernel().cast::<TransactionTime>();
             let mut compiler = SelectCompiler::<Entity>::with_asterisk(&time_projection);
 

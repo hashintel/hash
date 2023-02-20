@@ -13,16 +13,16 @@ pub use self::{
 };
 use crate::{
     identifier::{
-        time::{TimeProjection, UnresolvedTimeProjection},
+        time::{TemporalAxes, UnresolvedTemporalAxes},
         GraphElementVertexId,
     },
     subgraph::edges::GraphResolveDepths,
 };
 
 #[derive(Serialize, ToSchema)]
-pub struct TemporalAxes {
-    pub initial: UnresolvedTimeProjection,
-    pub resolved: TimeProjection,
+pub struct TemporalSubgraphAxes {
+    pub initial: UnresolvedTemporalAxes,
+    pub resolved: TemporalAxes,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -32,7 +32,7 @@ pub struct Subgraph {
     vertices: Vertices,
     edges: Edges,
     depths: GraphResolveDepths,
-    temporal_axes: TemporalAxes,
+    temporal_axes: TemporalSubgraphAxes,
 }
 
 impl From<crate::subgraph::Subgraph> for Subgraph {
@@ -48,7 +48,7 @@ impl From<crate::subgraph::Subgraph> for Subgraph {
             vertices,
             edges,
             depths: subgraph.depths,
-            temporal_axes: TemporalAxes {
+            temporal_axes: TemporalSubgraphAxes {
                 initial: subgraph.time_projection,
                 resolved: subgraph.resolved_time_projection,
             },

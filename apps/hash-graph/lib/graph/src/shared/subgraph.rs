@@ -11,7 +11,7 @@ use edges::Edges;
 use error_stack::Result;
 
 use crate::{
-    identifier::time::{TimeProjection, UnresolvedTimeProjection},
+    identifier::time::{TemporalAxes, UnresolvedTemporalAxes},
     shared::identifier::GraphElementVertexId,
     store::{crud::Read, QueryError, Record},
     subgraph::{edges::GraphResolveDepths, vertices::Vertices},
@@ -27,16 +27,16 @@ pub struct Subgraph {
     pub vertices: Vertices,
     pub edges: Edges,
     pub depths: GraphResolveDepths,
-    pub time_projection: UnresolvedTimeProjection,
-    pub resolved_time_projection: TimeProjection,
+    pub time_projection: UnresolvedTemporalAxes,
+    pub resolved_time_projection: TemporalAxes,
 }
 
 impl Subgraph {
     #[must_use]
     pub fn new(
         depths: GraphResolveDepths,
-        time_projection: UnresolvedTimeProjection,
-        resolved_time_projection: TimeProjection,
+        time_projection: UnresolvedTemporalAxes,
+        resolved_time_projection: TemporalAxes,
     ) -> Self {
         Self {
             roots: HashSet::new(),
@@ -77,7 +77,7 @@ impl Subgraph {
         &'r mut self,
         store: &impl Read<R>,
         vertex_id: &R::VertexId,
-        time_projection: &TimeProjection,
+        time_projection: &TemporalAxes,
     ) -> Result<&'r R, QueryError> {
         Ok(match self.entry(vertex_id) {
             RawEntryMut::Occupied(entry) => entry.into_mut(),

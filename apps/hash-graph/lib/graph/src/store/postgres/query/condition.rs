@@ -100,7 +100,7 @@ mod tests {
     use postgres_types::ToSql;
 
     use crate::{
-        identifier::time::UnresolvedTimeProjection,
+        identifier::time::UnresolvedTemporalAxes,
         ontology::{DataTypeQueryPath, DataTypeWithMetadata},
         store::{
             postgres::query::{SelectCompiler, Transpile},
@@ -113,7 +113,7 @@ mod tests {
         rendered: &'static str,
         parameters: &[&'p dyn ToSql],
     ) {
-        let time_projection = UnresolvedTimeProjection::default().resolve();
+        let time_projection = UnresolvedTemporalAxes::default().resolve();
         let mut compiler = SelectCompiler::new(&time_projection);
         let condition = compiler.compile_filter(filter);
 

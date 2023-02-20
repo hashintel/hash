@@ -39,17 +39,15 @@ use crate::{
         utoipa_typedef::subgraph::{
             Edges, KnowledgeGraphOutwardEdges, KnowledgeGraphRootedEdges, KnowledgeGraphVertex,
             KnowledgeGraphVertices, OntologyRootedEdges, OntologyVertex, OntologyVertices,
-            Subgraph, TemporalAxes, Vertex, Vertices,
+            Subgraph, TemporalSubgraphAxes, Vertex, Vertices,
         },
     },
     identifier::{
         ontology::{OntologyTypeRecordId, OntologyTypeVersion},
         time::{
-            DecisionTime, DecisionTimeProjection, IncludedTimeIntervalBound,
-            LimitedTimeIntervalBound, TimeIntervalBound, TimeProjection, Timestamp,
-            TransactionTime, TransactionTimeProjection, UnboundedOrExcludedTimeIntervalBound,
-            UnresolvedDecisionTimeProjection, UnresolvedTimeProjection,
-            UnresolvedTransactionTimeProjection,
+            DecisionTime, IncludedTimeIntervalBound, LimitedTimeIntervalBound, TemporalAxes,
+            TimeIntervalBound, Timestamp, TransactionTime, UnboundedOrExcludedTimeIntervalBound,
+            UnresolvedTemporalAxes,
         },
         EntityVertexId, GraphElementVertexId, OntologyTypeVertexId,
     },
@@ -202,16 +200,12 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             EdgeResolveDepths,
             OutgoingEdgeResolveDepth,
             Subgraph,
-            TemporalAxes,
+            TemporalSubgraphAxes,
 
             DecisionTime,
             TransactionTime,
-            TimeProjection,
-            UnresolvedTimeProjection,
-            UnresolvedDecisionTimeProjection,
-            UnresolvedTransactionTimeProjection,
-            DecisionTimeProjection,
-            TransactionTimeProjection,
+            TemporalAxes,
+            UnresolvedTemporalAxes,
         )
     ),
 )]

@@ -10,7 +10,7 @@ use async_trait::async_trait;
 use error_stack::{ensure, Report, Result};
 
 use crate::{
-    identifier::time::TimeProjection,
+    identifier::time::TemporalAxes,
     store::{query::Filter, QueryError, Record},
 };
 
@@ -29,14 +29,14 @@ pub trait Read<R: Record + Send>: Sync {
     async fn read(
         &self,
         query: &Filter<R>,
-        time_projection: &TimeProjection,
+        time_projection: &TemporalAxes,
     ) -> Result<Vec<R>, QueryError>;
 
     #[tracing::instrument(level = "info", skip(self, query))]
     async fn read_one(
         &self,
         query: &Filter<R>,
-        time_projection: &TimeProjection,
+        time_projection: &TemporalAxes,
     ) -> Result<R, QueryError> {
         let mut records = self.read(query, time_projection).await?;
         ensure!(

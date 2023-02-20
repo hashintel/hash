@@ -22,7 +22,7 @@ use graph::{
         ontology::OntologyTypeVersion,
         time::{
             DecisionTime, LimitedTimeIntervalBound, TimeIntervalBound, Timestamp,
-            UnresolvedPinnedTemporalAxis, UnresolvedProjection, UnresolvedTimeProjection,
+            UnresolvedPinnedTemporalAxis, UnresolvedProjection, UnresolvedTemporalAxes,
             UnresolvedVariableTemporalAxis,
         },
         GraphElementVertexId, OntologyTypeVertexId,
@@ -208,7 +208,7 @@ impl DatabaseApi<'_> {
             .get_data_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                time_projection: UnresolvedTemporalAxes::DecisionTime(UnresolvedProjection {
                     pinned: UnresolvedPinnedTemporalAxis::new(None),
                     variable: UnresolvedVariableTemporalAxis::new(
                         Some(TimeIntervalBound::Unbounded),
@@ -258,7 +258,7 @@ impl DatabaseApi<'_> {
             .get_property_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                time_projection: UnresolvedTemporalAxes::DecisionTime(UnresolvedProjection {
                     pinned: UnresolvedPinnedTemporalAxis::new(None),
                     variable: UnresolvedVariableTemporalAxis::new(
                         Some(TimeIntervalBound::Unbounded),
@@ -308,7 +308,7 @@ impl DatabaseApi<'_> {
             .get_entity_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                time_projection: UnresolvedTemporalAxes::DecisionTime(UnresolvedProjection {
                     pinned: UnresolvedPinnedTemporalAxis::new(None),
                     variable: UnresolvedVariableTemporalAxis::new(
                         Some(TimeIntervalBound::Unbounded),
@@ -358,7 +358,7 @@ impl DatabaseApi<'_> {
             .get_entity(&StructuralQuery {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                time_projection: UnresolvedTemporalAxes::DecisionTime(UnresolvedProjection {
                     pinned: UnresolvedPinnedTemporalAxis::new(None),
                     variable: UnresolvedVariableTemporalAxis::new(
                         Some(TimeIntervalBound::Unbounded),
@@ -383,7 +383,7 @@ impl DatabaseApi<'_> {
             .get_entity(&StructuralQuery {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                time_projection: UnresolvedTemporalAxes::DecisionTime(UnresolvedProjection {
                     pinned: UnresolvedPinnedTemporalAxis::new(None),
                     variable: UnresolvedVariableTemporalAxis::new(
                         Some(TimeIntervalBound::Inclusive(timestamp)),
@@ -406,7 +406,7 @@ impl DatabaseApi<'_> {
             .get_entity(&StructuralQuery {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                time_projection: UnresolvedTemporalAxes::DecisionTime(UnresolvedProjection {
                     pinned: UnresolvedPinnedTemporalAxis::new(None),
                     variable: UnresolvedVariableTemporalAxis::new(None, None),
                 }),
@@ -514,7 +514,7 @@ impl DatabaseApi<'_> {
             .get_entity(&StructuralQuery {
                 filter,
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                time_projection: UnresolvedTemporalAxes::DecisionTime(UnresolvedProjection {
                     pinned: UnresolvedPinnedTemporalAxis::new(None),
                     variable: UnresolvedVariableTemporalAxis::new(
                         Some(TimeIntervalBound::Unbounded),
@@ -573,7 +573,7 @@ impl DatabaseApi<'_> {
             .get_entity(&StructuralQuery {
                 filter,
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
+                time_projection: UnresolvedTemporalAxes::DecisionTime(UnresolvedProjection {
                     pinned: UnresolvedPinnedTemporalAxis::new(None),
                     variable: UnresolvedVariableTemporalAxis::new(None, None),
                 }),

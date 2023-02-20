@@ -8,7 +8,7 @@ use utoipa::{
 };
 
 use crate::{
-    identifier::time::UnresolvedTimeProjection,
+    identifier::time::UnresolvedTemporalAxes,
     knowledge::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
     store::{query::Filter, Record},
@@ -163,7 +163,7 @@ pub struct StructuralQuery<'p, R: Record> {
     pub filter: Filter<'p, R>,
     pub graph_resolve_depths: GraphResolveDepths,
     #[serde(rename = "timeAxes")]
-    pub time_projection: UnresolvedTimeProjection,
+    pub time_projection: UnresolvedTemporalAxes,
 }
 
 impl<'p, R: Record> StructuralQuery<'p, R> {
@@ -179,7 +179,7 @@ impl<'p, R: Record> StructuralQuery<'p, R> {
                 .required("graphResolveDepths")
                 .property(
                     "timeAxes",
-                    Ref::from_schema_name(UnresolvedTimeProjection::schema().0),
+                    Ref::from_schema_name(UnresolvedTemporalAxes::schema().0),
                 )
                 .required("timeProjection")
                 .build(),

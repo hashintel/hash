@@ -12,7 +12,7 @@ use uuid::Uuid;
 use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
-        time::{DecisionTime, TimeProjection, Timestamp},
+        time::{DecisionTime, TemporalAxes, Timestamp},
         EntityVertexId, OntologyTypeVertexId,
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
@@ -45,7 +45,7 @@ impl<C: AsClient> PostgresStore<C> {
         dependency_context: &'a mut DependencyContext,
         subgraph: &'a mut Subgraph,
         mut current_resolve_depths: GraphResolveDepths,
-        time_projection: TimeProjection,
+        time_projection: TemporalAxes,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
         async move {
             let time_axis = subgraph.resolved_time_projection.image_time_axis();

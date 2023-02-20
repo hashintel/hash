@@ -301,10 +301,10 @@ export interface DataTypeStructuralQuery {
   graphResolveDepths: GraphResolveDepths;
   /**
    *
-   * @type {UnresolvedTimeProjection}
+   * @type {UnresolvedTemporalAxes}
    * @memberof DataTypeStructuralQuery
    */
-  timeAxes?: UnresolvedTimeProjection;
+  timeAxes?: UnresolvedTemporalAxes;
 }
 /**
  *
@@ -340,95 +340,63 @@ export type DecisionTime = (typeof DecisionTime)[keyof typeof DecisionTime];
 /**
  *
  * @export
- * @interface DecisionTimeProjection
+ * @interface DecisionTimeAxes
  */
-export interface DecisionTimeProjection {
+export interface DecisionTimeAxes {
   /**
    *
-   * @type {DecisionTimeProjectionPinned}
-   * @memberof DecisionTimeProjection
+   * @type {DecisionTimeAxesPinned}
+   * @memberof DecisionTimeAxes
    */
-  pinned: DecisionTimeProjectionPinned;
+  pinned: DecisionTimeAxesPinned;
   /**
    *
-   * @type {DecisionTimeProjectionVariable}
-   * @memberof DecisionTimeProjection
+   * @type {DecisionTimeAxesVariable}
+   * @memberof DecisionTimeAxes
    */
-  variable: DecisionTimeProjectionVariable;
+  variable: DecisionTimeAxesVariable;
 }
 /**
  *
  * @export
- * @interface DecisionTimeProjectionPinned
+ * @interface DecisionTimeAxesPinned
  */
-export interface DecisionTimeProjectionPinned {
+export interface DecisionTimeAxesPinned {
   /**
    *
    * @type {TransactionTime}
-   * @memberof DecisionTimeProjectionPinned
+   * @memberof DecisionTimeAxesPinned
    */
   axis: TransactionTime;
   /**
    *
    * @type {string}
-   * @memberof DecisionTimeProjectionPinned
+   * @memberof DecisionTimeAxesPinned
    */
   timestamp: string;
 }
 /**
  *
  * @export
- * @interface DecisionTimeProjectionVariable
+ * @interface DecisionTimeAxesVariable
  */
-export interface DecisionTimeProjectionVariable {
+export interface DecisionTimeAxesVariable {
   /**
    *
    * @type {DecisionTime}
-   * @memberof DecisionTimeProjectionVariable
+   * @memberof DecisionTimeAxesVariable
    */
   axis: DecisionTime;
   /**
    *
    * @type {LimitedTimeIntervalBound}
-   * @memberof DecisionTimeProjectionVariable
+   * @memberof DecisionTimeAxesVariable
    */
   end: LimitedTimeIntervalBound;
   /**
    *
    * @type {TimeIntervalBound}
-   * @memberof DecisionTimeProjectionVariable
-   */
-  start: TimeIntervalBound;
-}
-/**
- *
- * @export
- * @interface DecisionTimeProjectionVariableAllOf
- */
-export interface DecisionTimeProjectionVariableAllOf {
-  /**
-   *
-   * @type {DecisionTime}
-   * @memberof DecisionTimeProjectionVariableAllOf
-   */
-  axis: DecisionTime;
-}
-/**
- *
- * @export
- * @interface DecisionTimeProjectionVariableAllOf1
- */
-export interface DecisionTimeProjectionVariableAllOf1 {
-  /**
-   *
-   * @type {LimitedTimeIntervalBound}
-   * @memberof DecisionTimeProjectionVariableAllOf1
-   */
-  end: LimitedTimeIntervalBound;
-  /**
-   *
-   * @type {TimeIntervalBound}
-   * @memberof DecisionTimeProjectionVariableAllOf1
+   * @memberof DecisionTimeAxesVariable
    */
   start: TimeIntervalBound;
 }
@@ -631,10 +599,10 @@ export interface EntityStructuralQuery {
   graphResolveDepths: GraphResolveDepths;
   /**
    *
-   * @type {UnresolvedTimeProjection}
+   * @type {UnresolvedTemporalAxes}
    * @memberof EntityStructuralQuery
    */
-  timeAxes?: UnresolvedTimeProjection;
+  timeAxes?: UnresolvedTemporalAxes;
 }
 /**
  * Specifies the structure of an Entity Type
@@ -769,10 +737,10 @@ export interface EntityTypeStructuralQuery {
   graphResolveDepths: GraphResolveDepths;
   /**
    *
-   * @type {UnresolvedTimeProjection}
+   * @type {UnresolvedTemporalAxes}
    * @memberof EntityTypeStructuralQuery
    */
-  timeAxes?: UnresolvedTimeProjection;
+  timeAxes?: UnresolvedTemporalAxes;
 }
 /**
  *
@@ -1834,10 +1802,10 @@ export interface PropertyTypeStructuralQuery {
   graphResolveDepths: GraphResolveDepths;
   /**
    *
-   * @type {UnresolvedTimeProjection}
+   * @type {UnresolvedTemporalAxes}
    * @memberof PropertyTypeStructuralQuery
    */
-  timeAxes?: UnresolvedTimeProjection;
+  timeAxes?: UnresolvedTemporalAxes;
 }
 /**
  *
@@ -1940,10 +1908,10 @@ export interface Subgraph {
   roots: Array<GraphElementVertexId>;
   /**
    *
-   * @type {TemporalAxes}
+   * @type {TemporalSubgraphAxes}
    * @memberof Subgraph
    */
-  temporalAxes: TemporalAxes;
+  temporalAxes: TemporalSubgraphAxes;
   /**
    *
    * @type {Vertices}
@@ -1952,23 +1920,30 @@ export interface Subgraph {
   vertices: Vertices;
 }
 /**
+ * @type TemporalAxes
+ * Constrains the temporal data in the Graph to a specific [`TimeAxis`].  When querying the Graph, temporal data is returned. The Graph is implemented as a bitemporal data store, which means the knowledge data contains information about the time of when the knowledge was inserted into the Graph, the [`TransactionTime`], and when the knowledge was decided to be inserted, the [`DecisionTime`].  In order to query data from the Graph, only one of the two time axes can be used. This is achieved by using a `TimeProjection`. The `TimeProjection` pins one axis to a specified [`Timestamp`], while the other axis can be a [`Interval`]. The pinned axis is called the [`Kernel`] and the other axis is called the [`VariableTemporalAxis`] of a projection. The returned data will then only contain temporal data that is contained in the [`Interval`] of the [`VariableTemporalAxis`], the [`ProjectedTime`], for the given [`Timestamp`] of the [`Kernel`].
+ * @export
+ */
+export type TemporalAxes = DecisionTimeAxes | TransactionTimeAxes;
+
+/**
  *
  * @export
- * @interface TemporalAxes
+ * @interface TemporalSubgraphAxes
  */
-export interface TemporalAxes {
+export interface TemporalSubgraphAxes {
   /**
    *
-   * @type {UnresolvedTimeProjection}
-   * @memberof TemporalAxes
+   * @type {UnresolvedTemporalAxes}
+   * @memberof TemporalSubgraphAxes
    */
-  initial: UnresolvedTimeProjection;
+  initial: UnresolvedTemporalAxes;
   /**
    *
-   * @type {TimeProjection}
-   * @memberof TemporalAxes
+   * @type {TemporalAxes}
+   * @memberof TemporalSubgraphAxes
    */
-  resolved: TimeProjection;
+  resolved: TemporalAxes;
 }
 /**
  * @type TimeIntervalBound
@@ -2001,12 +1976,6 @@ export type TimeIntervalBoundOneOfKindEnum =
   (typeof TimeIntervalBoundOneOfKindEnum)[keyof typeof TimeIntervalBoundOneOfKindEnum];
 
 /**
- * @type TimeProjection
- * @export
- */
-export type TimeProjection = DecisionTimeProjection | TransactionTimeProjection;
-
-/**
  * Time axis for the transaction time.  This is used as the generic argument to time-related structs and can be used as tag value.
  * @export
  * @enum {string}
@@ -2022,220 +1991,199 @@ export type TransactionTime =
 /**
  *
  * @export
- * @interface TransactionTimeProjection
+ * @interface TransactionTimeAxes
  */
-export interface TransactionTimeProjection {
+export interface TransactionTimeAxes {
   /**
    *
-   * @type {TransactionTimeProjectionPinned}
-   * @memberof TransactionTimeProjection
+   * @type {TransactionTimeAxesPinned}
+   * @memberof TransactionTimeAxes
    */
-  pinned: TransactionTimeProjectionPinned;
+  pinned: TransactionTimeAxesPinned;
   /**
    *
-   * @type {TransactionTimeProjectionVariable}
-   * @memberof TransactionTimeProjection
+   * @type {TransactionTimeAxesVariable}
+   * @memberof TransactionTimeAxes
    */
-  variable: TransactionTimeProjectionVariable;
+  variable: TransactionTimeAxesVariable;
 }
 /**
  *
  * @export
- * @interface TransactionTimeProjectionPinned
+ * @interface TransactionTimeAxesPinned
  */
-export interface TransactionTimeProjectionPinned {
+export interface TransactionTimeAxesPinned {
   /**
    *
    * @type {DecisionTime}
-   * @memberof TransactionTimeProjectionPinned
+   * @memberof TransactionTimeAxesPinned
    */
   axis: DecisionTime;
   /**
    *
    * @type {string}
-   * @memberof TransactionTimeProjectionPinned
+   * @memberof TransactionTimeAxesPinned
    */
   timestamp: string;
 }
 /**
  *
  * @export
- * @interface TransactionTimeProjectionVariable
+ * @interface TransactionTimeAxesVariable
  */
-export interface TransactionTimeProjectionVariable {
+export interface TransactionTimeAxesVariable {
   /**
    *
    * @type {TransactionTime}
-   * @memberof TransactionTimeProjectionVariable
+   * @memberof TransactionTimeAxesVariable
    */
   axis: TransactionTime;
   /**
    *
    * @type {LimitedTimeIntervalBound}
-   * @memberof TransactionTimeProjectionVariable
+   * @memberof TransactionTimeAxesVariable
    */
   end: LimitedTimeIntervalBound;
   /**
    *
    * @type {TimeIntervalBound}
-   * @memberof TransactionTimeProjectionVariable
+   * @memberof TransactionTimeAxesVariable
    */
   start: TimeIntervalBound;
 }
 /**
  *
  * @export
- * @interface TransactionTimeProjectionVariableAllOf
+ * @interface UnresolvedDecisionTimeAxes
  */
-export interface TransactionTimeProjectionVariableAllOf {
+export interface UnresolvedDecisionTimeAxes {
   /**
    *
-   * @type {TransactionTime}
-   * @memberof TransactionTimeProjectionVariableAllOf
+   * @type {UnresolvedDecisionTimeAxesPinned}
+   * @memberof UnresolvedDecisionTimeAxes
    */
-  axis: TransactionTime;
+  pinned: UnresolvedDecisionTimeAxesPinned;
+  /**
+   *
+   * @type {UnresolvedDecisionTimeAxesVariable}
+   * @memberof UnresolvedDecisionTimeAxes
+   */
+  variable: UnresolvedDecisionTimeAxesVariable;
 }
 /**
  *
  * @export
- * @interface UnresolvedDecisionTimeProjection
+ * @interface UnresolvedDecisionTimeAxesPinned
  */
-export interface UnresolvedDecisionTimeProjection {
-  /**
-   *
-   * @type {UnresolvedDecisionTimeProjectionPinned}
-   * @memberof UnresolvedDecisionTimeProjection
-   */
-  pinned: UnresolvedDecisionTimeProjectionPinned;
-  /**
-   *
-   * @type {UnresolvedDecisionTimeProjectionVariable}
-   * @memberof UnresolvedDecisionTimeProjection
-   */
-  variable: UnresolvedDecisionTimeProjectionVariable;
-}
-/**
- *
- * @export
- * @interface UnresolvedDecisionTimeProjectionPinned
- */
-export interface UnresolvedDecisionTimeProjectionPinned {
+export interface UnresolvedDecisionTimeAxesPinned {
   /**
    *
    * @type {TransactionTime}
-   * @memberof UnresolvedDecisionTimeProjectionPinned
+   * @memberof UnresolvedDecisionTimeAxesPinned
    */
   axis: TransactionTime;
   /**
    *
    * @type {string}
-   * @memberof UnresolvedDecisionTimeProjectionPinned
+   * @memberof UnresolvedDecisionTimeAxesPinned
    */
   timestamp: string | null;
 }
 /**
  *
  * @export
- * @interface UnresolvedDecisionTimeProjectionVariable
+ * @interface UnresolvedDecisionTimeAxesVariable
  */
-export interface UnresolvedDecisionTimeProjectionVariable {
+export interface UnresolvedDecisionTimeAxesVariable {
   /**
    *
    * @type {DecisionTime}
-   * @memberof UnresolvedDecisionTimeProjectionVariable
+   * @memberof UnresolvedDecisionTimeAxesVariable
    */
   axis: DecisionTime;
   /**
    *
-   * @type {UnresolvedDecisionTimeProjectionVariableAllOfEnd}
-   * @memberof UnresolvedDecisionTimeProjectionVariable
+   * @type {LimitedTimeIntervalBound}
+   * @memberof UnresolvedDecisionTimeAxesVariable
    */
-  end: UnresolvedDecisionTimeProjectionVariableAllOfEnd | null;
+  end: LimitedTimeIntervalBound | null;
   /**
    *
-   * @type {UnresolvedDecisionTimeProjectionVariableAllOfStart}
-   * @memberof UnresolvedDecisionTimeProjectionVariable
+   * @type {TimeIntervalBound}
+   * @memberof UnresolvedDecisionTimeAxesVariable
    */
-  start: UnresolvedDecisionTimeProjectionVariableAllOfStart | null;
+  start: TimeIntervalBound | null;
 }
 /**
- *
- * @export
- * @interface UnresolvedDecisionTimeProjectionVariableAllOf
- */
-export interface UnresolvedDecisionTimeProjectionVariableAllOf {
-  /**
-   *
-   * @type {UnresolvedDecisionTimeProjectionVariableAllOfEnd}
-   * @memberof UnresolvedDecisionTimeProjectionVariableAllOf
-   */
-  end: UnresolvedDecisionTimeProjectionVariableAllOfEnd | null;
-  /**
-   *
-   * @type {UnresolvedDecisionTimeProjectionVariableAllOfStart}
-   * @memberof UnresolvedDecisionTimeProjectionVariableAllOf
-   */
-  start: UnresolvedDecisionTimeProjectionVariableAllOfStart | null;
-}
-/**
- * @type UnresolvedDecisionTimeProjectionVariableAllOfEnd
+ * @type UnresolvedTemporalAxes
  * @export
  */
-export type UnresolvedDecisionTimeProjectionVariableAllOfEnd =
-  LimitedTimeIntervalBound;
-
-/**
- * @type UnresolvedDecisionTimeProjectionVariableAllOfStart
- * @export
- */
-export type UnresolvedDecisionTimeProjectionVariableAllOfStart =
-  TimeIntervalBound;
-
-/**
- * @type UnresolvedTimeProjection
- * @export
- */
-export type UnresolvedTimeProjection =
-  | UnresolvedDecisionTimeProjection
-  | UnresolvedTransactionTimeProjection;
+export type UnresolvedTemporalAxes =
+  | UnresolvedDecisionTimeAxes
+  | UnresolvedTransactionTimeAxes;
 
 /**
  *
  * @export
- * @interface UnresolvedTransactionTimeProjection
+ * @interface UnresolvedTransactionTimeAxes
  */
-export interface UnresolvedTransactionTimeProjection {
+export interface UnresolvedTransactionTimeAxes {
   /**
    *
-   * @type {UnresolvedTransactionTimeProjectionPinned}
-   * @memberof UnresolvedTransactionTimeProjection
+   * @type {UnresolvedTransactionTimeAxesPinned}
+   * @memberof UnresolvedTransactionTimeAxes
    */
-  pinned: UnresolvedTransactionTimeProjectionPinned;
+  pinned: UnresolvedTransactionTimeAxesPinned;
   /**
    *
-   * @type {UnresolvedDecisionTimeProjectionVariable}
-   * @memberof UnresolvedTransactionTimeProjection
+   * @type {UnresolvedTransactionTimeAxesVariable}
+   * @memberof UnresolvedTransactionTimeAxes
    */
-  variable: UnresolvedDecisionTimeProjectionVariable;
+  variable: UnresolvedTransactionTimeAxesVariable;
 }
 /**
  *
  * @export
- * @interface UnresolvedTransactionTimeProjectionPinned
+ * @interface UnresolvedTransactionTimeAxesPinned
  */
-export interface UnresolvedTransactionTimeProjectionPinned {
+export interface UnresolvedTransactionTimeAxesPinned {
   /**
    *
    * @type {DecisionTime}
-   * @memberof UnresolvedTransactionTimeProjectionPinned
+   * @memberof UnresolvedTransactionTimeAxesPinned
    */
   axis: DecisionTime;
   /**
    *
    * @type {string}
-   * @memberof UnresolvedTransactionTimeProjectionPinned
+   * @memberof UnresolvedTransactionTimeAxesPinned
    */
   timestamp: string | null;
+}
+/**
+ *
+ * @export
+ * @interface UnresolvedTransactionTimeAxesVariable
+ */
+export interface UnresolvedTransactionTimeAxesVariable {
+  /**
+   *
+   * @type {TransactionTime}
+   * @memberof UnresolvedTransactionTimeAxesVariable
+   */
+  axis: TransactionTime;
+  /**
+   *
+   * @type {LimitedTimeIntervalBound}
+   * @memberof UnresolvedTransactionTimeAxesVariable
+   */
+  end: LimitedTimeIntervalBound | null;
+  /**
+   *
+   * @type {TimeIntervalBound}
+   * @memberof UnresolvedTransactionTimeAxesVariable
+   */
+  start: TimeIntervalBound | null;
 }
 /**
  * The contents of a Data Type update request
