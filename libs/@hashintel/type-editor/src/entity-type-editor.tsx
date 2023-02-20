@@ -1,3 +1,6 @@
+/* eslint-disable import/first */
+require("setimmediate");
+
 import { EntityType, PropertyType } from "@blockprotocol/graph";
 import { VersionedUri } from "@blockprotocol/type-system/slim";
 import { theme } from "@hashintel/design-system";
