@@ -14,18 +14,20 @@ const node = document.getElementById("app");
 /**
  * @type {{content: string; language: import("./utils").LanguageType;}}
  */
-const initialData: RootEntity = {
+const initialEntity: RootEntity = {
   metadata: {
-    entityTypeId: "https://alpha.hash.ai/@ciaran/types/entity-type/code/v/1",
-    editionId: {
-      baseId: "entity-code",
-      versionId: "1",
+    entityTypeId:
+      "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/entity-type/code-snippet/v/2",
+    recordId: {
+      entityId: "entity-code",
+      editionId: new Date().toISOString(),
     },
   },
   properties: {
-    "https://alpha.hash.ai/@ciaran/types/property-type/content/":
+    "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/content/":
       'var foo = "bar";',
-    "https://alpha.hash.ai/@ciaran/types/property-type/language/": "javascript",
+    "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/language/":
+      "javascript",
   },
 };
 
@@ -33,8 +35,8 @@ const DevApp = () => {
   return (
     <MockBlockDock
       blockDefinition={{ ReactComponent: Component }}
-      blockEntityEditionId={initialData.metadata.editionId}
-      initialEntities={[initialData]}
+      blockEntityRecordId={initialEntity.metadata.recordId}
+      initialData={{ initialEntities: [initialEntity] }}
       blockInfo={packageJSON.blockprotocol}
       debug
     />

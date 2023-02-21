@@ -18,7 +18,7 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@mui/material": "5.10.6",
+    "@mui/material": "5.11.8",
     "blockprotocol": "0.0.12",
     "echarts": "^5.3.2",
     "lodash.debounce": "4.0.8"

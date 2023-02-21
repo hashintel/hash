@@ -1,7 +1,7 @@
-import { Box, experimental_sx as sx, styled } from "@mui/material";
+import { Box, styled } from "@mui/material";
 
 export const GridEditorWrapper = styled(Box)(({ theme }) =>
-  sx({
+  theme.unstable_sx({
     width: "100%",
     border: "1px solid",
     borderColor: "gray.30",
