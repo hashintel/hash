@@ -165,7 +165,7 @@ mod tests {
             ),
             Filter::Equal(
                 Some(FilterExpression::Path(DataTypeQueryPath::Version)),
-                Some(FilterExpression::Parameter(Parameter::Number(1.0))),
+                Some(FilterExpression::Parameter(Parameter::Number(1))),
             ),
         ]);
         compiler.add_filter(&filter);
@@ -181,7 +181,7 @@ mod tests {
             "#,
             &[
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
-                &1.0,
+                &1,
             ],
         );
     }
@@ -280,7 +280,7 @@ mod tests {
                 Some(FilterExpression::Path(PropertyTypeQueryPath::DataTypes(
                     DataTypeQueryPath::Version,
                 ))),
-                Some(FilterExpression::Parameter(Parameter::Number(1.0))),
+                Some(FilterExpression::Parameter(Parameter::Number(1))),
             ),
         ]);
         compiler.add_filter(&filter);
@@ -304,7 +304,7 @@ mod tests {
             &[
                 &"Text",
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
-                &1.0,
+                &1,
             ],
         );
     }
@@ -601,7 +601,7 @@ mod tests {
                     EntityQueryPath::EditionId,
                 ))),
             ))),
-            Some(FilterExpression::Parameter(Parameter::Number(10.0))),
+            Some(FilterExpression::Parameter(Parameter::Number(10))),
         );
         compiler.add_filter(&filter);
 
@@ -622,7 +622,7 @@ mod tests {
               AND "entities_0_2_0"."decision_time" && $2
               AND "entities_0_2_0"."entity_edition_id" = $3
             "#,
-            &[&pinned_timestamp, &temporal_axes.variable_interval(), &10.0],
+            &[&pinned_timestamp, &temporal_axes.variable_interval(), &10],
         );
     }
 
@@ -638,7 +638,7 @@ mod tests {
                     EntityQueryPath::EditionId,
                 ))),
             ))),
-            Some(FilterExpression::Parameter(Parameter::Number(10.0))),
+            Some(FilterExpression::Parameter(Parameter::Number(10))),
         );
         compiler.add_filter(&filter);
 
@@ -659,7 +659,7 @@ mod tests {
               AND "entities_0_2_0"."decision_time" && $2
               AND "entities_0_2_0"."entity_edition_id" = $3
             "#,
-            &[&pinned_timestamp, &temporal_axes.variable_interval(), &10.0],
+            &[&pinned_timestamp, &temporal_axes.variable_interval(), &10],
         );
     }
 

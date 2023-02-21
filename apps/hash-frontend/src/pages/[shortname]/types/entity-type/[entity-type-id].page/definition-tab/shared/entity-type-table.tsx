@@ -13,15 +13,15 @@ import {
   TypographyProps,
   useForkRef,
 } from "@mui/material";
-import { Box, experimental_sx, styled } from "@mui/system";
+import { Box, styled } from "@mui/system";
 import { memoize } from "lodash";
 import { forwardRef, ReactNode, useEffect, useRef, useState } from "react";
 
 import { WhiteCard } from "../../../../../shared/white-card";
 import { EDIT_BAR_HEIGHT } from "../../shared/edit-bar";
 
-export const EntityTypeTableCenteredCell = styled(TableCell)(
-  experimental_sx({
+export const EntityTypeTableCenteredCell = styled(TableCell)(({ theme }) =>
+  theme.unstable_sx({
     px: "0px !important",
     textAlign: "center",
   }),

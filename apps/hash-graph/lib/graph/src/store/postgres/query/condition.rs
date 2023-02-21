@@ -205,13 +205,13 @@ mod tests {
                 ),
                 Filter::Equal(
                     Some(FilterExpression::Path(DataTypeQueryPath::Version)),
-                    Some(FilterExpression::Parameter(Parameter::Number(1.0))),
+                    Some(FilterExpression::Parameter(Parameter::Number(1))),
                 ),
             ]),
             r#"("ontology_id_with_metadata_0_1_0"."base_uri" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)"#,
             &[
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
-                &1.0,
+                &1,
             ],
         );
     }
@@ -239,13 +239,13 @@ mod tests {
                 ),
                 Filter::Equal(
                     Some(FilterExpression::Path(DataTypeQueryPath::Version)),
-                    Some(FilterExpression::Parameter(Parameter::Number(1.0))),
+                    Some(FilterExpression::Parameter(Parameter::Number(1))),
                 ),
             ]),
             r#"(("ontology_id_with_metadata_0_1_0"."base_uri" = $1) OR ("ontology_id_with_metadata_0_1_0"."version" = $2))"#,
             &[
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
-                &1.0,
+                &1,
             ],
         );
     }

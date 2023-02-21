@@ -1,6 +1,5 @@
 import {
   Box,
-  experimental_sx as sx,
   IconButton,
   inputBaseClasses,
   ListItem,
@@ -12,14 +11,14 @@ import {
 const LINK_ICON_WIDTH = "2rem";
 
 export const SListItem = styled(ListItem)(({ theme }) =>
-  sx({
+  theme.unstable_sx({
     marginBottom: 2,
     outlineColor: theme.palette.primary.light,
   }),
 );
 
 export const SPaper = styled(Paper)(({ theme }) =>
-  sx({
+  theme.unstable_sx({
     display: "flex",
     width: 1,
     paddingX: 2,
@@ -30,8 +29,8 @@ export const SPaper = styled(Paper)(({ theme }) =>
   }),
 );
 
-export const SLinkIconWrapper = styled(Box)(
-  sx({
+export const SLinkIconWrapper = styled(Box)(({ theme }) =>
+  theme.unstable_sx({
     position: "absolute",
     left: 0,
     top: 0,
@@ -43,8 +42,8 @@ export const SLinkIconWrapper = styled(Box)(
   }),
 );
 
-export const STextField = styled(TextField)(
-  sx({
+export const STextField = styled(TextField)(({ theme }) =>
+  theme.unstable_sx({
     ml: LINK_ICON_WIDTH,
     border: "none",
     outline: "none",
@@ -57,12 +56,12 @@ export const STextField = styled(TextField)(
   }),
 );
 
-export const SButtonsWrapper = styled(Box)(
-  sx({ display: "flex", alignItems: "center", gap: 1 }),
+export const SButtonsWrapper = styled(Box)(({ theme }) =>
+  theme.unstable_sx({ display: "flex", alignItems: "center", gap: 1 }),
 );
 
-export const SIconButton = styled(IconButton)(
-  sx({
+export const SIconButton = styled(IconButton)(({ theme }) =>
+  theme.unstable_sx({
     paddingX: 0.5,
     paddingY: 1,
     borderRadius: 1,
