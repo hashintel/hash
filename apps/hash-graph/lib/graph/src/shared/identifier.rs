@@ -25,7 +25,7 @@ pub struct EntityVertexId {
     pub revision_id: Timestamp<VariableAxis>,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityIdWithInterval {
     pub entity_id: EntityId,
