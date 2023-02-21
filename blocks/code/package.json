@@ -14,22 +14,22 @@
     "build": "block-scripts build",
     "dev": "block-scripts dev",
     "fix:eslint": "eslint --fix .",
-    "generate-types": "block-scripts codegen",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
+    "schema": "block-scripts codegen",
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.1.0-canary-20230111084611",
+    "@blockprotocol/graph": "0.1.0-canary-20230220234726",
     "prismjs": "1.29.0"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/prismjs": "1.26.0",
-    "block-scripts": "0.1.0-canary-20230111084611",
+    "block-scripts": "0.1.0-canary-20230220234726",
     "eslint": "8.33.0",
-    "mock-block-dock": "0.1.0-canary-20230111084611",
+    "mock-block-dock": "0.1.0-canary-20230220234726",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "typescript": "4.9.4"
@@ -52,12 +52,12 @@
     "image": "public/preview.svg",
     "examples": [
       {
-        "caption": "A JavaScript code example.",
-        "language": "javascript",
-        "content": "function debounce(func, timeout = 300){\n  let timer;\n  return (...args) => {\n    clearTimeout(timer);\n    timer = setTimeout(() => { func.apply(this, args); }, timeout);\n  };\n}"
+        "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/content/": "\"function debounce(func, timeout = 300){\\n  let timer;\\n  return (...args) => {\\n    clearTimeout(timer);\\n    timer = setTimeout(() => { func.apply(this, args); }, timeout);\\n  };\\n}\"",
+        "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/language/": "javascript",
+        "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/caption/": "A JavaScript code example."
       }
     ],
     "protocol": "0.3",
-    "schema": "https://alpha.hash.ai/@ciaran/types/entity-type/code-snippet/v/2"
+    "schema": "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/entity-type/code-snippet/v/2"
   }
 }

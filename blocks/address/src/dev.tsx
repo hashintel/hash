@@ -1,7 +1,7 @@
 import {
   EntityTemporalVersioningMetadata,
   QueryTemporalAxes,
-} from "@blockprotocol/graph/.";
+} from "@blockprotocol/graph";
 import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
 
