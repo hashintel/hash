@@ -26,6 +26,18 @@ pub enum KnowledgeGraphOutwardEdge {
     ToOntology(OutwardEdge<SharedEdgeKind, OntologyTypeVertexId>),
 }
 
+impl From<OutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>> for KnowledgeGraphOutwardEdge {
+    fn from(edge: OutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>) -> Self {
+        Self::ToKnowledgeGraph(edge)
+    }
+}
+
+impl From<OutwardEdge<SharedEdgeKind, OntologyTypeVertexId>> for KnowledgeGraphOutwardEdge {
+    fn from(edge: OutwardEdge<SharedEdgeKind, OntologyTypeVertexId>) -> Self {
+        Self::ToOntology(edge)
+    }
+}
+
 // WARNING: This MUST be kept up to date with the enum variants.
 //   Utoipa is not able to derive the correct schema for this as it has problems with generic
 //   parameters.

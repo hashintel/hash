@@ -49,6 +49,18 @@ pub enum OntologyOutwardEdge {
     ToKnowledgeGraph(OutwardEdge<SharedEdgeKind, EntityVertexId>),
 }
 
+impl From<OutwardEdge<OntologyEdgeKind, OntologyTypeVertexId>> for OntologyOutwardEdge {
+    fn from(edge: OutwardEdge<OntologyEdgeKind, OntologyTypeVertexId>) -> Self {
+        Self::ToOntology(edge)
+    }
+}
+
+impl From<OutwardEdge<SharedEdgeKind, EntityVertexId>> for OntologyOutwardEdge {
+    fn from(edge: OutwardEdge<SharedEdgeKind, EntityVertexId>) -> Self {
+        Self::ToKnowledgeGraph(edge)
+    }
+}
+
 // WARNING: This MUST be kept up to date with the enum variants.
 //   We have to do this because utoipa doesn't understand serde untagged:
 //   https://github.com/juhaku/utoipa/issues/320
