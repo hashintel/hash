@@ -7,7 +7,7 @@ description: Navigating the HASH interface
 
 # Navigating HASH {#navigating-hash}
 
-![alt_text](images/image1.png "image_tooltip")
+![alt_text](hash_interface.png "The HASH interface")
 
 The HASH interface is an all-in-one, browser-based, no-code workspace made up of three main panels:
 

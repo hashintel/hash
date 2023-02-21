@@ -24,7 +24,7 @@ Let’s explore how HASH works by building a simple application. We’re going t
 
 **Creating Link Types**
 
-1.  Click to “Add a link +” and add an “Owner” link type. Set the expected Entity Type as “User”.
+1.  Click to “Add a link +” and add an “Owns” link type. Set the expected Entity Type as “User”.
 1.  Click “Create” in the top right corner to save this new Entity Type. \
 
 **Creating the “Sub-Task” Entity Type**
@@ -40,7 +40,7 @@ Let’s explore how HASH works by building a simple application. We’re going t
 1.  Click “Add a link +” and create a “Blocked by” Link Type, selecting the “Sub-Task” Type we just created as the expected link type.
 1.  Click to save your updated Entity Type.
 
-![alt_text](images/image2.png "image_tooltip")
+![alt_text](data_model.png "Entity Types and Link Types")
 
 _We now have a data model looking roughly like this (left). The circles represent Entity Types (the User type already existed). The arrows represent Link Types._
 
@@ -66,9 +66,9 @@ _We now have a data model looking roughly like this (left). The circles represen
 1.  Select the three “Sub-task” Entities you just created to link them to this Project.
 1.  Click “Save changes”.
 
-_We now have some Entities and Links (on the right) defined by their Entity and Link Types respectively (on the left)._
+![alt_text](data.png "Entities and Links, as defined by their Entity and Link Types")
 
-![alt_text](images/image3.png "image_tooltip")
+_We now have some Entities and Links (on the right) defined by their Entity and Link Types respectively (on the left)._
 
 **Creating a Page**
 
