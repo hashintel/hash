@@ -56,10 +56,24 @@ export const Editor = ({
     const preEl = highlightedElementRef.current; // <pre> element
     if (!textAreaEl || !preEl) return;
 
+    const hasHorizontalScrollbar =
+      textAreaEl.scrollWidth > textAreaEl.clientWidth;
+    const additionalHeight = hasHorizontalScrollbar ? 30 : 0;
+
     textAreaEl.style.height = "auto";
-    textAreaEl.style.height = `${textAreaEl.scrollHeight}px`;
-    preEl.style.height = `${textAreaEl.scrollHeight}px`;
+    textAreaEl.style.height = `${textAreaEl.scrollHeight + additionalHeight}px`;
+    preEl.style.height = `${textAreaEl.scrollHeight + additionalHeight}px`;
   }, [textAreaRef, highlightedElementRef]);
+
+  useEffect(() => {
+    const resizeListener = () => {
+      syncHeight();
+    };
+
+    window.addEventListener("resize", resizeListener);
+
+    return () => window.removeEventListener("resize", resizeListener);
+  });
 
   useEffect(() => {
     syncHeight();

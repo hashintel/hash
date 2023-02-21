@@ -25,7 +25,7 @@ const initialEntity: RootEntity = {
   },
   properties: {
     "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/content/":
-      'var foo = "bar";',
+      "function debounce(func, timeout = 300){\n  let timer;\n  return (...args) => {\n    clearTimeout(timer);\n    timer = setTimeout(() => { func.apply(this, args); }, timeout);\n  };\n}",
     "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/language/":
       "javascript",
   },
