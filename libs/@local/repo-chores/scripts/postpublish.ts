@@ -6,7 +6,7 @@ import fs from "fs-extra";
 
 import { UserFriendlyError } from "./shared/errors";
 import { checkIfDirHasUncommittedChanges } from "./shared/git";
-import { monorepoRoot } from "./shared/monorepo-root";
+import { monorepoRootDirPath } from "./shared/monorepo";
 import {
   derivePackageInfoFromEnv,
   outputPackageInfo,
@@ -50,7 +50,7 @@ const script = async () => {
       packageInfo.path,
     ],
     {
-      cwd: monorepoRoot,
+      cwd: monorepoRootDirPath,
       reject: false,
     },
   );

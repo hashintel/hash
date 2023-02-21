@@ -1,34 +1,19 @@
 import path from "node:path";
 
 import chalk from "chalk";
-import execa from "execa";
 import globby from "globby";
 
-type WorkspaceInfo = {
-  location: string;
-  workspaceDependencies: string[];
-  mismatchedWorkspaceDependencies: string[];
-};
-
-const monorepoRootDirPath = path.resolve(__filename, "../../../../..");
+import { getWorkspaceInfoLookup, monorepoRootDirPath } from "./shared/monorepo";
 
 const script = async () => {
   console.log("Checking license files in Yarn workspaces...");
 
-  const { stdout } = await execa("yarn", ["--silent", "workspaces", "info"], {
-    env: { PATH: process.env.PATH },
-    extendEnv: false, // Avoid passing FORCE_COLOR to a sub-process
-  });
+  const yarnWorkspaceInfoLookup = await getWorkspaceInfoLookup();
 
-  const workspaceInfoLookup = JSON.parse(stdout) as Record<
-    string,
-    WorkspaceInfo
-  >;
-
-  const workspaceDirPaths = [
+  const yarnWorkspaceDirPaths = [
     monorepoRootDirPath,
-    ...Object.entries(workspaceInfoLookup).map(([, workspaceInfo]) =>
-      path.resolve(monorepoRootDirPath, workspaceInfo.location),
+    ...Object.entries(yarnWorkspaceInfoLookup).map(([, yarnWorkspaceInfo]) =>
+      path.resolve(monorepoRootDirPath, yarnWorkspaceInfo.location),
     ),
   ];
 
@@ -58,16 +43,18 @@ const script = async () => {
 
   let checkFailed = false;
 
-  for (const workspaceDirPath of workspaceDirPaths) {
+  for (const yarnWorkspaceDirPath of yarnWorkspaceDirPaths) {
     const canonicalLicenseFilePath = path.resolve(
-      workspaceDirPath,
+      yarnWorkspaceDirPath,
       "LICENSE.md",
     );
 
     const currentLicenseFilePaths = licenseFilePaths.filter(
       (licenseFilePath) =>
-        licenseFilePath.startsWith(workspaceDirPath) &&
-        !licenseFilePath.slice(workspaceDirPath.length + 1).includes(path.sep),
+        licenseFilePath.startsWith(yarnWorkspaceDirPath) &&
+        !licenseFilePath
+          .slice(yarnWorkspaceDirPath.length + 1)
+          .includes(path.sep),
     );
 
     let canonicalLicenseFilePathIsPresent = false;
