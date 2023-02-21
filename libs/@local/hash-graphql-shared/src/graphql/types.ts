@@ -3,7 +3,7 @@ import {
   EntityType,
   PropertyType,
 } from "@blockprotocol/type-system/slim";
-import { EntityId } from "@local/hash-subgraph/main";
+import { EntityId } from "@local/hash-subgraph";
 
 export type TextToken =
   | {

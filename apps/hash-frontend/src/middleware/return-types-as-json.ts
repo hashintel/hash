@@ -5,6 +5,7 @@ import {
   VersionedUri,
 } from "@blockprotocol/type-system";
 import { apiGraphQLEndpoint } from "@local/hash-graphql-shared/environment";
+import { OntologyTypeVertexId } from "@local/hash-subgraph";
 import type { ApolloError } from "apollo-server-express";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
@@ -99,7 +100,7 @@ export const returnTypeAsJson = async (request: NextRequest) => {
       ? data.getEntityType
       : data.getPropertyType;
 
-  const root = roots[0];
+  const root = roots[0] as OntologyTypeVertexId | undefined;
   if (!root) {
     return generateErrorResponse(
       404,
@@ -107,16 +108,9 @@ export const returnTypeAsJson = async (request: NextRequest) => {
     );
   }
 
-  const { baseId, version } = root;
-  if (typeof version !== "number") {
-    return generateErrorResponse(
-      500,
-      "Internal error: ontology root version not a number",
-    );
-  }
+  const { baseId, revisionId } = root;
 
-  /** @todo-0.3 - remove this any when the subgraph is migrated */
-  const type = (vertices[baseId] as any)[version];
+  const type = vertices[baseId]?.[revisionId];
 
   if (!type) {
     return generateErrorResponse(

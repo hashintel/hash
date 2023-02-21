@@ -4,6 +4,7 @@
 #[macro_use]
 mod common;
 
+#[allow(clippy::wildcard_imports)]
 use common::*;
 use error_stack::{AttachmentKind, FrameKind, FutureExt, Report, ResultExt};
 

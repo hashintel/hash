@@ -35,7 +35,7 @@ pub trait IntervalBoundHelper<T>: IntervalBound<T> {
     }
 }
 
-impl<B: IntervalBound<T>, T> IntervalBoundHelper<T> for B where B: IntervalBound<T> {}
+impl<B, T> IntervalBoundHelper<T> for B where B: IntervalBound<T> {}
 
 impl<T, S, E> Interval<T, S, E>
 where

@@ -6,7 +6,7 @@
  * package and be removed from here.
  */
 
-import { MessageCallback } from "@blockprotocol/core";
+import { MessageCallback, MessageReturn } from "@blockprotocol/core";
 import {
   CreateResourceError,
   ReadOrModifyResourceError,
@@ -18,11 +18,13 @@ import {
 } from "@blockprotocol/type-system";
 import { EmptyObject } from "@local/hash-isomorphic-utils/util";
 import {
+  DataTypeRootType,
+  EntityTypeRootType,
   EntityTypeWithMetadata,
+  PropertyTypeRootType,
   PropertyTypeWithMetadata,
   Subgraph,
-  SubgraphRootTypes,
-} from "@local/hash-subgraph/main";
+} from "@local/hash-subgraph";
 
 export type OntologyCallbacks = {
   aggregateDataTypes: AggregateDataTypesMessageCallback;
@@ -41,14 +43,14 @@ export type OntologyCallbacks = {
 export type AggregateDataTypesMessageCallback = MessageCallback<
   EmptyObject,
   null,
-  Subgraph<SubgraphRootTypes["dataType"]>,
+  MessageReturn<Subgraph<DataTypeRootType>>,
   ReadOrModifyResourceError
 >;
 
 export type GetDataTypeMessageCallback = MessageCallback<
   VersionedUri,
   null,
-  Subgraph<SubgraphRootTypes["dataType"]>,
+  MessageReturn<Subgraph<DataTypeRootType>>,
   ReadOrModifyResourceError
 >;
 
@@ -60,7 +62,7 @@ export type CreatePropertyTypeRequest = {
 export type CreatePropertyTypeMessageCallback = MessageCallback<
   CreatePropertyTypeRequest,
   null,
-  PropertyTypeWithMetadata,
+  MessageReturn<PropertyTypeWithMetadata>,
   CreateResourceError
 >;
 
@@ -73,7 +75,7 @@ export type AggregatePropertyTypesRequest = {
 export type AggregatePropertyTypesMessageCallback = MessageCallback<
   AggregatePropertyTypesRequest,
   null,
-  Subgraph<SubgraphRootTypes["propertyType"]>,
+  MessageReturn<Subgraph<PropertyTypeRootType>>,
   ReadOrModifyResourceError
 >;
 
@@ -87,7 +89,7 @@ export type GetPropertyTypeRequest = {
 export type GetPropertyTypeMessageCallback = MessageCallback<
   GetPropertyTypeRequest,
   null,
-  Subgraph<SubgraphRootTypes["propertyType"]>,
+  MessageReturn<Subgraph<PropertyTypeRootType>>,
   ReadOrModifyResourceError
 >;
 
@@ -98,7 +100,7 @@ export type UpdatePropertyTypeRequest = {
 export type UpdatePropertyTypeMessageCallback = MessageCallback<
   UpdatePropertyTypeRequest,
   null,
-  PropertyTypeWithMetadata,
+  MessageReturn<PropertyTypeWithMetadata>,
   ReadOrModifyResourceError
 >;
 
@@ -110,7 +112,7 @@ export type EntityTypeRequest = {
 export type CreateEntityTypeMessageCallback = MessageCallback<
   EntityTypeRequest,
   null,
-  EntityTypeWithMetadata,
+  MessageReturn<EntityTypeWithMetadata>,
   CreateResourceError
 >;
 
@@ -129,7 +131,7 @@ export type AggregateEntityTypesRequest = {
 export type AggregateEntityTypesMessageCallback = MessageCallback<
   AggregateEntityTypesRequest,
   null,
-  Subgraph<SubgraphRootTypes["entityType"]>,
+  MessageReturn<Subgraph<EntityTypeRootType>>,
   ReadOrModifyResourceError
 >;
 
@@ -149,7 +151,7 @@ export type GetEntityTypeRequest = {
 export type GetEntityTypeMessageCallback = MessageCallback<
   GetEntityTypeRequest,
   null,
-  Subgraph<SubgraphRootTypes["entityType"]>,
+  MessageReturn<Subgraph<EntityTypeRootType>>,
   ReadOrModifyResourceError
 >;
 
@@ -160,6 +162,6 @@ export type UpdateEntityTypeRequest = {
 export type UpdateEntityTypeMessageCallback = MessageCallback<
   UpdateEntityTypeRequest,
   null,
-  EntityTypeWithMetadata,
+  MessageReturn<EntityTypeWithMetadata>,
   ReadOrModifyResourceError
 >;

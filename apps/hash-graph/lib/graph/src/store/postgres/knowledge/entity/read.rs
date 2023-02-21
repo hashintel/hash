@@ -10,10 +10,13 @@ use uuid::Uuid;
 use crate::{
     identifier::{
         account::AccountId,
-        knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
+        knowledge::{EntityId, EntityRecordId, EntityVersion},
         time::TimeProjection,
     },
-    knowledge::{Entity, EntityProperties, EntityQueryPath, EntityUuid, LinkData},
+    knowledge::{
+        Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
+        LinkData,
+    },
     ontology::EntityTypeQueryPath,
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
@@ -44,8 +47,8 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
 
         let owned_by_id_index = compiler.add_selection_path(&EntityQueryPath::OwnedById);
         let entity_uuid_index = compiler.add_selection_path(&EntityQueryPath::Uuid);
-        let record_id_index = compiler.add_distinct_selection_with_ordering(
-            &EntityQueryPath::RecordId,
+        let edition_id_index = compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::EditionId,
             Distinctness::Distinct,
             None,
         );
@@ -86,7 +89,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                     serde_json::from_value(row.get(properties_index))
                         .into_report()
                         .change_context(QueryError)?;
-                let entity_type_uri = VersionedUri::from_str(row.get(type_id_index))
+                let entity_type_id = VersionedUri::from_str(row.get(type_id_index))
                     .into_report()
                     .change_context(QueryError)?;
 
@@ -108,18 +111,20 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                             Some(left_entity_uuid),
                             Some(right_owned_by_id),
                             Some(right_entity_uuid),
-                        ) => Some(LinkData::new(
-                            EntityId::new(
-                                OwnedById::new(left_owned_by_id),
-                                EntityUuid::new(left_entity_uuid),
-                            ),
-                            EntityId::new(
-                                OwnedById::new(right_owned_by_id),
-                                EntityUuid::new(right_entity_uuid),
-                            ),
-                            row.get(left_to_right_order_index),
-                            row.get(right_to_left_order_index),
-                        )),
+                        ) => Some(LinkData {
+                            left_entity_id: EntityId {
+                                owned_by_id: OwnedById::new(left_owned_by_id),
+                                entity_uuid: EntityUuid::new(left_entity_uuid),
+                            },
+                            right_entity_id: EntityId {
+                                owned_by_id: OwnedById::new(right_owned_by_id),
+                                entity_uuid: EntityUuid::new(right_entity_uuid),
+                            },
+                            order: EntityLinkOrder {
+                                left_to_right: row.get(left_to_right_order_index),
+                                right_to_left: row.get(right_to_left_order_index),
+                            },
+                        }),
                         (None, None, None, None) => None,
                         _ => unreachable!(
                             "It's not possible to have a link entity with the left entityId or \
@@ -128,27 +133,28 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                     }
                 };
 
-                let owned_by_id = OwnedById::new(row.get(owned_by_id_index));
-                let entity_uuid = EntityUuid::new(row.get(entity_uuid_index));
                 let updated_by_id = UpdatedById::new(row.get(updated_by_id_index));
 
-                Ok(Entity::new(
+                Ok(Entity {
                     properties,
                     link_data,
-                    EntityEditionId::new(
-                        EntityId::new(owned_by_id, entity_uuid),
-                        EntityRecordId::new(row.get(record_id_index)),
+                    metadata: EntityMetadata::new(
+                        EntityRecordId {
+                            entity_id: EntityId {
+                                owned_by_id: row.get(owned_by_id_index),
+                                entity_uuid: row.get(entity_uuid_index),
+                            },
+                            edition_id: row.get(edition_id_index),
+                        },
+                        EntityVersion {
+                            decision_time: row.get(decision_time_index),
+                            transaction_time: row.get(transaction_time_index),
+                        },
+                        entity_type_id,
+                        ProvenanceMetadata::new(updated_by_id),
+                        row.get(archived_index),
                     ),
-                    EntityVersion {
-                        decision_time: row.get(decision_time_index),
-                        transaction_time: row.get(transaction_time_index),
-                    },
-                    entity_type_uri,
-                    ProvenanceMetadata::new(updated_by_id),
-                    // TODO: only the historic table would have an `archived` field.
-                    //   Consider what we should do about that.
-                    row.get(archived_index),
-                ))
+                })
             })
             .try_collect()
             .await

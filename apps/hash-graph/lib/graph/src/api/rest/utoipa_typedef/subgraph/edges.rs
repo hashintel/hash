@@ -11,8 +11,9 @@ use crate::{
     api::rest::utoipa_typedef::{subgraph::Vertices, EntityIdAndTimestamp},
     identifier::{
         knowledge::EntityId,
-        ontology::{OntologyTypeEditionId, OntologyTypeVersion},
+        ontology::OntologyTypeVersion,
         time::{ProjectedTime, TimeAxis, Timestamp},
+        OntologyTypeVertexId,
     },
     store::Record,
     subgraph::edges::{KnowledgeGraphEdgeKind, OntologyOutwardEdges, OutwardEdge, SharedEdgeKind},
@@ -22,7 +23,7 @@ use crate::{
 #[serde(untagged)]
 pub enum KnowledgeGraphOutwardEdges {
     ToKnowledgeGraph(OutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>),
-    ToOntology(OutwardEdge<SharedEdgeKind, OntologyTypeEditionId>),
+    ToOntology(OutwardEdge<SharedEdgeKind, OntologyTypeVertexId>),
 }
 
 // WARNING: This MUST be kept up to date with the enum variants.
@@ -34,7 +35,7 @@ impl ToSchema<'_> for KnowledgeGraphOutwardEdges {
             "KnowledgeGraphOutwardEdges",
             OneOfBuilder::new()
                 .item(<OutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>>::schema().1)
-                .item(<OutwardEdge<SharedEdgeKind, OntologyTypeEditionId>>::schema().1)
+                .item(<OutwardEdge<SharedEdgeKind, OntologyTypeVertexId>>::schema().1)
                 .into(),
         )
     }
@@ -71,12 +72,12 @@ impl Edges {
                 HashMap::new(),
                 |mut map, (id, edges)| {
                     let edges = edges.into_iter().collect();
-                    match map.entry(id.base_id().clone()) {
+                    match map.entry(id.base_id.clone()) {
                         Entry::Occupied(entry) => {
-                            entry.into_mut().insert(id.version(), edges);
+                            entry.into_mut().insert(id.version, edges);
                         }
                         Entry::Vacant(entry) => {
-                            entry.insert(BTreeMap::from([(id.version(), edges)]));
+                            entry.insert(BTreeMap::from([(id.version, edges)]));
                         }
                     }
                     map
@@ -116,11 +117,11 @@ impl Edges {
                                 let earliest_timestamp = if edge.reversed {
                                     vertices.earliest_entity_by_id(&edge.right_endpoint)
                                 } else {
-                                    vertices.earliest_entity_by_id(&id.base_id())
+                                    vertices.earliest_entity_by_id(&id.base_id)
                                 }
                                     .expect("entity must exist in subgraph")
                                     .vertex_id(time_axis)
-                                    .version();
+                                    .version;
 
                                 KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
                                     kind: edge.kind,
@@ -133,16 +134,16 @@ impl Edges {
                             }
                         }
                     }).collect();
-                    match map.entry(id.base_id()) {
+                    match map.entry(id.base_id) {
                         Entry::Occupied(entry) => {
                             entry.into_mut().insert(
-                                id.version(),
+                                id.version,
                                 edges,
                             );
                         }
                         Entry::Vacant(entry) => {
                             entry.insert(BTreeMap::from([(
-                                id.version(),
+                                id.version,
                                 edges,
                             )]));
                         }

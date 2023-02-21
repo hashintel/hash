@@ -44,7 +44,7 @@ impl<'a> Trivia<'a> {
 }
 
 #[derive(Debug)]
-pub struct Tape<'a, 'de> {
+pub(crate) struct Tape<'a, 'de> {
     tokens: &'de [Token],
     trivia: Trivia<'a>,
 }
@@ -146,11 +146,11 @@ impl<'a, 'de> Tape<'a, 'de> {
         }
     }
 
-    pub(crate) fn remaining(&self) -> usize {
+    pub(crate) const fn remaining(&self) -> usize {
         self.tokens.len()
     }
 
-    pub(crate) fn is_empty(&self) -> bool {
+    pub(crate) const fn is_empty(&self) -> bool {
         self.tokens.is_empty()
     }
 

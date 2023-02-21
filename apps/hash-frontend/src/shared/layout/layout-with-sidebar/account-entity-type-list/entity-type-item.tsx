@@ -1,6 +1,7 @@
-import { extractBaseUri, VersionedUri } from "@blockprotocol/type-system";
+import { VersionedUri } from "@blockprotocol/type-system";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
 import { Box, BoxProps, styled, Tooltip, Typography } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";

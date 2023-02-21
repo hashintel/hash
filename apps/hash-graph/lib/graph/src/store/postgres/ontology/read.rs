@@ -11,7 +11,7 @@ use type_system::uri::BaseUri;
 
 use crate::{
     identifier::{
-        ontology::{OntologyTypeEditionId, OntologyTypeVersion},
+        ontology::{OntologyTypeRecordId, OntologyTypeVersion},
         time::TimeProjection,
     },
     ontology::{
@@ -101,8 +101,7 @@ where
                 let base_uri = BaseUri::new(row.get(base_uri_index))
                     .into_report()
                     .change_context(QueryError)?;
-                let version: i64 = row.get(version_index);
-                let version = OntologyTypeVersion::new(version as u32);
+                let version: OntologyTypeVersion = row.get(version_index);
                 let updated_by_id = UpdatedById::new(row.get(updated_by_id_path_index));
                 let metadata: AdditionalOntologyMetadata = row.get(additional_metadata_index);
 
@@ -114,20 +113,20 @@ where
                     .into_report()
                     .change_context(QueryError)?;
 
-                let edition_id = OntologyTypeEditionId::new(base_uri, version);
+                let record_id = OntologyTypeRecordId { base_uri, version };
                 let provenance = ProvenanceMetadata::new(updated_by_id);
 
                 Ok(T::new(record, match metadata {
                     AdditionalOntologyMetadata::Owned { owned_by_id } => {
                         OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                            edition_id,
+                            record_id,
                             provenance,
                             owned_by_id,
                         ))
                     }
                     AdditionalOntologyMetadata::External { fetched_at } => {
                         OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
-                            edition_id, provenance, fetched_at,
+                            record_id, provenance, fetched_at,
                         ))
                     }
                 }))

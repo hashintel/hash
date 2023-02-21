@@ -4,16 +4,15 @@ import { EntityTypeWithoutId } from "@local/hash-graphql-shared/graphql/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountId,
+  EntityTypeRootType,
   EntityTypeWithMetadata,
   linkEntityTypeUri,
   ontologyTypeRecordIdToVersionedUri,
   OwnedById,
   Subgraph,
-  SubgraphRootTypes,
-} from "@local/hash-subgraph/main";
-import { getRoots } from "@local/hash-subgraph/stdlib/roots";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
-import { mapOntologyMetadata } from "@local/hash-subgraph/temp/map-vertices";
+} from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
+import { mapOntologyMetadata, mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { NotFoundError } from "../../../lib/error";
 import {
@@ -81,22 +80,19 @@ export const getEntityTypeById: ImpureGraphFunction<
         equal: [{ path: ["versionedUri"] }, { parameter: entityTypeId }],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeProjection: {
-        kernel: {
-          axis: "transaction",
+      timeAxes: {
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
+        variable: {
+          axis: "decisionTime",
           start: null,
           end: null,
         },
       },
     })
-    .then(
-      ({ data }) =>
-        mapSubgraph(data) as Subgraph<SubgraphRootTypes["entityType"]>,
-    );
+    .then(({ data }) => mapSubgraph(data) as Subgraph<EntityTypeRootType>);
 
   const [entityType] = getRoots(entityTypeSubgraph);
 
