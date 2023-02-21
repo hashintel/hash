@@ -64,7 +64,7 @@ impl<C: AsClient> PostgresStore<C> {
                 .temporal_versioning()
                 .variable_time_interval(time_axis);
 
-            // Intersects the version interval of the entity with the temporal axis's time
+            // Intersects the version interval of the entity with the variable axis's time
             // interval. We only want to resolve the entity further for the overlap of these two
             // intervals.
             let Some(mut intersected_temporal_axes) = temporal_axes.intersect_variable_interval(variable_interval) else {
