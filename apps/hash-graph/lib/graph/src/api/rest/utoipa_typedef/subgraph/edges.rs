@@ -1,4 +1,4 @@
-use std::collections::{hash_map::Entry, BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap};
 
 use serde::Serialize;
 use type_system::uri::BaseUri;
@@ -8,26 +8,25 @@ use utoipa::{
 };
 
 use crate::{
-    api::rest::utoipa_typedef::{subgraph::Vertices, EntityIdAndTimestamp},
+    api::rest::utoipa_typedef::EntityIdAndTimestamp,
     identifier::{
         knowledge::EntityId,
         ontology::OntologyTypeVersion,
-        time::{TimeAxis, Timestamp, VariableAxis},
-        OntologyTypeVertexId,
+        time::{Timestamp, VariableAxis},
+        EntityIdWithInterval, OntologyTypeVertexId,
     },
-    store::Record,
     subgraph::edges::{KnowledgeGraphEdgeKind, OntologyOutwardEdge, OutwardEdge, SharedEdgeKind},
 };
 
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
 pub enum KnowledgeGraphOutwardEdge {
-    ToKnowledgeGraph(OutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>),
+    ToKnowledgeGraph(OutwardEdge<KnowledgeGraphEdgeKind, EntityIdWithInterval>),
     ToOntology(OutwardEdge<SharedEdgeKind, OntologyTypeVertexId>),
 }
 
-impl From<OutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>> for KnowledgeGraphOutwardEdge {
-    fn from(edge: OutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>) -> Self {
+impl From<OutwardEdge<KnowledgeGraphEdgeKind, EntityIdWithInterval>> for KnowledgeGraphOutwardEdge {
+    fn from(edge: OutwardEdge<KnowledgeGraphEdgeKind, EntityIdWithInterval>) -> Self {
         Self::ToKnowledgeGraph(edge)
     }
 }
@@ -81,93 +80,31 @@ pub struct Edges {
     pub knowledge_graph: KnowledgeGraphRootedEdges,
 }
 
-impl Edges {
-    pub fn from_vertices_and_store_edges(
-        edges: crate::subgraph::edges::Edges,
-        vertices: &Vertices,
-        time_axis: TimeAxis,
-    ) -> Self {
+impl From<crate::subgraph::edges::Edges> for Edges {
+    fn from(edges: crate::subgraph::edges::Edges) -> Self {
         Self {
-            ontology: OntologyRootedEdges(edges.ontology.into_iter().fold(
-                HashMap::new(),
-                |mut map, (id, edges)| {
-                    let edges = edges.into_iter().collect();
-                    match map.entry(id.base_id.clone()) {
-                        Entry::Occupied(entry) => {
-                            entry.into_mut().insert(id.revision_id, edges);
-                        }
-                        Entry::Vacant(entry) => {
-                            entry.insert(BTreeMap::from([(id.revision_id, edges)]));
-                        }
-                    }
-                    map
-                },
-            )),
-            knowledge_graph: KnowledgeGraphRootedEdges(edges.knowledge_graph.into_iter().fold(
-                HashMap::new(),
-                |mut map, (id, edges)| {
-                    let edges = edges
-                        .into_iter()
-                        .map(|edge| {
-                            match edge {
-                            crate::subgraph::edges::KnowledgeGraphOutwardEdge::ToOntology(edge) => {
-                                KnowledgeGraphOutwardEdge::ToOntology(edge)
-                            }
-                            crate::subgraph::edges::KnowledgeGraphOutwardEdge::ToKnowledgeGraph(
-                                edge,
-                            ) => {
-                                // We avoid storing redundant information when multiple editions of
-                                // the endpoints or links are present and in order to easily look
-                                // the corresponding link up in the vertices we store the earliest
-                                // timestamp when a link was added to the entity.
-                                //
-                                // As the vertices are sorted by timestamp, it's possible to get all
-                                // vertices starting with the provided earliest timestamp without
-                                // further filtering.
-                                //
-                                // We have four different permutations of a knowledge-knowledge
-                                // edge:
-                                //   1. `HAS_LEFT_ENTITY`, `reversed = false`
-                                //   2. `HAS_RIGHT_ENTITY`, `reversed = false`
-                                //   3. `HAS_LEFT_ENTITY`, `reversed = true`
-                                //   4. `HAS_RIGHT_ENTITY`, `reversed = true`
-                                //
-                                // For 1. and 2., the entity is a link and we want to store the
-                                // earliest version of this link as the earliest timestamp.
-                                // For 3. and 4., the endpoint of the edge is a link and we want to
-                                // store the earliest of that endpoint as the earliest timestamp.
-                                let earliest_timestamp = if edge.reversed {
-                                    vertices.earliest_entity_by_id(&edge.right_endpoint)
-                                } else {
-                                    vertices.earliest_entity_by_id(&id.base_id)
-                                }
-                                    .expect("entity must exist in subgraph")
-                                    .vertex_id(time_axis)
-                                    .revision_id;
-
-                                KnowledgeGraphOutwardEdge::ToKnowledgeGraph(OutwardEdge {
-                                    kind: edge.kind,
-                                    reversed: edge.reversed,
-                                    right_endpoint: EntityIdAndTimestamp {
-                                        base_id: edge.right_endpoint,
-                                        timestamp: earliest_timestamp,
-                                    },
-                                })
-                            }
-                        }
-                        })
-                        .collect();
-                    match map.entry(id.base_id) {
-                        Entry::Occupied(entry) => {
-                            entry.into_mut().insert(id.revision_id, edges);
-                        }
-                        Entry::Vacant(entry) => {
-                            entry.insert(BTreeMap::from([(id.revision_id, edges)]));
-                        }
-                    }
-                    map
-                },
-            )),
+            ontology: OntologyRootedEdges(
+                edges
+                    .ontology_to_ontology
+                    .into_flattened::<OntologyOutwardEdge>()
+                    .chain(
+                        edges
+                            .ontology_to_knowledge
+                            .into_flattened::<OntologyOutwardEdge>(),
+                    )
+                    .collect(),
+            ),
+            knowledge_graph: KnowledgeGraphRootedEdges(
+                edges
+                    .knowledge_to_ontology
+                    .into_flattened::<KnowledgeGraphOutwardEdge>()
+                    .chain(
+                        edges
+                            .knowledge_to_knowledge
+                            .into_flattened::<KnowledgeGraphOutwardEdge>(),
+                    )
+                    .collect(),
+            ),
         }
     }
 }
