@@ -110,3 +110,37 @@ impl VertexId for EntityVertexId {
         self.revision_id
     }
 }
+
+pub trait EdgeEndpoint {
+    type BaseId;
+    type RightEndpoint;
+
+    fn base_id(&self) -> &Self::BaseId;
+    fn revision_id(&self) -> Self::RightEndpoint;
+}
+
+impl EdgeEndpoint for OntologyTypeVertexId {
+    type BaseId = BaseUri;
+    type RightEndpoint = OntologyTypeVersion;
+
+    fn base_id(&self) -> &Self::BaseId {
+        &self.base_id
+    }
+
+    fn revision_id(&self) -> Self::RightEndpoint {
+        self.revision_id
+    }
+}
+
+impl EdgeEndpoint for EntityIdWithInterval {
+    type BaseId = EntityId;
+    type RightEndpoint = LeftClosedTemporalInterval<VariableAxis>;
+
+    fn base_id(&self) -> &Self::BaseId {
+        &self.entity_id
+    }
+
+    fn revision_id(&self) -> Self::RightEndpoint {
+        self.interval
+    }
+}
