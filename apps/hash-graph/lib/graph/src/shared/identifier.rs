@@ -3,14 +3,14 @@ pub mod knowledge;
 pub mod ontology;
 pub mod time;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use type_system::uri::{BaseUri, VersionedUri};
 use utoipa::ToSchema;
 
 use crate::identifier::{
     knowledge::EntityId,
     ontology::OntologyTypeVersion,
-    time::{Timestamp, VariableAxis},
+    time::{LeftClosedTemporalInterval, Timestamp, VariableAxis},
 };
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
@@ -18,6 +18,13 @@ use crate::identifier::{
 pub struct EntityVertexId {
     pub base_id: EntityId,
     pub revision_id: Timestamp<VariableAxis>,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct EntityIdWithInterval {
+    pub entity_id: EntityId,
+    pub interval: LeftClosedTemporalInterval<VariableAxis>,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]

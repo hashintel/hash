@@ -452,6 +452,25 @@ export interface EntityIdAndTimestamp {
 /**
  *
  * @export
+ * @interface EntityIdWithInterval
+ */
+export interface EntityIdWithInterval {
+  /**
+   *
+   * @type {string}
+   * @memberof EntityIdWithInterval
+   */
+  entityId: string;
+  /**
+   *
+   * @type {LeftClosedTemporalInterval}
+   * @memberof EntityIdWithInterval
+   */
+  interval: LeftClosedTemporalInterval;
+}
+/**
+ *
+ * @export
  * @interface EntityLinkOrder
  */
 export interface EntityLinkOrder {

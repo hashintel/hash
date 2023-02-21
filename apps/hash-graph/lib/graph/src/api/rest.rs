@@ -49,7 +49,7 @@ use crate::{
             OpenTemporalBound, RightBoundedTemporalInterval,
             RightBoundedTemporalIntervalUnresolved, TemporalBound, Timestamp, TransactionTime,
         },
-        EntityVertexId, GraphElementVertexId, OntologyTypeVertexId,
+        EntityIdWithInterval, EntityVertexId, GraphElementVertexId, OntologyTypeVertexId,
     },
     ontology::{
         domain_validator::DomainValidator, ExternalOntologyElementMetadata,
@@ -181,6 +181,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             OwnedOntologyElementMetadata,
             ExternalOntologyElementMetadata,
             EntityVertexId,
+            EntityIdWithInterval,
             OntologyTypeVertexId,
             OntologyTypeVersion,
             Selector,
