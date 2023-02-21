@@ -66,24 +66,4 @@ impl Edges {
             },
         }
     }
-
-    pub fn extend(&mut self, other: Self) {
-        for (vertex_id, edges) in other.ontology {
-            match self.ontology.entry(vertex_id) {
-                Entry::Occupied(entry) => entry.into_mut().extend(edges),
-                Entry::Vacant(entry) => {
-                    entry.insert(edges);
-                }
-            }
-        }
-
-        for (vertex_id, edges) in other.knowledge_graph {
-            match self.knowledge_graph.entry(vertex_id) {
-                Entry::Occupied(entry) => entry.into_mut().extend(edges),
-                Entry::Vacant(entry) => {
-                    entry.insert(edges);
-                }
-            }
-        }
-    }
 }
