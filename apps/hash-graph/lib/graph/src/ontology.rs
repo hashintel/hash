@@ -297,7 +297,7 @@ impl Record for DataTypeWithMetadata {
         let record_id = self.metadata().record_id();
         OntologyTypeVertexId {
             base_id: record_id.base_uri.clone(),
-            version: record_id.version,
+            revision_id: record_id.version,
         }
     }
 
@@ -341,7 +341,7 @@ impl Record for PropertyTypeWithMetadata {
         let record_id = self.metadata().record_id();
         OntologyTypeVertexId {
             base_id: record_id.base_uri.clone(),
-            version: record_id.version,
+            revision_id: record_id.version,
         }
     }
 
@@ -385,7 +385,7 @@ impl Record for EntityTypeWithMetadata {
         let record_id = self.metadata().record_id();
         OntologyTypeVertexId {
             base_id: record_id.base_uri.clone(),
-            version: record_id.version,
+            revision_id: record_id.version,
         }
     }
 

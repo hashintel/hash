@@ -823,7 +823,7 @@ mod tests {
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
                 )
                 .expect("invalid base uri"),
-                version: OntologyTypeVersion::new(1),
+                revision_id: OntologyTypeVersion::new(1),
             };
 
             let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
@@ -842,7 +842,7 @@ mod tests {
                   ON "ontology_id_with_metadata_0_1_0"."ontology_id" = "data_types_0_0_0"."ontology_id"
                 WHERE ("ontology_id_with_metadata_0_1_0"."base_uri" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
                 "#,
-                &[&uri.base_id.as_str(), &uri.version],
+                &[&uri.base_id.as_str(), &uri.revision_id],
             );
         }
 

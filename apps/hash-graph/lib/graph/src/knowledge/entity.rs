@@ -210,7 +210,7 @@ impl Record for Entity {
         };
         EntityVertexId {
             base_id: self.metadata.record_id().entity_id,
-            version: timestamp,
+            revision_id: timestamp,
         }
     }
 
