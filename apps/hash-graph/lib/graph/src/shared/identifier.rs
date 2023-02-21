@@ -3,6 +3,11 @@ pub mod knowledge;
 pub mod ontology;
 pub mod time;
 
+use std::{
+    collections::{HashMap, HashSet},
+    hash::BuildHasher,
+};
+
 use serde::{Deserialize, Serialize};
 use type_system::uri::{BaseUri, VersionedUri};
 use utoipa::ToSchema;
@@ -142,5 +147,54 @@ impl EdgeEndpoint for EntityIdWithInterval {
 
     fn revision_id(&self) -> Self::RightEndpoint {
         self.interval
+    }
+}
+
+pub trait EdgeEndpointSet: IntoIterator<Item = Self::EdgeEndpoint> {
+    type EdgeEndpoint: EdgeEndpoint;
+
+    fn insert(&mut self, target_id: Self::EdgeEndpoint) -> bool;
+}
+
+impl<S: BuildHasher> EdgeEndpointSet for HashSet<OntologyTypeVertexId, S> {
+    type EdgeEndpoint = OntologyTypeVertexId;
+
+    fn insert(&mut self, edge_target_id: Self::EdgeEndpoint) -> bool {
+        self.insert(edge_target_id)
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct EntityIdWithIntervalSet {
+    inner: HashMap<EntityId, HashSet<LeftClosedTemporalInterval<VariableAxis>>>,
+}
+
+impl IntoIterator for EntityIdWithIntervalSet {
+    type Item = EntityIdWithInterval;
+
+    type IntoIter = impl Iterator<Item = Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.inner.into_iter().flat_map(|(entity_id, intervals)| {
+            intervals
+                .into_iter()
+                .map(move |interval| EntityIdWithInterval {
+                    entity_id,
+                    interval,
+                })
+        })
+    }
+}
+
+impl EdgeEndpointSet for EntityIdWithIntervalSet {
+    type EdgeEndpoint = EntityIdWithInterval;
+
+    fn insert(&mut self, edge_target_id: Self::EdgeEndpoint) -> bool {
+        // TODO: Merge overlapping intervals
+        //   see https://app.asana.com/0/0/1203399924452451/f
+        self.inner
+            .entry(edge_target_id.entity_id)
+            .or_default()
+            .insert(edge_target_id.interval)
     }
 }
