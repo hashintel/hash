@@ -4,7 +4,7 @@ use postgres_types::ToSql;
 use tokio_postgres::row::RowIndex;
 
 use crate::{
-    identifier::time::TemporalAxes,
+    identifier::time::QueryTemporalAxes,
     store::{
         postgres::query::{
             expression::Constant,
@@ -41,13 +41,13 @@ pub struct CompilerArtifacts<'p> {
 pub struct SelectCompiler<'c, 'p, T> {
     statement: SelectStatement<'c>,
     artifacts: CompilerArtifacts<'p>,
-    temporal_axes: &'p TemporalAxes,
+    temporal_axes: &'p QueryTemporalAxes,
     _marker: PhantomData<fn(*const T)>,
 }
 
 impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     /// Creates a new, empty compiler.
-    pub fn new(temporal_axes: &'p TemporalAxes) -> Self {
+    pub fn new(temporal_axes: &'p QueryTemporalAxes) -> Self {
         Self {
             statement: SelectStatement {
                 with: WithExpression::default(),
@@ -74,7 +74,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
     }
 
     /// Creates a new compiler, which will select everything using the asterisk (`*`).
-    pub fn with_asterisk(temporal_axes: &'p TemporalAxes) -> Self {
+    pub fn with_asterisk(temporal_axes: &'p QueryTemporalAxes) -> Self {
         let mut default = Self::new(temporal_axes);
         default
             .statement
@@ -87,11 +87,11 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
         let table = Table::Entities.aliased(alias);
         let temporal_table_info = self.artifacts.temporal_tables.get_or_insert_with(|| {
             match self.temporal_axes {
-                TemporalAxes::DecisionTime { pinned, variable } => {
+                QueryTemporalAxes::DecisionTime { pinned, variable } => {
                     self.artifacts.parameters.push(&pinned.timestamp);
                     self.artifacts.parameters.push(&variable.interval);
                 }
-                TemporalAxes::TransactionTime { pinned, variable } => {
+                QueryTemporalAxes::TransactionTime { pinned, variable } => {
                     self.artifacts.parameters.push(&pinned.timestamp);
                     self.artifacts.parameters.push(&variable.interval);
                 }

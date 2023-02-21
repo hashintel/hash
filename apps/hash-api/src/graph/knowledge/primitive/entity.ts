@@ -1,9 +1,5 @@
 import { VersionedUri } from "@blockprotocol/type-system";
-import {
-  Filter,
-  GraphResolveDepths,
-  UnresolvedTemporalAxes,
-} from "@local/hash-graph-client";
+import { Filter, GraphResolveDepths } from "@local/hash-graph-client";
 import {
   AccountId,
   BaseUri,
@@ -17,6 +13,7 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   OwnedById,
+  QueryTemporalAxesUnresolved,
   splitEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
@@ -477,8 +474,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     ],
   };
 
-  /** @todo-0.3 - replace this with `queryAxes: QueryTemporalAxesUnresolved` */
-  const temporalAxes: UnresolvedTemporalAxes = {
+  const temporalAxes: QueryTemporalAxesUnresolved = {
     pinned: {
       axis: "transactionTime",
       timestamp: null,
@@ -604,8 +600,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     );
   }
 
-  /** @todo-0.3 - replace this with `queryAxes: QueryTemporalAxesUnresolved` */
-  const temporalAxes: UnresolvedTemporalAxes = {
+  const temporalAxes: QueryTemporalAxesUnresolved = {
     pinned: {
       axis: "transactionTime",
       timestamp: null,

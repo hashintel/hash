@@ -11,12 +11,12 @@ use crate::identifier::time::{
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct UnresolvedPinnedTemporalAxis<A> {
+pub struct PinnedTemporalAxisUnresolved<A> {
     pub axis: A,
     pub timestamp: Option<Timestamp<A>>,
 }
 
-impl<A: Default> UnresolvedPinnedTemporalAxis<A> {
+impl<A: Default> PinnedTemporalAxisUnresolved<A> {
     #[must_use]
     pub fn new(timestamp: Option<Timestamp<A>>) -> Self {
         Self {
@@ -35,7 +35,7 @@ impl<A: Default> UnresolvedPinnedTemporalAxis<A> {
     }
 }
 
-impl<'s, A> ToSchema<'s> for UnresolvedPinnedTemporalAxis<A>
+impl<'s, A> ToSchema<'s> for PinnedTemporalAxisUnresolved<A>
 where
     A: ToSchema<'s>,
 {
@@ -58,12 +58,12 @@ where
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct UnresolvedVariableTemporalAxis<A> {
+pub struct VariableTemporalAxisUnresolved<A> {
     pub axis: A,
     pub interval: UnresolvedRightBoundedTemporalInterval<A>,
 }
 
-impl<A: Default> UnresolvedVariableTemporalAxis<A> {
+impl<A: Default> VariableTemporalAxisUnresolved<A> {
     #[must_use]
     pub fn new(start: Option<TemporalBound<A>>, end: Option<LimitedTemporalBound<A>>) -> Self {
         Self {
@@ -87,7 +87,7 @@ impl<A: Default> UnresolvedVariableTemporalAxis<A> {
     }
 }
 
-impl<'s, A> ToSchema<'s> for UnresolvedVariableTemporalAxis<A>
+impl<'s, A> ToSchema<'s> for VariableTemporalAxisUnresolved<A>
 where
     A: ToSchema<'s>,
 {
@@ -111,42 +111,42 @@ where
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(untagged)]
-pub enum UnresolvedTemporalAxes {
-    #[schema(title = "UnresolvedDecisionTimeAxes")]
+pub enum QueryTemporalAxesUnresolved {
+    #[schema(title = "QueryTemporalAxesUnresolvedDecisionTime")]
     DecisionTime {
         #[schema(inline)]
-        pinned: UnresolvedPinnedTemporalAxis<TransactionTime>,
+        pinned: PinnedTemporalAxisUnresolved<TransactionTime>,
         #[schema(inline)]
-        variable: UnresolvedVariableTemporalAxis<DecisionTime>,
+        variable: VariableTemporalAxisUnresolved<DecisionTime>,
     },
-    #[schema(title = "UnresolvedTransactionTimeAxes")]
+    #[schema(title = "QueryTemporalAxesUnresolvedTransactionTime")]
     TransactionTime {
         #[schema(inline)]
-        pinned: UnresolvedPinnedTemporalAxis<DecisionTime>,
+        pinned: PinnedTemporalAxisUnresolved<DecisionTime>,
         #[schema(inline)]
-        variable: UnresolvedVariableTemporalAxis<TransactionTime>,
+        variable: VariableTemporalAxisUnresolved<TransactionTime>,
     },
 }
 
-impl Default for UnresolvedTemporalAxes {
+impl Default for QueryTemporalAxesUnresolved {
     fn default() -> Self {
         Self::DecisionTime {
-            pinned: UnresolvedPinnedTemporalAxis::new(None),
-            variable: UnresolvedVariableTemporalAxis::new(Some(TemporalBound::Unbounded), None),
+            pinned: PinnedTemporalAxisUnresolved::new(None),
+            variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
         }
     }
 }
 
-impl UnresolvedTemporalAxes {
+impl QueryTemporalAxesUnresolved {
     #[must_use]
-    pub fn resolve(self) -> TemporalAxes {
+    pub fn resolve(self) -> QueryTemporalAxes {
         let now = Timestamp::now();
         match self {
-            Self::DecisionTime { pinned, variable } => TemporalAxes::DecisionTime {
+            Self::DecisionTime { pinned, variable } => QueryTemporalAxes::DecisionTime {
                 pinned: pinned.resolve(now),
                 variable: variable.resolve(now),
             },
-            Self::TransactionTime { pinned, variable } => TemporalAxes::TransactionTime {
+            Self::TransactionTime { pinned, variable } => QueryTemporalAxes::TransactionTime {
                 pinned: pinned.resolve(now),
                 variable: variable.resolve(now),
             },
@@ -154,9 +154,9 @@ impl UnresolvedTemporalAxes {
     }
 }
 
-/// The pinned axis of a [`TemporalAxes`].
+/// The pinned axis of a [`QueryTemporalAxes`].
 ///
-/// Please refer to the documentation of [`TemporalAxes`] for more information.
+/// Please refer to the documentation of [`QueryTemporalAxes`] for more information.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PinnedTemporalAxis<A> {
@@ -182,9 +182,9 @@ where
     }
 }
 
-/// The variable time of a [`TemporalAxes`].
+/// The variable time of a [`QueryTemporalAxes`].
 ///
-/// Please refer to the documentation of [`TemporalAxes`] for more information.
+/// Please refer to the documentation of [`QueryTemporalAxes`] for more information.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct VariableTemporalAxis<A> {
@@ -238,15 +238,15 @@ where
 /// [`Interval`]: crate::interval::Interval
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(untagged)]
-pub enum TemporalAxes {
-    #[schema(title = "DecisionTimeAxes")]
+pub enum QueryTemporalAxes {
+    #[schema(title = "QueryTemporalAxesDecisionTime")]
     DecisionTime {
         #[schema(inline)]
         pinned: PinnedTemporalAxis<TransactionTime>,
         #[schema(inline)]
         variable: VariableTemporalAxis<DecisionTime>,
     },
-    #[schema(title = "TransactionTimeAxes")]
+    #[schema(title = "QueryTemporalAxesTransactionTime")]
     TransactionTime {
         #[schema(inline)]
         pinned: PinnedTemporalAxis<DecisionTime>,
@@ -255,7 +255,7 @@ pub enum TemporalAxes {
     },
 }
 
-impl TemporalAxes {
+impl QueryTemporalAxes {
     #[must_use]
     pub const fn pinned_time_axis(&self) -> TimeAxis {
         match self {

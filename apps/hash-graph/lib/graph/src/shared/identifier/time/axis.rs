@@ -32,7 +32,7 @@ pub enum TimeAxis {
 /// This is used as the generic argument to time-related structs. Please refer to the documentation
 /// of [`TemporalAxes`] for more information.
 ///
-/// [`TemporalAxes`]: crate::identifier::time::TemporalAxes
+/// [`TemporalAxes`]: crate::identifier::time::QueryTemporalAxes
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct VariableAxis;
 
@@ -41,7 +41,7 @@ pub struct VariableAxis;
 /// This is used as the generic argument to time-related structs. Please refer to the documentation
 /// of [`TemporalAxes`] for more information.
 ///
-/// [`TemporalAxes`]: crate::identifier::time::TemporalAxes
+/// [`TemporalAxes`]: crate::identifier::time::QueryTemporalAxes
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct PinnedAxis;
 

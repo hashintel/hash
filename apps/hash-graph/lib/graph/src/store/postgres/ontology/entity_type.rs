@@ -6,7 +6,7 @@ use futures::FutureExt;
 use type_system::{EntityType, EntityTypeReference, PropertyTypeReference};
 
 use crate::{
-    identifier::{time::TemporalAxes, OntologyTypeVertexId},
+    identifier::{time::QueryTemporalAxes, OntologyTypeVertexId},
     ontology::{EntityTypeWithMetadata, OntologyElementMetadata, OntologyTypeWithMetadata},
     provenance::UpdatedById,
     store::{
@@ -35,7 +35,7 @@ impl<C: AsClient> PostgresStore<C> {
         dependency_context: &'a mut DependencyContext,
         subgraph: &'a mut Subgraph,
         mut current_resolve_depths: GraphResolveDepths,
-        mut temporal_axes: TemporalAxes,
+        mut temporal_axes: QueryTemporalAxes,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
         async move {
             let dependency_status = dependency_context.ontology_dependency_map.update(

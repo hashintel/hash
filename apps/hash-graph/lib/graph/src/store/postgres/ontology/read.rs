@@ -12,7 +12,7 @@ use type_system::uri::BaseUri;
 use crate::{
     identifier::{
         ontology::{OntologyTypeRecordId, OntologyTypeVersion},
-        time::TemporalAxes,
+        time::QueryTemporalAxes,
     },
     ontology::{
         ExternalOntologyElementMetadata, OntologyElementMetadata, OntologyType,
@@ -63,7 +63,7 @@ where
     async fn read(
         &self,
         filter: &Filter<T>,
-        temporal_axes: &TemporalAxes,
+        temporal_axes: &QueryTemporalAxes,
     ) -> Result<Vec<T>, QueryError> {
         let base_uri_path = <T::QueryPath<'static> as OntologyQueryPath>::base_uri();
         let version_path = <T::QueryPath<'static> as OntologyQueryPath>::version();

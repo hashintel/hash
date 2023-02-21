@@ -5,7 +5,7 @@ use error_stack::{Result, ResultExt};
 use type_system::DataType;
 
 use crate::{
-    identifier::{time::TemporalAxes, OntologyTypeVertexId},
+    identifier::{time::QueryTemporalAxes, OntologyTypeVertexId},
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
     provenance::UpdatedById,
     store::{
@@ -27,7 +27,7 @@ impl<C: AsClient> PostgresStore<C> {
         dependency_context: &mut DependencyContext,
         subgraph: &mut Subgraph,
         mut current_resolve_depths: GraphResolveDepths,
-        mut temporal_axes: TemporalAxes,
+        mut temporal_axes: QueryTemporalAxes,
     ) -> Result<(), QueryError> {
         let dependency_status = dependency_context.ontology_dependency_map.update(
             data_type_id,

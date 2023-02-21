@@ -13,7 +13,7 @@ pub use self::{
 };
 use crate::{
     identifier::{
-        time::{TemporalAxes, UnresolvedTemporalAxes},
+        time::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
         GraphElementVertexId,
     },
     subgraph::edges::GraphResolveDepths,
@@ -21,8 +21,8 @@ use crate::{
 
 #[derive(Serialize, ToSchema)]
 pub struct SubgraphTemporalAxes {
-    pub initial: UnresolvedTemporalAxes,
-    pub resolved: TemporalAxes,
+    pub initial: QueryTemporalAxesUnresolved,
+    pub resolved: QueryTemporalAxes,
 }
 
 #[derive(Serialize, ToSchema)]

@@ -100,7 +100,7 @@ mod tests {
     use postgres_types::ToSql;
 
     use crate::{
-        identifier::time::UnresolvedTemporalAxes,
+        identifier::time::QueryTemporalAxesUnresolved,
         ontology::{DataTypeQueryPath, DataTypeWithMetadata},
         store::{
             postgres::query::{SelectCompiler, Transpile},
@@ -113,7 +113,7 @@ mod tests {
         rendered: &'static str,
         parameters: &[&'p dyn ToSql],
     ) {
-        let temporal_axes = UnresolvedTemporalAxes::default().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let mut compiler = SelectCompiler::new(&temporal_axes);
         let condition = compiler.compile_filter(filter);
 

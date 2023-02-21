@@ -6,8 +6,8 @@ use graph::{
     identifier::{
         account::AccountId,
         time::{
-            TemporalBound, UnresolvedPinnedTemporalAxis, UnresolvedTemporalAxes,
-            UnresolvedVariableTemporalAxis,
+            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, TemporalBound,
+            VariableTemporalAxisUnresolved,
         },
     },
     knowledge::{EntityMetadata, EntityProperties},
@@ -117,9 +117,9 @@ pub fn bench_get_entity_by_id(
                 .get_entity(&StructuralQuery {
                     filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
                     graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: UnresolvedTemporalAxes::DecisionTime {
-                        pinned: UnresolvedPinnedTemporalAxis::new(None),
-                        variable: UnresolvedVariableTemporalAxis::new(
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(
                             Some(TemporalBound::Unbounded),
                             None,
                         ),

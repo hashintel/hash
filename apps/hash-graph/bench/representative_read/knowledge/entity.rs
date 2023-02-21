@@ -3,8 +3,8 @@ use std::borrow::Cow;
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
     identifier::time::{
-        TemporalBound, UnresolvedPinnedTemporalAxis, UnresolvedTemporalAxes,
-        UnresolvedVariableTemporalAxis,
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, TemporalBound,
+        VariableTemporalAxisUnresolved,
     },
     knowledge::{EntityQueryPath, EntityUuid},
     store::{
@@ -42,9 +42,9 @@ pub fn bench_get_entity_by_id(
                         ))),
                     ),
                     graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: UnresolvedTemporalAxes::DecisionTime {
-                        pinned: UnresolvedPinnedTemporalAxis::new(None),
-                        variable: UnresolvedVariableTemporalAxis::new(None, None),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
                 })
                 .await
@@ -79,9 +79,9 @@ pub fn bench_get_entities_by_property(
             .get_entity(&StructuralQuery {
                 filter,
                 graph_resolve_depths,
-                temporal_axes: UnresolvedTemporalAxes::DecisionTime {
-                    pinned: UnresolvedPinnedTemporalAxis::new(None),
-                    variable: UnresolvedVariableTemporalAxis::new(
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
                         Some(TemporalBound::Unbounded),
                         None,
                     ),
@@ -119,9 +119,9 @@ pub fn bench_get_link_by_target_by_property(
             .get_entity(&StructuralQuery {
                 filter,
                 graph_resolve_depths,
-                temporal_axes: UnresolvedTemporalAxes::DecisionTime {
-                    pinned: UnresolvedPinnedTemporalAxis::new(None),
-                    variable: UnresolvedVariableTemporalAxis::new(
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
                         Some(TemporalBound::Unbounded),
                         None,
                     ),

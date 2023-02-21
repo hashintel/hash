@@ -307,10 +307,10 @@ export interface DataTypeStructuralQuery {
   graphResolveDepths: GraphResolveDepths;
   /**
    *
-   * @type {UnresolvedTemporalAxes}
+   * @type {QueryTemporalAxesUnresolved}
    * @memberof DataTypeStructuralQuery
    */
-  temporalAxes: UnresolvedTemporalAxes;
+  temporalAxes: QueryTemporalAxesUnresolved;
 }
 /**
  *
@@ -343,63 +343,6 @@ export const DecisionTime = {
 
 export type DecisionTime = (typeof DecisionTime)[keyof typeof DecisionTime];
 
-/**
- *
- * @export
- * @interface DecisionTimeAxes
- */
-export interface DecisionTimeAxes {
-  /**
-   *
-   * @type {DecisionTimeAxesPinned}
-   * @memberof DecisionTimeAxes
-   */
-  pinned: DecisionTimeAxesPinned;
-  /**
-   *
-   * @type {DecisionTimeAxesVariable}
-   * @memberof DecisionTimeAxes
-   */
-  variable: DecisionTimeAxesVariable;
-}
-/**
- *
- * @export
- * @interface DecisionTimeAxesPinned
- */
-export interface DecisionTimeAxesPinned {
-  /**
-   *
-   * @type {TransactionTime}
-   * @memberof DecisionTimeAxesPinned
-   */
-  axis: TransactionTime;
-  /**
-   *
-   * @type {string}
-   * @memberof DecisionTimeAxesPinned
-   */
-  timestamp: string;
-}
-/**
- *
- * @export
- * @interface DecisionTimeAxesVariable
- */
-export interface DecisionTimeAxesVariable {
-  /**
-   *
-   * @type {DecisionTime}
-   * @memberof DecisionTimeAxesVariable
-   */
-  axis: DecisionTime;
-  /**
-   *
-   * @type {RightBoundedTemporalInterval}
-   * @memberof DecisionTimeAxesVariable
-   */
-  interval: RightBoundedTemporalInterval;
-}
 /**
  *
  * @export
@@ -599,10 +542,10 @@ export interface EntityStructuralQuery {
   graphResolveDepths: GraphResolveDepths;
   /**
    *
-   * @type {UnresolvedTemporalAxes}
+   * @type {QueryTemporalAxesUnresolved}
    * @memberof EntityStructuralQuery
    */
-  temporalAxes: UnresolvedTemporalAxes;
+  temporalAxes: QueryTemporalAxesUnresolved;
 }
 /**
  *
@@ -756,10 +699,10 @@ export interface EntityTypeStructuralQuery {
   graphResolveDepths: GraphResolveDepths;
   /**
    *
-   * @type {UnresolvedTemporalAxes}
+   * @type {QueryTemporalAxesUnresolved}
    * @memberof EntityTypeStructuralQuery
    */
-  temporalAxes: UnresolvedTemporalAxes;
+  temporalAxes: QueryTemporalAxesUnresolved;
 }
 /**
  *
@@ -1806,10 +1749,10 @@ export interface PropertyTypeStructuralQuery {
   graphResolveDepths: GraphResolveDepths;
   /**
    *
-   * @type {UnresolvedTemporalAxes}
+   * @type {QueryTemporalAxesUnresolved}
    * @memberof PropertyTypeStructuralQuery
    */
-  temporalAxes: UnresolvedTemporalAxes;
+  temporalAxes: QueryTemporalAxesUnresolved;
 }
 /**
  *
@@ -1860,6 +1803,251 @@ export interface ProvenanceMetadata {
    * @memberof ProvenanceMetadata
    */
   updatedById: string;
+}
+/**
+ * @type QueryTemporalAxes
+ * Constrains the temporal data in the Graph to a specific [`TimeAxis`].  When querying the Graph, temporal data is returned. The Graph is implemented as a bitemporal data store, which means the knowledge data contains information about the time of when the knowledge was inserted into the Graph, the [`TransactionTime`], and when the knowledge was decided to be inserted, the [`DecisionTime`].  In order to query data from the Graph, only one of the two time axes can be used. This is achieved by using a `TemporalAxes`. The `TemporalAxes` pins one axis to a specified [`Timestamp`], while the other axis can be a [`Interval`]. The pinned axis is called the [`PinnedTemporalAxis`] and the other axis is called the [`VariableTemporalAxis`]. The returned data will then only contain temporal data that is contained in the [`Interval`] of the [`VariableTemporalAxis`] for the given [`Timestamp`] of the [`PinnedTemporalAxis`].  [`Interval`]: crate::interval::Interval
+ * @export
+ */
+export type QueryTemporalAxes =
+  | QueryTemporalAxesDecisionTime
+  | QueryTemporalAxesTransactionTime;
+
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesDecisionTime
+ */
+export interface QueryTemporalAxesDecisionTime {
+  /**
+   *
+   * @type {QueryTemporalAxesDecisionTimePinned}
+   * @memberof QueryTemporalAxesDecisionTime
+   */
+  pinned: QueryTemporalAxesDecisionTimePinned;
+  /**
+   *
+   * @type {QueryTemporalAxesDecisionTimeVariable}
+   * @memberof QueryTemporalAxesDecisionTime
+   */
+  variable: QueryTemporalAxesDecisionTimeVariable;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesDecisionTimePinned
+ */
+export interface QueryTemporalAxesDecisionTimePinned {
+  /**
+   *
+   * @type {TransactionTime}
+   * @memberof QueryTemporalAxesDecisionTimePinned
+   */
+  axis: TransactionTime;
+  /**
+   *
+   * @type {string}
+   * @memberof QueryTemporalAxesDecisionTimePinned
+   */
+  timestamp: string;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesDecisionTimeVariable
+ */
+export interface QueryTemporalAxesDecisionTimeVariable {
+  /**
+   *
+   * @type {DecisionTime}
+   * @memberof QueryTemporalAxesDecisionTimeVariable
+   */
+  axis: DecisionTime;
+  /**
+   *
+   * @type {RightBoundedTemporalInterval}
+   * @memberof QueryTemporalAxesDecisionTimeVariable
+   */
+  interval: RightBoundedTemporalInterval;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesTransactionTime
+ */
+export interface QueryTemporalAxesTransactionTime {
+  /**
+   *
+   * @type {QueryTemporalAxesTransactionTimePinned}
+   * @memberof QueryTemporalAxesTransactionTime
+   */
+  pinned: QueryTemporalAxesTransactionTimePinned;
+  /**
+   *
+   * @type {QueryTemporalAxesTransactionTimeVariable}
+   * @memberof QueryTemporalAxesTransactionTime
+   */
+  variable: QueryTemporalAxesTransactionTimeVariable;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesTransactionTimePinned
+ */
+export interface QueryTemporalAxesTransactionTimePinned {
+  /**
+   *
+   * @type {DecisionTime}
+   * @memberof QueryTemporalAxesTransactionTimePinned
+   */
+  axis: DecisionTime;
+  /**
+   *
+   * @type {string}
+   * @memberof QueryTemporalAxesTransactionTimePinned
+   */
+  timestamp: string;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesTransactionTimeVariable
+ */
+export interface QueryTemporalAxesTransactionTimeVariable {
+  /**
+   *
+   * @type {TransactionTime}
+   * @memberof QueryTemporalAxesTransactionTimeVariable
+   */
+  axis: TransactionTime;
+  /**
+   *
+   * @type {RightBoundedTemporalInterval}
+   * @memberof QueryTemporalAxesTransactionTimeVariable
+   */
+  interval: RightBoundedTemporalInterval;
+}
+/**
+ * @type QueryTemporalAxesUnresolved
+ * @export
+ */
+export type QueryTemporalAxesUnresolved =
+  | QueryTemporalAxesUnresolvedDecisionTime
+  | QueryTemporalAxesUnresolvedTransactionTime;
+
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesUnresolvedDecisionTime
+ */
+export interface QueryTemporalAxesUnresolvedDecisionTime {
+  /**
+   *
+   * @type {QueryTemporalAxesUnresolvedDecisionTimePinned}
+   * @memberof QueryTemporalAxesUnresolvedDecisionTime
+   */
+  pinned: QueryTemporalAxesUnresolvedDecisionTimePinned;
+  /**
+   *
+   * @type {QueryTemporalAxesUnresolvedDecisionTimeVariable}
+   * @memberof QueryTemporalAxesUnresolvedDecisionTime
+   */
+  variable: QueryTemporalAxesUnresolvedDecisionTimeVariable;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesUnresolvedDecisionTimePinned
+ */
+export interface QueryTemporalAxesUnresolvedDecisionTimePinned {
+  /**
+   *
+   * @type {TransactionTime}
+   * @memberof QueryTemporalAxesUnresolvedDecisionTimePinned
+   */
+  axis: TransactionTime;
+  /**
+   *
+   * @type {string}
+   * @memberof QueryTemporalAxesUnresolvedDecisionTimePinned
+   */
+  timestamp: string | null;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesUnresolvedDecisionTimeVariable
+ */
+export interface QueryTemporalAxesUnresolvedDecisionTimeVariable {
+  /**
+   *
+   * @type {DecisionTime}
+   * @memberof QueryTemporalAxesUnresolvedDecisionTimeVariable
+   */
+  axis: DecisionTime;
+  /**
+   *
+   * @type {UnresolvedRightBoundedTemporalInterval}
+   * @memberof QueryTemporalAxesUnresolvedDecisionTimeVariable
+   */
+  interval: UnresolvedRightBoundedTemporalInterval;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesUnresolvedTransactionTime
+ */
+export interface QueryTemporalAxesUnresolvedTransactionTime {
+  /**
+   *
+   * @type {QueryTemporalAxesUnresolvedTransactionTimePinned}
+   * @memberof QueryTemporalAxesUnresolvedTransactionTime
+   */
+  pinned: QueryTemporalAxesUnresolvedTransactionTimePinned;
+  /**
+   *
+   * @type {QueryTemporalAxesUnresolvedTransactionTimeVariable}
+   * @memberof QueryTemporalAxesUnresolvedTransactionTime
+   */
+  variable: QueryTemporalAxesUnresolvedTransactionTimeVariable;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesUnresolvedTransactionTimePinned
+ */
+export interface QueryTemporalAxesUnresolvedTransactionTimePinned {
+  /**
+   *
+   * @type {DecisionTime}
+   * @memberof QueryTemporalAxesUnresolvedTransactionTimePinned
+   */
+  axis: DecisionTime;
+  /**
+   *
+   * @type {string}
+   * @memberof QueryTemporalAxesUnresolvedTransactionTimePinned
+   */
+  timestamp: string | null;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesUnresolvedTransactionTimeVariable
+ */
+export interface QueryTemporalAxesUnresolvedTransactionTimeVariable {
+  /**
+   *
+   * @type {TransactionTime}
+   * @memberof QueryTemporalAxesUnresolvedTransactionTimeVariable
+   */
+  axis: TransactionTime;
+  /**
+   *
+   * @type {UnresolvedRightBoundedTemporalInterval}
+   * @memberof QueryTemporalAxesUnresolvedTransactionTimeVariable
+   */
+  interval: UnresolvedRightBoundedTemporalInterval;
 }
 /**
  *
@@ -1950,24 +2138,17 @@ export interface Subgraph {
 export interface SubgraphTemporalAxes {
   /**
    *
-   * @type {UnresolvedTemporalAxes}
+   * @type {QueryTemporalAxesUnresolved}
    * @memberof SubgraphTemporalAxes
    */
-  initial: UnresolvedTemporalAxes;
+  initial: QueryTemporalAxesUnresolved;
   /**
    *
-   * @type {TemporalAxes}
+   * @type {QueryTemporalAxes}
    * @memberof SubgraphTemporalAxes
    */
-  resolved: TemporalAxes;
+  resolved: QueryTemporalAxes;
 }
-/**
- * @type TemporalAxes
- * Constrains the temporal data in the Graph to a specific [`TimeAxis`].  When querying the Graph, temporal data is returned. The Graph is implemented as a bitemporal data store, which means the knowledge data contains information about the time of when the knowledge was inserted into the Graph, the [`TransactionTime`], and when the knowledge was decided to be inserted, the [`DecisionTime`].  In order to query data from the Graph, only one of the two time axes can be used. This is achieved by using a `TemporalAxes`. The `TemporalAxes` pins one axis to a specified [`Timestamp`], while the other axis can be a [`Interval`]. The pinned axis is called the [`PinnedTemporalAxis`] and the other axis is called the [`VariableTemporalAxis`]. The returned data will then only contain temporal data that is contained in the [`Interval`] of the [`VariableTemporalAxis`] for the given [`Timestamp`] of the [`PinnedTemporalAxis`].  [`Interval`]: crate::interval::Interval
- * @export
- */
-export type TemporalAxes = DecisionTimeAxes | TransactionTimeAxes;
-
 /**
  * @type TemporalBound
  * @export
@@ -1990,63 +2171,6 @@ export type TransactionTime =
 /**
  *
  * @export
- * @interface TransactionTimeAxes
- */
-export interface TransactionTimeAxes {
-  /**
-   *
-   * @type {TransactionTimeAxesPinned}
-   * @memberof TransactionTimeAxes
-   */
-  pinned: TransactionTimeAxesPinned;
-  /**
-   *
-   * @type {TransactionTimeAxesVariable}
-   * @memberof TransactionTimeAxes
-   */
-  variable: TransactionTimeAxesVariable;
-}
-/**
- *
- * @export
- * @interface TransactionTimeAxesPinned
- */
-export interface TransactionTimeAxesPinned {
-  /**
-   *
-   * @type {DecisionTime}
-   * @memberof TransactionTimeAxesPinned
-   */
-  axis: DecisionTime;
-  /**
-   *
-   * @type {string}
-   * @memberof TransactionTimeAxesPinned
-   */
-  timestamp: string;
-}
-/**
- *
- * @export
- * @interface TransactionTimeAxesVariable
- */
-export interface TransactionTimeAxesVariable {
-  /**
-   *
-   * @type {TransactionTime}
-   * @memberof TransactionTimeAxesVariable
-   */
-  axis: TransactionTime;
-  /**
-   *
-   * @type {RightBoundedTemporalInterval}
-   * @memberof TransactionTimeAxesVariable
-   */
-  interval: RightBoundedTemporalInterval;
-}
-/**
- *
- * @export
  * @interface UnboundedBound
  */
 export interface UnboundedBound {
@@ -2065,63 +2189,6 @@ export const UnboundedBoundKindEnum = {
 export type UnboundedBoundKindEnum =
   (typeof UnboundedBoundKindEnum)[keyof typeof UnboundedBoundKindEnum];
 
-/**
- *
- * @export
- * @interface UnresolvedDecisionTimeAxes
- */
-export interface UnresolvedDecisionTimeAxes {
-  /**
-   *
-   * @type {UnresolvedDecisionTimeAxesPinned}
-   * @memberof UnresolvedDecisionTimeAxes
-   */
-  pinned: UnresolvedDecisionTimeAxesPinned;
-  /**
-   *
-   * @type {UnresolvedDecisionTimeAxesVariable}
-   * @memberof UnresolvedDecisionTimeAxes
-   */
-  variable: UnresolvedDecisionTimeAxesVariable;
-}
-/**
- *
- * @export
- * @interface UnresolvedDecisionTimeAxesPinned
- */
-export interface UnresolvedDecisionTimeAxesPinned {
-  /**
-   *
-   * @type {TransactionTime}
-   * @memberof UnresolvedDecisionTimeAxesPinned
-   */
-  axis: TransactionTime;
-  /**
-   *
-   * @type {string}
-   * @memberof UnresolvedDecisionTimeAxesPinned
-   */
-  timestamp: string | null;
-}
-/**
- *
- * @export
- * @interface UnresolvedDecisionTimeAxesVariable
- */
-export interface UnresolvedDecisionTimeAxesVariable {
-  /**
-   *
-   * @type {DecisionTime}
-   * @memberof UnresolvedDecisionTimeAxesVariable
-   */
-  axis: DecisionTime;
-  /**
-   *
-   * @type {UnresolvedRightBoundedTemporalInterval}
-   * @memberof UnresolvedDecisionTimeAxesVariable
-   */
-  interval: UnresolvedRightBoundedTemporalInterval;
-}
 /**
  *
  * @export
@@ -2153,71 +2220,6 @@ export type UnresolvedRightBoundedTemporalIntervalEnd = LimitedTemporalBound;
  */
 export type UnresolvedRightBoundedTemporalIntervalStart = TemporalBound;
 
-/**
- * @type UnresolvedTemporalAxes
- * @export
- */
-export type UnresolvedTemporalAxes =
-  | UnresolvedDecisionTimeAxes
-  | UnresolvedTransactionTimeAxes;
-
-/**
- *
- * @export
- * @interface UnresolvedTransactionTimeAxes
- */
-export interface UnresolvedTransactionTimeAxes {
-  /**
-   *
-   * @type {UnresolvedTransactionTimeAxesPinned}
-   * @memberof UnresolvedTransactionTimeAxes
-   */
-  pinned: UnresolvedTransactionTimeAxesPinned;
-  /**
-   *
-   * @type {UnresolvedTransactionTimeAxesVariable}
-   * @memberof UnresolvedTransactionTimeAxes
-   */
-  variable: UnresolvedTransactionTimeAxesVariable;
-}
-/**
- *
- * @export
- * @interface UnresolvedTransactionTimeAxesPinned
- */
-export interface UnresolvedTransactionTimeAxesPinned {
-  /**
-   *
-   * @type {DecisionTime}
-   * @memberof UnresolvedTransactionTimeAxesPinned
-   */
-  axis: DecisionTime;
-  /**
-   *
-   * @type {string}
-   * @memberof UnresolvedTransactionTimeAxesPinned
-   */
-  timestamp: string | null;
-}
-/**
- *
- * @export
- * @interface UnresolvedTransactionTimeAxesVariable
- */
-export interface UnresolvedTransactionTimeAxesVariable {
-  /**
-   *
-   * @type {TransactionTime}
-   * @memberof UnresolvedTransactionTimeAxesVariable
-   */
-  axis: TransactionTime;
-  /**
-   *
-   * @type {UnresolvedRightBoundedTemporalInterval}
-   * @memberof UnresolvedTransactionTimeAxesVariable
-   */
-  interval: UnresolvedRightBoundedTemporalInterval;
-}
 /**
  * The contents of a Data Type update request
  * @export

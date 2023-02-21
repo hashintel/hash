@@ -46,9 +46,9 @@ use crate::{
         ontology::{OntologyTypeRecordId, OntologyTypeVersion},
         time::{
             ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
-            OpenTemporalBound, RightBoundedTemporalInterval, TemporalAxes, TemporalBound,
-            Timestamp, TransactionTime, UnresolvedRightBoundedTemporalInterval,
-            UnresolvedTemporalAxes,
+            OpenTemporalBound, QueryTemporalAxes, QueryTemporalAxesUnresolved,
+            RightBoundedTemporalInterval, TemporalBound, Timestamp, TransactionTime,
+            UnresolvedRightBoundedTemporalInterval,
         },
         EntityVertexId, GraphElementVertexId, OntologyTypeVertexId,
     },
@@ -205,8 +205,8 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
 
             DecisionTime,
             TransactionTime,
-            TemporalAxes,
-            UnresolvedTemporalAxes,
+            QueryTemporalAxes,
+            QueryTemporalAxesUnresolved,
         )
     ),
 )]
