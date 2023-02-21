@@ -79,8 +79,10 @@ export const getAllLatestPropertyTypesResolver: ResolverFn<
         },
         variable: {
           axis: "decisionTime",
-          start: null,
-          end: null,
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     },
@@ -123,8 +125,10 @@ export const getPropertyTypeResolver: ResolverFn<
         },
         variable: {
           axis: "decisionTime",
-          start: null,
-          end: null,
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     },

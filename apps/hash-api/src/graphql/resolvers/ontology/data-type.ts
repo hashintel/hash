@@ -37,8 +37,10 @@ export const getAllLatestDataTypes: ResolverFn<
       },
       variable: {
         axis: "decisionTime",
-        start: null,
-        end: null,
+        interval: {
+          start: null,
+          end: null,
+        },
       },
     },
   });
@@ -76,8 +78,10 @@ export const getDataType: ResolverFn<
       },
       variable: {
         axis: "decisionTime",
-        start: null,
-        end: null,
+        interval: {
+          start: null,
+          end: null,
+        },
       },
     },
   });

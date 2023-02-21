@@ -155,8 +155,10 @@ export const getUserByShortname: ImpureGraphFunction<
         },
         variable: {
           axis: "decisionTime",
-          start: null,
-          end: null,
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     })
@@ -214,8 +216,10 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
         },
         variable: {
           axis: "decisionTime",
-          start: null,
-          end: null,
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     })

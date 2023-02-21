@@ -152,8 +152,10 @@ export const getAllLatestEntitiesResolver: ResolverFn<
       },
       variable: {
         axis: "decisionTime",
-        start: null,
-        end: null,
+        interval: {
+          start: null,
+          end: null,
+        },
       },
     },
   });
@@ -215,10 +217,14 @@ export const getEntityResolver: ResolverFn<
       },
       variable: {
         axis: "decisionTime",
-        start: entityVersion
-          ? { kind: "inclusive", limit: entityVersion }
-          : null,
-        end: entityVersion ? { kind: "inclusive", limit: entityVersion } : null,
+        interval: {
+          start: entityVersion
+            ? { kind: "inclusive", limit: entityVersion }
+            : null,
+          end: entityVersion
+            ? { kind: "inclusive", limit: entityVersion }
+            : null,
+        },
       },
     },
   });

@@ -215,8 +215,10 @@ describe("Entity CRU", () => {
           },
           variable: {
             axis: "decisionTime",
-            start: null,
-            end: null,
+            interval: {
+              start: null,
+              end: null,
+            },
           },
         },
       })

@@ -6,26 +6,24 @@
 
 import { Subgraph as SubgraphGraphApi } from "@local/hash-graph-client";
 
-import { mapTemporalAxes, mapUnresolvedTemporalAxes } from "./temp/map-axes";
 import { mapEdges } from "./temp/map-edges";
 import { mapRoots } from "./temp/map-roots";
-import { mapVertices } from "./temp/map-vertices";
 import { Subgraph } from "./types";
 
-export * from "./temp/map-axes";
 export * from "./temp/map-edges";
 export * from "./temp/map-roots";
-export * from "./temp/map-vertices";
 
 export const mapSubgraph = (subgraphGraphApi: SubgraphGraphApi) => {
   const mappedSubgraph: Subgraph = {
     roots: mapRoots(subgraphGraphApi.roots),
-    vertices: mapVertices(subgraphGraphApi.vertices),
+    vertices: subgraphGraphApi.vertices as Subgraph["vertices"],
     edges: mapEdges(subgraphGraphApi.edges),
     depths: subgraphGraphApi.depths,
     temporalAxes: {
-      initial: mapUnresolvedTemporalAxes(subgraphGraphApi.temporalAxes.initial),
-      resolved: mapTemporalAxes(subgraphGraphApi.temporalAxes.resolved),
+      initial: subgraphGraphApi.temporalAxes
+        .initial as Subgraph["temporalAxes"]["initial"],
+      resolved: subgraphGraphApi.temporalAxes
+        .resolved as Subgraph["temporalAxes"]["resolved"],
     },
   };
 

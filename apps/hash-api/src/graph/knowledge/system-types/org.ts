@@ -203,8 +203,10 @@ export const getOrgByShortname: ImpureGraphFunction<
         },
         variable: {
           axis: "decisionTime",
-          start: null,
-          end: null,
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     })

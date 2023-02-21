@@ -9,15 +9,10 @@
  */
 
 import { Subgraph as SubgraphGraphApi } from "@local/hash-graph-client";
-import {
-  mapTemporalAxes,
-  mapUnresolvedTemporalAxes,
-} from "@local/hash-subgraph/temp";
 
 import { Subgraph } from "../src/main";
 import { mapEdges } from "./compatibility.test/map-edges";
 import { mapRoots } from "./compatibility.test/map-roots";
-import { mapVertices } from "./compatibility.test/map-vertices";
 
 test("Graph API subgraph type is compatible with library type", () => {
   // We don't need an actual subgraph, we are just checking for TSC errors
@@ -61,10 +56,12 @@ test("Graph API subgraph type is compatible with library type", () => {
         },
         variable: {
           axis: "decisionTime",
-          start: {
-            kind: "unbounded",
+          interval: {
+            start: {
+              kind: "unbounded",
+            },
+            end: null,
           },
-          end: null,
         },
       },
       resolved: {
@@ -74,12 +71,14 @@ test("Graph API subgraph type is compatible with library type", () => {
         },
         variable: {
           axis: "decisionTime",
-          start: {
-            kind: "unbounded",
-          },
-          end: {
-            kind: "inclusive",
-            limit: "2022-01-01T0:0:0",
+          interval: {
+            start: {
+              kind: "unbounded",
+            },
+            end: {
+              kind: "inclusive",
+              limit: "2022-01-01T0:0:0",
+            },
           },
         },
       },
@@ -89,12 +88,14 @@ test("Graph API subgraph type is compatible with library type", () => {
   // We just want to check for errors in the type when building the object, no need to use the return value
   const _subgraph: Subgraph = {
     roots: mapRoots(subgraphGraphApi.roots),
-    vertices: mapVertices(subgraphGraphApi.vertices),
+    vertices: subgraphGraphApi.vertices as Subgraph["vertices"],
     edges: mapEdges(subgraphGraphApi.edges),
     depths: subgraphGraphApi.depths,
     temporalAxes: {
-      initial: mapUnresolvedTemporalAxes(subgraphGraphApi.temporalAxes.initial),
-      resolved: mapTemporalAxes(subgraphGraphApi.temporalAxes.resolved),
+      initial: subgraphGraphApi.temporalAxes
+        .initial as Subgraph["temporalAxes"]["initial"],
+      resolved: subgraphGraphApi.temporalAxes
+        .resolved as Subgraph["temporalAxes"]["resolved"],
     },
   };
 });

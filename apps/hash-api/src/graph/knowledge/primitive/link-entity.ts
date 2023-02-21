@@ -2,12 +2,12 @@ import {
   AccountId,
   Entity,
   EntityId,
+  EntityMetadata,
   EntityPropertiesObject,
   EntityTypeWithMetadata,
   LinkData,
   OwnedById,
 } from "@local/hash-subgraph";
-import { mapEntityMetadata } from "@local/hash-subgraph/temp";
 
 import { ImpureGraphFunction } from "../..";
 import { isEntityTypeLinkEntityType } from "../../ontology/primitive/entity-type";
@@ -70,7 +70,7 @@ export const createLinkEntity: ImpureGraphFunction<
     rightToLeftOrder,
   };
 
-  const { data: linkEntityMetadata } = await graphApi.createEntity({
+  const { data: metadata } = await graphApi.createEntity({
     ownedById,
     linkData,
     actorId,
@@ -79,7 +79,7 @@ export const createLinkEntity: ImpureGraphFunction<
   });
 
   return {
-    metadata: mapEntityMetadata(linkEntityMetadata),
+    metadata: metadata as EntityMetadata,
     properties,
     linkData,
   };
@@ -108,7 +108,7 @@ export const updateLinkEntity: ImpureGraphFunction<
 
   const properties = params.properties ?? linkEntity.properties;
 
-  const { data: linkEntityMetadata } = await graphApi.updateEntity({
+  const { data: metadata } = await graphApi.updateEntity({
     actorId,
     entityId: linkEntity.metadata.recordId.entityId,
     entityTypeId: linkEntity.metadata.entityTypeId,
@@ -119,7 +119,7 @@ export const updateLinkEntity: ImpureGraphFunction<
   });
 
   return {
-    metadata: mapEntityMetadata(linkEntityMetadata),
+    metadata: metadata as EntityMetadata,
     properties,
     linkData: {
       ...linkEntity.linkData,

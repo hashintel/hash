@@ -9,6 +9,7 @@ import {
   BaseUri,
   Entity,
   EntityId,
+  EntityMetadata,
   EntityPropertiesObject,
   EntityRootType,
   EntityTypeWithMetadata,
@@ -20,7 +21,7 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { mapEntityMetadata, mapSubgraph } from "@local/hash-subgraph/temp";
+import { mapSubgraph } from "@local/hash-subgraph/temp";
 import { ApolloError } from "apollo-server-errors";
 
 import {
@@ -68,7 +69,7 @@ export const createEntity: ImpureGraphFunction<
     entityUuid: overrideEntityUuid,
   } = params;
 
-  const { data: createdEntityMetadata } = await graphApi.createEntity({
+  const { data: metadata } = await graphApi.createEntity({
     ownedById,
     entityTypeId,
     properties,
@@ -78,7 +79,7 @@ export const createEntity: ImpureGraphFunction<
 
   return {
     properties,
-    metadata: mapEntityMetadata(createdEntityMetadata),
+    metadata: metadata as EntityMetadata,
   };
 };
 
@@ -127,8 +128,10 @@ export const getLatestEntityById: ImpureGraphFunction<
         },
         variable: {
           axis: "decisionTime",
-          start: null,
-          end: null,
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     })
@@ -328,7 +331,7 @@ export const updateEntity: ImpureGraphFunction<
 > = async ({ graphApi }, params) => {
   const { entity, properties, actorId, entityTypeId } = params;
 
-  const { data: createdEntityMetadata } = await graphApi.updateEntity({
+  const { data: metadata } = await graphApi.updateEntity({
     actorId,
     entityId: entity.metadata.recordId.entityId,
     /**
@@ -343,7 +346,7 @@ export const updateEntity: ImpureGraphFunction<
 
   return {
     ...entity,
-    metadata: mapEntityMetadata(createdEntityMetadata),
+    metadata: metadata as EntityMetadata,
     properties,
   };
 };
@@ -482,8 +485,10 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     },
     variable: {
       axis: "decisionTime",
-      start: null,
-      end: null,
+      interval: {
+        start: null,
+        end: null,
+      },
     },
   };
 
@@ -607,8 +612,10 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     },
     variable: {
       axis: "decisionTime",
-      start: null,
-      end: null,
+      interval: {
+        start: null,
+        end: null,
+      },
     },
   };
 
@@ -690,8 +697,10 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
       },
       variable: {
         axis: "decisionTime",
-        start: null,
-        end: null,
+        interval: {
+          start: null,
+          end: null,
+        },
       },
     },
   });

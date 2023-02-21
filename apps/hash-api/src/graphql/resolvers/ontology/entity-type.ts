@@ -77,8 +77,10 @@ export const getAllLatestEntityTypesResolver: ResolverFn<
       },
       variable: {
         axis: "decisionTime",
-        start: null,
-        end: null,
+        interval: {
+          start: null,
+          end: null,
+        },
       },
     },
   });
@@ -126,8 +128,10 @@ export const getEntityTypeResolver: ResolverFn<
       },
       variable: {
         axis: "decisionTime",
-        start: null,
-        end: null,
+        interval: {
+          start: null,
+          end: null,
+        },
       },
     },
   });
