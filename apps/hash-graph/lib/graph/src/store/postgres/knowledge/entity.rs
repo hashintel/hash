@@ -13,7 +13,7 @@ use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityTemporalMetadata},
         time::{DecisionTime, Timestamp},
-        EntityVertexId, OntologyTypeVertexId,
+        EntityIdWithInterval, EntityVertexId, OntologyTypeVertexId,
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
@@ -71,7 +71,7 @@ impl<C: AsClient> PostgresStore<C> {
             let Some(mut intersected_temporal_axes) = temporal_axes.intersect_variable_interval(variable_interval) else {
                 // `traverse_entity` is called with the returned entities from `read` with
                 // `temporal_axes`. This implies, that the version interval of `entity` overlaps
-                // with `temporal_axes`. `version_interval` returns `None` if there are
+                // with `temporal_axes`. `variable_interval` returns `None` if there are
                 // no overlapping points, so this should never happen.
                 unreachable!("the version interval of the entity does not overlap with the variable axis's time interval");
             };
@@ -135,6 +135,11 @@ impl<C: AsClient> PostgresStore<C> {
                 )
                     .await?
                 {
+                    let link_entity_interval = outgoing_link_entity
+                        .metadata
+                        .temporal_versioning()
+                        .variable_time_interval(time_axis);
+
                     subgraph.edges.insert(Edge::KnowledgeGraph {
                         vertex_id: entity_vertex_id,
                         outward_edge: KnowledgeGraphOutwardEdge::ToKnowledgeGraph(OutwardEdge {
@@ -142,7 +147,10 @@ impl<C: AsClient> PostgresStore<C> {
                             // outgoing link `Entity`
                             kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                             reversed: true,
-                            right_endpoint: outgoing_link_entity.metadata.record_id().entity_id,
+                            right_endpoint: EntityIdWithInterval {
+                                entity_id: outgoing_link_entity.metadata.record_id().entity_id,
+                                interval: link_entity_interval,
+                            }
                         }),
                     });
 
@@ -174,6 +182,11 @@ impl<C: AsClient> PostgresStore<C> {
                 )
                     .await?
                 {
+                    let link_entity_interval = incoming_link_entity
+                        .metadata
+                        .temporal_versioning()
+                        .variable_time_interval(time_axis);
+
                     subgraph.edges.insert(Edge::KnowledgeGraph {
                         vertex_id: entity_vertex_id,
                         outward_edge: KnowledgeGraphOutwardEdge::ToKnowledgeGraph(OutwardEdge {
@@ -181,7 +194,10 @@ impl<C: AsClient> PostgresStore<C> {
                             // incoming link `Entity`
                             kind: KnowledgeGraphEdgeKind::HasRightEntity,
                             reversed: true,
-                            right_endpoint: incoming_link_entity.metadata.record_id().entity_id,
+                            right_endpoint: EntityIdWithInterval {
+                                entity_id: incoming_link_entity.metadata.record_id().entity_id,
+                                interval: link_entity_interval,
+                            }
                         }),
                     });
 
@@ -220,7 +236,10 @@ impl<C: AsClient> PostgresStore<C> {
                             // outgoing `Link` `Entity`
                             kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                             reversed: false,
-                            right_endpoint: left_entity.metadata.record_id().entity_id,
+                            right_endpoint: EntityIdWithInterval {
+                                entity_id: left_entity.metadata.record_id().entity_id,
+                                interval: variable_interval,
+                            }
                         }),
                     });
 
@@ -259,7 +278,10 @@ impl<C: AsClient> PostgresStore<C> {
                             // outgoing `Link` `Entity`
                             kind: KnowledgeGraphEdgeKind::HasRightEntity,
                             reversed: false,
-                            right_endpoint: right_entity.metadata.record_id().entity_id,
+                            right_endpoint: EntityIdWithInterval {
+                                entity_id: right_entity.metadata.record_id().entity_id,
+                                interval: variable_interval,
+                            }
                         }),
                     });
 

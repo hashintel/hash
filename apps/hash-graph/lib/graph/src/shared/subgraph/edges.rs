@@ -204,12 +204,10 @@ impl Edges {
                     kind,
                     reversed,
                     right_endpoint,
-                }) => self.knowledge_to_knowledge.insert(
-                    &vertex_id,
-                    kind,
-                    reversed,
-                    todo!("pass in `EntityIdWithInterval` instead of `EntityVertexId`"),
-                ),
+                }) => {
+                    self.knowledge_to_knowledge
+                        .insert(&vertex_id, kind, reversed, right_endpoint)
+                }
             },
         }
     }
