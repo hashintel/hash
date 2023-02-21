@@ -1,4 +1,7 @@
-use graph::knowledge::{EntityLinkOrder, EntityProperties};
+use graph::{
+    identifier::time::ClosedTemporalBound,
+    knowledge::{EntityLinkOrder, EntityProperties},
+};
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::uri::{BaseUri, VersionedUri};
 
@@ -143,22 +146,20 @@ async fn update() {
 
     assert_eq!(entity_v2.properties, page_v2);
 
+    let ClosedTemporalBound::Inclusive(entity_v1_timestamp) =
+        *v1_metadata.temporal_versioning().decision_time.start();
     let entity_v1 = api
-        .get_entity_by_timestamp(
-            v1_metadata.record_id().entity_id,
-            (*v1_metadata.temporal_versioning().decision_time.start()).into(),
-        )
+        .get_entity_by_timestamp(v1_metadata.record_id().entity_id, entity_v1_timestamp)
         .await
-        .expect("could not get entity");
+        .expect("could not get entity v1");
     assert_eq!(entity_v1.properties, page_v1);
 
+    let ClosedTemporalBound::Inclusive(entity_v2_timestamp) =
+        *v2_metadata.temporal_versioning().decision_time.start();
     let entity_v2 = api
-        .get_entity_by_timestamp(
-            v2_metadata.record_id().entity_id,
-            (*v2_metadata.temporal_versioning().decision_time.start()).into(),
-        )
+        .get_entity_by_timestamp(v2_metadata.record_id().entity_id, entity_v2_timestamp)
         .await
-        .expect("could not get entity");
+        .expect("could not get entity v2");
 
     assert_eq!(entity_v2.properties, page_v2);
 }
