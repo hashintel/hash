@@ -71,6 +71,12 @@ export interface AnyFilter {
   any: Array<Filter>;
 }
 /**
+ * @type ClosedTemporalBound
+ * @export
+ */
+export type ClosedTemporalBound = InclusiveBound;
+
+/**
  *
  * @export
  * @interface CreateDataTypeRequest
@@ -1153,16 +1159,16 @@ export interface KnowledgeGraphVertices {
 export interface LeftClosedTemporalInterval {
   /**
    *
-   * @type {string}
+   * @type {OpenTemporalBound}
    * @memberof LeftClosedTemporalInterval
    */
-  end: string | null;
+  end: OpenTemporalBound;
   /**
    *
-   * @type {string}
+   * @type {ClosedTemporalBound}
    * @memberof LeftClosedTemporalInterval
    */
-  start: string;
+  start: ClosedTemporalBound;
 }
 /**
  * @type LimitedTemporalBound
@@ -1512,6 +1518,12 @@ export type OntologyVertexOneOf2KindEnum =
 export interface OntologyVertices {
   [key: string]: { [key: string]: OntologyVertex };
 }
+/**
+ * @type OpenTemporalBound
+ * @export
+ */
+export type OpenTemporalBound = ExclusiveBound | UnboundedBound;
+
 /**
  *
  * @export
@@ -1938,7 +1950,7 @@ export interface SubgraphTemporalAxes {
 }
 /**
  * @type TemporalAxes
- * Constrains the temporal data in the Graph to a specific [`TimeAxis`].  When querying the Graph, temporal data is returned. The Graph is implemented as a bitemporal data store, which means the knowledge data contains information about the time of when the knowledge was inserted into the Graph, the [`TransactionTime`], and when the knowledge was decided to be inserted, the [`DecisionTime`].  In order to query data from the Graph, only one of the two time axes can be used. This is achieved by using a `TimeProjection`. The `TimeProjection` pins one axis to a specified [`Timestamp`], while the other axis can be a [`Interval`]. The pinned axis is called the [`PinnedTemporalAxis`] and the other axis is called the [`VariableTemporalAxis`] of a projection. The returned data will then only contain temporal data that is contained in the [`Interval`] of the [`VariableTemporalAxis`] for the given [`Timestamp`] of the [`PinnedTemporalAxis`].  [`Interval`]: crate::interval::Interval
+ * Constrains the temporal data in the Graph to a specific [`TimeAxis`].  When querying the Graph, temporal data is returned. The Graph is implemented as a bitemporal data store, which means the knowledge data contains information about the time of when the knowledge was inserted into the Graph, the [`TransactionTime`], and when the knowledge was decided to be inserted, the [`DecisionTime`].  In order to query data from the Graph, only one of the two time axes can be used. This is achieved by using a `TemporalAxes`. The `TemporalAxes` pins one axis to a specified [`Timestamp`], while the other axis can be a [`Interval`]. The pinned axis is called the [`PinnedTemporalAxis`] and the other axis is called the [`VariableTemporalAxis`]. The returned data will then only contain temporal data that is contained in the [`Interval`] of the [`VariableTemporalAxis`] for the given [`Timestamp`] of the [`PinnedTemporalAxis`].  [`Interval`]: crate::interval::Interval
  * @export
  */
 export type TemporalAxes = DecisionTimeAxes | TransactionTimeAxes;

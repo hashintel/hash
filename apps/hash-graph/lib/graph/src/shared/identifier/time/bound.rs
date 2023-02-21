@@ -2,11 +2,7 @@ use std::ops::Bound;
 
 use derivative::Derivative;
 use serde::{Deserialize, Serialize};
-use utoipa::{
-    openapi,
-    openapi::{RefOr, Schema},
-    ToSchema,
-};
+use utoipa::ToSchema;
 
 use crate::{
     identifier::time::{axis::TemporalTagged, Timestamp},
@@ -120,7 +116,7 @@ impl<A> IntervalBound<Timestamp<A>> for LimitedTemporalBound<A> {
             Bound::Included(limit) => Self::Inclusive(limit),
             Bound::Excluded(limit) => Self::Exclusive(limit),
             Bound::Unbounded => {
-                unimplemented!("Cannot convert unbounded bound to limited temporal bound")
+                unimplemented!("Cannot convert unbounded bound to limited bound")
             }
         }
     }
@@ -135,53 +131,50 @@ impl<A> IntervalBound<Timestamp<A>> for LimitedTemporalBound<A> {
     Eq(bound = ""),
     Hash(bound = "")
 )]
-#[serde(transparent)]
-pub struct InclusiveTemporalBound<A>(Timestamp<A>);
-
-impl<A> From<InclusiveTemporalBound<A>> for Timestamp<A> {
-    fn from(value: InclusiveTemporalBound<A>) -> Self {
-        value.0
-    }
+#[serde(rename_all = "camelCase", bound = "", tag = "kind", content = "limit")]
+pub enum ClosedTemporalBound<A> {
+    #[schema(title = "InclusiveBound")]
+    Inclusive(Timestamp<A>),
 }
 
-impl<A> From<Timestamp<A>> for InclusiveTemporalBound<A> {
-    fn from(value: Timestamp<A>) -> Self {
-        Self(value)
-    }
-}
-
-impl<A> TemporalTagged for InclusiveTemporalBound<A> {
+impl<A> TemporalTagged for ClosedTemporalBound<A> {
     type Axis = A;
-    type Tagged<T> = InclusiveTemporalBound<T>;
+    type Tagged<T> = ClosedTemporalBound<T>;
 
-    fn cast<T>(self) -> InclusiveTemporalBound<T> {
-        InclusiveTemporalBound(self.0.cast())
+    fn cast<T>(self) -> ClosedTemporalBound<T> {
+        match self {
+            Self::Inclusive(limit) => ClosedTemporalBound::Inclusive(limit.cast()),
+        }
     }
 }
 
-impl<A> IntervalBound<Timestamp<A>> for InclusiveTemporalBound<A> {
+impl<A> IntervalBound<Timestamp<A>> for ClosedTemporalBound<A> {
     fn as_bound(&self) -> Bound<&Timestamp<A>> {
-        Bound::Included(&self.0)
+        match self {
+            Self::Inclusive(limit) => Bound::Included(limit),
+        }
     }
 
     fn into_bound(self) -> Bound<Timestamp<A>> {
-        Bound::Included(self.0)
+        match self {
+            Self::Inclusive(limit) => Bound::Included(limit),
+        }
     }
 
     fn from_bound(bound: Bound<Timestamp<A>>) -> Self {
         match bound {
-            Bound::Included(limit) => Self(limit),
+            Bound::Included(limit) => Self::Inclusive(limit),
             Bound::Excluded(_) => {
-                unimplemented!("Cannot convert excluded bound to included temporal bound")
+                unimplemented!("Cannot convert excluded bound to closed bound")
             }
             Bound::Unbounded => {
-                unimplemented!("Cannot convert unbounded bound to included temporal bound")
+                unimplemented!("Cannot convert unbounded bound to closed bound")
             }
         }
     }
 }
 
-#[derive(Derivative, Serialize, Deserialize)]
+#[derive(Derivative, Serialize, Deserialize, ToSchema)]
 #[derivative(
     Debug(bound = ""),
     Copy(bound = ""),
@@ -190,64 +183,48 @@ impl<A> IntervalBound<Timestamp<A>> for InclusiveTemporalBound<A> {
     Eq(bound = ""),
     Hash(bound = "")
 )]
-#[serde(transparent)]
-pub struct UnboundedOrExclusiveTemporalBound<A>(Option<Timestamp<A>>);
-
-impl<A> ToSchema<'_> for UnboundedOrExclusiveTemporalBound<A> {
-    fn schema() -> (&'static str, RefOr<Schema>) {
-        (
-            "UnboundedOrExclusiveTemporalBound",
-            Schema::Object(
-                openapi::ObjectBuilder::new()
-                    .schema_type(openapi::SchemaType::String)
-                    .format(Some(openapi::SchemaFormat::KnownFormat(
-                        openapi::KnownFormat::DateTime,
-                    )))
-                    .nullable(true)
-                    .build(),
-            )
-            .into(),
-        )
-    }
+#[serde(rename_all = "camelCase", bound = "", tag = "kind", content = "limit")]
+pub enum OpenTemporalBound<A> {
+    #[schema(title = "ExclusiveBound")]
+    Exclusive(Timestamp<A>),
+    #[schema(title = "UnboundedBound")]
+    Unbounded,
 }
 
-impl<A> From<UnboundedOrExclusiveTemporalBound<A>> for Option<Timestamp<A>> {
-    fn from(value: UnboundedOrExclusiveTemporalBound<A>) -> Self {
-        value.0
-    }
-}
-
-impl<A> From<Option<Timestamp<A>>> for UnboundedOrExclusiveTemporalBound<A> {
-    fn from(value: Option<Timestamp<A>>) -> Self {
-        Self(value)
-    }
-}
-
-impl<A> TemporalTagged for UnboundedOrExclusiveTemporalBound<A> {
+impl<A> TemporalTagged for OpenTemporalBound<A> {
     type Axis = A;
-    type Tagged<T> = UnboundedOrExclusiveTemporalBound<T>;
+    type Tagged<T> = OpenTemporalBound<T>;
 
-    fn cast<T>(self) -> UnboundedOrExclusiveTemporalBound<T> {
-        UnboundedOrExclusiveTemporalBound(self.0.map(Timestamp::cast))
+    fn cast<T>(self) -> OpenTemporalBound<T> {
+        match self {
+            Self::Exclusive(limit) => OpenTemporalBound::Exclusive(limit.cast()),
+            Self::Unbounded => OpenTemporalBound::Unbounded,
+        }
     }
 }
 
-impl<A> IntervalBound<Timestamp<A>> for UnboundedOrExclusiveTemporalBound<A> {
+impl<A> IntervalBound<Timestamp<A>> for OpenTemporalBound<A> {
     fn as_bound(&self) -> Bound<&Timestamp<A>> {
-        self.0.as_ref().map_or(Bound::Unbounded, Bound::Excluded)
+        match self {
+            Self::Exclusive(limit) => Bound::Excluded(limit),
+            Self::Unbounded => Bound::Unbounded,
+        }
     }
 
     fn into_bound(self) -> Bound<Timestamp<A>> {
-        self.0.map_or(Bound::Unbounded, Bound::Excluded)
+        match self {
+            Self::Exclusive(limit) => Bound::Excluded(limit),
+            Self::Unbounded => Bound::Unbounded,
+        }
     }
 
     fn from_bound(bound: Bound<Timestamp<A>>) -> Self {
         match bound {
             Bound::Included(_) => {
-                unimplemented!("Cannot convert included bound to unbounded or excluded bound")
+                unimplemented!("Cannot convert included bound to open bound")
             }
-            Bound::Excluded(limit) => Self(Some(limit)),
-            Bound::Unbounded => Self(None),
+            Bound::Excluded(limit) => Self::Exclusive(limit),
+            Bound::Unbounded => Self::Unbounded,
         }
     }
 }

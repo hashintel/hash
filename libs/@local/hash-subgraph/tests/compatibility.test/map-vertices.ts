@@ -162,32 +162,32 @@ const mapKnowledgeGraphVertex = (
             start: {
               kind: "inclusive",
               limit: vertex.inner.metadata.temporalVersioning.transactionTime
-                .start as Timestamp,
+                .start.limit as Timestamp,
             },
             end:
-              vertex.inner.metadata.temporalVersioning.transactionTime.end ===
-              null
+              vertex.inner.metadata.temporalVersioning.transactionTime.end
+                .kind === "unbounded"
                 ? { kind: "unbounded" }
                 : {
                     kind: "exclusive",
                     limit: vertex.inner.metadata.temporalVersioning
-                      .transactionTime.end as Timestamp,
+                      .transactionTime.end.limit as Timestamp,
                   },
           },
           decisionTime: {
             start: {
               kind: "inclusive",
-              limit: vertex.inner.metadata.temporalVersioning.decisionTime
-                .start as Timestamp,
+              limit: vertex.inner.metadata.temporalVersioning.decisionTime.start
+                .limit as Timestamp,
             },
             end:
-              vertex.inner.metadata.temporalVersioning.transactionTime.end ===
-              null
+              vertex.inner.metadata.temporalVersioning.transactionTime.end
+                .kind === "unbounded"
                 ? { kind: "unbounded" }
                 : {
                     kind: "exclusive",
                     limit: vertex.inner.metadata.temporalVersioning
-                      .transactionTime.end as Timestamp,
+                      .transactionTime.end.limit as Timestamp,
                   },
           },
         },

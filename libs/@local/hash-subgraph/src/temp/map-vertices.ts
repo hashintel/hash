@@ -147,27 +147,29 @@ export const mapEntityVersion = (
     transactionTime: {
       start: {
         kind: "inclusive",
-        limit: entityTemporalMetadata.transactionTime.start as Timestamp,
+        limit: entityTemporalMetadata.transactionTime.start.limit as Timestamp,
       },
       end:
-        entityTemporalMetadata.transactionTime.end === null
+        entityTemporalMetadata.transactionTime.end.kind === "unbounded"
           ? { kind: "unbounded" }
           : {
               kind: "exclusive",
-              limit: entityTemporalMetadata.transactionTime.end as Timestamp,
+              limit: entityTemporalMetadata.transactionTime.end
+                .limit as Timestamp,
             },
     },
     decisionTime: {
       start: {
         kind: "inclusive",
-        limit: entityTemporalMetadata.decisionTime.start as Timestamp,
+        limit: entityTemporalMetadata.decisionTime.start.limit as Timestamp,
       },
       end:
-        entityTemporalMetadata.transactionTime.end === null
+        entityTemporalMetadata.transactionTime.end.kind === "unbounded"
           ? { kind: "unbounded" }
           : {
               kind: "exclusive",
-              limit: entityTemporalMetadata.transactionTime.end as Timestamp,
+              limit: entityTemporalMetadata.transactionTime.end
+                .limit as Timestamp,
             },
     },
   };

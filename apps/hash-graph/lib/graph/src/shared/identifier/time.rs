@@ -6,10 +6,7 @@ mod timestamp;
 
 pub use self::{
     axis::{DecisionTime, TemporalTagged, TimeAxis, TransactionTime, VariableAxis},
-    bound::{
-        InclusiveTemporalBound, LimitedTemporalBound, TemporalBound,
-        UnboundedOrExclusiveTemporalBound,
-    },
+    bound::{OpenTemporalBound, LimitedTemporalBound, ClosedTemporalBound, TemporalBound},
     interval::UnresolvedRightBoundedTemporalInterval,
     temporal_axes::{
         PinnedTemporalAxis, TemporalAxes, UnresolvedPinnedTemporalAxis, UnresolvedTemporalAxes,
@@ -30,4 +27,4 @@ pub type RightBoundedTemporalInterval<A> =
 /// A temporal interval, where the lower bound is inclusive and the upper bound is either exclusive
 /// or unbounded.
 pub type LeftClosedTemporalInterval<A> =
-    Interval<Timestamp<A>, InclusiveTemporalBound<A>, UnboundedOrExclusiveTemporalBound<A>>;
+    Interval<Timestamp<A>, ClosedTemporalBound<A>, OpenTemporalBound<A>>;

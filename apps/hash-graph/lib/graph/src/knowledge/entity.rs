@@ -12,7 +12,7 @@ pub use self::query::{EntityQueryPath, EntityQueryPathVisitor, EntityQueryToken}
 use crate::{
     identifier::{
         knowledge::{EntityId, EntityRecordId, EntityTemporalMetadata},
-        time::{TemporalTagged, TimeAxis},
+        time::{ClosedTemporalBound, TemporalTagged, TimeAxis},
         EntityVertexId,
     },
     provenance::ProvenanceMetadata,
@@ -194,7 +194,7 @@ impl Record for Entity {
     type VertexId = EntityVertexId;
 
     fn vertex_id(&self, time_axis: TimeAxis) -> Self::VertexId {
-        let timestamp = match time_axis {
+        let ClosedTemporalBound::Inclusive(timestamp) = match time_axis {
             TimeAxis::DecisionTime => self
                 .metadata
                 .temporal_versioning()
@@ -210,7 +210,7 @@ impl Record for Entity {
         };
         EntityVertexId {
             base_id: self.metadata.record_id().entity_id,
-            version: timestamp.into(),
+            version: timestamp,
         }
     }
 
