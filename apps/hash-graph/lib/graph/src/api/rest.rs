@@ -39,7 +39,7 @@ use crate::{
         utoipa_typedef::subgraph::{
             Edges, KnowledgeGraphOutwardEdges, KnowledgeGraphRootedEdges, KnowledgeGraphVertex,
             KnowledgeGraphVertices, OntologyRootedEdges, OntologyVertex, OntologyVertices,
-            Subgraph, TemporalSubgraphAxes, Vertex, Vertices,
+            Subgraph, SubgraphTemporalAxes, Vertex, Vertices,
         },
     },
     identifier::{
@@ -200,7 +200,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             EdgeResolveDepths,
             OutgoingEdgeResolveDepth,
             Subgraph,
-            TemporalSubgraphAxes,
+            SubgraphTemporalAxes,
 
             DecisionTime,
             TransactionTime,

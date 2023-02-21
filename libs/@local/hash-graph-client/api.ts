@@ -1887,16 +1887,35 @@ export interface Subgraph {
   roots: Array<GraphElementVertexId>;
   /**
    *
-   * @type {TemporalSubgraphAxes}
+   * @type {SubgraphTemporalAxes}
    * @memberof Subgraph
    */
-  temporalAxes: TemporalSubgraphAxes;
+  temporalAxes: SubgraphTemporalAxes;
   /**
    *
    * @type {Vertices}
    * @memberof Subgraph
    */
   vertices: Vertices;
+}
+/**
+ *
+ * @export
+ * @interface SubgraphTemporalAxes
+ */
+export interface SubgraphTemporalAxes {
+  /**
+   *
+   * @type {UnresolvedTemporalAxes}
+   * @memberof SubgraphTemporalAxes
+   */
+  initial: UnresolvedTemporalAxes;
+  /**
+   *
+   * @type {TemporalAxes}
+   * @memberof SubgraphTemporalAxes
+   */
+  resolved: TemporalAxes;
 }
 /**
  * @type TemporalAxes
@@ -1911,25 +1930,6 @@ export type TemporalAxes = DecisionTimeAxes | TransactionTimeAxes;
  */
 export type TemporalBound = ExclusiveBound | InclusiveBound | UnboundedBound;
 
-/**
- *
- * @export
- * @interface TemporalSubgraphAxes
- */
-export interface TemporalSubgraphAxes {
-  /**
-   *
-   * @type {UnresolvedTemporalAxes}
-   * @memberof TemporalSubgraphAxes
-   */
-  initial: UnresolvedTemporalAxes;
-  /**
-   *
-   * @type {TemporalAxes}
-   * @memberof TemporalSubgraphAxes
-   */
-  resolved: TemporalAxes;
-}
 /**
  * Time axis for the transaction time.  This is used as the generic argument to time-related structs and can be used as tag value.
  * @export

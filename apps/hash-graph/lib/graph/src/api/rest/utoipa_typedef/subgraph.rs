@@ -20,7 +20,7 @@ use crate::{
 };
 
 #[derive(Serialize, ToSchema)]
-pub struct TemporalSubgraphAxes {
+pub struct SubgraphTemporalAxes {
     pub initial: UnresolvedTemporalAxes,
     pub resolved: TemporalAxes,
 }
@@ -32,7 +32,7 @@ pub struct Subgraph {
     vertices: Vertices,
     edges: Edges,
     depths: GraphResolveDepths,
-    temporal_axes: TemporalSubgraphAxes,
+    temporal_axes: SubgraphTemporalAxes,
 }
 
 impl From<crate::subgraph::Subgraph> for Subgraph {
@@ -48,7 +48,7 @@ impl From<crate::subgraph::Subgraph> for Subgraph {
             vertices,
             edges,
             depths: subgraph.depths,
-            temporal_axes: TemporalSubgraphAxes {
+            temporal_axes: SubgraphTemporalAxes {
                 initial: subgraph.temporal_axes,
                 resolved: subgraph.resolved_temporal_axes,
             },
