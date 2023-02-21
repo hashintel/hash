@@ -60,19 +60,23 @@ pub enum EntityQueryPath<'p> {
     EditionId,
     /// The decision time axis of the [`EntityTemporalMetadata`] belonging to the [`Entity`].
     ///
-    /// To query for an [`EntityTemporalMetadata`] the time projection is specified on the
-    /// [`StructuralQuery`].
+    /// It's not possible to query for the temporal axis directly, this has to be done via the
+    /// `temporalAxes` parameter on [`StructuralQuery`]. The decision time is returned as part of
+    /// [`EntityTemporalMetadata`] of the [`EntityMetadata`].
     ///
     /// [`StructuralQuery`]: crate::shared::subgraph::query::StructuralQuery
+    /// [`EntityMetadata`]: crate::knowledge::EntityMetadata
     /// [`EntityTemporalMetadata`]: crate::identifier::knowledge::EntityTemporalMetadata
     /// [`Entity`]: crate::knowledge::Entity
     DecisionTime,
     /// The transaction time axis of the [`EntityTemporalMetadata`] belonging to the [`Entity`].
     ///
-    /// To query for an [`EntityTemporalMetadata`] the time projection is specified on the
-    /// [`StructuralQuery`].
+    /// It's not possible to query for the temporal axis directly, this has to be done via the
+    /// `temporalAxes` parameter on [`StructuralQuery`]. The transaction time is returned as part
+    /// of [`EntityTemporalMetadata`] of the [`EntityMetadata`].
     ///
     /// [`StructuralQuery`]: crate::shared::subgraph::query::StructuralQuery
+    /// [`EntityMetadata`]: crate::knowledge::EntityMetadata
     /// [`EntityTemporalMetadata`]: crate::identifier::knowledge::EntityTemporalMetadata
     /// [`Entity`]: crate::knowledge::Entity
     TransactionTime,
