@@ -54,3 +54,52 @@ impl From<EntityVertexId> for GraphElementVertexId {
         Self::KnowledgeGraph(id)
     }
 }
+
+pub trait VertexId {
+    type BaseId;
+    type RevisionId;
+
+    fn new(base_id: Self::BaseId, revision_id: Self::RevisionId) -> Self;
+    fn base_id(&self) -> &Self::BaseId;
+    fn revision_id(&self) -> Self::RevisionId;
+}
+
+impl VertexId for OntologyTypeVertexId {
+    type BaseId = BaseUri;
+    type RevisionId = OntologyTypeVersion;
+
+    fn new(base_id: Self::BaseId, revision_id: Self::RevisionId) -> Self {
+        Self {
+            base_id,
+            revision_id,
+        }
+    }
+
+    fn base_id(&self) -> &Self::BaseId {
+        &self.base_id
+    }
+
+    fn revision_id(&self) -> Self::RevisionId {
+        self.revision_id
+    }
+}
+
+impl VertexId for EntityVertexId {
+    type BaseId = EntityId;
+    type RevisionId = Timestamp<VariableAxis>;
+
+    fn new(base_id: Self::BaseId, revision_id: Self::RevisionId) -> Self {
+        Self {
+            base_id,
+            revision_id,
+        }
+    }
+
+    fn base_id(&self) -> &Self::BaseId {
+        &self.base_id
+    }
+
+    fn revision_id(&self) -> Self::RevisionId {
+        self.revision_id
+    }
+}
