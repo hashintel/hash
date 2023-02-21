@@ -8,7 +8,6 @@ use utoipa::{
 };
 
 use crate::{
-    api::rest::utoipa_typedef::EntityIdAndTimestamp,
     identifier::{
         knowledge::EntityId,
         ontology::OntologyTypeVersion,
@@ -46,7 +45,7 @@ impl ToSchema<'_> for KnowledgeGraphOutwardEdge {
             "KnowledgeGraphOutwardEdge",
             OneOfBuilder::new()
                 .item(
-                    <OutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>>::generate_schema(
+                    <OutwardEdge<KnowledgeGraphEdgeKind, EntityIdWithInterval>>::generate_schema(
                         "KnowledgeGraphToKnowledgeGraphOutwardEdge",
                     ),
                 )

@@ -2,7 +2,7 @@ use serde::Serialize;
 use utoipa::{openapi, ToSchema};
 
 use crate::{
-    identifier::{EntityIdWithInterval, EntityVertexId, OntologyTypeVertexId},
+    identifier::{EntityIdWithInterval, OntologyTypeVertexId},
     subgraph::edges::{KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
 };
 
@@ -75,7 +75,7 @@ impl ToSchema<'_> for OntologyOutwardEdge {
                     ),
                 )
                 .item(
-                    <OutwardEdge<SharedEdgeKind, EntityVertexId>>::generate_schema(
+                    <OutwardEdge<SharedEdgeKind, EntityIdWithInterval>>::generate_schema(
                         "OntologyToKnowledgeGraphOutwardEdge",
                     ),
                 )

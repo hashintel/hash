@@ -433,25 +433,6 @@ export interface Entity {
 /**
  *
  * @export
- * @interface EntityIdAndTimestamp
- */
-export interface EntityIdAndTimestamp {
-  /**
-   *
-   * @type {string}
-   * @memberof EntityIdAndTimestamp
-   */
-  baseId: string;
-  /**
-   *
-   * @type {string}
-   * @memberof EntityIdAndTimestamp
-   */
-  timestamp: string;
-}
-/**
- *
- * @export
  * @interface EntityIdWithInterval
  */
 export interface EntityIdWithInterval {
@@ -1062,10 +1043,10 @@ export interface KnowledgeGraphToKnowledgeGraphOutwardEdge {
   reversed: boolean;
   /**
    *
-   * @type {EntityIdAndTimestamp}
+   * @type {EntityIdWithInterval}
    * @memberof KnowledgeGraphToKnowledgeGraphOutwardEdge
    */
-  rightEndpoint: EntityIdAndTimestamp;
+  rightEndpoint: EntityIdWithInterval;
 }
 /**
  *
@@ -1268,10 +1249,10 @@ export interface OntologyToKnowledgeGraphOutwardEdge {
   reversed: boolean;
   /**
    *
-   * @type {EntityVertexId}
+   * @type {EntityIdWithInterval}
    * @memberof OntologyToKnowledgeGraphOutwardEdge
    */
-  rightEndpoint: EntityVertexId;
+  rightEndpoint: EntityIdWithInterval;
 }
 /**
  *

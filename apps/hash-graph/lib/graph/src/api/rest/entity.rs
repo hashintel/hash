@@ -10,9 +10,7 @@ use utoipa::{OpenApi, ToSchema};
 
 use crate::{
     api::rest::{
-        api_resource::RoutedResource,
-        report_to_status_code,
-        utoipa_typedef::{subgraph::Subgraph, EntityIdAndTimestamp},
+        api_resource::RoutedResource, report_to_status_code, utoipa_typedef::subgraph::Subgraph,
     },
     identifier::knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityTemporalMetadata},
     knowledge::{
@@ -45,7 +43,6 @@ use crate::{
             EntityUuid,
             EntityId,
             EntityEditionId,
-            EntityIdAndTimestamp,
             EntityMetadata,
             EntityLinkOrder,
             EntityProperties,
