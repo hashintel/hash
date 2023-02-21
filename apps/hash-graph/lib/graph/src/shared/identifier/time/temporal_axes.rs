@@ -253,12 +253,11 @@ where
 /// decided to be inserted, the [`DecisionTime`].
 ///
 /// In order to query data from the Graph, only one of the two time axes can be used. This is
-/// achieved by using a `TimeProjection`. The `TimeProjection` pins one axis to a specified
+/// achieved by using a `TemporalAxes`. The `TemporalAxes` pins one axis to a specified
 /// [`Timestamp`], while the other axis can be a [`Interval`]. The pinned axis is called the
-/// [`PinnedTemporalAxis`] and the other axis is called the [`VariableTemporalAxis`] of a
-/// projection. The returned data will then only contain temporal data that is contained in the
-/// [`Interval`] of the [`VariableTemporalAxis`] for the given [`Timestamp`] of the
-/// [`PinnedTemporalAxis`].
+/// [`PinnedTemporalAxis`] and the other axis is called the [`VariableTemporalAxis`]. The returned
+/// data will then only contain temporal data that is contained in the [`Interval`] of the
+/// [`VariableTemporalAxis`] for the given [`Timestamp`] of the [`PinnedTemporalAxis`].
 ///
 /// [`Interval`]: crate::interval::Interval
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
@@ -313,11 +312,10 @@ impl TemporalAxes {
         }
     }
 
-    /// Intersects the image of the projection with the provided [`Interval`].
+    /// Intersects the variable interval of the temporal axes with the provided
+    /// [`LeftClosedTemporalInterval`].
     ///
     /// If the two intervals do not overlap, [`None`] is returned.
-    ///
-    /// [`Interval`]: crate::interval::Interval
     #[must_use]
     pub fn intersect_variable_interval(
         self,

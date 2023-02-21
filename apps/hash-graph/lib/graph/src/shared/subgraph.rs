@@ -77,7 +77,7 @@ impl Subgraph {
         &'r mut self,
         store: &impl Read<R>,
         vertex_id: &R::VertexId,
-        time_projection: &TemporalAxes,
+        temporal_axes: &TemporalAxes,
     ) -> Result<&'r R, QueryError> {
         Ok(match self.entry(vertex_id) {
             RawEntryMut::Occupied(entry) => entry.into_mut(),
@@ -86,7 +86,7 @@ impl Subgraph {
                     .insert(
                         vertex_id.clone(),
                         store
-                            .read_one(&R::create_filter_for_vertex_id(vertex_id), time_projection)
+                            .read_one(&R::create_filter_for_vertex_id(vertex_id), temporal_axes)
                             .await?,
                     )
                     .1
