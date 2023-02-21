@@ -10,7 +10,7 @@ pub use self::{
         InclusiveTemporalBound, LimitedTemporalBound, TemporalBound,
         UnboundedOrExclusiveTemporalBound,
     },
-    interval::UnresolvedTemporalInterval,
+    interval::UnresolvedRightBoundedTemporalInterval,
     temporal_axes::{
         PinnedTemporalAxis, TemporalAxes, UnresolvedPinnedTemporalAxis, UnresolvedTemporalAxes,
         UnresolvedVariableTemporalAxis, VariableTemporalAxis,
@@ -19,8 +19,15 @@ pub use self::{
 };
 use crate::interval::Interval;
 
+/// A temporal interval, where both bounds are either inclusive, exclusive, or unbounded.
 pub type TemporalInterval<A> = Interval<Timestamp<A>, TemporalBound<A>, TemporalBound<A>>;
-pub type LimitedTemporalInterval<A> =
+
+/// A temporal interval, where both bounds are either inclusive or exclusive. The lower bound may
+/// also be unbounded.
+pub type RightBoundedTemporalInterval<A> =
     Interval<Timestamp<A>, TemporalBound<A>, LimitedTemporalBound<A>>;
-pub type VersionInterval<A> =
+
+/// A temporal interval, where the lower bound is inclusive and the upper bound is either exclusive
+/// or unbounded.
+pub type LeftClosedTemporalInterval<A> =
     Interval<Timestamp<A>, InclusiveTemporalBound<A>, UnboundedOrExclusiveTemporalBound<A>>;

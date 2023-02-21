@@ -12,7 +12,8 @@ use crate::{
     identifier::{
         account::AccountId,
         time::{
-            DecisionTime, TemporalTagged, TimeAxis, TransactionTime, VariableAxis, VersionInterval,
+            DecisionTime, LeftClosedTemporalInterval, TemporalTagged, TimeAxis, TransactionTime,
+            VariableAxis,
         },
         EntityVertexId,
     },
@@ -77,13 +78,16 @@ impl ToSchema<'_> for EntityId {
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityTemporalMetadata {
-    pub decision_time: VersionInterval<DecisionTime>,
-    pub transaction_time: VersionInterval<TransactionTime>,
+    pub decision_time: LeftClosedTemporalInterval<DecisionTime>,
+    pub transaction_time: LeftClosedTemporalInterval<TransactionTime>,
 }
 
 impl EntityTemporalMetadata {
     #[must_use]
-    pub fn variable_time_interval(&self, time_axis: TimeAxis) -> VersionInterval<VariableAxis> {
+    pub fn variable_time_interval(
+        &self,
+        time_axis: TimeAxis,
+    ) -> LeftClosedTemporalInterval<VariableAxis> {
         match time_axis {
             TimeAxis::DecisionTime => self.decision_time.cast(),
             TimeAxis::TransactionTime => self.transaction_time.cast(),

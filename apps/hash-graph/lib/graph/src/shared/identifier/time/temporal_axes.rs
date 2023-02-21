@@ -4,8 +4,9 @@ use utoipa::{openapi, ToSchema};
 use crate::identifier::time::{
     axis::{PinnedAxis, TemporalTagged},
     bound::TemporalBound,
-    DecisionTime, LimitedTemporalBound, LimitedTemporalInterval, TemporalInterval, TimeAxis,
-    Timestamp, TransactionTime, UnresolvedTemporalInterval, VariableAxis, VersionInterval,
+    DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound, RightBoundedTemporalInterval,
+    TemporalInterval, TimeAxis, Timestamp, TransactionTime, UnresolvedRightBoundedTemporalInterval,
+    VariableAxis,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -60,7 +61,7 @@ where
 pub struct UnresolvedVariableTemporalAxis<A> {
     pub axis: A,
     #[serde(flatten)]
-    pub interval: UnresolvedTemporalInterval<A>,
+    pub interval: UnresolvedRightBoundedTemporalInterval<A>,
 }
 
 impl<A: Default> UnresolvedVariableTemporalAxis<A> {
@@ -68,14 +69,14 @@ impl<A: Default> UnresolvedVariableTemporalAxis<A> {
     pub fn new(start: Option<TemporalBound<A>>, end: Option<LimitedTemporalBound<A>>) -> Self {
         Self {
             axis: A::default(),
-            interval: UnresolvedTemporalInterval { start, end },
+            interval: UnresolvedRightBoundedTemporalInterval { start, end },
         }
     }
 
     pub fn resolve(self, now: Timestamp<()>) -> VariableTemporalAxis<A> {
         VariableTemporalAxis {
             axis: self.axis,
-            interval: LimitedTemporalInterval::new(
+            interval: RightBoundedTemporalInterval::new(
                 self.interval
                     .start
                     .unwrap_or_else(|| TemporalBound::Inclusive(Timestamp::from_anonymous(now))),
@@ -207,11 +208,11 @@ where
 pub struct VariableTemporalAxis<A> {
     pub axis: A,
     #[serde(flatten)]
-    pub interval: LimitedTemporalInterval<A>,
+    pub interval: RightBoundedTemporalInterval<A>,
 }
 
 impl<A> VariableTemporalAxis<A> {
-    pub fn intersect(mut self, interval: VersionInterval<A>) -> Option<Self> {
+    pub fn intersect(mut self, interval: LeftClosedTemporalInterval<A>) -> Option<Self> {
         let variable_interval: TemporalInterval<A> = self.interval.convert();
         let intersection = variable_interval.intersect(interval.convert())?;
         self.interval = intersection.convert();
@@ -305,7 +306,7 @@ impl TemporalAxes {
     }
 
     #[must_use]
-    pub fn variable_interval(&self) -> LimitedTemporalInterval<VariableAxis> {
+    pub fn variable_interval(&self) -> RightBoundedTemporalInterval<VariableAxis> {
         match self {
             Self::DecisionTime { variable, .. } => variable.interval.cast(),
             Self::TransactionTime { variable, .. } => variable.interval.cast(),
@@ -320,7 +321,7 @@ impl TemporalAxes {
     #[must_use]
     pub fn intersect_variable_interval(
         self,
-        version_interval: VersionInterval<VariableAxis>,
+        version_interval: LeftClosedTemporalInterval<VariableAxis>,
     ) -> Option<Self> {
         match self {
             Self::DecisionTime { pinned, variable } => variable
@@ -332,7 +333,7 @@ impl TemporalAxes {
         }
     }
 
-    pub fn set_variable_interval(&mut self, interval: LimitedTemporalInterval<VariableAxis>) {
+    pub fn set_variable_interval(&mut self, interval: RightBoundedTemporalInterval<VariableAxis>) {
         match self {
             Self::DecisionTime { variable, .. } => variable.interval = interval.cast(),
             Self::TransactionTime { variable, .. } => variable.interval = interval.cast(),

@@ -19,7 +19,7 @@ use crate::{
     Hash(bound = "")
 )]
 #[serde(rename_all = "camelCase", bound = "", deny_unknown_fields)]
-pub struct UnresolvedTemporalInterval<A> {
+pub struct UnresolvedRightBoundedTemporalInterval<A> {
     pub start: Option<TemporalBound<A>>,
     pub end: Option<LimitedTemporalBound<A>>,
 }

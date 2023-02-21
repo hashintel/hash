@@ -612,16 +612,16 @@ export interface EntityStructuralQuery {
 export interface EntityTemporalMetadata {
   /**
    *
-   * @type {VersionInterval}
+   * @type {LeftClosedTemporalInterval}
    * @memberof EntityTemporalMetadata
    */
-  decisionTime: VersionInterval;
+  decisionTime: LeftClosedTemporalInterval;
   /**
    *
-   * @type {VersionInterval}
+   * @type {LeftClosedTemporalInterval}
    * @memberof EntityTemporalMetadata
    */
-  transactionTime: VersionInterval;
+  transactionTime: LeftClosedTemporalInterval;
 }
 /**
  * Specifies the structure of an Entity Type
@@ -1144,6 +1144,25 @@ export type KnowledgeGraphVertexOneOfKindEnum =
  */
 export interface KnowledgeGraphVertices {
   [key: string]: { [key: string]: KnowledgeGraphVertex };
+}
+/**
+ *
+ * @export
+ * @interface LeftClosedTemporalInterval
+ */
+export interface LeftClosedTemporalInterval {
+  /**
+   *
+   * @type {string}
+   * @memberof LeftClosedTemporalInterval
+   */
+  end: string | null;
+  /**
+   *
+   * @type {string}
+   * @memberof LeftClosedTemporalInterval
+   */
+  start: string;
 }
 /**
  * @type LimitedTemporalBound
@@ -2482,25 +2501,6 @@ export interface UpdatePropertyTypeRequest {
    * @memberof UpdatePropertyTypeRequest
    */
   typeToUpdate: string;
-}
-/**
- *
- * @export
- * @interface VersionInterval
- */
-export interface VersionInterval {
-  /**
-   *
-   * @type {string}
-   * @memberof VersionInterval
-   */
-  end: string | null;
-  /**
-   *
-   * @type {string}
-   * @memberof VersionInterval
-   */
-  start: string;
 }
 /**
  * @type Vertex
