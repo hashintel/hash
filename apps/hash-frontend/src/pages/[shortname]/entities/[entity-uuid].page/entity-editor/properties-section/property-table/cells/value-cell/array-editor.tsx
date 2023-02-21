@@ -13,7 +13,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Box, experimental_sx as sx, styled } from "@mui/material";
+import { Box, styled } from "@mui/material";
 import produce from "immer";
 import { isNumber } from "lodash";
 import { useMemo, useRef, useState } from "react";
@@ -33,8 +33,8 @@ import {
 
 export const DRAFT_ROW_KEY = "draft";
 
-const ListWrapper = styled(Box)(
-  sx({
+const ListWrapper = styled(Box)(({ theme }) =>
+  theme.unstable_sx({
     maxHeight: 300,
     overflowY: "auto",
     overflowX: "hidden",

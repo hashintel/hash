@@ -5,7 +5,6 @@ import {
   Dialog,
   DialogActions,
   DialogTitle,
-  experimental_sx as sx,
   FormControl,
   FormControlLabel,
   formControlLabelClasses,
@@ -18,8 +17,8 @@ import { v4 as uuid } from "uuid";
 import { Item } from "../shuffle";
 import { getEntityLabel } from "../utils";
 
-const SFormControlLabel = styled(FormControlLabel)(
-  sx({
+const SFormControlLabel = styled(FormControlLabel)(({ theme }) =>
+  theme.unstable_sx({
     width: "100%",
 
     [`.${formControlLabelClasses.label}`]: {
