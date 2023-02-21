@@ -2,7 +2,8 @@ import "./app.scss";
 
 import {
   BlockComponent,
-  useGraphBlockService,
+  useEntitySubgraph,
+  useGraphBlockModule,
 } from "@blockprotocol/graph/react";
 import { isValid, parseISO } from "date-fns";
 import * as duration from "duration-fns";
@@ -19,6 +20,7 @@ import { clamp } from "./app/clamp";
 import { DurationInput } from "./app/duration-input";
 import { TimerStatus } from "./app/timer-status";
 import { useAutoRefresh } from "./app/use-auto-refresh";
+import { RootEntity } from "./types";
 
 type TimerState = {
   initialDurationInMs: number;
@@ -78,14 +80,42 @@ const parseDurationIfPossible = (
   return undefined;
 };
 
-export const App: BlockComponent<BlockEntityProperties> = ({
-  graph: {
-    blockEntity: { entityId, properties: blockEntityProperties },
-    readonly,
-  },
+export const initialDurationProperty =
+  "https://blockprotocol-ae37rxcaw.stage.hash.ai/@nate/types/property-type/initial-duration/";
+export const targetDateTimeProperty =
+  "https://blockprotocol-ae37rxcaw.stage.hash.ai/@nate/types/property-type/target-date-time/";
+export const pauseDurationProperty =
+  "https://blockprotocol-ae37rxcaw.stage.hash.ai/@nate/types/property-type/pause-duration/";
+
+export const App: BlockComponent<RootEntity> = ({
+  graph: { blockEntitySubgraph, readonly },
 }) => {
+  if (!blockEntitySubgraph) {
+    throw new Error("Block entity subgraph missing");
+  }
+
+  const { rootEntity } = useEntitySubgraph(blockEntitySubgraph);
+
+  const { entityId } = rootEntity.metadata.recordId;
+  const { entityTypeId } = rootEntity.metadata;
+
+  const {
+    [initialDurationProperty]: initialDuration,
+    [targetDateTimeProperty]: targetDateTime,
+    [pauseDurationProperty]: pauseDuration,
+  } = rootEntity.properties;
+
+  const blockEntityProperties = useMemo(
+    () => ({
+      pauseDuration,
+      initialDuration,
+      targetDateTime,
+    }),
+    [initialDuration, pauseDuration, targetDateTime],
+  );
+
   const blockRef = useRef<HTMLDivElement>(null);
-  const { graphService } = useGraphBlockService(blockRef);
+  const { graphModule } = useGraphBlockModule(blockRef);
 
   const externalTimerState = useMemo<TimerState>(() => {
     const unclampedPauseDuration = parseDurationIfPossible(
@@ -128,38 +158,45 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         pauseButtonRef.current?.focus();
       }
 
-      const properties: BlockEntityProperties = {
-        initialDuration: duration.toString(
+      const properties = {
+        [initialDurationProperty]: duration.toString(
           normalizeDurationMinutesAndSeconds(
             duration.toString(newTimerState.initialDurationInMs),
           ),
         ),
-        pauseDuration: newTimerState.pauseDurationInMs
-          ? duration
-              .toString(
-                normalizeDurationMinutesAndSeconds(
-                  newTimerState.pauseDurationInMs,
-                ),
-              )
-              .replace(/,/g, ".") // https://github.com/dlevs/duration-fns/issues/26
-          : undefined,
-        targetDateTime: newTimerState.targetTimestamp
-          ? new Date(newTimerState.targetTimestamp).toISOString()
-          : undefined,
+        ...(newTimerState.pauseDurationInMs
+          ? {
+              [pauseDurationProperty]: duration
+                .toString(
+                  normalizeDurationMinutesAndSeconds(
+                    newTimerState.pauseDurationInMs,
+                  ),
+                )
+                .replace(/,/g, "."), // https://github.com/dlevs/duration-fns/issues/26
+            }
+          : {}),
+        ...(newTimerState.targetTimestamp
+          ? {
+              [targetDateTimeProperty]: new Date(
+                newTimerState.targetTimestamp,
+              ).toISOString(),
+            }
+          : {}),
       };
 
       if (readonly) {
         return;
       }
 
-      void graphService?.updateEntity({
+      void graphModule.updateEntity({
         data: {
           entityId,
+          entityTypeId,
           properties,
         },
       });
     },
-    [entityId, graphService, readonly],
+    [entityId, entityTypeId, graphModule, readonly],
   );
 
   const remainingDurationInMs =
