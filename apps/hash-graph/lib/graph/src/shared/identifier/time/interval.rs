@@ -4,6 +4,7 @@ use derivative::Derivative;
 use postgres_protocol::types::{timestamp_from_sql, RangeBound};
 use postgres_types::{private::BytesMut, FromSql, ToSql, Type};
 use serde::{Deserialize, Serialize};
+use utoipa::{openapi, ToSchema};
 
 use crate::{
     identifier::time::{axis::TemporalTagged, LimitedTemporalBound, TemporalBound, Timestamp},
@@ -128,5 +129,42 @@ where
 
     fn accepts(ty: &Type) -> bool {
         matches!(ty, &Type::TSTZ_RANGE)
+    }
+}
+
+impl<'s, A> ToSchema<'s> for UnresolvedRightBoundedTemporalInterval<A>
+where
+    A: ToSchema<'s>,
+{
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "UnresolvedRightBoundedTemporalInterval",
+            openapi::ObjectBuilder::new()
+                .property(
+                    "start",
+                    openapi::Schema::OneOf(
+                        openapi::OneOfBuilder::new()
+                            .item(openapi::Ref::from_schema_name(
+                                TemporalBound::<A>::schema().0,
+                            ))
+                            .nullable(true)
+                            .build(),
+                    ),
+                )
+                .required("start")
+                .property(
+                    "end",
+                    openapi::Schema::OneOf(
+                        openapi::OneOfBuilder::new()
+                            .item(openapi::Ref::from_schema_name(
+                                LimitedTemporalBound::<A>::schema().0,
+                            ))
+                            .nullable(true)
+                            .build(),
+                    ),
+                )
+                .required("end")
+                .into(),
+        )
     }
 }

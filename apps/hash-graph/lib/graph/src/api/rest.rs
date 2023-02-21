@@ -45,8 +45,9 @@ use crate::{
     identifier::{
         ontology::{OntologyTypeRecordId, OntologyTypeVersion},
         time::{
-            OpenTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
-            ClosedTemporalBound, TemporalAxes, TemporalBound, Timestamp, TransactionTime,
+            ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
+            OpenTemporalBound, RightBoundedTemporalInterval, TemporalAxes, TemporalBound,
+            Timestamp, TransactionTime, UnresolvedRightBoundedTemporalInterval,
             UnresolvedTemporalAxes,
         },
         EntityVertexId, GraphElementVertexId, OntologyTypeVertexId,
@@ -472,14 +473,6 @@ impl Modify for TimeSchemaAddon {
                     .into(),
             );
             components.schemas.insert(
-                OpenTemporalBound::<()>::schema().0.to_owned(),
-                OpenTemporalBound::<()>::schema().1,
-            );
-            components.schemas.insert(
-                ClosedTemporalBound::<()>::schema().0.to_owned(),
-                ClosedTemporalBound::<()>::schema().1,
-            );
-            components.schemas.insert(
                 TemporalBound::<()>::schema().0.to_owned(),
                 TemporalBound::<()>::schema().1,
             );
@@ -488,8 +481,26 @@ impl Modify for TimeSchemaAddon {
                 LimitedTemporalBound::<()>::schema().1,
             );
             components.schemas.insert(
+                OpenTemporalBound::<()>::schema().0.to_owned(),
+                OpenTemporalBound::<()>::schema().1,
+            );
+            components.schemas.insert(
+                ClosedTemporalBound::<()>::schema().0.to_owned(),
+                ClosedTemporalBound::<()>::schema().1,
+            );
+            components.schemas.insert(
                 "LeftClosedTemporalInterval".to_owned(),
                 LeftClosedTemporalInterval::<()>::schema().1,
+            );
+            components.schemas.insert(
+                "RightBoundedTemporalInterval".to_owned(),
+                RightBoundedTemporalInterval::<()>::schema().1,
+            );
+            components.schemas.insert(
+                UnresolvedRightBoundedTemporalInterval::<()>::schema()
+                    .0
+                    .to_owned(),
+                UnresolvedRightBoundedTemporalInterval::<()>::schema().1,
             );
         }
     }

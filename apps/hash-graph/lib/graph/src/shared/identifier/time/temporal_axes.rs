@@ -60,7 +60,6 @@ where
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UnresolvedVariableTemporalAxis<A> {
     pub axis: A,
-    #[serde(flatten)]
     pub interval: UnresolvedRightBoundedTemporalInterval<A>,
 }
 
@@ -99,29 +98,12 @@ where
                 .property("axis", openapi::Ref::from_schema_name(A::schema().0))
                 .required("axis")
                 .property(
-                    "start",
-                    openapi::Schema::OneOf(
-                        openapi::OneOfBuilder::new()
-                            .item(openapi::Ref::from_schema_name(
-                                TemporalBound::<A>::schema().0,
-                            ))
-                            .nullable(true)
-                            .build(),
+                    "interval",
+                    openapi::Ref::from_schema_name(
+                        UnresolvedRightBoundedTemporalInterval::<A>::schema().0,
                     ),
                 )
-                .required("start")
-                .property(
-                    "end",
-                    openapi::Schema::OneOf(
-                        openapi::OneOfBuilder::new()
-                            .item(openapi::Ref::from_schema_name(
-                                LimitedTemporalBound::<A>::schema().0,
-                            ))
-                            .nullable(true)
-                            .build(),
-                    ),
-                )
-                .required("end")
+                .required("interval")
                 .into(),
         )
     }
@@ -207,7 +189,6 @@ where
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct VariableTemporalAxis<A> {
     pub axis: A,
-    #[serde(flatten)]
     pub interval: RightBoundedTemporalInterval<A>,
 }
 
@@ -231,15 +212,10 @@ where
                 .property("axis", openapi::Ref::from_schema_name(A::schema().0))
                 .required("axis")
                 .property(
-                    "start",
-                    openapi::Ref::from_schema_name(TemporalBound::<A>::schema().0),
+                    "interval",
+                    openapi::Ref::from_schema_name("RightBoundedTemporalInterval"),
                 )
-                .required("start")
-                .property(
-                    "end",
-                    openapi::Ref::from_schema_name(LimitedTemporalBound::<A>::schema().0),
-                )
-                .required("end")
+                .required("interval")
                 .into(),
         )
     }

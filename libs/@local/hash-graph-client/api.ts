@@ -395,16 +395,10 @@ export interface DecisionTimeAxesVariable {
   axis: DecisionTime;
   /**
    *
-   * @type {LimitedTemporalBound}
+   * @type {RightBoundedTemporalInterval}
    * @memberof DecisionTimeAxesVariable
    */
-  end: LimitedTemporalBound;
-  /**
-   *
-   * @type {TemporalBound}
-   * @memberof DecisionTimeAxesVariable
-   */
-  start: TemporalBound;
+  interval: RightBoundedTemporalInterval;
 }
 /**
  *
@@ -1870,6 +1864,25 @@ export interface ProvenanceMetadata {
 /**
  *
  * @export
+ * @interface RightBoundedTemporalInterval
+ */
+export interface RightBoundedTemporalInterval {
+  /**
+   *
+   * @type {LimitedTemporalBound}
+   * @memberof RightBoundedTemporalInterval
+   */
+  end: LimitedTemporalBound;
+  /**
+   *
+   * @type {TemporalBound}
+   * @memberof RightBoundedTemporalInterval
+   */
+  start: TemporalBound;
+}
+/**
+ *
+ * @export
  * @enum {string}
  */
 
@@ -2026,16 +2039,10 @@ export interface TransactionTimeAxesVariable {
   axis: TransactionTime;
   /**
    *
-   * @type {LimitedTemporalBound}
+   * @type {RightBoundedTemporalInterval}
    * @memberof TransactionTimeAxesVariable
    */
-  end: LimitedTemporalBound;
-  /**
-   *
-   * @type {TemporalBound}
-   * @memberof TransactionTimeAxesVariable
-   */
-  start: TemporalBound;
+  interval: RightBoundedTemporalInterval;
 }
 /**
  *
@@ -2110,17 +2117,42 @@ export interface UnresolvedDecisionTimeAxesVariable {
   axis: DecisionTime;
   /**
    *
-   * @type {LimitedTemporalBound}
+   * @type {UnresolvedRightBoundedTemporalInterval}
    * @memberof UnresolvedDecisionTimeAxesVariable
    */
-  end: LimitedTemporalBound | null;
+  interval: UnresolvedRightBoundedTemporalInterval;
+}
+/**
+ *
+ * @export
+ * @interface UnresolvedRightBoundedTemporalInterval
+ */
+export interface UnresolvedRightBoundedTemporalInterval {
   /**
    *
-   * @type {TemporalBound}
-   * @memberof UnresolvedDecisionTimeAxesVariable
+   * @type {UnresolvedRightBoundedTemporalIntervalEnd}
+   * @memberof UnresolvedRightBoundedTemporalInterval
    */
-  start: TemporalBound | null;
+  end: UnresolvedRightBoundedTemporalIntervalEnd | null;
+  /**
+   *
+   * @type {UnresolvedRightBoundedTemporalIntervalStart}
+   * @memberof UnresolvedRightBoundedTemporalInterval
+   */
+  start: UnresolvedRightBoundedTemporalIntervalStart | null;
 }
+/**
+ * @type UnresolvedRightBoundedTemporalIntervalEnd
+ * @export
+ */
+export type UnresolvedRightBoundedTemporalIntervalEnd = LimitedTemporalBound;
+
+/**
+ * @type UnresolvedRightBoundedTemporalIntervalStart
+ * @export
+ */
+export type UnresolvedRightBoundedTemporalIntervalStart = TemporalBound;
+
 /**
  * @type UnresolvedTemporalAxes
  * @export
@@ -2181,16 +2213,10 @@ export interface UnresolvedTransactionTimeAxesVariable {
   axis: TransactionTime;
   /**
    *
-   * @type {LimitedTemporalBound}
+   * @type {UnresolvedRightBoundedTemporalInterval}
    * @memberof UnresolvedTransactionTimeAxesVariable
    */
-  end: LimitedTemporalBound | null;
-  /**
-   *
-   * @type {TemporalBound}
-   * @memberof UnresolvedTransactionTimeAxesVariable
-   */
-  start: TemporalBound | null;
+  interval: UnresolvedRightBoundedTemporalInterval;
 }
 /**
  * The contents of a Data Type update request
