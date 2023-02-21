@@ -161,31 +161,33 @@ const mapKnowledgeGraphVertex = (
           transactionTime: {
             start: {
               kind: "inclusive",
-              limit: vertex.inner.metadata.version.transactionTime
+              limit: vertex.inner.metadata.temporalVersioning.transactionTime
                 .start as Timestamp,
             },
             end:
-              vertex.inner.metadata.version.transactionTime.end === null
+              vertex.inner.metadata.temporalVersioning.transactionTime.end ===
+              null
                 ? { kind: "unbounded" }
                 : {
                     kind: "exclusive",
-                    limit: vertex.inner.metadata.version.transactionTime
-                      .end as Timestamp,
+                    limit: vertex.inner.metadata.temporalVersioning
+                      .transactionTime.end as Timestamp,
                   },
           },
           decisionTime: {
             start: {
               kind: "inclusive",
-              limit: vertex.inner.metadata.version.decisionTime
+              limit: vertex.inner.metadata.temporalVersioning.decisionTime
                 .start as Timestamp,
             },
             end:
-              vertex.inner.metadata.version.transactionTime.end === null
+              vertex.inner.metadata.temporalVersioning.transactionTime.end ===
+              null
                 ? { kind: "unbounded" }
                 : {
                     kind: "exclusive",
-                    limit: vertex.inner.metadata.version.transactionTime
-                      .end as Timestamp,
+                    limit: vertex.inner.metadata.temporalVersioning
+                      .transactionTime.end as Timestamp,
                   },
           },
         },

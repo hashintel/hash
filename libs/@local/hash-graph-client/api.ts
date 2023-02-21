@@ -533,7 +533,7 @@ export interface EntityMetadata {
    * @type {EntityTemporalMetadata}
    * @memberof EntityMetadata
    */
-  version: EntityTemporalMetadata;
+  temporalVersioning: EntityTemporalMetadata;
 }
 /**
  * A single token in an [`EntityQueryPath`].

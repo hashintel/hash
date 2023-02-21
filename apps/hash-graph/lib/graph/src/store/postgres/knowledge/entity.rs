@@ -59,15 +59,15 @@ impl<C: AsClient> PostgresStore<C> {
                 }
             };
 
-            let version_interval = entity
+            let variable_interval = entity
                 .metadata
-                .version()
+                .temporal_versioning()
                 .variable_time_interval(time_axis);
 
             // Intersects the version interval of the entity with the temporal axis's time
             // interval. We only want to resolve the entity further for the overlap of these two
             // intervals.
-            let Some(mut intersected_temporal_axes) = temporal_axes.intersect_variable_interval(version_interval) else {
+            let Some(mut intersected_temporal_axes) = temporal_axes.intersect_variable_interval(variable_interval) else {
                 // `traverse_entity` is called with the returned entities from `read` with
                 // `temporal_axes`. This implies, that the version interval of `entity` overlaps
                 // with `temporal_axes`. `version_interval` returns `None` if there are

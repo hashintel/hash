@@ -141,33 +141,33 @@ const mapOntologyVertex = (vertex: OntologyVertexGraphApi): OntologyVertex => {
 };
 
 export const mapEntityVersion = (
-  entityVersion: EntityMetadataGraphApi["version"],
+  entityTemporalMetadata: EntityMetadataGraphApi["temporalVersioning"],
 ): EntityTemporalVersioningMetadata => {
   return {
     transactionTime: {
       start: {
         kind: "inclusive",
-        limit: entityVersion.transactionTime.start as Timestamp,
+        limit: entityTemporalMetadata.transactionTime.start as Timestamp,
       },
       end:
-        entityVersion.transactionTime.end === null
+        entityTemporalMetadata.transactionTime.end === null
           ? { kind: "unbounded" }
           : {
               kind: "exclusive",
-              limit: entityVersion.transactionTime.end as Timestamp,
+              limit: entityTemporalMetadata.transactionTime.end as Timestamp,
             },
     },
     decisionTime: {
       start: {
         kind: "inclusive",
-        limit: entityVersion.decisionTime.start as Timestamp,
+        limit: entityTemporalMetadata.decisionTime.start as Timestamp,
       },
       end:
-        entityVersion.transactionTime.end === null
+        entityTemporalMetadata.transactionTime.end === null
           ? { kind: "unbounded" }
           : {
               kind: "exclusive",
-              limit: entityVersion.transactionTime.end as Timestamp,
+              limit: entityTemporalMetadata.transactionTime.end as Timestamp,
             },
     },
   };
@@ -182,7 +182,7 @@ export const mapEntityMetadata = (
       ...metadata.recordId,
       entityId: metadata.recordId.entityId as EntityId,
     },
-    temporalVersioning: mapEntityVersion(metadata.version),
+    temporalVersioning: mapEntityVersion(metadata.temporalVersioning),
     entityTypeId: metadata.entityTypeId as VersionedUri,
     provenance: {
       updatedById: metadata.provenance.updatedById as UpdatedById,

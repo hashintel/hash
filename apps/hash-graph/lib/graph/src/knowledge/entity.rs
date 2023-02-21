@@ -127,11 +127,10 @@ pub struct LinkData {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityMetadata {
     record_id: EntityRecordId,
-    version: EntityTemporalMetadata,
+    temporal_versioning: EntityTemporalMetadata,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
-    #[serde(rename = "provenance")]
-    provenance_metadata: ProvenanceMetadata,
+    provenance: ProvenanceMetadata,
     archived: bool,
 }
 
@@ -139,16 +138,16 @@ impl EntityMetadata {
     #[must_use]
     pub const fn new(
         record_id: EntityRecordId,
-        version: EntityTemporalMetadata,
+        temporal_versioning: EntityTemporalMetadata,
         entity_type_id: VersionedUri,
-        provenance_metadata: ProvenanceMetadata,
+        provenance: ProvenanceMetadata,
         archived: bool,
     ) -> Self {
         Self {
             record_id,
-            version,
+            temporal_versioning,
             entity_type_id,
-            provenance_metadata,
+            provenance,
             archived,
         }
     }
@@ -159,8 +158,8 @@ impl EntityMetadata {
     }
 
     #[must_use]
-    pub const fn version(&self) -> &EntityTemporalMetadata {
-        &self.version
+    pub const fn temporal_versioning(&self) -> &EntityTemporalMetadata {
+        &self.temporal_versioning
     }
 
     #[must_use]
@@ -169,8 +168,8 @@ impl EntityMetadata {
     }
 
     #[must_use]
-    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
-        self.provenance_metadata
+    pub const fn provenance(&self) -> ProvenanceMetadata {
+        self.provenance
     }
 
     #[must_use]
@@ -196,8 +195,18 @@ impl Record for Entity {
 
     fn vertex_id(&self, time_axis: TimeAxis) -> Self::VertexId {
         let timestamp = match time_axis {
-            TimeAxis::DecisionTime => self.metadata.version().decision_time.start().cast(),
-            TimeAxis::TransactionTime => self.metadata.version().transaction_time.start().cast(),
+            TimeAxis::DecisionTime => self
+                .metadata
+                .temporal_versioning()
+                .decision_time
+                .start()
+                .cast(),
+            TimeAxis::TransactionTime => self
+                .metadata
+                .temporal_versioning()
+                .transaction_time
+                .start()
+                .cast(),
         };
         EntityVertexId {
             base_id: self.metadata.record_id().entity_id,
