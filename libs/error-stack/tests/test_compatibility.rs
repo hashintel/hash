@@ -7,6 +7,7 @@
 
 mod common;
 
+#[allow(clippy::wildcard_imports)]
 use common::*;
 use error_stack::IntoReportCompat;
 #[cfg(feature = "std")]
@@ -47,7 +48,9 @@ fn anyhow() {
     #[allow(unused_mut)]
     let mut report_messages = messages(&report);
 
-    let anyhow_report = anyhow.into_report().unwrap_err();
+    let anyhow_report = anyhow
+        .into_report()
+        .expect_err("should have returned error");
     #[allow(unused_mut)]
     let mut anyhow_messages = messages(&anyhow_report);
 
@@ -64,7 +67,9 @@ fn anyhow_nostd() {
         .context(PrintableA(0))
         .context(PrintableB(0)));
 
-    let report = anyhow.into_report().unwrap_err();
+    let report = anyhow
+        .into_report()
+        .expect_err("should have returned error");
     let expected_output = ["Location", "printable B"];
     for (anyhow, expected) in messages(&report).into_iter().zip(expected_output) {
         assert_eq!(anyhow, expected);
@@ -80,7 +85,9 @@ fn anyhow_backtrace() {
     #[cfg(not(miri))]
     let error_backtrace_string = error_backtrace.to_string();
 
-    let report: Report<anyhow::Error> = Err::<(), _>(error).into_report().unwrap_err();
+    let report: Report<anyhow::Error> = Err::<(), _>(error)
+        .into_report()
+        .expect_err("should have returned error");
     let report_backtrace = report
         .request_ref::<std::backtrace::Backtrace>()
         .next()
@@ -106,7 +113,9 @@ fn anyhow_output() {
     let anyhow_display_normal = format!("{anyhow:}");
     let anyhow_display_extended = format!("{anyhow:#}");
 
-    let anyhow_report = Err::<(), _>(anyhow).into_report().unwrap_err();
+    let anyhow_report = Err::<(), _>(anyhow)
+        .into_report()
+        .expect_err("should have returned error");
     let context = anyhow_report.current_context();
 
     let context_debug_normal = format!("{context:?}");
@@ -127,7 +136,7 @@ fn install_eyre_hook() {
     static ONCE: Once = Once::new();
 
     ONCE.call_once(|| {
-        eyre::set_hook(Box::new(eyre::DefaultHandler::default_with)).expect("Could not set hook")
+        eyre::set_hook(Box::new(eyre::DefaultHandler::default_with)).expect("Could not set hook");
     });
 }
 
@@ -151,7 +160,7 @@ fn eyre() {
     #[allow(unused_mut)]
     let mut report_messages = messages(&report);
 
-    let eyre_report = eyre.into_report().unwrap_err();
+    let eyre_report = eyre.into_report().expect_err("should have returned error");
     #[allow(unused_mut)]
     let mut eyre_messages = messages(&eyre_report);
 
@@ -172,7 +181,9 @@ fn eyre_backtrace() {
     let error_backtrace_len = error_backtrace.frames().len();
     let error_backtrace_string = error_backtrace.to_string();
 
-    let report: Report<eyre::Error> = Err::<(), _>(error).into_report().unwrap_err();
+    let report: Report<eyre::Error> = Err::<(), _>(error)
+        .into_report()
+        .expect_err("should have returned error");
     let report_backtrace = report
         .request_ref::<std::backtrace::Backtrace>()
         .next()
@@ -202,7 +213,9 @@ fn eyre_output() {
     let eyre_display_normal = format!("{eyre:}");
     let eyre_display_extended = format!("{eyre:#}");
 
-    let eyre_report = Err::<(), _>(eyre).into_report().unwrap_err();
+    let eyre_report = Err::<(), _>(eyre)
+        .into_report()
+        .expect_err("should have returned error");
     let context = eyre_report.current_context();
 
     let context_debug_normal = format!("{context:?}");

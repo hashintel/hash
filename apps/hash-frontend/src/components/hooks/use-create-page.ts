@@ -1,8 +1,10 @@
 import { useMutation } from "@apollo/client";
-import { EntityUuid, OwnedById, Uuid } from "@local/hash-graphql-shared/types";
 import {
+  EntityUuid,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
+  OwnedById,
+  Uuid,
 } from "@local/hash-subgraph";
 import { useRouter } from "next/router";
 import { useCallback } from "react";

@@ -1,12 +1,11 @@
 import { Filter } from "@local/hash-graph-client";
-import { OwnedById } from "@local/hash-graphql-shared/types";
 import {
   Entity,
-  isEntityId,
+  OwnedById,
   splitEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
-import { mapSubgraph } from "@local/hash-subgraph/src/temp";
+import { mapSubgraph } from "@local/hash-subgraph/temp";
 import { ForbiddenError, UserInputError } from "apollo-server-express";
 
 import {
@@ -34,27 +33,6 @@ import { LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapEntityToGQL } from "../graphql-mapping";
 import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
-
-/**
- * @todo - Remove this when the Subgraph is appropriately queryable for a timestamp
- *   at the moment, (not in the roots) all versions of linked entities are returned,
- *   and with the lack of an `endTime`, this breaks the query ability of the graph to
- *   find the correct version of an entity.
- *   https://app.asana.com/0/1201095311341924/1203331904553375/f
- *
- */
-const removeNonLatestEntities = (subgraph: Subgraph) => {
-  for (const entityId of Object.keys(subgraph.vertices)) {
-    if (isEntityId(entityId)) {
-      for (const oldVersion of Object.keys(subgraph.vertices[entityId]!)
-        .sort()
-        .slice(0, -1)) {
-        // eslint-disable-next-line no-param-reassign
-        delete subgraph.vertices[entityId]![oldVersion];
-      }
-    }
-  }
-};
 
 export const createEntityResolver: ResolverFn<
   Promise<Entity>,
@@ -167,22 +145,22 @@ export const getAllLatestEntitiesResolver: ResolverFn<
       hasLeftEntity,
       hasRightEntity,
     },
-    timeProjection: {
-      kernel: {
-        axis: "transaction",
+    temporalAxes: {
+      pinned: {
+        axis: "transactionTime",
         timestamp: null,
       },
-      image: {
-        axis: "decision",
-        start: null,
-        end: null,
+      variable: {
+        axis: "decisionTime",
+        interval: {
+          start: null,
+          end: null,
+        },
       },
     },
   });
 
-  const mappedSubgraph = mapSubgraph(entitySubgraph);
-  removeNonLatestEntities(mappedSubgraph);
-  return mappedSubgraph;
+  return mapSubgraph(entitySubgraph);
 };
 
 export const getEntityResolver: ResolverFn<
@@ -232,26 +210,26 @@ export const getEntityResolver: ResolverFn<
       hasLeftEntity,
       hasRightEntity,
     },
-    timeProjection: {
-      kernel: {
-        axis: "transaction",
+    temporalAxes: {
+      pinned: {
+        axis: "transactionTime",
         timestamp: null,
       },
-      image: {
-        axis: "decision",
-        start: entityVersion
-          ? { bound: "included", timestamp: entityVersion }
-          : null,
-        end: entityVersion
-          ? { bound: "included", timestamp: entityVersion }
-          : null,
+      variable: {
+        axis: "decisionTime",
+        interval: {
+          start: entityVersion
+            ? { kind: "inclusive", limit: entityVersion }
+            : null,
+          end: entityVersion
+            ? { kind: "inclusive", limit: entityVersion }
+            : null,
+        },
       },
     },
   });
 
-  const mappedSubgraph = mapSubgraph(entitySubgraph);
-  removeNonLatestEntities(mappedSubgraph);
-  return mappedSubgraph;
+  return mapSubgraph(entitySubgraph);
 };
 
 export const updateEntityResolver: ResolverFn<

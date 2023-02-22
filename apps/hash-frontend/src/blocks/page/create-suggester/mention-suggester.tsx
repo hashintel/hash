@@ -1,5 +1,4 @@
-import { AccountId, OwnedById } from "@local/hash-graphql-shared/types";
-import { EntityId } from "@local/hash-subgraph";
+import { AccountId, EntityId, OwnedById } from "@local/hash-subgraph";
 import ArticleIcon from "@mui/icons-material/Article";
 import { FunctionComponent, useContext, useMemo } from "react";
 

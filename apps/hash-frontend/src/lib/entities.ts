@@ -1,12 +1,17 @@
+import { typedKeys } from "@local/advanced-types/typed-entries";
 import {
+  BaseUri,
   Entity,
+  EntityPropertiesObject,
+  EntityRootType,
   extractEntityUuidFromEntityId,
   Subgraph,
-  SubgraphRootTypes,
 } from "@local/hash-subgraph";
-import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
-import { getPropertyTypesByBaseUri } from "@local/hash-subgraph/src/stdlib/element/property-type";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import {
+  getEntityTypeById,
+  getPropertyTypesByBaseUri,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 
 /**
  * Generate a display label for an entity
@@ -15,8 +20,8 @@ import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
  */
 export const generateEntityLabel = (
   entitySubgraph:
-    | Subgraph<SubgraphRootTypes["entity"]>
-    | Partial<{ entityId: string; properties: any }>,
+    | Subgraph<EntityRootType>
+    | Partial<{ entityId: string; properties: EntityPropertiesObject }>,
   entity?: Entity,
 ): string => {
   /**
@@ -27,7 +32,7 @@ export const generateEntityLabel = (
     throw new Error("expected Subgraph but got a deprecated response type");
   }
 
-  const entityToLabel = entity ?? getRoots(entitySubgraph)[0]!;
+  const entityToLabel: Entity = entity ?? getRoots(entitySubgraph)[0]!;
 
   const getFallbackLabel = () => {
     // fallback to the entity type and a few characters of the entityUuid
@@ -62,8 +67,8 @@ export const generateEntityLabel = (
     "shortname",
   ];
 
-  const propertyTypes: { title?: string; propertyTypeBaseUri: string }[] =
-    Object.keys(entityToLabel.properties).map((propertyTypeBaseUri) => {
+  const propertyTypes: { title?: string; propertyTypeBaseUri: BaseUri }[] =
+    typedKeys(entityToLabel.properties).map((propertyTypeBaseUri) => {
       /** @todo - pick the latest version rather than first element? */
       const [propertyType] = getPropertyTypesByBaseUri(
         entitySubgraph,

@@ -3,9 +3,9 @@
 
 mod common;
 
-use core::{any::TypeId, iter::zip};
-use std::panic::Location;
+use core::{any::TypeId, iter::zip, panic::Location};
 
+#[allow(clippy::wildcard_imports)]
 use common::*;
 
 #[test]
@@ -119,6 +119,9 @@ fn type_id() {
 
     assert_eq!(current.type_id(), TypeId::of::<u32>());
 
-    let context = report.frames().last().unwrap();
-    assert_eq!(context.type_id(), TypeId::of::<RootError>())
+    let context = report
+        .frames()
+        .last()
+        .expect("should have at least a single frame");
+    assert_eq!(context.type_id(), TypeId::of::<RootError>());
 }

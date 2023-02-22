@@ -10,7 +10,11 @@
 
 import { Subgraph as SubgraphGraphApi } from "@local/hash-graph-client";
 
-import { Subgraph } from "../src";
+import { Subgraph } from "../src/main";
+import {
+  mapQueryTemporalAxes,
+  mapQueryTemporalAxesUnresolved,
+} from "./compatibility.test/map-axes";
 import { mapEdges } from "./compatibility.test/map-edges";
 import { mapRoots } from "./compatibility.test/map-roots";
 import { mapVertices } from "./compatibility.test/map-vertices";
@@ -49,33 +53,38 @@ test("Graph API subgraph type is compatible with library type", () => {
         outgoing: 0,
       },
     },
-    timeProjection: {
-      kernel: {
-        axis: "transaction",
-        timestamp: null,
-      },
-      image: {
-        axis: "decision",
-        start: {
-          bound: "unbounded",
+    temporalAxes: {
+      initial: {
+        pinned: {
+          axis: "transactionTime",
+          timestamp: null,
         },
-        end: {
-          bound: "unbounded",
+        variable: {
+          axis: "decisionTime",
+          interval: {
+            start: {
+              kind: "unbounded",
+            },
+            end: null,
+          },
         },
       },
-    },
-    resolvedTimeProjection: {
-      kernel: {
-        axis: "transaction",
-        timestamp: "2022-01-01T0:0:0",
-      },
-      image: {
-        axis: "decision",
-        start: {
-          bound: "unbounded",
+      resolved: {
+        pinned: {
+          axis: "transactionTime",
+          timestamp: "2022-01-01T0:0:0",
         },
-        end: {
-          bound: "unbounded",
+        variable: {
+          axis: "decisionTime",
+          interval: {
+            start: {
+              kind: "unbounded",
+            },
+            end: {
+              kind: "inclusive",
+              limit: "2022-01-01T0:0:0",
+            },
+          },
         },
       },
     },
@@ -87,7 +96,11 @@ test("Graph API subgraph type is compatible with library type", () => {
     vertices: mapVertices(subgraphGraphApi.vertices),
     edges: mapEdges(subgraphGraphApi.edges),
     depths: subgraphGraphApi.depths,
-    timeProjection: subgraphGraphApi.timeProjection,
-    resolvedTimeProjection: subgraphGraphApi.resolvedTimeProjection,
+    temporalAxes: {
+      initial: mapQueryTemporalAxesUnresolved(
+        subgraphGraphApi.temporalAxes.initial,
+      ),
+      resolved: mapQueryTemporalAxes(subgraphGraphApi.temporalAxes.resolved),
+    },
   };
 });

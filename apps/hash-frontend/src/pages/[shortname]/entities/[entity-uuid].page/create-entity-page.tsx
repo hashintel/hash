@@ -1,7 +1,6 @@
 import { VersionedUri } from "@blockprotocol/type-system";
-import { OwnedById } from "@local/hash-graphql-shared/types";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { extractEntityUuidFromEntityId, OwnedById } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useRouter } from "next/router";
 import { useContext, useState } from "react";
 

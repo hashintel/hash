@@ -1,17 +1,19 @@
 import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
 import { UpdatePropertyTypeRequest } from "@local/hash-graph-client";
 import { PropertyTypeWithoutId } from "@local/hash-graphql-shared/graphql/types";
-import { AccountId, OwnedById } from "@local/hash-graphql-shared/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
+  AccountId,
+  OntologyElementMetadata,
+  OntologyTypeRecordId,
+  ontologyTypeRecordIdToVersionedUri,
+  OwnedById,
+  PropertyTypeRootType,
   PropertyTypeWithMetadata,
   Subgraph,
-  SubgraphRootTypes,
 } from "@local/hash-subgraph";
-import { versionedUriFromComponents } from "@local/hash-subgraph/src/shared/type-system-patch";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
-import { mapSubgraph } from "@local/hash-subgraph/src/temp";
-import { mapOntologyMetadata } from "@local/hash-subgraph/src/temp/map-vertices";
+import { getRoots } from "@local/hash-subgraph/stdlib";
+import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
@@ -54,7 +56,7 @@ export const createPropertyType: ImpureGraphFunction<
     actorId,
   });
 
-  return { schema, metadata: mapOntologyMetadata(metadata) };
+  return { schema, metadata: metadata as OntologyElementMetadata };
 };
 
 /**
@@ -75,22 +77,21 @@ export const getPropertyTypeById: ImpureGraphFunction<
         equal: [{ path: ["versionedUri"] }, { parameter: propertyTypeId }],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeProjection: {
-        kernel: {
-          axis: "transaction",
+      temporalAxes: {
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
-          start: null,
-          end: null,
+        variable: {
+          axis: "decisionTime",
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     })
-    .then(
-      ({ data }) =>
-        mapSubgraph(data) as Subgraph<SubgraphRootTypes["propertyType"]>,
-    );
+    .then(({ data }) => mapSubgraph(data) as Subgraph<PropertyTypeRootType>);
 
   const [propertyType] = getRoots(propertyTypeSubgraph);
 
@@ -127,15 +128,13 @@ export const updatePropertyType: ImpureGraphFunction<
 
   const { data: metadata } = await graphApi.updatePropertyType(updateArguments);
 
-  const mappedMetadata = mapOntologyMetadata(metadata);
-
-  const { recordId } = mappedMetadata;
+  const { recordId } = metadata;
 
   return {
     schema: {
       ...schema,
-      $id: versionedUriFromComponents(recordId.baseUri, recordId.version),
+      $id: ontologyTypeRecordIdToVersionedUri(recordId as OntologyTypeRecordId),
     },
-    metadata: mappedMetadata,
+    metadata: metadata as OntologyElementMetadata,
   };
 };

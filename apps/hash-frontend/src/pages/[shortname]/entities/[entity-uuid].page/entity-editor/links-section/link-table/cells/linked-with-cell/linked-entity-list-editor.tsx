@@ -1,7 +1,7 @@
+import { VersionedUri } from "@blockprotocol/type-system";
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import { EntityId } from "@local/hash-graphql-shared/types";
-import { Entity, VersionedUri } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import { Entity, EntityId, Timestamp, UpdatedById } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
 import produce from "immer";
 import { useMemo, useState } from "react";
@@ -18,6 +18,11 @@ import { EntitySelector } from "./entity-selector";
 import { LinkedEntityListRow } from "./linked-entity-list-editor/linked-entity-list-row";
 import { MaxItemsReached } from "./linked-entity-list-editor/max-items-reached";
 
+/**
+ * @todo - This is unsafe, and should be refactored to return a new type `DraftEntity`, so that we aren't
+ *   breaking invariants and constraints. Having a disjoint type will let us rely on `tsc` properly and avoid casts
+ *   and empty placeholder values below
+ */
 export const createDraftLinkEntity = ({
   rightEntityId,
   leftEntityId,
@@ -32,12 +37,28 @@ export const createDraftLinkEntity = ({
     linkData: { rightEntityId, leftEntityId },
     metadata: {
       archived: false,
-      recordId: { editionId: "", entityId: `draft%${Date.now()}` },
+      recordId: { editionId: "", entityId: `draft%${Date.now()}` as EntityId },
       entityTypeId: linkEntityTypeId,
-      provenance: { updatedById: "" },
-      version: {
-        decisionTime: { start: "", end: null },
-        transactionTime: { start: "", end: null },
+      provenance: { updatedById: "" as UpdatedById },
+      temporalVersioning: {
+        decisionTime: {
+          start: {
+            kind: "inclusive",
+            limit: "" as Timestamp,
+          },
+          end: {
+            kind: "unbounded",
+          },
+        },
+        transactionTime: {
+          start: {
+            kind: "inclusive",
+            limit: "" as Timestamp,
+          },
+          end: {
+            kind: "unbounded",
+          },
+        },
       },
     },
   };
@@ -76,7 +97,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
 
     const leftEntityId = getRoots(entitySubgraph)[0]?.metadata.recordId
       .entityId as EntityId;
-    const rightEntityId = selectedEntity.metadata.recordId.entityId as EntityId;
+    const rightEntityId = selectedEntity.metadata.recordId.entityId;
 
     const linkEntity = createDraftLinkEntity({
       leftEntityId,
@@ -145,7 +166,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
 
                 onChange(newCell);
 
-                markLinkEntityToArchive(linkEntityId as EntityId);
+                markLinkEntityToArchive(linkEntityId);
               }}
               selected={selected}
               onSelect={() =>

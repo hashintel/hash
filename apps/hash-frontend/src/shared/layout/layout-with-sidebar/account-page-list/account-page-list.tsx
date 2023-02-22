@@ -19,12 +19,11 @@ import {
 } from "@dnd-kit/sortable";
 import {
   AccountId,
-  EntityId,
   EntityUuid,
   extractEntityUuidFromEntityId,
+  isEntityId,
   OwnedById,
-} from "@local/hash-graphql-shared/types";
-import { isEntityId } from "@local/hash-subgraph";
+} from "@local/hash-subgraph";
 import { Box, Collapse } from "@mui/material";
 import {
   FunctionComponent,
@@ -240,7 +239,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
 
         setTreeItems(sortedItems);
         reorderPage(
-          active.id as EntityId,
+          active.id,
           parentPageEntityId,
           beforeIndex,
           afterIndex,

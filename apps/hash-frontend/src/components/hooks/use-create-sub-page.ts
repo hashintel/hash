@@ -5,7 +5,7 @@ import {
   extractEntityUuidFromEntityId,
   OwnedById,
   Uuid,
-} from "@local/hash-graphql-shared/types";
+} from "@local/hash-subgraph";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
 
@@ -48,8 +48,8 @@ export const useCreateSubPage = (ownedById: OwnedById) => {
       });
 
       if (response.data?.createPage) {
-        const pageEntityId = response.data.createPage.metadata.recordId
-          .entityId as EntityId;
+        const pageEntityId =
+          response.data.createPage.metadata.recordId.entityId;
 
         await setParentPageFn({
           variables: {

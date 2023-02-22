@@ -28,7 +28,7 @@ impl PartialEq for Migration {
 
 impl Migration {
     #[must_use]
-    pub fn new(name: String, state: MigrationState, hash: u64) -> Self {
+    pub const fn new(name: String, state: MigrationState, hash: u64) -> Self {
         Self { name, state, hash }
     }
 
@@ -38,12 +38,12 @@ impl Migration {
     }
 
     #[must_use]
-    pub fn state(&self) -> &MigrationState {
+    pub const fn state(&self) -> &MigrationState {
         &self.state
     }
 
     #[must_use]
-    pub fn hash(&self) -> u64 {
+    pub const fn hash(&self) -> u64 {
         self.hash
     }
 }

@@ -1,7 +1,7 @@
 import {
   BlockComponent,
   useEntitySubgraph,
-  useGraphBlockService,
+  useGraphBlockModule,
 } from "@blockprotocol/graph/react";
 import { useEffect, useRef, useState } from "react";
 
@@ -21,15 +21,15 @@ export const App: BlockComponent<RootEntity> = ({
   const { rootEntity: blockEntity } = useEntitySubgraph(blockEntitySubgraph);
 
   const captionKey =
-    "https://alpha.hash.ai/@ciaran/types/property-type/caption/";
+    "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/caption/";
   const contentKey =
-    "https://alpha.hash.ai/@ciaran/types/property-type/content/";
+    "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/content/";
   const languageKey =
-    "https://alpha.hash.ai/@ciaran/types/property-type/language/";
+    "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/language/";
 
   const {
     metadata: {
-      editionId: { baseId: entityId },
+      recordId: { entityId },
       entityTypeId,
     },
     properties: {
@@ -40,7 +40,7 @@ export const App: BlockComponent<RootEntity> = ({
   } = blockEntity;
 
   const blockRef = useRef<HTMLDivElement>(null);
-  const { graphService } = useGraphBlockService(blockRef);
+  const { graphModule } = useGraphBlockModule(blockRef);
 
   const [localData, setLocalData] = useState(() => ({
     [captionKey]: caption,
@@ -76,7 +76,7 @@ export const App: BlockComponent<RootEntity> = ({
     if (readonly) {
       return;
     }
-    void graphService?.updateEntity({
+    void graphModule.updateEntity({
       data: {
         entityId,
         entityTypeId,

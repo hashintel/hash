@@ -1,6 +1,6 @@
 import { VersionedUri } from "@blockprotocol/type-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { Entity, PropertyObject } from "@local/hash-subgraph";
+import { Entity, EntityPropertiesObject } from "@local/hash-subgraph";
 import { ApolloError, UserInputError } from "apollo-server-express";
 
 import { ImpureGraphContext } from "../../../../graph";
@@ -52,7 +52,7 @@ const validateAccountShortname = async (
 type BeforeUpdateEntityHookCallback = (params: {
   context: ImpureGraphContext;
   entity: Entity;
-  updatedProperties: PropertyObject;
+  updatedProperties: EntityPropertiesObject;
 }) => Promise<void>;
 
 const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({

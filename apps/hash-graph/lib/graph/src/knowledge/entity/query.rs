@@ -43,37 +43,41 @@ pub enum EntityQueryPath<'p> {
     /// [`EntityId`]: crate::identifier::knowledge::EntityId
     /// [`Entity`]: crate::knowledge::Entity
     OwnedById,
-    /// The [`EntityRecordId`] of the [`EntityRecordId`] belonging to the [`Entity`].
+    /// The [`EntityEditionId`] of the [`EntityRecordId`] belonging to the [`Entity`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::knowledge::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["recordId"]))?;
-    /// assert_eq!(path, EntityQueryPath::RecordId);
+    /// let path = EntityQueryPath::deserialize(json!(["editionId"]))?;
+    /// assert_eq!(path, EntityQueryPath::EditionId);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
     /// [`EntityEditionId`]: crate::identifier::knowledge::EntityEditionId
     /// [`EntityRecordId`]: crate::identifier::knowledge::EntityRecordId
     /// [`Entity`]: crate::knowledge::Entity
-    RecordId,
-    /// The decision time axis of the [`EntityVersion`] belonging to the [`Entity`].
+    EditionId,
+    /// The decision time axis of the [`EntityTemporalMetadata`] belonging to the [`Entity`].
     ///
-    /// To query for an [`EntityVersion`] the time projection is specified on the
-    /// [`StructuralQuery`].
+    /// It's not possible to query for the temporal axis directly, this has to be done via the
+    /// `temporalAxes` parameter on [`StructuralQuery`]. The decision time is returned as part of
+    /// [`EntityTemporalMetadata`] of the [`EntityMetadata`].
     ///
     /// [`StructuralQuery`]: crate::shared::subgraph::query::StructuralQuery
-    /// [`EntityVersion`]: crate::identifier::knowledge::EntityVersion
+    /// [`EntityMetadata`]: crate::knowledge::EntityMetadata
+    /// [`EntityTemporalMetadata`]: crate::identifier::knowledge::EntityTemporalMetadata
     /// [`Entity`]: crate::knowledge::Entity
     DecisionTime,
-    /// The transaction time axis of the [`EntityVersion`] belonging to the [`Entity`].
+    /// The transaction time axis of the [`EntityTemporalMetadata`] belonging to the [`Entity`].
     ///
-    /// To query for an [`EntityVersion`] the time projection is specified on the
-    /// [`StructuralQuery`].
+    /// It's not possible to query for the temporal axis directly, this has to be done via the
+    /// `temporalAxes` parameter on [`StructuralQuery`]. The transaction time is returned as part
+    /// of [`EntityTemporalMetadata`] of the [`EntityMetadata`].
     ///
     /// [`StructuralQuery`]: crate::shared::subgraph::query::StructuralQuery
-    /// [`EntityVersion`]: crate::identifier::knowledge::EntityVersion
+    /// [`EntityMetadata`]: crate::knowledge::EntityMetadata
+    /// [`EntityTemporalMetadata`]: crate::identifier::knowledge::EntityTemporalMetadata
     /// [`Entity`]: crate::knowledge::Entity
     TransactionTime,
     /// Whether or not the [`Entity`] is archived.
@@ -197,7 +201,7 @@ pub enum EntityQueryPath<'p> {
     /// [`Entity`]: crate::knowledge::Entity
     /// [`LinkData::right_entity_id()`]: crate::knowledge::LinkData::right_entity_id
     RightEntity(Box<Self>),
-    /// Corresponds to [`LinkData::left_to_right_order()`].
+    /// Corresponds to [`EntityLinkOrder::left_to_right`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -208,9 +212,9 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`LinkData::left_to_right_order()`]: crate::knowledge::LinkData::left_to_right_order
+    /// [`EntityLinkOrder::left_to_right`]: crate::knowledge::EntityLinkOrder::left_to_right
     LeftToRightOrder,
-    /// Corresponds to [`LinkData::right_to_left_order()`].
+    /// Corresponds to [`EntityLinkOrder::right_to_left`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -221,9 +225,9 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`LinkData::right_to_left_order()`]: crate::knowledge::LinkData::right_to_left_order
+    /// [`EntityLinkOrder::right_to_left`]: crate::knowledge::EntityLinkOrder::right_to_left
     RightToLeftOrder,
-    /// Corresponds to [`Entity::properties()`].
+    /// Corresponds to [`Entity::properties`].
     ///
     /// Deserializes from `["properties", ...]` where `...` is a path to a property URI of an
     /// [`Entity`].
@@ -246,7 +250,7 @@ pub enum EntityQueryPath<'p> {
     /// ```
     ///
     /// [`Entity`]: crate::knowledge::Entity
-    /// [`Entity::properties()`]: crate::knowledge::Entity::properties
+    /// [`Entity::properties`]: crate::knowledge::Entity::properties
     Properties(Option<JsonPath<'p>>),
 }
 
@@ -256,7 +260,7 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::Uuid => fmt.write_str("uuid"),
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
-            Self::RecordId => fmt.write_str("recordId"),
+            Self::EditionId => fmt.write_str("editionId"),
             Self::DecisionTime => fmt.write_str("decisionTime"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
             Self::Archived => fmt.write_str("archived"),
@@ -276,8 +280,9 @@ impl fmt::Display for EntityQueryPath<'_> {
 impl QueryPath for EntityQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::Uuid | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
-            Self::RecordId => ParameterType::UnsignedInteger,
+            Self::EditionId | Self::Uuid | Self::OwnedById | Self::UpdatedById => {
+                ParameterType::Uuid
+            }
             Self::LeftEntity(path)
             | Self::RightEntity(path)
             | Self::IncomingLinks(path)
@@ -297,7 +302,7 @@ impl QueryPath for EntityQueryPath<'_> {
 pub enum EntityQueryToken {
     // TODO: we want to expose `EntityId` here instead
     Uuid,
-    RecordId,
+    EditionId,
     Archived,
     OwnedById,
     UpdatedById,
@@ -318,7 +323,7 @@ pub struct EntityQueryPathVisitor {
 }
 
 impl EntityQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `uuid`, `recordId`, `archived`, `ownedById`, \
+    pub const EXPECTING: &'static str = "one of `uuid`, `editionId`, `archived`, `ownedById`, \
                                          `updatedById`, `type`, `properties`, `incomingLinks`, \
                                          `outgoingLinks`, `leftEntity`, `rightEntity`, \
                                          `leftToRightOrder`, `rightToLeftOrder`";
@@ -347,7 +352,7 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
 
         Ok(match token {
             EntityQueryToken::Uuid => EntityQueryPath::Uuid,
-            EntityQueryToken::RecordId => EntityQueryPath::RecordId,
+            EntityQueryToken::EditionId => EntityQueryPath::EditionId,
             EntityQueryToken::OwnedById => EntityQueryPath::OwnedById,
             EntityQueryToken::UpdatedById => EntityQueryPath::UpdatedById,
             EntityQueryToken::Archived => EntityQueryPath::Archived,
@@ -445,7 +450,7 @@ mod tests {
 
         assert_eq!(
             EntityQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
-                ["recordId", "test"].into_iter()
+                ["editionId", "test"].into_iter()
             ))
             .expect_err(
                 "managed to convert entity query path with multiple tokens when it should have \

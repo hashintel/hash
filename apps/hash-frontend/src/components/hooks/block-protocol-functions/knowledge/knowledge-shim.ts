@@ -6,38 +6,55 @@
  * package and be removed from here.
  */
 
-import { MessageCallback } from "@blockprotocol/core";
+import { MessageCallback, MessageReturn } from "@blockprotocol/core";
 import {
   CreateResourceError,
   ReadOrModifyResourceError,
 } from "@blockprotocol/graph";
-import { EntityId } from "@local/hash-graphql-shared/types";
+import { VersionedUri } from "@blockprotocol/type-system";
 import {
   Entity,
+  EntityId,
+  EntityPropertiesObject,
+  EntityRootType,
   LinkData,
-  PropertyObject,
   Subgraph,
-  SubgraphRootTypes,
-  VersionedUri,
 } from "@local/hash-subgraph";
 
-export type KnowledgeCallbacks = {
-  getEntity: GetEntityMessageCallback;
-  createEntity: CreateEntityMessageCallback;
-  aggregateEntities: AggregateEntitiesMessageCallback;
-  archiveEntity: ArchiveEntityMessageCallback;
-};
+/* Entity CRU */
 
-export type GetEntityRequest = {
+export type GetEntityData = {
   entityId: EntityId;
   graphResolveDepths?: Partial<Subgraph["depths"]>;
 };
 
-/* Entity CRU */
+/** @todo-0.3 - we really want some type safety on these if we can find it, but this doesn't work */
+// export type GetEntityMessageCallback = Subtype<
+//   EmbedderGraphMessageCallbacks<true>["getEntity"],
+//   MessageCallback<
+//     GetEntityRequest,
+//     null,
+//     MessageReturn<Subgraph<EntityRootType>>,
+//     ReadOrModifyResourceError
+//   >
+// >;
 export type GetEntityMessageCallback = MessageCallback<
-  GetEntityRequest,
+  GetEntityData,
   null,
-  Subgraph<SubgraphRootTypes["entity"]>,
+  MessageReturn<Subgraph<EntityRootType>>,
+  ReadOrModifyResourceError
+>;
+
+export type UpdateEntityData = {
+  entityId: EntityId;
+  entityTypeId: VersionedUri;
+  properties: EntityPropertiesObject;
+} & Pick<LinkData, "leftToRightOrder" | "rightToLeftOrder">;
+
+export type UpdateEntityMessageCallback = MessageCallback<
+  UpdateEntityData,
+  null,
+  MessageReturn<Entity>,
   ReadOrModifyResourceError
 >;
 
@@ -58,7 +75,7 @@ export type UploadFileResponse = {
 export type UploadFileRequestCallback = MessageCallback<
   UploadFileRequest,
   null,
-  UploadFileResponse,
+  MessageReturn<UploadFileResponse>,
   CreateResourceError
 >;
 
@@ -70,20 +87,20 @@ export type AggregateEntitiesRequest = {
 export type AggregateEntitiesMessageCallback = MessageCallback<
   AggregateEntitiesRequest,
   null,
-  Subgraph<SubgraphRootTypes["entity"]>,
+  MessageReturn<Subgraph<EntityRootType>>,
   ReadOrModifyResourceError
 >;
 
 export type CreateEntityRequest = {
   entityTypeId: VersionedUri;
-  properties: PropertyObject;
+  properties: EntityPropertiesObject;
   linkData?: LinkData;
 };
 
 export type CreateEntityMessageCallback = MessageCallback<
   CreateEntityRequest,
   null,
-  Entity,
+  MessageReturn<Entity>,
   CreateResourceError
 >;
 
@@ -94,6 +111,14 @@ export type ArchiveEntityRequest = {
 export type ArchiveEntityMessageCallback = MessageCallback<
   ArchiveEntityRequest,
   null,
-  boolean,
+  MessageReturn<boolean>,
   ReadOrModifyResourceError
 >;
+
+export type KnowledgeCallbacks = {
+  getEntity: GetEntityMessageCallback;
+  updateEntity: UpdateEntityMessageCallback;
+  createEntity: CreateEntityMessageCallback;
+  aggregateEntities: AggregateEntitiesMessageCallback;
+  archiveEntity: ArchiveEntityMessageCallback;
+};

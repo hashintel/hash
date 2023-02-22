@@ -37,7 +37,7 @@ import { useEntityTypeEntities } from "./shared/entity-type-entities-context";
 
 export const EntitiesTab: FunctionComponent = () => {
   const router = useRouter();
-  const { entityType } = useEntityType();
+
   const { entities, entityTypes, propertyTypes, subgraph } =
     useEntityTypeEntities();
 
@@ -48,6 +48,8 @@ export const EntitiesTab: FunctionComponent = () => {
 
   const { columns, rows } =
     useEntitiesTable(entities, entityTypes, propertyTypes, subgraph) ?? {};
+
+  const entityType = useEntityType();
 
   const entitiesCount = useMemo(() => {
     const namespaceEntities =

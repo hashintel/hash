@@ -1,15 +1,16 @@
-import { extractBaseUri } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountEntityId,
   AccountId,
+  EntityRootType,
   extractAccountId,
-} from "@local/hash-graphql-shared/types";
-import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
-import { getEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
-import { mapSubgraph } from "@local/hash-subgraph/src/temp";
+  Subgraph,
+} from "@local/hash-subgraph";
+import { getEntities } from "@local/hash-subgraph/stdlib";
+import { mapSubgraph } from "@local/hash-subgraph/temp";
+import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { getRequiredEnv } from "../util";
@@ -53,23 +54,23 @@ export const ensureSystemUserAccountIdExists = async (params: {
         hasLeftEntity: { outgoing: 0, incoming: 0 },
         hasRightEntity: { outgoing: 0, incoming: 0 },
       },
-      timeProjection: {
-        kernel: {
-          axis: "transaction",
+      temporalAxes: {
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
-          start: null,
-          end: null,
+        variable: {
+          axis: "decisionTime",
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     });
 
   const existingUserEntities = getEntities(
-    mapSubgraph(existingUserEntitiesSubgraph) as Subgraph<
-      SubgraphRootTypes["entity"]
-    >,
+    mapSubgraph(existingUserEntitiesSubgraph) as Subgraph<EntityRootType>,
   );
 
   const existingSystemUserEntity = existingUserEntities.find(

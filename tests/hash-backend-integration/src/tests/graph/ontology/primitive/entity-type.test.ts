@@ -12,12 +12,12 @@ import {
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { EntityType, TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { OwnedById } from "@local/hash-graphql-shared/types";
 import {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   isOwnedOntologyElementMetadata,
   linkEntityTypeUri,
+  OwnedById,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 
@@ -69,6 +69,7 @@ beforeAll(async () => {
         title: "Worker",
         type: "object",
         properties: {},
+        additionalProperties: false,
       },
       actorId: testUser.accountId,
     }).then((val) => {
@@ -81,6 +82,7 @@ beforeAll(async () => {
         title: "Address",
         type: "object",
         properties: {},
+        additionalProperties: false,
       },
       actorId: testUser.accountId,
     }).then((val) => {
@@ -115,8 +117,9 @@ beforeAll(async () => {
         title: "Knows",
         description: "Knows of someone",
         type: "object",
-        properties: {},
         allOf: [{ $ref: linkEntityTypeUri }],
+        properties: {},
+        additionalProperties: false,
       },
       actorId: testUser.accountId,
     }).then((val) => {
@@ -129,8 +132,9 @@ beforeAll(async () => {
         title: "Previous Address",
         description: "A previous address of something.",
         type: "object",
-        properties: {},
         allOf: [{ $ref: linkEntityTypeUri }],
+        properties: {},
+        additionalProperties: false,
       },
       actorId: testUser.accountId,
     }).then((val) => {
@@ -166,6 +170,7 @@ beforeAll(async () => {
         ordered: true,
       },
     },
+    additionalProperties: false,
   };
 });
 

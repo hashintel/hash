@@ -25,28 +25,26 @@ pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
     identifier::{
         account::AccountId,
-        ontology::OntologyTypeEditionId,
-        time::{ProjectedTime, TimeIntervalBound, Timestamp},
-        EntityVertexId,
+        ontology::OntologyTypeRecordId,
+        time::{TemporalInterval, VariableAxis},
+        EntityVertexId, OntologyTypeVertexId,
     },
-    interval::Interval,
     ontology::{
         ExternalOntologyElementMetadata, OntologyElementMetadata, OwnedOntologyElementMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
-        error::{VersionedUriAlreadyExists, WrongOntologyVersion},
+        error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUriAlreadyExists},
         postgres::ontology::{OntologyDatabaseType, OntologyId},
-        AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, Store,
-        StoreError, Transaction, UpdateError,
+        AccountStore, BaseUriAlreadyExists, InsertionError, QueryError, StoreError, UpdateError,
     },
     subgraph::edges::GraphResolveDepths,
 };
 #[cfg(feature = "__internal_bench")]
 use crate::{
     identifier::{
-        knowledge::{EntityId, EntityRecordId, EntityVersion},
-        time::DecisionTime,
+        knowledge::{EntityEditionId, EntityId, EntityTemporalMetadata},
+        time::{DecisionTime, Timestamp},
     },
     knowledge::{EntityProperties, LinkOrder},
 };
@@ -58,32 +56,16 @@ use crate::{
 /// will be returned from [`DependencyMap::update`], otherwise [`DependencyStatus::Unresolved`] will
 /// be returned with the [`GraphResolveDepths`] and [`Interval`] that the traversal should
 /// continue with.
+///
+/// [`Interval`]: crate::interval::Interval
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DependencyStatus {
-    Unresolved(
-        GraphResolveDepths,
-        Interval<
-            Timestamp<ProjectedTime>,
-            TimeIntervalBound<ProjectedTime>,
-            TimeIntervalBound<ProjectedTime>,
-        >,
-    ),
+    Unresolved(GraphResolveDepths, TemporalInterval<VariableAxis>),
     Resolved,
 }
 
-#[expect(clippy::type_complexity, reason = "This type will be changed soon")]
 pub struct DependencyMap<K> {
-    resolved: HashMap<
-        K,
-        (
-            GraphResolveDepths,
-            Interval<
-                Timestamp<ProjectedTime>,
-                TimeIntervalBound<ProjectedTime>,
-                TimeIntervalBound<ProjectedTime>,
-            >,
-        ),
-    >,
+    resolved: HashMap<K, (GraphResolveDepths, TemporalInterval<VariableAxis>)>,
 }
 
 impl<K> Default for DependencyMap<K> {
@@ -112,11 +94,7 @@ where
         &mut self,
         identifier: &K,
         new_resolve_depth: GraphResolveDepths,
-        new_interval: Interval<
-            Timestamp<ProjectedTime>,
-            TimeIntervalBound<ProjectedTime>,
-            TimeIntervalBound<ProjectedTime>,
-        >,
+        new_interval: TemporalInterval<VariableAxis>,
     ) -> DependencyStatus {
         match self.resolved.raw_entry_mut().from_key(identifier) {
             RawEntryMut::Vacant(entry) => {
@@ -226,50 +204,13 @@ where
 
 #[derive(Default)]
 pub struct DependencyContext {
-    pub ontology_dependency_map: DependencyMap<OntologyTypeEditionId>,
+    pub ontology_dependency_map: DependencyMap<OntologyTypeVertexId>,
     pub knowledge_dependency_map: DependencyMap<EntityVertexId>,
 }
 
 /// A Postgres-backed store
 pub struct PostgresStore<C> {
     client: C,
-}
-
-#[async_trait]
-impl<C: AsClient> Store for PostgresStore<C> {
-    type Transaction<'t>
-    where
-        C: 't,
-    = PostgresStore<tokio_postgres::Transaction<'t>>;
-
-    async fn transaction(&mut self) -> Result<Self::Transaction<'_>, StoreError> {
-        Ok(PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .into_report()
-                .change_context(StoreError)?,
-        ))
-    }
-}
-
-#[async_trait]
-impl Transaction for PostgresStore<tokio_postgres::Transaction<'_>> {
-    async fn commit(self) -> Result<(), StoreError> {
-        self.client
-            .commit()
-            .await
-            .into_report()
-            .change_context(StoreError)
-    }
-
-    async fn rollback(self) -> Result<(), StoreError> {
-        self.client
-            .rollback()
-            .await
-            .into_report()
-            .change_context(StoreError)
-    }
 }
 
 impl<C> PostgresStore<C>
@@ -300,27 +241,27 @@ where
                 FROM create_owned_ontology_id(
                     base_uri := $1,
                     version := $2,
-                    owned_by_id := $3,
-                    record_created_by_id := $4
+                    record_created_by_id := $3,
+                    owned_by_id := $4
                 );"#,
                 &[
-                    &metadata.edition_id().base_id().as_str(),
-                    &metadata.edition_id().version(),
-                    &metadata.owned_by_id(),
+                    &metadata.record_id().base_uri.as_str(),
+                    &metadata.record_id().version,
                     &metadata.provenance_metadata().updated_by_id(),
+                    &metadata.owned_by_id(),
                 ],
             )
             .await
             .into_report()
             .map(|row| row.get(0))
             .map_err(|report| match report.current_context().code() {
-                Some(&SqlState::EXCLUSION_VIOLATION | &SqlState::UNIQUE_VIOLATION) => report
+                Some(&SqlState::UNIQUE_VIOLATION) => report
                     .change_context(BaseUriAlreadyExists)
-                    .attach_printable(metadata.edition_id().base_id().clone())
+                    .attach_printable(metadata.record_id().base_uri.clone())
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)
-                    .attach_printable(VersionedUri::from(metadata.edition_id())),
+                    .attach_printable(VersionedUri::from(metadata.record_id().clone())),
             })
     }
 
@@ -328,7 +269,9 @@ where
     ///
     /// # Errors
     ///
-    /// - if [`VersionedUri::base_uri`] did already exist in the database
+    /// - [`BaseUriAlreadyExists`] if [`VersionedUri::base_uri`] is an owned base uri
+    /// - [`VersionedUriAlreadyExists`] if [`VersionedUri::version`] is already used for the base
+    ///   uri
     #[tracing::instrument(level = "debug", skip(self))]
     async fn create_external_ontology_id(
         &self,
@@ -342,27 +285,31 @@ where
                 FROM create_external_ontology_id(
                     base_uri := $1,
                     version := $2,
-                    fetched_at := $3,
-                    record_created_by_id := $4
+                    record_created_by_id := $3,
+                    fetched_at := $4
                 );"#,
                 &[
-                    &metadata.edition_id().base_id().as_str(),
-                    &metadata.edition_id().version(),
-                    &metadata.fetched_at(),
+                    &metadata.record_id().base_uri.as_str(),
+                    &metadata.record_id().version,
                     &metadata.provenance_metadata().updated_by_id(),
+                    &metadata.fetched_at(),
                 ],
             )
             .await
             .into_report()
             .map(|row| row.get(0))
             .map_err(|report| match report.current_context().code() {
-                Some(&SqlState::EXCLUSION_VIOLATION | &SqlState::UNIQUE_VIOLATION) => report
+                Some(&SqlState::INVALID_PARAMETER_VALUE) => report
                     .change_context(BaseUriAlreadyExists)
-                    .attach_printable(metadata.edition_id().base_id().clone())
+                    .attach_printable(metadata.record_id().base_uri.clone())
+                    .change_context(InsertionError),
+                Some(&SqlState::UNIQUE_VIOLATION) => report
+                    .change_context(VersionedUriAlreadyExists)
+                    .attach_printable(metadata.record_id().base_uri.clone())
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)
-                    .attach_printable(VersionedUri::from(metadata.edition_id())),
+                    .attach_printable(VersionedUri::from(metadata.record_id().clone())),
             })
     }
 
@@ -371,8 +318,9 @@ where
     ///
     /// # Errors
     ///
-    /// - if [`VersionedUri::base_uri`] did not already exist in the database
-    /// - if [`VersionedUri`] did already exist in the database
+    /// - [`VersionedUriAlreadyExists`] if [`VersionedUri`] does already exist in the database
+    /// - [`OntologyVersionDoesNotExist`] if the previous version does not exist
+    /// - [`OntologyTypeIsNotOwned`] if ontology type is an external ontology type
     #[tracing::instrument(level = "debug", skip(self))]
     async fn update_owned_ontology_id(
         &self,
@@ -389,11 +337,13 @@ where
                 FROM update_owned_ontology_id(
                     base_uri := $1,
                     version := $2,
-                    record_created_by_id := $3
+                    version_to_update := $3,
+                    record_created_by_id := $4
                 );"#,
                 &[
-                    &uri.base_uri().as_str(),
-                    &i64::from(uri.version()),
+                    &uri.base_uri.as_str(),
+                    &i64::from(uri.version),
+                    &i64::from(uri.version - 1),
                     &updated_by_id,
                 ],
             )
@@ -405,12 +355,12 @@ where
                     .attach_printable(uri.clone())
                     .change_context(UpdateError),
                 Some(&SqlState::INVALID_PARAMETER_VALUE) => report
-                    .change_context(WrongOntologyVersion)
-                    .attach_printable(uri.clone())
+                    .change_context(OntologyVersionDoesNotExist)
+                    .attach_printable(uri.base_uri.clone())
                     .change_context(UpdateError),
                 Some(&SqlState::RESTRICT_VIOLATION) => report
-                    .change_context(BaseUriDoesNotExist)
-                    .attach_printable(uri.base_uri().clone())
+                    .change_context(OntologyTypeIsNotOwned)
+                    .attach_printable(uri.base_uri.clone())
                     .change_context(UpdateError),
                 _ => report
                     .change_context(UpdateError)
@@ -438,7 +388,8 @@ where
         metadata: &OntologyElementMetadata,
     ) -> Result<OntologyId, InsertionError>
     where
-        T: OntologyDatabaseType,
+        T: OntologyDatabaseType + Send,
+        T::Representation: Send,
     {
         let ontology_id = match metadata {
             OntologyElementMetadata::Owned(metadata) => {
@@ -471,15 +422,13 @@ where
         updated_by_id: UpdatedById,
     ) -> Result<(OntologyId, OntologyElementMetadata), UpdateError>
     where
-        T: OntologyDatabaseType,
+        T: OntologyDatabaseType + Send,
+        T::Representation: Send,
     {
         let uri = database_type.id();
-        let edition_id = OntologyTypeEditionId::from(uri);
+        let record_id = OntologyTypeRecordId::from(uri.clone());
 
-        let (ontology_id, owned_by_id) = self
-            .update_owned_ontology_id(uri, updated_by_id)
-            .await
-            .change_context(UpdateError)?;
+        let (ontology_id, owned_by_id) = self.update_owned_ontology_id(uri, updated_by_id).await?;
         self.insert_with_id(ontology_id, database_type)
             .await
             .change_context(UpdateError)?;
@@ -487,7 +436,7 @@ where
         Ok((
             ontology_id,
             OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                edition_id,
+                record_id,
                 ProvenanceMetadata::new(updated_by_id),
                 owned_by_id,
             )),
@@ -507,7 +456,8 @@ where
         database_type: T,
     ) -> Result<(), InsertionError>
     where
-        T: OntologyDatabaseType,
+        T: OntologyDatabaseType + Send,
+        T::Representation: Send,
     {
         let value_repr = T::Representation::from(database_type);
         let value = serde_json::to_value(value_repr)
@@ -713,7 +663,7 @@ where
     /// - if the entry referred to by `uri` does not exist.
     #[tracing::instrument(level = "debug", skip(self))]
     async fn ontology_id_by_uri(&self, uri: &VersionedUri) -> Result<OntologyId, QueryError> {
-        let version = i64::from(uri.version());
+        let version = i64::from(uri.version);
         Ok(self
             .client
             .as_client()
@@ -723,7 +673,7 @@ where
                 FROM ontology_ids
                 WHERE base_uri = $1 AND version = $2;
                 "#,
-                &[&uri.base_uri().as_str(), &version],
+                &[&uri.base_uri.as_str(), &version],
             )
             .await
             .into_report()
@@ -731,9 +681,46 @@ where
             .attach_printable_lazy(|| uri.clone())?
             .get(0))
     }
+
+    /// # Errors
+    ///
+    /// - if the underlying client cannot start a transaction
+    pub async fn transaction(
+        &mut self,
+    ) -> Result<PostgresStore<tokio_postgres::Transaction<'_>>, StoreError> {
+        Ok(PostgresStore::new(
+            self.as_mut_client()
+                .transaction()
+                .await
+                .into_report()
+                .change_context(StoreError)?,
+        ))
+    }
 }
 
 impl PostgresStore<tokio_postgres::Transaction<'_>> {
+    /// # Errors
+    ///
+    /// - if the underlying client cannot commit the transaction
+    pub async fn commit(self) -> Result<(), StoreError> {
+        self.client
+            .commit()
+            .await
+            .into_report()
+            .change_context(StoreError)
+    }
+
+    /// # Errors
+    ///
+    /// - if the underlying client cannot rollback the transaction
+    pub async fn rollback(self) -> Result<(), StoreError> {
+        self.client
+            .rollback()
+            .await
+            .into_report()
+            .change_context(StoreError)
+    }
+
     #[doc(hidden)]
     #[cfg(feature = "__internal_bench")]
     async fn insert_entity_ids(
@@ -772,17 +759,25 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             writer
                 .as_mut()
                 .write(&[
-                    &entity_id.owned_by_id(),
-                    &entity_id.entity_uuid(),
-                    &left_entity_id.as_ref().map(EntityId::owned_by_id),
-                    &left_entity_id.as_ref().map(EntityId::entity_uuid),
-                    &right_entity_id.as_ref().map(EntityId::owned_by_id),
-                    &right_entity_id.as_ref().map(EntityId::entity_uuid),
+                    &entity_id.owned_by_id,
+                    &entity_id.entity_uuid,
+                    &left_entity_id
+                        .as_ref()
+                        .map(|entity_id| entity_id.owned_by_id),
+                    &left_entity_id
+                        .as_ref()
+                        .map(|entity_id| entity_id.entity_uuid),
+                    &right_entity_id
+                        .as_ref()
+                        .map(|entity_id| entity_id.owned_by_id),
+                    &right_entity_id
+                        .as_ref()
+                        .map(|entity_id| entity_id.entity_uuid),
                 ])
                 .await
                 .into_report()
                 .change_context(InsertionError)
-                .attach_printable(entity_id.entity_uuid())?;
+                .attach_printable(entity_id.entity_uuid)?;
         }
 
         writer
@@ -802,7 +797,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         > + Send,
         entity_type_ontology_id: OntologyId,
         actor_id: UpdatedById,
-    ) -> Result<Vec<EntityRecordId>, InsertionError> {
+    ) -> Result<Vec<EntityEditionId>, InsertionError> {
         self.client
             .simple_query(
                 "CREATE TEMPORARY TABLE entity_editions_temp (
@@ -868,7 +863,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .into_report()
             .change_context(InsertionError)?;
 
-        let entity_record_ids = self
+        let entity_edition_ids = self
             .client
             .query(
                 "INSERT INTO entity_editions (
@@ -896,7 +891,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .into_report()
             .change_context(InsertionError)?
             .into_iter()
-            .map(|row| EntityRecordId::new(row.get(0)))
+            .map(|row| EntityEditionId::new(row.get(0)))
             .collect();
 
         self.client
@@ -905,7 +900,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .into_report()
             .change_context(InsertionError)?;
 
-        Ok(entity_record_ids)
+        Ok(entity_edition_ids)
     }
 
     #[doc(hidden)]
@@ -913,10 +908,10 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     async fn insert_entity_versions(
         &self,
         entities: impl IntoIterator<
-            Item = (EntityId, EntityRecordId, Option<Timestamp<DecisionTime>>),
+            Item = (EntityId, EntityEditionId, Option<Timestamp<DecisionTime>>),
             IntoIter: Send,
         > + Send,
-    ) -> Result<Vec<EntityVersion>, InsertionError> {
+    ) -> Result<Vec<EntityTemporalMetadata>, InsertionError> {
         self.client
             .simple_query(
                 "CREATE TEMPORARY TABLE entity_temporal_metadata_temp (
@@ -950,13 +945,13 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             Type::TIMESTAMPTZ,
         ]);
         futures::pin_mut!(writer);
-        for (entity_id, entity_record_id, decision_time) in entities {
+        for (entity_id, entity_edition_id, decision_time) in entities {
             writer
                 .as_mut()
                 .write(&[
-                    &entity_id.owned_by_id(),
-                    &entity_id.entity_uuid(),
-                    &entity_record_id,
+                    &entity_id.owned_by_id,
+                    &entity_id.entity_uuid,
+                    &entity_edition_id,
                     &decision_time,
                 ])
                 .await
@@ -997,7 +992,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .into_report()
             .change_context(InsertionError)?
             .into_iter()
-            .map(|row| EntityVersion {
+            .map(|row| EntityTemporalMetadata {
                 decision_time: row.get(0),
                 transaction_time: row.get(1),
             })

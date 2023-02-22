@@ -12,7 +12,7 @@ use crate::{
     identifier::{
         knowledge::EntityId,
         ontology::OntologyTypeVersion,
-        time::{ProjectedTime, Timestamp},
+        time::{Timestamp, VariableAxis},
     },
     knowledge::Entity,
 };
@@ -26,7 +26,7 @@ pub struct OntologyVertices(pub HashMap<BaseUri, BTreeMap<OntologyTypeVersion, O
 #[derive(Serialize, ToSchema)]
 #[serde(transparent)]
 pub struct KnowledgeGraphVertices(
-    HashMap<EntityId, BTreeMap<Timestamp<ProjectedTime>, KnowledgeGraphVertex>>,
+    HashMap<EntityId, BTreeMap<Timestamp<VariableAxis>, KnowledgeGraphVertex>>,
 );
 
 #[derive(Serialize)]
@@ -66,12 +66,12 @@ impl From<crate::subgraph::vertices::Vertices> for Vertices {
             ontology: OntologyVertices(data_types.chain(property_types).chain(entity_types).fold(
                 HashMap::new(),
                 |mut map, (id, vertex)| {
-                    match map.entry(id.base_id().clone()) {
+                    match map.entry(id.base_id.clone()) {
                         Entry::Occupied(entry) => {
-                            entry.into_mut().insert(id.version(), vertex);
+                            entry.into_mut().insert(id.revision_id, vertex);
                         }
                         Entry::Vacant(entry) => {
-                            entry.insert(BTreeMap::from([(id.version(), vertex)]));
+                            entry.insert(BTreeMap::from([(id.revision_id, vertex)]));
                         }
                     }
                     map
@@ -80,15 +80,15 @@ impl From<crate::subgraph::vertices::Vertices> for Vertices {
             knowledge_graph: KnowledgeGraphVertices(vertices.entities.into_iter().fold(
                 HashMap::new(),
                 |mut map, (id, vertex)| {
-                    match map.entry(id.base_id()) {
+                    match map.entry(id.base_id) {
                         Entry::Occupied(entry) => {
                             entry
                                 .into_mut()
-                                .insert(id.version(), KnowledgeGraphVertex::Entity(vertex));
+                                .insert(id.revision_id, KnowledgeGraphVertex::Entity(vertex));
                         }
                         Entry::Vacant(entry) => {
                             entry.insert(BTreeMap::from([(
-                                id.version(),
+                                id.revision_id,
                                 KnowledgeGraphVertex::Entity(vertex),
                             )]));
                         }

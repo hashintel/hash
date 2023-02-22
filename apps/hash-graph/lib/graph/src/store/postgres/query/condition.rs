@@ -100,12 +100,12 @@ mod tests {
     use postgres_types::ToSql;
 
     use crate::{
-        identifier::time::UnresolvedTimeProjection,
         ontology::{DataTypeQueryPath, DataTypeWithMetadata},
         store::{
             postgres::query::{SelectCompiler, Transpile},
             query::{Filter, FilterExpression, Parameter},
         },
+        subgraph::temporal_axes::QueryTemporalAxesUnresolved,
     };
 
     fn test_condition<'p, 'f: 'p>(
@@ -113,8 +113,8 @@ mod tests {
         rendered: &'static str,
         parameters: &[&'p dyn ToSql],
     ) {
-        let time_projection = UnresolvedTimeProjection::default().resolve();
-        let mut compiler = SelectCompiler::new(&time_projection);
+        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let mut compiler = SelectCompiler::new(&temporal_axes);
         let condition = compiler.compile_filter(filter);
 
         assert_eq!(condition.transpile_to_string(), rendered);
@@ -205,13 +205,13 @@ mod tests {
                 ),
                 Filter::Equal(
                     Some(FilterExpression::Path(DataTypeQueryPath::Version)),
-                    Some(FilterExpression::Parameter(Parameter::Number(1.0))),
+                    Some(FilterExpression::Parameter(Parameter::Number(1))),
                 ),
             ]),
             r#"("ontology_id_with_metadata_0_1_0"."base_uri" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)"#,
             &[
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
-                &1.0,
+                &1,
             ],
         );
     }
@@ -239,13 +239,13 @@ mod tests {
                 ),
                 Filter::Equal(
                     Some(FilterExpression::Path(DataTypeQueryPath::Version)),
-                    Some(FilterExpression::Parameter(Parameter::Number(1.0))),
+                    Some(FilterExpression::Parameter(Parameter::Number(1))),
                 ),
             ]),
             r#"(("ontology_id_with_metadata_0_1_0"."base_uri" = $1) OR ("ontology_id_with_metadata_0_1_0"."version" = $2))"#,
             &[
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
-                &1.0,
+                &1,
             ],
         );
     }

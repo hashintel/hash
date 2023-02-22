@@ -1,9 +1,8 @@
+import { OntologyChip, OntologyIcon } from "@hashintel/design-system";
 import { Typography } from "@mui/material";
 import Head from "next/head";
 import { ReactNode } from "react";
 
-import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
-import { OntologyChip } from "../../shared/ontology-chip";
 import { EntityEditor, EntityEditorProps } from "./entity-editor";
 import { EntityPageWrapper } from "./entity-page-wrapper";
 import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
@@ -34,7 +33,7 @@ export const EntityEditorPage = ({
             editBar={editBar}
             chip={
               <OntologyChip
-                icon={<HashOntologyIcon />}
+                icon={<OntologyIcon />}
                 domain="hash.ai"
                 path={
                   <Typography>

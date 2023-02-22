@@ -1,4 +1,3 @@
-export { default as CirclePlusIcon } from "./svg/circle-plus.svg";
 export { default as HumanGreetingIcon } from "./svg/human-greeting.svg";
 export { default as InfoIcon } from "./svg/info.svg";
 export { default as KeyboardReturnIcon } from "./svg/keyboard-return.svg";

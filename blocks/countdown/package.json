@@ -50,7 +50,7 @@
     "blockType": {
       "entryPoint": "react"
     },
-    "name": "@timdiekmann/countdown",
+    "name": "@hash/countdown",
     "displayName": "Countdown",
     "examples": [
       {

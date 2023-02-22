@@ -1,18 +1,20 @@
 import { EntityType, VersionedUri } from "@blockprotocol/type-system";
 import { UpdateEntityTypeRequest } from "@local/hash-graph-client";
 import { EntityTypeWithoutId } from "@local/hash-graphql-shared/graphql/types";
-import { AccountId, OwnedById } from "@local/hash-graphql-shared/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
+  AccountId,
+  EntityTypeRootType,
   EntityTypeWithMetadata,
   linkEntityTypeUri,
+  OntologyElementMetadata,
+  OntologyTypeRecordId,
   ontologyTypeRecordIdToVersionedUri,
+  OwnedById,
   Subgraph,
-  SubgraphRootTypes,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
-import { mapSubgraph } from "@local/hash-subgraph/src/temp";
-import { mapOntologyMetadata } from "@local/hash-subgraph/src/temp/map-vertices";
+import { getRoots } from "@local/hash-subgraph/stdlib";
+import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { NotFoundError } from "../../../lib/error";
 import {
@@ -55,10 +57,14 @@ export const createEntityType: ImpureGraphFunction<
   const { data: metadata } = await graphApi.createEntityType({
     actorId,
     ownedById,
-    schema,
+    schema: {
+      ...schema,
+      // @ts-expect-error: graph API expects this but the type in HASH hasn't been updated
+      additionalProperties: false,
+    },
   });
 
-  return { schema, metadata: mapOntologyMetadata(metadata) };
+  return { schema, metadata: metadata as OntologyElementMetadata };
 };
 
 /**
@@ -80,22 +86,21 @@ export const getEntityTypeById: ImpureGraphFunction<
         equal: [{ path: ["versionedUri"] }, { parameter: entityTypeId }],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeProjection: {
-        kernel: {
-          axis: "transaction",
+      temporalAxes: {
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
-          start: null,
-          end: null,
+        variable: {
+          axis: "decisionTime",
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     })
-    .then(
-      ({ data }) =>
-        mapSubgraph(data) as Subgraph<SubgraphRootTypes["entityType"]>,
-    );
+    .then(({ data }) => mapSubgraph(data) as Subgraph<EntityTypeRootType>);
 
   const [entityType] = getRoots(entityTypeSubgraph);
 
@@ -132,15 +137,14 @@ export const updateEntityType: ImpureGraphFunction<
 
   const { data: metadata } = await graphApi.updateEntityType(updateArguments);
 
-  const mappedMetadata = mapOntologyMetadata(metadata);
-  const { recordId } = mappedMetadata;
+  const { recordId } = metadata;
 
   return {
     schema: {
       ...schema,
-      $id: ontologyTypeRecordIdToVersionedUri(recordId),
+      $id: ontologyTypeRecordIdToVersionedUri(recordId as OntologyTypeRecordId),
     },
-    metadata: mappedMetadata,
+    metadata: metadata as OntologyElementMetadata,
   };
 };
 

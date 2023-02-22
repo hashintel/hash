@@ -1,9 +1,11 @@
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import {
+  AccountEntityId,
   AccountId,
+  Entity,
+  EntityId,
   extractOwnedByIdFromEntityId,
-} from "@local/hash-graphql-shared/types";
-import { Entity, EntityId } from "@local/hash-subgraph";
+} from "@local/hash-subgraph";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
@@ -190,7 +192,10 @@ export const updateCommentText: ImpureGraphFunction<
 > = async (ctx, params) => {
   const { comment, actorId, tokens } = params;
 
-  if (actorId !== comment.entity.metadata.recordId.entityId) {
+  if (
+    actorId !==
+    extractOwnedByIdFromEntityId(comment.entity.metadata.recordId.entityId)
+  ) {
     throw new Error(
       `Critical: account ${actorId} does not have permission to edit the comment with entityId ${comment.entity.metadata.recordId.entityId}`,
     );
@@ -223,7 +228,12 @@ export const deleteComment: ImpureGraphFunction<
   const { comment, actorId } = params;
 
   // Throw error if the user trying to delete the comment is not the comment's author
-  if (actorId !== comment.entity.metadata.recordId.entityId) {
+  if (
+    actorId !==
+    extractOwnedByIdFromEntityId(
+      comment.entity.metadata.recordId.entityId as AccountEntityId,
+    )
+  ) {
     throw new Error(
       `Critical: account ${actorId} does not have permission to delete the comment with entityId ${comment.entity.metadata.recordId}`,
     );
@@ -354,7 +364,7 @@ export const resolveComment: ImpureGraphFunction<
   // Throw error if the user trying to resolve the comment is not the comment's author
   // or the author of the block the comment is attached to
   if (
-    actorId !== author.entity.metadata.recordId.entityId &&
+    actorId !== author.accountId &&
     parent.metadata.entityTypeId === SYSTEM_TYPES.entityType.block.schema.$id &&
     actorId !== extractOwnedByIdFromEntityId(parent.metadata.recordId.entityId)
   ) {

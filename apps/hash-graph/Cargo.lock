@@ -74,9 +74,9 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
 name = "axum"
-version = "0.6.4"
+version = "0.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5694b64066a2459918d8074c2ce0d5a88f409431994c2356617c8ae0c4721fc"
+checksum = "2fb79c228270dcf2426e74864cabc94babb5dbab01a4314e702d2f16540e1591"
 dependencies = [
  "async-trait",
  "axum-core",
@@ -251,9 +251,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.1.4"
+version = "4.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f13b9c79b5d1dd500d20ef541215a6423c75829ef43117e1b4d17fd8af0b5d76"
+checksum = "ec0b0588d44d4d63a87dbd75c136c166bbfd9a86a31cb89e09906521c7d3f5e3"
 dependencies = [
  "bitflags",
  "clap_derive",
@@ -267,11 +267,11 @@ dependencies = [
 
 [[package]]
 name = "clap_complete"
-version = "4.1.1"
+version = "4.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d6540eedc41f8a5a76cf3d8d458057dcdf817be4158a55b5f861f7a5483de75"
+checksum = "bd125be87bf4c255ebc50de0b7f4d2a6201e8ac3dc86e39c0ad081dc5e7236fe"
 dependencies = [
- "clap 4.1.4",
+ "clap 4.1.6",
 ]
 
 [[package]]
@@ -734,7 +734,7 @@ dependencies = [
  "async-trait",
  "axum",
  "bb8-postgres",
- "clap 4.1.4",
+ "clap 4.1.6",
  "criterion",
  "derivative",
  "error-stack",
@@ -766,6 +766,42 @@ dependencies = [
  "type-fetcher",
  "type-system",
  "utoipa",
+ "uuid",
+]
+
+[[package]]
+name = "graph-benches"
+version = "0.0.0"
+dependencies = [
+ "criterion",
+ "criterion-macro",
+ "futures",
+ "graph",
+ "graph-test-data",
+ "rand",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-postgres",
+ "type-system",
+ "uuid",
+]
+
+[[package]]
+name = "graph-integration"
+version = "0.0.0"
+dependencies = [
+ "error-stack",
+ "futures",
+ "graph",
+ "graph-test-data",
+ "rand",
+ "serde",
+ "serde_json",
+ "time",
+ "tokio",
+ "tokio-postgres",
+ "type-system",
  "uuid",
 ]
 
@@ -803,7 +839,7 @@ name = "hash-graph"
 version = "0.0.0"
 dependencies = [
  "axum",
- "clap 4.1.4",
+ "clap 4.1.6",
  "clap_complete",
  "error-stack",
  "futures",
@@ -812,29 +848,12 @@ dependencies = [
  "reqwest",
  "serde_json",
  "tarpc",
+ "time",
  "tokio",
  "tokio-postgres",
  "tokio-serde",
  "tracing",
  "type-fetcher",
- "type-system",
- "uuid",
-]
-
-[[package]]
-name = "hash_graph_benches"
-version = "0.0.0"
-dependencies = [
- "criterion",
- "criterion-macro",
- "futures",
- "graph",
- "graph-test-data",
- "rand",
- "serde",
- "serde_json",
- "tokio",
- "tokio-postgres",
  "type-system",
  "uuid",
 ]
@@ -2223,9 +2242,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.17"
+version = "0.3.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a561bf4617eebd33bca6434b988f39ed798e527f51a1e797d0ee4f61c0a38376"
+checksum = "53250a3b3fed8ff8fd988587d8925d26a83ac3845d9e03b220b37f34c2b8d6c2"
 dependencies = [
  "itoa",
  "serde",
@@ -2241,9 +2260,9 @@ checksum = "2e153e1f1acaef8acc537e68b44906d2db6436e2b35ac2c6b42640fff91f00fd"
 
 [[package]]
 name = "time-macros"
-version = "0.2.6"
+version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d967f99f534ca7e495c575c62638eebc2898a8c84c119b89e250477bc4ba16b2"
+checksum = "a460aeb8de6dcb0f381e1ee05f1cd56fcf5a5f6eb8187ff3d8f0b11078d38b7c"
 dependencies = [
  "time-core",
 ]
@@ -2673,6 +2692,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tarpc",
+ "time",
  "tokio",
  "tracing",
  "type-system",
@@ -2681,7 +2701,7 @@ dependencies = [
 [[package]]
 name = "type-system"
 version = "0.0.0"
-source = "git+https://github.com/blockprotocol/blockprotocol?rev=2ea406f#2ea406f632972635cc47aa5a45fd2981533037a7"
+source = "git+https://github.com/blockprotocol/blockprotocol?rev=adab205#adab205d4724c992b0f4b8efbf21f8942050479b"
 dependencies = [
  "console_error_panic_hook",
  "regex",
@@ -2739,9 +2759,9 @@ dependencies = [
 
 [[package]]
 name = "utoipa"
-version = "3.0.1"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3920fa753064b1be7842bea26175ffa0dfc4a8f30bcb52b8ff03fddf8889914c"
+checksum = "a15f6da6a2b471134ca44b7d18e8a76d73035cf8b3ed24c4dd5ca6a63aa439c5"
 dependencies = [
  "indexmap",
  "serde",
@@ -2751,9 +2771,9 @@ dependencies = [
 
 [[package]]
 name = "utoipa-gen"
-version = "3.0.1"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "720298fac6efca20df9e457e67a1eab41a20d1c3101380b5c4dca1ca60ae0062"
+checksum = "6f2e33027986a4707b3f5c37ed01b33d0e5a53da30204b52ff18f80600f1d0ec"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
