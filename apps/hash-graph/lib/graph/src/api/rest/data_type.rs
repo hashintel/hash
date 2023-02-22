@@ -18,7 +18,7 @@ use crate::{
         OwnedOntologyElementMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
-    store::{BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool},
+    store::{BaseUriAlreadyExists, DataTypeStore, OntologyVersionDoesNotExist, StorePool},
     subgraph::query::{DataTypeStructuralQuery, StructuralQuery},
 };
 
@@ -228,7 +228,7 @@ async fn update_data_type<P: StorePool + Send>(
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update data type");
 
-            if report.contains::<BaseUriDoesNotExist>() {
+            if report.contains::<OntologyVersionDoesNotExist>() {
                 return StatusCode::NOT_FOUND;
             }
 
