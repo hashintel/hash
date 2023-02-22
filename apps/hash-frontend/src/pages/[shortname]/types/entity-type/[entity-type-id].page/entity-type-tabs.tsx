@@ -1,10 +1,13 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { EntityTypeEditorFormData } from "@hashintel/type-editor";
+import {
+  EntityTypeEditorFormData,
+  useEntityTypeFormContext,
+  useEntityTypeFormWatch,
+} from "@hashintel/type-editor";
 import { Box, Tabs, tabsClasses } from "@mui/material";
 import { useRouter } from "next/router";
 import { useState } from "react";
-import { useFormContext, useWatch } from "react-hook-form";
 
 import { useFontLoadedCallback } from "../../../../../components/hooks/use-font-loaded-callback";
 import { TabLink } from "./entity-type-tabs/tab-link";
@@ -20,8 +23,8 @@ export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
 
   const [animateTabs, setAnimateTabs] = useState(false);
 
-  const { control } = useFormContext<EntityTypeEditorFormData>();
-  const propertiesCount = useWatch({
+  const { control } = useEntityTypeFormContext<EntityTypeEditorFormData>();
+  const propertiesCount = useEntityTypeFormWatch({
     control,
     name: "properties.length",
   });
@@ -72,7 +75,6 @@ export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
           value={getTabValue("definition")}
           href={isDraft ? router.asPath : getTabUri(baseUri, "definition")}
           label="Definition"
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
           count={propertiesCount ?? 0}
           active={currentTab === "definition"}
         />
