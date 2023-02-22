@@ -1,13 +1,13 @@
-import { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { EntityRootType, Subgraph } from "@blockprotocol/graph/temporal";
 import { createContext, Dispatch, SetStateAction, useContext } from "react";
 
 export type BlockContextType = {
   id: string;
   error: boolean;
   setError: (error: boolean) => void;
-  blockSubgraph: Subgraph<true, EntityRootType<true>> | undefined;
+  blockSubgraph: Subgraph<EntityRootType> | undefined;
   setBlockSubgraph: Dispatch<
-    SetStateAction<Subgraph<true, EntityRootType<true>> | undefined>
+    SetStateAction<Subgraph<EntityRootType> | undefined>
   >;
 };
 

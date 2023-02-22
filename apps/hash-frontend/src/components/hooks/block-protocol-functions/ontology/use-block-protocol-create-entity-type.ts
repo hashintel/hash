@@ -54,7 +54,10 @@ export const useBlockProtocolCreateEntityType = (
       const { data: responseData } = await createFn({
         variables: {
           ownedById,
-          entityType,
+          entityType: {
+            ...entityType,
+            kind: "entityType",
+          },
         },
       });
 

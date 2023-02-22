@@ -1,9 +1,9 @@
 import {
   BlockGraphProperties,
-  EmbedderGraphMessageCallbacks,
   EntityRootType,
+  GraphEmbedderMessageCallbacks,
   Subgraph,
-} from "@blockprotocol/graph";
+} from "@blockprotocol/graph/temporal";
 import { getRoots } from "@blockprotocol/graph/temporal/stdlib";
 import { VersionedUri } from "@blockprotocol/type-system/slim";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
@@ -64,7 +64,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     void fetchBlockSubgraph(blockEntityTypeId, blockEntityId).then(
       (newBlockSubgraph) =>
         setBlockSubgraph(
-          newBlockSubgraph as unknown as Subgraph<true, EntityRootType<true>>,
+          newBlockSubgraph as unknown as Subgraph<EntityRootType>,
         ),
     );
   }, [fetchBlockSubgraph, blockEntityId, blockEntityTypeId, setBlockSubgraph]);
@@ -79,7 +79,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       getEmbedBlock: fetchEmbedCode,
       uploadFile,
       updateEntity: async (
-        ...args: Parameters<EmbedderGraphMessageCallbacks<true>["updateEntity"]>
+        ...args: Parameters<GraphEmbedderMessageCallbacks["updateEntity"]>
       ) => {
         const [messageData] = args;
         const res = await updateEntity(
@@ -98,7 +98,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
           blockEntityId,
         );
         setBlockSubgraph(
-          newBlockSubgraph as unknown as Subgraph<true, EntityRootType<true>>,
+          newBlockSubgraph as unknown as Subgraph<EntityRootType>,
         );
 
         return res;
@@ -143,7 +143,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   //   );
   // }
 
-  const graphProperties = useMemo<BlockGraphProperties<true>["graph"]>(
+  const graphProperties = useMemo<BlockGraphProperties["graph"]>(
     () => ({
       readonly,
       blockEntitySubgraph: blockSubgraph,
@@ -157,6 +157,9 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     if (!graphProperties.blockEntitySubgraph) {
       return null;
     }
+    if (!graphProperties.readonly) {
+      return null;
+    }
     const rootEntity = getRoots(graphProperties.blockEntitySubgraph)[0] as
       | Entity
       | undefined;
@@ -166,11 +169,14 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     }
 
     return {
-      ...(graphProperties as Required<BlockGraphProperties<true>["graph"]>),
+      ...graphProperties,
       blockEntity: {
         entityId: rootEntity.metadata.recordId.entityId,
         properties: rootEntity.properties,
       },
+      /* @todo - Why is this necessary? */
+      blockEntitySubgraph: graphProperties.blockEntitySubgraph,
+      readonly: graphProperties.readonly,
     };
   }, [graphProperties]);
 

@@ -45,7 +45,6 @@ const ExampleUsage = ({ accountId }: { accountId: AccountId }) => {
       .createPropertyType({
         data: {
           propertyType: {
-            kind: "propertyType",
             title: "Name",
             oneOf: [{ $ref: types.dataType.text.dataTypeId }],
           },
