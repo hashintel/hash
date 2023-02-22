@@ -28,8 +28,9 @@ use graph::{
         LinkData,
     },
     ontology::{
-        DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata, OntologyElementMetadata,
-        OwnedOntologyElementMetadata, PropertyTypeWithMetadata,
+        DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata,
+        ExternalOntologyElementMetadata, OntologyElementMetadata, OwnedOntologyElementMetadata,
+        PropertyTypeWithMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
@@ -187,7 +188,7 @@ fn generate_decision_time() -> Timestamp<DecisionTime> {
 
 // TODO: Add get_all_* methods
 impl DatabaseApi<'_> {
-    pub async fn create_data_type(
+    pub async fn create_owned_data_type(
         &mut self,
         data_type: DataType,
     ) -> Result<OntologyElementMetadata, InsertionError> {
@@ -195,6 +196,21 @@ impl DatabaseApi<'_> {
             data_type.id().clone().into(),
             ProvenanceMetadata::new(UpdatedById::new(self.account_id)),
             OwnedById::new(self.account_id),
+        ));
+
+        self.store.create_data_type(data_type, &metadata).await?;
+
+        Ok(metadata)
+    }
+
+    pub async fn create_external_data_type(
+        &mut self,
+        data_type: DataType,
+    ) -> Result<OntologyElementMetadata, InsertionError> {
+        let metadata = OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
+            data_type.id().clone().into(),
+            ProvenanceMetadata::new(UpdatedById::new(self.account_id)),
+            OffsetDateTime::now_utc(),
         ));
 
         self.store.create_data_type(data_type, &metadata).await?;

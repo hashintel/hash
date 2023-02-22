@@ -20,7 +20,7 @@ use crate::{
     },
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
-        error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
+        error::{BaseUriAlreadyExists, OntologyVersionDoesNotExist},
         EntityTypeStore, StorePool,
     },
     subgraph::query::{EntityTypeStructuralQuery, StructuralQuery},
@@ -238,7 +238,7 @@ async fn update_entity_type<P: StorePool + Send>(
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity type");
 
-            if report.contains::<BaseUriDoesNotExist>() {
+            if report.contains::<OntologyVersionDoesNotExist>() {
                 return StatusCode::NOT_FOUND;
             }
 

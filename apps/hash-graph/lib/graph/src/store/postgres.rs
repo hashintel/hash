@@ -34,10 +34,9 @@ use crate::{
     },
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
-        error::{VersionedUriAlreadyExists, WrongOntologyVersion},
+        error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUriAlreadyExists},
         postgres::ontology::{OntologyDatabaseType, OntologyId},
-        AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError,
-        StoreError, UpdateError,
+        AccountStore, BaseUriAlreadyExists, InsertionError, QueryError, StoreError, UpdateError,
     },
     subgraph::edges::GraphResolveDepths,
 };
@@ -242,21 +241,21 @@ where
                 FROM create_owned_ontology_id(
                     base_uri := $1,
                     version := $2,
-                    owned_by_id := $3,
-                    record_created_by_id := $4
+                    record_created_by_id := $3,
+                    owned_by_id := $4
                 );"#,
                 &[
                     &metadata.record_id().base_uri.as_str(),
                     &metadata.record_id().version,
-                    &metadata.owned_by_id(),
                     &metadata.provenance_metadata().updated_by_id(),
+                    &metadata.owned_by_id(),
                 ],
             )
             .await
             .into_report()
             .map(|row| row.get(0))
             .map_err(|report| match report.current_context().code() {
-                Some(&SqlState::EXCLUSION_VIOLATION | &SqlState::UNIQUE_VIOLATION) => report
+                Some(&SqlState::UNIQUE_VIOLATION) => report
                     .change_context(BaseUriAlreadyExists)
                     .attach_printable(metadata.record_id().base_uri.clone())
                     .change_context(InsertionError),
@@ -270,7 +269,9 @@ where
     ///
     /// # Errors
     ///
-    /// - if [`VersionedUri::base_uri`] did already exist in the database
+    /// - [`BaseUriAlreadyExists`] if [`VersionedUri::base_uri`] is an owned base uri
+    /// - [`VersionedUriAlreadyExists`] if [`VersionedUri::version`] is already used for the base
+    ///   uri
     #[tracing::instrument(level = "debug", skip(self))]
     async fn create_external_ontology_id(
         &self,
@@ -284,22 +285,26 @@ where
                 FROM create_external_ontology_id(
                     base_uri := $1,
                     version := $2,
-                    fetched_at := $3,
-                    record_created_by_id := $4
+                    record_created_by_id := $3,
+                    fetched_at := $4
                 );"#,
                 &[
                     &metadata.record_id().base_uri.as_str(),
                     &metadata.record_id().version,
-                    &metadata.fetched_at(),
                     &metadata.provenance_metadata().updated_by_id(),
+                    &metadata.fetched_at(),
                 ],
             )
             .await
             .into_report()
             .map(|row| row.get(0))
             .map_err(|report| match report.current_context().code() {
-                Some(&SqlState::EXCLUSION_VIOLATION | &SqlState::UNIQUE_VIOLATION) => report
+                Some(&SqlState::INVALID_PARAMETER_VALUE) => report
                     .change_context(BaseUriAlreadyExists)
+                    .attach_printable(metadata.record_id().base_uri.clone())
+                    .change_context(InsertionError),
+                Some(&SqlState::UNIQUE_VIOLATION) => report
+                    .change_context(VersionedUriAlreadyExists)
                     .attach_printable(metadata.record_id().base_uri.clone())
                     .change_context(InsertionError),
                 _ => report
@@ -313,8 +318,9 @@ where
     ///
     /// # Errors
     ///
-    /// - if [`VersionedUri::base_uri`] did not already exist in the database
-    /// - if [`VersionedUri`] did already exist in the database
+    /// - [`VersionedUriAlreadyExists`] if [`VersionedUri`] does already exist in the database
+    /// - [`OntologyVersionDoesNotExist`] if the previous version does not exist
+    /// - [`OntologyTypeIsNotOwned`] if ontology type is an external ontology type
     #[tracing::instrument(level = "debug", skip(self))]
     async fn update_owned_ontology_id(
         &self,
@@ -331,11 +337,13 @@ where
                 FROM update_owned_ontology_id(
                     base_uri := $1,
                     version := $2,
-                    record_created_by_id := $3
+                    version_to_update := $3,
+                    record_created_by_id := $4
                 );"#,
                 &[
                     &uri.base_uri.as_str(),
                     &i64::from(uri.version),
+                    &i64::from(uri.version - 1),
                     &updated_by_id,
                 ],
             )
@@ -347,11 +355,11 @@ where
                     .attach_printable(uri.clone())
                     .change_context(UpdateError),
                 Some(&SqlState::INVALID_PARAMETER_VALUE) => report
-                    .change_context(WrongOntologyVersion)
-                    .attach_printable(uri.clone())
+                    .change_context(OntologyVersionDoesNotExist)
+                    .attach_printable(uri.base_uri.clone())
                     .change_context(UpdateError),
                 Some(&SqlState::RESTRICT_VIOLATION) => report
-                    .change_context(BaseUriDoesNotExist)
+                    .change_context(OntologyTypeIsNotOwned)
                     .attach_printable(uri.base_uri.clone())
                     .change_context(UpdateError),
                 _ => report
@@ -420,10 +428,7 @@ where
         let uri = database_type.id();
         let record_id = OntologyTypeRecordId::from(uri.clone());
 
-        let (ontology_id, owned_by_id) = self
-            .update_owned_ontology_id(uri, updated_by_id)
-            .await
-            .change_context(UpdateError)?;
+        let (ontology_id, owned_by_id) = self.update_owned_ontology_id(uri, updated_by_id).await?;
         self.insert_with_id(ontology_id, database_type)
             .await
             .change_context(UpdateError)?;

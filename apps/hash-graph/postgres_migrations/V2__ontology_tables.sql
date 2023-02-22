@@ -1,19 +1,25 @@
 CREATE TABLE IF NOT EXISTS
+  base_uris ("base_uri" TEXT PRIMARY KEY);
+
+CREATE TABLE IF NOT EXISTS
   ontology_ids (
     "ontology_id" UUID PRIMARY KEY,
-    "base_uri" TEXT NOT NULL,
+    "base_uri" TEXT NOT NULL REFERENCES "base_uris",
     "version" BIGINT NOT NULL,
     "transaction_time" tstzrange NOT NULL,
     "record_created_by_id" UUID NOT NULL REFERENCES "accounts",
     UNIQUE ("base_uri", "version"),
-    CONSTRAINT ontology_ids_overlapping EXCLUDE USING gist (
-      base_uri
+    EXCLUDE USING gist (
+      "base_uri"
       WITH
         =,
-        transaction_time
+        "version"
+      WITH
+        =,
+        "transaction_time"
       WITH
         &&
-    ) DEFERRABLE INITIALLY IMMEDIATE
+    )
   );
 
 COMMENT
@@ -21,18 +27,14 @@ COMMENT
 
 CREATE TABLE IF NOT EXISTS
   "ontology_owned_metadata" (
-    "ontology_id" UUID NOT NULL,
-    "owned_by_id" UUID NOT NULL REFERENCES "accounts",
-    CONSTRAINT ontology_owned_metadata_pk PRIMARY KEY ("ontology_id") DEFERRABLE INITIALLY IMMEDIATE,
-    CONSTRAINT ontology_owned_metadata_fk FOREIGN KEY ("ontology_id") REFERENCES ontology_ids DEFERRABLE INITIALLY IMMEDIATE
+    "ontology_id" UUID PRIMARY KEY REFERENCES "ontology_ids",
+    "owned_by_id" UUID NOT NULL REFERENCES "accounts"
   );
 
 CREATE TABLE IF NOT EXISTS
   "ontology_external_metadata" (
-    "ontology_id" UUID NOT NULL,
-    "fetched_at" TIMESTAMP WITH TIME ZONE NOT NULL,
-    CONSTRAINT ontology_external_metadata_pk PRIMARY KEY ("ontology_id") DEFERRABLE INITIALLY IMMEDIATE,
-    CONSTRAINT ontology_external_metadata_fk FOREIGN KEY ("ontology_id") REFERENCES "ontology_ids" DEFERRABLE INITIALLY IMMEDIATE
+    "ontology_id" UUID PRIMARY KEY REFERENCES "ontology_ids",
+    "fetched_at" TIMESTAMP WITH TIME ZONE NOT NULL
   );
 
 CREATE VIEW

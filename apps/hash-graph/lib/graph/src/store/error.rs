@@ -63,18 +63,6 @@ impl Context for BaseUriAlreadyExists {}
 
 #[derive(Debug)]
 #[must_use]
-pub struct BaseUriDoesNotExist;
-
-impl fmt::Display for BaseUriDoesNotExist {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("base URI does not exist")
-    }
-}
-
-impl Context for BaseUriDoesNotExist {}
-
-#[derive(Debug)]
-#[must_use]
 pub struct EntityDoesNotExist;
 
 impl fmt::Display for EntityDoesNotExist {
@@ -111,15 +99,27 @@ impl Context for VersionedUriAlreadyExists {}
 
 #[derive(Debug)]
 #[must_use]
-pub struct WrongOntologyVersion;
+pub struct OntologyVersionDoesNotExist;
 
-impl fmt::Display for WrongOntologyVersion {
+impl fmt::Display for OntologyVersionDoesNotExist {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("tried to update an ontology type with a different version")
+        fmt.write_str("tried to update an ontology type which does not exist")
     }
 }
 
-impl Context for WrongOntologyVersion {}
+impl Context for OntologyVersionDoesNotExist {}
+
+#[derive(Debug)]
+#[must_use]
+pub struct OntologyTypeIsNotOwned;
+
+impl fmt::Display for OntologyTypeIsNotOwned {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("tried to update a non-owned ontology type")
+    }
+}
+
+impl Context for OntologyTypeIsNotOwned {}
 
 #[derive(Debug)]
 pub struct MigrationError;
