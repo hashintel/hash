@@ -19,12 +19,7 @@ export const mapSubgraph = (subgraphGraphApi: SubgraphGraphApi) => {
     vertices: subgraphGraphApi.vertices as Subgraph["vertices"],
     edges: mapEdges(subgraphGraphApi.edges),
     depths: subgraphGraphApi.depths,
-    temporalAxes: {
-      initial: subgraphGraphApi.temporalAxes
-        .initial as Subgraph["temporalAxes"]["initial"],
-      resolved: subgraphGraphApi.temporalAxes
-        .resolved as Subgraph["temporalAxes"]["resolved"],
-    },
+    temporalAxes: subgraphGraphApi.temporalAxes as Subgraph["temporalAxes"],
   };
 
   return mappedSubgraph;
