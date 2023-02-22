@@ -11,6 +11,10 @@
 import { Subgraph as SubgraphGraphApi } from "@local/hash-graph-client";
 
 import { Subgraph } from "../src/main";
+import {
+  mapQueryTemporalAxes,
+  mapQueryTemporalAxesUnresolved,
+} from "./compatibility.test/map-axes";
 import { mapEdges } from "./compatibility.test/map-edges";
 import { mapRoots } from "./compatibility.test/map-roots";
 import { mapVertices } from "./compatibility.test/map-vertices";
@@ -92,6 +96,11 @@ test("Graph API subgraph type is compatible with library type", () => {
     vertices: mapVertices(subgraphGraphApi.vertices),
     edges: mapEdges(subgraphGraphApi.edges),
     depths: subgraphGraphApi.depths,
-    temporalAxes: subgraphGraphApi.temporalAxes as Subgraph["temporalAxes"],
+    temporalAxes: {
+      initial: mapQueryTemporalAxesUnresolved(
+        subgraphGraphApi.temporalAxes.initial,
+      ),
+      resolved: mapQueryTemporalAxes(subgraphGraphApi.temporalAxes.resolved),
+    },
   };
 });
