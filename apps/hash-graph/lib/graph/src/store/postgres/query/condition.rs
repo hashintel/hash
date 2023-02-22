@@ -100,12 +100,12 @@ mod tests {
     use postgres_types::ToSql;
 
     use crate::{
-        identifier::time::UnresolvedTimeProjection,
         ontology::{DataTypeQueryPath, DataTypeWithMetadata},
         store::{
             postgres::query::{SelectCompiler, Transpile},
             query::{Filter, FilterExpression, Parameter},
         },
+        subgraph::temporal_axes::QueryTemporalAxesUnresolved,
     };
 
     fn test_condition<'p, 'f: 'p>(
@@ -113,8 +113,8 @@ mod tests {
         rendered: &'static str,
         parameters: &[&'p dyn ToSql],
     ) {
-        let time_projection = UnresolvedTimeProjection::default().resolve();
-        let mut compiler = SelectCompiler::new(&time_projection);
+        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let mut compiler = SelectCompiler::new(&temporal_axes);
         let condition = compiler.compile_filter(filter);
 
         assert_eq!(condition.transpile_to_string(), rendered);

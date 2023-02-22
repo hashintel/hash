@@ -9,17 +9,29 @@ use std::{
 
 use edges::Edges;
 use error_stack::Result;
+use serde::Serialize;
+use utoipa::ToSchema;
 
 use crate::{
-    identifier::time::{TimeProjection, UnresolvedTimeProjection},
     shared::identifier::GraphElementVertexId,
     store::{crud::Read, QueryError, Record},
-    subgraph::{edges::GraphResolveDepths, vertices::Vertices},
+    subgraph::{
+        edges::GraphResolveDepths,
+        temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
+        vertices::Vertices,
+    },
 };
 
 pub mod edges;
 pub mod query;
+pub mod temporal_axes;
 pub mod vertices;
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct SubgraphTemporalAxes {
+    pub initial: QueryTemporalAxesUnresolved,
+    pub resolved: QueryTemporalAxes,
+}
 
 #[derive(Debug)]
 pub struct Subgraph {
@@ -27,24 +39,25 @@ pub struct Subgraph {
     pub vertices: Vertices,
     pub edges: Edges,
     pub depths: GraphResolveDepths,
-    pub time_projection: UnresolvedTimeProjection,
-    pub resolved_time_projection: TimeProjection,
+    pub temporal_axes: SubgraphTemporalAxes,
 }
 
 impl Subgraph {
     #[must_use]
     pub fn new(
         depths: GraphResolveDepths,
-        time_projection: UnresolvedTimeProjection,
-        resolved_time_projection: TimeProjection,
+        initial_temporal_axes: QueryTemporalAxesUnresolved,
+        resolved_temporal_axes: QueryTemporalAxes,
     ) -> Self {
         Self {
             roots: HashSet::new(),
             vertices: Vertices::default(),
             edges: Edges::default(),
             depths,
-            time_projection,
-            resolved_time_projection,
+            temporal_axes: SubgraphTemporalAxes {
+                initial: initial_temporal_axes,
+                resolved: resolved_temporal_axes,
+            },
         }
     }
 
@@ -77,7 +90,7 @@ impl Subgraph {
         &'r mut self,
         store: &impl Read<R>,
         vertex_id: &R::VertexId,
-        time_projection: &TimeProjection,
+        temporal_axes: &QueryTemporalAxes,
     ) -> Result<&'r R, QueryError> {
         Ok(match self.entry(vertex_id) {
             RawEntryMut::Occupied(entry) => entry.into_mut(),
@@ -86,7 +99,7 @@ impl Subgraph {
                     .insert(
                         vertex_id.clone(),
                         store
-                            .read_one(&R::create_filter_for_vertex_id(vertex_id), time_projection)
+                            .read_one(&R::create_filter_for_vertex_id(vertex_id), temporal_axes)
                             .await?,
                     )
                     .1

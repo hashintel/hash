@@ -1,10 +1,6 @@
 import {
-  DecisionTimeImage,
-  TimeProjection,
-  TransactionTimeImage,
-  UnresolvedDecisionTimeImage,
-  UnresolvedTimeProjection,
-  UnresolvedTransactionTimeImage,
+  QueryTemporalAxes as QueryTemporalAxesGraphApi,
+  QueryTemporalAxesUnresolved as QueryTemporalAxesUnresolvedGraphApi,
 } from "@local/hash-graph-client";
 import {
   QueryTemporalAxes,
@@ -12,97 +8,131 @@ import {
   Timestamp,
 } from "@local/hash-subgraph";
 
-export const mapUnresolvedTimeProjection = (
-  timeProjection: UnresolvedTimeProjection,
-): QueryTemporalAxesUnresolved => {
-  const mapInterval = (
-    image: UnresolvedTransactionTimeImage | UnresolvedDecisionTimeImage,
-  ): QueryTemporalAxesUnresolved["variable"]["interval"] => {
-    return {
-      start:
-        image.start === null
-          ? null
-          : image.start.kind === "unbounded"
-          ? {
-              kind: "unbounded",
-            }
-          : {
-              kind: image.start.kind,
-              limit: image.start.limit as Timestamp,
-            },
-      end:
-        image.end === null
-          ? null
-          : {
-              kind: image.end.kind,
-              limit: image.end.limit as Timestamp,
-            },
-    };
+const mapVariableTemporalAxisUnresolvedInterval = (
+  interval: QueryTemporalAxesUnresolvedGraphApi["variable"]["interval"],
+): QueryTemporalAxesUnresolved["variable"]["interval"] => {
+  return {
+    start:
+      interval.start === null
+        ? null
+        : interval.start.kind === "unbounded"
+        ? {
+            kind: "unbounded",
+          }
+        : {
+            kind: interval.start.kind,
+            limit: interval.start.limit as Timestamp,
+          },
+    end:
+      interval.end === null
+        ? null
+        : {
+            kind: interval.end.kind,
+            limit: interval.end.limit as Timestamp,
+          },
   };
-  return timeProjection.pinned.axis === "transactionTime"
-    ? {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: timeProjection.pinned.timestamp as Timestamp,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: mapInterval(timeProjection.variable),
-        },
-      }
-    : {
-        pinned: {
-          axis: "decisionTime",
-          timestamp: timeProjection.pinned.timestamp as Timestamp,
-        },
-        variable: {
-          axis: "transactionTime",
-          interval: mapInterval(timeProjection.variable),
-        },
-      };
 };
 
-export const mapTimeProjection = (
-  timeProjection: TimeProjection,
-): QueryTemporalAxes => {
-  const mapInterval = (
-    image: TransactionTimeImage | DecisionTimeImage,
-  ): QueryTemporalAxes["variable"]["interval"] => {
+export const mapQueryTemporalAxesUnresolved = (
+  temporalAxes: QueryTemporalAxesUnresolvedGraphApi,
+): QueryTemporalAxesUnresolved => {
+  if (
+    temporalAxes.pinned.axis === "transactionTime" &&
+    temporalAxes.variable.axis === "decisionTime"
+  ) {
     return {
-      start:
-        image.start.kind === "unbounded"
-          ? {
-              kind: "unbounded",
-            }
-          : {
-              kind: image.start.kind,
-              limit: image.start.limit as Timestamp,
-            },
-      end: {
-        kind: image.end.kind,
-        limit: image.end.limit as Timestamp,
+      pinned: {
+        axis: temporalAxes.pinned.axis,
+        timestamp: temporalAxes.pinned.timestamp as Timestamp,
+      },
+      variable: {
+        axis: temporalAxes.variable.axis,
+        interval: mapVariableTemporalAxisUnresolvedInterval(
+          temporalAxes.variable.interval,
+        ),
       },
     };
+  } else if (
+    temporalAxes.pinned.axis === "decisionTime" &&
+    temporalAxes.variable.axis === "transactionTime"
+  ) {
+    return {
+      pinned: {
+        axis: temporalAxes.pinned.axis,
+        timestamp: temporalAxes.pinned.timestamp as Timestamp,
+      },
+      variable: {
+        axis: temporalAxes.variable.axis,
+        interval: mapVariableTemporalAxisUnresolvedInterval(
+          temporalAxes.variable.interval,
+        ),
+      },
+    };
+  }
+
+  throw new Error(
+    `Unexpected combination of pinned and variable axes, pinned: ${temporalAxes.pinned.axis}, variable: ${temporalAxes.variable.axis}}`,
+  );
+};
+
+const mapVariableTemporalAxisInterval = (
+  interval: QueryTemporalAxesGraphApi["variable"]["interval"],
+): QueryTemporalAxes["variable"]["interval"] => {
+  return {
+    start:
+      interval.start.kind === "unbounded"
+        ? {
+            kind: "unbounded",
+          }
+        : {
+            kind: interval.start.kind,
+            limit: interval.start.limit as Timestamp,
+          },
+    end: {
+      kind: interval.end.kind,
+      limit: interval.end.limit as Timestamp,
+    },
   };
-  return timeProjection.pinned.axis === "transactionTime"
-    ? {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: timeProjection.pinned.timestamp as Timestamp,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: mapInterval(timeProjection.variable),
-        },
-      }
-    : {
-        pinned: {
-          axis: "decisionTime",
-          timestamp: timeProjection.pinned.timestamp as Timestamp,
-        },
-        variable: {
-          axis: "transactionTime",
-          interval: mapInterval(timeProjection.variable),
-        },
-      };
+};
+
+export const mapQueryTemporalAxes = (
+  temporalAxes: QueryTemporalAxesGraphApi,
+): QueryTemporalAxes => {
+  if (
+    temporalAxes.pinned.axis === "transactionTime" &&
+    temporalAxes.variable.axis === "decisionTime"
+  ) {
+    return {
+      pinned: {
+        axis: temporalAxes.pinned.axis,
+        timestamp: temporalAxes.pinned.timestamp as Timestamp,
+      },
+      variable: {
+        axis: temporalAxes.variable.axis,
+        interval: mapVariableTemporalAxisInterval(
+          temporalAxes.variable.interval,
+        ),
+      },
+    };
+  } else if (
+    temporalAxes.pinned.axis === "decisionTime" &&
+    temporalAxes.variable.axis === "transactionTime"
+  ) {
+    return {
+      pinned: {
+        axis: temporalAxes.pinned.axis,
+        timestamp: temporalAxes.pinned.timestamp as Timestamp,
+      },
+      variable: {
+        axis: temporalAxes.variable.axis,
+        interval: mapVariableTemporalAxisInterval(
+          temporalAxes.variable.interval,
+        ),
+      },
+    };
+  }
+
+  throw new Error(
+    `Unexpected combination of pinned and variable axes, pinned: ${temporalAxes.pinned.axis}, variable: ${temporalAxes.variable.axis}}`,
+  );
 };

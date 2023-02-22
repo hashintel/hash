@@ -1,11 +1,15 @@
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
-    identifier::time::{
-        TimeIntervalBound, UnresolvedImage, UnresolvedKernel, UnresolvedProjection,
-        UnresolvedTimeProjection,
-    },
+    identifier::time::TemporalBound,
     store::{query::Filter, EntityTypeStore},
-    subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
+    subgraph::{
+        edges::GraphResolveDepths,
+        query::StructuralQuery,
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
+            VariableTemporalAxisUnresolved,
+        },
+    },
 };
 use rand::{prelude::IteratorRandom, thread_rng};
 use tokio::runtime::Runtime;
@@ -32,10 +36,13 @@ pub fn bench_get_entity_type_by_id(
                 .get_entity_type(&StructuralQuery {
                     filter: Filter::for_versioned_uri(entity_type_id),
                     graph_resolve_depths: GraphResolveDepths::default(),
-                    time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                        pinned: UnresolvedKernel::new(None),
-                        variable: UnresolvedImage::new(Some(TimeIntervalBound::Unbounded), None),
-                    }),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(
+                            Some(TemporalBound::Unbounded),
+                            None,
+                        ),
+                    },
                 })
                 .await
                 .expect("failed to read entity type from store");

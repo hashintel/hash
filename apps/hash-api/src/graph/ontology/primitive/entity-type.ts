@@ -7,12 +7,14 @@ import {
   EntityTypeRootType,
   EntityTypeWithMetadata,
   linkEntityTypeUri,
+  OntologyElementMetadata,
+  OntologyTypeRecordId,
   ontologyTypeRecordIdToVersionedUri,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { mapOntologyMetadata, mapSubgraph } from "@local/hash-subgraph/temp";
+import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { NotFoundError } from "../../../lib/error";
 import {
@@ -58,7 +60,7 @@ export const createEntityType: ImpureGraphFunction<
     schema,
   });
 
-  return { schema, metadata: mapOntologyMetadata(metadata) };
+  return { schema, metadata: metadata as OntologyElementMetadata };
 };
 
 /**
@@ -80,15 +82,17 @@ export const getEntityTypeById: ImpureGraphFunction<
         equal: [{ path: ["versionedUri"] }, { parameter: entityTypeId }],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeAxes: {
+      temporalAxes: {
         pinned: {
           axis: "transactionTime",
           timestamp: null,
         },
         variable: {
           axis: "decisionTime",
-          start: null,
-          end: null,
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     })
@@ -129,15 +133,14 @@ export const updateEntityType: ImpureGraphFunction<
 
   const { data: metadata } = await graphApi.updateEntityType(updateArguments);
 
-  const mappedMetadata = mapOntologyMetadata(metadata);
-  const { recordId } = mappedMetadata;
+  const { recordId } = metadata;
 
   return {
     schema: {
       ...schema,
-      $id: ontologyTypeRecordIdToVersionedUri(recordId),
+      $id: ontologyTypeRecordIdToVersionedUri(recordId as OntologyTypeRecordId),
     },
-    metadata: mappedMetadata,
+    metadata: metadata as OntologyElementMetadata,
   };
 };
 

@@ -6,7 +6,7 @@ use futures::FutureExt;
 use type_system::{DataTypeReference, PropertyType, PropertyTypeReference};
 
 use crate::{
-    identifier::{time::TimeProjection, OntologyTypeVertexId},
+    identifier::OntologyTypeVertexId,
     ontology::{OntologyElementMetadata, OntologyTypeWithMetadata, PropertyTypeWithMetadata},
     provenance::UpdatedById,
     store::{
@@ -21,6 +21,7 @@ use crate::{
             OutgoingEdgeResolveDepth, OutwardEdge,
         },
         query::StructuralQuery,
+        temporal_axes::QueryTemporalAxes,
         Subgraph,
     },
 };
@@ -36,26 +37,26 @@ impl<C: AsClient> PostgresStore<C> {
         dependency_context: &'a mut DependencyContext,
         subgraph: &'a mut Subgraph,
         mut current_resolve_depths: GraphResolveDepths,
-        mut time_projection: TimeProjection,
+        mut temporal_axes: QueryTemporalAxes,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
         async move {
             let dependency_status = dependency_context.ontology_dependency_map.update(
                 property_type_id,
                 current_resolve_depths,
-                time_projection.image().convert(),
+                temporal_axes.variable_interval().convert(),
             );
 
             let property_type = match dependency_status {
                 DependencyStatus::Unresolved(depths, interval) => {
                     // The dependency may have to be resolved more than anticipated, so we update
-                    // the resolve depth and time projection.
+                    // the resolve depth and the temporal axes.
                     current_resolve_depths = depths;
-                    time_projection.set_image(interval.convert());
+                    temporal_axes.set_variable_interval(interval.convert());
                     subgraph
                         .get_or_read::<PropertyTypeWithMetadata>(
                             self,
                             property_type_id,
-                            &time_projection,
+                            &temporal_axes,
                         )
                         .await?
                 }
@@ -110,7 +111,7 @@ impl<C: AsClient> PostgresStore<C> {
                             },
                             ..current_resolve_depths
                         },
-                        time_projection.clone(),
+                        temporal_axes.clone(),
                     )
                     .await?;
                 }
@@ -141,7 +142,7 @@ impl<C: AsClient> PostgresStore<C> {
                             },
                             ..current_resolve_depths
                         },
-                        time_projection.clone(),
+                        temporal_axes.clone(),
                     )
                     .await?;
                 }
@@ -204,21 +205,21 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         let StructuralQuery {
             ref filter,
             graph_resolve_depths,
-            time_projection: ref unresolved_time_projection,
+            temporal_axes: ref unresolved_temporal_axes,
         } = *query;
 
-        let time_projection = unresolved_time_projection.clone().resolve();
-        let time_axis = time_projection.image_time_axis();
+        let temporal_axes = unresolved_temporal_axes.clone().resolve();
+        let time_axis = temporal_axes.variable_time_axis();
 
         let mut subgraph = Subgraph::new(
             graph_resolve_depths,
-            unresolved_time_projection.clone(),
-            time_projection.clone(),
+            unresolved_temporal_axes.clone(),
+            temporal_axes.clone(),
         );
         let mut dependency_context = DependencyContext::default();
 
         for property_type in
-            Read::<PropertyTypeWithMetadata>::read(self, filter, &time_projection).await?
+            Read::<PropertyTypeWithMetadata>::read(self, filter, &temporal_axes).await?
         {
             let vertex_id = property_type.vertex_id(time_axis);
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
@@ -229,7 +230,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                 &mut dependency_context,
                 &mut subgraph,
                 graph_resolve_depths,
-                time_projection.clone(),
+                temporal_axes.clone(),
             )
             .await?;
 
