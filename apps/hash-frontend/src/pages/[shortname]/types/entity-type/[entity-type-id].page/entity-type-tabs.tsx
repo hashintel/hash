@@ -75,7 +75,7 @@ export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
           value={getTabValue("definition")}
           href={isDraft ? router.asPath : getTabUri(baseUri, "definition")}
           label="Definition"
-          count={propertiesCount ?? 0}
+          count={propertiesCount}
           active={currentTab === "definition"}
         />
         {isDraft
