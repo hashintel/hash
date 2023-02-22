@@ -169,14 +169,11 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     }
 
     return {
-      ...graphProperties,
+      ...(graphProperties as Required<BlockGraphProperties>),
       blockEntity: {
         entityId: rootEntity.metadata.recordId.entityId,
         properties: rootEntity.properties,
       },
-      /* @todo - Why is this necessary? */
-      blockEntitySubgraph: graphProperties.blockEntitySubgraph,
-      readonly: graphProperties.readonly,
     };
   }, [graphProperties]);
 
