@@ -315,6 +315,33 @@ export interface DataTypeStructuralQuery {
 /**
  *
  * @export
+ * @interface DataTypeVertex
+ */
+export interface DataTypeVertex {
+  /**
+   *
+   * @type {DataTypeWithMetadata}
+   * @memberof DataTypeVertex
+   */
+  inner: DataTypeWithMetadata;
+  /**
+   *
+   * @type {string}
+   * @memberof DataTypeVertex
+   */
+  kind: DataTypeVertexKindEnum;
+}
+
+export const DataTypeVertexKindEnum = {
+  DataType: "dataType",
+} as const;
+
+export type DataTypeVertexKindEnum =
+  (typeof DataTypeVertexKindEnum)[keyof typeof DataTypeVertexKindEnum];
+
+/**
+ *
+ * @export
  * @interface DataTypeWithMetadata
  */
 export interface DataTypeWithMetadata {
@@ -375,8 +402,8 @@ export interface Edges {
  * @export
  */
 export type EdgesValueValueInner =
-  | KnowledgeGraphOutwardEdges
-  | OntologyOutwardEdges;
+  | KnowledgeGraphOutwardEdge
+  | OntologyOutwardEdge;
 
 /**
  * A record of an [`Entity`] that has been persisted in the datastore, with its associated metadata.
@@ -707,6 +734,33 @@ export interface EntityTypeStructuralQuery {
 /**
  *
  * @export
+ * @interface EntityTypeVertex
+ */
+export interface EntityTypeVertex {
+  /**
+   *
+   * @type {EntityTypeWithMetadata}
+   * @memberof EntityTypeVertex
+   */
+  inner: EntityTypeWithMetadata;
+  /**
+   *
+   * @type {string}
+   * @memberof EntityTypeVertex
+   */
+  kind: EntityTypeVertexKindEnum;
+}
+
+export const EntityTypeVertexKindEnum = {
+  EntityType: "entityType",
+} as const;
+
+export type EntityTypeVertexKindEnum =
+  (typeof EntityTypeVertexKindEnum)[keyof typeof EntityTypeVertexKindEnum];
+
+/**
+ *
+ * @export
  * @interface EntityTypeWithMetadata
  */
 export interface EntityTypeWithMetadata {
@@ -723,6 +777,33 @@ export interface EntityTypeWithMetadata {
    */
   schema: EntityType;
 }
+/**
+ *
+ * @export
+ * @interface EntityVertex
+ */
+export interface EntityVertex {
+  /**
+   *
+   * @type {Entity}
+   * @memberof EntityVertex
+   */
+  inner: Entity;
+  /**
+   *
+   * @type {string}
+   * @memberof EntityVertex
+   */
+  kind: EntityVertexKindEnum;
+}
+
+export const EntityVertexKindEnum = {
+  Entity: "entity",
+} as const;
+
+export type EntityVertexKindEnum =
+  (typeof EntityVertexKindEnum)[keyof typeof EntityVertexKindEnum];
+
 /**
  *
  * @export
@@ -927,158 +1008,76 @@ export type KnowledgeGraphEdgeKind =
   (typeof KnowledgeGraphEdgeKind)[keyof typeof KnowledgeGraphEdgeKind];
 
 /**
- * @type KnowledgeGraphOutwardEdges
+ * @type KnowledgeGraphOutwardEdge
  * @export
  */
-export type KnowledgeGraphOutwardEdges =
-  | KnowledgeGraphOutwardEdgesOneOf
-  | KnowledgeGraphOutwardEdgesOneOf1;
+export type KnowledgeGraphOutwardEdge =
+  | KnowledgeGraphToKnowledgeGraphOutwardEdge
+  | KnowledgeGraphToOntologyOutwardEdge;
 
-/**
- *
- * @export
- * @interface KnowledgeGraphOutwardEdgesOneOf
- */
-export interface KnowledgeGraphOutwardEdgesOneOf {
-  /**
-   *
-   * @type {string}
-   * @memberof KnowledgeGraphOutwardEdgesOneOf
-   */
-  kind: KnowledgeGraphOutwardEdgesOneOfKindEnum;
-  /**
-   *
-   * @type {boolean}
-   * @memberof KnowledgeGraphOutwardEdgesOneOf
-   */
-  reversed: boolean;
-  /**
-   *
-   * @type {KnowledgeGraphOutwardEdgesOneOfRightEndpoint}
-   * @memberof KnowledgeGraphOutwardEdgesOneOf
-   */
-  rightEndpoint: KnowledgeGraphOutwardEdgesOneOfRightEndpoint;
-}
-
-export const KnowledgeGraphOutwardEdgesOneOfKindEnum = {
-  LeftEntity: "HAS_LEFT_ENTITY",
-  RightEntity: "HAS_RIGHT_ENTITY",
-} as const;
-
-export type KnowledgeGraphOutwardEdgesOneOfKindEnum =
-  (typeof KnowledgeGraphOutwardEdgesOneOfKindEnum)[keyof typeof KnowledgeGraphOutwardEdgesOneOfKindEnum];
-
-/**
- *
- * @export
- * @interface KnowledgeGraphOutwardEdgesOneOf1
- */
-export interface KnowledgeGraphOutwardEdgesOneOf1 {
-  /**
-   *
-   * @type {string}
-   * @memberof KnowledgeGraphOutwardEdgesOneOf1
-   */
-  kind: KnowledgeGraphOutwardEdgesOneOf1KindEnum;
-  /**
-   *
-   * @type {boolean}
-   * @memberof KnowledgeGraphOutwardEdgesOneOf1
-   */
-  reversed: boolean;
-  /**
-   *
-   * @type {KnowledgeGraphOutwardEdgesOneOf1RightEndpoint}
-   * @memberof KnowledgeGraphOutwardEdgesOneOf1
-   */
-  rightEndpoint: KnowledgeGraphOutwardEdgesOneOf1RightEndpoint;
-}
-
-export const KnowledgeGraphOutwardEdgesOneOf1KindEnum = {
-  IsOfType: "IS_OF_TYPE",
-} as const;
-
-export type KnowledgeGraphOutwardEdgesOneOf1KindEnum =
-  (typeof KnowledgeGraphOutwardEdgesOneOf1KindEnum)[keyof typeof KnowledgeGraphOutwardEdgesOneOf1KindEnum];
-
-/**
- *
- * @export
- * @interface KnowledgeGraphOutwardEdgesOneOf1RightEndpoint
- */
-export interface KnowledgeGraphOutwardEdgesOneOf1RightEndpoint {
-  /**
-   *
-   * @type {string}
-   * @memberof KnowledgeGraphOutwardEdgesOneOf1RightEndpoint
-   */
-  baseId: string;
-  /**
-   *
-   * @type {number}
-   * @memberof KnowledgeGraphOutwardEdgesOneOf1RightEndpoint
-   */
-  version: number;
-}
-/**
- *
- * @export
- * @interface KnowledgeGraphOutwardEdgesOneOfRightEndpoint
- */
-export interface KnowledgeGraphOutwardEdgesOneOfRightEndpoint {
-  /**
-   *
-   * @type {string}
-   * @memberof KnowledgeGraphOutwardEdgesOneOfRightEndpoint
-   */
-  baseId: string;
-  /**
-   *
-   * @type {string}
-   * @memberof KnowledgeGraphOutwardEdgesOneOfRightEndpoint
-   */
-  timestamp: string;
-}
 /**
  *
  * @export
  * @interface KnowledgeGraphRootedEdges
  */
 export interface KnowledgeGraphRootedEdges {
-  [key: string]: { [key: string]: Array<KnowledgeGraphOutwardEdges> };
+  [key: string]: { [key: string]: Array<KnowledgeGraphOutwardEdge> };
+}
+/**
+ *
+ * @export
+ * @interface KnowledgeGraphToKnowledgeGraphOutwardEdge
+ */
+export interface KnowledgeGraphToKnowledgeGraphOutwardEdge {
+  /**
+   *
+   * @type {KnowledgeGraphEdgeKind}
+   * @memberof KnowledgeGraphToKnowledgeGraphOutwardEdge
+   */
+  kind: KnowledgeGraphEdgeKind;
+  /**
+   *
+   * @type {boolean}
+   * @memberof KnowledgeGraphToKnowledgeGraphOutwardEdge
+   */
+  reversed: boolean;
+  /**
+   *
+   * @type {EntityIdAndTimestamp}
+   * @memberof KnowledgeGraphToKnowledgeGraphOutwardEdge
+   */
+  rightEndpoint: EntityIdAndTimestamp;
+}
+/**
+ *
+ * @export
+ * @interface KnowledgeGraphToOntologyOutwardEdge
+ */
+export interface KnowledgeGraphToOntologyOutwardEdge {
+  /**
+   *
+   * @type {SharedEdgeKind}
+   * @memberof KnowledgeGraphToOntologyOutwardEdge
+   */
+  kind: SharedEdgeKind;
+  /**
+   *
+   * @type {boolean}
+   * @memberof KnowledgeGraphToOntologyOutwardEdge
+   */
+  reversed: boolean;
+  /**
+   *
+   * @type {OntologyTypeVertexId}
+   * @memberof KnowledgeGraphToOntologyOutwardEdge
+   */
+  rightEndpoint: OntologyTypeVertexId;
 }
 /**
  * @type KnowledgeGraphVertex
  * @export
  */
-export type KnowledgeGraphVertex = KnowledgeGraphVertexOneOf;
-
-/**
- *
- * @export
- * @interface KnowledgeGraphVertexOneOf
- */
-export interface KnowledgeGraphVertexOneOf {
-  /**
-   *
-   * @type {Entity}
-   * @memberof KnowledgeGraphVertexOneOf
-   */
-  inner: Entity;
-  /**
-   *
-   * @type {string}
-   * @memberof KnowledgeGraphVertexOneOf
-   */
-  kind: KnowledgeGraphVertexOneOfKindEnum;
-}
-
-export const KnowledgeGraphVertexOneOfKindEnum = {
-  Entity: "entity",
-} as const;
-
-export type KnowledgeGraphVertexOneOfKindEnum =
-  (typeof KnowledgeGraphVertexOneOfKindEnum)[keyof typeof KnowledgeGraphVertexOneOfKindEnum];
+export type KnowledgeGraphVertex = EntityVertex;
 
 /**
  *
@@ -1215,109 +1214,70 @@ export type OntologyElementMetadata =
   | OwnedOntologyElementMetadata;
 
 /**
- * @type OntologyOutwardEdges
+ * @type OntologyOutwardEdge
  * @export
  */
-export type OntologyOutwardEdges =
-  | OntologyOutwardEdgesOneOf
-  | OntologyOutwardEdgesOneOf1;
+export type OntologyOutwardEdge =
+  | OntologyToKnowledgeGraphOutwardEdge
+  | OntologyToOntologyOutwardEdge;
 
-/**
- *
- * @export
- * @interface OntologyOutwardEdgesOneOf
- */
-export interface OntologyOutwardEdgesOneOf {
-  /**
-   *
-   * @type {string}
-   * @memberof OntologyOutwardEdgesOneOf
-   */
-  kind: OntologyOutwardEdgesOneOfKindEnum;
-  /**
-   *
-   * @type {boolean}
-   * @memberof OntologyOutwardEdgesOneOf
-   */
-  reversed: boolean;
-  /**
-   *
-   * @type {KnowledgeGraphOutwardEdgesOneOf1RightEndpoint}
-   * @memberof OntologyOutwardEdgesOneOf
-   */
-  rightEndpoint: KnowledgeGraphOutwardEdgesOneOf1RightEndpoint;
-}
-
-export const OntologyOutwardEdgesOneOfKindEnum = {
-  InheritsFrom: "INHERITS_FROM",
-  ConstrainsValuesOn: "CONSTRAINS_VALUES_ON",
-  ConstrainsPropertiesOn: "CONSTRAINS_PROPERTIES_ON",
-  ConstrainsLinksOn: "CONSTRAINS_LINKS_ON",
-  ConstrainsLinkDestinationsOn: "CONSTRAINS_LINK_DESTINATIONS_ON",
-} as const;
-
-export type OntologyOutwardEdgesOneOfKindEnum =
-  (typeof OntologyOutwardEdgesOneOfKindEnum)[keyof typeof OntologyOutwardEdgesOneOfKindEnum];
-
-/**
- *
- * @export
- * @interface OntologyOutwardEdgesOneOf1
- */
-export interface OntologyOutwardEdgesOneOf1 {
-  /**
-   *
-   * @type {string}
-   * @memberof OntologyOutwardEdgesOneOf1
-   */
-  kind: OntologyOutwardEdgesOneOf1KindEnum;
-  /**
-   *
-   * @type {boolean}
-   * @memberof OntologyOutwardEdgesOneOf1
-   */
-  reversed: boolean;
-  /**
-   *
-   * @type {OntologyOutwardEdgesOneOf1RightEndpoint}
-   * @memberof OntologyOutwardEdgesOneOf1
-   */
-  rightEndpoint: OntologyOutwardEdgesOneOf1RightEndpoint;
-}
-
-export const OntologyOutwardEdgesOneOf1KindEnum = {
-  IsOfType: "IS_OF_TYPE",
-} as const;
-
-export type OntologyOutwardEdgesOneOf1KindEnum =
-  (typeof OntologyOutwardEdgesOneOf1KindEnum)[keyof typeof OntologyOutwardEdgesOneOf1KindEnum];
-
-/**
- *
- * @export
- * @interface OntologyOutwardEdgesOneOf1RightEndpoint
- */
-export interface OntologyOutwardEdgesOneOf1RightEndpoint {
-  /**
-   *
-   * @type {string}
-   * @memberof OntologyOutwardEdgesOneOf1RightEndpoint
-   */
-  baseId: string;
-  /**
-   *
-   * @type {string}
-   * @memberof OntologyOutwardEdgesOneOf1RightEndpoint
-   */
-  version: string;
-}
 /**
  *
  * @export
  * @interface OntologyRootedEdges
  */
 export interface OntologyRootedEdges {
-  [key: string]: { [key: string]: Array<OntologyOutwardEdges> };
+  [key: string]: { [key: string]: Array<OntologyOutwardEdge> };
+}
+/**
+ *
+ * @export
+ * @interface OntologyToKnowledgeGraphOutwardEdge
+ */
+export interface OntologyToKnowledgeGraphOutwardEdge {
+  /**
+   *
+   * @type {SharedEdgeKind}
+   * @memberof OntologyToKnowledgeGraphOutwardEdge
+   */
+  kind: SharedEdgeKind;
+  /**
+   *
+   * @type {boolean}
+   * @memberof OntologyToKnowledgeGraphOutwardEdge
+   */
+  reversed: boolean;
+  /**
+   *
+   * @type {EntityVertexId}
+   * @memberof OntologyToKnowledgeGraphOutwardEdge
+   */
+  rightEndpoint: EntityVertexId;
+}
+/**
+ *
+ * @export
+ * @interface OntologyToOntologyOutwardEdge
+ */
+export interface OntologyToOntologyOutwardEdge {
+  /**
+   *
+   * @type {OntologyEdgeKind}
+   * @memberof OntologyToOntologyOutwardEdge
+   */
+  kind: OntologyEdgeKind;
+  /**
+   *
+   * @type {boolean}
+   * @memberof OntologyToOntologyOutwardEdge
+   */
+  reversed: boolean;
+  /**
+   *
+   * @type {OntologyTypeVertexId}
+   * @memberof OntologyToOntologyOutwardEdge
+   */
+  rightEndpoint: OntologyTypeVertexId;
 }
 /**
  *
@@ -1362,90 +1322,9 @@ export interface OntologyTypeVertexId {
  * @export
  */
 export type OntologyVertex =
-  | OntologyVertexOneOf
-  | OntologyVertexOneOf1
-  | OntologyVertexOneOf2;
-
-/**
- *
- * @export
- * @interface OntologyVertexOneOf
- */
-export interface OntologyVertexOneOf {
-  /**
-   *
-   * @type {DataTypeWithMetadata}
-   * @memberof OntologyVertexOneOf
-   */
-  inner: DataTypeWithMetadata;
-  /**
-   *
-   * @type {string}
-   * @memberof OntologyVertexOneOf
-   */
-  kind: OntologyVertexOneOfKindEnum;
-}
-
-export const OntologyVertexOneOfKindEnum = {
-  DataType: "dataType",
-} as const;
-
-export type OntologyVertexOneOfKindEnum =
-  (typeof OntologyVertexOneOfKindEnum)[keyof typeof OntologyVertexOneOfKindEnum];
-
-/**
- *
- * @export
- * @interface OntologyVertexOneOf1
- */
-export interface OntologyVertexOneOf1 {
-  /**
-   *
-   * @type {PropertyTypeWithMetadata}
-   * @memberof OntologyVertexOneOf1
-   */
-  inner: PropertyTypeWithMetadata;
-  /**
-   *
-   * @type {string}
-   * @memberof OntologyVertexOneOf1
-   */
-  kind: OntologyVertexOneOf1KindEnum;
-}
-
-export const OntologyVertexOneOf1KindEnum = {
-  PropertyType: "propertyType",
-} as const;
-
-export type OntologyVertexOneOf1KindEnum =
-  (typeof OntologyVertexOneOf1KindEnum)[keyof typeof OntologyVertexOneOf1KindEnum];
-
-/**
- *
- * @export
- * @interface OntologyVertexOneOf2
- */
-export interface OntologyVertexOneOf2 {
-  /**
-   *
-   * @type {EntityTypeWithMetadata}
-   * @memberof OntologyVertexOneOf2
-   */
-  inner: EntityTypeWithMetadata;
-  /**
-   *
-   * @type {string}
-   * @memberof OntologyVertexOneOf2
-   */
-  kind: OntologyVertexOneOf2KindEnum;
-}
-
-export const OntologyVertexOneOf2KindEnum = {
-  EntityType: "entityType",
-} as const;
-
-export type OntologyVertexOneOf2KindEnum =
-  (typeof OntologyVertexOneOf2KindEnum)[keyof typeof OntologyVertexOneOf2KindEnum];
+  | DataTypeVertex
+  | EntityTypeVertex
+  | PropertyTypeVertex;
 
 /**
  *
@@ -1754,6 +1633,33 @@ export interface PropertyTypeStructuralQuery {
    */
   temporalAxes: QueryTemporalAxesUnresolved;
 }
+/**
+ *
+ * @export
+ * @interface PropertyTypeVertex
+ */
+export interface PropertyTypeVertex {
+  /**
+   *
+   * @type {PropertyTypeWithMetadata}
+   * @memberof PropertyTypeVertex
+   */
+  inner: PropertyTypeWithMetadata;
+  /**
+   *
+   * @type {string}
+   * @memberof PropertyTypeVertex
+   */
+  kind: PropertyTypeVertexKindEnum;
+}
+
+export const PropertyTypeVertexKindEnum = {
+  PropertyType: "propertyType",
+} as const;
+
+export type PropertyTypeVertexKindEnum =
+  (typeof PropertyTypeVertexKindEnum)[keyof typeof PropertyTypeVertexKindEnum];
+
 /**
  *
  * @export

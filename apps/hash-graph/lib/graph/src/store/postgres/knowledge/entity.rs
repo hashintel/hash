@@ -27,7 +27,7 @@ use crate::{
     subgraph::{
         edges::{
             Edge, EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind,
-            KnowledgeGraphOutwardEdges, OutgoingEdgeResolveDepth, OutwardEdge, SharedEdgeKind,
+            KnowledgeGraphOutwardEdge, OutgoingEdgeResolveDepth, OutwardEdge, SharedEdgeKind,
         },
         query::StructuralQuery,
         temporal_axes::QueryTemporalAxes,
@@ -104,7 +104,7 @@ impl<C: AsClient> PostgresStore<C> {
                     OntologyTypeVertexId::from(entity.metadata.entity_type_id().clone());
                 subgraph.edges.insert(Edge::KnowledgeGraph {
                     vertex_id: entity_vertex_id,
-                    outward_edge: KnowledgeGraphOutwardEdges::ToOntology(OutwardEdge {
+                    outward_edge: KnowledgeGraphOutwardEdge::ToOntology(OutwardEdge {
                         kind: SharedEdgeKind::IsOfType,
                         reversed: false,
                         right_endpoint: entity_type_id.clone(),
@@ -137,7 +137,7 @@ impl<C: AsClient> PostgresStore<C> {
                 {
                     subgraph.edges.insert(Edge::KnowledgeGraph {
                         vertex_id: entity_vertex_id,
-                        outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
+                        outward_edge: KnowledgeGraphOutwardEdge::ToKnowledgeGraph(OutwardEdge {
                             // (HasLeftEntity, reversed=true) is equivalent to an
                             // outgoing link `Entity`
                             kind: KnowledgeGraphEdgeKind::HasLeftEntity,
@@ -176,7 +176,7 @@ impl<C: AsClient> PostgresStore<C> {
                 {
                     subgraph.edges.insert(Edge::KnowledgeGraph {
                         vertex_id: entity_vertex_id,
-                        outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
+                        outward_edge: KnowledgeGraphOutwardEdge::ToKnowledgeGraph(OutwardEdge {
                             // (HasRightEntity, reversed=true) is equivalent to an
                             // incoming link `Entity`
                             kind: KnowledgeGraphEdgeKind::HasRightEntity,
@@ -215,7 +215,7 @@ impl<C: AsClient> PostgresStore<C> {
                 {
                     subgraph.edges.insert(Edge::KnowledgeGraph {
                         vertex_id: entity_vertex_id,
-                        outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
+                        outward_edge: KnowledgeGraphOutwardEdge::ToKnowledgeGraph(OutwardEdge {
                             // (HasLeftEndpoint, reversed=true) is equivalent to an
                             // outgoing `Link` `Entity`
                             kind: KnowledgeGraphEdgeKind::HasLeftEntity,
@@ -254,7 +254,7 @@ impl<C: AsClient> PostgresStore<C> {
                 {
                     subgraph.edges.insert(Edge::KnowledgeGraph {
                         vertex_id: entity_vertex_id,
-                        outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
+                        outward_edge: KnowledgeGraphOutwardEdge::ToKnowledgeGraph(OutwardEdge {
                             // (HasLeftEndpoint, reversed=true) is equivalent to an
                             // outgoing `Link` `Entity`
                             kind: KnowledgeGraphEdgeKind::HasRightEntity,
