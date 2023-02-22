@@ -5,8 +5,6 @@ import {
 } from "@glideapps/glide-data-grid";
 import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
 
-export const GRID_CLICK_IGNORE_CLASS = "click-outside-ignore";
-
 /**
  * @returns vertical center of a grid cell
  */

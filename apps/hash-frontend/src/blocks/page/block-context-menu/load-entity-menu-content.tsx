@@ -17,7 +17,7 @@ import {
   MenuList,
   Tooltip,
 } from "@mui/material";
-import { PopupState } from "material-ui-popup-state/core";
+import { PopupState } from "material-ui-popup-state/hooks";
 import {
   FunctionComponent,
   useCallback,

@@ -1,34 +1,52 @@
-import { Box, Stack, Typography } from "@mui/material";
-import { FunctionComponent } from "react";
+import { EntityType } from "@blockprotocol/graph";
+import { PropertyType, VersionedUri } from "@blockprotocol/type-system/slim";
+import { EntityTypeEditor } from "@hashintel/type-editor";
+import { OwnedById } from "@local/hash-subgraph";
+import { useMemo } from "react";
 
-import { LinkListCard } from "./definition-tab/link-list-card";
-import { PropertyListCard } from "./definition-tab/property-list-card";
-import { useEntityType } from "./shared/entity-type-context";
+import { useEntityTypesContextRequired } from "../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { useEditorOntologyFunctions } from "./definition-tab/use-editor-ontology-functions";
+import { useLatestPropertyTypes } from "./shared/latest-property-types-context";
 
-export const DefinitionTab: FunctionComponent = () => {
-  const { entityType } = useEntityType();
+type DefinitionTabProps = {
+  ownedById?: OwnedById;
+  entityTypeAndPropertyTypes: {
+    entityType: EntityType;
+    propertyTypes: Record<VersionedUri, PropertyType>;
+  };
+};
+
+export const DefinitionTab = ({
+  entityTypeAndPropertyTypes,
+  ownedById,
+}: DefinitionTabProps) => {
+  const ontologyFunctions = useEditorOntologyFunctions(ownedById ?? null);
+
+  const entityTypesContext = useEntityTypesContextRequired();
+  const possiblyIncompletePropertyTypeOptions = useLatestPropertyTypes();
+
+  const propertyTypeOptions = useMemo(() => {
+    return {
+      ...possiblyIncompletePropertyTypeOptions,
+      ...entityTypeAndPropertyTypes.propertyTypes,
+    };
+  }, [entityTypeAndPropertyTypes, possiblyIncompletePropertyTypeOptions]);
+
+  const entityTypeOptions = useMemo<Record<VersionedUri, EntityType>>(() => {
+    return Object.fromEntries(
+      (entityTypesContext.entityTypes ?? []).map((entityType) => [
+        entityType.schema.$id,
+        entityType.schema,
+      ]),
+    );
+  }, [entityTypesContext.entityTypes]);
 
   return (
-    <Stack spacing={6.5}>
-      <Box>
-        <Typography variant="h5" mb={2}>
-          Properties of{" "}
-          <Box component="span" sx={{ fontWeight: "bold" }}>
-            {entityType.title}
-          </Box>
-        </Typography>
-        <PropertyListCard />
-      </Box>
-
-      <Box>
-        <Typography variant="h5" mb={2}>
-          Links defined on{" "}
-          <Box component="span" sx={{ fontWeight: "bold" }}>
-            {entityType.title}
-          </Box>
-        </Typography>
-        <LinkListCard />
-      </Box>
-    </Stack>
+    <EntityTypeEditor
+      entityType={entityTypeAndPropertyTypes.entityType}
+      entityTypeOptions={entityTypeOptions}
+      ontologyFunctions={ontologyFunctions}
+      propertyTypeOptions={propertyTypeOptions}
+    />
   );
 };
