@@ -97,6 +97,7 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
         if (
           data?.type === "text" &&
           data.path.length === 1 &&
+          /* @todo-0.3 - update this when we update the text blocks, this should become a URI */
           data.path[0] === "text"
         ) {
           editableRef?.(data.node);
