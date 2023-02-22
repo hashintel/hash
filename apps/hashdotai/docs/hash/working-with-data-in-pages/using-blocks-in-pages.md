@@ -23,7 +23,7 @@ The paragraph block creates a `Text` entity in your workspace. The `Text` entity
 
 Hitting the return key `⮐` in the paragraph block will create a new paragraph block below the original. Each paragraph on a page exists an individual block. You can tell this from the [...] context menu on the left of the block, from the comment button on the right of the block, and from the —[+]— button which appears above and below the paragraph when you hover.
 
-![alt_text](insert_block_button.png "The insert block button")
+!["The insert block button"](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/d54cea75-8635-415c-ffa3-163990c6f200/public)
 
 ## The Block context menu {#the-block-context-menu}
 

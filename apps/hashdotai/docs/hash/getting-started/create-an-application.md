@@ -40,7 +40,7 @@ Let’s explore how HASH works by building a simple application. We’re going t
 1.  Click “Add a link +” and create a “Blocked by” Link Type, selecting the “Sub-Task” Type we just created as the expected link type.
 1.  Click to save your updated Entity Type.
 
-![alt_text](data_model.png "Entity Types and Link Types")
+!["Entity Types and Link Types"](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/de5efac3-19c2-47af-6eff-cbe5b4efc400/public)
 
 _We now have a data model looking roughly like this (left). The circles represent Entity Types (the User type already existed). The arrows represent Link Types._
 
@@ -66,7 +66,7 @@ _We now have a data model looking roughly like this (left). The circles represen
 1.  Select the three “Sub-task” Entities you just created to link them to this Project.
 1.  Click “Save changes”.
 
-![alt_text](data.png "Entities and Links, as defined by their Entity and Link Types")
+!["Entities and Links, as defined by their Entity and Link Types"](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/de8bd0a8-37d3-40e9-2162-6897fd7dc500/public)
 
 _We now have some Entities and Links (on the right) defined by their Entity and Link Types respectively (on the left)._
 

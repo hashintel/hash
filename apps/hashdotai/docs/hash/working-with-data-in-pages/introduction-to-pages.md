@@ -17,7 +17,7 @@ Pages are made up of several elements:
 
 1.  **Comments** (shown below on the right of the Paragraph Block). Comments are attached to Blocks and allow users to augment the content in Blocks with additional questions and thoughts.
 
-![alt_text](page_and_blocks.png "A page with blocks and a comment")
+!["A page with blocks and a comment"](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/1e31a95b-e62c-48c3-1df4-0becdb5f3f00/public)
 
 ## Organizing and navigating Pages {#organizing-and-navigating-pages}
 
