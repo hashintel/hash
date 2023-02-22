@@ -15,5 +15,5 @@ export const getLatestInstantIntervalForSubgraph = (
   subgraph: Subgraph,
 ): BoundedTimeInterval =>
   getLatestInstantIntervalForSubgraphBp(
-    subgraph as unknown as SubgraphBp<true>,
+    subgraph as unknown as SubgraphBp,
   ) as BoundedTimeInterval;

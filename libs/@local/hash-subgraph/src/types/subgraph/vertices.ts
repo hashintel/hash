@@ -64,7 +64,7 @@ export type EntityVertex<
     EntityPropertyValue
   >,
 > = Subtype<
-  EntityVertexBp<true, Properties>,
+  EntityVertexBp<Properties>,
   { kind: "entity"; inner: Entity<Properties> }
 >;
 
@@ -78,7 +78,7 @@ export type KnowledgeGraphVertex<
     BaseUri,
     EntityPropertyValue
   >,
-> = Subtype<KnowledgeGraphVertexBp<true, Properties>, EntityVertex<Properties>>;
+> = Subtype<KnowledgeGraphVertexBp<Properties>, EntityVertex<Properties>>;
 
 export type Vertex<
   Properties extends EntityPropertiesObject | null = Record<
@@ -86,7 +86,7 @@ export type Vertex<
     EntityPropertyValue
   >,
 > = Subtype<
-  VertexBp<true, Properties>,
+  VertexBp<Properties>,
   OntologyVertex | KnowledgeGraphVertex<Properties>
 >;
 
@@ -136,7 +136,7 @@ export type OntologyVertices = Subtype<
 >;
 
 export type KnowledgeGraphVertices = Subtype<
-  KnowledgeGraphVerticesBp<true>,
+  KnowledgeGraphVerticesBp,
   {
     [entityId: EntityId]: {
       [revisionId: EntityRevisionId]: KnowledgeGraphVertex;
@@ -155,6 +155,6 @@ export type Vertices = OntologyVertices & KnowledgeGraphVertices;
  * TypeScript and it thinks they are incompatible. Thus, the strange check type.
  */
 export type _CheckVertices = Subtype<
-  VerticesBp<true>,
+  VerticesBp,
   OntologyVertices | KnowledgeGraphVertices
 >;

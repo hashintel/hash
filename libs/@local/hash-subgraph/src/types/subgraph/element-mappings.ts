@@ -28,7 +28,7 @@ import {
  * Helpful when creating generic functions that operate over a {@link Subgraph}
  */
 export type GraphElementIdentifiers = Subtype<
-  GraphElementIdentifiersBp<true>,
+  GraphElementIdentifiersBp,
   | {
       identifier: VersionedUri | OntologyTypeVertexId | OntologyTypeRecordId;
       element:

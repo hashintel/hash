@@ -17,6 +17,6 @@ export const getPropertyTypesReferencedByEntityType = (
   entityTypeId: OntologyTypeVertexId | VersionedUri,
 ): OntologyTypeVertexId[] =>
   getPropertyTypesReferencedByEntityTypeBp(
-    subgraph as unknown as SubgraphBp<true>,
+    subgraph as unknown as SubgraphBp,
     entityTypeId,
   ) as OntologyTypeVertexId[];

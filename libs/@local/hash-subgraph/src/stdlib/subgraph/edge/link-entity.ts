@@ -35,7 +35,7 @@ export const getOutgoingLinksForEntity = (
   interval?: TimeInterval,
 ): Entity[] =>
   getOutgoingLinksForEntityBp(
-    subgraph as unknown as SubgraphBp<true>,
+    subgraph as unknown as SubgraphBp,
     entityId,
     interval,
   ) as Entity[];
@@ -60,7 +60,7 @@ export const getIncomingLinksForEntity = (
   interval?: TimeInterval,
 ): Entity[] =>
   getIncomingLinksForEntityBp(
-    subgraph as unknown as SubgraphBp<true>,
+    subgraph as unknown as SubgraphBp,
     entityId,
     interval,
   ) as Entity[];
@@ -85,7 +85,7 @@ export const getLeftEntityForLinkEntity = (
   interval?: TimeInterval,
 ): Entity[] | undefined =>
   getLeftEntityForLinkEntityBp(
-    subgraph as unknown as SubgraphBp<true>,
+    subgraph as unknown as SubgraphBp,
     entityId,
     interval,
   ) as Entity[] | undefined;
@@ -110,7 +110,7 @@ export const getRightEntityForLinkEntity = (
   interval?: TimeInterval,
 ): Entity[] | undefined =>
   getRightEntityForLinkEntityBp(
-    subgraph as unknown as SubgraphBp<true>,
+    subgraph as unknown as SubgraphBp,
     entityId,
     interval,
   ) as Entity[] | undefined;
@@ -133,7 +133,7 @@ export const getOutgoingLinkAndTargetEntities = <
   interval?: TimeInterval,
 ): LinkAndRightEntities =>
   getOutgoingLinkAndTargetEntitiesBp(
-    subgraph as unknown as SubgraphBp<true>,
+    subgraph as unknown as SubgraphBp,
     entityId,
     interval,
   );

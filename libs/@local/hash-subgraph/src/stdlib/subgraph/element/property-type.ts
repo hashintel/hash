@@ -23,7 +23,7 @@ export const getPropertyTypes = (
   subgraph: Subgraph,
 ): PropertyTypeWithMetadata[] =>
   getPropertyTypesBp(
-    subgraph as unknown as SubgraphBp<true>,
+    subgraph as unknown as SubgraphBp,
   ) as PropertyTypeWithMetadata[];
 
 /**
@@ -38,10 +38,9 @@ export const getPropertyTypeById = (
   subgraph: Subgraph,
   propertyTypeId: VersionedUri,
 ): PropertyTypeWithMetadata | undefined =>
-  getPropertyTypeByIdBp(
-    subgraph as unknown as SubgraphBp<true>,
-    propertyTypeId,
-  ) as PropertyTypeWithMetadata | undefined;
+  getPropertyTypeByIdBp(subgraph as unknown as SubgraphBp, propertyTypeId) as
+    | PropertyTypeWithMetadata
+    | undefined;
 
 /**
  * Gets a `PropertyTypeWithMetadata` by its `OntologyTypeVertexId` from within the vertices of the subgraph. Returns
@@ -55,10 +54,9 @@ export const getPropertyTypeByVertexId = (
   subgraph: Subgraph,
   vertexId: OntologyTypeVertexId,
 ): PropertyTypeWithMetadata | undefined =>
-  getPropertyTypeByVertexIdBp(
-    subgraph as unknown as SubgraphBp<true>,
-    vertexId,
-  ) as PropertyTypeWithMetadata | undefined;
+  getPropertyTypeByVertexIdBp(subgraph as unknown as SubgraphBp, vertexId) as
+    | PropertyTypeWithMetadata
+    | undefined;
 
 /**
  * Returns all `PropertyTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUri`
@@ -71,6 +69,6 @@ export const getPropertyTypesByBaseUri = (
   baseUri: BaseUri,
 ): PropertyTypeWithMetadata[] =>
   getPropertyTypesByBaseUriBp(
-    subgraph as unknown as SubgraphBp<true>,
+    subgraph as unknown as SubgraphBp,
     baseUri,
   ) as PropertyTypeWithMetadata[];

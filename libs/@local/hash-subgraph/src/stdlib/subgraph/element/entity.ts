@@ -25,7 +25,7 @@ export const getEntities = (
   subgraph: Subgraph,
   latest: boolean = false,
 ): Entity[] =>
-  getEntitiesBp(subgraph as unknown as SubgraphBp<true>, latest) as Entity[];
+  getEntitiesBp(subgraph as unknown as SubgraphBp, latest) as Entity[];
 
 /**
  * Gets an {@link Entity} by its {@link EntityId} from within the vertices of the subgraph. If
@@ -46,7 +46,7 @@ export const getEntityRevision = (
   targetRevisionInformation?: EntityRevisionId | Timestamp | Date,
 ): Entity | undefined =>
   getEntityRevisionBp(
-    subgraph as unknown as SubgraphBp<true>,
+    subgraph as unknown as SubgraphBp,
     entityId,
     targetRevisionInformation,
   ) as Entity | undefined;
@@ -67,7 +67,7 @@ export const getEntityRevisionsByEntityId = (
   interval?: TimeInterval,
 ): Entity[] =>
   getEntityRevisionsByEntityIdBp(
-    subgraph as unknown as SubgraphBp<true>,
+    subgraph as unknown as SubgraphBp,
     entityId,
     interval,
   ) as Entity[];
