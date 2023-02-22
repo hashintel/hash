@@ -33,7 +33,7 @@ export type OntologyTypeRecordId = {
 export const ontologyTypeRecordIdToVersionedUri = (
   ontologyTypeRecordId: OntologyTypeRecordId,
 ): VersionedUri => {
-  return `${ontologyTypeRecordId.baseUri}v/${ontologyTypeRecordId.version}` as VersionedUri;
+  return `${ontologyTypeRecordId.baseUri}v/${ontologyTypeRecordId.version}`;
 };
 
 export const isOntologyTypeRecordId = (
@@ -95,6 +95,7 @@ export type EntityTypeWithMetadata = Subtype<
 export const isExternalOntologyElementMetadata = (
   metadata: OntologyElementMetadata,
 ): metadata is ExternalOntologyElementMetadata =>
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- this can be undefined if the cast is wrong
   (metadata as ExternalOntologyElementMetadata).fetchedAt !== undefined;
 
 export const isOwnedOntologyElementMetadata = (
