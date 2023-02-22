@@ -17,7 +17,7 @@ import {
   type Unbounded as UnboundedBp,
   type VariableTemporalAxis as VariableTemporalAxisBp,
   type VariableTemporalAxisUnresolved as VariableTemporalAxisUnresolvedBp,
-} from "@blockprotocol/graph";
+} from "@blockprotocol/graph/temporal";
 import { Brand } from "@local/advanced-types/brand";
 import { Subtype } from "@local/advanced-types/subtype";
 

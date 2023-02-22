@@ -1,5 +1,5 @@
-import { Subgraph as SubgraphBp } from "@blockprotocol/graph";
-import { getLatestInstantIntervalForSubgraph as getLatestInstantIntervalForSubgraphBp } from "@blockprotocol/graph/stdlib";
+import { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
+import { getLatestInstantIntervalForSubgraph as getLatestInstantIntervalForSubgraphBp } from "@blockprotocol/graph/temporal/stdlib";
 
 import { BoundedTimeInterval, Subgraph } from "../../main";
 

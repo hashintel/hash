@@ -1,11 +1,11 @@
-import { Subgraph as SubgraphBp } from "@blockprotocol/graph";
+import { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
 import {
   getIncomingLinksForEntity as getIncomingLinksForEntityBp,
   getLeftEntityForLinkEntity as getLeftEntityForLinkEntityBp,
   getOutgoingLinkAndTargetEntities as getOutgoingLinkAndTargetEntitiesBp,
   getOutgoingLinksForEntity as getOutgoingLinksForEntityBp,
   getRightEntityForLinkEntity as getRightEntityForLinkEntityBp,
-} from "@blockprotocol/graph/stdlib";
+} from "@blockprotocol/graph/temporal/stdlib";
 
 import {
   Entity,

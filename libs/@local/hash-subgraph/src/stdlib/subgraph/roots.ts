@@ -1,11 +1,11 @@
-import { Subgraph as SubgraphBp } from "@blockprotocol/graph";
+import { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
 import {
   getRoots as getRootsBp,
   isDataTypeRootedSubgraph as isDataTypeRootedSubgraphBp,
   isEntityRootedSubgraph as isEntityRootedSubgraphBp,
   isEntityTypeRootedSubgraph as isEntityTypeRootedSubgraphBp,
   isPropertyTypeRootedSubgraph as isPropertyTypeRootedSubgraphBp,
-} from "@blockprotocol/graph/stdlib";
+} from "@blockprotocol/graph/temporal/stdlib";
 
 import {
   DataTypeRootType,

@@ -1,9 +1,9 @@
-import { Subgraph as SubgraphBp } from "@blockprotocol/graph";
+import { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
 import {
   getEntities as getEntitiesBp,
   getEntityRevision as getEntityRevisionBp,
   getEntityRevisionsByEntityId as getEntityRevisionsByEntityIdBp,
-} from "@blockprotocol/graph/stdlib";
+} from "@blockprotocol/graph/temporal/stdlib";
 
 import {
   Entity,

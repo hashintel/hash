@@ -19,7 +19,7 @@ import {
   isEntityVertexId as isEntityVertexIdBp,
   isOntologyTypeVertexId as isOntologyTypeVertexIdBp,
   isPropertyTypeVertex as isPropertyTypeVertexBp,
-} from "@blockprotocol/graph";
+} from "@blockprotocol/graph/temporal";
 import { Subtype } from "@local/advanced-types/subtype";
 
 import {

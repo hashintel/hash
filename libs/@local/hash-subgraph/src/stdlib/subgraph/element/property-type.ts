@@ -1,10 +1,10 @@
-import { Subgraph as SubgraphBp } from "@blockprotocol/graph";
+import { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
 import {
   getPropertyTypeById as getPropertyTypeByIdBp,
   getPropertyTypeByVertexId as getPropertyTypeByVertexIdBp,
   getPropertyTypes as getPropertyTypesBp,
   getPropertyTypesByBaseUri as getPropertyTypesByBaseUriBp,
-} from "@blockprotocol/graph/stdlib";
+} from "@blockprotocol/graph/temporal/stdlib";
 import { VersionedUri } from "@blockprotocol/type-system/slim";
 
 import {
