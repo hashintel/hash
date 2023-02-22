@@ -94,12 +94,14 @@ impl Edges {
             knowledge_graph: KnowledgeGraphRootedEdges(edges.knowledge_graph.into_iter().fold(
                 HashMap::new(),
                 |mut map, (id, edges)| {
-                    let edges = edges.into_iter().map(|edge| {
-                        match edge {
-                            crate::subgraph::edges::KnowledgeGraphOutwardEdges::ToOntology(edge) => {
+                    let edges = edges
+                        .into_iter()
+                        .map(|edge| {
+                            match edge {
+                            crate::subgraph::edges::KnowledgeGraphOutwardEdge::ToOntology(edge) => {
                                 KnowledgeGraphOutwardEdge::ToOntology(edge)
                             }
-                            crate::subgraph::edges::KnowledgeGraphOutwardEdges::ToKnowledgeGraph(
+                            crate::subgraph::edges::KnowledgeGraphOutwardEdge::ToKnowledgeGraph(
                                 edge,
                             ) => {
                                 // We avoid storing redundant information when multiple editions of
@@ -141,19 +143,14 @@ impl Edges {
                                 })
                             }
                         }
-                    }).collect();
+                        })
+                        .collect();
                     match map.entry(id.base_id) {
                         Entry::Occupied(entry) => {
-                            entry.into_mut().insert(
-                                id.version,
-                                edges,
-                            );
+                            entry.into_mut().insert(id.version, edges);
                         }
                         Entry::Vacant(entry) => {
-                            entry.insert(BTreeMap::from([(
-                                id.version,
-                                edges,
-                            )]));
+                            entry.insert(BTreeMap::from([(id.version, edges)]));
                         }
                     }
                     map

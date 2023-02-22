@@ -74,7 +74,7 @@ impl ToSchema<'_> for OntologyOutwardEdge {
 
 #[derive(Debug, Hash, PartialEq, Eq, Serialize)]
 #[serde(untagged)]
-pub enum KnowledgeGraphOutwardEdges {
+pub enum KnowledgeGraphOutwardEdge {
     ToKnowledgeGraph(OutwardEdge<KnowledgeGraphEdgeKind, EntityId>),
     ToOntology(OutwardEdge<SharedEdgeKind, OntologyTypeVertexId>),
 }

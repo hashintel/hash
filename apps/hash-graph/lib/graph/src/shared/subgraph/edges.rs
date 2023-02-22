@@ -6,7 +6,7 @@ mod edge;
 mod kind;
 
 pub use self::{
-    edge::{KnowledgeGraphOutwardEdges, OntologyOutwardEdge, OutwardEdge},
+    edge::{KnowledgeGraphOutwardEdge, OntologyOutwardEdge, OutwardEdge},
     kind::{
         EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
         OutgoingEdgeResolveDepth, SharedEdgeKind,
@@ -16,7 +16,7 @@ pub use self::{
 #[derive(Default, Debug)]
 pub struct Edges {
     pub ontology: HashMap<OntologyTypeVertexId, HashSet<OntologyOutwardEdge>>,
-    pub knowledge_graph: HashMap<EntityVertexId, HashSet<KnowledgeGraphOutwardEdges>>,
+    pub knowledge_graph: HashMap<EntityVertexId, HashSet<KnowledgeGraphOutwardEdge>>,
 }
 
 pub enum Edge {
@@ -26,7 +26,7 @@ pub enum Edge {
     },
     KnowledgeGraph {
         vertex_id: EntityVertexId,
-        outward_edge: KnowledgeGraphOutwardEdges,
+        outward_edge: KnowledgeGraphOutwardEdge,
     },
 }
 
