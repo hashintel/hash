@@ -4,7 +4,7 @@ import {
   EntityRootType,
   Subgraph,
 } from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
+import { getRoots } from "@blockprotocol/graph/temporal/stdlib";
 import { VersionedUri } from "@blockprotocol/type-system/slim";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { Entity, EntityId } from "@local/hash-subgraph";
