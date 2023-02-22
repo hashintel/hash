@@ -157,9 +157,6 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     if (!graphProperties.blockEntitySubgraph) {
       return null;
     }
-    if (!graphProperties.readonly) {
-      return null;
-    }
     const rootEntity = getRoots(graphProperties.blockEntitySubgraph)[0] as
       | Entity
       | undefined;
@@ -175,7 +172,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
         properties: rootEntity.properties,
       },
       blockEntitySubgraph: graphProperties.blockEntitySubgraph,
-      readonly: graphProperties.readonly,
+      readonly: !!graphProperties.readonly,
     };
   }, [graphProperties]);
 
