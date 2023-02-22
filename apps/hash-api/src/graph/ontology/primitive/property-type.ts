@@ -5,6 +5,7 @@ import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountId,
   OntologyElementMetadata,
+  OntologyTypeRecordId,
   ontologyTypeRecordIdToVersionedUri,
   OwnedById,
   PropertyTypeRootType,
@@ -132,9 +133,7 @@ export const updatePropertyType: ImpureGraphFunction<
   return {
     schema: {
       ...schema,
-      $id: ontologyTypeRecordIdToVersionedUri(
-        recordId as OntologyElementMetadata["recordId"],
-      ),
+      $id: ontologyTypeRecordIdToVersionedUri(recordId as OntologyTypeRecordId),
     },
     metadata: metadata as OntologyElementMetadata,
   };

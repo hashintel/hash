@@ -5,6 +5,7 @@ import {
   DataTypeRootType,
   DataTypeWithMetadata,
   OntologyElementMetadata,
+  OntologyTypeRecordId,
   ontologyTypeRecordIdToVersionedUri,
   OwnedById,
   Subgraph,
@@ -146,9 +147,7 @@ export const updateDataType: ImpureGraphFunction<
   return {
     schema: {
       ...schema,
-      $id: ontologyTypeRecordIdToVersionedUri(
-        recordId as OntologyElementMetadata["recordId"],
-      ),
+      $id: ontologyTypeRecordIdToVersionedUri(recordId as OntologyTypeRecordId),
     },
     metadata: metadata as OntologyElementMetadata,
   };
