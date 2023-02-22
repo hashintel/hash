@@ -821,7 +821,7 @@ export interface EntityVertexId {
    * @type {string}
    * @memberof EntityVertexId
    */
-  version: string;
+  revisionId: string;
 }
 /**
  *
@@ -1315,7 +1315,7 @@ export interface OntologyTypeVertexId {
    * @type {number}
    * @memberof OntologyTypeVertexId
    */
-  version: number;
+  revisionId: number;
 }
 /**
  * @type OntologyVertex

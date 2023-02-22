@@ -82,10 +82,10 @@ impl Edges {
                     let edges = edges.into_iter().collect();
                     match map.entry(id.base_id.clone()) {
                         Entry::Occupied(entry) => {
-                            entry.into_mut().insert(id.version, edges);
+                            entry.into_mut().insert(id.revision_id, edges);
                         }
                         Entry::Vacant(entry) => {
-                            entry.insert(BTreeMap::from([(id.version, edges)]));
+                            entry.insert(BTreeMap::from([(id.revision_id, edges)]));
                         }
                     }
                     map
@@ -131,7 +131,7 @@ impl Edges {
                                 }
                                     .expect("entity must exist in subgraph")
                                     .vertex_id(time_axis)
-                                    .version;
+                                    .revision_id;
 
                                 KnowledgeGraphOutwardEdge::ToKnowledgeGraph(OutwardEdge {
                                     kind: edge.kind,
@@ -147,10 +147,10 @@ impl Edges {
                         .collect();
                     match map.entry(id.base_id) {
                         Entry::Occupied(entry) => {
-                            entry.into_mut().insert(id.version, edges);
+                            entry.into_mut().insert(id.revision_id, edges);
                         }
                         Entry::Vacant(entry) => {
-                            entry.insert(BTreeMap::from([(id.version, edges)]));
+                            entry.insert(BTreeMap::from([(id.revision_id, edges)]));
                         }
                     }
                     map

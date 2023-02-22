@@ -31,7 +31,7 @@ export const mapOutwardEdge = (
         rightEndpoint: {
           baseId: outwardEdge.rightEndpoint.baseId as BaseUri,
           revisionId:
-            `${outwardEdge.rightEndpoint.version}` as OntologyTypeRevisionId,
+            `${outwardEdge.rightEndpoint.revisionId}` as OntologyTypeRevisionId,
         },
       };
     }
@@ -66,7 +66,7 @@ export const mapOutwardEdge = (
               interval: {
                 start: {
                   kind: "inclusive",
-                  limit: outwardEdge.rightEndpoint.version as Timestamp,
+                  limit: outwardEdge.rightEndpoint.revisionId as Timestamp,
                 },
                 end: {
                   /** @todo-0.3 - This is incorrect, this will be fixed when the graph backend is migrated to be consistent */
@@ -81,7 +81,7 @@ export const mapOutwardEdge = (
             rightEndpoint: {
               baseId: outwardEdge.rightEndpoint.baseId as BaseUri,
               revisionId:
-                `${outwardEdge.rightEndpoint.version}` as OntologyTypeRevisionId,
+                `${outwardEdge.rightEndpoint.revisionId}` as OntologyTypeRevisionId,
             },
           };
     }
