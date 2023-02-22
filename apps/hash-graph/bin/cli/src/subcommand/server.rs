@@ -243,8 +243,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         Some("A link".to_owned()),
         Object::new(HashMap::default(), Vec::default()).expect("invalid property object"),
         AllOf::new([]),
-        Links::new(HashMap::default(), Vec::new()).expect("invalid links"),
-        HashMap::default(),
+        Links::new(HashMap::default()),
         Vec::default(),
     );
 
