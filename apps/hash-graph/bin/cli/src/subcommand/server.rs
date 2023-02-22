@@ -86,7 +86,10 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         identifier::account::AccountId,
         ontology::{ExternalOntologyElementMetadata, OntologyElementMetadata},
         provenance::{ProvenanceMetadata, UpdatedById},
-        store::{AccountStore, BaseUriAlreadyExists, DataTypeStore, EntityTypeStore, StorePool},
+        store::{
+            error::VersionedUriAlreadyExists, AccountStore, DataTypeStore, EntityTypeStore,
+            StorePool,
+        },
     };
     use serde_json::json;
     use time::OffsetDateTime;
@@ -222,7 +225,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
             .await
             .change_context(GraphError)
         {
-            if error.contains::<BaseUriAlreadyExists>() {
+            if error.contains::<VersionedUriAlreadyExists>() {
                 tracing::info!(%root_account_id, "tried to insert primitive {title} data type, but it already exists");
             } else {
                 return Err(error.change_context(GraphError));
@@ -261,7 +264,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         .create_entity_type(link_entity_type, &link_entity_type_metadata)
         .await
     {
-        if error.contains::<BaseUriAlreadyExists>() {
+        if error.contains::<VersionedUriAlreadyExists>() {
             tracing::info!(%root_account_id, "tried to insert {title} entity type, but it already exists");
         } else {
             return Err(error.change_context(GraphError));
