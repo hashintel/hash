@@ -169,11 +169,13 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     }
 
     return {
-      ...(graphProperties as Required<BlockGraphProperties>),
+      ...graphProperties,
       blockEntity: {
         entityId: rootEntity.metadata.recordId.entityId,
         properties: rootEntity.properties,
       },
+      blockEntitySubgraph: graphProperties.blockEntitySubgraph,
+      readonly: graphProperties.readonly,
     };
   }, [graphProperties]);
 
