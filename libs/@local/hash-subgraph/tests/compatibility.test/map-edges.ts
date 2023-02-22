@@ -1,8 +1,11 @@
 import { validateBaseUri } from "@blockprotocol/type-system";
 import {
   Edges as EdgesGraphApi,
+  EntityIdWithInterval as EntityIdWithIntervalGraphApi,
+  ExclusiveBound as ExclusiveBoundGraphApi,
   KnowledgeGraphOutwardEdge as KnowledgeGraphOutwardEdgeGraphApi,
   OntologyOutwardEdge as OntologyOutwardEdgeGraphApi,
+  OntologyTypeVertexId as OntologyTypeVertexIdGraphApi,
 } from "@local/hash-graph-client";
 import {
   BaseUri,
@@ -41,16 +44,23 @@ export const mapOutwardEdge = (
       return {
         ...outwardEdge,
         rightEndpoint: {
-          entityId: outwardEdge.rightEndpoint.baseId as EntityId,
+          entityId: outwardEdge.rightEndpoint.entityId as EntityId,
           interval: {
             start: {
               kind: "inclusive",
-              limit: outwardEdge.rightEndpoint.timestamp as Timestamp,
+              limit: outwardEdge.rightEndpoint.interval.start
+                .limit as Timestamp,
             },
-            end: {
-              /** @todo-0.3 - This is incorrect, this will be fixed when the graph backend is migrated to be consistent */
-              kind: "unbounded",
-            },
+            end:
+              outwardEdge.rightEndpoint.interval.end.kind === "unbounded"
+                ? {
+                    kind: "unbounded",
+                  }
+                : {
+                    kind: "exclusive",
+                    limit: outwardEdge.rightEndpoint.interval.end
+                      .limit as Timestamp,
+                  },
           },
         },
       };
@@ -62,16 +72,30 @@ export const mapOutwardEdge = (
             ...outwardEdge,
             reversed: outwardEdge.reversed,
             rightEndpoint: {
-              entityId: outwardEdge.rightEndpoint.baseId as EntityId,
+              entityId: (
+                outwardEdge.rightEndpoint as EntityIdWithIntervalGraphApi
+              ).entityId as EntityId,
               interval: {
                 start: {
                   kind: "inclusive",
-                  limit: outwardEdge.rightEndpoint.revisionId as Timestamp,
+                  limit: (
+                    outwardEdge.rightEndpoint as EntityIdWithIntervalGraphApi
+                  ).interval.start.limit as Timestamp,
                 },
-                end: {
-                  /** @todo-0.3 - This is incorrect, this will be fixed when the graph backend is migrated to be consistent */
-                  kind: "unbounded",
-                },
+                end:
+                  (outwardEdge.rightEndpoint as EntityIdWithIntervalGraphApi)
+                    .interval.end.kind === "unbounded"
+                    ? {
+                        kind: "unbounded",
+                      }
+                    : {
+                        kind: "exclusive",
+                        limit: (
+                          (
+                            outwardEdge.rightEndpoint as EntityIdWithIntervalGraphApi
+                          ).interval.end as ExclusiveBoundGraphApi
+                        ).limit as Timestamp,
+                      },
               },
             },
           }
@@ -79,9 +103,13 @@ export const mapOutwardEdge = (
             ...outwardEdge,
             reversed: outwardEdge.reversed,
             rightEndpoint: {
-              baseId: outwardEdge.rightEndpoint.baseId as BaseUri,
-              revisionId:
-                `${outwardEdge.rightEndpoint.revisionId}` as OntologyTypeRevisionId,
+              baseId: (
+                outwardEdge.rightEndpoint as OntologyTypeVertexIdGraphApi
+              ).baseId as BaseUri,
+              revisionId: `${
+                (outwardEdge.rightEndpoint as OntologyTypeVertexIdGraphApi)
+                  .revisionId
+              }` as OntologyTypeRevisionId,
             },
           };
     }
