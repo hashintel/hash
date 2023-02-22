@@ -42,7 +42,14 @@
     }
   },
   "additionalProperties": false,
-  "required": ["kind", "$id", "type", "title", "properties", "additionalProperties"],
+  "required": [
+    "kind",
+    "$id",
+    "type",
+    "title",
+    "properties",
+    "additionalProperties"
+  ],
   "$defs": {
     "propertyTypeObject": {
       "type": "object",
