@@ -25,7 +25,7 @@ _It is possible to teardown the database with the equivalent `deployment-down` t
 Then, the Graph Query Layer can be started:
 
 ```shell
-cargo run -- server
+cargo make run -- server
 ```
 
 ### Logging configuration
