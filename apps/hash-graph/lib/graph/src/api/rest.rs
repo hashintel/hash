@@ -39,7 +39,7 @@ use crate::{
         utoipa_typedef::subgraph::{
             Edges, KnowledgeGraphOutwardEdges, KnowledgeGraphRootedEdges, KnowledgeGraphVertex,
             KnowledgeGraphVertices, OntologyRootedEdges, OntologyVertex, OntologyVertices,
-            Subgraph, SubgraphTemporalAxes, Vertex, Vertices,
+            Subgraph, Vertex, Vertices,
         },
     },
     identifier::{
@@ -63,6 +63,7 @@ use crate::{
             OntologyOutwardEdges, OutgoingEdgeResolveDepth, SharedEdgeKind,
         },
         temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
+        SubgraphTemporalAxes,
     },
 };
 

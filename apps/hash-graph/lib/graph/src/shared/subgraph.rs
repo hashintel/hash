@@ -9,6 +9,8 @@ use std::{
 
 use edges::Edges;
 use error_stack::Result;
+use serde::Serialize;
+use utoipa::ToSchema;
 
 use crate::{
     shared::identifier::GraphElementVertexId,
@@ -25,21 +27,26 @@ pub mod query;
 pub mod temporal_axes;
 pub mod vertices;
 
+#[derive(Debug, Serialize, ToSchema)]
+pub struct SubgraphTemporalAxes {
+    pub initial: QueryTemporalAxesUnresolved,
+    pub resolved: QueryTemporalAxes,
+}
+
 #[derive(Debug)]
 pub struct Subgraph {
     pub roots: HashSet<GraphElementVertexId>,
     pub vertices: Vertices,
     pub edges: Edges,
     pub depths: GraphResolveDepths,
-    pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub resolved_temporal_axes: QueryTemporalAxes,
+    pub temporal_axes: SubgraphTemporalAxes,
 }
 
 impl Subgraph {
     #[must_use]
     pub fn new(
         depths: GraphResolveDepths,
-        temporal_axes: QueryTemporalAxesUnresolved,
+        initial_temporal_axes: QueryTemporalAxesUnresolved,
         resolved_temporal_axes: QueryTemporalAxes,
     ) -> Self {
         Self {
@@ -47,8 +54,10 @@ impl Subgraph {
             vertices: Vertices::default(),
             edges: Edges::default(),
             depths,
-            temporal_axes,
-            resolved_temporal_axes,
+            temporal_axes: SubgraphTemporalAxes {
+                initial: initial_temporal_axes,
+                resolved: resolved_temporal_axes,
+            },
         }
     }
 

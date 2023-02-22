@@ -49,7 +49,7 @@ impl<C: AsClient> PostgresStore<C> {
         temporal_axes: QueryTemporalAxes,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
         async move {
-            let time_axis = subgraph.resolved_temporal_axes.variable_time_axis();
+            let time_axis = subgraph.temporal_axes.resolved.variable_time_axis();
 
             let entity: &Entity = match entity_vertex_id.subgraph_vertex_entry(subgraph) {
                 RawEntryMut::Occupied(entry) => entry.into_mut(),

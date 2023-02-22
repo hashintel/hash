@@ -15,15 +15,9 @@ use crate::{
     identifier::GraphElementVertexId,
     subgraph::{
         edges::GraphResolveDepths,
-        temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
+        SubgraphTemporalAxes,
     },
 };
-
-#[derive(Serialize, ToSchema)]
-pub struct SubgraphTemporalAxes {
-    pub initial: QueryTemporalAxesUnresolved,
-    pub resolved: QueryTemporalAxes,
-}
 
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
@@ -41,17 +35,14 @@ impl From<crate::subgraph::Subgraph> for Subgraph {
         let edges = Edges::from_vertices_and_store_edges(
             subgraph.edges,
             &vertices,
-            subgraph.resolved_temporal_axes.variable_time_axis(),
+            subgraph.temporal_axes.resolved.variable_time_axis(),
         );
         Self {
             roots: subgraph.roots.into_iter().collect(),
             vertices,
             edges,
             depths: subgraph.depths,
-            temporal_axes: SubgraphTemporalAxes {
-                initial: subgraph.temporal_axes,
-                resolved: subgraph.resolved_temporal_axes,
-            },
+            temporal_axes: subgraph.temporal_axes,
         }
     }
 }
