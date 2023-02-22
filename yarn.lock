@@ -3135,14 +3135,6 @@
     es-module-lexer "^0.10.5"
     uuid "^8.3.2"
 
-"@blockprotocol/core@0.0.14-canary-20230214141700":
-  version "0.0.14-canary-20230214141700"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.0.14-canary-20230214141700.tgz#7b943296561a4b9eece1f6394d656e100867444d"
-  integrity sha512-pMTZWVWbmf2fxrHzhClVK8qZICaES/OEQ/n5J1yWP++/r7H8SVrk4FhWvUX9q//08lvZtW9Yuo56ekwfnO2yHQ==
-  dependencies:
-    es-module-lexer "^0.10.5"
-    uuid "^8.3.2"
-
 "@blockprotocol/core@0.0.2":
   version "0.0.2"
   resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.0.2.tgz#f9ef68143981e5aadfe14556f0afa8931c6a472d"
@@ -3162,6 +3154,14 @@
   version "0.1.0-canary-20230220234726"
   resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.1.0-canary-20230220234726.tgz#2d617a6afdabf5d358351384846e993a544348e6"
   integrity sha512-AjSclIe8lmG+Qxit0I6HgYJ+um2N6cDogmBZqK5b5BnSvFK2WdxxkaE3OIzbNkHGALtz9uMhpysfg1SzzCpcMA==
+  dependencies:
+    es-module-lexer "^0.10.5"
+    uuid "^8.3.2"
+
+"@blockprotocol/core@0.1.0-canary-20230222150704":
+  version "0.1.0-canary-20230222150704"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.1.0-canary-20230222150704.tgz#5ef4fd3acea3fd6727eb989ca970868722286d59"
+  integrity sha512-6d9Aaraz9bWZlmFP/HYw4xNqbspVq7zRNmc3bTfk7cSbtlErM2O90YRg8bkr5OqSmlP/P0OKkLcviIClM4uvCA==
   dependencies:
     es-module-lexer "^0.10.5"
     uuid "^8.3.2"
@@ -3195,19 +3195,6 @@
     lit "^2.4.1"
     node-fetch "^3.3.0"
 
-"@blockprotocol/graph@0.1.0-canary-20230214141700":
-  version "0.1.0-canary-20230214141700"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.1.0-canary-20230214141700.tgz#bc1acc15de3f27874cf45b58a13d51640eb09742"
-  integrity sha512-r9fDToHn/X74mkPzu4CDRaLUtm/OPCdgkuYcTDtGbPThv6+x9iXNj9B1x3P05IwbMmBAtsk0UrhXYrM8sTdkZQ==
-  dependencies:
-    "@blockprotocol/core" "0.0.14-canary-20230214141700"
-    "@blockprotocol/type-system" "0.0.4-canary-20230214141700"
-    ajv "^8.11.2"
-    ajv-formats "^2.1.1"
-    json-schema-to-typescript "^11.0.2"
-    lit "^2.4.1"
-    node-fetch "^3.3.0"
-
 "@blockprotocol/graph@0.1.0-canary-20230220234726":
   version "0.1.0-canary-20230220234726"
   resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.1.0-canary-20230220234726.tgz#136a2878df34d5e7d5ee661525cf3d360d0c30b6"
@@ -3215,6 +3202,19 @@
   dependencies:
     "@blockprotocol/core" "0.1.0-canary-20230220234726"
     "@blockprotocol/type-system" "0.1.0-canary-20230220234726"
+    ajv "^8.11.2"
+    ajv-formats "^2.1.1"
+    json-schema-to-typescript "^11.0.2"
+    lit "^2.4.1"
+    node-fetch "^3.3.0"
+
+"@blockprotocol/graph@0.1.0-canary-20230222150704":
+  version "0.1.0-canary-20230222150704"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.1.0-canary-20230222150704.tgz#6b9726da3fbb2f72beb08bbab62589bdecd76927"
+  integrity sha512-hndsDZ7rSM5Jg50ENyDhHMmqrbaCeYQE2z5ImkEs34CTZiKo52Uy8FwTBt1hbuOLRUJAOgGmCAGaLyjyUK03lg==
+  dependencies:
+    "@blockprotocol/core" "0.1.0-canary-20230222150704"
+    "@blockprotocol/type-system" "0.1.0-canary-20230222150704"
     ajv "^8.11.2"
     ajv-formats "^2.1.1"
     json-schema-to-typescript "^11.0.2"
@@ -3236,14 +3236,6 @@
     "@blockprotocol/core" "0.0.14-canary-20230210130343"
     "@blockprotocol/graph" "0.1.0-canary-20230210130343"
 
-"@blockprotocol/hook@0.1.0-canary-20230214141700":
-  version "0.1.0-canary-20230214141700"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/hook/-/hook-0.1.0-canary-20230214141700.tgz#5503ab52986b5a7bcaed6868b9638d96e22f0696"
-  integrity sha512-8khVmy1qk5tPo9fP1hmRdyRaXYfR5nxNcYr1qCJTL1j/HoMQeqlqfgUvHCqAKxdHU8Iz16vPkuMIu6pkpEppog==
-  dependencies:
-    "@blockprotocol/core" "0.0.14-canary-20230214141700"
-    "@blockprotocol/graph" "0.1.0-canary-20230214141700"
-
 "@blockprotocol/hook@0.1.0-canary-20230220234726":
   version "0.1.0-canary-20230220234726"
   resolved "https://registry.yarnpkg.com/@blockprotocol/hook/-/hook-0.1.0-canary-20230220234726.tgz#e41902cb1f54fb04f8e12dbdd090641ab6115a24"
@@ -3252,20 +3244,28 @@
     "@blockprotocol/core" "0.1.0-canary-20230220234726"
     "@blockprotocol/graph" "0.1.0-canary-20230220234726"
 
+"@blockprotocol/hook@0.1.0-canary-20230222150704":
+  version "0.1.0-canary-20230222150704"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/hook/-/hook-0.1.0-canary-20230222150704.tgz#7cf37b9b63295308c6afae53681a3565af9cd94e"
+  integrity sha512-8v2NbpGGOdflIV6omyBdyZftqMNVOfxPLQjKv/YCxOzzzqadi+hh5HTqYSs3VyT87yFi4LDWrtXlF9GrawOP2g==
+  dependencies:
+    "@blockprotocol/core" "0.1.0-canary-20230222150704"
+    "@blockprotocol/graph" "0.1.0-canary-20230222150704"
+
 "@blockprotocol/type-system@0.0.4-canary-20230210130343":
   version "0.0.4-canary-20230210130343"
   resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.0.4-canary-20230210130343.tgz#fb77890ea27dba143cb7cfc22c73c0dd3f35325c"
   integrity sha512-sWca6zKPajyiNlv6oavOhf74k0qrguBmz1UzjXcsdcNxJhGTUaxRKQNg12MJ6IM+sPD6nxuO9r3hMEPcoTU0/g==
 
-"@blockprotocol/type-system@0.0.4-canary-20230214141700":
-  version "0.0.4-canary-20230214141700"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.0.4-canary-20230214141700.tgz#35e592c54a33aedbc4465c117c5e411a27c2108c"
-  integrity sha512-kpYBQGy/Tro7dBacggBoJZ8QHqNbrAPSnPm4wQrbSbC85eFGWwbVNhVwe8ykEZ3jXOGv4yy1kZL1a866uHsJ8w==
-
 "@blockprotocol/type-system@0.1.0-canary-20230220234726":
   version "0.1.0-canary-20230220234726"
   resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.1.0-canary-20230220234726.tgz#58d88863e266592380d38fcb84acccc56b723b03"
   integrity sha512-ONTfaq4nd7AR6403pJ22VktOxodW35nJkoXd0GuP7KjrWb/YtCnxmHwNxkJRGWMi0iIo7IRiQfJkt4hYmFB4Bg==
+
+"@blockprotocol/type-system@0.1.0-canary-20230222150704":
+  version "0.1.0-canary-20230222150704"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.1.0-canary-20230222150704.tgz#adeee52b340bab0d5124da4d1e69e4574dc4a9ac"
+  integrity sha512-Di02aSZuys4c1Yh2QLGPkYoQWjYbdrF0WRegTNfSlfM58YyYsFl5A11ypZWfCFYMrs145++w5awqGPWHkJd6Vg==
 
 "@changesets/apply-release-plan@^6.1.3":
   version "6.1.3"
