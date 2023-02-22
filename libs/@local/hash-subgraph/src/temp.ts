@@ -7,15 +7,13 @@
 import { Subgraph as SubgraphGraphApi } from "@local/hash-graph-client";
 
 import { mapEdges } from "./temp/map-edges";
-import { mapRoots } from "./temp/map-roots";
 import { Subgraph } from "./types";
 
 export * from "./temp/map-edges";
-export * from "./temp/map-roots";
 
 export const mapSubgraph = (subgraphGraphApi: SubgraphGraphApi) => {
   const mappedSubgraph: Subgraph = {
-    roots: mapRoots(subgraphGraphApi.roots),
+    roots: subgraphGraphApi.roots as Subgraph["roots"],
     vertices: subgraphGraphApi.vertices as Subgraph["vertices"],
     edges: mapEdges(subgraphGraphApi.edges),
     depths: subgraphGraphApi.depths,
