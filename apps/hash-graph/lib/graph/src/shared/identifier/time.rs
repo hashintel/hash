@@ -7,7 +7,7 @@ mod timestamp;
 pub use self::{
     axis::{DecisionTime, TemporalTagged, TimeAxis, TransactionTime, VariableAxis},
     bound::{ClosedTemporalBound, LimitedTemporalBound, OpenTemporalBound, TemporalBound},
-    interval::UnresolvedRightBoundedTemporalInterval,
+    interval::RightBoundedTemporalIntervalUnresolved,
     temporal_axes::{
         PinnedTemporalAxis, PinnedTemporalAxisUnresolved, QueryTemporalAxes,
         QueryTemporalAxesUnresolved, VariableTemporalAxis, VariableTemporalAxisUnresolved,

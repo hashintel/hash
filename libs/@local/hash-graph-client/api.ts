@@ -1806,7 +1806,7 @@ export interface ProvenanceMetadata {
 }
 /**
  * @type QueryTemporalAxes
- * Constrains the temporal data in the Graph to a specific [`TimeAxis`].  When querying the Graph, temporal data is returned. The Graph is implemented as a bitemporal data store, which means the knowledge data contains information about the time of when the knowledge was inserted into the Graph, the [`TransactionTime`], and when the knowledge was decided to be inserted, the [`DecisionTime`].  In order to query data from the Graph, only one of the two time axes can be used. This is achieved by using a `TemporalAxes`. The `TemporalAxes` pins one axis to a specified [`Timestamp`], while the other axis can be a [`Interval`]. The pinned axis is called the [`PinnedTemporalAxis`] and the other axis is called the [`VariableTemporalAxis`]. The returned data will then only contain temporal data that is contained in the [`Interval`] of the [`VariableTemporalAxis`] for the given [`Timestamp`] of the [`PinnedTemporalAxis`].  [`Interval`]: crate::interval::Interval
+ * Defines the two possible combinations of pinned/variable temporal axes that are used in responses to queries that return [`Subgraph`]s.  When querying the Graph, temporal data is returned. The Graph is implemented as a bitemporal data store, which means the knowledge data contains information about the time of when the knowledge was inserted into the Graph, the [`TransactionTime`], and when the knowledge was decided to be inserted, the [`DecisionTime`].  In order to query data from the Graph, only one of the two time axes can be used. This is achieved by using a `TemporalAxes`. The `TemporalAxes` pins one axis to a specified [`Timestamp`], while the other axis can be a [`Interval`]. The pinned axis is called the [`PinnedTemporalAxis`] and the other axis is called the [`VariableTemporalAxis`]. The returned data will then only contain temporal data that is contained in the [`Interval`] of the [`VariableTemporalAxis`] for the given [`Timestamp`] of the [`PinnedTemporalAxis`].  [`Interval`]: crate::interval::Interval
  * @export
  */
 export type QueryTemporalAxes =
@@ -1929,6 +1929,7 @@ export interface QueryTemporalAxesTransactionTimeVariable {
 }
 /**
  * @type QueryTemporalAxesUnresolved
+ * Defines the two possible combinations of pinned/variable temporal axes that are used in queries that return [`Subgraph`]s.  The [`VariableTemporalAxisUnresolved`] is optionally bounded, in the absence of provided bounds an inclusive bound at the timestamp at point of resolving is assumed.
  * @export
  */
 export type QueryTemporalAxesUnresolved =

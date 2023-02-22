@@ -20,7 +20,7 @@ use crate::{
     Hash(bound = "")
 )]
 #[serde(rename_all = "camelCase", bound = "", deny_unknown_fields)]
-pub struct UnresolvedRightBoundedTemporalInterval<A> {
+pub struct RightBoundedTemporalIntervalUnresolved<A> {
     pub start: Option<TemporalBound<A>>,
     pub end: Option<LimitedTemporalBound<A>>,
 }
@@ -132,7 +132,7 @@ where
     }
 }
 
-impl<'s, A> ToSchema<'s> for UnresolvedRightBoundedTemporalInterval<A>
+impl<'s, A> ToSchema<'s> for RightBoundedTemporalIntervalUnresolved<A>
 where
     A: ToSchema<'s>,
 {

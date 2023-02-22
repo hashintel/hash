@@ -5,10 +5,18 @@ use crate::identifier::time::{
     axis::{PinnedAxis, TemporalTagged},
     bound::TemporalBound,
     DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound, RightBoundedTemporalInterval,
-    TemporalInterval, TimeAxis, Timestamp, TransactionTime, UnresolvedRightBoundedTemporalInterval,
+    RightBoundedTemporalIntervalUnresolved, TemporalInterval, TimeAxis, Timestamp, TransactionTime,
     VariableAxis,
 };
 
+/// A representation of a "pinned" temporal axis, used to project another temporal axis along the
+/// given [`Timestamp`].
+///
+/// If the `timestamp` is `None`, then it will be filled in with the current time _when a query
+/// is being resolved._
+///
+/// In a bitemporal system, a `PinnedTemporalAxisUnresolved` should almost always be accompanied by
+/// a [`VariableTemporalAxisUnresolved`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PinnedTemporalAxisUnresolved<A> {
@@ -56,11 +64,18 @@ where
     }
 }
 
+/// A representation of a "variable" temporal axis, which is optionally bounded to a given interval.
+///
+/// The interval may have some bounds omitted for later processing (see
+/// [`RightBoundedTemporalIntervalUnresolved`]), whereby `None` values are replaced with inclusive
+/// bounds referring the current [`Timestamp`]. In a bitemporal system, a
+/// `VariableTemporalAxisUnresolved` should almost always be accompanied by a
+/// [`PinnedTemporalAxisUnresolved`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct VariableTemporalAxisUnresolved<A> {
     pub axis: A,
-    pub interval: UnresolvedRightBoundedTemporalInterval<A>,
+    pub interval: RightBoundedTemporalIntervalUnresolved<A>,
 }
 
 impl<A: Default> VariableTemporalAxisUnresolved<A> {
@@ -68,7 +83,7 @@ impl<A: Default> VariableTemporalAxisUnresolved<A> {
     pub fn new(start: Option<TemporalBound<A>>, end: Option<LimitedTemporalBound<A>>) -> Self {
         Self {
             axis: A::default(),
-            interval: UnresolvedRightBoundedTemporalInterval { start, end },
+            interval: RightBoundedTemporalIntervalUnresolved { start, end },
         }
     }
 
@@ -100,7 +115,7 @@ where
                 .property(
                     "interval",
                     openapi::Ref::from_schema_name(
-                        UnresolvedRightBoundedTemporalInterval::<A>::schema().0,
+                        RightBoundedTemporalIntervalUnresolved::<A>::schema().0,
                     ),
                 )
                 .required("interval")
@@ -109,6 +124,13 @@ where
     }
 }
 
+/// Defines the two possible combinations of pinned/variable temporal axes that are used in queries
+/// that return [`Subgraph`]s.
+///
+/// The [`VariableTemporalAxisUnresolved`] is optionally bounded, in the absence of provided
+/// bounds an inclusive bound at the timestamp at point of resolving is assumed.
+///
+/// [`Subgraph`]: crate::subgraph::Subgraph
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(untagged)]
 pub enum QueryTemporalAxesUnresolved {
@@ -154,9 +176,11 @@ impl QueryTemporalAxesUnresolved {
     }
 }
 
-/// The pinned axis of a [`QueryTemporalAxes`].
+/// A representation of a "pinned" temporal axis, used to project another temporal axis along the
+/// given [`Timestamp`].
 ///
-/// Please refer to the documentation of [`QueryTemporalAxes`] for more information.
+/// In a bitemporal system, a `PinnedTemporalAxis` should almost always be accompanied by a
+/// [`VariableTemporalAxis`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PinnedTemporalAxis<A> {
@@ -182,9 +206,11 @@ where
     }
 }
 
-/// The variable time of a [`QueryTemporalAxes`].
+/// A representation of a "variable" temporal axis, which bounded to a given
+/// [`RightBoundedTemporalInterval`].
 ///
-/// Please refer to the documentation of [`QueryTemporalAxes`] for more information.
+/// In a bitemporal system, a `VariableTemporalAxis` should almost always be accompanied by a
+/// [`PinnedTemporalAxis`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct VariableTemporalAxis<A> {
@@ -221,7 +247,8 @@ where
     }
 }
 
-/// Constrains the temporal data in the Graph to a specific [`TimeAxis`].
+/// Defines the two possible combinations of pinned/variable temporal axes that are used in
+/// responses to queries that return [`Subgraph`]s.
 ///
 /// When querying the Graph, temporal data is returned. The Graph is implemented as a bitemporal
 /// data store, which means the knowledge data contains information about the time of when the
@@ -235,6 +262,7 @@ where
 /// data will then only contain temporal data that is contained in the [`Interval`] of the
 /// [`VariableTemporalAxis`] for the given [`Timestamp`] of the [`PinnedTemporalAxis`].
 ///
+/// [`Subgraph`]: crate::subgraph::Subgraph
 /// [`Interval`]: crate::interval::Interval
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(untagged)]
