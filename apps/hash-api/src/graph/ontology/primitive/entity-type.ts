@@ -55,7 +55,11 @@ export const createEntityType: ImpureGraphFunction<
   const { data: metadata } = await graphApi.createEntityType({
     actorId,
     ownedById,
-    schema,
+    schema: {
+      ...schema,
+      // @ts-expect-error: graph API expects this but the type in HASH hasn't been updated
+      additionalProperties: false,
+    },
   });
 
   return { schema, metadata: mapOntologyMetadata(metadata) };
