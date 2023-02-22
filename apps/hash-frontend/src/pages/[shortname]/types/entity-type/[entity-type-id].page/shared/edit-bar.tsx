@@ -72,7 +72,7 @@ export const EditBarContents = ({
 };
 
 /**
- * THIS MUST BE KEPT IN SYNC WITH EDIT_BAR_HEIGHT IN @hashintel/design-system
+ * THIS MUST BE KEPT IN SYNC WITH EDIT_BAR_HEIGHT IN @hashintel/type-editor
  * @todo make this a prop / shared some other way
  */
 export const EDIT_BAR_HEIGHT = 66;
