@@ -10,10 +10,7 @@ use tokio_postgres::GenericClient;
 use type_system::uri::BaseUri;
 
 use crate::{
-    identifier::{
-        ontology::{OntologyTypeRecordId, OntologyTypeVersion},
-        time::TimeProjection,
-    },
+    identifier::ontology::{OntologyTypeRecordId, OntologyTypeVersion},
     ontology::{
         ExternalOntologyElementMetadata, OntologyElementMetadata, OntologyType,
         OntologyTypeWithMetadata, OwnedOntologyElementMetadata,
@@ -25,6 +22,7 @@ use crate::{
         query::{Filter, OntologyQueryPath},
         AsClient, PostgresStore, QueryError,
     },
+    subgraph::temporal_axes::QueryTemporalAxes,
 };
 
 #[derive(Deserialize)]
@@ -63,7 +61,7 @@ where
     async fn read(
         &self,
         filter: &Filter<T>,
-        time_projection: &TimeProjection,
+        temporal_axes: &QueryTemporalAxes,
     ) -> Result<Vec<T>, QueryError> {
         let base_uri_path = <T::QueryPath<'static> as OntologyQueryPath>::base_uri();
         let version_path = <T::QueryPath<'static> as OntologyQueryPath>::version();
@@ -72,7 +70,7 @@ where
         let additional_metadata_path =
             <T::QueryPath<'static> as OntologyQueryPath>::additional_metadata();
 
-        let mut compiler = SelectCompiler::new(time_projection);
+        let mut compiler = SelectCompiler::new(temporal_axes);
 
         let base_uri_index = compiler.add_distinct_selection_with_ordering(
             &base_uri_path,

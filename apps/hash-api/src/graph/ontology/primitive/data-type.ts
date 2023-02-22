@@ -4,12 +4,14 @@ import {
   AccountId,
   DataTypeRootType,
   DataTypeWithMetadata,
+  OntologyElementMetadata,
+  OntologyTypeRecordId,
+  ontologyTypeRecordIdToVersionedUri,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { mapOntologyMetadata, mapSubgraph } from "@local/hash-subgraph/temp";
-import { versionedUriFromComponents } from "@local/hash-subgraph/type-system-patch";
+import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
@@ -60,7 +62,7 @@ export const createDataType: ImpureGraphFunction<
     actorId,
   });
 
-  return { schema, metadata: mapOntologyMetadata(metadata) };
+  return { schema, metadata: metadata as OntologyElementMetadata };
 };
 
 /**
@@ -82,15 +84,17 @@ export const getDataTypeById: ImpureGraphFunction<
         equal: [{ path: ["versionedUri"] }, { parameter: dataTypeId }],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeAxes: {
+      temporalAxes: {
         pinned: {
           axis: "transactionTime",
           timestamp: null,
         },
         variable: {
           axis: "decisionTime",
-          start: null,
-          end: null,
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     })
@@ -138,14 +142,13 @@ export const updateDataType: ImpureGraphFunction<
     schema,
   });
 
-  const mappedMetadata = mapOntologyMetadata(metadata);
-  const { recordId } = mappedMetadata;
+  const { recordId } = metadata;
 
   return {
     schema: {
       ...schema,
-      $id: versionedUriFromComponents(recordId.baseUri, recordId.version),
+      $id: ontologyTypeRecordIdToVersionedUri(recordId as OntologyTypeRecordId),
     },
-    metadata: mappedMetadata,
+    metadata: metadata as OntologyElementMetadata,
   };
 };

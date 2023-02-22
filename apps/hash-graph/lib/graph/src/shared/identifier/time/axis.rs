@@ -27,15 +27,23 @@ pub enum TimeAxis {
     TransactionTime,
 }
 
-/// Time axis for the [`Image`] used in [`TimeProjection`]s.
+/// Time axis for the variable temporal axis used in [`QueryTemporalAxes`]s.
 ///
 /// This is used as the generic argument to time-related structs. Please refer to the documentation
-/// of [`TimeProjection`] for more information.
+/// of [`QueryTemporalAxes`] for more information.
 ///
-/// [`Image`]: crate::identifier::time::Image
-/// [`TimeProjection`]: crate::identifier::time::TimeProjection
+/// [`QueryTemporalAxes`]: crate::subgraph::temporal_axes::QueryTemporalAxes
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct ProjectedTime;
+pub struct VariableAxis;
+
+/// Time axis for the pinned temporal axis used in [`QueryTemporalAxes`]s.
+///
+/// This is used as the generic argument to time-related structs. Please refer to the documentation
+/// of [`QueryTemporalAxes`] for more information.
+///
+/// [`QueryTemporalAxes`]: crate::subgraph::temporal_axes::QueryTemporalAxes
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct PinnedAxis;
 
 pub trait TemporalTagged {
     type Axis;

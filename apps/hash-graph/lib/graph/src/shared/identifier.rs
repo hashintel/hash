@@ -10,14 +10,14 @@ use utoipa::ToSchema;
 use crate::identifier::{
     knowledge::EntityId,
     ontology::OntologyTypeVersion,
-    time::{ProjectedTime, Timestamp},
+    time::{Timestamp, VariableAxis},
 };
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityVertexId {
     pub base_id: EntityId,
-    pub version: Timestamp<ProjectedTime>,
+    pub version: Timestamp<VariableAxis>,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]

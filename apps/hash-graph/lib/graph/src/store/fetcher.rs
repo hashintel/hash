@@ -18,10 +18,7 @@ use crate::{
     identifier::{
         account::AccountId,
         knowledge::EntityId,
-        time::{
-            DecisionTime, TimeProjection, Timestamp, UnresolvedImage, UnresolvedKernel,
-            UnresolvedProjection, UnresolvedTimeProjection,
-        },
+        time::{DecisionTime, Timestamp},
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     ontology::{
@@ -35,7 +32,15 @@ use crate::{
         AccountStore, DataTypeStore, EntityStore, EntityTypeStore, InsertionError,
         PropertyTypeStore, QueryError, Record, StoreError, StorePool, UpdateError,
     },
-    subgraph::{edges::GraphResolveDepths, query::StructuralQuery, Subgraph},
+    subgraph::{
+        edges::GraphResolveDepths,
+        query::StructuralQuery,
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
+            VariableTemporalAxisUnresolved,
+        },
+        Subgraph,
+    },
 };
 
 pub struct FetchingPool<P, A> {
@@ -136,10 +141,10 @@ where
             StructuralQuery {
                 filter: Filter::for_versioned_uri(versioned_uri),
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                    pinned: UnresolvedKernel::new(None),
-                    variable: UnresolvedImage::new(None, None),
-                }),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
+                },
             }
         }
 
@@ -366,9 +371,9 @@ where
     async fn read(
         &self,
         query: &Filter<R>,
-        time_projection: &TimeProjection,
+        temporal_axes: &QueryTemporalAxes,
     ) -> Result<Vec<R>, QueryError> {
-        self.store.read(query, time_projection).await
+        self.store.read(query, temporal_axes).await
     }
 }
 

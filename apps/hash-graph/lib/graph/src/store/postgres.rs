@@ -26,10 +26,9 @@ use crate::{
     identifier::{
         account::AccountId,
         ontology::OntologyTypeRecordId,
-        time::{ProjectedTime, TimeIntervalBound, Timestamp},
+        time::{TemporalInterval, VariableAxis},
         EntityVertexId, OntologyTypeVertexId,
     },
-    interval::Interval,
     ontology::{
         ExternalOntologyElementMetadata, OntologyElementMetadata, OwnedOntologyElementMetadata,
     },
@@ -45,8 +44,8 @@ use crate::{
 #[cfg(feature = "__internal_bench")]
 use crate::{
     identifier::{
-        knowledge::{EntityEditionId, EntityId, EntityVersion},
-        time::DecisionTime,
+        knowledge::{EntityEditionId, EntityId, EntityTemporalMetadata},
+        time::{DecisionTime, Timestamp},
     },
     knowledge::{EntityProperties, LinkOrder},
 };
@@ -58,32 +57,16 @@ use crate::{
 /// will be returned from [`DependencyMap::update`], otherwise [`DependencyStatus::Unresolved`] will
 /// be returned with the [`GraphResolveDepths`] and [`Interval`] that the traversal should
 /// continue with.
+///
+/// [`Interval`]: crate::interval::Interval
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DependencyStatus {
-    Unresolved(
-        GraphResolveDepths,
-        Interval<
-            Timestamp<ProjectedTime>,
-            TimeIntervalBound<ProjectedTime>,
-            TimeIntervalBound<ProjectedTime>,
-        >,
-    ),
+    Unresolved(GraphResolveDepths, TemporalInterval<VariableAxis>),
     Resolved,
 }
 
-#[expect(clippy::type_complexity, reason = "This type will be changed soon")]
 pub struct DependencyMap<K> {
-    resolved: HashMap<
-        K,
-        (
-            GraphResolveDepths,
-            Interval<
-                Timestamp<ProjectedTime>,
-                TimeIntervalBound<ProjectedTime>,
-                TimeIntervalBound<ProjectedTime>,
-            >,
-        ),
-    >,
+    resolved: HashMap<K, (GraphResolveDepths, TemporalInterval<VariableAxis>)>,
 }
 
 impl<K> Default for DependencyMap<K> {
@@ -112,11 +95,7 @@ where
         &mut self,
         identifier: &K,
         new_resolve_depth: GraphResolveDepths,
-        new_interval: Interval<
-            Timestamp<ProjectedTime>,
-            TimeIntervalBound<ProjectedTime>,
-            TimeIntervalBound<ProjectedTime>,
-        >,
+        new_interval: TemporalInterval<VariableAxis>,
     ) -> DependencyStatus {
         match self.resolved.raw_entry_mut().from_key(identifier) {
             RawEntryMut::Vacant(entry) => {
@@ -927,7 +906,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             Item = (EntityId, EntityEditionId, Option<Timestamp<DecisionTime>>),
             IntoIter: Send,
         > + Send,
-    ) -> Result<Vec<EntityVersion>, InsertionError> {
+    ) -> Result<Vec<EntityTemporalMetadata>, InsertionError> {
         self.client
             .simple_query(
                 "CREATE TEMPORARY TABLE entity_temporal_metadata_temp (
@@ -1008,7 +987,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .into_report()
             .change_context(InsertionError)?
             .into_iter()
-            .map(|row| EntityVersion {
+            .map(|row| EntityTemporalMetadata {
                 decision_time: row.get(0),
                 transaction_time: row.get(1),
             })

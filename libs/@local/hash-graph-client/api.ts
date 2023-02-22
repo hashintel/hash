@@ -71,6 +71,12 @@ export interface AnyFilter {
   any: Array<Filter>;
 }
 /**
+ * @type ClosedTemporalBound
+ * @export
+ */
+export type ClosedTemporalBound = InclusiveBound;
+
+/**
  *
  * @export
  * @interface CreateDataTypeRequest
@@ -301,10 +307,10 @@ export interface DataTypeStructuralQuery {
   graphResolveDepths: GraphResolveDepths;
   /**
    *
-   * @type {UnresolvedTimeProjection}
+   * @type {QueryTemporalAxesUnresolved}
    * @memberof DataTypeStructuralQuery
    */
-  timeAxes?: UnresolvedTimeProjection;
+  temporalAxes: QueryTemporalAxesUnresolved;
 }
 /**
  *
@@ -337,101 +343,6 @@ export const DecisionTime = {
 
 export type DecisionTime = (typeof DecisionTime)[keyof typeof DecisionTime];
 
-/**
- *
- * @export
- * @interface DecisionTimeImage
- */
-export interface DecisionTimeImage {
-  /**
-   *
-   * @type {DecisionTime}
-   * @memberof DecisionTimeImage
-   */
-  axis: DecisionTime;
-  /**
-   *
-   * @type {LimitedTimeIntervalBound}
-   * @memberof DecisionTimeImage
-   */
-  end: LimitedTimeIntervalBound;
-  /**
-   *
-   * @type {TimeIntervalBound}
-   * @memberof DecisionTimeImage
-   */
-  start: TimeIntervalBound;
-}
-/**
- *
- * @export
- * @interface DecisionTimeImageAllOf
- */
-export interface DecisionTimeImageAllOf {
-  /**
-   *
-   * @type {DecisionTime}
-   * @memberof DecisionTimeImageAllOf
-   */
-  axis: DecisionTime;
-}
-/**
- *
- * @export
- * @interface DecisionTimeImageAllOf1
- */
-export interface DecisionTimeImageAllOf1 {
-  /**
-   *
-   * @type {LimitedTimeIntervalBound}
-   * @memberof DecisionTimeImageAllOf1
-   */
-  end: LimitedTimeIntervalBound;
-  /**
-   *
-   * @type {TimeIntervalBound}
-   * @memberof DecisionTimeImageAllOf1
-   */
-  start: TimeIntervalBound;
-}
-/**
- *
- * @export
- * @interface DecisionTimeKernel
- */
-export interface DecisionTimeKernel {
-  /**
-   *
-   * @type {DecisionTime}
-   * @memberof DecisionTimeKernel
-   */
-  axis: DecisionTime;
-  /**
-   *
-   * @type {string}
-   * @memberof DecisionTimeKernel
-   */
-  timestamp: string;
-}
-/**
- *
- * @export
- * @interface DecisionTimeProjection
- */
-export interface DecisionTimeProjection {
-  /**
-   *
-   * @type {TransactionTimeKernel}
-   * @memberof DecisionTimeProjection
-   */
-  pinned: TransactionTimeKernel;
-  /**
-   *
-   * @type {DecisionTimeImage}
-   * @memberof DecisionTimeProjection
-   */
-  variable: DecisionTimeImage;
-}
 /**
  *
  * @export
@@ -562,10 +473,10 @@ export interface EntityMetadata {
   recordId: EntityRecordId;
   /**
    *
-   * @type {EntityVersion}
+   * @type {EntityTemporalMetadata}
    * @memberof EntityMetadata
    */
-  version: EntityVersion;
+  temporalVersioning: EntityTemporalMetadata;
 }
 /**
  * A single token in an [`EntityQueryPath`].
@@ -631,10 +542,29 @@ export interface EntityStructuralQuery {
   graphResolveDepths: GraphResolveDepths;
   /**
    *
-   * @type {UnresolvedTimeProjection}
+   * @type {QueryTemporalAxesUnresolved}
    * @memberof EntityStructuralQuery
    */
-  timeAxes?: UnresolvedTimeProjection;
+  temporalAxes: QueryTemporalAxesUnresolved;
+}
+/**
+ *
+ * @export
+ * @interface EntityTemporalMetadata
+ */
+export interface EntityTemporalMetadata {
+  /**
+   *
+   * @type {LeftClosedTemporalInterval}
+   * @memberof EntityTemporalMetadata
+   */
+  decisionTime: LeftClosedTemporalInterval;
+  /**
+   *
+   * @type {LeftClosedTemporalInterval}
+   * @memberof EntityTemporalMetadata
+   */
+  transactionTime: LeftClosedTemporalInterval;
 }
 /**
  * Specifies the structure of an Entity Type
@@ -769,10 +699,10 @@ export interface EntityTypeStructuralQuery {
   graphResolveDepths: GraphResolveDepths;
   /**
    *
-   * @type {UnresolvedTimeProjection}
+   * @type {QueryTemporalAxesUnresolved}
    * @memberof EntityTypeStructuralQuery
    */
-  timeAxes?: UnresolvedTimeProjection;
+  temporalAxes: QueryTemporalAxesUnresolved;
 }
 /**
  *
@@ -792,44 +722,6 @@ export interface EntityTypeWithMetadata {
    * @memberof EntityTypeWithMetadata
    */
   schema: EntityType;
-}
-/**
- *
- * @export
- * @interface EntityVersion
- */
-export interface EntityVersion {
-  /**
-   *
-   * @type {EntityVersionDecisionTime}
-   * @memberof EntityVersion
-   */
-  decisionTime: EntityVersionDecisionTime;
-  /**
-   *
-   * @type {EntityVersionDecisionTime}
-   * @memberof EntityVersion
-   */
-  transactionTime: EntityVersionDecisionTime;
-}
-/**
- *
- * @export
- * @interface EntityVersionDecisionTime
- */
-export interface EntityVersionDecisionTime {
-  /**
-   *
-   * @type {string}
-   * @memberof EntityVersionDecisionTime
-   */
-  end: string | null;
-  /**
-   *
-   * @type {string}
-   * @memberof EntityVersionDecisionTime
-   */
-  start: string;
 }
 /**
  *
@@ -863,6 +755,33 @@ export interface EqualFilter {
    */
   equal: Array<FilterExpression>;
 }
+/**
+ *
+ * @export
+ * @interface ExclusiveBound
+ */
+export interface ExclusiveBound {
+  /**
+   *
+   * @type {string}
+   * @memberof ExclusiveBound
+   */
+  kind: ExclusiveBoundKindEnum;
+  /**
+   *
+   * @type {string}
+   * @memberof ExclusiveBound
+   */
+  limit: string;
+}
+
+export const ExclusiveBoundKindEnum = {
+  Exclusive: "exclusive",
+} as const;
+
+export type ExclusiveBoundKindEnum =
+  (typeof ExclusiveBoundKindEnum)[keyof typeof ExclusiveBoundKindEnum];
+
 /**
  *
  * @export
@@ -966,6 +885,33 @@ export interface GraphResolveDepths {
    */
   isOfType: OutgoingEdgeResolveDepth;
 }
+/**
+ *
+ * @export
+ * @interface InclusiveBound
+ */
+export interface InclusiveBound {
+  /**
+   *
+   * @type {string}
+   * @memberof InclusiveBound
+   */
+  kind: InclusiveBoundKindEnum;
+  /**
+   *
+   * @type {string}
+   * @memberof InclusiveBound
+   */
+  limit: string;
+}
+
+export const InclusiveBoundKindEnum = {
+  Inclusive: "inclusive",
+} as const;
+
+export type InclusiveBoundKindEnum =
+  (typeof InclusiveBoundKindEnum)[keyof typeof InclusiveBoundKindEnum];
+
 /**
  *
  * @export
@@ -1143,66 +1089,29 @@ export interface KnowledgeGraphVertices {
   [key: string]: { [key: string]: KnowledgeGraphVertex };
 }
 /**
- * @type LimitedTimeIntervalBound
- * @export
- */
-export type LimitedTimeIntervalBound =
-  | LimitedTimeIntervalBoundOneOf
-  | LimitedTimeIntervalBoundOneOf1;
-
-/**
  *
  * @export
- * @interface LimitedTimeIntervalBoundOneOf
+ * @interface LeftClosedTemporalInterval
  */
-export interface LimitedTimeIntervalBoundOneOf {
+export interface LeftClosedTemporalInterval {
   /**
    *
-   * @type {string}
-   * @memberof LimitedTimeIntervalBoundOneOf
+   * @type {OpenTemporalBound}
+   * @memberof LeftClosedTemporalInterval
    */
-  kind: LimitedTimeIntervalBoundOneOfKindEnum;
+  end: OpenTemporalBound;
   /**
    *
-   * @type {string}
-   * @memberof LimitedTimeIntervalBoundOneOf
+   * @type {ClosedTemporalBound}
+   * @memberof LeftClosedTemporalInterval
    */
-  limit: string;
+  start: ClosedTemporalBound;
 }
-
-export const LimitedTimeIntervalBoundOneOfKindEnum = {
-  Inclusive: "inclusive",
-} as const;
-
-export type LimitedTimeIntervalBoundOneOfKindEnum =
-  (typeof LimitedTimeIntervalBoundOneOfKindEnum)[keyof typeof LimitedTimeIntervalBoundOneOfKindEnum];
-
 /**
- *
+ * @type LimitedTemporalBound
  * @export
- * @interface LimitedTimeIntervalBoundOneOf1
  */
-export interface LimitedTimeIntervalBoundOneOf1 {
-  /**
-   *
-   * @type {string}
-   * @memberof LimitedTimeIntervalBoundOneOf1
-   */
-  kind: LimitedTimeIntervalBoundOneOf1KindEnum;
-  /**
-   *
-   * @type {string}
-   * @memberof LimitedTimeIntervalBoundOneOf1
-   */
-  limit: string;
-}
-
-export const LimitedTimeIntervalBoundOneOf1KindEnum = {
-  Exclusive: "exclusive",
-} as const;
-
-export type LimitedTimeIntervalBoundOneOf1KindEnum =
-  (typeof LimitedTimeIntervalBoundOneOf1KindEnum)[keyof typeof LimitedTimeIntervalBoundOneOf1KindEnum];
+export type LimitedTemporalBound = ExclusiveBound | InclusiveBound;
 
 /**
  * The associated information for \'Link\' entities
@@ -1547,6 +1456,12 @@ export interface OntologyVertices {
   [key: string]: { [key: string]: OntologyVertex };
 }
 /**
+ * @type OpenTemporalBound
+ * @export
+ */
+export type OpenTemporalBound = ExclusiveBound | UnboundedBound;
+
+/**
  *
  * @export
  * @interface OutgoingEdgeResolveDepth
@@ -1834,10 +1749,10 @@ export interface PropertyTypeStructuralQuery {
   graphResolveDepths: GraphResolveDepths;
   /**
    *
-   * @type {UnresolvedTimeProjection}
+   * @type {QueryTemporalAxesUnresolved}
    * @memberof PropertyTypeStructuralQuery
    */
-  timeAxes?: UnresolvedTimeProjection;
+  temporalAxes: QueryTemporalAxesUnresolved;
 }
 /**
  *
@@ -1890,6 +1805,271 @@ export interface ProvenanceMetadata {
   updatedById: string;
 }
 /**
+ * @type QueryTemporalAxes
+ * Defines the two possible combinations of pinned/variable temporal axes that are used in responses to queries that return [`Subgraph`]s.  When querying the Graph, temporal data is returned. The Graph is implemented as a bitemporal data store, which means the knowledge data contains information about the time of when the knowledge was inserted into the Graph, the [`TransactionTime`], and when the knowledge was decided to be inserted, the [`DecisionTime`].  In order to query data from the Graph, only one of the two time axes can be used. This is achieved by using a `TemporalAxes`. The `TemporalAxes` pins one axis to a specified [`Timestamp`], while the other axis can be a [`Interval`]. The pinned axis is called the [`PinnedTemporalAxis`] and the other axis is called the [`VariableTemporalAxis`]. The returned data will then only contain temporal data that is contained in the [`Interval`] of the [`VariableTemporalAxis`] for the given [`Timestamp`] of the [`PinnedTemporalAxis`].  [`Subgraph`]: crate::subgraph::Subgraph [`Interval`]: crate::interval::Interval
+ * @export
+ */
+export type QueryTemporalAxes =
+  | QueryTemporalAxesDecisionTime
+  | QueryTemporalAxesTransactionTime;
+
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesDecisionTime
+ */
+export interface QueryTemporalAxesDecisionTime {
+  /**
+   *
+   * @type {QueryTemporalAxesDecisionTimePinned}
+   * @memberof QueryTemporalAxesDecisionTime
+   */
+  pinned: QueryTemporalAxesDecisionTimePinned;
+  /**
+   *
+   * @type {QueryTemporalAxesDecisionTimeVariable}
+   * @memberof QueryTemporalAxesDecisionTime
+   */
+  variable: QueryTemporalAxesDecisionTimeVariable;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesDecisionTimePinned
+ */
+export interface QueryTemporalAxesDecisionTimePinned {
+  /**
+   *
+   * @type {TransactionTime}
+   * @memberof QueryTemporalAxesDecisionTimePinned
+   */
+  axis: TransactionTime;
+  /**
+   *
+   * @type {string}
+   * @memberof QueryTemporalAxesDecisionTimePinned
+   */
+  timestamp: string;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesDecisionTimeVariable
+ */
+export interface QueryTemporalAxesDecisionTimeVariable {
+  /**
+   *
+   * @type {DecisionTime}
+   * @memberof QueryTemporalAxesDecisionTimeVariable
+   */
+  axis: DecisionTime;
+  /**
+   *
+   * @type {RightBoundedTemporalInterval}
+   * @memberof QueryTemporalAxesDecisionTimeVariable
+   */
+  interval: RightBoundedTemporalInterval;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesTransactionTime
+ */
+export interface QueryTemporalAxesTransactionTime {
+  /**
+   *
+   * @type {QueryTemporalAxesTransactionTimePinned}
+   * @memberof QueryTemporalAxesTransactionTime
+   */
+  pinned: QueryTemporalAxesTransactionTimePinned;
+  /**
+   *
+   * @type {QueryTemporalAxesTransactionTimeVariable}
+   * @memberof QueryTemporalAxesTransactionTime
+   */
+  variable: QueryTemporalAxesTransactionTimeVariable;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesTransactionTimePinned
+ */
+export interface QueryTemporalAxesTransactionTimePinned {
+  /**
+   *
+   * @type {DecisionTime}
+   * @memberof QueryTemporalAxesTransactionTimePinned
+   */
+  axis: DecisionTime;
+  /**
+   *
+   * @type {string}
+   * @memberof QueryTemporalAxesTransactionTimePinned
+   */
+  timestamp: string;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesTransactionTimeVariable
+ */
+export interface QueryTemporalAxesTransactionTimeVariable {
+  /**
+   *
+   * @type {TransactionTime}
+   * @memberof QueryTemporalAxesTransactionTimeVariable
+   */
+  axis: TransactionTime;
+  /**
+   *
+   * @type {RightBoundedTemporalInterval}
+   * @memberof QueryTemporalAxesTransactionTimeVariable
+   */
+  interval: RightBoundedTemporalInterval;
+}
+/**
+ * @type QueryTemporalAxesUnresolved
+ * Defines the two possible combinations of pinned/variable temporal axes that are used in queries that return [`Subgraph`]s.  The [`VariableTemporalAxisUnresolved`] is optionally bounded, in the absence of provided bounds an inclusive bound at the timestamp at point of resolving is assumed.  [`Subgraph`]: crate::subgraph::Subgraph
+ * @export
+ */
+export type QueryTemporalAxesUnresolved =
+  | QueryTemporalAxesUnresolvedDecisionTime
+  | QueryTemporalAxesUnresolvedTransactionTime;
+
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesUnresolvedDecisionTime
+ */
+export interface QueryTemporalAxesUnresolvedDecisionTime {
+  /**
+   *
+   * @type {QueryTemporalAxesUnresolvedDecisionTimePinned}
+   * @memberof QueryTemporalAxesUnresolvedDecisionTime
+   */
+  pinned: QueryTemporalAxesUnresolvedDecisionTimePinned;
+  /**
+   *
+   * @type {QueryTemporalAxesUnresolvedDecisionTimeVariable}
+   * @memberof QueryTemporalAxesUnresolvedDecisionTime
+   */
+  variable: QueryTemporalAxesUnresolvedDecisionTimeVariable;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesUnresolvedDecisionTimePinned
+ */
+export interface QueryTemporalAxesUnresolvedDecisionTimePinned {
+  /**
+   *
+   * @type {TransactionTime}
+   * @memberof QueryTemporalAxesUnresolvedDecisionTimePinned
+   */
+  axis: TransactionTime;
+  /**
+   *
+   * @type {string}
+   * @memberof QueryTemporalAxesUnresolvedDecisionTimePinned
+   */
+  timestamp: string | null;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesUnresolvedDecisionTimeVariable
+ */
+export interface QueryTemporalAxesUnresolvedDecisionTimeVariable {
+  /**
+   *
+   * @type {DecisionTime}
+   * @memberof QueryTemporalAxesUnresolvedDecisionTimeVariable
+   */
+  axis: DecisionTime;
+  /**
+   *
+   * @type {UnresolvedRightBoundedTemporalInterval}
+   * @memberof QueryTemporalAxesUnresolvedDecisionTimeVariable
+   */
+  interval: UnresolvedRightBoundedTemporalInterval;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesUnresolvedTransactionTime
+ */
+export interface QueryTemporalAxesUnresolvedTransactionTime {
+  /**
+   *
+   * @type {QueryTemporalAxesUnresolvedTransactionTimePinned}
+   * @memberof QueryTemporalAxesUnresolvedTransactionTime
+   */
+  pinned: QueryTemporalAxesUnresolvedTransactionTimePinned;
+  /**
+   *
+   * @type {QueryTemporalAxesUnresolvedTransactionTimeVariable}
+   * @memberof QueryTemporalAxesUnresolvedTransactionTime
+   */
+  variable: QueryTemporalAxesUnresolvedTransactionTimeVariable;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesUnresolvedTransactionTimePinned
+ */
+export interface QueryTemporalAxesUnresolvedTransactionTimePinned {
+  /**
+   *
+   * @type {DecisionTime}
+   * @memberof QueryTemporalAxesUnresolvedTransactionTimePinned
+   */
+  axis: DecisionTime;
+  /**
+   *
+   * @type {string}
+   * @memberof QueryTemporalAxesUnresolvedTransactionTimePinned
+   */
+  timestamp: string | null;
+}
+/**
+ *
+ * @export
+ * @interface QueryTemporalAxesUnresolvedTransactionTimeVariable
+ */
+export interface QueryTemporalAxesUnresolvedTransactionTimeVariable {
+  /**
+   *
+   * @type {TransactionTime}
+   * @memberof QueryTemporalAxesUnresolvedTransactionTimeVariable
+   */
+  axis: TransactionTime;
+  /**
+   *
+   * @type {UnresolvedRightBoundedTemporalInterval}
+   * @memberof QueryTemporalAxesUnresolvedTransactionTimeVariable
+   */
+  interval: UnresolvedRightBoundedTemporalInterval;
+}
+/**
+ *
+ * @export
+ * @interface RightBoundedTemporalInterval
+ */
+export interface RightBoundedTemporalInterval {
+  /**
+   *
+   * @type {LimitedTemporalBound}
+   * @memberof RightBoundedTemporalInterval
+   */
+  end: LimitedTemporalBound;
+  /**
+   *
+   * @type {TemporalBound}
+   * @memberof RightBoundedTemporalInterval
+   */
+  start: TemporalBound;
+}
+/**
  *
  * @export
  * @enum {string}
@@ -1940,10 +2120,10 @@ export interface Subgraph {
   roots: Array<GraphElementVertexId>;
   /**
    *
-   * @type {TemporalAxes}
+   * @type {SubgraphTemporalAxes}
    * @memberof Subgraph
    */
-  temporalAxes: TemporalAxes;
+  temporalAxes: SubgraphTemporalAxes;
   /**
    *
    * @type {Vertices}
@@ -1954,57 +2134,27 @@ export interface Subgraph {
 /**
  *
  * @export
- * @interface TemporalAxes
+ * @interface SubgraphTemporalAxes
  */
-export interface TemporalAxes {
+export interface SubgraphTemporalAxes {
   /**
    *
-   * @type {UnresolvedTimeProjection}
-   * @memberof TemporalAxes
+   * @type {QueryTemporalAxesUnresolved}
+   * @memberof SubgraphTemporalAxes
    */
-  initial: UnresolvedTimeProjection;
+  initial: QueryTemporalAxesUnresolved;
   /**
    *
-   * @type {TimeProjection}
-   * @memberof TemporalAxes
+   * @type {QueryTemporalAxes}
+   * @memberof SubgraphTemporalAxes
    */
-  resolved: TimeProjection;
+  resolved: QueryTemporalAxes;
 }
 /**
- * @type TimeIntervalBound
+ * @type TemporalBound
  * @export
  */
-export type TimeIntervalBound =
-  | LimitedTimeIntervalBoundOneOf
-  | LimitedTimeIntervalBoundOneOf1
-  | TimeIntervalBoundOneOf;
-
-/**
- *
- * @export
- * @interface TimeIntervalBoundOneOf
- */
-export interface TimeIntervalBoundOneOf {
-  /**
-   *
-   * @type {string}
-   * @memberof TimeIntervalBoundOneOf
-   */
-  kind: TimeIntervalBoundOneOfKindEnum;
-}
-
-export const TimeIntervalBoundOneOfKindEnum = {
-  Unbounded: "unbounded",
-} as const;
-
-export type TimeIntervalBoundOneOfKindEnum =
-  (typeof TimeIntervalBoundOneOfKindEnum)[keyof typeof TimeIntervalBoundOneOfKindEnum];
-
-/**
- * @type TimeProjection
- * @export
- */
-export type TimeProjection = DecisionTimeProjection | TransactionTimeProjection;
+export type TemporalBound = ExclusiveBound | InclusiveBound | UnboundedBound;
 
 /**
  * Time axis for the transaction time.  This is used as the generic argument to time-related structs and can be used as tag value.
@@ -2022,232 +2172,55 @@ export type TransactionTime =
 /**
  *
  * @export
- * @interface TransactionTimeImage
+ * @interface UnboundedBound
  */
-export interface TransactionTimeImage {
-  /**
-   *
-   * @type {TransactionTime}
-   * @memberof TransactionTimeImage
-   */
-  axis: TransactionTime;
-  /**
-   *
-   * @type {LimitedTimeIntervalBound}
-   * @memberof TransactionTimeImage
-   */
-  end: LimitedTimeIntervalBound;
-  /**
-   *
-   * @type {TimeIntervalBound}
-   * @memberof TransactionTimeImage
-   */
-  start: TimeIntervalBound;
-}
-/**
- *
- * @export
- * @interface TransactionTimeImageAllOf
- */
-export interface TransactionTimeImageAllOf {
-  /**
-   *
-   * @type {TransactionTime}
-   * @memberof TransactionTimeImageAllOf
-   */
-  axis: TransactionTime;
-}
-/**
- *
- * @export
- * @interface TransactionTimeKernel
- */
-export interface TransactionTimeKernel {
-  /**
-   *
-   * @type {TransactionTime}
-   * @memberof TransactionTimeKernel
-   */
-  axis: TransactionTime;
+export interface UnboundedBound {
   /**
    *
    * @type {string}
-   * @memberof TransactionTimeKernel
+   * @memberof UnboundedBound
    */
-  timestamp: string;
+  kind: UnboundedBoundKindEnum;
 }
-/**
- *
- * @export
- * @interface TransactionTimeProjection
- */
-export interface TransactionTimeProjection {
-  /**
-   *
-   * @type {DecisionTimeKernel}
-   * @memberof TransactionTimeProjection
-   */
-  pinned: DecisionTimeKernel;
-  /**
-   *
-   * @type {TransactionTimeImage}
-   * @memberof TransactionTimeProjection
-   */
-  variable: TransactionTimeImage;
-}
-/**
- *
- * @export
- * @interface UnresolvedDecisionTimeImage
- */
-export interface UnresolvedDecisionTimeImage {
-  /**
-   *
-   * @type {DecisionTime}
-   * @memberof UnresolvedDecisionTimeImage
-   */
-  axis: DecisionTime;
-  /**
-   *
-   * @type {LimitedTimeIntervalBound}
-   * @memberof UnresolvedDecisionTimeImage
-   */
-  end: LimitedTimeIntervalBound | null;
-  /**
-   *
-   * @type {TimeIntervalBound}
-   * @memberof UnresolvedDecisionTimeImage
-   */
-  start: TimeIntervalBound | null;
-}
-/**
- *
- * @export
- * @interface UnresolvedDecisionTimeImageAllOf
- */
-export interface UnresolvedDecisionTimeImageAllOf {
-  /**
-   *
-   * @type {LimitedTimeIntervalBound}
-   * @memberof UnresolvedDecisionTimeImageAllOf
-   */
-  end: LimitedTimeIntervalBound | null;
-  /**
-   *
-   * @type {TimeIntervalBound}
-   * @memberof UnresolvedDecisionTimeImageAllOf
-   */
-  start: TimeIntervalBound | null;
-}
-/**
- *
- * @export
- * @interface UnresolvedDecisionTimeKernel
- */
-export interface UnresolvedDecisionTimeKernel {
-  /**
-   *
-   * @type {DecisionTime}
-   * @memberof UnresolvedDecisionTimeKernel
-   */
-  axis: DecisionTime;
-  /**
-   *
-   * @type {string}
-   * @memberof UnresolvedDecisionTimeKernel
-   */
-  timestamp: string | null;
-}
-/**
- *
- * @export
- * @interface UnresolvedDecisionTimeProjection
- */
-export interface UnresolvedDecisionTimeProjection {
-  /**
-   *
-   * @type {UnresolvedTransactionTimeKernel}
-   * @memberof UnresolvedDecisionTimeProjection
-   */
-  pinned: UnresolvedTransactionTimeKernel;
-  /**
-   *
-   * @type {UnresolvedDecisionTimeImage}
-   * @memberof UnresolvedDecisionTimeProjection
-   */
-  variable: UnresolvedDecisionTimeImage;
-}
-/**
- * @type UnresolvedTimeProjection
- * @export
- */
-export type UnresolvedTimeProjection =
-  | UnresolvedDecisionTimeProjection
-  | UnresolvedTransactionTimeProjection;
+
+export const UnboundedBoundKindEnum = {
+  Unbounded: "unbounded",
+} as const;
+
+export type UnboundedBoundKindEnum =
+  (typeof UnboundedBoundKindEnum)[keyof typeof UnboundedBoundKindEnum];
 
 /**
  *
  * @export
- * @interface UnresolvedTransactionTimeImage
+ * @interface UnresolvedRightBoundedTemporalInterval
  */
-export interface UnresolvedTransactionTimeImage {
+export interface UnresolvedRightBoundedTemporalInterval {
   /**
    *
-   * @type {TransactionTime}
-   * @memberof UnresolvedTransactionTimeImage
+   * @type {UnresolvedRightBoundedTemporalIntervalEnd}
+   * @memberof UnresolvedRightBoundedTemporalInterval
    */
-  axis: TransactionTime;
+  end: UnresolvedRightBoundedTemporalIntervalEnd | null;
   /**
    *
-   * @type {LimitedTimeIntervalBound}
-   * @memberof UnresolvedTransactionTimeImage
+   * @type {UnresolvedRightBoundedTemporalIntervalStart}
+   * @memberof UnresolvedRightBoundedTemporalInterval
    */
-  end: LimitedTimeIntervalBound | null;
-  /**
-   *
-   * @type {TimeIntervalBound}
-   * @memberof UnresolvedTransactionTimeImage
-   */
-  start: TimeIntervalBound | null;
+  start: UnresolvedRightBoundedTemporalIntervalStart | null;
 }
 /**
- *
+ * @type UnresolvedRightBoundedTemporalIntervalEnd
  * @export
- * @interface UnresolvedTransactionTimeKernel
  */
-export interface UnresolvedTransactionTimeKernel {
-  /**
-   *
-   * @type {TransactionTime}
-   * @memberof UnresolvedTransactionTimeKernel
-   */
-  axis: TransactionTime;
-  /**
-   *
-   * @type {string}
-   * @memberof UnresolvedTransactionTimeKernel
-   */
-  timestamp: string | null;
-}
+export type UnresolvedRightBoundedTemporalIntervalEnd = LimitedTemporalBound;
+
 /**
- *
+ * @type UnresolvedRightBoundedTemporalIntervalStart
  * @export
- * @interface UnresolvedTransactionTimeProjection
  */
-export interface UnresolvedTransactionTimeProjection {
-  /**
-   *
-   * @type {UnresolvedDecisionTimeKernel}
-   * @memberof UnresolvedTransactionTimeProjection
-   */
-  pinned: UnresolvedDecisionTimeKernel;
-  /**
-   *
-   * @type {UnresolvedTransactionTimeImage}
-   * @memberof UnresolvedTransactionTimeProjection
-   */
-  variable: UnresolvedTransactionTimeImage;
-}
+export type UnresolvedRightBoundedTemporalIntervalStart = TemporalBound;
+
 /**
  * The contents of a Data Type update request
  * @export

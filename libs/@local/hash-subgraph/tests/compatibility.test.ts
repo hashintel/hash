@@ -9,12 +9,12 @@
  */
 
 import { Subgraph as SubgraphGraphApi } from "@local/hash-graph-client";
-import {
-  mapTimeProjection,
-  mapUnresolvedTimeProjection,
-} from "@local/hash-subgraph/temp";
 
 import { Subgraph } from "../src/main";
+import {
+  mapQueryTemporalAxes,
+  mapQueryTemporalAxesUnresolved,
+} from "./compatibility.test/map-axes";
 import { mapEdges } from "./compatibility.test/map-edges";
 import { mapRoots } from "./compatibility.test/map-roots";
 import { mapVertices } from "./compatibility.test/map-vertices";
@@ -61,10 +61,12 @@ test("Graph API subgraph type is compatible with library type", () => {
         },
         variable: {
           axis: "decisionTime",
-          start: {
-            kind: "unbounded",
+          interval: {
+            start: {
+              kind: "unbounded",
+            },
+            end: null,
           },
-          end: null,
         },
       },
       resolved: {
@@ -74,12 +76,14 @@ test("Graph API subgraph type is compatible with library type", () => {
         },
         variable: {
           axis: "decisionTime",
-          start: {
-            kind: "unbounded",
-          },
-          end: {
-            kind: "inclusive",
-            limit: "2022-01-01T0:0:0",
+          interval: {
+            start: {
+              kind: "unbounded",
+            },
+            end: {
+              kind: "inclusive",
+              limit: "2022-01-01T0:0:0",
+            },
           },
         },
       },
@@ -93,10 +97,10 @@ test("Graph API subgraph type is compatible with library type", () => {
     edges: mapEdges(subgraphGraphApi.edges),
     depths: subgraphGraphApi.depths,
     temporalAxes: {
-      initial: mapUnresolvedTimeProjection(
+      initial: mapQueryTemporalAxesUnresolved(
         subgraphGraphApi.temporalAxes.initial,
       ),
-      resolved: mapTimeProjection(subgraphGraphApi.temporalAxes.resolved),
+      resolved: mapQueryTemporalAxes(subgraphGraphApi.temporalAxes.resolved),
     },
   };
 });

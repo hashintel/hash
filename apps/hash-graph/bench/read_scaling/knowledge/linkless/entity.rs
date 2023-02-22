@@ -3,17 +3,18 @@ use std::{iter::repeat, str::FromStr};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use graph::{
-    identifier::{
-        account::AccountId,
-        time::{
-            TimeIntervalBound, UnresolvedImage, UnresolvedKernel, UnresolvedProjection,
-            UnresolvedTimeProjection,
-        },
-    },
+    identifier::{account::AccountId, time::TemporalBound},
     knowledge::{EntityMetadata, EntityProperties},
     provenance::{OwnedById, UpdatedById},
     store::{query::Filter, AccountStore, EntityStore},
-    subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
+    subgraph::{
+        edges::GraphResolveDepths,
+        query::StructuralQuery,
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
+            VariableTemporalAxisUnresolved,
+        },
+    },
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use rand::{prelude::IteratorRandom, thread_rng};
@@ -117,10 +118,13 @@ pub fn bench_get_entity_by_id(
                 .get_entity(&StructuralQuery {
                     filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
                     graph_resolve_depths: GraphResolveDepths::default(),
-                    time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                        pinned: UnresolvedKernel::new(None),
-                        variable: UnresolvedImage::new(Some(TimeIntervalBound::Unbounded), None),
-                    }),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(
+                            Some(TemporalBound::Unbounded),
+                            None,
+                        ),
+                    },
                 })
                 .await
                 .expect("failed to read entity from store");
