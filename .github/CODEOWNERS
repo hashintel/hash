@@ -9,4 +9,4 @@ LICENSE.txt @hashintel/legal
 LICENSE.md @hashintel/legal
 
 # Database/migrations
-apps/hash-graph/postgres_migrations/ @hashintel/hash-database
+/apps/hash-graph/postgres_migrations/ @hashintel/hash-database
