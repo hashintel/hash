@@ -16,7 +16,7 @@ use crate::{
     },
     subgraph::{
         edges::{
-            Edge, GraphResolveDepths, OntologyEdgeKind, OntologyOutwardEdges,
+            Edge, GraphResolveDepths, OntologyEdgeKind, OntologyOutwardEdge,
             OutgoingEdgeResolveDepth, OutwardEdge,
         },
         query::StructuralQuery,
@@ -113,7 +113,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                     subgraph.edges.insert(Edge::Ontology {
                         vertex_id: entity_type_id.clone(),
-                        outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
+                        outward_edge: OntologyOutwardEdge::ToOntology(OutwardEdge {
                             kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                             reversed: false,
                             right_endpoint: property_type_vertex_id.clone(),
@@ -145,7 +145,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                     subgraph.edges.insert(Edge::Ontology {
                         vertex_id: entity_type_id.clone(),
-                        outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
+                        outward_edge: OntologyOutwardEdge::ToOntology(OutwardEdge {
                             kind: OntologyEdgeKind::InheritsFrom,
                             reversed: false,
                             right_endpoint: inherits_from_type_vertex_id.clone(),
@@ -176,7 +176,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                         subgraph.edges.insert(Edge::Ontology {
                             vertex_id: entity_type_id.clone(),
-                            outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
+                            outward_edge: OntologyOutwardEdge::ToOntology(OutwardEdge {
                                 kind: OntologyEdgeKind::ConstrainsLinksOn,
                                 reversed: false,
                                 right_endpoint: link_type_vertex_id.clone(),
@@ -210,7 +210,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                                 subgraph.edges.insert(Edge::Ontology {
                                     vertex_id: entity_type_id.clone(),
-                                    outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
+                                    outward_edge: OntologyOutwardEdge::ToOntology(OutwardEdge {
                                         kind: OntologyEdgeKind::ConstrainsLinkDestinationsOn,
                                         reversed: false,
                                         right_endpoint: destination_type_vertex_id.clone(),

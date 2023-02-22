@@ -37,7 +37,7 @@ use crate::{
     api::rest::{
         middleware::log_request_and_response,
         utoipa_typedef::subgraph::{
-            Edges, KnowledgeGraphOutwardEdges, KnowledgeGraphRootedEdges, KnowledgeGraphVertex,
+            Edges, KnowledgeGraphOutwardEdge, KnowledgeGraphRootedEdges, KnowledgeGraphVertex,
             KnowledgeGraphVertices, OntologyRootedEdges, OntologyVertex, OntologyVertices,
             Subgraph, Vertex, Vertices,
         },
@@ -60,7 +60,7 @@ use crate::{
     subgraph::{
         edges::{
             EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
-            OntologyOutwardEdges, OutgoingEdgeResolveDepth, SharedEdgeKind,
+            OntologyOutwardEdge, OutgoingEdgeResolveDepth, SharedEdgeKind,
         },
         temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
         SubgraphTemporalAxes,
@@ -195,8 +195,8 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             SharedEdgeKind,
             KnowledgeGraphEdgeKind,
             OntologyEdgeKind,
-            OntologyOutwardEdges,
-            KnowledgeGraphOutwardEdges,
+            OntologyOutwardEdge,
+            KnowledgeGraphOutwardEdge,
             OntologyRootedEdges,
             KnowledgeGraphRootedEdges,
             Edges,
