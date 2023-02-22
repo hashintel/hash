@@ -34,7 +34,7 @@ interface AddEntitiesDialogProps {
   entityTypes: EntityType[];
   blockEntityId: string;
   onAddEntityItems: (items: Item[]) => void;
-  graphService?: GraphBlockHandler | null;
+  graphModule?: GraphBlockHandler | null;
   open: boolean;
   onClose: () => void;
 }
@@ -43,7 +43,7 @@ export const AddEntitiesDialog = ({
   entityTypes,
   blockEntityId,
   onAddEntityItems,
-  graphService,
+  graphModule,
   open,
   onClose,
 }: AddEntitiesDialogProps) => {
@@ -63,12 +63,12 @@ export const AddEntitiesDialog = ({
   }
 
   const handleEntityTypeClick = async (entityType: EntityType) => {
-    if (!graphService) return;
+    if (!graphModule) return;
 
     const { entityTypeId } = entityType;
 
     // get the entities of clicked entity type
-    const { data } = await graphService.aggregateEntities({
+    const { data } = await graphModule.aggregateEntities({
       data: { operation: { entityTypeId, itemsPerPage: 100 } },
     });
 
@@ -91,7 +91,7 @@ export const AddEntitiesDialog = ({
   };
 
   const handleAddClick = async () => {
-    if (!graphService) return;
+    if (!graphModule) return;
 
     // create links for selected entities
     const selectedEntityIds: string[] = [];
@@ -102,17 +102,19 @@ export const AddEntitiesDialog = ({
       if (entity) selectedEntityIds.push(entity.entityId);
     }
 
-    const createLinkPromises = selectedEntityIds.map((entityId) =>
-      graphService.createLink({
-        data: {
-          sourceEntityId: blockEntityId,
-          destinationEntityId: entityId,
-          path: "$.items",
-        },
-      }),
+    const createLinkResponses = await Promise.all(
+      selectedEntityIds.map((entityId) =>
+        graphModule.createEntity({
+          data: {
+            linkData: {
+              leftEntityId: "", // shuffle entity,
+              rightEntityId: entityId,
+            },
+            entityTypeId: "", // the URL of the link entity type
+          },
+        }),
+      ),
     );
-
-    const createLinkResponses = await Promise.all(createLinkPromises);
 
     // add the new items to the shuffle items list
     onAddEntityItems(
@@ -121,7 +123,7 @@ export const AddEntitiesDialog = ({
           id: uuid(),
           value: "",
           entityId,
-          linkId: createLinkResponses[i]?.data?.linkId,
+          linkId: createLinkResponses[i]?.data?.metadata.recordId.entityId,
         };
       }),
     );

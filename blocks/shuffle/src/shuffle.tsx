@@ -1,8 +1,13 @@
 import { EntityType } from "@blockprotocol/graph/.";
 import {
   BlockComponent,
-  useGraphBlockService,
+  useEntitySubgraph,
+  useGraphBlockModule,
 } from "@blockprotocol/graph/react";
+import {
+  getOutgoingLinksForEntity,
+  getRightEntityForLinkEntity,
+} from "@blockprotocol/graph/stdlib";
 import AddIcon from "@mui/icons-material/Add";
 import ClearIcon from "@mui/icons-material/Clear";
 import DatasetLinkedIcon from "@mui/icons-material/DatasetLinked";
@@ -11,11 +16,13 @@ import Box from "@mui/material/Box";
 import produce from "immer";
 import isEqual from "lodash.isequal";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Root } from "react-dom/client";
 import { v4 as uuid } from "uuid";
 
 import { AddEntitiesDialog } from "./components/add-entities-dialog";
 import { ItemList } from "./components/item-list";
 import { TooltipButton } from "./components/tooltip-button";
+import { RootEntity, RootEntityLinkedEntities } from "./types";
 import { getEntityLabel } from "./utils";
 
 export type Item = {
@@ -29,27 +36,39 @@ export type Item = {
 
 type Items = Item[];
 
-type BlockEntityProperties = {
-  items?: Items;
-};
-
 const initialItems = [
   { id: "1", value: "Thing 1" },
   { id: "2", value: "Thing 2" },
 ];
 
-export const Shuffle: BlockComponent<BlockEntityProperties> = ({
-  graph: {
-    blockEntity: {
-      entityId: blockEntityId,
-      properties: { items },
-    },
-    blockGraph,
-    readonly,
-  },
+export const Shuffle: BlockComponent<RootEntity> = ({
+  graph: { blockEntitySubgraph, readonly },
 }) => {
+  if (!blockEntitySubgraph) {
+    throw new Error("blockEntitySubgraph missing");
+  }
+
+  const { linkedEntities, rootEntity } = useEntitySubgraph<
+    RootEntity,
+    RootEntityLinkedEntities
+  >(blockEntitySubgraph);
+
+  console.log(
+    getOutgoingLinksForEntity(
+      blockEntitySubgraph,
+      rootEntity.metadata.recordId.entityId,
+    ).map((link) =>
+      getRightEntityForLinkEntity(
+        blockEntitySubgraph,
+        link.metadata.recordId.entityId,
+      ),
+    ),
+  );
+
+  return null;
+
   const blockRootRef = useRef<HTMLDivElement>(null);
-  const { graphService } = useGraphBlockService(blockRootRef);
+  const { graphModule } = useGraphBlockModule(blockRootRef);
   const [entitiesDialogOpen, setEntitiesDialogOpen] = useState(false);
   const [entityTypes, setEntityTypes] = useState<EntityType[]>([]);
   const [draftItems, setDraftItems] = useState<Items>(
@@ -63,9 +82,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
      * so we can get the `labelProperty` for the linked items, and show entityTypes in modal
      * */
     const getEntityTypes = async () => {
-      if (!graphService) return;
-
-      const { data, errors } = await graphService.aggregateEntityTypes({
+      const { data, errors } = await graphModule.aggregateEntityTypes({
         data: {
           includeOtherTypesInUse: true,
         },
@@ -77,7 +94,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     };
 
     void getEntityTypes();
-  }, [graphService]);
+  }, [graphModule]);
 
   if (items && items !== prevItems) {
     setPrevItems(items);
@@ -91,7 +108,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     if (readonly) {
       return;
     }
-    void graphService?.updateEntity({
+    void graphModule?.updateEntity({
       data: {
         entityId: blockEntityId,
         properties: { items: newItems },
@@ -141,8 +158,8 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
 
         // if item is linked to an entity, we want to delete the link as well
         if (deletedItem?.linkId) {
-          void graphService?.deleteLink({
-            data: { linkId: deletedItem.linkId },
+          void graphModule.deleteEntity({
+            data: { entityId: deletedItem.linkId },
           });
         }
       }),
@@ -176,7 +193,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     void Promise.all(
       draftItems.map((item) => {
         if (item.linkId) {
-          return graphService?.deleteLink({ data: { linkId: item.linkId } });
+          return graphModule.deleteEntity({ data: { entityId: item.linkId } });
         }
 
         return undefined;
@@ -200,19 +217,22 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
     // creating maps here, so we can use maps in the loop below instead of Array.find
     // avoid using nested loops for better performance
     const linkedEntitiesMap = new Map(
-      blockGraph?.linkedEntities.map((entity) => [entity.entityId, entity]),
+      linkedEntities.map((link) => [
+        link.rightEntity.metadata.recordId.entityId,
+        link.rightEntity,
+      ]),
     );
 
-    const entityTypesMap = new Map(
-      entityTypes.map((type) => [type.entityTypeId, type]),
-    );
+    const entityTypesMap = new Map(entityTypes.map((type) => [type.$id, type]));
 
     return draftItems.map((item) => {
       const itemEntityId = item.entityId;
 
       const entity = linkedEntitiesMap.get(itemEntityId ?? "");
 
-      const entityType = entityTypesMap.get(entity?.entityTypeId ?? "");
+      const entityType = entity
+        ? entityTypesMap.get(entity?.metadata.entityTypeId)
+        : null;
 
       return {
         ...item,
@@ -264,7 +284,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
       <AddEntitiesDialog
         open={entitiesDialogOpen}
         onClose={() => setEntitiesDialogOpen(false)}
-        graphService={graphService}
+        graphModule={graphModule}
         entityTypes={entityTypes}
         blockEntityId={blockEntityId}
         onAddEntityItems={handleAddEntityItems}
