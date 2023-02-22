@@ -9,7 +9,6 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getEntities } from "@local/hash-subgraph/stdlib";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
@@ -70,7 +69,7 @@ export const ensureSystemUserAccountIdExists = async (params: {
     });
 
   const existingUserEntities = getEntities(
-    mapSubgraph(existingUserEntitiesSubgraph) as Subgraph<EntityRootType>,
+    existingUserEntitiesSubgraph as Subgraph<EntityRootType>,
   );
 
   const existingSystemUserEntity = existingUserEntities.find(

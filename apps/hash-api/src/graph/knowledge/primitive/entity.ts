@@ -18,7 +18,6 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 import { ApolloError } from "apollo-server-errors";
 
 import {
@@ -133,7 +132,7 @@ export const getLatestEntityById: ImpureGraphFunction<
       },
     })
     .then(({ data: subgraph }) =>
-      getRoots(mapSubgraph(subgraph) as Subgraph<EntityRootType>),
+      getRoots(subgraph as Subgraph<EntityRootType>),
     );
 
   if (unexpectedEntities.length > 0) {
@@ -505,7 +504,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes,
     })
-    .then(({ data }) => mapSubgraph(data) as Subgraph<EntityRootType>);
+    .then(({ data }) => data as Subgraph<EntityRootType>);
 
   const incomingLinkEntities = getRoots(incomingLinkEntitiesSubgraph).map(
     (linkEntity) => {
@@ -620,7 +619,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes,
     })
-    .then(({ data }) => mapSubgraph(data) as Subgraph<EntityRootType>);
+    .then(({ data }) => data as Subgraph<EntityRootType>);
 
   const outgoingLinkEntities = getRoots(outgoingLinkEntitiesSubgraph).map(
     (linkEntity) => {
@@ -700,5 +699,5 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
     },
   });
 
-  return mapSubgraph(entitySubgraph) as Subgraph<EntityRootType>;
+  return entitySubgraph as Subgraph<EntityRootType>;
 };

@@ -19,9 +19,6 @@
       ],
       "type-system-patch": [
         "./src/shared/type-system-patch.ts"
-      ],
-      "temp": [
-        "./src/temp.ts"
       ]
     }
   },

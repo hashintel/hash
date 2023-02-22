@@ -3,7 +3,6 @@ import {
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import {
   createEntityType,
@@ -85,7 +84,7 @@ export const getAllLatestEntityTypesResolver: ResolverFn<
     },
   });
 
-  return mapSubgraph(entityTypeSubgraph);
+  return entityTypeSubgraph as Subgraph;
 };
 
 export const getEntityTypeResolver: ResolverFn<
@@ -136,7 +135,7 @@ export const getEntityTypeResolver: ResolverFn<
     },
   });
 
-  return mapSubgraph(entityTypeSubgraph);
+  return entityTypeSubgraph as Subgraph;
 };
 
 export const updateEntityTypeResolver: ResolverFn<

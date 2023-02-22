@@ -13,7 +13,6 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
@@ -91,7 +90,7 @@ export const getPropertyTypeById: ImpureGraphFunction<
         },
       },
     })
-    .then(({ data }) => mapSubgraph(data) as Subgraph<PropertyTypeRootType>);
+    .then(({ data }) => data as Subgraph<PropertyTypeRootType>);
 
   const [propertyType] = getRoots(propertyTypeSubgraph);
 

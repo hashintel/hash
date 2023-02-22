@@ -3,7 +3,6 @@ import {
   PropertyTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import {
   createPropertyType,
@@ -87,7 +86,7 @@ export const getAllLatestPropertyTypesResolver: ResolverFn<
       },
     },
   );
-  return mapSubgraph(propertyTypeSubgraph);
+  return propertyTypeSubgraph as Subgraph;
 };
 
 export const getPropertyTypeResolver: ResolverFn<
@@ -134,7 +133,7 @@ export const getPropertyTypeResolver: ResolverFn<
     },
   );
 
-  return mapSubgraph(propertyTypeSubgraph);
+  return propertyTypeSubgraph as Subgraph;
 };
 
 export const updatePropertyTypeResolver: ResolverFn<

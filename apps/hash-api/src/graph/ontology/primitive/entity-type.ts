@@ -14,7 +14,6 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { NotFoundError } from "../../../lib/error";
 import {
@@ -100,7 +99,7 @@ export const getEntityTypeById: ImpureGraphFunction<
         },
       },
     })
-    .then(({ data }) => mapSubgraph(data) as Subgraph<EntityTypeRootType>);
+    .then(({ data }) => data as Subgraph<EntityTypeRootType>);
 
   const [entityType] = getRoots(entityTypeSubgraph);
 

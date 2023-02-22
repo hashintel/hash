@@ -10,7 +10,6 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getEntities } from "@local/hash-subgraph/stdlib";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 
@@ -272,7 +271,7 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
       },
     })
     .then(({ data: subgraph }) =>
-      getEntities(mapSubgraph(subgraph) as Subgraph<EntityRootType>),
+      getEntities(subgraph as Subgraph<EntityRootType>),
     );
 
   const pages = pageEntities
