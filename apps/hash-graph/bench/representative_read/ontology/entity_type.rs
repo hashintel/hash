@@ -1,11 +1,15 @@
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
-    identifier::time::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, TemporalBound,
-        VariableTemporalAxisUnresolved,
-    },
+    identifier::time::TemporalBound,
     store::{query::Filter, EntityTypeStore},
-    subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
+    subgraph::{
+        edges::GraphResolveDepths,
+        query::StructuralQuery,
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
+            VariableTemporalAxisUnresolved,
+        },
+    },
 };
 use rand::{prelude::IteratorRandom, thread_rng};
 use tokio::runtime::Runtime;

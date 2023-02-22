@@ -4,7 +4,6 @@ use postgres_types::ToSql;
 use tokio_postgres::row::RowIndex;
 
 use crate::{
-    identifier::time::QueryTemporalAxes,
     store::{
         postgres::query::{
             expression::Constant,
@@ -18,6 +17,7 @@ use crate::{
         },
         query::{Filter, FilterExpression, Parameter},
     },
+    subgraph::temporal_axes::QueryTemporalAxes,
 };
 
 // # Lifetime guidance

@@ -10,8 +10,8 @@ use async_trait::async_trait;
 use error_stack::{ensure, Report, Result};
 
 use crate::{
-    identifier::time::QueryTemporalAxes,
     store::{query::Filter, QueryError, Record},
+    subgraph::temporal_axes::QueryTemporalAxes,
 };
 
 /// Read access to a [`Store`].

@@ -3,17 +3,18 @@ use std::{iter::repeat, str::FromStr};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use graph::{
-    identifier::{
-        account::AccountId,
-        time::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, TemporalBound,
-            VariableTemporalAxisUnresolved,
-        },
-    },
+    identifier::{account::AccountId, time::TemporalBound},
     knowledge::{EntityMetadata, EntityProperties},
     provenance::{OwnedById, UpdatedById},
     store::{query::Filter, AccountStore, EntityStore},
-    subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
+    subgraph::{
+        edges::GraphResolveDepths,
+        query::StructuralQuery,
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
+            VariableTemporalAxisUnresolved,
+        },
+    },
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use rand::{prelude::IteratorRandom, thread_rng};

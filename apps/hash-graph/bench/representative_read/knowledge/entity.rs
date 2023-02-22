@@ -2,16 +2,20 @@ use std::borrow::Cow;
 
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
-    identifier::time::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, TemporalBound,
-        VariableTemporalAxisUnresolved,
-    },
+    identifier::time::TemporalBound,
     knowledge::{EntityQueryPath, EntityUuid},
     store::{
         query::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
         EntityStore,
     },
-    subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
+    subgraph::{
+        edges::GraphResolveDepths,
+        query::StructuralQuery,
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
+            VariableTemporalAxisUnresolved,
+        },
+    },
 };
 use rand::{prelude::IteratorRandom, thread_rng};
 use tokio::runtime::Runtime;

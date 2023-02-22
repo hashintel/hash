@@ -6,7 +6,7 @@ use futures::FutureExt;
 use type_system::{EntityType, EntityTypeReference, PropertyTypeReference};
 
 use crate::{
-    identifier::{time::QueryTemporalAxes, OntologyTypeVertexId},
+    identifier::OntologyTypeVertexId,
     ontology::{EntityTypeWithMetadata, OntologyElementMetadata, OntologyTypeWithMetadata},
     provenance::UpdatedById,
     store::{
@@ -20,6 +20,7 @@ use crate::{
             OutgoingEdgeResolveDepth, OutwardEdge,
         },
         query::StructuralQuery,
+        temporal_axes::QueryTemporalAxes,
         Subgraph,
     },
 };

@@ -10,10 +10,7 @@ use tokio_postgres::GenericClient;
 use type_system::uri::BaseUri;
 
 use crate::{
-    identifier::{
-        ontology::{OntologyTypeRecordId, OntologyTypeVersion},
-        time::QueryTemporalAxes,
-    },
+    identifier::ontology::{OntologyTypeRecordId, OntologyTypeVersion},
     ontology::{
         ExternalOntologyElementMetadata, OntologyElementMetadata, OntologyType,
         OntologyTypeWithMetadata, OwnedOntologyElementMetadata,
@@ -25,6 +22,7 @@ use crate::{
         query::{Filter, OntologyQueryPath},
         AsClient, PostgresStore, QueryError,
     },
+    subgraph::temporal_axes::QueryTemporalAxes,
 };
 
 #[derive(Deserialize)]

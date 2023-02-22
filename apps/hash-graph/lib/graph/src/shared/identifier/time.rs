@@ -1,17 +1,12 @@
 mod axis;
 mod bound;
 mod interval;
-mod temporal_axes;
 mod timestamp;
 
 pub use self::{
-    axis::{DecisionTime, TemporalTagged, TimeAxis, TransactionTime, VariableAxis},
+    axis::{DecisionTime, PinnedAxis, TemporalTagged, TimeAxis, TransactionTime, VariableAxis},
     bound::{ClosedTemporalBound, LimitedTemporalBound, OpenTemporalBound, TemporalBound},
     interval::RightBoundedTemporalIntervalUnresolved,
-    temporal_axes::{
-        PinnedTemporalAxis, PinnedTemporalAxisUnresolved, QueryTemporalAxes,
-        QueryTemporalAxesUnresolved, VariableTemporalAxis, VariableTemporalAxisUnresolved,
-    },
     timestamp::Timestamp,
 };
 use crate::interval::Interval;

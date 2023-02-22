@@ -11,14 +11,18 @@ use edges::Edges;
 use error_stack::Result;
 
 use crate::{
-    identifier::time::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
     shared::identifier::GraphElementVertexId,
     store::{crud::Read, QueryError, Record},
-    subgraph::{edges::GraphResolveDepths, vertices::Vertices},
+    subgraph::{
+        edges::GraphResolveDepths,
+        temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
+        vertices::Vertices,
+    },
 };
 
 pub mod edges;
 pub mod query;
+pub mod temporal_axes;
 pub mod vertices;
 
 #[derive(Debug)]

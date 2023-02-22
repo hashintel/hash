@@ -100,12 +100,12 @@ mod tests {
     use postgres_types::ToSql;
 
     use crate::{
-        identifier::time::QueryTemporalAxesUnresolved,
         ontology::{DataTypeQueryPath, DataTypeWithMetadata},
         store::{
             postgres::query::{SelectCompiler, Transpile},
             query::{Filter, FilterExpression, Parameter},
         },
+        subgraph::temporal_axes::QueryTemporalAxesUnresolved,
     };
 
     fn test_condition<'p, 'f: 'p>(

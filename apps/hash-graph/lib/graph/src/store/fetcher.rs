@@ -18,10 +18,7 @@ use crate::{
     identifier::{
         account::AccountId,
         knowledge::EntityId,
-        time::{
-            DecisionTime, PinnedTemporalAxisUnresolved, QueryTemporalAxes,
-            QueryTemporalAxesUnresolved, Timestamp, VariableTemporalAxisUnresolved,
-        },
+        time::{DecisionTime, Timestamp},
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     ontology::{
@@ -35,7 +32,15 @@ use crate::{
         AccountStore, DataTypeStore, EntityStore, EntityTypeStore, InsertionError,
         PropertyTypeStore, QueryError, Record, StoreError, StorePool, UpdateError,
     },
-    subgraph::{edges::GraphResolveDepths, query::StructuralQuery, Subgraph},
+    subgraph::{
+        edges::GraphResolveDepths,
+        query::StructuralQuery,
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
+            VariableTemporalAxisUnresolved,
+        },
+        Subgraph,
+    },
 };
 
 pub struct FetchingPool<P, A> {

@@ -8,11 +8,10 @@ use utoipa::{
 };
 
 use crate::{
-    identifier::time::QueryTemporalAxesUnresolved,
     knowledge::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
     store::{query::Filter, Record},
-    subgraph::edges::GraphResolveDepths,
+    subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };
 
 /// Structural queries are the main entry point to read data from the Graph.

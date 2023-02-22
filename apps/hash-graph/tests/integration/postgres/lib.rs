@@ -20,10 +20,7 @@ use graph::{
         account::AccountId,
         knowledge::EntityId,
         ontology::OntologyTypeVersion,
-        time::{
-            DecisionTime, LimitedTemporalBound, PinnedTemporalAxisUnresolved,
-            QueryTemporalAxesUnresolved, TemporalBound, Timestamp, VariableTemporalAxisUnresolved,
-        },
+        time::{DecisionTime, LimitedTemporalBound, TemporalBound, Timestamp},
         GraphElementVertexId, OntologyTypeVertexId,
     },
     knowledge::{
@@ -41,7 +38,14 @@ use graph::{
         EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool, PropertyTypeStore,
         QueryError, StorePool, UpdateError,
     },
-    subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
+    subgraph::{
+        edges::GraphResolveDepths,
+        query::StructuralQuery,
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
+            VariableTemporalAxisUnresolved,
+        },
+    },
 };
 use time::{format_description::well_known::Iso8601, Duration, OffsetDateTime};
 use tokio_postgres::{NoTls, Transaction};

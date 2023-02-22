@@ -81,7 +81,6 @@ mod tests {
     use uuid::Uuid;
 
     use crate::{
-        identifier::time::QueryTemporalAxesUnresolved,
         knowledge::{Entity, EntityQueryPath},
         ontology::{
             DataTypeQueryPath, DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata,
@@ -94,6 +93,7 @@ mod tests {
             },
             query::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
         },
+        subgraph::temporal_axes::QueryTemporalAxesUnresolved,
     };
 
     fn test_compilation<'f, 'p: 'f, T: PostgresRecord + 'static>(

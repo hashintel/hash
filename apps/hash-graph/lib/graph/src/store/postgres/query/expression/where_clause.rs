@@ -45,12 +45,12 @@ mod tests {
 
     use super::*;
     use crate::{
-        identifier::time::QueryTemporalAxesUnresolved,
         ontology::{DataTypeQueryPath, DataTypeWithMetadata},
         store::{
             postgres::query::{test_helper::trim_whitespace, SelectCompiler},
             query::{Filter, FilterExpression, Parameter},
         },
+        subgraph::temporal_axes::QueryTemporalAxesUnresolved,
     };
 
     #[test]

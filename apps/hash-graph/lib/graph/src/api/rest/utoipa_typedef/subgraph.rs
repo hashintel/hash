@@ -12,11 +12,11 @@ pub use self::{
     },
 };
 use crate::{
-    identifier::{
-        time::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
-        GraphElementVertexId,
+    identifier::GraphElementVertexId,
+    subgraph::{
+        edges::GraphResolveDepths,
+        temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
     },
-    subgraph::edges::GraphResolveDepths,
 };
 
 #[derive(Serialize, ToSchema)]

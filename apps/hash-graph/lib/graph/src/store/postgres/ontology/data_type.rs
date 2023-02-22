@@ -5,7 +5,7 @@ use error_stack::{Result, ResultExt};
 use type_system::DataType;
 
 use crate::{
-    identifier::{time::QueryTemporalAxes, OntologyTypeVertexId},
+    identifier::OntologyTypeVertexId,
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
     provenance::UpdatedById,
     store::{
@@ -13,7 +13,10 @@ use crate::{
         postgres::{DependencyContext, DependencyStatus},
         AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
-    subgraph::{edges::GraphResolveDepths, query::StructuralQuery, Subgraph},
+    subgraph::{
+        edges::GraphResolveDepths, query::StructuralQuery, temporal_axes::QueryTemporalAxes,
+        Subgraph,
+    },
 };
 
 impl<C: AsClient> PostgresStore<C> {

@@ -46,9 +46,8 @@ use crate::{
         ontology::{OntologyTypeRecordId, OntologyTypeVersion},
         time::{
             ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
-            OpenTemporalBound, QueryTemporalAxes, QueryTemporalAxesUnresolved,
-            RightBoundedTemporalInterval, RightBoundedTemporalIntervalUnresolved, TemporalBound,
-            Timestamp, TransactionTime,
+            OpenTemporalBound, RightBoundedTemporalInterval,
+            RightBoundedTemporalIntervalUnresolved, TemporalBound, Timestamp, TransactionTime,
         },
         EntityVertexId, GraphElementVertexId, OntologyTypeVertexId,
     },
@@ -58,9 +57,12 @@ use crate::{
     },
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{QueryError, StorePool},
-    subgraph::edges::{
-        EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
-        OntologyOutwardEdges, OutgoingEdgeResolveDepth, SharedEdgeKind,
+    subgraph::{
+        edges::{
+            EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
+            OntologyOutwardEdges, OutgoingEdgeResolveDepth, SharedEdgeKind,
+        },
+        temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
     },
 };
 

@@ -2,11 +2,9 @@ use serde::{Deserialize, Serialize};
 use utoipa::{openapi, ToSchema};
 
 use crate::identifier::time::{
-    axis::{PinnedAxis, TemporalTagged},
-    bound::TemporalBound,
-    DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound, RightBoundedTemporalInterval,
-    RightBoundedTemporalIntervalUnresolved, TemporalInterval, TimeAxis, Timestamp, TransactionTime,
-    VariableAxis,
+    DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound, PinnedAxis,
+    RightBoundedTemporalInterval, RightBoundedTemporalIntervalUnresolved, TemporalBound,
+    TemporalInterval, TemporalTagged, TimeAxis, Timestamp, TransactionTime, VariableAxis,
 };
 
 /// A representation of a "pinned" temporal axis, used to project another temporal axis along the

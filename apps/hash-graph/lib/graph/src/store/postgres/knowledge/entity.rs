@@ -12,7 +12,7 @@ use uuid::Uuid;
 use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityTemporalMetadata},
-        time::{DecisionTime, QueryTemporalAxes, Timestamp},
+        time::{DecisionTime, Timestamp},
         EntityVertexId, OntologyTypeVertexId,
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
@@ -30,6 +30,7 @@ use crate::{
             KnowledgeGraphOutwardEdges, OutgoingEdgeResolveDepth, OutwardEdge, SharedEdgeKind,
         },
         query::StructuralQuery,
+        temporal_axes::QueryTemporalAxes,
         Subgraph, SubgraphIndex,
     },
 };

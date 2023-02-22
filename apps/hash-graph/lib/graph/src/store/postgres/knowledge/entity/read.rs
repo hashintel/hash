@@ -11,7 +11,6 @@ use crate::{
     identifier::{
         account::AccountId,
         knowledge::{EntityId, EntityRecordId, EntityTemporalMetadata},
-        time::QueryTemporalAxes,
     },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
@@ -25,6 +24,7 @@ use crate::{
         query::Filter,
         AsClient, PostgresStore, QueryError,
     },
+    subgraph::temporal_axes::QueryTemporalAxes,
 };
 
 #[async_trait]
