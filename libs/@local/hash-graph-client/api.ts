@@ -694,12 +694,10 @@ export const EntityTypeQueryToken = {
   UpdatedById: "updatedById",
   Title: "title",
   Description: "description",
-  Default: "default",
   Examples: "examples",
   Properties: "properties",
   Required: "required",
   Links: "links",
-  RequiredLinks: "requiredLinks",
   InheritsFrom: "inheritsFrom",
 } as const;
 
