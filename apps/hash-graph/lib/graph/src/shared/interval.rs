@@ -451,6 +451,45 @@ where
 {
 }
 
+impl<T, S, E> PartialOrd for Interval<T, S, E>
+where
+    T: PartialOrd,
+    S: IntervalBound<T>,
+    E: IntervalBound<T>,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        let start_ordering = compare_bounds(
+            self.start_bound(),
+            other.start_bound(),
+            BoundType::Start,
+            BoundType::Start,
+            PartialOrd::partial_cmp,
+        )?;
+        match start_ordering {
+            Ordering::Equal => compare_bounds(
+                self.end_bound(),
+                other.end_bound(),
+                BoundType::End,
+                BoundType::End,
+                PartialOrd::partial_cmp,
+            ),
+            ordering => Some(ordering),
+        }
+    }
+}
+
+impl<T, S, E> Ord for Interval<T, S, E>
+where
+    T: Ord,
+    S: IntervalBound<T>,
+    E: IntervalBound<T>,
+{
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.cmp_start_to_start(other)
+            .then_with(|| self.cmp_end_to_end(other))
+    }
+}
+
 impl<T, S, E> Hash for Interval<T, S, E>
 where
     S: Hash,
