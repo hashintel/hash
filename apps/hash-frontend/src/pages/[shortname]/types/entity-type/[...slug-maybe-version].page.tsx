@@ -20,7 +20,7 @@ import { GlobalStyles } from "@mui/system";
 import { Buffer } from "buffer/";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 
 import { PageErrorState } from "../../../../components/page-error-state";
 import { isHrefExternal } from "../../../../shared/is-href-external";
@@ -130,8 +130,6 @@ const Page: NextPageWithLayout = () => {
         : null,
     [entityType, remotePropertyTypes],
   );
-
-  useEffect(() => {}, [entityType, requestedVersion, router]);
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
     const entityTypeSchema = getSchemaFromFormData(data);
