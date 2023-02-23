@@ -248,9 +248,9 @@ export type DataTypeKindEnum =
  */
 
 export const DataTypeQueryToken = {
-  BaseUri: "baseUri",
+  BaseUrl: "baseUrl",
   Version: "version",
-  VersionedUri: "versionedUri",
+  VersionedUrl: "versionedUrl",
   OwnedById: "ownedById",
   UpdatedById: "updatedById",
   Title: "title",
@@ -687,9 +687,9 @@ export type EntityTypeAdditionalPropertiesEnum =
  */
 
 export const EntityTypeQueryToken = {
-  BaseUri: "baseUri",
+  BaseUrl: "baseUrl",
   Version: "version",
-  VersionedUri: "versionedUri",
+  VersionedUrl: "versionedUrl",
   OwnedById: "ownedById",
   UpdatedById: "updatedById",
   Title: "title",
@@ -1288,7 +1288,7 @@ export interface OntologyTypeRecordId {
    * @type {string}
    * @memberof OntologyTypeRecordId
    */
-  baseUri: string;
+  baseUrl: string;
   /**
    *
    * @type {number}
@@ -1637,9 +1637,9 @@ export type PropertyTypeKindEnum =
  */
 
 export const PropertyTypeQueryToken = {
-  BaseUri: "baseUri",
+  BaseUrl: "baseUrl",
   Version: "version",
-  VersionedUri: "versionedUri",
+  VersionedUrl: "versionedUrl",
   OwnedById: "ownedById",
   UpdatedById: "updatedById",
   Title: "title",
