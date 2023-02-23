@@ -46,8 +46,7 @@ where
         edge_kind: K,
         reversed: bool,
         right_endpoint: E::EdgeEndpoint,
-    ) -> bool
-    where
+    ) where
         V::BaseId: Hash + Eq + Clone,
         V::RevisionId: Ord,
         K: Hash + Eq,
@@ -66,7 +65,7 @@ where
                 reversed,
             })
             .or_default()
-            .insert(right_endpoint)
+            .insert(right_endpoint);
     }
 
     pub fn into_flattened<O>(
@@ -168,7 +167,7 @@ impl Edges {
     ///
     /// - If the set did not previously contain this value, `true` is returned.
     /// - If the set already contained this value, `false` is returned.
-    pub fn insert(&mut self, edge: Edge) -> bool {
+    pub fn insert(&mut self, edge: Edge) {
         match edge {
             Edge::Ontology {
                 vertex_id,
@@ -206,7 +205,7 @@ impl Edges {
                     right_endpoint,
                 }) => {
                     self.knowledge_to_knowledge
-                        .insert(&vertex_id, kind, reversed, right_endpoint)
+                        .insert(&vertex_id, kind, reversed, right_endpoint);
                 }
             },
         }
