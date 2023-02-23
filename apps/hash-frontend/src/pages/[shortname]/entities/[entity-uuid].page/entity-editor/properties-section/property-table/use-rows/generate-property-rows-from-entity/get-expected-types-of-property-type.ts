@@ -4,7 +4,7 @@ import {
   PropertyValues,
 } from "@blockprotocol/type-system";
 import { Subgraph } from "@local/hash-subgraph";
-import { getDataTypeById } from "@local/hash-subgraph/src/stdlib/element/data-type";
+import { getDataTypeById } from "@local/hash-subgraph/stdlib";
 
 import { isPropertyValueArray } from "../../../../../../../../../lib/typeguards";
 

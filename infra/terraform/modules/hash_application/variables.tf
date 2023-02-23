@@ -59,6 +59,23 @@ variable "graph_env_vars" {
   description = "A list of environment variables to save as system parameters and inject into the Graph service"
 }
 
+variable "type_fetcher_image" {
+  type = object({
+    url     = string
+    ecr_arn = optional(string)
+  })
+  description = "URL of the docker image for the type fetcher service"
+}
+
+variable "type_fetcher_env_vars" {
+  type = list(object({
+    name   = string,
+    secret = bool,
+    value  = string
+  }))
+  description = "A list of environment variables to save as system parameters and inject into the type fetcher service"
+}
+
 variable "kratos_image" {
   type = object({
     url     = string
@@ -95,6 +112,6 @@ variable "api_env_vars" {
 }
 
 variable "ses_verified_domain_identity" {
-  type = string
+  type        = string
   description = "A verified AWS SES identity to use for email sending in the application."
 }

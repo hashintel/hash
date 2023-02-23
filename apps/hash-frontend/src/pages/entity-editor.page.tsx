@@ -1,15 +1,18 @@
-import {
-  Array,
-  extractBaseUri,
-  ValueOrArray,
-} from "@blockprotocol/type-system";
+import { Array, ValueOrArray } from "@blockprotocol/type-system";
 import { Button } from "@hashintel/design-system";
-import { EntityId, OwnedById } from "@local/hash-graphql-shared/types";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { Entity, Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
-import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
-import { getPropertyTypeById } from "@local/hash-subgraph/src/stdlib/element/property-type";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import {
+  Entity,
+  EntityRootType,
+  OwnedById,
+  Subgraph,
+} from "@local/hash-subgraph";
+import {
+  getEntityTypeById,
+  getPropertyTypeById,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
+import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
 import { Container, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 
@@ -33,10 +36,9 @@ const isArrayDefinition = <T,>(input: ValueOrArray<T>): input is Array<T> =>
  */
 const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
   const { authenticatedUser } = useAuthenticatedUser();
-  const [userSubgraph, setUserSubgraph] =
-    useState<Subgraph<SubgraphRootTypes["entity"]>>();
+  const [userSubgraph, setUserSubgraph] = useState<Subgraph<EntityRootType>>();
   const [aggregateEntitiesSubgraph, setAggregateEntitiesSubgraph] =
-    useState<Subgraph<SubgraphRootTypes["entity"]>>();
+    useState<Subgraph<EntityRootType>>();
 
   const [createdEntity, setCreatedEntity] = useState<Entity>();
 
@@ -45,7 +47,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
 
   useEffect(() => {
     // As an example entity, we are going to use the currently logged in user's entity ID
-    const entityId = authenticatedUser.entityRecordId.entityId as EntityId;
+    const entityId = authenticatedUser.entityRecordId.entityId;
 
     void getEntity({ data: { entityId } }).then(({ data }) => {
       setUserSubgraph(data);
@@ -118,7 +120,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
       return;
     }
     await archiveEntity({
-      data: { entityId: createdEntity.metadata.recordId.entityId as EntityId },
+      data: { entityId: createdEntity.metadata.recordId.entityId },
     }).then(() => setCreatedEntity(undefined));
   };
 

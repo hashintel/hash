@@ -1,7 +1,12 @@
-import { AccountId, OwnedById } from "@local/hash-graphql-shared/types";
-import { Entity, Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
-import { getRootsAsEntities } from "@local/hash-subgraph/src/stdlib/element/entity";
-import { mapSubgraph } from "@local/hash-subgraph/src/temp";
+import {
+  AccountId,
+  Entity,
+  EntityRootType,
+  OwnedById,
+  Subgraph,
+} from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
+import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import {
@@ -83,22 +88,22 @@ export const getHashInstance: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      timeProjection: {
-        kernel: {
-          axis: "transaction",
+      temporalAxes: {
+        pinned: {
+          axis: "transactionTime",
           timestamp: null,
         },
-        image: {
-          axis: "decision",
-          start: null,
-          end: null,
+        variable: {
+          axis: "decisionTime",
+          interval: {
+            start: null,
+            end: null,
+          },
         },
       },
     })
     .then(({ data: subgraph }) =>
-      getRootsAsEntities(
-        mapSubgraph(subgraph) as Subgraph<SubgraphRootTypes["entity"]>,
-      ),
+      getRoots(mapSubgraph(subgraph) as Subgraph<EntityRootType>),
     );
 
   if (entities.length > 1) {

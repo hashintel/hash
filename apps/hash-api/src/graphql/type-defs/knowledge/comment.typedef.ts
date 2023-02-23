@@ -1,7 +1,7 @@
 import { gql } from "apollo-server-express";
 
 export const commentTypedef = gql`
-  scalar EntityVersion
+  scalar EntityTemporalVersioningMetadata
 
   type Comment {
     """
@@ -17,7 +17,7 @@ export const commentTypedef = gql`
     """
     Version information of when the comment was last edited
     """
-    textUpdatedAt: EntityVersion!
+    textUpdatedAt: EntityTemporalVersioningMetadata!
 
     """
     Text contents of the comment
@@ -45,7 +45,7 @@ export const commentTypedef = gql`
     """
     Properties of entity.
     """
-    properties: PropertyObject!
+    properties: EntityPropertiesObject!
   }
 
   extend type Mutation {

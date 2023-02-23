@@ -1,6 +1,9 @@
-import { OwnedById } from "@local/hash-graphql-shared/types";
-import { EntityTypeWithMetadata, Subgraph } from "@local/hash-subgraph";
-import { mapSubgraph } from "@local/hash-subgraph/src/temp";
+import {
+  EntityTypeWithMetadata,
+  OwnedById,
+  Subgraph,
+} from "@local/hash-subgraph";
+import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import {
   createEntityType,
@@ -27,8 +30,7 @@ export const createEntityTypeResolver: ResolverFn<
   const { ownedById, entityType } = params;
 
   const createdEntityType = await createEntityType(context, {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-    ownedById: (ownedById as OwnedById) ?? user.accountId,
+    ownedById: ownedById ?? (user.accountId as OwnedById),
     schema: entityType,
     actorId: user.accountId,
   });
@@ -68,15 +70,17 @@ export const getAllLatestEntityTypesResolver: ResolverFn<
       hasLeftEntity: { incoming: 0, outgoing: 0 },
       hasRightEntity: { incoming: 0, outgoing: 0 },
     },
-    timeProjection: {
-      kernel: {
-        axis: "transaction",
+    temporalAxes: {
+      pinned: {
+        axis: "transactionTime",
         timestamp: null,
       },
-      image: {
-        axis: "decision",
-        start: null,
-        end: null,
+      variable: {
+        axis: "decisionTime",
+        interval: {
+          start: null,
+          end: null,
+        },
       },
     },
   });
@@ -117,15 +121,17 @@ export const getEntityTypeResolver: ResolverFn<
       hasLeftEntity: { incoming: 0, outgoing: 0 },
       hasRightEntity: { incoming: 0, outgoing: 0 },
     },
-    timeProjection: {
-      kernel: {
-        axis: "transaction",
+    temporalAxes: {
+      pinned: {
+        axis: "transactionTime",
         timestamp: null,
       },
-      image: {
-        axis: "decision",
-        start: null,
-        end: null,
+      variable: {
+        axis: "decisionTime",
+        interval: {
+          start: null,
+          end: null,
+        },
       },
     },
   });

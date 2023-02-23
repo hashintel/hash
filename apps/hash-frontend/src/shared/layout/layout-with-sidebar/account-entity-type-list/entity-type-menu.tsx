@@ -6,7 +6,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { ListItemIcon, ListItemText, Menu } from "@mui/material";
-import { bindMenu, PopupState } from "material-ui-popup-state/core";
+import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
 import pluralize from "pluralize";
 import { FunctionComponent, useState } from "react";
 

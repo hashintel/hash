@@ -1,22 +1,23 @@
 import { validateBaseUri } from "@blockprotocol/type-system";
 import {
   Edges as EdgesGraphApi,
-  KnowledgeGraphOutwardEdges,
-  OntologyOutwardEdges,
+  KnowledgeGraphOutwardEdge as KnowledgeGraphOutwardEdgeGraphApi,
+  OntologyOutwardEdge as OntologyOutwardEdgeGraphApi,
 } from "@local/hash-graph-client";
-
 import {
+  BaseUri,
   Edges,
+  EntityId,
   isEntityId,
-  isEntityIdAndTimestamp,
   isKnowledgeGraphOutwardEdge,
   isOntologyOutwardEdge,
-  isOntologyTypeRecordId,
+  OntologyTypeRevisionId,
   OutwardEdge,
-} from "../../src";
+  Timestamp,
+} from "@local/hash-subgraph";
 
 export const mapOutwardEdge = (
-  outwardEdge: OntologyOutwardEdges | KnowledgeGraphOutwardEdges,
+  outwardEdge: OntologyOutwardEdgeGraphApi | KnowledgeGraphOutwardEdgeGraphApi,
 ): OutwardEdge => {
   switch (outwardEdge.kind) {
     // Ontology edge-kind cases
@@ -28,45 +29,61 @@ export const mapOutwardEdge = (
       return {
         ...outwardEdge,
         rightEndpoint: {
-          baseUri: outwardEdge.rightEndpoint.baseId,
-          version: outwardEdge.rightEndpoint.version,
+          baseId: outwardEdge.rightEndpoint.baseId as BaseUri,
+          revisionId:
+            `${outwardEdge.rightEndpoint.revisionId}` as OntologyTypeRevisionId,
         },
       };
     }
     // Knowledge-graph edge-kind cases
     case "HAS_LEFT_ENTITY":
     case "HAS_RIGHT_ENTITY": {
-      if (!isEntityIdAndTimestamp(outwardEdge.rightEndpoint)) {
-        throw new Error(
-          `Expected an \`EntityAndTimestamp\` for knowledge-graph edge-kind endpoint but found:\n${JSON.stringify(
-            outwardEdge,
-          )}`,
-        );
-      }
       return {
         ...outwardEdge,
         rightEndpoint: {
-          baseId: outwardEdge.rightEndpoint.baseId,
-          timestamp: outwardEdge.rightEndpoint.timestamp,
+          entityId: outwardEdge.rightEndpoint.baseId as EntityId,
+          interval: {
+            start: {
+              kind: "inclusive",
+              limit: outwardEdge.rightEndpoint.timestamp as Timestamp,
+            },
+            end: {
+              /** @todo-0.3 - This is incorrect, this will be fixed when the graph backend is migrated to be consistent */
+              kind: "unbounded",
+            },
+          },
         },
       };
     }
     // Shared edge-kind cases
     case "IS_OF_TYPE": {
-      if (!isOntologyTypeRecordId(outwardEdge.rightEndpoint)) {
-        throw new Error(
-          `Expected an \`OntologyTypeRecordId\` for knowledge-graph to ontology edge endpoint but found:\n${JSON.stringify(
-            outwardEdge,
-          )}`,
-        );
-      }
-      return {
-        ...outwardEdge,
-        rightEndpoint: {
-          baseUri: outwardEdge.rightEndpoint.baseId,
-          version: outwardEdge.rightEndpoint.version,
-        },
-      };
+      return outwardEdge.reversed
+        ? {
+            ...outwardEdge,
+            reversed: outwardEdge.reversed,
+            rightEndpoint: {
+              entityId: outwardEdge.rightEndpoint.baseId as EntityId,
+              interval: {
+                start: {
+                  kind: "inclusive",
+                  limit: outwardEdge.rightEndpoint.revisionId as Timestamp,
+                },
+                end: {
+                  /** @todo-0.3 - This is incorrect, this will be fixed when the graph backend is migrated to be consistent */
+                  kind: "unbounded",
+                },
+              },
+            },
+          }
+        : {
+            ...outwardEdge,
+            reversed: outwardEdge.reversed,
+            rightEndpoint: {
+              baseId: outwardEdge.rightEndpoint.baseId as BaseUri,
+              revisionId:
+                `${outwardEdge.rightEndpoint.revisionId}` as OntologyTypeRevisionId,
+            },
+          };
     }
   }
 };
@@ -79,7 +96,7 @@ export const mapEdges = (edges: EdgesGraphApi): Edges => {
     const result = validateBaseUri(baseId);
     if (result.type === "Ok") {
       // ------------ Ontology Type case ----------------
-      const baseUri = result.inner;
+      const baseUri = result.inner as BaseUri;
 
       mappedEdges[baseUri] = Object.fromEntries(
         Object.entries(inner).map(([version, outwardEdges]) => {

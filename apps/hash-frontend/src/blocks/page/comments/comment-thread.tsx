@@ -1,13 +1,13 @@
-import { extractBaseUri } from "@blockprotocol/type-system";
 import { Button } from "@hashintel/design-system";
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountId,
   EntityId,
   extractEntityUuidFromEntityId,
   Uuid,
-} from "@local/hash-graphql-shared/types";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+} from "@local/hash-subgraph";
+import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Box, buttonClasses, Collapse } from "@mui/material";
@@ -53,18 +53,15 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
 
   const handleReplySubmit = async () => {
     if (!loading && inputValue.length) {
-      await createReply(
-        comment.metadata.recordId.entityId as EntityId,
-        inputValue,
-      );
+      await createReply(comment.metadata.recordId.entityId, inputValue);
       setInputValue([]);
     }
   };
 
   const [collapsedReplies, uncollapsibleReplies] = useMemo(() => {
     const replies = [...comment.replies].sort((replyA, replyB) =>
-      replyA.metadata.version.decisionTime.start.localeCompare(
-        replyB.metadata.version.decisionTime.start,
+      replyA.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
+        replyB.metadata.temporalVersioning.decisionTime.start.limit,
       ),
     );
     const lastItems = replies.splice(

@@ -1,12 +1,12 @@
 use std::collections::{hash_map::Entry, HashMap, HashSet};
 
-use crate::identifier::{ontology::OntologyTypeEditionId, EntityVertexId};
+use crate::identifier::{EntityVertexId, OntologyTypeVertexId};
 
 mod edge;
 mod kind;
 
 pub use self::{
-    edge::{KnowledgeGraphOutwardEdges, OntologyOutwardEdges, OutwardEdge},
+    edge::{KnowledgeGraphOutwardEdge, OntologyOutwardEdge, OutwardEdge},
     kind::{
         EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
         OutgoingEdgeResolveDepth, SharedEdgeKind,
@@ -15,18 +15,18 @@ pub use self::{
 
 #[derive(Default, Debug)]
 pub struct Edges {
-    pub ontology: HashMap<OntologyTypeEditionId, HashSet<OntologyOutwardEdges>>,
-    pub knowledge_graph: HashMap<EntityVertexId, HashSet<KnowledgeGraphOutwardEdges>>,
+    pub ontology: HashMap<OntologyTypeVertexId, HashSet<OntologyOutwardEdge>>,
+    pub knowledge_graph: HashMap<EntityVertexId, HashSet<KnowledgeGraphOutwardEdge>>,
 }
 
 pub enum Edge {
     Ontology {
-        vertex_id: OntologyTypeEditionId,
-        outward_edge: OntologyOutwardEdges,
+        vertex_id: OntologyTypeVertexId,
+        outward_edge: OntologyOutwardEdge,
     },
     KnowledgeGraph {
         vertex_id: EntityVertexId,
-        outward_edge: KnowledgeGraphOutwardEdges,
+        outward_edge: KnowledgeGraphOutwardEdge,
     },
 }
 

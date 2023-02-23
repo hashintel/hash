@@ -37,7 +37,7 @@ export const pageTypedef = gql`
     """
     Properties of entity.
     """
-    properties: PropertyObject!
+    properties: EntityPropertiesObject!
   }
 
   extend type Query {
@@ -139,7 +139,7 @@ export const pageTypedef = gql`
     """
     The entity's new properties.
     """
-    properties: JSONObject!
+    properties: EntityPropertiesObject!
   }
 
   """

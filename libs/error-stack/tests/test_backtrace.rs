@@ -8,6 +8,7 @@ mod common;
 
 use std::backtrace::Backtrace;
 
+#[allow(clippy::wildcard_imports)]
 use common::*;
 #[cfg(nightly)]
 use error_stack::Report;
@@ -39,7 +40,7 @@ fn captured() {
 #[cfg(nightly)]
 fn provided() {
     let error = ErrorB::new(10);
-    let error_backtrace = error.backtrace().expect("No backtrace captured");
+    let error_backtrace = error.backtrace();
     let error_backtrace_len = error_backtrace.frames().len();
     #[cfg(not(miri))]
     let error_backtrace_string = error_backtrace.to_string();

@@ -5,7 +5,7 @@ export const scalars = {
     "@local/hash-graphql-shared/graphql/types#UnknownEntityProperties",
   TextToken: "@local/hash-graphql-shared/graphql/types#TextToken",
 
-  VersionedUri: "@local/hash-subgraph#VersionedUri",
+  VersionedUri: "@blockprotocol/type-system#VersionedUri",
 
   DataTypeWithMetadata: "@local/hash-subgraph#DataTypeWithMetadata",
   DataTypeWithoutId:
@@ -22,21 +22,21 @@ export const scalars = {
   Entity: "@local/hash-subgraph#Entity",
   EntityRecordId: "@local/hash-subgraph#EntityRecordId",
   EntityMetadata: "@local/hash-subgraph#EntityMetadata",
-  EntityVersion: "@local/hash-subgraph/#EntityVersion",
-  PropertyObject: "@local/hash-subgraph#PropertyObject",
+  EntityTemporalVersioningMetadata:
+    "@local/hash-subgraph#EntityTemporalVersioningMetadata",
+  EntityPropertiesObject: "@local/hash-subgraph#EntityPropertiesObject",
 
   GraphElementVertexId: "@local/hash-subgraph#GraphElementVertexId",
   Edges: "@local/hash-subgraph#Edges",
   Vertices: "@local/hash-subgraph#Vertices",
   LinkData: "@local/hash-subgraph#LinkData",
-  TimeProjection: "@local/hash-subgraph#TimeProjection",
-  ResolvedTimeProjection: "@local/hash-subgraph#ResolvedTimeProjection",
+  SubgraphTemporalAxes: "@local/hash-subgraph#SubgraphTemporalAxes",
 
-  OwnedById: "@local/hash-graphql-shared/types#OwnedById",
-  UpdatedById: "@local/hash-graphql-shared/types#UpdatedById",
-  AccountId: "@local/hash-graphql-shared/types#AccountId",
-  EntityId: "@local/hash-graphql-shared/types#EntityId",
+  OwnedById: "@local/hash-subgraph#OwnedById",
+  UpdatedById: "@local/hash-subgraph#UpdatedById",
+  AccountId: "@local/hash-subgraph#AccountId",
+  EntityId: "@local/hash-subgraph#EntityId",
 
-  EntityUuid: "@local/hash-graphql-shared/types#EntityUuid",
-  Uuid: "@local/hash-graphql-shared/types#Uuid",
+  EntityUuid: "@local/hash-subgraph#EntityUuid",
+  Uuid: "@local/hash-subgraph#Uuid",
 };

@@ -1,8 +1,10 @@
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import { Chip, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
-import { getOutgoingLinksForEntityAtMoment } from "@local/hash-subgraph/src/stdlib/edge/link";
-import { getEntityTypeById } from "@local/hash-subgraph/src/stdlib/element/entity-type";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/roots";
+import {
+  getEntityTypeById,
+  getOutgoingLinksForEntity,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 import { Paper, Stack } from "@mui/material";
 import { useState } from "react";
 
@@ -21,11 +23,12 @@ export const LinksSection = () => {
     entity.metadata.entityTypeId,
   );
 
-  const outgoingLinks = getOutgoingLinksForEntityAtMoment(
+  const outgoingLinks = getOutgoingLinksForEntity(
     entitySubgraph,
     entity.metadata.recordId.entityId,
-    /** @todo - We probably want to use entity endTime - https://app.asana.com/0/1201095311341924/1203331904553375/f */
-    new Date(),
+    entity.metadata.temporalVersioning[
+      entitySubgraph.temporalAxes.resolved.variable.axis
+    ],
   );
 
   const isEmpty = Object.keys(entityType?.schema.links ?? {}).length === 0;

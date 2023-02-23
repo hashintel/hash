@@ -21,12 +21,12 @@ import {
 } from "@apps/hash-api/src/graph/util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { OwnedById } from "@local/hash-graphql-shared/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   Entity,
   EntityTypeWithMetadata,
   linkEntityTypeUri,
+  OwnedById,
 } from "@local/hash-subgraph";
 
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
@@ -88,6 +88,7 @@ describe("Link entity", () => {
           type: "object",
           allOf: [{ $ref: linkEntityTypeUri }],
           properties: {},
+          additionalProperties: false,
         },
         actorId: testUser.accountId,
       }).then((linkEntityType) => {
@@ -102,6 +103,7 @@ describe("Link entity", () => {
           type: "object",
           allOf: [{ $ref: linkEntityTypeUri }],
           properties: {},
+          additionalProperties: false,
         },
         actorId: testUser.accountId,
       }).then((linkEntityType) => {

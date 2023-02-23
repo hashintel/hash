@@ -126,11 +126,12 @@ test_overflow![u8, i8, u16, i16, u32, i32, i64];
 
 mod u64 {
 
+    #[allow(clippy::wildcard_imports)]
     use super::*;
 
     #[test]
     fn overflow() {
-        let overflow = u64::MAX as i128 + 1;
+        let overflow = i128::from(u64::MAX) + 1;
 
         assert_tokens_error::<u64>(
             &error! {
@@ -143,12 +144,12 @@ mod u64 {
                 }
             },
             &[Token::I128(overflow)],
-        )
+        );
     }
 
     #[test]
     fn underflow() {
-        let underflow = u64::MIN as i128 - 1;
+        let underflow = i128::from(u64::MIN) - 1;
         let underflow = Number::from_i128(underflow).expect("fits into number");
 
         assert_tokens_error::<u64>(
@@ -162,6 +163,6 @@ mod u64 {
                 }
             },
             &[Token::Number(underflow)],
-        )
+        );
     }
 }

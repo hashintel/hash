@@ -1,5 +1,5 @@
 import { Subgraph } from "@local/hash-subgraph";
-import { mapSubgraph } from "@local/hash-subgraph/src/temp";
+import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import {
   QueryGetAllLatestDataTypesArgs,
@@ -30,15 +30,17 @@ export const getAllLatestDataTypes: ResolverFn<
       hasLeftEntity: { incoming: 0, outgoing: 0 },
       hasRightEntity: { incoming: 0, outgoing: 0 },
     },
-    timeProjection: {
-      kernel: {
-        axis: "transaction",
+    temporalAxes: {
+      pinned: {
+        axis: "transactionTime",
         timestamp: null,
       },
-      image: {
-        axis: "decision",
-        start: null,
-        end: null,
+      variable: {
+        axis: "decisionTime",
+        interval: {
+          start: null,
+          end: null,
+        },
       },
     },
   });
@@ -69,15 +71,17 @@ export const getDataType: ResolverFn<
       hasLeftEntity: { incoming: 0, outgoing: 0 },
       hasRightEntity: { incoming: 0, outgoing: 0 },
     },
-    timeProjection: {
-      kernel: {
-        axis: "transaction",
+    temporalAxes: {
+      pinned: {
+        axis: "transactionTime",
         timestamp: null,
       },
-      image: {
-        axis: "decision",
-        start: null,
-        end: null,
+      variable: {
+        axis: "decisionTime",
+        interval: {
+          start: null,
+          end: null,
+        },
       },
     },
   });

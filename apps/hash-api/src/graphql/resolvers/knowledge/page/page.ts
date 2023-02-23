@@ -3,7 +3,7 @@ import {
   EntityUuid,
   OwnedById,
   Uuid,
-} from "@local/hash-graphql-shared/types";
+} from "@local/hash-subgraph";
 
 import { getOrgById } from "../../../../graph/knowledge/system-types/org";
 import {

@@ -19,7 +19,7 @@ fn array_u8_ok() {
         Token::Number(Number::from(6)),
         Token::Number(Number::from(7)),
         Token::ArrayEnd,
-    ])
+    ]);
 }
 
 #[test]
@@ -49,7 +49,7 @@ fn array_u8_err_inner() {
             Token::Number(Number::from(7)),
             Token::ArrayEnd,
         ],
-    )
+    );
 }
 
 #[test]
@@ -70,7 +70,7 @@ fn array_u8_err_too_many() {
             Token::Number(Number::from(1)),
             Token::ArrayEnd,
         ],
-    )
+    );
 }
 
 #[test]
@@ -104,5 +104,5 @@ fn array_u8_err_not_enough() {
             Token::Number(Number::from(1)),
             Token::ArrayEnd,
         ],
-    )
+    );
 }

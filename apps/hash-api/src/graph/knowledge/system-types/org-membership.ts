@@ -1,9 +1,9 @@
 import {
+  EntityPropertiesObject,
   extractEntityUuidFromEntityId,
   OwnedById,
   Uuid,
-} from "@local/hash-graphql-shared/types";
-import { PropertyObject } from "@local/hash-subgraph";
+} from "@local/hash-subgraph";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
@@ -72,7 +72,7 @@ export const createOrgMembership: ImpureGraphFunction<
   },
   Promise<OrgMembership>
 > = async (ctx, { user, org, responsibility, actorId }) => {
-  const properties: PropertyObject = {
+  const properties: EntityPropertiesObject = {
     [SYSTEM_TYPES.propertyType.responsibility.metadata.recordId.baseUri]:
       responsibility,
   };

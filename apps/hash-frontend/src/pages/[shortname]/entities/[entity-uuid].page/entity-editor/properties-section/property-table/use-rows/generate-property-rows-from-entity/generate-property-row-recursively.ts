@@ -1,10 +1,14 @@
 import {
-  BaseUri,
   PropertyTypeReference,
   ValueOrArray,
 } from "@blockprotocol/type-system";
-import { Entity, Subgraph, SubgraphRootTypes } from "@local/hash-subgraph";
-import { getPropertyTypesByBaseUri } from "@local/hash-subgraph/src/stdlib/element/property-type";
+import {
+  BaseUri,
+  Entity,
+  EntityRootType,
+  Subgraph,
+} from "@local/hash-subgraph";
+import { getPropertyTypesByBaseUri } from "@local/hash-subgraph/stdlib";
 import { get } from "lodash";
 
 import {
@@ -56,7 +60,7 @@ export const generatePropertyRowRecursively = ({
   propertyTypeBaseUri: BaseUri;
   propertyKeyChain: BaseUri[];
   entity: Entity;
-  entitySubgraph: Subgraph<SubgraphRootTypes["entity"]>;
+  entitySubgraph: Subgraph<EntityRootType>;
   requiredPropertyTypes: BaseUri[];
   depth?: number;
 
@@ -99,8 +103,11 @@ export const generatePropertyRowRecursively = ({
     for (const subPropertyTypeBaseUri of Object.keys(firstOneOf.properties)) {
       children.push(
         generatePropertyRowRecursively({
-          propertyTypeBaseUri: subPropertyTypeBaseUri,
-          propertyKeyChain: [...propertyKeyChain, subPropertyTypeBaseUri],
+          propertyTypeBaseUri: subPropertyTypeBaseUri as BaseUri,
+          propertyKeyChain: [
+            ...propertyKeyChain,
+            subPropertyTypeBaseUri,
+          ] as BaseUri[],
           entity,
           entitySubgraph,
           requiredPropertyTypes,

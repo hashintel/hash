@@ -45,18 +45,18 @@ mod tests {
 
     use super::*;
     use crate::{
-        identifier::time::UnresolvedTimeProjection,
         ontology::{DataTypeQueryPath, DataTypeWithMetadata},
         store::{
             postgres::query::{test_helper::trim_whitespace, SelectCompiler},
             query::{Filter, FilterExpression, Parameter},
         },
+        subgraph::temporal_axes::QueryTemporalAxesUnresolved,
     };
 
     #[test]
     fn transpile_where_expression() {
-        let time_projection = UnresolvedTimeProjection::default().resolve();
-        let mut compiler = SelectCompiler::<DataTypeWithMetadata>::new(&time_projection);
+        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let mut compiler = SelectCompiler::<DataTypeWithMetadata>::new(&temporal_axes);
         let mut where_clause = WhereExpression::default();
         assert_eq!(where_clause.transpile_to_string(), "");
 
@@ -82,7 +82,7 @@ mod tests {
             ),
             Filter::Equal(
                 Some(FilterExpression::Path(DataTypeQueryPath::Version)),
-                Some(FilterExpression::Parameter(Parameter::Number(1.0))),
+                Some(FilterExpression::Parameter(Parameter::Number(1))),
             ),
         ]);
         where_clause.add_condition(compiler.compile_filter(&filter_b));
@@ -147,7 +147,7 @@ mod tests {
             .collect::<Vec<_>>();
         assert_eq!(parameters, &[
             "\"https://blockprotocol.org/@blockprotocol/types/data-type/text/\"",
-            "1.0",
+            "1",
             "\"some title\"",
             "\"some description\""
         ]);

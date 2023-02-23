@@ -1,13 +1,14 @@
 import {
   EntityType,
-  extractBaseUri,
   PropertyType,
   VersionedUri,
 } from "@blockprotocol/type-system";
-import { AccountId, OwnedById } from "@local/hash-graphql-shared/types";
-import { Subgraph } from "@local/hash-subgraph";
-import { getEntityTypesByBaseUri } from "@local/hash-subgraph/src/stdlib/element/entity-type";
-import { getPropertyTypeById } from "@local/hash-subgraph/src/stdlib/element/property-type";
+import { AccountId, BaseUri, OwnedById, Subgraph } from "@local/hash-subgraph";
+import {
+  getEntityTypesByBaseUri,
+  getPropertyTypeById,
+} from "@local/hash-subgraph/stdlib";
+import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
 import { useRouter } from "next/router";
 import {
   useCallback,
@@ -59,7 +60,7 @@ const getPropertyTypes = (
 };
 
 export const useEntityTypeValue = (
-  entityTypeBaseUri: string | null,
+  entityTypeBaseUri: BaseUri | null,
   accountId: AccountId | null,
   onCompleted?: (entityType: EntityType) => void,
 ) => {
@@ -76,7 +77,7 @@ export const useEntityTypeValue = (
   const { updateEntityType } = useBlockProtocolUpdateEntityType();
 
   const contextEntityType = useMemo(() => {
-    if (entityTypesLoading || !entityTypeBaseUri || !entityTypesSubgraph) {
+    if (entityTypesLoading || !entityTypesSubgraph) {
       return null;
     }
 
@@ -193,9 +194,7 @@ export const useEntityTypeValue = (
 
       const newUrl = extractBaseUri(res.data.schema.$id);
 
-      if (newUrl) {
-        await router.replace(newUrl, newUrl, { shallow: true });
-      }
+      await router.replace(newUrl, newUrl, { shallow: true });
     },
     [createEntityType, refetch, router],
   );

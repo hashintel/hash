@@ -1,4 +1,4 @@
-use std::{collections::HashMap, net::SocketAddr, sync::Arc, time::Duration};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 use clap::Parser;
 use error_stack::{IntoReport, Result, ResultExt};
@@ -6,30 +6,14 @@ use error_stack::{IntoReport, Result, ResultExt};
 use graph::store::FetchingPool;
 use graph::{
     api::rest::{rest_api_router, RestRouterDependencies},
-    identifier::account::AccountId,
     logging::{init_logger, LoggingArgs},
-    ontology::{
-        domain_validator::DomainValidator, OntologyElementMetadata, OwnedOntologyElementMetadata,
-    },
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
-    store::{
-        AccountStore, BaseUriAlreadyExists, DataTypeStore, DatabaseConnectionInfo, EntityTypeStore,
-        PostgresStorePool,
-    },
+    ontology::domain_validator::DomainValidator,
+    store::{DatabaseConnectionInfo, PostgresStorePool},
 };
 use regex::Regex;
 use reqwest::Client;
-#[cfg(feature = "type-fetcher")]
-use tarpc::context;
 use tokio::time::timeout;
 use tokio_postgres::NoTls;
-#[cfg(feature = "type-fetcher")]
-use type_fetcher::fetcher::FetchedOntologyType;
-use type_system::{
-    uri::{BaseUri, VersionedUri},
-    AllOf, DataType, EntityType, Links, Object,
-};
-use uuid::Uuid;
 
 use crate::error::{GraphError, HealthcheckError};
 #[cfg(feature = "type-fetcher")]
@@ -88,52 +72,6 @@ pub struct ServerArgs {
     pub healthcheck: bool,
 }
 
-async fn insert_link_entity_type(
-    store: &mut (impl EntityTypeStore + Send),
-    account_id: AccountId,
-) -> Result<(), GraphError> {
-    let link_entity_type = EntityType::new(
-        VersionedUri::new(
-            BaseUri::new(
-                "https://blockprotocol.org/@blockprotocol/types/entity-type/link/".to_owned(),
-            )
-            .expect("failed to construct base URI"),
-            1,
-        ),
-        "Link".to_owned(),
-        Some("A link".to_owned()),
-        Object::new(HashMap::default(), Vec::default()).expect("invalid property object"),
-        AllOf::new([]),
-        Links::new(HashMap::default(), Vec::new()).expect("invalid links"),
-        HashMap::default(),
-        Vec::default(),
-    );
-
-    let link_entity_type_metadata =
-        OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-            link_entity_type.id().into(),
-            ProvenanceMetadata::new(UpdatedById::new(account_id)),
-            OwnedById::new(account_id),
-        ));
-
-    let title = link_entity_type.title().to_owned();
-
-    if let Err(error) = store
-        .create_entity_type(link_entity_type, &link_entity_type_metadata)
-        .await
-    {
-        if error.contains::<BaseUriAlreadyExists>() {
-            tracing::info!(%account_id, "tried to insert {title} entity type, but it already exists");
-        } else {
-            return Err(error.change_context(GraphError));
-        }
-    } else {
-        tracing::info!(%account_id, "inserted the {title} entity type");
-    }
-
-    Ok(())
-}
-
 // TODO: Consider making this a refinery migration
 /// A place to collect temporary implementations that are useful before stabilization of the Graph.
 ///
@@ -142,18 +80,34 @@ async fn insert_link_entity_type(
 #[expect(clippy::too_many_lines, reason = "temporary solution")]
 #[cfg(not(feature = "type-fetcher"))]
 async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphError> {
-    use graph::store::StorePool;
+    use std::collections::HashMap;
+
+    use graph::{
+        identifier::account::AccountId,
+        ontology::{ExternalOntologyElementMetadata, OntologyElementMetadata},
+        provenance::{ProvenanceMetadata, UpdatedById},
+        store::{
+            error::VersionedUriAlreadyExists, AccountStore, DataTypeStore, EntityTypeStore,
+            StorePool,
+        },
+    };
     use serde_json::json;
+    use time::OffsetDateTime;
+    use type_system::{
+        uri::{BaseUri, VersionedUri},
+        AllOf, DataType, EntityType, Links, Object,
+    };
+    use uuid::Uuid;
 
     // TODO: how do we make these URIs compliant
     let text = DataType::new(
-        VersionedUri::new(
-            BaseUri::new(
+        VersionedUri {
+            base_uri: BaseUri::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
             )
             .expect("failed to construct base URI"),
-            1,
-        ),
+            version: 1,
+        },
         "Text".to_owned(),
         Some("An ordered sequence of characters".to_owned()),
         "string".to_owned(),
@@ -161,13 +115,13 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     );
 
     let number = DataType::new(
-        VersionedUri::new(
-            BaseUri::new(
+        VersionedUri {
+            base_uri: BaseUri::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/number/".to_owned(),
             )
             .expect("failed to construct base URI"),
-            1,
-        ),
+            version: 1,
+        },
         "Number".to_owned(),
         Some("An arithmetical value (in the Real number system)".to_owned()),
         "number".to_owned(),
@@ -175,13 +129,13 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     );
 
     let boolean = DataType::new(
-        VersionedUri::new(
-            BaseUri::new(
+        VersionedUri {
+            base_uri: BaseUri::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/".to_owned(),
             )
             .expect("failed to construct base URI"),
-            1,
-        ),
+            version: 1,
+        },
         "Boolean".to_owned(),
         Some("A True or False value".to_owned()),
         "boolean".to_owned(),
@@ -189,13 +143,13 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     );
 
     let null = DataType::new(
-        VersionedUri::new(
-            BaseUri::new(
+        VersionedUri {
+            base_uri: BaseUri::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/null/".to_owned(),
             )
             .expect("failed to construct base URI"),
-            1,
-        ),
+            version: 1,
+        },
         "Null".to_owned(),
         Some("A placeholder value representing 'nothing'".to_owned()),
         "null".to_owned(),
@@ -203,13 +157,13 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     );
 
     let object = DataType::new(
-        VersionedUri::new(
-            BaseUri::new(
+        VersionedUri {
+            base_uri: BaseUri::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/object/".to_owned(),
             )
             .expect("failed to construct base URI"),
-            1,
-        ),
+            version: 1,
+        },
         "Object".to_owned(),
         Some("A plain JSON object with no pre-defined structure".to_owned()),
         "object".to_owned(),
@@ -217,13 +171,13 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     );
 
     let empty_list = DataType::new(
-        VersionedUri::new(
-            BaseUri::new(
+        VersionedUri {
+            base_uri: BaseUri::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/".to_owned(),
             )
             .expect("failed to construct base URI"),
-            1,
-        ),
+            version: 1,
+        },
         "Empty List".to_owned(),
         Some("An Empty List".to_owned()),
         "array".to_owned(),
@@ -259,18 +213,19 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     for data_type in [text, number, boolean, empty_list, object, null] {
         let title = data_type.title().to_owned();
 
-        let data_type_metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-            data_type.id().into(),
-            ProvenanceMetadata::new(UpdatedById::new(root_account_id)),
-            OwnedById::new(root_account_id),
-        ));
+        let data_type_metadata =
+            OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
+                data_type.id().clone().into(),
+                ProvenanceMetadata::new(UpdatedById::new(root_account_id)),
+                OffsetDateTime::now_utc(),
+            ));
 
         if let Err(error) = connection
             .create_data_type(data_type, &data_type_metadata)
             .await
             .change_context(GraphError)
         {
-            if error.contains::<BaseUriAlreadyExists>() {
+            if error.contains::<VersionedUriAlreadyExists>() {
                 tracing::info!(%root_account_id, "tried to insert primitive {title} data type, but it already exists");
             } else {
                 return Err(error.change_context(GraphError));
@@ -279,97 +234,44 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
             tracing::info!(%root_account_id, "inserted the primitive {title} data type");
         }
     }
+    let link_entity_type = EntityType::new(
+        VersionedUri {
+            base_uri: BaseUri::new(
+                "https://blockprotocol.org/@blockprotocol/types/entity-type/link/".to_owned(),
+            )
+            .expect("failed to construct base URI"),
+            version: 1,
+        },
+        "Link".to_owned(),
+        Some("A link".to_owned()),
+        Object::new(HashMap::default(), Vec::default()).expect("invalid property object"),
+        AllOf::new([]),
+        Links::new(HashMap::default(), Vec::new()).expect("invalid links"),
+        HashMap::default(),
+        Vec::default(),
+    );
 
-    insert_link_entity_type(&mut connection, root_account_id).await?;
+    let link_entity_type_metadata =
+        OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
+            link_entity_type.id().clone().into(),
+            ProvenanceMetadata::new(UpdatedById::new(root_account_id)),
+            OffsetDateTime::now_utc(),
+        ));
 
-    Ok(())
-}
+    let title = link_entity_type.title().to_owned();
 
-#[cfg(feature = "type-fetcher")]
-async fn stop_gap_setup_type_fetcher<A: tokio::net::ToSocketAddrs + Send + Sync + Clone>(
-    pool: &FetchingPool<PostgresStorePool<NoTls>, A>,
-) -> Result<(), GraphError> {
-    let mut fetching_store = pool
-        .acquire_fetching_store()
+    if let Err(error) = connection
+        .create_entity_type(link_entity_type, &link_entity_type_metadata)
         .await
-        .change_context(GraphError)?;
-    let type_fetcher = fetching_store
-        .fetcher_client()
-        .await
-        .change_context(GraphError)?;
-    let store = fetching_store.store().await;
-
-    let ontology_types = [
-        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-        "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
-        "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
-        "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/v/1",
-        "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
-        "https://blockprotocol.org/@blockprotocol/types/data-type/null/v/1",
-    ];
-
-    // TODO: Revisit once an authentication and authorization setup is in place
-    let root_account_id = AccountId::new(Uuid::nil());
-
-    // TODO: When we improve error management we need to match on it here, this will continue
-    //  normally even if the DB is down
-    if store
-        .insert_account_id(root_account_id)
-        .await
-        .change_context(GraphError)
-        .is_err()
     {
-        tracing::info!(%root_account_id, "tried to create root account, but id already exists");
-    } else {
-        tracing::info!(%root_account_id, "created root account id");
-    }
-
-    for ontology_type in ontology_types {
-        let fetched_ontology_types = type_fetcher
-            .fetch_ontology_type_exhaustive(context::current(), ontology_type.to_owned())
-            .await
-            .into_report()
-            .change_context(GraphError)?
-            .into_report()
-            .change_context(GraphError)?;
-
-        for fetched_ontology_type in fetched_ontology_types.results {
-            match fetched_ontology_type {
-                FetchedOntologyType::DataType(data_type) => {
-                    let data_type = DataType::try_from(data_type)
-                        .into_report()
-                        .change_context(GraphError)?;
-                    let metadata =
-                        OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                            data_type.id().into(),
-                            ProvenanceMetadata::new(UpdatedById::new(root_account_id)),
-                            OwnedById::new(root_account_id),
-                        ));
-                    let title = data_type.title().to_owned();
-
-                    if let Err(error) = store
-                        .create_data_type(data_type, &metadata)
-                        .await
-                        .change_context(GraphError)
-                    {
-                        if error.contains::<BaseUriAlreadyExists>() {
-                            tracing::info!(%root_account_id, "tried to insert primitive {title} data type, but it already exists");
-                        } else {
-                            return Err(error.change_context(GraphError));
-                        }
-                    } else {
-                        tracing::info!(%root_account_id, "inserted the primitive {title} data type");
-                    }
-                }
-
-                FetchedOntologyType::PropertyType(_) | FetchedOntologyType::EntityType(_) => {
-                    unimplemented!("Only data types are covered in the stop gap solution")
-                }
-            }
+        if error.contains::<VersionedUriAlreadyExists>() {
+            tracing::info!(%root_account_id, "tried to insert {title} entity type, but it already exists");
+        } else {
+            return Err(error.change_context(GraphError));
         }
+    } else {
+        tracing::info!(%root_account_id, "inserted the {title} entity type");
     }
-
-    insert_link_entity_type(store, root_account_id).await?;
 
     Ok(())
 }
@@ -391,6 +293,9 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
             err
         })?;
 
+    #[cfg(not(feature = "type-fetcher"))]
+    stop_gap_setup(&pool).await?;
+
     #[cfg(feature = "type-fetcher")]
     let pool = FetchingPool::new(
         pool,
@@ -399,14 +304,7 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
             args.type_fetcher_address.type_fetcher_port,
         ),
         DomainValidator::new(args.allowed_url_domain.clone()),
-    )
-    .change_context(GraphError)?;
-
-    #[cfg(not(feature = "type-fetcher"))]
-    stop_gap_setup(&pool).await?;
-
-    #[cfg(feature = "type-fetcher")]
-    stop_gap_setup_type_fetcher(&pool).await?;
+    );
 
     let rest_router = rest_api_router(RestRouterDependencies {
         store: Arc::new(pool),

@@ -143,14 +143,23 @@ module "application" {
   param_prefix                 = local.param_prefix
   cpu                          = 1024
   memory                       = 2048
-  graph_image                  = module.graph_ecr
   ses_verified_domain_identity = var.ses_verified_domain_identity
+  graph_image                  = module.graph_ecr
   graph_env_vars = concat(var.hash_graph_env_vars, [
+    { name = "HASH_GRAPH_TYPE_FETCHER_HOST", secret = false, value = "127.0.0.1" },
+    { name = "HASH_GRAPH_TYPE_FETCHER_PORT", secret = false, value = "4444" },
     { name = "HASH_GRAPH_PG_USER", secret = false, value = "graph" },
     { name = "HASH_GRAPH_PG_PASSWORD", secret = true, value = sensitive(var.pg_graph_user_password.raw) },
     { name = "HASH_GRAPH_PG_HOST", secret = false, value = module.postgres.pg_host },
     { name = "HASH_GRAPH_PG_PORT", secret = false, value = module.postgres.pg_port },
     { name = "HASH_GRAPH_PG_DATABASE", secret = false, value = "graph" },
+  ])
+  # The type fetcher uses the same image as the graph right now
+  type_fetcher_image = module.graph_ecr
+  # we reuse the same non-secret env vars as the graph. Stuff like logging
+  type_fetcher_env_vars = concat(var.hash_graph_env_vars, [
+    { name = "HASH_GRAPH_TYPE_FETCHER_HOST", secret = false, value = "127.0.0.1" },
+    { name = "HASH_GRAPH_TYPE_FETCHER_PORT", secret = false, value = "4444" },
   ])
   kratos_image = module.kratos_ecr
   kratos_env_vars = concat(var.kratos_env_vars, [

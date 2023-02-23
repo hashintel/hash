@@ -1,4 +1,4 @@
-import { EntityId } from "@local/hash-graphql-shared/types";
+import { EntityId } from "@local/hash-subgraph";
 import { Dispatch, SetStateAction, useState } from "react";
 
 import { LinkAndTargetEntity } from "../entity-editor/links-section/link-table/types";
