@@ -17,6 +17,7 @@ import { useResizeObserverRef } from "rooks";
 
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
 import { EntityTypeEditorFormData } from "../../shared/form-types";
+import { useIsReadonly } from "../../shared/read-only-context";
 
 const TypeChipLabel = ({ children }: { children: ReactNode }) => (
   <Stack direction="row" spacing={0.75} fontSize={14} alignItems="center">
@@ -40,6 +41,8 @@ export const LinkEntityTypeSelector = ({
   linkIndex: number;
 }) => {
   const { control, setValue } = useFormContext<EntityTypeEditorFormData>();
+
+  const isReadonly = useIsReadonly();
 
   const [entityTypeSelectorPopupOpen, setEntityTypeSelectorPopupOpen] =
     useState(false);
@@ -88,13 +91,15 @@ export const LinkEntityTypeSelector = ({
         position: "relative",
         ...(entityTypeSelectorPopupOpen
           ? { zIndex: theme.zIndex.modal + 1 }
-          : { "&, *": { cursor: "pointer" } }),
+          : { "&, *": { cursor: isReadonly ? "default" : "pointer" } }),
 
-        [entityTypeSelectorPopupOpen ? "& > *" : "&:hover > *"]: {
-          boxShadow: theme.boxShadows.xs,
-          borderColor: `${theme.palette.gray[30]} !important`,
-          backgroundColor: "white",
-        },
+        [entityTypeSelectorPopupOpen ? "& > *" : "&:hover > *"]: isReadonly
+          ? {}
+          : {
+              boxShadow: theme.boxShadows.xs,
+              borderColor: `${theme.palette.gray[30]} !important`,
+              backgroundColor: "white",
+            },
       })}
       ref={entityTypeSelectorRef}
     >
@@ -119,6 +124,9 @@ export const LinkEntityTypeSelector = ({
         ]}
         onClick={(evt) => {
           evt.preventDefault();
+          if (isReadonly) {
+            return;
+          }
           setEntityTypeSelectorPopupOpen(true);
         }}
         {...(entityTypeSelectorPopupOpen

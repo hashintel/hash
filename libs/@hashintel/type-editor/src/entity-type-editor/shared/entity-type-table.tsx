@@ -18,6 +18,8 @@ import { Box, styled } from "@mui/system";
 import memoize from "lodash.memoize";
 import { forwardRef, ReactNode, useEffect, useRef, useState } from "react";
 
+import { useIsReadonly } from "../../shared/read-only-context";
+
 /**
  * THIS MUST BE KEPT IN SYNC WITH EDIT_BAR_HEIGHT IN hash-frontend
  * @todo make this a prop / shared some other way
@@ -112,6 +114,8 @@ export const EntityTypeTableRow = forwardRef<
   const [flashed, setFlashed] = useState(false);
   const rowRef = useRef<HTMLElement>(null);
 
+  const isReadonly = useIsReadonly();
+
   const combinedRef = useForkRef(ref, rowRef);
 
   if (flashed && !flash) {
@@ -180,9 +184,11 @@ export const EntityTypeTableRow = forwardRef<
               borderBottomRightRadius: theme.borderRadii.md,
             },
           },
-          [`&:hover .${tableCellClasses.root}`]: {
-            background: theme.palette.gray[10],
-          },
+          [`&:hover .${tableCellClasses.root}`]: isReadonly
+            ? {}
+            : {
+                background: theme.palette.gray[10],
+              },
         }),
         flash &&
           ((theme) => ({

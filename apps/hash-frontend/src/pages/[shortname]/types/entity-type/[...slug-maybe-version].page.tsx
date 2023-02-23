@@ -20,26 +20,27 @@ import { GlobalStyles } from "@mui/system";
 import { Buffer } from "buffer/";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 import { PageErrorState } from "../../../../components/page-error-state";
 import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../../shared/layout";
+import { useIsReadonlyModeForResource } from "../../../../shared/readonly-mode";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
-import { DefinitionTab } from "./[entity-type-id].page/definition-tab";
-import { EditBarTypeEditor } from "./[entity-type-id].page/edit-bar-type-editor";
-import { EntitiesTab } from "./[entity-type-id].page/entities-tab";
-import { EntityTypeTabs } from "./[entity-type-id].page/entity-type-tabs";
-import { EntityTypeContext } from "./[entity-type-id].page/shared/entity-type-context";
-import { EntityTypeEntitiesContext } from "./[entity-type-id].page/shared/entity-type-entities-context";
-import { getEntityTypeBaseUri } from "./[entity-type-id].page/shared/get-entity-type-base-uri";
-import { LatestPropertyTypesContextProvider } from "./[entity-type-id].page/shared/latest-property-types-context";
-import { useCurrentTab } from "./[entity-type-id].page/shared/tabs";
-import { useEntityTypeEntitiesContextValue } from "./[entity-type-id].page/use-entity-type-entities-context-value";
-import { useEntityTypeValue } from "./[entity-type-id].page/use-entity-type-value";
+import { DefinitionTab } from "./[...slug-maybe-version].page/definition-tab";
+import { EditBarTypeEditor } from "./[...slug-maybe-version].page/edit-bar-type-editor";
+import { EntitiesTab } from "./[...slug-maybe-version].page/entities-tab";
+import { EntityTypeTabs } from "./[...slug-maybe-version].page/entity-type-tabs";
+import { EntityTypeContext } from "./[...slug-maybe-version].page/shared/entity-type-context";
+import { EntityTypeEntitiesContext } from "./[...slug-maybe-version].page/shared/entity-type-entities-context";
+import { getEntityTypeBaseUri } from "./[...slug-maybe-version].page/shared/get-entity-type-base-uri";
+import { LatestPropertyTypesContextProvider } from "./[...slug-maybe-version].page/shared/latest-property-types-context";
+import { useCurrentTab } from "./[...slug-maybe-version].page/shared/tabs";
+import { useEntityTypeEntitiesContextValue } from "./[...slug-maybe-version].page/use-entity-type-entities-context-value";
+import { useEntityTypeValue } from "./[...slug-maybe-version].page/use-entity-type-value";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -48,9 +49,14 @@ const Page: NextPageWithLayout = () => {
   const isDraft = !!router.query.draft;
   const { loading: loadingNamespace, routeNamespace } = useRouteNamespace();
 
-  const entityTypeId = router.query["entity-type-id"] as string;
+  const [slug, _, requestedVersion] = router.query["slug-maybe-version"] as [
+    string,
+    "v" | undefined,
+    `${number}` | undefined,
+  ];
+
   const baseEntityTypeUri = !isDraft
-    ? getEntityTypeBaseUri(entityTypeId, router.query.shortname as string)
+    ? getEntityTypeBaseUri(slug, router.query.shortname as string)
     : null;
 
   const entityTypeEntitiesValue =
@@ -69,6 +75,8 @@ const Page: NextPageWithLayout = () => {
       return null;
     }
   }, [router.query.draft]);
+
+  const isReadonly = useIsReadonlyModeForResource(routeNamespace?.accountId);
 
   const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
     defaultValues: { properties: [], links: [] },
@@ -101,6 +109,22 @@ const Page: NextPageWithLayout = () => {
         : null,
     [entityType, remotePropertyTypes],
   );
+
+  useEffect(() => {
+    /**
+     * @todo instead of redirecting to the latest version, handle loading earlier versions
+     *   - load requested version instead of always latest
+     *   - if a later version is available, provide an indicator + link to it
+     *   - put the form in readonly mode if not on the latest version
+     */
+    if (
+      entityType &&
+      requestedVersion &&
+      parseInt(requestedVersion, 10) !== extractVersion(entityType.$id)
+    ) {
+      void router.replace(entityType.$id);
+    }
+  }, [entityType, requestedVersion, router]);
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
     const entityTypeSchema = getSchemaFromFormData(data);
@@ -182,21 +206,23 @@ const Page: NextPageWithLayout = () => {
                   sx={{ bgcolor: "white" }}
                 />
 
-                <EditBarTypeEditor
-                  currentVersion={currentVersion}
-                  discardButtonProps={
-                    // @todo confirmation of discard when draft
-                    isDraft
-                      ? {
-                          href: `/new/types/entity-type`,
-                        }
-                      : {
-                          onClick() {
-                            reset();
-                          },
-                        }
-                  }
-                />
+                {!isReadonly && (
+                  <EditBarTypeEditor
+                    currentVersion={currentVersion}
+                    discardButtonProps={
+                      // @todo confirmation of discard when draft
+                      isDraft
+                        ? {
+                            href: `/new/types/entity-type`,
+                          }
+                        : {
+                            onClick() {
+                              reset();
+                            },
+                          }
+                    }
+                  />
+                )}
 
                 <Box
                   sx={{
@@ -230,7 +256,13 @@ const Page: NextPageWithLayout = () => {
                             fontWeight="bold"
                             color={(theme) => theme.palette.blue[70]}
                           >
-                            {entityTypeId}
+                            {slug}
+                          </Typography>
+                          <Typography
+                            component="span"
+                            color={(theme) => theme.palette.blue[70]}
+                          >
+                            /v/{currentVersion}
                           </Typography>
                         </>
                       }
@@ -261,6 +293,7 @@ const Page: NextPageWithLayout = () => {
                             entityTypeAndPropertyTypes
                           }
                           ownedById={routeNamespace.accountId as OwnedById}
+                          readonly={isReadonly}
                         />
                       ) : (
                         "Loading..."
