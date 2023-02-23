@@ -15,7 +15,7 @@ export const parseUrlForOntologyChip = (url: string) => {
   const validationResult = validateVersionedUrl(url);
   if (validationResult.type === "Err") {
     throw new Error(
-      `Could not validate uri as VersionedUri: ${validationResult.inner.reason}`,
+      `Could not validate url as VersionedUrl: ${validationResult.inner.reason}`,
     );
   }
   const parsed = validationResult.inner;
