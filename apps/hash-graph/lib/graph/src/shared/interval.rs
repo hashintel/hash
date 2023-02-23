@@ -115,7 +115,7 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
     /// Panics if the start bound is greater than the end bound.
     pub fn new(start: S, end: E) -> Self
     where
-        T: PartialOrd,
+        T: Ord,
     {
         assert_ne!(
             compare_bounds(
@@ -123,6 +123,7 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
                 end.as_bound(),
                 BoundType::Start,
                 BoundType::End,
+                Ord::cmp,
             ),
             Ordering::Greater,
             "Start bound must be less than or equal to end bound"
@@ -149,7 +150,7 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
         other: &Interval<T, impl IntervalBound<T>, impl IntervalBound<T>>,
     ) -> bool
     where
-        T: PartialOrd,
+        T: Ord,
     {
         // Examples |      1     |     2
         // =========|============|============
@@ -177,11 +178,11 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
         other: &Interval<T, impl IntervalBound<T>, impl IntervalBound<T>>,
     ) -> bool
     where
-        T: PartialEq,
+        T: Eq,
     {
         fn bounds_are_adjacent<T>(lhs: &impl IntervalBound<T>, rhs: &impl IntervalBound<T>) -> bool
         where
-            T: PartialEq,
+            T: Eq,
         {
             match (lhs.as_bound(), rhs.as_bound()) {
                 (Bound::Included(lhs), Bound::Excluded(rhs))
@@ -201,7 +202,7 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
     #[must_use]
     pub fn contains_point(&self, other: &T) -> bool
     where
-        T: PartialOrd,
+        T: Ord,
     {
         matches!(
             compare_bounds(
@@ -209,6 +210,7 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
                 Bound::Included(other),
                 BoundType::Start,
                 BoundType::Start,
+                Ord::cmp,
             ),
             Ordering::Less | Ordering::Equal
         ) && matches!(
@@ -217,6 +219,7 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
                 Bound::Included(other),
                 BoundType::End,
                 BoundType::End,
+                Ord::cmp,
             ),
             Ordering::Greater | Ordering::Equal
         )
@@ -233,7 +236,7 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
         other: &Interval<T, impl IntervalBound<T>, impl IntervalBound<T>>,
     ) -> bool
     where
-        T: PartialOrd,
+        T: Ord,
     {
         matches!(
             self.cmp_start_to_start(other),
@@ -251,7 +254,7 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
     #[must_use]
     pub fn complement(self) -> impl ExactSizeIterator<Item = Self>
     where
-        T: PartialOrd,
+        T: Ord,
     {
         // Examples   |      1      |    2    |    3    |    4    |    5
         // =========================|=========|=========|=========|=========
@@ -270,7 +273,7 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
     #[must_use]
     pub fn merge(self, other: Self) -> Self
     where
-        T: PartialOrd,
+        T: Ord,
     {
         let start_ordering = self.cmp_start_to_start(&other);
         let end_ordering = self.cmp_end_to_end(&other);
@@ -297,7 +300,7 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
     /// In comparison to [`Self::merge`], this method returns two intervals if they don't overlap.
     pub fn union(self, other: Self) -> impl ExactSizeIterator<Item = Self>
     where
-        T: PartialOrd,
+        T: Ord,
     {
         if self.overlaps(&other) || self.is_adjacent_to(&other) {
             Return::one(self.merge(other))
@@ -312,7 +315,7 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
     #[must_use]
     pub fn intersect(self, other: Self) -> Option<Self>
     where
-        T: PartialOrd,
+        T: Ord,
     {
         self.overlaps(&other).then(|| {
             let start_ordering = self.cmp_start_to_start(&other);
@@ -343,7 +346,7 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
     /// disjoint intervals, `None` is returned.
     pub fn difference(self, other: Self) -> impl ExactSizeIterator<Item = Self>
     where
-        T: PartialOrd,
+        T: Ord,
     {
         match (
             self.cmp_start_to_start(&other),
@@ -501,11 +504,6 @@ where
             .into(),
         )
     }
-}
-
-#[inline(never)]
-fn invalid_bounds() -> ! {
-    panic!("interval lower bound must be less than or equal to its upper bound")
 }
 
 #[cfg(test)]
