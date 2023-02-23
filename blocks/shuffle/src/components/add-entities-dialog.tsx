@@ -1,4 +1,4 @@
-import { Entity, EntityType, GraphBlockHandler } from "@blockprotocol/graph/.";
+import { Entity, EntityType, GraphBlockHandler } from "@blockprotocol/graph";
 import { Button } from "@hashintel/design-system";
 import {
   Checkbox,
@@ -14,6 +14,7 @@ import {
 import { useState } from "react";
 import { v4 as uuid } from "uuid";
 
+import { propertyIds } from "../property-ids";
 import { Item } from "../shuffle";
 
 const SFormControlLabel = styled(FormControlLabel)(({ theme }) =>
@@ -133,13 +134,15 @@ export const AddEntitiesDialog = ({
     );
 
     // add the new items to the shuffle items list
+    // @todo check this
     onAddEntityItems(
-      selectedEntityIds.map((entityId, i) => {
+      selectedEntityIds.map((_, i) => {
         return {
-          id: uuid(),
-          value: "",
-          entityId,
-          linkId: createLinkResponses[i]?.data?.metadata.recordId.entityId,
+          [propertyIds.id]: uuid(),
+          [propertyIds.value]: "",
+          // @todo check this
+          [propertyIds.linkEntityId]:
+            createLinkResponses[i]?.data?.metadata.recordId.entityId,
         };
       }),
     );

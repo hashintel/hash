@@ -39,10 +39,19 @@ const blockEntity: RootEntity = {
   properties: {
     "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/list-item/":
       [
-        "Thing 1",
         {
+          "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/":
+            "1",
+          "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/content/":
+            "Thing 1",
+        },
+        {
+          "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/":
+            "2",
           "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/link-entity-id/":
             "person-entity",
+          "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/content/":
+            "",
         },
       ],
   },

@@ -21,21 +21,18 @@ import { v4 as uuid } from "uuid";
 import { AddEntitiesDialog } from "./components/add-entities-dialog";
 import { ItemList } from "./components/item-list";
 import { TooltipButton } from "./components/tooltip-button";
-import { RootEntity, RootEntityLinkedEntities } from "./types";
+import { propertyIds } from "./property-ids";
+import { ListItem, RootEntity, RootEntityLinkedEntities } from "./types";
 import { parseLabelFromEntity } from "./utils";
 
-export type Item = {
-  id: string;
-  value: string;
-  // if there is a link between this item and an entity, we save the linkId
-  linkId?: string;
-};
+// @todo remove this type
+export type Item = ListItem;
 
 type Items = Item[];
 
-const initialItems = [
-  { id: "1", value: "Thing 1" },
-  { id: "2", value: "Thing 2" },
+const initialItems: ListItem[] = [
+  { [propertyIds.id]: "1", [propertyIds.value]: "Thing 1" },
+  { [propertyIds.id]: "2", [propertyIds.value]: "Thing 2" },
 ];
 
 export const Shuffle: BlockComponent<RootEntity> = ({
@@ -50,25 +47,7 @@ export const Shuffle: BlockComponent<RootEntity> = ({
     RootEntityLinkedEntities
   >(blockEntitySubgraph);
 
-  const items: Item[] = useMemo(
-    () =>
-      // @todo this should be optional
-      rootEntity.properties[
-        "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/list-item/"
-      ].map((item, idx) => ({
-        value: typeof item === "string" ? item : "",
-        id: `${idx + 1}`,
-        ...(typeof item === "object"
-          ? {
-              linkId:
-                item[
-                  "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/link-entity-id/"
-                ],
-            }
-          : {}),
-      })),
-    [rootEntity.properties],
-  );
+  const items = rootEntity.properties[propertyIds.list];
 
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphModule } = useGraphBlockModule(blockRootRef);
@@ -114,14 +93,15 @@ export const Shuffle: BlockComponent<RootEntity> = ({
       return;
     }
 
-    console.log(newItems);
-
-    // void graphModule.updateEntity({
-    //   data: {
-    //     entityId: blockEntityId,
-    //     properties: { items: newItems },
-    //   },
-    // });
+    void graphModule.updateEntity({
+      data: {
+        entityId: rootEntity.metadata.recordId.entityId,
+        entityTypeId: rootEntity.metadata.entityTypeId,
+        properties: {
+          [propertyIds.list]: newItems,
+        },
+      },
+    });
   };
 
   const updateItems = (newItems: Items, publish = true) => {
@@ -150,7 +130,7 @@ export const Shuffle: BlockComponent<RootEntity> = ({
     updateItems(
       produce(draftItems, (newItems) => {
         if (newItems[index]) {
-          newItems[index]!.value = value; // eslint-disable-line no-param-reassign
+          newItems[index]![propertyIds.value] = value; // eslint-disable-line no-param-reassign
         }
       }),
       false,
@@ -165,9 +145,9 @@ export const Shuffle: BlockComponent<RootEntity> = ({
         const [deletedItem] = newItems.splice(index, 1);
 
         // if item is linked to an entity, we want to delete the link as well
-        if (deletedItem?.linkId) {
+        if (deletedItem?.[propertyIds.linkEntityId]) {
           void graphModule.deleteEntity({
-            data: { entityId: deletedItem.linkId },
+            data: { entityId: deletedItem[propertyIds.linkEntityId] },
           });
         }
       }),
@@ -178,8 +158,8 @@ export const Shuffle: BlockComponent<RootEntity> = ({
     updateItems(
       produce(draftItems, (newItems) => {
         newItems.push({
-          id: uuid(),
-          value: `Thing ${draftItems.length + 1}`,
+          [propertyIds.id]: uuid(),
+          [propertyIds.value]: `Thing ${draftItems.length + 1}`,
         });
       }),
     );
@@ -200,8 +180,10 @@ export const Shuffle: BlockComponent<RootEntity> = ({
     // we also want to remove all links for the linked items
     void Promise.all(
       draftItems.map((item) => {
-        if (item.linkId) {
-          return graphModule.deleteEntity({ data: { entityId: item.linkId } });
+        if (item[propertyIds.linkEntityId]) {
+          return graphModule.deleteEntity({
+            data: { entityId: item[propertyIds.linkEntityId] },
+          });
         }
 
         return undefined;
@@ -238,13 +220,16 @@ export const Shuffle: BlockComponent<RootEntity> = ({
     );
 
     return draftItems.map((item) => {
-      const { linkId } = item;
+      const linkId = item[propertyIds.linkEntityId];
       const entity = linkId ? linksMap.get(linkId) : null;
 
       return {
         ...item,
         ...(entity && {
-          value: parseLabelFromEntity(entity, blockEntitySubgraph),
+          [propertyIds.value]: parseLabelFromEntity(
+            entity,
+            blockEntitySubgraph,
+          ),
         }),
       };
     });

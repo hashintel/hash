@@ -15,8 +15,9 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { List } from "@mui/material";
-import React, { FunctionComponent, useRef, useState } from "react";
+import React, { FunctionComponent, useMemo, useRef, useState } from "react";
 
+import { propertyIds } from "../property-ids";
 import { Item } from "../shuffle";
 import { Item as ItemComponent } from "./item";
 import { SortableItem } from "./sortable-item";
@@ -37,7 +38,7 @@ const measuringConfig = {
 };
 
 const findItemIndexById = (list: Item[], id: UniqueIdentifier) =>
-  list.findIndex((item) => item.id === id);
+  list.findIndex((item) => item[propertyIds.id] === id);
 
 const boxShadow =
   "rgba(63, 63, 68, 0.05) 0px 0px 0px 1px, rgba(34, 33, 81, 0.15) 0px 1px 3px 0px";
@@ -102,6 +103,11 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
     },
   };
 
+  const mappedList = useMemo(
+    () => list.map((item) => ({ ...item, id: item[propertyIds.id] })),
+    [list],
+  );
+
   return (
     <DndContext
       sensors={sensors}
@@ -121,27 +127,32 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
       onDragCancel={() => setActiveIndex(null)}
       measuring={measuringConfig}
     >
-      <SortableContext items={list} strategy={verticalListSortingStrategy}>
+      <SortableContext
+        items={mappedList}
+        strategy={verticalListSortingStrategy}
+      >
         <List>
           {list.map((item, index) => (
             <SortableItem
-              key={item.id}
-              id={item.id}
-              value={item.value}
-              isDragging={index === activeIndex || droppingId === item.id}
+              key={item[propertyIds.id]}
+              id={item[propertyIds.id]}
+              value={item[propertyIds.value] ?? ""}
+              isDragging={
+                index === activeIndex || droppingId === item[propertyIds.id]
+              }
               onValueChange={(value: string) => onValueChange(index, value)}
               onItemBlur={() => onItemBlur()}
               onDelete={() => onDelete(index)}
               paperStyle={{ boxShadow }}
               readonly={readonly}
-              linkedToEntity={!!item.entityId}
+              linkedToEntity={!!item[propertyIds.linkEntityId]}
             />
           ))}
           <DragOverlay dropAnimation={dropAnimationConfig}>
             {activeItem ? (
               <ItemComponent
-                id={activeItem.id}
-                value={activeItem.value}
+                id={activeItem[propertyIds.id]}
+                value={activeItem[propertyIds.value] ?? ""}
                 paperStyle={{
                   boxShadow: draggingBoxShadow,
                   transform: "scale(1.05)",
@@ -157,7 +168,7 @@ export const ItemList: FunctionComponent<ItemListProps> = ({
                 }}
                 dragOverlay={dragOverlayRef}
                 readonly={readonly}
-                linkedToEntity={!!activeItem.entityId}
+                linkedToEntity={!!activeItem[propertyIds.linkEntityId]}
               />
             ) : null}
           </DragOverlay>
