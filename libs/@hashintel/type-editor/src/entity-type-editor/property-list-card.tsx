@@ -172,7 +172,7 @@ const usePropertyTypeVersions = (
     const baseUrl = extractBaseUrl(propertyTypeId);
 
     const versions = Object.values(propertyTypeOptions ?? {}).filter(
-      (propertyType) => baseUri === extractBaseUri(propertyType.$id),
+      (propertyType) => baseUrl === extractBaseUrl(propertyType.$id),
     );
 
     const latestVersion = Math.max(
