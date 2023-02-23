@@ -15,7 +15,8 @@
           }
         ]
       },
-      "maxItems": 4
+      "maxItems": 4,
+      "additionalProperties": false
     }
   ]
 }

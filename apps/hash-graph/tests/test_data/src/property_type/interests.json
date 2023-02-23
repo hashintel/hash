@@ -18,7 +18,8 @@
             "$ref": "https://blockprotocol.org/@alice/types/property-type/hobby/v/1"
           }
         }
-      }
+      },
+      "additionalProperties": false
     }
   ]
 }
