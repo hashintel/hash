@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use futures::FutureExt;
 use tokio_postgres::{error::SqlState, GenericClient};
-use type_system::uri::VersionedUri;
+use type_system::url::VersionedUrl;
 use uuid::Uuid;
 
 use crate::{
@@ -299,7 +299,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         decision_time: Option<Timestamp<DecisionTime>>,
         updated_by_id: UpdatedById,
         archived: bool,
-        entity_type_id: VersionedUri,
+        entity_type_id: VersionedUrl,
         properties: EntityProperties,
         link_data: Option<LinkData>,
     ) -> Result<EntityMetadata, InsertionError> {
@@ -309,7 +309,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         };
 
         let entity_type_ontology_id = self
-            .ontology_id_by_uri(&entity_type_id)
+            .ontology_id_by_url(&entity_type_id)
             .await
             .change_context(InsertionError)?;
 
@@ -404,7 +404,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             IntoIter: Send,
         > + Send,
         actor_id: UpdatedById,
-        entity_type_id: &VersionedUri,
+        entity_type_id: &VersionedUrl,
     ) -> Result<Vec<EntityMetadata>, InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
@@ -445,7 +445,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         // complex logic and/or be inefficient.
         // Please see the documentation for this function on the trait for more information.
         let entity_type_ontology_id = transaction
-            .ontology_id_by_uri(entity_type_id)
+            .ontology_id_by_url(entity_type_id)
             .await
             .change_context(InsertionError)?;
 
@@ -532,12 +532,12 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         decision_time: Option<Timestamp<DecisionTime>>,
         updated_by_id: UpdatedById,
         archived: bool,
-        entity_type_id: VersionedUri,
+        entity_type_id: VersionedUrl,
         properties: EntityProperties,
         link_order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError> {
         let entity_type_ontology_id = self
-            .ontology_id_by_uri(&entity_type_id)
+            .ontology_id_by_url(&entity_type_id)
             .await
             .change_context(UpdateError)?;
 

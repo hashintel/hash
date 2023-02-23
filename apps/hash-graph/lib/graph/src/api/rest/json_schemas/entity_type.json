@@ -21,7 +21,7 @@
       "items": {
         "type": "object",
         "propertyNames": {
-          "$comment": "Property names must be a valid URI to a Property Type",
+          "$comment": "Property names must be a valid URL to a Property Type",
           "type": "string",
           "format": "uri"
         }
@@ -54,7 +54,7 @@
     "propertyTypeObject": {
       "type": "object",
       "propertyNames": {
-        "$comment": "Property names must be a valid URI to a Property Type",
+        "$comment": "Property names must be a valid URL to a Property Type",
         "type": "string",
         "format": "uri"
       },
@@ -94,7 +94,7 @@
       "type": "object",
       "properties": {
         "$ref": {
-          "$comment": "Property Object values must be defined through references to the same valid URI to a Property Type",
+          "$comment": "Property Object values must be defined through references to the same valid URL to a Property Type",
           "type": "string",
           "format": "uri"
         }
@@ -105,7 +105,7 @@
     "linkTypeObject": {
       "type": "object",
       "propertyNames": {
-        "$comment": "Property names must be a valid URI to a Property Type",
+        "$comment": "Property names must be a valid URL to a Property Type",
         "type": "string",
         "format": "uri"
       },

@@ -90,7 +90,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("text_data_type_id", `${response.body.recordId.baseUri}v/${response.body.recordId.version}`);
+    client.global.set("text_data_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
 %}
 
 ### Get Text data type
@@ -102,7 +102,7 @@ Content-Type: application/json
     "equal": [
       {
         "path": [
-          "versionedUri"
+          "versionedUrl"
         ]
       },
       {
@@ -208,7 +208,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_property_type_id", `${response.body.recordId.baseUri}v/${response.body.recordId.version}`);
+    client.global.set("person_property_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
 %}
 
 ### Get Name property type
@@ -218,7 +218,7 @@ Content-Type: application/json
 {
   "filter": {
     "equal": [
-      { "path": ["versionedUri"] },
+      { "path": ["versionedUrl"] },
       { "parameter": "{{person_property_type_id}}" }
     ]
   },
@@ -396,7 +396,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("friendship_link_entity_type_id", `${response.body.recordId.baseUri}v/${response.body.recordId.version}`);
+    client.global.set("friendship_link_entity_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
 %}
 
 ### Get Friendship entity type
@@ -408,7 +408,7 @@ Content-Type: application/json
     "equal": [
       {
         "path": [
-          "versionedUri"
+          "versionedUrl"
         ]
       },
       {
@@ -495,7 +495,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_entity_type_id", `${response.body.recordId.baseUri}v/${response.body.recordId.version}`);
+    client.global.set("person_entity_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
 %}
 
 ### Get Person entity type
@@ -505,7 +505,7 @@ Content-Type: application/json
 {
   "filter": {
     "equal": [
-      { "path": ["versionedUri"] },
+      { "path": ["versionedUrl"] },
       { "parameter": "{{person_entity_type_id}}" }
     ]
   },
@@ -682,7 +682,7 @@ Content-Type: application/json
         "path": [
           "inheritsFrom",
           "*",
-          "versionedUri"
+          "versionedUrl"
         ]
       },
       {
@@ -755,7 +755,7 @@ Content-Type: application/json
             "path": [
               "links",
               "*",
-              "baseUri"
+              "baseUrl"
             ]
           },
           {

@@ -17,7 +17,7 @@ use error_stack::{IntoReport, Result, ResultExt};
 use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
 use tokio_postgres::{error::SqlState, GenericClient};
 use type_system::{
-    uri::VersionedUri, DataTypeReference, EntityType, EntityTypeReference, PropertyType,
+    url::VersionedUrl, DataTypeReference, EntityType, EntityTypeReference, PropertyType,
     PropertyTypeReference,
 };
 
@@ -34,9 +34,9 @@ use crate::{
     },
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
-        error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUriAlreadyExists},
+        error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
         postgres::ontology::{OntologyDatabaseType, OntologyId},
-        AccountStore, BaseUriAlreadyExists, InsertionError, QueryError, StoreError, UpdateError,
+        AccountStore, BaseUrlAlreadyExists, InsertionError, QueryError, StoreError, UpdateError,
     },
     subgraph::edges::GraphResolveDepths,
 };
@@ -223,11 +223,11 @@ where
         Self { client }
     }
 
-    /// Creates a new owned [`OntologyId`] from the provided [`VersionedUri`].
+    /// Creates a new owned [`OntologyId`] from the provided [`VersionedUrl`].
     ///
     /// # Errors
     ///
-    /// - if [`VersionedUri::base_uri`] did already exist in the database
+    /// - if [`VersionedUrl::base_url`] did already exist in the database
     #[tracing::instrument(level = "debug", skip(self))]
     async fn create_owned_ontology_id(
         &self,
@@ -239,13 +239,13 @@ where
                 SELECT
                     ontology_id
                 FROM create_owned_ontology_id(
-                    base_uri := $1,
+                    base_url := $1,
                     version := $2,
                     record_created_by_id := $3,
                     owned_by_id := $4
                 );"#,
                 &[
-                    &metadata.record_id().base_uri.as_str(),
+                    &metadata.record_id().base_url.as_str(),
                     &metadata.record_id().version,
                     &metadata.provenance_metadata().updated_by_id(),
                     &metadata.owned_by_id(),
@@ -256,22 +256,22 @@ where
             .map(|row| row.get(0))
             .map_err(|report| match report.current_context().code() {
                 Some(&SqlState::UNIQUE_VIOLATION) => report
-                    .change_context(BaseUriAlreadyExists)
-                    .attach_printable(metadata.record_id().base_uri.clone())
+                    .change_context(BaseUrlAlreadyExists)
+                    .attach_printable(metadata.record_id().base_url.clone())
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)
-                    .attach_printable(VersionedUri::from(metadata.record_id().clone())),
+                    .attach_printable(VersionedUrl::from(metadata.record_id().clone())),
             })
     }
 
-    /// Creates a new external [`OntologyId`] from the provided [`VersionedUri`].
+    /// Creates a new external [`OntologyId`] from the provided [`VersionedUrl`].
     ///
     /// # Errors
     ///
-    /// - [`BaseUriAlreadyExists`] if [`VersionedUri::base_uri`] is an owned base uri
-    /// - [`VersionedUriAlreadyExists`] if [`VersionedUri::version`] is already used for the base
-    ///   uri
+    /// - [`BaseUrlAlreadyExists`] if [`VersionedUrl::base_url`] is an owned base url
+    /// - [`VersionedUrlAlreadyExists`] if [`VersionedUrl::version`] is already used for the base
+    ///   url
     #[tracing::instrument(level = "debug", skip(self))]
     async fn create_external_ontology_id(
         &self,
@@ -283,13 +283,13 @@ where
                 SELECT
                     ontology_id
                 FROM create_external_ontology_id(
-                    base_uri := $1,
+                    base_url := $1,
                     version := $2,
                     record_created_by_id := $3,
                     fetched_at := $4
                 );"#,
                 &[
-                    &metadata.record_id().base_uri.as_str(),
+                    &metadata.record_id().base_url.as_str(),
                     &metadata.record_id().version,
                     &metadata.provenance_metadata().updated_by_id(),
                     &metadata.fetched_at(),
@@ -300,31 +300,31 @@ where
             .map(|row| row.get(0))
             .map_err(|report| match report.current_context().code() {
                 Some(&SqlState::INVALID_PARAMETER_VALUE) => report
-                    .change_context(BaseUriAlreadyExists)
-                    .attach_printable(metadata.record_id().base_uri.clone())
+                    .change_context(BaseUrlAlreadyExists)
+                    .attach_printable(metadata.record_id().base_url.clone())
                     .change_context(InsertionError),
                 Some(&SqlState::UNIQUE_VIOLATION) => report
-                    .change_context(VersionedUriAlreadyExists)
-                    .attach_printable(metadata.record_id().base_uri.clone())
+                    .change_context(VersionedUrlAlreadyExists)
+                    .attach_printable(metadata.record_id().base_url.clone())
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)
-                    .attach_printable(VersionedUri::from(metadata.record_id().clone())),
+                    .attach_printable(VersionedUrl::from(metadata.record_id().clone())),
             })
     }
 
-    /// Updates the latest version of [`VersionedUri::base_uri`] and creates a new [`OntologyId`]
+    /// Updates the latest version of [`VersionedUrl::base_url`] and creates a new [`OntologyId`]
     /// for it.
     ///
     /// # Errors
     ///
-    /// - [`VersionedUriAlreadyExists`] if [`VersionedUri`] does already exist in the database
+    /// - [`VersionedUrlAlreadyExists`] if [`VersionedUrl`] does already exist in the database
     /// - [`OntologyVersionDoesNotExist`] if the previous version does not exist
     /// - [`OntologyTypeIsNotOwned`] if ontology type is an external ontology type
     #[tracing::instrument(level = "debug", skip(self))]
     async fn update_owned_ontology_id(
         &self,
-        uri: &VersionedUri,
+        url: &VersionedUrl,
         updated_by_id: UpdatedById,
     ) -> Result<(OntologyId, OwnedById), UpdateError> {
         let row = self
@@ -335,15 +335,15 @@ where
                     ontology_id,
                     owned_by_id
                 FROM update_owned_ontology_id(
-                    base_uri := $1,
+                    base_url := $1,
                     version := $2,
                     version_to_update := $3,
                     record_created_by_id := $4
                 );"#,
                 &[
-                    &uri.base_uri.as_str(),
-                    &i64::from(uri.version),
-                    &i64::from(uri.version - 1),
+                    &url.base_url.as_str(),
+                    &i64::from(url.version),
+                    &i64::from(url.version - 1),
                     &updated_by_id,
                 ],
             )
@@ -351,20 +351,20 @@ where
             .into_report()
             .map_err(|report| match report.current_context().code() {
                 Some(&SqlState::UNIQUE_VIOLATION) => report
-                    .change_context(VersionedUriAlreadyExists)
-                    .attach_printable(uri.clone())
+                    .change_context(VersionedUrlAlreadyExists)
+                    .attach_printable(url.clone())
                     .change_context(UpdateError),
                 Some(&SqlState::INVALID_PARAMETER_VALUE) => report
                     .change_context(OntologyVersionDoesNotExist)
-                    .attach_printable(uri.base_uri.clone())
+                    .attach_printable(url.base_url.clone())
                     .change_context(UpdateError),
                 Some(&SqlState::RESTRICT_VIOLATION) => report
                     .change_context(OntologyTypeIsNotOwned)
-                    .attach_printable(uri.base_uri.clone())
+                    .attach_printable(url.base_url.clone())
                     .change_context(UpdateError),
                 _ => report
                     .change_context(UpdateError)
-                    .attach_printable(uri.clone()),
+                    .attach_printable(url.clone()),
             })?;
 
         Ok((row.get(0), OwnedById::new(row.get(1))))
@@ -372,15 +372,15 @@ where
 
     /// Inserts the specified [`OntologyDatabaseType`].
     ///
-    /// This first extracts the [`BaseUri`] from the [`VersionedUri`] and attempts to insert it into
-    /// the database. It will create a new [`OntologyId`] for this [`VersionedUri`] and then finally
+    /// This first extracts the [`BaseUrl`] from the [`VersionedUrl`] and attempts to insert it into
+    /// the database. It will create a new [`OntologyId`] for this [`VersionedUrl`] and then finally
     /// inserts the entry.
     ///
     /// # Errors
     ///
-    /// - If the [`BaseUri`] already exists
+    /// - If the [`BaseUrl`] already exists
     ///
-    /// [`BaseUri`]: type_system::uri::BaseUri
+    /// [`BaseUrl`]: type_system::url::BaseUrl
     #[tracing::instrument(level = "info", skip(self, database_type))]
     async fn create<T>(
         &self,
@@ -407,14 +407,14 @@ where
 
     /// Updates the specified [`OntologyDatabaseType`].
     ///
-    /// First this ensures the [`BaseUri`] of the type already exists. It then creates a
-    /// new [`OntologyId`] from the contained [`VersionedUri`] and inserts the type.
+    /// First this ensures the [`BaseUrl`] of the type already exists. It then creates a
+    /// new [`OntologyId`] from the contained [`VersionedUrl`] and inserts the type.
     ///
     /// # Errors
     ///
-    /// - If the [`BaseUri`] does not already exist
+    /// - If the [`BaseUrl`] does not already exist
     ///
-    /// [`BaseUri`]: type_system::uri::BaseUri
+    /// [`BaseUrl`]: type_system::url::BaseUrl
     #[tracing::instrument(level = "info", skip(self, database_type))]
     async fn update<T>(
         &self,
@@ -425,10 +425,10 @@ where
         T: OntologyDatabaseType + Send,
         T::Representation: Send,
     {
-        let uri = database_type.id();
-        let record_id = OntologyTypeRecordId::from(uri.clone());
+        let url = database_type.id();
+        let record_id = OntologyTypeRecordId::from(url.clone());
 
-        let (ontology_id, owned_by_id) = self.update_owned_ontology_id(uri, updated_by_id).await?;
+        let (ontology_id, owned_by_id) = self.update_owned_ontology_id(url, updated_by_id).await?;
         self.insert_with_id(ontology_id, database_type)
             .await
             .change_context(UpdateError)?;
@@ -604,7 +604,7 @@ where
         Ok(())
     }
 
-    // TODO: Tidy these up by having an `Into<VersionedUri>` method or something for the references
+    // TODO: Tidy these up by having an `Into<VersionedUrl>` method or something for the references
     #[tracing::instrument(level = "debug", skip(self, referenced_entity_types))]
     async fn entity_type_reference_ids<'p, I>(
         &self,
@@ -617,7 +617,7 @@ where
         let referenced_entity_types = referenced_entity_types.into_iter();
         let mut ids = Vec::with_capacity(referenced_entity_types.size_hint().0);
         for reference in referenced_entity_types {
-            ids.push(self.ontology_id_by_uri(reference.uri()).await?);
+            ids.push(self.ontology_id_by_url(reference.url()).await?);
         }
         Ok(ids)
     }
@@ -634,7 +634,7 @@ where
         let referenced_property_types = referenced_property_types.into_iter();
         let mut ids = Vec::with_capacity(referenced_property_types.size_hint().0);
         for reference in referenced_property_types {
-            ids.push(self.ontology_id_by_uri(reference.uri()).await?);
+            ids.push(self.ontology_id_by_url(reference.url()).await?);
         }
         Ok(ids)
     }
@@ -651,19 +651,19 @@ where
         let referenced_data_types = referenced_data_types.into_iter();
         let mut ids = Vec::with_capacity(referenced_data_types.size_hint().0);
         for reference in referenced_data_types {
-            ids.push(self.ontology_id_by_uri(reference.uri()).await?);
+            ids.push(self.ontology_id_by_url(reference.url()).await?);
         }
         Ok(ids)
     }
 
-    /// Fetches the [`OntologyId`] of the specified [`VersionedUri`].
+    /// Fetches the [`OntologyId`] of the specified [`VersionedUrl`].
     ///
     /// # Errors:
     ///
-    /// - if the entry referred to by `uri` does not exist.
+    /// - if the entry referred to by `url` does not exist.
     #[tracing::instrument(level = "debug", skip(self))]
-    async fn ontology_id_by_uri(&self, uri: &VersionedUri) -> Result<OntologyId, QueryError> {
-        let version = i64::from(uri.version);
+    async fn ontology_id_by_url(&self, url: &VersionedUrl) -> Result<OntologyId, QueryError> {
+        let version = i64::from(url.version);
         Ok(self
             .client
             .as_client()
@@ -671,14 +671,14 @@ where
                 r#"
                 SELECT ontology_id
                 FROM ontology_ids
-                WHERE base_uri = $1 AND version = $2;
+                WHERE base_url = $1 AND version = $2;
                 "#,
-                &[&uri.base_uri.as_str(), &version],
+                &[&url.base_url.as_str(), &version],
             )
             .await
             .into_report()
             .change_context(QueryError)
-            .attach_printable_lazy(|| uri.clone())?
+            .attach_printable_lazy(|| url.clone())?
             .get(0))
     }
 

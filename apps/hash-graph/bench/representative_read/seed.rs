@@ -11,7 +11,7 @@ use graph::{
     store::{AccountStore, AsClient, EntityStore},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
-use type_system::{repr, uri::VersionedUri, EntityType};
+use type_system::{repr, url::VersionedUrl, EntityType};
 use uuid::Uuid;
 
 use crate::util::{seed, StoreWrapper};
@@ -215,8 +215,8 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
 
 /// DOC - TODO
 pub struct Samples {
-    pub entities: HashMap<AccountId, HashMap<VersionedUri, Vec<EntityUuid>>>,
-    pub entity_types: HashMap<AccountId, Vec<VersionedUri>>,
+    pub entities: HashMap<AccountId, HashMap<VersionedUrl, Vec<EntityUuid>>>,
+    pub entity_types: HashMap<AccountId, Vec<VersionedUrl>>,
 }
 
 async fn get_samples(account_id: AccountId, store_wrapper: &mut StoreWrapper) -> Samples {
@@ -264,12 +264,12 @@ async fn get_samples(account_id: AccountId, store_wrapper: &mut StoreWrapper) ->
                 SELECT entity_uuid FROM entities
                 INNER JOIN ontology_ids
                 ON ontology_ids.ontology_id = entities.entity_type_ontology_id
-                WHERE ontology_ids.base_uri = $1 AND ontology_ids.version = $2
+                WHERE ontology_ids.base_url = $1 AND ontology_ids.version = $2
                 ORDER BY RANDOM()
                 LIMIT 50
                 "#,
                 &[
-                    &entity_type_id.base_uri.as_str(),
+                    &entity_type_id.base_url.as_str(),
                     &i64::from(entity_type_id.version),
                 ],
             )

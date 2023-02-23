@@ -75,7 +75,7 @@ mod tests {
 
         let filter_b = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path(DataTypeQueryPath::BaseUri)),
+                Some(FilterExpression::Path(DataTypeQueryPath::BaseUrl)),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                 )))),
@@ -92,7 +92,7 @@ mod tests {
             trim_whitespace(
                 r#"
                 WHERE "ontology_id_with_metadata_0_1_0"."version" = "ontology_id_with_metadata_0_1_0"."latest_version"
-                  AND ("ontology_id_with_metadata_0_1_0"."base_uri" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)"#
+                  AND ("ontology_id_with_metadata_0_1_0"."base_url" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)"#
             )
         );
 
@@ -107,7 +107,7 @@ mod tests {
             trim_whitespace(
                 r#"
                 WHERE "ontology_id_with_metadata_0_1_0"."version" = "ontology_id_with_metadata_0_1_0"."latest_version"
-                  AND ("ontology_id_with_metadata_0_1_0"."base_uri" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
+                  AND ("ontology_id_with_metadata_0_1_0"."base_url" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
                   AND "data_types_0_0_0"."schema"->>'description' IS NOT NULL"#
             )
         );
@@ -133,7 +133,7 @@ mod tests {
             trim_whitespace(
                 r#"
                 WHERE "ontology_id_with_metadata_0_1_0"."version" = "ontology_id_with_metadata_0_1_0"."latest_version"
-                  AND ("ontology_id_with_metadata_0_1_0"."base_uri" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
+                  AND ("ontology_id_with_metadata_0_1_0"."base_url" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
                   AND "data_types_0_0_0"."schema"->>'description' IS NOT NULL
                   AND (("data_types_0_0_0"."schema"->>'title' = $3) OR ("data_types_0_0_0"."schema"->>'description' = $4))"#
             )

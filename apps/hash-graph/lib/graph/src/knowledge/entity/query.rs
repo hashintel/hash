@@ -116,8 +116,8 @@ pub enum EntityQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::{knowledge::EntityQueryPath, ontology::EntityTypeQueryPath};
-    /// let path = EntityQueryPath::deserialize(json!(["type", "baseUri"]))?;
-    /// assert_eq!(path, EntityQueryPath::Type(EntityTypeQueryPath::BaseUri));
+    /// let path = EntityQueryPath::deserialize(json!(["type", "baseUrl"]))?;
+    /// assert_eq!(path, EntityQueryPath::Type(EntityTypeQueryPath::BaseUrl));
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
@@ -229,7 +229,7 @@ pub enum EntityQueryPath<'p> {
     RightToLeftOrder,
     /// Corresponds to [`Entity::properties`].
     ///
-    /// Deserializes from `["properties", ...]` where `...` is a path to a property URI of an
+    /// Deserializes from `["properties", ...]` where `...` is a path to a property URL of an
     /// [`Entity`].
     ///
     /// ```rust

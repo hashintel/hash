@@ -20,8 +20,8 @@ pub enum ParameterType {
     OntologyTypeVersion,
     Text,
     Uuid,
-    BaseUri,
-    VersionedUri,
+    BaseUrl,
+    VersionedUrl,
     TimeInterval,
     Any,
 }
@@ -34,8 +34,8 @@ impl fmt::Display for ParameterType {
             Self::OntologyTypeVersion => fmt.write_str("ontology type version"),
             Self::Text => fmt.write_str("text"),
             Self::Uuid => fmt.write_str("UUID"),
-            Self::BaseUri => fmt.write_str("base URI"),
-            Self::VersionedUri => fmt.write_str("versioned URI"),
+            Self::BaseUrl => fmt.write_str("base URL"),
+            Self::VersionedUrl => fmt.write_str("versioned URL"),
             Self::TimeInterval => fmt.write_str("time interval"),
             Self::Any => fmt.write_str("any"),
         }
@@ -43,15 +43,15 @@ impl fmt::Display for ParameterType {
 }
 
 pub trait OntologyQueryPath {
-    /// Returns the path identifying the [`BaseUri`].
+    /// Returns the path identifying the [`BaseUrl`].
     ///
-    /// [`BaseUri`]: type_system::uri::BaseUri
-    fn base_uri() -> Self;
+    /// [`BaseUrl`]: type_system::url::BaseUrl
+    fn base_url() -> Self;
 
-    /// Returns the path identifying the [`VersionedUri`].
+    /// Returns the path identifying the [`VersionedUrl`].
     ///
-    /// [`VersionedUri`]: type_system::uri::VersionedUri
-    fn versioned_uri() -> Self;
+    /// [`VersionedUrl`]: type_system::url::VersionedUrl
+    fn versioned_url() -> Self;
 
     /// Returns the path identifying the [`OntologyTypeVersion`].
     ///
