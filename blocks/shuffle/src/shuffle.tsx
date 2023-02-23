@@ -1,9 +1,13 @@
-import { EntityType } from "@blockprotocol/graph/.";
+import { EntityType } from "@blockprotocol/graph/";
 import {
   BlockComponent,
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
+import {
+  getOutgoingLinksForEntity,
+  getRightEntityForLinkEntity,
+} from "@blockprotocol/graph/stdlib";
 import AddIcon from "@mui/icons-material/Add";
 import ClearIcon from "@mui/icons-material/Clear";
 import DatasetLinkedIcon from "@mui/icons-material/DatasetLinked";
@@ -18,13 +22,10 @@ import { AddEntitiesDialog } from "./components/add-entities-dialog";
 import { ItemList } from "./components/item-list";
 import { TooltipButton } from "./components/tooltip-button";
 import { RootEntity, RootEntityLinkedEntities } from "./types";
-import { getEntityLabel } from "./utils";
 
 export type Item = {
   id: string;
   value: string;
-  // entityId is used to find the entity easily, instead of doing linkId -> link -> entityId
-  entityId?: string;
   // if there is a link between this item and an entity, we save the linkId
   linkId?: string;
 };
@@ -48,14 +49,23 @@ export const Shuffle: BlockComponent<RootEntity> = ({
     RootEntityLinkedEntities
   >(blockEntitySubgraph);
 
-  // @todo this should be optional
   const items: Item[] = useMemo(
     () =>
+      // @todo this should be optional
       rootEntity.properties[
         "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/list-item/"
-      ]
-        .filter((item): item is string => typeof item === "string")
-        .map((item, idx) => ({ value: item, id: `${idx + 1}` })),
+      ].map((item, idx) => ({
+        value: typeof item === "string" ? item : "",
+        id: `${idx + 1}`,
+        ...(typeof item === "object"
+          ? {
+              linkId:
+                item[
+                  "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/link-entity-id/"
+                ],
+            }
+          : {}),
+      })),
     [rootEntity.properties],
   );
 
@@ -211,34 +221,39 @@ export const Shuffle: BlockComponent<RootEntity> = ({
    * this way, we don't show a stale `value` if the linked entity gets updated
    */
   const enhancedDraftItems = useMemo(() => {
-    return draftItems;
+    const outgoingLinks = getOutgoingLinksForEntity(
+      blockEntitySubgraph,
+      rootEntity.metadata.recordId.entityId,
+    );
 
-    // // creating maps here, so we can use maps in the loop below instead of Array.find
-    // // avoid using nested loops for better performance
-    // const linkedEntitiesMap = new Map(
-    //   linkedEntities.map((link) => [
-    //     link.rightEntity.metadata.recordId.entityId,
-    //     link.rightEntity,
-    //   ]),
-    // );
-    //
-    // const entityTypesMap = new Map(entityTypes.map((type) => [type.$id, type]));
-    //
-    // return draftItems.map((item) => {
-    //   const itemEntityId = item.entityId;
-    //
-    //   const entity = linkedEntitiesMap.get(itemEntityId ?? "");
-    //
-    //   const entityType = entity
-    //     ? entityTypesMap.get(entity?.metadata.entityTypeId)
-    //     : null;
-    //
-    //   return {
-    //     ...item,
-    //     ...(entity && { value: getEntityLabel(entity, entityType) }),
-    //   };
-    // });
-  }, [draftItems, entityTypes]);
+    const linksMap = new Map(
+      outgoingLinks.map((link) => [
+        link.linkData!.rightEntityId,
+        getRightEntityForLinkEntity(
+          blockEntitySubgraph,
+          link.metadata.recordId.entityId,
+        ),
+      ]),
+    );
+
+    const entityTypesMap = new Map(entityTypes.map((type) => [type.$id, type]));
+
+    return draftItems.map((item) => {
+      const linkId = item.linkId;
+      const entity = linksMap.get(linkId ?? "");
+
+      const entityType = entity
+        ? entityTypesMap.get(entity?.metadata.entityTypeId)
+        : null;
+
+      console.log({ entityType });
+
+      return {
+        ...item,
+        ...(entity && { value: "label" }),
+      };
+    });
+  }, [blockEntitySubgraph, draftItems, rootEntity.metadata.recordId.entityId]);
 
   return (
     <Box ref={blockRootRef} display="flex" flexDirection="column" px={1}>
