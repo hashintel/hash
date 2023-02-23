@@ -16,7 +16,7 @@ import {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   isOwnedOntologyElementMetadata,
-  linkEntityTypeUri,
+  linkEntityTypeUrl,
   OwnedById,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
@@ -117,7 +117,7 @@ beforeAll(async () => {
         title: "Knows",
         description: "Knows of someone",
         type: "object",
-        allOf: [{ $ref: linkEntityTypeUri }],
+        allOf: [{ $ref: linkEntityTypeUrl }],
         properties: {},
         additionalProperties: false,
       },
@@ -132,7 +132,7 @@ beforeAll(async () => {
         title: "Previous Address",
         description: "A previous address of something.",
         type: "object",
-        allOf: [{ $ref: linkEntityTypeUri }],
+        allOf: [{ $ref: linkEntityTypeUrl }],
         properties: {},
         additionalProperties: false,
       },
@@ -147,10 +147,10 @@ beforeAll(async () => {
     title: "Some",
     type: "object",
     properties: {
-      [favoriteBookPropertyType.metadata.recordId.baseUri]: {
+      [favoriteBookPropertyType.metadata.recordId.baseUrl]: {
         $ref: favoriteBookPropertyType.schema.$id,
       },
-      [namePropertyType.metadata.recordId.baseUri]: {
+      [namePropertyType.metadata.recordId.baseUrl]: {
         $ref: namePropertyType.schema.$id,
       },
     },

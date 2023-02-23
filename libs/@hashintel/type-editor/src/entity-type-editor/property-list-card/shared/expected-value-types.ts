@@ -1,4 +1,4 @@
-import { VersionedUri } from "@blockprotocol/type-system/slim";
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 
 export enum ArrayType {
   propertyObjectArray = "propertyObjectArray",
@@ -10,7 +10,7 @@ export enum ArrayType {
 }
 
 export type ExpectedValue =
-  | VersionedUri
+  | VersionedUrl
   | {
       typeId: "array";
       arrayType: ArrayType;
@@ -21,10 +21,10 @@ export type ExpectedValue =
       id: string;
     };
 
-export type CustomExpectedValueTypeId = VersionedUri | "array" | "object";
+export type CustomExpectedValueTypeId = VersionedUrl | "array" | "object";
 
 interface PrimitiveExpectedValue {
-  typeId: VersionedUri;
+  typeId: VersionedUrl;
 }
 
 export interface ArrayExpectedValue {
@@ -36,7 +36,7 @@ export interface ArrayExpectedValue {
 }
 
 export interface Property {
-  id: VersionedUri;
+  id: VersionedUrl;
   required: boolean;
   allowArrays: boolean;
   animatingOut?: boolean;

@@ -1,14 +1,14 @@
 import {
   Array,
-  BaseUri,
-  extractBaseUri,
+  BaseUrl,
+  extractBaseUrl,
   Object,
   OneOf,
   PropertyType,
   PropertyTypeReference,
   PropertyValues,
   ValueOrArray,
-  VersionedUri,
+  VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 
 import {
@@ -19,32 +19,32 @@ import {
 } from "./shared/expected-value-types";
 import { PropertyTypeFormValues } from "./shared/property-type-form-values";
 
-const getPrimitiveSchema = ($ref: VersionedUri): PropertyTypeReference => ({
+const getPrimitiveSchema = ($ref: VersionedUrl): PropertyTypeReference => ({
   $ref,
 });
 
 const getObjectSchema = (
   properties: Property[],
 ): Object<ValueOrArray<PropertyTypeReference>> => {
-  const propertyList: Record<BaseUri, ValueOrArray<PropertyTypeReference>> = {};
-  const requiredArray: BaseUri[] = [];
+  const propertyList: Record<BaseUrl, ValueOrArray<PropertyTypeReference>> = {};
+  const requiredArray: BaseUrl[] = [];
 
   for (const { id, allowArrays, required } of properties) {
-    const baseUri = extractBaseUri(id);
+    const baseUrl = extractBaseUrl(id);
 
     const propertyTypeReference = getPrimitiveSchema(id);
 
     if (allowArrays) {
-      propertyList[baseUri] = {
+      propertyList[baseUrl] = {
         type: "array",
         items: propertyTypeReference,
       };
     } else {
-      propertyList[baseUri] = propertyTypeReference;
+      propertyList[baseUrl] = propertyTypeReference;
     }
 
     if (required) {
-      requiredArray.push(baseUri);
+      requiredArray.push(baseUrl);
     }
   }
 

@@ -10,7 +10,7 @@ import {
 } from "@local/hash-subgraph";
 import { getEntities } from "@local/hash-subgraph/stdlib";
 import { mapSubgraph } from "@local/hash-subgraph/temp";
-import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { getRequiredEnv } from "../util";
@@ -40,7 +40,7 @@ export const ensureSystemUserAccountIdExists = async (params: {
     await graphApi.getEntitiesByQuery({
       filter: {
         equal: [
-          { path: ["type", "versionedUri"] },
+          { path: ["type", "versionedUrl"] },
           { parameter: types.entityType.user.entityTypeId },
         ],
       },
@@ -76,7 +76,7 @@ export const ensureSystemUserAccountIdExists = async (params: {
   const existingSystemUserEntity = existingUserEntities.find(
     ({ properties }) =>
       properties[
-        extractBaseUri(types.propertyType.shortName.propertyTypeId)
+        extractBaseUrl(types.propertyType.shortName.propertyTypeId)
       ] === systemUserShortname,
   );
 

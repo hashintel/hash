@@ -44,7 +44,7 @@ export const getBlockFromEntity: PureGraphFunction<
   }
 
   const componentId = entity.properties[
-    SYSTEM_TYPES.propertyType.componentId.metadata.recordId.baseUri
+    SYSTEM_TYPES.propertyType.componentId.metadata.recordId.baseUrl
   ] as string;
 
   return {
@@ -85,7 +85,7 @@ export const createBlock: ImpureGraphFunction<
   const { componentId, blockData, ownedById, actorId } = params;
 
   const properties: EntityPropertiesObject = {
-    [SYSTEM_TYPES.propertyType.componentId.metadata.recordId.baseUri]:
+    [SYSTEM_TYPES.propertyType.componentId.metadata.recordId.baseUrl]:
       componentId,
   };
 

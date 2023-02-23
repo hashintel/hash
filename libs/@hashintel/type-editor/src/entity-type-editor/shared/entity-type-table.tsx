@@ -1,4 +1,4 @@
-import { VersionedUri } from "@blockprotocol/type-system/slim";
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { WhiteCard } from "@hashintel/design-system";
 import {
   ButtonBase,
@@ -38,9 +38,9 @@ export const EntityTypeTableCenteredCell = styled(TableCell)(({ theme }) =>
  * the same. This is a generic sort function which maps from a react hook form
  * field array to an object preserving the original index and sorting by title
  */
-export const sortRows = <V, R extends { $id: VersionedUri }>(
+export const sortRows = <V, R extends { $id: VersionedUrl }>(
   rows: R[],
-  resolveRow: ($id: VersionedUri) => V | undefined,
+  resolveRow: ($id: VersionedUrl) => V | undefined,
   resolveTitle: (row: V) => string,
 ) =>
   rows

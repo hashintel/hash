@@ -106,7 +106,7 @@ export const getPropertyTypeResolver: ResolverFn<
   const { data: propertyTypeSubgraph } = await graphApi.getPropertyTypesByQuery(
     {
       filter: {
-        equal: [{ path: ["versionedUri"] }, { parameter: propertyTypeId }],
+        equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
       },
       graphResolveDepths: {
         inheritsFrom: { outgoing: 0 },

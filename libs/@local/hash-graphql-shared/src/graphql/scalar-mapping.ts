@@ -5,7 +5,7 @@ export const scalars = {
     "@local/hash-graphql-shared/graphql/types#UnknownEntityProperties",
   TextToken: "@local/hash-graphql-shared/graphql/types#TextToken",
 
-  VersionedUri: "@blockprotocol/type-system#VersionedUri",
+  VersionedUrl: "@blockprotocol/type-system#VersionedUrl",
 
   DataTypeWithMetadata: "@local/hash-subgraph#DataTypeWithMetadata",
   DataTypeWithoutId:

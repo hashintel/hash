@@ -1,5 +1,5 @@
 import { type GraphElementIdentifiers as GraphElementIdentifiersBp } from "@blockprotocol/graph/temporal";
-import { VersionedUri } from "@blockprotocol/type-system/slim";
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { Subtype } from "@local/advanced-types/subtype";
 
 import {
@@ -10,7 +10,7 @@ import {
   OntologyTypeRecordId,
   PropertyTypeWithMetadata,
 } from "../element";
-import { BaseUri, EntityId } from "../shared";
+import { BaseUrl, EntityId } from "../shared";
 import { EntityIdWithInterval, EntityIdWithTimestamp } from "./edges";
 import {
   DataTypeVertex,
@@ -30,7 +30,7 @@ import {
 export type GraphElementIdentifiers = Subtype<
   GraphElementIdentifiersBp,
   | {
-      identifier: VersionedUri | OntologyTypeVertexId | OntologyTypeRecordId;
+      identifier: VersionedUrl | OntologyTypeVertexId | OntologyTypeRecordId;
       element:
         | DataTypeWithMetadata
         | PropertyTypeWithMetadata
@@ -38,7 +38,7 @@ export type GraphElementIdentifiers = Subtype<
       vertex: DataTypeVertex | PropertyTypeVertex | EntityTypeVertex;
     }
   | {
-      identifier: BaseUri;
+      identifier: BaseUrl;
       element:
         | DataTypeWithMetadata[]
         | PropertyTypeWithMetadata[]

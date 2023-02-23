@@ -32,7 +32,7 @@ import {
   OntologyTypeRevisionId,
   PropertyTypeWithMetadata,
 } from "../element";
-import { BaseUri, EntityId } from "../shared";
+import { BaseUrl, EntityId } from "../shared";
 
 export type DataTypeVertex = Subtype<
   DataTypeVertexBp,
@@ -60,7 +60,7 @@ export type EntityTypeVertex = Subtype<
 
 export type EntityVertex<
   Properties extends EntityPropertiesObject | null = Record<
-    BaseUri,
+    BaseUrl,
     EntityPropertyValue
   >,
 > = Subtype<
@@ -75,14 +75,14 @@ export type OntologyVertex = Subtype<
 
 export type KnowledgeGraphVertex<
   Properties extends EntityPropertiesObject | null = Record<
-    BaseUri,
+    BaseUrl,
     EntityPropertyValue
   >,
 > = Subtype<KnowledgeGraphVertexBp<Properties>, EntityVertex<Properties>>;
 
 export type Vertex<
   Properties extends EntityPropertiesObject | null = Record<
-    BaseUri,
+    BaseUrl,
     EntityPropertyValue
   >,
 > = Subtype<
@@ -111,7 +111,7 @@ export type EntityVertexId = Subtype<
 >;
 export type OntologyTypeVertexId = Subtype<
   OntologyTypeVertexIdBp,
-  VertexId<BaseUri, OntologyTypeRevisionId>
+  VertexId<BaseUrl, OntologyTypeRevisionId>
 >;
 export type GraphElementVertexId = Subtype<
   GraphElementVertexIdBp,
@@ -129,7 +129,7 @@ export const isEntityVertexId = (
 export type OntologyVertices = Subtype<
   OntologyVerticesBp,
   {
-    [baseUri: BaseUri]: {
+    [baseUrl: BaseUrl]: {
       [revisionId: OntologyTypeRevisionId]: OntologyVertex;
     };
   }

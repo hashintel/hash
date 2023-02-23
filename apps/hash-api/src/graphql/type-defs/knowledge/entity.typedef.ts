@@ -10,7 +10,7 @@ export const entityTypedef = gql`
 
   input LinkedEntityDefinition {
     destinationAccountId: AccountId!
-    linkEntityTypeId: VersionedUri!
+    linkEntityTypeId: VersionedUrl!
     """
     The index of the link (if any)
     """
@@ -27,7 +27,7 @@ export const entityTypedef = gql`
     """
     The type of which to instantiate the new entity.
     """
-    entityTypeId: VersionedUri
+    entityTypeId: VersionedUrl
     """
     The properties of new entity.
     """
@@ -47,7 +47,7 @@ export const entityTypedef = gql`
       """
       Filter root entities by their entity type ID (optional)
       """
-      rootEntityTypeIds: [VersionedUri!]
+      rootEntityTypeIds: [VersionedUrl!]
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
       constrainsLinksOn: OutgoingEdgeResolveDepthInput!
@@ -91,7 +91,7 @@ export const entityTypedef = gql`
       """
       The type of which to instantiate the new entity.
       """
-      entityTypeId: VersionedUri!
+      entityTypeId: VersionedUrl!
       """
       The properties of new entity.
       """
@@ -129,7 +129,7 @@ export const entityTypedef = gql`
       """
       The new type of the updated entity
       """
-      entityTypeId: VersionedUri
+      entityTypeId: VersionedUrl
     ): Entity!
 
     """

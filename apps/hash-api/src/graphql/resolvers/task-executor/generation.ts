@@ -1,6 +1,6 @@
 import {
   Array as TypeSystemArray,
-  BaseUri,
+  BaseUrl,
   EntityType,
   extractVersion,
   OneOf,
@@ -8,14 +8,14 @@ import {
   PropertyTypeReference,
   PropertyValues,
   ValueOrArray,
-  VersionedUri,
+  VersionedUrl,
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { GraphApi, OntologyElementMetadata } from "@local/hash-graph-client";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { EntityPropertiesObject, OwnedById } from "@local/hash-subgraph";
-import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { camelCase, isEqual, upperFirst } from "lodash";
 import { singular } from "pluralize";
 
@@ -77,7 +77,7 @@ export const addOrUpdatePropertyTypeToEntityType = (
   propertyType: PropertyType,
   isArray: boolean,
 ) => {
-  const propertyTypeBaseId = extractBaseUri(propertyType.$id);
+  const propertyTypeBaseId = extractBaseUrl(propertyType.$id);
   const exists = Object.keys(entityType.properties).find(
     (existingPropertyBaseId) => existingPropertyBaseId === propertyTypeBaseId,
   );
@@ -119,7 +119,7 @@ export const getReferencedIdsFromPropertyType = (
   propertyType: PropertyType,
 ) => {
   const recurseOneOf = (oneOf: PropertyValues[]) => {
-    const propertyTypeIds: VersionedUri[] = [];
+    const propertyTypeIds: VersionedUrl[] = [];
 
     for (const oneOfValue of oneOf) {
       if (isPropertyValuesArray(oneOfValue)) {
@@ -142,8 +142,8 @@ export const getReferencedIdsFromPropertyType = (
 };
 
 export const getReferencedIdsFromEntityType = (entityType: EntityType) => {
-  const propertyTypeIds: VersionedUri[] = [];
-  const entityTypeIds: VersionedUri[] = [];
+  const propertyTypeIds: VersionedUrl[] = [];
+  const entityTypeIds: VersionedUrl[] = [];
 
   for (const propertyDefinition of Object.values(entityType.properties)) {
     if ("items" in propertyDefinition) {
@@ -173,13 +173,13 @@ export const getReferencedIdsFromEntityType = (entityType: EntityType) => {
 export const createPropertyTypeTree = async (
   graphApi: GraphApi,
   logger: Logger,
-  propertyTypeId: VersionedUri,
+  propertyTypeId: VersionedUrl,
   propertyTypeMap: Record<
-    VersionedUri,
+    VersionedUrl,
     { schema: PropertyType; created: boolean }
   >,
   user: User,
-  visited: VersionedUri[],
+  visited: VersionedUrl[],
   currentPath: string[],
 ) => {
   const path = [...currentPath, stripDomain(propertyTypeId)];
@@ -248,14 +248,14 @@ export const createPropertyTypeTree = async (
 export const createEntityTypeTree = async (
   graphApi: GraphApi,
   logger: Logger,
-  entityTypeId: VersionedUri,
-  entityTypeMap: Record<VersionedUri, { schema: EntityType; created: boolean }>,
+  entityTypeId: VersionedUrl,
+  entityTypeMap: Record<VersionedUrl, { schema: EntityType; created: boolean }>,
   propertyTypeMap: Record<
-    VersionedUri,
+    VersionedUrl,
     { schema: PropertyType; created: boolean }
   >,
   user: User,
-  visited: VersionedUri[],
+  visited: VersionedUrl[],
   currentPath: string[],
 ) => {
   const path = [...currentPath, stripDomain(entityTypeId)];
@@ -424,7 +424,7 @@ const traverseJsonValue = ({
       };
     }
   } else if (typeof jsonValue === "object") {
-    const properties: Record<BaseUri, ValueOrArray<PropertyTypeReference>> = {};
+    const properties: Record<BaseUrl, ValueOrArray<PropertyTypeReference>> = {};
 
     if (Object.keys(jsonValue).length === 0) {
       // PropertyTypeObjects can't have 0 properties, and we don't know anything about the potential values so we have
@@ -451,18 +451,18 @@ const traverseJsonValue = ({
           throw new Error(`Missing property type for key: ${compiledInnerKey}`);
         }
 
-        jsonValue[extractBaseUri(propertyTypeId)] = innerVal;
+        jsonValue[extractBaseUrl(propertyTypeId)] = innerVal;
         delete jsonValue[innerKey];
 
         if (isPropertyValuesArray(innerPropertyValue)) {
-          properties[extractBaseUri(propertyTypeId)] = {
+          properties[extractBaseUrl(propertyTypeId)] = {
             type: "array",
             items: {
               $ref: propertyTypeId,
             },
           };
         } else {
-          properties[extractBaseUri(propertyTypeId)] = { $ref: propertyTypeId };
+          properties[extractBaseUrl(propertyTypeId)] = { $ref: propertyTypeId };
         }
       }
 
@@ -563,7 +563,7 @@ export const rewriteEntityPropertiesInTypeSystem = (
 
         addOrUpdatePropertyTypeToEntityType(entityType, propertyType, true);
       }
-      entityProperties[extractBaseUri(propertyType?.$id!)] = jsonValue;
+      entityProperties[extractBaseUrl(propertyType?.$id!)] = jsonValue;
       delete entityProperties[key];
     } else {
       traverseJsonValue({
@@ -583,7 +583,7 @@ export const rewriteEntityPropertiesInTypeSystem = (
 
       addOrUpdatePropertyTypeToEntityType(entityType, propertyType, false);
 
-      entityProperties[extractBaseUri(propertyType.$id)] = jsonValue;
+      entityProperties[extractBaseUrl(propertyType.$id)] = jsonValue;
       delete entityProperties[key];
     }
   }

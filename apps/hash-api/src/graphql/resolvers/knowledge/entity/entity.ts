@@ -126,7 +126,7 @@ export const getAllLatestEntitiesResolver: ResolverFn<
     filter.all.push({
       any: rootEntityTypeIds.map((entityTypeId) => ({
         equal: [
-          { path: ["type", "versionedUri"] },
+          { path: ["type", "versionedUrl"] },
           { parameter: entityTypeId },
         ],
       })),

@@ -1,8 +1,8 @@
-import { VersionedUri } from "@blockprotocol/type-system";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { Filter, GraphResolveDepths } from "@local/hash-graph-client";
 import {
   AccountId,
-  BaseUri,
+  BaseUrl,
   Entity,
   EntityId,
   EntityMetadata,
@@ -37,13 +37,13 @@ import {
 export type CreateEntityParams = {
   ownedById: OwnedById;
   properties: EntityPropertiesObject;
-  entityTypeId: VersionedUri;
+  entityTypeId: VersionedUrl;
   entityUuid?: EntityUuid;
   actorId: AccountId;
 };
 
 /** @todo: potentially directly export this from the subgraph package */
-export type PropertyValue = EntityPropertiesObject[BaseUri];
+export type PropertyValue = EntityPropertiesObject[BaseUrl];
 
 /**
  * Create an entity.
@@ -225,7 +225,7 @@ export const getOrCreateEntity: ImpureGraphFunction<
 export const createEntityWithLinks: ImpureGraphFunction<
   {
     ownedById: OwnedById;
-    entityTypeId: VersionedUri;
+    entityTypeId: VersionedUrl;
     properties: EntityPropertiesObject;
     linkedEntities?: LinkedEntityDefinition[];
     actorId: AccountId;
@@ -320,7 +320,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
 export const updateEntity: ImpureGraphFunction<
   {
     entity: Entity;
-    entityTypeId?: VersionedUri;
+    entityTypeId?: VersionedUrl;
     properties: EntityPropertiesObject;
     actorId: AccountId;
   },
@@ -381,7 +381,7 @@ export const updateEntityProperties: ImpureGraphFunction<
   {
     entity: Entity;
     updatedProperties: {
-      propertyTypeBaseUri: BaseUri;
+      propertyTypeBaseUrl: BaseUrl;
       value: PropertyValue | undefined | undefined;
     }[];
     actorId: AccountId;
@@ -393,11 +393,11 @@ export const updateEntityProperties: ImpureGraphFunction<
   return await updateEntity(ctx, {
     entity,
     properties: updatedProperties.reduce<EntityPropertiesObject>(
-      (prev, { propertyTypeBaseUri, value }) =>
+      (prev, { propertyTypeBaseUrl, value }) =>
         value
           ? {
               ...prev,
-              [propertyTypeBaseUri]: value,
+              [propertyTypeBaseUrl]: value,
             }
           : prev,
       entity.properties,
@@ -410,24 +410,24 @@ export const updateEntityProperties: ImpureGraphFunction<
  * Update a top-level property on an entity.
  *
  * @param params.entity - the entity being updated
- * @param params.propertyTypeBaseUri - the property type base URI of the property being updated
+ * @param params.propertyTypeBaseUrl - the property type base URL of the property being updated
  * @param params.value - the updated value of the property
  * @param params.actorId - the id of the account that is updating the entity
  */
 export const updateEntityProperty: ImpureGraphFunction<
   {
     entity: Entity;
-    propertyTypeBaseUri: BaseUri;
+    propertyTypeBaseUrl: BaseUrl;
     value: PropertyValue | undefined;
     actorId: AccountId;
   },
   Promise<Entity>
 > = async (ctx, params) => {
-  const { entity, propertyTypeBaseUri, value, actorId } = params;
+  const { entity, propertyTypeBaseUrl, value, actorId } = params;
 
   return await updateEntityProperties(ctx, {
     entity,
-    updatedProperties: [{ propertyTypeBaseUri, value }],
+    updatedProperties: [{ propertyTypeBaseUrl, value }],
     actorId,
   });
 };
@@ -491,7 +491,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
   if (params.linkEntityType) {
     filter.all.push({
       equal: [
-        { path: ["type", "versionedUri"] },
+        { path: ["type", "versionedUrl"] },
         {
           parameter: params.linkEntityType.schema.$id,
         },
@@ -567,7 +567,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
   if (params.linkEntityType) {
     filter.all.push({
       equal: [
-        { path: ["type", "versionedUri"] },
+        { path: ["type", "versionedUrl"] },
         {
           parameter: params.linkEntityType.schema.$id,
         },

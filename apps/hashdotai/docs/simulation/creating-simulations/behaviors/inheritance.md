@@ -25,7 +25,7 @@ The real world doesn't fit into neat hierarchies. Modeling agents who are of mul
 
 In HASH, agents are _in practice_ defined by their behaviors. While users are free to add a `type` field to their agents, and many simulation authors do so, these _types_ have until now been symbolic labels that have made tracking agents over the course of simulations easier, and have primarily been used to generate descriptive metrics and plots.
 
-We're now planning to introduce support for **Agent Types** in a forthcoming update, which go further. In the future, [HASH Engine](/platform/engine) (hEngine) will attempt to match the _type_ field of an agent to an entity type in HASH, where it contains the URI of an _entity type_ schema.
+We're now planning to introduce support for **Agent Types** in a forthcoming update, which go further. In the future, [HASH Engine](/platform/engine) (hEngine) will attempt to match the _type_ field of an agent to an entity type in HASH, where it contains the URL of an _entity type_ schema.
 
 Entity types created in HASH describe 'things'. In a simulation context these could for example be:
 
@@ -34,7 +34,7 @@ Entity types created in HASH describe 'things'. In a simulation context these co
 
 Entity types consist of _properties_, each of which has their _own_ property types, and in some cases these may have _default values_. Entity types in HASH may contain a `hash_simulation_behavior` property containing one or more [behaviors](/docs/simulation/creating-simulations/behaviors).
 
-When an agent in a HASH simulation has its _type_ declared going forward, if hEngine is able to match that type to a valid entity type URI, any behaviors specified in that schema's `hash_simulation_behavior` array will be attached to the agent.
+When an agent in a HASH simulation has its _type_ declared going forward, if hEngine is able to match that type to a valid entity type URL, any behaviors specified in that schema's `hash_simulation_behavior` array will be attached to the agent.
 
 There is no limit to the number of types that may be attached to an agent, and types may continue to be used descriptively without being linked to entity type URIs.
 

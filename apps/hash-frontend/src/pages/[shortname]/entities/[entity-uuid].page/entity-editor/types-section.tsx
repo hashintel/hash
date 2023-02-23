@@ -1,8 +1,8 @@
 import { extractVersion } from "@blockprotocol/type-system";
 import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
 import {
-  extractBaseUri,
-  versionedUriFromComponents,
+  extractBaseUrl,
+  versionedUrlFromComponents,
 } from "@local/hash-subgraph/type-system-patch";
 import { Box } from "@mui/material";
 import { useEffect, useState } from "react";
@@ -43,7 +43,7 @@ export const TypesSection = () => {
         },
       });
 
-      const baseId = extractBaseUri(entityTypeId);
+      const baseId = extractBaseUrl(entityTypeId);
       const entityTypeWithSameBaseId = res.data?.roots.find(
         (root) => root.baseId === baseId,
       );
@@ -69,7 +69,7 @@ export const TypesSection = () => {
 
   const entityType = getEntityTypeById(entitySubgraph, entityTypeId);
   const entityTypeTitle = entityType?.schema.title ?? "";
-  const entityTypeBaseUri = extractBaseUri(entityTypeId);
+  const entityTypeBaseUrl = extractBaseUrl(entityTypeId);
 
   const handleUpdateVersion = async () => {
     if (!newVersion) {
@@ -81,8 +81,8 @@ export const TypesSection = () => {
 
       const res = await updateEntity({
         data: {
-          entityTypeId: versionedUriFromComponents(
-            entityTypeBaseUri,
+          entityTypeId: versionedUrlFromComponents(
+            entityTypeBaseUrl,
             newVersion,
           ),
           entityId: recordId.entityId,
@@ -111,7 +111,7 @@ export const TypesSection = () => {
     >
       <Box display="flex" gap={2}>
         <TypeCard
-          url={entityTypeBaseUri}
+          url={entityTypeBaseUrl}
           title={entityTypeTitle}
           version={currentVersion}
           newVersionConfig={

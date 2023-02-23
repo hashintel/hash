@@ -37,7 +37,7 @@ import { EntitiesTab } from "./[...slug-maybe-version].page/entities-tab";
 import { EntityTypeTabs } from "./[...slug-maybe-version].page/entity-type-tabs";
 import { EntityTypeContext } from "./[...slug-maybe-version].page/shared/entity-type-context";
 import { EntityTypeEntitiesContext } from "./[...slug-maybe-version].page/shared/entity-type-entities-context";
-import { getEntityTypeBaseUri } from "./[...slug-maybe-version].page/shared/get-entity-type-base-uri";
+import { getEntityTypeBaseUrl } from "./[...slug-maybe-version].page/shared/get-entity-type-base-url";
 import { LatestPropertyTypesContextProvider } from "./[...slug-maybe-version].page/shared/latest-property-types-context";
 import { useCurrentTab } from "./[...slug-maybe-version].page/shared/tabs";
 import { useEntityTypeEntitiesContextValue } from "./[...slug-maybe-version].page/use-entity-type-entities-context-value";
@@ -56,12 +56,12 @@ const Page: NextPageWithLayout = () => {
     `${number}` | undefined,
   ]; // @todo validate that the URL is formatted as expected;
 
-  const baseEntityTypeUri = !isDraft
-    ? getEntityTypeBaseUri(slug, router.query.shortname as string)
+  const baseEntityTypeUrl = !isDraft
+    ? getEntityTypeBaseUrl(slug, router.query.shortname as string)
     : null;
 
   const entityTypeEntitiesValue =
-    useEntityTypeEntitiesContextValue(baseEntityTypeUri);
+    useEntityTypeEntitiesContextValue(baseEntityTypeUrl);
 
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
@@ -91,7 +91,7 @@ const Page: NextPageWithLayout = () => {
     publishDraft,
     { loading: loadingRemoteEntityType },
   ] = useEntityTypeValue(
-    baseEntityTypeUri,
+    baseEntityTypeUrl,
     routeNamespace?.accountId ?? null,
     (fetchedEntityType) => {
       if (

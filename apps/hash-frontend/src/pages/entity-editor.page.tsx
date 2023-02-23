@@ -12,7 +12,7 @@ import {
   getPropertyTypeById,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Container, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 
@@ -109,7 +109,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
       data: {
         entityTypeId: types.entityType.text.entityTypeId,
         properties: {
-          [extractBaseUri(types.propertyType.tokens.propertyTypeId)]: [],
+          [extractBaseUrl(types.propertyType.tokens.propertyTypeId)]: [],
         },
       },
     }).then(({ data }) => setCreatedEntity(data));

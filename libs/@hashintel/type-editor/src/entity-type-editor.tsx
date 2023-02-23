@@ -2,7 +2,7 @@
 require("setimmediate");
 
 import { EntityType, PropertyType } from "@blockprotocol/graph";
-import { VersionedUri } from "@blockprotocol/type-system/slim";
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { theme } from "@hashintel/design-system";
 import { Box, Stack, ThemeProvider, Typography } from "@mui/material";
 
@@ -40,9 +40,9 @@ export type EntityTypeEditorProps = {
   // the entity type being edited
   entityType: EntityType;
   // The entity types available for constraining the destination of a link, INCLUDING those used on this entity
-  entityTypeOptions: Record<VersionedUri, EntityType>;
+  entityTypeOptions: Record<VersionedUrl, EntityType>;
   // The property types available for assigning to an entity type or property type object, INCLUDING those used on this entity
-  propertyTypeOptions: Record<VersionedUri, PropertyType>;
+  propertyTypeOptions: Record<VersionedUrl, PropertyType>;
   // functions for creating and updating entity and property types that the editor will call
   ontologyFunctions: EditorOntologyFunctions;
   // whether or not the type editor should be in readonly mode

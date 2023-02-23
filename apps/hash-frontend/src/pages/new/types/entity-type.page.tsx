@@ -28,7 +28,7 @@ import {
 } from "../../../shared/layout";
 import { Link } from "../../../shared/ui/link";
 import { TopContextBar } from "../../shared/top-context-bar";
-import { useGenerateTypeUrisForUser } from "../../shared/use-generate-type-uris-for-user";
+import { useGenerateTypeUrlsForUser } from "../../shared/use-generate-type-urls-for-user";
 import { WorkspaceContext } from "../../shared/workspace-context";
 
 const FormHelperLabel = ({
@@ -81,14 +81,14 @@ const Page: NextPageWithLayout = () => {
 
   const { getEntityType } = useBlockProtocolGetEntityType();
   const { activeWorkspace } = useContext(WorkspaceContext);
-  const generateTypeUrisForUser = useGenerateTypeUrisForUser();
+  const generateTypeUrlsForUser = useGenerateTypeUrlsForUser();
 
   if (!activeWorkspace) {
     return null;
   }
 
   const handleFormSubmit = handleSubmit(async ({ name, description }) => {
-    const { baseUri, versionedUri } = generateTypeUrisForUser({
+    const { baseUrl, versionedUrl } = generateTypeUrlsForUser({
       title: name,
       kind: "entity-type",
       version: 1,
@@ -99,10 +99,10 @@ const Page: NextPageWithLayout = () => {
       kind: "entityType",
       type: "object",
       properties: {},
-      $id: versionedUri,
+      $id: versionedUrl,
     };
 
-    const nextUrl = `${baseUri}?draft=${encodeURIComponent(
+    const nextUrl = `${baseUrl}?draft=${encodeURIComponent(
       Buffer.from(JSON.stringify(entityType)).toString("base64"),
     )}`;
 
@@ -200,11 +200,11 @@ const Page: NextPageWithLayout = () => {
                   async validate(title) {
                     const res = await getEntityType({
                       data: {
-                        entityTypeId: generateTypeUrisForUser({
+                        entityTypeId: generateTypeUrlsForUser({
                           kind: "entity-type",
                           title,
                           version: 1,
-                        }).versionedUri,
+                        }).versionedUrl,
                         graphResolveDepths: {
                           constrainsValuesOn: { outgoing: 0 },
                           constrainsPropertiesOn: { outgoing: 0 },

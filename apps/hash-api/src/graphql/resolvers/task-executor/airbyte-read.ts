@@ -2,7 +2,7 @@ import { JsonObject } from "@blockprotocol/core";
 import {
   EntityType,
   PropertyType,
-  VersionedUri,
+  VersionedUrl,
 } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -76,7 +76,7 @@ export const readFromAirbyte = async ({
   > = {};
   const streamToEntityTypes: Record<string, EntityType> = {};
   const entityTypeIdToEntityProperties: Record<
-    VersionedUri,
+    VersionedUrl,
     EntityPropertiesObject[]
   > = {};
 
@@ -118,7 +118,7 @@ export const readFromAirbyte = async ({
   );
 
   const propertyTypeMap: Record<
-    VersionedUri,
+    VersionedUrl,
     { schema: PropertyType; created: boolean }
   > = Object.fromEntries(
     Object.values(streamToKeyToPropertyTypes)
@@ -129,7 +129,7 @@ export const readFromAirbyte = async ({
       ]),
   );
   const entityTypeMap: Record<
-    VersionedUri,
+    VersionedUrl,
     { schema: EntityType; created: boolean }
   > = Object.fromEntries(
     Object.values(streamToEntityTypes).map((entityType) => [
@@ -142,7 +142,7 @@ export const readFromAirbyte = async ({
   const createdPropertyTypes = [];
   const createdEntities = [];
 
-  const visited: VersionedUri[] = [];
+  const visited: VersionedUrl[] = [];
   /** @todo - Check if entity type already exists */
   for (const entityTypeId of typedKeys(entityTypeMap)) {
     logger.debug(`Creating entity type with ID: ${entityTypeId}`);

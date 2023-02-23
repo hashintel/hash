@@ -1,11 +1,11 @@
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { generateBaseTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { versionedUriFromComponents } from "@local/hash-subgraph/type-system-patch";
+import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 import { useCallback, useContext } from "react";
 
 import { WorkspaceContext } from "./workspace-context";
 
-export const useGenerateTypeUrisForUser = () => {
+export const useGenerateTypeUrlsForUser = () => {
   const { activeWorkspace } = useContext(WorkspaceContext);
 
   return useCallback(
@@ -22,18 +22,18 @@ export const useGenerateTypeUrisForUser = () => {
         throw new Error("No valid active workspace");
       }
 
-      const baseUri = generateBaseTypeId({
+      const baseUrl = generateBaseTypeId({
         domain: frontendUrl,
         namespace: activeWorkspace.shortname,
         kind,
         title,
       });
 
-      const versionedUri = versionedUriFromComponents(baseUri, version);
+      const versionedUrl = versionedUrlFromComponents(baseUrl, version);
 
       return {
-        baseUri,
-        versionedUri,
+        baseUrl,
+        versionedUrl,
       };
     },
     [activeWorkspace],
