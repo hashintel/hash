@@ -30,6 +30,7 @@ import {
 } from "react-hook-form";
 
 import { EntityTypeEditorFormData } from "../../shared/form-types";
+import { useIsReadonly } from "../../shared/read-only-context";
 
 const useFrozenValue = <T extends any>(value: T, isFrozen: boolean): T => {
   const [frozen, setFrozen] = useState(value);
@@ -94,6 +95,8 @@ export const MultipleValuesCell = ({
   variant: "property" | "link";
 }) => {
   const { control, setValue } = useFormContext<EntityTypeEditorFormData>();
+
+  const isReadonly = useIsReadonly();
 
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
   const [multipleValuesMenuOpen, setMultipleValuesMenuOpen] = useState(false);
@@ -187,6 +190,9 @@ export const MultipleValuesCell = ({
       >
         <Box
           onClick={() => {
+            if (isReadonly) {
+              return;
+            }
             if (multipleValuesMenuOpen) {
               setMultipleValuesMenuOpen(false);
             } else if (array) {
@@ -199,7 +205,7 @@ export const MultipleValuesCell = ({
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            cursor: "pointer",
+            cursor: isReadonly ? "default" : "pointer",
             height: 1,
             transition: transitions.create("border-color"),
             border: 1,
@@ -207,7 +213,7 @@ export const MultipleValuesCell = ({
               multipleValuesMenuOpen ? palette.gray[40] : "transparent"
             } !important`,
           })}
-          onMouseEnter={() => setHovered(true)}
+          onMouseEnter={() => setHovered(!isReadonly)}
           onMouseLeave={() => setHovered(false)}
         >
           <Box
