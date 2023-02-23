@@ -94,6 +94,26 @@ const Page: NextPageWithLayout = () => {
     baseEntityTypeUri,
     routeNamespace?.accountId ?? null,
     (fetchedEntityType) => {
+      if (
+        requestedVersion &&
+        parseInt(requestedVersion, 10) !== extractVersion(fetchedEntityType.$id)
+      ) {
+        /**
+         * @todo instead of redirecting to the latest version, handle loading earlier versions
+         *   - load requested version instead of always latest
+         *   - if a later version is available, provide an indicator + link to it
+         *   - put the form in readonly mode if not on the latest version
+         *   - check handling of external types
+         */
+        if (isHrefExternal(fetchedEntityType.$id)) {
+          // In the current routing this should never be the case, but this is a marker to handle it when external types exist
+          window.open(fetchedEntityType.$id);
+        } else {
+          void router.replace(fetchedEntityType.$id);
+        }
+      }
+
+      // Load the initial form data after the entity type has been fetched
       reset(getFormDataFromSchema(fetchedEntityType));
     },
   );
@@ -111,27 +131,7 @@ const Page: NextPageWithLayout = () => {
     [entityType, remotePropertyTypes],
   );
 
-  useEffect(() => {
-    /**
-     * @todo instead of redirecting to the latest version, handle loading earlier versions
-     *   - load requested version instead of always latest
-     *   - if a later version is available, provide an indicator + link to it
-     *   - put the form in readonly mode if not on the latest version
-     *   - check handling of external types
-     */
-    if (
-      entityType &&
-      requestedVersion &&
-      parseInt(requestedVersion, 10) !== extractVersion(entityType.$id)
-    ) {
-      if (isHrefExternal(entityType.$id)) {
-        // In the current routing this should never be the case, but this is a marker to handle it when external types exist
-        window.open(entityType.$id);
-      } else {
-        void router.replace(entityType.$id);
-      }
-    }
-  }, [entityType, requestedVersion, router]);
+  useEffect(() => {}, [entityType, requestedVersion, router]);
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
     const entityTypeSchema = getSchemaFromFormData(data);

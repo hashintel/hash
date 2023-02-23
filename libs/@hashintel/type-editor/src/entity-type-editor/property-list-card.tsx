@@ -407,14 +407,12 @@ export const PropertyTypeRow = ({
 }) => {
   const { control } = useFormContext<EntityTypeEditorFormData>();
 
-  const isRequired = useWatch({
+  const [isRequired, isArray] = useWatch({
     control,
-    name: `properties.${propertyIndex}.required`,
-  });
-
-  const isArray = useWatch({
-    control,
-    name: `properties.${propertyIndex}.array`,
+    name: [
+      `properties.${propertyIndex}.required`,
+      `properties.${propertyIndex}.array`,
+    ],
   });
 
   const editModalId = useId();
