@@ -28,7 +28,11 @@ export {
 } from "react-hook-form";
 
 export type CustomizationOptions = {
-  onNavigate?: (url: string) => void;
+  /**
+   *  A callback to provide custom handling a user clicking a link to another type.
+   *  If defined, default anchor behavior will be prevented on click.
+   */
+  onNavigateToType?: (url: string) => void;
 };
 
 export type EntityTypeEditorProps = {

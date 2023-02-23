@@ -47,7 +47,7 @@ export const DefinitionTab = ({
     );
   }, [entityTypesContext.entityTypes]);
 
-  const onNavigate = (url: string) => {
+  const onNavigateToType = (url: string) => {
     if (isHrefExternal(url)) {
       window.open(url);
     } else {
@@ -57,7 +57,7 @@ export const DefinitionTab = ({
 
   return (
     <EntityTypeEditor
-      customization={{ onNavigate }}
+      customization={{ onNavigateToType }}
       entityType={entityTypeAndPropertyTypes.entityType}
       entityTypeOptions={entityTypeOptions}
       ontologyFunctions={ontologyFunctions}

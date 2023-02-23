@@ -6,21 +6,21 @@ export const Link = ({
   children,
   ...props
 }: PropsWithChildren<HTMLProps<HTMLAnchorElement>>) => {
-  const { onNavigate } = useCustomizationSettings();
+  const { onNavigateToType } = useCustomizationSettings();
 
   const onClick = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (onNavigate) {
+    if (onNavigateToType) {
       event.preventDefault();
-      onNavigate(props.href ?? "no href provided to link");
+      onNavigateToType(props.href ?? "no href provided to link");
     }
     props.onClick?.(event);
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLAnchorElement>) => {
     if (event.key === "Enter" || event.key === " ") {
-      if (onNavigate) {
+      if (onNavigateToType) {
         event.preventDefault();
-        onNavigate(props.href ?? "no href provided to link");
+        onNavigateToType(props.href ?? "no href provided to link");
       }
     }
     props.onKeyDown?.(event);
