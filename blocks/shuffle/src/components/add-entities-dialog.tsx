@@ -1,4 +1,5 @@
 import { Entity, EntityType, GraphBlockHandler } from "@blockprotocol/graph";
+import { getEntities } from "@blockprotocol/graph/stdlib";
 import { Button } from "@hashintel/design-system";
 import {
   Checkbox,
@@ -86,17 +87,14 @@ export const AddEntitiesDialog = ({
 
     if (!data) return onClose();
 
-    const { results: entities } = data;
-
-    console.log(entities);
-
     //
+    const entities = getEntities(data.results);
     // // by default, all entity checkboxes are checked
-    // const initialSelection = entities.map(() => true);
-    //
-    // setEntityList(entities);
-    // setSelections(initialSelection);
-    // setSelectedEntityType(entityType);
+    const initialSelection = entities.map(() => true);
+
+    setEntityList(entities);
+    setSelections(initialSelection);
+    setSelectedEntityType(entityType);
   };
 
   const handleCheckboxChange = (changedIndex: number) => {
@@ -122,12 +120,11 @@ export const AddEntitiesDialog = ({
         graphModule.createEntity({
           data: {
             linkData: {
-              leftEntityId: blockEntityId, // shuffle entity,
+              leftEntityId: blockEntityId,
               rightEntityId: entityId,
             },
             properties: {},
-            entityTypeId:
-              "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/entity-type/item-content-2/v/1", // the URL of the link entity type
+            entityTypeId: propertyIds.itemContent,
           },
         }),
       ),

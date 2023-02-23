@@ -5,4 +5,7 @@ export const propertyIds = {
   value:
     "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/content/" as const,
   id: "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/" as const,
+  itemContent:
+    "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/entity-type/item-content-2/v/1" as const,
+  name: "https://blockprotocol-r2l2zq4gf.stage.hash.ai/@blockprotocol/types/property-type/name/" as const,
 };

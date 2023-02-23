@@ -8,6 +8,7 @@ import { render } from "react-dom";
 
 import packageJSON from "../package.json";
 import Component from "./index";
+import { propertyIds } from "./property-ids";
 import { ItemContent2, RootEntity } from "./types";
 
 const node = document.getElementById("app");
@@ -22,8 +23,7 @@ const personEntity: Entity = {
     },
   },
   properties: {
-    "https://blockprotocol-r2l2zq4gf.stage.hash.ai/@blockprotocol/types/property-type/name/":
-      "John Doe",
+    [propertyIds.name]: "John Doe",
   },
 };
 
@@ -37,31 +37,24 @@ const blockEntity: RootEntity = {
     },
   },
   properties: {
-    "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/list-item/":
-      [
-        {
-          "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/":
-            "1",
-          "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/content/":
-            "Thing 1",
-        },
-        {
-          "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/":
-            "2",
-          "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/link-entity-id/":
-            "person-entity",
-          "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/content/":
-            "",
-        },
-      ],
+    [propertyIds.list]: [
+      {
+        [propertyIds.id]: "1",
+        [propertyIds.value]: "Thing 1",
+      },
+      {
+        [propertyIds.id]: "2",
+        [propertyIds.linkEntityId]: "person-entity",
+        [propertyIds.value]: "",
+      },
+    ],
   },
 };
 
 const link1: ItemContent2 = {
   properties: {},
   metadata: {
-    entityTypeId:
-      "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/entity-type/item-content-2/v/1",
+    entityTypeId: propertyIds.itemContent,
     recordId: {
       entityId: "item-content-1",
       editionId: "1",
