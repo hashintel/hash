@@ -22,6 +22,7 @@ import { AddEntitiesDialog } from "./components/add-entities-dialog";
 import { ItemList } from "./components/item-list";
 import { TooltipButton } from "./components/tooltip-button";
 import { RootEntity, RootEntityLinkedEntities } from "./types";
+import { parseLabelFromEntity } from "./utils";
 
 export type Item = {
   id: string;
@@ -236,17 +237,13 @@ export const Shuffle: BlockComponent<RootEntity> = ({
       ]),
     );
 
-    const entityTypesMap = new Map(entityTypes.map((type) => [type.$id, type]));
-
     return draftItems.map((item) => {
       const linkId = item.linkId;
       const entity = linksMap.get(linkId ?? "");
 
-      const entityType = entity
-        ? entityTypesMap.get(entity?.metadata.entityTypeId)
-        : null;
-
-      console.log({ entityType });
+      console.log(
+        entity ? parseLabelFromEntity(entity, blockEntitySubgraph) : null,
+      );
 
       return {
         ...item,

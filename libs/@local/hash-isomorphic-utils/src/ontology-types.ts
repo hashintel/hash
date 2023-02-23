@@ -1,15 +1,11 @@
 import { VersionedUri } from "@blockprotocol/type-system";
 import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
+import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
 import { BaseUri } from "@local/hash-subgraph";
-import slugify from "slugify";
 
 import { frontendUrl } from "./environment";
 
 export type SchemaKind = "data-type" | "property-type" | "entity-type";
-
-/** Slugify the title of a type */
-export const slugifyTypeTitle = (title: string): string =>
-  slugify(title, { lower: true });
 
 /**
  * Generate the base identifier of a type (its un-versioned URI).
