@@ -469,6 +469,7 @@ const traverseJsonValue = ({
       propertyTypeValue = {
         type: "object",
         properties,
+        additionalProperties: false,
       };
     }
   } else {

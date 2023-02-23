@@ -15,7 +15,8 @@
       },
       "required": [
         "https://blockprotocol.org/@alice/types/property-type/email/"
-      ]
+      ],
+      "additionalProperties": false
     }
   ]
 }

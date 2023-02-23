@@ -30,7 +30,7 @@ export type GetEntityData = {
 
 /** @todo-0.3 - we really want some type safety on these if we can find it, but this doesn't work */
 // export type GetEntityMessageCallback = Subtype<
-//   EmbedderGraphMessageCallbacks<true>["getEntity"],
+//   GraphEmbedderMessageCallbacks<true>["getEntity"],
 //   MessageCallback<
 //     GetEntityRequest,
 //     null,

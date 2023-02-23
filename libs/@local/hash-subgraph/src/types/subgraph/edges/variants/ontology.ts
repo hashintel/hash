@@ -22,7 +22,7 @@ import {
   isLinksConstrainedByEdge as isLinksConstrainedByEdgeBp,
   isPropertiesConstrainedByEdge as isPropertiesConstrainedByEdgeBp,
   isValuesConstrainedByEdge as isValuesConstrainedByEdgeBp,
-} from "@blockprotocol/graph";
+} from "@blockprotocol/graph/temporal";
 import { Subtype } from "@local/advanced-types/subtype";
 
 import { OntologyTypeVertexId } from "../../vertices";

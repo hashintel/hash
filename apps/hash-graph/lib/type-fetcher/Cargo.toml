@@ -7,7 +7,7 @@ description = "RPC service definition to fetch external BP types"
 
 [dependencies]
 error-stack = { version = "0.3.1", features = ["spantrace"] }
-type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "adab205" }
+type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "29b2710" }
 
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = "1.0.93"

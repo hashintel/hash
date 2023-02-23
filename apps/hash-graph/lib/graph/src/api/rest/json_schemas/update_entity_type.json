@@ -10,15 +10,6 @@
     },
     "title": { "type": "string" },
     "description": { "type": "string" },
-    "default": {
-      "$comment": "Default Entity instance",
-      "type": "object",
-      "propertyNames": {
-        "$comment": "Property names must be a valid URI to a Property Type",
-        "type": "string",
-        "format": "uri"
-      }
-    },
     "examples": {
       "$comment": "Example Entity instances",
       "type": "array",
@@ -40,16 +31,13 @@
       }
     },
     "links": { "$ref": "#/$defs/linkTypeObject" },
-    "requiredLinks": {
-      "$comment": "// TODO: update this https://app.asana.com/0/1202805690238892/1203260690980368/f. A list of link-types which are required. This is a separate field to 'required' to avoid breaking standard JSON schema validation",
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
+    "additionalProperties": {
+      "type": "boolean",
+      "enum": [false]
     }
   },
   "additionalProperties": false,
-  "required": ["kind", "type", "title", "properties"],
+  "required": ["kind", "type", "title", "properties", "additionalProperties"],
   "$defs": {
     "propertyTypeObject": {
       "type": "object",

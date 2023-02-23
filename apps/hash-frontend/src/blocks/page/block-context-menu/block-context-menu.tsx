@@ -1,7 +1,7 @@
 import {
   EntityRootType as EntityRootTypeBp,
   Subgraph as SubgraphBp,
-} from "@blockprotocol/graph";
+} from "@blockprotocol/graph/temporal";
 import {
   faCopy,
   faMessage,
@@ -213,7 +213,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
     );
 
     setBlockSubgraph(
-      newBlockSubgraph as unknown as SubgraphBp<true, EntityRootTypeBp<true>>,
+      newBlockSubgraph as unknown as SubgraphBp<EntityRootTypeBp>,
     );
     setEntityEditorOpen(false);
   };
