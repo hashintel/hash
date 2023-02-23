@@ -238,16 +238,14 @@ export const Shuffle: BlockComponent<RootEntity> = ({
     );
 
     return draftItems.map((item) => {
-      const linkId = item.linkId;
-      const entity = linksMap.get(linkId ?? "");
-
-      console.log(
-        entity ? parseLabelFromEntity(entity, blockEntitySubgraph) : null,
-      );
+      const { linkId } = item;
+      const entity = linkId ? linksMap.get(linkId) : null;
 
       return {
         ...item,
-        ...(entity && { value: "label" }),
+        ...(entity && {
+          value: parseLabelFromEntity(entity, blockEntitySubgraph),
+        }),
       };
     });
   }, [blockEntitySubgraph, draftItems, rootEntity.metadata.recordId.entityId]);
