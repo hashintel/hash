@@ -19,6 +19,7 @@ import {
   Typography,
 } from "@mui/material";
 
+import { useIsReadonly } from "../../shared/read-only-context";
 import {
   CollapsibleRowLine,
   ROW_DEPTH_INDENTATION,
@@ -50,6 +51,8 @@ export const PropertyTitleCell = ({
   latestVersion,
   onVersionUpdate,
 }: PropertyTitleCellProps) => {
+  const isReadonly = useIsReadonly();
+
   return (
     <TableCell width={PROPERTY_TITLE_CELL_WIDTH} sx={{ position: "relative" }}>
       {depth !== 0 ? (
@@ -124,7 +127,7 @@ export const PropertyTitleCell = ({
           />
         </Fade>
 
-        {depth === 0 && currentVersion !== latestVersion ? (
+        {depth === 0 && currentVersion !== latestVersion && !isReadonly ? (
           <Stack direction="row" gap={1} alignItems="center">
             <Typography
               variant="smallTextLabels"

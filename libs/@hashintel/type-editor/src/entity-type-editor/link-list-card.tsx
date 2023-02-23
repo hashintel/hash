@@ -8,6 +8,7 @@ import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { useEntityTypesOptions } from "../shared/entity-types-options-context";
 import { EntityTypeEditorFormData } from "../shared/form-types";
 import { useOntologyFunctions } from "../shared/ontology-functions-context";
+import { useIsReadonly } from "../shared/read-only-context";
 import { linkEntityTypeUri } from "../shared/uris";
 import { LinkEntityTypeSelector } from "./link-list-card/link-entity-type-selector";
 import { EmptyListCard } from "./shared/empty-list-card";
@@ -22,6 +23,7 @@ import {
   useFlashRow,
 } from "./shared/entity-type-table";
 import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
+import { Link } from "./shared/link";
 import { MultipleValuesCell } from "./shared/multiple-values-cell";
 import { QuestionIcon } from "./shared/question-icon";
 import {
@@ -76,6 +78,8 @@ const LinkTypeRow = ({
     throw new Error("Missing link");
   }
 
+  const isReadonly = useIsReadonly();
+
   const { updateEntityType } = useOntologyFunctions();
 
   const editModalPopupId = useId();
@@ -90,6 +94,10 @@ const LinkTypeRow = ({
   });
 
   const handleSubmit = async (data: TypeFormDefaults) => {
+    if (isReadonly) {
+      return;
+    }
+
     const res = await updateEntityType({
       data: {
         entityTypeId: link.$id,
@@ -98,7 +106,7 @@ const LinkTypeRow = ({
     });
 
     if (!res.data) {
-      throw new Error("Failed to update property type");
+      throw new Error("Failed to update entity type");
     }
 
     onUpdateVersionRef.current(res.data.schema.$id);
@@ -111,7 +119,9 @@ const LinkTypeRow = ({
       <EntityTypeTableRow flash={flash}>
         <TableCell>
           <EntityTypeTableTitleCellText>
-            {link.title}
+            <Link href={link.$id} style={{ color: "inherit", fontWeight: 600 }}>
+              {link.title}
+            </Link>
           </EntityTypeTableTitleCellText>
         </TableCell>
         <TableCell sx={{ py: "0 !important" }}>
@@ -175,6 +185,8 @@ export const LinkListCard = () => {
 
   const { createEntityType } = useOntologyFunctions();
 
+  const isReadonly = useIsReadonly();
+
   const fields = useMemo(
     () =>
       sortRows(
@@ -218,6 +230,10 @@ export const LinkListCard = () => {
   };
 
   const handleSubmit = async (data: TypeFormDefaults) => {
+    if (isReadonly) {
+      return;
+    }
+
     const res = await createEntityType({
       data: {
         entityType: formDataToEntityType(data),
@@ -235,13 +251,17 @@ export const LinkListCard = () => {
   if (!addingNewLink && fields.length === 0) {
     return (
       <EmptyListCard
-        onClick={() => {
-          setAddingNewLink(true, () => {
-            addingNewLinkRef.current?.focus();
-          });
-        }}
+        onClick={
+          isReadonly
+            ? undefined
+            : () => {
+                setAddingNewLink(true, () => {
+                  addingNewLinkRef.current?.focus();
+                });
+              }
+        }
         icon={<LinkIcon />}
-        headline={<>Add a link</>}
+        headline={isReadonly ? <>No links defined</> : <>Add a link</>}
         description={
           <>
             Links contain information about connections or relationships between
@@ -332,16 +352,18 @@ export const LinkListCard = () => {
             />
           </>
         ) : (
-          <EntityTypeTableButtonRow
-            icon={<StyledPlusCircleIcon />}
-            onClick={() => {
-              setAddingNewLink(true, () => {
-                addingNewLinkRef.current?.focus();
-              });
-            }}
-          >
-            Add a link
-          </EntityTypeTableButtonRow>
+          !isReadonly && (
+            <EntityTypeTableButtonRow
+              icon={<StyledPlusCircleIcon />}
+              onClick={() => {
+                setAddingNewLink(true, () => {
+                  addingNewLinkRef.current?.focus();
+                });
+              }}
+            >
+              Add a link
+            </EntityTypeTableButtonRow>
+          )
         )}
       </TableFooter>
     </EntityTypeTable>
