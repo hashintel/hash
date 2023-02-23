@@ -23,6 +23,7 @@ import { useRouter } from "next/router";
 import { useEffect, useMemo } from "react";
 
 import { PageErrorState } from "../../../../components/page-error-state";
+import { isHrefExternal } from "../../../../shared/is-href-external";
 import {
   getLayoutWithSidebar,
   NextPageWithLayout,
@@ -116,13 +117,19 @@ const Page: NextPageWithLayout = () => {
      *   - load requested version instead of always latest
      *   - if a later version is available, provide an indicator + link to it
      *   - put the form in readonly mode if not on the latest version
+     *   - check handling of external types
      */
     if (
       entityType &&
       requestedVersion &&
       parseInt(requestedVersion, 10) !== extractVersion(entityType.$id)
     ) {
-      void router.replace(entityType.$id);
+      if (isHrefExternal(entityType.$id)) {
+        // In the current routing this should never be the case, but this is a marker to handle it when external types exist
+        window.open(entityType.$id);
+      } else {
+        void router.replace(entityType.$id);
+      }
     }
   }, [entityType, requestedVersion, router]);
 

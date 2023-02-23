@@ -6,6 +6,7 @@ import { useRouter } from "next/router";
 import { useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { isHrefExternal } from "../../../../../shared/is-href-external";
 import { useEditorOntologyFunctions } from "./definition-tab/use-editor-ontology-functions";
 import { useLatestPropertyTypes } from "./shared/latest-property-types-context";
 
@@ -46,7 +47,13 @@ export const DefinitionTab = ({
     );
   }, [entityTypesContext.entityTypes]);
 
-  const onNavigate = (url: string) => router.push(url);
+  const onNavigate = (url: string) => {
+    if (isHrefExternal(url)) {
+      window.open(url);
+    } else {
+      void router.push(url);
+    }
+  };
 
   return (
     <EntityTypeEditor
