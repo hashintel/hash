@@ -80,6 +80,6 @@
     "icon": "public/shuffle.svg",
     "image": "public/preview.png",
     "protocol": "0.3",
-    "schema": "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/entity-type/ordered-list-2/v/2"
+    "schema": "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/entity-type/ordered-list-2/v/6"
   }
 }

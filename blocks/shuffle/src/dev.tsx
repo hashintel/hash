@@ -2,14 +2,27 @@
  * This is the entry point for developing and debugging.
  * This file is not bundled with the block during the build process.
  */
+import { Entity } from "@blockprotocol/graph";
 import { MockBlockDock } from "mock-block-dock";
 import { render } from "react-dom";
 
 import packageJSON from "../package.json";
 import Component from "./index";
-import { ItemContent2, ListItem2, RootEntity } from "./types";
+import { ItemContent2, RootEntity } from "./types";
 
 const node = document.getElementById("app");
+
+const personEntity: Entity = {
+  metadata: {
+    entityTypeId:
+      "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/entity-type/person/v/2",
+    recordId: {
+      entityId: "person-entity",
+      editionId: "1",
+    },
+  },
+  properties: {},
+};
 
 const blockEntity: RootEntity = {
   metadata: {
@@ -20,36 +33,9 @@ const blockEntity: RootEntity = {
       editionId: "1",
     },
   },
-  properties: {},
-};
-
-const listItem1: ListItem2 = {
   properties: {
-    "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/content/":
-      "1",
-  },
-  metadata: {
-    entityTypeId:
-      "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/entity-type/list-item-2/v/2",
-    recordId: {
-      entityId: "entity-list-item-1",
-      editionId: "1",
-    },
-  },
-};
-
-const listItem2: ListItem2 = {
-  properties: {
-    "https://blockprotocol-pktjfgq1m.stage.hash.ai/@blockprotocol/types/property-type/content/":
-      "2",
-  },
-  metadata: {
-    entityTypeId:
-      "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/entity-type/list-item-2/v/2",
-    recordId: {
-      entityId: "entity-list-item-2",
-      editionId: "1",
-    },
+    "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/list-item/":
+      ["1", {}],
   },
 };
 
