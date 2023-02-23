@@ -3135,14 +3135,6 @@
     es-module-lexer "^0.10.5"
     uuid "^8.3.2"
 
-"@blockprotocol/core@0.0.14-canary-20230223145025", "@blockprotocol/core@0.1.0-canary-20230223145025":
-  version "0.1.0-canary-20230223145025"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.1.0-canary-20230223145025.tgz#5161d55723b87dbee4c6f22bb277a56f77a13127"
-  integrity sha512-r9yiwJ8PxWBdDtt/mjZEjjkizGHF+Qh1FLIDZuGby0zumz/TTvtG9QEHu1pMn6WYDKdIvj/TvYixGJpXnZFoFA==
-  dependencies:
-    es-module-lexer "^0.10.5"
-    uuid "^8.3.2"
-
 "@blockprotocol/core@0.0.2":
   version "0.0.2"
   resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.0.2.tgz#f9ef68143981e5aadfe14556f0afa8931c6a472d"
@@ -3162,6 +3154,14 @@
   version "0.1.0-canary-20230220234726"
   resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.1.0-canary-20230220234726.tgz#2d617a6afdabf5d358351384846e993a544348e6"
   integrity sha512-AjSclIe8lmG+Qxit0I6HgYJ+um2N6cDogmBZqK5b5BnSvFK2WdxxkaE3OIzbNkHGALtz9uMhpysfg1SzzCpcMA==
+  dependencies:
+    es-module-lexer "^0.10.5"
+    uuid "^8.3.2"
+
+"@blockprotocol/core@0.1.0-canary-20230223145025":
+  version "0.1.0-canary-20230223145025"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.1.0-canary-20230223145025.tgz#5161d55723b87dbee4c6f22bb277a56f77a13127"
+  integrity sha512-r9yiwJ8PxWBdDtt/mjZEjjkizGHF+Qh1FLIDZuGby0zumz/TTvtG9QEHu1pMn6WYDKdIvj/TvYixGJpXnZFoFA==
   dependencies:
     es-module-lexer "^0.10.5"
     uuid "^8.3.2"
@@ -3257,15 +3257,15 @@
   resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.0.4-canary-20230210130343.tgz#fb77890ea27dba143cb7cfc22c73c0dd3f35325c"
   integrity sha512-sWca6zKPajyiNlv6oavOhf74k0qrguBmz1UzjXcsdcNxJhGTUaxRKQNg12MJ6IM+sPD6nxuO9r3hMEPcoTU0/g==
 
-"@blockprotocol/type-system@0.0.4-canary-20230223145025", "@blockprotocol/type-system@0.1.0-canary-20230223145025":
-  version "0.1.0-canary-20230223145025"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.1.0-canary-20230223145025.tgz#bd9d6a5bf0ef9cb72ff38d61fac7fa40f8c3ae88"
-  integrity sha512-/hpHxuY08kH1q7nMCUYX3Sc7Wu2yoGC7FpGst/wGnbgDJhmX0/W8UiQD/VHov2LOR21U9EtOZMCW+N6EOVIlMg==
-
 "@blockprotocol/type-system@0.1.0-canary-20230220234726":
   version "0.1.0-canary-20230220234726"
   resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.1.0-canary-20230220234726.tgz#58d88863e266592380d38fcb84acccc56b723b03"
   integrity sha512-ONTfaq4nd7AR6403pJ22VktOxodW35nJkoXd0GuP7KjrWb/YtCnxmHwNxkJRGWMi0iIo7IRiQfJkt4hYmFB4Bg==
+
+"@blockprotocol/type-system@0.1.0-canary-20230223145025":
+  version "0.1.0-canary-20230223145025"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.1.0-canary-20230223145025.tgz#bd9d6a5bf0ef9cb72ff38d61fac7fa40f8c3ae88"
+  integrity sha512-/hpHxuY08kH1q7nMCUYX3Sc7Wu2yoGC7FpGst/wGnbgDJhmX0/W8UiQD/VHov2LOR21U9EtOZMCW+N6EOVIlMg==
 
 "@changesets/apply-release-plan@^6.1.3":
   version "6.1.3"
