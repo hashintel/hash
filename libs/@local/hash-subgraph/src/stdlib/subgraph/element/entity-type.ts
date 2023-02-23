@@ -1,10 +1,10 @@
-import { type Subgraph as SubgraphBp } from "@blockprotocol/graph";
+import { type Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
 import {
   getEntityTypeById as getEntityTypeByIdBp,
   getEntityTypeByVertexId as getEntityTypeByVertexIdBp,
   getEntityTypes as getEntityTypesBp,
   getEntityTypesByBaseUri as getEntityTypesByBaseUriBp,
-} from "@blockprotocol/graph/stdlib";
+} from "@blockprotocol/graph/temporal/stdlib";
 import { VersionedUri } from "@blockprotocol/type-system/slim";
 
 import {
@@ -21,7 +21,7 @@ import {
  */
 export const getEntityTypes = (subgraph: Subgraph): EntityTypeWithMetadata[] =>
   getEntityTypesBp(
-    subgraph as unknown as SubgraphBp<true>,
+    subgraph as unknown as SubgraphBp,
   ) as EntityTypeWithMetadata[];
 
 /**
@@ -36,7 +36,7 @@ export const getEntityTypeById = (
   subgraph: Subgraph,
   entityTypeId: VersionedUri,
 ): EntityTypeWithMetadata | undefined =>
-  getEntityTypeByIdBp(subgraph as unknown as SubgraphBp<true>, entityTypeId) as
+  getEntityTypeByIdBp(subgraph as unknown as SubgraphBp, entityTypeId) as
     | EntityTypeWithMetadata
     | undefined;
 
@@ -52,10 +52,9 @@ export const getEntityTypeByVertexId = (
   subgraph: Subgraph,
   vertexId: OntologyTypeVertexId,
 ): EntityTypeWithMetadata | undefined =>
-  getEntityTypeByVertexIdBp(
-    subgraph as unknown as SubgraphBp<true>,
-    vertexId,
-  ) as EntityTypeWithMetadata | undefined;
+  getEntityTypeByVertexIdBp(subgraph as unknown as SubgraphBp, vertexId) as
+    | EntityTypeWithMetadata
+    | undefined;
 
 /**
  * Returns all `EntityTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUri`
@@ -68,6 +67,6 @@ export const getEntityTypesByBaseUri = (
   baseUri: BaseUri,
 ): EntityTypeWithMetadata[] =>
   getEntityTypesByBaseUriBp(
-    subgraph as unknown as SubgraphBp<true>,
+    subgraph as unknown as SubgraphBp,
     baseUri,
   ) as EntityTypeWithMetadata[];

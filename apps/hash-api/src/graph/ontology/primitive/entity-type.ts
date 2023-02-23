@@ -59,8 +59,6 @@ export const createEntityType: ImpureGraphFunction<
     ownedById,
     schema: {
       ...schema,
-      // @ts-expect-error: graph API expects this but the type in HASH hasn't been updated
-      additionalProperties: false,
     },
   });
 

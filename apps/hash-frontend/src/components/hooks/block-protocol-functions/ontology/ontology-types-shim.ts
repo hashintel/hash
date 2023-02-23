@@ -26,6 +26,8 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 
+type SystemDefinedPropertyTypeProperties = "$id" | "kind";
+
 export type OntologyCallbacks = {
   aggregateDataTypes: AggregateDataTypesMessageCallback;
   getDataType: GetDataTypeMessageCallback;
@@ -57,7 +59,7 @@ export type GetDataTypeMessageCallback = MessageCallback<
 /* Property type CRU */
 
 export type CreatePropertyTypeRequest = {
-  propertyType: Omit<PropertyType, "$id">;
+  propertyType: Omit<PropertyType, SystemDefinedPropertyTypeProperties>;
 };
 export type CreatePropertyTypeMessageCallback = MessageCallback<
   CreatePropertyTypeRequest,
@@ -95,7 +97,7 @@ export type GetPropertyTypeMessageCallback = MessageCallback<
 
 export type UpdatePropertyTypeRequest = {
   propertyTypeId: VersionedUri;
-  propertyType: Omit<PropertyType, "$id">;
+  propertyType: Omit<PropertyType, SystemDefinedPropertyTypeProperties>;
 };
 export type UpdatePropertyTypeMessageCallback = MessageCallback<
   UpdatePropertyTypeRequest,
@@ -107,7 +109,7 @@ export type UpdatePropertyTypeMessageCallback = MessageCallback<
 /* Entity type CRU */
 
 export type EntityTypeRequest = {
-  entityType: Omit<EntityType, "$id">;
+  entityType: Omit<EntityType, SystemDefinedPropertyTypeProperties>;
 };
 export type CreateEntityTypeMessageCallback = MessageCallback<
   EntityTypeRequest,
@@ -157,7 +159,7 @@ export type GetEntityTypeMessageCallback = MessageCallback<
 
 export type UpdateEntityTypeRequest = {
   entityTypeId: VersionedUri;
-  entityType: Omit<EntityType, "$id">;
+  entityType: Omit<EntityType, SystemDefinedPropertyTypeProperties>;
 };
 export type UpdateEntityTypeMessageCallback = MessageCallback<
   UpdateEntityTypeRequest,

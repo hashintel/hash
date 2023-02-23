@@ -61,18 +61,12 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
             Self::Description => Column::EntityTypes(EntityTypes::Schema(Some(
                 JsonField::StaticText("description"),
             ))),
-            Self::Default => {
-                Column::EntityTypes(EntityTypes::Schema(Some(JsonField::StaticText("default"))))
-            }
             Self::Examples => {
                 Column::EntityTypes(EntityTypes::Schema(Some(JsonField::StaticText("examples"))))
             }
             Self::Required => {
                 Column::EntityTypes(EntityTypes::Schema(Some(JsonField::StaticText("required"))))
             }
-            Self::RequiredLinks => Column::EntityTypes(EntityTypes::Schema(Some(
-                JsonField::StaticText("requiredLinks"),
-            ))),
             Self::Links(path) | Self::InheritsFrom(path) => path.terminating_column(),
             Self::Properties(path) => path.terminating_column(),
             Self::AdditionalMetadata(path) => path.as_ref().map_or(
