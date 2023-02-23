@@ -54,7 +54,7 @@ const Page: NextPageWithLayout = () => {
     string,
     "v" | undefined,
     `${number}` | undefined,
-  ];
+  ]; // @todo validate that the URL is formatted as expected;
 
   const baseEntityTypeUri = !isDraft
     ? getEntityTypeBaseUri(slug, router.query.shortname as string)
