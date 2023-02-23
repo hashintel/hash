@@ -4,10 +4,6 @@ import {
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
-import {
-  getOutgoingLinksForEntity,
-  getRightEntityForLinkEntity,
-} from "@blockprotocol/graph/stdlib";
 import AddIcon from "@mui/icons-material/Add";
 import ClearIcon from "@mui/icons-material/Clear";
 import DatasetLinkedIcon from "@mui/icons-material/DatasetLinked";
@@ -16,7 +12,6 @@ import Box from "@mui/material/Box";
 import produce from "immer";
 import isEqual from "lodash.isequal";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Root } from "react-dom/client";
 import { v4 as uuid } from "uuid";
 
 import { AddEntitiesDialog } from "./components/add-entities-dialog";
@@ -53,26 +48,23 @@ export const Shuffle: BlockComponent<RootEntity> = ({
     RootEntityLinkedEntities
   >(blockEntitySubgraph);
 
-  console.log(
-    getOutgoingLinksForEntity(
-      blockEntitySubgraph,
-      rootEntity.metadata.recordId.entityId,
-    ).map((link) =>
-      getRightEntityForLinkEntity(
-        blockEntitySubgraph,
-        link.metadata.recordId.entityId,
-      ),
-    ),
+  // @todo this should be optional
+  const items: Item[] = useMemo(
+    () =>
+      rootEntity.properties[
+        "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/list-item/"
+      ]
+        .filter((item): item is string => typeof item === "string")
+        .map((item, idx) => ({ value: item, id: `${idx + 1}` })),
+    [rootEntity.properties],
   );
-
-  return null;
 
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphModule } = useGraphBlockModule(blockRootRef);
   const [entitiesDialogOpen, setEntitiesDialogOpen] = useState(false);
   const [entityTypes, setEntityTypes] = useState<EntityType[]>([]);
   const [draftItems, setDraftItems] = useState<Items>(
-    items?.length ? items : initialItems,
+    items.length ? items : initialItems,
   );
   const [prevItems, setPrevItems] = useState(items);
 
@@ -90,13 +82,15 @@ export const Shuffle: BlockComponent<RootEntity> = ({
 
       if (errors || !data) return;
 
-      setEntityTypes(data.results);
+      console.log(data.results);
+
+      // setEntityTypes(data.results);
     };
 
     void getEntityTypes();
   }, [graphModule]);
 
-  if (items && items !== prevItems) {
+  if (items !== prevItems) {
     setPrevItems(items);
 
     if (!isEqual(items, draftItems)) {
@@ -108,12 +102,15 @@ export const Shuffle: BlockComponent<RootEntity> = ({
     if (readonly) {
       return;
     }
-    void graphModule?.updateEntity({
-      data: {
-        entityId: blockEntityId,
-        properties: { items: newItems },
-      },
-    });
+
+    console.log(newItems);
+
+    // void graphModule.updateEntity({
+    //   data: {
+    //     entityId: blockEntityId,
+    //     properties: { items: newItems },
+    //   },
+    // });
   };
 
   const updateItems = (newItems: Items, publish = true) => {
@@ -214,32 +211,34 @@ export const Shuffle: BlockComponent<RootEntity> = ({
    * this way, we don't show a stale `value` if the linked entity gets updated
    */
   const enhancedDraftItems = useMemo(() => {
-    // creating maps here, so we can use maps in the loop below instead of Array.find
-    // avoid using nested loops for better performance
-    const linkedEntitiesMap = new Map(
-      linkedEntities.map((link) => [
-        link.rightEntity.metadata.recordId.entityId,
-        link.rightEntity,
-      ]),
-    );
+    return draftItems;
 
-    const entityTypesMap = new Map(entityTypes.map((type) => [type.$id, type]));
-
-    return draftItems.map((item) => {
-      const itemEntityId = item.entityId;
-
-      const entity = linkedEntitiesMap.get(itemEntityId ?? "");
-
-      const entityType = entity
-        ? entityTypesMap.get(entity?.metadata.entityTypeId)
-        : null;
-
-      return {
-        ...item,
-        ...(entity && { value: getEntityLabel(entity, entityType) }),
-      };
-    });
-  }, [blockGraph?.linkedEntities, draftItems, entityTypes]);
+    // // creating maps here, so we can use maps in the loop below instead of Array.find
+    // // avoid using nested loops for better performance
+    // const linkedEntitiesMap = new Map(
+    //   linkedEntities.map((link) => [
+    //     link.rightEntity.metadata.recordId.entityId,
+    //     link.rightEntity,
+    //   ]),
+    // );
+    //
+    // const entityTypesMap = new Map(entityTypes.map((type) => [type.$id, type]));
+    //
+    // return draftItems.map((item) => {
+    //   const itemEntityId = item.entityId;
+    //
+    //   const entity = linkedEntitiesMap.get(itemEntityId ?? "");
+    //
+    //   const entityType = entity
+    //     ? entityTypesMap.get(entity?.metadata.entityTypeId)
+    //     : null;
+    //
+    //   return {
+    //     ...item,
+    //     ...(entity && { value: getEntityLabel(entity, entityType) }),
+    //   };
+    // });
+  }, [draftItems, entityTypes]);
 
   return (
     <Box ref={blockRootRef} display="flex" flexDirection="column" px={1}>
@@ -286,7 +285,7 @@ export const Shuffle: BlockComponent<RootEntity> = ({
         onClose={() => setEntitiesDialogOpen(false)}
         graphModule={graphModule}
         entityTypes={entityTypes}
-        blockEntityId={blockEntityId}
+        blockEntityId={rootEntity.metadata.recordId.entityId}
         onAddEntityItems={handleAddEntityItems}
       />
     </Box>

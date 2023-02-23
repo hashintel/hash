@@ -16,7 +16,6 @@ import { useState } from "react";
 import { v4 as uuid } from "uuid";
 
 import { Item } from "../shuffle";
-import { getEntityLabel } from "../utils";
 
 const SFormControlLabel = styled(FormControlLabel)(
   sx({
@@ -65,23 +64,39 @@ export const AddEntitiesDialog = ({
   const handleEntityTypeClick = async (entityType: EntityType) => {
     if (!graphModule) return;
 
-    const { entityTypeId } = entityType;
+    const entityTypeId = entityType.$id;
 
     // get the entities of clicked entity type
     const { data } = await graphModule.aggregateEntities({
-      data: { operation: { entityTypeId, itemsPerPage: 100 } },
+      data: {
+        operation: {
+          multiFilter: {
+            operator: "AND",
+            filters: [
+              {
+                field: ["metadata", "entityTypeId"],
+                value: entityTypeId,
+                operator: "EQUALS",
+              },
+            ],
+          },
+        },
+      },
     });
 
     if (!data) return onClose();
 
     const { results: entities } = data;
 
-    // by default, all entity checkboxes are checked
-    const initialSelection = entities.map(() => true);
+    console.log(entities);
 
-    setEntityList(entities);
-    setSelections(initialSelection);
-    setSelectedEntityType(entityType);
+    //
+    // // by default, all entity checkboxes are checked
+    // const initialSelection = entities.map(() => true);
+    //
+    // setEntityList(entities);
+    // setSelections(initialSelection);
+    // setSelectedEntityType(entityType);
   };
 
   const handleCheckboxChange = (changedIndex: number) => {
@@ -99,7 +114,7 @@ export const AddEntitiesDialog = ({
       if (!value) continue;
 
       const entity = entityList[index];
-      if (entity) selectedEntityIds.push(entity.entityId);
+      if (entity) selectedEntityIds.push(entity.metadata.recordId.entityId);
     }
 
     const createLinkResponses = await Promise.all(
@@ -107,10 +122,12 @@ export const AddEntitiesDialog = ({
         graphModule.createEntity({
           data: {
             linkData: {
-              leftEntityId: "", // shuffle entity,
+              leftEntityId: blockEntityId, // shuffle entity,
               rightEntityId: entityId,
             },
-            entityTypeId: "", // the URL of the link entity type
+            properties: {},
+            entityTypeId:
+              "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/entity-type/item-content-2/v/1", // the URL of the link entity type
           },
         }),
       ),
@@ -143,10 +160,10 @@ export const AddEntitiesDialog = ({
       {!selectedEntityType &&
         entityTypes.map((entityType) => (
           <Button
-            key={entityType.entityTypeId}
+            key={entityType.$id}
             onClick={() => handleEntityTypeClick(entityType)}
           >
-            {entityType.schema.title}
+            {entityType.title}
           </Button>
         ))}
 
@@ -158,8 +175,9 @@ export const AddEntitiesDialog = ({
         >
           <FormGroup>
             {entityList.map((entity, i) => {
-              const { entityId } = entity;
-              const label = getEntityLabel(entity, selectedEntityType);
+              const { entityId } = entity.metadata.recordId;
+              // @todo generate this
+              const label = "label";
 
               return (
                 <SFormControlLabel

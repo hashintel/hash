@@ -21,7 +21,10 @@ const personEntity: Entity = {
       editionId: "1",
     },
   },
-  properties: {},
+  properties: {
+    "https://blockprotocol-r2l2zq4gf.stage.hash.ai/@blockprotocol/types/property-type/name/":
+      "John Doe",
+  },
 };
 
 const blockEntity: RootEntity = {
@@ -35,7 +38,13 @@ const blockEntity: RootEntity = {
   },
   properties: {
     "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/list-item/":
-      ["1", {}],
+      [
+        "Thing 1",
+        {
+          "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/link-entity-id/":
+            "person-entity",
+        },
+      ],
   },
 };
 
@@ -51,27 +60,11 @@ const link1: ItemContent2 = {
   },
   linkData: {
     leftEntityId: blockEntity.metadata.recordId.entityId,
-    rightEntityId: listItem1.metadata.recordId.entityId,
+    rightEntityId: personEntity.metadata.recordId.entityId,
   },
 };
 
-const link2: ItemContent2 = {
-  properties: {},
-  metadata: {
-    entityTypeId:
-      "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/entity-type/item-content-2/v/1",
-    recordId: {
-      entityId: "item-content-2",
-      editionId: "1",
-    },
-  },
-  linkData: {
-    leftEntityId: blockEntity.metadata.recordId.entityId,
-    rightEntityId: listItem2.metadata.recordId.entityId,
-  },
-};
-
-const initialEntities = [blockEntity, listItem1, listItem2, link1, link2];
+const initialEntities = [blockEntity, link1, personEntity];
 
 const App = () => {
   return (
