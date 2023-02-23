@@ -206,9 +206,9 @@ impl IntoIterator for EntityIdWithIntervalSet {
                         // then those would have been merged into one in the previous iteration
                         // (again because they are sorted).
                         if let Some(last) = acc.pop() {
-                            // `union` ensures that the resulting intervals are sorted, either
-                            // one or two intervals are returned, depending on whether they
-                            // overlap or not.
+                            // `union` either returns one or two intervals, depending on whether
+                            // they overlap or not. If two intervals are returned, the ordering is
+                            // stable, so we can just push them in order.
                             acc.extend(last.union(interval));
                         } else {
                             acc.push(interval);

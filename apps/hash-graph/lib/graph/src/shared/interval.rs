@@ -298,16 +298,16 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
     /// Returns a new interval that contains all points in both intervals.
     ///
     /// In comparison to [`Self::merge`], this method returns two intervals if they don't overlap.
+    /// If two intervals are returned, the ordering is stable, i.e. `self` is always the first
+    /// interval and `other` is always the second interval.
     pub fn union(self, other: Self) -> impl ExactSizeIterator<Item = Self>
     where
         T: Ord,
     {
         if self.overlaps(&other) || self.is_adjacent_to(&other) {
             Return::one(self.merge(other))
-        } else if self.cmp_start_to_start(&other) == Ordering::Less {
-            Return::two(self, other)
         } else {
-            Return::two(other, self)
+            Return::two(self, other)
         }
     }
 
