@@ -94,11 +94,11 @@ export const useEntityTypeValue = (
           },
         }) => version,
       );
-      const relevantVersionindex = relevantVersions.indexOf(
+      const relevantVersionIndex = relevantVersions.indexOf(
         Math.max(...relevantVersions),
       );
 
-      return relevantEntityTypes[relevantVersionindex]!.schema;
+      return relevantEntityTypes[relevantVersionIndex]!.schema;
     }
 
     return null;

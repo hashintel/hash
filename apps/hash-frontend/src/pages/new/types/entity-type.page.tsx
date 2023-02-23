@@ -93,13 +93,14 @@ const Page: NextPageWithLayout = () => {
       kind: "entity-type",
       version: 1,
     });
-    const entityType: Omit<EntityType, "additionalProperties"> = {
+    const entityType: EntityType = {
+      $id: versionedUrl,
       title: name,
       description,
       kind: "entityType",
       type: "object",
       properties: {},
-      $id: versionedUrl,
+      additionalProperties: false,
     };
 
     const nextUrl = `${baseUrl}?draft=${encodeURIComponent(

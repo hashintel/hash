@@ -1,4 +1,4 @@
-import { extractVersion } from "@blockprotocol/type-system";
+import { extractVersion, validateEntityType } from "@blockprotocol/type-system";
 import { EntityType } from "@blockprotocol/type-system/slim";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -65,13 +65,21 @@ const Page: NextPageWithLayout = () => {
 
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
-      // @todo use validation when validateEntityType doesn't return undefined
-      return JSON.parse(
+      const entityType = JSON.parse(
         Buffer.from(
           decodeURIComponent(router.query.draft.toString()),
           "base64",
         ).toString("ascii"),
-      ) as EntityType;
+      );
+
+      const validationResult = validateEntityType(entityType);
+      if (validationResult.type === "Ok") {
+        return entityType as EntityType;
+      } else {
+        throw Error(
+          `Invalid draft entity type: ${JSON.stringify(validationResult)}`,
+        );
+      }
     } else {
       return null;
     }
