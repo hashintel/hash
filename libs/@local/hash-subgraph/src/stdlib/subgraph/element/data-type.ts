@@ -1,10 +1,10 @@
-import { type Subgraph as SubgraphBp } from "@blockprotocol/graph";
+import { type Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
 import {
   getDataTypeById as getDataTypeByIdBp,
   getDataTypeByVertexId as getDataTypeByVertexIdBp,
   getDataTypes as getDataTypesBp,
   getDataTypesByBaseUri as getDataTypesByBaseUriBp,
-} from "@blockprotocol/graph/stdlib";
+} from "@blockprotocol/graph/temporal/stdlib";
 import { VersionedUri } from "@blockprotocol/type-system/slim";
 
 import {
@@ -20,9 +20,7 @@ import {
  * @param subgraph
  */
 export const getDataTypes = (subgraph: Subgraph): DataTypeWithMetadata[] =>
-  getDataTypesBp(
-    subgraph as unknown as SubgraphBp<true>,
-  ) as DataTypeWithMetadata[];
+  getDataTypesBp(subgraph as unknown as SubgraphBp) as DataTypeWithMetadata[];
 
 /**
  * Gets a `DataTypeWithMetadata` by its `VersionedUri` from within the vertices of the subgraph. Returns `undefined` if
@@ -36,7 +34,7 @@ export const getDataTypeById = (
   subgraph: Subgraph,
   dataTypeId: VersionedUri,
 ): DataTypeWithMetadata | undefined =>
-  getDataTypeByIdBp(subgraph as unknown as SubgraphBp<true>, dataTypeId) as
+  getDataTypeByIdBp(subgraph as unknown as SubgraphBp, dataTypeId) as
     | DataTypeWithMetadata
     | undefined;
 
@@ -52,7 +50,7 @@ export const getDataTypeByVertexId = (
   subgraph: Subgraph,
   vertexId: OntologyTypeVertexId,
 ): DataTypeWithMetadata | undefined =>
-  getDataTypeByVertexIdBp(subgraph as unknown as SubgraphBp<true>, vertexId) as
+  getDataTypeByVertexIdBp(subgraph as unknown as SubgraphBp, vertexId) as
     | DataTypeWithMetadata
     | undefined;
 
@@ -67,6 +65,6 @@ export const getDataTypesByBaseUri = (
   baseUri: BaseUri,
 ): DataTypeWithMetadata[] =>
   getDataTypesByBaseUriBp(
-    subgraph as unknown as SubgraphBp<true>,
+    subgraph as unknown as SubgraphBp,
     baseUri,
   ) as DataTypeWithMetadata[];

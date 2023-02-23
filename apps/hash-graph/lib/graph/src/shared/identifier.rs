@@ -10,28 +10,28 @@ use utoipa::ToSchema;
 use crate::identifier::{
     knowledge::EntityId,
     ontology::OntologyTypeVersion,
-    time::{ProjectedTime, Timestamp},
+    time::{Timestamp, VariableAxis},
 };
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityVertexId {
     pub base_id: EntityId,
-    pub version: Timestamp<ProjectedTime>,
+    pub revision_id: Timestamp<VariableAxis>,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct OntologyTypeVertexId {
     pub base_id: BaseUri,
-    pub version: OntologyTypeVersion,
+    pub revision_id: OntologyTypeVersion,
 }
 
 impl From<VersionedUri> for OntologyTypeVertexId {
     fn from(uri: VersionedUri) -> Self {
         Self {
             base_id: uri.base_uri,
-            version: OntologyTypeVersion::new(uri.version),
+            revision_id: OntologyTypeVersion::new(uri.version),
         }
     }
 }

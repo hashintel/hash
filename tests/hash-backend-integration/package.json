@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@apps/hash-api": "0.0.0-private",
-    "@blockprotocol/type-system": "0.0.4-canary-20230214141700",
+    "@blockprotocol/type-system": "0.1.0-canary-20230222150704",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-graphql-shared": "0.0.0-private",

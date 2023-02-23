@@ -3,7 +3,7 @@ import {
   DataTypeWithMetadata as DataTypeWithMetadataBp,
   EntityTypeWithMetadata as EntityTypeWithMetadataBp,
   PropertyTypeWithMetadata as PropertyTypeWithMetadataBp,
-} from "@blockprotocol/graph";
+} from "@blockprotocol/graph/temporal";
 import {
   DataType,
   EntityType,
@@ -33,7 +33,7 @@ export type OntologyTypeRecordId = {
 export const ontologyTypeRecordIdToVersionedUri = (
   ontologyTypeRecordId: OntologyTypeRecordId,
 ): VersionedUri => {
-  return `${ontologyTypeRecordId.baseUri}v/${ontologyTypeRecordId.version}` as VersionedUri;
+  return `${ontologyTypeRecordId.baseUri}v/${ontologyTypeRecordId.version}`;
 };
 
 export const isOntologyTypeRecordId = (

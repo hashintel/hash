@@ -1,9 +1,10 @@
 import { EntityType } from "@blockprotocol/type-system";
-import { Button, TextField } from "@hashintel/design-system";
-import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import { generateBaseTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { BaseUri } from "@local/hash-subgraph";
-import { versionedUriFromComponents } from "@local/hash-subgraph/type-system-patch";
+import {
+  Button,
+  OntologyChip,
+  OntologyIcon,
+  TextField,
+} from "@hashintel/design-system";
 import {
   Box,
   Container,
@@ -26,9 +27,8 @@ import {
   NextPageWithLayout,
 } from "../../../shared/layout";
 import { Link } from "../../../shared/ui/link";
-import { HashOntologyIcon } from "../../[shortname]/shared/hash-ontology-icon";
-import { OntologyChip } from "../../[shortname]/shared/ontology-chip";
 import { TopContextBar } from "../../shared/top-context-bar";
+import { useGenerateTypeUrisForUser } from "../../shared/use-generate-type-uris-for-user";
 import { WorkspaceContext } from "../../shared/workspace-context";
 
 const FormHelperLabel = ({
@@ -56,9 +56,6 @@ type CreateEntityTypeFormData = {
 
 const HELPER_TEXT_WIDTH = 290;
 
-const generateInitialEntityTypeId = (baseUri: BaseUri) =>
-  versionedUriFromComponents(baseUri, 1);
-
 /**
  * @todo check user has permission to create entity type in this namespace
  */
@@ -84,34 +81,25 @@ const Page: NextPageWithLayout = () => {
 
   const { getEntityType } = useBlockProtocolGetEntityType();
   const { activeWorkspace } = useContext(WorkspaceContext);
+  const generateTypeUrisForUser = useGenerateTypeUrisForUser();
 
   if (!activeWorkspace) {
     return null;
   }
 
-  const generateEntityTypeBaseUriForUser = (value: string) => {
-    if (!activeWorkspace.shortname) {
-      throw new Error("User or Org shortname must exist");
-    }
-
-    return generateBaseTypeId({
-      domain: frontendUrl,
-      namespace: activeWorkspace.shortname,
-      kind: "entity-type",
-      title: value,
-    });
-  };
-
   const handleFormSubmit = handleSubmit(async ({ name, description }) => {
-    const baseUri = generateEntityTypeBaseUriForUser(name);
-    const entityType: EntityType = {
-      $id: generateInitialEntityTypeId(baseUri),
+    const { baseUri, versionedUri } = generateTypeUrisForUser({
+      title: name,
+      kind: "entity-type",
+      version: 1,
+    });
+    const entityType: Omit<EntityType, "additionalProperties"> = {
       title: name,
       description,
       kind: "entityType",
       type: "object",
       properties: {},
-      additionalProperties: false,
+      $id: versionedUri,
     };
 
     const nextUrl = `${baseUri}?draft=${encodeURIComponent(
@@ -143,7 +131,7 @@ const Page: NextPageWithLayout = () => {
         <Box py={3.75}>
           <Container>
             <OntologyChip
-              icon={<HashOntologyIcon />}
+              icon={<OntologyIcon />}
               domain="hash.ai"
               path={
                 <Typography color={(theme) => theme.palette.blue[70]}>
@@ -209,12 +197,14 @@ const Page: NextPageWithLayout = () => {
                   onChange() {
                     clearErrors("name");
                   },
-                  async validate(value) {
+                  async validate(title) {
                     const res = await getEntityType({
                       data: {
-                        entityTypeId: generateInitialEntityTypeId(
-                          generateEntityTypeBaseUriForUser(value),
-                        ),
+                        entityTypeId: generateTypeUrisForUser({
+                          kind: "entity-type",
+                          title,
+                          version: 1,
+                        }).versionedUri,
                         graphResolveDepths: {
                           constrainsValuesOn: { outgoing: 0 },
                           constrainsPropertiesOn: { outgoing: 0 },

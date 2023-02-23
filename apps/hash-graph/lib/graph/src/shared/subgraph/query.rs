@@ -8,11 +8,10 @@ use utoipa::{
 };
 
 use crate::{
-    identifier::time::UnresolvedTimeProjection,
     knowledge::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
     store::{query::Filter, Record},
-    subgraph::edges::GraphResolveDepths,
+    subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };
 
 /// Structural queries are the main entry point to read data from the Graph.
@@ -162,29 +161,25 @@ pub struct StructuralQuery<'p, R: Record> {
     #[serde(bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>")]
     pub filter: Filter<'p, R>,
     pub graph_resolve_depths: GraphResolveDepths,
-    #[serde(rename = "timeAxes")]
-    pub time_projection: UnresolvedTimeProjection,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
 }
 
 impl<'p, R: Record> StructuralQuery<'p, R> {
     fn generate_schema() -> RefOr<Schema> {
-        Schema::Object(
-            ObjectBuilder::new()
-                .property("filter", Ref::from_schema_name("Filter"))
-                .required("filter")
-                .property(
-                    "graphResolveDepths",
-                    Ref::from_schema_name(GraphResolveDepths::schema().0),
-                )
-                .required("graphResolveDepths")
-                .property(
-                    "timeAxes",
-                    Ref::from_schema_name(UnresolvedTimeProjection::schema().0),
-                )
-                .required("timeProjection")
-                .build(),
-        )
-        .into()
+        ObjectBuilder::new()
+            .property("filter", Ref::from_schema_name("Filter"))
+            .required("filter")
+            .property(
+                "graphResolveDepths",
+                Ref::from_schema_name(GraphResolveDepths::schema().0),
+            )
+            .required("graphResolveDepths")
+            .property(
+                "temporalAxes",
+                Ref::from_schema_name(QueryTemporalAxesUnresolved::schema().0),
+            )
+            .required("temporalAxes")
+            .into()
     }
 }
 

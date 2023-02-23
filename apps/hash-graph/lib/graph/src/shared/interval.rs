@@ -61,9 +61,6 @@ impl<T> ExactSizeIterator for Return<T> {
     }
 }
 
-// TODO: We want some sensible aliases for intervals with specific bounds, so we don't have to
-//       write `Interval<T, S, E>` everywhere. This also improves the `ToSchema` definition.
-//   see https://app.asana.com/0/0/1203783495017458/f
 #[derive(Copy, Clone, Serialize, Deserialize)]
 #[serde(bound(
     serialize = "S: Serialize, E: Serialize",

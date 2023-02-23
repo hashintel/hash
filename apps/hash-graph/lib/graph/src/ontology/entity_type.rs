@@ -132,19 +132,6 @@ pub enum EntityTypeQueryPath<'p> {
     ///
     /// [`EntityType::description()`]: type_system::EntityType::description
     Description,
-    /// Corresponds to [`EntityType::default()`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::EntityTypeQueryPath;
-    /// let path = EntityTypeQueryPath::deserialize(json!(["default"]))?;
-    /// assert_eq!(path, EntityTypeQueryPath::Default);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`EntityType::default()`]: type_system::EntityType::default
-    Default,
     /// Corresponds to [`EntityType::examples()`].
     ///
     /// ```rust
@@ -217,19 +204,6 @@ pub enum EntityTypeQueryPath<'p> {
     /// [`EntityType`]: type_system::EntityType
     /// [`EntityType::link_mappings()`]: type_system::EntityType::link_mappings
     Links(Box<Self>),
-    /// Corresponds to [`EntityType::required_links()`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::EntityTypeQueryPath;
-    /// let path = EntityTypeQueryPath::deserialize(json!(["requiredLinks"]))?;
-    /// assert_eq!(path, EntityTypeQueryPath::RequiredLinks);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`EntityType::required_links()`]: type_system::EntityType::required_links
-    RequiredLinks,
     /// Currently, does not correspond to any field of [`EntityType`].
     ///
     /// In the future, this will most likely correspond to something like
@@ -294,14 +268,13 @@ impl QueryPath for EntityTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
             Self::OntologyId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
-            Self::Schema(_) | Self::AdditionalMetadata(_) => ParameterType::Any,
+            Self::Schema(_) | Self::AdditionalMetadata(_) | Self::Examples | Self::Required => {
+                ParameterType::Any
+            }
             Self::BaseUri => ParameterType::BaseUri,
             Self::VersionedUri => ParameterType::VersionedUri,
             Self::Version => ParameterType::OntologyTypeVersion,
             Self::Title | Self::Description => ParameterType::Text,
-            Self::Default | Self::Examples | Self::Required | Self::RequiredLinks => {
-                ParameterType::Any
-            }
             Self::Properties(path) => path.expected_type(),
             Self::Links(path) | Self::InheritsFrom(path) => path.expected_type(),
         }
@@ -321,12 +294,10 @@ impl fmt::Display for EntityTypeQueryPath<'_> {
             Self::Schema(None) => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),
             Self::Description => fmt.write_str("description"),
-            Self::Default => fmt.write_str("default"),
             Self::Examples => fmt.write_str("examples"),
             Self::Properties(path) => write!(fmt, "properties.{path}"),
             Self::Required => fmt.write_str("required"),
             Self::Links(path) => write!(fmt, "links.{path}"),
-            Self::RequiredLinks => fmt.write_str("requiredLinks"),
             Self::InheritsFrom(path) => write!(fmt, "inheritsFrom.{path}"),
             Self::AdditionalMetadata(Some(path)) => write!(fmt, "additionalMetadata.{path}"),
             Self::AdditionalMetadata(None) => fmt.write_str("additionalMetadata"),
@@ -345,12 +316,10 @@ pub enum EntityTypeQueryToken {
     UpdatedById,
     Title,
     Description,
-    Default,
     Examples,
     Properties,
     Required,
     Links,
-    RequiredLinks,
     InheritsFrom,
     #[serde(skip)]
     Schema,
@@ -363,10 +332,9 @@ pub struct EntityTypeQueryPathVisitor {
 }
 
 impl EntityTypeQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `baseUri`, `version`, `versionedUri`, \
-                                         `ownedById`, `updatedById`, `title`, `description`, \
-                                         `default`, `examples`, `properties`, `required`, \
-                                         `links`, `requiredLinks`, `inheritsFrom`";
+    pub const EXPECTING: &'static str =
+        "one of `baseUri`, `version`, `versionedUri`, `ownedById`, `updatedById`, `title`, \
+         `description`, `examples`, `properties`, `required`, `links`, `inheritsFrom`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -398,7 +366,6 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
             EntityTypeQueryToken::Version => EntityTypeQueryPath::Version,
             EntityTypeQueryToken::Title => EntityTypeQueryPath::Title,
             EntityTypeQueryToken::Description => EntityTypeQueryPath::Description,
-            EntityTypeQueryToken::Default => EntityTypeQueryPath::Default,
             EntityTypeQueryToken::Examples => EntityTypeQueryPath::Examples,
             EntityTypeQueryToken::Properties => {
                 seq.next_element::<Selector>()?
@@ -417,7 +384,6 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
 
                 EntityTypeQueryPath::Links(Box::new(Self::new(self.position).visit_seq(seq)?))
             }
-            EntityTypeQueryToken::RequiredLinks => EntityTypeQueryPath::RequiredLinks,
             EntityTypeQueryToken::InheritsFrom => {
                 seq.next_element::<Selector>()?
                     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
@@ -480,7 +446,6 @@ mod tests {
             deserialize(["description"]),
             EntityTypeQueryPath::Description
         );
-        assert_eq!(deserialize(["default"]), EntityTypeQueryPath::Default);
         assert_eq!(deserialize(["examples"]), EntityTypeQueryPath::Examples);
         assert_eq!(
             deserialize(["properties", "*", "version"]),
@@ -490,10 +455,6 @@ mod tests {
         assert_eq!(
             deserialize(["links", "*", "version"]),
             EntityTypeQueryPath::Links(Box::new(EntityTypeQueryPath::Version))
-        );
-        assert_eq!(
-            deserialize(["requiredLinks"]),
-            EntityTypeQueryPath::RequiredLinks
         );
 
         assert_eq!(

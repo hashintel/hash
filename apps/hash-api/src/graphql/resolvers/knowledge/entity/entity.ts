@@ -145,15 +145,17 @@ export const getAllLatestEntitiesResolver: ResolverFn<
       hasLeftEntity,
       hasRightEntity,
     },
-    timeAxes: {
+    temporalAxes: {
       pinned: {
         axis: "transactionTime",
         timestamp: null,
       },
       variable: {
         axis: "decisionTime",
-        start: null,
-        end: null,
+        interval: {
+          start: null,
+          end: null,
+        },
       },
     },
   });
@@ -208,17 +210,21 @@ export const getEntityResolver: ResolverFn<
       hasLeftEntity,
       hasRightEntity,
     },
-    timeAxes: {
+    temporalAxes: {
       pinned: {
         axis: "transactionTime",
         timestamp: null,
       },
       variable: {
         axis: "decisionTime",
-        start: entityVersion
-          ? { kind: "inclusive", limit: entityVersion }
-          : null,
-        end: entityVersion ? { kind: "inclusive", limit: entityVersion } : null,
+        interval: {
+          start: entityVersion
+            ? { kind: "inclusive", limit: entityVersion }
+            : null,
+          end: entityVersion
+            ? { kind: "inclusive", limit: entityVersion }
+            : null,
+        },
       },
     },
   });

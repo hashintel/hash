@@ -1,4 +1,4 @@
-import { mapElementsIntoRevisions as mapElementsIntoRevisionsBp } from "@blockprotocol/graph/stdlib";
+import { mapElementsIntoRevisions as mapElementsIntoRevisionsBp } from "@blockprotocol/graph/temporal/stdlib";
 
 import { Vertex } from "../../../main";
 

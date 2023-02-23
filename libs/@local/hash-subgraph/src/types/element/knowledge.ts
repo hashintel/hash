@@ -9,7 +9,7 @@ import {
   type LinkData as LinkDataBp,
   type LinkEntityAndRightEntity as LinkEntityAndRightEntityBp,
   isEntityRecordId as isEntityRecordIdBp,
-} from "@blockprotocol/graph";
+} from "@blockprotocol/graph/temporal";
 import { VersionedUri } from "@blockprotocol/type-system/slim";
 import { Brand } from "@local/advanced-types/brand";
 import { Subtype } from "@local/advanced-types/subtype";
@@ -85,7 +85,7 @@ export type EntityTemporalVersioningMetadata = Subtype<
 >;
 
 export type EntityMetadata = Subtype<
-  EntityMetadataBp<true>,
+  EntityMetadataBp,
   {
     recordId: EntityRecordId;
     entityTypeId: VersionedUri;
@@ -111,7 +111,7 @@ export type Entity<
     EntityPropertyValue
   >,
 > = Subtype<
-  EntityBp<true, Properties>,
+  EntityBp<Properties>,
   {
     metadata: EntityMetadata;
     linkData?: LinkData;
@@ -119,7 +119,7 @@ export type Entity<
 >;
 
 export type LinkEntityAndRightEntity = Subtype<
-  LinkEntityAndRightEntityBp<true>,
+  LinkEntityAndRightEntityBp,
   {
     linkEntity: Entity[];
     rightEntity: Entity[];

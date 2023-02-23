@@ -14,7 +14,7 @@ use crate::{
         report_to_status_code,
         utoipa_typedef::{subgraph::Subgraph, EntityIdAndTimestamp},
     },
-    identifier::knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
+    identifier::knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityTemporalMetadata},
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryToken, EntityUuid,
         LinkData, LinkOrder,
@@ -50,7 +50,7 @@ use crate::{
             EntityLinkOrder,
             EntityProperties,
             EntityRecordId,
-            EntityVersion,
+            EntityTemporalMetadata,
             EntityQueryToken,
             LinkData,
             LinkOrder,

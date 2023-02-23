@@ -1,14 +1,16 @@
 import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
+import {
+  fa100,
+  faAsterisk,
+  faBracketsCurly,
+  faBracketsSquare,
+  faEmptySet,
+  faSquareCheck,
+  faText,
+} from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 
-import { fa100 } from "../../../../../../../../../shared/icons/pro/fa-100";
-import { faAsterisk } from "../../../../../../../../../shared/icons/pro/fa-asterisk";
-import { faBracketsCurly } from "../../../../../../../../../shared/icons/pro/fa-brackets-curly";
-import { faBracketsSquare } from "../../../../../../../../../shared/icons/pro/fa-brackets-square";
-import { faEmptySet } from "../../../../../../../../../shared/icons/pro/fa-empty-set";
-import { faSquareCheck } from "../../../../../../../../../shared/icons/pro/fa-square-check";
-import { faText } from "../../../../../../../../../shared/icons/pro/fa-text";
 import { EditorType } from "./types";
 
 interface EditorSpec {

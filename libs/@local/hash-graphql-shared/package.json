@@ -22,8 +22,8 @@
   },
   "dependencies": {
     "@apollo/client": "3.6.9",
-    "@blockprotocol/core": "0.0.14-canary-20230214141700",
-    "@blockprotocol/type-system": "0.0.4-canary-20230214141700",
+    "@blockprotocol/core": "0.1.0-canary-20230222150704",
+    "@blockprotocol/type-system": "0.1.0-canary-20230222150704",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@sentry/browser": "7.30.0",

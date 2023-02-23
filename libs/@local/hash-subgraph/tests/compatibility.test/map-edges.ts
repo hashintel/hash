@@ -1,8 +1,8 @@
 import { validateBaseUri } from "@blockprotocol/type-system";
 import {
   Edges as EdgesGraphApi,
-  KnowledgeGraphOutwardEdges as KnowledgeGraphOutwardEdgesGraphApi,
-  OntologyOutwardEdges as OntologyOutwardEdgesGraphApi,
+  KnowledgeGraphOutwardEdge as KnowledgeGraphOutwardEdgeGraphApi,
+  OntologyOutwardEdge as OntologyOutwardEdgeGraphApi,
 } from "@local/hash-graph-client";
 import {
   BaseUri,
@@ -17,9 +17,7 @@ import {
 } from "@local/hash-subgraph";
 
 export const mapOutwardEdge = (
-  outwardEdge:
-    | OntologyOutwardEdgesGraphApi
-    | KnowledgeGraphOutwardEdgesGraphApi,
+  outwardEdge: OntologyOutwardEdgeGraphApi | KnowledgeGraphOutwardEdgeGraphApi,
 ): OutwardEdge => {
   switch (outwardEdge.kind) {
     // Ontology edge-kind cases
@@ -33,7 +31,7 @@ export const mapOutwardEdge = (
         rightEndpoint: {
           baseId: outwardEdge.rightEndpoint.baseId as BaseUri,
           revisionId:
-            `${outwardEdge.rightEndpoint.version}` as OntologyTypeRevisionId,
+            `${outwardEdge.rightEndpoint.revisionId}` as OntologyTypeRevisionId,
         },
       };
     }
@@ -68,7 +66,7 @@ export const mapOutwardEdge = (
               interval: {
                 start: {
                   kind: "inclusive",
-                  limit: outwardEdge.rightEndpoint.version as Timestamp,
+                  limit: outwardEdge.rightEndpoint.revisionId as Timestamp,
                 },
                 end: {
                   /** @todo-0.3 - This is incorrect, this will be fixed when the graph backend is migrated to be consistent */
@@ -83,7 +81,7 @@ export const mapOutwardEdge = (
             rightEndpoint: {
               baseId: outwardEdge.rightEndpoint.baseId as BaseUri,
               revisionId:
-                `${outwardEdge.rightEndpoint.version}` as OntologyTypeRevisionId,
+                `${outwardEdge.rightEndpoint.revisionId}` as OntologyTypeRevisionId,
             },
           };
     }

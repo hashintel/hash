@@ -20,10 +20,7 @@ use graph::{
         account::AccountId,
         knowledge::EntityId,
         ontology::OntologyTypeVersion,
-        time::{
-            DecisionTime, LimitedTimeIntervalBound, TimeIntervalBound, Timestamp, UnresolvedImage,
-            UnresolvedKernel, UnresolvedProjection, UnresolvedTimeProjection,
-        },
+        time::{DecisionTime, LimitedTemporalBound, TemporalBound, Timestamp},
         GraphElementVertexId, OntologyTypeVertexId,
     },
     knowledge::{
@@ -31,8 +28,9 @@ use graph::{
         LinkData,
     },
     ontology::{
-        DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata, OntologyElementMetadata,
-        OwnedOntologyElementMetadata, PropertyTypeWithMetadata,
+        DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata,
+        ExternalOntologyElementMetadata, OntologyElementMetadata, OwnedOntologyElementMetadata,
+        PropertyTypeWithMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
@@ -41,7 +39,14 @@ use graph::{
         EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool, PropertyTypeStore,
         QueryError, StorePool, UpdateError,
     },
-    subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
+    subgraph::{
+        edges::GraphResolveDepths,
+        query::StructuralQuery,
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
+            VariableTemporalAxisUnresolved,
+        },
+    },
 };
 use time::{format_description::well_known::Iso8601, Duration, OffsetDateTime};
 use tokio_postgres::{NoTls, Transaction};
@@ -183,7 +188,7 @@ fn generate_decision_time() -> Timestamp<DecisionTime> {
 
 // TODO: Add get_all_* methods
 impl DatabaseApi<'_> {
-    pub async fn create_data_type(
+    pub async fn create_owned_data_type(
         &mut self,
         data_type: DataType,
     ) -> Result<OntologyElementMetadata, InsertionError> {
@@ -191,6 +196,21 @@ impl DatabaseApi<'_> {
             data_type.id().clone().into(),
             ProvenanceMetadata::new(UpdatedById::new(self.account_id)),
             OwnedById::new(self.account_id),
+        ));
+
+        self.store.create_data_type(data_type, &metadata).await?;
+
+        Ok(metadata)
+    }
+
+    pub async fn create_external_data_type(
+        &mut self,
+        data_type: DataType,
+    ) -> Result<OntologyElementMetadata, InsertionError> {
+        let metadata = OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
+            data_type.id().clone().into(),
+            ProvenanceMetadata::new(UpdatedById::new(self.account_id)),
+            OffsetDateTime::now_utc(),
         ));
 
         self.store.create_data_type(data_type, &metadata).await?;
@@ -207,10 +227,13 @@ impl DatabaseApi<'_> {
             .get_data_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                    pinned: UnresolvedKernel::new(None),
-                    variable: UnresolvedImage::new(Some(TimeIntervalBound::Unbounded), None),
-                }),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
+                },
             })
             .await?
             .vertices
@@ -254,10 +277,13 @@ impl DatabaseApi<'_> {
             .get_property_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                    pinned: UnresolvedKernel::new(None),
-                    variable: UnresolvedImage::new(Some(TimeIntervalBound::Unbounded), None),
-                }),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
+                },
             })
             .await?
             .vertices
@@ -301,10 +327,13 @@ impl DatabaseApi<'_> {
             .get_entity_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                    pinned: UnresolvedKernel::new(None),
-                    variable: UnresolvedImage::new(Some(TimeIntervalBound::Unbounded), None),
-                }),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
+                },
             })
             .await?
             .vertices
@@ -348,10 +377,13 @@ impl DatabaseApi<'_> {
             .get_entity(&StructuralQuery {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                    pinned: UnresolvedKernel::new(None),
-                    variable: UnresolvedImage::new(Some(TimeIntervalBound::Unbounded), None),
-                }),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
+                },
             })
             .await?
             .vertices
@@ -370,13 +402,13 @@ impl DatabaseApi<'_> {
             .get_entity(&StructuralQuery {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                    pinned: UnresolvedKernel::new(None),
-                    variable: UnresolvedImage::new(
-                        Some(TimeIntervalBound::Inclusive(timestamp)),
-                        Some(LimitedTimeIntervalBound::Inclusive(timestamp)),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Inclusive(timestamp)),
+                        Some(LimitedTemporalBound::Inclusive(timestamp)),
                     ),
-                }),
+                },
             })
             .await?
             .vertices
@@ -393,10 +425,10 @@ impl DatabaseApi<'_> {
             .get_entity(&StructuralQuery {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                    pinned: UnresolvedKernel::new(None),
-                    variable: UnresolvedImage::new(None, None),
-                }),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
+                },
             })
             .await?
             .vertices
@@ -501,10 +533,13 @@ impl DatabaseApi<'_> {
             .get_entity(&StructuralQuery {
                 filter,
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                    pinned: UnresolvedKernel::new(None),
-                    variable: UnresolvedImage::new(Some(TimeIntervalBound::Unbounded), None),
-                }),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
+                },
             })
             .await?;
 
@@ -557,10 +592,10 @@ impl DatabaseApi<'_> {
             .get_entity(&StructuralQuery {
                 filter,
                 graph_resolve_depths: GraphResolveDepths::default(),
-                time_projection: UnresolvedTimeProjection::DecisionTime(UnresolvedProjection {
-                    pinned: UnresolvedKernel::new(None),
-                    variable: UnresolvedImage::new(None, None),
-                }),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
+                },
             })
             .await?;
 

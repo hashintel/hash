@@ -6,7 +6,7 @@
  * of functions provided to blocks, but for now the added operations are mostly
  * relevant for the type editors.
  */
-import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
+import { GraphEmbedderMessageCallbacks } from "@blockprotocol/graph/temporal";
 import { OwnedById } from "@local/hash-subgraph";
 
 import {
@@ -35,7 +35,7 @@ import { useBlockProtocolUpdatePropertyType } from "../../components/hooks/block
 import { useIsReadonlyModeForApp } from "../../shared/readonly-mode";
 
 export type GraphMessageCallbacks = Omit<
-  EmbedderGraphMessageCallbacks<true>,
+  GraphEmbedderMessageCallbacks,
   | "getLinkedAggregation"
   | "deleteEntity"
   | "deleteEntityType"

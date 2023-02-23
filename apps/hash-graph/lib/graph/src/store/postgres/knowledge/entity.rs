@@ -11,8 +11,8 @@ use uuid::Uuid;
 
 use crate::{
     identifier::{
-        knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
-        time::{DecisionTime, TimeProjection, Timestamp},
+        knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityTemporalMetadata},
+        time::{DecisionTime, Timestamp},
         EntityVertexId, OntologyTypeVertexId,
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
@@ -27,9 +27,10 @@ use crate::{
     subgraph::{
         edges::{
             Edge, EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind,
-            KnowledgeGraphOutwardEdges, OutgoingEdgeResolveDepth, OutwardEdge, SharedEdgeKind,
+            KnowledgeGraphOutwardEdge, OutgoingEdgeResolveDepth, OutwardEdge, SharedEdgeKind,
         },
         query::StructuralQuery,
+        temporal_axes::QueryTemporalAxes,
         Subgraph, SubgraphIndex,
     },
 };
@@ -45,10 +46,10 @@ impl<C: AsClient> PostgresStore<C> {
         dependency_context: &'a mut DependencyContext,
         subgraph: &'a mut Subgraph,
         mut current_resolve_depths: GraphResolveDepths,
-        time_projection: TimeProjection,
+        temporal_axes: QueryTemporalAxes,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
         async move {
-            let time_axis = subgraph.resolved_time_projection.image_time_axis();
+            let time_axis = subgraph.temporal_axes.resolved.variable_time_axis();
 
             let entity: &Entity = match entity_vertex_id.subgraph_vertex_entry(subgraph) {
                 RawEntryMut::Occupied(entry) => entry.into_mut(),
@@ -59,41 +60,41 @@ impl<C: AsClient> PostgresStore<C> {
                 }
             };
 
-            let version_interval = entity
+            let variable_interval = entity
                 .metadata
-                .version()
-                .projected_time(time_axis);
+                .temporal_versioning()
+                .variable_time_interval(time_axis);
 
-            // Intersects the version interval of the entity with the time projection's time
+            // Intersects the version interval of the entity with the variable axis's time
             // interval. We only want to resolve the entity further for the overlap of these two
             // intervals.
-            let Some(mut intersected_time_projection) = time_projection.intersect_image(version_interval) else {
+            let Some(mut intersected_temporal_axes) = temporal_axes.intersect_variable_interval(variable_interval) else {
                 // `traverse_entity` is called with the returned entities from `read` with
-                // `time_projection`. This implies, that the version interval of `entity` is
-                // overlaps with `time_projection`. `intersect_image` returns `None` if there are
+                // `temporal_axes`. This implies, that the version interval of `entity` overlaps
+                // with `temporal_axes`. `version_interval` returns `None` if there are
                 // no overlapping points, so this should never happen.
-                unreachable!("the version interval of the entity does not overlap with the time projection");
+                unreachable!("the version interval of the entity does not overlap with the variable axis's time interval");
             };
 
             let dependency_status = dependency_context.knowledge_dependency_map.update(
                 &entity_vertex_id,
                 current_resolve_depths,
-                intersected_time_projection.image().convert(),
+                intersected_temporal_axes.variable_interval().convert(),
             );
 
             match dependency_status {
                 DependencyStatus::Unresolved(depths, interval) => {
                     // Depending on previous traversals, we may have to resolve with parameters
-                    // different to those provided, so we update the resolve depths and time
-                    // projection.
+                    // different to those provided, so we update the resolve depths and the temporal
+                    // axes.
                     //
                     // `DependencyMap::update` may return a higher resolve depth than the one
                     // requested, so we update the `resolve_depths` to the returned value.
                     current_resolve_depths = depths;
                     // It may also return a different time interval than the one requested, so
-                    // we update the `intersected_time_projection`'s time interval to the returned
+                    // we update the `intersected_temporal_axes`'s time interval to the returned
                     // value.
-                    intersected_time_projection.set_image(interval.convert());
+                    intersected_temporal_axes.set_variable_interval(interval.convert());
                 }
                 DependencyStatus::Resolved => return Ok(()),
             };
@@ -103,7 +104,7 @@ impl<C: AsClient> PostgresStore<C> {
                     OntologyTypeVertexId::from(entity.metadata.entity_type_id().clone());
                 subgraph.edges.insert(Edge::KnowledgeGraph {
                     vertex_id: entity_vertex_id,
-                    outward_edge: KnowledgeGraphOutwardEdges::ToOntology(OutwardEdge {
+                    outward_edge: KnowledgeGraphOutwardEdge::ToOntology(OutwardEdge {
                         kind: SharedEdgeKind::IsOfType,
                         reversed: false,
                         right_endpoint: entity_type_id.clone(),
@@ -121,7 +122,7 @@ impl<C: AsClient> PostgresStore<C> {
                         },
                         ..current_resolve_depths
                     },
-                    intersected_time_projection.clone(),
+                    intersected_temporal_axes.clone(),
                 )
                     .await?;
             }
@@ -130,13 +131,13 @@ impl<C: AsClient> PostgresStore<C> {
                 for outgoing_link_entity in <Self as Read<Entity>>::read(
                     self,
                     &Filter::for_outgoing_link_by_source_entity_id(entity_vertex_id.base_id),
-                    &intersected_time_projection,
+                    &intersected_temporal_axes,
                 )
                     .await?
                 {
                     subgraph.edges.insert(Edge::KnowledgeGraph {
                         vertex_id: entity_vertex_id,
-                        outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
+                        outward_edge: KnowledgeGraphOutwardEdge::ToKnowledgeGraph(OutwardEdge {
                             // (HasLeftEntity, reversed=true) is equivalent to an
                             // outgoing link `Entity`
                             kind: KnowledgeGraphEdgeKind::HasLeftEntity,
@@ -159,7 +160,7 @@ impl<C: AsClient> PostgresStore<C> {
                             },
                             ..current_resolve_depths
                         },
-                        intersected_time_projection.clone(),
+                        intersected_temporal_axes.clone(),
                     )
                         .await?;
                 }
@@ -169,13 +170,13 @@ impl<C: AsClient> PostgresStore<C> {
                 for incoming_link_entity in <Self as Read<Entity>>::read(
                     self,
                     &Filter::for_incoming_link_by_source_entity_id(entity_vertex_id.base_id),
-                    &intersected_time_projection,
+                    &intersected_temporal_axes,
                 )
                     .await?
                 {
                     subgraph.edges.insert(Edge::KnowledgeGraph {
                         vertex_id: entity_vertex_id,
-                        outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
+                        outward_edge: KnowledgeGraphOutwardEdge::ToKnowledgeGraph(OutwardEdge {
                             // (HasRightEntity, reversed=true) is equivalent to an
                             // incoming link `Entity`
                             kind: KnowledgeGraphEdgeKind::HasRightEntity,
@@ -198,7 +199,7 @@ impl<C: AsClient> PostgresStore<C> {
                             },
                             ..current_resolve_depths
                         },
-                        intersected_time_projection.clone(),
+                        intersected_temporal_axes.clone(),
                     )
                         .await?;
                 }
@@ -208,13 +209,13 @@ impl<C: AsClient> PostgresStore<C> {
                 for left_entity in <Self as Read<Entity>>::read(
                     self,
                     &Filter::for_left_entity_by_entity_id(entity_vertex_id.base_id),
-                    &intersected_time_projection,
+                    &intersected_temporal_axes,
                 )
                     .await?
                 {
                     subgraph.edges.insert(Edge::KnowledgeGraph {
                         vertex_id: entity_vertex_id,
-                        outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
+                        outward_edge: KnowledgeGraphOutwardEdge::ToKnowledgeGraph(OutwardEdge {
                             // (HasLeftEndpoint, reversed=true) is equivalent to an
                             // outgoing `Link` `Entity`
                             kind: KnowledgeGraphEdgeKind::HasLeftEntity,
@@ -237,7 +238,7 @@ impl<C: AsClient> PostgresStore<C> {
                             },
                             ..current_resolve_depths
                         },
-                        intersected_time_projection.clone(),
+                        intersected_temporal_axes.clone(),
                     )
                         .await?;
                 }
@@ -247,13 +248,13 @@ impl<C: AsClient> PostgresStore<C> {
                 for right_entity in <Self as Read<Entity>>::read(
                     self,
                     &Filter::for_right_entity_by_entity_id(entity_vertex_id.base_id),
-                    &intersected_time_projection,
+                    &intersected_temporal_axes,
                 )
                     .await?
                 {
                     subgraph.edges.insert(Edge::KnowledgeGraph {
                         vertex_id: entity_vertex_id,
-                        outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
+                        outward_edge: KnowledgeGraphOutwardEdge::ToKnowledgeGraph(OutwardEdge {
                             // (HasLeftEndpoint, reversed=true) is equivalent to an
                             // outgoing `Link` `Entity`
                             kind: KnowledgeGraphEdgeKind::HasRightEntity,
@@ -276,7 +277,7 @@ impl<C: AsClient> PostgresStore<C> {
                             },
                             ..current_resolve_depths
                         },
-                        intersected_time_projection.clone(),
+                        intersected_temporal_axes.clone(),
                     )
                         .await?;
                 }
@@ -378,7 +379,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_id,
                 edition_id: EntityEditionId::new(row.get(0)),
             },
-            EntityVersion {
+            EntityTemporalMetadata {
                 decision_time: row.get(1),
                 transaction_time: row.get(2),
             },
@@ -491,20 +492,20 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let StructuralQuery {
             ref filter,
             graph_resolve_depths,
-            time_projection: ref unresolved_time_projection,
+            temporal_axes: ref unresolved_temporal_axes,
         } = *query;
 
-        let time_projection = unresolved_time_projection.clone().resolve();
-        let time_axis = time_projection.image_time_axis();
+        let temporal_axes = unresolved_temporal_axes.clone().resolve();
+        let time_axis = temporal_axes.variable_time_axis();
 
         let mut subgraph = Subgraph::new(
             graph_resolve_depths,
-            unresolved_time_projection.clone(),
-            time_projection.clone(),
+            unresolved_temporal_axes.clone(),
+            temporal_axes.clone(),
         );
         let mut dependency_context = DependencyContext::default();
 
-        for entity in Read::<Entity>::read(self, filter, &time_projection).await? {
+        for entity in Read::<Entity>::read(self, filter, &temporal_axes).await? {
             let vertex_id = entity.vertex_id(time_axis);
             // Insert the vertex into the subgraph to avoid another lookup when traversing it
             subgraph.insert(&vertex_id, entity);
@@ -514,7 +515,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 &mut dependency_context,
                 &mut subgraph,
                 graph_resolve_depths,
-                time_projection.clone(),
+                temporal_axes.clone(),
             )
             .await?;
 
@@ -618,7 +619,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_id,
                 edition_id: EntityEditionId::new(row.get(0)),
             },
-            EntityVersion {
+            EntityTemporalMetadata {
                 decision_time: row.get(1),
                 transaction_time: row.get(2),
             },

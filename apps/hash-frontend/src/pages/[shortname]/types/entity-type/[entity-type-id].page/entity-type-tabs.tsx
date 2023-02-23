@@ -1,27 +1,33 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
+import {
+  EntityTypeEditorFormData,
+  useEntityTypeFormContext,
+  useEntityTypeFormWatch,
+} from "@hashintel/type-editor";
 import { Box, Tabs, tabsClasses } from "@mui/material";
 import { useRouter } from "next/router";
 import { useState } from "react";
-import { useFormContext, useWatch } from "react-hook-form";
 
 import { useFontLoadedCallback } from "../../../../../components/hooks/use-font-loaded-callback";
 import { TabLink } from "./entity-type-tabs/tab-link";
 import { useEntityType } from "./shared/entity-type-context";
 import { useEntityTypeEntities } from "./shared/entity-type-entities-context";
-import { EntityTypeEditorForm } from "./shared/form-types";
 import { getEntityTypeBaseUri } from "./shared/get-entity-type-base-uri";
 import { getTabUri, getTabValue, useCurrentTab } from "./shared/tabs";
 
 export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
   const router = useRouter();
 
-  const { entityType } = useEntityType();
+  const entityType = useEntityType();
 
   const [animateTabs, setAnimateTabs] = useState(false);
 
-  const { control } = useFormContext<EntityTypeEditorForm>();
-  const propertiesCount = useWatch({ control, name: "properties.length" });
+  const { control } = useEntityTypeFormContext<EntityTypeEditorFormData>();
+  const propertiesCount = useEntityTypeFormWatch({
+    control,
+    name: "properties.length",
+  });
 
   const { entities } = useEntityTypeEntities();
 
@@ -69,8 +75,7 @@ export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
           value={getTabValue("definition")}
           href={isDraft ? router.asPath : getTabUri(baseUri, "definition")}
           label="Definition"
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
-          count={propertiesCount ?? 0}
+          count={propertiesCount}
           active={currentTab === "definition"}
         />
         {isDraft

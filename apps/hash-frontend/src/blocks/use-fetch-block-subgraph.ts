@@ -106,7 +106,7 @@ export const useFetchBlockSubgraph = () => {
           ],
           vertices: {
             [placeholderEntity.metadata.recordId.entityId]: {
-              [now as EntityRevisionId]: {
+              [now]: {
                 kind: "entity" as const,
                 inner: placeholderEntity,
               },

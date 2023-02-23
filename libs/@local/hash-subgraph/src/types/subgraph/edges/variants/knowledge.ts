@@ -10,7 +10,7 @@ import {
   isIncomingLinkEdge as isIncomingLinkEdgeBp,
   isIsOfTypeEdge as isIsOfTypeEdgeBp,
   isOutgoingLinkEdge as isOutgoingLinkEdgeBp,
-} from "@blockprotocol/graph";
+} from "@blockprotocol/graph/temporal";
 import { Subtype } from "@local/advanced-types/subtype";
 
 import { OntologyTypeVertexId } from "../../vertices";

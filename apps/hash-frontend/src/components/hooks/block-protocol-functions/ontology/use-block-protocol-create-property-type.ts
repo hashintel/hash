@@ -54,7 +54,10 @@ export const useBlockProtocolCreatePropertyType = (
       const { data: responseData } = await createFn({
         variables: {
           ownedById,
-          propertyType,
+          propertyType: {
+            ...propertyType,
+            kind: "propertyType",
+          },
         },
       });
 

@@ -18,7 +18,7 @@ use crate::{
         PropertyTypeQueryToken, PropertyTypeWithMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
-    store::{BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool},
+    store::{BaseUriAlreadyExists, OntologyVersionDoesNotExist, PropertyTypeStore, StorePool},
     subgraph::query::{PropertyTypeStructuralQuery, StructuralQuery},
 };
 
@@ -235,7 +235,7 @@ async fn update_property_type<P: StorePool + Send>(
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update property type");
 
-            if report.contains::<BaseUriDoesNotExist>() {
+            if report.contains::<OntologyVersionDoesNotExist>() {
                 return StatusCode::NOT_FOUND;
             }
 
