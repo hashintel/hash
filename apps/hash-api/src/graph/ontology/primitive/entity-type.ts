@@ -1,4 +1,4 @@
-import { EntityType, VersionedUri } from "@blockprotocol/type-system";
+import { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 import { UpdateEntityTypeRequest } from "@local/hash-graph-client";
 import { EntityTypeWithoutId } from "@local/hash-graphql-shared/graphql/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
@@ -6,10 +6,10 @@ import {
   AccountId,
   EntityTypeRootType,
   EntityTypeWithMetadata,
-  linkEntityTypeUri,
+  linkEntityTypeUrl,
   OntologyElementMetadata,
   OntologyTypeRecordId,
-  ontologyTypeRecordIdToVersionedUri,
+  ontologyTypeRecordIdToVersionedUrl,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
@@ -66,13 +66,13 @@ export const createEntityType: ImpureGraphFunction<
 };
 
 /**
- * Get an entity type by its versioned URI.
+ * Get an entity type by its versioned URL.
  *
- * @param params.entityTypeId the unique versioned URI for an entity type.
+ * @param params.entityTypeId the unique versioned URL for an entity type.
  */
 export const getEntityTypeById: ImpureGraphFunction<
   {
-    entityTypeId: VersionedUri;
+    entityTypeId: VersionedUrl;
   },
   Promise<EntityTypeWithMetadata>
 > = async ({ graphApi }, params) => {
@@ -81,7 +81,7 @@ export const getEntityTypeById: ImpureGraphFunction<
   const entityTypeSubgraph = await graphApi
     .getEntityTypesByQuery({
       filter: {
-        equal: [{ path: ["versionedUri"] }, { parameter: entityTypeId }],
+        equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: {
@@ -120,7 +120,7 @@ export const getEntityTypeById: ImpureGraphFunction<
  */
 export const updateEntityType: ImpureGraphFunction<
   {
-    entityTypeId: VersionedUri;
+    entityTypeId: VersionedUrl;
     schema: Omit<EntityType, "$id">;
     actorId: AccountId;
   },
@@ -140,7 +140,7 @@ export const updateEntityType: ImpureGraphFunction<
   return {
     schema: {
       ...schema,
-      $id: ontologyTypeRecordIdToVersionedUri(recordId as OntologyTypeRecordId),
+      $id: ontologyTypeRecordIdToVersionedUrl(recordId as OntologyTypeRecordId),
     },
     metadata: metadata as OntologyElementMetadata,
   };
@@ -162,6 +162,6 @@ export const isEntityTypeLinkEntityType: PureGraphFunction<
 
   return (
     !!schema.allOf &&
-    schema.allOf.some(({ $ref }) => $ref === linkEntityTypeUri)
+    schema.allOf.some(({ $ref }) => $ref === linkEntityTypeUrl)
   );
 };

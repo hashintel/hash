@@ -7,7 +7,7 @@ import {
   extractEntityUuidFromEntityId,
   Uuid,
 } from "@local/hash-subgraph";
-import { extractBaseUri } from "@local/hash-subgraph/type-system-patch";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Box, buttonClasses, Collapse } from "@mui/material";
@@ -74,7 +74,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
   const preferredName = useMemo(
     () =>
       comment.author.properties[
-        extractBaseUri(types.propertyType.preferredName.propertyTypeId)
+        extractBaseUrl(types.propertyType.preferredName.propertyTypeId)
       ],
     [comment.author.properties],
   );

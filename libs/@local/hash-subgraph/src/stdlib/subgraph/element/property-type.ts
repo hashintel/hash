@@ -3,12 +3,12 @@ import {
   getPropertyTypeById as getPropertyTypeByIdBp,
   getPropertyTypeByVertexId as getPropertyTypeByVertexIdBp,
   getPropertyTypes as getPropertyTypesBp,
-  getPropertyTypesByBaseUri as getPropertyTypesByBaseUriBp,
+  getPropertyTypesByBaseUrl as getPropertyTypesByBaseUrlBp,
 } from "@blockprotocol/graph/temporal/stdlib";
-import { VersionedUri } from "@blockprotocol/type-system/slim";
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 
 import {
-  BaseUri,
+  BaseUrl,
   OntologyTypeVertexId,
   PropertyTypeWithMetadata,
   Subgraph,
@@ -27,7 +27,7 @@ export const getPropertyTypes = (
   ) as PropertyTypeWithMetadata[];
 
 /**
- * Gets a `PropertyTypeWithMetadata` by its `VersionedUri` from within the vertices of the subgraph. Returns `undefined`
+ * Gets a `PropertyTypeWithMetadata` by its `VersionedUrl` from within the vertices of the subgraph. Returns `undefined`
  * if the property type couldn't be found.
  *
  * @param subgraph
@@ -36,7 +36,7 @@ export const getPropertyTypes = (
  */
 export const getPropertyTypeById = (
   subgraph: Subgraph,
-  propertyTypeId: VersionedUri,
+  propertyTypeId: VersionedUrl,
 ): PropertyTypeWithMetadata | undefined =>
   getPropertyTypeByIdBp(subgraph as unknown as SubgraphBp, propertyTypeId) as
     | PropertyTypeWithMetadata
@@ -59,16 +59,16 @@ export const getPropertyTypeByVertexId = (
     | undefined;
 
 /**
- * Returns all `PropertyTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUri`
+ * Returns all `PropertyTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUrl`
  *
  * @param subgraph
- * @param baseUri
+ * @param baseUrl
  */
-export const getPropertyTypesByBaseUri = (
+export const getPropertyTypesByBaseUrl = (
   subgraph: Subgraph,
-  baseUri: BaseUri,
+  baseUrl: BaseUrl,
 ): PropertyTypeWithMetadata[] =>
-  getPropertyTypesByBaseUriBp(
+  getPropertyTypesByBaseUrlBp(
     subgraph as unknown as SubgraphBp,
-    baseUri,
+    baseUrl,
   ) as PropertyTypeWithMetadata[];

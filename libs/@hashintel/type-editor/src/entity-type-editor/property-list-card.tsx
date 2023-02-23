@@ -1,8 +1,8 @@
 import {
-  extractBaseUri,
+  extractBaseUrl,
   extractVersion,
   PropertyType,
-  VersionedUri,
+  VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 import { faList } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -45,7 +45,7 @@ import {
 import { EntityTypeEditorFormData } from "../shared/form-types";
 import { useOntologyFunctions } from "../shared/ontology-functions-context";
 import {
-  PropertyTypesByVersionedUri,
+  PropertyTypesByVersionedUrl,
   usePropertyTypesOptions,
 } from "../shared/property-types-options-context";
 import { useIsReadonly } from "../shared/read-only-context";
@@ -165,14 +165,14 @@ const DisabledCheckboxCell = ({
 };
 
 const usePropertyTypeVersions = (
-  propertyTypeId: VersionedUri,
-  propertyTypeOptions?: PropertyTypesByVersionedUri,
+  propertyTypeId: VersionedUrl,
+  propertyTypeOptions?: PropertyTypesByVersionedUrl,
 ) => {
   return useMemo(() => {
-    const baseUri = extractBaseUri(propertyTypeId);
+    const baseUrl = extractBaseUrl(propertyTypeId);
 
     const versions = Object.values(propertyTypeOptions ?? {}).filter(
-      (propertyType) => baseUri === extractBaseUri(propertyType.$id),
+      (propertyType) => baseUrl === extractBaseUrl(propertyType.$id),
     );
 
     const latestVersion = Math.max(
@@ -182,7 +182,7 @@ const usePropertyTypeVersions = (
     return [
       extractVersion(propertyTypeId),
       latestVersion,
-      baseUri.slice(0, -1),
+      baseUrl.slice(0, -1),
     ] as const;
   }, [propertyTypeId, propertyTypeOptions]);
 };
@@ -211,14 +211,14 @@ const PropertyRow = ({
   allowArraysTableCell?: ReactNode;
   requiredTableCell?: ReactNode;
   menuTableCell?: ReactNode;
-  onUpdateVersion?: (nextId: VersionedUri) => void;
+  onUpdateVersion?: (nextId: VersionedUrl) => void;
   flash?: boolean;
 }) => {
   const propertyTypesOptions = usePropertyTypesOptions();
 
   const isReadonly = useIsReadonly();
 
-  const [currentVersion, latestVersion, baseUri] = usePropertyTypeVersions(
+  const [currentVersion, latestVersion, baseUrl] = usePropertyTypeVersions(
     property.$id,
     propertyTypesOptions,
   );
@@ -308,7 +308,7 @@ const PropertyRow = ({
           latestVersion={latestVersion}
           onVersionUpdate={() => {
             if (latestVersion) {
-              onUpdateVersion?.(`${baseUri}/v/${latestVersion}`);
+              onUpdateVersion?.(`${baseUrl}/v/${latestVersion}`);
             }
           }}
         />
@@ -400,9 +400,9 @@ export const PropertyTypeRow = ({
 }: {
   propertyIndex: number;
   property: PropertyType | undefined;
-  propertyId: VersionedUri;
+  propertyId: VersionedUrl;
   onRemove: () => void;
-  onUpdateVersion: (nextId: VersionedUri) => void;
+  onUpdateVersion: (nextId: VersionedUrl) => void;
   flash: boolean;
 }) => {
   const { control } = useFormContext<EntityTypeEditorFormData>();
@@ -497,7 +497,7 @@ export const PropertyTypeRow = ({
 
       <TypeFormModal
         as={PropertyTypeForm}
-        baseUri={extractBaseUri($id)}
+        baseUrl={extractBaseUrl($id)}
         popupState={editModalPopupState}
         modalTitle={<>Edit Property Type</>}
         onSubmit={async (data: PropertyTypeFormValues) => {
@@ -534,12 +534,12 @@ const InsertPropertyRow = (
   const propertyTypes = Object.values(propertyTypeOptions);
 
   const filteredPropertyTypes = useMemo(() => {
-    const propertyBaseUris = properties.map((includedProperty) =>
-      extractBaseUri(includedProperty.$id),
+    const propertyBaseUrls = properties.map((includedProperty) =>
+      extractBaseUrl(includedProperty.$id),
     );
 
     return propertyTypes.filter(
-      (type) => !propertyBaseUris.includes(extractBaseUri(type.$id)),
+      (type) => !propertyBaseUrls.includes(extractBaseUrl(type.$id)),
     );
   }, [properties, propertyTypes]);
 

@@ -109,7 +109,7 @@ export const getEntityTypeResolver: ResolverFn<
 
   const { data: entityTypeSubgraph } = await graphApi.getEntityTypesByQuery({
     filter: {
-      equal: [{ path: ["versionedUri"] }, { parameter: entityTypeId }],
+      equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
     },
     graphResolveDepths: {
       inheritsFrom: { outgoing: 0 },

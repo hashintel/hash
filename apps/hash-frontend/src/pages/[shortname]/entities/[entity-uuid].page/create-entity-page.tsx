@@ -1,4 +1,4 @@
-import { VersionedUri } from "@blockprotocol/type-system";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId, OwnedById } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useRouter } from "next/router";
@@ -17,7 +17,7 @@ import { useDraftEntitySubgraph } from "./shared/use-draft-entity-subgraph";
 import { useDraftLinkState } from "./shared/use-draft-link-state";
 
 interface CreateEntityPageProps {
-  entityTypeId: VersionedUri;
+  entityTypeId: VersionedUrl;
 }
 
 export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {

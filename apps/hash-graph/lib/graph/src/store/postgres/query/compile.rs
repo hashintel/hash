@@ -253,7 +253,7 @@ impl<'c, 'p: 'c, R: PostgresRecord> SelectCompiler<'c, 'p, R> {
                                 Expression::Column(version_column),
                             )))),
                             WindowStatement::partition_by(
-                                Column::OntologyIds(OntologyIds::BaseUri)
+                                Column::OntologyIds(OntologyIds::BaseUrl)
                                     .aliased(version_column.alias),
                             ),
                         ),

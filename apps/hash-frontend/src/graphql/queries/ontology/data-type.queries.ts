@@ -4,7 +4,7 @@ import { subgraphFieldsFragment } from "../subgraph";
 
 export const getDataTypeQuery = gql`
   query getDataType(
-    $dataTypeId: VersionedUri!
+    $dataTypeId: VersionedUrl!
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
   ) {
     getDataType(

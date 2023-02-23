@@ -4,7 +4,7 @@ import { subgraphFieldsFragment } from "../subgraph";
 
 export const getEntityTypeQuery = gql`
   query getEntityType(
-    $entityTypeId: VersionedUri!
+    $entityTypeId: VersionedUrl!
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
@@ -44,7 +44,7 @@ export const getAllLatestEntityTypesQuery = gql`
 
 export const getEntityTypeRootedSubgraphQuery = gql`
   query getEntityTypeRootedSubgraph(
-    $entityTypeId: VersionedUri!
+    $entityTypeId: VersionedUrl!
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
@@ -75,7 +75,7 @@ export const createEntityTypeMutation = gql`
 
 export const updateEntityTypeMutation = gql`
   mutation updateEntityType(
-    $entityTypeId: VersionedUri!
+    $entityTypeId: VersionedUrl!
     $updatedEntityType: EntityTypeWithoutId!
   ) {
     updateEntityType(

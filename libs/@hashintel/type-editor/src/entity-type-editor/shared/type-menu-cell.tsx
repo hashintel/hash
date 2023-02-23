@@ -1,4 +1,4 @@
-import { extractVersion, VersionedUri } from "@blockprotocol/type-system/slim";
+import { extractVersion, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
@@ -6,7 +6,7 @@ import {
   MenuItem,
   MenuItemProps,
   OntologyChip,
-  parseUriForOntologyChip,
+  parseUrlForOntologyChip,
 } from "@hashintel/design-system";
 import {
   Box,
@@ -42,7 +42,7 @@ export const TypeMenuCell = ({
   onRemove,
   editButtonDisabled,
 }: {
-  typeId: VersionedUri;
+  typeId: VersionedUrl;
   variant: "property" | "link";
   editable?: boolean;
   editButtonDisabled?: string;
@@ -50,7 +50,7 @@ export const TypeMenuCell = ({
   onRemove?: () => void;
 }) => {
   const version = extractVersion(typeId);
-  const ontology = parseUriForOntologyChip(typeId);
+  const ontology = parseUrlForOntologyChip(typeId);
 
   const popupId = useId();
   const popupState = usePopupState({

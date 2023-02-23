@@ -25,7 +25,7 @@ import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   Entity,
   EntityTypeWithMetadata,
-  linkEntityTypeUri,
+  linkEntityTypeUrl,
   OwnedById,
 } from "@local/hash-subgraph";
 
@@ -86,7 +86,7 @@ describe("Link entity", () => {
           description: "Friend of",
           kind: "entityType",
           type: "object",
-          allOf: [{ $ref: linkEntityTypeUri }],
+          allOf: [{ $ref: linkEntityTypeUrl }],
           properties: {},
           additionalProperties: false,
         },
@@ -101,7 +101,7 @@ describe("Link entity", () => {
           description: "Acquainted with",
           kind: "entityType",
           type: "object",
-          allOf: [{ $ref: linkEntityTypeUri }],
+          allOf: [{ $ref: linkEntityTypeUrl }],
           properties: {},
           additionalProperties: false,
         },

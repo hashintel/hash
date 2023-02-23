@@ -13,7 +13,7 @@ import { useBlockProtocolGetPropertyType } from "../../../../../../components/ho
 import { useBlockProtocolUpdateEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-entity-type";
 import { useBlockProtocolUpdatePropertyType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-property-type";
 import { useFetchEntityTypes } from "../../../../../../shared/entity-types-context/hooks";
-import { useGenerateTypeUrisForUser } from "../../../../../shared/use-generate-type-uris-for-user";
+import { useGenerateTypeUrlsForUser } from "../../../../../shared/use-generate-type-urls-for-user";
 import { useFetchLatestPropertyTypes } from "../shared/latest-property-types-context";
 
 type OntologyFunctions = EntityTypeEditorProps["ontologyFunctions"];
@@ -80,19 +80,19 @@ export const useEditorOntologyFunctions = (
     [updatePropertyType, refetchPropertyTypes],
   );
 
-  const generateTypeUrisForUser = useGenerateTypeUrisForUser();
+  const generateTypeUrlsForUser = useGenerateTypeUrlsForUser();
 
   const validateTitle = useCallback<OntologyFunctions["validateTitle"]>(
     async ({ kind, title }) => {
-      const { versionedUri } = generateTypeUrisForUser({
+      const { versionedUrl } = generateTypeUrlsForUser({
         kind,
         title,
         version: 1,
       });
 
       const res = await (kind === "entity-type"
-        ? getEntityType({ data: { entityTypeId: versionedUri } })
-        : getPropertyType({ data: { propertyTypeId: versionedUri } }));
+        ? getEntityType({ data: { entityTypeId: versionedUrl } })
+        : getPropertyType({ data: { propertyTypeId: versionedUrl } }));
 
       if (!res.data) {
         return {
@@ -103,8 +103,8 @@ export const useEditorOntologyFunctions = (
 
       const typeIsPresent =
         kind === "entity-type"
-          ? getEntityTypeById(res.data, versionedUri)
-          : getPropertyTypeById(res.data, versionedUri);
+          ? getEntityTypeById(res.data, versionedUrl)
+          : getPropertyTypeById(res.data, versionedUrl);
 
       if (typeIsPresent) {
         return {
@@ -120,7 +120,7 @@ export const useEditorOntologyFunctions = (
         message: "ok",
       };
     },
-    [generateTypeUrisForUser, getEntityType, getPropertyType],
+    [generateTypeUrlsForUser, getEntityType, getPropertyType],
   );
 
   return {

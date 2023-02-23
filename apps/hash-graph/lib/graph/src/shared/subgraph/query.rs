@@ -58,7 +58,7 @@ use crate::{
 ///     "all": [
 ///       {
 ///         "equal": [
-///           { "path": ["type", "baseUri"] },
+///           { "path": ["type", "baseUrl"] },
 ///           { "parameter": "foo" }
 ///         ]
 ///       },

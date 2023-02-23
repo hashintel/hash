@@ -1,7 +1,7 @@
 import {
   EntityType,
   EntityTypeReference,
-  extractBaseUri,
+  extractBaseUrl,
   PropertyTypeReference,
   ValueOrArray,
 } from "@blockprotocol/type-system/slim";
@@ -20,7 +20,7 @@ export const getSchemaFromFormData = (
   const required = [];
 
   for (const property of properties) {
-    const propertyKey = extractBaseUri(property.$id);
+    const propertyKey = extractBaseUrl(property.$id);
 
     if (
       typeof property.minValue === "string" ||
@@ -41,7 +41,7 @@ export const getSchemaFromFormData = (
     schemaProperties[propertyKey] = prop;
 
     if (property.required) {
-      required.push(extractBaseUri(property.$id));
+      required.push(extractBaseUrl(property.$id));
     }
   }
 

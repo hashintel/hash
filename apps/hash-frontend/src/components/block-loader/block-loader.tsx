@@ -5,7 +5,7 @@ import {
   Subgraph,
 } from "@blockprotocol/graph/temporal";
 import { getRoots } from "@blockprotocol/graph/temporal/stdlib";
-import { VersionedUri } from "@blockprotocol/type-system/slim";
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { Entity, EntityId } from "@local/hash-subgraph";
 import {
@@ -28,7 +28,7 @@ import { fetchEmbedCode } from "./fetch-embed-code";
 
 type BlockLoaderProps = {
   blockEntityId?: EntityId; // @todo make this always defined
-  blockEntityTypeId: VersionedUri;
+  blockEntityTypeId: VersionedUrl;
   blockMetadata: HashBlockMeta;
   editableRef: (node: HTMLElement | null) => void;
   onBlockLoaded: () => void;

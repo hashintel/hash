@@ -1,4 +1,4 @@
-import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
+import { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 import { UpdatePropertyTypeRequest } from "@local/hash-graph-client";
 import { PropertyTypeWithoutId } from "@local/hash-graphql-shared/graphql/types";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
@@ -6,7 +6,7 @@ import {
   AccountId,
   OntologyElementMetadata,
   OntologyTypeRecordId,
-  ontologyTypeRecordIdToVersionedUri,
+  ontologyTypeRecordIdToVersionedUrl,
   OwnedById,
   PropertyTypeRootType,
   PropertyTypeWithMetadata,
@@ -60,13 +60,13 @@ export const createPropertyType: ImpureGraphFunction<
 };
 
 /**
- * Get a property type by its versioned URI.
+ * Get a property type by its versioned URL.
  *
- * @param params.propertyTypeId the unique versioned URI for a property type.
+ * @param params.propertyTypeId the unique versioned URL for a property type.
  */
 export const getPropertyTypeById: ImpureGraphFunction<
   {
-    propertyTypeId: VersionedUri;
+    propertyTypeId: VersionedUrl;
   },
   Promise<PropertyTypeWithMetadata>
 > = async ({ graphApi }, params) => {
@@ -74,7 +74,7 @@ export const getPropertyTypeById: ImpureGraphFunction<
   const propertyTypeSubgraph = await graphApi
     .getPropertyTypesByQuery({
       filter: {
-        equal: [{ path: ["versionedUri"] }, { parameter: propertyTypeId }],
+        equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: {
@@ -113,7 +113,7 @@ export const getPropertyTypeById: ImpureGraphFunction<
  */
 export const updatePropertyType: ImpureGraphFunction<
   {
-    propertyTypeId: VersionedUri;
+    propertyTypeId: VersionedUrl;
     schema: Omit<PropertyType, "$id">;
     actorId: AccountId;
   },
@@ -133,7 +133,7 @@ export const updatePropertyType: ImpureGraphFunction<
   return {
     schema: {
       ...schema,
-      $id: ontologyTypeRecordIdToVersionedUri(recordId as OntologyTypeRecordId),
+      $id: ontologyTypeRecordIdToVersionedUrl(recordId as OntologyTypeRecordId),
     },
     metadata: metadata as OntologyElementMetadata,
   };

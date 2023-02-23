@@ -11,7 +11,7 @@ import {
   CreateResourceError,
   ReadOrModifyResourceError,
 } from "@blockprotocol/graph";
-import { VersionedUri } from "@blockprotocol/type-system";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import {
   Entity,
   EntityId,
@@ -47,7 +47,7 @@ export type GetEntityMessageCallback = MessageCallback<
 
 export type UpdateEntityData = {
   entityId: EntityId;
-  entityTypeId: VersionedUri;
+  entityTypeId: VersionedUrl;
   properties: EntityPropertiesObject;
 } & Pick<LinkData, "leftToRightOrder" | "rightToLeftOrder">;
 
@@ -80,7 +80,7 @@ export type UploadFileRequestCallback = MessageCallback<
 >;
 
 export type AggregateEntitiesRequest = {
-  rootEntityTypeIds?: VersionedUri[];
+  rootEntityTypeIds?: VersionedUrl[];
   graphResolveDepths?: Partial<Subgraph["depths"]>;
 };
 
@@ -92,7 +92,7 @@ export type AggregateEntitiesMessageCallback = MessageCallback<
 >;
 
 export type CreateEntityRequest = {
-  entityTypeId: VersionedUri;
+  entityTypeId: VersionedUrl;
   properties: EntityPropertiesObject;
   linkData?: LinkData;
 };

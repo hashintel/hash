@@ -1,4 +1,4 @@
-import { EntityType, VersionedUri } from "@blockprotocol/type-system/slim";
+import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { LinkIcon, StyledPlusCircleIcon } from "@hashintel/design-system";
 import { TableBody, TableCell, TableFooter, TableHead } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
@@ -9,7 +9,7 @@ import { useEntityTypesOptions } from "../shared/entity-types-options-context";
 import { EntityTypeEditorFormData } from "../shared/form-types";
 import { useOntologyFunctions } from "../shared/ontology-functions-context";
 import { useIsReadonly } from "../shared/read-only-context";
-import { linkEntityTypeUri } from "../shared/uris";
+import { linkEntityTypeUrl } from "../shared/urls";
 import { LinkEntityTypeSelector } from "./link-list-card/link-entity-type-selector";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
@@ -42,7 +42,7 @@ const formDataToEntityType = (data: TypeFormDefaults) => ({
   description: data.description,
   allOf: [
     {
-      $ref: linkEntityTypeUri,
+      $ref: linkEntityTypeUrl,
     },
   ],
   properties: {},
@@ -71,7 +71,7 @@ const LinkTypeRow = ({
   linkIndex: number;
   link: EntityType | undefined;
   onRemove: () => void;
-  onUpdateVersion: (nextId: VersionedUri) => void;
+  onUpdateVersion: (nextId: VersionedUrl) => void;
   flash: boolean;
 }) => {
   if (!link) {

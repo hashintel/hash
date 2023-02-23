@@ -1,9 +1,9 @@
 import {
-  extractBaseUri,
+  extractBaseUrl,
   OneOf,
   PropertyType,
   PropertyValues,
-  VersionedUri,
+  VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 import uniqueId from "lodash.uniqueid";
 
@@ -73,7 +73,7 @@ export const propertyTypeToFormDataExpectedValues = (
                 typeId: "object",
                 properties: Object.values(expectedValue.properties).flatMap(
                   (itemProperty) => {
-                    let propertyId: VersionedUri;
+                    let propertyId: VersionedUrl;
                     let allowArrays = false;
                     if ("type" in itemProperty) {
                       allowArrays = true;
@@ -87,7 +87,7 @@ export const propertyTypeToFormDataExpectedValues = (
                       allowArrays,
                       required:
                         expectedValue.required?.includes(
-                          extractBaseUri(propertyId),
+                          extractBaseUrl(propertyId),
                         ) ?? false,
                     };
                   },

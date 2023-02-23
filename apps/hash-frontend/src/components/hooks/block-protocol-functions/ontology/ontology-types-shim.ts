@@ -14,7 +14,7 @@ import {
 import {
   EntityType,
   PropertyType,
-  VersionedUri,
+  VersionedUrl,
 } from "@blockprotocol/type-system";
 import { EmptyObject } from "@local/hash-isomorphic-utils/util";
 import {
@@ -50,7 +50,7 @@ export type AggregateDataTypesMessageCallback = MessageCallback<
 >;
 
 export type GetDataTypeMessageCallback = MessageCallback<
-  VersionedUri,
+  VersionedUrl,
   null,
   MessageReturn<Subgraph<DataTypeRootType>>,
   ReadOrModifyResourceError
@@ -82,7 +82,7 @@ export type AggregatePropertyTypesMessageCallback = MessageCallback<
 >;
 
 export type GetPropertyTypeRequest = {
-  propertyTypeId: VersionedUri;
+  propertyTypeId: VersionedUrl;
   graphResolveDepths?: Partial<
     Pick<Subgraph["depths"], "constrainsValuesOn" | "constrainsPropertiesOn">
   >;
@@ -96,7 +96,7 @@ export type GetPropertyTypeMessageCallback = MessageCallback<
 >;
 
 export type UpdatePropertyTypeRequest = {
-  propertyTypeId: VersionedUri;
+  propertyTypeId: VersionedUrl;
   propertyType: Omit<PropertyType, SystemDefinedPropertyTypeProperties>;
 };
 export type UpdatePropertyTypeMessageCallback = MessageCallback<
@@ -138,7 +138,7 @@ export type AggregateEntityTypesMessageCallback = MessageCallback<
 >;
 
 export type GetEntityTypeRequest = {
-  entityTypeId: VersionedUri;
+  entityTypeId: VersionedUrl;
   graphResolveDepths?: Partial<
     Pick<
       Subgraph["depths"],
@@ -158,7 +158,7 @@ export type GetEntityTypeMessageCallback = MessageCallback<
 >;
 
 export type UpdateEntityTypeRequest = {
-  entityTypeId: VersionedUri;
+  entityTypeId: VersionedUrl;
   entityType: Omit<EntityType, SystemDefinedPropertyTypeProperties>;
 };
 export type UpdateEntityTypeMessageCallback = MessageCallback<

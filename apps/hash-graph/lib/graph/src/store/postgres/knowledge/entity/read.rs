@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 use futures::{StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
-use type_system::uri::VersionedUri;
+use type_system::url::VersionedUrl;
 use uuid::Uuid;
 
 use crate::{
@@ -56,7 +56,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         let transaction_time_index = compiler.add_selection_path(&EntityQueryPath::TransactionTime);
 
         let type_id_index =
-            compiler.add_selection_path(&EntityQueryPath::Type(EntityTypeQueryPath::VersionedUri));
+            compiler.add_selection_path(&EntityQueryPath::Type(EntityTypeQueryPath::VersionedUrl));
 
         let properties_index = compiler.add_selection_path(&EntityQueryPath::Properties(None));
 
@@ -89,7 +89,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                     serde_json::from_value(row.get(properties_index))
                         .into_report()
                         .change_context(QueryError)?;
-                let entity_type_id = VersionedUri::from_str(row.get(type_id_index))
+                let entity_type_id = VersionedUrl::from_str(row.get(type_id_index))
                     .into_report()
                     .change_context(QueryError)?;
 

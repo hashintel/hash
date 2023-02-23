@@ -3,12 +3,12 @@ import {
   getDataTypeById as getDataTypeByIdBp,
   getDataTypeByVertexId as getDataTypeByVertexIdBp,
   getDataTypes as getDataTypesBp,
-  getDataTypesByBaseUri as getDataTypesByBaseUriBp,
+  getDataTypesByBaseUrl as getDataTypesByBaseUrlBp,
 } from "@blockprotocol/graph/temporal/stdlib";
-import { VersionedUri } from "@blockprotocol/type-system/slim";
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 
 import {
-  BaseUri,
+  BaseUrl,
   DataTypeWithMetadata,
   OntologyTypeVertexId,
   Subgraph,
@@ -23,7 +23,7 @@ export const getDataTypes = (subgraph: Subgraph): DataTypeWithMetadata[] =>
   getDataTypesBp(subgraph as unknown as SubgraphBp) as DataTypeWithMetadata[];
 
 /**
- * Gets a `DataTypeWithMetadata` by its `VersionedUri` from within the vertices of the subgraph. Returns `undefined` if
+ * Gets a `DataTypeWithMetadata` by its `VersionedUrl` from within the vertices of the subgraph. Returns `undefined` if
  * the data type couldn't be found.
  *
  * @param subgraph
@@ -32,7 +32,7 @@ export const getDataTypes = (subgraph: Subgraph): DataTypeWithMetadata[] =>
  */
 export const getDataTypeById = (
   subgraph: Subgraph,
-  dataTypeId: VersionedUri,
+  dataTypeId: VersionedUrl,
 ): DataTypeWithMetadata | undefined =>
   getDataTypeByIdBp(subgraph as unknown as SubgraphBp, dataTypeId) as
     | DataTypeWithMetadata
@@ -55,16 +55,16 @@ export const getDataTypeByVertexId = (
     | undefined;
 
 /**
- * Returns all `DataTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUri`
+ * Returns all `DataTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUrl`
  *
  * @param subgraph
- * @param baseUri
+ * @param baseUrl
  */
-export const getDataTypesByBaseUri = (
+export const getDataTypesByBaseUrl = (
   subgraph: Subgraph,
-  baseUri: BaseUri,
+  baseUrl: BaseUrl,
 ): DataTypeWithMetadata[] =>
-  getDataTypesByBaseUriBp(
+  getDataTypesByBaseUrlBp(
     subgraph as unknown as SubgraphBp,
-    baseUri,
+    baseUrl,
   ) as DataTypeWithMetadata[];

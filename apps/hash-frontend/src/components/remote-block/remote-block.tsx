@@ -96,7 +96,7 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
       async hook({ data }) {
         /*
          *@todo-0.3 - update this when we update the text blocks, we should stop checking for typeof string,
-         *      it should become an array with a base URI
+         *      it should become an array with a base URL
          */
         if (
           data?.type === "text" &&

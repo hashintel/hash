@@ -8,7 +8,7 @@ import {
   PropertyTypeReference,
   PropertyValues,
   ValueOrArray,
-  VersionedUri,
+  VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
   PrimitiveDataTypeKey,
@@ -16,7 +16,7 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   EntityTypeWithMetadata,
-  linkEntityTypeUri,
+  linkEntityTypeUrl,
   OwnedById,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
@@ -88,12 +88,12 @@ export const RESTRICTED_SHORTNAMES = [
 ];
 
 export type PropertyTypeCreatorParams = {
-  propertyTypeId: VersionedUri;
+  propertyTypeId: VersionedUrl;
   title: string;
   description?: string;
   possibleValues: {
     primitiveDataType?: PrimitiveDataTypeKey;
-    propertyTypeObjectProperties?: { [_ in string]: { $ref: VersionedUri } };
+    propertyTypeObjectProperties?: { [_ in string]: { $ref: VersionedUrl } };
     array?: boolean;
   }[];
 };
@@ -208,7 +208,7 @@ type linkDestinationConstraint =
   | "SELF_REFERENCE";
 
 export type EntityTypeCreatorParams = {
-  entityTypeId: VersionedUri;
+  entityTypeId: VersionedUrl;
   title: string;
   description?: string;
   properties?: {
@@ -239,7 +239,7 @@ export const generateSystemEntityTypeSchema = (
     params.properties?.reduce(
       (prev, { propertyType, array }) => ({
         ...prev,
-        [propertyType.metadata.recordId.baseUri]: array
+        [propertyType.metadata.recordId.baseUrl]: array
           ? {
               type: "array",
               items: { $ref: propertyType.schema.$id },
@@ -252,7 +252,7 @@ export const generateSystemEntityTypeSchema = (
 
   const requiredProperties = params.properties
     ?.filter(({ required }) => !!required)
-    .map(({ propertyType }) => propertyType.metadata.recordId.baseUri);
+    .map(({ propertyType }) => propertyType.metadata.recordId.baseUrl);
 
   const links =
     params.outgoingLinks?.reduce<EntityType["links"]>(
@@ -304,7 +304,7 @@ export type LinkEntityTypeCreatorParams = Omit<
   EntityTypeCreatorParams,
   "entityTypeId"
 > & {
-  linkEntityTypeId: VersionedUri;
+  linkEntityTypeId: VersionedUrl;
 };
 
 /**
@@ -317,7 +317,7 @@ export const generateSystemLinkEntityTypeSchema = (
     ...params,
     entityTypeId: params.linkEntityTypeId,
   }),
-  allOf: [{ $ref: linkEntityTypeUri }],
+  allOf: [{ $ref: linkEntityTypeUrl }],
 });
 
 /**

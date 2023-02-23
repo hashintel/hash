@@ -58,7 +58,7 @@ export const getDataType: ResolverFn<
 
   const { data: dataTypeSubgraph } = await graphApi.getDataTypesByQuery({
     filter: {
-      equal: [{ path: ["versionedUri"] }, { parameter: dataTypeId }],
+      equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
     },
     /** @todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */
     graphResolveDepths: {

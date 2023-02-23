@@ -4,7 +4,7 @@ import { subgraphFieldsFragment } from "../subgraph";
 
 export const createEntityMutation = gql`
   mutation createEntity(
-    $entityTypeId: VersionedUri!
+    $entityTypeId: VersionedUrl!
     $ownedById: OwnedById
     $properties: EntityPropertiesObject!
     $linkData: LinkData
@@ -50,7 +50,7 @@ export const getEntityQuery = gql`
 
 export const getAllLatestEntitiesQuery = gql`
   query getAllLatestEntities(
-    $rootEntityTypeIds: [VersionedUri!]
+    $rootEntityTypeIds: [VersionedUrl!]
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
@@ -81,7 +81,7 @@ export const updateEntityMutation = gql`
     $updatedProperties: EntityPropertiesObject!
     $leftToRightOrder: Int
     $rightToLeftOrder: Int
-    $entityTypeId: VersionedUri
+    $entityTypeId: VersionedUrl
   ) {
     # This is a scalar, which has no selection.
     updateEntity(

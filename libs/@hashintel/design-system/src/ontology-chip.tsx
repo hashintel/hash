@@ -1,4 +1,4 @@
-import { validateVersionedUri } from "@blockprotocol/type-system/slim";
+import { validateVersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   Box,
   Stack,
@@ -11,17 +11,18 @@ import { forwardRef, ForwardRefRenderFunction, ReactNode } from "react";
 
 import { OntologyIcon } from "./ontology-icon";
 
-export const parseUriForOntologyChip = (uri: string) => {
-  const validationResult = validateVersionedUri(uri);
+export const parseUrlForOntologyChip = (url: string) => {
+  const validationResult = validateVersionedUrl(url);
   if (validationResult.type === "Err") {
     throw new Error(
-      `Could not validate uri as VersionedUri: ${validationResult.inner.reason}`,
+      `Could not validate url as VersionedUrl: ${validationResult.inner.reason}`,
     );
   }
   const parsed = validationResult.inner;
-  const url = new URL(parsed);
-  const domain = url.host === "localhost:3000" ? "localhost" : url.host;
-  const path = url.pathname.slice(1);
+  const parsedUrl = new URL(parsed);
+  const domain =
+    parsedUrl.host === "localhost:3000" ? "localhost" : parsedUrl.host;
+  const path = parsedUrl.pathname.slice(1);
   const isHash = domain === "hash.ai";
   const icon = isHash ? <OntologyIcon /> : null;
 

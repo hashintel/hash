@@ -18,7 +18,7 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
     /// Returns the relations that are required to access the path.
     fn relations(&self) -> Vec<Relation> {
         match self {
-            Self::BaseUri
+            Self::BaseUrl
             | Self::Version
             | Self::UpdatedById
             | Self::OwnedById
@@ -40,7 +40,7 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
 
     fn terminating_column(&self) -> Column {
         match self {
-            Self::BaseUri => Column::OntologyIds(OntologyIds::BaseUri),
+            Self::BaseUrl => Column::OntologyIds(OntologyIds::BaseUrl),
             Self::Version => Column::OntologyIds(OntologyIds::Version),
             Self::OwnedById => Column::OntologyIds(OntologyIds::AdditionalMetadata(Some(
                 JsonField::StaticText("owned_by_id"),
@@ -52,7 +52,7 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
                 .map_or(Column::EntityTypes(EntityTypes::Schema(None)), |path| {
                     Column::EntityTypes(EntityTypes::Schema(Some(JsonField::JsonPath(path))))
                 }),
-            Self::VersionedUri => {
+            Self::VersionedUrl => {
                 Column::EntityTypes(EntityTypes::Schema(Some(JsonField::StaticText("$id"))))
             }
             Self::Title => {

@@ -4,9 +4,9 @@ import {
   OneOf,
   PropertyType,
   PropertyValues,
-  validateBaseUri,
-  validateVersionedUri,
-  VersionedUri,
+  validateBaseUrl,
+  validateVersionedUrl,
+  VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
   DataType as DataTypeGraphApi,
@@ -23,7 +23,7 @@ import {
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
 import {
-  BaseUri,
+  BaseUrl,
   EntityId,
   EntityMetadata,
   EntityPropertiesObject,
@@ -42,10 +42,10 @@ import {
 } from "@local/hash-subgraph";
 
 const mapDataType = (dataType: DataTypeGraphApi): DataType => {
-  const idResult = validateVersionedUri(dataType.$id);
+  const idResult = validateVersionedUrl(dataType.$id);
   if (idResult.type === "Err") {
     throw new Error(
-      `Expected type ID to be a Versioned URI:\n${JSON.stringify(
+      `Expected type ID to be a Versioned URL:\n${JSON.stringify(
         idResult.inner,
       )}`,
     );
@@ -65,10 +65,10 @@ const mapPropertyType = (propertyType: PropertyTypeGraphApi): PropertyType => {
     );
   }
 
-  const idResult = validateVersionedUri(propertyType.$id);
+  const idResult = validateVersionedUrl(propertyType.$id);
   if (idResult.type === "Err") {
     throw new Error(
-      `Expected type ID to be a Versioned URI:\n${JSON.stringify(
+      `Expected type ID to be a Versioned URL:\n${JSON.stringify(
         idResult.inner,
       )}`,
     );
@@ -92,7 +92,7 @@ const mapOntologyTypeRecordId = (
   recordId: OntologyElementMetadataGraphApi["recordId"],
 ): OntologyTypeRecordId => {
   return {
-    baseUri: recordId.baseUri as BaseUri,
+    baseUrl: recordId.baseUrl as BaseUrl,
     version: recordId.version,
   };
 };
@@ -209,7 +209,7 @@ const mapEntityMetadata = (
 ): EntityMetadata => {
   return {
     recordId: mapEntityRecordId(metadata.recordId),
-    entityTypeId: metadata.entityTypeId as VersionedUri,
+    entityTypeId: metadata.entityTypeId as VersionedUrl,
     temporalVersioning: mapEntityTemporalVersioningMetadata(
       metadata.temporalVersioning,
     ),
@@ -240,12 +240,12 @@ export const mapVertices = (vertices: VerticesGraphApi): Vertices => {
 
   // Trying to build this with `Object.fromEntries` breaks tsc and leads to `any` typed values
   for (const [baseId, inner] of Object.entries(vertices)) {
-    const result = validateBaseUri(baseId);
+    const result = validateBaseUrl(baseId);
     if (result.type === "Ok") {
       // ------------ Ontology Type case ----------------
-      const baseUri = result.inner as BaseUri;
+      const baseUrl = result.inner as BaseUrl;
 
-      mappedVertices[baseUri] = Object.fromEntries(
+      mappedVertices[baseUrl] = Object.fromEntries(
         Object.entries(inner).map(([version, vertex]) => {
           const versionNumber = Number(version);
 

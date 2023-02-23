@@ -65,30 +65,30 @@ impl<C: AsClient> PostgresStore<C> {
 
             // Collecting references before traversing further to avoid having a shared
             // reference to the subgraph when borrowing it mutably
-            let data_type_ref_uris = (current_resolve_depths.constrains_values_on.outgoing > 0)
+            let data_type_ref_urls = (current_resolve_depths.constrains_values_on.outgoing > 0)
                 .then(|| {
                     property_type
                         .inner()
                         .data_type_references()
                         .into_iter()
-                        .map(DataTypeReference::uri)
+                        .map(DataTypeReference::url)
                         .cloned()
                         .collect::<Vec<_>>()
                 });
 
-            let property_type_ref_uris =
+            let property_type_ref_urls =
                 (current_resolve_depths.constrains_properties_on.outgoing > 0).then(|| {
                     property_type
                         .inner()
                         .property_type_references()
                         .into_iter()
-                        .map(PropertyTypeReference::uri)
+                        .map(PropertyTypeReference::url)
                         .cloned()
                         .collect::<Vec<_>>()
                 });
 
-            if let Some(data_type_ref_uris) = data_type_ref_uris {
-                for data_type_ref in data_type_ref_uris {
+            if let Some(data_type_ref_urls) = data_type_ref_urls {
+                for data_type_ref in data_type_ref_urls {
                     let data_type_vertex_id = OntologyTypeVertexId::from(data_type_ref);
 
                     subgraph.edges.insert(Edge::Ontology {
@@ -117,9 +117,9 @@ impl<C: AsClient> PostgresStore<C> {
                 }
             }
 
-            if let Some(property_type_ref_uris) = property_type_ref_uris {
-                for property_type_ref_uri in property_type_ref_uris {
-                    let property_type_vertex_id = OntologyTypeVertexId::from(property_type_ref_uri);
+            if let Some(property_type_ref_urls) = property_type_ref_urls {
+                for property_type_ref_url in property_type_ref_urls {
+                    let property_type_vertex_id = OntologyTypeVertexId::from(property_type_ref_url);
 
                     subgraph.edges.insert(Edge::Ontology {
                         vertex_id: property_type_id.clone(),
