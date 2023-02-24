@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/type-editor",
-  "version": "0.0.10",
+  "version": "0.0.12",
   "description": "A visual editor for Block Protocol types",
   "repository": {
     "type": "git",
