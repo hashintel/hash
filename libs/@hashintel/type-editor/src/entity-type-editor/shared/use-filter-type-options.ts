@@ -41,6 +41,6 @@ export const useFilterTypeOptions = <T extends PropertyType | EntityType>({
       }
     }
 
-    return [...filteredTypeOptions.values()];
+    return Array.from(filteredTypeOptions.values());
   }, [typeOptions, typesToExclude]);
 };
