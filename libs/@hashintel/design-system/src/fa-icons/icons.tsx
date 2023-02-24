@@ -7,5 +7,7 @@ export { faCube } from "./fa-cube";
 export { faCubes } from "./fa-cubes";
 export { faEmptySet } from "./fa-empty-set";
 export { faListTree } from "./fa-list-tree";
+export { faPlus } from "./fa-plus";
 export { faSquareCheck } from "./fa-square-check";
 export { faText } from "./fa-text";
+export { faTrash } from "./fa-trash";

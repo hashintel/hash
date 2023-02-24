@@ -18,12 +18,13 @@ export const EditableField = ({
   placeholder,
   sx,
   onBlur,
+  inputProps,
   ...props
 }: { iconSize: string; readonly?: boolean } & TextFieldProps) => {
-  const { transitions } = useTheme();
+  const { transitions, palette } = useTheme();
 
   const [hovered, setHovered] = useState(false);
-  const [editing, setEditing] = useState(!readonly && !value ? true : false);
+  const [editing, setEditing] = useState(false);
   const inputRef = useRef<HTMLDivElement | null>(null);
 
   return (
@@ -51,7 +52,20 @@ export const EditableField = ({
         inputRef={inputRef}
         inputProps={{
           readOnly: !editing,
-          ...props.inputProps,
+          ...inputProps,
+          sx: [
+            {
+              "&::placeholder": {
+                color: palette.gray[50],
+                opacity: 1,
+              },
+            },
+            ...(inputProps
+              ? Array.isArray(inputProps.sx)
+                ? inputProps.sx
+                : [inputProps.sx]
+              : []),
+          ],
         }}
         variant="standard"
         placeholder={!readonly ? placeholder : undefined}
