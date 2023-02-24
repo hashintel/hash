@@ -9,8 +9,8 @@
   },
   "license": "AGPL-3.0",
   "sideEffects": false,
-  "main": "main.ts",
-  "types": "main.ts",
+  "main": "src/main.ts",
+  "types": "src/main.ts",
   "scripts": {
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
