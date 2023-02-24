@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/type-editor",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "A visual editor for Block Protocol types",
   "repository": {
     "type": "git",
@@ -9,8 +9,8 @@
   },
   "license": "AGPL-3.0",
   "sideEffects": false,
-  "main": "src/main.ts",
-  "types": "src/main.ts",
+  "main": "dist/main.js",
+  "types": "dist/main.d.ts",
   "scripts": {
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
@@ -29,11 +29,6 @@
     "material-ui-popup-state": "4.0.2",
     "rooks": "7.4.3",
     "setimmediate": "1.0.5"
-  },
-  "devDependencies": {
-    "@local/eslint-config": "0.0.0-private",
-    "@types/lodash.memoize": "4.1.7",
-    "@types/lodash.uniqueid": "4.0.7"
   },
   "peerDependencies": {
     "@mui/material": "^5.11.0",
