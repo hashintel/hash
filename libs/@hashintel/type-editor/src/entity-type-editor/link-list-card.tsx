@@ -1,8 +1,4 @@
-import {
-  EntityType,
-  extractBaseUrl,
-  VersionedUrl,
-} from "@blockprotocol/type-system/slim";
+import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { LinkIcon, StyledPlusCircleIcon } from "@hashintel/design-system";
 import {
   Box,
@@ -43,6 +39,7 @@ import {
   TypeFormProps,
 } from "./shared/type-form";
 import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
+import { useFilterTypeOptions } from "./shared/use-filter-type-options";
 import { useStateCallback } from "./shared/use-state-callback";
 import { useTypeVersions } from "./shared/use-type-versions";
 import { VersionUpgradeIndicator } from "./shared/version-upgrade-indicator";
@@ -207,15 +204,10 @@ const InsertLinkRow = (
   const { linkTypes: linkTypeOptions } = useEntityTypesOptions();
   const linkTypes = Object.values(linkTypeOptions);
 
-  const filteredLinkTypes = useMemo(() => {
-    const linkBaseUrls = links.map((linkedLinkType) =>
-      extractBaseUrl(linkedLinkType.$id),
-    );
-
-    return linkTypes.filter(
-      (type) => !linkBaseUrls.includes(extractBaseUrl(type.$id)),
-    );
-  }, [links, linkTypes]);
+  const filteredLinkTypes = useFilterTypeOptions({
+    typesToExclude: links,
+    typeOptions: linkTypes,
+  });
 
   return (
     <InsertTypeRow {...props} options={filteredLinkTypes} variant="link" />
