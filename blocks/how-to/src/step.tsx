@@ -1,6 +1,7 @@
 import { Button, faTrash, FontAwesomeIcon } from "@hashintel/design-system";
 import {
   Box,
+  Fade,
   inputBaseClasses,
   TextField,
   TextFieldProps,
@@ -11,23 +12,27 @@ import { FunctionComponent, useState } from "react";
 import { EditableField } from "./editable-field";
 
 interface StepProps {
-  index: number;
+  header: string;
   title?: string;
   description?: string;
+  deletable?: boolean;
   readonly?: boolean;
   updateTitle: (title: string) => void;
   updateDescription: (description: string) => void;
   onRemove: () => void;
+  deleteButtonText: string;
 }
 
 export const Step: FunctionComponent<StepProps> = ({
-  index,
+  header,
   title,
   description,
+  deletable = true,
   readonly,
   updateTitle,
   updateDescription,
   onRemove,
+  deleteButtonText,
 }) => {
   const { palette } = useTheme();
   const [titleValue, setTitleValue] = useState(title);
@@ -43,12 +48,13 @@ export const Step: FunctionComponent<StepProps> = ({
             fontSize: 15,
             lineHeight: 1.2,
             color: palette.black,
+            paddingY: 0.75,
           }}
         >
-          Step {index}
+          {header}
         </Typography>
 
-        {!readonly ? (
+        <Fade in={!readonly && deletable}>
           <Button
             variant="tertiary"
             size="xs"
@@ -71,21 +77,13 @@ export const Step: FunctionComponent<StepProps> = ({
               icon={{ icon: faTrash }}
               sx={{ fontSize: 12, mr: 1 }}
             />
-            Remove step
+            {deleteButtonText}
           </Button>
-        ) : null}
+        </Fade>
       </Box>
 
       <Box
         sx={{
-          // paddingY: 2.125,
-          // paddingX: 2.75,
-          // borderWidth: 1,
-          // borderBottomWidth: 0,
-          // borderStyle: "solid",
-          // borderColor: palette.gray[20],
-          // borderTopLeftRadius: 10,
-          // borderTopRightRadius: 10,
           ...(!readonly
             ? {
                 paddingY: 2.125,

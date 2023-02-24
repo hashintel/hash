@@ -10,16 +10,26 @@ import {
   FontAwesomeIcon,
   theme,
 } from "@hashintel/design-system";
-import { Card, Stack, textFieldClasses, ThemeProvider } from "@mui/material";
+import {
+  Card,
+  Collapse,
+  Stack,
+  textFieldClasses,
+  ThemeProvider,
+} from "@mui/material";
 import Box from "@mui/material/Box";
 import { useCallback, useRef, useState } from "react";
 import { EditableField } from "./editable-field";
 import { Step } from "./step";
+import { v4 as uuid } from "uuid";
 
 interface Step {
+  id?: string;
   title: string;
   description: string;
+  animatingOut?: boolean;
 }
+
 const EMPTY_STEP: Step = { title: "", description: "" };
 
 export const App: BlockComponent<true, RootEntity> = ({
@@ -44,18 +54,27 @@ export const App: BlockComponent<true, RootEntity> = ({
 
   const [titleValue, setTitleValue] = useState("");
   const [descriptionValue, setDescriptionValue] = useState("");
-  const [steps, setSteps] = useState([EMPTY_STEP]);
+  const [steps, setSteps] = useState<Step[]>([{ id: uuid(), ...EMPTY_STEP }]);
+  const [introduction, setIntroduction] = useState<Step | null>(null);
 
-  const addStep = () => setSteps([...steps, EMPTY_STEP]);
+  const addStep = () => setSteps([...steps, { id: uuid(), ...EMPTY_STEP }]);
 
   const removeStep = (index: number) => {
     const newSteps = [...steps];
-    newSteps.splice(index, 1);
-    setSteps(newSteps);
+    updateStepField(index, true, "animatingOut");
+
+    setTimeout(() => {
+      newSteps.splice(index, 1);
+      setSteps(newSteps);
+    }, 300);
   };
 
   const updateStepField = useCallback(
-    (index: number, value: string, field: "title" | "description") => {
+    (
+      index: number,
+      value: any,
+      field: "title" | "description" | "animatingOut",
+    ) => {
       const newSteps = steps.map((step, stepIndex) => {
         if (stepIndex === index) {
           return { ...step, [field]: value };
@@ -69,7 +88,22 @@ export const App: BlockComponent<true, RootEntity> = ({
     [steps],
   );
 
-  console.log(steps);
+  const removeIntroduction = () => {
+    updateIntroductionField(true, "animatingOut");
+
+    setTimeout(() => {
+      setIntroduction(null);
+    }, 300);
+  };
+
+  const updateIntroductionField = useCallback(
+    (value: any, field: "title" | "description" | "animatingOut") => {
+      if (introduction) {
+        setIntroduction({ ...introduction, [field]: value });
+      }
+    },
+    [introduction],
+  );
 
   return (
     <ThemeProvider theme={theme}>
@@ -132,22 +166,92 @@ export const App: BlockComponent<true, RootEntity> = ({
               />
             </Stack>
 
-            {steps.map(({ title, description }, index) => (
+            <Box>
+              {/* {!readonly && !introduction ? ( */}
+
+              <Collapse in={!readonly && !introduction}>
+                <Button
+                  variant="tertiary"
+                  size="small"
+                  sx={{ fontSize: 14 }}
+                  onClick={() => setIntroduction(EMPTY_STEP)}
+                >
+                  <FontAwesomeIcon
+                    icon={{ icon: faPlus }}
+                    sx={{ mr: 1, fontSize: 13 }}
+                  />
+                  Add Introduction
+                </Button>
+              </Collapse>
+
+              <Collapse
+                in={introduction !== null && !introduction?.animatingOut}
+                appear
+              >
+                <Step
+                  header="Introduction"
+                  title={introduction?.title}
+                  description={introduction?.description}
+                  updateTitle={(value: string) =>
+                    updateIntroductionField(value, "title")
+                  }
+                  updateDescription={(value: string) =>
+                    updateIntroductionField(value, "description")
+                  }
+                  onRemove={() => removeIntroduction()}
+                  readonly={readonly}
+                  deleteButtonText="Remove intro"
+                />
+              </Collapse>
+            </Box>
+            {/* {introduction ? ( */}
+            {/* <Collapse
+              in={introduction !== null && !introduction?.animatingOut}
+              appear
+            >
               <Step
-                key={index}
-                index={index + 1}
-                title={title}
-                description={description}
+                header="Introduction"
+                title={introduction?.title}
+                description={introduction?.description}
                 updateTitle={(value: string) =>
-                  updateStepField(index, value, "title")
+                  updateIntroductionField(value, "title")
                 }
                 updateDescription={(value: string) =>
-                  updateStepField(index, value, "description")
+                  updateIntroductionField(value, "description")
                 }
-                onRemove={() => removeStep(index)}
+                onRemove={() => removeIntroduction()}
                 readonly={readonly}
               />
-            ))}
+            </Collapse> */}
+            {/* ) : null} */}
+
+            <Box>
+              {steps.map(({ id, title, description, animatingOut }, index) => (
+                <Collapse key={id} in={!animatingOut} appear>
+                  <Box
+                    sx={{
+                      mb: index === steps.length - 1 ? 0 : 3,
+                    }}
+                  >
+                    <Step
+                      header={`Step ${index + 1}`}
+                      title={title}
+                      description={description}
+                      updateTitle={(value: string) =>
+                        updateStepField(index, value, "title")
+                      }
+                      updateDescription={(value: string) =>
+                        updateStepField(index, value, "description")
+                      }
+                      onRemove={() => removeStep(index)}
+                      readonly={readonly}
+                      deletable={steps.length > 1}
+                      deleteButtonText="Remove step"
+                    />
+                  </Box>
+                </Collapse>
+              ))}
+            </Box>
 
             {!readonly ? (
               <Box>
