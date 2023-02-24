@@ -152,7 +152,6 @@ const LinkTypeRow = ({
                 <VersionUpgradeIndicator
                   currentVersion={currentVersion}
                   latestVersion={latestVersion}
-                  // @todo should this be onUpdateVersionRef.current
                   onUpdateVersion={() => {
                     if (latestVersion) {
                       onUpdateVersion(`${baseUrl}v/${latestVersion}`);

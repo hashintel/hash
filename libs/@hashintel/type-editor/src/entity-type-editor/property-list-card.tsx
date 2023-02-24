@@ -415,7 +415,6 @@ export const PropertyTypeRow = ({
               : {})}
           />
         }
-        // @todo why is this not using the function in onUpdateVersionRef but TypeFormModal does
         onUpdateVersion={onUpdateVersion}
         flash={flash}
       />
