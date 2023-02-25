@@ -72,7 +72,7 @@ If we wanted the block to handle rendering, the Block Protocol would need to spe
 
 Text would have to be transformed from however the application stores it into that standard interface format and then transformed back again when the block requests updates to it.
 
-This is absolutely possible – it’s a burden on the embedding application, but we already require that applications translate their records into [a specified graph representation of entities and links](https://blockprotocol.org/docs/spec/graph-service#entity-definition). For text, we could choose a popular format – some flavour of Markdown would be a good candidate – and provide utilities to handle the conversion to and from other common formats.
+This is absolutely possible – it’s a burden on the embedding application, but we already require that applications translate their records into [a specified graph representation of entities and links](https://blockprotocol.org/docs/spec/graph-module#entity-definition). For text, we could choose a popular format – some flavour of Markdown would be a good candidate – and provide utilities to handle the conversion to and from other common formats.
 
 But this would only get us so far – there would still be application-specific content, such as `@mentions` of people, and hotkeys, that might require special handling.
 
@@ -105,29 +105,29 @@ This is already something we think about in the Block Protocol – we want appli
 
 To avoid blowing up the scope and complexity of the Block Protocol, and to avoid attempting standardization in an area that could potentially hinder embedding applications’ ability to provide systems which work for them, we are opting for (2).
 
-## Introducing: the hook service
+## Introducing: the hook module
 
-The hook service introduces the concept of “hooks”.
+The hook module introduces the concept of “hooks”.
 
-You can [read the formal specification for the hook service here](https://blockprotocol.org/docs/spec/hook-service-specification), but in summary:
+You can [read the formal specification for the hook module here](https://blockprotocol.org/docs/spec/hook-module), but in summary:
 
-> Under the hook service, a block can invite embedding application to take over the rendering of an element within the block (the **hook**), allowing embedding applications to provide users with application-specific views of data of a specified type.
+> Under the hook module, a block can invite embedding application to take over the rendering of an element within the block (the **hook**), allowing embedding applications to provide users with application-specific views of data of a specified type.
 
-Blocks can send a message under the service, specifying a DOM element, the type of data it is intended to hold, and which entity property the data should be retrieved from and stored in. The application then renders the data according to its preference, including any editing controls.
+Using the module, blocks can send a message specifying: a DOM element, the type of data it is intended to hold, and which entity property the data should be retrieved from and stored in. The application then renders the data according to its preference, including any editing controls.
 
 This allows applications to control the display and editing experience for specialized data, while blocks retain control over where exactly in their interface a given property is displayed or edited.
 
-This isn’t just intended for rich text, although text was the motivating factor — the hook service also allows applications to provide their own display, editing, and sharing controls for images, for example.
+This isn’t just intended for rich text, although text was the motivating factor — the hook module also allows applications to provide their own display, editing, and sharing controls for images, for example.
 
 We aren’t prescribing a fixed list of types — we want to see which are supported by applications and requested by blocks, and ones that we can’t imagine ourselves.
 
-The use of the hook service makes blocks that _only_ render a piece of rich text extremely boring. Our [paragraph block](https://github.com/hashintel/hash/blob/main/blocks/paragraph/src/app.tsx), for example, does nothing more than render a `<p>` tag and demand that the embedding application does everything else.
+The use of the hook module makes blocks that _only_ render a piece of rich text extremely boring. Our [paragraph block](https://github.com/hashintel/hash/blob/main/blocks/paragraph/src/app.tsx), for example, does nothing more than render a `<p>` tag and demand that the embedding application does everything else.
 
-If we only needed rich text in paragraphs, the hook service would be unnecessary – embedding applications could manage rendering the `<p>` tag as well, and forget using the Block Protocol for rich text.
+If we only needed rich text in paragraphs, the hook module would be unnecessary – embedding applications could manage rendering the `<p>` tag as well, and forget using the Block Protocol for rich text.
 
 But we don’t only expect rich text in paragraph-shaped rectangles — we expect it in lists, in columns, in table cells.
 
-The ability for blocks to summon a fully-featured, familiar interface for text editing anywhere it is required is what will make the hook service shine.
+The ability for blocks to summon a fully-featured, familiar interface for text editing anywhere it is required is what will make the hook module shine.
 
 ### Limitations
 
@@ -135,7 +135,7 @@ At the moment, hooks are initialized at a block’s request, with the type of da
 
 Solving this might involve a way of applications telling blocks which data require bespoke handling, allowing blocks to ignore it or ask the application to render a view of it into a specified DOM node. It could also involve special entity or property types which identify those rich experiences may be available for – we’ll be thinking about this in the context of the [upcoming new type system](https://github.com/blockprotocol/blockprotocol/blob/main/rfcs/text/0352-graph-type-system.md), which improves the composability and reusability of types.
 
-It’s also worth noting that because it relies on the application rendering something _inside_ the block, the hook service requires that the application has access to the block’s DOM. That is fine in the current system, but if [we ever amend the Block Protocol to provide for blocks running in a scope that the application can only communicate with asynchronously](https://github.com/blockprotocol/blockprotocol/discussions/392), the hook service would not work for those blocks.
+It’s also worth noting that because it relies on the application rendering something _inside_ the block, the hook module requires that the application has access to the block’s DOM. That is fine in the current system, but if [we ever amend the Block Protocol to provide for blocks running in a scope that the application can only communicate with asynchronously](https://github.com/blockprotocol/blockprotocol/discussions/392), the hook module would not work for those blocks.
 
 ## To boldly go (further)
 
