@@ -8,9 +8,9 @@ export const dataTypeTypedef = gql`
 
   extend type Query {
     """
-    Get a subgraph rooted at all data types at their latest version.
+    Get a subgraph rooted at all data types that match a given filter.
     """
-    getAllLatestDataTypes(
+    queryDataTypes(
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     ): Subgraph!
 

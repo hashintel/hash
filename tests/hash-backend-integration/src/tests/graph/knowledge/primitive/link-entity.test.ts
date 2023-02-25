@@ -88,7 +88,6 @@ describe("Link entity", () => {
           type: "object",
           allOf: [{ $ref: linkEntityTypeUrl }],
           properties: {},
-          additionalProperties: false,
         },
         actorId: testUser.accountId,
       }).then((linkEntityType) => {
@@ -103,7 +102,6 @@ describe("Link entity", () => {
           type: "object",
           allOf: [{ $ref: linkEntityTypeUrl }],
           properties: {},
-          additionalProperties: false,
         },
         actorId: testUser.accountId,
       }).then((linkEntityType) => {

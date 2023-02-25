@@ -12,8 +12,8 @@ import {
 import {
   MutationCreatePropertyTypeArgs,
   MutationUpdatePropertyTypeArgs,
-  QueryGetAllLatestPropertyTypesArgs,
   QueryGetPropertyTypeArgs,
+  QueryQueryPropertyTypesArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../context";
@@ -38,11 +38,11 @@ export const createPropertyTypeResolver: ResolverFn<
   return createdPropertyType;
 };
 
-export const getAllLatestPropertyTypesResolver: ResolverFn<
+export const queryPropertyTypesResolver: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
-  QueryGetAllLatestPropertyTypesArgs
+  QueryQueryPropertyTypesArgs
 > = async (
   _,
   { constrainsValuesOn, constrainsPropertiesOn },

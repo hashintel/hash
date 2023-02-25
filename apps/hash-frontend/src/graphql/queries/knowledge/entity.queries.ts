@@ -48,8 +48,8 @@ export const getEntityQuery = gql`
   ${subgraphFieldsFragment}
 `;
 
-export const getAllLatestEntitiesQuery = gql`
-  query getAllLatestEntities(
+export const queryEntitiesQuery = gql`
+  query queryEntities(
     $rootEntityTypeIds: [VersionedUrl!]
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
@@ -59,7 +59,7 @@ export const getAllLatestEntitiesQuery = gql`
     $hasLeftEntity: EdgeResolveDepthsInput!
     $hasRightEntity: EdgeResolveDepthsInput!
   ) {
-    getAllLatestEntities(
+    queryEntities(
       rootEntityTypeIds: $rootEntityTypeIds
       constrainsValuesOn: $constrainsValuesOn
       constrainsPropertiesOn: $constrainsPropertiesOn

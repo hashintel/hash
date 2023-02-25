@@ -3,31 +3,31 @@ import { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
 import {
-  GetAllLatestEntitiesQuery,
-  GetAllLatestEntitiesQueryVariables,
+  QueryEntitiesQuery,
+  QueryEntitiesQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { getAllLatestEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
-import { AggregateEntitiesMessageCallback } from "./knowledge-shim";
+import { queryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { QueryEntitiesMessageCallback } from "./knowledge-shim";
 
-export const useBlockProtocolAggregateEntities = (): {
-  aggregateEntities: AggregateEntitiesMessageCallback;
+export const useBlockProtocolQueryEntities = (): {
+  queryEntities: QueryEntitiesMessageCallback;
 } => {
-  const [aggregateFn] = useLazyQuery<
-    GetAllLatestEntitiesQuery,
-    GetAllLatestEntitiesQueryVariables
-  >(getAllLatestEntitiesQuery, {
+  const [queryFn] = useLazyQuery<
+    QueryEntitiesQuery,
+    QueryEntitiesQueryVariables
+  >(queryEntitiesQuery, {
     /** @todo reconsider caching. This is done for testing/demo purposes. */
     fetchPolicy: "no-cache",
   });
 
-  const aggregateEntities = useCallback<AggregateEntitiesMessageCallback>(
+  const queryEntities = useCallback<QueryEntitiesMessageCallback>(
     async ({ data }) => {
       if (!data) {
         return {
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "'data' must be provided for aggregateEntities",
+              message: "'data' must be provided for queryEntities",
             },
           ],
         };
@@ -36,12 +36,12 @@ export const useBlockProtocolAggregateEntities = (): {
       const { rootEntityTypeIds, graphResolveDepths } = data;
 
       /**
-       * @todo Add filtering to this aggregate query using structural querying.
+       * @todo Add filtering to this query using structural querying.
        *   This may mean having the backend use structural querying and relaying
        *   or doing it from here.
        *   https://app.asana.com/0/1202805690238892/1202890614880643/f
        */
-      const { data: response } = await aggregateFn({
+      const { data: response } = await queryFn({
         variables: {
           rootEntityTypeIds,
           constrainsValuesOn: { outgoing: 255 },
@@ -60,7 +60,7 @@ export const useBlockProtocolAggregateEntities = (): {
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "Error calling aggregateEntities",
+              message: "Error calling queryEntities",
             },
           ],
         };
@@ -68,11 +68,11 @@ export const useBlockProtocolAggregateEntities = (): {
 
       return {
         /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
-        data: response.getAllLatestEntities as Subgraph<EntityRootType>,
+        data: response.queryEntities as Subgraph<EntityRootType>,
       };
     },
-    [aggregateFn],
+    [queryFn],
   );
 
-  return { aggregateEntities };
+  return { queryEntities };
 };

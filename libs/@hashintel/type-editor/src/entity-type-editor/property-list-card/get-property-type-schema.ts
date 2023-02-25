@@ -52,7 +52,6 @@ const getObjectSchema = (
     type: "object",
     properties: propertyList,
     required: requiredArray,
-    additionalProperties: false,
   };
 };
 

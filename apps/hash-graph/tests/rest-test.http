@@ -386,10 +386,8 @@ Accept: application/json
         "$ref": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1"
       }
     ],
-    "properties": {},
-    "additionalProperties": false
-  },
-  "additionalProperties": false
+    "properties": {}
+  }
 }
 
 > {%
@@ -485,10 +483,8 @@ Accept: application/json
       "http://localhost:3000/@alice/types/property-type/name/": {
         "$ref": "http://localhost:3000/@alice/types/property-type/name/v/1"
       }
-    },
-    "additionalProperties": false
-  },
-  "additionalProperties": false
+    }
+  }
 }
 
 > {%
@@ -590,10 +586,8 @@ Accept: application/json
         },
         "ordered": false
       }
-    },
-    "additionalProperties": false
-  },
-  "additionalProperties": false
+    }
+  }
 }
 
 > {%

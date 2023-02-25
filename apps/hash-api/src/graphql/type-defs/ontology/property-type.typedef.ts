@@ -6,9 +6,9 @@ export const propertyTypeTypedef = gql`
 
   extend type Query {
     """
-    Get a subgraph rooted at all property types at their latest version.
+    Get a subgraph rooted at all property types that match a given filter.
     """
-    getAllLatestPropertyTypes(
+    queryPropertyTypes(
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     ): Subgraph!
